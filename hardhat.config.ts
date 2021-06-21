@@ -111,7 +111,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
     },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/d6a7e4f068a74b2aa4e1a6610e7ae6cd", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://rinkeby.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
