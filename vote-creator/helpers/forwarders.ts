@@ -13,7 +13,7 @@ export const getForwarderFee = async (
 ): Promise<[string, BigNumber] & { feeToken: string; feeAmount: BigNumber }> => {
   const forwarderFee = (await ethers.getContractAt("IForwarderFee", appAddress)) as IForwarderFee;
   try {
-    return forwarderFee.forwardFee();
+    return await forwarderFee.forwardFee();
   } catch (err) {
     return null;
   }
@@ -27,10 +27,9 @@ export const getForwarderType = async (appAddress: string, signer: Signer): Prom
     throw new Error(`App ${appAddress} is not a forwarder`);
   }
 
-  // If it fails then app implements an aragonos older-version forwarder
+  // If it fails then app implements an aragonos older version forwarder
   try {
-    const type = await forwarderContract.forwarderType();
-    return type;
+    return await forwarderContract.forwarderType();
   } catch (err) {
     return 1;
   }

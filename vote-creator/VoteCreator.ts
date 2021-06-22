@@ -57,63 +57,55 @@ export default class VoteCreator {
   async forward(path: Address[], method: string, params: any[], context?: string) {
     // Need to build the evmscript starting from the last forwarder
     const forwarders = [...path].reverse();
-    const firstForwarder = forwarders.pop();
     const targetApp = forwarders.shift();
 
-    let forwarderScript: string;
+    let script: string;
     let txReceipt: ContractReceipt;
     let txValue = BigNumber.from(0);
 
-    forwarderScript = encodeCallScript([{ to: targetApp, data: encodeActCall(method, params) }]);
+    // forwarderScript = encodeCallScript([{ to: targetApp, data: encodeActCall(method, params) }]);
+    let calldata = { to: targetApp, data: encodeActCall(method, params) };
 
     for (let i = 0; i < forwarders.length; i++) {
+      script = encodeCallScript([calldata]);
       const forwarder = forwarders[i];
       const fee = await getForwarderFee(forwarder);
 
       if (fee) {
         const { feeToken, feeAmount } = fee;
+
+        // Check if fees are in ETH
         if (feeToken === ZERO_ADDRESS) {
           txValue = feeAmount;
         } else {
           const token = (await ethers.getContractAt("ERC20", feeToken, this.#signer)) as ERC20;
           const allowance = await token.allowance(await this.#signer.getAddress(), forwarder);
+
           if (allowance.gt(BigNumber.from(0)) && allowance.lt(feeAmount)) {
-            await token.approve(forwarder, 0);
+            await (await token.approve(forwarder, 0)).wait();
           }
-          await token.approve(forwarder, feeToken);
+          if (allowance.eq(BigNumber.from(0))) {
+            await (await token.approve(forwarder, feeAmount)).wait();
+          }
         }
       }
 
       if ((await getForwarderType(forwarder, this.#signer)) === WITH_CONTEXT) {
-        const data = encodeActCall("forward(bytes,bytes)", [forwarderScript, context]);
-        forwarderScript = encodeCallScript([{ to: forwarder, data }]);
+        const data = encodeActCall("forward(bytes,bytes)", [script, context]);
+        calldata = { to: forwarder, data };
       } else {
-        const data = encodeActCall("forward(bytes)", [forwarderScript]);
-        forwarderScript = encodeCallScript([{ to: forwarder, data }]);
+        const data = encodeActCall("forward(bytes)", [script]);
+        calldata = { to: forwarder, data };
       }
     }
-
-    if ((await getForwarderType(firstForwarder, this.#signer)) === WITH_CONTEXT) {
-      txReceipt = await (
-        await this.#signer.sendTransaction({
-          to: firstForwarder,
-          data: encodeActCall("forward(bytes,bytes)", [forwarderScript, context]),
-          gasLimit: TX_GAS_LIMIT,
-          value: txValue,
-        })
-      ).wait();
-      console.log(txReceipt);
-    } else {
-      txReceipt = await (
-        await this.#signer.sendTransaction({
-          to: firstForwarder,
-          data: encodeActCall("forward(bytes)", [forwarderScript]),
-          gasLimit: TX_GAS_LIMIT,
-          value: txValue,
-        })
-      ).wait();
-      console.log(txReceipt);
-    }
+    txReceipt = await (
+      await this.#signer.sendTransaction({
+        ...calldata,
+        gasLimit: TX_GAS_LIMIT,
+        value: txValue,
+      })
+    ).wait();
+    console.log(txReceipt);
   }
 
   async installNewApp(appName: string, registryName: string, appInitArguments: any[] = []) {
