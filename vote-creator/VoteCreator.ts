@@ -1,7 +1,6 @@
 import { ethers } from "hardhat";
-import { BigNumber, ContractReceipt, providers, Signer, utils } from "ethers";
+import { BigNumber, providers, Signer, utils } from "ethers";
 import { connect, Organization, Address, encodeCallScript, App, GraphQLWrapper } from "@1hive/connect";
-import ora from "ora";
 import {
   FORWARDER_TYPES,
   getForwarderFee,
@@ -15,12 +14,11 @@ import {
   subgraphUrlFromChainId,
   normalizeRole,
 } from "./helpers";
-import { Permission } from "./types";
+import { CallScriptAction, Permission } from "./types";
 import { ERC20 } from "../typechain";
 
+const IPFS_URI = "https://ipfs.eth.aragon.network/ipfs/{cid}{path}";
 const { WITH_CONTEXT } = FORWARDER_TYPES;
-
-let spinner = ora();
 
 export default class VoteCreator {
   #dao: Organization;
@@ -31,13 +29,13 @@ export default class VoteCreator {
     this.#signer = signer;
   }
 
-  async initialize(daoAddress) {
+  async connect(daoAddress) {
     const chainId = await this.#signer.getChainId();
 
     this.#dao = await connect(daoAddress, "thegraph", {
       actAs: await this.#signer.getAddress(),
       network: chainId,
-      ipfs: "https://ipfs.eth.aragon.network/ipfs/{cid}{path}",
+      ipfs: IPFS_URI,
     });
     this.#gql = new GraphQLWrapper(subgraphUrlFromChainId(chainId));
   }
@@ -54,20 +52,22 @@ export default class VoteCreator {
     return ((await this.dao.app(name)) as App).address as Address;
   }
 
-  async forward(path: Address[], method: string, params: any[], context?: string) {
+  async calculateForwardScript(
+    path: Address[],
+    method: string,
+    params: any[],
+    context?: string
+  ): Promise<CallScriptAction> {
     // Need to build the evmscript starting from the last forwarder
     const forwarders = [...path].reverse();
     const targetApp = forwarders.shift();
 
     let script: string;
-    let txReceipt: ContractReceipt;
-    let txValue = BigNumber.from(0);
-
-    // forwarderScript = encodeCallScript([{ to: targetApp, data: encodeActCall(method, params) }]);
-    let calldata = { to: targetApp, data: encodeActCall(method, params) };
+    let action: CallScriptAction = { to: targetApp, data: encodeActCall(method, params) };
+    let value = BigNumber.from(0);
 
     for (let i = 0; i < forwarders.length; i++) {
-      script = encodeCallScript([calldata]);
+      script = encodeCallScript([action]);
       const forwarder = forwarders[i];
       const fee = await getForwarderFee(forwarder);
 
@@ -76,7 +76,7 @@ export default class VoteCreator {
 
         // Check if fees are in ETH
         if (feeToken === ZERO_ADDRESS) {
-          txValue = feeAmount;
+          value = feeAmount;
         } else {
           const token = (await ethers.getContractAt("ERC20", feeToken, this.#signer)) as ERC20;
           const allowance = await token.allowance(await this.#signer.getAddress(), forwarder);
@@ -92,36 +92,33 @@ export default class VoteCreator {
 
       if ((await getForwarderType(forwarder, this.#signer)) === WITH_CONTEXT) {
         const data = encodeActCall("forward(bytes,bytes)", [script, context]);
-        calldata = { to: forwarder, data };
+        action = { to: forwarder, data };
       } else {
         const data = encodeActCall("forward(bytes)", [script]);
-        calldata = { to: forwarder, data };
+        action = { to: forwarder, data };
       }
     }
-    txReceipt = await (
+
+    return { ...action, value };
+  }
+
+  async forward(action: CallScriptAction): Promise<providers.TransactionReceipt> {
+    return await (
       await this.#signer.sendTransaction({
-        ...calldata,
+        ...action,
         gasLimit: TX_GAS_LIMIT,
-        value: txValue,
       })
     ).wait();
-    console.log(txReceipt);
   }
 
   async installNewApp(appName: string, registryName: string, appInitArguments: any[] = []) {
     try {
-      const prefixMessage = `Installing ${appName} app:`;
       const kernel = await this.#dao.kernel();
-
-      spinner.start(`${prefixMessage} Fetching app repo`);
-
       const appRepo = await getAppRepoData(this.#gql, appName, registryName);
       const appArtifact = await getAppArtifact(this.#dao, appRepo.lastVersion.contentUri);
       const abiInterface = new utils.Interface(appArtifact.abi);
       const encodedInitializeFunc = abiInterface.encodeFunctionData("initialize", appInitArguments);
       const appId = utils.namehash(appArtifact.appName);
-
-      spinner.start(`${prefixMessage} Calculating transaction path`);
 
       const path = await kernel.intent(
         "newAppInstance",
@@ -135,11 +132,8 @@ export default class VoteCreator {
         throw new Error("No transaction path found");
       }
 
-      console.log(path.transactions);
       let txReceipt: providers.TransactionReceipt;
       for (let i = 0; i < path.transactions.length; i++) {
-        spinner = spinner.start(`${prefixMessage} Executing tx ${i + 1} of ${path.transactions.length}`);
-
         txReceipt = await (
           await this.#signer.sendTransaction({
             ...path.transactions[i],
@@ -147,14 +141,8 @@ export default class VoteCreator {
             gasPrice: TX_GAS_PRICE,
           })
         ).wait();
-        spinner = spinner.succeed(
-          `${prefixMessage} tx ${i + 1} of ${path.transactions.length} executed. Tx hash: ${txReceipt.transactionHash}`
-        );
       }
-
-      spinner.succeed(`App ${appName} installed!`);
     } catch (err) {
-      spinner.fail();
       console.error(err);
     }
   }
