@@ -1,2 +1,3 @@
-# 1hive-vote-creator
-A toolkit to create action votes for DAOs
+# EVMScripter
+
+A library to create evmscripts for DAOs

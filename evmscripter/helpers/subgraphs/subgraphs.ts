@@ -1,10 +1,5 @@
-import { ethers } from "hardhat";
-import { Organization, GraphQLWrapper } from "@1hive/connect";
-import { GET_REPO_DATA, GET_APP_CONTENT_URI } from "./queries";
-
-const parseContentUri = (contentUri: string): string => {
-  return contentUri.slice(contentUri.indexOf(":") + 1);
-};
+import { GraphQLWrapper, Organization } from "@1hive/connect";
+import { GET_APP_CONTENT_URI, GET_REPO_DATA } from "../subgraphs/queries";
 
 export function subgraphUrlFromChainId(chainId: number) {
   switch (chainId) {
@@ -30,8 +25,4 @@ export const getAppContentUri = async (gql: GraphQLWrapper, appAddress: string) 
   const queryResult = await gql.performQuery(GET_APP_CONTENT_URI("query"), { appAddress });
 
   return queryResult.data.apps.pop();
-};
-
-export const getAppArtifact = async (dao: Organization, contentUri: string): Promise<any> => {
-  return (await dao.connection.ipfs.json(parseContentUri(contentUri), "artifact.json")) as any;
 };
