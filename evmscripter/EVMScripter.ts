@@ -81,6 +81,20 @@ export default class EVMScripter {
     this.#appsCache = buildAppsCache(apps);
   }
 
+  call(appIdentifier: AppIdentifier): any {
+    return new Proxy(this._resolveApp(appIdentifier), {
+      get: (target, functionProperty: string) => {
+        return (...params: any): Action => {
+          try {
+            return { to: target.address, data: target.abiInterface.encodeFunctionData(functionProperty, params) };
+          } catch (err) {
+            throw new ErrorMethodNotFound(functionProperty, target.name);
+          }
+        };
+      },
+    });
+  }
+
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
     if (this.#counterfactualApps.has(appIdentifier)) {
       return this.#counterfactualApps.get(appIdentifier);
