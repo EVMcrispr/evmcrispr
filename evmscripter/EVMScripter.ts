@@ -248,6 +248,39 @@ export default class EVMScripter {
     return permissions.map((p) => this.addPermission(p, defaultPermissionManager));
   }
 
+  revokePermission(permission: Permission, removeManager = true): Action[] {
+    const [_, app, role] = permission;
+    const [entityAddress, appAddress, roleHash] = this._resolvePermission(permission);
+    const { permissions: appPermissions } = this._resolveApp(app);
+    const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
+
+    if (!appPermissions.has(roleHash)) {
+      throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+    }
+
+    const revokeAction = {
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData("revokePermission", [entityAddress, appAddress, roleHash]),
+    };
+
+    return [
+      revokeAction,
+      removeManager
+        ? {
+            to: aclAddress,
+            data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
+          }
+        : null,
+    ];
+  }
+
+  revokePermissions(permissions: Permission[], removeManager = true): Action[] {
+    return permissions.reduce((actions, permission) => {
+      const action = this.revokePermission(permission, removeManager);
+      return [...actions, ...action];
+    }, []);
+  }
+
   private _resolveApp(appIdentifier: AppIdentifier | LabeledAppIdentifier): App {
     const parsedIdentifier = parseAppIdentifier(appIdentifier) ?? parseLabeledIdentifier(appIdentifier);
     if (!parsedIdentifier) {
