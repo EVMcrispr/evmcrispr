@@ -28,6 +28,7 @@ import {
   parseAppIdentifier,
   IPFS_URI_TEMPLATE,
   prepareAppRoles,
+  flatActions,
 } from "./helpers";
 import {
   Action,
@@ -196,8 +197,9 @@ export default class EVMScripter {
     };
   }
 
-  async forward(actions: Action[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
-    const forwarderAction = await this.encode(actions, options);
+  async forward(actions: Action[] | Action[][], options: ForwardOptions): Promise<providers.TransactionReceipt> {
+    const flattenActions = flatActions(actions);
+    const forwarderAction = await this.encode(flattenActions, options);
     const receipt = await (
       await this.#signer.sendTransaction({
         ...forwarderAction,

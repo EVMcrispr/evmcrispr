@@ -10,6 +10,16 @@ export const normalizeRole = (role: string): string => {
   return role.startsWith("0x") && role.length === 64 ? role : ethers.utils.keccak256(role);
 };
 
+export const flatActions = (actions): Action[] => {
+  return actions.reduce((flattenActions: Action[], action: Action | Action[]) => {
+    if (Array.isArray(action)) {
+      return [...flattenActions, ...action];
+    }
+    flattenActions.push(action);
+    return flattenActions;
+  }, []);
+};
+
 export const isAppIdentifier = (identifier: string): boolean => {
   const regex = new RegExp("^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(:(?!-)[0-9]{1,63}(?<!-))?$");
 
