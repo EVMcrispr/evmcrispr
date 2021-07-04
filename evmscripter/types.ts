@@ -6,7 +6,7 @@ export type RoleHash = string;
 
 export interface Role {
   manager: Address;
-  grantees: Map<Address, boolean>;
+  grantees: Set<Address>;
 }
 
 export interface Action {
@@ -19,6 +19,8 @@ export interface ForwardOptions {
   path: Entity[];
   context: string;
 }
+
+export type RawAction = Action | Action[] | Promise<Action>;
 
 export type PermissionMap = Map<RoleHash, Role>;
 

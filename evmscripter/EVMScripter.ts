@@ -28,7 +28,8 @@ import {
   parseAppIdentifier,
   IPFS_URI_TEMPLATE,
   prepareAppRoles,
-  flatActions,
+  normalizeActions,
+  normalizeRole,
 } from "./helpers";
 import {
   Action,
@@ -40,6 +41,7 @@ import {
   ForwardOptions,
   Permission,
   App,
+  RawAction,
 } from "./types";
 import { ERC20 } from "../typechain";
 import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
@@ -100,7 +102,8 @@ export default class EVMScripter {
     return this._resolveApp(appIdentifier).address;
   }
 
-  async encode(actions: Action[], options: ForwardOptions): Promise<Action> {
+  async encode(rawActions: RawAction[], options: ForwardOptions): Promise<Action> {
+    const actions = await normalizeActions(rawActions);
     // Need to build the evmscript starting from the last forwarder
     const forwarders = options.path.map((entity) => this._resolveEntity(entity)).reverse();
 
@@ -152,7 +155,7 @@ export default class EVMScripter {
     const [appName, label] = parseLabeledIdentifier(app).split(SEPARATOR);
     const appRepo = await getAppRepoData(this.#gql, appName, registryName);
     const { codeAddress, contentUri, artifact } = appRepo.lastVersion;
-    const appArtifact = artifact ?? (await getAppArtifact(this.#dao, contentUri));
+    const appArtifact = JSON.parse(artifact) ?? (await getAppArtifact(this.#dao, contentUri));
     const kernel = this._resolveApp("kernel");
     const abiInterface = new utils.Interface(appArtifact.abi);
     const encodedInitializeFunc = abiInterface.encodeFunctionData("initialize", initParams);
@@ -197,9 +200,8 @@ export default class EVMScripter {
     };
   }
 
-  async forward(actions: Action[] | Action[][], options: ForwardOptions): Promise<providers.TransactionReceipt> {
-    const flattenActions = flatActions(actions);
-    const forwarderAction = await this.encode(flattenActions, options);
+  async forward(actions: RawAction[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
+    const forwarderAction = await this.encode(actions, options);
     const receipt = await (
       await this.#signer.sendTransaction({
         ...forwarderAction,
@@ -207,8 +209,6 @@ export default class EVMScripter {
         gasPrice: TX_GAS_PRICE,
       })
     ).wait();
-
-    this.#installedAppCounter = 0;
 
     return receipt;
   }
@@ -227,7 +227,7 @@ export default class EVMScripter {
     const appPermission = appPermissions.get(roleHash);
     if (!appPermission.grantees.size) {
       appPermission.manager = manager;
-      appPermission.grantees.set(granteeAddress, true);
+      appPermission.grantees.add(granteeAddress);
 
       return {
         to: aclAddress,
@@ -237,7 +237,7 @@ export default class EVMScripter {
       if (appPermission.grantees.has(granteeAddress)) {
         throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
       }
-      appPermission.grantees.set(granteeAddress, true);
+      appPermission.grantees.add(granteeAddress);
 
       return {
         to: aclAddress,
@@ -301,7 +301,7 @@ export default class EVMScripter {
 
   private _resolvePermission(permission: Permission): Entity[] {
     return permission.map((entity, index) =>
-      index < permission.length - 1 ? this._resolveEntity(entity) : utils.id(entity)
+      index < permission.length - 1 ? this._resolveEntity(entity) : normalizeRole(entity)
     );
   }
 

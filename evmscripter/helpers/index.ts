@@ -4,3 +4,4 @@ export * from "./helpers";
 export * from "./ipfs";
 export * from "./subgraphs/subgraphs";
 export * from "./web3-helpers";
+export * from "./normalizers";
