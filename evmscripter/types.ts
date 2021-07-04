@@ -2,6 +2,13 @@ import { App as ConnectApp, Address } from "@1hive/connect";
 import { Interface } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
 
+export type RoleHash = string;
+
+export interface Role {
+  manager: Address;
+  grantees: Map<Address, boolean>;
+}
+
 export interface Action {
   to: string;
   data: string;
@@ -13,11 +20,11 @@ export interface ForwardOptions {
   context: string;
 }
 
-export type App = ConnectApp & { abiInterface: Interface };
+export type PermissionMap = Map<RoleHash, Role>;
 
-export type AppCache = Map<string, App>;
+export type App = ConnectApp & { abiInterface: Interface; permissions: PermissionMap };
 
-export type CounterfactualAppCache = Map<string, Address>;
+export type IpfsCID = string;
 
 export type AppIdentifier = string;
 
@@ -28,3 +35,7 @@ export type Entity = AppIdentifier | LabeledAppIdentifier | Address;
 export type Permission = [Entity, Entity, string];
 
 export type CompletePermission = [...Permission, string];
+
+export type AppCache = Map<AppIdentifier | LabeledAppIdentifier, App>;
+
+export type AppInterfaceCache = Map<Address, Interface>;
