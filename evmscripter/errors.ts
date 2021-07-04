@@ -22,13 +22,6 @@ export class ErrorInvalidIdentifier extends ErrorException {
     super(`Invalid identifier ${identifier}`, options);
   }
 }
-
-export class ErrorInvalidLabeledIdentifier extends ErrorException {
-  constructor(labeledIdentifier = "", options: ErrorOptions = {}) {
-    super(`Invalid labeled identifier ${labeledIdentifier}`, options);
-  }
-}
-
 export class ErrorAppNotFound extends ErrorException {
   constructor(app = "", options: ErrorOptions = {}) {
     super(`App ${app} not found`, options);
