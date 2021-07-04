@@ -1,6 +1,14 @@
 import { ethers } from "hardhat";
 import { BigNumber, providers, Signer, utils } from "ethers";
-import { connect, Organization, Address, encodeCallScript, App as ConnectApp, GraphQLWrapper } from "@1hive/connect";
+import {
+  App as ConnectApp,
+  connect,
+  Organization,
+  Address,
+  encodeCallScript,
+  GraphQLWrapper,
+  ErrorNotFound,
+} from "@1hive/connect";
 import {
   FORWARDER_TYPES,
   getForwarderFee,
@@ -10,49 +18,38 @@ import {
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
   subgraphUrlFromChainId,
-  parseAppIdentifier,
+  parseLabeledIdentifier,
   SEPARATOR,
   getAppRepoData,
   getAppArtifact,
   buildNonceForAddress,
   calculateNewProxyAddress,
+  getAppRolesData,
+  parseAppIdentifier,
+  IPFS_URI_TEMPLATE,
+  prepareAppRoles,
 } from "./helpers";
 import {
-  App,
   Action,
   AppIdentifier,
   AppCache,
+  AppInterfaceCache,
   Entity,
   LabeledAppIdentifier,
   ForwardOptions,
-  CounterfactualAppCache,
+  Permission,
+  App,
 } from "./types";
 import { ERC20 } from "../typechain";
-import { Interface } from "@ethersproject/abi";
-import { ErrorAppNotFound, ErrorException, ErrorMethodNotFound } from "./errors";
+import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
 
-const IPFS_URI_TEMPLATE = "https://ipfs.eth.aragon.network/ipfs/{cid}{path}";
 const { WITH_CONTEXT } = FORWARDER_TYPES;
-
-const buildAppsCache = (apps: ConnectApp[]): AppCache => {
-  const appCache = new Map();
-  const appCounter = new Map();
-
-  for (const app of apps) {
-    const { name } = app;
-    const counter = appCounter.has(name) ? appCounter.get(name) : 0;
-    appCounter.set(name, counter + 1);
-
-    appCache.set(`${name}:${counter}`, { ...app, abiInterface: new Interface(app.abi) });
-  }
-
-  return appCache;
-};
 
 export default class EVMScripter {
   #dao: Organization;
-  #appsCache: AppCache;
-  #counterfactualApps: CounterfactualAppCache;
+  #appCache: AppCache;
+  #appInterfaceCache: AppInterfaceCache;
+  #installedAppCounter: number;
   #gql: GraphQLWrapper;
   #signer: Signer;
 
@@ -74,21 +71,24 @@ export default class EVMScripter {
       },
     });
     this.#gql = new GraphQLWrapper(subgraphUrlFromChainId(chainId));
-    this.#counterfactualApps = new Map();
+    this.#installedAppCounter = 0;
 
-    const apps = await this.#dao.apps();
-    // Cache all dao apps
-    this.#appsCache = buildAppsCache(apps);
+    const [appCache, appResourcesCache] = await this._buildCaches(await this.#dao.apps());
+    this.#appCache = appCache;
+    this.#appInterfaceCache = appResourcesCache;
   }
 
   call(appIdentifier: AppIdentifier): any {
     return new Proxy(this._resolveApp(appIdentifier), {
-      get: (target, functionProperty: string) => {
+      get: (targetApp, functionProperty: string) => {
         return (...params: any): Action => {
           try {
-            return { to: target.address, data: target.abiInterface.encodeFunctionData(functionProperty, params) };
+            return {
+              to: targetApp.address,
+              data: targetApp.abiInterface.encodeFunctionData(functionProperty, params),
+            };
           } catch (err) {
-            throw new ErrorMethodNotFound(functionProperty, target.name);
+            throw new ErrorMethodNotFound(functionProperty, targetApp.name);
           }
         };
       },
@@ -96,9 +96,6 @@ export default class EVMScripter {
   }
 
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
-    if (this.#counterfactualApps.has(appIdentifier)) {
-      return this.#counterfactualApps.get(appIdentifier);
-    }
     return this._resolveApp(appIdentifier).address;
   }
 
@@ -148,34 +145,51 @@ export default class EVMScripter {
 
   async installNewApp(
     app: LabeledAppIdentifier,
-    registryName: string = "aragonpm.eth",
+    registryName = "aragonpm.eth",
     initParams: any[] = []
   ): Promise<Action> {
-    const kernel = this._resolveApp("kernel");
-    const [appName] = parseAppIdentifier(app).split(SEPARATOR);
+    const [appName, label] = parseLabeledIdentifier(app).split(SEPARATOR);
     const appRepo = await getAppRepoData(this.#gql, appName, registryName);
-    const appArtifact = await getAppArtifact(this.#dao, appRepo.lastVersion.contentUri);
+    const { codeAddress, contentUri, artifact } = appRepo.lastVersion;
+    const appArtifact = artifact ?? (await getAppArtifact(this.#dao, contentUri));
+    const kernel = this._resolveApp("kernel");
     const abiInterface = new utils.Interface(appArtifact.abi);
     const encodedInitializeFunc = abiInterface.encodeFunctionData("initialize", initParams);
     const appId = utils.namehash(appArtifact.appName);
 
     const nonce = await buildNonceForAddress(
       kernel.address,
-      this.#counterfactualApps.size,
+      this.#installedAppCounter,
       this.#dao.connection.ethersProvider
     );
     const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
-    if (this.#counterfactualApps.has(app)) {
+    if (this.#appCache.has(label)) {
       throw new ErrorException(`Label ${app} is already in use`);
     }
-    this.#counterfactualApps.set(app, proxyContractAddress);
+
+    if (!this.#appInterfaceCache.has(codeAddress)) {
+      this.#appInterfaceCache.set(codeAddress, abiInterface);
+    }
+
+    this.#appCache.set(app, {
+      address: proxyContractAddress,
+      codeAddress,
+      appId,
+      // Set a reference to the app interface
+      abiInterface: this.#appInterfaceCache.get(codeAddress),
+      permissions: appArtifact.roles.reduce((permissionsMap, role) => {
+        permissionsMap.set(role.bytes, { manager: null, grantees: [] });
+      }, new Map()),
+    } as App);
+
+    this.#installedAppCounter++;
 
     return {
       to: kernel.address,
       data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
         appId,
-        appRepo.lastVersion.codeAddress,
+        codeAddress,
         encodedInitializeFunc,
         false,
       ]),
@@ -184,25 +198,102 @@ export default class EVMScripter {
 
   async forward(actions: Action[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
     const forwarderAction = await this.encode(actions, options);
-
-    return await (
+    const receipt = await (
       await this.#signer.sendTransaction({
         ...forwarderAction,
         gasLimit: TX_GAS_LIMIT,
         gasPrice: TX_GAS_PRICE,
       })
     ).wait();
+
+    this.#installedAppCounter = 0;
+
+    return receipt;
   }
 
-  private _resolveApp(appIdentifier: AppIdentifier): App {
-    const parsedIdentifier = parseAppIdentifier(appIdentifier);
-    if (!this.#appsCache.has(parsedIdentifier)) {
+  addPermission(permission: Permission, defaultPermissionManager: Entity): Action {
+    const [grantee, app, role] = permission;
+    const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
+    const manager = this._resolveEntity(defaultPermissionManager);
+    const { permissions: appPermissions } = this._resolveApp(app);
+    const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
+
+    if (!appPermissions.has(roleHash)) {
+      throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+    }
+
+    const appPermission = appPermissions.get(roleHash);
+    if (!appPermission.grantees.size) {
+      appPermission.manager = manager;
+      appPermission.grantees.set(granteeAddress, true);
+
+      return {
+        to: aclAddress,
+        data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
+      };
+    } else {
+      if (appPermission.grantees.has(granteeAddress)) {
+        throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+      }
+      appPermission.grantees.set(granteeAddress, true);
+
+      return {
+        to: aclAddress,
+        data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
+      };
+    }
+  }
+
+  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): Action[] {
+    return permissions.map((p) => this.addPermission(p, defaultPermissionManager));
+  }
+
+  private _resolveApp(appIdentifier: AppIdentifier | LabeledAppIdentifier): App {
+    const parsedIdentifier = parseAppIdentifier(appIdentifier) ?? parseLabeledIdentifier(appIdentifier);
+    if (!parsedIdentifier) {
+      throw new ErrorInvalidIdentifier(appIdentifier);
+    }
+    if (!this.#appCache.has(parsedIdentifier)) {
       throw new ErrorAppNotFound(appIdentifier);
     }
-    return this.#appsCache.get(parsedIdentifier);
+
+    return this.#appCache.get(parsedIdentifier);
   }
 
   private _resolveEntity(entity: Entity): Address {
     return ethers.utils.isAddress(entity) ? entity : this.app(entity);
   }
+
+  private _resolvePermission(permission: Permission): Entity[] {
+    return permission.map((entity, index) =>
+      index < permission.length - 1 ? this._resolveEntity(entity) : utils.id(entity)
+    );
+  }
+
+  private _buildCaches = async (apps: ConnectApp[]): Promise<[AppCache, AppInterfaceCache]> => {
+    const appCache: AppCache = new Map();
+    const appInterfaceCache: AppInterfaceCache = new Map();
+    const appCounter = new Map();
+
+    for (const app of apps) {
+      const { address, name, codeAddress, contentUri, artifact } = app;
+      const appArtifact = artifact ?? (await getAppArtifact(this.#dao, contentUri));
+      const appCurrentPermisisons = await getAppRolesData(this.#gql, address);
+      const counter = appCounter.has(name) ? appCounter.get(name) : 0;
+
+      if (!appInterfaceCache.has(codeAddress)) {
+        appInterfaceCache.set(codeAddress, app.ethersInterface());
+      }
+
+      appCache.set(`${name}:${counter}`, {
+        ...app,
+        // Set reference to app interface
+        abiInterface: appInterfaceCache.get(codeAddress),
+        permissions: prepareAppRoles(appCurrentPermisisons, appArtifact),
+      } as App);
+      appCounter.set(name, counter + 1);
+    }
+
+    return [appCache, appInterfaceCache];
+  };
 }

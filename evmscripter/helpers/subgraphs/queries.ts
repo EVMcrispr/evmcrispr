@@ -4,6 +4,7 @@ export const GET_REPO_DATA = (type: string) => gql`
   ${type} Repos($repoName: String!) {
     repos(where: { name: $repoName }) {
       lastVersion {
+        artifact
         contentUri
         codeAddress
       }
@@ -14,11 +15,15 @@ export const GET_REPO_DATA = (type: string) => gql`
   }
 `;
 
-export const GET_APP_CONTENT_URI = (type: string) => gql`
-  ${type} Apps($appAddress: String!) {
-    apps(where: { address: $appAddress}) {
-      lastVersion {
-        contentUri
+export const GET_APP_ROLES = (type: string) => gql`
+  ${type} App($appAddress: ID!) {
+    app(id: $appAddress) {
+      roles {
+        roleHash
+        manager
+        grantees {
+          granteeAddress
+        }
       }
     }
   }

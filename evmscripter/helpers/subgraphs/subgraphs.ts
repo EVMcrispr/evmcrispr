@@ -1,5 +1,5 @@
-import { GraphQLWrapper, Organization } from "@1hive/connect";
-import { GET_APP_CONTENT_URI, GET_REPO_DATA } from "../subgraphs/queries";
+import { ErrorNotFound, GraphQLWrapper, QueryResult } from "@1hive/connect";
+import { GET_APP_ROLES, GET_REPO_DATA } from "../subgraphs/queries";
 
 export function subgraphUrlFromChainId(chainId: number) {
   switch (chainId) {
@@ -14,15 +14,26 @@ export function subgraphUrlFromChainId(chainId: number) {
   }
 }
 
-export const getAppRepoData = async (gql: GraphQLWrapper, repoName: string, registryName: string) => {
-  const queryResult = await gql.performQuery(GET_REPO_DATA("query"), { repoName });
+export const getAppRepoData = async (gql: GraphQLWrapper, repoName: string, registryName: string): Promise<any> => {
+  return gql.performQueryWithParser(GET_REPO_DATA("query"), { repoName }, (result: QueryResult) => {
+    // Cant filter by registry when fetching repos so we need to do it here
+    const appRepo = result.data.repos.filter(({ registry }) => registry.name === registryName).pop();
+    if (!appRepo) {
+      throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`);
+    }
 
-  // Cant filter by registry when fetching repos so we need to do it here
-  return queryResult.data.repos.filter(({ registry }) => registry.name === registryName).pop();
+    return appRepo;
+  });
 };
 
-export const getAppContentUri = async (gql: GraphQLWrapper, appAddress: string) => {
-  const queryResult = await gql.performQuery(GET_APP_CONTENT_URI("query"), { appAddress });
+export const getAppRolesData = async (gql: GraphQLWrapper, appAddress: string): Promise<any> => {
+  return gql.performQueryWithParser(GET_APP_ROLES("query"), { appAddress }, async (result: QueryResult) => {
+    const { app } = result.data;
 
-  return queryResult.data.apps.pop();
+    if (!app) {
+      throw new ErrorNotFound(`App with address ${appAddress} not found`);
+    }
+
+    return app.roles;
+  });
 };
