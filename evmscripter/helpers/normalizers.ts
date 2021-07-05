@@ -14,6 +14,6 @@ export const normalizeRole = (role: string): string => {
   return role.startsWith("0x") && role.length === 64 ? role : utils.id(role);
 };
 
-export const normalizeActions = (actions: (Action | Action[] | Promise<Action>)[]): Promise<Action[]> => {
-  return Promise.all(flatElements(actions));
+export const normalizeActions = async (actions: (Action | Action[] | Promise<Action>)[]): Promise<Action[]> => {
+  return flatElements(actions);
 };

@@ -11,13 +11,13 @@ import {
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
   parseLabeledIdentifier,
-  SEPARATOR,
   buildNonceForAddress,
   calculateNewProxyAddress,
-  parseAppIdentifier,
   normalizeActions,
   normalizeRole,
   IPFS_URI_TEMPLATE,
+  resolveIdentifier,
+  isLabeledAppIdentifier,
 } from "./helpers";
 import {
   Action,
@@ -126,11 +126,14 @@ export default class EVMScripter {
   }
 
   async installNewApp(
-    app: LabeledAppIdentifier,
+    identifier: LabeledAppIdentifier,
     registryName = "aragonpm.eth",
     initParams: any[] = []
   ): Promise<Action> {
-    const [appName, label] = parseLabeledIdentifier(app).split(SEPARATOR);
+    if (!isLabeledAppIdentifier(identifier)) {
+      throw new ErrorInvalidIdentifier(identifier);
+    }
+    const [appName, label] = parseLabeledIdentifier(identifier);
     const appRepo = await this.#connector.repo(appName, registryName);
     const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
     const kernel = this._resolveApp("kernel");
@@ -142,14 +145,14 @@ export default class EVMScripter {
     const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
     if (this.#appCache.has(label)) {
-      throw new ErrorException(`Label ${app} is already in use`);
+      throw new ErrorException(`Label ${label} is already in use`);
     }
 
     if (!this.#appInterfaceCache.has(codeAddress)) {
       this.#appInterfaceCache.set(codeAddress, abiInterface);
     }
 
-    this.#appCache.set(app, {
+    this.#appCache.set(label, {
       address: proxyContractAddress,
       name: appName,
       codeAddress,
@@ -258,16 +261,14 @@ export default class EVMScripter {
     }, []);
   }
 
-  private _resolveApp(appIdentifier: AppIdentifier | LabeledAppIdentifier): App {
-    const parsedIdentifier = parseAppIdentifier(appIdentifier) ?? parseLabeledIdentifier(appIdentifier);
-    if (!parsedIdentifier) {
-      throw new ErrorInvalidIdentifier(appIdentifier);
-    }
-    if (!this.#appCache.has(parsedIdentifier)) {
-      throw new ErrorAppNotFound(appIdentifier);
+  private _resolveApp(identifier: string): App {
+    let resolvedIdentifier = resolveIdentifier(identifier);
+
+    if (!this.#appCache.has(resolvedIdentifier)) {
+      throw new ErrorAppNotFound(resolvedIdentifier);
     }
 
-    return this.#appCache.get(parsedIdentifier);
+    return this.#appCache.get(resolvedIdentifier);
   }
 
   private _resolveEntity(entity: Entity): Address {
