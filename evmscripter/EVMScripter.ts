@@ -1,14 +1,7 @@
 import { ethers } from "hardhat";
 import { BigNumber, providers, Signer, utils } from "ethers";
-import {
-  App as ConnectApp,
-  connect,
-  Organization,
-  Address,
-  encodeCallScript,
-  GraphQLWrapper,
-  ErrorNotFound,
-} from "@1hive/connect";
+import { Address, encodeCallScript, ErrorNotFound } from "@1hive/connect";
+import Connector from "./connector";
 import {
   FORWARDER_TYPES,
   getForwarderFee,
@@ -17,19 +10,14 @@ import {
   ZERO_ADDRESS,
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
-  subgraphUrlFromChainId,
   parseLabeledIdentifier,
   SEPARATOR,
-  getAppRepoData,
-  getAppArtifact,
   buildNonceForAddress,
   calculateNewProxyAddress,
-  getAppRolesData,
   parseAppIdentifier,
-  IPFS_URI_TEMPLATE,
-  prepareAppRoles,
   normalizeActions,
   normalizeRole,
+  IPFS_URI_TEMPLATE,
 } from "./helpers";
 import {
   Action,
@@ -49,11 +37,10 @@ import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNo
 const { WITH_CONTEXT } = FORWARDER_TYPES;
 
 export default class EVMScripter {
-  #dao: Organization;
+  #connector: Connector;
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
   #installedAppCounter: number;
-  #gql: GraphQLWrapper;
   #signer: Signer;
 
   ANY_ENTITY = "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF";
@@ -64,19 +51,10 @@ export default class EVMScripter {
 
   async connect(daoAddress) {
     const chainId = await this.#signer.getChainId();
-
-    this.#dao = await connect(daoAddress, "thegraph", {
-      actAs: await this.#signer.getAddress(),
-      network: chainId,
-      ipfs: {
-        urlTemplate: IPFS_URI_TEMPLATE,
-        cache: 0,
-      },
-    });
-    this.#gql = new GraphQLWrapper(subgraphUrlFromChainId(chainId));
+    this.#connector = new Connector(chainId, IPFS_URI_TEMPLATE);
     this.#installedAppCounter = 0;
 
-    const [appCache, appResourcesCache] = await this._buildCaches(await this.#dao.apps());
+    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
     this.#appCache = appCache;
     this.#appInterfaceCache = appResourcesCache;
   }
@@ -153,19 +131,14 @@ export default class EVMScripter {
     initParams: any[] = []
   ): Promise<Action> {
     const [appName, label] = parseLabeledIdentifier(app).split(SEPARATOR);
-    const appRepo = await getAppRepoData(this.#gql, appName, registryName);
-    const { codeAddress, contentUri, artifact } = appRepo.lastVersion;
-    const appArtifact = JSON.parse(artifact) ?? (await getAppArtifact(this.#dao, contentUri));
+    const appRepo = await this.#connector.repo(appName, registryName);
+    const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
     const kernel = this._resolveApp("kernel");
     const abiInterface = new utils.Interface(appArtifact.abi);
-    const encodedInitializeFunc = abiInterface.encodeFunctionData("initialize", initParams);
+    const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", initParams);
     const appId = utils.namehash(appArtifact.appName);
 
-    const nonce = await buildNonceForAddress(
-      kernel.address,
-      this.#installedAppCounter,
-      this.#dao.connection.ethersProvider
-    );
+    const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
     const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
     if (this.#appCache.has(label)) {
@@ -178,14 +151,16 @@ export default class EVMScripter {
 
     this.#appCache.set(app, {
       address: proxyContractAddress,
+      name: appName,
       codeAddress,
-      appId,
+      contentUri,
+      abi: appArtifact.abi,
       // Set a reference to the app interface
       abiInterface: this.#appInterfaceCache.get(codeAddress),
       permissions: appArtifact.roles.reduce((permissionsMap, role) => {
-        permissionsMap.set(role.bytes, { manager: null, grantees: [] });
+        permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
       }, new Map()),
-    } as App);
+    });
 
     this.#installedAppCounter++;
 
@@ -194,7 +169,7 @@ export default class EVMScripter {
       data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
         appId,
         codeAddress,
-        encodedInitializeFunc,
+        encodedInitializeFunction,
         false,
       ]),
     };
@@ -305,27 +280,22 @@ export default class EVMScripter {
     );
   }
 
-  private _buildCaches = async (apps: ConnectApp[]): Promise<[AppCache, AppInterfaceCache]> => {
+  private _buildCaches = async (apps: App[]): Promise<[AppCache, AppInterfaceCache]> => {
     const appCache: AppCache = new Map();
     const appInterfaceCache: AppInterfaceCache = new Map();
     const appCounter = new Map();
 
     for (const app of apps) {
-      const { address, name, codeAddress, contentUri, artifact } = app;
-      const appArtifact = artifact ?? (await getAppArtifact(this.#dao, contentUri));
-      const appCurrentPermisisons = await getAppRolesData(this.#gql, address);
+      const { name, codeAddress, abi } = app;
       const counter = appCounter.has(name) ? appCounter.get(name) : 0;
 
       if (!appInterfaceCache.has(codeAddress)) {
-        appInterfaceCache.set(codeAddress, app.ethersInterface());
+        appInterfaceCache.set(codeAddress, new ethers.utils.Interface(abi));
       }
+      // Set reference to app interface
+      app.abiInterface = appInterfaceCache.get(codeAddress);
 
-      appCache.set(`${name}:${counter}`, {
-        ...app,
-        // Set reference to app interface
-        abiInterface: appInterfaceCache.get(codeAddress),
-        permissions: prepareAppRoles(appCurrentPermisisons, appArtifact),
-      } as App);
+      appCache.set(`${name}:${counter}`, app);
       appCounter.set(name, counter + 1);
     }
 

@@ -1,13 +1,8 @@
-import { App as ConnectApp, Address } from "@1hive/connect";
+import { Address } from "@1hive/connect";
 import { Interface } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
 
 export type RoleHash = string;
-
-export interface Role {
-  manager: Address;
-  grantees: Set<Address>;
-}
 
 export interface Action {
   to: string;
@@ -20,11 +15,30 @@ export interface ForwardOptions {
   context: string;
 }
 
-export type RawAction = Action | Action[] | Promise<Action>;
+export interface Role {
+  manager: Address;
+  grantees: Set<Address>;
+}
 
 export type PermissionMap = Map<RoleHash, Role>;
 
-export type App = ConnectApp & { abiInterface: Interface; permissions: PermissionMap };
+export interface App {
+  address: Address;
+  codeAddress: Address;
+  name: string;
+  contentUri: string;
+  abi: string;
+  abiInterface?: Interface;
+  permissions?: PermissionMap;
+}
+
+export interface Repo {
+  artifact: any;
+  contentUri: string;
+  codeAddress: string;
+}
+
+export type RawAction = Action | Action[] | Promise<Action>;
 
 export type IpfsCID = string;
 
