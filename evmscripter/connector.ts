@@ -25,9 +25,6 @@ const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {
 const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   const { repoName: name } = app;
   const { address: codeAddress } = app.implementation;
-  if (name === "kernel" || name === "acl" || name === "evm-script-registry") {
-    console.log("here");
-  }
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
   const artifact =
     getSystemAppArtifact(name) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
