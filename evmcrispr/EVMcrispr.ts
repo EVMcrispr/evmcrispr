@@ -10,14 +10,14 @@ import {
   ZERO_ADDRESS,
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
-  parseLabeledIdentifier,
   buildNonceForAddress,
   calculateNewProxyAddress,
   normalizeActions,
   normalizeRole,
   IPFS_URI_TEMPLATE,
   resolveIdentifier,
-  isLabeledAppIdentifier,
+  parseLabeledAppRegistryIdentifier,
+  isLabeledAppRegistryIdentifier,
 } from "./helpers";
 import {
   Action,
@@ -31,6 +31,7 @@ import {
   App,
   RawAction,
   Function,
+  LabeledAppRegistryIdentifier,
 } from "./types";
 import { ERC20 } from "../typechain";
 import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
@@ -126,17 +127,13 @@ export default class EVMcrispr {
     return { ...forwarderActions[0], value };
   }
 
-  installNewApp(
-    identifier: LabeledAppIdentifier,
-    registryName = "aragonpm.eth",
-    initParams: any[] = []
-  ): Function<Promise<Action>> {
+  installNewApp(identifier: LabeledAppRegistryIdentifier, initParams: any[] = []): Function<Promise<Action>> {
     return async () => {
-      if (!isLabeledAppIdentifier(identifier)) {
+      if (!isLabeledAppRegistryIdentifier(identifier)) {
         throw new ErrorInvalidIdentifier(identifier);
       }
-      const [appName, label] = parseLabeledIdentifier(identifier);
-      const appRepo = await this.#connector.repo(appName, registryName);
+      const [appName, label, registry] = parseLabeledAppRegistryIdentifier(identifier);
+      const appRepo = await this.#connector.repo(appName, registry);
       const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
       const kernel = this._resolveApp("kernel");
       const abiInterface = new utils.Interface(appArtifact.abi);

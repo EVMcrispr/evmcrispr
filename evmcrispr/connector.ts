@@ -77,7 +77,7 @@ export default class Connector {
       const repo = result.data.repos.filter(({ registry }) => registry.name === registryName).pop();
 
       if (!repo) {
-        throw new ErrorNotFound(`Repo ${repoName} not found`);
+        throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`);
       }
 
       const { artifact: artifactJson, contentUri, codeAddress } = repo.lastVersion;
