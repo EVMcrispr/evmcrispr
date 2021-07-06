@@ -30,6 +30,7 @@ import {
   Permission,
   App,
   RawAction,
+  Function,
 } from "./types";
 import { ERC20 } from "../typechain";
 import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
@@ -62,12 +63,12 @@ export default class EVMScripter {
   call(appIdentifier: AppIdentifier): any {
     return new Proxy(this._resolveApp(appIdentifier), {
       get: (targetApp, functionProperty: string) => {
-        return (...params: any): Action => {
+        return (...params: any): Function<Action> => {
           try {
-            return {
+            return () => ({
               to: targetApp.address,
               data: targetApp.abiInterface.encodeFunctionData(functionProperty, params),
-            };
+            });
           } catch (err) {
             throw new ErrorMethodNotFound(functionProperty, targetApp.name);
           }
@@ -80,8 +81,8 @@ export default class EVMScripter {
     return this._resolveApp(appIdentifier).address;
   }
 
-  async encode(rawActions: RawAction[], options: ForwardOptions): Promise<Action> {
-    const actions = await normalizeActions(rawActions);
+  async encode(actionFunctions: Function<RawAction>[], options: ForwardOptions): Promise<Action> {
+    const actions = await normalizeActions(actionFunctions);
     // Need to build the evmscript starting from the last forwarder
     const forwarders = options.path.map((entity) => this._resolveEntity(entity)).reverse();
 
@@ -125,140 +126,148 @@ export default class EVMScripter {
     return { ...forwarderActions[0], value };
   }
 
-  async installNewApp(
+  installNewApp(
     identifier: LabeledAppIdentifier,
     registryName = "aragonpm.eth",
     initParams: any[] = []
-  ): Promise<Action> {
-    if (!isLabeledAppIdentifier(identifier)) {
-      throw new ErrorInvalidIdentifier(identifier);
-    }
-    const [appName, label] = parseLabeledIdentifier(identifier);
-    const appRepo = await this.#connector.repo(appName, registryName);
-    const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
-    const kernel = this._resolveApp("kernel");
-    const abiInterface = new utils.Interface(appArtifact.abi);
-    const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", initParams);
-    const appId = utils.namehash(appArtifact.appName);
+  ): Function<Promise<Action>> {
+    return async () => {
+      if (!isLabeledAppIdentifier(identifier)) {
+        throw new ErrorInvalidIdentifier(identifier);
+      }
+      const [appName, label] = parseLabeledIdentifier(identifier);
+      const appRepo = await this.#connector.repo(appName, registryName);
+      const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
+      const kernel = this._resolveApp("kernel");
+      const abiInterface = new utils.Interface(appArtifact.abi);
+      const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", initParams);
+      const appId = utils.namehash(appArtifact.appName);
 
-    const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
-    const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
+      const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
+      const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
-    if (this.#appCache.has(label)) {
-      throw new ErrorException(`Label ${label} is already in use`);
-    }
+      if (this.#appCache.has(label)) {
+        throw new ErrorException(`Label ${label} is already in use`);
+      }
 
-    if (!this.#appInterfaceCache.has(codeAddress)) {
-      this.#appInterfaceCache.set(codeAddress, abiInterface);
-    }
+      if (!this.#appInterfaceCache.has(codeAddress)) {
+        this.#appInterfaceCache.set(codeAddress, abiInterface);
+      }
 
-    this.#appCache.set(label, {
-      address: proxyContractAddress,
-      name: appName,
-      codeAddress,
-      contentUri,
-      abi: appArtifact.abi,
-      // Set a reference to the app interface
-      abiInterface: this.#appInterfaceCache.get(codeAddress),
-      permissions: appArtifact.roles.reduce((permissionsMap, role) => {
-        permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
-      }, new Map()),
-    });
-
-    this.#installedAppCounter++;
-
-    return {
-      to: kernel.address,
-      data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
-        appId,
+      this.#appCache.set(label, {
+        address: proxyContractAddress,
+        name: appName,
         codeAddress,
-        encodedInitializeFunction,
-        false,
-      ]),
+        contentUri,
+        abi: appArtifact.abi,
+        // Set a reference to the app interface
+        abiInterface: this.#appInterfaceCache.get(codeAddress),
+        permissions: appArtifact.roles.reduce((permissionsMap, role) => {
+          permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
+          return permissionsMap;
+        }, new Map()),
+      });
+
+      this.#installedAppCounter++;
+
+      return {
+        to: kernel.address,
+        data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
+          appId,
+          codeAddress,
+          encodedInitializeFunction,
+          false,
+        ]),
+      };
     };
   }
 
-  async forward(actions: RawAction[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
+  async forward(actions: Function<RawAction>[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
     const forwarderAction = await this.encode(actions, options);
-    const receipt = await (
+
+    return await (
       await this.#signer.sendTransaction({
         ...forwarderAction,
         gasLimit: TX_GAS_LIMIT,
         gasPrice: TX_GAS_PRICE,
       })
     ).wait();
-
-    return receipt;
   }
 
-  addPermission(permission: Permission, defaultPermissionManager: Entity): Action {
-    const [grantee, app, role] = permission;
-    const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
-    const manager = this._resolveEntity(defaultPermissionManager);
-    const { permissions: appPermissions } = this._resolveApp(app);
-    const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
+  addPermission(permission: Permission, defaultPermissionManager: Entity): Function<Action> {
+    return () => {
+      const [grantee, app, role] = permission;
+      const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
+      const manager = this._resolveEntity(defaultPermissionManager);
+      const resolvedApp = this._resolveApp(app);
+      const { permissions: appPermissions } = resolvedApp;
+      const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
 
-    if (!appPermissions.has(roleHash)) {
-      throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
-    }
-
-    const appPermission = appPermissions.get(roleHash);
-    if (!appPermission.grantees.size) {
-      appPermission.manager = manager;
-      appPermission.grantees.add(granteeAddress);
-
-      return {
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
-      };
-    } else {
-      if (appPermission.grantees.has(granteeAddress)) {
-        throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+      if (!appPermissions.has(roleHash)) {
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
       }
-      appPermission.grantees.add(granteeAddress);
 
-      return {
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
-      };
-    }
-  }
+      const appPermission = appPermissions.get(roleHash);
+      if (!appPermission.grantees.size) {
+        appPermission.manager = manager;
+        appPermission.grantees.add(granteeAddress);
 
-  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): Action[] {
-    return permissions.map((p) => this.addPermission(p, defaultPermissionManager));
-  }
+        return {
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
+        };
+      } else {
+        if (appPermission.grantees.has(granteeAddress)) {
+          throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+        }
+        appPermission.grantees.add(granteeAddress);
 
-  revokePermission(permission: Permission, removeManager = true): Action[] {
-    const [_, app, role] = permission;
-    const [entityAddress, appAddress, roleHash] = this._resolvePermission(permission);
-    const { permissions: appPermissions } = this._resolveApp(app);
-    const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
-
-    if (!appPermissions.has(roleHash)) {
-      throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
-    }
-
-    const revokeAction = {
-      to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData("revokePermission", [entityAddress, appAddress, roleHash]),
+        return {
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
+        };
+      }
     };
-
-    return [
-      revokeAction,
-      removeManager
-        ? {
-            to: aclAddress,
-            data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
-          }
-        : null,
-    ];
   }
 
-  revokePermissions(permissions: Permission[], removeManager = true): Action[] {
-    return permissions.reduce((actions, permission) => {
-      const action = this.revokePermission(permission, removeManager);
-      return [...actions, ...action];
-    }, []);
+  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): Function<Action[]> {
+    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)());
+  }
+
+  revokePermission(permission: Permission, removeManager = true): Function<Action[]> {
+    return () => {
+      const [_, app, role] = permission;
+      const [entityAddress, appAddress, roleHash] = this._resolvePermission(permission);
+      const { permissions: appPermissions } = this._resolveApp(app);
+      const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
+
+      if (!appPermissions.has(roleHash)) {
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+      }
+
+      const revokeAction = {
+        to: aclAddress,
+        data: aclAbiInterface.encodeFunctionData("revokePermission", [entityAddress, appAddress, roleHash]),
+      };
+
+      return [
+        revokeAction,
+        removeManager
+          ? {
+              to: aclAddress,
+              data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
+            }
+          : null,
+      ];
+    };
+  }
+
+  revokePermissions(permissions: Permission[], removeManager = true): Function<Action[]> {
+    return () =>
+      permissions.reduce((actions, permission) => {
+        const action = this.revokePermission(permission, removeManager)();
+        return [...actions, ...action];
+      }, []);
   }
 
   private _resolveApp(identifier: string): App {

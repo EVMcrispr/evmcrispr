@@ -1,7 +1,7 @@
 import { utils } from "ethers";
-import { Action } from "../types";
+import { Action, Function, RawAction } from "../types";
 
-const flatElements = (elements) => {
+export const flatElements = (elements) => {
   return elements.reduce((flattenedElements, element) => {
     if (Array.isArray(element)) {
       return [...flattenedElements, ...element];
@@ -14,6 +14,12 @@ export const normalizeRole = (role: string): string => {
   return role.startsWith("0x") && role.length === 64 ? role : utils.id(role);
 };
 
-export const normalizeActions = async (actions: (Action | Action[] | Promise<Action>)[]): Promise<Action[]> => {
-  return flatElements(actions);
+export const normalizeActions = async (actions: Function<RawAction>[]): Promise<Action[]> => {
+  const normalizedActions: RawAction[] = [];
+
+  for (const action of actions) {
+    normalizedActions.push(await action());
+  }
+
+  return flatElements(normalizedActions);
 };

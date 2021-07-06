@@ -40,6 +40,8 @@ export interface Repo {
 
 export type RawAction = Action | Action[] | Promise<Action>;
 
+export type Function<T extends RawAction> = () => T;
+
 export type IpfsCID = string;
 
 export type AppIdentifier = string;
