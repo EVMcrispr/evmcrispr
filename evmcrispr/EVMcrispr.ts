@@ -37,7 +37,7 @@ import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNo
 
 const { WITH_CONTEXT } = FORWARDER_TYPES;
 
-export default class EVMScripter {
+export default class EVMcrispr {
   #connector: Connector;
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
