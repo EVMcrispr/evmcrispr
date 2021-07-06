@@ -1,18 +1,18 @@
 import { ErrorInvalidIdentifier } from "../errors";
 import { AppIdentifier, LabeledAppIdentifier, LabeledAppRegistryIdentifier } from "../types";
 
-export const DEFAULT_REGISTRY = "aragonpm.eth";
+const DEFAULT_REGISTRY = "aragonpm.eth";
 
-export const SEPARATOR = ":";
+const SEPARATOR = ":";
 
 export const isAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(:(?!-)[0-9]{1,63}(?<!-))?$");
+  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[0-9]{1,63}(?<!-))?$");
 
   return regex.test(identifier);
 };
 
 export const isLabeledAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(:(?!-)[A-Za-z-]{1,63}(?<!-))?$");
+  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[a-z-]{1,63}(?<!-))?$");
 
   return regex.test(identifier);
 };
