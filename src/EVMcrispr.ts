@@ -1,5 +1,5 @@
 import { BigNumber, Contract, providers, Signer, utils } from "ethers";
-import { Address, encodeCallScript, ErrorInvalid, ErrorNotFound, erc20ABI } from "@1hive/connect-core";
+import { Address, encodeCallScript, erc20ABI } from "@1hive/connect-core";
 import Connector from "./connector";
 import {
   FORWARDER_TYPES,
@@ -33,7 +33,14 @@ import {
   Function,
   LabeledAppRegistryIdentifier,
 } from "./types";
-import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
+import {
+  ErrorAppNotFound,
+  ErrorException,
+  ErrorInvalidIdentifier,
+  ErrorMethodNotFound,
+  ErrorInvalid,
+  ErrorNotFound,
+} from "./errors";
 
 export default class EVMcrispr {
   #connector: Connector;

@@ -1,6 +1,7 @@
-import { ErrorNotFound, ipfsResolver, IpfsResolver } from "@1hive/connect-core";
+import { ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
 import { getAppArtifact, getSystemAppArtifact, ORGANIZATION_APPS, REPO } from "./helpers";
+import { ErrorNotFound } from "./errors";
 import { App, Repo } from "./types";
 
 const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {

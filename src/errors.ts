@@ -1,3 +1,5 @@
+export { ErrorInvalid, ErrorNotFound } from "@1hive/connect-core";
+
 function defineNonEnumerable(instance: object, name: string, value: any) {
   Object.defineProperty(instance, name, { value, enumerable: false });
 }
