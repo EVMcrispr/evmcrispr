@@ -43,7 +43,7 @@ import {
 } from "./errors";
 
 export default class EVMcrispr {
-  #connector: Connector;
+  readonly connector: Connector;
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
   #installedAppCounter: number;
@@ -51,16 +51,14 @@ export default class EVMcrispr {
 
   ANY_ENTITY = "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF";
 
-  constructor(signer: Signer) {
+  constructor(signer: Signer, chainId: number) {
+    this.connector = new Connector(chainId, IPFS_URI_TEMPLATE);
     this.#signer = signer;
   }
 
   async connect(daoAddress) {
-    const chainId = await this.#signer.getChainId();
-    this.#connector = new Connector(chainId, IPFS_URI_TEMPLATE);
     this.#installedAppCounter = 0;
-
-    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
+    const [appCache, appResourcesCache] = await this._buildCaches(await this.connector.organizationApps(daoAddress));
     this.#appCache = appCache;
     this.#appInterfaceCache = appResourcesCache;
   }
@@ -156,7 +154,7 @@ export default class EVMcrispr {
         throw new ErrorInvalidIdentifier(identifier);
       }
       const [appName, label, registry] = parseLabeledAppRegistryIdentifier(identifier);
-      const appRepo = await this.#connector.repo(appName, registry);
+      const appRepo = await this.connector.repo(appName, registry);
       const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
       const kernel = this._resolveApp("kernel");
       const abiInterface = new utils.Interface(appArtifact.abi);
