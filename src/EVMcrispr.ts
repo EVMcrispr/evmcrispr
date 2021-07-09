@@ -1,9 +1,9 @@
-import { ethers } from "hardhat";
-import { BigNumber, providers, Signer, utils } from "ethers";
-import { Address, encodeCallScript, ErrorNotFound } from "@1hive/connect";
+import { BigNumber, Contract, providers, Signer, utils } from "ethers";
+import { Address, encodeCallScript, ErrorInvalid, ErrorNotFound, erc20ABI } from "@1hive/connect-core";
 import Connector from "./connector";
 import {
   FORWARDER_TYPES,
+  FORWARDER_ABI,
   getForwarderFee,
   getForwarderType,
   encodeActCall,
@@ -33,10 +33,7 @@ import {
   Function,
   LabeledAppRegistryIdentifier,
 } from "./types";
-import { ERC20 } from "../typechain";
 import { ErrorAppNotFound, ErrorException, ErrorInvalidIdentifier, ErrorMethodNotFound } from "./errors";
-
-const { WITH_CONTEXT } = FORWARDER_TYPES;
 
 export default class EVMcrispr {
   #connector: Connector;
@@ -82,10 +79,14 @@ export default class EVMcrispr {
     return this._resolveApp(appIdentifier).address;
   }
 
-  async encode(actionFunctions: Function<RawAction>[], options: ForwardOptions): Promise<Action> {
+  async encode(
+    actionFunctions: Function<RawAction>[],
+    options: ForwardOptions
+  ): Promise<{ action: Action; preTxActions: Action[] }> {
     const actions = await normalizeActions(actionFunctions);
     // Need to build the evmscript starting from the last forwarder
     const forwarders = options.path.map((entity) => this._resolveEntity(entity)).reverse();
+    const preTxActions: Action[] = [];
 
     let script: string;
     let forwarderActions = [...actions];
@@ -93,38 +94,53 @@ export default class EVMcrispr {
 
     for (let i = 0; i < forwarders.length; i++) {
       script = encodeCallScript(forwarderActions);
-      const forwarder = forwarders[i];
+      const forwarderAddress = forwarders[i];
+      const forwarder = new Contract(forwarderAddress, FORWARDER_ABI, this.#signer.provider);
+
+      try {
+        const res = await forwarder.isForwarder();
+        if (!res) {
+          throw new Error();
+        }
+      } catch (err) {
+        throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder`);
+      }
+
       const fee = await getForwarderFee(forwarder);
 
       if (fee) {
-        const { feeToken, feeAmount } = fee;
+        const [feeTokenAddress, feeAmount] = fee;
 
         // Check if fees are in ETH
-        if (feeToken === ZERO_ADDRESS) {
+        if (feeTokenAddress === ZERO_ADDRESS) {
           value = feeAmount;
         } else {
-          const token = (await ethers.getContractAt("ERC20", feeToken, this.#signer)) as ERC20;
-          const allowance = await token.allowance(await this.#signer.getAddress(), forwarder);
+          const feeToken = new Contract(feeTokenAddress, erc20ABI, this.#signer.provider);
+          const allowance = (await feeToken.allowance(await this.#signer.getAddress(), forwarderAddress)) as BigNumber;
 
-          if (allowance.gt(BigNumber.from(0)) && allowance.lt(feeAmount)) {
-            await (await token.approve(forwarder, 0)).wait();
+          if (allowance.gt(0) && allowance.lt(feeAmount)) {
+            preTxActions.push({
+              to: feeTokenAddress,
+              data: feeToken.interface.encodeFunctionData("approve", [forwarderAddress, 0]),
+            });
           }
-          if (allowance.eq(BigNumber.from(0))) {
-            await (await token.approve(forwarder, feeAmount)).wait();
+          if (allowance.eq(0)) {
+            preTxActions.push({
+              to: feeTokenAddress,
+              data: feeToken.interface.encodeFunctionData("approve", [forwarderAddress, feeAmount]),
+            });
           }
         }
       }
 
-      if ((await getForwarderType(forwarder, this.#signer)) === WITH_CONTEXT) {
-        const data = encodeActCall("forward(bytes,bytes)", [script, context]);
-        forwarderActions = [{ to: forwarder, data }];
+      if ((await getForwarderType(forwarderAddress, this.#signer.provider)) === FORWARDER_TYPES.WITH_CONTEXT) {
+        forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes,bytes)", [script, context]) }];
       } else {
-        const data = encodeActCall("forward(bytes)", [script]);
-        forwarderActions = [{ to: forwarder, data }];
+        forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes)", [script]) }];
       }
     }
 
-    return { ...forwarderActions[0], value };
+    return { action: { ...forwarderActions[0], value }, preTxActions };
   }
 
   installNewApp(identifier: LabeledAppRegistryIdentifier, initParams: any[] = []): Function<Promise<Action>> {
@@ -182,9 +198,20 @@ export default class EVMcrispr {
   async forward(actions: Function<RawAction>[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
     const forwarderAction = await this.encode(actions, options);
 
+    // Execute pretransactions actions
+    for (const action of forwarderAction.preTxActions) {
+      await (
+        await this.#signer.sendTransaction({
+          ...action,
+          gasLimit: TX_GAS_LIMIT,
+          gasPrice: TX_GAS_PRICE,
+        })
+      ).wait();
+    }
+
     return await (
       await this.#signer.sendTransaction({
-        ...forwarderAction,
+        ...forwarderAction.action,
         gasLimit: TX_GAS_LIMIT,
         gasPrice: TX_GAS_PRICE,
       })
@@ -278,7 +305,7 @@ export default class EVMcrispr {
   }
 
   private _resolveEntity(entity: Entity): Address {
-    return ethers.utils.isAddress(entity) ? entity : this.app(entity);
+    return utils.isAddress(entity) ? entity : this.app(entity);
   }
 
   private _resolvePermission(permission: Permission): Entity[] {
@@ -297,7 +324,7 @@ export default class EVMcrispr {
       const counter = appCounter.has(name) ? appCounter.get(name) : 0;
 
       if (!appInterfaceCache.has(codeAddress)) {
-        appInterfaceCache.set(codeAddress, new ethers.utils.Interface(abi));
+        appInterfaceCache.set(codeAddress, new utils.Interface(abi));
       }
       // Set reference to app interface
       app.abiInterface = appInterfaceCache.get(codeAddress);

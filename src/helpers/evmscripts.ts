@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { utils } from "ethers";
 
 export function createExecutorId(id: number): string {
   return `0x${String(id).padStart(8, "0")}`;
@@ -19,7 +19,7 @@ export function encodeActCall(signature: string, params: any[] = []): string {
         )
       );
   */
-  const sigBytes = ethers.utils.hexDataSlice(ethers.utils.id(signature), 0, 4);
+  const sigBytes = utils.hexDataSlice(utils.id(signature), 0, 4);
   const types = signature.replace(")", "").split("(")[1];
 
   // No params, return signature directly
@@ -27,7 +27,7 @@ export function encodeActCall(signature: string, params: any[] = []): string {
     return sigBytes;
   }
 
-  const paramBytes = new ethers.utils.AbiCoder().encode(types.split(","), params);
+  const paramBytes = new utils.AbiCoder().encode(types.split(","), params);
 
   return `${sigBytes}${paramBytes.slice(2)}`;
 }

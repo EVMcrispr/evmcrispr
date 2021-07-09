@@ -1,6 +1,7 @@
-import { ethers } from "hardhat";
-import { BigNumber, Signer } from "ethers";
-import { IAbstractForwarder, IForwarderFee } from "../../typechain";
+import { Contract, BigNumber, providers } from "ethers";
+import { forwarderAbi, forwarderFeeAbi } from "@1hive/connect-core";
+
+export const FORWARDER_ABI = [...forwarderAbi, ...forwarderFeeAbi];
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -8,29 +9,20 @@ export const FORWARDER_TYPES = {
   WITH_CONTEXT: 2,
 };
 
-export const getForwarderFee = async (
-  appAddress: string
-): Promise<[string, BigNumber] & { feeToken: string; feeAmount: BigNumber }> => {
-  const forwarderFee = (await ethers.getContractAt("IForwarderFee", appAddress)) as IForwarderFee;
+export const getForwarderFee = async (forwarder: Contract): Promise<[string, BigNumber]> => {
+  // If it fails we assume app is not a payable forwarder
   try {
-    return await forwarderFee.forwardFee();
+    return await forwarder.forwardFee();
   } catch (err) {
     return null;
   }
 };
 
-export const getForwarderType = async (appAddress: string, signer: Signer): Promise<number> => {
-  const forwarderContract = (await ethers.getContractAt("IAbstractForwarder", appAddress)) as IAbstractForwarder;
-  const isForwarder = await forwarderContract.isForwarder();
-
-  if (!isForwarder) {
-    throw new Error(`App ${appAddress} is not a forwarder`);
-  }
-
+export const getForwarderType = async (forwarder: Contract, provider: providers.Provider): Promise<number> => {
   // If it fails then app implements an aragonos older version forwarder
   try {
-    return await forwarderContract.forwarderType();
+    return await forwarder.forwarderType();
   } catch (err) {
-    return 1;
+    return FORWARDER_TYPES.NO_CONTEXT;
   }
 };
