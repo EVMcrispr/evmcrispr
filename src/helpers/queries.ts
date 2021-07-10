@@ -20,6 +20,7 @@ export const ORGANIZATION_APPS = (type: string) => gql`
     organization(id: $id) {
       apps {
         address
+        appId
         repoName
         implementation {
           address
@@ -34,7 +35,7 @@ export const ORGANIZATION_APPS = (type: string) => gql`
           roleHash
           manager
           grantees {
-            id
+            granteeAddress
           }
         }
       }

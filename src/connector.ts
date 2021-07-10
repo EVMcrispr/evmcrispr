@@ -1,6 +1,6 @@
 import { ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
-import { getAppArtifact, getSystemAppArtifact, ORGANIZATION_APPS, REPO } from "./helpers";
+import { getAppArtifact, getSystemAppNameByAppId, getSystemAppArtifact, ORGANIZATION_APPS, REPO } from "./helpers";
 import { ErrorNotFound } from "./errors";
 import { App, Repo } from "./types";
 
@@ -24,11 +24,13 @@ const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {
 };
 
 const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
-  const { repoName: name } = app;
+  const { repoName, appId, address } = app;
   const { address: codeAddress } = app.implementation;
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
+  // Sometimes system apps doesn't have the repo name set so we use the appId to get it.
+  const name = repoName ?? getSystemAppNameByAppId(appId);
   const artifact =
-    getSystemAppArtifact(name) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
+    getSystemAppArtifact(appId) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
 
   if (!artifact) {
     throw new ErrorNotFound(`App ${name} artifact not found`);
@@ -38,7 +40,7 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
 
   return {
     name,
-    address: app.address,
+    address,
     codeAddress,
     contentUri,
     abi: artifact.abi,
@@ -103,12 +105,7 @@ export default class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        const parseApps = Promise.all(
-          apps.map(async (app: any) => {
-            return parseApp(app, this.#ipfsResolver);
-          })
-        );
-        return parseApps;
+        return Promise.all(apps.map((app: any) => parseApp(app, this.#ipfsResolver)));
       }
     );
   }
