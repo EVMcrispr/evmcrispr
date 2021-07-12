@@ -64,16 +64,19 @@ export default class EVMcrispr {
   }
 
   call(appIdentifier: AppIdentifier): any {
-    return new Proxy(this._resolveApp(appIdentifier), {
-      get: (targetApp, functionProperty: string) => {
+    return new Proxy(() => this._resolveApp(appIdentifier), {
+      get: (getTargetApp, functionProperty: string) => {
         return (...params: any): Function<Action> => {
           try {
-            return () => ({
-              to: targetApp.address,
-              data: targetApp.abiInterface.encodeFunctionData(functionProperty, params),
-            });
+            return () => {
+              const targetApp = getTargetApp();
+              return {
+                to: targetApp.address,
+                data: targetApp.abiInterface.encodeFunctionData(functionProperty, params),
+              };
+            };
           } catch (err) {
-            throw new ErrorMethodNotFound(functionProperty, targetApp.name);
+            throw new ErrorMethodNotFound(functionProperty, appIdentifier);
           }
         };
       },
