@@ -48,8 +48,6 @@ export type AppIdentifier = string;
 
 export type LabeledAppIdentifier = string;
 
-export type LabeledAppRegistryIdentifier = string;
-
 export type Entity = AppIdentifier | LabeledAppIdentifier | Address;
 
 export type Permission = [Entity, Entity, string];

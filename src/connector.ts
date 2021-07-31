@@ -26,8 +26,15 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   const { repoName: name } = app;
   const { address: codeAddress } = app.implementation;
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
+
+  
+
+  if (!name && !artifactJson && !contentUri) {
+    return null;// Promise.reject()
+  }
+
   const artifact =
-    getSystemAppArtifact(name) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
+    getSystemAppArtifact(name) ?? artifactJson ? JSON.parse(artifactJson) : (await getAppArtifact(ipfsResolver, contentUri));
 
   if (!artifact) {
     throw new ErrorNotFound(`App ${name} artifact not found`);
@@ -102,12 +109,21 @@ export default class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        const parseApps = Promise.all(
-          apps.map(async (app: any) => {
+        console.log(apps.map(app => {
+          return app.address.toLowerCase() != daoAddress.toLowerCase() ? app : {...app, repoName: 'kernel'}
+        }).map(app => app.repoName))
+
+        const parsedApps: App[] = [...await Promise.all(
+          apps
+          .map(app => {
+            return app.address.toLowerCase() != daoAddress.toLowerCase() ? app : {...app, repoName: 'kernel'}
+          })
+          .map(app => {
             return parseApp(app, this.#ipfsResolver);
           })
-        );
-        return parseApps;
+        )].filter(app => app) as App[];
+        console.log(parsedApps.map(app => app.name))
+        return parsedApps;
       }
     );
   }
