@@ -16,8 +16,8 @@ import {
   normalizeRole,
   IPFS_URI_TEMPLATE,
   resolveIdentifier,
-  parseLabeledAppRegistryIdentifier,
-  isLabeledAppRegistryIdentifier,
+  parseLabeledAppIdentifier,
+  isLabeledAppIdentifier,
 } from "./helpers";
 import {
   Action,
@@ -31,7 +31,6 @@ import {
   App,
   RawAction,
   Function,
-  LabeledAppRegistryIdentifier,
 } from "./types";
 import {
   ErrorAppNotFound,
@@ -63,6 +62,10 @@ export default class EVMcrispr {
     this.#appInterfaceCache = appResourcesCache;
   }
 
+  appCache() {
+    return this.#appCache;
+  }
+
   call(appIdentifier: AppIdentifier): any {
     return new Proxy(() => this._resolveApp(appIdentifier), {
       get: (getTargetApp, functionProperty: string) => {
@@ -83,8 +86,8 @@ export default class EVMcrispr {
     });
   }
 
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
-    return this._resolveApp(appIdentifier).address;
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
+    return () => this._resolveApp(appIdentifier).address;
   }
 
   async encode(
@@ -151,31 +154,31 @@ export default class EVMcrispr {
     return { action: { ...forwarderActions[0], value }, preTxActions };
   }
 
-  installNewApp(identifier: LabeledAppRegistryIdentifier, initParams: any[] = []): Function<Promise<Action>> {
+  installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): Function<Promise<Action>> {
     return async () => {
-      if (!isLabeledAppRegistryIdentifier(identifier)) {
+      if (!isLabeledAppIdentifier(identifier)) {
         throw new ErrorInvalidIdentifier(identifier);
       }
-      const [appName, label, registry] = parseLabeledAppRegistryIdentifier(identifier);
+      const [appName, _, registry] = parseLabeledAppIdentifier(identifier);
       const appRepo = await this.connector.repo(appName, registry);
       const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
       const kernel = this._resolveApp("kernel");
       const abiInterface = new utils.Interface(appArtifact.abi);
-      const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", initParams);
+      const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", this._resolveParams(initParams));
       const appId = utils.namehash(appArtifact.appName);
 
       const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
       const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
-      if (this.#appCache.has(label)) {
-        throw new ErrorException(`Label ${label} is already in use`);
+      if (this.#appCache.has(identifier)) {
+        throw new ErrorException(`Identifier ${identifier} is already in use`);
       }
 
       if (!this.#appInterfaceCache.has(codeAddress)) {
         this.#appInterfaceCache.set(codeAddress, abiInterface);
       }
 
-      this.#appCache.set(label, {
+      this.#appCache.set(identifier, {
         address: proxyContractAddress,
         name: appName,
         codeAddress,
@@ -235,15 +238,16 @@ export default class EVMcrispr {
       const { permissions: appPermissions } = resolvedApp;
       const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
 
-      if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
-      }
+      // if (!appPermissions.has(roleHash)) {
+      //   throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+      // }
 
       const appPermission = appPermissions.get(roleHash);
-      if (!appPermission.grantees.size) {
-        appPermission.manager = manager;
-        appPermission.grantees.add(granteeAddress);
-
+      if (!appPermission?.grantees.size) {
+        appPermissions.set(roleHash, {
+          manager,
+          grantees: new Set([granteeAddress]),
+        });
         return {
           to: aclAddress,
           data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
@@ -313,7 +317,11 @@ export default class EVMcrispr {
   }
 
   private _resolveEntity(entity: Entity): Address {
-    return utils.isAddress(entity) ? entity : this.app(entity);
+    return utils.isAddress(entity) ? entity : this.app(entity)();
+  }
+
+  private _resolveParams(params: any[]): any[] {
+    return params.map((param) => (param instanceof Function ? param() : param));
   }
 
   private _resolvePermission(permission: Permission): Entity[] {

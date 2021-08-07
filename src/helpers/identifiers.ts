@@ -1,24 +1,18 @@
 import { ErrorInvalidIdentifier } from "../errors";
-import { AppIdentifier, LabeledAppIdentifier, LabeledAppRegistryIdentifier } from "../types";
+import { AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
 
 const SEPARATOR = ":";
 
 export const isAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[0-9]{1,63}(?<!-))?$");
+  const regex = new RegExp("^((?!-)[A-Za-z0-9-]{1,63}(?<!-).?)+(:(?!-)[0-9]{1,63}(?<!-))?$");
 
   return regex.test(identifier);
 };
 
 export const isLabeledAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[a-z-]{1,63}(?<!-))?$");
-
-  return regex.test(identifier);
-};
-
-export const isLabeledAppRegistryIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[a-z-]{1,63}(?<!-))?.(?!-)[a-z-]{1,20}(?<!-)$");
+  const regex = new RegExp("^((?!-)[A-Za-z0-9-]{1,63}(?<!-).?)+(:(?!-)[a-z-]{1,63}(?<!-))?$");
 
   return regex.test(identifier);
 };
@@ -31,12 +25,10 @@ export const parseLabeledIdentifier = (labeledAppIdentifier: AppIdentifier | Lab
   return labeledAppIdentifier.split(SEPARATOR);
 };
 
-export const parseLabeledAppRegistryIdentifier = (
-  labeledAppRegistryIdentifier: LabeledAppRegistryIdentifier
-): string[] => {
-  const [labeledAppIdentifier, registry] = labeledAppRegistryIdentifier.split(".");
-
-  return [...parseLabeledIdentifier(labeledAppIdentifier), registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY];
+export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
+  const [appIdentifierWithRegistry, label] = parseLabeledIdentifier(labeledAppIdentifier);
+  const [appIdentifier, registry] = appIdentifierWithRegistry.split(".");
+  return [appIdentifier, label, registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY];
 };
 
 export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAppIdentifier => {
@@ -49,9 +41,7 @@ export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAp
     return identifier;
   }
   if (isLabeledAppIdentifier(identifier)) {
-    const [_, appLabel] = parseLabeledIdentifier(identifier);
-
-    return appLabel;
+    return identifier;
   }
 
   throw new ErrorInvalidIdentifier(identifier);

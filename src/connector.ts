@@ -29,8 +29,15 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
   // Sometimes system apps doesn't have the repo name set so we use the appId to get it.
   const name = repoName ?? getSystemAppNameByAppId(appId);
+
+  if (!name && !contentUri) {
+    return null; // Promise.reject()
+  }
+
   const artifact =
-    getSystemAppArtifact(appId) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
+    getSystemAppArtifact(name) ?? artifactJson
+      ? JSON.parse(artifactJson)
+      : await getAppArtifact(ipfsResolver, contentUri);
 
   if (!artifact) {
     throw new ErrorNotFound(`App ${name} artifact not found`);
