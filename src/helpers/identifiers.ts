@@ -18,7 +18,7 @@ export const isLabeledAppIdentifier = (identifier: string): boolean => {
 };
 
 export const isLabeledAppRegistryIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(:(?!-)[A-Za-z-]{1,63}(?<!-))?.(?!-)[a-z-]{1,20}(?<!-)$");
+  const regex = new RegExp("^(?!-)[a-z0-9-]{1,63}(?<!-)(:(?!-)[a-z-]{1,63}(?<!-))?.(?!-)[a-z-]{1,20}(?<!-)$");
 
   return regex.test(identifier);
 };
