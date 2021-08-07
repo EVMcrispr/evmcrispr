@@ -1,4 +1,4 @@
-import { Contract, BigNumber, providers } from "ethers";
+import { Contract, BigNumber } from "ethers";
 import { forwarderAbi, forwarderFeeAbi } from "@1hive/connect-core";
 
 export const FORWARDER_ABI = [...forwarderAbi, ...forwarderFeeAbi];
@@ -18,8 +18,8 @@ export const getForwarderFee = async (forwarder: Contract): Promise<[string, Big
   }
 };
 
-export const getForwarderType = async (forwarder: Contract, provider: providers.Provider): Promise<number> => {
-  // If it fails then app implements an aragonos older version forwarder
+export const getForwarderType = async (forwarder: Contract): Promise<number> => {
+  // If it fails then we assume app implements an aragonos older version forwarder
   try {
     return await forwarder.forwarderType();
   } catch (err) {

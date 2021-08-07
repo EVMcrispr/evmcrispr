@@ -141,7 +141,7 @@ export default class EVMcrispr {
         }
       }
 
-      if ((await getForwarderType(forwarderAddress, this.#signer.provider)) === FORWARDER_TYPES.WITH_CONTEXT) {
+      if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
         forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes,bytes)", [script, context]) }];
       } else {
         forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes)", [script]) }];
