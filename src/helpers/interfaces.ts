@@ -21,6 +21,6 @@ const SYSTEM_APPS_ARTIFACTS: { [key: string]: any } = {
   [KERNEL_APP_ID]: artifactKernel,
 };
 
-export const getSystemAppArtifact = (appId: string): any => SYSTEM_APPS_ARTIFACTS[appId] || null;
+export const getSystemAppArtifactByAppId = (appId: string): any => SYSTEM_APPS_ARTIFACTS[appId] || null;
 
 export const getSystemAppNameByAppId = (appId: string): string => SYSTEM_APP_ID_NAMES[appId] || null;

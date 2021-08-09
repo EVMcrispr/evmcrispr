@@ -1,6 +1,12 @@
 import { ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
-import { getAppArtifact, getSystemAppNameByAppId, getSystemAppArtifact, ORGANIZATION_APPS, REPO } from "./helpers";
+import {
+  getAppArtifact,
+  getSystemAppNameByAppId,
+  getSystemAppArtifactByAppId,
+  ORGANIZATION_APPS,
+  REPO,
+} from "./helpers";
 import { ErrorNotFound } from "./errors";
 import { App, Repo } from "./types";
 
@@ -27,7 +33,7 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   const { repoName, appId, address } = app;
   const { address: codeAddress } = app.implementation;
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
-  // Sometimes system apps doesn't have the repo name set so we use the appId to get it.
+  // Sometimes system apps dont't have the repo name set so we use the appId to get it.
   const name = repoName ?? getSystemAppNameByAppId(appId);
 
   if (!name && !contentUri) {
@@ -35,9 +41,7 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   }
 
   const artifact =
-    getSystemAppArtifact(name) ?? artifactJson
-      ? JSON.parse(artifactJson)
-      : await getAppArtifact(ipfsResolver, contentUri);
+    getSystemAppArtifactByAppId(appId) ?? JSON.parse(artifactJson) ?? (await getAppArtifact(ipfsResolver, contentUri));
 
   if (!artifact) {
     throw new ErrorNotFound(`App ${name} artifact not found`);
@@ -91,7 +95,7 @@ export default class Connector {
       }
 
       const { artifact: artifactJson, contentUri, codeAddress } = repo.lastVersion;
-      const artifact = JSON.parse(artifactJson) ?? (await getAppArtifact(this.#ipfsResolver, contentUri));
+      const artifact = artifactJson ? JSON.parse(artifactJson) : await getAppArtifact(this.#ipfsResolver, contentUri);
 
       return {
         artifact,
