@@ -3,32 +3,29 @@ import { AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
 
-const SEPARATOR = ":";
+const appIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([0-9]{1,63}))?$/;
+const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([a-z-]{1,63}))?$/;
 
 export const isAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^((?!-)[A-Za-z0-9-]{1,63}(?<!-).?)+(:(?!-)[0-9]{1,63}(?<!-))?$");
-
-  return regex.test(identifier);
+  return appIdentifierRegex.test(identifier);
 };
 
 export const isLabeledAppIdentifier = (identifier: string): boolean => {
-  const regex = new RegExp("^((?!-)[A-Za-z0-9-]{1,63}(?<!-).?)+(:(?!-)[a-z-]{1,63}(?<!-))?$");
-
-  return regex.test(identifier);
+  return labeledAppIdentifierRegex.test(identifier);
 };
 
 export const parseAppIdentifier = (appIdentifier: AppIdentifier): string[] => {
-  return appIdentifier.split(SEPARATOR);
+  return appIdentifierRegex.exec(appIdentifier)?.slice(1);
 };
 
-export const parseLabeledIdentifier = (labeledAppIdentifier: AppIdentifier | LabeledAppIdentifier): string[] => {
-  return labeledAppIdentifier.split(SEPARATOR);
+export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
+  return labeledAppIdentifierRegex.exec(labeledAppIdentifier)?.slice(1);
 };
 
 export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
-  const [appIdentifierWithRegistry, label] = parseLabeledIdentifier(labeledAppIdentifier);
-  const [appIdentifier, registry] = appIdentifierWithRegistry.split(".");
-  return [appIdentifier, label, registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY];
+  const [appIdentifier, registry, label] = parseLabeledIdentifier(labeledAppIdentifier);
+
+  return [appIdentifier, registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY, label];
 };
 
 export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAppIdentifier => {
