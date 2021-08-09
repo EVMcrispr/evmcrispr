@@ -1,12 +1,25 @@
 import { Contract, BigNumber } from "ethers";
 import { forwarderAbi, forwarderFeeAbi } from "@1hive/connect-core";
 
-export const FORWARDER_ABI = [...forwarderAbi, ...forwarderFeeAbi];
+export const FORWARDER_ABI = [
+  ...forwarderAbi,
+  ...forwarderFeeAbi,
+  // Function missing on Connect's forwarder abi
+  "function forwarderType() external pure returns (uint8)",
+];
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
   NO_CONTEXT: 1,
   WITH_CONTEXT: 2,
+};
+
+export const isForwarder = async (forwarder: Contract): Promise<boolean> => {
+  try {
+    return await forwarder.isForwarder();
+  } catch (err) {
+    return false;
+  }
 };
 
 export const getForwarderFee = async (forwarder: Contract): Promise<[string, BigNumber]> => {

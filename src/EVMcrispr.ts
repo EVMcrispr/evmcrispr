@@ -18,6 +18,7 @@ import {
   resolveIdentifier,
   parseLabeledAppIdentifier,
   isLabeledAppIdentifier,
+  isForwarder,
 } from "./helpers";
 import {
   Action,
@@ -108,12 +109,7 @@ export default class EVMcrispr {
       const forwarderAddress = forwarders[i];
       const forwarder = new Contract(forwarderAddress, FORWARDER_ABI, this.#signer.provider);
 
-      try {
-        const res = await forwarder.isForwarder();
-        if (!res) {
-          throw new Error();
-        }
-      } catch (err) {
+      if (!(await isForwarder(forwarder))) {
         throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder`);
       }
 
@@ -145,7 +141,12 @@ export default class EVMcrispr {
       }
 
       if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
-        forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes,bytes)", [script, context]) }];
+        forwarderActions = [
+          {
+            to: forwarderAddress,
+            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(options.context)]),
+          },
+        ];
       } else {
         forwarderActions = [{ to: forwarderAddress, data: encodeActCall("forward(bytes)", [script]) }];
       }
@@ -159,58 +160,67 @@ export default class EVMcrispr {
       if (!isLabeledAppIdentifier(identifier)) {
         throw new ErrorInvalidIdentifier(identifier);
       }
-      const [appName, _, registry] = parseLabeledAppIdentifier(identifier);
-      const appRepo = await this.connector.repo(appName, registry);
-      const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
-      const kernel = this._resolveApp("kernel");
-      const abiInterface = new utils.Interface(appArtifact.abi);
-      const encodedInitializeFunction = abiInterface.encodeFunctionData("initialize", this._resolveParams(initParams));
-      const appId = utils.namehash(appArtifact.appName);
 
-      const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
-      const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
+      try {
+        const [appName, registry] = parseLabeledAppIdentifier(identifier);
+        const appRepo = await this.connector.repo(appName, registry);
+        const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
+        const kernel = this._resolveApp("kernel");
+        const abiInterface = new utils.Interface(appArtifact.abi);
+        const encodedInitializeFunction = abiInterface.encodeFunctionData(
+          "initialize",
+          this._resolveParams(initParams)
+        );
+        const appId = utils.namehash(appArtifact.appName);
 
-      if (this.#appCache.has(identifier)) {
-        throw new ErrorException(`Identifier ${identifier} is already in use`);
-      }
+        const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
+        const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
-      if (!this.#appInterfaceCache.has(codeAddress)) {
-        this.#appInterfaceCache.set(codeAddress, abiInterface);
-      }
+        if (this.#appCache.has(identifier)) {
+          throw new ErrorException(`Identifier ${identifier} is already in use`);
+        }
 
-      this.#appCache.set(identifier, {
-        address: proxyContractAddress,
-        name: appName,
-        codeAddress,
-        contentUri,
-        abi: appArtifact.abi,
-        // Set a reference to the app interface
-        abiInterface: this.#appInterfaceCache.get(codeAddress),
-        permissions: appArtifact.roles.reduce((permissionsMap, role) => {
-          permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
-          return permissionsMap;
-        }, new Map()),
-      });
+        if (!this.#appInterfaceCache.has(codeAddress)) {
+          this.#appInterfaceCache.set(codeAddress, abiInterface);
+        }
 
-      this.#installedAppCounter++;
-
-      return {
-        to: kernel.address,
-        data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
-          appId,
+        this.#appCache.set(identifier, {
+          address: proxyContractAddress,
+          name: appName,
           codeAddress,
-          encodedInitializeFunction,
-          false,
-        ]),
-      };
+          contentUri,
+          abi: appArtifact.abi,
+          // Set a reference to the app interface
+          abiInterface: this.#appInterfaceCache.get(codeAddress),
+          permissions: appArtifact.roles.reduce((permissionsMap, role) => {
+            permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
+            return permissionsMap;
+          }, new Map()),
+        });
+
+        this.#installedAppCounter++;
+
+        return {
+          to: kernel.address,
+          data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
+            appId,
+            codeAddress,
+            encodedInitializeFunction,
+            false,
+          ]),
+        };
+      } catch (err) {
+        console.error(`Error when encoding ${identifier} installation action: `);
+        throw err;
+      }
     };
   }
 
   async forward(actions: Function<RawAction>[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
-    const forwarderAction = await this.encode(actions, options);
+    const { action, preTxActions } = await this.encode(actions, options);
 
     // Execute pretransactions actions
-    for (const action of forwarderAction.preTxActions) {
+    for (const action of preTxActions) {
       await (
         await this.#signer.sendTransaction({
           ...action,
@@ -222,7 +232,7 @@ export default class EVMcrispr {
 
     return await (
       await this.#signer.sendTransaction({
-        ...forwarderAction.action,
+        ...action,
         gasLimit: TX_GAS_LIMIT,
         gasPrice: TX_GAS_PRICE,
       })
@@ -238,9 +248,9 @@ export default class EVMcrispr {
       const { permissions: appPermissions } = resolvedApp;
       const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
 
-      // if (!appPermissions.has(roleHash)) {
-      //   throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
-      // }
+      if (!appPermissions.has(roleHash)) {
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+      }
 
       const appPermission = appPermissions.get(roleHash);
       if (!appPermission?.grantees.size) {
