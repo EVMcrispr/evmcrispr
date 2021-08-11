@@ -76,7 +76,7 @@ export default class EVMcrispr {
               const targetApp = getTargetApp();
               return {
                 to: targetApp.address,
-                data: targetApp.abiInterface.encodeFunctionData(functionProperty, params),
+                data: targetApp.abiInterface.encodeFunctionData(functionProperty, this._resolveParams(params)),
               };
             };
           } catch (err) {
