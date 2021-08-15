@@ -1,11 +1,5 @@
 pragma solidity 0.4.24;
 
-import "@aragon/os/contracts/forwarding/IAbstractForwarder.sol";
-import "@aragon/os/contracts/forwarding/IForwarderFee.sol";
-import "@aragon/os/contracts/forwarding/IForwarderWithContext.sol";
-import "@aragon/os/contracts/forwarding/IForwarder.sol";
-import "@aragon/os/contracts/lib/token/ERC20.sol";
-
 // You might think this file is a bit odd, but let me explain.
 // We only use some contracts in our tests, which means Truffle
 // will not compile it for us, because it is from an external
