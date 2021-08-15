@@ -1,7 +1,7 @@
 import { utils } from "ethers";
 import { Action, Function, RawAction } from "../types";
 
-export const flatElements = (elements) => {
+export const flatElements = (elements: any[]) => {
   return elements.reduce((flattenedElements, element) => {
     if (Array.isArray(element)) {
       return [...flattenedElements, ...element];

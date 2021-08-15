@@ -17,7 +17,6 @@ import {
   IPFS_URI_TEMPLATE,
   resolveIdentifier,
   parseLabeledAppIdentifier,
-  isLabeledAppIdentifier,
   isForwarder,
 } from "./helpers";
 import {
@@ -32,15 +31,9 @@ import {
   App,
   RawAction,
   Function,
+  PermissionMap,
 } from "./types";
-import {
-  ErrorAppNotFound,
-  ErrorException,
-  ErrorInvalidIdentifier,
-  ErrorMethodNotFound,
-  ErrorInvalid,
-  ErrorNotFound,
-} from "./errors";
+import { ErrorAppNotFound, ErrorException, ErrorMethodNotFound, ErrorInvalid, ErrorNotFound } from "./errors";
 
 export default class EVMcrispr {
   readonly connector: Connector;
@@ -54,9 +47,12 @@ export default class EVMcrispr {
   constructor(signer: Signer, chainId: number) {
     this.connector = new Connector(chainId, IPFS_URI_TEMPLATE);
     this.#signer = signer;
+    this.#appCache = new Map();
+    this.#appInterfaceCache = new Map();
+    this.#installedAppCounter = 0;
   }
 
-  async connect(daoAddress) {
+  async connect(daoAddress: Address) {
     this.#installedAppCounter = 0;
     const [appCache, appResourcesCache] = await this._buildCaches(await this.connector.organizationApps(daoAddress));
     this.#appCache = appCache;
@@ -157,10 +153,6 @@ export default class EVMcrispr {
 
   installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): Function<Promise<Action>> {
     return async () => {
-      if (!isLabeledAppIdentifier(identifier)) {
-        throw new ErrorInvalidIdentifier(identifier);
-      }
-
       try {
         const [appName, registry] = parseLabeledAppIdentifier(identifier);
         const appRepo = await this.connector.repo(appName, registry);
@@ -173,7 +165,7 @@ export default class EVMcrispr {
         );
         const appId = utils.namehash(appArtifact.appName);
 
-        const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider);
+        const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider!);
         const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
         if (this.#appCache.has(identifier)) {
@@ -191,8 +183,8 @@ export default class EVMcrispr {
           contentUri,
           abi: appArtifact.abi,
           // Set a reference to the app interface
-          abiInterface: this.#appInterfaceCache.get(codeAddress),
-          permissions: appArtifact.roles.reduce((permissionsMap, role) => {
+          abiInterface: this.#appInterfaceCache.get(codeAddress)!,
+          permissions: appArtifact.roles.reduce((permissionsMap: PermissionMap, role: any) => {
             permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
             return permissionsMap;
           }, new Map()),
@@ -244,8 +236,7 @@ export default class EVMcrispr {
       const [grantee, app, role] = permission;
       const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
       const manager = this._resolveEntity(defaultPermissionManager);
-      const resolvedApp = this._resolveApp(app);
-      const { permissions: appPermissions } = resolvedApp;
+      const { permissions: appPermissions } = this._resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
 
       if (!appPermissions.has(roleHash)) {
@@ -282,6 +273,7 @@ export default class EVMcrispr {
 
   revokePermission(permission: Permission, removeManager = true): Function<Action[]> {
     return () => {
+      const actions = [];
       const [_, app, role] = permission;
       const [entityAddress, appAddress, roleHash] = this._resolvePermission(permission);
       const { permissions: appPermissions } = this._resolveApp(app);
@@ -291,26 +283,25 @@ export default class EVMcrispr {
         throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
       }
 
-      const revokeAction = {
+      actions.push({
         to: aclAddress,
         data: aclAbiInterface.encodeFunctionData("revokePermission", [entityAddress, appAddress, roleHash]),
-      };
+      });
 
-      return [
-        revokeAction,
-        removeManager
-          ? {
-              to: aclAddress,
-              data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
-            }
-          : null,
-      ];
+      if (removeManager) {
+        actions.push({
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
+        });
+      }
+
+      return actions;
     };
   }
 
   revokePermissions(permissions: Permission[], removeManager = true): Function<Action[]> {
     return () =>
-      permissions.reduce((actions, permission) => {
+      permissions.reduce((actions: Action[], permission) => {
         const action = this.revokePermission(permission, removeManager)();
         return [...actions, ...action];
       }, []);
@@ -323,7 +314,7 @@ export default class EVMcrispr {
       throw new ErrorAppNotFound(resolvedIdentifier);
     }
 
-    return this.#appCache.get(resolvedIdentifier);
+    return this.#appCache.get(resolvedIdentifier)!;
   }
 
   private _resolveEntity(entity: Entity): Address {
@@ -353,7 +344,7 @@ export default class EVMcrispr {
         appInterfaceCache.set(codeAddress, new utils.Interface(abi));
       }
       // Set reference to app interface
-      app.abiInterface = appInterfaceCache.get(codeAddress);
+      app.abiInterface = appInterfaceCache.get(codeAddress)!;
 
       appCache.set(`${name}:${counter}`, app);
       appCounter.set(name, counter + 1);

@@ -1,4 +1,5 @@
-import { ipfsResolver, IpfsResolver } from "@1hive/connect-core";
+import { utils } from "ethers";
+import { Address, ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
 import {
   getAppArtifact,
@@ -7,11 +8,11 @@ import {
   ORGANIZATION_APPS,
   REPO,
 } from "./helpers";
-import { ErrorNotFound } from "./errors";
-import { App, Repo } from "./types";
+import { ErrorException, ErrorNotFound } from "./errors";
+import { App, PermissionMap, Repo } from "./types";
 
-const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {
-  const appRoles = artifact.roles.reduce((roleMap, role) => {
+const buildAppRoles = (artifact: any, appCurrentRoles: any[]): PermissionMap => {
+  const appRoles = artifact.roles.reduce((roleMap: PermissionMap, role: any) => {
     roleMap.set(role.bytes, { manager: null, grantees: new Set() });
     return roleMap;
   }, new Map());
@@ -21,7 +22,7 @@ const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {
       appRoles.set(role.roleHash, {
         ...appRoles.get(role.roleHash),
         manager: role.manager,
-        grantees: new Set(role.grantees.map(({ granteeAddress }) => granteeAddress)),
+        grantees: new Set(role.grantees.map(({ granteeAddress }: { granteeAddress: Address }) => granteeAddress)),
       });
     }
   });
@@ -29,7 +30,7 @@ const buildAppRoles = (artifact: any, appCurrentRoles: any[]) => {
   return appRoles;
 };
 
-const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
+const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App | undefined> => {
   const { repoName, appId, address } = app;
   const { address: codeAddress } = app.implementation;
   const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
@@ -37,7 +38,7 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
   const name = repoName ?? getSystemAppNameByAppId(appId);
 
   if (!name && !contentUri) {
-    return null; // Promise.reject()
+    return;
   }
 
   const artifact =
@@ -55,11 +56,13 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App> => {
     codeAddress,
     contentUri,
     abi: artifact.abi,
+    // @ts-ignore ABI interface is set later when building the app cache
+    abiInterface: null,
     permissions,
   };
 };
 
-function subgraphUrlFromChainId(chainId: number) {
+function subgraphUrlFromChainId(chainId: number): string | null {
   switch (chainId) {
     case 1:
       return "https://api.thegraph.com/subgraphs/name/1hive/aragon-mainnet";
@@ -77,7 +80,13 @@ export default class Connector {
   #gql: GraphQLWrapper;
 
   constructor(chainId: number, ipfsUrlTemplate: string) {
-    this.#gql = new GraphQLWrapper(subgraphUrlFromChainId(chainId));
+    const subgraphUrl = subgraphUrlFromChainId(chainId);
+
+    if (!subgraphUrl) {
+      throw new ErrorException("Connector requires a valid chain id to be passed (1, 4 or 100)");
+    }
+
+    this.#gql = new GraphQLWrapper(subgraphUrl);
     this.#ipfsResolver = ipfsResolver(ipfsUrlTemplate);
   }
 
@@ -88,7 +97,7 @@ export default class Connector {
   async repo(repoName: string, registryName: string): Promise<Repo> {
     return this.#gql.performQueryWithParser(REPO("query"), { repoName }, async (result: QueryResult) => {
       // Cant filter by registry when fetching repos so we need to do it here
-      const repo = result.data.repos.filter(({ registry }) => registry.name === registryName).pop();
+      const repo = result.data.repos.filter(({ registry }: { registry: any }) => registry.name === registryName).pop();
 
       if (!repo) {
         throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`);

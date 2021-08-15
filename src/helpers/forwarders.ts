@@ -22,12 +22,12 @@ export const isForwarder = async (forwarder: Contract): Promise<boolean> => {
   }
 };
 
-export const getForwarderFee = async (forwarder: Contract): Promise<[string, BigNumber]> => {
+export const getForwarderFee = async (forwarder: Contract): Promise<[string, BigNumber] | undefined> => {
   // If it fails we assume app is not a payable forwarder
   try {
     return await forwarder.forwardFee();
   } catch (err) {
-    return null;
+    return;
   }
 };
 

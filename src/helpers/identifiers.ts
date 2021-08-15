@@ -14,23 +14,27 @@ export const isLabeledAppIdentifier = (identifier: string): boolean => {
   return labeledAppIdentifierRegex.test(identifier);
 };
 
-export const parseAppIdentifier = (appIdentifier: AppIdentifier): string[] => {
+export const parseAppIdentifier = (appIdentifier: AppIdentifier): string[] | undefined => {
   return appIdentifierRegex.exec(appIdentifier)?.slice(1);
 };
 
-export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
+export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] | undefined => {
   return labeledAppIdentifierRegex.exec(labeledAppIdentifier)?.slice(1);
 };
 
 export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
-  const [appIdentifier, registry, label] = parseLabeledIdentifier(labeledAppIdentifier);
+  if (!isLabeledAppIdentifier(labeledAppIdentifier)) {
+    throw new ErrorInvalidIdentifier(labeledAppIdentifier);
+  }
+
+  const [appIdentifier, registry, label] = parseLabeledIdentifier(labeledAppIdentifier)!;
 
   return [appIdentifier, registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY, label];
 };
 
 export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAppIdentifier => {
   if (isAppIdentifier(identifier)) {
-    const [appName, appIndex] = parseAppIdentifier(identifier);
+    const [appName, appIndex] = parseAppIdentifier(identifier)!;
 
     if (!appIndex) {
       return `${appName}:0`;

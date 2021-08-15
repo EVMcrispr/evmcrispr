@@ -28,8 +28,8 @@ export interface App {
   name: string;
   contentUri: string;
   abi: string;
-  abiInterface?: Interface;
-  permissions?: PermissionMap;
+  abiInterface: Interface;
+  permissions: PermissionMap;
 }
 
 export interface Repo {
