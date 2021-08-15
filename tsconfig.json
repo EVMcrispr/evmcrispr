@@ -1,12 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "module": "commonjs",
-    "strict": false,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
-    "outDir": "dist",
-    "resolveJsonModule": true
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "dist/esm",
+    "resolveJsonModule": true,
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2019"
   },
-  "include": ["./scripts", "./test", "./deploy", "./helpers"],
-  "files": ["./hardhat.config.ts"]
+  "include": ["./src/**/*.ts", "./src/**/*.json"],
+  "exclude": ["test", "helpers", "typescript", "node_modules", "./scripts/commons-upgrade.ts"]
 }

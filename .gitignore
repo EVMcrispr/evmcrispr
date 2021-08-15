@@ -11,6 +11,9 @@ typechain
 *.txt
 tenderly.yaml
 
+# compilation output
+dist/
+
 # testing
 coverage
 coverage.json
