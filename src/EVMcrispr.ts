@@ -42,7 +42,9 @@ export default class EVMcrispr {
   #installedAppCounter: number;
   #signer: Signer;
 
-  ANY_ENTITY = "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF";
+  ANY_ENTITY = "0x" + "F".repeat(40); // 0xFFFF...FFFF;
+
+  NO_ENTITY = ZERO_ADDRESS; // 0x0000...0000;
 
   constructor(signer: Signer, chainId: number) {
     this.connector = new Connector(chainId, IPFS_URI_TEMPLATE);
