@@ -12,7 +12,7 @@ export interface Action {
 
 export interface ForwardOptions {
   path: Entity[];
-  context: string;
+  context?: string;
 }
 
 export interface Role {
