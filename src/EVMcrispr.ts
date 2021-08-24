@@ -54,18 +54,28 @@ export default class EVMcrispr {
     this.#installedAppCounter = 0;
   }
 
-  async connect(daoAddress: Address) {
+  /**
+   * Connect to a DAO by fetching and caching all its apps and permissions data.
+   * It is necessary to connect to a DAO before doing anything else.
+   * @param {Address} daoAddress The address of the DAO to connect to.
+   */
+  async connect(daoAddress: Address): Promise<void> {
     this.#installedAppCounter = 0;
     const [appCache, appResourcesCache] = await this._buildCaches(await this.connector.organizationApps(daoAddress));
     this.#appCache = appCache;
     this.#appInterfaceCache = appResourcesCache;
   }
 
-  appCache() {
+  appCache(): AppCache {
     return this.#appCache;
   }
 
-  call(appIdentifier: AppIdentifier): any {
+  /**
+   * Encode an action that calls an app's contract function.
+   * @param {AppIdentifier} appIdentifier The identifier of the app being called.
+   * @returns {Proxy} A proxy of the app that intercepts calls to it and gives back a function that returns the encoded contract function call.
+   */
+  call(appIdentifier: AppIdentifier): () => App {
     return new Proxy(() => this._resolveApp(appIdentifier), {
       get: (getTargetApp, functionProperty: string) => {
         return (...params: any): Function<Action> => {
@@ -85,10 +95,24 @@ export default class EVMcrispr {
     });
   }
 
+  /**
+   * Fetch the address of an existing or counterfactual app.
+   * @param {AppIdentifier | LabeledAppIdentifier} appIdentifier The identifier of the app being fetched.
+   * @returns {Address} The app's contract address.
+   */
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
     return () => this._resolveApp(appIdentifier).address;
   }
 
+  /**
+   * Encode a set of actions into one using a path of forwarding apps.
+   * @param {Function<RawAction>[]} actionFunctions The array of action-returning functions being encoded.
+   * @param  {ForwardOptions} options The forward options object.
+   * @param {Entity[]} options.path Array of forwarding apps being used to encode the forwarding action.
+   * @param {String} options.context String containing context information. Needed for forwarders with context (AragonOS v5).
+   * @returns {Promise<{ action: Action; preTxActions: Action[] }>} A promise that resolves to an object
+   * containing the encoded forwarding action as well as any pre-transactions that need to be executed.
+   */
   async encode(
     actionFunctions: Function<RawAction>[],
     options: ForwardOptions
@@ -153,6 +177,12 @@ export default class EVMcrispr {
     return { action: { ...forwarderActions[0], value }, preTxActions };
   }
 
+  /**
+   * Encode an action that installs a new app.
+   * @param {LabeledAppIdentifier} identifier Identifier of the app being installed.
+   * @param {any[]} initParams Array of the parameters needed to initialize the app.
+   * @returns {Function<Promise<Action>>} A function returning a promise that resolves to the installation action.
+   */
   installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): Function<Promise<Action>> {
     return async () => {
       try {
@@ -210,6 +240,17 @@ export default class EVMcrispr {
     };
   }
 
+  /**
+   * Encode a set of actions into one using a path of forwarding apps and send it in a transaction.
+   * @param {Function<RawAction>[]} actions The array of action-returning functions being encoded.
+   * @param {ForwardOptions} options A forwarding option object
+   * @param {Entity[]} options.path Array of forwarding apps identifiers or addresses being used to encode
+   * the forwarding action.
+   * @param {String} options.context String containing context information. Needed for forwarders with
+   * context (AragonOS v5).
+   * @returns {Promise<providers.TransactionReceipt>} A promise that resolves to a receipt of
+   * the sent transaction.
+   */
   async forward(actions: Function<RawAction>[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
     const { action, preTxActions } = await this.encode(actions, options);
 
@@ -233,6 +274,12 @@ export default class EVMcrispr {
     ).wait();
   }
 
+  /**
+   * Encode an action that creates a new app permission.
+   * @param {Permission} permission The permission being created.
+   * @param {Entity} defaultPermissionManager The entity being set as the permission manager.
+   * @returns {Function<Action>} A function that returns the permission action.
+   */
   addPermission(permission: Permission, defaultPermissionManager: Entity): Function<Action> {
     return () => {
       const [grantee, app, role] = permission;
@@ -269,10 +316,23 @@ export default class EVMcrispr {
     };
   }
 
+  /**
+   * Encode a set of actions that create new app permissions.
+   * @param {Permission[]} permissions An array containing the permissions being created.
+   * @param {Entity} defaultPermissionManager The entity being set as the permission manager of every permission
+   * created.
+   * @returns {Function<Action[]>} A function that returns an array of permission actions.
+   */
   addPermissions(permissions: Permission[], defaultPermissionManager: Entity): Function<Action[]> {
     return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)());
   }
 
+  /**
+   * Encode an action that revokes an app's permission.
+   * @param {Permission} permission The permission being revoked.
+   * @param removeManager A boolean that indicates whether or not to remove the permission manager.
+   * @returns {Function<Action[]>} A function that returns an array of revoking actions.
+   */
   revokePermission(permission: Permission, removeManager = true): Function<Action[]> {
     return () => {
       const actions = [];
@@ -301,6 +361,12 @@ export default class EVMcrispr {
     };
   }
 
+  /**
+   * Encode a set of actions that revoke an app's permission.
+   * @param {Permission[]} permissions An array containing the permissions being revoked.
+   * @param {boolean} removeManager A boolean that indicates wether or not to remove the permission manager.
+   * @returns {Function<Action[]>} A function that returns an array of revoking actions.
+   */
   revokePermissions(permissions: Permission[], removeManager = true): Function<Action[]> {
     return () =>
       permissions.reduce((actions: Action[], permission) => {
