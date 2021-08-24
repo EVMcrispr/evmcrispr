@@ -166,7 +166,7 @@ export default class EVMcrispr {
         forwarderActions = [
           {
             to: forwarderAddress,
-            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(options.context)]),
+            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(options.context ?? "")]),
           },
         ];
       } else {
