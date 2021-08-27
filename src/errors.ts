@@ -1,14 +1,26 @@
-export { ErrorInvalid, ErrorNotFound } from "@1hive/connect-core";
-
 function defineNonEnumerable(instance: object, name: string, value: any) {
   Object.defineProperty(instance, name, { value, enumerable: false });
 }
 
-type ErrorOptions = {
+/**
+ * An options object
+ * @category Error
+ */
+export type ErrorOptions = {
+  /**
+   * The error's name.
+   */
   name?: string;
+  /**
+   * The error's code.
+   */
   code?: string;
 };
 
+/**
+ * A general error that denotes something unexpected happened.
+ * @category Error
+ */
 export class ErrorException extends Error {
   constructor(message = "An unexpected error happened.", options: ErrorOptions = {}) {
     super(message);
@@ -19,19 +31,28 @@ export class ErrorException extends Error {
   }
 }
 
-export class ErrorInvalidIdentifier extends ErrorException {
-  constructor(identifier = "", options: ErrorOptions = {}) {
-    super(`Invalid identifier ${identifier}`, options);
-  }
-}
-export class ErrorAppNotFound extends ErrorException {
-  constructor(app = "", options: ErrorOptions = {}) {
-    super(`App ${app} not found`, options);
+/**
+ * The resource doesn’t seem to be valid.
+ * @category Error
+ */
+export class ErrorInvalid extends ErrorException {
+  constructor(
+    message = "The resource doesn’t seem to be valid.",
+    { code = "ErrorInvalid", name = "ErrorInvalid" }: ErrorOptions = {}
+  ) {
+    super(message, { code, name });
   }
 }
 
-export class ErrorMethodNotFound extends ErrorException {
-  constructor(method = "", app = "", options: ErrorOptions = {}) {
-    super(`Method ${method} not found in app ${app}`, options);
+/**
+ * The resource couldn’t be found.
+ * @category Error
+ */
+export class ErrorNotFound extends ErrorException {
+  constructor(
+    message = "The resource couldn’t be found.",
+    { code = "ErrorNotFound", name = "ErrorNotFound" }: ErrorOptions = {}
+  ) {
+    super(message, { code, name });
   }
 }

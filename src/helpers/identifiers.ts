@@ -1,4 +1,4 @@
-import { ErrorInvalidIdentifier } from "../errors";
+import { ErrorInvalid } from "../errors";
 import { AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
@@ -24,7 +24,7 @@ export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifie
 
 export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
   if (!isLabeledAppIdentifier(labeledAppIdentifier)) {
-    throw new ErrorInvalidIdentifier(labeledAppIdentifier);
+    throw new ErrorInvalid(`Invalid identifier ${labeledAppIdentifier}`, { name: "ErrorInvalidIdentifier" });
   }
 
   const [appIdentifier, registry, label] = parseLabeledIdentifier(labeledAppIdentifier)!;
@@ -45,5 +45,5 @@ export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAp
     return identifier;
   }
 
-  throw new ErrorInvalidIdentifier(identifier);
+  throw new ErrorInvalid(`Invalid identifier ${identifier}`, { name: "ErrorInvalidIdentifier" });
 };

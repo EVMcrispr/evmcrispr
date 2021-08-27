@@ -1,8 +1,8 @@
 import { IpfsResolver } from "@1hive/connect-core";
 
 // export const IPFS_URI_TEMPLATE = "https://ipfs.eth.aragon.network/ipfs/{cid}{path}";
-export const IPFS_URI_TEMPLATE = "https://ipfs.io/ipfs/{cid}{path}";
-
+// export const IPFS_URI_TEMPLATE = "https://ipfs.io/ipfs/{cid}{path}";
+export const IPFS_URI_TEMPLATE = "https://gateway.pinata.cloud/ipfs/{cid}{path}";
 const parseContentUri = (contentUri: string): string => {
   return contentUri.split(":").pop()!;
 };

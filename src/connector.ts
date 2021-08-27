@@ -1,4 +1,3 @@
-import { utils } from "ethers";
 import { Address, ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
 import {
@@ -13,7 +12,7 @@ import { App, PermissionMap, Repo } from "./types";
 
 const buildAppRoles = (artifact: any, appCurrentRoles: any[]): PermissionMap => {
   const appRoles = artifact.roles.reduce((roleMap: PermissionMap, role: any) => {
-    roleMap.set(role.bytes, { manager: null, grantees: new Set() });
+    roleMap.set(role.bytes, { manager: "", grantees: new Set() });
     return roleMap;
   }, new Map());
 
@@ -125,7 +124,9 @@ export default class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        return Promise.all(apps.map((app: any) => parseApp(app, this.#ipfsResolver)));
+        const parsedApps = Promise.all(apps.map((app: any) => parseApp(app, this.#ipfsResolver)));
+
+        return parsedApps;
       }
     );
   }

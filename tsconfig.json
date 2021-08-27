@@ -17,6 +17,12 @@
     "strict": true,
     "target": "es2019"
   },
+  "exclude": ["test", "helpers", "typescript", "node_modules"],
   "include": ["./src/**/*.ts", "./src/**/*.json"],
-  "exclude": ["test", "helpers", "typescript", "node_modules", "./scripts/commons-upgrade.ts"]
+  "typedocOptions": {
+    "entryPoints": ["src/EVMcrispr.ts", "src/types.ts"],
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "out": "docs"
+  }
 }

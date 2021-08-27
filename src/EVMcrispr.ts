@@ -1,5 +1,5 @@
-import { BigNumber, Contract, providers, Signer, utils } from "ethers";
-import { Address, encodeCallScript, erc20ABI } from "@1hive/connect-core";
+import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
+import { encodeCallScript, erc20ABI } from "@1hive/connect-core";
 import Connector from "./connector";
 import {
   FORWARDER_TYPES,
@@ -7,7 +7,6 @@ import {
   getForwarderFee,
   getForwarderType,
   encodeActCall,
-  ZERO_ADDRESS,
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
   buildNonceForAddress,
@@ -20,6 +19,7 @@ import {
   isForwarder,
 } from "./helpers";
 import {
+  Address,
   Action,
   AppIdentifier,
   AppCache,
@@ -29,35 +29,53 @@ import {
   ForwardOptions,
   Permission,
   App,
-  RawAction,
-  Function,
+  ActionFunction,
   PermissionMap,
+  Function,
 } from "./types";
-import { ErrorAppNotFound, ErrorException, ErrorMethodNotFound, ErrorInvalid, ErrorNotFound } from "./errors";
+import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 
+/**
+ * The default main EVMcrispr class that expose all the functionalities.
+ * @category Main
+ */
 export default class EVMcrispr {
+  /**
+   * The connector used to fetch Aragon apps.
+   */
   readonly connector: Connector;
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
   #installedAppCounter: number;
   #signer: Signer;
 
-  ANY_ENTITY = "0x" + "F".repeat(40); // 0xFFFF...FFFF;
+  /**
+   * An address used for permission operations that denotes any type of Ethereum account.
+   */
+  ANY_ENTITY: Address = "0x" + "F".repeat(40);
 
-  NO_ENTITY = ZERO_ADDRESS; // 0x0000...0000;
+  /**
+   * An address used for permission operations that denotes no Ethereum account.
+   */
+  NO_ENTITY: Address = constants.AddressZero;
 
+  /**
+   * Create a new EVMcrispr instance.
+   * @param signer The signer  used to connect to Ethereum and sign any transaction needed.
+   * @param chainId The id of the network to connect to.
+   */
   constructor(signer: Signer, chainId: number) {
     this.connector = new Connector(chainId, IPFS_URI_TEMPLATE);
-    this.#signer = signer;
     this.#appCache = new Map();
     this.#appInterfaceCache = new Map();
     this.#installedAppCounter = 0;
+    this.#signer = signer;
   }
 
   /**
    * Connect to a DAO by fetching and caching all its apps and permissions data.
    * It is necessary to connect to a DAO before doing anything else.
-   * @param {Address} daoAddress The address of the DAO to connect to.
+   * @param daoAddress The address of the DAO to connect to.
    */
   async connect(daoAddress: Address): Promise<void> {
     this.#installedAppCounter = 0;
@@ -66,19 +84,23 @@ export default class EVMcrispr {
     this.#appInterfaceCache = appResourcesCache;
   }
 
+  /**
+   * @returns The cache that contains all the DAO's apps.
+   */
   appCache(): AppCache {
     return this.#appCache;
   }
 
   /**
    * Encode an action that calls an app's contract function.
-   * @param {AppIdentifier} appIdentifier The identifier of the app being called.
-   * @returns {Proxy} A proxy of the app that intercepts calls to it and gives back a function that returns the encoded contract function call.
+   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
+   * @returns A proxy of the app that intercepts contract function calls and returns
+   * the encoded call instead.
    */
-  call(appIdentifier: AppIdentifier): () => App {
+  call(appIdentifier: AppIdentifier): any {
     return new Proxy(() => this._resolveApp(appIdentifier), {
-      get: (getTargetApp, functionProperty: string) => {
-        return (...params: any): Function<Action> => {
+      get: (getTargetApp: () => App, functionProperty: string) => {
+        return (...params: any): ActionFunction => {
           try {
             return () => {
               const targetApp = getTargetApp();
@@ -88,7 +110,9 @@ export default class EVMcrispr {
               };
             };
           } catch (err) {
-            throw new ErrorMethodNotFound(functionProperty, appIdentifier);
+            throw new ErrorNotFound(`Function ${functionProperty} not found in app ${appIdentifier}`, {
+              name: "ErrorFunctionNotFound",
+            });
           }
         };
       },
@@ -97,8 +121,8 @@ export default class EVMcrispr {
 
   /**
    * Fetch the address of an existing or counterfactual app.
-   * @param {AppIdentifier | LabeledAppIdentifier} appIdentifier The identifier of the app being fetched.
-   * @returns {Address} The app's contract address.
+   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
+   * @returns The app's contract address.
    */
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
     return () => this._resolveApp(appIdentifier).address;
@@ -106,15 +130,13 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions into one using a path of forwarding apps.
-   * @param {Function<RawAction>[]} actionFunctions The array of action-returning functions being encoded.
-   * @param  {ForwardOptions} options The forward options object.
-   * @param {Entity[]} options.path Array of forwarding apps being used to encode the forwarding action.
-   * @param {String} options.context String containing context information. Needed for forwarders with context (AragonOS v5).
-   * @returns {Promise<{ action: Action; preTxActions: Action[] }>} A promise that resolves to an object
-   * containing the encoded forwarding action as well as any pre-transactions that need to be executed.
+   * @param actionFunctions The array of action-returning functions to encode.
+   * @param options The forward options object.
+   * @returns A promise that resolves to an object containing the encoded forwarding action as well as
+   * any pre-transactions that need to be executed.
    */
   async encode(
-    actionFunctions: Function<RawAction>[],
+    actionFunctions: ActionFunction[],
     options: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
     const actions = await normalizeActions(actionFunctions);
@@ -141,7 +163,7 @@ export default class EVMcrispr {
         const [feeTokenAddress, feeAmount] = fee;
 
         // Check if fees are in ETH
-        if (feeTokenAddress === ZERO_ADDRESS) {
+        if (feeTokenAddress === constants.AddressZero) {
           value = feeAmount;
         } else {
           const feeToken = new Contract(feeTokenAddress, erc20ABI, this.#signer.provider);
@@ -179,11 +201,11 @@ export default class EVMcrispr {
 
   /**
    * Encode an action that installs a new app.
-   * @param {LabeledAppIdentifier} identifier Identifier of the app being installed.
-   * @param {any[]} initParams Array of the parameters needed to initialize the app.
-   * @returns {Function<Promise<Action>>} A function returning a promise that resolves to the installation action.
+   * @param identifier [[LabeledAppIdentifier | Identifier]] of the app to install.
+   * @param initParams Parameters to initialize the app.
+   * @returns A function which returns a promise that resolves to the installation action.
    */
-  installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): Function<Promise<Action>> {
+  installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): ActionFunction {
     return async () => {
       try {
         const [appName, registry] = parseLabeledAppIdentifier(identifier);
@@ -217,7 +239,7 @@ export default class EVMcrispr {
           // Set a reference to the app interface
           abiInterface: this.#appInterfaceCache.get(codeAddress)!,
           permissions: appArtifact.roles.reduce((permissionsMap: PermissionMap, role: any) => {
-            permissionsMap.set(role.bytes, { manager: null, grantees: new Set() });
+            permissionsMap.set(role.bytes, { manager: "", grantees: new Set() });
             return permissionsMap;
           }, new Map()),
         });
@@ -242,16 +264,12 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions into one using a path of forwarding apps and send it in a transaction.
-   * @param {Function<RawAction>[]} actions The array of action-returning functions being encoded.
-   * @param {ForwardOptions} options A forwarding option object
-   * @param {Entity[]} options.path Array of forwarding apps identifiers or addresses being used to encode
-   * the forwarding action.
-   * @param {String} options.context String containing context information. Needed for forwarders with
-   * context (AragonOS v5).
-   * @returns {Promise<providers.TransactionReceipt>} A promise that resolves to a receipt of
+   * @param actions The action-returning functions to encode.
+   * @param options A forward options object.
+   * @returns A promise that resolves to a receipt of
    * the sent transaction.
    */
-  async forward(actions: Function<RawAction>[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
+  async forward(actions: ActionFunction[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
     const { action, preTxActions } = await this.encode(actions, options);
 
     // Execute pretransactions actions
@@ -276,11 +294,11 @@ export default class EVMcrispr {
 
   /**
    * Encode an action that creates a new app permission.
-   * @param {Permission} permission The permission being created.
-   * @param {Entity} defaultPermissionManager The entity being set as the permission manager.
-   * @returns {Function<Action>} A function that returns the permission action.
+   * @param permission The permission to create.
+   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
+   * @returns A function that returns the permission action.
    */
-  addPermission(permission: Permission, defaultPermissionManager: Entity): Function<Action> {
+  addPermission(permission: Permission, defaultPermissionManager: Entity): ActionFunction {
     return () => {
       const [grantee, app, role] = permission;
       const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
@@ -318,22 +336,22 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions that create new app permissions.
-   * @param {Permission[]} permissions An array containing the permissions being created.
-   * @param {Entity} defaultPermissionManager The entity being set as the permission manager of every permission
-   * created.
-   * @returns {Function<Action[]>} A function that returns an array of permission actions.
+   * @param permissions The permissions to create.
+   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager
+   * of every permission created.
+   * @returns A function that returns an array of permission actions.
    */
-  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): Function<Action[]> {
-    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)());
+  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): ActionFunction {
+    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action);
   }
 
   /**
-   * Encode an action that revokes an app's permission.
-   * @param {Permission} permission The permission being revoked.
+   * Encode an action that revokes an app permission.
+   * @param permission The permission to revoke.
    * @param removeManager A boolean that indicates whether or not to remove the permission manager.
-   * @returns {Function<Action[]>} A function that returns an array of revoking actions.
+   * @returns A function that returns the revoking actions.
    */
-  revokePermission(permission: Permission, removeManager = true): Function<Action[]> {
+  revokePermission(permission: Permission, removeManager = true): ActionFunction {
     return () => {
       const actions = [];
       const [_, app, role] = permission;
@@ -362,15 +380,15 @@ export default class EVMcrispr {
   }
 
   /**
-   * Encode a set of actions that revoke an app's permission.
-   * @param {Permission[]} permissions An array containing the permissions being revoked.
-   * @param {boolean} removeManager A boolean that indicates wether or not to remove the permission manager.
-   * @returns {Function<Action[]>} A function that returns an array of revoking actions.
+   * Encode a set of actions that revoke an app permission.
+   * @param permissions The permissions to revoke.
+   * @param removeManager A boolean that indicates wether or not to remove the permission manager.
+   * @returns A function that returns the revoking actions.
    */
-  revokePermissions(permissions: Permission[], removeManager = true): Function<Action[]> {
+  revokePermissions(permissions: Permission[], removeManager = true): ActionFunction {
     return () =>
       permissions.reduce((actions: Action[], permission) => {
-        const action = this.revokePermission(permission, removeManager)();
+        const action = this.revokePermission(permission, removeManager)() as Action[];
         return [...actions, ...action];
       }, []);
   }
@@ -379,7 +397,7 @@ export default class EVMcrispr {
     let resolvedIdentifier = resolveIdentifier(identifier);
 
     if (!this.#appCache.has(resolvedIdentifier)) {
-      throw new ErrorAppNotFound(resolvedIdentifier);
+      throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });
     }
 
     return this.#appCache.get(resolvedIdentifier)!;
