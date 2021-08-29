@@ -20,7 +20,7 @@
   "exclude": ["test", "helpers", "typescript", "node_modules"],
   "include": ["./src/**/*.ts", "./src/**/*.json"],
   "typedocOptions": {
-    "entryPoints": ["src/EVMcrispr.ts", "src/types.ts"],
+    "entryPoints": ["src/index.ts"],
     "excludePrivate": true,
     "excludeProtected": true,
     "out": "docs"
