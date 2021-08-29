@@ -4,9 +4,11 @@ on:
     branches:
       - main
     paths:
+      - src/index.ts
+      - src/EVMcrispr.ts
       - src/errors.ts
       - src/types.ts
-      - src/EVMcrispr.ts
+      - README.md
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -16,8 +18,8 @@ jobs:
 
       - name: Install and Build
         run: |
-          npm install
-          npm run generate-docs
+          yarn install
+          yarn generate-docs
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
