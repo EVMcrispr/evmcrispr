@@ -64,7 +64,7 @@ await evmcrispr.forward(
     ]),
     evmcrispr.call("membership-tm").mint("0x...", "2000000000000000000"),
   ],
-  { path: ["voting:0"] }
+  ["voting:0"]
 );
 ```
 

@@ -61,7 +61,8 @@ export default class EVMcrispr {
 
   /**
    * Create a new EVMcrispr instance.
-   * @param signer The signer  used to connect to Ethereum and sign any transaction needed.
+   * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
+   * instance used to connect to Ethereum and sign any transaction needed.
    * @param chainId The id of the network to connect to.
    */
   constructor(signer: Signer, chainId: number) {
@@ -131,17 +132,19 @@ export default class EVMcrispr {
   /**
    * Encode a set of actions into one using a path of forwarding apps.
    * @param actionFunctions The array of action-returning functions to encode.
+   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options The forward options object.
    * @returns A promise that resolves to an object containing the encoded forwarding action as well as
-   * any pre-transactions that need to be executed.
+   * any pre-transactions that need to be executed in advance.
    */
   async encode(
     actionFunctions: ActionFunction[],
+    path: Entity[],
     options: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
     const actions = await normalizeActions(actionFunctions);
     // Need to build the evmscript starting from the last forwarder
-    const forwarders = options.path.map((entity) => this._resolveEntity(entity)).reverse();
+    const forwarders = path.map((entity) => this._resolveEntity(entity)).reverse();
     const preTxActions: Action[] = [];
 
     let script: string;
@@ -263,14 +266,18 @@ export default class EVMcrispr {
   }
 
   /**
-   * Encode a set of actions into one using a path of forwarding apps and send it in a transaction.
+   * Encode a set of actions into one and send it in a transaction.
    * @param actions The action-returning functions to encode.
+   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options A forward options object.
-   * @returns A promise that resolves to a receipt of
-   * the sent transaction.
+   * @returns A promise that resolves to a receipt of the sent transaction.
    */
-  async forward(actions: ActionFunction[], options: ForwardOptions): Promise<providers.TransactionReceipt> {
-    const { action, preTxActions } = await this.encode(actions, options);
+  async forward(
+    actions: ActionFunction[],
+    path: Entity[],
+    options: ForwardOptions
+  ): Promise<providers.TransactionReceipt> {
+    const { action, preTxActions } = await this.encode(actions, path, options);
 
     // Execute pretransactions actions
     for (const action of preTxActions) {

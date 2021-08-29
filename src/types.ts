@@ -32,7 +32,6 @@ export interface Action {
 }
 
 export interface ForwardOptions {
-  path: Entity[];
   /**
    * The context information describing the forward evmscript.
    * Needed for forwarders with context (AragonOS v5)
