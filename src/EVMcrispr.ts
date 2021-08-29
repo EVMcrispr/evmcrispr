@@ -188,10 +188,13 @@ export default class EVMcrispr {
       }
 
       if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
+        if (!options.context) {
+          throw new ErrorInvalid(`Context option missing.`);
+        }
         forwarderActions = [
           {
             to: forwarderAddress,
-            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(options.context ?? "")]),
+            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(options.context)]),
           },
         ];
       } else {
