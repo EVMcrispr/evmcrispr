@@ -26,7 +26,7 @@ export interface Action {
    */
   data: string;
   /**
-   * The ether which needs to be sended along with the action (in wei).
+   * The ether which needs to be sent along with the action (in wei).
    */
   value?: BigNumber;
 }
@@ -34,7 +34,8 @@ export interface Action {
 export interface ForwardOptions {
   path: Entity[];
   /**
-   * The context information
+   * The context information describing the forward evmscript.
+   * Needed for forwarders with context (AragonOS v5)
    */
   context?: string;
 }
