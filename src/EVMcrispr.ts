@@ -43,7 +43,10 @@ export default class EVMcrispr {
   /**
    * The connector used to fetch Aragon apps.
    */
-  readonly connector: Connector;
+  #connector: Connector;
+  /**
+   * App cache that contains all the DAO's app.
+   */
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
   #installedAppCounter: number;
@@ -64,9 +67,16 @@ export default class EVMcrispr {
    * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
    * instance used to connect to Ethereum and sign any transaction needed.
    * @param chainId The id of the network to connect to.
+   * @param options The optional configuration object.
+   * @param options.ipfsUrlTemplate An IPFS gateway [URL Template](https://en.wikipedia.org/wiki/URI_Template) containing the
+   * `{cid}` and `{path}` parameters used to fetch app artifacts.
    */
-  constructor(signer: Signer, chainId: number) {
-    this.connector = new Connector(chainId, IPFS_URI_TEMPLATE);
+  constructor(
+    signer: Signer,
+    chainId: number,
+    options: { ipfsUrlTemplate: string } = { ipfsUrlTemplate: IPFS_URI_TEMPLATE }
+  ) {
+    this.#connector = new Connector(chainId, options.ipfsUrlTemplate);
     this.#appCache = new Map();
     this.#appInterfaceCache = new Map();
     this.#installedAppCounter = 0;
@@ -79,17 +89,18 @@ export default class EVMcrispr {
    * @param daoAddress The address of the DAO to connect to.
    */
   async connect(daoAddress: Address): Promise<void> {
-    this.#installedAppCounter = 0;
-    const [appCache, appResourcesCache] = await this._buildCaches(await this.connector.organizationApps(daoAddress));
+    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
+
     this.#appCache = appCache;
     this.#appInterfaceCache = appResourcesCache;
   }
 
-  /**
-   * @returns The cache that contains all the DAO's apps.
-   */
-  appCache(): AppCache {
+  get appCache() {
     return this.#appCache;
+  }
+
+  get connector() {
+    return this.#connector;
   }
 
   /**
