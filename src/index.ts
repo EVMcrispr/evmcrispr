@@ -1,3 +1,4 @@
+export { default as Connector } from "./Connector";
 export { default as EVMcrispr } from "./EVMcrispr";
 export { ErrorException, ErrorInvalid, ErrorOptions, ErrorNotFound } from "./errors";
 export {
@@ -14,4 +15,5 @@ export {
   LabeledAppIdentifier,
   Permission,
   RawAction,
+  Repo,
 } from "./types";

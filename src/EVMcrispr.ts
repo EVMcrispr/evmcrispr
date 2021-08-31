@@ -1,6 +1,6 @@
 import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
 import { encodeCallScript, erc20ABI } from "@1hive/connect-core";
-import Connector from "./connector";
+import Connector from "./Connector";
 import {
   FORWARDER_TYPES,
   FORWARDER_ABI,

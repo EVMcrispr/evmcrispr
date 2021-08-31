@@ -1,4 +1,4 @@
-import { Address, ipfsResolver, IpfsResolver } from "@1hive/connect-core";
+import { ipfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
 import {
   getAppArtifact,
@@ -8,7 +8,7 @@ import {
   REPO,
 } from "./helpers";
 import { ErrorException, ErrorNotFound } from "./errors";
-import { App, PermissionMap, Repo } from "./types";
+import { Address, App, PermissionMap, Repo } from "./types";
 
 const buildAppRoles = (artifact: any, appCurrentRoles: any[]): PermissionMap => {
   const appRoles = artifact.roles.reduce((roleMap: PermissionMap, role: any) => {
@@ -74,10 +74,20 @@ function subgraphUrlFromChainId(chainId: number): string | null {
   }
 }
 
+/**
+ * Connector that expose functionalities to fetch app data from subgraphs and IPFS.
+ * @category Utility
+ */
 export default class Connector {
   #ipfsResolver: IpfsResolver;
   #gql: GraphQLWrapper;
 
+  /**
+   * Create a new Connector instance.
+   * @param chainId The network id to connect to.
+   * @param ipfsUrlTemplate An IPFS gateway [URL Template](https://en.wikipedia.org/wiki/URI_Template) containing the
+   * `{cid}` and `{path}` parameters used to fetch app artifacts.
+   */
   constructor(chainId: number, ipfsUrlTemplate: string) {
     const subgraphUrl = subgraphUrlFromChainId(chainId);
 
@@ -89,10 +99,20 @@ export default class Connector {
     this.#ipfsResolver = ipfsResolver(ipfsUrlTemplate);
   }
 
+  /**
+   * Close the connection.
+   */
   async disconnect(): Promise<void> {
     this.#gql.close();
   }
 
+  /**
+   * Fetch an app's APM repo.
+   * @param repoName The name of the app that appears in the APM ENS. For example, if the app's ENS is `voting.aragonpm.eth`
+   * the name would be `voting`.
+   * @param registryName The name of the app's registry that appears in the APM ENS. For example: `open.aragonpm.eth`.
+   * @returns A promise that resolves to the app's repo.
+   */
   async repo(repoName: string, registryName: string): Promise<Repo> {
     return this.#gql.performQueryWithParser(REPO("query"), { repoName }, async (result: QueryResult) => {
       // Cant filter by registry when fetching repos so we need to do it here
@@ -113,7 +133,12 @@ export default class Connector {
     });
   }
 
-  async organizationApps(daoAddress: string): Promise<App[]> {
+  /**
+   * Fetch all the apps installed on a DAO.
+   * @param daoAddress The address of the DAO to fetch.
+   * @returns A promise that resolves to a group of all the apps of the DAO.
+   */
+  async organizationApps(daoAddress: Address): Promise<App[]> {
     return this.#gql.performQueryWithParser(
       ORGANIZATION_APPS("query"),
       { id: daoAddress.toLowerCase() },

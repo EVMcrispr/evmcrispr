@@ -58,7 +58,6 @@ export interface Role {
 export type PermissionMap = Map<RoleHash, Role>;
 
 /**
- * @internal
  * An object that contains app data.
  */
 export interface App {
@@ -93,8 +92,7 @@ export interface App {
 }
 
 /**
- * @internal
- * An object that contains the app's repo data
+ * An object that contains the app's repo data.
  */
 export interface Repo {
   /**
