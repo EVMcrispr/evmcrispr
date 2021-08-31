@@ -58,7 +58,7 @@
     "balance": "hardhat balance",
     "send": "hardhat send",
     "generate": "hardhat generate",
-    "generate-docs": "rm -fr ./docs && typedoc",
+    "docs": "typedoc",
     "account": "hardhat account"
   }
 }
