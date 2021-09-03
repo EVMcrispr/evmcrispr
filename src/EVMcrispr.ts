@@ -13,11 +13,12 @@ import {
   calculateNewProxyAddress,
   normalizeActions,
   normalizeRole,
-  IPFS_URI_TEMPLATE,
+  IPFS_GATEWAY,
   resolveIdentifier,
   parseLabeledAppIdentifier,
   isForwarder,
   buildAppIdentifier,
+  buildIpfsTemplate,
 } from "./helpers";
 import {
   Address,
@@ -63,21 +64,8 @@ export default class EVMcrispr {
    */
   NO_ENTITY: Address = constants.AddressZero;
 
-  /**
-   * Create a new EVMcrispr instance.
-   * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
-   * instance used to connect to Ethereum and sign any transaction needed.
-   * @param chainId The id of the network to connect to.
-   * @param options The optional configuration object.
-   * @param options.ipfsUrlTemplate An IPFS gateway [URL Template](https://en.wikipedia.org/wiki/URI_Template) containing the
-   * `{cid}` and `{path}` parameters used to fetch app artifacts.
-   */
-  constructor(
-    signer: Signer,
-    chainId: number,
-    options: { ipfsUrlTemplate: string } = { ipfsUrlTemplate: IPFS_URI_TEMPLATE }
-  ) {
-    this.#connector = new Connector(chainId, options.ipfsUrlTemplate);
+  private constructor(signer: Signer, chainId: number, options: { ipfsGateway: string }) {
+    this.#connector = new Connector(chainId, buildIpfsTemplate(options.ipfsGateway));
     this.#appCache = new Map();
     this.#appInterfaceCache = new Map();
     this.#installedAppCounter = 0;
@@ -85,15 +73,25 @@ export default class EVMcrispr {
   }
 
   /**
-   * Connect to a DAO by fetching and caching all its apps and permissions data.
-   * It is necessary to connect to a DAO before doing anything else.
+   * Create a new EVMcrispr instance and connect it to a DAO by fetching and caching all its
+   * apps and permissions data.
+   * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
+   * instance used to connect to Ethereum and sign any transaction needed.
    * @param daoAddress The address of the DAO to connect to.
+   * @param options The optional configuration object.
+   * @param options.ipfsGateway An IPFS gateway to fetch app data from.
+   * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
-  async connect(daoAddress: Address): Promise<void> {
-    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
+  static async create(
+    signer: Signer,
+    daoAddress: Address,
+    options: { ipfsGateway: string } = { ipfsGateway: IPFS_GATEWAY }
+  ): Promise<EVMcrispr> {
+    const evmcrispr = new EVMcrispr(signer, await signer.getChainId(), options);
 
-    this.#appCache = appCache;
-    this.#appInterfaceCache = appResourcesCache;
+    await evmcrispr._connect(daoAddress);
+
+    return evmcrispr;
   }
 
   get appCache() {
@@ -414,6 +412,13 @@ export default class EVMcrispr {
         const action = this.revokePermission(permission, removeManager)() as Action[];
         return [...actions, ...action];
       }, []);
+  }
+
+  private async _connect(daoAddress: Address): Promise<void> {
+    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
+
+    this.#appCache = appCache;
+    this.#appInterfaceCache = appResourcesCache;
   }
 
   private _resolveApp(identifier: string): App {
