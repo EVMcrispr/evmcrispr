@@ -62,22 +62,6 @@ export type PermissionMap = Map<RoleHash, Role>;
  */
 export interface App {
   /**
-   * The app's address.
-   */
-  address: Address;
-  /**
-   * The app's base contract address.
-   */
-  codeAddress: Address;
-  /**
-   * The app's name
-   */
-  name: string;
-  /**
-   * The IPFS content identifier the app's data is located on.
-   */
-  contentUri: string;
-  /**
    * The app's contract ABI.
    */
   abi: string;
@@ -86,9 +70,29 @@ export interface App {
    */
   abiInterface: Interface;
   /**
+   * The app's address.
+   */
+  address: Address;
+  /**
+   * The app's base contract address.
+   */
+  codeAddress: Address;
+  /**
+   * The IPFS content identifier the app's data is located on.
+   */
+  contentUri: string;
+  /**
+   * The app's name
+   */
+  name: string;
+  /**
    * The app's permissions.
    */
   permissions: PermissionMap;
+  /**
+   * The app's aragonPM ens registry name.
+   */
+  registryName: string;
 }
 
 /**

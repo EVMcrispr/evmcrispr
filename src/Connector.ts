@@ -30,9 +30,10 @@ const buildAppRoles = (artifact: any, appCurrentRoles: any[]): PermissionMap => 
 };
 
 const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App | undefined> => {
-  const { repoName, appId, address } = app;
-  const { address: codeAddress } = app.implementation;
-  const { artifact: artifactJson, contentUri } = app.repo?.lastVersion || {};
+  const { address, appId, implementation, repoName } = app;
+  const { address: codeAddress } = implementation;
+  const { registry, lastVersion } = app.repo || {};
+  const { artifact: artifactJson, contentUri } = lastVersion || {};
   // Sometimes system apps dont't have the repo name set so we use the appId to get it.
   const name = repoName ?? getSystemAppNameByAppId(appId);
 
@@ -50,14 +51,15 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App | und
   const permissions = buildAppRoles(artifact, app.roles);
 
   return {
-    name,
-    address,
-    codeAddress,
-    contentUri,
     abi: artifact.abi,
     // @ts-ignore ABI interface is set later when building the app cache
     abiInterface: null,
+    address,
+    codeAddress,
+    contentUri,
+    name,
     permissions,
+    registryName: registry?.name,
   };
 };
 

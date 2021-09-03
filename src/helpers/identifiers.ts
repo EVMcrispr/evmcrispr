@@ -1,10 +1,25 @@
 import { ErrorInvalid } from "../errors";
-import { AppIdentifier, LabeledAppIdentifier } from "../types";
+import { App, AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
 
 const appIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([0-9]{1,63}))?$/;
 const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([a-z-]{1,63}))?$/;
+
+const parseRegistry = (registryEnsName: string): string => {
+  // We denote the default aragonpm registry with an empty string
+  // Assume registry is the default one if no ens name is provided.
+  if (!registryEnsName) {
+    return "";
+  }
+  const ensParts = registryEnsName.split(".");
+
+  if (ensParts.length === 3) {
+    return ensParts[0];
+  }
+
+  return "";
+};
 
 export const isAppIdentifier = (identifier: string): boolean => {
   return appIdentifierRegex.test(identifier);
@@ -46,4 +61,15 @@ export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAp
   }
 
   throw new ErrorInvalid(`Invalid identifier ${identifier}`, { name: "ErrorInvalidIdentifier" });
+};
+
+export const buildAppIdentifier = (app: App, appCounter: number): AppIdentifier => {
+  const { name, registryName } = app;
+  const parsedRegistryName = parseRegistry(registryName);
+
+  if (parsedRegistryName) {
+    return `${name}.${parsedRegistryName}:${appCounter}`;
+  } else {
+    return `${name}:${appCounter}`;
+  }
 };

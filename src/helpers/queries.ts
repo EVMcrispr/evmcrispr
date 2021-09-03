@@ -30,6 +30,9 @@ export const ORGANIZATION_APPS = (type: string) => gql`
             contentUri
             artifact
           }
+          registry {
+            name
+          }
         }
         roles {
           roleHash

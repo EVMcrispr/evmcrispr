@@ -17,6 +17,7 @@ import {
   resolveIdentifier,
   parseLabeledAppIdentifier,
   isForwarder,
+  buildAppIdentifier,
 } from "./helpers";
 import {
   Address,
@@ -151,7 +152,7 @@ export default class EVMcrispr {
   async encode(
     actionFunctions: ActionFunction[],
     path: Entity[],
-    options: ForwardOptions
+    options?: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
     const actions = await normalizeActions(actionFunctions);
     // Need to build the evmscript starting from the last forwarder
@@ -199,7 +200,7 @@ export default class EVMcrispr {
       }
 
       if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
-        if (!options.context) {
+        if (!options?.context) {
           throw new ErrorInvalid(`Context option missing.`);
         }
         forwarderActions = [
@@ -248,17 +249,18 @@ export default class EVMcrispr {
         }
 
         this.#appCache.set(identifier, {
-          address: proxyContractAddress,
-          name: appName,
-          codeAddress,
-          contentUri,
           abi: appArtifact.abi,
           // Set a reference to the app interface
           abiInterface: this.#appInterfaceCache.get(codeAddress)!,
+          address: proxyContractAddress,
+          codeAddress,
+          contentUri,
+          name: appName,
           permissions: appArtifact.roles.reduce((permissionsMap: PermissionMap, role: any) => {
             permissionsMap.set(role.bytes, { manager: "", grantees: new Set() });
             return permissionsMap;
           }, new Map()),
+          registryName: registry,
         });
 
         this.#installedAppCounter++;
@@ -289,7 +291,7 @@ export default class EVMcrispr {
   async forward(
     actions: ActionFunction[],
     path: Entity[],
-    options: ForwardOptions
+    options?: ForwardOptions
   ): Promise<providers.TransactionReceipt> {
     const { action, preTxActions } = await this.encode(actions, path, options);
 
@@ -314,7 +316,7 @@ export default class EVMcrispr {
   }
 
   /**
-   * Encode an action that creates a new app permission.
+   * Encode an action that creates a new app permission or grant it if it already exists.
    * @param permission The permission to create.
    * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
    * @returns A function that returns the permission action.
@@ -446,6 +448,7 @@ export default class EVMcrispr {
     for (const app of apps) {
       const { name, codeAddress, abi } = app;
       const counter = appCounter.has(name) ? appCounter.get(name) : 0;
+      const appIdentifier = buildAppIdentifier(app, counter);
 
       if (!appInterfaceCache.has(codeAddress)) {
         appInterfaceCache.set(codeAddress, new utils.Interface(abi));
@@ -453,7 +456,7 @@ export default class EVMcrispr {
       // Set reference to app interface
       app.abiInterface = appInterfaceCache.get(codeAddress)!;
 
-      appCache.set(`${name}:${counter}`, app);
+      appCache.set(appIdentifier, app);
       appCounter.set(name, counter + 1);
     }
 
