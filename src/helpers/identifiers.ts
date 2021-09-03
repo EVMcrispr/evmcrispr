@@ -51,10 +51,10 @@ export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdenti
 
 export const resolveIdentifier = (identifier: string): AppIdentifier | LabeledAppIdentifier => {
   if (isAppIdentifier(identifier)) {
-    const [appName, _, appIndex] = parseAppIdentifier(identifier)!;
+    const [, , appIndex] = parseAppIdentifier(identifier)!;
 
     if (!appIndex) {
-      return `${appName}:0`;
+      return `${identifier}:0`;
     }
     return identifier;
   }
