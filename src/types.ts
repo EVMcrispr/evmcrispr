@@ -120,19 +120,21 @@ export type ActionFunction = () => RawAction;
 export type Function<T extends any> = () => T;
 
 /**
- * A string that follows the format `<AppName>[:<Label>]`:
+ * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:1`):
  *
  * - **AppName**: Name of the app as it appears in the APM excluding the ens registry name. For example: the
  * app name of `voting.aragonpm.eth` is `voting`.
- * - **Label**: Used when more than one app of the same type is installed. It's usually is numeric, starting
- * from 0 (e.g. agent:2). The user can also define non-numeric labels to identify new installed apps
- * (e.g. `vault:main-org-reserve`).
+ * - **Index**: A numeric value starting at 0 used when more than one app of the same type is installed. It
+ * follows a chronological installation order (e.g. `app:0` was installed before `app:1`).
+ * When the index is omitted, EVMcrispr assumes you're referencing the app with index zero.
  */
 export type AppIdentifier = string;
 
 /**
- * A string that extends [[AppIdentifier]] and it can be used to define non-numeric labels to identify new installed apps
- * (e.g. `vault:main-org-reserve`).
+ * A string similar to [[AppIdentifier]] that follows the format `<AppName>:<Label>` (e.g. `vault:main-org-reserve`):
+ *
+ * - **AppName**: Same as the one defined on [[AppIdentifier]].
+ * - **Label**: A non-numeric string that identifies a new installed app.
  */
 export type LabeledAppIdentifier = string;
 
