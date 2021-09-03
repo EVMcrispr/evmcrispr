@@ -4,7 +4,7 @@ import { App, AppIdentifier, LabeledAppIdentifier } from "../types";
 const DEFAULT_REGISTRY = "aragonpm.eth";
 
 const appIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([0-9]{1,63}))?$/;
-const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([a-z-]{1,63}))?$/;
+const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([a-z-]{1,63}))$/;
 
 const parseRegistry = (registryEnsName: string): string => {
   // We denote the default aragonpm registry with an empty string
@@ -39,7 +39,9 @@ export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifie
 
 export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {
   if (!isLabeledAppIdentifier(labeledAppIdentifier)) {
-    throw new ErrorInvalid(`Invalid identifier ${labeledAppIdentifier}`, { name: "ErrorInvalidIdentifier" });
+    throw new ErrorInvalid(`Invalid labeled identifier ${labeledAppIdentifier}`, {
+      name: "ErrorInvalidIdentifier",
+    });
   }
 
   const [appIdentifier, registry, label] = parseLabeledIdentifier(labeledAppIdentifier)!;
