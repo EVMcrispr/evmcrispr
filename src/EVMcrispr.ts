@@ -43,14 +43,14 @@ import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
  */
 export default class EVMcrispr {
   /**
-   * The connector used to fetch Aragon apps.
-   */
-  #connector: Connector;
-  /**
    * App cache that contains all the DAO's app.
    */
   #appCache: AppCache;
   #appInterfaceCache: AppInterfaceCache;
+  /**
+   * The connector used to fetch Aragon apps.
+   */
+  #connector: Connector;
   #installedAppCounter: number;
   #signer: Signer;
 
@@ -89,7 +89,7 @@ export default class EVMcrispr {
   ): Promise<EVMcrispr> {
     const evmcrispr = new EVMcrispr(signer, await signer.getChainId(), options);
 
-    await evmcrispr._connect(daoAddress);
+    await evmcrispr.#connect(daoAddress);
 
     return evmcrispr;
   }
@@ -103,13 +103,75 @@ export default class EVMcrispr {
   }
 
   /**
+   * Encode an action that creates a new app permission or grant it if it already exists.
+   * @param permission The permission to create.
+   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
+   * @returns A function that returns the permission action.
+   */
+  addPermission(permission: Permission, defaultPermissionManager: Entity): ActionFunction {
+    return () => {
+      const [grantee, app, role] = permission;
+      const [granteeAddress, appAddress, roleHash] = this.#resolvePermission(permission);
+      const manager = this.#resolveEntity(defaultPermissionManager);
+      const { permissions: appPermissions } = this.#resolveApp(app);
+      const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
+
+      if (!appPermissions.has(roleHash)) {
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+      }
+
+      const appPermission = appPermissions.get(roleHash);
+      if (!appPermission?.grantees.size) {
+        appPermissions.set(roleHash, {
+          manager,
+          grantees: new Set([granteeAddress]),
+        });
+        return {
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
+        };
+      } else {
+        if (appPermission.grantees.has(granteeAddress)) {
+          throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+        }
+        appPermission.grantees.add(granteeAddress);
+
+        return {
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
+        };
+      }
+    };
+  }
+
+  /**
+   * Encode a set of actions that create new app permissions.
+   * @param permissions The permissions to create.
+   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager
+   * of every permission created.
+   * @returns A function that returns an array of permission actions.
+   */
+  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): ActionFunction {
+    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action);
+  }
+
+  /**
+   * Fetch the address of an existing or counterfactual app.
+   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
+   * @returns The app's contract address.
+   */
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
+    return () => this.#resolveApp(appIdentifier).address;
+  }
+
+  /**
    * Encode an action that calls an app's contract function.
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
    * @returns A proxy of the app that intercepts contract function calls and returns
    * the encoded call instead.
    */
   call(appIdentifier: AppIdentifier): any {
-    return new Proxy(() => this._resolveApp(appIdentifier), {
+    return new Proxy(() => this.#resolveApp(appIdentifier), {
       get: (getTargetApp: () => App, functionProperty: string) => {
         return (...params: any): ActionFunction => {
           try {
@@ -117,7 +179,7 @@ export default class EVMcrispr {
               const targetApp = getTargetApp();
               return {
                 to: targetApp.address,
-                data: targetApp.abiInterface.encodeFunctionData(functionProperty, this._resolveParams(params)),
+                data: targetApp.abiInterface.encodeFunctionData(functionProperty, this.#resolveParams(params)),
               };
             };
           } catch (err) {
@@ -128,15 +190,6 @@ export default class EVMcrispr {
         };
       },
     });
-  }
-
-  /**
-   * Fetch the address of an existing or counterfactual app.
-   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
-   * @returns The app's contract address.
-   */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
-    return () => this._resolveApp(appIdentifier).address;
   }
 
   /**
@@ -154,7 +207,7 @@ export default class EVMcrispr {
   ): Promise<{ action: Action; preTxActions: Action[] }> {
     const actions = await normalizeActions(actionFunctions);
     // Need to build the evmscript starting from the last forwarder
-    const forwarders = path.map((entity) => this._resolveEntity(entity)).reverse();
+    const forwarders = path.map((entity) => this.#resolveEntity(entity)).reverse();
     const preTxActions: Action[] = [];
 
     let script: string;
@@ -216,6 +269,40 @@ export default class EVMcrispr {
   }
 
   /**
+   * Encode a set of actions into one and send it in a transaction.
+   * @param actions The action-returning functions to encode.
+   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
+   * @param options A forward options object.
+   * @returns A promise that resolves to a receipt of the sent transaction.
+   */
+  async forward(
+    actions: ActionFunction[],
+    path: Entity[],
+    options?: ForwardOptions
+  ): Promise<providers.TransactionReceipt> {
+    const { action, preTxActions } = await this.encode(actions, path, options);
+
+    // Execute pretransactions actions
+    for (const action of preTxActions) {
+      await (
+        await this.#signer.sendTransaction({
+          ...action,
+          gasLimit: TX_GAS_LIMIT,
+          gasPrice: TX_GAS_PRICE,
+        })
+      ).wait();
+    }
+
+    return await (
+      await this.#signer.sendTransaction({
+        ...action,
+        gasLimit: TX_GAS_LIMIT,
+        gasPrice: TX_GAS_PRICE,
+      })
+    ).wait();
+  }
+
+  /**
    * Encode an action that installs a new app.
    * @param identifier [[LabeledAppIdentifier | Identifier]] of the app to install.
    * @param initParams Parameters to initialize the app.
@@ -227,11 +314,11 @@ export default class EVMcrispr {
         const [appName, registry] = parseLabeledAppIdentifier(identifier);
         const appRepo = await this.connector.repo(appName, registry);
         const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
-        const kernel = this._resolveApp("kernel");
+        const kernel = this.#resolveApp("kernel");
         const abiInterface = new utils.Interface(appArtifact.abi);
         const encodedInitializeFunction = abiInterface.encodeFunctionData(
           "initialize",
-          this._resolveParams(initParams)
+          this.#resolveParams(initParams)
         );
         const appId = utils.namehash(appArtifact.appName);
 
@@ -280,93 +367,6 @@ export default class EVMcrispr {
   }
 
   /**
-   * Encode a set of actions into one and send it in a transaction.
-   * @param actions The action-returning functions to encode.
-   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
-   * @param options A forward options object.
-   * @returns A promise that resolves to a receipt of the sent transaction.
-   */
-  async forward(
-    actions: ActionFunction[],
-    path: Entity[],
-    options?: ForwardOptions
-  ): Promise<providers.TransactionReceipt> {
-    const { action, preTxActions } = await this.encode(actions, path, options);
-
-    // Execute pretransactions actions
-    for (const action of preTxActions) {
-      await (
-        await this.#signer.sendTransaction({
-          ...action,
-          gasLimit: TX_GAS_LIMIT,
-          gasPrice: TX_GAS_PRICE,
-        })
-      ).wait();
-    }
-
-    return await (
-      await this.#signer.sendTransaction({
-        ...action,
-        gasLimit: TX_GAS_LIMIT,
-        gasPrice: TX_GAS_PRICE,
-      })
-    ).wait();
-  }
-
-  /**
-   * Encode an action that creates a new app permission or grant it if it already exists.
-   * @param permission The permission to create.
-   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
-   * @returns A function that returns the permission action.
-   */
-  addPermission(permission: Permission, defaultPermissionManager: Entity): ActionFunction {
-    return () => {
-      const [grantee, app, role] = permission;
-      const [granteeAddress, appAddress, roleHash] = this._resolvePermission(permission);
-      const manager = this._resolveEntity(defaultPermissionManager);
-      const { permissions: appPermissions } = this._resolveApp(app);
-      const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
-
-      if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
-      }
-
-      const appPermission = appPermissions.get(roleHash);
-      if (!appPermission?.grantees.size) {
-        appPermissions.set(roleHash, {
-          manager,
-          grantees: new Set([granteeAddress]),
-        });
-        return {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
-        };
-      } else {
-        if (appPermission.grantees.has(granteeAddress)) {
-          throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
-        }
-        appPermission.grantees.add(granteeAddress);
-
-        return {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
-        };
-      }
-    };
-  }
-
-  /**
-   * Encode a set of actions that create new app permissions.
-   * @param permissions The permissions to create.
-   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager
-   * of every permission created.
-   * @returns A function that returns an array of permission actions.
-   */
-  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): ActionFunction {
-    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action);
-  }
-
-  /**
    * Encode an action that revokes an app permission.
    * @param permission The permission to revoke.
    * @param removeManager A boolean that indicates whether or not to remove the permission manager.
@@ -376,9 +376,9 @@ export default class EVMcrispr {
     return () => {
       const actions = [];
       const [_, app, role] = permission;
-      const [entityAddress, appAddress, roleHash] = this._resolvePermission(permission);
-      const { permissions: appPermissions } = this._resolveApp(app);
-      const { address: aclAddress, abiInterface: aclAbiInterface } = this._resolveApp("acl");
+      const [entityAddress, appAddress, roleHash] = this.#resolvePermission(permission);
+      const { permissions: appPermissions } = this.#resolveApp(app);
+      const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
 
       if (!appPermissions.has(roleHash)) {
         throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
@@ -414,38 +414,7 @@ export default class EVMcrispr {
       }, []);
   }
 
-  private async _connect(daoAddress: Address): Promise<void> {
-    const [appCache, appResourcesCache] = await this._buildCaches(await this.#connector.organizationApps(daoAddress));
-
-    this.#appCache = appCache;
-    this.#appInterfaceCache = appResourcesCache;
-  }
-
-  private _resolveApp(identifier: string): App {
-    let resolvedIdentifier = resolveIdentifier(identifier);
-
-    if (!this.#appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });
-    }
-
-    return this.#appCache.get(resolvedIdentifier)!;
-  }
-
-  private _resolveEntity(entity: Entity): Address {
-    return utils.isAddress(entity) ? entity : this.app(entity)();
-  }
-
-  private _resolveParams(params: any[]): any[] {
-    return params.map((param) => (param instanceof Function ? param() : param));
-  }
-
-  private _resolvePermission(permission: Permission): Entity[] {
-    return permission.map((entity, index) =>
-      index < permission.length - 1 ? this._resolveEntity(entity) : normalizeRole(entity)
-    );
-  }
-
-  private _buildCaches = async (apps: App[]): Promise<[AppCache, AppInterfaceCache]> => {
+  async #buildCaches(apps: App[]): Promise<[AppCache, AppInterfaceCache]> {
     const appCache: AppCache = new Map();
     const appInterfaceCache: AppInterfaceCache = new Map();
     const appCounter = new Map();
@@ -466,5 +435,36 @@ export default class EVMcrispr {
     }
 
     return [appCache, appInterfaceCache];
-  };
+  }
+
+  async #connect(daoAddress: Address): Promise<void> {
+    const [appCache, appResourcesCache] = await this.#buildCaches(await this.#connector.organizationApps(daoAddress));
+
+    this.#appCache = appCache;
+    this.#appInterfaceCache = appResourcesCache;
+  }
+
+  #resolveApp(identifier: string): App {
+    let resolvedIdentifier = resolveIdentifier(identifier);
+
+    if (!this.#appCache.has(resolvedIdentifier)) {
+      throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });
+    }
+
+    return this.#appCache.get(resolvedIdentifier)!;
+  }
+
+  #resolveEntity(entity: Entity): Address {
+    return utils.isAddress(entity) ? entity : this.app(entity)();
+  }
+
+  #resolveParams(params: any[]): any[] {
+    return params.map((param) => (param instanceof Function ? param() : param));
+  }
+
+  #resolvePermission(permission: Permission): Entity[] {
+    return permission.map((entity, index) =>
+      index < permission.length - 1 ? this.#resolveEntity(entity) : normalizeRole(entity)
+    );
+  }
 }
