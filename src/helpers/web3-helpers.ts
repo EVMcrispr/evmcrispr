@@ -1,5 +1,5 @@
 import { Address } from "@1hive/connect";
-import { utils, providers } from "ethers";
+import { utils, providers, BigNumber } from "ethers";
 
 export async function buildNonceForAddress(
   address: Address,
@@ -24,3 +24,8 @@ export function calculateNewProxyAddress(daoAddress: Address, nonce: string): Ad
 
   return contractAddress;
 }
+
+export const toDecimals = (amount: number, decimals = 18) => {
+  const [integer, decimal] = String(amount).split(".");
+  return BigNumber.from((integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0"));
+};
