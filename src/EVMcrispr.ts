@@ -120,8 +120,8 @@ export default class EVMcrispr {
         throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
       }
 
-      const appPermission = appPermissions.get(roleHash);
-      if (!appPermission?.grantees.size) {
+      const appPermission = appPermissions.get(roleHash)!;
+      if (!appPermission.grantees.size) {
         appPermissions.set(roleHash, {
           manager,
           grantees: new Set([granteeAddress]),
@@ -170,23 +170,22 @@ export default class EVMcrispr {
    * @returns A proxy of the app that intercepts contract function calls and returns
    * the encoded call instead.
    */
-  call(appIdentifier: AppIdentifier): any {
+  call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
     return new Proxy(() => this.#resolveApp(appIdentifier), {
       get: (getTargetApp: () => App, functionProperty: string) => {
         return (...params: any): ActionFunction => {
-          try {
-            return () => {
+          return () => {
+            try {
               const targetApp = getTargetApp();
               return {
                 to: targetApp.address,
                 data: targetApp.abiInterface.encodeFunctionData(functionProperty, this.#resolveParams(params)),
               };
-            };
-          } catch (err) {
-            throw new ErrorNotFound(`Function ${functionProperty} not found in app ${appIdentifier}`, {
-              name: "ErrorFunctionNotFound",
-            });
-          }
+            } catch (err: any) {
+              err.message = `Error when encoding call to method ${functionProperty} of app ${appIdentifier}: ${err.message}`;
+              throw err;
+            }
+          };
         };
       },
     });
@@ -359,8 +358,8 @@ export default class EVMcrispr {
             false,
           ]),
         };
-      } catch (err) {
-        console.error(`Error when encoding ${identifier} installation action: `);
+      } catch (err: any) {
+        err.message = `Error when encoding ${identifier} installation action: ${err.message}`;
         throw err;
       }
     };

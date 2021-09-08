@@ -47,7 +47,7 @@ export interface Role {
   /**
    * The permission manager address.
    */
-  manager: Address;
+  manager?: Address;
   /**
    * The entities that are allowed to perform this permission.
    */
