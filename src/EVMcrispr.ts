@@ -371,10 +371,10 @@ export default class EVMcrispr {
    * @param removeManager A boolean that indicates whether or not to remove the permission manager.
    * @returns A function that returns the revoking actions.
    */
-  revokePermission(permission: Permission, removeManager = true): ActionFunction {
+  revokePermission(permission: Permission, removeManager = false): ActionFunction {
     return () => {
       const actions = [];
-      const [_, app, role] = permission;
+      const [grantee, app, role] = permission;
       const [entityAddress, appAddress, roleHash] = this.#resolvePermission(permission);
       const { permissions: appPermissions } = this.#resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
@@ -383,12 +383,23 @@ export default class EVMcrispr {
         throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
       }
 
+      const appPermission = appPermissions.get(roleHash)!;
+
+      if (!appPermission.grantees.has(entityAddress)) {
+        throw new ErrorNotFound(`Entity ${grantee} doesn't have permission ${role} to be revoked`, {
+          name: "ErrorPermissionNotFound",
+        });
+      }
+
+      appPermission.grantees.delete(entityAddress);
+
       actions.push({
         to: aclAddress,
         data: aclAbiInterface.encodeFunctionData("revokePermission", [entityAddress, appAddress, roleHash]),
       });
 
       if (removeManager) {
+        delete appPermission.manager;
         actions.push({
           to: aclAddress,
           data: aclAbiInterface.encodeFunctionData("removePermissionManager", [appAddress, roleHash]),
@@ -405,7 +416,7 @@ export default class EVMcrispr {
    * @param removeManager A boolean that indicates wether or not to remove the permission manager.
    * @returns A function that returns the revoking actions.
    */
-  revokePermissions(permissions: Permission[], removeManager = true): ActionFunction {
+  revokePermissions(permissions: Permission[], removeManager = false): ActionFunction {
     return () =>
       permissions.reduce((actions: Action[], permission) => {
         const action = this.revokePermission(permission, removeManager)() as Action[];
@@ -443,8 +454,17 @@ export default class EVMcrispr {
     this.#appInterfaceCache = appResourcesCache;
   }
 
-  #resolveApp(identifier: string): App {
-    let resolvedIdentifier = resolveIdentifier(identifier);
+  #resolveApp(entity: Entity): App {
+    if (utils.isAddress(entity)) {
+      const app = [...this.#appCache.entries()].find(([, app]) => app.address === entity);
+
+      if (!app) {
+        throw new ErrorNotFound(`Address ${entity} doesn't match to any app.`, { name: "ErrorAppNotFound" });
+      }
+
+      return app[1];
+    }
+    let resolvedIdentifier = resolveIdentifier(entity);
 
     if (!this.#appCache.has(resolvedIdentifier)) {
       throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });
@@ -461,9 +481,9 @@ export default class EVMcrispr {
     return params.map((param) => (param instanceof Function ? param() : param));
   }
 
-  #resolvePermission(permission: Permission): Entity[] {
+  #resolvePermission(permission: Permission): [Address, Address, string] {
     return permission.map((entity, index) =>
       index < permission.length - 1 ? this.#resolveEntity(entity) : normalizeRole(entity)
-    );
+    ) as [Address, Address, string];
   }
 }
