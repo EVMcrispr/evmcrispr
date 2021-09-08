@@ -1,4 +1,5 @@
 import { utils } from "ethers";
+import { ErrorInvalid } from "../errors";
 import { Action, ActionFunction, RawAction } from "../types";
 
 export const flatElements = (elements: any[]) => {
@@ -11,7 +12,14 @@ export const flatElements = (elements: any[]) => {
 };
 
 export const normalizeRole = (role: string): string => {
-  return role.startsWith("0x") && role.length === 64 ? role : utils.id(role);
+  if (role.startsWith("0x")) {
+    if (role.length !== 66) {
+      throw new ErrorInvalid("Invalid role provided", { name: "ErrorInvalidRole" });
+    }
+    return role;
+  }
+
+  return utils.id(role);
 };
 
 export const normalizeActions = async (actions: ActionFunction[]): Promise<Action[]> => {
