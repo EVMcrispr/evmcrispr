@@ -26,8 +26,8 @@ export class ErrorException extends Error {
     super(message);
     // We define these as non-enumarable to prevent them
     // from appearing with the error in the console.
-    defineNonEnumerable(this, "name", options.code || this.constructor.name);
-    defineNonEnumerable(this, "code", options.name || this.constructor.name);
+    defineNonEnumerable(this, "name", options.name || this.constructor.name);
+    defineNonEnumerable(this, "code", options.code || this.constructor.name);
   }
 }
 
