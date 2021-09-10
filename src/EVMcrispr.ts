@@ -192,6 +192,27 @@ export default class EVMcrispr {
   }
 
   /**
+   * Use DAO agent to call an external contract function
+   * @param agent App identifier of the agent that is going to be used to call the function
+   * @param target Address of the external contract
+   * @param signature Function signature that is going to be called
+   * @param params Array of parameters that are going to be used to call the function
+   * @returns A function that retuns an action to forward an agent call with the specified parameters
+   */
+  act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
+    return async () => {
+      const script = encodeCallScript([{
+        to: this.#resolveEntity(target),
+        data: await encodeActCall(signature, this.#resolveParams(params)),
+      }])
+      return {
+        to: this.#resolveEntity(agent),
+        data: await encodeActCall("forward(bytes)", [script]),
+      }
+    }
+  }
+
+  /**
    * Encode a set of actions into one using a path of forwarding apps.
    * @param actionFunctions The array of action-returning functions to encode.
    * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
