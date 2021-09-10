@@ -1,6 +1,5 @@
 import { utils } from "ethers";
 import { Entity, Permission } from "../../src";
-import { toDecimals } from "../../src/helpers";
 
 export const resolveTestPermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {
@@ -19,7 +18,7 @@ export const DAO = {
   finance: "0x67d35c1794cfd88f652866ba82c5e11a51e90f44",
   kernel: "0x8bebd1c49336Bf491ef7bd8a7f9A5d267081b33E",
   ["token-manager"]: "0x2f3833143987136f917ff09af5970bf707ec0246",
-  vault: "0x1c06257469514574c0868fdcb83c5509b5513870",
+  agent: "0x1c06257469514574c0868fdcb83c5509b5513870",
   voting: "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
 };
 
@@ -35,7 +34,7 @@ export const APP = {
   initializeSignature: "initialize(address,bool,uint256)",
   initializeParams: ["0xc7ad46e0b8a400bb3c915120d284aafba8fc4735", false, 0],
   callSignature: "mint(address,uint256)",
-  callSignatureParams: [DAO.voting, toDecimals(15)],
+  callSignatureParams: [DAO.voting, String(15e18)],
 };
 
 export const TEST_GRANT_PERMISSION: Permission = [

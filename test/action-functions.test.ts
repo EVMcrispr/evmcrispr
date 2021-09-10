@@ -177,7 +177,14 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("app()", () => {
-    isValidIdentifier((badIdentifier) => evmcrispr.app(badIdentifier));
+    it(
+      "fails when receiving an invalid identifier",
+      isValidIdentifier(
+        (badIdentifier) => evmcrispr.app(badIdentifier),
+        false,
+        false
+      )
+    );
 
     it("fails when fetching non-existent app", async () => {
       await expectThrowAsync(evmcrispr.app("disputable-voting.open"), {
@@ -192,8 +199,34 @@ describe("EVMcrispr action-encoding functions", () => {
     });
   });
 
+  describe("act()", () => {
+    it(
+      "fails when receiving an invalid identifier as the agent",
+      isValidIdentifier(
+        (badIdentifier) => evmcrispr.act(badIdentifier, '0x0', 'mint()', []),
+        false,
+        false
+      )
+    );
+    it(
+      "fails when receiving an invalid identifier as the target",
+      isValidIdentifier(
+        (badIdentifier) => evmcrispr.act('agent', badIdentifier, 'mint()', []),
+        false,
+        false
+      )
+    );
+  })
+
   describe("call()", () => {
-    isValidIdentifier((badIdentifier) => evmcrispr.call(badIdentifier));
+    it(
+      "fails when receiving an invalid identifier",
+      isValidIdentifier(
+        (badIdentifier) => evmcrispr.call(badIdentifier),
+        false,
+        false
+      )
+    );
 
     it("fails when calling an invalid method", async () => {
       await expectThrowAsync(evmcrispr.call("token-manager").unknownMethod(), undefined, "Unknown method");
@@ -215,7 +248,14 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("installNewApp()", () => {
-    isValidIdentifier((badIdentifier) => evmcrispr.installNewApp(badIdentifier), true);
+    it(
+      "fails when receiving an invalid identifier",
+      isValidIdentifier(
+        (badIdentifier) => evmcrispr.installNewApp(badIdentifier),
+        false,
+        false
+      )
+    );
 
     it("fails when doesn't find the app's repo", async () => {
       const noRepoIdentifier = "non-existent-repo.open:new-app";
