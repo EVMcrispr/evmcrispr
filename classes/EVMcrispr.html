@@ -101,6 +101,7 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="EVMcrispr.html#act" class="tsd-kind-icon">act</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="EVMcrispr.html#addPermission" class="tsd-kind-icon">add<wbr>Permission</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="EVMcrispr.html#addPermissions" class="tsd-kind-icon">add<wbr>Permissions</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="EVMcrispr.html#app" class="tsd-kind-icon">app</a></li>
@@ -124,7 +125,7 @@
 					<div class="tsd-signature tsd-kind-icon">ANY_<wbr>ENTITY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L60">src/EVMcrispr.ts:60</a></li>
+							<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L60">src/EVMcrispr.ts:60</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -139,7 +140,7 @@
 					<div class="tsd-signature tsd-kind-icon">NO_<wbr>ENTITY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L65">src/EVMcrispr.ts:65</a></li>
+							<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L65">src/EVMcrispr.ts:65</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -161,7 +162,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L97">src/EVMcrispr.ts:97</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L97">src/EVMcrispr.ts:97</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="../modules.html#AppCache" class="tsd-signature-type" data-tsd-kind="Type alias">AppCache</a></h4>
@@ -178,7 +179,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L101">src/EVMcrispr.ts:101</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L101">src/EVMcrispr.ts:101</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="Connector.html" class="tsd-signature-type" data-tsd-kind="Class">Connector</a></h4>
@@ -189,6 +190,56 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="act" class="tsd-anchor"></a>
+					<h3>act</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">act<span class="tsd-signature-symbol">(</span>agent<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, target<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, signature<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../modules.html#ActionFunction" class="tsd-signature-type" data-tsd-kind="Type alias">ActionFunction</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L202">src/EVMcrispr.ts:202</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Use DAO agent to call an external contract function</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>agent: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>App identifier of the agent that is going to be used to call the function</p>
+									</div>
+								</li>
+								<li>
+									<h5>target: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Address of the external contract</p>
+									</div>
+								</li>
+								<li>
+									<h5>signature: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Function signature that is going to be called</p>
+									</div>
+								</li>
+								<li>
+									<h5>params: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Array of parameters that are going to be used to call the function</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../modules.html#ActionFunction" class="tsd-signature-type" data-tsd-kind="Type alias">ActionFunction</a></h4>
+							<p>A function that retuns an action to forward an agent call with the specified parameters</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addPermission" class="tsd-anchor"></a>
 					<h3>add<wbr>Permission</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -198,7 +249,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L111">src/EVMcrispr.ts:111</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L111">src/EVMcrispr.ts:111</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -236,7 +287,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L154">src/EVMcrispr.ts:154</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L154">src/EVMcrispr.ts:154</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -275,7 +326,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L163">src/EVMcrispr.ts:163</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L163">src/EVMcrispr.ts:163</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -307,7 +358,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L173">src/EVMcrispr.ts:173</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L173">src/EVMcrispr.ts:173</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -340,7 +391,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L202">src/EVMcrispr.ts:202</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L223">src/EVMcrispr.ts:223</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -385,7 +436,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L277">src/EVMcrispr.ts:277</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L298">src/EVMcrispr.ts:298</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -429,7 +480,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L310">src/EVMcrispr.ts:310</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L331">src/EVMcrispr.ts:331</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -467,7 +518,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L374">src/EVMcrispr.ts:374</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L395">src/EVMcrispr.ts:395</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -505,7 +556,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L419">src/EVMcrispr.ts:419</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L440">src/EVMcrispr.ts:440</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -543,7 +594,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/ddd539b/src/EVMcrispr.ts#L85">src/EVMcrispr.ts:85</a></li>
+									<li>Defined in <a href="https://github.com/CommonsSwarm/EVMcrispr/blob/dc7bcef/src/EVMcrispr.ts#L85">src/EVMcrispr.ts:85</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -618,6 +669,9 @@
 							</li>
 							<li class=" tsd-kind-get-signature tsd-parent-kind-class">
 								<a href="EVMcrispr.html#connector" class="tsd-kind-icon">connector</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="EVMcrispr.html#act" class="tsd-kind-icon">act</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="EVMcrispr.html#addPermission" class="tsd-kind-icon">add<wbr>Permission</a>
