@@ -11,7 +11,7 @@ import {
   resolveTestPermission,
   APP,
   DAO,
-  TEST_GRANT_PERMISSION,
+  GRANT_PERMISSION,
   NEW_PERMISSION,
   PERMISSION_MANAGER,
   REVOKE_PERMISSION,
@@ -136,9 +136,9 @@ describe("EVMcrispr action-encoding functions", () => {
     it("encodes a grant permission action when permission already exists", () => {
       const expectedGrantPermissionAction: Action = {
         to: DAO.acl,
-        data: encodeActCall("grantPermission(address,address,bytes32)", resolveTestPermission(TEST_GRANT_PERMISSION)),
+        data: encodeActCall("grantPermission(address,address,bytes32)", resolveTestPermission(GRANT_PERMISSION)),
       };
-      const encodedGrantPermissionAction = evmcrispr.addPermission(TEST_GRANT_PERMISSION, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = evmcrispr.addPermission(GRANT_PERMISSION, PERMISSION_MANAGER)();
 
       expect(encodedGrantPermissionAction).eql(expectedGrantPermissionAction);
     });
@@ -179,11 +179,7 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("app()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier(
-        (badIdentifier) => evmcrispr.app(badIdentifier),
-        false,
-        false
-      )
+      isValidIdentifier((badIdentifier) => evmcrispr.app(badIdentifier), false, false)
     );
 
     it("fails when fetching non-existent app", async () => {
@@ -203,29 +199,21 @@ describe("EVMcrispr action-encoding functions", () => {
     it(
       "fails when receiving an invalid identifier as the agent",
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.act(badIdentifier, '0x0', 'mint()', []),
+        (badIdentifier) => evmcrispr.act(badIdentifier, "0xc125218F4Df091eE40624784caF7F47B9738086f", "mint()", []),
         false,
         false
       )
     );
     it(
       "fails when receiving an invalid identifier as the target",
-      isValidIdentifier(
-        (badIdentifier) => evmcrispr.act('agent', badIdentifier, 'mint()', []),
-        false,
-        false
-      )
+      isValidIdentifier((badIdentifier) => evmcrispr.act("agent", badIdentifier, "mint()", []), false, false)
     );
-  })
+  });
 
   describe("call()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier(
-        (badIdentifier) => evmcrispr.call(badIdentifier),
-        false,
-        false
-      )
+      isValidIdentifier((badIdentifier) => evmcrispr.call(badIdentifier), false, false)
     );
 
     it("fails when calling an invalid method", async () => {
@@ -250,11 +238,7 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("installNewApp()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier(
-        (badIdentifier) => evmcrispr.installNewApp(badIdentifier),
-        false,
-        false
-      )
+      isValidIdentifier((badIdentifier) => evmcrispr.installNewApp(badIdentifier), false, false)
     );
 
     it("fails when doesn't find the app's repo", async () => {

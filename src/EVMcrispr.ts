@@ -165,6 +165,29 @@ export default class EVMcrispr {
   }
 
   /**
+   * Use DAO agent to call an external contract function
+   * @param agent App identifier of the agent that is going to be used to call the function
+   * @param target Address of the external contract
+   * @param signature Function signature that is going to be called
+   * @param params Array of parameters that are going to be used to call the function
+   * @returns A function that retuns an action to forward an agent call with the specified parameters
+   */
+  act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
+    return async () => {
+      const script = encodeCallScript([
+        {
+          to: this.#resolveEntity(target),
+          data: await encodeActCall(signature, this.#resolveParams(params)),
+        },
+      ]);
+      return {
+        to: this.#resolveEntity(agent),
+        data: await encodeActCall("forward(bytes)", [script]),
+      };
+    };
+  }
+
+  /**
    * Encode an action that calls an app's contract function.
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
    * @returns A proxy of the app that intercepts contract function calls and returns
@@ -189,27 +212,6 @@ export default class EVMcrispr {
         };
       },
     });
-  }
-
-  /**
-   * Use DAO agent to call an external contract function
-   * @param agent App identifier of the agent that is going to be used to call the function
-   * @param target Address of the external contract
-   * @param signature Function signature that is going to be called
-   * @param params Array of parameters that are going to be used to call the function
-   * @returns A function that retuns an action to forward an agent call with the specified parameters
-   */
-  act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
-    return async () => {
-      const script = encodeCallScript([{
-        to: this.#resolveEntity(target),
-        data: await encodeActCall(signature, this.#resolveParams(params)),
-      }])
-      return {
-        to: this.#resolveEntity(agent),
-        data: await encodeActCall("forward(bytes)", [script]),
-      }
-    }
   }
 
   /**
@@ -480,7 +482,7 @@ export default class EVMcrispr {
       const app = [...this.#appCache.entries()].find(([, app]) => app.address === entity);
 
       if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match to any app.`, { name: "ErrorAppNotFound" });
+        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, { name: "ErrorAppNotFound" });
       }
 
       return app[1];

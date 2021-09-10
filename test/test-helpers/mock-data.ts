@@ -1,5 +1,6 @@
 import { utils } from "ethers";
 import { Entity, Permission } from "../../src";
+import { toDecimals } from "../../src/helpers";
 
 export const resolveTestPermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {
@@ -34,10 +35,10 @@ export const APP = {
   initializeSignature: "initialize(address,bool,uint256)",
   initializeParams: ["0xc7ad46e0b8a400bb3c915120d284aafba8fc4735", false, 0],
   callSignature: "mint(address,uint256)",
-  callSignatureParams: [DAO.voting, String(15e18)],
+  callSignatureParams: [DAO.voting, toDecimals(15)],
 };
 
-export const TEST_GRANT_PERMISSION: Permission = [
+export const GRANT_PERMISSION: Permission = [
   "0xc125218F4Df091eE40624784caF7F47B9738086f",
   "token-manager",
   "MINT_ROLE",

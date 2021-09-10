@@ -17,10 +17,10 @@ export const expectThrowAsync = async (
   expect(error!.constructor.name, customTestMessage).eq(type.name);
 
   if (name) {
-    expect(error!.name).to.be.eq(name);
+    expect(error!.name, customTestMessage).to.be.eq(name);
   }
 
   if (message) {
-    expect(error!.message).to.equal(message);
+    expect(error!.message, customTestMessage).to.equal(message);
   }
 };
