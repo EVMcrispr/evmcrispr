@@ -5,12 +5,16 @@ set -eu
 echo "Building package..."
 yarn build
 
+echo "Testing"
+yarn test
+
 # # Bump version
 # npm version ${NEW_VERSION}
 
 echo "Publishing package..."
 
 # Publish
+npm version ${NEW_VERSION}
 npm publish --access public
 
 echo "Creating tag..."
