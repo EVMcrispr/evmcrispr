@@ -2,7 +2,7 @@ import { utils } from "ethers";
 import { Entity, Permission } from "../../src";
 import { toDecimals } from "../../src/helpers";
 
-export const resolveTestPermission = (permission: Permission): Permission => {
+export const resolvePermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {
     // Last element is the role
     if (index === permission.length - 1) {
@@ -11,6 +11,14 @@ export const resolveTestPermission = (permission: Permission): Permission => {
 
     return utils.isAddress(element) ? element : DAO[element as keyof typeof DAO];
   }) as Permission;
+};
+
+export const resolveApp = (appName: string) => {
+  return DAO[appName as keyof typeof DAO];
+};
+
+export const getSignatureSelector = (signature: string): string => {
+  return signature.split("(")[0];
 };
 
 export const DAO = {
@@ -53,9 +61,11 @@ export const NEW_PERMISSIONS: Permission[] = [
 
 export const PERMISSION_MANAGER: Entity = "voting";
 
-export const REVOKE_PERMISSION: Permission = ["voting", "token-manager", "MINT_ROLE"];
+export const REVOKE_PERMISSION: Permission = ["voting", "finance", "MANAGE_PAYMENTS_ROLE"];
 
 export const REVOKE_PERMISSIONS: Permission[] = [
   ["voting", "finance", "CREATE_PAYMENTS_ROLE"],
   ["voting", "voting", "MODIFY_SUPPORT_ROLE"],
 ];
+
+export const FORWARDER_APPS = ["voting"];

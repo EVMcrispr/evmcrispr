@@ -8,7 +8,7 @@ import { ErrorException, ErrorInvalid, ErrorNotFound } from "../src/errors";
 import { Action, Permission } from "../src/types";
 import { encodeActCall } from "../src/helpers";
 import {
-  resolveTestPermission,
+  resolvePermission,
   APP,
   DAO,
   GRANT_PERMISSION,
@@ -124,7 +124,7 @@ describe("EVMcrispr action-encoding functions", () => {
       const expectedPermissionAction: Action = {
         to: DAO.acl,
         data: encodeActCall("createPermission(address,address,bytes32,address)", [
-          ...resolveTestPermission(NEW_PERMISSION),
+          ...resolvePermission(NEW_PERMISSION),
           DAO[PERMISSION_MANAGER as keyof typeof DAO],
         ]),
       };
@@ -136,7 +136,7 @@ describe("EVMcrispr action-encoding functions", () => {
     it("encodes a grant permission action when permission already exists", () => {
       const expectedGrantPermissionAction: Action = {
         to: DAO.acl,
-        data: encodeActCall("grantPermission(address,address,bytes32)", resolveTestPermission(GRANT_PERMISSION)),
+        data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(GRANT_PERMISSION)),
       };
       const encodedGrantPermissionAction = evmcrispr.addPermission(GRANT_PERMISSION, PERMISSION_MANAGER)();
 
@@ -150,7 +150,7 @@ describe("EVMcrispr action-encoding functions", () => {
         (createPermission): Action => ({
           to: DAO.acl,
           data: encodeActCall("createPermission(address,address,bytes32,address)", [
-            ...resolveTestPermission(createPermission),
+            ...resolvePermission(createPermission),
             DAO[PERMISSION_MANAGER as keyof typeof DAO],
           ]),
         })
@@ -164,11 +164,11 @@ describe("EVMcrispr action-encoding functions", () => {
       const expectedGrantActions = grantPermissions.map(
         (grantPermission): Action => ({
           to: DAO.acl,
-          data: encodeActCall("grantPermission(address,address,bytes32)", resolveTestPermission(grantPermission)),
+          data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(grantPermission)),
         })
       );
       const grantActions = evmcrispr.addPermissions(
-        grantPermissions.map((p) => resolveTestPermission(p)),
+        grantPermissions.map((p) => resolvePermission(p)),
         PERMISSION_MANAGER
       )();
 
@@ -285,7 +285,7 @@ describe("EVMcrispr action-encoding functions", () => {
     testBadPermission((badPermission) => evmcrispr.revokePermission(badPermission, true));
 
     it("encodes a revoke permission and remove manager action correctly", () => {
-      const revokePermission = resolveTestPermission(REVOKE_PERMISSION);
+      const revokePermission = resolvePermission(REVOKE_PERMISSION);
       const expectedRevokeAction: Action = {
         to: DAO.acl.toLowerCase(),
         data: encodeActCall("revokePermission(address,address,bytes32)", revokePermission),
@@ -317,7 +317,7 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("revokePermissions()", () => {
     it("encodes a set of revoke permissions and permission manager actions correctly", () => {
       const expectedRevokeActions = REVOKE_PERMISSIONS.reduce((revokingActions: Action[], permission) => {
-        const resolvedPermission = resolveTestPermission(permission);
+        const resolvedPermission = resolvePermission(permission);
         return [
           ...revokingActions,
           { to: DAO.acl, data: encodeActCall("revokePermission(address,address,bytes32)", resolvedPermission) },
