@@ -1,6 +1,6 @@
 {
   "name": "@commonsswarm/evmcrispr",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "author": "Commons Swarm",
