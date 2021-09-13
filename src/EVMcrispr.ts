@@ -19,6 +19,7 @@ import {
   isForwarder,
   buildAppIdentifier,
   buildIpfsTemplate,
+  toDecimals,
 } from "./helpers";
 import {
   Address,
@@ -227,9 +228,15 @@ export default class EVMcrispr {
     path: Entity[],
     options?: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
-    const actions = await normalizeActions(actionFunctions);
+    if (actionFunctions.length === 0) {
+      throw new ErrorInvalid("No actions provided");
+    }
+    if (path.length === 0) {
+      throw new ErrorInvalid("No forwader apps path provided");
+    }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path.map((entity) => this.#resolveEntity(entity)).reverse();
+    const actions = await normalizeActions(actionFunctions);
     const preTxActions: Action[] = [];
 
     let script: string;
