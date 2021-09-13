@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { addressesEqual } from "@1hive/connect";
 import { utils } from "ethers";
 import { expect } from "chai";
@@ -18,7 +17,7 @@ import {
   REVOKE_PERMISSIONS,
   NEW_PERMISSIONS,
 } from "./test-helpers/mock-data";
-import { expectThrowAsync } from "./test-helpers/expect";
+import { expectThrowAsync, isValidIdentifier } from "./test-helpers/expects";
 
 describe("EVMcrispr action-encoding functions", () => {
   let evmcrispr: EVMcrispr;
@@ -28,34 +27,6 @@ describe("EVMcrispr action-encoding functions", () => {
 
     evmcrispr = await EVMcrispr.create(signer, DAO.kernel);
   });
-
-  const isValidIdentifier = (
-    evmcrisprMethod: (invalidIdentifier: string) => any,
-    checkLabeledAppIdentifier = false,
-    checkAppIdentifier = false
-  ) => {
-    return async () => {
-      const errorOptions = { type: ErrorInvalid, name: "ErrorInvalidIdentifier" };
-
-      await expectThrowAsync(evmcrisprMethod(""), errorOptions, "Empty identifier");
-
-      await expectThrowAsync(evmcrisprMethod("Vault"), errorOptions, "Uppercase letter in identifier");
-
-      await expectThrowAsync(evmcrisprMethod("vault:"), errorOptions, "Incomplete identifier");
-
-      await expectThrowAsync(evmcrisprMethod("vault%"), errorOptions, "Invalid character in identifier");
-
-      await expectThrowAsync(evmcrisprMethod("vault."), errorOptions, "Incomplete repository in identifier");
-
-      if (checkLabeledAppIdentifier) {
-        await expectThrowAsync(evmcrisprMethod("vault:new-vau/lt"), errorOptions, "Label containing invalid character");
-      }
-
-      if (checkAppIdentifier) {
-        await expectThrowAsync(evmcrisprMethod("vault:2new"), errorOptions, "Index containing non-numeric character");
-      }
-    };
-  };
 
   const testBadPermission = (evmcrisprPermissionMethod: (badPermission: Permission) => any) => {
     it(
@@ -179,11 +150,11 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("app()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier((badIdentifier) => evmcrispr.app(badIdentifier), false, false)
+      isValidIdentifier((badIdentifier) => evmcrispr.app(badIdentifier))
     );
 
     it("fails when fetching non-existent app", async () => {
-      await expectThrowAsync(evmcrispr.app("disputable-voting.open"), {
+      await expectThrowAsync(evmcrispr.app("non-existent.open"), {
         type: ErrorNotFound,
         name: "ErrorAppNotFound",
       });
