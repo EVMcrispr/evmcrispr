@@ -20,6 +20,6 @@ npm publish --access public
 echo "Creating tag..."
 
 tag_version="v${NEW_VERSION}"
-git tag -a $tag_version -m "Publish version v${tag_version}"
+git tag -a $tag_version -m "Release version v${tag_version} :rocket:"
 
 git push origin $tag_version
