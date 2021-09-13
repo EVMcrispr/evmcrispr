@@ -90,6 +90,7 @@ await evmcrispr.forward(
 Below you can find some script examples that use EVMcrispr:
 
 - [Commons Upgrade script](https://github.com/CommonsSwarm/commons-upgrade)
+- [App installation script](https://gist.github.com/PJColombo/4d4536b87fbae6beece427f0d7de8bb9)
 
 ## Contributing
 
