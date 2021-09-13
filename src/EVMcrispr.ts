@@ -458,8 +458,25 @@ export default class EVMcrispr {
     const appCache: AppCache = new Map();
     const appInterfaceCache: AppInterfaceCache = new Map();
     const appCounter = new Map();
+    const kernel = apps.find((app) => app.name.toLowerCase() === "kernel")!;
+    const kernelTxCount = await this.#signer.provider!.getTransactionCount(kernel.address);
+    const sortedApps = [kernel];
 
-    for (const app of apps) {
+    const addressToApp = apps.reduce((accumulator, app) => {
+      accumulator.set(app.address, app);
+      return accumulator;
+    }, new Map());
+
+    // Sort apps by creation time
+    for (let i = 1; i < kernelTxCount; i++) {
+      const address = calculateNewProxyAddress(kernel.address, utils.hexlify(i));
+
+      if (addressToApp.has(address)) {
+        sortedApps.push(addressToApp.get(address));
+      }
+    }
+
+    for (const app of sortedApps) {
       const { name, codeAddress, abi } = app;
       const counter = appCounter.has(name) ? appCounter.get(name) : 0;
       const appIdentifier = buildAppIdentifier(app, counter);
