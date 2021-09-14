@@ -25,7 +25,7 @@ export function calculateNewProxyAddress(daoAddress: Address, nonce: string): Ad
   return contractAddress;
 }
 
-export const toDecimals = (amount: number, decimals = 18) => {
+export const toDecimals = (amount: number, decimals = 18): BigNumber => {
   const [integer, decimal] = String(amount).split(".");
   return BigNumber.from((integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0"));
 };

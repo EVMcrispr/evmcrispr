@@ -3,7 +3,9 @@ import { App, AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
 
+// eslint-disable-next-line
 const appIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z-]{1,63}))?(?:\:([0-9]{1,63}))?$/;
+// eslint-disable-next-line
 const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?:\:([a-z0-9-]{1,63}))$/;
 
 const parseRegistry = (registryEnsName: string): string => {

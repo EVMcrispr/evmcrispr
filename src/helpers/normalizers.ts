@@ -2,7 +2,7 @@ import { utils } from "ethers";
 import { ErrorInvalid } from "../errors";
 import { Action, ActionFunction, RawAction } from "../types";
 
-export const flatElements = (elements: any[]) => {
+export const flatElements = (elements: any[]): any[] => {
   return elements.reduce((flattenedElements, element) => {
     if (Array.isArray(element)) {
       return [...flattenedElements, ...element];

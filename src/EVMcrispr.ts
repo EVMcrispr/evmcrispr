@@ -19,7 +19,6 @@ import {
   isForwarder,
   buildAppIdentifier,
   buildIpfsTemplate,
-  toDecimals,
 } from "./helpers";
 import {
   Address,
@@ -34,12 +33,11 @@ import {
   App,
   ActionFunction,
   PermissionMap,
-  Function,
 } from "./types";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 
 /**
- * The default main EVMcrispr class that expose all the functionalities.
+ *The default main EVMcrispr class that expose all the functionalities.
  * @category Main
  */
 export default class EVMcrispr {
@@ -95,11 +93,11 @@ export default class EVMcrispr {
     return evmcrispr;
   }
 
-  get appCache() {
+  get appCache(): AppCache {
     return this.#appCache;
   }
 
-  get connector() {
+  get connector(): Connector {
     return this.#connector;
   }
 
@@ -161,7 +159,7 @@ export default class EVMcrispr {
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
    * @returns The app's contract address.
    */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Function<Address> {
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): () => Address {
     return () => this.#resolveApp(appIdentifier).address;
   }
 
@@ -511,7 +509,7 @@ export default class EVMcrispr {
 
       return app[1];
     }
-    let resolvedIdentifier = resolveIdentifier(entity);
+    const resolvedIdentifier = resolveIdentifier(entity);
 
     if (!this.#appCache.has(resolvedIdentifier)) {
       throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });

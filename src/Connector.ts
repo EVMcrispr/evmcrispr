@@ -52,6 +52,7 @@ const parseApp = async (app: any, ipfsResolver: IpfsResolver): Promise<App | und
 
   return {
     abi: artifact.abi,
+    // eslint-disable-next-line
     // @ts-ignore ABI interface is set later when building the app cache
     abiInterface: null,
     address,

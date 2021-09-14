@@ -11,7 +11,6 @@ export {
   CompletePermission,
   Entity,
   ForwardOptions,
-  Function,
   LabeledAppIdentifier,
   Permission,
   RawAction,

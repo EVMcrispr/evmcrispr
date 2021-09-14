@@ -117,8 +117,6 @@ export type RawAction = Action | Action[] | Promise<Action>;
 
 export type ActionFunction = () => RawAction;
 
-export type Function<T extends any> = () => T;
-
 /**
  * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:1`):
  *

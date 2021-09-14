@@ -1,4 +1,4 @@
-function defineNonEnumerable(instance: object, name: string, value: any) {
+function defineNonEnumerable(instance: Record<string, any>, name: string, value: any) {
   Object.defineProperty(instance, name, { value, enumerable: false });
 }
 

@@ -12,7 +12,7 @@ Actions can be thought of as events performed by some entity inside a DAO such a
 
 Check out the [documentation](https://commonsswarm.github.io/EVMcrispr/modules.html) for an in-depth explanation of the API.
 
-## How does it work ?
+## How does it work?
 
 EVMcrispr offers two main methods to create EVM scripts containing actions: `encode()` and `forward()` (this one encodes the actions and forwards it afterwards).
 
