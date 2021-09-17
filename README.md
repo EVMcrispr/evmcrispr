@@ -1,6 +1,8 @@
 # EVMcrispr
 
-[![](https://img.shields.io/github/package-json/v/commonsswarm/evmcrispr?label=npm)](https://www.npmjs.com/package/@commonsswarm/evmcrispr) [![docs](https://github.com/commonsswarm/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://commonsswarm.github.io/EVMcrispr/)
+[![](https://img.shields.io/github/package-json/v/commonsswarm/evmcrispr?label=npm)](https://www.npmjs.com/package/@commonsswarm/evmcrispr)
+[![Coverage Status](https://coveralls.io/repos/github/CommonsSwarm/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/CommonsSwarm/EVMcrispr?branch=main)
+[![docs](https://github.com/commonsswarm/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://commonsswarm.github.io/EVMcrispr/)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
 
