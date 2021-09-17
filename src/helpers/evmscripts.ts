@@ -12,13 +12,6 @@ export const EMPTY_CALLS_SCRIPT = createExecutorId(1);
  * @param {any[]} params
  */
 export function encodeActCall(signature: string, params: any[] = []): string {
-  /* 
-    const sigBytes = ethers.utils.Interface.getSighash(
-        ethers.utils.Fragment.from(
-          "function migrate(address,address,address,address,uint256,uint64,uint64,uint64) external"
-        )
-      );
-  */
   const sigBytes = utils.hexDataSlice(utils.id(signature), 0, 4);
   const types = signature.replace(")", "").split("(")[1];
 

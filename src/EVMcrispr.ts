@@ -172,8 +172,8 @@ export default class EVMcrispr {
    * @returns A function that retuns an action to forward an agent call with the specified parameters
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
-    if(!/\w+\(((\w+)+(,\w+)*)?\)/.test(signature)) {
-      throw new Error('Wrong signature format: ' + signature);
+    if (!/\w+\(((\w+)+(,\w+)*)?\)/.test(signature)) {
+      throw new Error("Wrong signature format: " + signature);
     }
     return async () => {
       const script = encodeCallScript([
