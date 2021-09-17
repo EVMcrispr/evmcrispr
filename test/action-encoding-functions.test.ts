@@ -167,18 +167,28 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("act()", () => {
+    const target = "0xc125218F4Df091eE40624784caF7F47B9738086f"
     it(
       "fails when receiving an invalid identifier as the agent",
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.act(badIdentifier, "0xc125218F4Df091eE40624784caF7F47B9738086f", "mint()", []),
+        (badIdentifier) => evmcrispr.act(badIdentifier, target, "mint()", []),
         false,
         false
       )
     );
+
     it(
       "fails when receiving an invalid identifier as the target",
       isValidIdentifier((badIdentifier) => evmcrispr.act("agent", badIdentifier, "mint()", []), false, false)
     );
+
+    it("fails when receiving an invalid signature", async () => {
+      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint", []), undefined, "Wrong signature format: mint");
+      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(", []), undefined, "Wrong signature format: mint(");
+      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(uint,)", []), undefined, "Wrong signature format: mint(uint,)");
+      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(,uint)", []), undefined, "Wrong signature format: mint(,uint)");
+    });
+
   });
 
   describe("call()", () => {

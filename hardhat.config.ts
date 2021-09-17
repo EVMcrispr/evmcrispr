@@ -84,7 +84,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
     },
     rinkeby: {
-      url: "https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://rinkeby.infura.io/v3/fb8cf9d97ab44df7b4a268b282c04803", //<---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
