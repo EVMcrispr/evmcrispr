@@ -32,7 +32,7 @@ type Param = (index: number) => string[];
 
 // Normal argument
 
-function arg(id: number) {
+function arg(id: number): any {
   if (id < 0 || id > 199) {
     throw new Error(`Argument id must be positive and can not be greater than 199`);
   }
@@ -49,23 +49,9 @@ const timestamp = _arg(SpecialArgId.TIMESTAMP);
 
 // ACL oracle
 
-function oracle(oracle: string) {
+function oracle(oracle: string): string {
   return _encodeParam(SpecialArgId.ORACLE, Op.EQ, oracle);
 }
-
-// Logic functions
-
-const logic = {
-  not: (param: number) => _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.NOT, String(param)),
-  and: (param1: number, param2: number) =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.AND, _encodeOperator(param1, param2)),
-  or: (param1: number, param2: number) =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.OR, _encodeOperator(param1, param2)),
-  xor: (param1: number, param2: number) =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.XOR, _encodeOperator(param1, param2)),
-  ifElse: (condition: number, successParam: number, failureParam: number) =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.IF_ELSE, _encodeIfElse(condition, successParam, failureParam)),
-};
 
 // Parameter value
 
@@ -77,14 +63,14 @@ function encodeParams(param: Param): string[] {
   return param(0);
 }
 
-const not = _unaryLogicOp(logic.not);
-const and = _binaryLogicOp(logic.and);
-const or = _binaryLogicOp(logic.or);
-const xor = _binaryLogicOp(logic.xor);
-const iif = (param1: string | Param) => ({
+const not = _unaryLogicOp(LogicOp.NOT);
+const and = _binaryLogicOp(LogicOp.AND);
+const or = _binaryLogicOp(LogicOp.OR);
+const xor = _binaryLogicOp(LogicOp.XOR);
+const iif = (param1: string | Param): any => ({
   then: (param2: string | Param) => ({
     else: (param3: string | Param) => {
-      return _ternaryLogicOp(logic.ifElse)(param1, param2, param3);
+      return _ternaryLogicOp()(param1, param2, param3);
     },
   }),
 });
@@ -104,10 +90,11 @@ function _arg(id: number) {
   };
 }
 
-function _encodeParam(argId: number, op: number, value: any) {
+function _encodeParam(argId: number, op: number, value: any): string {
   const _argId = utils.hexlify(argId).slice(2);
   const _op = utils.hexlify(op).slice(2);
   const _value = utils.hexlify(BigNumber.from(value)).slice(2).padStart(60, "0"); // 60 as params are uint240
+
   return `0x${_argId}${_op}${_value}`;
 }
 
@@ -115,7 +102,7 @@ function _resolveParam(param: string | Param, index: number): string[] {
   return typeof param === "string" ? [param] : param(index);
 }
 
-function _unaryLogicOp(op: Function): (param: string | Param) => Param {
+function _unaryLogicOp(op: any): (param: string | Param) => Param {
   return (param) => {
     return (index) => {
       const index1 = index + 1;
@@ -125,7 +112,7 @@ function _unaryLogicOp(op: Function): (param: string | Param) => Param {
   };
 }
 
-function _binaryLogicOp(op: Function): (param1: string | Param, param2: string | Param) => Param {
+function _binaryLogicOp(op: any): (param1: string | Param, param2: string | Param) => Param {
   return (param1, param2) => {
     return (index) => {
       const index1 = index + 1;
@@ -137,9 +124,7 @@ function _binaryLogicOp(op: Function): (param1: string | Param, param2: string |
   };
 }
 
-function _ternaryLogicOp(
-  op: Function
-): (param1: string | Param, param2: string | Param, param3: string | Param) => Param {
+function _ternaryLogicOp(): (param1: string | Param, param2: string | Param, param3: string | Param) => Param {
   return (param1, param2, param3) => {
     return (index) => {
       const index1 = index + 1;
@@ -153,15 +138,15 @@ function _ternaryLogicOp(
   };
 }
 
-function _encodeOperator(param1: number, param2: number): string {
-  return _encodeIfElse(param1, param2, 0);
-}
+// function _encodeOperator(param1: number, param2: number): string {
+//   return _encodeIfElse(param1, param2, 0);
+// }
 
-function _encodeIfElse(condition: number, successParam: number, failureParam: number) {
-  const _condition = utils.hexlify(condition).slice(2).padStart(8, "0");
-  const _successParam = utils.hexlify(successParam).slice(2).padStart(8, "0");
-  const _failureParam = utils.hexlify(failureParam).slice(2).padStart(44, "0");
-  return `0x${_failureParam}${_successParam}${_condition}`;
-}
+// function _encodeIfElse(condition: number, successParam: number, failureParam: number) {
+//   const _condition = utils.hexlify(condition).slice(2).padStart(8, "0");
+//   const _successParam = utils.hexlify(successParam).slice(2).padStart(8, "0");
+//   const _failureParam = utils.hexlify(failureParam).slice(2).padStart(44, "0");
+//   return `0x${_failureParam}${_successParam}${_condition}`;
+// }
 
-export { arg, blockNumber, timestamp, oracle, logic, paramValue, encodeParams, not, and, or, xor, iif };
+export { arg, blockNumber, timestamp, oracle, LogicOp, paramValue, encodeParams, not, and, or, xor, iif };

@@ -37,7 +37,7 @@ import {
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 
 /**
- *The default main EVMcrispr class that expose all the functionalities.
+ * The default main EVMcrispr class that expose all the functionalities.
  * @category Main
  */
 export default class EVMcrispr {
