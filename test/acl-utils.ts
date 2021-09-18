@@ -13,22 +13,31 @@ import {
   paramValue,
 } from "../src/acl-utils";
 import { expect } from "chai";
+import { Params } from "../src/types";
+
+function onlyParam(param: Params): string {
+  const _param = param(0);
+  if (_param.length != 1) {
+    throw new Error("Params should only be one.");
+  }
+  return _param[0];
+}
 
 function checkArg(arg: any, argId: string) {
-  expect(arg.none(0).slice(0, 6)).eql(`0x${argId}00`);
-  expect(arg.eq(0).slice(0, 6)).eql(`0x${argId}01`);
-  expect(arg.neq(0).slice(0, 6)).eql(`0x${argId}02`);
-  expect(arg.gt(0).slice(0, 6)).eql(`0x${argId}03`);
-  expect(arg.lt(0).slice(0, 6)).eql(`0x${argId}04`);
-  expect(arg.gte(0).slice(0, 6)).eql(`0x${argId}05`);
-  expect(arg.lte(0).slice(0, 6)).eql(`0x${argId}06`);
-  expect(arg.ret(0).slice(0, 6)).eql(`0x${argId}07`);
+  expect(onlyParam(arg.none(0)).slice(0, 6)).eql(`0x${argId}00`);
+  expect(onlyParam(arg.eq(0)).slice(0, 6)).eql(`0x${argId}01`);
+  expect(onlyParam(arg.neq(0)).slice(0, 6)).eql(`0x${argId}02`);
+  expect(onlyParam(arg.gt(0)).slice(0, 6)).eql(`0x${argId}03`);
+  expect(onlyParam(arg.lt(0)).slice(0, 6)).eql(`0x${argId}04`);
+  expect(onlyParam(arg.gte(0)).slice(0, 6)).eql(`0x${argId}05`);
+  expect(onlyParam(arg.lte(0)).slice(0, 6)).eql(`0x${argId}06`);
+  expect(onlyParam(arg.ret(0)).slice(0, 6)).eql(`0x${argId}07`);
 }
 
 describe("ACL utils", () => {
   it("encodes arguments properly", () => {
-    expect(arg(0).eq(6).startsWith("0x00")).to.be.true;
-    expect(arg(88).eq(6).startsWith("0x58")).to.be.true;
+    expect(onlyParam(arg(0).eq(6)).startsWith("0x00")).to.be.true;
+    expect(onlyParam(arg(88).eq(6)).startsWith("0x58")).to.be.true;
   });
 
   it("fails when argument is >=200", () => {
@@ -36,7 +45,7 @@ describe("ACL utils", () => {
   });
 
   it("encodes operations properly", () => {
-    checkArg(arg(0), "00");
+    checkArg(arg(100), "64");
   });
 
   it("blocknumber special argument is encoded properly", () => {
@@ -48,8 +57,12 @@ describe("ACL utils", () => {
   });
 
   it("oracle special argument is encoded properly", () => {
-    expect(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F").slice(0, 6)).eql("0xcb01");
-    expect(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F").endsWith("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    expect(onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")).slice(0, 6)).eql("0xcb01");
+    expect(
+      onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")).endsWith(
+        "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+      )
+    );
   });
 
   it("logic operations are encoded properly", () => {
@@ -62,17 +75,19 @@ describe("ACL utils", () => {
     const param1 = "16"; // 22 in hex
     const param2 = "37"; // 55 in hex
     const param3 = "63"; // 99 in hex
-    expect(logic.not(22)).eql(`${logicArgId}${not}0000000000000000000000000000000000000000000000000000000000${param1}`);
-    expect(logic.and(22, 55)).eql(
+    expect(onlyParam(logic.not(22))).eql(
+      `${logicArgId}${not}0000000000000000000000000000000000000000000000000000000000${param1}`
+    );
+    expect(onlyParam(logic.and(22, 55))).eql(
       `${logicArgId}${and}00000000000000000000000000000000000000000000000000${param2}000000${param1}`
     );
-    expect(logic.or(22, 55)).eql(
+    expect(onlyParam(logic.or(22, 55))).eql(
       `${logicArgId}${or}00000000000000000000000000000000000000000000000000${param2}000000${param1}`
     );
-    expect(logic.xor(22, 55)).eql(
+    expect(onlyParam(logic.xor(22, 55))).eql(
       `${logicArgId}${xor}00000000000000000000000000000000000000000000000000${param2}000000${param1}`
     );
-    expect(logic.ifElse(22, 55, 99)).eql(
+    expect(onlyParam(logic.ifElse(22, 55, 99))).eql(
       `${logicArgId}${ifElse}000000000000000000000000000000000000000000${param3}000000${param2}000000${param1}`
     );
   });
@@ -89,17 +104,17 @@ describe("ACL utils", () => {
           .else(paramValue.ret(0))
       )
     ).deep.eq([
-      logic.ifElse(1, 4, 10), // 0
-      logic.and(2, 3), // 1
-      oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F"), // 2
-      blockNumber.gt(18137519), // 3
-      logic.or(5, 9), // 4
-      logic.xor(6, 8), // 5
-      logic.not(7), // 6
-      oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F"), // 7
-      arg(1).none(0), // 8
-      arg(0).lt(10), // 9
-      paramValue.ret(0), // 10
+      /* 0*/ onlyParam(logic.ifElse(1, 4, 10)),
+      /* 1*/ onlyParam(logic.and(2, 3)),
+      /* 2*/ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
+      /* 3*/ onlyParam(blockNumber.gt(18137519)),
+      /* 4*/ onlyParam(logic.or(5, 9)),
+      /* 5*/ onlyParam(logic.xor(6, 8)),
+      /* 6*/ onlyParam(logic.not(7)),
+      /* 7*/ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
+      /* 8*/ onlyParam(arg(1).none(0)),
+      /* 9*/ onlyParam(arg(0).lt(10)),
+      /*10*/ onlyParam(paramValue.ret(0)),
     ]);
   });
 });

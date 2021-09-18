@@ -1,6 +1,7 @@
-import { BigNumber, utils } from "ethers";
-import { Entity, Permission } from "../../src";
+import { utils } from "ethers";
+import { Entity, Permission, PermissionP } from "../../src";
 import { toDecimals } from "../../src/helpers";
+import { oracle, and, timestamp } from "../../src/acl-utils";
 
 export const resolvePermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {
@@ -54,7 +55,21 @@ export const GRANT_PERMISSION: Permission = [
   "MINT_ROLE",
 ];
 
+export const GRANT_PERMISSION_PARAMS: PermissionP = [
+  "0xc125218F4Df091eE40624784caF7F47B9738086f",
+  "token-manager",
+  "MINT_ROLE",
+  and(oracle("0x0"), timestamp.gte(10000000)),
+];
+
 export const NEW_PERMISSION: Permission = ["voting", "token-manager", "ISSUE_ROLE"];
+
+export const NEW_PERMISSION_PARAMS: PermissionP = [
+  "voting",
+  "token-manager",
+  "ISSUE_ROLE",
+  and(oracle("0x0"), timestamp.gte(10000000)),
+];
 
 export const NEW_PERMISSIONS: Permission[] = [
   ["voting", "token-manager", "ASSIGN_ROLE"],

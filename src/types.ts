@@ -156,9 +156,37 @@ export type Permission = [Entity, Entity, string];
  * - **Grantee**: Entity that will be able to perform the permission.
  * - **App**: App entity that holds the allowed permission.
  * - **Role**: The permission's name.
+ * - **Params**: Function that returns an array of encoded ACL parameters.
  * - **Manager**: Entity that will act as the permission manager.
  */
-export type CompletePermission = [...Permission, string];
+export type PermissionP = [Entity, Entity, string, Params];
+
+/**
+ * An array which follows the format `[<Grantee>, <App>, <Role>, <Manager>]`
+ *
+ * - **Grantee**: Entity that will be able to perform the permission.
+ * - **App**: App entity that holds the allowed permission.
+ * - **Role**: The permission's name.
+ * - **Params**: Function that returns an array of encoded ACL parameters.
+ * - **Manager**: Entity that will act as the permission manager.
+ */
+export type CompletePermission = [Entity, Entity, string, Params, string];
+
+/**
+ * A function that returns an array of encoded ACL parameters.
+ * It can be generated with the following ACL util functions, or a combination of them:
+ * - arg(argId)[opId](value)
+ * - blockNumber[opId](value)
+ * - timestamp[opId](value)
+ * - oracle(oracleAddr)
+ * - not(param)
+ * - and(param1, param2)
+ * - or(param1, param2)
+ * - xor(param1, param2)
+ * - iff(param1).then(param2).else(param3)
+ * - paramValue[opId](value)
+ */
+export type Params = (index?: number) => string[];
 
 /**
  * A map which contains the DAO's apps indexed by their identifier ([[AppIdentifier]] or [[LabeledAppIdentifier]]).

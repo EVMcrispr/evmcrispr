@@ -11,7 +11,9 @@ import {
   APP,
   DAO,
   GRANT_PERMISSION,
+  GRANT_PERMISSION_PARAMS,
   NEW_PERMISSION,
+  NEW_PERMISSION_PARAMS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSION,
   REVOKE_PERMISSIONS,
@@ -22,11 +24,13 @@ import { expectThrowAsync, isValidIdentifier } from "./test-helpers/expects";
 describe("EVMcrispr action-encoding functions", () => {
   let evmcrispr: EVMcrispr;
 
-  before(async () => {
+  async function resetCrispr() {
     let signer = (await ethers.getSigners())[0];
 
     evmcrispr = await EVMcrispr.create(signer, DAO.kernel);
-  });
+  }
+
+  before(resetCrispr);
 
   const testBadPermission = (evmcrisprPermissionMethod: (badPermission: Permission) => any) => {
     it(
@@ -92,26 +96,69 @@ describe("EVMcrispr action-encoding functions", () => {
     });
 
     it("encodes a create permission action correctly", () => {
-      const expectedPermissionAction: Action = {
-        to: DAO.acl,
-        data: encodeActCall("createPermission(address,address,bytes32,address)", [
-          ...resolvePermission(NEW_PERMISSION),
-          DAO[PERMISSION_MANAGER as keyof typeof DAO],
-        ]),
-      };
-      const encodedPermissionAction = evmcrispr.addPermission(NEW_PERMISSION, PERMISSION_MANAGER)();
+      const expectedCreatePermissionAction: Action[] = [
+        {
+          to: DAO.acl,
+          data: encodeActCall("createPermission(address,address,bytes32,address)", [
+            ...resolvePermission(NEW_PERMISSION),
+            DAO[PERMISSION_MANAGER as keyof typeof DAO],
+          ]),
+        },
+      ];
+      const encodedCreatePermissionAction = evmcrispr.addPermission(NEW_PERMISSION, PERMISSION_MANAGER)();
 
-      expect(encodedPermissionAction).eql(expectedPermissionAction);
+      expect(expectedCreatePermissionAction).eql(encodedCreatePermissionAction);
     });
 
     it("encodes a grant permission action when permission already exists", () => {
-      const expectedGrantPermissionAction: Action = {
-        to: DAO.acl,
-        data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(GRANT_PERMISSION)),
-      };
+      const expectedGrantPermissionAction: Action[] = [
+        {
+          to: DAO.acl,
+          data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(GRANT_PERMISSION)),
+        },
+      ];
       const encodedGrantPermissionAction = evmcrispr.addPermission(GRANT_PERMISSION, PERMISSION_MANAGER)();
 
-      expect(encodedGrantPermissionAction).eql(expectedGrantPermissionAction);
+      expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
+    });
+
+    it("encodes a grant permission action with parameters when permission already exists", async () => {
+      await resetCrispr(); // TODO: Implement beforeEach so we don't have to apply this filthy hack
+
+      const expectedGrantPermissionAction: Action[] = [
+        {
+          to: DAO.acl,
+          data: encodeActCall("grantPermissionP(address,address,bytes32,uint256[])", [
+            ...resolvePermission(GRANT_PERMISSION),
+            GRANT_PERMISSION_PARAMS[3](),
+          ]),
+        },
+      ];
+      const encodedGrantPermissionAction = evmcrispr.addPermission(GRANT_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+
+      expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
+    });
+
+    it("encodes a create permission and grant permission with parameters in the same function", () => {
+      const expectedCreatePermissionWithParamsAction: Action[] = [
+        {
+          to: DAO.acl,
+          data: encodeActCall("createPermission(address,address,bytes32,address)", [
+            ...resolvePermission(NEW_PERMISSION),
+            DAO[PERMISSION_MANAGER as keyof typeof DAO],
+          ]),
+        },
+        {
+          to: DAO.acl,
+          data: encodeActCall("grantPermissionP(address,address,bytes32,uint256[])", [
+            ...resolvePermission(NEW_PERMISSION),
+            NEW_PERMISSION_PARAMS[3](),
+          ]),
+        },
+      ];
+      const encodedGrantPermissionAction = evmcrispr.addPermission(NEW_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+
+      expect(expectedCreatePermissionWithParamsAction).eql(encodedGrantPermissionAction);
     });
   });
 
@@ -167,14 +214,10 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("act()", () => {
-    const target = "0xc125218F4Df091eE40624784caF7F47B9738086f"
+    const target = "0xc125218F4Df091eE40624784caF7F47B9738086f";
     it(
       "fails when receiving an invalid identifier as the agent",
-      isValidIdentifier(
-        (badIdentifier) => evmcrispr.act(badIdentifier, target, "mint()", []),
-        false,
-        false
-      )
+      isValidIdentifier((badIdentifier) => evmcrispr.act(badIdentifier, target, "mint()", []), false, false)
     );
 
     it(
@@ -183,12 +226,27 @@ describe("EVMcrispr action-encoding functions", () => {
     );
 
     it("fails when receiving an invalid signature", async () => {
-      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint", []), undefined, "Wrong signature format: mint");
-      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(", []), undefined, "Wrong signature format: mint(");
-      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(uint,)", []), undefined, "Wrong signature format: mint(uint,)");
-      await expectThrowAsync(() => evmcrispr.act("agent", target, "mint(,uint)", []), undefined, "Wrong signature format: mint(,uint)");
+      await expectThrowAsync(
+        () => evmcrispr.act("agent", target, "mint", []),
+        undefined,
+        "Wrong signature format: mint"
+      );
+      await expectThrowAsync(
+        () => evmcrispr.act("agent", target, "mint(", []),
+        undefined,
+        "Wrong signature format: mint("
+      );
+      await expectThrowAsync(
+        () => evmcrispr.act("agent", target, "mint(uint,)", []),
+        undefined,
+        "Wrong signature format: mint(uint,)"
+      );
+      await expectThrowAsync(
+        () => evmcrispr.act("agent", target, "mint(,uint)", []),
+        undefined,
+        "Wrong signature format: mint(,uint)"
+      );
     });
-
   });
 
   describe("call()", () => {

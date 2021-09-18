@@ -30,6 +30,7 @@ import {
   LabeledAppIdentifier,
   ForwardOptions,
   Permission,
+  PermissionP,
   App,
   ActionFunction,
   PermissionMap,
@@ -107,39 +108,64 @@ export default class EVMcrispr {
    * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
    * @returns A function that returns the permission action.
    */
-  addPermission(permission: Permission, defaultPermissionManager: Entity): ActionFunction {
+  addPermission(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction {
     return () => {
-      const [grantee, app, role] = permission;
-      const [granteeAddress, appAddress, roleHash] = this.#resolvePermission(permission);
+      const [grantee, app, role, getParams = () => []] = permission;
+      const params = getParams();
+      const [granteeAddress, appAddress, roleHash] = this.#resolvePermission([grantee, app, role]);
       const manager = this.#resolveEntity(defaultPermissionManager);
       const { permissions: appPermissions } = this.#resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
+      const actions = [];
 
       if (!appPermissions.has(roleHash)) {
         throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
       }
 
       const appPermission = appPermissions.get(roleHash)!;
-      if (!appPermission.grantees.size) {
-        appPermissions.set(roleHash, {
-          manager,
-          grantees: new Set([granteeAddress]),
-        });
-        return {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
-        };
-      } else {
+
+      // If the permission already existed and no parameters are needed, just grant to a new entity and exit
+      if (appPermission.grantees.size && params.length == 0) {
         if (appPermission.grantees.has(granteeAddress)) {
           throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
         }
         appPermission.grantees.add(granteeAddress);
 
-        return {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
-        };
+        return [
+          {
+            to: aclAddress,
+            data: aclAbiInterface.encodeFunctionData("grantPermission", [granteeAddress, appAddress, roleHash]),
+          },
+        ];
       }
+
+      // If the permission does not exist previously, create it
+      if (!appPermission.grantees.size) {
+        appPermissions.set(roleHash, {
+          manager,
+          grantees: new Set([granteeAddress]),
+        });
+
+        actions.push({
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("createPermission", [granteeAddress, appAddress, roleHash, manager]),
+        });
+      }
+
+      // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
+      if (params.length > 0) {
+        if (appPermission.grantees.has(granteeAddress)) {
+          throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+        }
+        appPermission.grantees.add(granteeAddress);
+
+        actions.push({
+          to: aclAddress,
+          data: aclAbiInterface.encodeFunctionData("grantPermissionP", [granteeAddress, appAddress, roleHash, params]),
+        });
+      }
+
+      return actions;
     };
   }
 
@@ -150,8 +176,8 @@ export default class EVMcrispr {
    * of every permission created.
    * @returns A function that returns an array of permission actions.
    */
-  addPermissions(permissions: Permission[], defaultPermissionManager: Entity): ActionFunction {
-    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action);
+  addPermissions(permissions: (Permission | PermissionP)[], defaultPermissionManager: Entity): ActionFunction {
+    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action).flat();
   }
 
   /**
