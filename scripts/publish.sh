@@ -5,18 +5,22 @@ set -eu
 echo "Building package…"
 yarn build
 
-echo "Testing"
+echo "Running tests…"
 yarn test
 
-echo "Bumping version and creating tag"
+echo "Bumping version and creating tag…"
 
 tag_version="v${NEW_VERSION}"
 
 npm version ${NEW_VERSION} -m "Release version ${tag_version} :rocket:"
 
-echo "Creating tag…"
+echo "Pushing the main branch…"
 
-git push origin $tag_version
+git push origin main
+
+echo "Pushing the ${tag_version} tag…"
+
+git push origin ${tag_version}
 
 echo "Publishing to npm…"
 
