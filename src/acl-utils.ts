@@ -48,22 +48,25 @@ const timestamp = _arg(SpecialArgId.TIMESTAMP);
 
 // ACL oracle
 
-function oracle(oracle: string): Params {
-  return _encodeParam(SpecialArgId.ORACLE, Op.EQ, oracle);
+function oracle(oracle: string | (() => string)): Params {
+  return () => {
+    const _oracle = typeof oracle === "string" ? oracle : oracle();
+    return [_encodeParam(SpecialArgId.ORACLE, Op.EQ, _oracle)];
+  };
 }
 
 // Logic functions
 
 const logic = {
-  not: (param: number): Params => _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.NOT, String(param)),
+  not: (param: number): Params => _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.NOT, String(param)),
   and: (param1: number, param2: number): Params =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.AND, _encodeOperator(param1, param2)),
+    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.AND, _encodeOperator(param1, param2)),
   or: (param1: number, param2: number): Params =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.OR, _encodeOperator(param1, param2)),
+    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.OR, _encodeOperator(param1, param2)),
   xor: (param1: number, param2: number): Params =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.XOR, _encodeOperator(param1, param2)),
+    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.XOR, _encodeOperator(param1, param2)),
   ifElse: (condition: number, successParam: number, failureParam: number): Params =>
-    _encodeParam(SpecialArgId.LOGIC_OP, LogicOp.IF_ELSE, _encodeIfElse(condition, successParam, failureParam)),
+    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.IF_ELSE, _encodeIfElse(condition, successParam, failureParam)),
 };
 
 // Parameter value
@@ -92,22 +95,26 @@ const iif = (param1: Params): { then: (param2: Params) => { else: (param3: Param
 
 function _arg(id: number) {
   return {
-    none: (value: any) => _encodeParam(id, Op.NONE, value),
-    eq: (value: any) => _encodeParam(id, Op.EQ, value),
-    neq: (value: any) => _encodeParam(id, Op.NEQ, value),
-    gt: (value: any) => _encodeParam(id, Op.GT, value),
-    lt: (value: any) => _encodeParam(id, Op.LT, value),
-    gte: (value: any) => _encodeParam(id, Op.GTE, value),
-    lte: (value: any) => _encodeParam(id, Op.LTE, value),
-    ret: (value: any) => _encodeParam(id, Op.RET, value),
+    none: (value: any) => _encodeParams(id, Op.NONE, value),
+    eq: (value: any) => _encodeParams(id, Op.EQ, value),
+    neq: (value: any) => _encodeParams(id, Op.NEQ, value),
+    gt: (value: any) => _encodeParams(id, Op.GT, value),
+    lt: (value: any) => _encodeParams(id, Op.LT, value),
+    gte: (value: any) => _encodeParams(id, Op.GTE, value),
+    lte: (value: any) => _encodeParams(id, Op.LTE, value),
+    ret: (value: any) => _encodeParams(id, Op.RET, value),
   };
 }
 
-function _encodeParam(argId: number, op: number, value: any): Params {
+function _encodeParam(argId: number, op: number, value: any): string {
   const _argId = utils.hexlify(argId).slice(2);
   const _op = utils.hexlify(op).slice(2);
   const _value = utils.hexlify(BigNumber.from(value)).slice(2).padStart(60, "0"); // 60 as params are uint240
-  return () => [`0x${_argId}${_op}${_value}`];
+  return `0x${_argId}${_op}${_value}`;
+}
+
+function _encodeParams(argId: number, op: number, value: any): Params {
+  return () => [_encodeParam(argId, op, value)];
 }
 
 function _unaryLogicOp(op: (param1: number) => Params): (param: Params) => Params {

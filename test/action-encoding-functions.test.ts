@@ -8,6 +8,7 @@ import { Action, Permission } from "../src/types";
 import { encodeActCall } from "../src/helpers";
 import {
   resolvePermission,
+  ADDRESS,
   APP,
   DAO,
   GRANT_PERMISSION,
@@ -25,7 +26,7 @@ describe("EVMcrispr action-encoding functions", () => {
   let evmcrispr: EVMcrispr;
 
   async function resetCrispr() {
-    let signer = (await ethers.getSigners())[0];
+    const signer = (await ethers.getSigners())[0];
 
     evmcrispr = await EVMcrispr.create(signer, DAO.kernel);
   }
@@ -52,10 +53,10 @@ describe("EVMcrispr action-encoding functions", () => {
     );
 
     it("fails when receiving a permission holder app address that doesn't match any DAO app", async () => {
-      await expectThrowAsync(
-        evmcrisprPermissionMethod(["voting", "0xc125218F4Df091eE40624784caF7F47B9738086f", "ROLE"]),
-        { type: ErrorNotFound, name: "ErrorAppNotFound" }
-      );
+      await expectThrowAsync(evmcrisprPermissionMethod(["voting", ADDRESS, "ROLE"]), {
+        type: ErrorNotFound,
+        name: "ErrorAppNotFound",
+      });
     });
 
     it("fails when receiving an invalid hash role", async () => {
@@ -214,7 +215,7 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("act()", () => {
-    const target = "0xc125218F4Df091eE40624784caF7F47B9738086f";
+    const target = ADDRESS;
     it(
       "fails when receiving an invalid identifier as the agent",
       isValidIdentifier((badIdentifier) => evmcrispr.act(badIdentifier, target, "mint()", []), false, false)
@@ -369,6 +370,21 @@ describe("EVMcrispr action-encoding functions", () => {
       const revokeActions = evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true)();
 
       expect(revokeActions).eql(expectedRevokeActions);
+    });
+  });
+
+  describe("setOracle()", () => {
+    it("encodes an ACL oracle parameter from an address", () => {
+      const oracle = evmcrispr.setOracle(ADDRESS)();
+      const expectedOracle = [`0xcb0100000000000000000000${ADDRESS.slice(2)}`];
+      expect(expectedOracle).eql(oracle);
+    });
+
+    it("encodes an ACL oracle parameter from an app identifier", () => {
+      const oracle = evmcrispr.setOracle("voting")();
+      const app = evmcrispr.app("voting")();
+      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      expect(expectedOracle).eql(oracle);
     });
   });
 });

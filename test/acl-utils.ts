@@ -65,6 +65,14 @@ describe("ACL utils", () => {
     );
   });
 
+  it("oracle special argument can resolve a function", () => {
+    expect(
+      onlyParam(oracle(() => "0x71C7656EC7ab88b098defB751B7401B5f6d8976F")).endsWith(
+        "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+      )
+    );
+  });
+
   it("logic operations are encoded properly", () => {
     const logicArgId = "0xcc";
     const not = "07";
@@ -104,17 +112,17 @@ describe("ACL utils", () => {
           .else(paramValue.ret(0))
       )
     ).deep.eq([
-      /* 0*/ onlyParam(logic.ifElse(1, 4, 10)),
-      /* 1*/ onlyParam(logic.and(2, 3)),
-      /* 2*/ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
-      /* 3*/ onlyParam(blockNumber.gt(18137519)),
-      /* 4*/ onlyParam(logic.or(5, 9)),
-      /* 5*/ onlyParam(logic.xor(6, 8)),
-      /* 6*/ onlyParam(logic.not(7)),
-      /* 7*/ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
-      /* 8*/ onlyParam(arg(1).none(0)),
-      /* 9*/ onlyParam(arg(0).lt(10)),
-      /*10*/ onlyParam(paramValue.ret(0)),
+      /*  0 */ onlyParam(logic.ifElse(1, 4, 10)),
+      /*  1 */ onlyParam(logic.and(2, 3)),
+      /*  2 */ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
+      /*  3 */ onlyParam(blockNumber.gt(18137519)),
+      /*  4 */ onlyParam(logic.or(5, 9)),
+      /*  5 */ onlyParam(logic.xor(6, 8)),
+      /*  6 */ onlyParam(logic.not(7)),
+      /*  7 */ onlyParam(oracle("0x71C7656EC7ab88b098defB751B7401B5f6d8976F")),
+      /*  8 */ onlyParam(arg(1).none(0)),
+      /*  9 */ onlyParam(arg(0).lt(10)),
+      /* 10 */ onlyParam(paramValue.ret(0)),
     ]);
   });
 });

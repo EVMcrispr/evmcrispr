@@ -22,6 +22,8 @@ export const getSignatureSelector = (signature: string): string => {
   return signature.split("(")[0];
 };
 
+export const ADDRESS = "0xc125218F4Df091eE40624784caF7F47B9738086f";
+
 export const DAO = {
   acl: "0xbec954725a866994d68b7c01f30742b42965091e",
   agent: "0x1c06257469514574c0868fdcb83c5509b5513870",

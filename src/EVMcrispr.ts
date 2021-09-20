@@ -34,8 +34,10 @@ import {
   App,
   ActionFunction,
   PermissionMap,
+  Params,
 } from "./types";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
+import { oracle } from "./acl-utils";
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -479,6 +481,15 @@ export default class EVMcrispr {
         const action = this.revokePermission(permission, removeManager)() as Action[];
         return [...actions, ...action];
       }, []);
+  }
+
+  /**
+   * Encode a permission parameter array with an oracle.
+   * @param entity The address or app identifier used as oracle
+   * @returns A Params object that can be composed with other params or passed directly as a permission param
+   */
+  setOracle(entity: Entity): Params {
+    return oracle(this.#resolveEntity(entity));
   }
 
   async #buildCaches(apps: App[]): Promise<[AppCache, AppInterfaceCache]> {
