@@ -489,7 +489,7 @@ export default class EVMcrispr {
    * @returns A Params object that can be composed with other params or passed directly as a permission param
    */
   setOracle(entity: Entity): Params {
-    return oracle(this.#resolveEntity(entity));
+    return oracle(utils.isAddress(entity) ? entity : this.app(entity));
   }
 
   async #buildCaches(apps: App[]): Promise<[AppCache, AppInterfaceCache]> {
