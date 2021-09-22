@@ -133,6 +133,21 @@
 </code></pre>
 					</li>
 				</ol>
+				<a href="#parametric-permission-utils" id="parametric-permission-utils" style="color: inherit; text-decoration: none;">
+					<h2>Parametric permission utils</h2>
+				</a>
+				<p>The following utils can be used to encode complex <a href="https://hack.aragon.org/docs/aragonos-ref#parameter-interpretation">permission parameters</a>:</p>
+				<ul>
+					<li><code>arg(i)</code>: Can be used to compare the <code>i</code>th parameter with a given value.</li>
+					<li><code>oracle(address)</code>: Can be used to check the output of an external contract</li>
+					<li><code>blocknumber</code>: Can be used to compare a given value with the block number.</li>
+					<li><code>timestamp</code>: Can be used to compare a given value with the block timestamp.</li>
+					<li><code>not(param)</code>: Can be used to negate a parameter.</li>
+					<li><code>and(param1, param2)</code>: Can be used to compose two parameters with the AND logical function.</li>
+					<li><code>or(param1, param2)</code>: Same as previous one with the OR logical function.</li>
+					<li><code>xor(param1, param2)</code>: Same as the previous one with the XOR logical function.</li>
+					<li><code>iif(param).then(param).else(param)</code>: Ternary operator for more complex logic expressions.</li>
+				</ul>
 				<a href="#other-examples" id="other-examples" style="color: inherit; text-decoration: none;">
 					<h2>Other examples</h2>
 				</a>
