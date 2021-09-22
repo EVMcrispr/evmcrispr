@@ -87,6 +87,20 @@ await evmcrispr.forward(
    const evmcrispr = await EVMcrispr.create(signer, daoAddress);
    ```
 
+## Parametric permission utils
+
+The following utils can be used to encode complex [permission parameters](https://hack.aragon.org/docs/aragonos-ref#parameter-interpretation):
+
+- `arg(i)`: Can be used to compare the `i`th parameter with a given value.
+- `oracle(address)`: Can be used to check the output of an external contract
+- `blocknumber`: Can be used to compare a given value with the block number.
+- `timestamp`: Can be used to compare a given value with the block timestamp.
+- `not(param)`: Can be used to negate a parameter.
+- `and(param1, param2)`: Can be used to compose two parameters with the AND logical function.
+- `or(param1, param2)`: Same as previous one with the OR logical function.
+- `xor(param1, param2)`: Same as the previous one with the XOR logical function.
+- `iif(param).then(param).else(param)`: Ternary operator for more complex logic expressions.
+
 ## Other examples
 
 Below you can find some script examples that use EVMcrispr:
