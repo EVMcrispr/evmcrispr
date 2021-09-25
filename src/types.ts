@@ -1,4 +1,4 @@
-import { Interface } from "@ethersproject/abi";
+import { Interface, JsonFragment } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
 
 /**
@@ -64,7 +64,7 @@ export interface App {
   /**
    * The app's contract ABI.
    */
-  abi: string;
+  abi: JsonFragment[];
   /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */

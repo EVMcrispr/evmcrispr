@@ -1,5 +1,6 @@
 import { Address } from "@1hive/connect";
 import { utils, providers, BigNumber } from "ethers";
+import { JsonFragment } from "@ethersproject/abi";
 
 export async function buildNonceForAddress(
   address: Address,
@@ -25,7 +26,15 @@ export function calculateNewProxyAddress(daoAddress: Address, nonce: string): Ad
   return contractAddress;
 }
 
-export const toDecimals = (amount: number, decimals = 18): BigNumber => {
+export const toDecimals = (amount: number | string, decimals = 18): BigNumber => {
   const [integer, decimal] = String(amount).split(".");
   return BigNumber.from((integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0"));
 };
+
+export function functionParamTypes(functionName: string, abi: JsonFragment[]): string[] {
+  const params = abi.find(({ name }) => name === functionName)?.inputs?.map(({ type }) => type!);
+  if (typeof params === "undefined") {
+    throw new Error(`Function ${functionName} not present in ABI`);
+  }
+  return params;
+}

@@ -1,3 +1,4 @@
+export { encodeCallScript, erc20ABI } from "@1hive/connect-core";
 export * from "./evmscripts";
 export * from "./forwarders";
 export * from "./identifiers";

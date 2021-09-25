@@ -26,7 +26,7 @@ export const ADDRESS = "0xc125218F4Df091eE40624784caF7F47B9738086f";
 
 export const DAO = {
   acl: "0xbec954725a866994d68b7c01f30742b42965091e",
-  agent: "0x1c06257469514574c0868fdcb83c5509b5513870",
+  vault: "0x1c06257469514574c0868fdcb83c5509b5513870",
   ["disputable-voting.open"]: "0x6e60be79144609ed744d38ca4eff0105ac7ac4dc",
   ["evm-script-registry"]: "0x73778c0c3a761405bddef887535647f0441f2016",
   finance: "0x67d35c1794cfd88f652866ba82c5e11a51e90f44",
@@ -34,16 +34,23 @@ export const DAO = {
   ["token-manager"]: "0x2f3833143987136f917ff09af5970bf707ec0246",
   ["tollgate.open"]: "0x5f124b9a008f9424468addff38b98a1e5f509444",
   voting: "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
+  agent: "0x1c06257469514574c0868fdcb83c5509b5513870",
 };
 
 export const APP = {
   appName: "token-manager.aragonpm.eth",
-  codeAddress: "0xe775468f3ee275f740a22eb9dd7adba9b7933aa0",
+  codeAddress: "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
   initializeSignature: "initialize(address,bool,uint256)",
-  initializeParams: ["0xc7ad46e0b8a400bb3c915120d284aafba8fc4735", false, 0],
+  initializeParams: ["0x1c06257469514574c0868fdcb83c5509b5513870", false, toDecimals(1000)],
+  initializeUnresolvedParams: ["vault", false, "1000e18"],
   callSignature: "mint(address,uint256)",
   callSignatureParams: [DAO.voting, toDecimals(15)],
-  get appIdentifier() {
+  callSignatureUnresolvedParams: ["voting", "15e18"],
+  actTarget: "0xc778417e063141139fce010982780140aa0cd5ab",
+  actSignature: "approve(address[],uint256[][])",
+  actSignatureParams: [["0x1c06257469514574c0868fdcb83c5509b5513870"], [[toDecimals(1000)], [String(0.15e8), 56]]],
+  actSignatureUnresolvedParams: [["vault"], [["1000e18"], ["0.15e8", 56]]], // TODO: Change it with an Agent
+  get appIdentifier(): keyof typeof DAO {
     return this.appName.split(".")[0] as keyof typeof DAO;
   },
   get appId(): string {

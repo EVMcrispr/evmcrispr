@@ -7,7 +7,7 @@
       "name": "hardhat test",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
-      "args": ["test", "--network", "localhost"],
+      "args": ["test", "--network", "rinkeby"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -16,7 +16,7 @@
       "name": "hardhat run",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
-      "args": ["run", "./scripts/new-hatch.ts", "--network", "localhost"],
+      "args": ["run", "./scripts/new-hatch.ts", "--network", "rinkeby"],
       "cwd": "${workspaceFolder}"
     }
   ]

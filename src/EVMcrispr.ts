@@ -1,5 +1,4 @@
 import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
-import { encodeCallScript, erc20ABI } from "@1hive/connect-core";
 import Connector from "./Connector";
 import {
   FORWARDER_TYPES,
@@ -7,6 +6,8 @@ import {
   getForwarderFee,
   getForwarderType,
   encodeActCall,
+  encodeCallScript,
+  erc20ABI,
   TX_GAS_LIMIT,
   TX_GAS_PRICE,
   buildNonceForAddress,
@@ -19,6 +20,8 @@ import {
   isForwarder,
   buildAppIdentifier,
   buildIpfsTemplate,
+  toDecimals,
+  functionParamTypes,
 } from "./helpers";
 import {
   Address,
@@ -200,19 +203,20 @@ export default class EVMcrispr {
    * @returns A function that retuns an action to forward an agent call with the specified parameters
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
-    if (!/\w+\(((\w+)+(,\w+)*)?\)/.test(signature)) {
+    if (!/\w+\(((\w+(\[\])*)+(,\w+(\[\])*)*)?\)/.test(signature)) {
       throw new Error("Wrong signature format: " + signature);
     }
-    return async () => {
+    return () => {
+      const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
       const script = encodeCallScript([
         {
           to: this.#resolveEntity(target),
-          data: await encodeActCall(signature, this.#resolveParams(params)),
+          data: encodeActCall(signature, this.#resolveParams(params, paramTypes)),
         },
       ]);
       return {
         to: this.#resolveEntity(agent),
-        data: await encodeActCall("forward(bytes)", [script]),
+        data: encodeActCall("forward(bytes)", [script]),
       };
     };
   }
@@ -225,17 +229,18 @@ export default class EVMcrispr {
    */
   call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
     return new Proxy(() => this.#resolveApp(appIdentifier), {
-      get: (getTargetApp: () => App, functionProperty: string) => {
+      get: (getTargetApp: () => App, functionName: string) => {
         return (...params: any): ActionFunction => {
           return () => {
             try {
               const targetApp = getTargetApp();
+              const paramTypes = functionParamTypes(functionName, targetApp.abi);
               return {
                 to: targetApp.address,
-                data: targetApp.abiInterface.encodeFunctionData(functionProperty, this.#resolveParams(params)),
+                data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
               };
             } catch (err: any) {
-              err.message = `Error when encoding call to method ${functionProperty} of app ${appIdentifier}: ${err.message}`;
+              err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
               throw err;
             }
           };
@@ -374,9 +379,10 @@ export default class EVMcrispr {
         const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
         const kernel = this.#resolveApp("kernel");
         const abiInterface = new utils.Interface(appArtifact.abi);
+        const types = functionParamTypes("initialize", appArtifact.abi);
         const encodedInitializeFunction = abiInterface.encodeFunctionData(
           "initialize",
-          this.#resolveParams(initParams)
+          this.#resolveParams(initParams, types)
         );
         const appId = utils.namehash(appArtifact.appName);
 
@@ -562,8 +568,34 @@ export default class EVMcrispr {
     return utils.isAddress(entity) ? entity : this.app(entity)();
   }
 
-  #resolveParams(params: any[]): any[] {
-    return params.map((param) => (param instanceof Function ? param() : param));
+  #resolveNumber(number: string | number): BigNumber | number {
+    if (typeof number === "string") {
+      const [, amount, decimals = "0"] = number.match(/^(\d*(?:\.\d*)?)(?:e(\d+))?$/)!;
+      return toDecimals(amount, parseInt(decimals));
+    }
+    return number;
+  }
+
+  #resolveParam(param: any, type: string): any {
+    if (type.endsWith("[]")) {
+      if (!Array.isArray(param)) {
+        throw new Error(`Parameter ${type} should be an array, ${param} given.`);
+      }
+      return param.map((param: any[]) => this.#resolveParam(param, type.slice(0, -2)));
+    }
+    if (type === "address") {
+      return this.#resolveEntity(param);
+    }
+    if (/^u?int(\d)*$/.test(type)) {
+      return this.#resolveNumber(param);
+    }
+    return param;
+  }
+
+  #resolveParams(params: any[], types: string[]): any[] {
+    return params
+      .map((param) => (param instanceof Function ? param() : param))
+      .map((param, i) => this.#resolveParam(param, types[i]));
   }
 
   #resolvePermission(permission: Permission): [Address, Address, string] {

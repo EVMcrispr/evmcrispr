@@ -5,7 +5,7 @@ import { expect } from "chai";
 import EVMcrispr from "../src/EVMcrispr";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "../src/errors";
 import { Action, Permission } from "../src/types";
-import { encodeActCall } from "../src/helpers";
+import { encodeActCall, encodeCallScript } from "../src/helpers";
 import {
   resolvePermission,
   ADDRESS,
@@ -248,6 +248,25 @@ describe("EVMcrispr action-encoding functions", () => {
         "Wrong signature format: mint(,uint)"
       );
     });
+    it("encodes an act action correctly", async () => {
+      const { actTarget, actSignature, actSignatureParams, actSignatureUnresolvedParams } = APP;
+      const expectedCallAction: Action = {
+        to: DAO.agent,
+        data: encodeActCall("forward(bytes)", [
+          encodeCallScript([
+            {
+              to: actTarget,
+              data: encodeActCall(actSignature, actSignatureParams),
+            },
+          ]),
+        ]),
+      };
+      const callAction = evmcrispr.act("vault", actTarget, actSignature, actSignatureParams)(); // TODO: Change it with an agent
+      expect(callAction).eql(expectedCallAction);
+
+      const callActionUnresolved = evmcrispr.act("vault", actTarget, actSignature, actSignatureUnresolvedParams)(); // TODO: Change it with an agent
+      expect(callActionUnresolved).eql(expectedCallAction);
+    });
   });
 
   describe("call()", () => {
@@ -263,15 +282,17 @@ describe("EVMcrispr action-encoding functions", () => {
     });
     // TODO Check that params can be resolve (pass evmcrispr.app())
     it("encodes a call method correctly", () => {
-      const { callSignature, callSignatureParams } = APP;
+      const { callSignature, callSignatureParams, callSignatureUnresolvedParams } = APP;
       const callMethod = callSignature.split("(")[0];
       const expectedCallAction: Action = {
         to: DAO[APP.appIdentifier],
         data: encodeActCall(callSignature, callSignatureParams),
       };
       const callAction = evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureParams)();
-
       expect(callAction).eql(expectedCallAction);
+
+      const callActionUnresolved = evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureUnresolvedParams)();
+      expect(callActionUnresolved).eql(expectedCallAction);
     });
   });
 
@@ -291,7 +312,8 @@ describe("EVMcrispr action-encoding functions", () => {
     });
 
     it("encodes an installation action correctly", async () => {
-      const { appId, appIdentifier, codeAddress, initializeParams, initializeSignature } = APP;
+      const { appId, appIdentifier, codeAddress, initializeParams, initializeUnresolvedParams, initializeSignature } =
+        APP;
       const expectedEncodedAction: Action = {
         to: DAO.kernel.toLowerCase(),
         data: encodeActCall("newAppInstance(bytes32,address,bytes,bool)", [
@@ -304,6 +326,12 @@ describe("EVMcrispr action-encoding functions", () => {
       const encodedAction = await evmcrispr.installNewApp(`${appIdentifier}:new-app`, initializeParams)();
 
       expect(encodedAction).eql(expectedEncodedAction);
+
+      const encodedActionUnresolved = await evmcrispr.installNewApp(
+        `${appIdentifier}:new-app2`,
+        initializeUnresolvedParams
+      )();
+      expect(encodedActionUnresolved).eql(expectedEncodedAction);
     });
 
     it("installed app exists", () => {
