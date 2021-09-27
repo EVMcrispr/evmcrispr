@@ -1,7 +1,7 @@
 import { utils } from "ethers";
 import { Entity, Permission, PermissionP } from "../../src";
 import { toDecimals } from "../../src/helpers";
-import { oracle, and, timestamp } from "../../src/acl-utils";
+import { oracle, and, timestamp } from "../../src/helpers/acl";
 
 export const resolvePermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {

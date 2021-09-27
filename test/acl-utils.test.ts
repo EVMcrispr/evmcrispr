@@ -11,7 +11,7 @@ import {
   xor,
   iif,
   paramValue,
-} from "../src/acl-utils";
+} from "../src/helpers/acl";
 import { expect } from "chai";
 import { Params } from "../src/types";
 

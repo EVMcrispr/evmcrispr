@@ -1,5 +1,6 @@
 import gql from "graphql-tag";
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const REPO = (type: string) => gql`
   ${type} Repos($repoName: String!) {
     repos(where: { name: $repoName }) {
@@ -15,6 +16,7 @@ export const REPO = (type: string) => gql`
   }
 `;
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const ORGANIZATION_APPS = (type: string) => gql`
   ${type} Organization($id: ID!) {
     organization(id: $id) {

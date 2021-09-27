@@ -1,5 +1,5 @@
 import { BigNumber, utils } from "ethers";
-import { Params } from "./types";
+import { Params } from "../types";
 
 const Op = {
   NONE: 0,

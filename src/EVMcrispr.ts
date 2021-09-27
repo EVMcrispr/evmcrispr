@@ -1,51 +1,52 @@
+import { Interface } from "@ethersproject/abi";
+import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
 import {
+  buildApp,
+  buildAppIdentifier,
+  buildAppPermissions,
+  buildIpfsTemplate,
+  buildNonceForAddress,
+  calculateNewProxyAddress,
+  encodeActCall,
+  encodeCallScript,
+  erc20ABI,
+  fetchAppArtifact,
   FORWARDER_TYPES,
   FORWARDER_ABI,
   getForwarderFee,
   getForwarderType,
-  encodeActCall,
-  encodeCallScript,
-  erc20ABI,
-  TX_GAS_LIMIT,
-  TX_GAS_PRICE,
-  buildNonceForAddress,
-  calculateNewProxyAddress,
+  getFunctionParamTypes,
+  IPFS_GATEWAY,
   normalizeActions,
   normalizeRole,
-  IPFS_GATEWAY,
-  resolveIdentifier,
+  oracle,
   parseLabeledAppIdentifier,
+  resolveIdentifier,
   isForwarder,
-  buildAppIdentifier,
-  buildIpfsTemplate,
   toDecimals,
-  getFunctionParamTypes,
-  fetchAppArtifact,
+  TX_GAS_LIMIT,
+  TX_GAS_PRICE,
 } from "./helpers";
 import {
   Address,
   Action,
+  ActionFunction,
   ActionInterpreter,
-  AppIdentifier,
+  App,
+  AppArtifactCache,
   AppCache,
+  AppIdentifier,
   Entity,
-  LabeledAppIdentifier,
   ForwardOptions,
+  LabeledAppIdentifier,
+  Params,
+  ParsedApp,
   Permission,
   PermissionP,
-  App,
-  ActionFunction,
-  Params,
-  AppArtifactCache,
-  ParsedApp,
 } from "./types";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
-import { oracle } from "./acl-utils";
-import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
-import { buildApp, buildAppPermissions } from "./helpers/apps";
-import { Interface } from "@ethersproject/abi";
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
