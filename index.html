@@ -88,31 +88,29 @@
 <span style="color: #000000">  [</span><span style="color: #001080">forwarder1</span><span style="color: #000000">, </span><span style="color: #001080">forwarder2</span><span style="color: #000000">]</span>
 <span style="color: #000000">);</span>
 </code></pre>
+				<p>The same EVMscript can be encoded using the <code>evmcl</code> template:</p>
+				<pre><code class="language-js"><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">evmcripsr</span><span style="color: #000000">.</span><span style="color: #795E26">forward</span><span style="color: #000000">(</span>
+<span style="color: #000000">  </span><span style="color: #795E26">evmcl</span><span style="color: #A31515">`</span>
+<span style="color: #A31515">    install </span><span style="color: #0000FF">${</span><span style="color: #001080">app</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">param1</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">param2</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">    grant </span><span style="color: #0000FF">${</span><span style="color: #001080">entity1</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">app1</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">role1</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">permissionManager</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">    grant </span><span style="color: #0000FF">${</span><span style="color: #001080">entity2</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">app2</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">role1</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">permissionManager</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">    grant </span><span style="color: #0000FF">${</span><span style="color: #001080">entity3</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">app3</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">role3</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">permissionManager</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">    revoke </span><span style="color: #0000FF">${</span><span style="color: #001080">entity4</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">app4</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">role4</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">removeManager</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">  `</span><span style="color: #000000">, </span><span style="color: #008000">// ...</span>
+<span style="color: #000000">  [</span><span style="color: #001080">forwarder1</span><span style="color: #000000">, </span><span style="color: #001080">forwarder2</span><span style="color: #000000">]</span>
+<span style="color: #000000">);</span>
+</code></pre>
 				<p>To facilitate the EVM script creation, you can use <a href="https://commonsswarm.github.io/EVMcrispr/modules.html#AppIdentifier">identifiers</a> to reference DAO apps instead of using the contract address directly.</p>
 				<p>Below you can find a full example:</p>
 				<pre><code class="language-js"><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">forward</span><span style="color: #000000">(</span>
-<span style="color: #000000">  [</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">installNewApp</span><span style="color: #000000">(</span><span style="color: #A31515">&quot;wrapped-hooked-token-manager.open:membership-tm&quot;</span><span style="color: #000000">, [</span><span style="color: #001080">token</span><span style="color: #000000">, </span><span style="color: #0000FF">false</span><span style="color: #000000">, </span><span style="color: #098658">0</span><span style="color: #000000">]),</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">installNewApp</span><span style="color: #000000">(</span><span style="color: #A31515">&quot;voting:membership-voting&quot;</span><span style="color: #000000">, [</span><span style="color: #001080">token</span><span style="color: #000000">, </span><span style="color: #001080">suppPct</span><span style="color: #000000">, </span><span style="color: #001080">minQuorumPct</span><span style="color: #000000">, </span><span style="color: #001080">voteTime</span><span style="color: #000000">]),</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">addPermissions</span><span style="color: #000000">([</span>
-<span style="color: #000000">      [</span>
-<span style="color: #000000">        </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #0070C1">ANY_ENTITY</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;voting:membership-voting&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;CREATE_VOTES_ROLE&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">      ]</span>
-<span style="color: #000000">      [</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;voting:membership-voting&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;wrapped-hooked-token-manager.open:membership-tm&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;MINT_ROLE&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">      ],</span>
-<span style="color: #000000">      [</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;voting:membership-voting&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;wrapped-hooked-token-manager.open:membership-tm&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;BURN_ROLE&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">      ],</span>
-<span style="color: #000000">    ]),</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">call</span><span style="color: #000000">(</span><span style="color: #A31515">&quot;wrapped-hooked-token-manager.open:membership-tm&quot;</span><span style="color: #000000">).</span><span style="color: #795E26">mint</span><span style="color: #000000">(</span><span style="color: #A31515">&quot;0x...&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;2e18&quot;</span><span style="color: #000000">),</span>
-<span style="color: #000000">  ],</span>
+<span style="color: #000000">  </span><span style="color: #795E26">evmcl</span><span style="color: #A31515">`</span>
+<span style="color: #A31515">    install wrapped-hooked-token-manager.open:membership-tm </span><span style="color: #0000FF">${</span><span style="color: #001080">token</span><span style="color: #0000FF">}</span><span style="color: #A31515"> false 0</span>
+<span style="color: #A31515">    install voting:membership-voting </span><span style="color: #0000FF">${</span><span style="color: #001080">token</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">suppPct</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">minQuorumPct</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">voteTime</span><span style="color: #0000FF">}</span>
+<span style="color: #A31515">    grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE</span>
+<span style="color: #A31515">    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE</span>
+<span style="color: #A31515">    voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE</span>
+<span style="color: #A31515">    exec wrapped-hooked-token-manager.open:membership-tm mint </span><span style="color: #0000FF">${</span><span style="color: #001080">address</span><span style="color: #0000FF">}</span><span style="color: #A31515"> 2e18</span>
+<span style="color: #A31515">  `</span><span style="color: #000000">,</span>
 <span style="color: #000000">  [</span><span style="color: #A31515">&quot;token-manager:1&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;voting&quot;</span><span style="color: #000000">]</span>
 <span style="color: #000000">);</span>
 </code></pre>
@@ -124,13 +122,15 @@
 						<pre><code class="language-sh"><span style="color: #000000">yarn add @commonsswarm/evmcrispr</span>
 </code></pre>
 					</li>
-					<li><p>Import the <code>EVMcrispr</code> class:</p>
-						<pre><code class="language-js"><span style="color: #001080">Import</span><span style="color: #000000"> { </span><span style="color: #001080">EVMcrispr</span><span style="color: #000000"> } </span><span style="color: #001080">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@commonsswarm/evmcrispr&#039;</span>
+					<li><p>Import the <code>EVMcrispr</code> class and the <code>evmcl</code> template:</p>
+						<pre><code class="language-js"><span style="color: #001080">Import</span><span style="color: #000000"> { </span><span style="color: #001080">EVMcrispr</span><span style="color: #000000">, </span><span style="color: #001080">evmcl</span><span style="color: #000000"> } </span><span style="color: #001080">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@commonsswarm/evmcrispr&#039;</span>
 </code></pre>
 					</li>
 					<li><p>Create a new <code>EVMcrispr</code> by using the static method <code>crate()</code>. It receives an ether&#39;s <a href="https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers">Signer</a> object and the DAO address to connect to:</p>
 						<pre><code class="language-js"><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">evmcrispr</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">EVMcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">create</span><span style="color: #000000">(</span><span style="color: #001080">signer</span><span style="color: #000000">, </span><span style="color: #001080">daoAddress</span><span style="color: #000000">);</span>
 </code></pre>
+					</li>
+					<li><p>Use the EVMcrispr&#39;s <code>encode</code> or <code>forward</code> functions to pass an array of actions, or an evmcl script.</p>
 					</li>
 				</ol>
 				<a href="#parametric-permission-utils" id="parametric-permission-utils" style="color: inherit; text-decoration: none;">
@@ -148,6 +148,7 @@
 					<li><code>xor(param1, param2)</code>: Same as the previous one with the XOR logical function.</li>
 					<li><code>iif(param).then(param).else(param)</code>: Ternary operator for more complex logic expressions.</li>
 				</ul>
+				<p>They can be used within the forth parameter of <code>addPermission(entity, app, role, params)</code> function.</p>
 				<a href="#other-examples" id="other-examples" style="color: inherit; text-decoration: none;">
 					<h2>Other examples</h2>
 				</a>
@@ -204,6 +205,9 @@
 						<a href="modules.html#ActionFunction" class="tsd-kind-icon">Action<wbr>Function</a>
 					</li>
 					<li class=" tsd-kind-type-alias">
+						<a href="modules.html#ActionInterpreter" class="tsd-kind-icon">Action<wbr>Interpreter</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
 						<a href="modules.html#Address" class="tsd-kind-icon">Address</a>
 					</li>
 					<li class=" tsd-kind-type-alias">
@@ -247,6 +251,9 @@
 					</li>
 					<li class=" tsd-kind-function">
 						<a href="modules.html#arg" class="tsd-kind-icon">arg</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="modules.html#evmcl" class="tsd-kind-icon">evmcl</a>
 					</li>
 					<li class=" tsd-kind-function">
 						<a href="modules.html#iif" class="tsd-kind-icon">iif</a>
