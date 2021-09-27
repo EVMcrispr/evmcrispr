@@ -108,7 +108,7 @@
 <span style="color: #A31515">    install voting:membership-voting </span><span style="color: #0000FF">${</span><span style="color: #001080">token</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">suppPct</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">minQuorumPct</span><span style="color: #0000FF">}</span><span style="color: #A31515"> </span><span style="color: #0000FF">${</span><span style="color: #001080">voteTime</span><span style="color: #0000FF">}</span>
 <span style="color: #A31515">    grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE</span>
 <span style="color: #A31515">    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE</span>
-<span style="color: #A31515">    voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE</span>
+<span style="color: #A31515">    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE</span>
 <span style="color: #A31515">    exec wrapped-hooked-token-manager.open:membership-tm mint </span><span style="color: #0000FF">${</span><span style="color: #001080">address</span><span style="color: #0000FF">}</span><span style="color: #A31515"> 2e18</span>
 <span style="color: #A31515">  `</span><span style="color: #000000">,</span>
 <span style="color: #000000">  [</span><span style="color: #A31515">&quot;token-manager:1&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;voting&quot;</span><span style="color: #000000">]</span>
