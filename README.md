@@ -35,34 +35,35 @@ await evmcrispr.forward(
 );
 ```
 
+The same EVMscript can be encoded using the `evmcl` template:
+
+```js
+await evmcripsr.forward(
+  evmcl`
+    install ${app} ${param1} ${param2}
+    grant ${entity1} ${app1} ${role1} ${permissionManager}
+    grant ${entity2} ${app2} ${role1} ${permissionManager}
+    grant ${entity3} ${app3} ${role3} ${permissionManager}
+    revoke ${entity4} ${app4} ${role4} ${removeManager}
+  `, // ...
+  [forwarder1, forwarder2]
+);
+```
+
 To facilitate the EVM script creation, you can use [identifiers](https://commonsswarm.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
 
 Below you can find a full example:
 
 ```js
 await evmcrispr.forward(
-  [
-    evmcrispr.installNewApp("wrapped-hooked-token-manager.open:membership-tm", [token, false, 0]),
-    evmcrispr.installNewApp("voting:membership-voting", [token, suppPct, minQuorumPct, voteTime]),
-    evmcrispr.addPermissions([
-      [
-        evmcrispr.ANY_ENTITY,
-        "voting:membership-voting",
-        "CREATE_VOTES_ROLE",
-      ]
-      [
-        "voting:membership-voting",
-        "wrapped-hooked-token-manager.open:membership-tm",
-        "MINT_ROLE",
-      ],
-      [
-        "voting:membership-voting",
-        "wrapped-hooked-token-manager.open:membership-tm",
-        "BURN_ROLE",
-      ],
-    ]),
-    evmcrispr.call("wrapped-hooked-token-manager.open:membership-tm").mint("0x...", "2e18"),
-  ],
+  evmcl`
+    install wrapped-hooked-token-manager.open:membership-tm ${token} false 0
+    install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
+    grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE
+    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE
+    voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
+    exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
+  `,
   ["token-manager:1", "voting"]
 );
 ```
@@ -75,10 +76,10 @@ await evmcrispr.forward(
    yarn add @commonsswarm/evmcrispr
    ```
 
-2. Import the `EVMcrispr` class:
+2. Import the `EVMcrispr` class and the `evmcl` template:
 
    ```js
-   Import { EVMcrispr } from '@commonsswarm/evmcrispr'
+   Import { EVMcrispr, evmcl } from '@commonsswarm/evmcrispr'
    ```
 
 3. Create a new `EVMcrispr` by using the static method `crate()`. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
@@ -86,6 +87,8 @@ await evmcrispr.forward(
    ```js
    const evmcrispr = await EVMcrispr.create(signer, daoAddress);
    ```
+
+4. Use the EVMcrispr's `encode` or `forward` functions to pass an array of actions, or an evmcl script.
 
 ## Parametric permission utils
 
@@ -100,6 +103,8 @@ The following utils can be used to encode complex [permission parameters](https:
 - `or(param1, param2)`: Same as previous one with the OR logical function.
 - `xor(param1, param2)`: Same as the previous one with the XOR logical function.
 - `iif(param).then(param).else(param)`: Ternary operator for more complex logic expressions.
+
+They can be used within the forth parameter of `addPermission(entity, app, role, params)` function.
 
 ## Other examples
 

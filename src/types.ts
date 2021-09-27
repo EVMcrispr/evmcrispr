@@ -199,3 +199,11 @@ export type AppCache = Map<AppIdentifier | LabeledAppIdentifier, App>;
  * indexed by the app's base contract address.
  */
 export type AppInterfaceCache = Map<Address, Interface>;
+
+export type ActionInterpreter = {
+  installNewApp(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
+  call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
+  act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction;
+  addPermission(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction;
+  revokePermission(permission: Permission, removeManager: boolean | undefined): ActionFunction;
+};
