@@ -21,14 +21,15 @@ import {
   buildAppIdentifier,
   buildIpfsTemplate,
   toDecimals,
-  functionParamTypes,
+  getFunctionParamTypes,
+  fetchAppArtifact,
 } from "./helpers";
 import {
   Address,
   Action,
+  ActionInterpreter,
   AppIdentifier,
   AppCache,
-  AppInterfaceCache,
   Entity,
   LabeledAppIdentifier,
   ForwardOptions,
@@ -36,12 +37,15 @@ import {
   PermissionP,
   App,
   ActionFunction,
-  PermissionMap,
   Params,
+  AppArtifactCache,
+  ParsedApp,
 } from "./types";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 import { oracle } from "./acl-utils";
-import { ActionInterpreter } from "src";
+import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
+import { buildApp, buildAppPermissions } from "./helpers/apps";
+import { Interface } from "@ethersproject/abi";
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -52,11 +56,12 @@ export default class EVMcrispr {
    * App cache that contains all the DAO's app.
    */
   #appCache: AppCache;
-  #appInterfaceCache: AppInterfaceCache;
+  #appArtifactCache: AppArtifactCache;
   /**
    * The connector used to fetch Aragon apps.
    */
   #connector: Connector;
+  #ipfsResolver: IpfsResolver;
   #installedAppCounter: number;
   #signer: Signer;
 
@@ -71,10 +76,11 @@ export default class EVMcrispr {
   NO_ENTITY: Address = constants.AddressZero;
 
   private constructor(signer: Signer, chainId: number, options: { ipfsGateway: string }) {
-    this.#connector = new Connector(chainId, buildIpfsTemplate(options.ipfsGateway));
     this.#appCache = new Map();
-    this.#appInterfaceCache = new Map();
+    this.#appArtifactCache = new Map();
+    this.#connector = new Connector(chainId);
     this.#installedAppCounter = 0;
+    this.#ipfsResolver = createIpfsResolver(buildIpfsTemplate(options.ipfsGateway));
     this.#signer = signer;
   }
 
@@ -125,7 +131,7 @@ export default class EVMcrispr {
       const actions = [];
 
       if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}.`);
       }
 
       const appPermission = appPermissions.get(roleHash)!;
@@ -161,7 +167,7 @@ export default class EVMcrispr {
       // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
       if (params.length > 0) {
         if (appPermission.grantees.has(granteeAddress)) {
-          throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
+          throw new ErrorException(`Grantee ${grantee} already has permission ${role}.`);
         }
         appPermission.grantees.add(granteeAddress);
 
@@ -205,7 +211,7 @@ export default class EVMcrispr {
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
     if (!/\w+\(((\w+(\[\])*)+(,\w+(\[\])*)*)?\)/.test(signature)) {
-      throw new Error("Wrong signature format: " + signature);
+      throw new Error("Wrong signature format: " + signature + ".");
     }
     return () => {
       const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
@@ -235,7 +241,7 @@ export default class EVMcrispr {
           return () => {
             try {
               const targetApp = getTargetApp();
-              const paramTypes = functionParamTypes(functionName, targetApp.abi);
+              const paramTypes = getFunctionParamTypes(functionName, targetApp.abiInterface);
               return {
                 to: targetApp.address,
                 data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
@@ -252,7 +258,7 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions into one using a path of forwarding apps.
-   * @param _actionFunctions The array of action-returning functions to encode.
+   * @param actionFunctions The array of action-returning functions to encode.
    * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options The forward options object.
    * @returns A promise that resolves to an object containing the encoded forwarding action as well as
@@ -265,10 +271,10 @@ export default class EVMcrispr {
   ): Promise<{ action: Action; preTxActions: Action[] }> {
     const _actionFunctions = Array.isArray(actionFunctions) ? actionFunctions : actionFunctions(this);
     if (_actionFunctions.length === 0) {
-      throw new ErrorInvalid("No actions provided");
+      throw new ErrorInvalid("No actions provided.");
     }
     if (path.length === 0) {
-      throw new ErrorInvalid("No forwader apps path provided");
+      throw new ErrorInvalid("No forwader apps path provided.");
     }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path.map((entity) => this.#resolveEntity(entity)).reverse();
@@ -285,7 +291,7 @@ export default class EVMcrispr {
       const forwarder = new Contract(forwarderAddress, FORWARDER_ABI, this.#signer.provider);
 
       if (!(await isForwarder(forwarder))) {
-        throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder`);
+        throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder.`);
       }
 
       const fee = await getForwarderFee(forwarder);
@@ -378,39 +384,38 @@ export default class EVMcrispr {
       try {
         const [appName, registry] = parseLabeledAppIdentifier(identifier);
         const appRepo = await this.connector.repo(appName, registry);
-        const { codeAddress, contentUri, artifact: appArtifact } = appRepo;
+        const { codeAddress, contentUri, artifact: repoArtifact } = appRepo;
+
+        if (!this.#appArtifactCache.has(codeAddress)) {
+          const artifact = repoArtifact ?? (await fetchAppArtifact(this.#ipfsResolver, contentUri));
+          this.#appArtifactCache.set(codeAddress, {
+            abiInterface: new utils.Interface(artifact.abi),
+            roles: artifact.roles,
+          });
+        }
+
+        const { abiInterface, roles } = this.#appArtifactCache.get(codeAddress)!;
         const kernel = this.#resolveApp("kernel");
-        const abiInterface = new utils.Interface(appArtifact.abi);
-        const types = functionParamTypes("initialize", appArtifact.abi);
+        const types = getFunctionParamTypes("initialize", abiInterface);
         const encodedInitializeFunction = abiInterface.encodeFunctionData(
           "initialize",
           this.#resolveParams(initParams, types)
         );
-        const appId = utils.namehash(appArtifact.appName);
-
+        const appId = utils.namehash(`${appName}.${registry}`);
         const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider!);
         const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
 
         if (this.#appCache.has(identifier)) {
-          throw new ErrorException(`Identifier ${identifier} is already in use`);
-        }
-
-        if (!this.#appInterfaceCache.has(codeAddress)) {
-          this.#appInterfaceCache.set(codeAddress, abiInterface);
+          throw new ErrorException(`Identifier ${identifier} is already in use.`);
         }
 
         this.#appCache.set(identifier, {
-          abi: appArtifact.abi,
-          // Set a reference to the app interface
-          abiInterface: this.#appInterfaceCache.get(codeAddress)!,
+          abiInterface: abiInterface,
           address: proxyContractAddress,
           codeAddress,
           contentUri,
           name: appName,
-          permissions: appArtifact.roles.reduce((permissionsMap: PermissionMap, role: any) => {
-            permissionsMap.set(role.bytes, { manager: "", grantees: new Set() });
-            return permissionsMap;
-          }, new Map()),
+          permissions: buildAppPermissions(roles, []),
           registryName: registry,
         });
 
@@ -447,13 +452,13 @@ export default class EVMcrispr {
       const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
 
       if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}`);
+        throw new ErrorNotFound(`Permission ${role} doesn't exists in app ${app}.`);
       }
 
       const appPermission = appPermissions.get(roleHash)!;
 
       if (!appPermission.grantees.has(entityAddress)) {
-        throw new ErrorNotFound(`Entity ${grantee} doesn't have permission ${role} to be revoked`, {
+        throw new ErrorNotFound(`Entity ${grantee} doesn't have permission ${role} to be revoked.`, {
           name: "ErrorPermissionNotFound",
         });
       }
@@ -497,16 +502,43 @@ export default class EVMcrispr {
    * @returns A Params object that can be composed with other params or passed directly as a permission param
    */
   setOracle(entity: Entity): Params {
-    return oracle(utils.isAddress(entity) ? entity : this.app(entity));
+    return oracle(utils.isAddress(entity) ? entity : this.#resolveApp(entity).address);
   }
 
-  async #buildCaches(apps: App[]): Promise<[AppCache, AppInterfaceCache]> {
+  async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
+    const appArtifactCache: AppArtifactCache = new Map();
+    const artifactApps = apps.filter((app) => app.artifact);
+    const artifactlessApps = apps.filter((app) => !app.artifact);
+    const contentUris = new Set<string>(artifactlessApps.map((app) => app.contentUri));
+
+    const artifacts = await Promise.all(
+      [...contentUris].map((contentUri) => fetchAppArtifact(this.#ipfsResolver, contentUri))
+    );
+
+    artifactlessApps.forEach(({ codeAddress }, index) => {
+      const artifact = artifacts[index];
+
+      if (!appArtifactCache.has(codeAddress)) {
+        appArtifactCache.set(codeAddress, { abiInterface: new Interface(artifact.abi), roles: artifact.roles });
+      }
+    });
+
+    artifactApps.forEach(({ artifact, codeAddress }) => {
+      if (!appArtifactCache.has(codeAddress)) {
+        appArtifactCache.set(codeAddress, { abiInterface: new Interface(artifact.abi), roles: artifact.roles });
+      }
+    });
+
+    return appArtifactCache;
+  }
+
+  async #buildAppCache(apps: App[]): Promise<AppCache> {
     const appCache: AppCache = new Map();
-    const appInterfaceCache: AppInterfaceCache = new Map();
     const appCounter = new Map();
+
     const kernel = apps.find((app) => app.name.toLowerCase() === "kernel")!;
     const kernelTxCount = await this.#signer.provider!.getTransactionCount(kernel.address);
-    const sortedApps = [kernel];
+    const sortedParsedApps = [kernel];
 
     const addressToApp = apps.reduce((accumulator, app) => {
       accumulator.set(app.address, app);
@@ -518,33 +550,31 @@ export default class EVMcrispr {
       const address = calculateNewProxyAddress(kernel.address, utils.hexlify(i));
 
       if (addressToApp.has(address)) {
-        sortedApps.push(addressToApp.get(address));
+        sortedParsedApps.push(addressToApp.get(address));
       }
     }
 
-    for (const app of sortedApps) {
-      const { name, codeAddress, abi } = app;
+    // Create app cache
+    for (const app of sortedParsedApps) {
+      const { name } = app;
       const counter = appCounter.has(name) ? appCounter.get(name) : 0;
       const appIdentifier = buildAppIdentifier(app, counter);
-
-      if (!appInterfaceCache.has(codeAddress)) {
-        appInterfaceCache.set(codeAddress, new utils.Interface(abi));
-      }
-      // Set reference to app interface
-      app.abiInterface = appInterfaceCache.get(codeAddress)!;
 
       appCache.set(appIdentifier, app);
       appCounter.set(name, counter + 1);
     }
 
-    return [appCache, appInterfaceCache];
+    return appCache;
   }
 
   async #connect(daoAddress: Address): Promise<void> {
-    const [appCache, appResourcesCache] = await this.#buildCaches(await this.#connector.organizationApps(daoAddress));
+    const parsedApps = await this.#connector.organizationApps(daoAddress);
+    const appResourcesCache = await this.#buildAppArtifactCache(parsedApps);
+    const apps = parsedApps.map((parsedApp) => buildApp(parsedApp, appResourcesCache));
+    const appCache = await this.#buildAppCache(apps);
 
     this.#appCache = appCache;
-    this.#appInterfaceCache = appResourcesCache;
+    this.#appArtifactCache = appResourcesCache;
   }
 
   #resolveApp(entity: Entity): App {
@@ -560,14 +590,14 @@ export default class EVMcrispr {
     const resolvedIdentifier = resolveIdentifier(entity);
 
     if (!this.#appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found`, { name: "ErrorAppNotFound" });
+      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, { name: "ErrorAppNotFound" });
     }
 
     return this.#appCache.get(resolvedIdentifier)!;
   }
 
   #resolveEntity(entity: Entity): Address {
-    return utils.isAddress(entity) ? entity : this.app(entity)();
+    return utils.isAddress(entity) ? entity : this.#resolveApp(entity).address;
   }
 
   #resolveNumber(number: string | number): BigNumber | number {
@@ -578,6 +608,7 @@ export default class EVMcrispr {
     return number;
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   #resolveParam(param: any, type: string): any {
     if (type.endsWith("[]")) {
       if (!Array.isArray(param)) {

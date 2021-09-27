@@ -1,4 +1,4 @@
-import { Interface, JsonFragment } from "@ethersproject/abi";
+import { Interface } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
 
 /**
@@ -12,6 +12,11 @@ export type Address = string;
  */
 
 export type RoleHash = string;
+
+export interface ArtifactData {
+  abiInterface: Interface;
+  roles: any[];
+}
 
 /**
  * An object that represents an action in the DAO (e.g. installing a new app, minting tokens, etc).
@@ -62,10 +67,6 @@ export type PermissionMap = Map<RoleHash, Role>;
  */
 export interface App {
   /**
-   * The app's contract ABI.
-   */
-  abi: JsonFragment[];
-  /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */
   abiInterface: Interface;
@@ -93,6 +94,18 @@ export interface App {
    * The app's aragonPM ens registry name.
    */
   registryName: string;
+}
+
+/** @internal */
+export interface ParsedApp {
+  address: Address;
+  artifact: any;
+  appId: string;
+  codeAddress: string;
+  contentUri: string;
+  name: string;
+  registryName: string;
+  roles: { roleHash: string; manager: string; grantees: { granteeAddress: Address }[] }[];
 }
 
 /**
@@ -193,12 +206,8 @@ export type Params = (index?: number) => string[];
  */
 export type AppCache = Map<AppIdentifier | LabeledAppIdentifier, App>;
 
-/**
- * @internal
- * A map which contains the app's [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/)
- * indexed by the app's base contract address.
- */
-export type AppInterfaceCache = Map<Address, Interface>;
+/** @internal */
+export type AppArtifactCache = Map<Address, { abiInterface: Interface; roles: any }>;
 
 export type ActionInterpreter = {
   installNewApp(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;

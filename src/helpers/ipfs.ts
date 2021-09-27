@@ -6,7 +6,7 @@ const parseContentUri = (contentUri: string): string => {
   return contentUri.split(":").pop()!;
 };
 
-export const getAppArtifact = async (ipfsResolver: IpfsResolver, contentUri: string): Promise<any> => {
+export const fetchAppArtifact = async (ipfsResolver: IpfsResolver, contentUri: string): Promise<any> => {
   return ipfsResolver.json(parseContentUri(contentUri), "artifact.json");
 };
 
