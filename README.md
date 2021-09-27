@@ -61,7 +61,7 @@ await evmcrispr.forward(
     install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
     grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE
     grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE
-    voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
+    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
     exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
   `,
   ["token-manager:1", "voting"]
