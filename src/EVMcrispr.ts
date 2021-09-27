@@ -41,6 +41,7 @@ import {
 } from "./types";
 import { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 import { oracle } from "./acl-utils";
+import { ActionInterpreter } from "src";
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -251,18 +252,19 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions into one using a path of forwarding apps.
-   * @param actionFunctions The array of action-returning functions to encode.
+   * @param _actionFunctions The array of action-returning functions to encode.
    * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options The forward options object.
    * @returns A promise that resolves to an object containing the encoded forwarding action as well as
    * any pre-transactions that need to be executed in advance.
    */
   async encode(
-    actionFunctions: ActionFunction[],
+    actionFunctions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction[]),
     path: Entity[],
     options?: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
-    if (actionFunctions.length === 0) {
+    const _actionFunctions = Array.isArray(actionFunctions) ? actionFunctions : actionFunctions(this);
+    if (_actionFunctions.length === 0) {
       throw new ErrorInvalid("No actions provided");
     }
     if (path.length === 0) {
@@ -270,7 +272,7 @@ export default class EVMcrispr {
     }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path.map((entity) => this.#resolveEntity(entity)).reverse();
-    const actions = await normalizeActions(actionFunctions);
+    const actions = await normalizeActions(_actionFunctions);
     const preTxActions: Action[] = [];
 
     let script: string;
@@ -339,7 +341,7 @@ export default class EVMcrispr {
    * @returns A promise that resolves to a receipt of the sent transaction.
    */
   async forward(
-    actions: ActionFunction[],
+    actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction[]),
     path: Entity[],
     options?: ForwardOptions
   ): Promise<providers.TransactionReceipt> {

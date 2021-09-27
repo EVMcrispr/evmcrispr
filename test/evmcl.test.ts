@@ -34,7 +34,7 @@ function check(actions: (evm: ActionInterpreter) => any[], calls: any[]) {
   expect(_calls).to.be.eql(calls);
 }
 
-describe.only("EVM Command Line", () => {
+describe("EVM Command Line", () => {
   beforeEach(() => {
     _calls = [];
   });
