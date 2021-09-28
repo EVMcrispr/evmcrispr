@@ -198,17 +198,17 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("app()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier((badIdentifier) => evmcrispr.app(badIdentifier))
+      isValidIdentifier((badIdentifier) => () => evmcrispr.app(badIdentifier))
     );
 
     it("fails when fetching non-existent app", async () => {
-      await expectThrowAsync(evmcrispr.app("non-existent.open"), {
+      await expectThrowAsync(() => evmcrispr.app("non-existent.open"), {
         type: ErrorNotFound,
         name: "ErrorAppNotFound",
       });
     });
     it("returns the correct app address", () => {
-      const appAddress = evmcrispr.app("voting")();
+      const appAddress = evmcrispr.app("voting");
 
       expect(addressesEqual(DAO.voting, appAddress)).to.be.true;
     });
@@ -396,7 +396,7 @@ describe("EVMcrispr action-encoding functions", () => {
     });
 
     it("installed app exists", () => {
-      const installedAppAddress = evmcrispr.app(`${APP.appIdentifier}:new-app`)();
+      const installedAppAddress = evmcrispr.app(`${APP.appIdentifier}:new-app`);
 
       expect(utils.isAddress(installedAppAddress)).to.be.true;
     });
@@ -471,7 +471,7 @@ describe("EVMcrispr action-encoding functions", () => {
 
     it("encodes an ACL oracle parameter from an app identifier", () => {
       const oracle = evmcrispr.setOracle("voting")();
-      const app = evmcrispr.app("voting")();
+      const app = evmcrispr.app("voting");
       const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });

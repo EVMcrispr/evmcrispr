@@ -198,8 +198,8 @@ export default class EVMcrispr {
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
    * @returns The app's contract address.
    */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): () => Address {
-    return () => this.#resolveApp(appIdentifier).address;
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
+    return this.#resolveApp(appIdentifier).address;
   }
 
   /**
