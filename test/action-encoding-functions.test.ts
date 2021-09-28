@@ -296,7 +296,7 @@ describe("EVMcrispr action-encoding functions", () => {
     );
 
     it("fails when calling an invalid method", async () => {
-      await expectThrowAsync(evmcrispr.call("token-manager").unknownMethod(), undefined, "Unknown method");
+      await expectThrowAsync(() => evmcrispr.call("token-manager").unknownMethod, undefined, "Unknown method");
 
       await expectThrowAsync(evmcrispr.call("token-manager").mint(), undefined, "Invalid method's parameters");
     });
@@ -331,6 +331,29 @@ describe("EVMcrispr action-encoding functions", () => {
         "proxyPayment",
         "revokeVesting",
       ]);
+    });
+
+    it("can enumerate parameter names of a function", () => {
+      const paramTypes = evmcrispr.call("token-manager").mint.paramNames;
+      expect(paramTypes).to.be.eql(["_receiver", "_amount"]);
+    });
+
+    it("can enumerate parameter types of a function", () => {
+      const paramTypes = evmcrispr.call("token-manager").mint.paramTypes;
+      expect(paramTypes).to.be.eql(["address", "uint256"]);
+    });
+
+    it("throws an error when enumerating parameter names and types of a function", async () => {
+      await expectThrowAsync(
+        () => evmcrispr.call("token-manager").unknownMethod.paramNames,
+        undefined,
+        "Unknown method"
+      );
+      await expectThrowAsync(
+        () => evmcrispr.call("token-manager").unknownMethod.paramTypes,
+        undefined,
+        "Unknown method"
+      );
     });
   });
 

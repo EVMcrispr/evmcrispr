@@ -17,7 +17,7 @@ import {
   FORWARDER_ABI,
   getForwarderFee,
   getForwarderType,
-  getFunctionParamTypes,
+  getFunctionParams,
   IPFS_GATEWAY,
   normalizeActions,
   normalizeRole,
@@ -254,21 +254,25 @@ export default class EVMcrispr {
           .map((fragment) => fragment.name!);
       },
       get: (getTargetApp: () => App, functionName: string) => {
-        return (...params: any): ActionFunction => {
-          return () => {
-            try {
-              const targetApp = getTargetApp();
-              const paramTypes = getFunctionParamTypes(functionName, targetApp.abiInterface);
-              return {
-                to: targetApp.address,
-                data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
-              };
-            } catch (err: any) {
-              err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
-              throw err;
-            }
+        try {
+          const targetApp = getTargetApp();
+          const [paramNames, paramTypes] = getFunctionParams(functionName, targetApp.abiInterface);
+          const fn = (...params: any): ActionFunction => {
+            return () => ({
+              to: targetApp.address,
+              data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
+            });
           };
-        };
+          Object.defineProperties(fn, {
+            name: { value: functionName },
+            paramNames: { value: paramNames },
+            paramTypes: { value: paramTypes },
+          });
+          return fn;
+        } catch (err: any) {
+          err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
+          throw err;
+        }
       },
     });
   }
@@ -413,7 +417,7 @@ export default class EVMcrispr {
 
         const { abiInterface, roles } = this.#appArtifactCache.get(codeAddress)!;
         const kernel = this.#resolveApp("kernel");
-        const types = getFunctionParamTypes("initialize", abiInterface);
+        const [, types] = getFunctionParams("initialize", abiInterface);
         const encodedInitializeFunction = abiInterface.encodeFunctionData(
           "initialize",
           this.#resolveParams(initParams, types)

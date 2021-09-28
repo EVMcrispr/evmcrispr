@@ -31,10 +31,12 @@ export const toDecimals = (amount: number | string, decimals = 18): BigNumber =>
   return BigNumber.from((integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0"));
 };
 
-export function getFunctionParamTypes(functionName: string, abi: Interface): string[] {
-  const params = abi.getFunction(functionName).inputs.map(({ type }) => type);
+export function getFunctionParams(functionName: string, abi: Interface): [string[], string[]] {
+  const params = abi.fragments.find(({ name }) => name === functionName)?.inputs;
   if (typeof params === "undefined") {
     throw new Error(`Function ${functionName} not present in ABI`);
   }
-  return params;
+  const paramNames = params.map(({ name }) => name!);
+  const paramTypes = params.map(({ type }) => type!);
+  return [paramNames, paramTypes];
 }
