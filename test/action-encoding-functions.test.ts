@@ -314,6 +314,24 @@ describe("EVMcrispr action-encoding functions", () => {
       const callActionUnresolved = evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureUnresolvedParams)();
       expect(callActionUnresolved).eql(expectedCallAction);
     });
+
+    it("can enumerate non-constant function calls", () => {
+      const keys = Object.getOwnPropertyNames(evmcrispr.call("token-manager"));
+      expect(keys).to.be.eql([
+        "assignVested",
+        "mint",
+        "onTransfer",
+        "transferToVault",
+        "burn",
+        "assign",
+        "issue",
+        "forward",
+        "onApprove",
+        "initialize",
+        "proxyPayment",
+        "revokeVesting",
+      ]);
+    });
   });
 
   describe("installNewApp()", () => {

@@ -1,4 +1,4 @@
-import { Interface } from "@ethersproject/abi";
+import { Interface, JsonFragment } from "@ethersproject/abi";
 import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
@@ -244,7 +244,15 @@ export default class EVMcrispr {
    * the encoded call instead.
    */
   call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
-    return new Proxy(() => this.#resolveApp(appIdentifier), {
+    const app = () => this.#resolveApp(appIdentifier);
+    return new Proxy(app, {
+      ownKeys() {
+        return app()
+          .abiInterface.fragments.filter(
+            (fragment: JsonFragment) => fragment.type === "function" && !fragment.constant && fragment.name
+          )
+          .map((fragment) => fragment.name!);
+      },
       get: (getTargetApp: () => App, functionName: string) => {
         return (...params: any): ActionFunction => {
           return () => {
