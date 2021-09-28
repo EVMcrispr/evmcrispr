@@ -203,6 +203,14 @@ export default class EVMcrispr {
   }
 
   /**
+   * Returns the list of all (labeled and no labeled) app identifiers.
+   * @returns List of available app identifiers
+   */
+  apps(): (AppIdentifier | LabeledAppIdentifier)[] {
+    return [...this.#appCache.keys()];
+  }
+
+  /**
    * Use DAO agent to call an external contract function
    * @param agent App identifier of the agent that is going to be used to call the function
    * @param target Address of the external contract

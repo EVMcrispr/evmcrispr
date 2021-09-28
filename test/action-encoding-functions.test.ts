@@ -214,6 +214,26 @@ describe("EVMcrispr action-encoding functions", () => {
     });
   });
 
+  describe("apps()", () => {
+    it("returns the list of apps", () => {
+      expect(evmcrispr.apps()).to.be.eql([
+        "kernel:0",
+        "acl:0",
+        "evm-script-registry:0",
+        "vault:0",
+        "finance:0",
+        "token-manager:0",
+        "voting:0",
+        "disputable-voting.open:0",
+        "tollgate.open:0",
+      ]);
+    });
+    it("is updated when a new app is installed", async () => {
+      await evmcrispr.installNewApp("agent:new", [])();
+      expect(evmcrispr.apps()).to.be.length(10).and.to.include("agent:new");
+    });
+  });
+
   describe("act()", () => {
     const target = ADDRESS;
     it(
