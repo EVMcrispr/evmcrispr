@@ -45,7 +45,8 @@
   "dependencies": {
     "@1hive/connect": "^0.9.1",
     "ethers": "^5.0.17",
-    "graphql-tag": "^2.12.4"
+    "graphql-tag": "^2.12.4",
+    "node-fetch": "^3.0.0"
   },
   "files": [
     "dist"
@@ -67,6 +68,7 @@
     "prepare": "husky install",
     "send": "hardhat send",
     "test": "hardhat test --network rinkeby",
-    "test:coverage": "nyc --reporter=lcov yarn test"
+    "test:coverage": "nyc --reporter=lcov yarn test",
+    "create-fixtures": "hardhat run scripts/create-fixtures.ts"
   }
 }

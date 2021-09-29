@@ -1,10 +1,9 @@
 import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
-import { ORGANIZATION_APPS, REPO } from "./helpers";
+import { ORGANIZATION_APPS, parseApp, parseRepo, REPO } from "./helpers";
 import { ErrorException, ErrorNotFound } from "./errors";
 import { Address, ParsedApp, Repo } from "./types";
-import { parseApp, parseRepo } from "./helpers/parsers";
 
-function subgraphUrlFromChainId(chainId: number): string | null {
+export function subgraphUrlFromChainId(chainId: number): string | null {
   switch (chainId) {
     case 1:
       return "https://api.thegraph.com/subgraphs/name/1hive/aragon-mainnet";
@@ -22,7 +21,7 @@ function subgraphUrlFromChainId(chainId: number): string | null {
  * @category Utility
  */
 export default class Connector {
-  #gql: GraphQLWrapper;
+  protected _gql: GraphQLWrapper;
 
   /**
    * Create a new Connector instance.
@@ -35,14 +34,14 @@ export default class Connector {
       throw new ErrorException("Connector requires a valid chain id to be passed (1, 4 or 100)");
     }
 
-    this.#gql = new GraphQLWrapper(subgraphUrl);
+    this._gql = new GraphQLWrapper(subgraphUrl);
   }
 
   /**
    * Close the connection.
    */
   async disconnect(): Promise<void> {
-    this.#gql.close();
+    this._gql.close();
   }
 
   /**
@@ -53,7 +52,7 @@ export default class Connector {
    * @returns A promise that resolves to the app's repo.
    */
   async repo(repoName: string, registryName: string): Promise<Repo> {
-    return this.#gql.performQueryWithParser(REPO("query"), { repoName }, async (result: QueryResult) => {
+    return this._gql.performQueryWithParser(REPO("query"), { repoName }, (result: QueryResult) => {
       // Cant filter by registry when fetching repos so we need to do it here
       const repo = result.data.repos.filter(({ registry }: { registry: any }) => registry.name === registryName).pop();
 
@@ -71,10 +70,10 @@ export default class Connector {
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
-    return this.#gql.performQueryWithParser(
+    return this._gql.performQueryWithParser(
       ORGANIZATION_APPS("query"),
       { id: daoAddress.toLowerCase() },
-      async (result: QueryResult) => {
+      (result: QueryResult) => {
         const apps = result.data?.organization?.apps;
 
         if (!apps || result.data?.organization === null) {

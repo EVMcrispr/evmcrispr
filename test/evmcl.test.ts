@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ActionInterpreter } from "../src";
 import evmcl from "../src/evmcl";
-import { APP } from "./test-helpers/mock-data";
+import { APP } from "./fixtures";
 
 let _calls: any[];
 

@@ -39,6 +39,7 @@ import {
   AppCache,
   AppIdentifier,
   Entity,
+  EVMcrisprOptions,
   ForwardOptions,
   LabeledAppIdentifier,
   Params,
@@ -61,8 +62,8 @@ export default class EVMcrispr {
   /**
    * The connector used to fetch Aragon apps.
    */
-  #connector: Connector;
-  #ipfsResolver: IpfsResolver;
+  protected _connector: Connector;
+  protected _ipfsResolver: IpfsResolver;
   #installedAppCounter: number;
   #signer: Signer;
 
@@ -76,33 +77,32 @@ export default class EVMcrispr {
    */
   NO_ENTITY: Address = constants.AddressZero;
 
-  private constructor(signer: Signer, chainId: number, options: { ipfsGateway: string }) {
+  protected constructor(chainId: number, signer: Signer, options: { ipfsGateway: string }) {
     this.#appCache = new Map();
     this.#appArtifactCache = new Map();
-    this.#connector = new Connector(chainId);
+    this._connector = new Connector(chainId);
     this.#installedAppCounter = 0;
-    this.#ipfsResolver = createIpfsResolver(buildIpfsTemplate(options.ipfsGateway));
+    this._ipfsResolver = createIpfsResolver(buildIpfsTemplate(options.ipfsGateway));
     this.#signer = signer;
   }
 
   /**
    * Create a new EVMcrispr instance and connect it to a DAO by fetching and caching all its
    * apps and permissions data.
+   * @param daoAddress The address of the DAO to connect to.
    * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
    * instance used to connect to Ethereum and sign any transaction needed.
-   * @param daoAddress The address of the DAO to connect to.
    * @param options The optional configuration object.
-   * @param options.ipfsGateway An IPFS gateway to fetch app data from.
    * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
   static async create(
-    signer: Signer,
     daoAddress: Address,
-    options: { ipfsGateway: string } = { ipfsGateway: IPFS_GATEWAY }
+    signer: Signer,
+    options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY }
   ): Promise<EVMcrispr> {
-    const evmcrispr = new EVMcrispr(signer, await signer.getChainId(), options);
+    const evmcrispr = new EVMcrispr(await signer.getChainId(), signer, options);
 
-    await evmcrispr.#connect(daoAddress);
+    await evmcrispr._connect(daoAddress);
 
     return evmcrispr;
   }
@@ -112,7 +112,7 @@ export default class EVMcrispr {
   }
 
   get connector(): Connector {
-    return this.#connector;
+    return this._connector;
   }
 
   /**
@@ -408,7 +408,7 @@ export default class EVMcrispr {
         const { codeAddress, contentUri, artifact: repoArtifact } = appRepo;
 
         if (!this.#appArtifactCache.has(codeAddress)) {
-          const artifact = repoArtifact ?? (await fetchAppArtifact(this.#ipfsResolver, contentUri));
+          const artifact = repoArtifact ?? (await fetchAppArtifact(this._ipfsResolver, contentUri));
           this.#appArtifactCache.set(codeAddress, {
             abiInterface: new utils.Interface(artifact.abi),
             roles: artifact.roles,
@@ -533,7 +533,7 @@ export default class EVMcrispr {
     const contentUris = new Set<string>(artifactlessApps.map((app) => app.contentUri));
 
     const artifacts = await Promise.all(
-      [...contentUris].map((contentUri) => fetchAppArtifact(this.#ipfsResolver, contentUri))
+      [...contentUris].map((contentUri) => fetchAppArtifact(this._ipfsResolver, contentUri))
     );
 
     artifactlessApps.forEach(({ codeAddress }, index) => {
@@ -588,8 +588,8 @@ export default class EVMcrispr {
     return appCache;
   }
 
-  async #connect(daoAddress: Address): Promise<void> {
-    const parsedApps = await this.#connector.organizationApps(daoAddress);
+  protected async _connect(daoAddress: Address): Promise<void> {
+    const parsedApps = await this._connector.organizationApps(daoAddress);
     const appResourcesCache = await this.#buildAppArtifactCache(parsedApps);
     const apps = parsedApps.map((parsedApp) => buildApp(parsedApp, appResourcesCache));
     const appCache = await this.#buildAppCache(apps);

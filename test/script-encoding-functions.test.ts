@@ -1,14 +1,13 @@
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Action, ActionFunction, ErrorInvalid, EVMcrispr } from "../src";
+import { Action, ActionFunction, ErrorInvalid } from "../src";
 import {
   APP,
   CONTEXT,
   DAO,
   COMPLETE_FORWARDER_PATH,
   getSignatureSelector,
-  GRANT_PERMISSION,
   NEW_PERMISSIONS,
   PERMISSION_MANAGER,
   resolveApp,
@@ -17,13 +16,15 @@ import {
   FEE_TOKEN_ADDRESS,
   FEE_AMOUNT,
   FEE_FORWARDER,
-} from "./test-helpers/mock-data";
+  GRANT_PERMISSIONS,
+} from "./fixtures";
 import { encodeActCall } from "../src/helpers";
 import { createTestAction, createTestPreTxAction, createTestScriptEncodedAction } from "./test-helpers/actions";
 import { expectThrowAsync, isValidIdentifier } from "./test-helpers/expects";
+import { MockEVMcrispr } from "./fixtures";
 
 describe("EVMcrispr script-encoding functions", () => {
-  let evmcrispr: EVMcrispr;
+  let evmcrispr: MockEVMcrispr;
   let signer: SignerWithAddress;
   let expectedActions: Action[];
   let actionFunctions: ActionFunction[];
@@ -31,7 +32,7 @@ describe("EVMcrispr script-encoding functions", () => {
   before(async () => {
     signer = (await ethers.getSigners())[0];
 
-    evmcrispr = await EVMcrispr.create(signer, DAO.kernel);
+    evmcrispr = await MockEVMcrispr.create(DAO.kernel, signer);
   });
 
   before(() => {
@@ -47,6 +48,7 @@ describe("EVMcrispr script-encoding functions", () => {
     } = APP;
     const callSelector = getSignatureSelector(callSignature);
 
+    const grantPermission = GRANT_PERMISSIONS[0];
     // Prepare test actions
     const installAction = createTestAction("installNewApp", kernel, [
       appId,
@@ -57,7 +59,7 @@ describe("EVMcrispr script-encoding functions", () => {
     const addPermissionAction = NEW_PERMISSIONS.map((p) =>
       createTestAction("addPermission", acl, [...resolvePermission(p), resolveApp(PERMISSION_MANAGER)])
     );
-    const grantPermissionAction = createTestAction("grantPermission", acl, resolvePermission(GRANT_PERMISSION));
+    const grantPermissionAction = createTestAction("grantPermission", acl, resolvePermission(grantPermission));
     const revokePermissionActions = REVOKE_PERMISSIONS.reduce((actions: Action[], currentPermission) => {
       const resolvedPermission = resolvePermission(currentPermission);
       return [
@@ -81,7 +83,7 @@ describe("EVMcrispr script-encoding functions", () => {
     // Prepare EVMcrispr action functions
     actionFunctions = [
       evmcrispr.installNewApp(`${appIdentifier}:new-app`, initializeParams),
-      evmcrispr.addPermissions([...NEW_PERMISSIONS, GRANT_PERMISSION], PERMISSION_MANAGER),
+      evmcrispr.addPermissions([...NEW_PERMISSIONS, grantPermission], PERMISSION_MANAGER),
       evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true),
       evmcrispr.call(`${appIdentifier}`)[callSelector](...callSignatureParams),
     ];
@@ -135,5 +137,5 @@ describe("EVMcrispr script-encoding functions", () => {
     });
   });
 
-  describe("forward()", () => {});
+  // xdescribe("forward()", () => {});
 });

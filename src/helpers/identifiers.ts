@@ -8,7 +8,7 @@ const appIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))
 // eslint-disable-next-line
 const labeledAppIdentifierRegex = /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?:\:([a-z0-9-]{1,63}))$/;
 
-const parseRegistry = (registryEnsName: string): string => {
+export const parseRegistry = (registryEnsName: string): string => {
   // We denote the default aragonpm registry with an empty string
   // Assume registry is the default one if no ens name is provided.
   if (!registryEnsName) {
@@ -17,7 +17,7 @@ const parseRegistry = (registryEnsName: string): string => {
   const ensParts = registryEnsName.split(".");
 
   if (ensParts.length === 3) {
-    return ensParts[0];
+    return `.${ensParts[0]}`;
   }
 
   return "";
@@ -72,7 +72,7 @@ export const buildAppIdentifier = (app: App, appCounter: number): AppIdentifier 
   const parsedRegistryName = parseRegistry(registryName);
 
   if (parsedRegistryName) {
-    return `${name}.${parsedRegistryName}:${appCounter}`;
+    return `${name}${parsedRegistryName}:${appCounter}`;
   } else {
     return `${name}:${appCounter}`;
   }

@@ -13,6 +13,7 @@ export {
   AppIdentifier,
   CompletePermission,
   Entity,
+  EVMcrisprOptions,
   ForwardOptions,
   LabeledAppIdentifier,
   Permission,

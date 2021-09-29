@@ -1,0 +1,15 @@
+{
+  "data": {
+    "repos": [
+      {
+        "lastVersion": {
+          "artifact": null,
+          "codeAddress": "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
+          "contentUri": "ipfs:QmUjpmLLZFisaMpHByphZ29yxpj9GWquoQBYnQd56HKpwk"
+        },
+        "name": "token-manager",
+        "registry": { "name": "aragonpm.eth" }
+      }
+    ]
+  }
+}

@@ -3,7 +3,7 @@ import { BigNumber, utils } from "ethers";
 import { Action, Address } from "../../src";
 import { encodeActCall } from "../../src/helpers";
 import { CONTEXT_FORWARDER_TYPE, FORWARDER_TYPE, getAppForwarderType } from "./forwarders";
-import { resolveApp } from "./mock-data";
+import { resolveApp } from "../fixtures";
 
 export const createTestPreTxAction = (operation: string, to: Address, parameters: any[]): Action => {
   switch (operation) {
@@ -58,8 +58,8 @@ export const createTestAction = (operation: string, to: Address, parameters: any
 
 export const createTestScriptEncodedAction = (forwarderActions: Action[], path: string[], context?: string): Action => {
   let script: string;
-  let forwardingPath = [...path].reverse();
-  for (let forwarder of forwardingPath) {
+  const forwardingPath = [...path].reverse();
+  for (const forwarder of forwardingPath) {
     script = encodeCallScript(forwarderActions);
     const forwarderType = getAppForwarderType(forwarder);
     const forwarderAddress = resolveApp(forwarder);
