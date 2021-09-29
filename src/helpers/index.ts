@@ -7,6 +7,7 @@ export * from "./identifiers";
 export * from "./interfaces";
 export * from "./ipfs";
 export * from "./normalizers";
+export * from "./parsers";
 export * from "./queries";
 export * from "./web3";
 
