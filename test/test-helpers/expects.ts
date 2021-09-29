@@ -5,7 +5,7 @@ export const expectThrowAsync = async (
   method: () => any,
   errorOptions: { type: any; name?: string; message?: string } = { type: Error },
   customTestMessage = ""
-) => {
+): Promise<void> => {
   let error: Error | null = null;
   try {
     await method();
@@ -30,7 +30,7 @@ export const isValidIdentifier = (
   evmcrisprMethod: (invalidIdentifier: string) => any,
   checkLabeledAppIdentifier = false,
   checkAppIdentifier = false
-) => {
+): (() => Promise<void>) => {
   return async () => {
     const errorOptions = { type: ErrorInvalid, name: "ErrorInvalidIdentifier" };
 
