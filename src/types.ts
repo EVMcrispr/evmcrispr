@@ -1,5 +1,8 @@
 import { Interface } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
+import { AragonArtifact, AragonArtifactRole } from "@1hive/connect-core/dist/cjs/types";
+
+export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
 
 // ---------------------- TYPES ----------------------
 
@@ -19,7 +22,7 @@ export type ActionFunction = () => RawAction;
 export type Address = string;
 
 /** @internal */
-export type AppArtifactCache = Map<Address, { abiInterface: Interface; roles: any }>;
+export type AppArtifactCache = Map<Address, { abiInterface: Interface; roles: AragonArtifactRole[] }>;
 
 /**
  * A map which contains the DAO's apps indexed by their identifier ([[AppIdentifier]] or [[LabeledAppIdentifier]]).
@@ -186,7 +189,7 @@ export interface ForwardOptions {
 /** @internal */
 export interface ParsedApp {
   address: Address;
-  artifact: any;
+  artifact: AragonArtifact;
   appId: string;
   codeAddress: string;
   contentUri: string;

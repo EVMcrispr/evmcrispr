@@ -7,7 +7,7 @@ import { Action, Permission } from "../src/types";
 import { encodeActCall, encodeCallScript } from "../src/helpers";
 import {
   resolvePermission,
-  ADDRESS,
+  EOA_ADDRESS,
   APP,
   DAO,
   GRANT_PERMISSIONS,
@@ -49,7 +49,7 @@ describe("EVMcrispr action-encoding functions", () => {
     );
 
     it("fails when receiving a permission holder app address that doesn't match any DAO app", async () => {
-      await expectThrowAsync(evmcrisprPermissionMethod(["voting", ADDRESS, "ROLE"]), {
+      await expectThrowAsync(evmcrisprPermissionMethod(["voting", EOA_ADDRESS, "ROLE"]), {
         type: ErrorNotFound,
         name: "ErrorAppNotFound",
       });
@@ -234,7 +234,7 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("act()", () => {
-    const target = ADDRESS;
+    const target = EOA_ADDRESS;
     it(
       "fails when receiving an invalid identifier as the agent",
       isValidIdentifier((badIdentifier) => evmcrispr.act(badIdentifier, target, "mint()", []), false, false)
@@ -471,8 +471,8 @@ describe("EVMcrispr action-encoding functions", () => {
 
   describe("setOracle()", () => {
     it("encodes an ACL oracle parameter from an address", () => {
-      const oracle = evmcrispr.setOracle(ADDRESS)();
-      const expectedOracle = [`0xcb0100000000000000000000${ADDRESS.slice(2)}`];
+      const oracle = evmcrispr.setOracle(EOA_ADDRESS)();
+      const expectedOracle = [`0xcb0100000000000000000000${EOA_ADDRESS.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
 
