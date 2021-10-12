@@ -1,8 +1,9 @@
 {
-  "name": "1hive-terminal",
+  "name": "evmcrispr-terminal",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@commonsswarm/evmcrispr": "^0.2.0",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
@@ -10,7 +11,9 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "ethers": "^5.4.7",
     "react": "^17.0.2",
+    "react-ace": "^9.4.3",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
     "typescript": "^4.1.2",
