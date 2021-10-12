@@ -62,7 +62,9 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       }
       const path = _path.trim().split(' ').map(id => id.trim());
       const _code = code.split("\n").slice(1).join("\n");
-      const evmcrispr = await EVMcrispr.create(dao, provider.getSigner());
+      const evmcrispr = await EVMcrispr.create(dao, provider.getSigner(), {
+        ipfsGateway: "https://ipfs.blossom.software/ipfs/"
+      });
       await evmcrispr.forward(
         evmcl`${_code}`,
         path
