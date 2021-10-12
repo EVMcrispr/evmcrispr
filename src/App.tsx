@@ -94,7 +94,7 @@ exec finance newImmediatePayment <token-addr> <receiver> 0.5e18 payment`);
         }}/>
         <div style={{textAlign: 'right'}}>
           {
-            !window.ethereum?.isConnected() ? <input type="button" value="Connect" onClick={onConnect} /> : <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
+            !address ? <input type="button" value="Connect" onClick={onConnect} /> : <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
           }
         </div>
         <div style={{color: 'red'}}>{error ? "Error: " + error : null}</div>
