@@ -33,8 +33,8 @@ connect <dao> <...path>
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
-exec <app> <method> [...params]
-act <agent> <targetAddr> <method> [...params]
+exec <app> <methodName> [...params]
+act <agent> <targetAddr> <methodSignature> [...params]
 
 # Example (unwrap WETH):
 
