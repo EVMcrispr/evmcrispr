@@ -36,14 +36,14 @@ revoke <entity> <app> <role>
 exec <app> <methodName> [...params]
 act <agent> <targetAddr> <methodSignature> [...params]
 
-# Example (unwrap WETH):
+# Example (unwrap wxDAI):
 
 connect 1hive token-manager voting
 install agent:new-agent
 grant voting agent:new-agent TRANSFER_ROLE voting
-exec vault transfer -token:WETH agent:new-agent 100e18
-act agent:new-agent 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d withdraw(uint256) 100e18
-exec agent:new-agent transfer -token:ETH vault 100e18
+exec vault transfer -token:tokens.honeyswap.org:WXDAI agent:new-agent 100e18
+act agent:new-agent -token:tokens.honeyswap.org:WXDAI withdraw(uint256) 100e18
+exec agent:new-agent transfer -token:XDAI vault 100e18
 `);
   useEffect(() => {
     provider.getSigner().getAddress().then(setAddress);
