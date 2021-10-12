@@ -27,10 +27,24 @@ function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState(
-`dao <your-dao> token-manager voting
-exec token-manager mint <addr> 1e18
-exec token-manager burn <addr> 1e18
-exec finance newImmediatePayment <token-addr> <receiver> 0.5e18 payment`);
+`# Available commands:
+
+connect <dao> <...path>
+install <repo> [...initParams]
+grant <entity> <app> <role> [permissionManager]
+revoke <entity> <app> <role>
+exec <app> <method> [...params]
+act <agent> <targetAddr> <method> [...params]
+
+# Example (unwrap WETH):
+
+connect 1hive token-manager voting
+install agent:new-agent
+grant voting agent:new-agent TRANSFER_ROLE voting
+exec vault transfer -token:WETH agent:new-agent 100e18
+act agent:new-agent 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d withdraw(uint256) 100e18
+exec agent:new-agent transfer -token:ETH vault 100e18
+`);
   useEffect(() => {
     provider.getSigner().getAddress().then(setAddress);
   }, [provider]);
@@ -39,9 +53,12 @@ exec finance newImmediatePayment <token-addr> <receiver> 0.5e18 payment`);
     setError('');
     setLoading(true);
     try{
-      const [ , dao, _path ] = code.split('\n')[0].match(/^dao (0x[0-9A-Fa-f]+)(( [\w.-:]+)*)$/) ?? [];
+      const [ , dao, _path ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.-:]+)*)$/) ?? [];
       if (!dao || !_path) {
-        throw new Error("First line must be `dao <addr> <forward-path>`");
+        throw new Error("First line must be `connect <dao> <...path>`");
+      }
+      if (!/0x[0-9A-Fa-f]+/.test(dao)) {
+        throw new Error("ENS not supported yet, please introduce the address of the DAO.");
       }
       const path = _path.trim().split(' ').map(id => id.trim());
       const _code = code.split("\n").slice(1).join("\n");
