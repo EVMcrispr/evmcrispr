@@ -5,7 +5,6 @@ import "ace-builds/src-noconflict/mode-jade";
 import "ace-builds/src-noconflict/theme-vibrant_ink";
 
 import { ethers } from 'ethers';
-// import { JsonRpcSigner } from '@ethersproject/providers';
 import { evmcl, EVMcrispr } from "@commonsswarm/evmcrispr";
 
 declare global {
@@ -53,8 +52,9 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
     setError('');
     setLoading(true);
     try{
-      const [ , dao, _path ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.-:]+)*)$/) ?? [];
+      const [ , dao, _path ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)$/) ?? [];
       if (!dao || !_path) {
+        console.log(dao, _path)
         throw new Error("First line must be `connect <dao> <...path>`");
       }
       if (!/0x[0-9A-Fa-f]+/.test(dao)) {
