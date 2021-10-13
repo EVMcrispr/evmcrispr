@@ -1,7 +1,7 @@
 # EVMcrispr
 
 [![](https://img.shields.io/github/package-json/v/1hive/evmcrispr?label=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
-[![Coverage Status](https://coveralls.io/repos/github/1hive/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/1hive/EVMcrispr?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/1Hive/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/1Hive/EVMcrispr?branch=main)
 [![docs](https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://1hive.github.io/EVMcrispr/)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
@@ -20,7 +20,7 @@ EVMcrispr offers two main methods to create EVM scripts containing actions: `enc
 
 Both methods receive two parameters: a group of the encoded actions and a group of forwarder apps used to forward the aforementioned actions.
 
-The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke this methods inside an `encode()` or `forward()` to build the script. Here is an example of it:
+The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke these methods inside an `encode()` or `forward()` to build the script. Here is an example of it:
 
 ```js
 await evmcrispr.forward(
