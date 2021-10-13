@@ -62,7 +62,7 @@
 					<h1>EVMcrispr</h1>
 				</a>
 				<p><a href="https://www.npmjs.com/package/@1hive/evmcrispr"><img src="https://img.shields.io/github/package-json/v/1hive/evmcrispr?label=npm" alt=""></a>
-					<a href="https://coveralls.io/github/1hive/EVMcrispr?branch=main"><img src="https://coveralls.io/repos/github/1hive/EVMcrispr/badge.svg?branch=main" alt="Coverage Status"></a>
+					<a href="https://coveralls.io/github/1Hive/EVMcrispr?branch=main"><img src="https://coveralls.io/repos/github/1Hive/EVMcrispr/badge.svg?branch=main" alt="Coverage Status"></a>
 				<a href="https://1hive.github.io/EVMcrispr/"><img src="https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg" alt="docs"></a></p>
 				<p><strong><em>EVMcrispr is still in active development and its API might change until it reaches 1.0.</em></strong></p>
 				<p>A TypeScript library for Aragon-based DAOs that allows you to encode a series of actions into an EVM script that can be sent to <a href="https://hack.aragon.org/docs/forwarding-intro">forwarder apps</a>.</p>
@@ -76,7 +76,7 @@
 				</a>
 				<p>EVMcrispr offers two main methods to create EVM scripts containing actions: <code>encode()</code> and <code>forward()</code> (this one encodes the actions and forwards it afterwards).</p>
 				<p>Both methods receive two parameters: a group of the encoded actions and a group of forwarder apps used to forward the aforementioned actions.</p>
-				<p>The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke this methods inside an <code>encode()</code> or <code>forward()</code> to build the script. Here is an example of it:</p>
+				<p>The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke these methods inside an <code>encode()</code> or <code>forward()</code> to build the script. Here is an example of it:</p>
 				<pre><code class="language-js"><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">forward</span><span style="color: #000000">(</span>
 <span style="color: #000000">  [</span>
 <span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">installNewApp</span><span style="color: #000000">(</span><span style="color: #001080">app</span><span style="color: #000000">, </span><span style="color: #001080">params</span><span style="color: #000000">),</span>
