@@ -530,11 +530,19 @@ export default class EVMcrispr {
     const appArtifactCache: AppArtifactCache = new Map();
     const artifactApps = apps.filter((app) => app.artifact);
     const artifactlessApps = apps.filter((app) => !app.artifact);
-    const contentUris = new Set<string>(artifactlessApps.map((app) => app.contentUri));
+    const contentUris = artifactlessApps.map((app) => app.contentUri);
 
-    const artifacts = await Promise.all(
-      [...contentUris].map((contentUri) => fetchAppArtifact(this._ipfsResolver, contentUri))
+    // Construct a contentUri => artifact map
+    const uriToArtifactKeys = [...new Set<string>(contentUris)];
+    const uriToArtifactValues: any[] = await Promise.all(
+      uriToArtifactKeys.map((contentUri) => fetchAppArtifact(this._ipfsResolver, contentUri))
     );
+    const uriToArtifactMap = Object.fromEntries(
+      uriToArtifactKeys.map((_, i) => [uriToArtifactKeys[i], uriToArtifactValues[i]])
+    );
+
+    // Resolve all content uris to artifacts
+    const artifacts: any[] = contentUris.map((uri) => uriToArtifactMap[uri]);
 
     artifactlessApps.forEach(({ codeAddress }, index) => {
       const artifact = artifacts[index];
