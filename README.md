@@ -1,8 +1,8 @@
 # EVMcrispr
 
-[![](https://img.shields.io/github/package-json/v/commonsswarm/evmcrispr?label=npm)](https://www.npmjs.com/package/@commonsswarm/evmcrispr)
-[![Coverage Status](https://coveralls.io/repos/github/CommonsSwarm/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/CommonsSwarm/EVMcrispr?branch=main)
-[![docs](https://github.com/commonsswarm/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://commonsswarm.github.io/EVMcrispr/)
+[![](https://img.shields.io/github/package-json/v/1hive/evmcrispr?label=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
+[![Coverage Status](https://coveralls.io/repos/github/1hive/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/1hive/EVMcrispr?branch=main)
+[![docs](https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://1hive.github.io/EVMcrispr/)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
 
@@ -12,7 +12,7 @@ Actions can be thought of as events performed by some entity inside a DAO such a
 
 ## Documentation
 
-Check out the [documentation](https://commonsswarm.github.io/EVMcrispr/modules.html) for an in-depth explanation of the API.
+Check out the [documentation](https://1hive.github.io/EVMcrispr/modules.html) for an in-depth explanation of the API.
 
 ## How does it work?
 
@@ -50,7 +50,7 @@ await evmcripsr.forward(
 );
 ```
 
-To facilitate the EVM script creation, you can use [identifiers](https://commonsswarm.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
+To facilitate the EVM script creation, you can use [identifiers](https://1hive.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
 
 Below you can find a full example:
 
@@ -73,13 +73,13 @@ await evmcrispr.forward(
 1. Add the following dependency to your project:
 
    ```sh
-   yarn add @commonsswarm/evmcrispr
+   yarn add @1hive/evmcrispr
    ```
 
 2. Import the `EVMcrispr` class and the `evmcl` template:
 
    ```js
-   Import { EVMcrispr, evmcl } from '@commonsswarm/evmcrispr'
+   Import { EVMcrispr, evmcl } from '@1hive/evmcrispr'
    ```
 
 3. Create a new `EVMcrispr` by using the static method `crate()`. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
