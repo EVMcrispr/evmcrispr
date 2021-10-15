@@ -1,28 +1,36 @@
-import { BigNumber } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { BigNumber, providers } from "ethers";
 import hre, { ethers } from "hardhat";
 
-export const duration = {
-  seconds: function (val) {
+export const duration: any = {
+  seconds: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val);
   },
-  minutes: function (val) {
+  minutes: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val).mul(this.seconds("60"));
   },
-  hours: function (val) {
+  hours: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val).mul(this.minutes("60"));
   },
-  days: function (val) {
+  days: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val).mul(this.hours("24"));
   },
-  weeks: function (val) {
+  weeks: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val).mul(this.days("7"));
   },
-  years: function (val) {
+  years: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val).mul(this.days("365"));
   },
 };
 
-export const impersonateAddress = async (address: string) => {
+export const setBalance = async (account: string, balance: string): Promise<void> => {
+  await hre.network.provider.send("hardhat_setBalance", [account, balance]);
+};
+
+export const impersonateAddress = async (
+  address: string,
+  setInitialBalance = true
+): Promise<providers.JsonRpcSigner> => {
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: [address],
@@ -30,6 +38,13 @@ export const impersonateAddress = async (address: string) => {
 
   const signer = await ethers.provider.getSigner(address);
 
+  /**
+   * Set balance in case the impersonating account doesn't have
+   * gas to pay for transactions
+   */
+  if (setInitialBalance) {
+    await setBalance(address, ethers.utils.hexStripZeros(ethers.constants.WeiPerEther.toHexString()));
+  }
   return signer;
 };
 
@@ -47,7 +62,7 @@ export const restoreSnapshot = async (id: string): Promise<void> => {
   });
 };
 
-export const increase = async (duration: string | BigNumber) => {
+export const increase = async (duration: string | BigNumber): Promise<void> => {
   if (!ethers.BigNumber.isBigNumber(duration)) {
     duration = ethers.BigNumber.from(duration);
   }
