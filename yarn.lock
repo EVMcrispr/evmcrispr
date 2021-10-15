@@ -45,6 +45,16 @@
     "@1hive/connect-ethereum" "^0.9.1"
     "@1hive/connect-thegraph" "^0.9.1"
 
+"@1hive/evmcrispr@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@1hive/evmcrispr/-/evmcrispr-0.2.2.tgz#d7e8e97a442a19bf094a23dd2ff2ebd59c3ba374"
+  integrity sha512-EoEqw2o1e1+G8T9VhMGsi6iCppOXkj44p37qSfDX3WKNc4vrHkr8MXGeLLYcCGlkhG9jkK4j/OI6T2dMhSyXzA==
+  dependencies:
+    "@1hive/connect" "^0.9.1"
+    ethers "^5.0.17"
+    graphql-tag "^2.12.4"
+    node-fetch "^3.0.0"
+
 "@babel/code-frame@7.10.4":
   version "7.10.4"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.10.4.tgz#168da1a36e90da68ae8d49c0f1b48c7c6249213a"
@@ -1200,16 +1210,6 @@
   dependencies:
     exec-sh "^0.3.2"
     minimist "^1.2.0"
-
-"@commonsswarm/evmcrispr@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@commonsswarm/evmcrispr/-/evmcrispr-0.2.0.tgz#3c1b2fe4100f98dcfe7111365ded376735880c17"
-  integrity sha512-j4fzFF6GJCoWC0NZyjGNB1/YB3GKhvIa3KupCZdMMLITNsdzfqp8uvzj6cIoIjpUSLwk87IHEu2B9GVA8xx5tA==
-  dependencies:
-    "@1hive/connect" "^0.9.1"
-    ethers "^5.0.17"
-    graphql-tag "^2.12.4"
-    node-fetch "^3.0.0"
 
 "@csstools/convert-colors@^1.4.0":
   version "1.4.0"

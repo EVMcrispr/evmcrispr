@@ -5,7 +5,7 @@ import "ace-builds/src-noconflict/mode-jade";
 import "ace-builds/src-noconflict/theme-vibrant_ink";
 
 import { ethers } from 'ethers';
-import { evmcl, EVMcrispr } from "@commonsswarm/evmcrispr";
+import { evmcl, EVMcrispr } from "@1hive/evmcrispr";
 
 declare global {
   interface Window {
