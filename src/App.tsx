@@ -28,7 +28,7 @@ function App() {
   const [code, setCode] = useState(
 `# Available commands:
 
-connect <dao> <...path>
+connect <dao> <...path> [-context:https://yoursite.com]
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
@@ -52,7 +52,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
     setError('');
     setLoading(true);
     try{
-      const [ , dao, _path ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)$/) ?? [];
+      const [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
       if (!dao || !_path) {
         console.log(dao, _path)
         throw new Error("First line must be `connect <dao> <...path>`");
@@ -67,7 +67,8 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       });
       await evmcrispr.forward(
         evmcl`${_code}`,
-        path
+        path,
+        { context },
       );
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
