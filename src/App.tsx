@@ -6,6 +6,7 @@ import "ace-builds/src-noconflict/theme-vibrant_ink";
 
 import { ethers } from 'ethers';
 import { evmcl, EVMcrispr } from "@1hive/evmcrispr";
+import { version } from "@1hive/evmcrispr/package.json"
 
 declare global {
   interface Window {
@@ -92,7 +93,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
   }
   return (
     <div className="App" style={{maxWidth: 1200, margin: "auto"}}>
-      <h1>evm-crispr terminal</h1>
+      <h1>evm-crispr terminal v{version}</h1>
       <AceEditor
         width="100%"
         mode="jade"
