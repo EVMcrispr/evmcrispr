@@ -29,8 +29,8 @@ const actionInterpreterMock = {
   ...mockFunction("act"),
 } as unknown as ActionInterpreter;
 
-function check(actions: (evm: ActionInterpreter) => any[], calls: any[]) {
-  actions(actionInterpreterMock);
+async function check(actions: (evm: ActionInterpreter) => Promise<any[]>, calls: any[]) {
+  await actions(actionInterpreterMock);
   expect(_calls).to.be.eql(calls);
 }
 
@@ -39,9 +39,9 @@ describe("EVM Command Line", () => {
     _calls = [];
   });
 
-  it("install token-manager:new param1 param2 param3", () => {
+  it("install token-manager:new param1 param2 param3", async () => {
     const params: string = APP.initializeParams.join(" ");
-    check(
+    await check(
       evmcl`
         install token-manager:new ${params}
       `,
@@ -53,8 +53,8 @@ describe("EVM Command Line", () => {
       ]
     );
   });
-  it("grant voting token-manager MINT_ROLE", () => {
-    check(
+  it("grant voting token-manager MINT_ROLE", async () => {
+    await check(
       evmcl`
         grant voting token-manager MINT_ROLE
       `,
@@ -66,8 +66,8 @@ describe("EVM Command Line", () => {
       ]
     );
   });
-  it("revoke voting token-manager MINT_ROLE", () => {
-    check(
+  it("revoke voting token-manager MINT_ROLE", async () => {
+    await check(
       evmcl`
         revoke voting token-manager MINT_ROLE
       `,
@@ -79,8 +79,8 @@ describe("EVM Command Line", () => {
       ]
     );
   });
-  it("exec voting newVote Hello 0x0", () => {
-    check(
+  it("exec voting newVote Hello 0x0", async () => {
+    await check(
       evmcl`
         exec voting newVote Hello 0x0
       `,
