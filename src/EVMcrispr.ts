@@ -138,7 +138,7 @@ export default class EVMcrispr {
       const appPermission = appPermissions.get(roleHash)!;
 
       // If the permission already existed and no parameters are needed, just grant to a new entity and exit
-      if (appPermission.grantees.size && params.length == 0) {
+      if (appPermission.manager !== "" && appPermission.manager !== constants.AddressZero && params.length == 0) {
         if (appPermission.grantees.has(granteeAddress)) {
           throw new ErrorException(`Grantee ${grantee} already has permission ${role}`);
         }
@@ -153,7 +153,7 @@ export default class EVMcrispr {
       }
 
       // If the permission does not exist previously, create it
-      if (!appPermission.grantees.size) {
+      if (appPermission.manager === "" || appPermission.manager === constants.AddressZero) {
         appPermissions.set(roleHash, {
           manager,
           grantees: new Set([granteeAddress]),
