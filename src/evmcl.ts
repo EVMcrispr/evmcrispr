@@ -8,6 +8,23 @@ function _boolean(arg: string): boolean | undefined {
   return arg ? arg === "true" : undefined;
 }
 
+function _params(params: string[]): any[] {
+  return params.map((param) => {
+    if (param.startsWith("[")) {
+      // Converts something like "[[0x00,0x01],[0x03]]" to [["0x00","0x01"],["0x03"]]
+      return JSON.parse(
+        param
+          .replace(/\[(?!\[)/g, '["')
+          .replace(/(?<!\]),/g, '",')
+          .replace(/,(?!\[)/g, ',"')
+          .replace(/(?<!\])\]/g, '"]')
+      );
+    } else {
+      return param;
+    }
+  });
+}
+
 export default function evmcl(
   strings: TemplateStringsArray,
   ...keys: string[]
@@ -37,11 +54,11 @@ export default function evmcl(
           }
           case "exec": {
             const [identifier, method, ...params] = args;
-            return evmcrispr.call(identifier)[method](...params);
+            return evmcrispr.call(identifier)[method](..._params(params));
           }
           case "act": {
             const [agent, target, signature, ...params] = args;
-            return evmcrispr.act(agent, target, signature, params);
+            return evmcrispr.act(agent, target, signature, _params(params));
           }
           default:
             throw new Error("Unrecognized command: " + commandName);

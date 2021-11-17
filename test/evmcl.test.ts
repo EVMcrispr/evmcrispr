@@ -31,7 +31,7 @@ const actionInterpreterMock = {
 
 async function check(actions: (evm: ActionInterpreter) => Promise<any[]>, calls: any[]) {
   await actions(actionInterpreterMock);
-  expect(_calls).to.be.eql(calls);
+  expect(_calls).to.be.deep.eq(calls);
 }
 
 describe("EVM Command Line", () => {
@@ -94,15 +94,30 @@ describe("EVM Command Line", () => {
       ]
     );
   });
-  it("act agent 0x0 deposit(uint) 1", () => {
-    check(
+  it("exec voting newVote Hello [0x0,[3,2]]", async () => {
+    await check(
       evmcl`
-        act agent 0x0 deposit(uint) 1
+        exec voting newVote Hello [0x0,[3e21,2]]
+      `,
+      [
+        {
+          func: "call",
+          id: "voting",
+          method: "newVote",
+          params: ["Hello", ["0x0", ["3e21", "2"]]],
+        },
+      ]
+    );
+  });
+  it("act agent 0x0 deposit(uint,unit[][]) 1 [[2],[3,4]]", async () => {
+    await check(
+      evmcl`
+        act agent 0x0 deposit(uint,unit[][]) 1 [[2],[3,4]]
       `,
       [
         {
           func: "act",
-          params: ["agent", "0x0", "deposit(uint)", ["1"]],
+          params: ["agent", "0x0", "deposit(uint,unit[][])", ["1", [["2"], ["3", "4"]]]],
         },
       ]
     );
