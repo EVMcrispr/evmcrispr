@@ -260,19 +260,32 @@ export default class EVMcrispr {
       },
       get: (getTargetApp: () => App, functionName: string) => {
         try {
-          const targetApp = getTargetApp();
-          const [paramNames, paramTypes] = getFunctionParams(functionName, targetApp.abiInterface);
-          const fn = (...params: any): ActionFunction => {
-            return () => ({
-              to: targetApp.address,
-              data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
-            });
+          const getCallData = (): [App, string[], string[]] => {
+            const targetApp = getTargetApp();
+            const [paramNames, paramTypes] = getFunctionParams(functionName, targetApp.abiInterface);
+            return [targetApp, paramNames, paramTypes];
           };
-          Object.defineProperties(fn, {
-            name: { value: functionName },
-            paramNames: { value: paramNames },
-            paramTypes: { value: paramTypes },
-          });
+
+          const fn = (...params: any): ActionFunction => {
+            return () => {
+              const [targetApp, , paramTypes] = getCallData();
+              return {
+                to: targetApp.address,
+                data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
+              };
+            };
+          };
+          // Check in case we're calling a counterfactual app function
+          if (this.appCache.has(resolveIdentifier(appIdentifier))) {
+            const [, paramNames, paramTypes] = getCallData();
+
+            Object.defineProperties(fn, {
+              name: { value: functionName },
+              paramNames: { value: paramNames },
+              paramTypes: { value: paramTypes },
+            });
+          }
+
           return fn;
         } catch (err: any) {
           err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
