@@ -566,7 +566,6 @@ export default class EVMcrispr {
     const appCounter = new Map();
 
     const kernel = apps.find((app) => app.name.toLowerCase() === "kernel")!;
-    const kernelTxCount = await this.#signer.provider!.getTransactionCount(kernel.address);
     const sortedParsedApps = [kernel];
 
     const addressToApp = apps.reduce((accumulator, app) => {
@@ -575,7 +574,7 @@ export default class EVMcrispr {
     }, new Map());
 
     // Sort apps by creation time
-    for (let i = 1; i < kernelTxCount; i++) {
+    for (let i = 1; i <= addressToApp.size; i++) {
       const address = calculateNewProxyAddress(kernel.address, utils.hexlify(i));
 
       if (addressToApp.has(address)) {
