@@ -77,6 +77,11 @@ export default class EVMcrispr {
    */
   NO_ENTITY: Address = constants.AddressZero;
 
+  /**
+   * An address used for permission operations that denotes that the permission has been burnt.
+   */
+  BURN_ENTITY: Address = "0x" + "0".repeat(39) + "1";
+
   protected constructor(chainId: number, signer: Signer, options: { ipfsGateway: string }) {
     this.#appCache = new Map();
     this.#appArtifactCache = new Map();
@@ -629,7 +634,12 @@ export default class EVMcrispr {
       case "ANY_ENTITY":
         return this.ANY_ENTITY;
       case "NO_ENTITY":
+      case "ETH":
+      case "XDAI":
+      case "ZERO_ADDRESS":
         return this.NO_ENTITY;
+      case "BURN_ENTITY":
+        return this.BURN_ENTITY;
       default:
         return utils.isAddress(entity) ? entity : this.#resolveApp(entity).address;
     }
