@@ -625,7 +625,14 @@ export default class EVMcrispr {
   }
 
   #resolveEntity(entity: Entity): Address {
-    return utils.isAddress(entity) ? entity : this.#resolveApp(entity).address;
+    switch (entity) {
+      case "ANY_ENTITY":
+        return this.ANY_ENTITY;
+      case "NO_ENTITY":
+        return this.NO_ENTITY;
+      default:
+        return utils.isAddress(entity) ? entity : this.#resolveApp(entity).address;
+    }
   }
 
   #resolveNumber(number: string | number): BigNumber | number {
