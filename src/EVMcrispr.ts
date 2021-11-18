@@ -1,4 +1,4 @@
-import { Interface, JsonFragment } from "@ethersproject/abi";
+import { Interface } from "@ethersproject/abi";
 import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
@@ -250,13 +250,15 @@ export default class EVMcrispr {
    */
   call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
     const app = () => this.#resolveApp(appIdentifier);
+    const artifactCache = this.#appArtifactCache;
     return new Proxy(app, {
       ownKeys() {
-        return app()
-          .abiInterface.fragments.filter(
-            (fragment: JsonFragment) => fragment.type === "function" && !fragment.constant && fragment.name
-          )
-          .map((fragment) => fragment.name!);
+        return (
+          artifactCache
+            .get(app().codeAddress)
+            ?.functions.map(({ sig }) => sig.split("(")[0])
+            .filter((n) => n !== "initialize") || []
+        );
       },
       get: (getTargetApp: () => App, functionName: string) => {
         try {
@@ -430,6 +432,7 @@ export default class EVMcrispr {
           this.#appArtifactCache.set(codeAddress, {
             abiInterface: new utils.Interface(artifact.abi),
             roles: artifact.roles,
+            functions: artifact.functions,
           });
         }
 
@@ -566,13 +569,21 @@ export default class EVMcrispr {
       const artifact = artifacts[index];
 
       if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, { abiInterface: new Interface(artifact.abi), roles: artifact.roles });
+        appArtifactCache.set(codeAddress, {
+          abiInterface: new Interface(artifact.abi),
+          roles: artifact.roles,
+          functions: artifact.functions,
+        });
       }
     });
 
     artifactApps.forEach(({ artifact, codeAddress }) => {
       if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, { abiInterface: new Interface(artifact.abi), roles: artifact.roles });
+        appArtifactCache.set(codeAddress, {
+          abiInterface: new Interface(artifact.abi),
+          roles: artifact.roles,
+          functions: artifact.functions,
+        });
       }
     });
 
