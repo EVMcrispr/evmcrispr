@@ -316,7 +316,7 @@ describe("EVMcrispr action-encoding functions", () => {
 
     it("can enumerate non-constant function calls", () => {
       const keys = Object.getOwnPropertyNames(evmcrispr.call("token-manager"));
-      expect(keys).to.be.eql([
+      expect(keys).include.members([
         "assignVested",
         "mint",
         "onTransfer",
@@ -326,7 +326,6 @@ describe("EVMcrispr action-encoding functions", () => {
         "issue",
         "forward",
         "onApprove",
-        "initialize",
         "proxyPayment",
         "revokeVesting",
       ]);
