@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Action, ActionFunction, ErrorInvalid } from "../src";
+import { Action, ActionFunction, ErrorInvalid, evmcl } from "../src";
 import {
   APP,
   CONTEXT,
@@ -133,6 +133,25 @@ describe("EVMcrispr script-encoding functions", () => {
       );
 
       expect(preTxActions, "Fee pretransactions mismatch").eql(expectedEncodedPreTxActions);
+      expect(encodedScriptAction, "EVM script action mismatch").eql(expectedEncodedScriptAction);
+    });
+
+    it("should encode an evmcl script", async () => {
+      const { appIdentifier, callSignature, callSignatureParams } = APP;
+      const callSelector = getSignatureSelector(callSignature);
+      const expectedEncodedScriptAction = await evmcrispr.encode(
+        [evmcrispr.call(`${appIdentifier}`)[callSelector](...callSignatureParams)],
+        COMPLETE_FORWARDER_PATH,
+        { context: CONTEXT }
+      );
+      const encodedScriptAction = await evmcrispr.encode(
+        evmcl`
+          exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(" ")}
+        `,
+        COMPLETE_FORWARDER_PATH,
+        { context: CONTEXT }
+      );
+
       expect(encodedScriptAction, "EVM script action mismatch").eql(expectedEncodedScriptAction);
     });
   });

@@ -14,7 +14,7 @@ export type ActionInterpreter = {
   revokePermission(permission: Permission, removeManager: boolean | undefined): ActionFunction;
 };
 
-export type ActionFunction = () => RawAction;
+export type ActionFunction = () => Promise<Action[]>;
 
 /**
  * A string that contains an Ethereum address.
@@ -114,8 +114,6 @@ export type PermissionMap = Map<RoleHash, Role>;
  * - **Manager**: Entity that will act as the permission manager.
  */
 export type PermissionP = [Entity, Entity, string, Params];
-
-export type RawAction = Action | Action[] | Promise<Action>;
 
 // ---------------------- INTERFACES ----------------------
 

@@ -127,7 +127,7 @@ export default class EVMcrispr {
    * @returns A function that returns the permission action.
    */
   addPermission(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction {
-    return () => {
+    return async () => {
       const [grantee, app, role, getParams = () => []] = permission;
       const params = getParams();
       const [granteeAddress, appAddress, roleHash] = this.#resolvePermission([grantee, app, role]);
@@ -195,7 +195,7 @@ export default class EVMcrispr {
    * @returns A function that returns an array of permission actions.
    */
   addPermissions(permissions: (Permission | PermissionP)[], defaultPermissionManager: Entity): ActionFunction {
-    return () => permissions.map((p) => this.addPermission(p, defaultPermissionManager)() as Action).flat();
+    return normalizeActions(permissions.map((p) => this.addPermission(p, defaultPermissionManager)));
   }
 
   /**
@@ -224,10 +224,10 @@ export default class EVMcrispr {
    * @returns A function that retuns an action to forward an agent call with the specified parameters
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
-    if (!/\w+\(((\w+(\[\])*)+(,\w+(\[\])*)*)?\)/.test(signature)) {
-      throw new Error("Wrong signature format: " + signature + ".");
-    }
-    return () => {
+    return async () => {
+      if (!/\w+\(((\w+(\[\])*)+(,\w+(\[\])*)*)?\)/.test(signature)) {
+        throw new Error("Wrong signature format: " + signature + ".");
+      }
       const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
       const script = encodeCallScript([
         {
@@ -235,10 +235,12 @@ export default class EVMcrispr {
           data: encodeActCall(signature, this.#resolveParams(params, paramTypes)),
         },
       ]);
-      return {
-        to: this.#resolveEntity(agent),
-        data: encodeActCall("forward(bytes)", [script]),
-      };
+      return [
+        {
+          to: this.#resolveEntity(agent),
+          data: encodeActCall("forward(bytes)", [script]),
+        },
+      ];
     };
   }
 
@@ -269,12 +271,17 @@ export default class EVMcrispr {
           };
 
           const fn = (...params: any): ActionFunction => {
-            return () => {
+            return async () => {
               const [targetApp, , paramTypes] = getCallData();
-              return {
-                to: targetApp.address,
-                data: targetApp.abiInterface.encodeFunctionData(functionName, this.#resolveParams(params, paramTypes)),
-              };
+              return [
+                {
+                  to: targetApp.address,
+                  data: targetApp.abiInterface.encodeFunctionData(
+                    functionName,
+                    this.#resolveParams(params, paramTypes)
+                  ),
+                },
+              ];
             };
           };
           // Check in case we're calling a counterfactual app function
@@ -299,18 +306,18 @@ export default class EVMcrispr {
 
   /**
    * Encode a set of actions into one using a path of forwarding apps.
-   * @param actionFunctions The array of action-returning functions to encode.
+   * @param actions The array of action-returning functions to encode.
    * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options The forward options object.
    * @returns A promise that resolves to an object containing the encoded forwarding action as well as
    * any pre-transactions that need to be executed in advance.
    */
   async encode(
-    actionFunctions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction[]),
+    actionFunctions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
     path: Entity[],
     options?: ForwardOptions
   ): Promise<{ action: Action; preTxActions: Action[] }> {
-    const _actionFunctions = Array.isArray(actionFunctions) ? actionFunctions : actionFunctions(this);
+    const _actionFunctions = Array.isArray(actionFunctions) ? actionFunctions : [actionFunctions(this)];
     if (_actionFunctions.length === 0) {
       throw new ErrorInvalid("No actions provided.");
     }
@@ -319,7 +326,7 @@ export default class EVMcrispr {
     }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path.map((entity) => this.#resolveEntity(entity)).reverse();
-    const actions = await normalizeActions(_actionFunctions);
+    const actions = await normalizeActions(_actionFunctions)();
     const preTxActions: Action[] = [];
 
     let script: string;
@@ -388,7 +395,7 @@ export default class EVMcrispr {
    * @returns A promise that resolves to a receipt of the sent transaction.
    */
   async forward(
-    actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction[]),
+    actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
     path: Entity[],
     options?: ForwardOptions
   ): Promise<providers.TransactionReceipt> {
@@ -463,15 +470,17 @@ export default class EVMcrispr {
 
         this.#installedAppCounter++;
 
-        return {
-          to: kernel.address,
-          data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
-            appId,
-            codeAddress,
-            encodedInitializeFunction,
-            false,
-          ]),
-        };
+        return [
+          {
+            to: kernel.address,
+            data: kernel.abiInterface.encodeFunctionData("newAppInstance(bytes32,address,bytes,bool)", [
+              appId,
+              codeAddress,
+              encodedInitializeFunction,
+              false,
+            ]),
+          },
+        ];
       } catch (err: any) {
         err.message = `Error when encoding ${identifier} installation action: ${err.message}`;
         throw err;
@@ -486,7 +495,7 @@ export default class EVMcrispr {
    * @returns A function that returns the revoking actions.
    */
   revokePermission(permission: Permission, removeManager = false): ActionFunction {
-    return () => {
+    return async () => {
       const actions = [];
       const [grantee, app, role] = permission;
       const [entityAddress, appAddress, roleHash] = this.#resolvePermission(permission);
@@ -531,11 +540,7 @@ export default class EVMcrispr {
    * @returns A function that returns the revoking actions.
    */
   revokePermissions(permissions: Permission[], removeManager = false): ActionFunction {
-    return () =>
-      permissions.reduce((actions: Action[], permission) => {
-        const action = this.revokePermission(permission, removeManager)() as Action[];
-        return [...actions, ...action];
-      }, []);
+    return normalizeActions(permissions.map((p) => this.revokePermission(p, removeManager)));
   }
 
   /**

@@ -19,6 +19,5 @@ export {
   LabeledAppIdentifier,
   Permission,
   PermissionP,
-  RawAction,
   Repo,
 } from "./types";

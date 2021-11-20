@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ActionInterpreter } from "../src";
+import { ActionInterpreter, ActionFunction } from "../src";
 import evmcl from "../src/evmcl";
 import { APP } from "./fixtures";
 
@@ -29,7 +29,7 @@ const actionInterpreterMock = {
   ...mockFunction("act"),
 } as unknown as ActionInterpreter;
 
-async function check(actions: (evm: ActionInterpreter) => Promise<any[]>, calls: any[]) {
+async function check(actions: (evm: ActionInterpreter) => ActionFunction, calls: any[]) {
   await actions(actionInterpreterMock);
   expect(_calls).to.be.deep.eq(calls);
 }

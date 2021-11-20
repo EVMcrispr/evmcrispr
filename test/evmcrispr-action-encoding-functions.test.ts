@@ -92,7 +92,7 @@ describe("EVMcrispr action-encoding functions", () => {
       });
     });
 
-    it("encodes a create permission action correctly", () => {
+    it("encodes a create permission action correctly", async () => {
       const newPermission = NEW_PERMISSIONS[0];
       const expectedCreatePermissionAction: Action[] = [
         {
@@ -103,12 +103,12 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedCreatePermissionAction = evmcrispr.addPermission(newPermission, PERMISSION_MANAGER)();
+      const encodedCreatePermissionAction = await evmcrispr.addPermission(newPermission, PERMISSION_MANAGER)();
 
       expect(expectedCreatePermissionAction).eql(encodedCreatePermissionAction);
     });
 
-    it("encodes a grant permission action when permission already exists", () => {
+    it("encodes a grant permission action when permission already exists", async () => {
       const grantPermission = GRANT_PERMISSIONS[0];
       const expectedGrantPermissionAction: Action[] = [
         {
@@ -116,7 +116,7 @@ describe("EVMcrispr action-encoding functions", () => {
           data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(grantPermission)),
         },
       ];
-      const encodedGrantPermissionAction = evmcrispr.addPermission(grantPermission, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.addPermission(grantPermission, PERMISSION_MANAGER)();
 
       expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
     });
@@ -131,12 +131,12 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedGrantPermissionAction = evmcrispr.addPermission(GRANT_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.addPermission(GRANT_PERMISSION_PARAMS, PERMISSION_MANAGER)();
 
       expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
     });
 
-    it("encodes a create permission and grant permission with parameters in the same function", () => {
+    it("encodes a create permission and grant permission with parameters in the same function", async () => {
       const newPermission = NEW_PERMISSIONS[0];
       const expectedCreatePermissionWithParamsAction: Action[] = [
         {
@@ -154,14 +154,14 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedGrantPermissionAction = evmcrispr.addPermission(NEW_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.addPermission(NEW_PERMISSION_PARAMS, PERMISSION_MANAGER)();
 
       expect(expectedCreatePermissionWithParamsAction).eql(encodedGrantPermissionAction);
     });
   });
 
   describe("addPermissions()", () => {
-    it("encodes a set of create permission actions correctly", () => {
+    it("encodes a set of create permission actions correctly", async () => {
       const expectedCreateActions = NEW_PERMISSIONS.map(
         (createPermission): Action => ({
           to: DAO.acl,
@@ -171,11 +171,11 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         })
       );
-      const createActions = evmcrispr.addPermissions(NEW_PERMISSIONS, PERMISSION_MANAGER)();
+      const createActions = await evmcrispr.addPermissions(NEW_PERMISSIONS, PERMISSION_MANAGER)();
 
       expect(createActions).eql(expectedCreateActions);
     });
-    it("encodes a set of grant permission actions correctly", () => {
+    it("encodes a set of grant permission actions correctly", async () => {
       const grantPermissions: Permission[] = GRANT_PERMISSIONS.map(([, app, role]) => ["kernel", app, role]);
       const expectedGrantActions = grantPermissions.map(
         (grantPermission): Action => ({
@@ -183,7 +183,7 @@ describe("EVMcrispr action-encoding functions", () => {
           data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(grantPermission)),
         })
       );
-      const grantActions = evmcrispr.addPermissions(
+      const grantActions = await evmcrispr.addPermissions(
         grantPermissions.map((p) => resolvePermission(p)),
         PERMISSION_MANAGER
       )();
@@ -246,45 +246,39 @@ describe("EVMcrispr action-encoding functions", () => {
     );
 
     it("fails when receiving an invalid signature", async () => {
+      await expectThrowAsync(evmcrispr.act("agent", target, "mint", []), undefined, "Wrong signature format: mint");
+      await expectThrowAsync(evmcrispr.act("agent", target, "mint(", []), undefined, "Wrong signature format: mint(");
       await expectThrowAsync(
-        () => evmcrispr.act("agent", target, "mint", []),
-        undefined,
-        "Wrong signature format: mint"
-      );
-      await expectThrowAsync(
-        () => evmcrispr.act("agent", target, "mint(", []),
-        undefined,
-        "Wrong signature format: mint("
-      );
-      await expectThrowAsync(
-        () => evmcrispr.act("agent", target, "mint(uint,)", []),
+        evmcrispr.act("agent", target, "mint(uint,)", []),
         undefined,
         "Wrong signature format: mint(uint,)"
       );
       await expectThrowAsync(
-        () => evmcrispr.act("agent", target, "mint(,uint)", []),
+        evmcrispr.act("agent", target, "mint(,uint)", []),
         undefined,
         "Wrong signature format: mint(,uint)"
       );
     });
     it("encodes an act action correctly", async () => {
       const { actTarget, actSignature, actSignatureParams, actSignatureUnresolvedParams } = APP;
-      const expectedCallAction: Action = {
-        to: DAO.vault,
-        data: encodeActCall("forward(bytes)", [
-          encodeCallScript([
-            {
-              to: actTarget,
-              data: encodeActCall(actSignature, actSignatureParams),
-            },
+      const expectedCallAction: Action[] = [
+        {
+          to: DAO.vault,
+          data: encodeActCall("forward(bytes)", [
+            encodeCallScript([
+              {
+                to: actTarget,
+                data: encodeActCall(actSignature, actSignatureParams),
+              },
+            ]),
           ]),
-        ]),
-      };
-      const callAction = evmcrispr.act("vault", actTarget, actSignature, actSignatureParams)(); // TODO: Change it with an agent
+        },
+      ];
+      const callAction = await evmcrispr.act("vault", actTarget, actSignature, actSignatureParams)(); // TODO: Change it with an agent
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = evmcrispr.act("vault", actTarget, actSignature, actSignatureUnresolvedParams)(); // TODO: Change it with an agent
-      expect(callActionUnresolved).eql(expectedCallAction);
+      const callActionUnres = await evmcrispr.act("vault", actTarget, actSignature, actSignatureUnresolvedParams)(); // TODO: Change it with an agent
+      expect(callActionUnres).eql(expectedCallAction);
     });
   });
 
@@ -300,17 +294,21 @@ describe("EVMcrispr action-encoding functions", () => {
       await expectThrowAsync(evmcrispr.call("token-manager").mint(), undefined, "Invalid method's parameters");
     });
     // TODO Check that params can be resolve (pass evmcrispr.app())
-    it("encodes a call method correctly", () => {
+    it("encodes a call method correctly", async () => {
       const { callSignature, callSignatureParams, callSignatureUnresolvedParams } = APP;
       const callMethod = callSignature.split("(")[0];
-      const expectedCallAction: Action = {
-        to: DAO[APP.appIdentifier],
-        data: encodeActCall(callSignature, callSignatureParams),
-      };
-      const callAction = evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureParams)();
+      const expectedCallAction: Action[] = [
+        {
+          to: DAO[APP.appIdentifier],
+          data: encodeActCall(callSignature, callSignatureParams),
+        },
+      ];
+      const callAction = await evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureParams)();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureUnresolvedParams)();
+      const callActionUnresolved = await evmcrispr
+        .call(APP.appIdentifier)
+        [callMethod](...callSignatureUnresolvedParams)();
       expect(callActionUnresolved).eql(expectedCallAction);
     });
 
@@ -373,15 +371,17 @@ describe("EVMcrispr action-encoding functions", () => {
     it("encodes an installation action correctly", async () => {
       const { appId, appIdentifier, codeAddress, initializeParams, initializeUnresolvedParams, initializeSignature } =
         APP;
-      const expectedEncodedAction: Action = {
-        to: DAO.kernel.toLowerCase(),
-        data: encodeActCall("newAppInstance(bytes32,address,bytes,bool)", [
-          appId,
-          codeAddress,
-          encodeActCall(initializeSignature, initializeParams),
-          false,
-        ]),
-      };
+      const expectedEncodedAction: Action[] = [
+        {
+          to: DAO.kernel.toLowerCase(),
+          data: encodeActCall("newAppInstance(bytes32,address,bytes,bool)", [
+            appId,
+            codeAddress,
+            encodeActCall(initializeSignature, initializeParams),
+            false,
+          ]),
+        },
+      ];
       const encodedAction = await evmcrispr.installNewApp(`${appIdentifier}:new-app`, initializeParams)();
 
       expect(encodedAction).eql(expectedEncodedAction);
@@ -418,7 +418,7 @@ describe("EVMcrispr action-encoding functions", () => {
   describe("revokePermission()", () => {
     testBadPermission((badPermission) => evmcrispr.revokePermission(badPermission, true));
 
-    it("encodes a revoke permission and remove manager action correctly", () => {
+    it("encodes a revoke permission and remove manager action correctly", async () => {
       const revokePermission = REVOKE_PERMISSIONS[0];
       const resolvedRevokePermission = resolvePermission(revokePermission);
       const expectedRevokeAction: Action = {
@@ -429,19 +429,19 @@ describe("EVMcrispr action-encoding functions", () => {
         to: DAO.acl.toLowerCase(),
         data: encodeActCall("removePermissionManager(address,bytes32)", resolvedRevokePermission.slice(1, 3)),
       };
-      const actions = evmcrispr.revokePermission(revokePermission, true)() as Action[];
+      const actions = await evmcrispr.revokePermission(revokePermission, true)();
 
       expect(actions).eql([expectedRevokeAction, expectedRemoveManagerAction]);
     });
 
-    it("doesn't encode a remove manager action when told not to`", () => {
-      const actions = evmcrispr.revokePermission(["voting", "voting", "MODIFY_QUORUM_ROLE"], false)() as Action[];
+    it("doesn't encode a remove manager action when told not to`", async () => {
+      const actions = await evmcrispr.revokePermission(["voting", "voting", "MODIFY_QUORUM_ROLE"], false)();
 
       expect(actions.length).eq(1);
     });
 
     it("fails when revoking a permission from an entity that doesn't have it", async () => {
-      const [_, app, role] = REVOKE_PERMISSIONS[0];
+      const [, app, role] = REVOKE_PERMISSIONS[0];
       await expectThrowAsync(evmcrispr.revokePermission(["evm-script-registry", app, role], true), {
         type: ErrorNotFound,
         name: "ErrorPermissionNotFound",
@@ -450,7 +450,7 @@ describe("EVMcrispr action-encoding functions", () => {
   });
 
   describe("revokePermissions()", () => {
-    it("encodes a set of revoke permissions and permission manager actions correctly", () => {
+    it("encodes a set of revoke permissions and permission manager actions correctly", async () => {
       const expectedRevokeActions = REVOKE_PERMISSIONS.reduce((revokingActions: Action[], permission) => {
         const resolvedPermission = resolvePermission(permission);
         return [
@@ -462,7 +462,7 @@ describe("EVMcrispr action-encoding functions", () => {
           },
         ];
       }, []);
-      const revokeActions = evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true)();
+      const revokeActions = await evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true)();
 
       expect(revokeActions).eql(expectedRevokeActions);
     });

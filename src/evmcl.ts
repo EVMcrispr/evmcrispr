@@ -1,4 +1,4 @@
-import { ActionInterpreter, Action } from "src";
+import { ActionInterpreter, ActionFunction } from "src";
 import { normalizeActions } from "./helpers";
 
 function _boolean(arg: string): boolean | undefined {
@@ -28,13 +28,13 @@ function _params(params: string[]): any[] {
 export default function evmcl(
   strings: TemplateStringsArray,
   ...keys: string[]
-): (evm: ActionInterpreter) => Promise<Action[]> {
+): (evm: ActionInterpreter) => ActionFunction {
   const input = strings[0] + keys.map((key, i) => key + strings[i + 1]).join("");
   const commands = input
     .split("\n")
     .map((command) => command.trim())
     .filter((command) => !!command);
-  return async (evmcrispr: ActionInterpreter) => {
+  return (evmcrispr: ActionInterpreter) => {
     return normalizeActions(
       commands.map((command) => {
         const [commandName, ...args] = command.split(" ");
