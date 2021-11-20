@@ -79,9 +79,9 @@
 				<p>The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke these methods inside an <code>encode()</code> or <code>forward()</code> to build the script. Here is an example of it:</p>
 				<pre><code class="language-js"><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">forward</span><span style="color: #000000">(</span>
 <span style="color: #000000">  [</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">installNewApp</span><span style="color: #000000">(</span><span style="color: #001080">app</span><span style="color: #000000">, </span><span style="color: #001080">params</span><span style="color: #000000">),</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">addPermissions</span><span style="color: #000000">([</span><span style="color: #001080">permission1</span><span style="color: #000000">, </span><span style="color: #001080">permission2</span><span style="color: #000000">, </span><span style="color: #001080">permission3</span><span style="color: #000000">]),</span>
-<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">revokePermission</span><span style="color: #000000">(</span><span style="color: #001080">permission</span><span style="color: #000000">, </span><span style="color: #001080">removeManager</span><span style="color: #000000">),</span>
+<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">install</span><span style="color: #000000">(</span><span style="color: #001080">app</span><span style="color: #000000">, </span><span style="color: #001080">params</span><span style="color: #000000">),</span>
+<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">grantPermissions</span><span style="color: #000000">([</span><span style="color: #001080">permission1</span><span style="color: #000000">, </span><span style="color: #001080">permission2</span><span style="color: #000000">, </span><span style="color: #001080">permission3</span><span style="color: #000000">]),</span>
+<span style="color: #000000">    </span><span style="color: #001080">evmcrispr</span><span style="color: #000000">.</span><span style="color: #795E26">revoke</span><span style="color: #000000">(</span><span style="color: #001080">permission</span><span style="color: #000000">, </span><span style="color: #001080">removeManager</span><span style="color: #000000">),</span>
 <span style="color: #000000">    </span><span style="color: #008000">// ...</span>
 <span style="color: #000000">  ],</span>
 <span style="color: #000000">  </span><span style="color: #008000">// forwarder apps path.</span>
@@ -148,7 +148,7 @@
 					<li><code>xor(param1, param2)</code>: Same as the previous one with the XOR logical function.</li>
 					<li><code>iif(param).then(param).else(param)</code>: Ternary operator for more complex logic expressions.</li>
 				</ul>
-				<p>They can be used within the forth parameter of <code>addPermission(entity, app, role, params)</code> function.</p>
+				<p>They can be used within the forth parameter of <code>grant(entity, app, role, params)</code> function.</p>
 				<a href="#other-examples" id="other-examples" style="color: inherit; text-decoration: none;">
 					<h2>Other examples</h2>
 				</a>
@@ -236,9 +236,6 @@
 					</li>
 					<li class=" tsd-kind-type-alias">
 						<a href="modules.html#PermissionP" class="tsd-kind-icon">PermissionP</a>
-					</li>
-					<li class=" tsd-kind-type-alias">
-						<a href="modules.html#RawAction" class="tsd-kind-icon">Raw<wbr>Action</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="modules.html#blockNumber" class="tsd-kind-icon">block<wbr>Number</a>
