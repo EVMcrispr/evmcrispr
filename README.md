@@ -25,9 +25,9 @@ The library exposes a series of methods that allows you to encode different acti
 ```js
 await evmcrispr.forward(
   [
-    evmcrispr.installNewApp(app, params),
-    evmcrispr.addPermissions([permission1, permission2, permission3]),
-    evmcrispr.revokePermission(permission, removeManager),
+    evmcrispr.install(app, params),
+    evmcrispr.grantPermissions([permission1, permission2, permission3]),
+    evmcrispr.revoke(permission, removeManager),
     // ...
   ],
   // forwarder apps path.
@@ -104,7 +104,7 @@ The following utils can be used to encode complex [permission parameters](https:
 - `xor(param1, param2)`: Same as the previous one with the XOR logical function.
 - `iif(param).then(param).else(param)`: Ternary operator for more complex logic expressions.
 
-They can be used within the forth parameter of `addPermission(entity, app, role, params)` function.
+They can be used within the forth parameter of `grant(entity, app, role, params)` function.
 
 ## Other examples
 

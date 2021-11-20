@@ -3,40 +3,40 @@ import { ActionInterpreter, ActionFunction } from "../src";
 import evmcl from "../src/evmcl";
 import { APP } from "./fixtures";
 
-let _calls: any[];
+let _exec: any[];
 
 const mockFunction = (func: string) => ({
   [func]: (...params: any[]) => {
-    _calls.push({ func, params });
+    _exec.push({ func, params });
     return () => [];
   },
 });
 
-const mockCallFunction = (method: string) => ({
-  call: (id: string) => ({
+const mockExecFunction = (method: string) => ({
+  exec: (id: string) => ({
     [method]: (...params: any[]) => {
-      _calls.push({ func: "call", id, method, params });
+      _exec.push({ func: "exec", id, method, params });
       return () => [];
     },
   }),
 });
 
 const actionInterpreterMock = {
-  ...mockFunction("installNewApp"),
-  ...mockFunction("addPermission"),
-  ...mockFunction("revokePermission"),
-  ...mockCallFunction("newVote"),
+  ...mockFunction("install"),
+  ...mockFunction("grant"),
+  ...mockFunction("revoke"),
+  ...mockExecFunction("newVote"),
   ...mockFunction("act"),
 } as unknown as ActionInterpreter;
 
 async function check(actions: (evm: ActionInterpreter) => ActionFunction, calls: any[]) {
   await actions(actionInterpreterMock);
-  expect(_calls).to.be.deep.eq(calls);
+  expect(_exec).to.be.deep.eq(calls);
 }
 
 describe("EVM Command Line", () => {
   beforeEach(() => {
-    _calls = [];
+    _exec = [];
   });
 
   it("install token-manager:new param1 param2 param3", async () => {
@@ -47,7 +47,7 @@ describe("EVM Command Line", () => {
       `,
       [
         {
-          func: "installNewApp",
+          func: "install",
           params: ["token-manager:new", APP.initializeParams.map((p) => p.toString())],
         },
       ]
@@ -60,7 +60,7 @@ describe("EVM Command Line", () => {
       `,
       [
         {
-          func: "addPermission",
+          func: "grant",
           params: [["voting", "token-manager", "MINT_ROLE"], undefined],
         },
       ]
@@ -73,7 +73,7 @@ describe("EVM Command Line", () => {
       `,
       [
         {
-          func: "revokePermission",
+          func: "revoke",
           params: [["voting", "token-manager", "MINT_ROLE"], undefined],
         },
       ]
@@ -86,7 +86,7 @@ describe("EVM Command Line", () => {
       `,
       [
         {
-          func: "call",
+          func: "exec",
           id: "voting",
           method: "newVote",
           params: ["Hello", "0x0"],
@@ -101,7 +101,7 @@ describe("EVM Command Line", () => {
       `,
       [
         {
-          func: "call",
+          func: "exec",
           id: "voting",
           method: "newVote",
           params: ["Hello", ["0x0", ["3e21", "2"]]],

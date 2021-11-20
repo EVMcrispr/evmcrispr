@@ -41,20 +41,20 @@ export default function evmcl(
         switch (commandName) {
           case "install": {
             const [identifier, ...initParams] = args;
-            return evmcrispr.installNewApp(identifier, initParams);
+            return evmcrispr.install(identifier, initParams);
           }
           case "grant": {
             const [grantee, app, role, defaultPermissionManager] = args;
-            return evmcrispr.addPermission([grantee, app, role], defaultPermissionManager);
+            return evmcrispr.grant([grantee, app, role], defaultPermissionManager);
           }
           case "revoke": {
             const [grantee, app, role, _removePermissionManager] = args;
             const removePermissionManager = _boolean(_removePermissionManager);
-            return evmcrispr.revokePermission([grantee, app, role], removePermissionManager);
+            return evmcrispr.revoke([grantee, app, role], removePermissionManager);
           }
           case "exec": {
             const [identifier, method, ...params] = args;
-            return evmcrispr.call(identifier)[method](..._params(params));
+            return evmcrispr.exec(identifier)[method](..._params(params));
           }
           case "act": {
             const [agent, target, signature, ...params] = args;

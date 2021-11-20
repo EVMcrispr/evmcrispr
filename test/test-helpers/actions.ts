@@ -26,7 +26,7 @@ export const createTestCallAction = (appAddress: Address, functionSignature: str
 
 export const createTestAction = (operation: string, to: Address, parameters: any[]): Action => {
   switch (operation) {
-    case "addPermission":
+    case "createPermission":
       return {
         to,
         data: encodeActCall("createPermission(address,address,bytes32,address)", parameters),
@@ -36,7 +36,7 @@ export const createTestAction = (operation: string, to: Address, parameters: any
         to,
         data: encodeActCall("grantPermission(address,address,bytes32)", parameters),
       };
-    case "installNewApp":
+    case "newAppInstance":
       return {
         to,
         data: encodeActCall("newAppInstance(bytes32,address,bytes,bool)", parameters),

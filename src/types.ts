@@ -7,11 +7,11 @@ export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
 // ---------------------- TYPES ----------------------
 
 export type ActionInterpreter = {
-  installNewApp(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
-  call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
+  install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
+  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction;
-  addPermission(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction;
-  revokePermission(permission: Permission, removeManager: boolean | undefined): ActionFunction;
+  grant(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction;
+  revoke(permission: Permission, removeManager: boolean | undefined): ActionFunction;
 };
 
 export type ActionFunction = () => Promise<Action[]>;

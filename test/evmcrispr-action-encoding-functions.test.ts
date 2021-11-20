@@ -74,20 +74,20 @@ describe("EVMcrispr action-encoding functions", () => {
     });
   };
 
-  describe("addPermission()", () => {
-    testBadPermission((badPermission) => evmcrispr.addPermission(badPermission, "voting"));
+  describe("grant()", () => {
+    testBadPermission((badPermission) => evmcrispr.grant(badPermission, "voting"));
 
     it(
       "fails when receiving an invalid identifier as the permission manager",
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.addPermission(["voting", "token-manager", "MINT_ROLE"], badIdentifier),
+        (badIdentifier) => evmcrispr.grant(["voting", "token-manager", "MINT_ROLE"], badIdentifier),
         false,
         false
       )
     );
 
     it("fails when granting a permission to the same entity twice", async () => {
-      await expectThrowAsync(evmcrispr.addPermission(["voting", "token-manager", "MINT_ROLE"], "voting"), {
+      await expectThrowAsync(evmcrispr.grant(["voting", "token-manager", "MINT_ROLE"], "voting"), {
         type: ErrorException,
       });
     });
@@ -103,7 +103,7 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedCreatePermissionAction = await evmcrispr.addPermission(newPermission, PERMISSION_MANAGER)();
+      const encodedCreatePermissionAction = await evmcrispr.grant(newPermission, PERMISSION_MANAGER)();
 
       expect(expectedCreatePermissionAction).eql(encodedCreatePermissionAction);
     });
@@ -116,7 +116,7 @@ describe("EVMcrispr action-encoding functions", () => {
           data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(grantPermission)),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.addPermission(grantPermission, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.grant(grantPermission, PERMISSION_MANAGER)();
 
       expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
     });
@@ -131,7 +131,7 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.addPermission(GRANT_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.grant(GRANT_PERMISSION_PARAMS, PERMISSION_MANAGER)();
 
       expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
     });
@@ -154,13 +154,13 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.addPermission(NEW_PERMISSION_PARAMS, PERMISSION_MANAGER)();
+      const encodedGrantPermissionAction = await evmcrispr.grant(NEW_PERMISSION_PARAMS, PERMISSION_MANAGER)();
 
       expect(expectedCreatePermissionWithParamsAction).eql(encodedGrantPermissionAction);
     });
   });
 
-  describe("addPermissions()", () => {
+  describe("grantPermissions()", () => {
     it("encodes a set of create permission actions correctly", async () => {
       const expectedCreateActions = NEW_PERMISSIONS.map(
         (createPermission): Action => ({
@@ -171,7 +171,7 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         })
       );
-      const createActions = await evmcrispr.addPermissions(NEW_PERMISSIONS, PERMISSION_MANAGER)();
+      const createActions = await evmcrispr.grantPermissions(NEW_PERMISSIONS, PERMISSION_MANAGER)();
 
       expect(createActions).eql(expectedCreateActions);
     });
@@ -183,7 +183,7 @@ describe("EVMcrispr action-encoding functions", () => {
           data: encodeActCall("grantPermission(address,address,bytes32)", resolvePermission(grantPermission)),
         })
       );
-      const grantActions = await evmcrispr.addPermissions(
+      const grantActions = await evmcrispr.grantPermissions(
         grantPermissions.map((p) => resolvePermission(p)),
         PERMISSION_MANAGER
       )();
@@ -228,7 +228,7 @@ describe("EVMcrispr action-encoding functions", () => {
     it("is updated when a new app is installed", async () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new`;
-      await evmcrispr.installNewApp(appLabeledIdentifier, initializeParams)();
+      await evmcrispr.install(appLabeledIdentifier, initializeParams)();
       expect(evmcrispr.apps()).to.be.length(10).and.to.include(appLabeledIdentifier);
     });
   });
@@ -282,16 +282,16 @@ describe("EVMcrispr action-encoding functions", () => {
     });
   });
 
-  describe("call()", () => {
+  describe("exec()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier((badIdentifier) => evmcrispr.call(badIdentifier), false, false)
+      isValidIdentifier((badIdentifier) => evmcrispr.exec(badIdentifier), false, false)
     );
 
     it("fails when calling an invalid method", async () => {
-      await expectThrowAsync(() => evmcrispr.call("token-manager").unknownMethod, undefined, "Unknown method");
+      await expectThrowAsync(() => evmcrispr.exec("token-manager").unknownMethod, undefined, "Unknown method");
 
-      await expectThrowAsync(evmcrispr.call("token-manager").mint(), undefined, "Invalid method's parameters");
+      await expectThrowAsync(evmcrispr.exec("token-manager").mint(), undefined, "Invalid method's parameters");
     });
     // TODO Check that params can be resolve (pass evmcrispr.app())
     it("encodes a call method correctly", async () => {
@@ -303,17 +303,17 @@ describe("EVMcrispr action-encoding functions", () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr.call(APP.appIdentifier)[callMethod](...callSignatureParams)();
+      const callAction = await evmcrispr.exec(APP.appIdentifier)[callMethod](...callSignatureParams)();
       expect(callAction).eql(expectedCallAction);
 
       const callActionUnresolved = await evmcrispr
-        .call(APP.appIdentifier)
+        .exec(APP.appIdentifier)
         [callMethod](...callSignatureUnresolvedParams)();
       expect(callActionUnresolved).eql(expectedCallAction);
     });
 
     it("can enumerate non-constant function calls", () => {
-      const keys = Object.getOwnPropertyNames(evmcrispr.call("token-manager"));
+      const keys = Object.getOwnPropertyNames(evmcrispr.exec("token-manager"));
       expect(keys).include.members([
         "assignVested",
         "mint",
@@ -330,39 +330,39 @@ describe("EVMcrispr action-encoding functions", () => {
     });
 
     it("can enumerate parameter names of a function", () => {
-      const paramTypes = evmcrispr.call("token-manager").mint.paramNames;
+      const paramTypes = evmcrispr.exec("token-manager").mint.paramNames;
       expect(paramTypes).to.be.eql(["_receiver", "_amount"]);
     });
 
     it("can enumerate parameter types of a function", () => {
-      const paramTypes = evmcrispr.call("token-manager").mint.paramTypes;
+      const paramTypes = evmcrispr.exec("token-manager").mint.paramTypes;
       expect(paramTypes).to.be.eql(["address", "uint256"]);
     });
 
     it("throws an error when enumerating parameter names and types of a function", async () => {
       await expectThrowAsync(
-        () => evmcrispr.call("token-manager").unknownMethod.paramNames,
+        () => evmcrispr.exec("token-manager").unknownMethod.paramNames,
         undefined,
         "Unknown method"
       );
       await expectThrowAsync(
-        () => evmcrispr.call("token-manager").unknownMethod.paramTypes,
+        () => evmcrispr.exec("token-manager").unknownMethod.paramTypes,
         undefined,
         "Unknown method"
       );
     });
   });
 
-  describe("installNewApp()", () => {
+  describe("install()", () => {
     it(
       "fails when receiving an invalid identifier",
-      isValidIdentifier((badIdentifier) => evmcrispr.installNewApp(badIdentifier), false, false)
+      isValidIdentifier((badIdentifier) => evmcrispr.install(badIdentifier), false, false)
     );
 
     it("fails when doesn't find the app's repo", async () => {
       const noRepoIdentifier = "non-existent-repo.open:new-app";
 
-      await expectThrowAsync(evmcrispr.installNewApp(noRepoIdentifier), {
+      await expectThrowAsync(evmcrispr.install(noRepoIdentifier), {
         type: ErrorNotFound,
         name: "ErrorRepoNotFound",
       });
@@ -382,11 +382,11 @@ describe("EVMcrispr action-encoding functions", () => {
           ]),
         },
       ];
-      const encodedAction = await evmcrispr.installNewApp(`${appIdentifier}:new-app`, initializeParams)();
+      const encodedAction = await evmcrispr.install(`${appIdentifier}:new-app`, initializeParams)();
 
       expect(encodedAction).eql(expectedEncodedAction);
 
-      const encodedActionUnresolved = await evmcrispr.installNewApp(
+      const encodedActionUnresolved = await evmcrispr.install(
         `${appIdentifier}:new-app2`,
         initializeUnresolvedParams
       )();
@@ -397,7 +397,7 @@ describe("EVMcrispr action-encoding functions", () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new-app`;
 
-      await evmcrispr.installNewApp(appLabeledIdentifier, initializeParams)();
+      await evmcrispr.install(appLabeledIdentifier, initializeParams)();
 
       const installedAppAddress = evmcrispr.app(appLabeledIdentifier);
 
@@ -407,16 +407,16 @@ describe("EVMcrispr action-encoding functions", () => {
     it("fails when installing apps with the same label", async () => {
       const { initializeParams } = APP;
 
-      await evmcrispr.installNewApp("token-manager:same-label", initializeParams)();
+      await evmcrispr.install("token-manager:same-label", initializeParams)();
 
-      await expectThrowAsync(evmcrispr.installNewApp("token-manager:same-label", initializeParams), {
+      await expectThrowAsync(evmcrispr.install("token-manager:same-label", initializeParams), {
         type: ErrorException,
       });
     });
   });
 
-  describe("revokePermission()", () => {
-    testBadPermission((badPermission) => evmcrispr.revokePermission(badPermission, true));
+  describe("revoke()", () => {
+    testBadPermission((badPermission) => evmcrispr.revoke(badPermission, true));
 
     it("encodes a revoke permission and remove manager action correctly", async () => {
       const revokePermission = REVOKE_PERMISSIONS[0];
@@ -429,20 +429,20 @@ describe("EVMcrispr action-encoding functions", () => {
         to: DAO.acl.toLowerCase(),
         data: encodeActCall("removePermissionManager(address,bytes32)", resolvedRevokePermission.slice(1, 3)),
       };
-      const actions = await evmcrispr.revokePermission(revokePermission, true)();
+      const actions = await evmcrispr.revoke(revokePermission, true)();
 
       expect(actions).eql([expectedRevokeAction, expectedRemoveManagerAction]);
     });
 
     it("doesn't encode a remove manager action when told not to`", async () => {
-      const actions = await evmcrispr.revokePermission(["voting", "voting", "MODIFY_QUORUM_ROLE"], false)();
+      const actions = await evmcrispr.revoke(["voting", "voting", "MODIFY_QUORUM_ROLE"], false)();
 
       expect(actions.length).eq(1);
     });
 
     it("fails when revoking a permission from an entity that doesn't have it", async () => {
       const [, app, role] = REVOKE_PERMISSIONS[0];
-      await expectThrowAsync(evmcrispr.revokePermission(["evm-script-registry", app, role], true), {
+      await expectThrowAsync(evmcrispr.revoke(["evm-script-registry", app, role], true), {
         type: ErrorNotFound,
         name: "ErrorPermissionNotFound",
       });

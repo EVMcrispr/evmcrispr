@@ -126,7 +126,7 @@ export default class EVMcrispr {
    * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
    * @returns A function that returns the permission action.
    */
-  addPermission(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction {
+  grant(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction {
     return async () => {
       const [grantee, app, role, getParams = () => []] = permission;
       const params = getParams();
@@ -194,8 +194,8 @@ export default class EVMcrispr {
    * of every permission created.
    * @returns A function that returns an array of permission actions.
    */
-  addPermissions(permissions: (Permission | PermissionP)[], defaultPermissionManager: Entity): ActionFunction {
-    return normalizeActions(permissions.map((p) => this.addPermission(p, defaultPermissionManager)));
+  grantPermissions(permissions: (Permission | PermissionP)[], defaultPermissionManager: Entity): ActionFunction {
+    return normalizeActions(permissions.map((p) => this.grant(p, defaultPermissionManager)));
   }
 
   /**
@@ -250,7 +250,7 @@ export default class EVMcrispr {
    * @returns A proxy of the app that intercepts contract function calls and returns
    * the encoded call instead.
    */
-  call(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
+  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
     const app = () => this.#resolveApp(appIdentifier);
     const artifactCache = this.#appArtifactCache;
     return new Proxy(app, {
@@ -427,7 +427,7 @@ export default class EVMcrispr {
    * @param initParams Parameters to initialize the app.
    * @returns A function which returns a promise that resolves to the installation action.
    */
-  installNewApp(identifier: LabeledAppIdentifier, initParams: any[] = []): ActionFunction {
+  install(identifier: LabeledAppIdentifier, initParams: any[] = []): ActionFunction {
     return async () => {
       try {
         const [appName, registry] = parseLabeledAppIdentifier(identifier);
@@ -494,7 +494,7 @@ export default class EVMcrispr {
    * @param removeManager A boolean that indicates whether or not to remove the permission manager.
    * @returns A function that returns the revoking actions.
    */
-  revokePermission(permission: Permission, removeManager = false): ActionFunction {
+  revoke(permission: Permission, removeManager = false): ActionFunction {
     return async () => {
       const actions = [];
       const [grantee, app, role] = permission;
@@ -540,7 +540,7 @@ export default class EVMcrispr {
    * @returns A function that returns the revoking actions.
    */
   revokePermissions(permissions: Permission[], removeManager = false): ActionFunction {
-    return normalizeActions(permissions.map((p) => this.revokePermission(p, removeManager)));
+    return normalizeActions(permissions.map((p) => this.revoke(p, removeManager)));
   }
 
   /**

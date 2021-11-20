@@ -50,17 +50,17 @@ describe("EVMcrispr script-encoding functions", () => {
 
     const grantPermission = GRANT_PERMISSIONS[0];
     // Prepare test actions
-    const installAction = createTestAction("installNewApp", kernel, [
+    const installAction = createTestAction("newAppInstance", kernel, [
       appId,
       codeAddress,
       encodeActCall(initializeSignature, initializeParams),
       false,
     ]);
     const addPermissionAction = NEW_PERMISSIONS.map((p) =>
-      createTestAction("addPermission", acl, [...resolvePermission(p), resolveApp(PERMISSION_MANAGER)])
+      createTestAction("createPermission", acl, [...resolvePermission(p), resolveApp(PERMISSION_MANAGER)])
     );
     const grantPermissionAction = createTestAction("grantPermission", acl, resolvePermission(grantPermission));
-    const revokePermissionActions = REVOKE_PERMISSIONS.reduce((actions: Action[], currentPermission) => {
+    const revokeActions = REVOKE_PERMISSIONS.reduce((actions: Action[], currentPermission) => {
       const resolvedPermission = resolvePermission(currentPermission);
       return [
         ...actions,
@@ -72,20 +72,14 @@ describe("EVMcrispr script-encoding functions", () => {
       to: resolveApp(appIdentifier),
       data: encodeActCall(callSignature, callSignatureParams),
     };
-    expectedActions = [
-      installAction,
-      ...addPermissionAction,
-      grantPermissionAction,
-      ...revokePermissionActions,
-      callAppAction,
-    ];
+    expectedActions = [installAction, ...addPermissionAction, grantPermissionAction, ...revokeActions, callAppAction];
 
     // Prepare EVMcrispr action functions
     actionFunctions = [
-      evmcrispr.installNewApp(`${appIdentifier}:new-app`, initializeParams),
-      evmcrispr.addPermissions([...NEW_PERMISSIONS, grantPermission], PERMISSION_MANAGER),
+      evmcrispr.install(`${appIdentifier}:new-app`, initializeParams),
+      evmcrispr.grantPermissions([...NEW_PERMISSIONS, grantPermission], PERMISSION_MANAGER),
       evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true),
-      evmcrispr.call(`${appIdentifier}`)[callSelector](...callSignatureParams),
+      evmcrispr.exec(`${appIdentifier}`)[callSelector](...callSignatureParams),
     ];
   });
 
@@ -110,7 +104,7 @@ describe("EVMcrispr script-encoding functions", () => {
       await expectThrowAsync(
         () =>
           evmcrispr.encode(
-            [evmcrispr.call(`${appIdentifier}`)[callSelector](...callSignatureParams)],
+            [evmcrispr.exec(`${appIdentifier}`)[callSelector](...callSignatureParams)],
             COMPLETE_FORWARDER_PATH
           ),
         { type: ErrorInvalid }
@@ -140,7 +134,7 @@ describe("EVMcrispr script-encoding functions", () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
       const expectedEncodedScriptAction = await evmcrispr.encode(
-        [evmcrispr.call(`${appIdentifier}`)[callSelector](...callSignatureParams)],
+        [evmcrispr.exec(`${appIdentifier}`)[callSelector](...callSignatureParams)],
         COMPLETE_FORWARDER_PATH,
         { context: CONTEXT }
       );
