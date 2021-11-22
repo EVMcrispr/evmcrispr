@@ -120,6 +120,10 @@ export default class EVMcrispr {
     return this._connector;
   }
 
+  get signer(): Signer {
+    return this.#signer;
+  }
+
   /**
    * Encode an action that creates a new app permission or grant it if it already exists.
    * @param permission The permission to create.
