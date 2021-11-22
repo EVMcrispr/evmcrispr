@@ -481,5 +481,15 @@ describe("EVMcrispr action-encoding functions", () => {
       const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
+
+    it("encodes an ACL oracle parameter from a counterfactual app", async () => {
+      const { appIdentifier, initializeParams } = APP;
+      const oracleF = evmcrispr.setOracle(`${appIdentifier}:new-oracle`);
+      await evmcrispr.install(`${appIdentifier}:new-oracle`, initializeParams)();
+      const app = evmcrispr.app(`${appIdentifier}:new-oracle`);
+      const oracle = oracleF();
+      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      expect(expectedOracle).eql(oracle);
+    });
   });
 });
