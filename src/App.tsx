@@ -46,7 +46,7 @@ act agent:new-agent -token:tokens.honeyswap.org:WXDAI withdraw(uint256) 100e18
 exec agent:new-agent transfer -token:XDAI vault 100e18
 `);
   useEffect(() => {
-    provider.getSigner().getAddress().then(setAddress);
+    provider.getSigner().getAddress().then(setAddress).catch(() => setAddress(""));
   }, [provider]);
   const addressShortened = `${address.substr(0,4)}..${address.substr(-4)}`;
   async function onForward() {
