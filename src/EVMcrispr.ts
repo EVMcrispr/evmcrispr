@@ -133,8 +133,15 @@ export default class EVMcrispr {
   grant(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction {
     return async () => {
       const [grantee, app, role, getParams = () => []] = permission;
-      const params = getParams();
       const [granteeAddress, appAddress, roleHash] = this.#resolvePermission([grantee, app, role]);
+
+      if (!defaultPermissionManager) {
+        throw new ErrorInvalid(`Permission not well formed, permission manager missing`, {
+          name: "ErrorInvalidIdentifier",
+        });
+      }
+
+      const params = getParams();
       const manager = this.#resolveEntity(defaultPermissionManager);
       const { permissions: appPermissions } = this.#resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } = this.#resolveApp("acl");
@@ -710,6 +717,21 @@ export default class EVMcrispr {
   }
 
   #resolvePermission(permission: Permission): [Address, Address, string] {
+    if (!permission[0]) {
+      throw new ErrorInvalid(`Permission not well formed, grantee missing`, {
+        name: "ErrorInvalidIdentifier",
+      });
+    }
+    if (!permission[1]) {
+      throw new ErrorInvalid(`Permission not well formed, app missing`, {
+        name: "ErrorInvalidIdentifier",
+      });
+    }
+    if (!permission[2]) {
+      throw new ErrorInvalid(`Permission not well formed, role missing`, {
+        name: "ErrorInvalidIdentifier",
+      });
+    }
     return permission.map((entity, index) =>
       index < permission.length - 1 ? this.#resolveEntity(entity) : normalizeRole(entity)
     ) as [Address, Address, string];
