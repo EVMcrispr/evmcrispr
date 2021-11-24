@@ -32,6 +32,7 @@ export default function evmcl(
   const input = strings[0] + keys.map((key, i) => key + strings[i + 1]).join("");
   const commands = input
     .split("\n")
+    .map((command) => command.split("#")[0])
     .map((command) => command.trim())
     .filter((command) => !!command);
   return (evmcrispr: ActionInterpreter) => {
