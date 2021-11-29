@@ -10,6 +10,3 @@ export * from "./normalizers";
 export * from "./parsers";
 export * from "./queries";
 export * from "./web3";
-
-export const TX_GAS_LIMIT = 10_000_000;
-export const TX_GAS_PRICE = 10_000_000_000; // 10 gwei

@@ -26,8 +26,6 @@ import {
   resolveIdentifier,
   isForwarder,
   toDecimals,
-  TX_GAS_LIMIT,
-  TX_GAS_PRICE,
 } from "./helpers";
 import {
   Address,
@@ -417,8 +415,6 @@ export default class EVMcrispr {
       await (
         await this.#signer.sendTransaction({
           ...action,
-          gasLimit: TX_GAS_LIMIT,
-          gasPrice: TX_GAS_PRICE,
         })
       ).wait();
     }
@@ -426,8 +422,6 @@ export default class EVMcrispr {
     return await (
       await this.#signer.sendTransaction({
         ...action,
-        gasLimit: TX_GAS_LIMIT,
-        gasPrice: TX_GAS_PRICE,
       })
     ).wait();
   }
