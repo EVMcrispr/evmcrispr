@@ -6,11 +6,13 @@ import { Address, ParsedApp, Repo } from "./types";
 export function subgraphUrlFromChainId(chainId: number): string | null {
   switch (chainId) {
     case 1:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-mainnet";
+      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet";
     case 4:
       return "https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby";
     case 100:
       return "https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai";
+    case 137:
+      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon";
     default:
       return null;
   }

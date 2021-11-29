@@ -24,19 +24,19 @@ export const parseRegistry = (registryEnsName: string): string => {
 };
 
 export const isAppIdentifier = (identifier: string): boolean => {
-  return appIdentifierRegex.test(identifier);
+  return !!identifier && appIdentifierRegex.test(identifier);
 };
 
 export const isLabeledAppIdentifier = (identifier: string): boolean => {
-  return labeledAppIdentifierRegex.test(identifier);
+  return !!identifier && labeledAppIdentifierRegex.test(identifier);
 };
 
 export const parseAppIdentifier = (appIdentifier: AppIdentifier): string[] | undefined => {
-  return appIdentifierRegex.exec(appIdentifier)?.slice(1);
+  return appIdentifier ? appIdentifierRegex.exec(appIdentifier)?.slice(1) : undefined;
 };
 
 export const parseLabeledIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] | undefined => {
-  return labeledAppIdentifierRegex.exec(labeledAppIdentifier)?.slice(1);
+  return labeledAppIdentifier ? labeledAppIdentifierRegex.exec(labeledAppIdentifier)?.slice(1) : undefined;
 };
 
 export const parseLabeledAppIdentifier = (labeledAppIdentifier: LabeledAppIdentifier): string[] => {

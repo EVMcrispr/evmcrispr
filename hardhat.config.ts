@@ -1,5 +1,6 @@
 import fs from "fs";
 
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-typechain";
 import "hardhat-gas-reporter";
@@ -67,8 +68,8 @@ const config: HardhatUserConfig = {
       gasPrice: 8000000000,
       allowUnlimitedContractSize: true,
       forking: {
-        url: "https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO",
-        blockNumber: 8801832,
+        url: "https://mainnet.infura.io/v3/c85ee5b396f1486dab6f074a6035042b",
+        blockNumber: 13684108,
       },
     },
     localhost: {

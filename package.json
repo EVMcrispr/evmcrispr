@@ -44,7 +44,7 @@
     "yarn": "^1.22.11"
   },
   "dependencies": {
-    "@1hive/connect": "^0.9.1",
+    "@1hive/connect": "^0.9.7",
     "ethers": "^5.0.17",
     "graphql-tag": "^2.12.4",
     "node-fetch": "^3.0.0"
@@ -62,7 +62,7 @@
     "chain": "hardhat node",
     "compile": "hardhat compile --no-typechain",
     "docs": "typedoc",
-    "fork": "hardhat node --fork https://mainnet.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad",
+    "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/gxbvZjqHMdz8qR5aQejZO0i0ul2fovg0",
     "fork:rinkeby": "hardhat node --fork https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO",
     "generate": "hardhat generate",
     "lint": "eslint --ext .ts ./src",
