@@ -43,7 +43,7 @@ export const impersonateAddress = async (
    * gas to pay for transactions
    */
   if (setInitialBalance) {
-    await setBalance(address, ethers.utils.hexStripZeros(ethers.constants.WeiPerEther.toHexString()));
+    await setBalance(address, ethers.utils.hexStripZeros(ethers.constants.WeiPerEther.mul(50).toHexString()));
   }
   return signer;
 };
