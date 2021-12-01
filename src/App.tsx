@@ -16,6 +16,7 @@ declare global {
 
 function client(chainId: number) {
   return ({
+    1: "client.aragon.org",
     4: "rinkeby.client.aragon.org",
     100: "aragon.1hive.org"
   })[chainId];
@@ -63,7 +64,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       }
       const path = _path.trim().split(' ').map(id => id.trim());
       const _code = code.split("\n").slice(1).join("\n");
-      const evmcrispr = await EVMcrispr.create(dao, provider.getSigner(), {
+      const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
         ipfsGateway: "https://ipfs.blossom.software/ipfs/"
       });
       await evmcrispr.forward(
@@ -73,7 +74,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       );
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
-      window.location.href = `https://${client(chainId)}/#/${dao}/${lastApp}`
+      window.open(`https://${client(chainId)}/#/${dao}/${lastApp}`,'_blank');
     } catch (e: any) {
       console.error(e);
       if (e.message.startsWith('transaction failed') && /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])) {
