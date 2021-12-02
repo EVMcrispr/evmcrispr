@@ -16,7 +16,7 @@
       "name": "hardhat run",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
-      "args": ["run", "./scripts/new-hatch.ts", "--network", "rinkeby"],
+      "args": ["run", "./scripts/examples/dao-vote.ts", "--network", "localhost"],
       "cwd": "${workspaceFolder}"
     }
   ]
