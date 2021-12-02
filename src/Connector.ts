@@ -28,9 +28,10 @@ export default class Connector {
   /**
    * Create a new Connector instance.
    * @param chainId The network id to connect to.
+   * @param options The optional configuration object.
    */
-  constructor(chainId: number) {
-    const subgraphUrl = subgraphUrlFromChainId(chainId);
+  constructor(chainId: number, options: { subgraphUrl?: string } = {}) {
+    const subgraphUrl = options.subgraphUrl ?? subgraphUrlFromChainId(chainId);
 
     if (!subgraphUrl) {
       throw new ErrorException("Connector requires a valid chain id to be passed (1, 4 or 100)");

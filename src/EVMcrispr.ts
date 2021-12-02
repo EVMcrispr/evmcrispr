@@ -26,7 +26,6 @@ import {
   resolveIdentifier,
   isForwarder,
   toDecimals,
-  TX_GAS_LIMIT,
 } from "./helpers";
 import {
   Address,
@@ -81,10 +80,10 @@ export default class EVMcrispr {
    */
   BURN_ENTITY: Address = "0x" + "0".repeat(39) + "1";
 
-  protected constructor(chainId: number, signer: Signer, options: { ipfsGateway: string }) {
+  protected constructor(chainId: number, signer: Signer, options: EVMcrisprOptions) {
     this.#appCache = new Map();
     this.#appArtifactCache = new Map();
-    this._connector = new Connector(chainId);
+    this._connector = new Connector(chainId, { subgraphUrl: options.subgraphUrl });
     this.#installedAppCounter = 0;
     this._ipfsResolver = createIpfsResolver(buildIpfsTemplate(options.ipfsGateway));
     this.#signer = signer;
@@ -416,7 +415,6 @@ export default class EVMcrispr {
       await (
         await this.#signer.sendTransaction({
           ...action,
-          gasLimit: TX_GAS_LIMIT,
         })
       ).wait();
     }
@@ -424,7 +422,6 @@ export default class EVMcrispr {
     return await (
       await this.#signer.sendTransaction({
         ...action,
-        gasLimit: TX_GAS_LIMIT,
       })
     ).wait();
   }
