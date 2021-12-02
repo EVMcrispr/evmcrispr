@@ -224,6 +224,13 @@ export default class EVMcrispr {
     return [...this.#appCache.keys()];
   }
 
+  appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
+    console.log(
+      "Warning: Function `evmcrispr.appMethods(identifier)` is experimental and may change in future releases."
+    );
+    return this.#appMethods(appIdentifier);
+  }
+
   /**
    * Use DAO agent to call an external contract function
    * @param agent App identifier of the agent that is going to be used to call the function
@@ -261,15 +268,15 @@ export default class EVMcrispr {
    */
   exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
     const app = () => this.#resolveApp(appIdentifier);
-    const artifactCache = this.#appArtifactCache;
+    const appMethods = () => this.#appMethods(appIdentifier);
     return new Proxy(app, {
       ownKeys() {
-        return (
-          artifactCache
-            .get(app().codeAddress)
-            ?.functions.map(({ sig }) => sig.split("(")[0])
-            .filter((n) => n !== "initialize") || []
-        );
+        return appMethods();
+      },
+      getOwnPropertyDescriptor() {
+        return {
+          enumerable: true,
+        };
       },
       get: (getTargetApp: () => App, functionName: string) => {
         try {
@@ -555,6 +562,15 @@ export default class EVMcrispr {
    */
   setOracle(entity: Entity): Params {
     return oracle(utils.isAddress(entity) ? entity : () => this.#resolveApp(entity).address);
+  }
+
+  #appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
+    return (
+      this.#appArtifactCache
+        .get(this.#resolveApp(appIdentifier).codeAddress)
+        ?.functions.map(({ sig }) => sig.split("(")[0])
+        .filter((n) => n !== "initialize") || []
+    );
   }
 
   async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
