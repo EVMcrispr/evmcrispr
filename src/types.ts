@@ -8,6 +8,7 @@ export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
 
 export type ActionInterpreter = {
   install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
+  upgrade(identifier: AppIdentifier | LabeledAppIdentifier, newAppAddress: Address): ActionFunction;
   exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction;
   grant(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction;

@@ -23,6 +23,7 @@ const mockExecFunction = (method: string) => ({
 
 const actionInterpreterMock = {
   ...mockFunction("install"),
+  ...mockFunction("upgrade"),
   ...mockFunction("grant"),
   ...mockFunction("revoke"),
   ...mockExecFunction("newVote"),
@@ -49,6 +50,20 @@ describe("EVM Command Line", () => {
         {
           func: "install",
           params: ["token-manager:new", APP.initializeParams.map((p) => p.toString())],
+        },
+      ]
+    );
+  });
+  it("upgrade token-manager address", async () => {
+    const app: string = APP.actTarget;
+    await check(
+      evmcl`
+        upgrade token-manager ${app}
+      `,
+      [
+        {
+          func: "upgrade",
+          params: ["token-manager", APP.actTarget],
         },
       ]
     );

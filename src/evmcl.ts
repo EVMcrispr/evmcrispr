@@ -44,6 +44,10 @@ export default function evmcl(
             const [identifier, ...initParams] = args;
             return evmcrispr.install(identifier, initParams);
           }
+          case "upgrade": {
+            const [identifier, appAddress] = args;
+            return evmcrispr.upgrade(identifier, appAddress);
+          }
           case "grant": {
             const [grantee, app, role, defaultPermissionManager] = args;
             return evmcrispr.grant([grantee, app, role], defaultPermissionManager);

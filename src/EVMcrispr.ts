@@ -22,6 +22,7 @@ import {
   normalizeActions,
   normalizeRole,
   oracle,
+  parseAppIdentifier,
   parseLabeledAppIdentifier,
   resolveIdentifier,
   isForwarder,
@@ -497,6 +498,25 @@ export default class EVMcrispr {
         err.message = `Error when encoding ${identifier} installation action: ${err.message}`;
         throw err;
       }
+    };
+  }
+
+  upgrade(identifier: AppIdentifier | LabeledAppIdentifier, newAppAddress: Address): ActionFunction {
+    return async () => {
+      const [appName, registry] = parseAppIdentifier(identifier)!;
+      const kernel = this.#resolveApp("kernel");
+      const KERNEL_APP_BASE_NAMESPACE = utils.id("base");
+      const appId = utils.namehash(`${appName}.${registry}`);
+      return [
+        {
+          to: kernel.address,
+          data: kernel.abiInterface.encodeFunctionData("setApp(bytes32,bytes32,address)", [
+            KERNEL_APP_BASE_NAMESPACE,
+            appId,
+            newAppAddress,
+          ]),
+        },
+      ];
     };
   }
 
