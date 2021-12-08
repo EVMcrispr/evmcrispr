@@ -10,7 +10,8 @@ import { version } from "@1hive/evmcrispr/package.json"
 
 declare global {
   interface Window {
-      ethereum:any;
+      ethereum: any;
+      evmcrispr: any;
   }
 }
 
@@ -50,6 +51,13 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
     provider.getSigner().getAddress().then(setAddress).catch(() => setAddress(""));
   }, [provider]);
   const addressShortened = `${address.substr(0,4)}..${address.substr(-4)}`;
+  async function onClick() {
+    const [ , dao] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
+    const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
+      ipfsGateway: "https://ipfs.blossom.software/ipfs/"
+    });
+    window.evmcrispr = evmcrispr;
+  }
   async function onForward() {
     setError('');
     setLoading(true);
@@ -62,16 +70,21 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       if (!/0x[0-9A-Fa-f]+/.test(dao)) {
         throw new Error("ENS not supported yet, please introduce the address of the DAO.");
       }
+
       const path = _path.trim().split(' ').map(id => id.trim());
       const _code = code.split("\n").slice(1).join("\n");
       const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
         ipfsGateway: "https://ipfs.blossom.software/ipfs/"
       });
+
+      window.open("https://google.com", "_blank")
+
       await evmcrispr.forward(
         evmcl`${_code}`,
         path,
         { context },
       );
+
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
       window.open(`https://${client(chainId)}/#/${dao}/${lastApp}`,'_blank');
@@ -94,14 +107,13 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
   }
   return (
     <div className="App" style={{maxWidth: 1200, margin: "auto"}}>
-      <h1>evm-crispr terminal v{version}</h1>
+      <h1 onClick={onClick}>evm-crispr terminal v{version}</h1>
       <AceEditor
         width="100%"
         mode="jade"
         theme="vibrant_ink"
         name="code"
         value={code}
-        onLoad={() => console.log('load')}
         onChange={setCode}
         fontSize={24}
         showPrintMargin={true}
