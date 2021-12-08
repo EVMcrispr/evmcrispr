@@ -28,6 +28,7 @@ function App() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [url, setUrl] = useState("");
   const [code, setCode] = useState(
 `# Available commands:
 
@@ -70,24 +71,20 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       if (!/0x[0-9A-Fa-f]+/.test(dao)) {
         throw new Error("ENS not supported yet, please introduce the address of the DAO.");
       }
-
       const path = _path.trim().split(' ').map(id => id.trim());
       const _code = code.split("\n").slice(1).join("\n");
       const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
         ipfsGateway: "https://ipfs.blossom.software/ipfs/"
       });
-
-      window.open("https://google.com", "_blank")
-
       await evmcrispr.forward(
         evmcl`${_code}`,
         path,
         { context },
       );
-
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
-      window.open(`https://${client(chainId)}/#/${dao}/${lastApp}`,'_blank');
+      setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
+      setTimeout(() => setUrl(""), 1000);
     } catch (e: any) {
       console.error(e);
       if (e.message.startsWith('transaction failed') && /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])) {
@@ -128,7 +125,11 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
         }}/>
         <div style={{textAlign: 'right'}}>
           {
-            !address ? <input type="button" value="Connect" onClick={onConnect} /> : <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
+            !address ?
+              <input type="button" value="Connect" onClick={onConnect} /> :
+              url ?
+                <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} /> :
+                <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
           }
         </div>
         <div style={{color: 'red'}}>{error ? "Error: " + error : null}</div>
