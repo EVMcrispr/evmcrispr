@@ -246,12 +246,25 @@ export default class EVMcrispr {
         throw new Error("Wrong signature format: " + signature + ".");
       }
       const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
-      const script = encodeCallScript([
+      const actions = async () => [
         {
           to: this.#resolveEntity(target),
           data: encodeActCall(signature, this.#resolveParams(params, paramTypes)),
         },
-      ]);
+      ];
+      return this.rawAct(agent, [actions])();
+    };
+  }
+
+  /**
+   * Use DAO agent to perform a set of transactions on some external contracts
+   * @param agent App identifier of the agent that is going to be used to perform the actions
+   * @param actions List of actions that the agent is going to perform
+   * @returns A function that retuns an action to forward an agent call with the specified parameters
+   */
+  rawAct(agent: AppIdentifier, actions: ActionFunction[]): ActionFunction {
+    return async () => {
+      const script = encodeCallScript(await normalizeActions(actions)());
       return [
         {
           to: this.#resolveEntity(agent),
@@ -427,7 +440,7 @@ export default class EVMcrispr {
       ).wait();
     }
 
-    return await (
+    return (
       await this.#signer.sendTransaction({
         ...action,
       })
