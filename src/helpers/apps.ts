@@ -21,11 +21,11 @@ export const buildAppPermissions = (artifactRoles: any, currentPermissions: any[
   return appPermissions;
 };
 
-export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCache): App => {
+export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCache): App | null => {
   const { address, codeAddress, contentUri, name, registryName, roles } = parsedApp;
 
   if (!appResourcesCache.has(codeAddress)) {
-    throw new ErrorNotFound(`App ${name} abi not found.`);
+    return null;
   }
   const { abiInterface, roles: artifactRoles } = appResourcesCache.get(codeAddress)!;
 

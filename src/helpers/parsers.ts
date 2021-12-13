@@ -14,7 +14,7 @@ export const parseApp = (app: any): ParsedApp => {
     artifact = systemApp.artifact;
     name = systemApp.name;
   } else {
-    artifact = JSON.parse(rawArtifact);
+    artifact = JSON.parse(rawArtifact ?? null);
     name = repoName;
   }
 

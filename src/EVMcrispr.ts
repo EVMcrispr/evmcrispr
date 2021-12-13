@@ -596,7 +596,7 @@ export default class EVMcrispr {
   async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
     const appArtifactCache: AppArtifactCache = new Map();
     const artifactApps = apps.filter((app) => app.artifact);
-    const artifactlessApps = apps.filter((app) => !app.artifact);
+    const artifactlessApps = apps.filter((app) => !app.artifact && app.contentUri);
     const contentUris = artifactlessApps.map((app) => app.contentUri);
 
     // Construct a contentUri => artifact map
@@ -673,8 +673,8 @@ export default class EVMcrispr {
   protected async _connect(daoAddress: Address): Promise<void> {
     const parsedApps = await this._connector.organizationApps(daoAddress);
     const appResourcesCache = await this.#buildAppArtifactCache(parsedApps);
-    const apps = parsedApps.map((parsedApp) => buildApp(parsedApp, appResourcesCache));
-    const appCache = await this.#buildAppCache(apps);
+    const apps = parsedApps.map((parsedApp) => buildApp(parsedApp, appResourcesCache)).filter((app) => !!app);
+    const appCache = await this.#buildAppCache(apps as App[]);
 
     this.#appCache = appCache;
     this.#appArtifactCache = appResourcesCache;
