@@ -242,7 +242,7 @@ export default class EVMcrispr {
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
     return async () => {
-      if (!/\w+\(((\w+(\[\])*)+(,\w+(\[\])*)*)?\)/.test(signature)) {
+      if (!/\w+\(((\w+(\[\d*\])*)+(,\w+(\[\d*\])*)*)?\)/.test(signature)) {
         throw new Error("Wrong signature format: " + signature + ".");
       }
       const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
