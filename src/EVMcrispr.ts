@@ -242,35 +242,69 @@ export default class EVMcrispr {
    */
   act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction {
     return async () => {
+      return this.forwardActions(agent, [this.encodeAction(target, signature, params)])();
+    };
+  }
+
+  /**
+   * Creates an action based on the passed parameters
+   * @param target Action's to field
+   * @param signature Function signature, such as mint(address,uint256)
+   * @param params List of parameters passed to the function
+   * @returns A function that returns the encoded action
+   */
+  encodeAction(target: Entity, signature: string, params: any[]): ActionFunction {
+    return async () => {
       if (!/\w+\(((\w+(\[\d*\])*)+(,\w+(\[\d*\])*)*)?\)/.test(signature)) {
         throw new Error("Wrong signature format: " + signature + ".");
       }
       const paramTypes = signature.split("(")[1].slice(0, -1).split(",");
-      const actions = async () => [
+      return [
         {
           to: this.#resolveEntity(target),
           data: encodeActCall(signature, this.#resolveParams(params, paramTypes)),
         },
       ];
-      return this.rawAct(agent, [actions])();
     };
   }
 
   /**
-   * Use DAO agent to perform a set of transactions on some external contracts
-   * @param agent App identifier of the agent that is going to be used to perform the actions
-   * @param actions List of actions that the agent is going to perform
-   * @returns A function that retuns an action to forward an agent call with the specified parameters
+   * Send a set of transactions to a contract that implements the IForwarder interface
+   * @param forwarder App identifier of the forwarder that is going to be used
+   * @param actions List of actions that the forwarder is going to recieive
+   * @returns A function that retuns the forward action
    */
-  rawAct(agent: AppIdentifier, actions: ActionFunction[]): ActionFunction {
+  forwardActions(forwarder: AppIdentifier, actions: ActionFunction[]): ActionFunction {
     return async () => {
       const script = encodeCallScript(await normalizeActions(actions)());
       return [
         {
-          to: this.#resolveEntity(agent),
+          to: this.#resolveEntity(forwarder),
           data: encodeActCall("forward(bytes)", [script]),
         },
       ];
+    };
+  }
+
+  /**
+   * Use DAO agent to perform a set of transactions using agent's execute function
+   * @param agent App identifier of the agent that is going to be used to perform the actions
+   * @param actions List of actions that the agent is going to perform
+   * @returns A function that retuns an action to forward an agent call with the specified parameters
+   */
+  agentExec(agent: AppIdentifier, actions: ActionFunction[], useSafeExecute = false): ActionFunction {
+    return async () => {
+      return (
+        await Promise.all(
+          (
+            await normalizeActions(actions)()
+          ).map((action) =>
+            useSafeExecute
+              ? this.exec(agent).safeExecute(action.to, action.data)()
+              : this.exec(agent).execute(action.to, action.value ?? 0, action.data)()
+          )
+        )
+      ).flat();
     };
   }
 
@@ -427,7 +461,7 @@ export default class EVMcrispr {
   async forward(
     actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
     path: Entity[],
-    options?: ForwardOptions
+    options?: ForwardOptions & { gasLimit: number }
   ): Promise<providers.TransactionReceipt> {
     const { action, preTxActions } = await this.encode(actions, path, options);
 
@@ -436,6 +470,7 @@ export default class EVMcrispr {
       await (
         await this.#signer.sendTransaction({
           ...action,
+          ...options,
         })
       ).wait();
     }
@@ -514,12 +549,20 @@ export default class EVMcrispr {
     };
   }
 
-  upgrade(identifier: AppIdentifier | LabeledAppIdentifier, newAppAddress: Address): ActionFunction {
+  /**
+   * Upgrade all installed apps of a specific APM repo to a new implementation contract.
+   * @param apmRepo ENS name of the APM repository
+   * @param newAppAddress Address of the new implementation contract
+   * @returns A function that returns the upgrade action
+   */
+  upgrade(apmRepo: string, newAppAddress: Address): ActionFunction {
     return async () => {
-      const [appName, registry] = parseAppIdentifier(identifier)!;
+      if (!apmRepo.endsWith(".eth")) {
+        throw new ErrorException(`The APM repo must be an ENS name.`);
+      }
       const kernel = this.#resolveApp("kernel");
       const KERNEL_APP_BASE_NAMESPACE = utils.id("base");
-      const appId = utils.namehash(`${appName}.${registry}`);
+      const appId = utils.namehash(apmRepo);
       return [
         {
           to: kernel.address,

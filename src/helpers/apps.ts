@@ -1,4 +1,3 @@
-import { ErrorNotFound } from "../errors";
 import { Address, App, AppArtifactCache, ParsedApp, PermissionMap } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

@@ -1,5 +1,5 @@
 import { IpfsResolver } from "@1hive/connect-core";
-import { Signer } from "@ethersproject/abstract-signer";
+import { Signer } from "ethers";
 import { KERNEL_TRANSACTION_COUNT } from ".";
 import { Address, EVMcrispr, EVMcrisprOptions } from "../../src";
 import { IPFS_GATEWAY } from "../../src/helpers";
