@@ -79,7 +79,7 @@ await evmcrispr.forward(
 2. Import the `EVMcrispr` class and the `evmcl` template:
 
    ```js
-   Import { EVMcrispr, evmcl } from '@1hive/evmcrispr'
+   import { EVMcrispr, evmcl } from '@1hive/evmcrispr'
    ```
 
 3. Create a new `EVMcrispr` by using the static method `crate()`. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
