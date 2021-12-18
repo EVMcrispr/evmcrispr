@@ -394,7 +394,7 @@ export default class EVMcrispr {
 
     let script: string;
     let forwarderActions = [...actions];
-    let value = BigNumber.from(0);
+    let value = "0";
 
     for (let i = 0; i < forwarders.length; i++) {
       script = encodeCallScript(forwarderActions);
@@ -412,7 +412,7 @@ export default class EVMcrispr {
 
         // Check if fees are in ETH
         if (feeTokenAddress === constants.AddressZero) {
-          value = feeAmount;
+          value = feeAmount.toString();
         } else {
           const feeToken = new Contract(feeTokenAddress, erc20ABI, this.#signer.provider);
           const allowance = (await feeToken.allowance(await this.#signer.getAddress(), forwarderAddress)) as BigNumber;

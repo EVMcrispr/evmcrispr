@@ -1,5 +1,4 @@
 import { Interface } from "@ethersproject/abi";
-import { BigNumber } from "@ethersproject/bignumber";
 import { AragonArtifact, AragonArtifactRole } from "@1hive/connect-core/dist/cjs/types";
 
 export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
@@ -133,7 +132,7 @@ export interface Action {
   /**
    * The ether which needs to be sent along with the action (in wei).
    */
-  value?: BigNumber;
+  value?: string;
 }
 
 /**
