@@ -1,6 +1,6 @@
 import { Interface } from "@ethersproject/abi";
 import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
-import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers";
+import { BigNumber, BigNumberish, constants, Contract, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
 import {
   buildApp,
@@ -22,7 +22,6 @@ import {
   normalizeActions,
   normalizeRole,
   oracle,
-  parseAppIdentifier,
   parseLabeledAppIdentifier,
   resolveIdentifier,
   isForwarder,
@@ -461,16 +460,16 @@ export default class EVMcrispr {
   async forward(
     actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
     path: Entity[],
-    options?: ForwardOptions & { gasLimit: number }
+    options?: ForwardOptions & { gasPrice?: BigNumberish; gasLimit?: BigNumberish }
   ): Promise<providers.TransactionReceipt> {
     const { action, preTxActions } = await this.encode(actions, path, options);
-
     // Execute pretransactions actions
     for (const action of preTxActions) {
       await (
         await this.#signer.sendTransaction({
           ...action,
-          ...options,
+          gasPrice: options?.gasPrice,
+          gasLimit: options?.gasLimit,
         })
       ).wait();
     }
@@ -478,6 +477,8 @@ export default class EVMcrispr {
     return (
       await this.#signer.sendTransaction({
         ...action,
+        gasPrice: options?.gasPrice,
+        gasLimit: options?.gasLimit,
       })
     ).wait();
   }
