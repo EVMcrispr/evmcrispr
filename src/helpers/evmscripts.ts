@@ -1,4 +1,5 @@
 import { utils } from "ethers";
+export { encodeCallScript } from "@1hive/connect";
 
 export function createExecutorId(id: number): string {
   return `0x${String(id).padStart(8, "0")}`;
