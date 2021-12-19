@@ -1,5 +1,5 @@
 import { encodeCallScript } from "@1hive/connect";
-import { BigNumber, utils } from "ethers";
+import { utils } from "ethers";
 import { Action, Address } from "../../src";
 import { encodeActCall } from "../../src/helpers";
 import { CONTEXT_FORWARDER_TYPE, FORWARDER_TYPE, getAppForwarderType } from "./forwarders";
@@ -89,5 +89,5 @@ export const createTestScriptEncodedAction = (forwarderActions: Action[], path: 
     }
   }
 
-  return { ...forwarderActions[0], value: BigNumber.from(0) };
+  return { ...forwarderActions[0], value: 0 };
 };
