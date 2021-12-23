@@ -127,7 +127,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
             !address ?
               <input type="button" value="Connect" onClick={onConnect} /> :
               <>
-                url ?? <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} /> 
+                {url ?? <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} />}
                 <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
               </>
           }
