@@ -84,7 +84,6 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
       setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
-      setTimeout(() => setUrl(""), 1000);
     } catch (e: any) {
       console.error(e);
       if (e.message.startsWith('transaction failed') && /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])) {
@@ -127,9 +126,10 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
           {
             !address ?
               <input type="button" value="Connect" onClick={onConnect} /> :
-              url ?
-                <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} /> :
+              <>
+                url ?? <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} /> 
                 <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
+              </>
           }
         </div>
         <div style={{color: 'red'}}>{error ? "Error: " + error : null}</div>
