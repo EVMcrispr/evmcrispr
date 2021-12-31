@@ -137,4 +137,20 @@ describe("EVM Command Line", () => {
       ]
     );
   });
+
+  it('exec voting newVote 0x0 "Giveth Community Covenant Upgrade"', async () => {
+    await check(
+      evmcl`
+      exec voting newVote 0x0 "Giveth Community Covenant Upgrade"
+      `,
+      [
+        {
+          func: "exec",
+          id: "voting",
+          method: "newVote",
+          params: ["0x0", "Giveth Community Covenant Upgrade"],
+        },
+      ]
+    );
+  });
 });

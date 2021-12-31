@@ -38,7 +38,10 @@ export default function evmcl(
   return (evmcrispr: ActionInterpreter) => {
     return normalizeActions(
       commands.map((command) => {
-        const [commandName, ...args] = command.split(" ");
+        const [commandName, ...args] = command
+          .replace(/"([^"]*)"/g, (_, s) => s.replace(/ /g, '"'))
+          .split(" ")
+          .map((s) => s.replace(/"/g, " "));
         switch (commandName) {
           case "install": {
             const [identifier, ...initParams] = args;
