@@ -45,10 +45,10 @@
     "@1hive/connect-ethereum" "^0.9.9"
     "@1hive/connect-thegraph" "^0.9.9"
 
-"@1hive/evmcrispr@^0.3.2":
-  version "0.3.2"
-  resolved "https://registry.yarnpkg.com/@1hive/evmcrispr/-/evmcrispr-0.3.2.tgz#d006a538e07bb5d9c5aeec4f24ef68a6c1ffdbb0"
-  integrity sha512-n/rebDdUQYMwEggbOY/t2Da1E0UZexGCxnhg16Z7MaNTScQX0qYfYxB/OXaAMmBGKJvGGNBqMVJxP3xVQEpkiA==
+"@1hive/evmcrispr@^0.3.3":
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/@1hive/evmcrispr/-/evmcrispr-0.3.3.tgz#2fa3d8c062c1bc538aa12e38440c65d1b7f823bf"
+  integrity sha512-l+eAeu3SXgwhgookzTH4P+HzB8XUFeTkjYv189ngCp4pVC81TKNRudV7+3TEUuVygxWuFzQP/ll39RFV7vUOLQ==
   dependencies:
     "@1hive/connect" "^0.9.7"
     ethers "^5.0.17"
