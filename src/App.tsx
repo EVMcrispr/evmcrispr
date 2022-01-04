@@ -22,14 +22,6 @@ async function dao(code: string, provider: providers.Web3Provider) {
     console.log(dao, _path)
     throw new Error("First line must be `connect <dao> <...path>`");
   }
-  if (!/0x[0-9A-Fa-f]+/.test(dao)) {
-    console.log(provider.network.ensAddress)
-    const daoAddr = await provider.resolveName(`${dao}.aragonid.eth`);
-    if (!daoAddr) {
-      throw new Error(`ENS ${dao}.aragonid.eth not found in ${provider.network.name}, please introduce the address of the DAO instead.`);
-    }
-    dao = daoAddr;
-  }
   const path = _path.trim().split(' ').map(id => id.trim());
   const _code = code.split("\n").slice(1).join("\n");
   const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
