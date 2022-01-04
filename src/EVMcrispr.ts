@@ -26,6 +26,7 @@ import {
   resolveIdentifier,
   isForwarder,
   toDecimals,
+  timeUnits,
 } from "./helpers";
 import {
   Address,
@@ -787,19 +788,19 @@ export default class EVMcrispr {
 
   #resolveNumber(number: string | number): BigNumber | number {
     if (typeof number === "string") {
-      const [, amount, decimals = "0"] = number.match(/^(\d*(?:\.\d*)?)(?:e(\d+))?$/)!;
-      return toDecimals(amount, parseInt(decimals));
+      const [, amount, decimals = "0", unit] = number.match(/^(\d*(?:\.\d*)?)(?:e(\d+))?([s|m|h|d|w|y]?)$/)!;
+      return toDecimals(amount, parseInt(decimals)).mul(timeUnits[unit] ?? 1);
     }
     return number;
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   #resolveParam(param: any, type: string): any {
-    if (type.endsWith("[]")) {
+    if (/\[\d*\]$/g.test(type)) {
       if (!Array.isArray(param)) {
         throw new Error(`Parameter ${type} should be an array, ${param} given.`);
       }
-      return param.map((param: any[]) => this.#resolveParam(param, type.slice(0, -2)));
+      return param.map((param: any[]) => this.#resolveParam(param, type.slice(0, type.lastIndexOf("["))));
     }
     if (type === "address") {
       return this.#resolveEntity(param);
