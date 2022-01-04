@@ -94,7 +94,7 @@ exec agent:new transfer XDAI vault 100e18
   useEffect(() => {
     provider.getSigner().getAddress().then(setAddress).catch(() => setAddress(""));
   }, [provider]);
-  const addressShortened = `${address.substr(0,4)}..${address.substr(-4)}`;
+  const addressShortened = `${address.slice(0,6)}..${address.slice(-4)}`;
   async function onClick() {
     try {
       const { evmcrispr } = await dao(code, provider);
