@@ -32,7 +32,7 @@ function App() {
   const [code, setCode] = useState(
 `# Available commands:
 
-connect <dao> <...path> [-context:https://yoursite.com]
+connect <dao> <...path> [--context:https://yoursite.com]
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
@@ -42,18 +42,18 @@ act <agent> <targetAddr> <methodSignature> [...params]
 # Example (unwrap wxDAI):
 
 connect 1hive token-manager voting
-install agent:new-agent
-grant voting agent:new-agent TRANSFER_ROLE voting
-exec vault transfer -token:tokens.honeyswap.org:WXDAI agent:new-agent 100e18
-act agent:new-agent -token:tokens.honeyswap.org:WXDAI withdraw(uint256) 100e18
-exec agent:new-agent transfer -token:XDAI vault 100e18
+install agent:new
+grant voting agent:new TRANSFER_ROLE voting
+exec vault transfer @token(WXDAI) agent:new 100e18
+act agent:new @token(WXDAI) withdraw(uint256) 100e18
+exec agent:new transfer XDAI vault 100e18
 `);
   useEffect(() => {
     provider.getSigner().getAddress().then(setAddress).catch(() => setAddress(""));
   }, [provider]);
   const addressShortened = `${address.substr(0,4)}..${address.substr(-4)}`;
   async function onClick() {
-    const [ , dao] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
+    const [ , dao] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
     const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
       ipfsGateway: "https://ipfs.blossom.software/ipfs/"
     });
@@ -63,7 +63,7 @@ exec agent:new-agent transfer -token:XDAI vault 100e18
     setError('');
     setLoading(true);
     try{
-      const [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
+      const [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
       if (!dao || !_path) {
         console.log(dao, _path)
         throw new Error("First line must be `connect <dao> <...path>`");
