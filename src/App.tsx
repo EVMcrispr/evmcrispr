@@ -4,7 +4,7 @@ import AceEditor from 'react-ace';
 import "ace-builds/src-noconflict/mode-jade";
 import "ace-builds/src-noconflict/theme-vibrant_ink";
 
-import { ethers } from 'ethers';
+import { ethers, providers } from 'ethers';
 import { evmcl, EVMcrispr } from "@1hive/evmcrispr";
 import { version } from "@1hive/evmcrispr/package.json"
 
@@ -15,6 +15,29 @@ declare global {
   }
 }
 
+async function dao(code: string, provider: providers.Web3Provider) {
+  let [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
+  if (!dao || !_path) {
+    console.log(dao, _path)
+    throw new Error("First line must be `connect <dao> <...path>`");
+  }
+  if (!/0x[0-9A-Fa-f]+/.test(dao)) {
+    console.log(provider.network.ensAddress)
+    const daoAddr = await provider.resolveName(`${dao}.aragonid.eth`);
+    if (!daoAddr) {
+      throw new Error(`ENS ${dao}.aragonid.eth not found in ${provider.network.name}, please introduce the address of the DAO instead.`);
+    }
+    dao = daoAddr;
+  }
+  const path = _path.trim().split(' ').map(id => id.trim());
+  const _code = code.split("\n").slice(1).join("\n");
+  const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
+    ipfsGateway: "https://ipfs.blossom.software/ipfs/"
+  });
+  return { dao, path, context, _code, evmcrispr };
+  
+}
+
 function client(chainId: number) {
   return ({
     1: "client.aragon.org",
@@ -23,8 +46,28 @@ function client(chainId: number) {
   })[chainId];
 }
 
+function network(ethereum: {chainId: string}): providers.Network | undefined {
+  return ({
+    1: {
+      name: "mainnet",
+      chainId: 1,
+      ensAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    },
+    4: {
+      name: "rinkeby",
+      chainId: 4,
+      ensAddress: "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+    },
+    100: {
+      name: "xdai",
+      chainId: 100,
+      ensAddress: "0xaafca6b0c89521752e559650206d7c925fd0e530",
+    }
+  })[Number(ethereum.chainId)];
+}
+
 function App() {
-  const [provider, setProvider] = useState(new ethers.providers.Web3Provider(window.ethereum));
+  const [provider, setProvider] = useState(new ethers.providers.Web3Provider(window.ethereum, network(window.ethereum)));
   const [address, setAddress] = useState("");
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,29 +96,19 @@ exec agent:new transfer XDAI vault 100e18
   }, [provider]);
   const addressShortened = `${address.substr(0,4)}..${address.substr(-4)}`;
   async function onClick() {
-    const [ , dao] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
-    const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
-      ipfsGateway: "https://ipfs.blossom.software/ipfs/"
-    });
-    window.evmcrispr = evmcrispr;
+    try {
+      const { evmcrispr } = await dao(code, provider);
+      window.evmcrispr = evmcrispr;
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message);
+    }
   }
   async function onForward() {
     setError('');
     setLoading(true);
     try{
-      const [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
-      if (!dao || !_path) {
-        console.log(dao, _path)
-        throw new Error("First line must be `connect <dao> <...path>`");
-      }
-      if (!/0x[0-9A-Fa-f]+/.test(dao)) {
-        throw new Error("ENS not supported yet, please introduce the address of the DAO.");
-      }
-      const path = _path.trim().split(' ').map(id => id.trim());
-      const _code = code.split("\n").slice(1).join("\n");
-      const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
-        ipfsGateway: "https://ipfs.blossom.software/ipfs/"
-      });
+      const { evmcrispr, _code, path, context } = await dao(code, provider);
       await evmcrispr.forward(
         evmcl`${_code}`,
         path,
@@ -96,7 +129,7 @@ exec agent:new transfer XDAI vault 100e18
   }
   async function onConnect() {
     await window.ethereum.send('eth_requestAccounts')
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const provider = new ethers.providers.Web3Provider(window.ethereum, network(window.ethereum));
     const address = await provider.getSigner().getAddress();
     console.log(`Connected to ${address}.`);
     setProvider(provider);
