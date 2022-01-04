@@ -1,6 +1,6 @@
 import { Interface } from "@ethersproject/abi";
 import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
-import { BigNumber, BigNumberish, constants, Contract, providers, Signer, utils } from "ethers";
+import { BigNumber, BigNumberish, constants, Contract, ethers, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
 import {
   buildApp,
@@ -92,20 +92,33 @@ export default class EVMcrispr {
   /**
    * Create a new EVMcrispr instance and connect it to a DAO by fetching and caching all its
    * apps and permissions data.
-   * @param daoAddress The address of the DAO to connect to.
+   * @param daoAddressOrName The name or address of the DAO to connect to.
    * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
    * instance used to connect to Ethereum and sign any transaction needed.
    * @param options The optional configuration object.
    * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
   static async create(
-    daoAddress: Address,
+    daoAddressOrName: string,
     signer: Signer,
     options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY }
   ): Promise<EVMcrispr> {
     const evmcrispr = new EVMcrispr(await signer.getChainId(), signer, options);
+    const networkName = (await signer.provider?.getNetwork())?.name;
 
-    await evmcrispr._connect(daoAddress);
+    if (ethers.utils.isAddress(daoAddressOrName)) {
+      await evmcrispr._connect(daoAddressOrName);
+    } else {
+      const daoAddress = await signer.resolveName(`${daoAddressOrName}.aragonid.eth`);
+      if (!daoAddress) {
+        throw new Error(
+          `ENS ${daoAddressOrName}.aragonid.eth not found in ${
+            networkName ?? "unknown network"
+          }, please introduce the address of the DAO instead.`
+        );
+      }
+      await evmcrispr._connect(daoAddress);
+    }
 
     return evmcrispr;
   }
