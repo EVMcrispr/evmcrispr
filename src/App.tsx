@@ -7,6 +7,7 @@ import "ace-builds/src-noconflict/theme-vibrant_ink";
 import { ethers, providers } from 'ethers';
 import { evmcl, EVMcrispr } from "@1hive/evmcrispr";
 import { version } from "@1hive/evmcrispr/package.json"
+import { codename, sponsors } from "./sponsors.json";
 
 declare global {
   interface Window {
@@ -64,6 +65,19 @@ function network(ethereum: {chainId: string}): providers.Network | undefined {
       ensAddress: "0xaafca6b0c89521752e559650206d7c925fd0e530",
     }
   })[Number(ethereum.chainId)];
+}
+
+function parsedSponsors(){
+  switch (sponsors.length) {
+    case 1:
+      return `sponsored by <a href="${sponsors[0][1]}">${sponsors[0][0]}</a>`;
+    case 2:
+      return `sponsored by <a href="${sponsors[0][1]}">${sponsors[0][0]}</a> and <a href="${sponsors[1][1]}">${sponsors[1][0]}</a>`;
+    case 3:
+      return `sponsored by <a href="${sponsors[0][1]}">${sponsors[0][0]}</a>, <a href="${sponsors[1][1]}">${sponsors[1][0]}</a>, and <a href="${sponsors[2][1]}">${sponsors[2][0]}</a>`;
+    default:
+      return "";
+  }
 }
 
 function App() {
@@ -136,7 +150,10 @@ exec agent:new transfer XDAI vault 100e18
   }
   return (
     <div className="App" style={{maxWidth: 1200, margin: "auto"}}>
-      <h1 onClick={onClick}>evm-crispr terminal v{version}</h1>
+      <header>
+        <h1 onClick={onClick}>evm-crispr {codename ?? `"${codename}"`} v{version}</h1>
+        <small dangerouslySetInnerHTML={{__html: parsedSponsors()}}></small>
+      </header>
       <AceEditor
         width="100%"
         mode="jade"

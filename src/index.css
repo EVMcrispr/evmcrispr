@@ -1,4 +1,7 @@
 body { background: black; color: white }
-body, h1, input {font-weight: bold; font-size: 40px; font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;}
-h1 {color: #D8FA3C; }
-input[type=button] {background-color: #D8FA3C;cursor:pointer; margin-left: 10px}
+body, h1, input { font-weight: bold; font-size: 40px; font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace }
+h1 {color: #D8FA3C; margin-bottom: -12px }
+input[type=button] { background-color: #D8FA3C;cursor:pointer; margin-left: 10px }
+small { font-size: 16px }
+header { margin-bottom: 40px }
+a, a:visited { color: #D8FA3C; }
