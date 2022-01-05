@@ -4,7 +4,7 @@ With the evm-crispr terminal you can create complex votes that can be executed b
 
 ## Available commands:
 ```
-connect <dao> <...path> [--context:https://yoursite.com]
+connect <dao> <...path> [@context:https://yoursite.com]
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>

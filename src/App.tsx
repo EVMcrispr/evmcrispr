@@ -17,7 +17,8 @@ declare global {
 }
 
 async function dao(code: string, provider: providers.Web3Provider) {
-  let [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( --context:(.+))?$/) ?? [];
+  let [ , dao, _path,,, context ] = code.split('\n')[0].match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
+  console.log(dao, _path, context);
   if (!dao || !_path) {
     console.log(dao, _path)
     throw new Error("First line must be `connect <dao> <...path>`");
@@ -81,7 +82,7 @@ function App() {
   const [code, setCode] = useState(
 `# Available commands:
 
-connect <dao> <...path> [--context:https://yoursite.com]
+connect <dao> <...path> [@context:https://yoursite.com]
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
