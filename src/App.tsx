@@ -122,7 +122,10 @@ exec agent:new transfer XDAI vault 100e18
       await evmcrispr.forward(
         evmcl`${_code}`,
         path,
-        { context },
+        {
+          context,
+          gasLimit: 10_000_000,
+        },
       );
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
