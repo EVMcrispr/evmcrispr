@@ -9,6 +9,9 @@ import { evmcl, EVMcrispr } from "@1hive/evmcrispr";
 import { version } from "@1hive/evmcrispr/package.json"
 import { codename, sponsors } from "./sponsors.json";
 
+import createPersistedState from "use-persisted-state";
+const useCodeState = createPersistedState('code');
+
 declare global {
   interface Window {
       ethereum: any;
@@ -79,7 +82,7 @@ function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState("");
-  const [code, setCode] = useState(
+  const [code, setCode] = useCodeState(
 `# Available commands:
 
 connect <dao> <...path> [@context:https://yoursite.com]
@@ -154,6 +157,7 @@ exec agent:new transfer XDAI vault 100e18
         name="code"
         value={code}
         onChange={setCode}
+        focus={true}
         fontSize={24}
         showPrintMargin={true}
         showGutter={true}
@@ -170,7 +174,7 @@ exec agent:new transfer XDAI vault 100e18
             !address ?
               <input type="button" value="Connect" onClick={onConnect} /> :
               <>
-                {url ?? <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} />}
+                {url ? <input type="button" value="Go to vote" onClick={() => window.open(url, "_blank")} /> : null}
                 <input type="button" value={`${loading ? "Forwarding" : "Forward"} from ${addressShortened}`} onClick={onForward} />
               </>
           }
