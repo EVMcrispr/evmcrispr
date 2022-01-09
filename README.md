@@ -20,3 +20,8 @@ exec vault transfer @token(WXDAI) agent:new-agent 100e18
 act agent:new-agent @token(WXDAI) withdraw(uint256) 100e18
 exec agent:new-agent transfer XDAI vault 100e18
 ```
+
+## Sponsors
+<a href="https://giveth.io/">
+  <img src="https://miro.medium.com/max/500/1*vGFPM8KssUeiBm1QGIo5aQ.jpeg" height=100>
+</a>

@@ -150,7 +150,7 @@ exec agent:new transfer XDAI vault 100e18
   return (
     <div className="App" style={{maxWidth: 1200, margin: "auto"}}>
       <header>
-        <h1 onClick={onClick}>evm-crispr {codename ?? `"${codename}"`} v{version}</h1>
+        <h1 onClick={onClick}>evm-crispr {codename ? `"${codename}"` : null} v{version}</h1>
         <small dangerouslySetInnerHTML={{__html: parsedSponsors()}}></small>
       </header>
       <AceEditor
