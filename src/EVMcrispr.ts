@@ -794,6 +794,19 @@ export default class EVMcrispr {
     return number;
   }
 
+  #resolveBoolean(boolean: string | boolean): boolean {
+    if (typeof boolean === "string") {
+      if (boolean === "false") {
+        return false;
+      }
+      if (boolean === "true") {
+        return true;
+      }
+      throw new Error(`Parameter should be a boolean ("true" or "false"), "${boolean}" given.`);
+    }
+    return !!boolean;
+  }
+
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   #resolveParam(param: any, type: string): any {
     if (/\[\d*\]$/g.test(type)) {
@@ -807,6 +820,9 @@ export default class EVMcrispr {
     }
     if (/^u?int(\d)*$/.test(type)) {
       return this.#resolveNumber(param);
+    }
+    if (type === "bool") {
+      return this.#resolveBoolean(param);
     }
     return param;
   }
