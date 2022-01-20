@@ -22,10 +22,15 @@ export type ActionFunction = () => Promise<Action[]>;
 export type Address = string;
 
 /** @internal */
-export type AppArtifactCache = Map<
-  Address,
-  { abiInterface: Interface; roles: AragonArtifactRole[]; functions: { sig: string }[] }
->;
+export interface AppArtifact {
+  abiInterface: Interface;
+  appName: string;
+  roles: AragonArtifactRole[];
+  functions: { sig: string }[];
+}
+
+/** @internal */
+export type AppArtifactCache = Map<Address, AppArtifact>;
 
 /**
  * A map which contains the DAO's apps indexed by their identifier ([[AppIdentifier]] or [[LabeledAppIdentifier]]).

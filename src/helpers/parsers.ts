@@ -1,6 +1,16 @@
 import { getSystemApp, isSystemApp } from ".";
 import { ParsedApp, Repo } from "../types";
 
+export const parseAppArtifactName = (name: string): string => {
+  if (!name) {
+    return "";
+  }
+  // Split by the first '.' occurrence only.
+  const parsedName = name.split(/\.(.+)/);
+
+  return parsedName.length > 1 ? parsedName[1] : "";
+};
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const parseApp = (app: any): ParsedApp => {
   const { address, appId, implementation, repoName, roles } = app;

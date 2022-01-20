@@ -1,4 +1,3 @@
-import { Interface } from "@ethersproject/abi";
 import { ipfsResolver as createIpfsResolver, IpfsResolver } from "@1hive/connect-core";
 import { BigNumber, BigNumberish, constants, Contract, ethers, providers, Signer, utils } from "ethers";
 import Connector from "./Connector";
@@ -27,6 +26,7 @@ import {
   isForwarder,
   toDecimals,
   timeUnits,
+  buildAppArtifact,
 } from "./helpers";
 import {
   Address,
@@ -512,11 +512,7 @@ export default class EVMcrispr {
 
         if (!this.#appArtifactCache.has(codeAddress)) {
           const artifact = repoArtifact ?? (await fetchAppArtifact(this._ipfsResolver, contentUri));
-          this.#appArtifactCache.set(codeAddress, {
-            abiInterface: new utils.Interface(artifact.abi),
-            roles: artifact.roles,
-            functions: artifact.functions,
-          });
+          this.#appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
         }
 
         const { abiInterface, roles } = this.#appArtifactCache.get(codeAddress)!;
@@ -686,21 +682,13 @@ export default class EVMcrispr {
       const artifact = artifacts[index];
 
       if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, {
-          abiInterface: new Interface(artifact.abi),
-          roles: artifact.roles,
-          functions: artifact.functions,
-        });
+        appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
       }
     });
 
     artifactApps.forEach(({ artifact, codeAddress }) => {
       if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, {
-          abiInterface: new Interface(artifact.abi),
-          roles: artifact.roles,
-          functions: artifact.functions,
-        });
+        appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
       }
     });
 

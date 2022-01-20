@@ -1,4 +1,6 @@
-import { Address, App, AppArtifactCache, ParsedApp, PermissionMap } from "../types";
+import { utils } from "ethers";
+import { parseAppArtifactName } from ".";
+import { Address, App, AppArtifactCache, AppArtifact, ParsedApp, PermissionMap } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const buildAppPermissions = (artifactRoles: any, currentPermissions: any[]): PermissionMap => {
@@ -26,7 +28,7 @@ export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCac
   if (!appResourcesCache.has(codeAddress)) {
     return null;
   }
-  const { abiInterface, roles: artifactRoles } = appResourcesCache.get(codeAddress)!;
+  const { abiInterface, appName, roles: artifactRoles } = appResourcesCache.get(codeAddress)!;
 
   return {
     abiInterface,
@@ -35,6 +37,14 @@ export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCac
     contentUri,
     name,
     permissions: buildAppPermissions(artifactRoles, roles),
-    registryName,
+    registryName: registryName && registryName.length ? registryName : parseAppArtifactName(appName),
   };
 };
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const buildAppArtifact = (artifact: any): AppArtifact => ({
+  appName: artifact.appName as string,
+  abiInterface: new utils.Interface(artifact.abi),
+  roles: artifact.roles,
+  functions: artifact.functions,
+});
