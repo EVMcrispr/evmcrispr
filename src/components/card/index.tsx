@@ -1,29 +1,36 @@
+import Trail from "../animations/trail";
+
 type CardProps = {
   image: any;
   name: string;
   info: string;
   description: string;
+  showContent?: boolean;
 };
 
-const Card = ({ image, name, info, description }: CardProps) => {
+const Pixels = () => (
+  <>
+    <span className="card-pixel"></span>
+    <span className="card-pixel"></span>
+    <span className="card-pixel"></span>
+    <span className="card-pixel"></span>
+  </>
+);
+
+const Card = ({ image, name, info, description, showContent }: CardProps) => {
   return (
     <div className="card">
       <div className="card-content">
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
-
-        <img src={image} alt={name} height="90" />
-        <label className="card-name">{name}</label>
-        <label className="card-info">{info}</label>
-        <label className="card-description">{description}</label>
+        <Pixels />
+        <Trail open={showContent} className="card-content-wrapper">
+          <img src={image} alt={name} height="90" />
+          <label className="card-name">{name}</label>
+          <label className="card-info">{info}</label>
+          <label className="card-description">{description}</label>
+        </Trail>
       </div>
       <div className="card-shadow">
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
-        <span className="card-pixel"></span>
+        <Pixels />
       </div>
     </div>
   );
