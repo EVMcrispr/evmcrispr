@@ -1,7 +1,256 @@
-body { background: black; color: white }
-body, h1, input { font-weight: bold; font-size: 40px; font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace }
-h1 {color: #D8FA3C; margin-bottom: -12px }
-input[type=button] { background-color: #D8FA3C;cursor:pointer; margin-left: 10px }
-small { font-size: 16px }
-header { margin-bottom: 40px }
-a, a:visited { color: #D8FA3C; }
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,300&display=swap");
+
+body,
+html,
+#root {
+  height: 100%;
+  background: black;
+  margin: 0;
+  padding: 0;
+  font-family: "Open Sans", sans-serif;
+}
+
+.App {
+  height: 100%; /* remove this line to see div.app is no more 100% height */
+  background: black;
+  color: white;
+  padding: 117px 0;
+}
+
+.content {
+  max-width: 956px;
+  margin: 0 auto;
+}
+
+.flex-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-center-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.buttons {
+  flex-direction: row;
+  gap: 7px;
+}
+
+footer {
+  padding: 56px 15px;
+}
+
+footer > label {
+  font-size: 16px;
+  color: #dffb4f;
+  margin-bottom: 17px;
+}
+
+.button {
+  background: #1818ab;
+  padding: 10px 20px;
+  color: #dffb4f;
+  text-decoration: none;
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #dffb4f;
+  color: #1818ab;
+  transition: all 0.5s;
+}
+
+.button-success {
+  background: #75f248;
+  color: #121212;
+}
+
+.button-success:hover {
+  color: #75f248;
+  background: #121212;
+  transition: all 0.5s;
+}
+
+.button-warning {
+  background: #ed702d;
+  color: #ffffff;
+}
+
+.button-warning:hover {
+  color: #ed702d;
+  background: #ffffff;
+  transition: all 0.5s;
+}
+
+.button-header {
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  margin-left: 15px;
+  background: transparent;
+}
+
+.buttons {
+  margin: 0 0 70px;
+}
+
+.typewriter {
+  text-align: center;
+  font-size: 24px;
+  margin-top: 70px;
+  margin-bottom: 70px;
+}
+
+.sponsors {
+  background-color: #181818;
+  padding: 61px 15px;
+}
+
+.sponsors > label {
+  margin-bottom: 34px;
+  font-size: 16px;
+}
+
+.script-actions {
+  margin-top: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 13px;
+}
+
+.terminal-code {
+  margin-bottom: 70px;
+  margin-top: 70px;
+}
+
+.cards {
+  margin-top: 70px;
+  margin-bottom: 120px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 65px;
+}
+
+.card {
+  width: 255px;
+  min-height: 200px;
+
+  position: relative;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 25px;
+  text-align: center;
+  border: 4px solid #75f248;
+  background: #000;
+  z-index: 10;
+  position: relative;
+}
+
+.card-name {
+  margin-top: 20px;
+  font-size: 15px;
+  color: #75f248;
+}
+
+.card-info {
+  font-size: 15px;
+}
+
+.card-description {
+  font-size: 13px;
+}
+
+.card-shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  transform: translate(23px, 28px);
+  border: 4px solid #75f248;
+}
+
+.card-pixel {
+  background: #000;
+  position: absolute;
+  height: 4px;
+  width: 4px;
+}
+
+.card > div span:nth-child(1) {
+  top: -4px;
+  right: -4px;
+}
+
+.card > div span:nth-child(2) {
+  bottom: -4px;
+  right: -4px;
+}
+
+.card > div span:nth-child(3) {
+  top: -4px;
+  left: -4px;
+}
+
+.card > div span:nth-child(4) {
+  bottom: -4px;
+  left: -4px;
+}
+
+.slide-exit {
+  transform: translate(-100%, 0%);
+}
+.slide-exit-active {
+  transform: translate(-200%, 0%);
+  transition: transform 500ms ease-in-out;
+}
+
+@media only screen and (max-width: 600px) {
+  .App {
+    overflow-x: hidden;
+  }
+
+  .terminal-code,
+  .buttons,
+  .Typewriter {
+    padding: 0 15px;
+  }
+
+  .content {
+    width: 100%;
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cards {
+    padding: 0 15px 0 0;
+    flex-direction: column;
+  }
+
+  .flex-center-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+}
