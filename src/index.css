@@ -194,10 +194,12 @@ footer > label {
   margin-top: 20px;
   font-size: 15px;
   color: #75f248;
+  font-weight: bold;
 }
 
 .card-info {
   font-size: 15px;
+  font-weight: bold;
 }
 
 .card-description {

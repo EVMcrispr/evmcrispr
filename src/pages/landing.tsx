@@ -44,6 +44,7 @@ const Landing = () => {
           <Card
             showContent={showCardContent}
             image={Brett}
+            height={107}
             name="Brett Sun"
             info="Former Aragon CTO"
             description="EVMCrispr is the tool every aragonOS DAO has been waiting for. It presents a step change in DAO operations that enables everyone to invoke complex proposals—not just those brave enough to write complex transaction-generating code."
