@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,300&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,300&display=swap");
 
 body,
 html,
@@ -7,7 +7,7 @@ html,
   background: black;
   margin: 0;
   padding: 0;
-  font-family: "Open Sans", sans-serif;
+  font-family: "Ubuntu Mono", monospace;
 }
 
 .App {
@@ -62,8 +62,8 @@ footer > label {
 }
 
 .button:hover {
-  background: #dffb4f;
-  color: #1818ab;
+  color: #dffb4f;
+  background: #121212;
   transition: all 0.5s;
 }
 
@@ -89,7 +89,7 @@ footer > label {
   transition: all 0.5s;
 }
 
-.button-header {
+.version {
   font-size: 24px;
   border: none;
   cursor: pointer;
@@ -98,16 +98,38 @@ footer > label {
   background: transparent;
 }
 
+.typewriter {
+  overflow: hidden; /* Ensures the content is not revealed until the animation */
+  border-right: .5em solid transparent; /* The typwriter cursor */
+  white-space: nowrap; /* Keeps the content on a single line */
+  letter-spacing: .15em; /* Adjust as needed */
+  width: 350px;
+  animation: 
+    typing 2.5s steps(40, end)
+}
+
+/* The typing effect */
+@keyframes typing {
+  from { width: 0 ;border-color: #fff }
+  to { width: 350px }
+  99% {border-color: #fff}
+  100% {border-color: transparent}
+}
+
 .buttons {
   margin: 0 0 70px;
 }
 
-.typewriter {
+.description {
   text-align: center;
   font-size: 24px;
   margin-top: 70px;
   margin-bottom: 70px;
   min-height: 165px;
+}
+
+.description strong {
+  color: #75f248;
 }
 
 .sponsors {
@@ -195,8 +217,8 @@ footer > label {
 .card-pixel {
   background: #000;
   position: absolute;
-  height: 5px;
-  width: 5px;
+  height: 6px;
+  width: 6px;
 }
 
 .card > div span:nth-child(1) {

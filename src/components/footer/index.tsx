@@ -2,30 +2,25 @@ import React from "react";
 import sponsor from "../../assets/sponsor.svg";
 import Bee from "../../assets/bee.svg";
 
-type PageSkeletonProps = {
-  children: React.ReactNode;
-};
 
-const PageSkeleton = ({ children }: PageSkeletonProps) => {
+const Footer = () => {
   return (
     <>
-      {children}
-
       <div className="sponsors flex-center ">
         <label htmlFor="">Sponsored by</label>
-        <div>
+        <a href="https://giveth.io" target="_blank" rel="noreferrer">
           <img src={sponsor} alt="Sponsor" height="58px" />
-        </div>
+        </a>
       </div>
 
       <footer className="flex-center ">
         <label htmlFor="">powered by Bees</label>
-        <div>
+        <a href="https://1hive.org" target="_blank" rel="noreferrer">
           <img src={Bee} alt="Bee" height="48px"></img>
-        </div>
+        </a>
       </footer>
     </>
   );
 };
 
-export default PageSkeleton;
+export default Footer;

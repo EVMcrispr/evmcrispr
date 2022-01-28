@@ -4,12 +4,9 @@ import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-jade";
 import "ace-builds/src-noconflict/theme-vibrant_ink";
 
-import { codename } from "../assets/sponsors.json";
-import { version } from "@1hive/evmcrispr/package.json";
-
-import PageSkeleton from "../components/skeleton";
-import Header from "../components/header";
 import { useTerminal } from "../utils/useTerminal";
+import FadeIn from "../components/animations/fade-in";
+import { useSpringRef, useChain } from "@react-spring/web";
 
 const Terminal = () => {
   const {
@@ -20,22 +17,18 @@ const Terminal = () => {
     setCode,
     address,
     addressShortened,
-    onClick,
     onForward,
     onConnect,
   } = useTerminal();
+  const terminalRef = useSpringRef();
+  const buttonsRef = useSpringRef();
+
+  useChain([terminalRef, buttonsRef]);
 
   return (
-    <PageSkeleton>
-      <Header
-        terminalText={`evm-crispr ${
-          codename ? `"${codename}"` : null
-        } v${version}`}
-        onClick={onClick}
-      />
-
-      <div className="terminal-code">
-        <div className="content ">
+    <div className="terminal-code">
+      <div className="content ">
+        <FadeIn componentRef={terminalRef}>
           <AceEditor
             width="100%"
             mode="jade"
@@ -56,7 +49,8 @@ const Terminal = () => {
               tabSize: 2,
             }}
           />
-
+        </FadeIn>
+        <FadeIn componentRef={buttonsRef}>
           <div className="script-actions">
             {!address ? (
               <button className="button button-success" onClick={onConnect}>
@@ -90,9 +84,9 @@ const Terminal = () => {
               </div>
             )}
           </div>
-        </div>
+        </FadeIn>
       </div>
-    </PageSkeleton>
+    </div>
   );
 };
 

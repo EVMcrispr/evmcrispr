@@ -10,12 +10,12 @@ function FadeIn({ children, componentRef, onRest = () => {} }: FadeInType) {
   const styles = useSpring({
     ref: componentRef,
     loop: false,
-    delay: 500,
+    delay: 100,
     to: { opacity: 1 },
     from: { opacity: 0 },
     onRest: () => onRest(),
     config: {
-      duration: 1000,
+      duration: 400,
       easing: easings.easeInOutQuart
     }
   });

@@ -1,6 +1,6 @@
 # EVMcrispr Terminal <img align="right" src="https://github.com/BlossomLabs/evmcrispr-terminal/blob/master/public/logo192.png" height="80px" />
 
-With the evm-crispr terminal you can create complex votes that can be executed by an AragonOS DAO all at once.
+With the EVMcrispr terminal you can create complex votes that can be executed by an AragonOS DAO all at once.
 
 ## Available commands:
 ```

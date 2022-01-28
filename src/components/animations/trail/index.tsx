@@ -18,7 +18,7 @@ function Trail ({ open, children, className }: TrailType) {
     },
     opacity: open ? 1 : 0,
     filter: open ? 'blur(0)' : 'blur(30px)',
-    from: { opacity: 0, filter: 'blur(0)' },
+    from: { opacity: 0, filter: 'blur(0)'},
   })
   return (
     <div className={className}>
