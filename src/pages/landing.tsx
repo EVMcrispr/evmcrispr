@@ -15,8 +15,9 @@ const Landing = () => {
   const typeRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const cardRef = useSpringRef();
+  const peepsRef = useSpringRef();
 
-  useChain([typeRef, buttonsRef, cardRef]);
+  useChain([typeRef, buttonsRef, peepsRef, cardRef]);
 
   const handleCardContent = () => setCardContent(true);
 
@@ -39,6 +40,12 @@ const Landing = () => {
         </div>
       </FadeIn>
 
+      <FadeIn componentRef={peepsRef}>
+      <h2 className="opinions flex-center">
+          What do our peeps think?
+        </h2>
+        </FadeIn>
+
       <FadeIn componentRef={cardRef} onRest={handleCardContent}>
         <div className="cards content">
           <Card
@@ -47,21 +54,21 @@ const Landing = () => {
             height={107}
             name="Brett Sun"
             info="Former Aragon CTO"
-            description="EVMCrispr is the tool every aragonOS DAO has been waiting for. It presents a step change in DAO operations that enables everyone to invoke complex proposals—not just those brave enough to write complex transaction-generating code."
+            description={`"EVMCrispr is the tool every aragonOS DAO has been waiting for. It presents a step change in DAO operations that enables everyone to invoke complex proposals—not just those brave enough to write complex transaction-generating code."`}
           />
           <Card
             showContent={showCardContent}
             image={Michael}
             name="Michael Egorov"
             info="Founder of Curve"
-            description="We had an important upgrade of CurveDAO (based on Aragon) which had to be very well tested given that the DAO controls parameters of a platform which holds more than $20B USD worth of assets. EVMcrispr helped to get this upgrade done safely."
+            description={`"We had an important upgrade of CurveDAO (based on Aragon) which had to be very well tested given that the DAO controls parameters of a platform which holds more than $20B USD worth of assets. EVMcrispr helped to get this upgrade done safely."`}
           />
           <Card
             showContent={showCardContent}
             image={Griff}
             name="Griff Green"
             info="Co-founder of Giveth, Commons Stack & DAppNode"
-            description="EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."
+            description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
           />
         </div>
       </FadeIn>
