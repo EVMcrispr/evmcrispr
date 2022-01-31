@@ -42,7 +42,7 @@ const Landing = () => {
 
       <FadeIn componentRef={peepsRef}>
       <h2 className="opinions flex-center">
-          What do our peeps think?
+          What do our friends think about EVMcrispr?
         </h2>
         </FadeIn>
 
