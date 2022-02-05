@@ -41,10 +41,10 @@ const Landing = () => {
       </FadeIn>
 
       <FadeIn componentRef={peepsRef}>
-      <h2 className="opinions flex-center">
-          What do our friends think about EVMcrispr?
+        <h2 className="opinions flex-center">
+          Who's using EVMcrispr?
         </h2>
-        </FadeIn>
+      </FadeIn>
 
       <FadeIn componentRef={cardRef} onRest={handleCardContent}>
         <div className="cards content">
