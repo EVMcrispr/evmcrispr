@@ -1,12 +1,13 @@
 import React from "react";
-import AceEditor from "react-ace";
-
-import "ace-builds/src-noconflict/mode-jade";
-import "ace-builds/src-noconflict/theme-vibrant_ink";
+import Editor from "@monaco-editor/react";
 
 import { useTerminal } from "../utils/useTerminal";
 import FadeIn from "../components/animations/fade-in";
 import { useSpringRef, useChain } from "@react-spring/web";
+import theme from 'monaco-themes/themes/Vibrant Ink.json';
+import { contribution, conf, language } from '../editor/evmcl';
+
+theme.colors["editor.lineHighlightBackground"] = "#333333";
 
 const Terminal = () => {
   const {
@@ -29,24 +30,34 @@ const Terminal = () => {
     <div className="terminal-code">
       <div className="content ">
         <FadeIn componentRef={terminalRef}>
-          <AceEditor
-            width="100%"
-            mode="jade"
-            theme="vibrant_ink"
-            name="code"
+          <Editor
+            height="50vh"
+            theme="theme"
+            language="evmcl"
             value={code}
-            onChange={setCode}
-            focus={true}
-            fontSize={24}
-            showPrintMargin={true}
-            showGutter={true}
-            highlightActiveLine={true}
-            setOptions={{
-              enableBasicAutocompletion: true,
-              enableLiveAutocompletion: true,
-              enableSnippets: true,
-              showLineNumbers: true,
+            onChange={str => setCode(str || "")}
+            beforeMount={monaco => {
+              monaco.editor.defineTheme('theme', theme);
+              monaco.languages.register(contribution);
+              monaco.languages.setLanguageConfiguration("evmcl", conf);
+              monaco.languages.setMonarchTokensProvider("evmcl", language);
+            }}
+            onMount={editor => {
+              editor.setPosition({ lineNumber: 10000, column: 0 });
+              editor.focus();
+            }}
+            options={{
+              fontSize: 24,
+              detectIndentation: false,
               tabSize: 2,
+              language: "evmcl",
+              minimap: {
+                enabled: false
+              },
+              scrollbar: {
+                useShadows: false,
+                verticalScrollbarSize: 7,
+              }
             }}
           />
         </FadeIn>
