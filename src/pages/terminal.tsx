@@ -4,10 +4,8 @@ import Editor from "@monaco-editor/react";
 import { useTerminal } from "../utils/useTerminal";
 import FadeIn from "../components/animations/fade-in";
 import { useSpringRef, useChain } from "@react-spring/web";
-import theme from 'monaco-themes/themes/Vibrant Ink.json';
+import theme from '../editor/theme.json';
 import { contribution, conf, language } from '../editor/evmcl';
-
-theme.colors["editor.lineHighlightBackground"] = "#333333";
 
 const Terminal = () => {
   const {
@@ -47,7 +45,8 @@ const Terminal = () => {
               editor.focus();
             }}
             options={{
-              fontSize: 24,
+              fontSize: 22,
+              fontFamily: "Ubuntu Mono",
               detectIndentation: false,
               tabSize: 2,
               language: "evmcl",
@@ -57,6 +56,7 @@ const Terminal = () => {
               scrollbar: {
                 useShadows: false,
                 verticalScrollbarSize: 7,
+                vertical: "hidden",
               }
             }}
           />
