@@ -67,14 +67,14 @@ exec agent:new transfer XDAI vault 100e18
     setLoading(true);
 
     try {
-      const { evmcrispr, _code, path, context } = await dao(code, provider);
+      const { evmcrispr, _code, dao: _dao, path, context } = await dao(code, provider);
       await evmcrispr.forward(evmcl`${_code}`, path, {
         context,
         gasLimit: 10_000_000,
       });
       const chainId = (await provider.getNetwork()).chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
-      setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
+      setUrl(`https://${client(chainId)}/#/${_dao}/${lastApp}`);
     } catch (e: any) {
       console.error(e);
       if (
