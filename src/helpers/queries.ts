@@ -28,10 +28,6 @@ export const ORGANIZATION_APPS = (type: string) => gql`
           address
         }
         repo {
-          lastVersion {
-            contentUri
-            artifact
-          }
           registry {
             name
           }

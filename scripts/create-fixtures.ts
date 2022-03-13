@@ -29,10 +29,8 @@ const createDAOAppsFixture = async () => {
   const daoApps: any[] = daoAppsResponse.data.organization.apps;
 
   // Fetch missing artifacts
-  const artifactlessApps: any[] = daoApps.filter(
-    (app: any) => !app.repo?.lastVersion.artifact && app.repo?.lastVersion.contentUri
-  );
-  const contentUris: Set<string> = new Set(artifactlessApps.map((app) => app.repo.lastVersion.contentUri));
+  const artifactlessApps: any[] = daoApps.filter((app: any) => !app.version?.artifact && app.version?.contentUri);
+  const contentUris: Set<string> = new Set(artifactlessApps.map((app) => app.version.contentUri));
   const iterableContentUris = [...contentUris];
   const artifacts: any[] = await Promise.all(
     iterableContentUris.map((contentUri) => fetchAppArtifact(resolver, contentUri))
@@ -63,7 +61,7 @@ const createRepoFixture = async () => {
   if (!repo) {
     throw new Error(`Repo ${REPO_NAME}.${REGISTRY_NAME} used to create fixtures not found.`);
   }
-  const { artifact, contentUri } = repo.lastVersion || {};
+  const { artifact, contentUri } = repo.version || {};
 
   if (!contentUri && !artifact) {
     throw new Error(`Repo ${REPO_NAME}.${REGISTRY_NAME} artifact not found.`);

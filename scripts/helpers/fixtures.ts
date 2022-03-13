@@ -25,10 +25,6 @@ export const fetchOrganizationApps = (daoAddress: string, chainId: number): Prom
                 address
               }
               repo {
-                lastVersion {
-                  contentUri
-                  artifact
-                }
                 registry {
                   name
                 }
@@ -39,6 +35,11 @@ export const fetchOrganizationApps = (daoAddress: string, chainId: number): Prom
                 grantees {
                   granteeAddress
                 }
+              }
+              version {
+                codeAddress
+                contentUri
+                artifact
               }
             }
           }
