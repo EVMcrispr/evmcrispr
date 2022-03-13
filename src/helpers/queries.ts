@@ -43,6 +43,11 @@ export const ORGANIZATION_APPS = (type: string) => gql`
             granteeAddress
           }
         }
+        version {
+          codeAddress
+          contentUri
+          artifact
+        }
       }
     }
   }

@@ -13,10 +13,9 @@ export const parseAppArtifactName = (name: string): string => {
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const parseApp = (app: any): ParsedApp => {
-  const { address, appId, implementation, repoName, roles } = app;
-  const { address: codeAddress } = implementation;
-  const { registry, lastVersion } = app.repo || {};
-  const { artifact: rawArtifact, contentUri } = lastVersion || {};
+  const { address, appId, implementation, repoName, roles, version } = app;
+  const { registry } = app.repo || {};
+  const { codeAddress, artifact: rawArtifact, contentUri } = version || {};
   let artifact, name;
 
   if (isSystemApp(appId)) {
@@ -32,7 +31,7 @@ export const parseApp = (app: any): ParsedApp => {
     address,
     appId,
     artifact,
-    codeAddress,
+    codeAddress: codeAddress ?? implementation.address,
     contentUri,
     name,
     registryName: registry?.name,
