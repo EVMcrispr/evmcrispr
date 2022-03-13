@@ -10,13 +10,11 @@ export const buildAppPermissions = (artifactRoles: any, currentPermissions: any[
   }, new Map());
 
   currentPermissions.forEach((role) => {
-    if (appPermissions.has(role.roleHash)) {
-      appPermissions.set(role.roleHash, {
-        ...appPermissions.get(role.roleHash),
-        manager: role.manager,
-        grantees: new Set(role.grantees.map(({ granteeAddress }: { granteeAddress: Address }) => granteeAddress)),
-      });
-    }
+    appPermissions.set(role.roleHash, {
+      ...appPermissions.get(role.roleHash),
+      manager: role.manager,
+      grantees: new Set(role.grantees.map(({ granteeAddress }: { granteeAddress: Address }) => granteeAddress)),
+    });
   });
 
   return appPermissions;
