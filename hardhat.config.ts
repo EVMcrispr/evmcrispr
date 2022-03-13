@@ -65,11 +65,16 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       gas: 10_000_000,
-      gasPrice: 8000000000,
+      // Rinkeby
+      // gasPrice: 8000000000,
+      // Mainnet
+      gasPrice: 24927821531,
       allowUnlimitedContractSize: true,
       forking: {
-        url: "https://mainnet.infura.io/v3/c85ee5b396f1486dab6f074a6035042b",
-        blockNumber: 13684108,
+        // url: "https://speedy-nodes-nyc.moralis.io/cff107316eaa320c66ca9c51/eth/rinkeby/archive",
+        // blockNumber: 10316339,
+        url: "https://speedy-nodes-nyc.moralis.io/cff107316eaa320c66ca9c51/eth/mainnet/archive",
+        blockNumber: 14378816,
       },
     },
     localhost: {
