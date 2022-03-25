@@ -80,7 +80,7 @@ export const createTestScriptEncodedAction = (forwarderActions: Action[], path: 
         forwarderActions = [
           {
             to: forwarderAddress,
-            data: encodeActCall("forward(bytes,bytes)", [script, utils.formatBytes32String(context)]),
+            data: encodeActCall("forward(bytes,bytes)", [script, utils.hexlify(utils.toUtf8Bytes(context))]),
           },
         ];
         break;
