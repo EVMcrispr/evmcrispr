@@ -12,7 +12,7 @@ export const APP = {
   callSignatureParams: [DAO.voting, toDecimals(15)],
   callSignatureUnresolvedParams: ["voting", "15e18"],
   actTarget: "0xc778417e063141139fce010982780140aa0cd5ab",
-  actSignature: "approve(address[],uint256[][2],bool)",
+  actSignature: "approve(address[],uint256[][2],bool,bytes,bytes32)",
   actSignatureParams: [
     ["0x1c06257469514574c0868fdcb83c5509b5513870"],
     [
@@ -20,6 +20,8 @@ export const APP = {
       [String(0.15e8), 4838400],
     ],
     false,
+    utils.hexlify(utils.toUtf8Bytes("hello")),
+    utils.formatBytes32String("hello"),
   ],
   actSignatureUnresolvedParams: [
     ["vault"],
@@ -28,6 +30,8 @@ export const APP = {
       ["0.15e8", "56d"],
     ],
     "false",
+    "hello",
+    "hello",
   ], // TODO: Change it with an Agent
   get appIdentifier(): keyof typeof DAO {
     return this.appName.split(".")[0] as keyof typeof DAO;

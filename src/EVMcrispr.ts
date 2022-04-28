@@ -796,6 +796,18 @@ export default class EVMcrispr {
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  #resolveBytes(bytes: any, max = 0): string {
+    if (typeof bytes === "string" && !bytes.startsWith("0x")) {
+      bytes = utils.hexlify(utils.toUtf8Bytes(bytes)).padEnd(max * 2 + 2, "0");
+    }
+    bytes = bytes.toString();
+    if (!bytes.startsWith("0x") || (bytes.length > max * 2 + 2 && max > 0)) {
+      throw new Error(`Parameter should contain less than ${max} bytes.`);
+    }
+    return bytes;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   #resolveParam(param: any, type: string): any {
     if (/\[\d*\]$/g.test(type)) {
       if (!Array.isArray(param)) {
@@ -811,6 +823,9 @@ export default class EVMcrispr {
     }
     if (type === "bool") {
       return this.#resolveBoolean(param);
+    }
+    if (/^bytes(\d*)$/.test(type)) {
+      return this.#resolveBytes(param, parseInt(type.match(/^bytes(\d*)$/)![1] || "0"));
     }
     return param;
   }
