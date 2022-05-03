@@ -1,9 +1,13 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
-    "source.fixAll": true
+    "source.fixAll.eslint": true
   },
+  "eslint.options": {
+    "extensions": [".js", ".json", ".ts", ".tsx"]
+  },
+  "eslint.validate": ["javascript", "json", "typescript", "typescriptreact"],
+  "eslint.packageManager": "pnpm",
   "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "packages/hardhat/node_modules",
   "solidity.enabledAsYouTypeCompilationErrorCheck": true,
