@@ -6,7 +6,7 @@
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "pnpm --filter \"./packages/evmcrispr\" test",
     "preinstall": "npx only-allow pnpm",
     "postinstall": "preconstruct dev"
   },
