@@ -1,9 +1,10 @@
-import { isAddress } from "@ethersproject/address";
-import { expect } from "chai";
-import isIpfs from "is-ipfs";
-import { ErrorInvalid } from "../../src";
-import { parseContentUri } from "../../src/helpers";
-import { AragonArtifact, ParsedApp } from "../../src/types";
+import { isAddress } from '@ethersproject/address';
+import { expect } from 'chai';
+import isIpfs from 'is-ipfs';
+
+import { ErrorInvalid } from '../../src';
+import { parseContentUri } from '../../src/helpers';
+import type { AragonArtifact, ParsedApp } from '../../src/types';
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 
@@ -13,8 +14,10 @@ export const expectHash = (hash: string, message?: string): void => {
 
 export const expectThrowAsync = async (
   method: () => any,
-  errorOptions: { type: any; name?: string; message?: string } = { type: Error },
-  customTestMessage = ""
+  errorOptions: { type: any; name?: string; message?: string } = {
+    type: Error,
+  },
+  customTestMessage = '',
 ): Promise<void> => {
   let error: Error | null = null;
   try {
@@ -39,73 +42,104 @@ export const expectThrowAsync = async (
 export const isValidArtifact = (artifact: AragonArtifact): void => {
   const { appName, abi, roles } = artifact;
 
-  expect(appName, "Artifact name not found").to.not.be.null;
+  expect(appName, 'Artifact name not found').to.not.be.null;
 
-  expect(abi.length, "Artifact ABI not found").to.be.greaterThan(0);
+  expect(abi.length, 'Artifact ABI not found').to.be.greaterThan(0);
 
   roles.forEach(({ bytes, id, name }) => {
-    expectHash(bytes, "Invalid artifact role hash");
-    expect(id, "Artifact role id not found").to.not.be.empty;
-    expect(name, "Artifact role name not found").to.not.be.empty;
+    expectHash(bytes, 'Invalid artifact role hash');
+    expect(id, 'Artifact role id not found').to.not.be.empty;
+    expect(name, 'Artifact role name not found').to.not.be.empty;
   });
 };
 
 export const isValidIdentifier = (
   evmcrisprMethod: (invalidIdentifier: string) => any,
   checkLabeledAppIdentifier = false,
-  checkAppIdentifier = false
+  checkAppIdentifier = false,
 ): (() => Promise<void>) => {
   return async () => {
-    const errorOptions = { type: ErrorInvalid, name: "ErrorInvalidIdentifier" };
+    const errorOptions = { type: ErrorInvalid, name: 'ErrorInvalidIdentifier' };
 
-    await expectThrowAsync(evmcrisprMethod(""), errorOptions, "Empty identifier");
+    await expectThrowAsync(
+      evmcrisprMethod(''),
+      errorOptions,
+      'Empty identifier',
+    );
 
-    await expectThrowAsync(evmcrisprMethod("Vault"), errorOptions, "Uppercase letter in identifier");
+    await expectThrowAsync(
+      evmcrisprMethod('Vault'),
+      errorOptions,
+      'Uppercase letter in identifier',
+    );
 
-    await expectThrowAsync(evmcrisprMethod("vault:"), errorOptions, "Incomplete identifier");
+    await expectThrowAsync(
+      evmcrisprMethod('vault:'),
+      errorOptions,
+      'Incomplete identifier',
+    );
 
-    await expectThrowAsync(evmcrisprMethod("vault%"), errorOptions, "Invalid character in identifier");
+    await expectThrowAsync(
+      evmcrisprMethod('vault%'),
+      errorOptions,
+      'Invalid character in identifier',
+    );
 
-    await expectThrowAsync(evmcrisprMethod("vault."), errorOptions, "Incomplete repository in identifier");
+    await expectThrowAsync(
+      evmcrisprMethod('vault.'),
+      errorOptions,
+      'Incomplete repository in identifier',
+    );
 
     if (checkLabeledAppIdentifier) {
-      await expectThrowAsync(evmcrisprMethod("vault:new-vau/lt"), errorOptions, "Label containing invalid character");
+      await expectThrowAsync(
+        evmcrisprMethod('vault:new-vau/lt'),
+        errorOptions,
+        'Label containing invalid character',
+      );
     }
 
     if (checkAppIdentifier) {
-      await expectThrowAsync(evmcrisprMethod("vault:2new"), errorOptions, "Index containing non-numeric character");
+      await expectThrowAsync(
+        evmcrisprMethod('vault:2new'),
+        errorOptions,
+        'Index containing non-numeric character',
+      );
     }
   };
 };
 
 export const isValidParsedApp = (app: ParsedApp): void => {
-  const { address, appId, artifact, codeAddress, contentUri, name, roles } = app;
+  const { address, appId, artifact, codeAddress, contentUri, name, roles } =
+    app;
 
-  expect(isAddress(address), "Invalid app address").to.be.true;
+  expect(isAddress(address), 'Invalid app address').to.be.true;
 
-  expectHash(appId, "Invalid appId");
+  expectHash(appId, 'Invalid appId');
 
-  expect(isAddress(codeAddress), "Invalid app code address").to.be.true;
+  expect(isAddress(codeAddress), 'Invalid app code address').to.be.true;
 
   if (contentUri) {
-    expect(isIpfs.multihash(parseContentUri(contentUri)), "Invalid contentUri").to.be.true;
+    expect(isIpfs.multihash(parseContentUri(contentUri)), 'Invalid contentUri')
+      .to.be.true;
   }
 
-  expect(name, "App name missing").to.not.be.empty;
+  expect(name, 'App name missing').to.not.be.empty;
 
-  expect(app).has.property("artifact");
+  expect(app).has.property('artifact');
 
   if (artifact) {
     isValidArtifact(artifact);
   }
 
   roles.forEach(({ manager, grantees, roleHash }) => {
-    expect(isAddress(manager), "Invalid app role manager").to.be.true;
+    expect(isAddress(manager), 'Invalid app role manager').to.be.true;
 
     grantees.forEach(({ granteeAddress }) => {
-      expect(isAddress(granteeAddress), "Invalid app role grantee address").to.be.true;
+      expect(isAddress(granteeAddress), 'Invalid app role grantee address').to
+        .be.true;
     });
 
-    expectHash(roleHash, "Invalid app role hash");
+    expectHash(roleHash, 'Invalid app role hash');
   });
 };

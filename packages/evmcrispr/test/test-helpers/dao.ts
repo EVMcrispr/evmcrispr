@@ -1,10 +1,10 @@
-import { Contract } from "@ethersproject/contracts";
+import type { Contract } from '@ethersproject/contracts';
 
 export const getEventArgument = async (
   selectedFilter: string,
   arg: string,
   contract: Contract,
-  transactionHash: string
+  transactionHash: string,
 ): Promise<any> => {
   return new Promise((resolve, reject) => {
     const filter = contract.filters[selectedFilter]();
@@ -12,7 +12,9 @@ export const getEventArgument = async (
     contract
       .queryFilter(filter)
       .then((events) => {
-        const filteredEvents = events.filter((event) => event.transactionHash === transactionHash);
+        const filteredEvents = events.filter(
+          (event) => event.transactionHash === transactionHash,
+        );
         const filteredEvent = filteredEvents[0];
         if (filteredEvent && filteredEvent.args) {
           resolve(filteredEvent.args[arg]);

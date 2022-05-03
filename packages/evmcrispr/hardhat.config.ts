@@ -1,31 +1,32 @@
-import fs from "fs";
+import fs from 'fs';
 
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
-import "hardhat-typechain";
-import "hardhat-gas-reporter";
+import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-waffle';
+import 'hardhat-typechain';
+import 'hardhat-gas-reporter';
 
-import { task, HardhatUserConfig } from "hardhat/config";
-import { HttpNetworkUserConfig } from "hardhat/types";
+import type { HardhatUserConfig } from 'hardhat/config';
+import { task } from 'hardhat/config';
+import type { HttpNetworkUserConfig } from 'hardhat/types';
 
 const DEBUG = false;
 
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "hardhat";
+const defaultNetwork = 'hardhat';
 
 function mnemonic() {
   try {
-    return fs.readFileSync("./mnemonic.txt").toString().trim();
+    return fs.readFileSync('./mnemonic.txt').toString().trim();
   } catch (e) {
-    if (defaultNetwork !== "hardhat") {
+    if (defaultNetwork !== 'hardhat') {
       console.log(
-        "☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`."
+        '☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`.',
       );
     }
   }
-  return "";
+  return '';
 }
 
 const config: HardhatUserConfig = {
@@ -39,10 +40,10 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.4.24",
+        version: '0.4.24',
       },
       {
-        version: "0.7.6",
+        version: '0.7.6',
         settings: {
           optimizer: {
             enabled: true,
@@ -56,8 +57,8 @@ const config: HardhatUserConfig = {
     timeout: 0,
   },
   typechain: {
-    outDir: "typechain",
-    target: "ethers-v5",
+    outDir: 'typechain',
+    target: 'ethers-v5',
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
@@ -75,12 +76,12 @@ const config: HardhatUserConfig = {
         // blockNumber: 10316339,
         // url: "https://speedy-nodes-nyc.moralis.io/cff107316eaa320c66ca9c51/eth/mainnet/archive",
         // blockNumber: 14378816,
-        url: "https://xdai-archive.blockscout.com",
+        url: 'https://xdai-archive.blockscout.com',
         blockNumber: 21953949,
       },
     },
     localhost: {
-      url: "http://localhost:8545",
+      url: 'http://localhost:8545',
       timeout: 0,
       /*
         notice no mnemonic here? it will just use account 0 of the hardhat node to deploy
@@ -88,52 +89,52 @@ const config: HardhatUserConfig = {
       */
     },
     coverage: {
-      url: "http://localhost:8555",
+      url: 'http://localhost:8555',
       allowUnlimitedContractSize: true,
     },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/fb8cf9d97ab44df7b4a268b282c04803", // <---- YOUR INFURA ID! (or it won't work)
+      url: 'https://rinkeby.infura.io/v3/fb8cf9d97ab44df7b4a268b282c04803', // <---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     kovan: {
-      url: "https://kovan.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", // <---- YOUR INFURA ID! (or it won't work)
+      url: 'https://kovan.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad', // <---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     mainnet: {
-      url: "https://mainnet.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", // <---- YOUR INFURA ID! (or it won't work)
+      url: 'https://mainnet.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad', // <---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     ropsten: {
-      url: "https://ropsten.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", // <---- YOUR INFURA ID! (or it won't work)
+      url: 'https://ropsten.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad', // <---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     goerli: {
-      url: "https://goerli.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", // <---- YOUR INFURA ID! (or it won't work)
+      url: 'https://goerli.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad', // <---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     xdai: {
-      url: "https://xdai.poanetwork.dev/",
+      url: 'https://xdai.poanetwork.dev/',
       gasPrice: 1000000000,
       accounts: {
         mnemonic: mnemonic(),
       },
       forking: {
-        url: "https://xdai-archive.blockscout.com",
+        url: 'https://xdai-archive.blockscout.com',
         blockNumber: 15627460,
       },
     },
     matic: {
-      url: "https://rpc-mainnet.maticvigil.com/",
+      url: 'https://rpc-mainnet.maticvigil.com/',
       gasPrice: 1000000000,
       accounts: {
         mnemonic: mnemonic(),
@@ -142,43 +143,53 @@ const config: HardhatUserConfig = {
   },
 };
 
-task("account", "Get balance informations for the deployment account.", async (_, { ethers }) => {
-  const hdkey = require("ethereumjs-wallet/hdkey");
-  const bip39 = require("bip39");
-  const mnemonic = fs.readFileSync("./mnemonic.txt").toString().trim();
-  if (DEBUG) console.log("mnemonic", mnemonic);
-  const seed = await bip39.mnemonicToSeed(mnemonic);
-  if (DEBUG) console.log("seed", seed);
-  const hdwallet = hdkey.fromMasterSeed(seed);
-  const wallet_hdpath = "m/44'/60'/0'/0/";
-  const account_index = 0;
-  const fullPath = wallet_hdpath + account_index;
-  if (DEBUG) console.log("fullPath", fullPath);
-  const wallet = hdwallet.derivePath(fullPath).getWallet();
-  const privateKey = "0x" + wallet._privKey.toString("hex");
-  if (DEBUG) console.log("privateKey", privateKey);
-  const EthUtil = require("ethereumjs-util");
-  const address = "0x" + EthUtil.privateToAddress(wallet._privKey).toString("hex");
+task(
+  'account',
+  'Get balance informations for the deployment account.',
+  async (_, { ethers }) => {
+    const hdkey = require('ethereumjs-wallet/hdkey');
+    const bip39 = require('bip39');
+    const mnemonic = fs.readFileSync('./mnemonic.txt').toString().trim();
+    if (DEBUG) console.log('mnemonic', mnemonic);
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    if (DEBUG) console.log('seed', seed);
+    const hdwallet = hdkey.fromMasterSeed(seed);
+    const wallet_hdpath = "m/44'/60'/0'/0/";
+    const account_index = 0;
+    const fullPath = wallet_hdpath + account_index;
+    if (DEBUG) console.log('fullPath', fullPath);
+    const wallet = hdwallet.derivePath(fullPath).getWallet();
+    const privateKey = '0x' + wallet._privKey.toString('hex');
+    if (DEBUG) console.log('privateKey', privateKey);
+    const EthUtil = require('ethereumjs-util');
+    const address =
+      '0x' + EthUtil.privateToAddress(wallet._privKey).toString('hex');
 
-  const qrcode = require("qrcode-terminal");
-  qrcode.generate(address);
-  console.log("‍📬 Deployer Account is " + address);
-  for (const n in config.networks) {
-    // console.log(config.networks[n],n)
-    try {
-      const provider = new ethers.providers.JsonRpcProvider((config.networks[n] as HttpNetworkUserConfig).url);
-      const balance = await provider.getBalance(address);
-      console.log(" -- " + n + " --  -- -- 📡 ");
-      console.log("   balance: " + ethers.utils.formatEther(balance));
-      console.log("   nonce: " + (await provider.getTransactionCount(address)));
-    } catch (e) {
-      if (DEBUG) {
-        console.log(e);
+    const qrcode = require('qrcode-terminal');
+    qrcode.generate(address);
+    console.log('‍📬 Deployer Account is ' + address);
+    for (const n in config.networks) {
+      // console.log(config.networks[n],n)
+      try {
+        const provider = new ethers.providers.JsonRpcProvider(
+          (config.networks[n] as HttpNetworkUserConfig).url,
+        );
+        const balance = await provider.getBalance(address);
+        console.log(' -- ' + n + ' --  -- -- 📡 ');
+        console.log('   balance: ' + ethers.utils.formatEther(balance));
+        console.log(
+          '   nonce: ' + (await provider.getTransactionCount(address)),
+        );
+      } catch (e) {
+        if (DEBUG) {
+          console.log(e);
+        }
       }
     }
-  }
-});
-task("accounts", "Prints the list of accounts", async (_, { ethers }) => {
+  },
+);
+
+task('accounts', 'Prints the list of accounts', async (_, { ethers }) => {
   const accounts = await ethers.provider.listAccounts();
   accounts.forEach((account) => console.log(account));
 });

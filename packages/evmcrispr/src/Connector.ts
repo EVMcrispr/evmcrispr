@@ -1,18 +1,20 @@
-import { GraphQLWrapper, QueryResult } from "@1hive/connect-thegraph";
-import { ORGANIZATION_APPS, parseApp, parseRepo, REPO } from "./helpers";
-import { ErrorException, ErrorNotFound } from "./errors";
-import { Address, ParsedApp, Repo } from "./types";
+import type { QueryResult } from '@1hive/connect-thegraph';
+import { GraphQLWrapper } from '@1hive/connect-thegraph';
+
+import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './helpers';
+import { ErrorException, ErrorNotFound } from './errors';
+import type { Address, ParsedApp, Repo } from './types';
 
 export function subgraphUrlFromChainId(chainId: number): string | null {
   switch (chainId) {
     case 1:
-      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet";
+      return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet';
     case 4:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby";
+      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby';
     case 100:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai";
+      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai';
     case 137:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon";
+      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon';
     default:
       return null;
   }
@@ -34,7 +36,9 @@ export default class Connector {
     const subgraphUrl = options.subgraphUrl ?? subgraphUrlFromChainId(chainId);
 
     if (!subgraphUrl) {
-      throw new ErrorException("Connector requires a valid chain id to be passed (1, 4 or 100)");
+      throw new ErrorException(
+        'Connector requires a valid chain id to be passed (1, 4 or 100)',
+      );
     }
 
     this._gql = new GraphQLWrapper(subgraphUrl);
@@ -55,16 +59,27 @@ export default class Connector {
    * @returns A promise that resolves to the app's repo.
    */
   async repo(repoName: string, registryName: string): Promise<Repo> {
-    return this._gql.performQueryWithParser(REPO("query"), { repoName }, (result: QueryResult) => {
-      // Cant filter by registry when fetching repos so we need to do it here
-      const repo = result.data.repos.filter(({ registry }: { registry: any }) => registry.name === registryName).pop();
+    return this._gql.performQueryWithParser(
+      REPO('query'),
+      { repoName },
+      (result: QueryResult) => {
+        // Cant filter by registry when fetching repos so we need to do it here
+        const repo = result.data.repos
+          .filter(
+            ({ registry }: { registry: any }) => registry.name === registryName,
+          )
+          .pop();
 
-      if (!repo) {
-        throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`, { name: "ErrorRepoNotFound" });
-      }
+        if (!repo) {
+          throw new ErrorNotFound(
+            `Repo ${repoName}.${registryName} not found`,
+            { name: 'ErrorRepoNotFound' },
+          );
+        }
 
-      return parseRepo(repo);
-    });
+        return parseRepo(repo);
+      },
+    );
   }
 
   /**
@@ -74,7 +89,7 @@ export default class Connector {
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
     return this._gql.performQueryWithParser(
-      ORGANIZATION_APPS("query"),
+      ORGANIZATION_APPS('query'),
       { id: daoAddress.toLowerCase() },
       (result: QueryResult) => {
         const apps = result.data?.organization?.apps;
@@ -84,7 +99,7 @@ export default class Connector {
         }
 
         return apps.map(parseApp);
-      }
+      },
     );
   }
 }

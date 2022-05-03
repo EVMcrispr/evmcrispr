@@ -1,11 +1,14 @@
-import { utils } from "ethers";
-import { ErrorInvalid } from "../errors";
-import { Action, ActionFunction } from "../types";
+import { utils } from 'ethers';
+
+import { ErrorInvalid } from '../errors';
+import type { Action, ActionFunction } from '../types';
 
 export const normalizeRole = (role: string): string => {
-  if (role.startsWith("0x")) {
+  if (role.startsWith('0x')) {
     if (role.length !== 66) {
-      throw new ErrorInvalid("Invalid role provided", { name: "ErrorInvalidRole" });
+      throw new ErrorInvalid('Invalid role provided', {
+        name: 'ErrorInvalidRole',
+      });
     }
     return role;
   }

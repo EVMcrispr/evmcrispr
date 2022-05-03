@@ -1,18 +1,41 @@
-import { Interface } from "@ethersproject/abi";
-import { AragonArtifact, AragonArtifactRole } from "@1hive/connect-core/dist/cjs/types";
+import type { Interface } from '@ethersproject/abi';
+import type {
+  AragonArtifact,
+  AragonArtifactRole,
+} from '@1hive/connect-core/dist/cjs/types';
 
-export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
+export { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
 
 // ---------------------- TYPES ----------------------
 
 export type ActionInterpreter = {
-  newToken(name: string, symbol: string, controller: Entity, decimals: number, transferable: boolean): ActionFunction;
+  newToken(
+    name: string,
+    symbol: string,
+    controller: Entity,
+    decimals: number,
+    transferable: boolean,
+  ): ActionFunction;
   install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
-  upgrade(identifier: AppIdentifier | LabeledAppIdentifier, newAppAddress: Address): ActionFunction;
+  upgrade(
+    identifier: AppIdentifier | LabeledAppIdentifier,
+    newAppAddress: Address,
+  ): ActionFunction;
   exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
-  act(agent: AppIdentifier, target: Entity, signature: string, params: any[]): ActionFunction;
-  grant(permission: Permission | PermissionP, defaultPermissionManager: Entity): ActionFunction;
-  revoke(permission: Permission, removeManager: boolean | undefined): ActionFunction;
+  act(
+    agent: AppIdentifier,
+    target: Entity,
+    signature: string,
+    params: any[],
+  ): ActionFunction;
+  grant(
+    permission: Permission | PermissionP,
+    defaultPermissionManager: Entity,
+  ): ActionFunction;
+  revoke(
+    permission: Permission,
+    removeManager: boolean | undefined,
+  ): ActionFunction;
 };
 
 export type ActionFunction = () => Promise<Action[]>;
@@ -206,7 +229,11 @@ export interface ParsedApp {
   contentUri: string;
   name: string;
   registryName: string;
-  roles: { roleHash: string; manager: string; grantees: { granteeAddress: Address }[] }[];
+  roles: {
+    roleHash: string;
+    manager: string;
+    grantees: { granteeAddress: Address }[];
+  }[];
 }
 
 /**

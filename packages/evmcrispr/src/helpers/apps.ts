@@ -1,32 +1,58 @@
-import { utils } from "ethers";
-import { parseAppArtifactName } from ".";
-import { Address, App, AppArtifactCache, AppArtifact, ParsedApp, PermissionMap } from "../types";
+import { utils } from 'ethers';
+
+import { parseAppArtifactName } from '.';
+import type {
+  Address,
+  App,
+  AppArtifact,
+  AppArtifactCache,
+  ParsedApp,
+  PermissionMap,
+} from '../types';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const buildAppPermissions = (artifactRoles: any, currentPermissions: any[]): PermissionMap => {
-  const appPermissions = artifactRoles.reduce((roleMap: PermissionMap, role: any) => {
-    roleMap.set(role.bytes, { manager: "", grantees: new Set() });
-    return roleMap;
-  }, new Map());
+export const buildAppPermissions = (
+  artifactRoles: any,
+  currentPermissions: any[],
+): PermissionMap => {
+  const appPermissions = artifactRoles.reduce(
+    (roleMap: PermissionMap, role: any) => {
+      roleMap.set(role.bytes, { manager: '', grantees: new Set() });
+      return roleMap;
+    },
+    new Map(),
+  );
 
   currentPermissions.forEach((role) => {
     appPermissions.set(role.roleHash, {
       ...appPermissions.get(role.roleHash),
       manager: role.manager,
-      grantees: new Set(role.grantees.map(({ granteeAddress }: { granteeAddress: Address }) => granteeAddress)),
+      grantees: new Set(
+        role.grantees.map(
+          ({ granteeAddress }: { granteeAddress: Address }) => granteeAddress,
+        ),
+      ),
     });
   });
 
   return appPermissions;
 };
 
-export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCache): App | null => {
-  const { address, codeAddress, contentUri, name, registryName, roles } = parsedApp;
+export const buildApp = (
+  parsedApp: ParsedApp,
+  appResourcesCache: AppArtifactCache,
+): App | null => {
+  const { address, codeAddress, contentUri, name, registryName, roles } =
+    parsedApp;
 
   if (!appResourcesCache.has(codeAddress)) {
     return null;
   }
-  const { abiInterface, appName, roles: artifactRoles } = appResourcesCache.get(codeAddress)!;
+  const {
+    abiInterface,
+    appName,
+    roles: artifactRoles,
+  } = appResourcesCache.get(codeAddress)!;
 
   return {
     abiInterface,
@@ -35,7 +61,10 @@ export const buildApp = (parsedApp: ParsedApp, appResourcesCache: AppArtifactCac
     contentUri,
     name,
     permissions: buildAppPermissions(artifactRoles, roles),
-    registryName: registryName && registryName.length ? registryName : parseAppArtifactName(appName),
+    registryName:
+      registryName && registryName.length
+        ? registryName
+        : parseAppArtifactName(appName),
   };
 };
 

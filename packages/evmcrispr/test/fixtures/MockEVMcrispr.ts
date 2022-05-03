@@ -1,9 +1,11 @@
-import { IpfsResolver } from "@1hive/connect-core";
-import { Signer } from "ethers";
-import { KERNEL_TRANSACTION_COUNT } from ".";
-import { Address, EVMcrispr, EVMcrisprOptions } from "../../src";
-import { IPFS_GATEWAY } from "../../src/helpers";
-import MockConnector from "./MockConnector";
+import type { IpfsResolver } from '@1hive/connect-core';
+import type { Signer } from 'ethers';
+
+import { KERNEL_TRANSACTION_COUNT } from '.';
+import type { Address, EVMcrisprOptions } from '../../src';
+import { EVMcrispr } from '../../src';
+import { IPFS_GATEWAY } from '../../src/helpers';
+import MockConnector from './MockConnector';
 
 const mockIpfsResolver: IpfsResolver = {
   json: (cid: string): Promise<any> => {
@@ -11,7 +13,7 @@ const mockIpfsResolver: IpfsResolver = {
       import(`./artifacts/${cid}`).then(resolve);
     });
   },
-  url: (): Promise<string> => new Promise((resolve) => resolve("")),
+  url: (): Promise<string> => new Promise((resolve) => resolve('')),
 };
 
 class MockEVMcrispr extends EVMcrispr {
@@ -24,9 +26,13 @@ class MockEVMcrispr extends EVMcrispr {
   static async create(
     daoAddress: Address,
     signer: Signer,
-    options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY }
+    options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY },
   ): Promise<MockEVMcrispr> {
-    const mockevmcrispr = new MockEVMcrispr(await signer.getChainId(), signer, options);
+    const mockevmcrispr = new MockEVMcrispr(
+      await signer.getChainId(),
+      signer,
+      options,
+    );
 
     // Overwrite async method needed for building the app cache
     signer.provider!.getTransactionCount = (): Promise<number> => {

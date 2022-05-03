@@ -1,11 +1,11 @@
-import { Contract, BigNumber } from "ethers";
-import { forwarderAbi, forwarderFeeAbi } from "@1hive/connect-core";
+import type { BigNumber, Contract } from 'ethers';
+import { forwarderAbi, forwarderFeeAbi } from '@1hive/connect-core';
 
 export const FORWARDER_ABI = [
   ...forwarderAbi,
   ...forwarderFeeAbi,
   // Function missing on Connect's forwarder abi
-  "function forwarderType() external pure returns (uint8)",
+  'function forwarderType() external pure returns (uint8)',
 ];
 
 export const FORWARDER_TYPES = {
@@ -22,7 +22,9 @@ export const isForwarder = async (forwarder: Contract): Promise<boolean> => {
   }
 };
 
-export const getForwarderFee = async (forwarder: Contract): Promise<[string, BigNumber] | undefined> => {
+export const getForwarderFee = async (
+  forwarder: Contract,
+): Promise<[string, BigNumber] | undefined> => {
   // If it fails we assume app is not a payable forwarder
   try {
     return await forwarder.forwardFee();
@@ -31,7 +33,9 @@ export const getForwarderFee = async (forwarder: Contract): Promise<[string, Big
   }
 };
 
-export const getForwarderType = async (forwarder: Contract): Promise<number> => {
+export const getForwarderType = async (
+  forwarder: Contract,
+): Promise<number> => {
   // If it fails then we assume app implements an aragonos older version forwarder
   try {
     return await forwarder.forwarderType();

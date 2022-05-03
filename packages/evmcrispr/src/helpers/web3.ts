@@ -1,11 +1,12 @@
-import { Address } from "@1hive/connect";
-import { utils, providers, BigNumber } from "ethers";
-import { Interface } from "@ethersproject/abi";
+import type { Address } from '@1hive/connect';
+import type { providers } from 'ethers';
+import { BigNumber, utils } from 'ethers';
+import type { Interface } from '@ethersproject/abi';
 
 export async function buildNonceForAddress(
   address: Address,
   index: number,
-  provider: providers.Provider
+  provider: providers.Provider,
 ): Promise<string> {
   const txCount = await provider.getTransactionCount(address);
   return utils.hexlify(txCount + index);
@@ -18,7 +19,10 @@ export async function buildNonceForAddress(
  * @param {*} nonce address nonce
  * @returns {string} conterfactual address
  */
-export function calculateNewProxyAddress(daoAddress: Address, nonce: string): Address {
+export function calculateNewProxyAddress(
+  daoAddress: Address,
+  nonce: string,
+): Address {
   const rlpEncoded = utils.RLP.encode([utils.hexlify(daoAddress), nonce]);
   const contractAddressLong = utils.keccak256(rlpEncoded);
   const contractAddress = `0x${contractAddressLong.substr(-40)}`;
@@ -26,14 +30,25 @@ export function calculateNewProxyAddress(daoAddress: Address, nonce: string): Ad
   return contractAddress;
 }
 
-export const toDecimals = (amount: number | string, decimals = 18): BigNumber => {
-  const [integer, decimal] = String(amount).split(".");
-  return BigNumber.from((integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0") || "0");
+export const toDecimals = (
+  amount: number | string,
+  decimals = 18,
+): BigNumber => {
+  const [integer, decimal] = String(amount).split('.');
+  return BigNumber.from(
+    (integer != '0' ? integer : '') + (decimal || '').padEnd(decimals, '0') ||
+      '0',
+  );
 };
 
-export function getFunctionParams(functionName: string, abi: Interface): [string[], string[]] {
-  const params = abi.fragments.find(({ name }) => name === functionName)?.inputs;
-  if (typeof params === "undefined") {
+export function getFunctionParams(
+  functionName: string,
+  abi: Interface,
+): [string[], string[]] {
+  const params = abi.fragments.find(
+    ({ name }) => name === functionName,
+  )?.inputs;
+  if (typeof params === 'undefined') {
     throw new Error(`Function ${functionName} not present in ABI`);
   }
   const paramNames = params.map(({ name }) => name!);

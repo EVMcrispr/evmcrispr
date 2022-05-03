@@ -1,12 +1,13 @@
-import { EVMcrispr } from "../../src";
-import { impersonateAddress } from "../../helpers/rpc";
-import { Contract } from "@ethersproject/contracts";
+import { Contract } from '@ethersproject/contracts';
+
+import { EVMcrispr } from '../../src';
+import { impersonateAddress } from '../../helpers/rpc';
 
 const CHAIN_ID = 100;
 
-const DAO = "0x2050eabe84409e480ad1062001fdb6dfbc836192";
+const DAO = '0x2050eabe84409e480ad1062001fdb6dfbc836192';
 
-const ADDRESS = "0x4355a2cdec902C372F404007114bbCf2C65A3eb0";
+const ADDRESS = '0x4355a2cdec902C372F404007114bbCf2C65A3eb0';
 
 const main = async () => {
   const signer = await impersonateAddress(ADDRESS);
@@ -15,10 +16,16 @@ const main = async () => {
 
   const evmcrispr = await EVMcrispr.create(DAO, signer);
 
-  const tokenManagerApp = evmcrispr.appCache.get("wrappable-hooked-token-manager.open:0")!;
-  const tokenManager = new Contract(tokenManagerApp.address, tokenManagerApp.abiInterface, signer);
+  const tokenManagerApp = evmcrispr.appCache.get(
+    'wrappable-hooked-token-manager.open:0',
+  )!;
+  const tokenManager = new Contract(
+    tokenManagerApp.address,
+    tokenManagerApp.abiInterface,
+    signer,
+  );
 
-  const txRecipt = await tokenManager.wrap("50000000000000000000");
+  const txRecipt = await tokenManager.wrap('50000000000000000000');
 
   console.log(JSON.stringify(txRecipt));
 };

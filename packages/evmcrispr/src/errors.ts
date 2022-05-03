@@ -1,4 +1,8 @@
-function defineNonEnumerable(instance: Record<string, any>, name: string, value: any) {
+function defineNonEnumerable(
+  instance: Record<string, any>,
+  name: string,
+  value: any,
+) {
   Object.defineProperty(instance, name, { value, enumerable: false });
 }
 
@@ -22,12 +26,15 @@ export type ErrorOptions = {
  * @category Error
  */
 export class ErrorException extends Error {
-  constructor(message = "An unexpected error happened.", options: ErrorOptions = {}) {
+  constructor(
+    message = 'An unexpected error happened.',
+    options: ErrorOptions = {},
+  ) {
     super(message);
     // We define these as non-enumarable to prevent them
     // from appearing with the error in the console.
-    defineNonEnumerable(this, "name", options.name || this.constructor.name);
-    defineNonEnumerable(this, "code", options.code || this.constructor.name);
+    defineNonEnumerable(this, 'name', options.name || this.constructor.name);
+    defineNonEnumerable(this, 'code', options.code || this.constructor.name);
   }
 }
 
@@ -37,8 +44,8 @@ export class ErrorException extends Error {
  */
 export class ErrorInvalid extends ErrorException {
   constructor(
-    message = "The resource doesn’t seem to be valid.",
-    { code = "ErrorInvalid", name = "ErrorInvalid" }: ErrorOptions = {}
+    message = 'The resource doesn’t seem to be valid.',
+    { code = 'ErrorInvalid', name = 'ErrorInvalid' }: ErrorOptions = {},
   ) {
     super(message, { code, name });
   }
@@ -50,8 +57,8 @@ export class ErrorInvalid extends ErrorException {
  */
 export class ErrorNotFound extends ErrorException {
   constructor(
-    message = "The resource couldn’t be found.",
-    { code = "ErrorNotFound", name = "ErrorNotFound" }: ErrorOptions = {}
+    message = 'The resource couldn’t be found.',
+    { code = 'ErrorNotFound', name = 'ErrorNotFound' }: ErrorOptions = {},
   ) {
     super(message, { code, name });
   }

@@ -1,4 +1,4 @@
-import gql from "graphql-tag";
+import gql from 'graphql-tag';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const REPO = (type: string) => gql`

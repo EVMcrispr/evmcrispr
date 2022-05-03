@@ -1,17 +1,21 @@
-import fs from "fs";
-import { subgraphUrlFromChainId } from "../../src/Connector";
-import { getSystemApp, parseRegistry } from "../../src/helpers";
+import fs from 'fs';
+import { subgraphUrlFromChainId } from '../../src/Connector';
+import { getSystemApp, parseRegistry } from '../../src/helpers';
 
-export const basePath = (relativePath: string): string => `test/fixtures/${relativePath}`;
+export const basePath = (relativePath: string): string =>
+  `test/fixtures/${relativePath}`;
 
-export const fetchOrganizationApps = (daoAddress: string, chainId: number): Promise<any> => {
+export const fetchOrganizationApps = (
+  daoAddress: string,
+  chainId: number,
+): Promise<any> => {
   const subgraphUrl = subgraphUrlFromChainId(chainId);
 
   if (!subgraphUrl) {
     throw new Error(`Chain id ${chainId} invalid.`);
   }
   return fetch(subgraphUrl!, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({
       query: `
         {
@@ -57,7 +61,7 @@ export const fetchRepo = (repoName: string, chainId: number): Promise<any> => {
   }
 
   return fetch(subgraphUrl!, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({
       query: `
         {
@@ -81,7 +85,9 @@ export const fetchRepo = (repoName: string, chainId: number): Promise<any> => {
 export const generateMockDAOFile = (daoApps: any[]): void => {
   const daoObjString = daoApps.reduce((daoObjStr: any, app: any, index) => {
     const { address, appId, repoName, repo } = app;
-    const appName = getSystemApp(appId)?.name ?? `${repoName}${parseRegistry(repo.registry.name)}`;
+    const appName =
+      getSystemApp(appId)?.name ??
+      `${repoName}${parseRegistry(repo.registry.name)}`;
     let str = `${daoObjStr}\n  ["${appName}"]: "${address}",`;
 
     if (index === daoApps.length - 1) {
@@ -89,11 +95,11 @@ export const generateMockDAOFile = (daoApps: any[]): void => {
     }
 
     return str;
-  }, "{");
+  }, '{');
 
   const file = `// WARNING: this file is generated automatically\n\nexport const DAO = ${daoObjString}\n\n// Needed to build the MockEVMcrispr cache\nexport const KERNEL_TRANSACTION_COUNT = ${
     Object.keys(daoApps).length
   };\n`;
 
-  fs.writeFileSync(basePath("mock-dao.ts"), file);
+  fs.writeFileSync(basePath('mock-dao.ts'), file);
 };
