@@ -6,6 +6,7 @@ export { AragonArtifact } from "@1hive/connect-core/dist/cjs/types";
 // ---------------------- TYPES ----------------------
 
 export type ActionInterpreter = {
+  newToken(name: string, symbol: string, controller: Entity, decimals: number, transferable: boolean): ActionFunction;
   install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
   upgrade(identifier: AppIdentifier | LabeledAppIdentifier, newAppAddress: Address): ActionFunction;
   exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;

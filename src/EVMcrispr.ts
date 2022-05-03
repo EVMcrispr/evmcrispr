@@ -58,12 +58,14 @@ export default class EVMcrispr {
    */
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
+  #addressBook: Map<string, Address>;
   /**
    * The connector used to fetch Aragon apps.
    */
   protected _connector: Connector;
   protected _ipfsResolver: IpfsResolver;
   #installedAppCounter: number;
+  #newTokenCounter: number;
   #signer: Signer;
 
   /**
@@ -85,7 +87,9 @@ export default class EVMcrispr {
     this.#appCache = new Map();
     this.#appArtifactCache = new Map();
     this._connector = new Connector(chainId, { subgraphUrl: options.subgraphUrl });
+    this.#addressBook = new Map();
     this.#installedAppCounter = 0;
+    this.#newTokenCounter = 0;
     this._ipfsResolver = createIpfsResolver(buildIpfsTemplate(options.ipfsGateway));
     this.#signer = signer;
   }
@@ -497,6 +501,48 @@ export default class EVMcrispr {
     ).wait();
   }
 
+  newToken(name: string, symbol: string, controller: Entity, decimals = 18, transferable = true): ActionFunction {
+    const factories = new Map([
+      [1, "0xA29EF584c389c67178aE9152aC9C543f9156E2B3"],
+      [4, "0xad991658443c56b3dE2D7d7f5d8C68F339aEef29"],
+      [100, "0xf7d36d4d46cda364edc85e5561450183469484c5"],
+      [137, "0xcFed1594A5b1B612dC8199962461ceC148F14E68"],
+    ]);
+    const factory = new utils.Interface([
+      "function createCloneToken(address _parentToken, uint _snapshotBlock, string _tokenName, uint8 _decimalUnits, string _tokenSymbol, bool _transfersEnabled) external returns (address)",
+    ]);
+    const controlled = new utils.Interface(["function changeController(address _newController) external"]);
+    return async () => {
+      const chainId = await this.signer.getChainId();
+      if (!factories.has(chainId)) {
+        throw new Error(`No MiniMeTokenFactory registered in network ${chainId}`);
+      }
+
+      await this.#registerNextProxyAddress(controller);
+      const controllerAddress = this.#resolveEntity(controller);
+      const nonce = await buildNonceForAddress(factories.get(chainId), this.#newTokenCounter++, this.#signer.provider!);
+      const newTokenAddress = calculateNewProxyAddress(factories.get(chainId), nonce);
+      this.#addressBook.set(`token:${symbol}`, newTokenAddress);
+      return [
+        {
+          to: factories.get(chainId)!,
+          data: factory.encodeFunctionData("createCloneToken", [
+            ethers.constants.AddressZero,
+            0,
+            name,
+            decimals,
+            symbol,
+            transferable,
+          ]),
+        },
+        {
+          to: newTokenAddress,
+          data: controlled.encodeFunctionData("changeController", [controllerAddress]),
+        },
+      ];
+    };
+  }
+
   /**
    * Encode an action that installs a new app.
    * @param identifier [[LabeledAppIdentifier | Identifier]] of the app to install.
@@ -523,9 +569,10 @@ export default class EVMcrispr {
           this.#resolveParams(initParams, types)
         );
         const appId = utils.namehash(`${appName}.${registry}`);
-        const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter, this.#signer.provider!);
-        const proxyContractAddress = calculateNewProxyAddress(kernel.address, nonce);
-
+        if (!this.#addressBook.has(identifier)) {
+          await this.#registerNextProxyAddress(identifier);
+        }
+        const proxyContractAddress = this.#resolveEntity(identifier);
         if (this.#appCache.has(identifier)) {
           throw new ErrorException(`Identifier ${identifier} is already in use.`);
         }
@@ -539,8 +586,6 @@ export default class EVMcrispr {
           permissions: buildAppPermissions(roles, []),
           registryName: registry,
         });
-
-        this.#installedAppCounter++;
 
         return [
           {
@@ -739,6 +784,12 @@ export default class EVMcrispr {
     this.#appArtifactCache = appResourcesCache;
   }
 
+  async #registerNextProxyAddress(identifier: string): Promise<void> {
+    const kernel = this.#resolveApp("kernel");
+    const nonce = await buildNonceForAddress(kernel.address, this.#installedAppCounter++, this.#signer.provider!);
+    this.#addressBook.set(identifier, calculateNewProxyAddress(kernel.address, nonce));
+  }
+
   #resolveApp(entity: Entity): App {
     if (utils.isAddress(entity)) {
       const app = [...this.#appCache.entries()].find(([, app]) => app.address === entity);
@@ -770,6 +821,9 @@ export default class EVMcrispr {
       case "BURN_ENTITY":
         return this.BURN_ENTITY;
       default:
+        if (this.#addressBook.has(entity)) {
+          return this.#addressBook.get(entity)!;
+        }
         return utils.isAddress(entity) ? entity : this.#resolveApp(entity).address;
     }
   }

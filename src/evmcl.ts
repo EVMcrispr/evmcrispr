@@ -43,6 +43,18 @@ export default function evmcl(
           .split(" ")
           .map((s) => s.replace(/"/g, " "));
         switch (commandName) {
+          case "new": {
+            const [subCommand, ...rest] = args;
+            switch (subCommand) {
+              case "token": {
+                const [name, symbol, controller, decimals = "18", transferable = "true"] = rest;
+                return evmcrispr.newToken(name, symbol, controller, Number(decimals), _boolean(transferable)!);
+              }
+              default: {
+                throw new Error(`Unrecognized subcommand: token ${subCommand}`);
+              }
+            }
+          }
           case "install": {
             const [identifier, ...initParams] = args;
             return evmcrispr.install(identifier, initParams);

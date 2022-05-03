@@ -22,6 +22,7 @@ const mockExecFunction = (method: string) => ({
 });
 
 const actionInterpreterMock = {
+  ...mockFunction("newToken"),
   ...mockFunction("install"),
   ...mockFunction("upgrade"),
   ...mockFunction("grant"),
@@ -38,6 +39,20 @@ async function check(actions: (evm: ActionInterpreter) => ActionFunction, calls:
 describe("EVM Command Line", () => {
   beforeEach(() => {
     _exec = [];
+  });
+
+  it('new token "Trust Token" TRUST token-manager:new', async () => {
+    await check(
+      evmcl`
+        new token "Trust Token" TRUST token-manager:new
+      `,
+      [
+        {
+          func: "newToken",
+          params: ["Trust Token", "TRUST", "token-manager:new", 18, true],
+        },
+      ]
+    );
   });
 
   it("install token-manager:new param1 param2 param3", async () => {
