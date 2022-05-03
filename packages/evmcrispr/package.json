@@ -32,7 +32,7 @@
     "@1hive/connect-core": "^0.9.10",
     "@1hive/connect-thegraph": "^0.9.10",
     "ethers": "^5.0.17",
-    "graphql": "^16.4.0",
+    "graphql": "^15.8.0",
     "graphql-tag": "^2.12.4",
     "node-fetch": "^3.0.0"
   },

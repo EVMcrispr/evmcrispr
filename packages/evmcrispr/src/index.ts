@@ -15,13 +15,9 @@ export {
 } from './helpers/acl';
 export { normalizeActions } from './helpers/normalizers';
 export { encodeActCall, encodeCallScript } from './helpers/evmscripts';
-export {
-  ErrorException,
-  ErrorInvalid,
-  ErrorOptions,
-  ErrorNotFound,
-} from './errors';
-export {
+export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
+export type { ErrorOptions } from './errors';
+export type {
   Address,
   Action,
   ActionFunction,

@@ -1,4 +1,4 @@
-import type { Address } from '@1hive/connect';
+import type { Address } from '@1hive/connect-core';
 import type { providers } from 'ethers';
 import { BigNumber, utils } from 'ethers';
 import type { Interface } from '@ethersproject/abi';

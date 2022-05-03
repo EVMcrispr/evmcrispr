@@ -1,4 +1,4 @@
-import { encodeCallScript } from '@1hive/connect';
+import { encodeCallScript } from '@1hive/connect-core';
 import { utils } from 'ethers';
 
 import type { Action, Address } from '../../src';

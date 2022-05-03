@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { addressesEqual } from '@1hive/connect';
+import { addressesEqual } from '@1hive/connect-core';
 import { utils } from 'ethers';
 import { expect } from 'chai';
 

@@ -60,7 +60,7 @@ importers:
       chai: ^4.3.6
       ethereum-waffle: ^3.2.0
       ethers: ^5.0.17
-      graphql: ^16.4.0
+      graphql: ^15.8.0
       graphql-tag: ^2.12.4
       hardhat: ^2.0.11
       hardhat-gas-reporter: ^1.0.4
@@ -77,8 +77,8 @@ importers:
       '@1hive/connect-core': 0.9.10
       '@1hive/connect-thegraph': 0.9.10
       ethers: 5.6.5
-      graphql: 16.4.0
-      graphql-tag: 2.12.6_graphql@16.4.0
+      graphql: 15.8.0
+      graphql-tag: 2.12.6_graphql@15.8.0
       node-fetch: 3.2.4
     devDependencies:
       '@aragon/os': 4.3.0
@@ -8573,7 +8573,7 @@ packages:
     resolution: {integrity: sha512-/MSbf/r2/Ld8o0l15AymjOTlPqpN8Cr4ByUEA9GtR4x0yAh3TdtDzEg29zMjXCNPI7u6E5fOQdj/Cf9Tc7oVNw==}
     deprecated: 'New package name format for new versions: @ethereumjs/ethash. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       buffer-xor: 2.0.2
       ethereumjs-util: 7.1.4
       miller-rabin: 4.0.1
@@ -9809,24 +9809,9 @@ packages:
       tslib: 2.4.0
     dev: false
 
-  /graphql-tag/2.12.6_graphql@16.4.0:
-    resolution: {integrity: sha512-FdSNcu2QQcWnM2VNvSCCDCVS5PpPqpzgFT8+GXzqJuoDd0CBncxCY278u4mhRO7tMgo2JjgJA5aZ+nWSQ/Z+xg==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      graphql: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-    dependencies:
-      graphql: 16.4.0
-      tslib: 2.4.0
-    dev: false
-
   /graphql/15.8.0:
     resolution: {integrity: sha512-5gghUc24tP9HRznNpV2+FIoq3xKkj5dTQqf4v0CpdPbFVwFkWoxOM+o+2OC9ZSvjEMTjfmG9QT+gcvggTwW1zw==}
     engines: {node: '>= 10.x'}
-    dev: false
-
-  /graphql/16.4.0:
-    resolution: {integrity: sha512-tYDNcRvKCcfHREZYje3v33NSrSD/ZpbWWdPtBtUUuXx9NCo/2QDxYzNqCnMvfsrnbwRpEHMovVrPu/ERoLrIRg==}
-    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
   /growl/1.10.5:

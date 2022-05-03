@@ -4,7 +4,7 @@ import type {
   AragonArtifactRole,
 } from '@1hive/connect-core/dist/cjs/types';
 
-export { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
+export type { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
 
 // ---------------------- TYPES ----------------------
 

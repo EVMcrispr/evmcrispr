@@ -13,7 +13,7 @@ class MockGraphQLWrapper extends GraphQLWrapper {
   }
 
   performQueryWithParser(
-    query: any,
+    _query: any,
     args: any,
     parserFn: ParseFunction,
   ): Promise<any> {

@@ -1,4 +1,4 @@
-import type { ActionFunction, ActionInterpreter } from 'src';
+import type { ActionFunction, ActionInterpreter } from './types';
 
 import { normalizeActions } from './helpers';
 

@@ -44,7 +44,7 @@ export class ErrorException extends Error {
  */
 export class ErrorInvalid extends ErrorException {
   constructor(
-    message = 'The resource doesn’t seem to be valid.',
+    message = "The resource doesn't seem to be valid.",
     { code = 'ErrorInvalid', name = 'ErrorInvalid' }: ErrorOptions = {},
   ) {
     super(message, { code, name });
@@ -57,7 +57,7 @@ export class ErrorInvalid extends ErrorException {
  */
 export class ErrorNotFound extends ErrorException {
   constructor(
-    message = 'The resource couldn’t be found.',
+    message = "The resource couldn't be found.",
     { code = 'ErrorNotFound', name = 'ErrorNotFound' }: ErrorOptions = {},
   ) {
     super(message, { code, name });
