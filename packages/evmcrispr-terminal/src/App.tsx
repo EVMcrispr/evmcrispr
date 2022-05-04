@@ -1,9 +1,9 @@
-import { Switch, Route, HashRouter , Redirect} from "react-router-dom";
-import Footer from "./components/footer";
-import Header from "./components/header";
+import { Switch, Route, HashRouter, Redirect } from 'react-router-dom';
+import Footer from './components/footer';
+import Header from './components/header';
 
-import Landing from "./pages/landing";
-import Terminal from "./pages/terminal";
+import Landing from './pages/landing';
+import Terminal from './pages/terminal';
 
 const App = () => {
   return (

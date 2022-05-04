@@ -1,14 +1,14 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { useChain, useSpringRef } from "@react-spring/web";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useChain, useSpringRef } from '@react-spring/web';
 
-import Card from "../components/card";
+import Card from '../components/card';
 
-import Brett from "../assets/brett.png";
-import Michael from "../assets/michael.png";
-import Griff from "../assets/griff.png";
+import Brett from '../assets/brett.png';
+import Michael from '../assets/michael.png';
+import Griff from '../assets/griff.png';
 
-import FadeIn from "../components/animations/fade-in";
+import FadeIn from '../components/animations/fade-in';
 
 const Landing = () => {
   const [showCardContent, setCardContent] = useState(false);
@@ -25,13 +25,24 @@ const Landing = () => {
     <>
       <FadeIn componentRef={typeRef}>
         <div className="description content">
-          <strong>EVMcrispr</strong> is a powerful tool that combines a domain-specific language with a Javascript library to interact with Aragon DAOs. With it, you can bundle <strong>many DAO operations into just one script</strong>, generating a singular transaction, usually a vote. These commands include installing or upgrading apps, changing their permissions, executing actions or interacting with external contracts.
+          <strong>EVMcrispr</strong> is a powerful tool that combines a
+          domain-specific language with a Javascript library to interact with
+          Aragon DAOs. With it, you can bundle{' '}
+          <strong>many DAO operations into just one script</strong>, generating
+          a singular transaction, usually a vote. These commands include
+          installing or upgrading apps, changing their permissions, executing
+          actions or interacting with external contracts.
         </div>
       </FadeIn>
 
       <FadeIn componentRef={buttonsRef}>
         <div className="flex-center buttons">
-          <a className="button" href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924" target="_blank" rel="noreferrer">
+          <a
+            className="button"
+            href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924"
+            target="_blank"
+            rel="noreferrer"
+          >
             Learn How to Use
           </a>
           <Link className="button" to="/terminal">
@@ -41,9 +52,7 @@ const Landing = () => {
       </FadeIn>
 
       <FadeIn componentRef={peepsRef}>
-        <h2 className="opinions flex-center">
-          Who's using EVMcrispr?
-        </h2>
+        <h2 className="opinions flex-center">Who's using EVMcrispr?</h2>
       </FadeIn>
 
       <FadeIn componentRef={cardRef} onRest={handleCardContent}>
@@ -72,7 +81,6 @@ const Landing = () => {
           />
         </div>
       </FadeIn>
-
     </>
   );
 };

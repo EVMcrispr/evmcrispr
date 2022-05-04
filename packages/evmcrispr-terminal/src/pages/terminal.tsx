@@ -1,10 +1,9 @@
-import React from "react";
-import Editor from "@monaco-editor/react";
+import Editor from '@monaco-editor/react';
 
-import { useTerminal } from "../utils/useTerminal";
-import FadeIn from "../components/animations/fade-in";
-import { useSpringRef, useChain } from "@react-spring/web";
-import theme from '../editor/theme.json';
+import { useTerminal } from '../utils/useTerminal';
+import FadeIn from '../components/animations/fade-in';
+import { useSpringRef, useChain } from '@react-spring/web';
+import { theme } from '../editor/theme';
 import { contribution, conf, language } from '../editor/evmcl';
 
 const Terminal = () => {
@@ -32,32 +31,32 @@ const Terminal = () => {
             height="50vh"
             theme="theme"
             language="evmcl"
-            value={code}
-            onChange={str => setCode(str || "")}
-            beforeMount={monaco => {
+            value={code as string}
+            onChange={(str) => setCode(str || '')}
+            beforeMount={(monaco) => {
               monaco.editor.defineTheme('theme', theme);
               monaco.languages.register(contribution);
-              monaco.languages.setLanguageConfiguration("evmcl", conf);
-              monaco.languages.setMonarchTokensProvider("evmcl", language);
+              monaco.languages.setLanguageConfiguration('evmcl', conf);
+              monaco.languages.setMonarchTokensProvider('evmcl', language);
             }}
-            onMount={editor => {
+            onMount={(editor) => {
               editor.setPosition({ lineNumber: 10000, column: 0 });
               editor.focus();
             }}
             options={{
               fontSize: 22,
-              fontFamily: "Ubuntu Mono",
+              fontFamily: 'Ubuntu Mono',
               detectIndentation: false,
               tabSize: 2,
-              language: "evmcl",
+              language: 'evmcl',
               minimap: {
-                enabled: false
+                enabled: false,
               },
               scrollbar: {
                 useShadows: false,
                 verticalScrollbarSize: 7,
-                vertical: "hidden",
-              }
+                vertical: 'hidden',
+              },
             }}
           />
         </FadeIn>
@@ -72,7 +71,7 @@ const Terminal = () => {
                 {url ? (
                   <button
                     className="button button-warning"
-                    onClick={() => window.open(url, "_blank")}
+                    onClick={() => window.open(url, '_blank')}
                   >
                     Go to vote
                   </button>
@@ -80,7 +79,7 @@ const Terminal = () => {
 
                 <button className="button button-success" onClick={onForward}>
                   {`${
-                    loading ? "Forwarding" : "Forward"
+                    loading ? 'Forwarding' : 'Forward'
                   } from ${addressShortened}`}
                 </button>
               </>
@@ -89,9 +88,9 @@ const Terminal = () => {
             {error && (
               <div
                 className="button button-warning"
-                style={{ cursor: "default" }}
+                style={{ cursor: 'default' }}
               >
-                {error ? "Error: " + error : null}
+                {error ? 'Error: ' + error : null}
               </div>
             )}
           </div>

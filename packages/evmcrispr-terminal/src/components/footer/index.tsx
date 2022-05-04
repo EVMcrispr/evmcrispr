@@ -1,7 +1,5 @@
-import React from "react";
-import sponsor from "../../assets/sponsor.svg";
-import Bee from "../../assets/bee.svg";
-
+import sponsor from '../../assets/sponsor.svg';
+import Bee from '../../assets/bee.svg';
 
 const Footer = () => {
   return (

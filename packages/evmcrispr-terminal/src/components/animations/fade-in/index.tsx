@@ -1,4 +1,4 @@
-import { animated, easings, useSpring } from "@react-spring/web";
+import { animated, easings, useSpring } from '@react-spring/web';
 
 type FadeInType = {
   children: React.ReactNode;
@@ -16,12 +16,11 @@ function FadeIn({ children, componentRef, onRest = () => {} }: FadeInType) {
     onRest: () => onRest(),
     config: {
       duration: 400,
-      easing: easings.easeInOutQuart
-    }
+      easing: easings.easeInOutQuart,
+    },
   });
 
-  return <animated.div style={styles}>{children}</animated.div>
+  return <animated.div style={styles}>{children}</animated.div>;
 }
 
 export default FadeIn;
-

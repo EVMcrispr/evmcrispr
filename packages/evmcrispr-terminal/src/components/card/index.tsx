@@ -1,4 +1,4 @@
-import Trail from "../animations/trail";
+import Trail from '../animations/trail';
 
 type CardProps = {
   image: any;
@@ -18,7 +18,14 @@ const Pixels = () => (
   </>
 );
 
-const Card = ({ image, height = 90, name, info, description, showContent }: CardProps) => {
+const Card = ({
+  image,
+  height = 90,
+  name,
+  info,
+  description,
+  showContent,
+}: CardProps) => {
   return (
     <div className="card">
       <div className="card-content">

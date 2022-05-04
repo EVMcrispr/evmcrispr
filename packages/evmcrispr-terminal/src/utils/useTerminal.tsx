@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { network, dao, client } from "../utils/utils";
-import createPersistedState from "use-persisted-state";
-import { ethers } from "ethers";
-import { evmcl } from "@1hive/evmcrispr";
+import { useState, useEffect } from 'react';
+import { network, dao, client } from '../utils/utils';
+import createPersistedState from 'use-persisted-state';
+import { ethers } from 'ethers';
+import { evmcl } from '@1hive/evmcrispr';
 
-const useCodeState = createPersistedState("code");
+const useCodeState = createPersistedState<string>('code');
 
 declare global {
   interface Window {
@@ -15,12 +15,15 @@ declare global {
 
 export const useTerminal = () => {
   const [provider, setProvider] = useState(
-    new ethers.providers.Web3Provider(window.ethereum, network(window.ethereum))
+    new ethers.providers.Web3Provider(
+      window.ethereum,
+      network(window.ethereum),
+    ),
   );
-  const [address, setAddress] = useState("");
-  const [error, setError] = useState("");
+  const [address, setAddress] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState('');
   const [code, setCode] = useCodeState(
     `# Available commands:
 
@@ -39,7 +42,7 @@ grant voting agent:new TRANSFER_ROLE voting
 exec vault transfer @token(WXDAI) agent:new 100e18
 act agent:new @token(WXDAI) withdraw(uint256) 100e18
 exec agent:new transfer XDAI vault 100e18
-`
+`,
   );
 
   useEffect(() => {
@@ -47,7 +50,7 @@ exec agent:new transfer XDAI vault 100e18
       .getSigner()
       .getAddress()
       .then(setAddress)
-      .catch(() => setAddress(""));
+      .catch(() => setAddress(''));
   }, [provider]);
 
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
@@ -63,11 +66,17 @@ exec agent:new transfer XDAI vault 100e18
   }
 
   async function onForward() {
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
-      const { evmcrispr, _code, dao: _dao, path, context } = await dao(code, provider);
+      const {
+        evmcrispr,
+        _code,
+        dao: _dao,
+        path,
+        context,
+      } = await dao(code, provider);
       await evmcrispr.forward(evmcl`${_code}`, path, {
         context,
         gasLimit: 10_000_000,
@@ -78,13 +87,13 @@ exec agent:new transfer XDAI vault 100e18
     } catch (e: any) {
       console.error(e);
       if (
-        e.message.startsWith("transaction failed") &&
+        e.message.startsWith('transaction failed') &&
         /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
       ) {
         setError(
           `Transaction failed, watch in block explorer ${
             e.message.split('"')[1]
-          }`
+          }`,
         );
       } else {
         setError(e.message);
@@ -94,10 +103,10 @@ exec agent:new transfer XDAI vault 100e18
   }
 
   async function onConnect() {
-    await window.ethereum.send("eth_requestAccounts");
+    await window.ethereum.send('eth_requestAccounts');
     const provider = new ethers.providers.Web3Provider(
       window.ethereum,
-      network(window.ethereum)
+      network(window.ethereum),
     );
     const address = await provider.getSigner().getAddress();
     console.log(`Connected to ${address}.`);
