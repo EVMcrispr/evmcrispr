@@ -1,6 +1,6 @@
 import { isAddress } from '@ethersproject/address';
 import { expect } from 'chai';
-import isIpfs from 'is-ipfs';
+import { multihash } from 'is-ipfs';
 
 import { ErrorInvalid } from '../../src';
 import { parseContentUri } from '../../src/helpers';
@@ -120,8 +120,8 @@ export const isValidParsedApp = (app: ParsedApp): void => {
   expect(isAddress(codeAddress), 'Invalid app code address').to.be.true;
 
   if (contentUri) {
-    expect(isIpfs.multihash(parseContentUri(contentUri)), 'Invalid contentUri')
-      .to.be.true;
+    expect(multihash(parseContentUri(contentUri)), 'Invalid contentUri').to.be
+      .true;
   }
 
   expect(name, 'App name missing').to.not.be.empty;

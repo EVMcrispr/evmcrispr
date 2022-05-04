@@ -1,7 +1,7 @@
 import { isAddress } from '@ethersproject/address';
 import { expect } from 'chai';
 import hre from 'hardhat';
-import isIpfs from 'is-ipfs';
+import { multihash } from 'is-ipfs';
 
 import { ErrorException, ErrorNotFound } from '../src';
 import { parseContentUri } from '../src/helpers';
@@ -39,10 +39,8 @@ describe('Connector', () => {
 
       expect(isAddress(codeAddress), 'Invalid  repo code address').to.be.true;
 
-      expect(
-        isIpfs.multihash(parseContentUri(contentUri)),
-        'Invalid repo contentUri',
-      ).to.be.true;
+      expect(multihash(parseContentUri(contentUri)), 'Invalid repo contentUri')
+        .to.be.true;
 
       if (artifact) {
         isValidArtifact(artifact);
