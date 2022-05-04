@@ -35,3 +35,6 @@ build
 .pnpm-debug.log
 
 .idea
+
+# github actions local tester
+act.secrets

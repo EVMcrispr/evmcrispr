@@ -1,14 +1,13 @@
 name: Docs
 on:
   push:
-    branches:
-      - main
+    branches: [main, next]
     paths:
-      - src/index.ts
-      - src/EVMcrispr.ts
-      - src/errors.ts
-      - src/types.ts
-      - README.md
+      - packages/evmcrispr/src/index.ts
+      - packages/evmcrispr/src/EVMcrispr.ts
+      - packages/evmcrisprsrc/errors.ts
+      - packages/evmcrisprsrc/types.ts
+      - packages/evmcrispr/README.md
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

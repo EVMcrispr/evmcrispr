@@ -1,4 +1,5 @@
-import { Switch, Route, HashRouter, Redirect } from 'react-router-dom';
+import { HashRouter, Redirect, Route, Switch } from 'react-router-dom';
+
 import Footer from './components/footer';
 import Header from './components/header';
 

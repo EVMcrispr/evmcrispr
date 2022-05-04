@@ -1,9 +1,21 @@
-import { providers } from 'ethers';
 import { EVMcrispr } from '@1hive/evmcrispr';
+import type { providers } from 'ethers';
+
 import { sponsors } from '../assets/sponsors.json';
 
-async function dao(code: string, provider: providers.Web3Provider) {
-  let [, dao, _path, , , context] =
+type DAOData = {
+  dao: string;
+  path: string[];
+  context: string;
+  _code: string;
+  evmcrispr: EVMcrispr;
+};
+
+async function dao(
+  code: string,
+  provider: providers.Web3Provider,
+): Promise<DAOData> {
+  const [, dao, _path, , , context] =
     code
       .split('\n')[0]
       .match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
@@ -23,12 +35,15 @@ async function dao(code: string, provider: providers.Web3Provider) {
   return { dao, path, context, _code, evmcrispr };
 }
 
-function client(chainId: number) {
-  return {
-    1: 'client.aragon.org',
-    4: 'rinkeby.client.aragon.org',
-    100: 'aragon.1hive.org',
-  }[chainId];
+function client(chainId: number): string | undefined {
+  switch (chainId) {
+    case 1:
+      return 'client.aragon.org';
+    case 4:
+      return 'rinkeby.client.aragon.org';
+    case 100:
+      return 'aragon.1hive.org';
+  }
 }
 
 function network(ethereum: { chainId: string }): providers.Network | undefined {
@@ -51,7 +66,7 @@ function network(ethereum: { chainId: string }): providers.Network | undefined {
   }[Number(ethereum.chainId)];
 }
 
-function parsedSponsors() {
+function parsedSponsors(): string {
   switch (sponsors.length) {
     case 1:
       return `sponsored by <a href="${sponsors[0][1]}">${sponsors[0][0]}</a>`;

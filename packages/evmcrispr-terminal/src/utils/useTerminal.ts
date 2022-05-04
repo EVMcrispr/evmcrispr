@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { network, dao, client } from '../utils/utils';
-import createPersistedState from 'use-persisted-state';
-import { ethers } from 'ethers';
 import { evmcl } from '@1hive/evmcrispr';
+import { ethers } from 'ethers';
+import { useEffect, useState } from 'react';
+import createPersistedState from 'use-persisted-state';
+
+import { client, dao, network } from './utils';
 
 const useCodeState = createPersistedState<string>('code');
 
