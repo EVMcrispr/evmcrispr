@@ -3,12 +3,13 @@
   "private": true,
   "scripts": {
     "build": "preconstruct build",
+    "dev": "preconstruct dev",
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
     "test": "pnpm --filter \"./packages/evmcrispr\" test",
     "preinstall": "npx only-allow pnpm",
-    "postinstall": "preconstruct dev"
+    "postinstall": "husky install .config/husky && pnpm dev"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,14 @@
     "url": "https://github.com/1Hive/EVMcrispr/issues"
   },
   "homepage": "https://github.com/1Hive/EVMcrispr#readme",
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "pnpm lint:fix"
+    ],
+    "*.{json,md,mdx,yml}": [
+      "pnpm lint:format"
+    ]
+  },
   "preconstruct": {
     "packages": [
       "packages/evmcrispr"
@@ -43,6 +52,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react-hooks": "^4.5.0",
     "husky": "^7.0.2",
+    "lint-staged": "^12.4.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.4"
