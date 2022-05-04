@@ -1,0 +1,6 @@
+{
+  "entryPoints": ["packages/evmcrispr/src/index.ts"],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "out": "docs"
+}

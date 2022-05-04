@@ -3,11 +3,14 @@
   "private": true,
   "scripts": {
     "build": "preconstruct build",
+    "build:terminal": "pnpm --filter \"packages/evmcrispr-terminal\" build",
     "dev": "preconstruct dev",
+    "generate-typedocs": "typedoc",
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
     "test": "pnpm --filter \"./packages/evmcrispr\" test",
+    "test:coverage": "pnpm --filter \"./packages/evmcrispr\" test:coverage",
     "preinstall": "npx only-allow pnpm",
     "postinstall": "husky install .config/husky && pnpm dev"
   },
@@ -37,6 +40,7 @@
   "devDependencies": {
     "@babel/core": "^7.17.10",
     "@babel/preset-env": "^7.17.10",
+    "@changesets/cli": "^2.22.0",
     "@preconstruct/cli": "^2.1.5",
     "@types/eslint": "^8.4.1",
     "@types/mocha": "^8.2.0",
@@ -55,6 +59,7 @@
     "lint-staged": "^12.4.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
+    "typedoc": "^0.22.15",
     "typescript": "^4.6.4"
   }
 }

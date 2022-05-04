@@ -50,12 +50,11 @@
     "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/gxbvZjqHMdz8qR5aQejZO0i0ul2fovg0",
     "fork:rinkeby": "hardhat node --fork https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO",
     "generate": "hardhat generate",
-    "generate-typedocs": "typedoc",
     "lint": "eslint --ext .ts ./src",
     "preinstall": "npx only-allow pnpm",
     "send": "hardhat send",
     "test": "hardhat test --network rinkeby",
-    "test:coverage": "nyc --reporter=lcov yarn test",
+    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test",
     "create-fixtures": "hardhat run scripts/create-fixtures.ts"
   }
 }
