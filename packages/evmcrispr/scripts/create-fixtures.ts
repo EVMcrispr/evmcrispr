@@ -1,5 +1,5 @@
 import ora from 'ora';
-import { ipfsResolver } from '@1hive/connect';
+import { ipfsResolver } from '@1hive/connect-core';
 
 import fs from 'fs';
 import {

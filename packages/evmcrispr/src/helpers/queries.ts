@@ -1,7 +1,7 @@
-import gql from 'graphql-tag';
+import { gql } from 'graphql-tag';
+import type { DocumentNode } from 'graphql';
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const REPO = (type: string) => gql`
+export const REPO = (type: string): DocumentNode => gql`
   ${type} Repos($repoName: String!) {
     repos(where: { name: $repoName }) {
       lastVersion {
@@ -16,8 +16,7 @@ export const REPO = (type: string) => gql`
   }
 `;
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const ORGANIZATION_APPS = (type: string) => gql`
+export const ORGANIZATION_APPS = (type: string): DocumentNode => gql`
   ${type} Organization($id: ID!) {
     organization(id: $id) {
       apps {

@@ -10,7 +10,10 @@
   "devDependencies": {
     "@aragon/os": "4.3.0",
     "@ethersproject/abi": "^5.6.1",
+    "@ethersproject/abstract-provider": "^5.6.0",
+    "@ethersproject/abstract-signer": "^5.6.0",
     "@ethersproject/address": "^5.6.0",
+    "@ethersproject/bignumber": "^5.6.0",
     "@ethersproject/contracts": "^5.6.0",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
@@ -25,8 +28,7 @@
     "ora": "^5.4.0",
     "qrcode-terminal": "^0.12.0",
     "ts-generator": "^0.1.1",
-    "typechain": "^4.0.2",
-    "typedoc": "^0.21.6"
+    "typechain": "^4.0.2"
   },
   "dependencies": {
     "@1hive/connect-core": "^0.9.10",
@@ -45,10 +47,10 @@
     "balance": "hardhat balance",
     "chain": "hardhat node",
     "compile": "hardhat compile --no-typechain",
-    "docs": "typedoc",
     "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/gxbvZjqHMdz8qR5aQejZO0i0ul2fovg0",
     "fork:rinkeby": "hardhat node --fork https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO",
     "generate": "hardhat generate",
+    "generate-typedocs": "typedoc",
     "lint": "eslint --ext .ts ./src",
     "preinstall": "npx only-allow pnpm",
     "send": "hardhat send",

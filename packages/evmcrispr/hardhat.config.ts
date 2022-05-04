@@ -1,5 +1,3 @@
-import fs from 'fs';
-
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-typechain';
@@ -7,9 +5,8 @@ import 'hardhat-gas-reporter';
 
 import type { HardhatUserConfig } from 'hardhat/config';
 import { task } from 'hardhat/config';
-import type { HttpNetworkUserConfig } from 'hardhat/types';
 
-const DEBUG = false;
+import fs from 'fs';
 
 //
 // Select the network you want to deploy to here:
@@ -142,52 +139,6 @@ const config: HardhatUserConfig = {
     },
   },
 };
-
-task(
-  'account',
-  'Get balance informations for the deployment account.',
-  async (_, { ethers }) => {
-    const hdkey = require('ethereumjs-wallet/hdkey');
-    const bip39 = require('bip39');
-    const mnemonic = fs.readFileSync('./mnemonic.txt').toString().trim();
-    if (DEBUG) console.log('mnemonic', mnemonic);
-    const seed = await bip39.mnemonicToSeed(mnemonic);
-    if (DEBUG) console.log('seed', seed);
-    const hdwallet = hdkey.fromMasterSeed(seed);
-    const wallet_hdpath = "m/44'/60'/0'/0/";
-    const account_index = 0;
-    const fullPath = wallet_hdpath + account_index;
-    if (DEBUG) console.log('fullPath', fullPath);
-    const wallet = hdwallet.derivePath(fullPath).getWallet();
-    const privateKey = '0x' + wallet._privKey.toString('hex');
-    if (DEBUG) console.log('privateKey', privateKey);
-    const EthUtil = require('ethereumjs-util');
-    const address =
-      '0x' + EthUtil.privateToAddress(wallet._privKey).toString('hex');
-
-    const qrcode = require('qrcode-terminal');
-    qrcode.generate(address);
-    console.log('‍📬 Deployer Account is ' + address);
-    for (const n in config.networks) {
-      // console.log(config.networks[n],n)
-      try {
-        const provider = new ethers.providers.JsonRpcProvider(
-          (config.networks[n] as HttpNetworkUserConfig).url,
-        );
-        const balance = await provider.getBalance(address);
-        console.log(' -- ' + n + ' --  -- -- 📡 ');
-        console.log('   balance: ' + ethers.utils.formatEther(balance));
-        console.log(
-          '   nonce: ' + (await provider.getTransactionCount(address)),
-        );
-      } catch (e) {
-        if (DEBUG) {
-          console.log(e);
-        }
-      }
-    }
-  },
-);
 
 task('accounts', 'Prints the list of accounts', async (_, { ethers }) => {
   const accounts = await ethers.provider.listAccounts();

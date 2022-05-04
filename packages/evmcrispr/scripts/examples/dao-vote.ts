@@ -1,4 +1,4 @@
-import { erc20ABI } from '@1hive/connect';
+import { erc20ABI } from '@1hive/connect-core';
 import { Contract } from '@ethersproject/contracts';
 import type { BigNumber } from '@ethersproject/bignumber';
 import type { Signer } from '@ethersproject/abstract-signer';
@@ -7,8 +7,8 @@ import { ethers } from 'hardhat';
 
 import type { TransactionReceipt } from '@ethersproject/abstract-provider';
 
-import { EVMcrispr, evmcl } from '../src/';
-import { impersonateAddress, increase } from '../helpers/rpc';
+import { EVMcrispr, evmcl } from '../../';
+import { impersonateAddress, increase } from '../../helpers/rpc';
 
 const { constants } = ethers;
 

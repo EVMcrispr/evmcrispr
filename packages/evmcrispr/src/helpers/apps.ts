@@ -10,8 +10,8 @@ import type {
   PermissionMap,
 } from '../types';
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const buildAppPermissions = (
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   artifactRoles: any,
   currentPermissions: any[],
 ): PermissionMap => {
