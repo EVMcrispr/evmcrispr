@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "build": "preconstruct build",
-    "build:terminal": "pnpm --filter \"packages/evmcrispr-terminal\" build",
+    "build:terminal": "pnpm --filter packages/evmcrispr-terminal build",
+    "changeset:release": "pnpm build && changeset publish",
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
     "dev": "preconstruct dev",
-    "generate-typedocs": "typedoc",
+    "generate:docs": "typedoc",
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",

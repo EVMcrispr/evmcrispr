@@ -1,12 +1,12 @@
 name: Docs
 on:
   push:
-    branches: [main, next]
+    branches: [next]
     paths:
       - packages/evmcrispr/src/index.ts
       - packages/evmcrispr/src/EVMcrispr.ts
-      - packages/evmcrisprsrc/errors.ts
-      - packages/evmcrisprsrc/types.ts
+      - packages/evmcrispr/src/errors.ts
+      - packages/evmcrispr/src/types.ts
       - packages/evmcrispr/README.md
 jobs:
   build-and-deploy:
@@ -31,7 +31,7 @@ jobs:
         run: |
           pnpm config set unsafe-perm true
           pnpm i
-          pnpm generate-typedocs
+          pnpm generate:docs
 
       - name: Deploy docs
         uses: JamesIves/github-pages-deploy-action@4.1.4
