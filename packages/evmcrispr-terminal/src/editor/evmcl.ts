@@ -1,4 +1,4 @@
-import { languages } from 'monaco-editor';
+import type { languages } from 'monaco-editor';
 
 const bounded = (text: string) => `\\b${text}\\b`;
 

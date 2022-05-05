@@ -1,4 +1,4 @@
-import { editor } from 'monaco-editor';
+import type { editor } from 'monaco-editor';
 
 export const theme = {
   base: 'vs-dark' as editor.BuiltinTheme,

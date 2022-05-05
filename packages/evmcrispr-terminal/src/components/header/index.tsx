@@ -1,11 +1,11 @@
-import { Link, useLocation } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
-
-import { codename } from '../../assets/sponsors.json';
 import { version } from '@1hive/evmcrispr/package.json';
+import { Link, useLocation } from 'react-router-dom';
+
+import logo from '../../assets/logo.svg';
+import { codename } from '../../assets/sponsors.json';
 
 const Header = () => {
-  let location = useLocation();
+  const location = useLocation();
   const isTerminalClass =
     location.pathname === '/terminal' ? 'flex-center-header' : 'flex-center';
   return (

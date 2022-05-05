@@ -1,5 +1,5 @@
 import { Children } from 'react';
-import { useTrail, a } from '@react-spring/web';
+import { a, useTrail } from '@react-spring/web';
 
 type TrailType = {
   children: React.ReactNode;

@@ -17,13 +17,10 @@
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "plugin:react-hooks/recommended",
     "plugin:prettier/recommended",
     "prettier"
   ],
   "rules": {
-    // `eslint-plugin-import`
-    // https://github.com/benmosher/eslint-plugin-import
     "import/order": [
       "error",
       {
@@ -61,9 +58,6 @@
       "typescript": {
         "alwaysTryTypes": true
       }
-    },
-    "react": {
-      "version": "detect"
     }
   },
   "env": {

@@ -1,10 +1,10 @@
 import Editor from '@monaco-editor/react';
+import { useChain, useSpringRef } from '@react-spring/web';
 
-import { useTerminal } from '../utils/useTerminal';
 import FadeIn from '../components/animations/fade-in';
-import { useSpringRef, useChain } from '@react-spring/web';
 import { theme } from '../editor/theme';
-import { contribution, conf, language } from '../editor/evmcl';
+import { conf, contribution, language } from '../editor/evmcl';
+import { useTerminal } from '../utils/useTerminal';
 
 const Terminal = () => {
   const {
