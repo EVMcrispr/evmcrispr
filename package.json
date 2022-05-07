@@ -13,8 +13,7 @@
     "lint:format": "prettier --write",
     "test": "pnpm --filter \"./packages/evmcrispr\" test",
     "test:coverage": "pnpm --filter \"./packages/evmcrispr\" test:coverage",
-    "preinstall": "npx only-allow pnpm",
-    "postinstall": "husky install .config/husky && pnpm dev"
+    "postinstall": "pnpm install --ignore-scripts && husky install .config/husky && pnpm dev"
   },
   "repository": {
     "type": "git",
@@ -62,6 +61,7 @@
     "eslint-plugin-react-hooks": "^4.5.0",
     "husky": "^7.0.4",
     "lint-staged": "^12.4.1",
+    "pnpm": "^7.0.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
     "typedoc": "^0.22.15",
