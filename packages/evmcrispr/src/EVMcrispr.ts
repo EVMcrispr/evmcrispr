@@ -1022,10 +1022,14 @@ export default class EVMcrispr {
 
   #resolveNumber(number: string | number): BigNumber | number {
     if (typeof number === 'string') {
-      const [, amount, decimals = '0', unit] = number.match(
-        /^(\d*(?:\.\d*)?)(?:e(\d+))?([s|m|h|d|w|y]?)$/,
+      const [, amount, decimals = '0', unit = 's', inverse = 's'] = String(
+        number,
+      ).match(
+        /^(\d*(?:\.\d*)?)(?:e(\d+))?(mo|s|m|h|d|w|y)?(?:\/(mo|s|m|h|d|w|y))?$/,
       )!;
-      return toDecimals(amount, parseInt(decimals)).mul(timeUnits[unit] ?? 1);
+      return toDecimals(amount, parseInt(decimals))
+        .mul(timeUnits[unit])
+        .div(timeUnits[inverse]);
     }
     return number;
   }

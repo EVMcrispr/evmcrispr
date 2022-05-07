@@ -134,14 +134,14 @@ describe('EVM Command Line', () => {
   it('exec voting newVote Hello [0x0,[3,2]]', async () => {
     await check(
       evmcl`
-        exec voting newVote Hello [0x0,[3e21,2]]
+        exec voting newVote Hello [0x0,[3e21/mo,2]]
       `,
       [
         {
           func: 'exec',
           id: 'voting',
           method: 'newVote',
-          params: ['Hello', ['0x0', ['3e21', '2']]],
+          params: ['Hello', ['0x0', ['3e21/mo', '2']]],
         },
       ],
     );
