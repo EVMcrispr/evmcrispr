@@ -23,10 +23,7 @@ const nonCommentWs = `[ \\t\\r\\n]`;
 
 const numericLiteral = `0x([0-9a-fA-F]+)|([0-9]+(e[0-9]+)?(s|mo|h|d|w|m|y)?(/(s|mo|h|d|w|m|y))?)`;
 
-export const conf = {
-  comments: {
-    lineComment: ['//', '#'],
-  },
+export const conf: languages.LanguageConfiguration = {
   brackets: [
     ['{', '}'] as languages.CharacterPair,
     ['[', ']'] as languages.CharacterPair,
