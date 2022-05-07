@@ -2,8 +2,8 @@ import type { languages } from 'monaco-editor';
 
 const bounded = (text: string) => `\\b${text}\\b`;
 
-const identifierStart = '[_a-zA-Z]';
-const identifierContinue = '[_a-zA-Z0-9]';
+const identifierStart = '[a-zA-Z]';
+const identifierContinue = '[\\-:a-zA-Z0-9]';
 const identifier = bounded(`${identifierStart}${identifierContinue}*`);
 
 const keywords = [
@@ -14,17 +14,18 @@ const keywords = [
   'revoke',
   'exec',
   'act',
+  'new',
 ];
 
 const namedLiterals = ['true', 'false'];
 
 const nonCommentWs = `[ \\t\\r\\n]`;
 
-const numericLiteral = `[0-9]+`;
+const numericLiteral = `0x([0-9a-fA-F]+)|([0-9]+(e[0-9]+)?(s|mo|h|d|w|m|y)?(/(s|mo|h|d|w|m|y))?)`;
 
 export const conf = {
   comments: {
-    lineComment: '//',
+    lineComment: ['//', '#'],
   },
   brackets: [
     ['{', '}'] as languages.CharacterPair,
