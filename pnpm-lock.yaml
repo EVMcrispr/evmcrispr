@@ -121,7 +121,7 @@ importers:
 
   packages/evmcrispr-terminal:
     specifiers:
-      '@1hive/evmcrispr': ^0.3.7
+      '@1hive/evmcrispr': 0.4.0-alpha
       '@monaco-editor/react': ^4.3.1
       '@react-spring/web': ^9.4.2
       '@steveeeie/react-page-transition': ^1.2.1
@@ -6390,7 +6390,7 @@ packages:
   /eth-json-rpc-middleware/1.6.0:
     resolution: {integrity: sha512-tDVCTlrUvdqHKqivYMjtFZsdD7TtpNLBCfKAcOpaVs7orBMS/A8HWro6dIzNtTZIR05FAbJ3bioFOnZpuCew9Q==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       eth-query: 2.1.2
       eth-tx-summary: 3.2.4
       ethereumjs-block: 1.7.1
@@ -6478,7 +6478,7 @@ packages:
     resolution: {integrity: sha512-/MSbf/r2/Ld8o0l15AymjOTlPqpN8Cr4ByUEA9GtR4x0yAh3TdtDzEg29zMjXCNPI7u6E5fOQdj/Cf9Tc7oVNw==}
     deprecated: 'New package name format for new versions: @ethereumjs/ethash. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       buffer-xor: 2.0.2
       ethereumjs-util: 7.1.4
       miller-rabin: 4.0.1
