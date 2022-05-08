@@ -19,6 +19,7 @@ import {
   encodeCallScript,
   erc20ABI,
   fetchAppArtifact,
+  getAragonEnsResolver,
   getForwarderFee,
   getForwarderType,
   getFunctionParams,
@@ -28,6 +29,7 @@ import {
   oracle,
   parseLabeledAppIdentifier,
   resolveIdentifier,
+  resolveName,
   timeUnits,
   toDecimals,
 } from './helpers';
@@ -119,14 +121,17 @@ export default class EVMcrispr {
     signer: Signer,
     options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY },
   ): Promise<EVMcrispr> {
-    const evmcrispr = new EVMcrispr(await signer.getChainId(), signer, options);
+    const chainId = await signer.getChainId();
+    const evmcrispr = new EVMcrispr(chainId, signer, options);
     const networkName = (await signer.provider?.getNetwork())?.name;
 
     if (utils.isAddress(daoAddressOrName)) {
       await evmcrispr._connect(daoAddressOrName);
     } else {
-      const daoAddress = await signer.resolveName(
+      const daoAddress = await resolveName(
         `${daoAddressOrName}.aragonid.eth`,
+        options.ensResolver || getAragonEnsResolver(chainId),
+        signer,
       );
       if (!daoAddress) {
         throw new Error(

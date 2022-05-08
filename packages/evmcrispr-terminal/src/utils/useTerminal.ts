@@ -1,26 +1,21 @@
 import { evmcl } from '@1hive/evmcrispr';
-import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import createPersistedState from 'use-persisted-state';
+import { useConnect, useSigner } from 'wagmi';
 
-import { client, dao, network } from './utils';
+import { client, dao } from './utils';
 
 const useCodeState = createPersistedState<string>('code');
 
 declare global {
   interface Window {
-    ethereum: any;
     evmcrispr: any;
   }
 }
 
 export const useTerminal = () => {
-  const [provider, setProvider] = useState(
-    new ethers.providers.Web3Provider(
-      window.ethereum,
-      network(window.ethereum),
-    ),
-  );
+  const { data: signer } = useSigner();
+  const { connect, connectors } = useConnect();
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,19 +42,23 @@ exec agent:new transfer XDAI vault 100e18
   );
 
   useEffect(() => {
-    provider
-      .getSigner()
+    if (!signer) return;
+    signer
       .getAddress()
       .then(setAddress)
       .catch(() => setAddress(''));
-  }, [provider]);
+  }, [signer]);
 
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   async function onClick() {
+    console.log('Loading current terminal in window.evmcrispr…');
     try {
-      const { evmcrispr } = await dao(code, provider);
+      if (signer === undefined || signer === null)
+        throw new Error('Account not connected');
+      const { evmcrispr } = await dao(code, signer);
       window.evmcrispr = evmcrispr;
+      console.log(evmcrispr);
     } catch (e: any) {
       console.error(e);
       setError(e.message);
@@ -71,18 +70,20 @@ exec agent:new transfer XDAI vault 100e18
     setLoading(true);
 
     try {
+      if (signer === undefined || signer === null)
+        throw new Error('Account not connected');
       const {
         evmcrispr,
         _code,
         dao: _dao,
         path,
         context,
-      } = await dao(code, provider);
+      } = await dao(code, signer);
       await evmcrispr.forward(evmcl`${_code}`, path, {
         context,
         gasLimit: 10_000_000,
       });
-      const chainId = (await provider.getNetwork()).chainId;
+      const chainId = (await signer.provider?.getNetwork())?.chainId;
       const lastApp = evmcrispr.app(path.slice(-1)[0]);
       setUrl(`https://${client(chainId)}/#/${_dao}/${lastApp}`);
     } catch (e: any) {
@@ -104,14 +105,7 @@ exec agent:new transfer XDAI vault 100e18
   }
 
   async function onConnect() {
-    await window.ethereum.send('eth_requestAccounts');
-    const provider = new ethers.providers.Web3Provider(
-      window.ethereum,
-      network(window.ethereum),
-    );
-    const address = await provider.getSigner().getAddress();
-    console.log(`Connected to ${address}.`);
-    setProvider(provider);
+    connect(connectors[0]);
   }
 
   return {

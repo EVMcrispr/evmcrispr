@@ -206,6 +206,10 @@ export interface EVMcrisprOptions {
    * An IPFS gateway url to fetch app data from.
    */
   ipfsGateway: string;
+  /*
+   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth
+   */
+  ensResolver?: string;
   /**
    * A custom subgraph url to connect to.
    */

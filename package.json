@@ -11,6 +11,7 @@
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
+    "start": "pnpm --filter \"./packages/evmcrispr-terminal\" dev",
     "test": "pnpm --filter \"./packages/evmcrispr\" test",
     "test:coverage": "pnpm --filter \"./packages/evmcrispr\" test:coverage",
     "postinstall": "pnpm install --ignore-scripts && husky install .config/husky && pnpm dev"

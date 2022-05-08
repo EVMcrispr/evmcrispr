@@ -1,5 +1,5 @@
 import { EVMcrispr } from '@1hive/evmcrispr';
-import type { providers } from 'ethers';
+import type { Signer } from 'ethers';
 
 import { sponsors } from '../assets/sponsors.json';
 
@@ -11,15 +11,11 @@ type DAOData = {
   evmcrispr: EVMcrispr;
 };
 
-async function dao(
-  code: string,
-  provider: providers.Web3Provider,
-): Promise<DAOData> {
+async function dao(code: string, signer: Signer): Promise<DAOData> {
   const [, dao, _path, , , context] =
     code
       .split('\n')[0]
       .match(/^connect ([\w.-]+)(( [\w.\-:]+)*)( @context:(.+))?$/) ?? [];
-  console.log(dao, _path, context);
   if (!dao || !_path) {
     console.log(dao, _path);
     throw new Error('First line must be `connect <dao> <...path>`');
@@ -29,41 +25,21 @@ async function dao(
     .split(' ')
     .map((id) => id.trim());
   const _code = code.split('\n').slice(1).join('\n');
-  const evmcrispr = await EVMcrispr.create(dao, provider.getSigner() as any, {
+  const evmcrispr = await EVMcrispr.create(dao, signer, {
     ipfsGateway: 'https://ipfs.blossom.software/ipfs/',
   });
   return { dao, path, context, _code, evmcrispr };
 }
 
-function client(chainId: number): string | undefined {
+function client(chainId: number | undefined): string | undefined {
   switch (chainId) {
-    case 1:
-      return 'client.aragon.org';
     case 4:
       return 'rinkeby.client.aragon.org';
     case 100:
       return 'aragon.1hive.org';
+    default:
+      return 'client.aragon.org';
   }
-}
-
-function network(ethereum: { chainId: string }): providers.Network | undefined {
-  return {
-    1: {
-      name: 'mainnet',
-      chainId: 1,
-      ensAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e',
-    },
-    4: {
-      name: 'rinkeby',
-      chainId: 4,
-      ensAddress: '0x98Df287B6C145399Aaa709692c8D308357bC085D',
-    },
-    100: {
-      name: 'xdai',
-      chainId: 100,
-      ensAddress: '0xaafca6b0c89521752e559650206d7c925fd0e530',
-    },
-  }[Number(ethereum.chainId)];
 }
 
 function parsedSponsors(): string {
@@ -79,4 +55,4 @@ function parsedSponsors(): string {
   }
 }
 
-export { dao, client, network, parsedSponsors };
+export { dao, client, parsedSponsors };

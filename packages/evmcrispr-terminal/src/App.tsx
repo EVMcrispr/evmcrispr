@@ -1,5 +1,7 @@
 import { HashRouter, Redirect, Route, Switch } from 'react-router-dom';
 
+import Wagmi from './providers/Wagmi';
+
 import Footer from './components/footer';
 import Header from './components/header';
 
@@ -9,15 +11,17 @@ import Terminal from './pages/terminal';
 const App = () => {
   return (
     <div className="App">
-      <HashRouter>
-        <Header />
-        <Switch>
-          <Route exact path="/terminal" render={() => <Terminal />} />
-          <Route exact path="/" render={() => <Landing />} />
-          <Redirect to="/" />
-        </Switch>
-        <Footer />
-      </HashRouter>
+      <Wagmi>
+        <HashRouter>
+          <Header />
+          <Switch>
+            <Route exact path="/terminal" render={() => <Terminal />} />
+            <Route exact path="/" render={() => <Landing />} />
+            <Redirect to="/" />
+          </Switch>
+          <Footer />
+        </HashRouter>
+      </Wagmi>
     </div>
   );
 };
