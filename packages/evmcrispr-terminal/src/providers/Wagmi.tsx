@@ -8,7 +8,8 @@ import { InfuraProvider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
 
 const CHAIN_WHITELIST = [1, 3, 100];
-const INFURA_ID = process.env.REACT_APP_INFURA_ID;
+const INFURA_ID = import.meta.env.VITE_INFURA_ID;
+console.log(import.meta.env);
 
 const getConnectors = (): Connector[] => {
   const chains = allChains.filter((chain) =>
@@ -23,7 +24,7 @@ const getConnectors = (): Connector[] => {
     new WalletConnectConnector({
       chains,
       options: {
-        infuraId: process.env.REACT_APP_INFURA_ID,
+        infuraId: INFURA_ID,
         qrcode: true,
       },
     }),

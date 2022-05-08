@@ -1,10 +1,13 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 
+import { useDisclosure } from '@chakra-ui/react';
+
 import FadeIn from '../components/animations/fade-in';
 import { theme } from '../editor/theme';
 import { conf, contribution, language } from '../editor/evmcl';
 import { useTerminal } from '../utils/useTerminal';
+import SelectWalletModal from '../components/Modal';
 
 const Terminal = () => {
   const {
@@ -16,8 +19,10 @@ const Terminal = () => {
     address,
     addressShortened,
     onForward,
-    onConnect,
+    onDisconnect,
   } = useTerminal();
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
 
@@ -63,7 +68,7 @@ const Terminal = () => {
         <FadeIn componentRef={buttonsRef}>
           <div className="script-actions">
             {!address ? (
-              <button className="button button-success" onClick={onConnect}>
+              <button className="button button-success" onClick={onOpen}>
                 Connect
               </button>
             ) : (
@@ -82,6 +87,7 @@ const Terminal = () => {
                     loading ? 'Forwarding' : 'Forward'
                   } from ${addressShortened}`}
                 </button>
+                <button onClick={onDisconnect}>Disconnect</button>
               </>
             )}
 
@@ -96,6 +102,7 @@ const Terminal = () => {
           </div>
         </FadeIn>
       </div>
+      <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { evmcl } from '@1hive/evmcrispr';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import createPersistedState from 'use-persisted-state';
-import { useConnect, useSigner } from 'wagmi';
+import { useAccount, useDisconnect, useSigner } from 'wagmi';
 
 import { client, dao } from './utils';
 
@@ -15,8 +15,9 @@ declare global {
 
 export const useTerminal = () => {
   const { data: signer } = useSigner();
-  const { connect, connectors } = useConnect();
-  const [address, setAddress] = useState('');
+  const { data: account } = useAccount();
+  const { disconnect } = useDisconnect();
+  const address = account?.address || '';
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState('');
@@ -40,14 +41,6 @@ act agent:new @token(WXDAI) withdraw(uint256) 100e18
 exec agent:new transfer XDAI vault 100e18
 `,
   );
-
-  useEffect(() => {
-    if (!signer) return;
-    signer
-      .getAddress()
-      .then(setAddress)
-      .catch(() => setAddress(''));
-  }, [signer]);
 
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
@@ -104,8 +97,8 @@ exec agent:new transfer XDAI vault 100e18
     setLoading(false);
   }
 
-  async function onConnect() {
-    connect(connectors[0]);
+  async function onDisconnect() {
+    disconnect();
   }
 
   return {
@@ -118,6 +111,6 @@ exec agent:new transfer XDAI vault 100e18
     addressShortened,
     onClick,
     onForward,
-    onConnect,
+    onDisconnect,
   };
 };
