@@ -1,15 +1,15 @@
+import { InfuraProvider } from '@ethersproject/providers';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { WagmiProvider, allChains, createClient } from 'wagmi';
 import type { Connector } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
-import { InfuraProvider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
+import '../walletconnect-compat';
 
 const CHAIN_WHITELIST = [1, 3, 100];
 const INFURA_ID = import.meta.env.VITE_INFURA_ID;
-console.log(import.meta.env);
 
 const getConnectors = (): Connector[] => {
   const chains = allChains.filter((chain) =>
