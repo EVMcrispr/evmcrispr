@@ -45,6 +45,13 @@ jobs:
       - name: Install Dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: pnpm i
+
+      - name: Get changed files from evmcrispr
+        id: changed-files
+        uses: tj-actions/changed-files@v20
+        with:
+          files: 'packages/evmcrispr/src/**'
+
       - name: Link Dependencies
         if: steps.cache-node-modules.outputs.cache-hit == 'true'
         run: pnpm dev
@@ -56,20 +63,13 @@ jobs:
         run: pnpm build
 
       - name: Tests
+        if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
 
       - name: Coveralls
         uses: coverallsapp/github-action@master
+        if: steps.changed-files.outputs.any_changed == 'true'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
           parallel: true
-  finish:
-    needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v1.1.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
