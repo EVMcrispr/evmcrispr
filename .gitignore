@@ -29,7 +29,7 @@ build
 
 # misc
 .DS_Store
-.env*
+.env
 
 # debug
 .pnpm-debug.log
