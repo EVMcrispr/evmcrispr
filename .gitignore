@@ -38,3 +38,5 @@ build
 
 # github actions local tester
 act.secrets
+
+.nyc_output
