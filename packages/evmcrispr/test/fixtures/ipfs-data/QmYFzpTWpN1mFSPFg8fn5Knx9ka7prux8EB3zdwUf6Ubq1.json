@@ -74,7 +74,12 @@
     {
       "name": "Change budgets",
       "id": "CHANGE_BUDGETS_ROLE",
-      "params": ["Token address", "New budget amount", "Old budget amount", "Has budget flag"],
+      "params": [
+        "Token address",
+        "New budget amount",
+        "Old budget amount",
+        "Has budget flag"
+      ],
       "bytes": "0xd79730e82bfef7d2f9639b9d10bf37ebb662b22ae2211502a00bdf7b2cc3a23a"
     },
     {
@@ -94,7 +99,11 @@
     {
       "roles": [],
       "notice": "",
-      "abi": { "payable": true, "stateMutability": "payable", "type": "fallback" },
+      "abi": {
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "fallback"
+      },
       "sig": "fallback"
     },
     {

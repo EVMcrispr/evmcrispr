@@ -1,7 +1,8 @@
-import type { Address } from '@1hive/connect-core';
 import type { providers } from 'ethers';
 import { BigNumber, Contract, ethers, utils } from 'ethers';
 import type { Interface } from '@ethersproject/abi';
+
+import type { Address } from '../types';
 
 export async function buildNonceForAddress(
   address: Address,

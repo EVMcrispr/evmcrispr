@@ -1,5 +1,4 @@
 import ora from 'ora';
-import { ipfsResolver } from '@1hive/connect-core';
 
 import fs from 'fs';
 import {
@@ -14,6 +13,7 @@ import {
   fetchRepo,
   generateMockDAOFile,
 } from './helpers/fixtures';
+import { IPFSResolver } from '../src/IPFSResolver';
 
 const CHAIN_ID = 4; // Rinkeby
 const DAO_ADDRESS = '0x8bebd1c49336Bf491ef7bd8a7f9A5d267081b33E';
@@ -22,7 +22,7 @@ const REGISTRY_NAME = 'aragonpm.eth';
 
 let spinner = ora();
 
-const resolver = ipfsResolver(buildIpfsTemplate(IPFS_GATEWAY), 0);
+const resolver = new IPFSResolver(buildIpfsTemplate(IPFS_GATEWAY));
 
 const createDAOAppsFixture = async () => {
   spinner = spinner.start('Create organization apps fixture');

@@ -1,10 +1,8 @@
 import type { Interface } from '@ethersproject/abi';
-import type {
-  AragonArtifact,
-  AragonArtifactRole,
-} from '@1hive/connect-core/dist/cjs/types';
 
-export type { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
+import type { AppArtifact, AragonArtifact } from './aragon';
+
+export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
@@ -44,14 +42,6 @@ export type ActionFunction = () => Promise<Action[]>;
  * A string that contains an Ethereum address.
  */
 export type Address = string;
-
-/** @internal */
-export interface AppArtifact {
-  abiInterface: Interface;
-  appName: string;
-  roles: AragonArtifactRole[];
-  functions: { sig: string }[];
-}
 
 /** @internal */
 export type AppArtifactCache = Map<Address, AppArtifact>;

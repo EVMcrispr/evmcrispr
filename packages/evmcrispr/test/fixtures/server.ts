@@ -1,9 +1,11 @@
-import { graphql } from 'msw';
+import type { DefaultBodyType } from 'msw';
+import { graphql, rest } from 'msw';
 import { setupServer } from 'msw/node';
 
+import { artifacts } from './ipfs-data';
 import reposFixture from './subgraph-data/RepoResponse.json';
 import organizationFixture from './subgraph-data/OrganizationAppsResponse.json';
-import { addressesEqual } from '../../src/helpers';
+import { IPFS_GATEWAY, addressesEqual } from '../../src/helpers';
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
@@ -34,6 +36,21 @@ const handlers = [
         : null;
 
       return res(ctx.status(200), ctx.data({ organization }));
+    },
+  ),
+  rest.get<DefaultBodyType, { cid: string; resource: string }>(
+    `${IPFS_GATEWAY}:cid/:resource`,
+    (req, res, ctx) => {
+      const { cid, resource } = req.params;
+
+      if (resource === 'artifact.json') {
+        const artifact = artifacts[cid as keyof typeof artifacts];
+        if (!artifact) {
+          return res(ctx.status(404));
+        }
+
+        return res(ctx.status(200), ctx.json(artifact));
+      }
     },
   ),
 ];

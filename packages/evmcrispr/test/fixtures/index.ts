@@ -1,4 +1,3 @@
-export { default as MockEVMcrispr } from './MockEVMcrispr';
 export * from './mock-dao';
 export * from './mock-app';
 export * from './mock-forwarders';
