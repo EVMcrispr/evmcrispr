@@ -11,9 +11,11 @@
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
+    "size": "bundlewatch --config .config/bundlewatch.config.js",
     "start": "pnpm --filter \"./packages/evmcrispr-terminal\" dev",
     "test:evmcrispr": "pnpm --filter \"./packages/evmcrispr\" test",
     "test:coverage": "pnpm --filter \"./packages/evmcrispr\" test:coverage",
+    "test:size": "pnpm build && pnpm size",
     "postinstall": "pnpm install --ignore-scripts && husky install .config/husky && pnpm dev"
   },
   "repository": {
@@ -55,6 +57,7 @@
     "@types/prettier": "^2.6.0",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
+    "bundlewatch": "^0.3.3",
     "chai": "^4.3.6",
     "coveralls": "^3.1.1",
     "dotenv": "^16.0.1",

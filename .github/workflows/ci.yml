@@ -62,6 +62,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check size
+        run: pnpm size
+        env:
+          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+          CI_BRANCH_BASE: main
+
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
