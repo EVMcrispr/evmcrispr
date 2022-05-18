@@ -1,4 +1,4 @@
-import type { Contract } from '@ethersproject/contracts';
+import type { Contract } from 'ethers';
 
 export const getEventArgument = async (
   selectedFilter: string,

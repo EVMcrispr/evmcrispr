@@ -1,4 +1,4 @@
-import type { Interface } from '@ethersproject/abi';
+import type { utils } from 'ethers';
 
 import type { AppArtifact, AragonArtifact } from './aragon';
 
@@ -64,7 +64,7 @@ export type AppIdentifier = string;
 
 /** @internal */
 export interface ArtifactData {
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   roles: any[];
 }
 
@@ -161,7 +161,7 @@ export interface App {
   /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   /**
    * The app's address.
    */

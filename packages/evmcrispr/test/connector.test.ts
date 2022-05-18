@@ -1,5 +1,5 @@
-import { isAddress } from '@ethersproject/address';
 import { expect } from 'chai';
+import { utils } from 'ethers';
 import hre from 'hardhat';
 import { multihash } from 'is-ipfs';
 
@@ -37,7 +37,8 @@ describe('Connector', () => {
         'aragonpm.eth',
       );
 
-      expect(isAddress(codeAddress), 'Invalid  repo code address').to.be.true;
+      expect(utils.isAddress(codeAddress), 'Invalid  repo code address').to.be
+        .true;
 
       expect(multihash(parseContentUri(contentUri)), 'Invalid repo contentUri')
         .to.be.true;

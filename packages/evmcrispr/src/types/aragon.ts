@@ -1,10 +1,6 @@
-import type {
-  EventFragment,
-  FunctionFragment,
-  Interface,
-} from '@ethersproject/abi';
+import type { utils } from 'ethers';
 
-export type Abi = (EventFragment | FunctionFragment)[];
+export type Abi = (utils.EventFragment | utils.FunctionFragment)[];
 
 export interface AppMethod {
   roles: string[];
@@ -91,7 +87,7 @@ export interface AragonArtifactRole {
 
 /** @internal */
 export interface AppArtifact {
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   appName: string;
   roles: AragonArtifactRole[];
   functions: { sig: string }[];

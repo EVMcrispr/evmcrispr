@@ -1,6 +1,5 @@
 import type { providers } from 'ethers';
 import { BigNumber, Contract, ethers, utils } from 'ethers';
-import type { Interface } from '@ethersproject/abi';
 
 import type { Address } from '../types';
 
@@ -44,7 +43,7 @@ export const toDecimals = (
 
 export function getFunctionParams(
   functionName: string,
-  abi: Interface,
+  abi: utils.Interface,
 ): [string[], string[]] {
   const params = abi.fragments.find(
     ({ name }) => name === functionName,
