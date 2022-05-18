@@ -31,7 +31,7 @@ await evmcrispr.forward(
     // ...
   ],
   // forwarder apps path.
-  [forwarder1, forwarder2]
+  [forwarder1, forwarder2],
 );
 ```
 
@@ -46,7 +46,7 @@ await evmcripsr.forward(
     grant ${entity3} ${app3} ${role3} ${permissionManager}
     revoke ${entity4} ${app4} ${role4} ${removeManager}
   `, // ...
-  [forwarder1, forwarder2]
+  [forwarder1, forwarder2],
 );
 ```
 
@@ -64,22 +64,22 @@ await evmcrispr.forward(
     grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
     exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
   `,
-  ["token-manager:1", "voting"]
+  ['token-manager:1', 'voting'],
 );
 ```
 
 ## Set up
 
-1. Add the following dependency to your project:
+1. Add the following dependencies to your project:
 
    ```sh
-   yarn add @1hive/evmcrispr
+   yarn add @1hive/evmcrispr ethers
    ```
 
 2. Import the `EVMcrispr` class and the `evmcl` template:
 
    ```js
-   import { EVMcrispr, evmcl } from '@1hive/evmcrispr'
+   import { EVMcrispr, evmcl } from '@1hive/evmcrispr';
    ```
 
 3. Create a new `EVMcrispr` by using the static method `crate()`. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
