@@ -65,6 +65,8 @@ jobs:
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
+        env:
+          ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
 
       - name: Coveralls
         uses: coverallsapp/github-action@master
