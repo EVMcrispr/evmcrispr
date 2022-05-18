@@ -26,9 +26,10 @@
   ],
   "scripts": {
     "chain": "hardhat node",
+    "create-fixtures": "hardhat run scripts/create-fixtures.ts",
+    "create-docs": "typedoc",
     "preinstall": "npx only-allow pnpm",
     "test": "hardhat test",
-    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test",
-    "create-fixtures": "hardhat run scripts/create-fixtures.ts"
+    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test"
   }
 }

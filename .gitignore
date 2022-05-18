@@ -40,3 +40,8 @@ build
 act.secrets
 
 .nyc_output
+
+tsconfig.tsbuildinfo
+
+# typedocs
+docs

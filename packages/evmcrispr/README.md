@@ -10,9 +10,9 @@ A TypeScript library for Aragon-based DAOs that allows you to encode a series of
 
 Actions can be thought of as events performed by some entity inside a DAO such as installing apps, granting or revoking permissions, minting tokens, withdrawing funds, etc.
 
-## Documentation
+## API Documentation
 
-Check out the [documentation](https://1hive.github.io/EVMcrispr/modules.html) for an in-depth explanation of the API.
+Check out these [docs](https://1hive.github.io/evmcrispr/) for an in-depth explanation of the API.
 
 ## How does it work?
 

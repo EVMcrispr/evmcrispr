@@ -92,7 +92,9 @@ export type Entity = AppIdentifier | LabeledAppIdentifier | Address;
  */
 export type LabeledAppIdentifier = string;
 
-/** @internal */
+/**
+ * The role's keccak256 hash.
+ */
 export type RoleHash = string;
 
 /**
@@ -120,7 +122,9 @@ export type Params = (index?: number) => string[];
  */
 export type Permission = [Entity, Entity, string];
 
-/** @internal */
+/**
+ * A map which contains a set of [[Role]] indexed by their [[RoleHash]].
+ */
 export type PermissionMap = Map<RoleHash, Role>;
 
 /**
@@ -175,7 +179,7 @@ export interface App {
    */
   contentUri: string;
   /**
-   * The app's name
+   * The app's name.
    */
   name: string;
   /**
@@ -197,7 +201,7 @@ export interface EVMcrisprOptions {
    */
   ipfsGateway: string;
   /*
-   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth
+   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth.
    */
   ensResolver?: string;
   /**
@@ -209,20 +213,47 @@ export interface EVMcrisprOptions {
 export interface ForwardOptions {
   /**
    * The context information describing the forward evmscript.
-   * Needed for forwarders with context (AragonOS v5)
+   * Needed for forwarders with context (AragonOS v5).
    */
   context?: string;
 }
 
-/** @internal */
+/**
+ * An intermediate app object that contains raw properties
+ * that still need to be formatted and processed.
+ */
 export interface ParsedApp {
+  /**
+   * The app's address.
+   */
   address: Address;
+  /**
+   * The app's Aragon artifact.
+   */
   artifact: AragonArtifact;
+  /**
+   * The app's id.
+   */
   appId: string;
+  /**
+   * The app's base contract address.
+   */
   codeAddress: string;
+  /**
+   * The IPFS content identifier the app's data is located on.
+   */
   contentUri: string;
+  /**
+   * The app's name.
+   */
   name: string;
+  /**
+   * The app's aragonPM ens registry name.
+   */
   registryName: string;
+  /**
+   * The app's roles.
+   */
   roles: {
     roleHash: string;
     manager: string;
@@ -249,7 +280,6 @@ export interface Repo {
 }
 
 /**
- * @internal
  * An object that contains an app's permission data.
  */
 export interface Role {
