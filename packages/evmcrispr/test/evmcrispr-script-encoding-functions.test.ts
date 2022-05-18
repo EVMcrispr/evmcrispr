@@ -1,9 +1,8 @@
-import { ethers } from 'hardhat';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 
 import type { Action, ActionFunction } from '../src';
-import { ErrorInvalid, evmcl } from '../src';
+import { EVMcrispr, ErrorInvalid, evmcl } from '../src';
 import {
   APP,
   COMPLETE_FORWARDER_PATH,
@@ -13,11 +12,11 @@ import {
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
   GRANT_PERMISSIONS,
-  MockEVMcrispr,
   NEW_PERMISSIONS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSIONS,
   getSignatureSelector,
+  getSigner,
   resolveApp,
   resolvePermission,
 } from './fixtures';
@@ -30,15 +29,15 @@ import {
 import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
 
 describe('EVMcrispr script-encoding functions', () => {
-  let evmcrispr: MockEVMcrispr;
+  let evmcrispr: EVMcrispr;
   let signer: SignerWithAddress;
   let expectedActions: Action[];
   let actionFunctions: ActionFunction[];
 
   before(async () => {
-    signer = (await ethers.getSigners())[0];
+    signer = await getSigner();
 
-    evmcrispr = await MockEVMcrispr.create(DAO.kernel, signer);
+    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
   });
 
   before(() => {

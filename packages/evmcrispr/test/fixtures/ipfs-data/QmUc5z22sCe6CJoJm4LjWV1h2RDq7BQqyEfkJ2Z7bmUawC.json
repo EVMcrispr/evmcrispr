@@ -1092,19 +1092,25 @@
     },
     {
       "anonymous": false,
-      "inputs": [{ "indexed": false, "name": "supportRequiredPct", "type": "uint64" }],
+      "inputs": [
+        { "indexed": false, "name": "supportRequiredPct", "type": "uint64" }
+      ],
       "name": "ChangeSupportRequired",
       "type": "event"
     },
     {
       "anonymous": false,
-      "inputs": [{ "indexed": false, "name": "minAcceptQuorumPct", "type": "uint64" }],
+      "inputs": [
+        { "indexed": false, "name": "minAcceptQuorumPct", "type": "uint64" }
+      ],
       "name": "ChangeMinQuorum",
       "type": "event"
     },
     {
       "anonymous": false,
-      "inputs": [{ "indexed": false, "name": "delegatedVotingPeriod", "type": "uint64" }],
+      "inputs": [
+        { "indexed": false, "name": "delegatedVotingPeriod", "type": "uint64" }
+      ],
       "name": "ChangeDelegatedVotingPeriod",
       "type": "event"
     },
@@ -1119,7 +1125,9 @@
     },
     {
       "anonymous": false,
-      "inputs": [{ "indexed": false, "name": "executionDelay", "type": "uint64" }],
+      "inputs": [
+        { "indexed": false, "name": "executionDelay", "type": "uint64" }
+      ],
       "name": "ChangeExecutionDelay",
       "type": "event"
     },

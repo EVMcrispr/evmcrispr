@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         node-version: [16.x]
-        pnpm-version: [6.x]
+        pnpm-version: [7.x]
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
@@ -62,9 +62,17 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check size
+        run: pnpm size
+        env:
+          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+          CI_BRANCH_BASE: main
+
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
+        env:
+          ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
 
       - name: Coveralls
         uses: coverallsapp/github-action@master

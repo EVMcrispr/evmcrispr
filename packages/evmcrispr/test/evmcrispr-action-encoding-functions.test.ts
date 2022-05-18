@@ -1,33 +1,36 @@
-import { ethers } from 'hardhat';
-import { addressesEqual } from '@1hive/connect-core';
 import { utils } from 'ethers';
 import { expect } from 'chai';
 
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../src/errors';
 import type { Action, Permission } from '../src/types';
-import { encodeActCall, encodeCallScript } from '../src/helpers';
+import {
+  addressesEqual,
+  encodeActCall,
+  encodeCallScript,
+} from '../src/helpers';
 import {
   APP,
   DAO,
   EOA_ADDRESS,
   GRANT_PERMISSIONS,
   GRANT_PERMISSION_PARAMS,
-  MockEVMcrispr,
   NEW_PERMISSIONS,
   NEW_PERMISSION_PARAMS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSIONS,
+  getSigner,
   resolvePermission,
 } from './fixtures';
 import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
+import { EVMcrispr } from '../src';
 
 describe('EVMcrispr action-encoding functions', () => {
-  let evmcrispr: MockEVMcrispr;
+  let evmcrispr: EVMcrispr;
 
   beforeEach(async () => {
-    const signer = (await ethers.getSigners())[0];
+    const signer = await getSigner();
 
-    evmcrispr = await MockEVMcrispr.create(DAO.kernel, signer);
+    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
   });
 
   const testBadPermission = (

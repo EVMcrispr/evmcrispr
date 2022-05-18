@@ -1,10 +1,8 @@
-import type { Interface } from '@ethersproject/abi';
-import type {
-  AragonArtifact,
-  AragonArtifactRole,
-} from '@1hive/connect-core/dist/cjs/types';
+import type { utils } from 'ethers';
 
-export type { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
+import type { AppArtifact, AragonArtifact } from './aragon';
+
+export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
@@ -46,14 +44,6 @@ export type ActionFunction = () => Promise<Action[]>;
 export type Address = string;
 
 /** @internal */
-export interface AppArtifact {
-  abiInterface: Interface;
-  appName: string;
-  roles: AragonArtifactRole[];
-  functions: { sig: string }[];
-}
-
-/** @internal */
 export type AppArtifactCache = Map<Address, AppArtifact>;
 
 /**
@@ -74,7 +64,7 @@ export type AppIdentifier = string;
 
 /** @internal */
 export interface ArtifactData {
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   roles: any[];
 }
 
@@ -171,7 +161,7 @@ export interface App {
   /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   /**
    * The app's address.
    */

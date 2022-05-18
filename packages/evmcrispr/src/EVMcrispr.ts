@@ -1,11 +1,8 @@
-import type { IpfsResolver } from '@1hive/connect-core';
-import { ipfsResolver as createIpfsResolver } from '@1hive/connect-core';
 import { Contract, constants, utils } from 'ethers';
 import type { BigNumber, BigNumberish, Signer, providers } from 'ethers';
 
 import { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 import {
-  FORWARDER_ABI,
   FORWARDER_TYPES,
   IPFS_GATEWAY,
   buildApp,
@@ -17,7 +14,6 @@ import {
   calculateNewProxyAddress,
   encodeActCall,
   encodeCallScript,
-  erc20ABI,
   fetchAppArtifact,
   getAragonEnsResolver,
   getForwarderFee,
@@ -52,6 +48,8 @@ import type {
   PermissionP,
 } from './types';
 import Connector from './Connector';
+import { IPFSResolver } from './IPFSResolver';
+import { erc20ABI, forwarderABI } from './abis';
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -68,7 +66,7 @@ export default class EVMcrispr {
    * The connector used to fetch Aragon apps.
    */
   protected _connector: Connector;
-  protected _ipfsResolver: IpfsResolver;
+  protected _ipfsResolver: IPFSResolver;
   #installedAppCounter: number;
   #newTokenCounter: number;
   #signer: Signer;
@@ -101,7 +99,7 @@ export default class EVMcrispr {
     this.#addressBook = new Map();
     this.#installedAppCounter = 0;
     this.#newTokenCounter = 0;
-    this._ipfsResolver = createIpfsResolver(
+    this._ipfsResolver = new IPFSResolver(
       buildIpfsTemplate(options.ipfsGateway),
     );
     this.#signer = signer;
@@ -514,7 +512,7 @@ export default class EVMcrispr {
       const forwarderAddress = forwarders[i];
       const forwarder = new Contract(
         forwarderAddress,
-        FORWARDER_ABI,
+        forwarderABI,
         this.#signer.provider,
       );
 
@@ -656,12 +654,12 @@ export default class EVMcrispr {
       await this.#registerNextProxyAddress(controller);
       const controllerAddress = this.#resolveEntity(controller);
       const nonce = await buildNonceForAddress(
-        factories.get(chainId),
+        factories.get(chainId)!,
         this.#newTokenCounter++,
         this.#signer.provider!,
       );
       const newTokenAddress = calculateNewProxyAddress(
-        factories.get(chainId),
+        factories.get(chainId)!,
         nonce,
       );
       this.#addressBook.set(`token:${symbol}`, newTokenAddress);

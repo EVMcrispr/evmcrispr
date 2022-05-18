@@ -1,7 +1,10 @@
+import { ethers } from 'hardhat';
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { utils } from 'ethers';
 
 import { DAO } from '.';
 import type { Permission } from '../../src';
+import { KERNEL_TRANSACTION_COUNT } from './mock-dao';
 
 export const resolvePermission = (permission: Permission): Permission => {
   return permission.map((element, index) => {
@@ -22,4 +25,16 @@ export const resolveApp = (appName: string): string => {
 
 export const getSignatureSelector = (signature: string): string => {
   return signature.split('(')[0];
+};
+
+export const getSigner = async (): Promise<SignerWithAddress> => {
+  const signer = (await ethers.getSigners())[0];
+
+  signer.provider!.getTransactionCount = (): Promise<number> => {
+    return new Promise((resolve) => {
+      resolve(KERNEL_TRANSACTION_COUNT);
+    });
+  };
+
+  return signer;
 };

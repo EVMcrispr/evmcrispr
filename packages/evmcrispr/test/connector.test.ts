@@ -1,12 +1,12 @@
-import { isAddress } from '@ethersproject/address';
 import { expect } from 'chai';
+import { utils } from 'ethers';
 import hre from 'hardhat';
 import { multihash } from 'is-ipfs';
 
-import { ErrorException, ErrorNotFound } from '../src';
+import { Connector, ErrorException, ErrorNotFound } from '../src';
 import { parseContentUri } from '../src/helpers';
 import type { ParsedApp } from '../src/types';
-import { DAO, EOA_ADDRESS, MockConnector } from './fixtures';
+import { DAO, EOA_ADDRESS } from './fixtures';
 import {
   expectThrowAsync,
   isValidArtifact,
@@ -20,14 +20,14 @@ const {
 } = hre;
 
 describe('Connector', () => {
-  let connector: MockConnector;
+  let connector: Connector;
 
   before(() => {
-    connector = new MockConnector(chainId || 4);
+    connector = new Connector(chainId || 4);
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
-    expectThrowAsync(() => new MockConnector(999), { type: ErrorException });
+    expectThrowAsync(() => new Connector(999), { type: ErrorException });
   });
 
   describe('repo()', () => {
@@ -37,7 +37,8 @@ describe('Connector', () => {
         'aragonpm.eth',
       );
 
-      expect(isAddress(codeAddress), 'Invalid  repo code address').to.be.true;
+      expect(utils.isAddress(codeAddress), 'Invalid  repo code address').to.be
+        .true;
 
       expect(multihash(parseContentUri(contentUri)), 'Invalid repo contentUri')
         .to.be.true;
@@ -76,6 +77,4 @@ describe('Connector', () => {
       });
     });
   });
-
-  after(() => connector.disconnect());
 });

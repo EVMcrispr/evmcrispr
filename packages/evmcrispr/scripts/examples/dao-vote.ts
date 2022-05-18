@@ -1,16 +1,9 @@
-import { erc20ABI } from '@1hive/connect-core';
-import { Contract } from '@ethersproject/contracts';
-import type { BigNumber } from '@ethersproject/bignumber';
-import type { Signer } from '@ethersproject/abstract-signer';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
-
-import type { TransactionReceipt } from '@ethersproject/abstract-provider';
+import type { BigNumber, Signer, providers } from 'ethers';
+import { Contract, constants, utils } from 'ethers';
 
 import { EVMcrispr, evmcl } from '../../';
 import { impersonateAddress, increase } from '../../helpers/rpc';
-
-const { constants } = ethers;
+import { erc20ABI } from '../../src/abis';
 
 const CHAIN_ID = 137;
 
@@ -61,7 +54,7 @@ const main = async () => {
 };
 
 const processVote = async (
-  txReceipt: TransactionReceipt,
+  txReceipt: providers.TransactionReceipt,
   evmcrispr: EVMcrispr,
 ) => {
   const beeSigner1 = await impersonateAddress(BEE_ADDRESS_1);

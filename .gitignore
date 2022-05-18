@@ -29,7 +29,7 @@ build
 
 # misc
 .DS_Store
-.env*
+.env
 
 # debug
 .pnpm-debug.log
@@ -38,3 +38,5 @@ build
 
 # github actions local tester
 act.secrets
+
+.nyc_output

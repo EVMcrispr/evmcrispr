@@ -1,7 +1,7 @@
-import type { Address } from '@1hive/connect-core';
 import type { providers } from 'ethers';
 import { BigNumber, Contract, ethers, utils } from 'ethers';
-import type { Interface } from '@ethersproject/abi';
+
+import type { Address } from '../types';
 
 export async function buildNonceForAddress(
   address: Address,
@@ -43,7 +43,7 @@ export const toDecimals = (
 
 export function getFunctionParams(
   functionName: string,
-  abi: Interface,
+  abi: utils.Interface,
 ): [string[], string[]] {
   const params = abi.fragments.find(
     ({ name }) => name === functionName,
@@ -85,4 +85,10 @@ export function getAragonEnsResolver(chainId: number): string {
     default:
       return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
   }
+}
+
+export function addressesEqual(first: Address, second: Address): boolean {
+  first = first && first.toLowerCase();
+  second = second && second.toLowerCase();
+  return first === second;
 }
