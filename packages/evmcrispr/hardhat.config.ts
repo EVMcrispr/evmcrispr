@@ -4,6 +4,8 @@ import '@nomiclabs/hardhat-waffle';
 
 import type { HardhatUserConfig } from 'hardhat/config';
 
+import { server } from './test/fixtures/server';
+
 const ARCHIVE_NODE_ENDPOINT = process.env.ARCHIVE_NODE_ENDPOINT;
 
 if (!ARCHIVE_NODE_ENDPOINT) {
@@ -30,6 +32,22 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 0,
+    rootHooks: {
+      beforeAll: () => {
+        server.listen({
+          onUnhandledRequest: (req) => {
+            if (req.url.origin === 'http://localhost:8545/') {
+              return 'bypass';
+            }
+
+            return 'warn';
+          },
+        });
+      },
+      afterAll: () => {
+        server.close();
+      },
+    },
   },
   networks: {
     hardhat: {

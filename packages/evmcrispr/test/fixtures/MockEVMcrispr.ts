@@ -3,9 +3,8 @@ import type { Signer } from 'ethers';
 
 import { KERNEL_TRANSACTION_COUNT } from '.';
 import type { Address, EVMcrisprOptions } from '../../src';
-import { EVMcrispr } from '../../src';
+import { Connector, EVMcrispr } from '../../src';
 import { IPFS_GATEWAY } from '../../src/helpers';
-import MockConnector from './MockConnector';
 
 const mockIpfsResolver: IpfsResolver = {
   json: (cid: string): Promise<any> => {
@@ -19,7 +18,7 @@ const mockIpfsResolver: IpfsResolver = {
 class MockEVMcrispr extends EVMcrispr {
   constructor(chainId: number, signer: Signer, options: EVMcrisprOptions) {
     super(chainId, signer, options);
-    this._connector = new MockConnector(chainId);
+    this._connector = new Connector(chainId);
     this._ipfsResolver = mockIpfsResolver;
   }
 

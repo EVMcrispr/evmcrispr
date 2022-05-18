@@ -1,0 +1,41 @@
+import { graphql } from 'msw';
+import { setupServer } from 'msw/node';
+
+import reposFixture from './subgraph-data/RepoResponse.json';
+import organizationFixture from './subgraph-data/OrganizationAppsResponse.json';
+import { addressesEqual } from '../../src/helpers';
+
+const handlers = [
+  graphql.query<Record<string, any>, { repoName: string }>(
+    'Repos',
+    (req, res, ctx) => {
+      const repoName = req.variables.repoName;
+
+      const selectedRepo = reposFixture.data.repos.find(
+        (r) => r.name === repoName,
+      );
+
+      return res(
+        ctx.status(200),
+        ctx.data({ repos: selectedRepo ? [selectedRepo] : [] }),
+      );
+    },
+  ),
+  graphql.query<Record<string, any>, { id: string }>(
+    'Organization',
+    (req, res, ctx) => {
+      const id = req.variables.id;
+
+      const organization = addressesEqual(
+        id,
+        organizationFixture.data.organization.id,
+      )
+        ? organizationFixture.data.organization
+        : null;
+
+      return res(ctx.status(200), ctx.data({ organization }));
+    },
+  ),
+];
+
+export const server = setupServer(...handlers);

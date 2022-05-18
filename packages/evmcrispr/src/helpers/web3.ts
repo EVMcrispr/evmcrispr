@@ -86,3 +86,9 @@ export function getAragonEnsResolver(chainId: number): string {
       return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
   }
 }
+
+export function addressesEqual(first: Address, second: Address): boolean {
+  first = first && first.toLowerCase();
+  second = second && second.toLowerCase();
+  return first === second;
+}
