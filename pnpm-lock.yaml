@@ -65,14 +65,14 @@ importers:
       eslint-import-resolver-typescript: 2.7.1_hpmu7kn6tcn2vnxpfzvv33bxmy
       eslint-plugin-import: 2.26.0_k2fj7mtd2vnwiotnzv3dk5dwma
       eslint-plugin-prettier: 4.0.0_evcial7aw3q6fcauxv2c7fxuoe
-      eslint-plugin-react: 7.29.4_eslint@7.32.0
+      eslint-plugin-react: 7.30.0_eslint@7.32.0
       eslint-plugin-react-hooks: 4.5.0_eslint@7.32.0
       ethereum-waffle: 3.4.4_typescript@4.6.4
       ethers: 5.6.6
       hardhat: 2.9.5_chai@4.3.6
       husky: 7.0.4
       lint-staged: 12.4.1
-      pnpm: 7.1.1
+      pnpm: 7.1.0
       prettier: 2.6.2
       ts-node: 10.7.0_wvlk5nf7sxz4aydq6mxyuhplvm
       typedoc: 0.22.15_typescript@4.6.4
@@ -151,8 +151,8 @@ importers:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       react-is: 16.13.1
-      react-router: 5.3.2_react@17.0.2
-      react-router-dom: 5.3.2_react@17.0.2
+      react-router: 5.3.3_react@17.0.2
+      react-router-dom: 5.3.3_react@17.0.2
       react-transition-group: 4.4.2_sfoxds7t5ydpegc3knd667wn6m
       styled-components: 5.2.1_d5kzqcx725xkmyluugjzy5jwom
       use-persisted-state: 0.3.3_react@17.0.2
@@ -4830,7 +4830,7 @@ packages:
   /axios/0.24.0:
     resolution: {integrity: sha512-Q6cWsys88HoPgAaFAVUb0WpPk0O8iTeisR9IMqy9G8AbO4NlpVknrnQS03zzF9PGAWgO3cgletO3VjV/P7VztA==}
     dependencies:
-      follow-redirects: 1.15.0_debug@4.3.4
+      follow-redirects: 1.15.0
     transitivePeerDependencies:
       - debug
     dev: true
@@ -7415,8 +7415,8 @@ packages:
       eslint: 7.32.0
     dev: true
 
-  /eslint-plugin-react/7.29.4_eslint@7.32.0:
-    resolution: {integrity: sha512-CVCXajliVh509PcZYRFyu/BoUEz452+jtQJq2b3Bae4v3xBUWPLCmtmBM+ZinG4MzwmxJgJ2M5rMqhqLVn7MtQ==}
+  /eslint-plugin-react/7.30.0_eslint@7.32.0:
+    resolution: {integrity: sha512-RgwH7hjW48BleKsYyHK5vUAvxtE9SMPDKmcPRQgtRCYaZA0XQPt5FSkrU3nhz5ifzMZcA8opwmRJ2cmOO8tr5A==}
     engines: {node: '>=4'}
     peerDependencies:
       eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8
@@ -8459,19 +8459,6 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
-    dev: false
-
-  /follow-redirects/1.15.0_debug@4.3.4:
-    resolution: {integrity: sha512-aExlJShTV4qOUOL7yF1U5tvLCB0xQuudbf6toyYA0E/acBNw71mvjFTnLaRp50aQaYocMR0a/RMMBIHeZnGyjQ==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-    dependencies:
-      debug: 4.3.4
-    dev: true
 
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -11881,8 +11868,8 @@ packages:
     engines: {node: '>=4.0.0'}
     dev: false
 
-  /pnpm/7.1.1:
-    resolution: {integrity: sha512-RdWWK/qD3QUf8LtBJ5MgD3CHpFcHuO9yNz+/0RR8GDdu0tI1TnBSmOTxkUGWxa7AakWZKcOtDAmLgi++aKbLng==}
+  /pnpm/7.1.0:
+    resolution: {integrity: sha512-iT2Hk2jycfh8NXoEnwpg7oCNMwsMlheSR9QAgkhWtRHvjfAAtp0HsKEOA62ILoAwbvv/ea8Ph5lTQLsGQJRq+w==}
     engines: {node: '>=14.19'}
     hasBin: true
     dev: true
@@ -12311,8 +12298,8 @@ packages:
       use-sidecar: 1.1.2_hx2b44akkvgcgvvtmk7ds2qk6q
     dev: false
 
-  /react-router-dom/5.3.2_react@17.0.2:
-    resolution: {integrity: sha512-j8sAq4YdWsrkM2DfDX26GnjtDKWUSd65LzHyBz8NcgFcK0ct7oTvYlwhOr532xpXsYP1HONq6QqUGA7GhbAY5w==}
+  /react-router-dom/5.3.3_react@17.0.2:
+    resolution: {integrity: sha512-Ov0tGPMBgqmbu5CDmN++tv2HQ9HlWDuWIIqn4b88gjlAN5IHI+4ZUZRcpz9Hl0azFIwihbLDYw1OiHGRo7ZIng==}
     peerDependencies:
       react: '>=15'
     dependencies:
@@ -12321,13 +12308,13 @@ packages:
       loose-envify: 1.4.0
       prop-types: 15.8.1
       react: 17.0.2
-      react-router: 5.3.2_react@17.0.2
+      react-router: 5.3.3_react@17.0.2
       tiny-invariant: 1.2.0
       tiny-warning: 1.0.3
     dev: false
 
-  /react-router/5.3.2_react@17.0.2:
-    resolution: {integrity: sha512-GlsSUckZ4JthgsW5lV9oSCs5CoQ7q0t0Ump/Y5YQ8qhiS+WjaAhaoJhc7otpZW9eVhO6N06vYPt40SpEzuuZeg==}
+  /react-router/5.3.3_react@17.0.2:
+    resolution: {integrity: sha512-mzQGUvS3bM84TnbtMYR8ZjKnuPJ71IjSzR+DE6UkUqvN4czWIqEs17yLL8xkAycv4ev0AiN+IGrWu88vJs/p2w==}
     peerDependencies:
       react: '>=15'
     dependencies:
@@ -13148,7 +13135,7 @@ packages:
     dependencies:
       command-exists: 1.2.9
       commander: 3.0.2
-      follow-redirects: 1.15.0_debug@4.3.4
+      follow-redirects: 1.15.0
       fs-extra: 0.30.0
       js-sha3: 0.8.0
       memorystream: 0.3.1

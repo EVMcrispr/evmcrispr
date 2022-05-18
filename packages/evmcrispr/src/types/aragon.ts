@@ -78,6 +78,7 @@ export interface AragonArtifact extends AragonAppJson {
   appId: string;
   appName: string;
 }
+
 export interface AragonArtifactRole {
   name: string; // 'Create new payments'
   id: string; // 'CREATE_PAYMENTS_ROLE'
@@ -93,7 +94,16 @@ export interface AppArtifact {
   functions: { sig: string }[];
 }
 
+/**
+ * A call script.
+ */
 export interface CallScriptAction {
+  /**
+   * The action's target.
+   */
   to: string;
+  /**
+   * The action's calldata.
+   */
   data: string;
 }
