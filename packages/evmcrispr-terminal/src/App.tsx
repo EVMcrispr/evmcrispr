@@ -20,6 +20,7 @@ const colors = {
       bg: 'rgba(24, 24, 171, 1)',
       color: 'rgba(223, 251, 79, 1)',
       hover: '#121212',
+      warning: '#ed702d',
     },
   },
 };
