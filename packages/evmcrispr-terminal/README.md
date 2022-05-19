@@ -3,6 +3,7 @@
 With the EVMcrispr terminal you can create complex votes that can be executed by an AragonOS DAO all at once.
 
 ## Available commands:
+
 ```
 connect <dao> <...path> [@context:https://yoursite.com]
 install <repo> [...initParams]
@@ -11,7 +12,9 @@ revoke <entity> <app> <role>
 exec <app> <methodName> [...params]
 act <agent> <targetAddr> <methodSignature> [...params]
 ```
+
 ## Example (unwrap wxDAI):
+
 ```
 connect 1hive token-manager voting
 install agent:new-agent
@@ -22,6 +25,10 @@ exec agent:new-agent transfer XDAI vault 100e18
 ```
 
 ## Sponsors
+
+<a href="https://aragon.org/">
+  <img src="https://assets.website-files.com/5e997428d0f2eb13a90aec8c/607d780a32261b398817b91e_Logo%20Black-1.svg" height=100>
+</a>
 <a href="https://giveth.io/">
   <img src="https://miro.medium.com/max/500/1*vGFPM8KssUeiBm1QGIo5aQ.jpeg" height=100>
 </a>

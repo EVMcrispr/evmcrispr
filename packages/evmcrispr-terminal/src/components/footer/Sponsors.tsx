@@ -10,7 +10,7 @@ export const AragonSponsor = () => {
   return (
     <Center
       py={20}
-      background="repeating-linear-gradient(45deg,#000,#000 20px,#333 20px,#333 40px)"
+      background="repeating-linear-gradient(45deg,#000,#000 20px,#111 20px,#111 40px)"
       borderY="2px solid"
       borderColor="brand.green"
     >
@@ -18,17 +18,17 @@ export const AragonSponsor = () => {
         direction={{ base: 'column', md: 'row', lg: 'row' }}
         spacing={6}
         border="2px solid"
-        borderColor="brand.green"
+        borderColor="transparent"
         py={20}
-        width="55%"
+        className="box"
+        minWidth="55%"
         align="center"
         justify="center"
-        backgroundColor="rgba(150, 238, 100, 0.05)"
       >
         <Text color="brand.green" size="md">
           Sponsored by
         </Text>
-        <Link isExternal href="https://aragon.org/">
+        <Link isExternal href="https://aragon.org/" paddingX={20}>
           <img src={aragon} alt="Aragon" />
         </Link>
       </Stack>
@@ -38,9 +38,9 @@ export const AragonSponsor = () => {
 
 const sponsors = [
   {
-    link: 'https://nftx.io/',
-    src: nftx,
-    name: 'Nftx',
+    link: 'https://1hive.org/',
+    src: OneHive,
+    name: '1hive',
   },
   {
     link: 'https://giveth.io',
@@ -48,9 +48,9 @@ const sponsors = [
     name: 'Giveth',
   },
   {
-    link: 'https://1hive.org/',
-    src: OneHive,
-    name: '1hive',
+    link: 'https://nftx.io/',
+    src: nftx,
+    name: 'NFTX',
   },
   {
     link: 'https://curve.fi/',
@@ -63,9 +63,15 @@ export const AllSponsors = () => {
   return (
     <Center bgColor="rgba(24, 24, 24, 1)" p={14} as="section">
       <VStack spacing={12}>
-        <Heading as="h2" color="brand.green" size="md" textAlign="center">
+        <Heading
+          as="h2"
+          color="brand.green"
+          size="md"
+          textAlign="center"
+          css={{ fontFamily: 'Ubuntu Mono' }}
+        >
           <strong>EVMcrispr</strong> would have not been possible without the
-          support of
+          support of:
         </Heading>
         <Stack
           direction={{ base: 'column', md: 'column', lg: 'row' }}
@@ -80,11 +86,9 @@ export const AllSponsors = () => {
               rel="noreferrer"
               key={`sponsors-link-${i}`}
             >
-              <VStack spacing={10}>
+              <VStack spacing={10} marginBottom={45}>
                 <img src={src} alt={name} />
-                <Text color="white" textTransform="uppercase">
-                  {name}
-                </Text>
+                <Text color="white">{name}</Text>
               </VStack>
             </a>
           ))}
