@@ -7,7 +7,7 @@ import FadeIn from '../components/animations/fade-in';
 import { theme } from '../editor/theme';
 import { conf, contribution, language } from '../editor/evmcl';
 import { useTerminal } from '../utils/useTerminal';
-import SelectWalletModal from '../components/Modal';
+import SelectWalletModal from '../components/modal';
 
 const Terminal = () => {
   const {
