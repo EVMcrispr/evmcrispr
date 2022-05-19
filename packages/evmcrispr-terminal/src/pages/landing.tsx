@@ -60,12 +60,22 @@ const Landing = () => {
               target="_blank"
               rel="noreferrer"
             >
-              <Button bgColor="brand.btn.bg" color="brand.btn.color" size="lg">
+              <Button
+                _hover={{ bg: 'brand.btn.hover', transition: 'all 0.5s' }}
+                bgColor="brand.btn.bg"
+                color="brand.btn.color"
+                size="lg"
+              >
                 Learn How to Use
               </Button>
             </Link>
             <Link as={RouterLink} to="/terminal">
-              <Button bgColor="brand.btn.bg" color="brand.btn.color" size="lg">
+              <Button
+                _hover={{ bg: 'brand.btn.hover', transition: 'all 0.5s' }}
+                bgColor="brand.btn.bg"
+                color="brand.btn.color"
+                size="lg"
+              >
                 Open Terminal
               </Button>
             </Link>
