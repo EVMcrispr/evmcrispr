@@ -1,6 +1,15 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useChain, useSpringRef } from '@react-spring/web';
+import {
+  Box,
+  Button,
+  Center,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 
 import Card from '../components/card';
 
@@ -22,41 +31,56 @@ const Landing = () => {
   const handleCardContent = () => setCardContent(true);
 
   return (
-    <>
+    <Box as="main" maxWidth="956px" margin="0 auto">
       <FadeIn componentRef={typeRef}>
-        <div className="description content">
-          <strong>EVMcrispr</strong> is a powerful tool that combines a
-          domain-specific language with a Javascript library to interact with
-          Aragon DAOs. With it, you can bundle{' '}
-          <strong>many DAO operations into just one script</strong>, generating
-          a singular transaction, usually a vote. These commands include
-          installing or upgrading apps, changing their permissions, executing
-          actions or interacting with external contracts.
-        </div>
+        <Box pt={16} pb={8}>
+          <Text color="white" textAlign="center" fontSize="2xl">
+            <Text as="strong" color="brand.green">
+              EVMcrispr
+            </Text>{' '}
+            is a powerful tool that combines a domain-specific language with a
+            Javascript library to interact with Aragon DAOs. With it, you can
+            bundle{' '}
+            <Text as="strong" color="brand.green">
+              many DAO operations into just one script
+            </Text>
+            , generating a singular transaction, usually a vote. These commands
+            include installing or upgrading apps, changing their permissions,
+            executing actions or interacting with external contracts.
+          </Text>
+        </Box>
       </FadeIn>
 
       <FadeIn componentRef={buttonsRef}>
-        <div className="flex-center buttons">
-          <a
-            className="button"
-            href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Learn How to Use
-          </a>
-          <Link className="button" to="/terminal">
-            Open Terminal
-          </Link>
-        </div>
+        <Center>
+          <Stack direction={{ base: 'column', sm: 'row' }} alignItems="center">
+            <Link
+              isExternal
+              href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Button bgColor="brand.btn.bg" color="brand.btn.color" size="lg">
+                Learn How to Use
+              </Button>
+            </Link>
+            <Link as={RouterLink} to="/terminal">
+              <Button bgColor="brand.btn.bg" color="brand.btn.color" size="lg">
+                Open Terminal
+              </Button>
+            </Link>
+          </Stack>
+        </Center>
       </FadeIn>
 
       <FadeIn componentRef={peepsRef}>
-        <h2 className="opinions flex-center">Who&apos;s using EVMcrispr?</h2>
+        <Heading pt={16} textAlign="center" as="h1" size="lg">
+          Who&apos;s using EVMcrispr?
+        </Heading>
       </FadeIn>
 
       <FadeIn componentRef={cardRef} onRest={handleCardContent}>
-        <div className="cards content">
+        <Center pt={8} mb={28} width="100%" gap={16}>
           <Card
             showContent={showCardContent}
             image={Brett}
@@ -79,9 +103,9 @@ const Landing = () => {
             info="Co-founder of Giveth, Commons Stack & DAppNode"
             description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
           />
-        </div>
+        </Center>
       </FadeIn>
-    </>
+    </Box>
   );
 };
 
