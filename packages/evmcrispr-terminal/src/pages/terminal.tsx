@@ -1,13 +1,14 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 
-import { useDisclosure } from '@chakra-ui/react';
+import { Stack, useDisclosure } from '@chakra-ui/react';
 
 import FadeIn from '../components/animations/fade-in';
 import { theme } from '../editor/theme';
 import { conf, contribution, language } from '../editor/evmcl';
 import { useTerminal } from '../utils/useTerminal';
 import SelectWalletModal from '../components/Modal';
+import Footer from '../components/footer';
 
 const Terminal = () => {
   const {
@@ -25,12 +26,13 @@ const Terminal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
+  const footerRef = useSpringRef();
 
-  useChain([terminalRef, buttonsRef]);
+  useChain([terminalRef, buttonsRef, footerRef]);
 
   return (
     <div className="terminal-code">
-      <div className="content ">
+      <Stack spacing={8} marginBottom={24} className="content">
         <FadeIn componentRef={terminalRef}>
           <Editor
             height="50vh"
@@ -101,7 +103,10 @@ const Terminal = () => {
             )}
           </div>
         </FadeIn>
-      </div>
+      </Stack>
+      <FadeIn componentRef={footerRef}>
+        <Footer />
+      </FadeIn>
       <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
     </div>
   );

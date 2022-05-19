@@ -9,6 +9,7 @@ import Michael from '../assets/michael.png';
 import Griff from '../assets/griff.png';
 
 import FadeIn from '../components/animations/fade-in';
+import Footer from '../components/footer';
 
 const Landing = () => {
   const [showCardContent, setCardContent] = useState(false);
@@ -16,8 +17,9 @@ const Landing = () => {
   const buttonsRef = useSpringRef();
   const cardRef = useSpringRef();
   const peepsRef = useSpringRef();
+  const footerRef = useSpringRef();
 
-  useChain([typeRef, buttonsRef, peepsRef, cardRef]);
+  useChain([typeRef, buttonsRef, peepsRef, cardRef, footerRef]);
 
   const handleCardContent = () => setCardContent(true);
 
@@ -80,6 +82,9 @@ const Landing = () => {
             description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
           />
         </div>
+      </FadeIn>
+      <FadeIn componentRef={footerRef}>
+        <Footer />
       </FadeIn>
     </>
   );
