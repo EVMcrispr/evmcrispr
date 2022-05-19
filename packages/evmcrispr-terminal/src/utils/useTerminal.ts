@@ -1,16 +1,14 @@
-import { evmcl } from '@1hive/evmcrispr';
-import { ethers } from 'ethers';
+import { Contract, ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import createPersistedState from 'use-persisted-state';
 
-import { client, dao, network } from './utils';
+import { network } from './utils';
 
 const useCodeState = createPersistedState<string>('code');
 
 declare global {
   interface Window {
     ethereum: any;
-    evmcrispr: any;
   }
 }
 
@@ -24,27 +22,8 @@ export const useTerminal = () => {
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState('');
-  const [code, setCode] = useCodeState(
-    `# Available commands:
-
-connect <dao> <...path> [@context:https://yoursite.com]
-install <repo> [...initParams]
-grant <entity> <app> <role> [permissionManager]
-revoke <entity> <app> <role>
-exec <app> <methodName> [...params]
-act <agent> <targetAddr> <methodSignature> [...params]
-
-# Example (unwrap wxDAI):
-
-connect 1hive token-manager voting
-install agent:new
-grant voting agent:new TRANSFER_ROLE voting
-exec vault transfer @token(WXDAI) agent:new 100e18
-act agent:new @token(WXDAI) withdraw(uint256) 100e18
-exec agent:new transfer XDAI vault 100e18
-`,
-  );
+  const url = '';
+  const [code, setCode] = useCodeState(``);
 
   useEffect(() => {
     provider
@@ -57,13 +36,7 @@ exec agent:new transfer XDAI vault 100e18
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   async function onClick() {
-    try {
-      const { evmcrispr } = await dao(code, provider);
-      window.evmcrispr = evmcrispr;
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message);
-    }
+    console.log('nothing..');
   }
 
   async function onForward() {
@@ -71,20 +44,39 @@ exec agent:new transfer XDAI vault 100e18
     setLoading(true);
 
     try {
-      const {
-        evmcrispr,
-        _code,
-        dao: _dao,
-        path,
-        context,
-      } = await dao(code, provider);
-      await evmcrispr.forward(evmcl`${_code}`, path, {
-        context,
-        gasLimit: 10_000_000,
-      });
-      const chainId = (await provider.getNetwork()).chainId;
-      const lastApp = evmcrispr.app(path.slice(-1)[0]);
-      setUrl(`https://${client(chainId)}/#/${_dao}/${lastApp}`);
+      const singer = provider.getSigner();
+      console.log(singer);
+
+      const hashes = code.split('\n').map((hash) => hash.trim());
+      const files = await Promise.all(
+        hashes.map((hash) =>
+          fetch('https://ipfs.blossom.software/ipfs/' + hash).then((data) =>
+            data.json(),
+          ),
+        ),
+      );
+
+      console.log(files);
+
+      const relayer = new Contract(
+        '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7',
+        [
+          'function executeBatch(uint256 _nonce, address[] calldata recipients, uint256[] calldata amounts) external',
+        ],
+        provider.getSigner(),
+      );
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        for (let j = 0; j < file.length; j++) {
+          const batch = file[j];
+          await relayer.executeBatch(
+            batch.nonce,
+            batch.recipients,
+            batch.amounts,
+          );
+        }
+      }
     } catch (e: any) {
       console.error(e);
       if (
