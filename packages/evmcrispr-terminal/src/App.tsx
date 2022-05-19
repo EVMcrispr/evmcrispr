@@ -1,5 +1,5 @@
+import '@fontsource/ubuntu-mono';
 import { HashRouter, Redirect, Route, Switch } from 'react-router-dom';
-
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 
 import Wagmi from './providers/Wagmi';
@@ -15,10 +15,20 @@ const colors = {
     900: '#1a365d',
     800: '#153e75',
     700: '#2a69ac',
+    green: 'rgba(150, 238, 100, 1)',
+    btn: {
+      bg: 'rgba(24, 24, 171, 1)',
+      color: 'rgba(223, 251, 79, 1)',
+    },
   },
 };
 
-const theme = extendTheme({ colors });
+const fonts = {
+  heading: 'Ubuntu Mono, monospace, sans-serif',
+  body: 'Ubuntu Mono, monospace, sans-serif',
+};
+
+const theme = extendTheme({ colors, fonts });
 
 const App = () => {
   return (
