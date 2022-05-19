@@ -8,8 +8,8 @@ const Footer = () => {
     <>
       <AragonSponsor />
       <AllSponsors />
-      <Center py={14}>
-        <VStack spacing={6}>
+      <Center py={24}>
+        <VStack spacing={8}>
           <Text color="brand.green">powered by Blossom</Text>
           <Link
             href="https://github.com/blossomlabs"

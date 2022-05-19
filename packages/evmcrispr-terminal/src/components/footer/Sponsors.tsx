@@ -16,11 +16,11 @@ export const AragonSponsor = () => {
     >
       <Stack
         direction={{ base: 'column', md: 'row', lg: 'row' }}
-        spacing={8}
+        spacing={6}
         border="2px solid"
         borderColor="brand.green"
         py={20}
-        width="80%"
+        width="55%"
         align="center"
         justify="center"
         backgroundColor="rgba(150, 238, 100, 0.05)"
