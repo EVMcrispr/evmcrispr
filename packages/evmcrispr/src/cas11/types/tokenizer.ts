@@ -14,6 +14,8 @@ export enum KeywordValue {
   AS = 'as',
   CONNECT = 'connect',
   LOAD = 'load',
+  SWITCH = 'switch',
+  SET = 'set',
 }
 
 export enum PunctuationValue {
