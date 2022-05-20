@@ -26,9 +26,10 @@ export default function SelectWalletModal({
     <Modal isOpen={isOpen} onClose={closeModal} isCentered>
       <ModalOverlay />
       <ModalContent w="300px">
-        <ModalHeader>Select Wallet</ModalHeader>
+        <ModalHeader color="white">Select Wallet</ModalHeader>
         <ModalCloseButton
           _focus={{
+            color: 'white',
             boxShadow: 'none',
           }}
         />
