@@ -45,6 +45,3 @@ export interface PunctuationToken extends Token {
   type: TokenType.PUNTUATION;
   value: PunctuationValue;
 }
-
-// TODO: implement string regex
-// const STRING_REGEX = /[a-zA-Z0-0]/

@@ -19,7 +19,7 @@ const {
   ADDRESS,
   BOOLEAN,
   HEXADECIMAL,
-  // IDENTIFIER,
+  IDENTIFIER,
   KEYWORD,
   NUMBER,
   PUNTUATION,
@@ -46,6 +46,7 @@ const TokenizerSpec: [RegExp, TokenType][] = [
   [/^(\d*(?:\.\d*)?)(?:e(\d+))?(mo|s|m|h|d|w|y)?/, NUMBER],
   [/^"[^"]*"/, STRING],
   [/^'[^']*'/, STRING],
+  [/^(\$?(?!-)[a-zA-Z-]{1,63}(?<!-))/, IDENTIFIER],
 ];
 
 export class Tokenizer {
@@ -97,9 +98,9 @@ export class Tokenizer {
         } as PunctuationToken);
         break;
       default:
-        // Test for multi-character tokens
+        // Check for multi-character tokens
 
-        // Test for keywords
+        // Check for keyword tokens
         for (const keyword of Object.values(KeywordValue)) {
           const tokenValue = this.#match(
             new RegExp(`^${keyword}`),
