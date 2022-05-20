@@ -103,7 +103,7 @@ export default class Connector {
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
     return this.querySubgraph<ParsedApp[]>(
-      ORGANIZATION_APPS(daoAddress),
+      ORGANIZATION_APPS(daoAddress.toLowerCase()),
       (data: any) => {
         const apps = data?.organization?.apps;
 
