@@ -19,7 +19,6 @@ const testCases = <T extends Token>(cases: string[], tokenType: T['type']) => {
   cases.forEach((token) =>
     it(`should tokenize "${token}" as ${tokenType}`, () => {
       const [result] = tokenize(token);
-      // expect(typeof result === T).to.be.true;
       expect(result, `Case ${token}: invalid match`).to.deep.equals({
         type: tokenType,
         value: token,
@@ -27,7 +26,7 @@ const testCases = <T extends Token>(cases: string[], tokenType: T['type']) => {
     }),
   );
 };
-describe.only('Tokenizer', () => {
+describe('Tokenizer', () => {
   // const script =
   //   'install wrapped-hooked-token-manager.open:membership-tm ${token} false 0';
 
@@ -51,12 +50,12 @@ describe.only('Tokenizer', () => {
   });
 
   describe('when testing keyword tokens', () => {
-    const cases: string[] = ['as', 'connect', 'load'];
+    const cases: string[] = ['as', 'connect', 'load', 'switch', 'set'];
 
     testCases(cases, KEYWORD);
   });
 
-  describe.only('when testing type tokens', () => {
+  describe('when testing type tokens', () => {
     const cases: string[][] = [
       ['true', 'false'],
       ['0x83E57888cd55C3ea1cfbf0114C963564d81e318d'],
