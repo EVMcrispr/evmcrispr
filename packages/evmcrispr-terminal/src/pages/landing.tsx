@@ -41,7 +41,7 @@ const Landing = () => {
         <div className="flex-center buttons">
           <a
             className="button"
-            href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924"
+            href="https://docs.evmcrispr.blossom.software/getStarted/"
             target="_blank"
             rel="noreferrer"
           >
