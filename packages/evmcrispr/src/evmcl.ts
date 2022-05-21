@@ -94,7 +94,7 @@ export default function evmcl(
           }
           case 'exec': {
             const [identifier, method, ...params] = args;
-            return evmcrispr.exec(identifier)[method](..._params(params));
+            return evmcrispr.exec(identifier, method, _params(params));
           }
           case 'act': {
             const [agent, target, signature, ...params] = args;

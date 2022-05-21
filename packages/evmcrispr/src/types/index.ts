@@ -19,7 +19,11 @@ export type ActionInterpreter = {
     identifier: AppIdentifier | LabeledAppIdentifier,
     newAppAddress: Address,
   ): ActionFunction;
-  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
+  exec(
+    appIdentifier: AppIdentifier | LabeledAppIdentifier,
+    functionName: string,
+    params: any,
+  ): ActionFunction;
   act(
     agent: AppIdentifier,
     target: Entity,

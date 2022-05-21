@@ -387,7 +387,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.exec(badIdentifier),
+        (badIdentifier) => evmcrispr.exec(badIdentifier, '', []),
         false,
         false,
       ),
@@ -395,13 +395,13 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when calling an invalid method', async () => {
       await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod,
+        evmcrispr.exec('token-manager', 'unknownMethod', []),
         undefined,
         'Unknown method',
       );
 
       await expectThrowAsync(
-        evmcrispr.exec('token-manager').mint(),
+        evmcrispr.exec('token-manager', 'mint', []),
         undefined,
         "Invalid method's parameters",
       );
@@ -420,19 +420,23 @@ describe('EVMcrispr action-encoding functions', () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr
-        .exec(APP.appIdentifier)
-        [callMethod](...callSignatureParams)();
+      const callAction = await evmcrispr.exec(
+        APP.appIdentifier,
+        callMethod,
+        callSignatureParams,
+      )();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = await evmcrispr
-        .exec(APP.appIdentifier)
-        [callMethod](...callSignatureUnresolvedParams)();
+      const callActionUnresolved = await evmcrispr.exec(
+        APP.appIdentifier,
+        callMethod,
+        callSignatureUnresolvedParams,
+      )();
       expect(callActionUnresolved).eql(expectedCallAction);
     });
 
     it('can enumerate non-constant function calls', () => {
-      const keys = Object.getOwnPropertyNames(evmcrispr.exec('token-manager'));
+      const keys = evmcrispr.appMethods('token-manager');
       expect(keys).include.members([
         'assignVested',
         'mint',
@@ -449,23 +453,26 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate parameter names of a function', () => {
-      const paramTypes = evmcrispr.exec('token-manager').mint.paramNames;
+      const paramTypes = evmcrispr
+        .app('token-manager')
+        .interface.getFunction('mint')
+        .inputs.map((i) => i.name);
       expect(paramTypes).to.be.eql(['_receiver', '_amount']);
     });
 
     it('can enumerate parameter types of a function', () => {
-      const paramTypes = evmcrispr.exec('token-manager').mint.paramTypes;
+      const paramTypes = evmcrispr
+        .app('token-manager')
+        .interface.getFunction('mint')
+        .inputs.map((i) => i.type);
       expect(paramTypes).to.be.eql(['address', 'uint256']);
     });
 
     it('throws an error when enumerating parameter names and types of a function', async () => {
       await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod.paramNames,
-        undefined,
-        'Unknown method',
-      );
-      await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod.paramTypes,
+        () =>
+          evmcrispr.app('token-manager').interface.getFunction('unknownMethod')
+            .inputs,
         undefined,
         'Unknown method',
       );

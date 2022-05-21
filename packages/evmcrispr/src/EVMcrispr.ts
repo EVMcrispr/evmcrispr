@@ -26,7 +26,6 @@ import {
   normalizeActions,
   oracle,
   parseLabeledAppIdentifier,
-  resolveIdentifier,
   resolveName,
 } from './helpers';
 import type {
@@ -403,12 +402,12 @@ export default class EVMcrispr {
             await normalizeActions(actions)()
           ).map((action) =>
             useSafeExecute
-              ? this.exec(agent).safeExecute(action.to, action.data)()
-              : this.exec(agent).execute(
+              ? this.exec(agent, 'safeExecute', [action.to, action.data])()
+              : this.exec(agent, 'execute', [
                   action.to,
                   action.value ?? 0,
                   action.data,
-                )(),
+                ])(),
           ),
         )
       ).flat();
@@ -418,64 +417,36 @@ export default class EVMcrispr {
   /**
    * Encode an action that calls an app's contract function.
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
-   * @returns A proxy of the app that intercepts contract function calls and returns
-   * the encoded call instead.
+   * @param functionName Function name, such as mint.
+   * @param params Array with the parameters passed to the encoded function.
+   * @returns A function that retuns an action to forward a call with the specified parameters
    */
-  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
-    const app = () => this.resolver.resolveApp(appIdentifier);
-    const appMethods = () => this.#appMethods(appIdentifier);
-    return new Proxy(app, {
-      ownKeys() {
-        return appMethods();
-      },
-      getOwnPropertyDescriptor() {
-        return {
-          enumerable: true,
-        };
-      },
-      get: (getTargetApp: () => App, functionName: string) => {
-        try {
-          const getCallData = (): [App, string[], string[]] => {
-            const targetApp = getTargetApp();
-            const [paramNames, paramTypes] = getFunctionParams(
+  exec(
+    appIdentifier: AppIdentifier | LabeledAppIdentifier,
+    functionName: string,
+    params: any,
+  ): ActionFunction {
+    return async () => {
+      try {
+        const targetApp = this.resolver.resolveApp(appIdentifier);
+        const [, paramTypes] = getFunctionParams(
+          functionName,
+          targetApp.abiInterface,
+        );
+        return [
+          {
+            to: targetApp.address,
+            data: targetApp.abiInterface.encodeFunctionData(
               functionName,
-              targetApp.abiInterface,
-            );
-            return [targetApp, paramNames, paramTypes];
-          };
-
-          const fn = (...params: any): ActionFunction => {
-            return async () => {
-              const [targetApp, , paramTypes] = getCallData();
-              return [
-                {
-                  to: targetApp.address,
-                  data: targetApp.abiInterface.encodeFunctionData(
-                    functionName,
-                    this.resolver.resolveParams(params, paramTypes),
-                  ),
-                },
-              ];
-            };
-          };
-          // Check in case we're calling a counterfactual app function
-          if (this.appCache.has(resolveIdentifier(appIdentifier))) {
-            const [, paramNames, paramTypes] = getCallData();
-
-            Object.defineProperties(fn, {
-              name: { value: functionName },
-              paramNames: { value: paramNames },
-              paramTypes: { value: paramTypes },
-            });
-          }
-
-          return fn;
-        } catch (err: any) {
-          err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
-          throw err;
-        }
-      },
-    });
+              this.resolver.resolveParams(params, paramTypes),
+            ),
+          },
+        ];
+      } catch (err: any) {
+        err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
+        throw err;
+      }
+    };
   }
 
   /**

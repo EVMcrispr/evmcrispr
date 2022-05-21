@@ -13,22 +13,13 @@ const mockFunction = (func: string) => ({
   },
 });
 
-const mockExecFunction = (method: string) => ({
-  exec: (id: string) => ({
-    [method]: (...params: any[]) => {
-      _exec.push({ func: 'exec', id, method, params });
-      return () => [];
-    },
-  }),
-});
-
 const actionInterpreterMock = {
   ...mockFunction('newToken'),
   ...mockFunction('install'),
   ...mockFunction('upgrade'),
   ...mockFunction('grant'),
   ...mockFunction('revoke'),
-  ...mockExecFunction('newVote'),
+  ...mockFunction('exec'),
   ...mockFunction('act'),
 } as unknown as ActionInterpreter;
 
@@ -124,9 +115,7 @@ describe('EVM Command Line', () => {
       [
         {
           func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['Hello', '0x0'],
+          params: ['voting', 'newVote', ['Hello', '0x0']],
         },
       ],
     );
@@ -139,9 +128,7 @@ describe('EVM Command Line', () => {
       [
         {
           func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['Hello', ['0x0', ['3e21/mo', '2']]],
+          params: ['voting', 'newVote', ['Hello', ['0x0', ['3e21/mo', '2']]]],
         },
       ],
     );
@@ -173,9 +160,11 @@ describe('EVM Command Line', () => {
       [
         {
           func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['0x0', 'Giveth Community Covenant Upgrade'],
+          params: [
+            'voting',
+            'newVote',
+            ['0x0', 'Giveth Community Covenant Upgrade'],
+          ],
         },
       ],
     );
