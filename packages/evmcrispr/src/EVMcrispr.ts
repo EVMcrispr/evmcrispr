@@ -294,8 +294,9 @@ export default class EVMcrispr {
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
    * @returns The app's contract address.
    */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
-    return this.resolver.resolveApp(appIdentifier).address;
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Contract {
+    const app = this.resolver.resolveApp(appIdentifier);
+    return new Contract(app.address, app.abiInterface, this.#signer);
   }
 
   /**

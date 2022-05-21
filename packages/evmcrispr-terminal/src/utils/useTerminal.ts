@@ -77,7 +77,7 @@ exec agent:new transfer XDAI vault 100e18
         gasLimit: 10_000_000,
       });
       const chainId = (await signer.provider?.getNetwork())?.chainId;
-      const lastApp = evmcrispr.app(path.slice(-1)[0]);
+      const lastApp = evmcrispr.app(path.slice(-1)[0]).address;
       setUrl(`https://${client(chainId)}/#/${_dao}/${lastApp}`);
     } catch (e: any) {
       console.error(e);

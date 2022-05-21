@@ -273,7 +273,7 @@ describe('EVMcrispr action-encoding functions', () => {
       });
     });
     it('returns the correct app address', () => {
-      const appAddress = evmcrispr.app('voting');
+      const appAddress = evmcrispr.app('voting').address;
 
       expect(addressesEqual(DAO.voting, appAddress)).to.be.true;
     });
@@ -531,7 +531,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
       await evmcrispr.install(appLabeledIdentifier, initializeParams)();
 
-      const installedAppAddress = evmcrispr.app(appLabeledIdentifier);
+      const installedAppAddress = evmcrispr.app(appLabeledIdentifier).address;
 
       expect(utils.isAddress(installedAppAddress)).to.be.true;
     });
@@ -641,8 +641,8 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('encodes an ACL oracle parameter from an app identifier', () => {
       const oracle = evmcrispr.setOracle('voting')();
-      const app = evmcrispr.app('voting');
-      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      const address = evmcrispr.app('voting').address;
+      const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
 
@@ -653,9 +653,9 @@ describe('EVMcrispr action-encoding functions', () => {
         `${appIdentifier}:new-oracle`,
         initializeParams,
       )();
-      const app = evmcrispr.app(`${appIdentifier}:new-oracle`);
+      const address = evmcrispr.app(`${appIdentifier}:new-oracle`).address;
       const oracle = oracleF();
-      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
   });
