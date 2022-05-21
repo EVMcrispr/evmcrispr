@@ -3,8 +3,11 @@ import type { BigNumber, BigNumberish, Signer, providers } from 'ethers';
 
 import { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 import {
+  ANY_ENTITY,
+  BURN_ENTITY,
   FORWARDER_TYPES,
   IPFS_GATEWAY,
+  NO_ENTITY,
   buildApp,
   buildAppArtifact,
   buildAppIdentifier,
@@ -21,13 +24,10 @@ import {
   getFunctionParams,
   isForwarder,
   normalizeActions,
-  normalizeRole,
   oracle,
   parseLabeledAppIdentifier,
   resolveIdentifier,
   resolveName,
-  timeUnits,
-  toDecimals,
 } from './helpers';
 import type {
   Action,
@@ -50,6 +50,7 @@ import type {
 import Connector from './Connector';
 import { IPFSResolver } from './IPFSResolver';
 import { erc20ABI, forwarderABI } from './abis';
+import resolver from './helpers/resolvers';
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -71,20 +72,22 @@ export default class EVMcrispr {
   #newTokenCounter: number;
   #signer: Signer;
 
+  resolver: any;
+
   /**
    * An address used for permission operations that denotes any type of Ethereum account.
    */
-  ANY_ENTITY: Address = '0x' + 'F'.repeat(40);
+  ANY_ENTITY: Address = ANY_ENTITY;
 
   /**
    * An address used for permission operations that denotes no Ethereum account.
    */
-  NO_ENTITY: Address = constants.AddressZero;
+  NO_ENTITY: Address = NO_ENTITY;
 
   /**
    * An address used for permission operations that denotes that the permission has been burnt.
    */
-  BURN_ENTITY: Address = '0x' + '0'.repeat(39) + '1';
+  BURN_ENTITY: Address = BURN_ENTITY;
 
   protected constructor(
     chainId: number,
@@ -103,6 +106,7 @@ export default class EVMcrispr {
       buildIpfsTemplate(options.ipfsGateway),
     );
     this.#signer = signer;
+    this.resolver = resolver(this);
   }
 
   /**
@@ -156,6 +160,10 @@ export default class EVMcrispr {
     return this.#signer;
   }
 
+  get addressBook() {
+    return this.#addressBook;
+  }
+
   /**
    * Encode an action that creates a new app permission or grant it if it already exists.
    * @param permission The permission to create.
@@ -168,11 +176,8 @@ export default class EVMcrispr {
   ): ActionFunction {
     return async () => {
       const [grantee, app, role, getParams = () => []] = permission;
-      const [granteeAddress, appAddress, roleHash] = this.#resolvePermission([
-        grantee,
-        app,
-        role,
-      ]);
+      const [granteeAddress, appAddress, roleHash] =
+        this.resolver.resolvePermission([grantee, app, role]);
 
       if (!defaultPermissionManager) {
         throw new ErrorInvalid(
@@ -184,10 +189,10 @@ export default class EVMcrispr {
       }
 
       const params = getParams();
-      const manager = this.#resolveEntity(defaultPermissionManager);
-      const { permissions: appPermissions } = this.#resolveApp(app);
+      const manager = this.resolver.resolveEntity(defaultPermissionManager);
+      const { permissions: appPermissions } = this.resolver.resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } =
-        this.#resolveApp('acl');
+        this.resolver.resolveApp('acl');
       const actions = [];
 
       if (!appPermissions.has(roleHash)) {
@@ -290,7 +295,7 @@ export default class EVMcrispr {
    * @returns The app's contract address.
    */
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
-    return this.#resolveApp(appIdentifier).address;
+    return this.resolver.resolveApp(appIdentifier).address;
   }
 
   /**
@@ -348,10 +353,10 @@ export default class EVMcrispr {
       const paramTypes = signature.split('(')[1].slice(0, -1).split(',');
       return [
         {
-          to: this.#resolveEntity(target),
+          to: this.resolver.resolveEntity(target),
           data: encodeActCall(
             signature,
-            this.#resolveParams(params, paramTypes),
+            this.resolver.resolveParams(params, paramTypes),
           ),
         },
       ];
@@ -372,7 +377,7 @@ export default class EVMcrispr {
       const script = encodeCallScript(await normalizeActions(actions)());
       return [
         {
-          to: this.#resolveEntity(forwarder),
+          to: this.resolver.resolveEntity(forwarder),
           data: encodeActCall('forward(bytes)', [script]),
         },
       ];
@@ -416,7 +421,7 @@ export default class EVMcrispr {
    * the encoded call instead.
    */
   exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
-    const app = () => this.#resolveApp(appIdentifier);
+    const app = () => this.resolver.resolveApp(appIdentifier);
     const appMethods = () => this.#appMethods(appIdentifier);
     return new Proxy(app, {
       ownKeys() {
@@ -446,7 +451,7 @@ export default class EVMcrispr {
                   to: targetApp.address,
                   data: targetApp.abiInterface.encodeFunctionData(
                     functionName,
-                    this.#resolveParams(params, paramTypes),
+                    this.resolver.resolveParams(params, paramTypes),
                   ),
                 },
               ];
@@ -498,7 +503,7 @@ export default class EVMcrispr {
     }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path
-      .map((entity) => this.#resolveEntity(entity))
+      .map((entity) => this.resolver.resolveEntity(entity))
       .reverse();
     const actions = await normalizeActions(_actionFunctions)();
     const preTxActions: Action[] = [];
@@ -652,7 +657,7 @@ export default class EVMcrispr {
       }
 
       await this.#registerNextProxyAddress(controller);
-      const controllerAddress = this.#resolveEntity(controller);
+      const controllerAddress = this.resolver.resolveEntity(controller);
       const nonce = await buildNonceForAddress(
         factories.get(chainId)!,
         this.#newTokenCounter++,
@@ -710,17 +715,17 @@ export default class EVMcrispr {
 
         const { abiInterface, roles } =
           this.#appArtifactCache.get(codeAddress)!;
-        const kernel = this.#resolveApp('kernel');
+        const kernel = this.resolver.resolveApp('kernel');
         const [, types] = getFunctionParams('initialize', abiInterface);
         const encodedInitializeFunction = abiInterface.encodeFunctionData(
           'initialize',
-          this.#resolveParams(initParams, types),
+          this.resolver.resolveParams(initParams, types),
         );
         const appId = utils.namehash(`${appName}.${registry}`);
         if (!this.#addressBook.has(identifier)) {
           await this.#registerNextProxyAddress(identifier);
         }
-        const proxyContractAddress = this.#resolveEntity(identifier);
+        const proxyContractAddress = this.resolver.resolveEntity(identifier);
         if (this.#appCache.has(identifier)) {
           throw new ErrorException(
             `Identifier ${identifier} is already in use.`,
@@ -764,7 +769,7 @@ export default class EVMcrispr {
       if (!apmRepo.endsWith('.eth')) {
         throw new ErrorException(`The APM repo must be an ENS name.`);
       }
-      const kernel = this.#resolveApp('kernel');
+      const kernel = this.resolver.resolveApp('kernel');
       const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
       const appId = utils.namehash(apmRepo);
       return [
@@ -790,10 +795,10 @@ export default class EVMcrispr {
       const actions = [];
       const [grantee, app, role] = permission;
       const [entityAddress, appAddress, roleHash] =
-        this.#resolvePermission(permission);
-      const { permissions: appPermissions } = this.#resolveApp(app);
+        this.resolver.resolvePermission(permission);
+      const { permissions: appPermissions } = this.resolver.resolveApp(app);
       const { address: aclAddress, abiInterface: aclAbiInterface } =
-        this.#resolveApp('acl');
+        this.resolver.resolveApp('acl');
 
       if (!appPermissions.has(roleHash)) {
         throw new ErrorNotFound(
@@ -860,14 +865,16 @@ export default class EVMcrispr {
    */
   setOracle(entity: Entity): Params {
     return oracle(
-      utils.isAddress(entity) ? entity : () => this.#resolveApp(entity).address,
+      utils.isAddress(entity)
+        ? entity
+        : () => this.resolver.resolveApp(entity).address,
     );
   }
 
   #appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
     return (
       this.#appArtifactCache
-        .get(this.#resolveApp(appIdentifier).codeAddress)
+        .get(this.resolver.resolveApp(appIdentifier).codeAddress)
         ?.functions.map(({ sig }) => sig.split('(')[0])
         .filter((n) => n !== 'initialize') || []
     );
@@ -965,7 +972,7 @@ export default class EVMcrispr {
   }
 
   async #registerNextProxyAddress(identifier: string): Promise<void> {
-    const kernel = this.#resolveApp('kernel');
+    const kernel = this.resolver.resolveApp('kernel');
     const nonce = await buildNonceForAddress(
       kernel.address,
       this.#installedAppCounter++,
@@ -975,151 +982,5 @@ export default class EVMcrispr {
       identifier,
       calculateNewProxyAddress(kernel.address, nonce),
     );
-  }
-
-  #resolveApp(entity: Entity): App {
-    if (utils.isAddress(entity)) {
-      const app = [...this.#appCache.entries()].find(
-        ([, app]) => app.address === entity,
-      );
-
-      if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, {
-          name: 'ErrorAppNotFound',
-        });
-      }
-
-      return app[1];
-    }
-    const resolvedIdentifier = resolveIdentifier(entity);
-
-    if (!this.#appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
-        name: 'ErrorAppNotFound',
-      });
-    }
-
-    return this.#appCache.get(resolvedIdentifier)!;
-  }
-
-  #resolveEntity(entity: Entity): Address {
-    switch (entity) {
-      case 'ANY_ENTITY':
-        return this.ANY_ENTITY;
-      case 'NO_ENTITY':
-      case 'ETH':
-      case 'XDAI':
-      case 'ZERO_ADDRESS':
-        return this.NO_ENTITY;
-      case 'BURN_ENTITY':
-        return this.BURN_ENTITY;
-      default:
-        if (this.#addressBook.has(entity)) {
-          return this.#addressBook.get(entity)!;
-        }
-        return utils.isAddress(entity)
-          ? entity
-          : this.#resolveApp(entity).address;
-    }
-  }
-
-  #resolveNumber(number: string | number): BigNumber | number {
-    if (typeof number === 'string') {
-      const [, amount, decimals = '0', unit = 's', inverse = 's'] = String(
-        number,
-      ).match(
-        /^(\d*(?:\.\d*)?)(?:e(\d+))?(mo|s|m|h|d|w|y)?(?:\/(mo|s|m|h|d|w|y))?$/,
-      )!;
-      return toDecimals(amount, parseInt(decimals))
-        .mul(timeUnits[unit])
-        .div(timeUnits[inverse]);
-    }
-    return number;
-  }
-
-  #resolveBoolean(boolean: string | boolean): boolean {
-    if (typeof boolean === 'string') {
-      if (boolean === 'false') {
-        return false;
-      }
-      if (boolean === 'true') {
-        return true;
-      }
-      throw new Error(
-        `Parameter should be a boolean ("true" or "false"), "${boolean}" given.`,
-      );
-    }
-    return !!boolean;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  #resolveBytes(bytes: any, max = 0): string {
-    if (typeof bytes === 'string' && !bytes.startsWith('0x')) {
-      bytes = utils.hexlify(utils.toUtf8Bytes(bytes)).padEnd(max * 2 + 2, '0');
-    }
-    bytes = bytes.toString();
-    if (!bytes.startsWith('0x') || (bytes.length > max * 2 + 2 && max > 0)) {
-      throw new Error(`Parameter should contain less than ${max} bytes.`);
-    }
-    return bytes;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  #resolveParam(param: any, type: string): any {
-    if (/\[\d*\]$/g.test(type)) {
-      if (!Array.isArray(param)) {
-        throw new Error(
-          `Parameter ${type} should be an array, ${param} given.`,
-        );
-      }
-      return param.map((param: any[]) =>
-        this.#resolveParam(param, type.slice(0, type.lastIndexOf('['))),
-      );
-    }
-    if (type === 'address') {
-      return this.#resolveEntity(param);
-    }
-    if (/^u?int(\d)*$/.test(type)) {
-      return this.#resolveNumber(param);
-    }
-    if (type === 'bool') {
-      return this.#resolveBoolean(param);
-    }
-    if (/^bytes(\d*)$/.test(type)) {
-      return this.#resolveBytes(
-        param,
-        parseInt(type.match(/^bytes(\d*)$/)![1] || '0'),
-      );
-    }
-    return param;
-  }
-
-  #resolveParams(params: any[], types: string[]): any[] {
-    return params
-      .map((param) => (param instanceof Function ? param() : param))
-      .map((param, i) => this.#resolveParam(param, types[i]));
-  }
-
-  #resolvePermission(permission: Permission): [Address, Address, string] {
-    if (!permission[0]) {
-      throw new ErrorInvalid(`Permission not well formed, grantee missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[1]) {
-      throw new ErrorInvalid(`Permission not well formed, app missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[2]) {
-      throw new ErrorInvalid(`Permission not well formed, role missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    return permission.map((entity, index) =>
-      index < permission.length - 1
-        ? this.#resolveEntity(entity)
-        : normalizeRole(entity),
-    ) as [Address, Address, string];
   }
 }

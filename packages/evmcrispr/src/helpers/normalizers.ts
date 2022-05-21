@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 
 import { ErrorInvalid } from '../errors';
-import type { Action, ActionFunction } from '../types';
+import type { ActionFunction } from '../types';
 
 export const normalizeRole = (role: string): string => {
   if (role.startsWith('0x')) {
@@ -18,10 +18,6 @@ export const normalizeRole = (role: string): string => {
 
 export const normalizeActions = (actions: ActionFunction[]): ActionFunction => {
   return async () => {
-    const normalizedActions: Action[][] = [];
-    for (const action of actions) {
-      normalizedActions.push(await action());
-    }
-    return normalizedActions.flat();
+    return (await Promise.all(actions.map((action) => action()))).flat();
   };
 };
