@@ -309,7 +309,7 @@ export default class EVMcrispr {
   exec(
     appIdentifier: AppIdentifier | LabeledAppIdentifier,
     functionName: string,
-    params: any,
+    params: any[],
   ): ActionFunction {
     return this.aragon.exec(appIdentifier, functionName, params);
   }

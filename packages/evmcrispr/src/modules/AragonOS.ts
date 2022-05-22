@@ -222,7 +222,7 @@ export default class AragonOS {
   exec(
     appIdentifier: AppIdentifier | LabeledAppIdentifier,
     functionName: string,
-    params: any,
+    params: any[],
   ): ActionFunction {
     return async () => {
       try {
