@@ -3,11 +3,7 @@ import { expect } from 'chai';
 
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../src/errors';
 import type { Action, Permission } from '../src/types';
-import {
-  addressesEqual,
-  encodeActCall,
-  encodeCallScript,
-} from '../src/helpers';
+import { addressesEqual, encodeActCall, encodeCallScript } from '../src/utils';
 import {
   APP,
   DAO,

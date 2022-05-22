@@ -20,7 +20,7 @@ import {
   resolveApp,
   resolvePermission,
 } from './fixtures';
-import { encodeActCall } from '../src/helpers';
+import { encodeActCall } from '../src/utils';
 import {
   createTestAction,
   createTestPreTxAction,

@@ -5,7 +5,7 @@ import { setupServer } from 'msw/node';
 import { artifacts } from './ipfs-data';
 import reposFixture from './subgraph-data/RepoResponse.json';
 import organizationFixture from './subgraph-data/OrganizationAppsResponse.json';
-import { IPFS_GATEWAY, addressesEqual } from '../../src/helpers';
+import { IPFS_GATEWAY, addressesEqual } from '../../src/utils';
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(

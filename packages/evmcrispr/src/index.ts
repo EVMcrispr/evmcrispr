@@ -12,9 +12,9 @@ export {
   xor,
   iif,
   paramValue,
-} from './helpers/acl';
-export { normalizeActions } from './helpers/normalizers';
-export { encodeActCall, encodeCallScript } from './helpers/evmscripts';
+} from './utils/acl';
+export { normalizeActions } from './utils/normalizers';
+export { encodeActCall, encodeCallScript } from './utils/evmscripts';
 export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 export type { ErrorOptions } from './errors';
 export type {

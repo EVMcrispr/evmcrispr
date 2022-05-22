@@ -21,7 +21,7 @@ import {
   isForwarder,
   normalizeActions,
   resolveName,
-} from './helpers';
+} from './utils';
 import type {
   Action,
   ActionFunction,
@@ -42,7 +42,7 @@ import type {
 import Connector from './Connector';
 import { IPFSResolver } from './IPFSResolver';
 import { erc20ABI, forwarderABI } from './abis';
-import resolver from './helpers/resolvers';
+import resolver from './utils/resolvers';
 import AragonOS from './modules/AragonOS';
 
 /**

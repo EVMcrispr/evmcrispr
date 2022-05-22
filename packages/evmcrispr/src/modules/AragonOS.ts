@@ -12,7 +12,7 @@ import {
   normalizeActions,
   oracle,
   parseLabeledAppIdentifier,
-} from '../helpers';
+} from '../utils';
 import type {
   ActionFunction,
   Address,

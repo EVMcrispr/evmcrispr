@@ -2,7 +2,7 @@ import type { Signer } from 'ethers';
 
 import type { EVMcl } from './types';
 
-import { normalizeActions } from './helpers';
+import { normalizeActions } from './utils';
 import EVMcrispr from './EVMcrispr';
 
 class EvmclParser {

@@ -1,4 +1,4 @@
-import { toDecimals } from '../../src/helpers';
+import { toDecimals } from '../../src/utils';
 
 export const FORWARDER = 'token-manager';
 export const FEE_FORWARDER = 'tollgate.open';

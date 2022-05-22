@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 
 import type { Action, Address } from '../../src/types';
-import { encodeActCall, encodeCallScript } from '../../src/helpers';
+import { encodeActCall, encodeCallScript } from '../../src/utils';
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,

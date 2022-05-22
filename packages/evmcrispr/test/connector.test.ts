@@ -4,7 +4,7 @@ import hre from 'hardhat';
 import { multihash } from 'is-ipfs';
 
 import { Connector, ErrorException, ErrorNotFound } from '../src';
-import { parseContentUri } from '../src/helpers';
+import { parseContentUri } from '../src/utils';
 import type { ParsedApp } from '../src/types';
 import { DAO, EOA_ADDRESS } from './fixtures';
 import {
