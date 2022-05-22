@@ -10,6 +10,10 @@ export * from './aragon';
 
 export type ActionFunction = () => Promise<Action[]>;
 
+export type Helpers = {
+  [name: string]: (evm: EVMcrispr, ...rest: string[]) => Promise<string>;
+};
+
 export type EVMcl = {
   encode: (
     signer: Signer,
@@ -201,6 +205,8 @@ export interface EVMcrisprOptions {
    * A custom subgraph url to connect to.
    */
   subgraphUrl?: string;
+
+  helpers?: Helpers;
 }
 
 export interface ForwardOptions {

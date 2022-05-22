@@ -27,6 +27,11 @@ class EvmclParser {
    * @returns Parsed value
    */
   async arg(arg: string): Promise<any> {
+    if (arg && arg[0] == '$') {
+      return this.#env(arg);
+    } else if (arg && arg[0] == '@') {
+      return this.#helper(arg);
+    }
     return arg;
   }
 
@@ -58,6 +63,27 @@ class EvmclParser {
       );
     }
     return arg;
+  }
+
+  #env(varName: string): any {
+    if (typeof this.evmcrispr.env(varName) === 'undefined') {
+      throw new Error(`Environment variable ${varName} not defined.`);
+    } else {
+      return this.evmcrispr.env(varName)!;
+    }
+  }
+
+  #helper(arg: string): Promise<string> {
+    const [, ext, ...params] = arg.match(
+      /^@([a-zA-Z0-9.]+)(?:\(([^,]+)(?:,([^,]+))*\))?$/,
+    )!;
+    return this.#resolve(ext)(this.evmcrispr, ...params.map(this.arg, this));
+  }
+
+  #resolve(ext: string) {
+    return ext
+      .split('.')
+      .reduce((obj: any, key: string) => obj[key], this.evmcrispr.helpers);
   }
 
   async #recursiveArgParse(arg: any): Promise<any> {

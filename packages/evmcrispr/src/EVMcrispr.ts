@@ -33,6 +33,7 @@ import type {
   EVMcrisprOptions,
   Entity,
   ForwardOptions,
+  Helpers,
   LabeledAppIdentifier,
   Params,
   ParsedApp,
@@ -44,6 +45,7 @@ import { IPFSResolver } from './IPFSResolver';
 import { erc20ABI, forwarderABI } from './abis';
 import resolver from './utils/resolvers';
 import AragonOS from './modules/AragonOS';
+import defaultHelpers from './helpers';
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -56,6 +58,9 @@ export default class EVMcrispr {
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
   #addressBook: Map<string, Address>;
+
+  #helpers: Helpers;
+  #env: Map<string, any> = new Map();
   /**
    * The connector used to fetch Aragon apps.
    */
@@ -99,6 +104,7 @@ export default class EVMcrispr {
     this.#signer = signer;
     this.resolver = resolver(this);
     this.aragon = new AragonOS(this);
+    this.#helpers = { ...defaultHelpers, ...options?.helpers };
   }
 
   /**
@@ -162,6 +168,24 @@ export default class EVMcrispr {
 
   get addressBook(): Map<string, string> {
     return this.#addressBook;
+  }
+
+  get helpers(): Helpers {
+    return this.#helpers;
+  }
+
+  env(varName: string): any {
+    return this.#env.get(varName);
+  }
+
+  set(varName: string, value: unknown): ActionFunction {
+    return async () => {
+      if (varName[0] !== '$') {
+        throw new Error('Environment variables must start with $ symbol.');
+      }
+      this.#env.set(varName, value);
+      return [];
+    };
   }
 
   /**
