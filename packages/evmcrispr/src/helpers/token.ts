@@ -26,13 +26,13 @@ async function token(evm: EVMcrispr, tokenSymbol: string): Promise<string> {
 function _tokenlist(evm: EVMcrispr) {
   const tokenlist = String(evm.env(ENV_TOKENLIST) ?? DEFAULT_TOKENLIST);
   // Always check user data inputs:
-  if (tokenlist.startsWith('https://')) {
-    throw new Error('Tokenlist must be an HTTPS URL.');
+  if (!tokenlist.startsWith('https://')) {
+    throw new Error(`Tokenlist must be an HTTPS URL: ${tokenlist}`);
   }
   return tokenlist;
 }
 
-async function tokenBalance(
+export async function tokenBalance(
   evm: EVMcrispr,
   tokenSymbol: string,
   account: string,
@@ -46,5 +46,4 @@ async function tokenBalance(
   return (await contract.balanceOf(account)).toString();
 }
 
-token.balance = tokenBalance;
 export default token;

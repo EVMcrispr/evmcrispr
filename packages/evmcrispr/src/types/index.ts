@@ -11,7 +11,7 @@ export * from './aragon';
 export type ActionFunction = () => Promise<Action[]>;
 
 export type Helpers = {
-  [name: string]: (evm: EVMcrispr, ...rest: string[]) => Promise<string>;
+  [name: string]: (evm: EVMcrispr, ...rest: string[]) => any;
 };
 
 export type EVMcl = {

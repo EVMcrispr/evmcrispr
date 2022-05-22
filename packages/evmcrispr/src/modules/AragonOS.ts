@@ -236,7 +236,7 @@ export default class AragonOS {
             to: targetApp.address,
             data: targetApp.abiInterface.encodeFunctionData(
               functionName,
-              this.evm.resolver.resolveParams(params, paramTypes),
+              await this.evm.resolver.resolvePromises(params, paramTypes),
             ),
           },
         ];

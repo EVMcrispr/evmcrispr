@@ -132,6 +132,17 @@ export default function resolver(evmcrispr: EVMcrispr) {
       .map((param, i) => resolveParam(param, types[i]));
   }
 
+  async function resolvePromises(
+    params: any[],
+    types: string[],
+  ): Promise<any[]> {
+    const _params = [];
+    for (const param of params) {
+      _params.push(await Promise.resolve(param));
+    }
+    return resolveParams(_params, types);
+  }
+
   function resolvePermission(
     permission: Permission,
   ): [Address, Address, string] {
@@ -165,6 +176,7 @@ export default function resolver(evmcrispr: EVMcrispr) {
     resolveBytes,
     resolveParam,
     resolveParams,
+    resolvePromises,
     resolvePermission,
   };
 }

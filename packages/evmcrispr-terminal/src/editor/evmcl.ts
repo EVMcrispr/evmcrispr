@@ -15,6 +15,7 @@ const keywords = [
   'exec',
   'act',
   'new',
+  'set',
 ];
 
 const namedLiterals = ['true', 'false'];
@@ -99,7 +100,6 @@ export const language = {
 
     whitespace: [
       { regex: nonCommentWs },
-      { regex: `\\/\\/.*$`, action: { token: 'comment' } },
       { regex: `#.*$`, action: { token: 'comment' } },
     ],
 

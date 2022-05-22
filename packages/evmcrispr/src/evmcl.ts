@@ -73,17 +73,12 @@ class EvmclParser {
     }
   }
 
-  #helper(arg: string): Promise<string> {
+  async #helper(arg: string): Promise<string> {
     const [, ext, ...params] = arg.match(
-      /^@([a-zA-Z0-9.]+)(?:\(([^,]+)(?:,([^,]+))*\))?$/,
+      /^@([a-zA-Z0-9.]+)(?:\(([^,]+)(?:,([^,]+))*\))?$/, // FIXME: This regex do not support expressions like @h(@h(a,b),c)
     )!;
-    return this.#resolve(ext)(this.evmcrispr, ...params.map(this.arg, this));
-  }
-
-  #resolve(ext: string) {
-    return ext
-      .split('.')
-      .reduce((obj: any, key: string) => obj[key], this.evmcrispr.helpers);
+    const _params = await this.args(params.filter((p) => !!p));
+    return this.evmcrispr.helpers[ext](this.evmcrispr, ..._params);
   }
 
   async #recursiveArgParse(arg: any): Promise<any> {
@@ -117,95 +112,99 @@ export default function evmcl(
   const actions = async (evmcrispr: EVMcrispr) => {
     const parser = new EvmclParser(evmcrispr);
     return normalizeActions(
-      await Promise.all(
-        commands.map((command) => {
-          const [commandName, ...args] = command
-            .replace(/"([^"]*)"/g, (_, s) => s.replace(/ /g, '"'))
-            .split(' ')
-            .map((s) => s.replace(/"/g, ' '));
-          switch (commandName) {
-            case 'new': {
-              return async () => {
-                const [subCommand, ...rest] = args;
-                switch (subCommand) {
-                  case 'token': {
-                    const [
-                      name,
-                      symbol,
-                      controller,
-                      decimals = '18',
-                      transferable = 'true',
-                    ] = rest;
-                    return evmcrispr.newToken(
-                      name,
-                      symbol,
-                      controller,
-                      Number(decimals),
-                      EvmclParser.bool(transferable)!,
-                    )();
-                  }
-                  default: {
-                    throw new Error(
-                      `Unrecognized subcommand: token ${subCommand}`,
-                    );
-                  }
-                }
-              };
-            }
-            case 'install': {
-              return async () => {
-                const [identifier, ...initParams] = await parser.args(args);
-                return evmcrispr.install(identifier, initParams)();
-              };
-            }
-            case 'upgrade': {
-              return async () => {
-                const [identifier, appAddress] = await parser.args(args);
-                return evmcrispr.upgrade(identifier, appAddress)();
-              };
-            }
-            case 'grant': {
-              return async () => {
-                const [grantee, app, role, defaultPermissionManager] =
-                  await parser.args(args);
-                return evmcrispr.grant(
-                  [grantee, app, role],
-                  defaultPermissionManager,
-                )();
-              };
-            }
-            case 'revoke': {
-              return async () => {
-                const [grantee, app, role, _removePermissionManager] =
-                  await parser.args(args);
-                const removePermissionManager = EvmclParser.bool(
-                  _removePermissionManager,
-                );
-                return evmcrispr.revoke(
-                  [grantee, app, role],
-                  removePermissionManager,
-                )();
-              };
-            }
-            case 'exec': {
-              return async () => {
-                const [identifier, method, ...params] = await parser.args(args);
-                return evmcrispr.exec(identifier, method, params)();
-              };
-            }
-            case 'act': {
-              return async () => {
-                const [agent, target, signature, ...params] = await parser.args(
-                  args,
-                );
-                return evmcrispr.act(agent, target, signature, params)();
-              };
-            }
-            default:
-              throw new Error('Unrecognized command: ' + commandName);
+      commands.map((command) => {
+        const [commandName, ...args] = command
+          .replace(/"([^"]*)"/g, (_, s) => s.replace(/ /g, '"'))
+          .split(' ')
+          .map((s) => s.replace(/"/g, ' '));
+        switch (commandName) {
+          case 'set': {
+            return async () => {
+              const [varName, ...value] = args;
+              return evmcrispr.set(varName, await parser.args(value))();
+            };
           }
-        }),
-      ),
+          case 'new': {
+            return async () => {
+              const [subCommand, ...rest] = args;
+              switch (subCommand) {
+                case 'token': {
+                  const [
+                    name,
+                    symbol,
+                    controller,
+                    decimals = '18',
+                    transferable = 'true',
+                  ] = rest;
+                  return evmcrispr.newToken(
+                    name,
+                    symbol,
+                    controller,
+                    Number(decimals),
+                    EvmclParser.bool(transferable)!,
+                  )();
+                }
+                default: {
+                  throw new Error(
+                    `Unrecognized subcommand: token ${subCommand}`,
+                  );
+                }
+              }
+            };
+          }
+          case 'install': {
+            return async () => {
+              const [identifier, ...initParams] = await parser.args(args);
+              return evmcrispr.install(identifier, initParams)();
+            };
+          }
+          case 'upgrade': {
+            return async () => {
+              const [identifier, appAddress] = await parser.args(args);
+              return evmcrispr.upgrade(identifier, appAddress)();
+            };
+          }
+          case 'grant': {
+            return async () => {
+              const [grantee, app, role, defaultPermissionManager] =
+                await parser.args(args);
+              return evmcrispr.grant(
+                [grantee, app, role],
+                defaultPermissionManager,
+              )();
+            };
+          }
+          case 'revoke': {
+            return async () => {
+              const [grantee, app, role, _removePermissionManager] =
+                await parser.args(args);
+              const removePermissionManager = EvmclParser.bool(
+                _removePermissionManager,
+              );
+              return evmcrispr.revoke(
+                [grantee, app, role],
+                removePermissionManager,
+              )();
+            };
+          }
+          case 'exec': {
+            return async () => {
+              const [identifier, method, ...params] = await parser.args(args);
+              return evmcrispr.exec(identifier, method, params)();
+            };
+          }
+          case 'act': {
+            return async () => {
+              const [agent, target, signature, ...params] = await parser.args(
+                args,
+              );
+              return evmcrispr.act(agent, target, signature, params)();
+            };
+          }
+          default:
+            throw new Error('Unrecognized command: ' + commandName);
+        }
+      }),
     );
   };
   return {

@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 
 import { ErrorInvalid } from '../errors';
-import type { ActionFunction } from '../types';
+import type { Action, ActionFunction } from '../types';
 
 export const normalizeRole = (role: string): string => {
   if (role.startsWith('0x')) {
@@ -18,6 +18,11 @@ export const normalizeRole = (role: string): string => {
 
 export const normalizeActions = (actions: ActionFunction[]): ActionFunction => {
   return async () => {
-    return (await Promise.all(actions.map((action) => action()))).flat();
+    const normalizedActions: Action[][] = [];
+    // Using for..of instead of Promise.all because we want them executed in order
+    for (const action of actions) {
+      normalizedActions.push(await action());
+    }
+    return normalizedActions.flat();
   };
 };
