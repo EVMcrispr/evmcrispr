@@ -1,4 +1,6 @@
-import type { utils } from 'ethers';
+import type { BigNumberish, Signer, providers, utils } from 'ethers';
+
+import type EVMcrispr from '../EVMcrispr';
 
 import type { AppArtifact, AragonArtifact } from './aragon';
 
@@ -6,41 +8,28 @@ export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
-export type ActionInterpreter = {
-  newToken(
-    name: string,
-    symbol: string,
-    controller: Entity,
-    decimals: number,
-    transferable: boolean,
-  ): ActionFunction;
-  install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
-  upgrade(
-    identifier: AppIdentifier | LabeledAppIdentifier,
-    newAppAddress: Address,
-  ): ActionFunction;
-  exec(
-    appIdentifier: AppIdentifier | LabeledAppIdentifier,
-    functionName: string,
-    params: any,
-  ): ActionFunction;
-  act(
-    agent: AppIdentifier,
-    target: Entity,
-    signature: string,
-    params: any[],
-  ): ActionFunction;
-  grant(
-    permission: Permission | PermissionP,
-    defaultPermissionManager: Entity,
-  ): ActionFunction;
-  revoke(
-    permission: Permission,
-    removeManager: boolean | undefined,
-  ): ActionFunction;
-};
-
 export type ActionFunction = () => Promise<Action[]>;
+
+export type EVMcl = {
+  encode: (
+    signer: Signer,
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<{ action: Action; preTxActions: Action[] }>;
+  forward: (
+    signer: Signer,
+    options?: EVMcrisprOptions &
+      ForwardOptions & {
+        gasPrice?: BigNumberish;
+        gasLimit?: BigNumberish;
+      },
+  ) => Promise<providers.TransactionReceipt>;
+  dao: string;
+  path: string[];
+  evmcrispr: (
+    signer: Signer,
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<EVMcrispr>;
+};
 
 /**
  * A string that contains an Ethereum address.
@@ -203,7 +192,7 @@ export interface EVMcrisprOptions {
   /**
    * An IPFS gateway url to fetch app data from.
    */
-  ipfsGateway: string;
+  ipfsGateway?: string;
   /*
    * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth.
    */

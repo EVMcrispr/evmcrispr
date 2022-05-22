@@ -21,7 +21,6 @@ export type {
   Address,
   Action,
   ActionFunction,
-  ActionInterpreter,
   App,
   AppCache,
   AppIdentifier,

@@ -261,10 +261,10 @@ export default class AragonOS {
       [137, '0xcFed1594A5b1B612dC8199962461ceC148F14E68'],
     ]);
     const factory = new utils.Interface([
-      'function createCloneToken(address _parentToken, uint _snapshotBlock, string _tokenName, uint8 _decimalUnits, string _tokenSymbol, bool _transfersEnabled) external returns (address)',
+      'function createCloneToken(address,uint,string,uint8,string,bool) external returns (address)',
     ]);
     const controlled = new utils.Interface([
-      'function changeController(address _newController) external',
+      'function changeController(address) external',
     ]);
     return async () => {
       const chainId = await this.evm.signer.getChainId();

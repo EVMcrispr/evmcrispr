@@ -1,6 +1,9 @@
-import type { ActionFunction, ActionInterpreter } from './types';
+import type { Signer } from 'ethers';
+
+import type { EVMcl } from './types';
 
 import { normalizeActions } from './helpers';
+import EVMcrispr from './EVMcrispr';
 
 function _boolean(arg: string): boolean | undefined {
   if (arg !== undefined && arg !== 'true' && arg !== 'false') {
@@ -29,7 +32,7 @@ function _params(params: string[]): any[] {
 export default function evmcl(
   strings: TemplateStringsArray,
   ...keys: string[]
-): (evm: ActionInterpreter) => ActionFunction {
+): EVMcl {
   const input =
     strings[0] + keys.map((key, i) => key + strings[i + 1]).join('');
   const commands = input
@@ -37,8 +40,18 @@ export default function evmcl(
     .map((command) => command.split('#')[0])
     .map((command) => command.trim())
     .filter((command) => !!command);
-  return (evmcrispr: ActionInterpreter) => {
-    return normalizeActions(
+
+  const [, dao, pathstr, context] =
+    commands[0].match(
+      /^connect ([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))?$/,
+    ) || [];
+  if (!dao) {
+    throw new Error('First line must be a connect statement.');
+  }
+  commands.shift(); // removes first element
+  const path = pathstr.trim().split(' ');
+  const actions = (evmcrispr: EVMcrispr) =>
+    normalizeActions(
       commands.map((command) => {
         const [commandName, ...args] = command
           .replace(/"([^"]*)"/g, (_, s) => s.replace(/ /g, '"'))
@@ -105,5 +118,24 @@ export default function evmcl(
         }
       }),
     );
+  return {
+    encode: async (signer: Signer, options) => {
+      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      return evmcrispr.encode([actions(evmcrispr)], path, { context });
+    },
+    forward: async (signer: Signer, options) => {
+      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      return evmcrispr.forward([actions(evmcrispr)], path, {
+        context,
+        ...options,
+      });
+    },
+    evmcrispr: async (signer: Signer, options) => {
+      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      await evmcrispr.encode([actions(evmcrispr)], path, { context });
+      return evmcrispr;
+    },
+    dao,
+    path,
   };
 }

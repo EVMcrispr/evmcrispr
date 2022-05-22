@@ -13,7 +13,9 @@ export const fetchAppArtifact = async (
   return ipfsResolver.json(parseContentUri(contentUri), 'artifact.json');
 };
 
-export const buildIpfsTemplate = (ipfsGateway: string): string => {
+export const buildIpfsTemplate = (
+  ipfsGateway: string = IPFS_GATEWAY,
+): string => {
   let ipfsUrlTemplate = ipfsGateway;
 
   if (ipfsGateway.charAt(ipfsGateway.length - 1) !== '/') {

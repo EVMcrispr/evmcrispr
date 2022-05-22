@@ -180,13 +180,12 @@ describe('EVMcrispr script-encoding functions', () => {
         COMPLETE_FORWARDER_PATH,
         { context: CONTEXT },
       );
-      const encodedScriptAction = await evmcrispr.encode(
-        evmcl`
+      const encodedScriptAction = await evmcl`
+          connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
+        ' ',
+      )} --context ${CONTEXT}
           exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(' ')}
-        `,
-        COMPLETE_FORWARDER_PATH,
-        { context: CONTEXT },
-      );
+        `.encode(signer);
 
       expect(encodedScriptAction, 'EVM script action mismatch').eql(
         expectedEncodedScriptAction,

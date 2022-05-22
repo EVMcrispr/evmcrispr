@@ -6,7 +6,6 @@ import {
   ANY_ENTITY,
   BURN_ENTITY,
   FORWARDER_TYPES,
-  IPFS_GATEWAY,
   NO_ENTITY,
   buildApp,
   buildAppArtifact,
@@ -26,7 +25,6 @@ import {
 import type {
   Action,
   ActionFunction,
-  ActionInterpreter,
   Address,
   App,
   AppArtifactCache,
@@ -115,7 +113,7 @@ export default class EVMcrispr {
   static async create(
     daoAddressOrName: string,
     signer: Signer,
-    options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY },
+    options: EVMcrisprOptions = {},
   ): Promise<EVMcrispr> {
     const chainId = await signer.getChainId();
     const evmcrispr = new EVMcrispr(chainId, signer, options);
@@ -150,7 +148,7 @@ export default class EVMcrispr {
     return this.#appArtifactCache;
   }
 
-  get ipfsResolver() {
+  get ipfsResolver(): IPFSResolver {
     return this._ipfsResolver;
   }
 
@@ -162,7 +160,7 @@ export default class EVMcrispr {
     return this.#signer;
   }
 
-  get addressBook() {
+  get addressBook(): Map<string, string> {
     return this.#addressBook;
   }
 
@@ -325,16 +323,11 @@ export default class EVMcrispr {
    * any pre-transactions that need to be executed in advance.
    */
   async encode(
-    actionFunctions:
-      | ActionFunction[]
-      | ((evm: ActionInterpreter) => ActionFunction),
+    actionFunctions: ActionFunction[],
     path: Entity[],
     options?: ForwardOptions,
   ): Promise<{ action: Action; preTxActions: Action[] }> {
-    const _actionFunctions = Array.isArray(actionFunctions)
-      ? actionFunctions
-      : [actionFunctions(this)];
-    if (_actionFunctions.length === 0) {
+    if (actionFunctions.length === 0) {
       throw new ErrorInvalid('No actions provided.');
     }
     if (path.length === 0) {
@@ -344,7 +337,7 @@ export default class EVMcrispr {
     const forwarders = path
       .map((entity) => this.resolver.resolveEntity(entity))
       .reverse();
-    const actions = await normalizeActions(_actionFunctions)();
+    const actions = await normalizeActions(actionFunctions)();
     const preTxActions: Action[] = [];
 
     let script: string;
@@ -415,7 +408,7 @@ export default class EVMcrispr {
             to: forwarderAddress,
             data: encodeActCall('forward(bytes,bytes)', [
               script,
-              utils.hexlify(utils.toUtf8Bytes(options.context)),
+              utils.hexlify(utils.toUtf8Bytes(options?.context || '')),
             ]),
           },
         ];
@@ -440,7 +433,7 @@ export default class EVMcrispr {
    * @returns A promise that resolves to a receipt of the sent transaction.
    */
   async forward(
-    actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
+    actions: ActionFunction[],
     path: Entity[],
     options?: ForwardOptions & {
       gasPrice?: BigNumberish;
