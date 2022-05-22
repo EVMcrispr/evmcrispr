@@ -1,5 +1,5 @@
 import { Contract, constants, utils } from 'ethers';
-import type { BigNumber, BigNumberish, Signer, providers } from 'ethers';
+import type { BigNumber, Signer, providers } from 'ethers';
 
 import { ErrorInvalid } from './errors';
 import {
@@ -46,6 +46,8 @@ import { erc20ABI, forwarderABI } from './abis';
 import resolver from './utils/resolvers';
 import AragonOS from './modules/AragonOS';
 import defaultHelpers from './helpers';
+
+type TransactionReceipt = providers.TransactionReceipt;
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -350,7 +352,10 @@ export default class EVMcrispr {
     actionFunctions: ActionFunction[],
     path: Entity[],
     options?: ForwardOptions,
-  ): Promise<{ action: Action; preTxActions: Action[] }> {
+  ): Promise<{
+    actions: Action[];
+    forward: () => Promise<TransactionReceipt[]>;
+  }> {
     if (actionFunctions.length === 0) {
       throw new ErrorInvalid('No actions provided.');
     }
@@ -361,11 +366,10 @@ export default class EVMcrispr {
     const forwarders = path
       .map((entity) => this.resolver.resolveEntity(entity))
       .reverse();
-    const actions = await normalizeActions(actionFunctions)();
-    const preTxActions: Action[] = [];
+    const actions: Action[] = [];
 
     let script: string;
-    let forwarderActions = [...actions];
+    let forwarderActions = await normalizeActions(actionFunctions)();
     let value = 0;
 
     for (let i = 0; i < forwarders.length; i++) {
@@ -401,7 +405,7 @@ export default class EVMcrispr {
           )) as BigNumber;
 
           if (allowance.gt(0) && allowance.lt(feeAmount)) {
-            preTxActions.push({
+            actions.push({
               to: feeTokenAddress,
               data: feeToken.interface.encodeFunctionData('approve', [
                 forwarderAddress,
@@ -410,7 +414,7 @@ export default class EVMcrispr {
             });
           }
           if (allowance.eq(0)) {
-            preTxActions.push({
+            actions.push({
               to: feeTokenAddress,
               data: feeToken.interface.encodeFunctionData('approve', [
                 forwarderAddress,
@@ -446,7 +450,12 @@ export default class EVMcrispr {
       }
     }
 
-    return { action: { ...forwarderActions[0], value }, preTxActions };
+    actions.push({ ...forwarderActions[0], value });
+
+    return {
+      actions: actions,
+      forward: () => this._forward(actions, options),
+    };
   }
 
   /**
@@ -459,30 +468,33 @@ export default class EVMcrispr {
   async forward(
     actions: ActionFunction[],
     path: Entity[],
-    options?: ForwardOptions & {
-      gasPrice?: BigNumberish;
-      gasLimit?: BigNumberish;
-    },
-  ): Promise<providers.TransactionReceipt> {
-    const { action, preTxActions } = await this.encode(actions, path, options);
-    // Execute pretransactions actions
-    for (const action of preTxActions) {
-      await (
-        await this.#signer.sendTransaction({
-          ...action,
-          gasPrice: options?.gasPrice,
-          gasLimit: options?.gasLimit,
-        })
-      ).wait();
-    }
+    options?: ForwardOptions,
+  ): Promise<providers.TransactionReceipt[]> {
+    const { actions: encodedActions } = await this.encode(
+      actions,
+      path,
+      options,
+    );
+    return this._forward(encodedActions, options);
+  }
 
-    return (
-      await this.#signer.sendTransaction({
-        ...action,
-        gasPrice: options?.gasPrice,
-        gasLimit: options?.gasLimit,
-      })
-    ).wait();
+  protected async _forward(
+    actions: Action[],
+    options?: ForwardOptions,
+  ): Promise<TransactionReceipt[]> {
+    const txs = [];
+    for (const action of actions) {
+      txs.push(
+        await (
+          await this.#signer.sendTransaction({
+            ...action,
+            gasPrice: options?.gasPrice,
+            gasLimit: options?.gasLimit,
+          })
+        ).wait(),
+      );
+    }
+    return txs;
   }
 
   newToken(

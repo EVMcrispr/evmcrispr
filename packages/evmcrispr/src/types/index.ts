@@ -18,15 +18,14 @@ export type EVMcl = {
   encode: (
     signer: Signer,
     options?: EVMcrisprOptions & ForwardOptions,
-  ) => Promise<{ action: Action; preTxActions: Action[] }>;
+  ) => Promise<{
+    actions: Action[];
+    forward: () => Promise<providers.TransactionReceipt[]>;
+  }>;
   forward: (
     signer: Signer,
-    options?: EVMcrisprOptions &
-      ForwardOptions & {
-        gasPrice?: BigNumberish;
-        gasLimit?: BigNumberish;
-      },
-  ) => Promise<providers.TransactionReceipt>;
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<providers.TransactionReceipt[]>;
   dao: string;
   path: string[];
   evmcrispr: (
@@ -215,6 +214,8 @@ export interface ForwardOptions {
    * Needed for forwarders with context (AragonOS v5).
    */
   context?: string;
+  gasPrice?: BigNumberish;
+  gasLimit?: BigNumberish;
 }
 
 /**

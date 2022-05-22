@@ -23,6 +23,7 @@ Both methods receive two parameters: a group of the encoded actions and a group 
 The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke these methods inside an `encode()` or `forward()` to build the script. Here is an example of it:
 
 ```js
+const evmcrispr = EVMcrispr(dao, signer);
 await evmcrispr.forward(
   [
     evmcrispr.install(app, params),
@@ -38,16 +39,15 @@ await evmcrispr.forward(
 The same EVMscript can be encoded using the `evmcl` template:
 
 ```js
-await evmcripsr.forward(
-  evmcl`
-    install ${app} ${param1} ${param2}
-    grant ${entity1} ${app1} ${role1} ${permissionManager}
-    grant ${entity2} ${app2} ${role1} ${permissionManager}
-    grant ${entity3} ${app3} ${role3} ${permissionManager}
-    revoke ${entity4} ${app4} ${role4} ${removeManager}
-  `, // ...
-  [forwarder1, forwarder2],
-);
+await evmcl`
+  connect ${dao} ${forwarder1} ${forwarder2}
+  install ${app} ${param1} ${param2}
+  grant ${entity1} ${app1} ${role1} ${permissionManager}
+  grant ${entity2} ${app2} ${role1} ${permissionManager}
+  grant ${entity3} ${app3} ${role3} ${permissionManager}
+  revoke ${entity4} ${app4} ${role4} ${removeManager}
+  # ...
+`.forward(signer);
 ```
 
 To facilitate the EVM script creation, you can use [identifiers](https://1hive.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
@@ -55,16 +55,15 @@ To facilitate the EVM script creation, you can use [identifiers](https://1hive.g
 Below you can find a full example:
 
 ```js
-await evmcrispr.forward(
-  evmcl`
-    install wrapped-hooked-token-manager.open:membership-tm ${token} false 0
-    install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
-    grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE
-    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE
-    grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
-    exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
-  `,
-  ['token-manager:1', 'voting'],
+await evmcl`
+  connect ${dao} token-manager:1 voting
+  install wrapped-hooked-token-manager.open:membership-tm ${token} false 0
+  install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
+  grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE
+  grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE
+  grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
+  exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
+`.forward(signer);
 );
 ```
 
@@ -76,19 +75,31 @@ await evmcrispr.forward(
    yarn add @1hive/evmcrispr ethers
    ```
 
-2. Import the `EVMcrispr` class and the `evmcl` template:
+2. Import the `evmcl` template:
 
    ```js
-   import { EVMcrispr, evmcl } from '@1hive/evmcrispr';
+   import { evmcl } from '@1hive/evmcrispr';
    ```
 
-3. Create a new `EVMcrispr` by using the static method `crate()`. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
+3. Fill the evmcl template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
 
    ```js
-   const evmcrispr = await EVMcrispr.create(signer, daoAddress);
+   const evm = evmcl`
+    connect 1hive disputable-voting.open
+    set $token.tokenlist https://tokens.honeyswap.org/
+    act agent @token(HNY) transfer(address,uint256) @me 100e18
+    act agent @token(WETH) transfer(address,uint256) @me 1e18
+   `;
    ```
 
 4. Use the EVMcrispr's `encode` or `forward` functions to pass an array of actions, or an evmcl script.
+
+   ```js
+   const { actions, forward } = await evm.encode(signer);
+   await forward();
+   // or just
+   await evm.forward(signer);
+   ```
 
 ## Parametric permission utils
 

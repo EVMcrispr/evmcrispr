@@ -15,7 +15,8 @@ async function check(actions: EVMcl, expectedActions: ActionFunction[]) {
     'token-manager',
     'voting',
   ]);
-  expect(await actions.encode(signer)).to.be.deep.eq(expected);
+  const actual = await actions.encode(signer);
+  expect(actual.actions).to.be.deep.eq(expected.actions);
 }
 
 describe('EVM Command Line', () => {

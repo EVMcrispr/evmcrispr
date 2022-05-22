@@ -148,27 +148,27 @@ describe('EVMcrispr script-encoding functions', () => {
     });
 
     it('should encode a set of actions into an EVM script correctly using a path containing a fee, context and normal forwarder', async () => {
-      const expectedEncodedScriptAction = createTestScriptEncodedAction(
-        expectedActions,
-        COMPLETE_FORWARDER_PATH,
-        CONTEXT,
-      );
-      const expectedEncodedPreTxActions = [
+      const expectedEncodedTxActions = [
         createTestPreTxAction('approve', FEE_TOKEN_ADDRESS, [
           resolveApp(FEE_FORWARDER),
           FEE_AMOUNT,
         ]),
+        createTestScriptEncodedAction(
+          expectedActions,
+          COMPLETE_FORWARDER_PATH,
+          CONTEXT,
+        ),
       ];
-      const { action: encodedScriptAction, preTxActions } =
-        await evmcrispr.encode(actionFunctions, COMPLETE_FORWARDER_PATH, {
+      const { actions: encodedScriptAction } = await evmcrispr.encode(
+        actionFunctions,
+        COMPLETE_FORWARDER_PATH,
+        {
           context: CONTEXT,
-        });
-
-      expect(preTxActions, 'Fee pretransactions mismatch').eql(
-        expectedEncodedPreTxActions,
+        },
       );
-      expect(encodedScriptAction, 'EVM script action mismatch').eql(
-        expectedEncodedScriptAction,
+
+      expect(encodedScriptAction, 'Transactions mismatch').eql(
+        expectedEncodedTxActions,
       );
     });
 
@@ -187,8 +187,8 @@ describe('EVMcrispr script-encoding functions', () => {
           exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(' ')}
         `.encode(signer);
 
-      expect(encodedScriptAction, 'EVM script action mismatch').eql(
-        expectedEncodedScriptAction,
+      expect(encodedScriptAction.actions, 'EVM script action mismatch').eql(
+        expectedEncodedScriptAction.actions,
       );
     });
   });

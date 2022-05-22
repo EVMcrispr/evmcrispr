@@ -210,7 +210,8 @@ export default function evmcl(
   return {
     encode: async (signer: Signer, options) => {
       const evmcrispr = await EVMcrispr.create(dao, signer, options);
-      return evmcrispr.encode([await actions(evmcrispr)], path, { context });
+      const _actions = await actions(evmcrispr);
+      return evmcrispr.encode([_actions], path, { context });
     },
     forward: async (signer: Signer, options) => {
       const evmcrispr = await EVMcrispr.create(dao, signer, options);
