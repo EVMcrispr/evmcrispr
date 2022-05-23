@@ -13,7 +13,7 @@ import {
   paramValue,
   timestamp,
   xor,
-} from '../src/helpers/acl';
+} from '../src/utils/acl';
 import type { Params } from '../src/types';
 
 function onlyParam(param: Params): string {

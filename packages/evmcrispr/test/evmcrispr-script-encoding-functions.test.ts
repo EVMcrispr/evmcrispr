@@ -1,9 +1,8 @@
-import { ethers } from 'hardhat';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 
 import type { Action, ActionFunction } from '../src';
-import { ErrorInvalid, evmcl } from '../src';
+import { EVMcrispr, ErrorInvalid, evmcl } from '../src';
 import {
   APP,
   COMPLETE_FORWARDER_PATH,
@@ -13,15 +12,15 @@ import {
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
   GRANT_PERMISSIONS,
-  MockEVMcrispr,
   NEW_PERMISSIONS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSIONS,
   getSignatureSelector,
+  getSigner,
   resolveApp,
   resolvePermission,
 } from './fixtures';
-import { encodeActCall } from '../src/helpers';
+import { encodeActCall } from '../src/utils';
 import {
   createTestAction,
   createTestPreTxAction,
@@ -30,15 +29,15 @@ import {
 import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
 
 describe('EVMcrispr script-encoding functions', () => {
-  let evmcrispr: MockEVMcrispr;
+  let evmcrispr: EVMcrispr;
   let signer: SignerWithAddress;
   let expectedActions: Action[];
   let actionFunctions: ActionFunction[];
 
   before(async () => {
-    signer = (await ethers.getSigners())[0];
+    signer = await getSigner();
 
-    evmcrispr = await MockEVMcrispr.create(DAO.kernel, signer);
+    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
   });
 
   before(() => {
@@ -108,7 +107,7 @@ describe('EVMcrispr script-encoding functions', () => {
         PERMISSION_MANAGER,
       ),
       evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true),
-      evmcrispr.exec(`${appIdentifier}`)[callSelector](...callSignatureParams),
+      evmcrispr.exec(appIdentifier, callSelector, callSignatureParams),
     ];
   });
 
@@ -141,11 +140,7 @@ describe('EVMcrispr script-encoding functions', () => {
       await expectThrowAsync(
         () =>
           evmcrispr.encode(
-            [
-              evmcrispr
-                .exec(`${appIdentifier}`)
-                [callSelector](...callSignatureParams),
-            ],
+            [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
             COMPLETE_FORWARDER_PATH,
           ),
         { type: ErrorInvalid },
@@ -153,27 +148,27 @@ describe('EVMcrispr script-encoding functions', () => {
     });
 
     it('should encode a set of actions into an EVM script correctly using a path containing a fee, context and normal forwarder', async () => {
-      const expectedEncodedScriptAction = createTestScriptEncodedAction(
-        expectedActions,
-        COMPLETE_FORWARDER_PATH,
-        CONTEXT,
-      );
-      const expectedEncodedPreTxActions = [
+      const expectedEncodedTxActions = [
         createTestPreTxAction('approve', FEE_TOKEN_ADDRESS, [
           resolveApp(FEE_FORWARDER),
           FEE_AMOUNT,
         ]),
+        createTestScriptEncodedAction(
+          expectedActions,
+          COMPLETE_FORWARDER_PATH,
+          CONTEXT,
+        ),
       ];
-      const { action: encodedScriptAction, preTxActions } =
-        await evmcrispr.encode(actionFunctions, COMPLETE_FORWARDER_PATH, {
+      const { actions: encodedScriptAction } = await evmcrispr.encode(
+        actionFunctions,
+        COMPLETE_FORWARDER_PATH,
+        {
           context: CONTEXT,
-        });
-
-      expect(preTxActions, 'Fee pretransactions mismatch').eql(
-        expectedEncodedPreTxActions,
+        },
       );
-      expect(encodedScriptAction, 'EVM script action mismatch').eql(
-        expectedEncodedScriptAction,
+
+      expect(encodedScriptAction, 'Transactions mismatch').eql(
+        expectedEncodedTxActions,
       );
     });
 
@@ -181,24 +176,19 @@ describe('EVMcrispr script-encoding functions', () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
       const expectedEncodedScriptAction = await evmcrispr.encode(
-        [
-          evmcrispr
-            .exec(`${appIdentifier}`)
-            [callSelector](...callSignatureParams),
-        ],
+        [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
         COMPLETE_FORWARDER_PATH,
         { context: CONTEXT },
       );
-      const encodedScriptAction = await evmcrispr.encode(
-        evmcl`
+      const encodedScriptAction = await evmcl`
+          connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
+        ' ',
+      )} --context ${CONTEXT}
           exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(' ')}
-        `,
-        COMPLETE_FORWARDER_PATH,
-        { context: CONTEXT },
-      );
+        `.encode(signer);
 
-      expect(encodedScriptAction, 'EVM script action mismatch').eql(
-        expectedEncodedScriptAction,
+      expect(encodedScriptAction.actions, 'EVM script action mismatch').eql(
+        expectedEncodedScriptAction.actions,
       );
     });
   });

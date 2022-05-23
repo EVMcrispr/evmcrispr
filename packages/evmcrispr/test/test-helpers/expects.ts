@@ -1,10 +1,12 @@
-import { isAddress } from '@ethersproject/address';
 import { expect } from 'chai';
+import { utils } from 'ethers';
 import { multihash } from 'is-ipfs';
 
 import { ErrorInvalid } from '../../src';
-import { parseContentUri } from '../../src/helpers';
+import { parseContentUri } from '../../src/utils';
 import type { AragonArtifact, ParsedApp } from '../../src/types';
+
+const { isAddress } = utils;
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 

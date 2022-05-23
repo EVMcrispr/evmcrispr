@@ -1,42 +1,30 @@
-import type { IpfsResolver } from '@1hive/connect-core';
-import { ipfsResolver as createIpfsResolver } from '@1hive/connect-core';
 import { Contract, constants, utils } from 'ethers';
-import type { BigNumber, BigNumberish, Signer, providers } from 'ethers';
+import type { BigNumber, Signer, providers } from 'ethers';
 
-import { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
+import { ErrorInvalid } from './errors';
 import {
-  FORWARDER_ABI,
+  ANY_ENTITY,
+  BURN_ENTITY,
   FORWARDER_TYPES,
-  IPFS_GATEWAY,
+  NO_ENTITY,
   buildApp,
   buildAppArtifact,
   buildAppIdentifier,
-  buildAppPermissions,
   buildIpfsTemplate,
-  buildNonceForAddress,
   calculateNewProxyAddress,
   encodeActCall,
   encodeCallScript,
-  erc20ABI,
   fetchAppArtifact,
   getAragonEnsResolver,
   getForwarderFee,
   getForwarderType,
-  getFunctionParams,
   isForwarder,
   normalizeActions,
-  normalizeRole,
-  oracle,
-  parseLabeledAppIdentifier,
-  resolveIdentifier,
   resolveName,
-  timeUnits,
-  toDecimals,
-} from './helpers';
+} from './utils';
 import type {
   Action,
   ActionFunction,
-  ActionInterpreter,
   Address,
   App,
   AppArtifactCache,
@@ -45,6 +33,7 @@ import type {
   EVMcrisprOptions,
   Entity,
   ForwardOptions,
+  Helpers,
   LabeledAppIdentifier,
   Params,
   ParsedApp,
@@ -52,6 +41,13 @@ import type {
   PermissionP,
 } from './types';
 import Connector from './Connector';
+import { IPFSResolver } from './IPFSResolver';
+import { erc20ABI, forwarderABI } from './abis';
+import resolver from './utils/resolvers';
+import AragonOS from './modules/AragonOS';
+import defaultHelpers from './helpers';
+
+type TransactionReceipt = providers.TransactionReceipt;
 
 /**
  * The default main EVMcrispr class that expose all the functionalities.
@@ -64,29 +60,34 @@ export default class EVMcrispr {
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
   #addressBook: Map<string, Address>;
+
+  #helpers: Helpers;
+  #env: Map<string, any> = new Map();
   /**
    * The connector used to fetch Aragon apps.
    */
   protected _connector: Connector;
-  protected _ipfsResolver: IpfsResolver;
-  #installedAppCounter: number;
-  #newTokenCounter: number;
+  protected _ipfsResolver: IPFSResolver;
   #signer: Signer;
+
+  aragon: AragonOS;
+
+  resolver: any;
 
   /**
    * An address used for permission operations that denotes any type of Ethereum account.
    */
-  ANY_ENTITY: Address = '0x' + 'F'.repeat(40);
+  ANY_ENTITY: Address = ANY_ENTITY;
 
   /**
    * An address used for permission operations that denotes no Ethereum account.
    */
-  NO_ENTITY: Address = constants.AddressZero;
+  NO_ENTITY: Address = NO_ENTITY;
 
   /**
    * An address used for permission operations that denotes that the permission has been burnt.
    */
-  BURN_ENTITY: Address = '0x' + '0'.repeat(39) + '1';
+  BURN_ENTITY: Address = BURN_ENTITY;
 
   protected constructor(
     chainId: number,
@@ -99,12 +100,13 @@ export default class EVMcrispr {
       subgraphUrl: options.subgraphUrl,
     });
     this.#addressBook = new Map();
-    this.#installedAppCounter = 0;
-    this.#newTokenCounter = 0;
-    this._ipfsResolver = createIpfsResolver(
+    this._ipfsResolver = new IPFSResolver(
       buildIpfsTemplate(options.ipfsGateway),
     );
     this.#signer = signer;
+    this.resolver = resolver(this);
+    this.aragon = new AragonOS(this);
+    this.#helpers = { ...defaultHelpers, ...options?.helpers };
   }
 
   /**
@@ -119,7 +121,7 @@ export default class EVMcrispr {
   static async create(
     daoAddressOrName: string,
     signer: Signer,
-    options: EVMcrisprOptions = { ipfsGateway: IPFS_GATEWAY },
+    options: EVMcrisprOptions = {},
   ): Promise<EVMcrispr> {
     const chainId = await signer.getChainId();
     const evmcrispr = new EVMcrispr(chainId, signer, options);
@@ -150,12 +152,42 @@ export default class EVMcrispr {
     return this.#appCache;
   }
 
+  get appArtifactCache(): AppArtifactCache {
+    return this.#appArtifactCache;
+  }
+
+  get ipfsResolver(): IPFSResolver {
+    return this._ipfsResolver;
+  }
+
   get connector(): Connector {
     return this._connector;
   }
 
   get signer(): Signer {
     return this.#signer;
+  }
+
+  get addressBook(): Map<string, string> {
+    return this.#addressBook;
+  }
+
+  get helpers(): Helpers {
+    return this.#helpers;
+  }
+
+  env(varName: string): any {
+    return this.#env.get(varName);
+  }
+
+  set(varName: string, value: unknown): ActionFunction {
+    return async () => {
+      if (varName[0] !== '$') {
+        throw new Error('Environment variables must start with $ symbol.');
+      }
+      this.#env.set(varName, value);
+      return [];
+    };
   }
 
   /**
@@ -168,106 +200,7 @@ export default class EVMcrispr {
     permission: Permission | PermissionP,
     defaultPermissionManager: Entity,
   ): ActionFunction {
-    return async () => {
-      const [grantee, app, role, getParams = () => []] = permission;
-      const [granteeAddress, appAddress, roleHash] = this.#resolvePermission([
-        grantee,
-        app,
-        role,
-      ]);
-
-      if (!defaultPermissionManager) {
-        throw new ErrorInvalid(
-          `Permission not well formed, permission manager missing`,
-          {
-            name: 'ErrorInvalidIdentifier',
-          },
-        );
-      }
-
-      const params = getParams();
-      const manager = this.#resolveEntity(defaultPermissionManager);
-      const { permissions: appPermissions } = this.#resolveApp(app);
-      const { address: aclAddress, abiInterface: aclAbiInterface } =
-        this.#resolveApp('acl');
-      const actions = [];
-
-      if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(
-          `Permission ${role} doesn't exists in app ${app}.`,
-        );
-      }
-
-      const appPermission = appPermissions.get(roleHash)!;
-
-      // If the permission already existed and no parameters are needed, just grant to a new entity and exit
-      if (
-        appPermission.manager !== '' &&
-        appPermission.manager !== constants.AddressZero &&
-        params.length == 0
-      ) {
-        if (appPermission.grantees.has(granteeAddress)) {
-          throw new ErrorException(
-            `Grantee ${grantee} already has permission ${role}`,
-          );
-        }
-        appPermission.grantees.add(granteeAddress);
-
-        return [
-          {
-            to: aclAddress,
-            data: aclAbiInterface.encodeFunctionData('grantPermission', [
-              granteeAddress,
-              appAddress,
-              roleHash,
-            ]),
-          },
-        ];
-      }
-
-      // If the permission does not exist previously, create it
-      if (
-        appPermission.manager === '' ||
-        appPermission.manager === constants.AddressZero
-      ) {
-        appPermissions.set(roleHash, {
-          manager,
-          grantees: new Set([granteeAddress]),
-        });
-
-        actions.push({
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData('createPermission', [
-            granteeAddress,
-            appAddress,
-            roleHash,
-            manager,
-          ]),
-        });
-      }
-
-      // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
-      if (params.length > 0) {
-        if (appPermission.grantees.has(granteeAddress)) {
-          throw new ErrorException(
-            `Grantee ${grantee} already has permission ${role}.`,
-          );
-        }
-        appPermission.grantees.add(granteeAddress);
-
-        actions.push({
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
-            granteeAddress,
-            appAddress,
-            roleHash,
-            params,
-          ]),
-        });
-      }
-
-      return actions;
-    };
+    return this.aragon.grant(permission, defaultPermissionManager);
   }
 
   /**
@@ -281,9 +214,7 @@ export default class EVMcrispr {
     permissions: (Permission | PermissionP)[],
     defaultPermissionManager: Entity,
   ): ActionFunction {
-    return normalizeActions(
-      permissions.map((p) => this.grant(p, defaultPermissionManager)),
-    );
+    return this.aragon.grantPermissions(permissions, defaultPermissionManager);
   }
 
   /**
@@ -291,8 +222,9 @@ export default class EVMcrispr {
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
    * @returns The app's contract address.
    */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Address {
-    return this.#resolveApp(appIdentifier).address;
+  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Contract {
+    const app = this.resolver.resolveApp(appIdentifier);
+    return new Contract(app.address, app.abiInterface, this.#signer);
   }
 
   /**
@@ -304,10 +236,12 @@ export default class EVMcrispr {
   }
 
   appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
-    console.log(
-      'Warning: Function `evmcrispr.appMethods(identifier)` is experimental and may change in future releases.',
+    return (
+      this.#appArtifactCache
+        .get(this.resolver.resolveApp(appIdentifier).codeAddress)
+        ?.functions.map(({ sig }) => sig.split('(')[0])
+        .filter((n) => n !== 'initialize') || []
     );
-    return this.#appMethods(appIdentifier);
   }
 
   /**
@@ -324,11 +258,7 @@ export default class EVMcrispr {
     signature: string,
     params: any[],
   ): ActionFunction {
-    return async () => {
-      return this.forwardActions(agent, [
-        this.encodeAction(target, signature, params),
-      ])();
-    };
+    return this.aragon.act(agent, target, signature, params);
   }
 
   /**
@@ -350,10 +280,10 @@ export default class EVMcrispr {
       const paramTypes = signature.split('(')[1].slice(0, -1).split(',');
       return [
         {
-          to: this.#resolveEntity(target),
+          to: this.resolver.resolveEntity(target),
           data: encodeActCall(
             signature,
-            this.#resolveParams(params, paramTypes),
+            this.resolver.resolveParams(params, paramTypes),
           ),
         },
       ];
@@ -374,7 +304,7 @@ export default class EVMcrispr {
       const script = encodeCallScript(await normalizeActions(actions)());
       return [
         {
-          to: this.#resolveEntity(forwarder),
+          to: this.resolver.resolveEntity(forwarder),
           data: encodeActCall('forward(bytes)', [script]),
         },
       ];
@@ -392,86 +322,22 @@ export default class EVMcrispr {
     actions: ActionFunction[],
     useSafeExecute = false,
   ): ActionFunction {
-    return async () => {
-      return (
-        await Promise.all(
-          (
-            await normalizeActions(actions)()
-          ).map((action) =>
-            useSafeExecute
-              ? this.exec(agent).safeExecute(action.to, action.data)()
-              : this.exec(agent).execute(
-                  action.to,
-                  action.value ?? 0,
-                  action.data,
-                )(),
-          ),
-        )
-      ).flat();
-    };
+    return this.aragon.agentExec(agent, actions, useSafeExecute);
   }
 
   /**
    * Encode an action that calls an app's contract function.
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
-   * @returns A proxy of the app that intercepts contract function calls and returns
-   * the encoded call instead.
+   * @param functionName Function name, such as mint.
+   * @param params Array with the parameters passed to the encoded function.
+   * @returns A function that retuns an action to forward a call with the specified parameters
    */
-  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any {
-    const app = () => this.#resolveApp(appIdentifier);
-    const appMethods = () => this.#appMethods(appIdentifier);
-    return new Proxy(app, {
-      ownKeys() {
-        return appMethods();
-      },
-      getOwnPropertyDescriptor() {
-        return {
-          enumerable: true,
-        };
-      },
-      get: (getTargetApp: () => App, functionName: string) => {
-        try {
-          const getCallData = (): [App, string[], string[]] => {
-            const targetApp = getTargetApp();
-            const [paramNames, paramTypes] = getFunctionParams(
-              functionName,
-              targetApp.abiInterface,
-            );
-            return [targetApp, paramNames, paramTypes];
-          };
-
-          const fn = (...params: any): ActionFunction => {
-            return async () => {
-              const [targetApp, , paramTypes] = getCallData();
-              return [
-                {
-                  to: targetApp.address,
-                  data: targetApp.abiInterface.encodeFunctionData(
-                    functionName,
-                    this.#resolveParams(params, paramTypes),
-                  ),
-                },
-              ];
-            };
-          };
-          // Check in case we're calling a counterfactual app function
-          if (this.appCache.has(resolveIdentifier(appIdentifier))) {
-            const [, paramNames, paramTypes] = getCallData();
-
-            Object.defineProperties(fn, {
-              name: { value: functionName },
-              paramNames: { value: paramNames },
-              paramTypes: { value: paramTypes },
-            });
-          }
-
-          return fn;
-        } catch (err: any) {
-          err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
-          throw err;
-        }
-      },
-    });
+  exec(
+    appIdentifier: AppIdentifier | LabeledAppIdentifier,
+    functionName: string,
+    params: any[],
+  ): ActionFunction {
+    return this.aragon.exec(appIdentifier, functionName, params);
   }
 
   /**
@@ -483,16 +349,14 @@ export default class EVMcrispr {
    * any pre-transactions that need to be executed in advance.
    */
   async encode(
-    actionFunctions:
-      | ActionFunction[]
-      | ((evm: ActionInterpreter) => ActionFunction),
+    actionFunctions: ActionFunction[],
     path: Entity[],
     options?: ForwardOptions,
-  ): Promise<{ action: Action; preTxActions: Action[] }> {
-    const _actionFunctions = Array.isArray(actionFunctions)
-      ? actionFunctions
-      : [actionFunctions(this)];
-    if (_actionFunctions.length === 0) {
+  ): Promise<{
+    actions: Action[];
+    forward: () => Promise<TransactionReceipt[]>;
+  }> {
+    if (actionFunctions.length === 0) {
       throw new ErrorInvalid('No actions provided.');
     }
     if (path.length === 0) {
@@ -500,13 +364,12 @@ export default class EVMcrispr {
     }
     // Need to build the evmscript starting from the last forwarder
     const forwarders = path
-      .map((entity) => this.#resolveEntity(entity))
+      .map((entity) => this.resolver.resolveEntity(entity))
       .reverse();
-    const actions = await normalizeActions(_actionFunctions)();
-    const preTxActions: Action[] = [];
+    const actions: Action[] = [];
 
     let script: string;
-    let forwarderActions = [...actions];
+    let forwarderActions = await normalizeActions(actionFunctions)();
     let value = 0;
 
     for (let i = 0; i < forwarders.length; i++) {
@@ -514,7 +377,7 @@ export default class EVMcrispr {
       const forwarderAddress = forwarders[i];
       const forwarder = new Contract(
         forwarderAddress,
-        FORWARDER_ABI,
+        forwarderABI,
         this.#signer.provider,
       );
 
@@ -542,7 +405,7 @@ export default class EVMcrispr {
           )) as BigNumber;
 
           if (allowance.gt(0) && allowance.lt(feeAmount)) {
-            preTxActions.push({
+            actions.push({
               to: feeTokenAddress,
               data: feeToken.interface.encodeFunctionData('approve', [
                 forwarderAddress,
@@ -551,7 +414,7 @@ export default class EVMcrispr {
             });
           }
           if (allowance.eq(0)) {
-            preTxActions.push({
+            actions.push({
               to: feeTokenAddress,
               data: feeToken.interface.encodeFunctionData('approve', [
                 forwarderAddress,
@@ -573,7 +436,7 @@ export default class EVMcrispr {
             to: forwarderAddress,
             data: encodeActCall('forward(bytes,bytes)', [
               script,
-              utils.hexlify(utils.toUtf8Bytes(options.context)),
+              utils.hexlify(utils.toUtf8Bytes(options?.context || '')),
             ]),
           },
         ];
@@ -587,7 +450,12 @@ export default class EVMcrispr {
       }
     }
 
-    return { action: { ...forwarderActions[0], value }, preTxActions };
+    actions.push({ ...forwarderActions[0], value });
+
+    return {
+      actions: actions,
+      forward: () => this._forward(actions, options),
+    };
   }
 
   /**
@@ -598,32 +466,35 @@ export default class EVMcrispr {
    * @returns A promise that resolves to a receipt of the sent transaction.
    */
   async forward(
-    actions: ActionFunction[] | ((evm: ActionInterpreter) => ActionFunction),
+    actions: ActionFunction[],
     path: Entity[],
-    options?: ForwardOptions & {
-      gasPrice?: BigNumberish;
-      gasLimit?: BigNumberish;
-    },
-  ): Promise<providers.TransactionReceipt> {
-    const { action, preTxActions } = await this.encode(actions, path, options);
-    // Execute pretransactions actions
-    for (const action of preTxActions) {
-      await (
-        await this.#signer.sendTransaction({
-          ...action,
-          gasPrice: options?.gasPrice,
-          gasLimit: options?.gasLimit,
-        })
-      ).wait();
-    }
+    options?: ForwardOptions,
+  ): Promise<providers.TransactionReceipt[]> {
+    const { actions: encodedActions } = await this.encode(
+      actions,
+      path,
+      options,
+    );
+    return this._forward(encodedActions, options);
+  }
 
-    return (
-      await this.#signer.sendTransaction({
-        ...action,
-        gasPrice: options?.gasPrice,
-        gasLimit: options?.gasLimit,
-      })
-    ).wait();
+  protected async _forward(
+    actions: Action[],
+    options?: ForwardOptions,
+  ): Promise<TransactionReceipt[]> {
+    const txs = [];
+    for (const action of actions) {
+      txs.push(
+        await (
+          await this.#signer.sendTransaction({
+            ...action,
+            gasPrice: options?.gasPrice,
+            gasLimit: options?.gasLimit,
+          })
+        ).wait(),
+      );
+    }
+    return txs;
   }
 
   newToken(
@@ -633,58 +504,13 @@ export default class EVMcrispr {
     decimals = 18,
     transferable = true,
   ): ActionFunction {
-    const factories = new Map([
-      [1, '0xA29EF584c389c67178aE9152aC9C543f9156E2B3'],
-      [4, '0xad991658443c56b3dE2D7d7f5d8C68F339aEef29'],
-      [100, '0xf7d36d4d46cda364edc85e5561450183469484c5'],
-      [137, '0xcFed1594A5b1B612dC8199962461ceC148F14E68'],
-    ]);
-    const factory = new utils.Interface([
-      'function createCloneToken(address _parentToken, uint _snapshotBlock, string _tokenName, uint8 _decimalUnits, string _tokenSymbol, bool _transfersEnabled) external returns (address)',
-    ]);
-    const controlled = new utils.Interface([
-      'function changeController(address _newController) external',
-    ]);
-    return async () => {
-      const chainId = await this.signer.getChainId();
-      if (!factories.has(chainId)) {
-        throw new Error(
-          `No MiniMeTokenFactory registered in network ${chainId}`,
-        );
-      }
-
-      await this.#registerNextProxyAddress(controller);
-      const controllerAddress = this.#resolveEntity(controller);
-      const nonce = await buildNonceForAddress(
-        factories.get(chainId),
-        this.#newTokenCounter++,
-        this.#signer.provider!,
-      );
-      const newTokenAddress = calculateNewProxyAddress(
-        factories.get(chainId),
-        nonce,
-      );
-      this.#addressBook.set(`token:${symbol}`, newTokenAddress);
-      return [
-        {
-          to: factories.get(chainId)!,
-          data: factory.encodeFunctionData('createCloneToken', [
-            constants.AddressZero,
-            0,
-            name,
-            decimals,
-            symbol,
-            transferable,
-          ]),
-        },
-        {
-          to: newTokenAddress,
-          data: controlled.encodeFunctionData('changeController', [
-            controllerAddress,
-          ]),
-        },
-      ];
-    };
+    return this.aragon.newToken(
+      name,
+      symbol,
+      controller,
+      decimals,
+      transferable,
+    );
   }
 
   /**
@@ -697,62 +523,7 @@ export default class EVMcrispr {
     identifier: LabeledAppIdentifier,
     initParams: any[] = [],
   ): ActionFunction {
-    return async () => {
-      try {
-        const [appName, registry] = parseLabeledAppIdentifier(identifier);
-        const appRepo = await this.connector.repo(appName, registry);
-        const { codeAddress, contentUri, artifact: repoArtifact } = appRepo;
-
-        if (!this.#appArtifactCache.has(codeAddress)) {
-          const artifact =
-            repoArtifact ??
-            (await fetchAppArtifact(this._ipfsResolver, contentUri));
-          this.#appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
-        }
-
-        const { abiInterface, roles } =
-          this.#appArtifactCache.get(codeAddress)!;
-        const kernel = this.#resolveApp('kernel');
-        const [, types] = getFunctionParams('initialize', abiInterface);
-        const encodedInitializeFunction = abiInterface.encodeFunctionData(
-          'initialize',
-          this.#resolveParams(initParams, types),
-        );
-        const appId = utils.namehash(`${appName}.${registry}`);
-        if (!this.#addressBook.has(identifier)) {
-          await this.#registerNextProxyAddress(identifier);
-        }
-        const proxyContractAddress = this.#resolveEntity(identifier);
-        if (this.#appCache.has(identifier)) {
-          throw new ErrorException(
-            `Identifier ${identifier} is already in use.`,
-          );
-        }
-
-        this.#appCache.set(identifier, {
-          abiInterface: abiInterface,
-          address: proxyContractAddress,
-          codeAddress,
-          contentUri,
-          name: appName,
-          permissions: buildAppPermissions(roles, []),
-          registryName: registry,
-        });
-
-        return [
-          {
-            to: kernel.address,
-            data: kernel.abiInterface.encodeFunctionData(
-              'newAppInstance(bytes32,address,bytes,bool)',
-              [appId, codeAddress, encodedInitializeFunction, false],
-            ),
-          },
-        ];
-      } catch (err: any) {
-        err.message = `Error when encoding ${identifier} installation action: ${err.message}`;
-        throw err;
-      }
-    };
+    return this.aragon.install(identifier, initParams);
   }
 
   /**
@@ -762,23 +533,7 @@ export default class EVMcrispr {
    * @returns A function that returns the upgrade action
    */
   upgrade(apmRepo: string, newAppAddress: Address): ActionFunction {
-    return async () => {
-      if (!apmRepo.endsWith('.eth')) {
-        throw new ErrorException(`The APM repo must be an ENS name.`);
-      }
-      const kernel = this.#resolveApp('kernel');
-      const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
-      const appId = utils.namehash(apmRepo);
-      return [
-        {
-          to: kernel.address,
-          data: kernel.abiInterface.encodeFunctionData(
-            'setApp(bytes32,bytes32,address)',
-            [KERNEL_APP_BASE_NAMESPACE, appId, newAppAddress],
-          ),
-        },
-      ];
-    };
+    return this.aragon.upgrade(apmRepo, newAppAddress);
   }
 
   /**
@@ -788,56 +543,7 @@ export default class EVMcrispr {
    * @returns A function that returns the revoking actions.
    */
   revoke(permission: Permission, removeManager = false): ActionFunction {
-    return async () => {
-      const actions = [];
-      const [grantee, app, role] = permission;
-      const [entityAddress, appAddress, roleHash] =
-        this.#resolvePermission(permission);
-      const { permissions: appPermissions } = this.#resolveApp(app);
-      const { address: aclAddress, abiInterface: aclAbiInterface } =
-        this.#resolveApp('acl');
-
-      if (!appPermissions.has(roleHash)) {
-        throw new ErrorNotFound(
-          `Permission ${role} doesn't exists in app ${app}.`,
-        );
-      }
-
-      const appPermission = appPermissions.get(roleHash)!;
-
-      if (!appPermission.grantees.has(entityAddress)) {
-        throw new ErrorNotFound(
-          `Entity ${grantee} doesn't have permission ${role} to be revoked.`,
-          {
-            name: 'ErrorPermissionNotFound',
-          },
-        );
-      }
-
-      appPermission.grantees.delete(entityAddress);
-
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('revokePermission', [
-          entityAddress,
-          appAddress,
-          roleHash,
-        ]),
-      });
-
-      if (removeManager) {
-        delete appPermission.manager;
-        actions.push({
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
-            appAddress,
-            roleHash,
-          ]),
-        });
-      }
-
-      return actions;
-    };
+    return this.aragon.revoke(permission, removeManager);
   }
 
   /**
@@ -850,9 +556,7 @@ export default class EVMcrispr {
     permissions: Permission[],
     removeManager = false,
   ): ActionFunction {
-    return normalizeActions(
-      permissions.map((p) => this.revoke(p, removeManager)),
-    );
+    return this.aragon.revokePermissions(permissions, removeManager);
   }
 
   /**
@@ -861,18 +565,7 @@ export default class EVMcrispr {
    * @returns A Params object that can be composed with other params or passed directly as a permission param
    */
   setOracle(entity: Entity): Params {
-    return oracle(
-      utils.isAddress(entity) ? entity : () => this.#resolveApp(entity).address,
-    );
-  }
-
-  #appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
-    return (
-      this.#appArtifactCache
-        .get(this.#resolveApp(appIdentifier).codeAddress)
-        ?.functions.map(({ sig }) => sig.split('(')[0])
-        .filter((n) => n !== 'initialize') || []
-    );
+    return this.aragon.setOracle(entity);
   }
 
   async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
@@ -964,164 +657,5 @@ export default class EVMcrispr {
 
     this.#appCache = appCache;
     this.#appArtifactCache = appResourcesCache;
-  }
-
-  async #registerNextProxyAddress(identifier: string): Promise<void> {
-    const kernel = this.#resolveApp('kernel');
-    const nonce = await buildNonceForAddress(
-      kernel.address,
-      this.#installedAppCounter++,
-      this.#signer.provider!,
-    );
-    this.#addressBook.set(
-      identifier,
-      calculateNewProxyAddress(kernel.address, nonce),
-    );
-  }
-
-  #resolveApp(entity: Entity): App {
-    if (utils.isAddress(entity)) {
-      const app = [...this.#appCache.entries()].find(
-        ([, app]) => app.address === entity,
-      );
-
-      if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, {
-          name: 'ErrorAppNotFound',
-        });
-      }
-
-      return app[1];
-    }
-    const resolvedIdentifier = resolveIdentifier(entity);
-
-    if (!this.#appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
-        name: 'ErrorAppNotFound',
-      });
-    }
-
-    return this.#appCache.get(resolvedIdentifier)!;
-  }
-
-  #resolveEntity(entity: Entity): Address {
-    switch (entity) {
-      case 'ANY_ENTITY':
-        return this.ANY_ENTITY;
-      case 'NO_ENTITY':
-      case 'ETH':
-      case 'XDAI':
-      case 'ZERO_ADDRESS':
-        return this.NO_ENTITY;
-      case 'BURN_ENTITY':
-        return this.BURN_ENTITY;
-      default:
-        if (this.#addressBook.has(entity)) {
-          return this.#addressBook.get(entity)!;
-        }
-        return utils.isAddress(entity)
-          ? entity
-          : this.#resolveApp(entity).address;
-    }
-  }
-
-  #resolveNumber(number: string | number): BigNumber | number {
-    if (typeof number === 'string') {
-      const [, amount, decimals = '0', unit = 's', inverse = 's'] = String(
-        number,
-      ).match(
-        /^(\d*(?:\.\d*)?)(?:e(\d+))?(mo|s|m|h|d|w|y)?(?:\/(mo|s|m|h|d|w|y))?$/,
-      )!;
-      return toDecimals(amount, parseInt(decimals))
-        .mul(timeUnits[unit])
-        .div(timeUnits[inverse]);
-    }
-    return number;
-  }
-
-  #resolveBoolean(boolean: string | boolean): boolean {
-    if (typeof boolean === 'string') {
-      if (boolean === 'false') {
-        return false;
-      }
-      if (boolean === 'true') {
-        return true;
-      }
-      throw new Error(
-        `Parameter should be a boolean ("true" or "false"), "${boolean}" given.`,
-      );
-    }
-    return !!boolean;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  #resolveBytes(bytes: any, max = 0): string {
-    if (typeof bytes === 'string' && !bytes.startsWith('0x')) {
-      bytes = utils.hexlify(utils.toUtf8Bytes(bytes)).padEnd(max * 2 + 2, '0');
-    }
-    bytes = bytes.toString();
-    if (!bytes.startsWith('0x') || (bytes.length > max * 2 + 2 && max > 0)) {
-      throw new Error(`Parameter should contain less than ${max} bytes.`);
-    }
-    return bytes;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  #resolveParam(param: any, type: string): any {
-    if (/\[\d*\]$/g.test(type)) {
-      if (!Array.isArray(param)) {
-        throw new Error(
-          `Parameter ${type} should be an array, ${param} given.`,
-        );
-      }
-      return param.map((param: any[]) =>
-        this.#resolveParam(param, type.slice(0, type.lastIndexOf('['))),
-      );
-    }
-    if (type === 'address') {
-      return this.#resolveEntity(param);
-    }
-    if (/^u?int(\d)*$/.test(type)) {
-      return this.#resolveNumber(param);
-    }
-    if (type === 'bool') {
-      return this.#resolveBoolean(param);
-    }
-    if (/^bytes(\d*)$/.test(type)) {
-      return this.#resolveBytes(
-        param,
-        parseInt(type.match(/^bytes(\d*)$/)![1] || '0'),
-      );
-    }
-    return param;
-  }
-
-  #resolveParams(params: any[], types: string[]): any[] {
-    return params
-      .map((param) => (param instanceof Function ? param() : param))
-      .map((param, i) => this.#resolveParam(param, types[i]));
-  }
-
-  #resolvePermission(permission: Permission): [Address, Address, string] {
-    if (!permission[0]) {
-      throw new ErrorInvalid(`Permission not well formed, grantee missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[1]) {
-      throw new ErrorInvalid(`Permission not well formed, app missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[2]) {
-      throw new ErrorInvalid(`Permission not well formed, role missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    return permission.map((entity, index) =>
-      index < permission.length - 1
-        ? this.#resolveEntity(entity)
-        : normalizeRole(entity),
-    ) as [Address, Address, string];
   }
 }

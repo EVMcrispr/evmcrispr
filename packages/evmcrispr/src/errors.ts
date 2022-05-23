@@ -63,3 +63,24 @@ export class ErrorNotFound extends ErrorException {
     super(message, { code, name });
   }
 }
+
+export class ErrorConnection extends ErrorException {
+  constructor(
+    message = 'An error happened while communicating with a remote server.',
+    { code = 'ErrorConnection', name = 'ErrorConnection' }: ErrorOptions = {},
+  ) {
+    super(message, { code, name });
+  }
+}
+
+export class ErrorUnexpectedResult extends ErrorException {
+  constructor(
+    message = 'The resource doesn’t correspond to the expected result.',
+    {
+      code = 'ErrorUnexpectedResult',
+      name = 'ErrorUnexpectedResult',
+    }: ErrorOptions = {},
+  ) {
+    super(message, { code, name });
+  }
+}

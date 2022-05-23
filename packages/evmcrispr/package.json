@@ -8,53 +8,28 @@
   "author": "Blossom Labs",
   "sideEffects": false,
   "devDependencies": {
-    "@aragon/os": "4.3.0",
-    "@ethersproject/abi": "^5.6.1",
-    "@ethersproject/abstract-provider": "^5.6.0",
-    "@ethersproject/abstract-signer": "^5.6.0",
-    "@ethersproject/address": "^5.6.0",
-    "@ethersproject/bignumber": "^5.6.0",
-    "@ethersproject/contracts": "^5.6.0",
-    "@nomiclabs/hardhat-ethers": "^2.0.0",
-    "@nomiclabs/hardhat-waffle": "^2.0.0",
-    "@typechain/ethers-v5": "^5.0.0",
-    "chai": "^4.3.6",
-    "ethereum-waffle": "^3.2.0",
-    "hardhat": "^2.0.11",
-    "hardhat-gas-reporter": "^1.0.4",
-    "hardhat-typechain": "^0.3.5",
+    "@types/isomorphic-fetch": "^0.0.36",
     "is-ipfs": "^6.0.2",
+    "msw": "^0.40.0",
+    "node-fetch": "^3.2.4",
     "nyc": "^15.1.0",
-    "ora": "^5.4.0",
-    "qrcode-terminal": "^0.12.0",
-    "ts-generator": "^0.1.1",
-    "typechain": "^4.0.2"
+    "ora": "^5.4.0"
   },
   "dependencies": {
-    "@1hive/connect-core": "^0.9.10",
-    "@1hive/connect-thegraph": "^0.9.10",
-    "ethers": "^5.0.17",
-    "graphql": "^15.8.0",
-    "graphql-tag": "^2.12.4",
-    "node-fetch": "^3.0.0"
+    "isomorphic-fetch": "^3.0.0"
+  },
+  "peerDependencies": {
+    "ethers": "^5.6.4"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "account": "hardhat account",
-    "accounts": "hardhat accounts",
-    "balance": "hardhat balance",
     "chain": "hardhat node",
-    "compile": "hardhat compile --no-typechain",
-    "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/gxbvZjqHMdz8qR5aQejZO0i0ul2fovg0",
-    "fork:rinkeby": "hardhat node --fork https://eth-rinkeby.alchemyapi.io/v2/zWeBt8YowIcK93EPCcp3862fvKTUsLDO",
-    "generate": "hardhat generate",
-    "lint": "eslint --ext .ts ./src",
+    "create-fixtures": "hardhat run scripts/create-fixtures.ts",
+    "create-docs": "typedoc",
     "preinstall": "npx only-allow pnpm",
-    "send": "hardhat send",
-    "test": "hardhat test --network rinkeby",
-    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test",
-    "create-fixtures": "hardhat run scripts/create-fixtures.ts"
+    "test": "hardhat test",
+    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test"
   }
 }

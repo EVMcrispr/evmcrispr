@@ -1,12 +1,9 @@
 name: Docs
 on:
   push:
-    branches: [next]
+    branches: [main, next]
     paths:
-      - packages/evmcrispr/src/index.ts
-      - packages/evmcrispr/src/EVMcrispr.ts
-      - packages/evmcrispr/src/errors.ts
-      - packages/evmcrispr/src/types.ts
+      - 'packages/evmcrispr/src/**'
       - packages/evmcrispr/README.md
 jobs:
   build-and-deploy:
@@ -14,7 +11,7 @@ jobs:
     strategy:
       matrix:
         node-version: [16.x]
-        pnpm-version: [6.x]
+        pnpm-version: [7.x]
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2.2.1
@@ -31,7 +28,9 @@ jobs:
         run: |
           pnpm config set unsafe-perm true
           pnpm i
-          pnpm generate:docs
+
+      - name: Generate docs
+        run: pnpm docs:evmcrispr
 
       - name: Deploy docs
         uses: JamesIves/github-pages-deploy-action@4.1.4

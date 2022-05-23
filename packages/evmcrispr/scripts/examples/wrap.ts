@@ -1,4 +1,4 @@
-import { Contract } from '@ethersproject/contracts';
+import { Contract } from 'ethers';
 
 import { EVMcrispr } from '../../src';
 import { impersonateAddress } from '../../helpers/rpc';

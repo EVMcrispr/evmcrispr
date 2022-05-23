@@ -1,7 +1,7 @@
-import type { QueryResult } from '@1hive/connect-thegraph';
-import { GraphQLWrapper } from '@1hive/connect-thegraph';
+import fetch from 'isomorphic-fetch';
 
-import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './helpers';
+import type { GraphQLBody } from './utils';
+import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './utils';
 import { ErrorException, ErrorNotFound } from './errors';
 import type { Address, ParsedApp, Repo } from './types';
 
@@ -20,12 +20,17 @@ export function subgraphUrlFromChainId(chainId: number): string | null {
   }
 }
 
+type QueryResult = {
+  data: any;
+  errors?: { message: string }[];
+};
+
 /**
  * Connector that expose functionalities to fetch app data from subgraphs and IPFS.
  * @category Utility
  */
 export default class Connector {
-  protected _gql: GraphQLWrapper;
+  #subgraphUrl: string;
 
   /**
    * Create a new Connector instance.
@@ -37,18 +42,32 @@ export default class Connector {
 
     if (!subgraphUrl) {
       throw new ErrorException(
-        'Connector requires a valid chain id to be passed (1, 4 or 100)',
+        `Network ${chainId} not supported. Use 1, 4 or 100.`,
       );
     }
 
-    this._gql = new GraphQLWrapper(subgraphUrl);
+    this.#subgraphUrl = subgraphUrl;
   }
 
-  /**
-   * Close the connection.
-   */
-  async disconnect(): Promise<void> {
-    this._gql.close();
+  protected async querySubgraph<T>(
+    body: GraphQLBody,
+    parser?: (data: any) => T,
+  ): Promise<T> {
+    const rawResponse = await fetch(this.#subgraphUrl, {
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+
+    const { data, errors } = (await rawResponse.json()) as QueryResult;
+
+    if (errors?.length) {
+      throw new ErrorException(
+        `An error happened while querying subgraph: ${errors[0]}`,
+      );
+    }
+
+    return parser ? parser(data) : data;
   }
 
   /**
@@ -59,27 +78,22 @@ export default class Connector {
    * @returns A promise that resolves to the app's repo.
    */
   async repo(repoName: string, registryName: string): Promise<Repo> {
-    return this._gql.performQueryWithParser(
-      REPO('query'),
-      { repoName },
-      (result: QueryResult) => {
-        // Cant filter by registry when fetching repos so we need to do it here
-        const repo = result.data.repos
-          .filter(
-            ({ registry }: { registry: any }) => registry.name === registryName,
-          )
-          .pop();
+    return this.querySubgraph<Repo>(REPO(repoName), (data: any) => {
+      // Cant filter by registry when fetching repos so we need to do it here
+      const repo = data.repos
+        .filter(
+          ({ registry }: { registry: any }) => registry.name === registryName,
+        )
+        .pop();
 
-        if (!repo) {
-          throw new ErrorNotFound(
-            `Repo ${repoName}.${registryName} not found`,
-            { name: 'ErrorRepoNotFound' },
-          );
-        }
+      if (!repo) {
+        throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`, {
+          name: 'ErrorRepoNotFound',
+        });
+      }
 
-        return parseRepo(repo);
-      },
-    );
+      return parseRepo(repo);
+    });
   }
 
   /**
@@ -88,13 +102,12 @@ export default class Connector {
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
-    return this._gql.performQueryWithParser(
-      ORGANIZATION_APPS('query'),
-      { id: daoAddress.toLowerCase() },
-      (result: QueryResult) => {
-        const apps = result.data?.organization?.apps;
+    return this.querySubgraph<ParsedApp[]>(
+      ORGANIZATION_APPS(daoAddress.toLowerCase()),
+      (data: any) => {
+        const apps = data?.organization?.apps;
 
-        if (!apps || result.data?.organization === null) {
+        if (!apps || data?.organization === null) {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 

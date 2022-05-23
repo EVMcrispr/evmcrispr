@@ -27,8 +27,9 @@ const Terminal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
+  const footerRef = useSpringRef();
 
-  useChain([terminalRef, buttonsRef]);
+  useChain([terminalRef, buttonsRef, footerRef]);
 
   return (
     <>

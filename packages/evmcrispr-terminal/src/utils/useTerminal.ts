@@ -3,7 +3,7 @@ import { useState } from 'react';
 import createPersistedState from 'use-persisted-state';
 import { useAccount, useDisconnect, useSigner } from 'wagmi';
 
-import { client, dao } from './utils';
+import { client } from './utils';
 
 const useCodeState = createPersistedState<string>('code');
 
@@ -49,7 +49,7 @@ exec agent:new transfer XDAI vault 100e18
     try {
       if (signer === undefined || signer === null)
         throw new Error('Account not connected');
-      const { evmcrispr } = await dao(code, signer);
+      const evmcrispr = await evmcl`${code}`.evmcrispr(signer);
       window.evmcrispr = evmcrispr;
       console.log(evmcrispr);
     } catch (e: any) {
@@ -65,20 +65,13 @@ exec agent:new transfer XDAI vault 100e18
     try {
       if (signer === undefined || signer === null)
         throw new Error('Account not connected');
-      const {
-        evmcrispr,
-        _code,
-        dao: _dao,
-        path,
-        context,
-      } = await dao(code, signer);
-      await evmcrispr.forward(evmcl`${_code}`, path, {
-        context,
+      await evmcl`${code}`.forward(signer, {
         gasLimit: 10_000_000,
       });
       const chainId = (await signer.provider?.getNetwork())?.chainId;
-      const lastApp = evmcrispr.app(path.slice(-1)[0]);
-      setUrl(`https://${client(chainId)}/#/${_dao}/${lastApp}`);
+      const { dao, path, evmcrispr } = evmcl`${code}`;
+      const lastApp = (await evmcrispr(signer)).app(path.slice(-1)[0]).address;
+      setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
     } catch (e: any) {
       console.error(e);
       if (

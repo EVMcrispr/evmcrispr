@@ -1,12 +1,4 @@
 import type { BigNumber, Contract } from 'ethers';
-import { forwarderAbi, forwarderFeeAbi } from '@1hive/connect-core';
-
-export const FORWARDER_ABI = [
-  ...forwarderAbi,
-  ...forwarderFeeAbi,
-  // Function missing on Connect's forwarder abi
-  'function forwarderType() external pure returns (uint8)',
-];
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,

@@ -1,16 +1,9 @@
-import { erc20ABI } from '@1hive/connect-core';
-import { Contract } from '@ethersproject/contracts';
-import type { BigNumber } from '@ethersproject/bignumber';
-import type { Signer } from '@ethersproject/abstract-signer';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
-
-import type { TransactionReceipt } from '@ethersproject/abstract-provider';
+import type { BigNumber, Signer, providers } from 'ethers';
+import { Contract, constants, utils } from 'ethers';
 
 import { EVMcrispr, evmcl } from '../../';
 import { impersonateAddress, increase } from '../../helpers/rpc';
-
-const { constants } = ethers;
+import { erc20ABI } from '../../src/abis';
 
 const CHAIN_ID = 137;
 
@@ -28,7 +21,7 @@ const BEE_ADDRESS_2 = '0x60a9372862bd752cd02d9ae482f94cd2fe92a0bf';
 
 const RECIPIENT_ADDRESS = '0x5b0F8D8f47E3fDF7eE1c337AbCA19dBba98524e6';
 
-const PAYMENT_REFERENCE = 'migrate_1hive_funds';
+const PAYMENT_REFERENCE = 'migrate 1hive funds';
 
 const main = async () => {
   const beeSigner0 = await impersonateAddress(BEE_ADDRESS_0);
@@ -37,31 +30,23 @@ const main = async () => {
 
   const evmcrispr = await EVMcrispr.create(ONE_HIVE_DAO, beeSigner0);
 
-  const agentApp = evmcrispr.appCache.get('agent:0')!;
-  const agent = new Contract(
-    agentApp.address,
-    agentApp.abiInterface,
-    beeSigner0,
-  );
-
+  const agent = evmcrispr.app('agent:0')!;
   const daiAmount = await agent.balance(DAI);
   const usdcAmount = await agent.balance(USDC);
   const ethAmount = await agent.balance(constants.AddressZero);
 
-  const txReceipt = await evmcrispr.forward(
-    evmcl`
-    exec finance newImmediatePayment ${DAI} ${RECIPIENT_ADDRESS} ${daiAmount} ${PAYMENT_REFERENCE}
-    exec finance newImmediatePayment ${USDC} ${RECIPIENT_ADDRESS} ${usdcAmount} ${PAYMENT_REFERENCE}
-    exec finance newImmediatePayment ETH ${RECIPIENT_ADDRESS} ${ethAmount} ${PAYMENT_REFERENCE}
-  `,
-    ['token-manager', 'voting'],
-  );
+  const txReceipt = await evmcl`
+    connect ${ONE_HIVE_DAO} token-manager voting
+    exec finance newImmediatePayment ${DAI} ${RECIPIENT_ADDRESS} ${daiAmount} "${PAYMENT_REFERENCE}"
+    exec finance newImmediatePayment ${USDC} ${RECIPIENT_ADDRESS} ${usdcAmount} "${PAYMENT_REFERENCE}"
+    exec finance newImmediatePayment ETH ${RECIPIENT_ADDRESS} ${ethAmount} "${PAYMENT_REFERENCE}"
+  `.forward(beeSigner0);
 
   await processVote(txReceipt, evmcrispr);
 };
 
 const processVote = async (
-  txReceipt: TransactionReceipt,
+  txReceipt: providers.TransactionReceipt,
   evmcrispr: EVMcrispr,
 ) => {
   const beeSigner1 = await impersonateAddress(BEE_ADDRESS_1);

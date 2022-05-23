@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         node-version: [16.x]
-        pnpm-version: [6.x]
+        pnpm-version: [7.x]
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
@@ -45,6 +45,13 @@ jobs:
       - name: Install Dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: pnpm i
+
+      - name: Get changed files from evmcrispr
+        id: changed-files
+        uses: tj-actions/changed-files@v20
+        with:
+          files: 'packages/evmcrispr/src/**'
+
       - name: Link Dependencies
         if: steps.cache-node-modules.outputs.cache-hit == 'true'
         run: pnpm dev
@@ -55,21 +62,22 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check size
+        run: pnpm size
+        env:
+          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+          CI_BRANCH_BASE: main
+
       - name: Tests
+        if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
+        env:
+          ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
 
       - name: Coveralls
         uses: coverallsapp/github-action@master
+        if: steps.changed-files.outputs.any_changed == 'true'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
           parallel: true
-  finish:
-    needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v1.1.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true

@@ -19,6 +19,7 @@ export const normalizeRole = (role: string): string => {
 export const normalizeActions = (actions: ActionFunction[]): ActionFunction => {
   return async () => {
     const normalizedActions: Action[][] = [];
+    // Using for..of instead of Promise.all because we want them executed in order
     for (const action of actions) {
       normalizedActions.push(await action());
     }

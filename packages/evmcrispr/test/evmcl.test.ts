@@ -1,60 +1,39 @@
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 
-import type { ActionFunction, ActionInterpreter } from '../src';
+import type { ActionFunction } from '../src';
+import { EVMcrispr } from '../src';
 import evmcl from '../src/evmcl';
-import { APP } from './fixtures';
+import type { EVMcl } from '../src/types';
+import { APP, DAO, getSigner } from './fixtures';
 
-let _exec: any[];
+let signer: SignerWithAddress;
+let evm: EVMcrispr;
 
-const mockFunction = (func: string) => ({
-  [func]: (...params: any[]) => {
-    _exec.push({ func, params });
-    return () => [];
-  },
-});
-
-const mockExecFunction = (method: string) => ({
-  exec: (id: string) => ({
-    [method]: (...params: any[]) => {
-      _exec.push({ func: 'exec', id, method, params });
-      return () => [];
-    },
-  }),
-});
-
-const actionInterpreterMock = {
-  ...mockFunction('newToken'),
-  ...mockFunction('install'),
-  ...mockFunction('upgrade'),
-  ...mockFunction('grant'),
-  ...mockFunction('revoke'),
-  ...mockExecFunction('newVote'),
-  ...mockFunction('act'),
-} as unknown as ActionInterpreter;
-
-async function check(
-  actions: (evm: ActionInterpreter) => ActionFunction,
-  calls: any[],
-) {
-  await actions(actionInterpreterMock);
-  expect(_exec).to.be.deep.eq(calls);
+async function check(actions: EVMcl, expectedActions: ActionFunction[]) {
+  const expected = await evm.encode(expectedActions, [
+    'token-manager',
+    'voting',
+  ]);
+  const actual = await actions.encode(signer);
+  expect(actual.actions).to.be.deep.eq(expected.actions);
 }
 
 describe('EVM Command Line', () => {
-  beforeEach(() => {
-    _exec = [];
+  beforeEach(async () => {
+    signer = await getSigner();
+    evm = await EVMcrispr.create(DAO.kernel, signer);
   });
-
   it('new token "Trust Token" TRUST token-manager:new', async () => {
     await check(
       evmcl`
+        connect ${DAO.kernel} token-manager voting
         new token "Trust Token" TRUST token-manager:new
+        install token-manager:new token:TRUST false 0
       `,
       [
-        {
-          func: 'newToken',
-          params: ['Trust Token', 'TRUST', 'token-manager:new', 18, true],
-        },
+        evm.newToken('Trust Token', 'TRUST', 'token-manager:new'),
+        evm.install('token-manager:new', ['token:TRUST', false, 0]),
       ],
     );
   });
@@ -63,120 +42,86 @@ describe('EVM Command Line', () => {
     const params: string = APP.initializeParams.join(' ');
     await check(
       evmcl`
+        connect ${DAO.kernel} token-manager voting
         install token-manager:new ${params}
       `,
-      [
-        {
-          func: 'install',
-          params: [
-            'token-manager:new',
-            APP.initializeParams.map((p) => p.toString()),
-          ],
-        },
-      ],
+      [evm.install('token-manager:new', APP.initializeParams)],
     );
   });
-  it('upgrade token-manager address', async () => {
+  it('upgrade token-manager.aragonpm.eth address', async () => {
     const app: string = APP.actTarget;
     await check(
       evmcl`
-        upgrade token-manager ${app}
+        connect ${DAO.kernel} token-manager voting
+        upgrade token-manager.aragonpm.eth ${app}
       `,
-      [
-        {
-          func: 'upgrade',
-          params: ['token-manager', APP.actTarget],
-        },
-      ],
+      [evm.upgrade('token-manager.aragonpm.eth', app)],
     );
   });
-  it('grant voting token-manager MINT_ROLE', async () => {
+  it('grant voting token-manager REVOKE_VESTINGS_ROLE', async () => {
     await check(
       evmcl`
-        grant voting token-manager MINT_ROLE
+        connect ${DAO.kernel} token-manager voting
+        grant voting token-manager REVOKE_VESTINGS_ROLE voting
       `,
       [
-        {
-          func: 'grant',
-          params: [['voting', 'token-manager', 'MINT_ROLE'], undefined],
-        },
+        evm.grant(
+          ['voting', 'token-manager', 'REVOKE_VESTINGS_ROLE'],
+          'voting',
+        ),
       ],
     );
   });
   it('revoke voting token-manager MINT_ROLE', async () => {
     await check(
       evmcl`
+        connect ${DAO.kernel} token-manager voting
         revoke voting token-manager MINT_ROLE
       `,
-      [
-        {
-          func: 'revoke',
-          params: [['voting', 'token-manager', 'MINT_ROLE'], undefined],
-        },
-      ],
+      [evm.revoke(['voting', 'token-manager', 'MINT_ROLE'])],
     );
   });
-  it('exec voting newVote Hello 0x0', async () => {
+  it('exec token-manager mint vault 1e18', async () => {
     await check(
       evmcl`
-        exec voting newVote Hello 0x0
+        connect ${DAO.kernel} token-manager voting
+        exec token-manager mint vault 100000e18
       `,
-      [
-        {
-          func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['Hello', '0x0'],
-        },
-      ],
+      [evm.exec('token-manager', 'mint', ['vault', '100000e18'])],
     );
   });
-  it('exec voting newVote Hello [0x0,[3,2]]', async () => {
+  it('act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]', async () => {
     await check(
       evmcl`
-        exec voting newVote Hello [0x0,[3e21/mo,2]]
+        connect ${DAO.kernel} token-manager voting
+        act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]
       `,
       [
-        {
-          func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['Hello', ['0x0', ['3e21/mo', '2']]],
-        },
-      ],
-    );
-  });
-  it('act agent 0x0 deposit(uint,unit[][]) 1 [[2],[3,4]]', async () => {
-    await check(
-      evmcl`
-        act agent 0x0 deposit(uint,unit[][]) 1 [[2],[3,4]]
-      `,
-      [
-        {
-          func: 'act',
-          params: [
-            'agent',
-            '0x0',
-            'deposit(uint,unit[][])',
-            ['1', [['2'], ['3', '4']]],
+        evm.act('vault', 'vault', 'deposit(uint,uint[][])', [
+          1,
+          [
+            [2, 3],
+            [4, 5],
           ],
-        },
+        ]),
       ],
     );
   });
-
-  it('exec voting newVote 0x0 "Giveth Community Covenant Upgrade"', async () => {
+  it('exec finance newImmediatePayment @token(SUSHI) @me @token.balance(SUSHI,@me) "sushi for two"', async () => {
     await check(
-      evmcl`
-      exec voting newVote 0x0 "Giveth Community Covenant Upgrade"
+      evmcl` 
+        connect ${DAO.kernel} token-manager voting
+        set $token.tokenlist https://token-list.sushi.com/
+        exec finance newImmediatePayment @token(SUSHI) @me @token.balance(SUSHI,@me) "sushi for two"
       `,
       [
-        {
-          func: 'exec',
-          id: 'voting',
-          method: 'newVote',
-          params: ['0x0', 'Giveth Community Covenant Upgrade'],
-        },
+        evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
+        evm.exec('finance', 'newImmediatePayment', [
+          evm.helpers.token(evm, 'SUSHI'),
+          evm.helpers.me(evm),
+          evm.helpers['token.balance'](evm, 'SUSHI', evm.helpers.me(evm)),
+          'sushi for two',
+        ]),
       ],
     );
   });

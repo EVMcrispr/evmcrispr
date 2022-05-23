@@ -1,6 +1,21 @@
 import { BigNumber, utils } from 'ethers';
 
-import type { Params } from '../types';
+import type { Address, Params } from '../types';
+
+/**
+ * An address used for permission operations that denotes any type of Ethereum account.
+ */
+export const ANY_ENTITY: Address = '0x' + 'F'.repeat(40);
+
+/**
+ * An address used for permission operations that denotes no Ethereum account.
+ */
+export const NO_ENTITY: Address = '0x' + '0'.repeat(40);
+
+/**
+ * An address used for permission operations that denotes that the permission has been burnt.
+ */
+export const BURN_ENTITY: Address = '0x' + '0'.repeat(39) + '1';
 
 const Op = {
   NONE: 0,

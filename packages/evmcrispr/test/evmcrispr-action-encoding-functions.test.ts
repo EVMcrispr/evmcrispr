@@ -1,33 +1,32 @@
-import { ethers } from 'hardhat';
-import { addressesEqual } from '@1hive/connect-core';
 import { utils } from 'ethers';
 import { expect } from 'chai';
 
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../src/errors';
 import type { Action, Permission } from '../src/types';
-import { encodeActCall, encodeCallScript } from '../src/helpers';
+import { addressesEqual, encodeActCall, encodeCallScript } from '../src/utils';
 import {
   APP,
   DAO,
   EOA_ADDRESS,
   GRANT_PERMISSIONS,
   GRANT_PERMISSION_PARAMS,
-  MockEVMcrispr,
   NEW_PERMISSIONS,
   NEW_PERMISSION_PARAMS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSIONS,
+  getSigner,
   resolvePermission,
 } from './fixtures';
 import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
+import { EVMcrispr } from '../src';
 
 describe('EVMcrispr action-encoding functions', () => {
-  let evmcrispr: MockEVMcrispr;
+  let evmcrispr: EVMcrispr;
 
   beforeEach(async () => {
-    const signer = (await ethers.getSigners())[0];
+    const signer = await getSigner();
 
-    evmcrispr = await MockEVMcrispr.create(DAO.kernel, signer);
+    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
   });
 
   const testBadPermission = (
@@ -270,7 +269,7 @@ describe('EVMcrispr action-encoding functions', () => {
       });
     });
     it('returns the correct app address', () => {
-      const appAddress = evmcrispr.app('voting');
+      const appAddress = evmcrispr.app('voting').address;
 
       expect(addressesEqual(DAO.voting, appAddress)).to.be.true;
     });
@@ -384,7 +383,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.exec(badIdentifier),
+        (badIdentifier) => evmcrispr.exec(badIdentifier, '', []),
         false,
         false,
       ),
@@ -392,13 +391,13 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when calling an invalid method', async () => {
       await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod,
+        evmcrispr.exec('token-manager', 'unknownMethod', []),
         undefined,
         'Unknown method',
       );
 
       await expectThrowAsync(
-        evmcrispr.exec('token-manager').mint(),
+        evmcrispr.exec('token-manager', 'mint', []),
         undefined,
         "Invalid method's parameters",
       );
@@ -417,19 +416,23 @@ describe('EVMcrispr action-encoding functions', () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr
-        .exec(APP.appIdentifier)
-        [callMethod](...callSignatureParams)();
+      const callAction = await evmcrispr.exec(
+        APP.appIdentifier,
+        callMethod,
+        callSignatureParams,
+      )();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = await evmcrispr
-        .exec(APP.appIdentifier)
-        [callMethod](...callSignatureUnresolvedParams)();
+      const callActionUnresolved = await evmcrispr.exec(
+        APP.appIdentifier,
+        callMethod,
+        callSignatureUnresolvedParams,
+      )();
       expect(callActionUnresolved).eql(expectedCallAction);
     });
 
     it('can enumerate non-constant function calls', () => {
-      const keys = Object.getOwnPropertyNames(evmcrispr.exec('token-manager'));
+      const keys = evmcrispr.appMethods('token-manager');
       expect(keys).include.members([
         'assignVested',
         'mint',
@@ -446,23 +449,26 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate parameter names of a function', () => {
-      const paramTypes = evmcrispr.exec('token-manager').mint.paramNames;
+      const paramTypes = evmcrispr
+        .app('token-manager')
+        .interface.getFunction('mint')
+        .inputs.map((i) => i.name);
       expect(paramTypes).to.be.eql(['_receiver', '_amount']);
     });
 
     it('can enumerate parameter types of a function', () => {
-      const paramTypes = evmcrispr.exec('token-manager').mint.paramTypes;
+      const paramTypes = evmcrispr
+        .app('token-manager')
+        .interface.getFunction('mint')
+        .inputs.map((i) => i.type);
       expect(paramTypes).to.be.eql(['address', 'uint256']);
     });
 
     it('throws an error when enumerating parameter names and types of a function', async () => {
       await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod.paramNames,
-        undefined,
-        'Unknown method',
-      );
-      await expectThrowAsync(
-        () => evmcrispr.exec('token-manager').unknownMethod.paramTypes,
+        () =>
+          evmcrispr.app('token-manager').interface.getFunction('unknownMethod')
+            .inputs,
         undefined,
         'Unknown method',
       );
@@ -528,7 +534,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
       await evmcrispr.install(appLabeledIdentifier, initializeParams)();
 
-      const installedAppAddress = evmcrispr.app(appLabeledIdentifier);
+      const installedAppAddress = evmcrispr.app(appLabeledIdentifier).address;
 
       expect(utils.isAddress(installedAppAddress)).to.be.true;
     });
@@ -638,8 +644,8 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('encodes an ACL oracle parameter from an app identifier', () => {
       const oracle = evmcrispr.setOracle('voting')();
-      const app = evmcrispr.app('voting');
-      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      const address = evmcrispr.app('voting').address;
+      const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
 
@@ -650,9 +656,9 @@ describe('EVMcrispr action-encoding functions', () => {
         `${appIdentifier}:new-oracle`,
         initializeParams,
       )();
-      const app = evmcrispr.app(`${appIdentifier}:new-oracle`);
+      const address = evmcrispr.app(`${appIdentifier}:new-oracle`).address;
       const oracle = oracleF();
-      const expectedOracle = [`0xcb0100000000000000000000${app.slice(2)}`];
+      const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
   });

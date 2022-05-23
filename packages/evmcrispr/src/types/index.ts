@@ -1,57 +1,43 @@
-import type { Interface } from '@ethersproject/abi';
-import type {
-  AragonArtifact,
-  AragonArtifactRole,
-} from '@1hive/connect-core/dist/cjs/types';
+import type { BigNumberish, Signer, providers, utils } from 'ethers';
 
-export type { AragonArtifact } from '@1hive/connect-core/dist/cjs/types';
+import type EVMcrispr from '../EVMcrispr';
+
+import type { AppArtifact, AragonArtifact } from './aragon';
+
+export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
-export type ActionInterpreter = {
-  newToken(
-    name: string,
-    symbol: string,
-    controller: Entity,
-    decimals: number,
-    transferable: boolean,
-  ): ActionFunction;
-  install(identifier: LabeledAppIdentifier, initParams: any[]): ActionFunction;
-  upgrade(
-    identifier: AppIdentifier | LabeledAppIdentifier,
-    newAppAddress: Address,
-  ): ActionFunction;
-  exec(appIdentifier: AppIdentifier | LabeledAppIdentifier): any;
-  act(
-    agent: AppIdentifier,
-    target: Entity,
-    signature: string,
-    params: any[],
-  ): ActionFunction;
-  grant(
-    permission: Permission | PermissionP,
-    defaultPermissionManager: Entity,
-  ): ActionFunction;
-  revoke(
-    permission: Permission,
-    removeManager: boolean | undefined,
-  ): ActionFunction;
+export type ActionFunction = () => Promise<Action[]>;
+
+export type Helpers = {
+  [name: string]: (evm: EVMcrispr, ...rest: string[]) => any;
 };
 
-export type ActionFunction = () => Promise<Action[]>;
+export type EVMcl = {
+  encode: (
+    signer: Signer,
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<{
+    actions: Action[];
+    forward: () => Promise<providers.TransactionReceipt[]>;
+  }>;
+  forward: (
+    signer: Signer,
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<providers.TransactionReceipt[]>;
+  dao: string;
+  path: string[];
+  evmcrispr: (
+    signer: Signer,
+    options?: EVMcrisprOptions & ForwardOptions,
+  ) => Promise<EVMcrispr>;
+};
 
 /**
  * A string that contains an Ethereum address.
  */
 export type Address = string;
-
-/** @internal */
-export interface AppArtifact {
-  abiInterface: Interface;
-  appName: string;
-  roles: AragonArtifactRole[];
-  functions: { sig: string }[];
-}
 
 /** @internal */
 export type AppArtifactCache = Map<Address, AppArtifact>;
@@ -74,7 +60,7 @@ export type AppIdentifier = string;
 
 /** @internal */
 export interface ArtifactData {
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   roles: any[];
 }
 
@@ -102,7 +88,9 @@ export type Entity = AppIdentifier | LabeledAppIdentifier | Address;
  */
 export type LabeledAppIdentifier = string;
 
-/** @internal */
+/**
+ * The role's keccak256 hash.
+ */
 export type RoleHash = string;
 
 /**
@@ -130,7 +118,9 @@ export type Params = (index?: number) => string[];
  */
 export type Permission = [Entity, Entity, string];
 
-/** @internal */
+/**
+ * A map which contains a set of [[Role]] indexed by their [[RoleHash]].
+ */
 export type PermissionMap = Map<RoleHash, Role>;
 
 /**
@@ -171,7 +161,7 @@ export interface App {
   /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */
-  abiInterface: Interface;
+  abiInterface: utils.Interface;
   /**
    * The app's address.
    */
@@ -185,7 +175,7 @@ export interface App {
    */
   contentUri: string;
   /**
-   * The app's name
+   * The app's name.
    */
   name: string;
   /**
@@ -205,34 +195,65 @@ export interface EVMcrisprOptions {
   /**
    * An IPFS gateway url to fetch app data from.
    */
-  ipfsGateway: string;
+  ipfsGateway?: string;
   /*
-   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth
+   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth.
    */
   ensResolver?: string;
   /**
    * A custom subgraph url to connect to.
    */
   subgraphUrl?: string;
+
+  helpers?: Helpers;
 }
 
 export interface ForwardOptions {
   /**
    * The context information describing the forward evmscript.
-   * Needed for forwarders with context (AragonOS v5)
+   * Needed for forwarders with context (AragonOS v5).
    */
   context?: string;
+  gasPrice?: BigNumberish;
+  gasLimit?: BigNumberish;
 }
 
-/** @internal */
+/**
+ * An intermediate app object that contains raw properties
+ * that still need to be formatted and processed.
+ */
 export interface ParsedApp {
+  /**
+   * The app's address.
+   */
   address: Address;
+  /**
+   * The app's Aragon artifact.
+   */
   artifact: AragonArtifact;
+  /**
+   * The app's id.
+   */
   appId: string;
+  /**
+   * The app's base contract address.
+   */
   codeAddress: string;
+  /**
+   * The IPFS content identifier the app's data is located on.
+   */
   contentUri: string;
+  /**
+   * The app's name.
+   */
   name: string;
+  /**
+   * The app's aragonPM ens registry name.
+   */
   registryName: string;
+  /**
+   * The app's roles.
+   */
   roles: {
     roleHash: string;
     manager: string;
@@ -259,7 +280,6 @@ export interface Repo {
 }
 
 /**
- * @internal
  * An object that contains an app's permission data.
  */
 export interface Role {

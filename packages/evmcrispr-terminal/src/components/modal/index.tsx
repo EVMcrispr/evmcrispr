@@ -21,15 +21,15 @@ export default function SelectWalletModal({
   closeModal: () => void;
 }) {
   const { connectors, connect } = useConnect();
-  console.log(connectors);
 
   return (
     <Modal isOpen={isOpen} onClose={closeModal} isCentered>
       <ModalOverlay />
       <ModalContent w="300px">
-        <ModalHeader>Select Wallet</ModalHeader>
+        <ModalHeader color="white">Select Wallet</ModalHeader>
         <ModalCloseButton
           _focus={{
+            color: 'white',
             boxShadow: 'none',
           }}
         />

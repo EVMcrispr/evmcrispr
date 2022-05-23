@@ -1,8 +1,7 @@
-import { encodeCallScript } from '@1hive/connect-core';
 import { utils } from 'ethers';
 
-import type { Action, Address } from '../../src';
-import { encodeActCall } from '../../src/helpers';
+import type { Action, Address } from '../../src/types';
+import { encodeActCall, encodeCallScript } from '../../src/utils';
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,

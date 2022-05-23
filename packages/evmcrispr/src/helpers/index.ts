@@ -1,12 +1,7 @@
-export { erc20ABI } from '@1hive/connect-core';
-export * from './acl';
-export * from './apps';
-export * from './evmscripts';
-export * from './forwarders';
-export * from './identifiers';
-export * from './interfaces';
-export * from './ipfs';
-export * from './normalizers';
-export * from './parsers';
-export * from './queries';
-export * from './web3';
+import { default as token, tokenBalance } from './token';
+import { default as me } from './me';
+export default {
+  token,
+  'token.balance': tokenBalance,
+  me,
+};

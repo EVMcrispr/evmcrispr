@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 
 import { DAO } from '.';
-import { toDecimals } from '../../src/helpers';
+import { toDecimals } from '../../src/utils';
 
 export const APP = {
   appName: 'token-manager.aragonpm.eth',
