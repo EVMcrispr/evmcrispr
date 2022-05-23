@@ -6,7 +6,7 @@ import {
   buildIpfsTemplate,
   fetchAppArtifact,
   parseContentUri,
-} from '../src/helpers';
+} from '../src/utils';
 import {
   basePath,
   fetchOrganizationApps,

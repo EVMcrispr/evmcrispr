@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { subgraphUrlFromChainId } from '../../src/Connector';
-import { getSystemApp, parseRegistry } from '../../src/helpers';
+import { getSystemApp, parseRegistry } from '../../src/utils';
 
 export const basePath = (relativePath: string): string =>
   `test/fixtures/${relativePath}`;
