@@ -5,8 +5,10 @@ With the EVMcrispr terminal you can create complex votes that can be executed by
 ## Available commands:
 
 ```
-connect <dao> <...path> [@context:https://yoursite.com]
+connect <dao> <...path> [--context:https://yoursite.com]
+new token <name> <symbol> <controller> [decimals=18] [transferable=true]
 install <repo> [...initParams]
+upgrade <apmRepo> <contract>
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
 exec <app> <methodName> [...params]

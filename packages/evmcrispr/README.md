@@ -52,6 +52,19 @@ await evmcl`
 
 To facilitate the EVM script creation, you can use [identifiers](https://1hive.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
 
+The available commands are:
+
+```
+connect <dao> <...path> [--context:https://yoursite.com]
+new token <name> <symbol> <controller> [decimals=18] [transferable=true]
+install <repo> [...initParams]
+upgrade <apmRepo> <contract>
+grant <entity> <app> <role> [permissionManager]
+revoke <entity> <app> <role>
+exec <app> <methodName> [...params]
+act <agent> <targetAddr> <methodSignature> [...params]
+```
+
 Below you can find a full example:
 
 ```js
