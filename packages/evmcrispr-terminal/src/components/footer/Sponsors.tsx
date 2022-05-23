@@ -12,7 +12,7 @@ export const AragonSponsor = () => {
       py={20}
       background="repeating-linear-gradient(45deg,#000,#000 20px,#111 20px,#111 40px)"
       borderY="2px solid"
-      borderColor="green.300"
+      borderColor="brand.green.300"
     >
       <Stack
         direction={{ base: 'column', md: 'row', lg: 'row' }}
@@ -25,7 +25,7 @@ export const AragonSponsor = () => {
         align="center"
         justify="center"
       >
-        <Text color="green.300" size="md">
+        <Text color="brand.green.300" size="md">
           Sponsored by
         </Text>
         <Link isExternal href="https://aragon.org/" paddingX={20}>
@@ -65,7 +65,7 @@ export const AllSponsors = () => {
       <VStack spacing={12}>
         <Heading
           as="h2"
-          color="green.300"
+          color="brand.green.300"
           size="md"
           textAlign="center"
           css={{ fontFamily: 'Ubuntu Mono' }}

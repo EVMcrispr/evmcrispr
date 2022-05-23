@@ -17,7 +17,7 @@ const Modal: ComponentStyleConfig = {
     dialog: {
       bg: 'black',
       border: '3px solid',
-      borderColor: 'green.300',
+      borderColor: 'brand.green.300',
     },
   },
 };
@@ -44,30 +44,30 @@ const Button: ComponentStyleConfig = {
   variants: {
     outline: {
       border: '2px solid',
-      borderColor: 'green.300',
-      color: 'green.300',
+      borderColor: 'brand.green.300',
+      color: 'brand.green.300',
     },
     blue: {
-      color: 'green.300',
-      bgColor: 'blue.600',
+      color: 'brand.green.300',
+      bgColor: 'brand.blue.600',
       _hover: {
-        bgColor: 'blue.900',
+        bgColor: 'brand.blue.900',
       },
     },
     lime: {
-      color: 'green.900',
-      bgColor: 'green.300',
+      color: 'brand.green.900',
+      bgColor: 'brand.green.300',
       _hover: {
-        bgColor: 'green.900',
-        color: 'green.300',
+        bgColor: 'brand.green.900',
+        color: 'brand.green.300',
       },
     },
     warning: {
-      color: 'warning.50',
-      bgColor: 'warning.400',
+      color: 'brand.warning.50',
+      bgColor: 'brand.warning.400',
       _hover: {
-        bgColor: 'warning.50',
-        color: 'warning.400',
+        bgColor: 'brand.warning.50',
+        color: 'brand.warning.400',
       },
     },
   },
@@ -86,17 +86,19 @@ const theme = {
   initialColorMode: 'dark',
   useSystemColorMode: false,
   colors: {
-    green: {
-      300: '#92ed5e',
-      900: '#041800',
-    },
-    warning: {
-      50: '#ffe8df',
-      400: '#ed6f2c',
-    },
-    blue: {
-      600: '#16169d',
-      900: '#02071c',
+    brand: {
+      green: {
+        300: '#92ed5e',
+        900: '#041800',
+      },
+      warning: {
+        50: '#ffe8df',
+        400: '#ed6f2c',
+      },
+      blue: {
+        600: '#16169d',
+        900: '#02071c',
+      },
     },
   },
   fonts: {

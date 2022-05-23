@@ -10,7 +10,7 @@ const Footer = () => {
       <AllSponsors />
       <Center py={24}>
         <VStack spacing={8}>
-          <Text color="green.300">powered by Blossom</Text>
+          <Text color="brand.green.300">powered by Blossom</Text>
           <Link
             href="https://github.com/blossomlabs"
             target="_blank"
