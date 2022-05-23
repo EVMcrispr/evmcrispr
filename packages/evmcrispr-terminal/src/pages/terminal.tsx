@@ -4,12 +4,12 @@ import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
 
 import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
-import { BtnSuccess, BtnWarning } from '../components/buttons';
 
 import { theme } from '../editor/theme';
 import { conf, contribution, language } from '../editor/evmcl';
 
 import { useTerminal } from '../utils/useTerminal';
+import Footer from '../components/footer';
 
 const Terminal = () => {
   const {
@@ -71,25 +71,30 @@ const Terminal = () => {
         <FadeIn componentRef={buttonsRef}>
           <VStack mt={3} alignItems="flex-end" gap={3}>
             {!address ? (
-              <BtnSuccess onClick={onOpen}>Connect</BtnSuccess>
+              <Button variant="lime" onClick={onOpen}>
+                Connect
+              </Button>
             ) : (
               <>
                 {url ? (
-                  <BtnWarning onClick={() => window.open(url, '_blank')}>
+                  <Button
+                    variant="warning"
+                    onClick={() => window.open(url, '_blank')}
+                  >
                     Go to vote
-                  </BtnWarning>
+                  </Button>
                 ) : null}
 
-                <BtnSuccess onClick={onForward}>
+                <Button variant="lime" onClick={onForward}>
                   {`${
                     loading ? 'Forwarding' : 'Forward'
                   } from ${addressShortened}`}
-                </BtnSuccess>
+                </Button>
                 <Button
                   variant="link"
                   color="white"
-                  fontSize="16px"
                   onClick={onDisconnect}
+                  size="sm"
                 >
                   Disconnect
                 </Button>
@@ -97,11 +102,14 @@ const Terminal = () => {
             )}
 
             {error ? (
-              <BtnWarning>{error ? 'Error: ' + error : null}</BtnWarning>
+              <Button variant="warning">
+                {error ? 'Error: ' + error : null}
+              </Button>
             ) : null}
           </VStack>
         </FadeIn>
       </Box>
+      <Footer />
       <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
     </>
   );

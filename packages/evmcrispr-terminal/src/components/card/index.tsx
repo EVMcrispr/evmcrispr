@@ -58,7 +58,7 @@ const Card = ({
         minHeight="310px"
         padding={6}
         textAlign="center"
-        borderColor="brand.green"
+        borderColor="green.300"
         border="4px solid"
         backgroundColor="black"
         zIndex="10"
@@ -73,7 +73,7 @@ const Card = ({
           flexDirection="column"
         >
           <img src={image} alt={name} height={height} />
-          <Text pt={8} fontSize="15px" color="brand.green" fontWeight="bold">
+          <Text pt={8} fontSize="15px" color="green.300" fontWeight="bold">
             {name}
           </Text>
           <Text fontSize="15px" fontWeight="bold">
@@ -87,7 +87,7 @@ const Card = ({
         inset="0"
         transform="translate(25px, 25px)"
         border="5px solid"
-        color="brand.green"
+        color="green.300"
       >
         <Pixels />
       </Box>

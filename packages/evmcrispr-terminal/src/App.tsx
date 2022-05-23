@@ -16,7 +16,8 @@ const Modal: ComponentStyleConfig = {
   baseStyle: {
     dialog: {
       bg: 'black',
-      border: '3px solid #75f248',
+      border: '3px solid',
+      borderColor: 'green.300',
     },
   },
 };
@@ -43,18 +44,41 @@ const Button: ComponentStyleConfig = {
   variants: {
     outline: {
       border: '2px solid',
-      borderColor: '#75f248',
-      color: '#75f248',
+      borderColor: 'green.300',
+      color: 'green.300',
     },
-    solid: {
-      bg: '#75f248',
-      color: 'white',
+    blue: {
+      color: 'green.300',
+      bgColor: 'blue.600',
+      _hover: {
+        bgColor: 'blue.900',
+      },
+    },
+    lime: {
+      color: 'green.900',
+      bgColor: 'green.300',
+      _hover: {
+        bgColor: 'green.900',
+        color: 'green.300',
+      },
+    },
+    warning: {
+      color: 'warning.50',
+      bgColor: 'warning.400',
+      _hover: {
+        bgColor: 'warning.50',
+        color: 'warning.400',
+      },
     },
   },
   // The default size and variant values
   defaultProps: {
     size: 'md',
-    variant: 'outline',
+    variant: 'solid',
+    textDecoration: 'none',
+    _hover: {
+      transition: 'all 0.5s',
+    },
   },
 };
 
@@ -62,17 +86,17 @@ const theme = {
   initialColorMode: 'dark',
   useSystemColorMode: false,
   colors: {
-    brand: {
-      900: '#1a365d',
-      800: '#153e75',
-      700: '#2a69ac',
-      green: 'rgba(150, 238, 100, 1)',
-      btn: {
-        bg: 'rgba(24, 24, 171, 1)',
-        color: 'rgba(223, 251, 79, 1)',
-        hover: '#121212',
-        warning: '#ed702d',
-      },
+    green: {
+      300: '#92ed5e',
+      900: '#041800',
+    },
+    warning: {
+      50: '#ffe8df',
+      400: '#ed6f2c',
+    },
+    blue: {
+      600: '#16169d',
+      900: '#02071c',
     },
   },
   fonts: {
@@ -82,7 +106,7 @@ const theme = {
   components: {
     Modal,
     Button,
-  }
+  },
 };
 
 const App = () => {

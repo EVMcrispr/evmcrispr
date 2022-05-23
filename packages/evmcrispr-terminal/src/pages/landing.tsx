@@ -37,13 +37,13 @@ const Landing = () => {
       <FadeIn componentRef={typeRef}>
         <Box pt={16} pb={8}>
           <Text color="white" textAlign="center" fontSize="2xl">
-            <Text as="strong" color="brand.green">
+            <Text as="strong" color="green.300">
               EVMcrispr
             </Text>{' '}
             is a powerful tool that combines a domain-specific language with a
             Javascript library to interact with Aragon DAOs. With it, you can
             bundle{' '}
-            <Text as="strong" color="brand.green">
+            <Text as="strong" color="green.300">
               many DAO operations into just one script
             </Text>
             , generating a singular transaction, usually a vote. These commands
@@ -62,22 +62,12 @@ const Landing = () => {
               target="_blank"
               rel="noreferrer"
             >
-              <Button
-                _hover={{ bg: 'brand.btn.hover', transition: 'all 0.5s' }}
-                bgColor="brand.btn.bg"
-                color="brand.btn.color"
-                size="lg"
-              >
+              <Button variant="blue" size="lg">
                 Learn How to Use
               </Button>
             </Link>
             <Link as={RouterLink} to="/terminal">
-              <Button
-                _hover={{ bg: 'brand.btn.hover', transition: 'all 0.5s' }}
-                bgColor="brand.btn.bg"
-                color="brand.btn.color"
-                size="lg"
-              >
+              <Button variant="blue" size="lg">
                 Open Terminal
               </Button>
             </Link>
