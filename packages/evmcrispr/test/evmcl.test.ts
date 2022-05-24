@@ -125,4 +125,25 @@ describe('EVM Command Line', () => {
       ],
     );
   });
+  it('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
+    await check(
+      evmcl` 
+        connect ${DAO.kernel} token-manager voting
+        set $token.tokenlist https://token-list.sushi.com/
+        exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)
+      `,
+      [
+        evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
+        evm.exec('vault', 'transfer', [
+          evm.helpers.token(evm, 'SUSHI'),
+          evm.helpers.me(evm),
+          evm.helpers['token.balance'](
+            evm,
+            'SUSHI',
+            evm.resolver.resolveEntity('vault'),
+          ),
+        ]),
+      ],
+    );
+  });
 });

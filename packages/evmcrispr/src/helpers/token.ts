@@ -43,7 +43,8 @@ export async function tokenBalance(
     ['function balanceOf(address owner) view returns (uint)'],
     evm.signer,
   );
-  return (await contract.balanceOf(account)).toString();
+  const [entity] = await evm.resolver.resolvePromises([account], ['address']);
+  return (await contract.balanceOf(entity)).toString();
 }
 
 export default token;
