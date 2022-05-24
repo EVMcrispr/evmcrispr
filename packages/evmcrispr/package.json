@@ -1,6 +1,6 @@
 {
   "name": "@1hive/evmcrispr",
-  "version": "0.4.0-alpha",
+  "version": "0.3.8",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",
