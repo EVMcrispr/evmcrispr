@@ -2,7 +2,7 @@ name: Main
 on:
   pull_request:
   push:
-    branches: [main, next]
+    branches: [master, next]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -59,6 +59,9 @@ jobs:
       - name: Lint code
         run: pnpm lint
 
+      - name: Check evmcrispr types
+        run: pnpm lint:evmcrispr:types
+
       - name: Build
         run: pnpm build
 
@@ -66,7 +69,7 @@ jobs:
         run: pnpm size
         env:
           BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
-          CI_BRANCH_BASE: main
+          CI_BRANCH_BASE: master
 
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'

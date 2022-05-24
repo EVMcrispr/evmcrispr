@@ -35,7 +35,7 @@ const main = async () => {
   const usdcAmount = await agent.balance(USDC);
   const ethAmount = await agent.balance(constants.AddressZero);
 
-  const txReceipt = await evmcl`
+  const [txReceipt] = await evmcl`
     connect ${ONE_HIVE_DAO} token-manager voting
     exec finance newImmediatePayment ${DAI} ${RECIPIENT_ADDRESS} ${daiAmount} "${PAYMENT_REFERENCE}"
     exec finance newImmediatePayment ${USDC} ${RECIPIENT_ADDRESS} ${usdcAmount} "${PAYMENT_REFERENCE}"

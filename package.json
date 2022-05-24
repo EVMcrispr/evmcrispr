@@ -11,6 +11,7 @@
     "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
+    "lint:evmcrispr:types": "pnpm --filter \"./packages/evmcrispr\" lint:types",
     "size": "bundlewatch --config .config/bundlewatch.config.js",
     "start": "pnpm dev && pnpm start:terminal",
     "start:terminal": "pnpm --filter \"./packages/evmcrispr-terminal\" dev",

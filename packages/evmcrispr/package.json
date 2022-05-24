@@ -30,6 +30,7 @@
     "create-fixtures": "hardhat run scripts/create-fixtures.ts",
     "create-docs": "typedoc",
     "preinstall": "npx only-allow pnpm",
+    "lint:types": "tsc --noEmit",
     "test": "hardhat test",
     "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test"
   }
