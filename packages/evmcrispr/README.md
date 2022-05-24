@@ -1,8 +1,8 @@
 # EVMcrispr
 
-[![](https://img.shields.io/github/package-json/v/1hive/evmcrispr?label=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
-[![Coverage Status](https://coveralls.io/repos/github/1Hive/EVMcrispr/badge.svg?branch=main)](https://coveralls.io/github/1Hive/EVMcrispr?branch=main)
-[![docs](https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://1hive.github.io/EVMcrispr/)
+[![](https://img.shields.io/npm/v/@1hive/evmcrispr.svg?logo=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
+[![Coverage Status](https://img.shields.io/coveralls/github/1Hive/evmcrispr?logo=coveralls)](https://coveralls.io/github/1Hive/evmcrispr?branch=master)
+[![Typedocs](https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://1hive.github.io/evmcrispr/)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
 
@@ -141,4 +141,4 @@ Below you can find some script examples that use EVMcrispr:
 
 We welcome community contributions!
 
-Please check out our open Issues to get started.
+Please check out our open [Issues](https://github.com/1Hive/evmcrispr/issues) to get started.
