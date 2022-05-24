@@ -103,7 +103,7 @@ footer > label {
   border-right: .5em solid transparent; /* The typwriter cursor */
   white-space: nowrap; /* Keeps the content on a single line */
   letter-spacing: .15em; /* Adjust as needed */
-  width: 350px;
+  width: 380px;
   animation: 
     typing 2.5s steps(40, end)
 }
@@ -111,7 +111,7 @@ footer > label {
 /* The typing effect */
 @keyframes typing {
   from { width: 0 ;border-color: #fff }
-  to { width: 350px }
+  to { width: 380px }
   99% {border-color: #fff}
   100% {border-color: transparent}
 }

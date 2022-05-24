@@ -1,8 +1,7 @@
-import { version } from '@1hive/evmcrispr/package.json';
+import { codename, version } from '@1hive/evmcrispr/package.json';
 import { Link, useLocation } from 'react-router-dom';
 
 import logo from '../../assets/logo.svg';
-import { codename } from '../../assets/sponsors.json';
 import { useTerminal } from '../../utils/useTerminal';
 
 const Header = () => {
