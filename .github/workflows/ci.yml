@@ -83,4 +83,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
-          parallel: true
+          base-path: 'packages/evmcrispr'
+          path-to-lcov: 'packages/evmcrispr/coverage/lcov.info'

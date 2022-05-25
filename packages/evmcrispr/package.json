@@ -32,6 +32,6 @@
     "preinstall": "npx only-allow pnpm",
     "lint:types": "tsc --noEmit",
     "test": "hardhat test",
-    "test:coverage": "nyc --reporter=lcov --report-dir='../../coverage' pnpm test"
+    "test:coverage": "nyc --reporter=lcov pnpm test"
   }
 }
