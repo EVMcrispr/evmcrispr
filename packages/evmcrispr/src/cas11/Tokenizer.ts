@@ -1,7 +1,17 @@
-import type { KeywordToken, PunctuationToken, Token } from './types';
-import { KeywordValue, PunctuationValue, TokenType } from './types';
+import type { Token } from './types';
+import { KEYWORDS, TokenType } from './types';
 
 const {
+  ADDRESS,
+  BOOLEAN,
+  HEXADECIMAL,
+  IDENTIFIER,
+  NUMBER,
+  STRING,
+
+  NEW_LINE,
+  EOF,
+
   LEFT_PAREN,
   RIGHT_PAREN,
   COMMA,
@@ -14,16 +24,6 @@ const {
   STAR,
   POWER,
   PERCENTAGE,
-} = PunctuationValue;
-const {
-  ADDRESS,
-  BOOLEAN,
-  HEXADECIMAL,
-  IDENTIFIER,
-  KEYWORD,
-  NUMBER,
-  PUNTUATION,
-  STRING,
 } = TokenType;
 
 export enum TokenizerState {
@@ -51,18 +51,22 @@ const TokenizerSpec: [RegExp, TokenType][] = [
 
 export class Tokenizer {
   #state: TokenizerState;
-  #cursor: number;
-  #tokens: Token[];
   #script: string;
+  cursor: number;
+  start: number;
+  column: number;
+  #line: number;
+  #tokens: Token[];
 
   constructor(script: string) {
     this.#state = OK;
-    this.#cursor = 0;
+    this.cursor = this.start = this.column = this.#line = 0;
     this.#tokens = [];
-    this.#script = script;
+    // Remove anything before/after the scrippt.
+    this.#script = script.trim();
   }
 
-  scan(): Token[] {
+  tokenize(): Token[] {
     while (!this.eof()) {
       this.scanToken();
     }
@@ -71,53 +75,71 @@ export class Tokenizer {
       throw new TokenizerError();
     }
 
+    this.#tokens.push({ type: EOF });
     return this.#tokens;
   }
 
   scanToken(): void {
-    const value = this.#peek();
+    this.column = this.cursor;
+    const value = this.#consume();
 
     switch (value) {
-      case LEFT_PAREN:
-      case RIGHT_PAREN:
-      case COMMA:
-      case DOT:
-      case COLON:
-      case AT:
-      case PLUS:
-      case MINUS:
-      case SLASH:
-      case STAR:
-      case POWER:
-      case PERCENTAGE:
-        // case HYPHEN:
-        this.#consume();
-        this.#emitToken({
-          type: PUNTUATION,
-          value,
-        } as PunctuationToken);
+      case '(':
+        this.#emitToken(LEFT_PAREN);
+        break;
+      case ')':
+        this.#emitToken(RIGHT_PAREN);
+        break;
+      case ',':
+        this.#emitToken(COMMA);
+        break;
+      case '.':
+        this.#emitToken(DOT);
+        break;
+      case ':':
+        this.#emitToken(COLON);
+        break;
+      case '@':
+        this.#emitToken(AT);
+        break;
+      case '+':
+        this.#emitToken(PLUS);
+        break;
+      case '-':
+        this.#emitToken(MINUS);
+        break;
+      case '/':
+        this.#emitToken(SLASH);
+        break;
+      case '*':
+        this.#emitToken(STAR);
+        break;
+      case '^':
+        this.#emitToken(POWER);
+        break;
+      case '%':
+        this.#emitToken(PERCENTAGE);
+        break;
+      case '\n':
+        this.#emitToken(NEW_LINE);
+        this.start = this.cursor;
+        this.#line++;
+
         break;
       case ' ':
       case '\r':
-      case '\n':
       case '\t':
-        this.#consume();
         break;
       default: {
+        this.cursor--;
         // Check for multi-character tokens
-
-        const prevValue = this.#script[Math.max(0, this.#cursor - 1)];
+        const prevValue = this.#script[Math.max(0, this.cursor - 1)];
         // Check for keyword tokens when not part of a function call
         if (prevValue !== COLON) {
-          for (const keyword of Object.values(KeywordValue)) {
-            const tokenValue = this.#match(
-              new RegExp(`^${keyword}`),
-            ) as KeywordValue;
+          for (const keywordKey of Object.keys(KEYWORDS)) {
+            const tokenValue = this.#match(new RegExp(`^${keywordKey}`));
             if (tokenValue) {
-              this.#emitToken<KeywordToken>({
-                type: KEYWORD,
-                value: tokenValue,
-              });
+              this.#emitToken(KEYWORDS[keywordKey]);
               return;
             }
           }
@@ -127,7 +149,7 @@ export class Tokenizer {
           const tokenValue = this.#match(regexp);
 
           if (tokenValue) {
-            this.#emitToken({ type: tokenType, value: tokenValue });
+            this.#emitToken(tokenType, tokenValue);
             return;
           }
         }
@@ -145,7 +167,7 @@ export class Tokenizer {
    * @return A boolean indicating the end of source.
    */
   eof(): boolean {
-    return this.#cursor >= this.#script.length;
+    return this.cursor >= this.#script.length;
   }
 
   /**
@@ -154,40 +176,44 @@ export class Tokenizer {
    * @return The current character.
    */
   #consume(): string {
-    this.#cursor++;
+    this.cursor++;
 
-    return this.#script[this.#cursor - 1];
+    return this.#script[this.cursor - 1];
   }
 
-  #peek(): string {
-    return this.#script[this.#cursor];
-  }
-
-  #emitToken<T extends Token>(token: T): void {
-    this.#tokens.push(token);
+  #emitToken(type: TokenType, literal?: string): void {
+    this.#tokens.push({ type, literal, position: this.calculatePosition() });
   }
 
   #match(regexp: RegExp): string {
-    const slicedText = this.#script.slice(this.#cursor);
+    const slicedText = this.#script.slice(this.cursor);
     const match = regexp.exec(slicedText);
 
     if (!match || match.index !== 0) {
       return '';
     }
 
-    this.#cursor += match[0].length;
+    this.cursor += match[0].length;
 
     return match[0];
   }
 
+  calculatePosition(): Required<Token>['position'] {
+    return {
+      line: this.#line,
+      column: Math.max(0, this.column - this.start),
+    };
+  }
+
   #report(error: string): void {
     this.#state = TokenizerState.ERROR;
-    console.error(`Error (${this.#cursor}): ${error}`);
+    const { line, column } = this.calculatePosition();
+    console.error(`Error (${line + 1}, ${column + 1}): ${error}`);
   }
 }
 
-export const tokenize = (script: string): ReturnType<Tokenizer['scan']> => {
+export const tokenize = (script: string): ReturnType<Tokenizer['tokenize']> => {
   const tokenizer = new Tokenizer(script);
 
-  return tokenizer.scan();
+  return tokenizer.tokenize();
 };
