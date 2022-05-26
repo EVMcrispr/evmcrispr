@@ -53,7 +53,7 @@ const testCases = (cases: Case[], setLiteral = false) => {
   });
 };
 
-describe.only('Tokenizer', () => {
+describe('Tokenizer', () => {
   describe('when tokenizing punctuations', () => {
     const cases: Case[] = [
       [[')'], RIGHT_PAREN],
