@@ -25,7 +25,11 @@ const Modal: ComponentStyleConfig = {
 const Button: ComponentStyleConfig = {
   // The styles all button have in common
   baseStyle: {
-    borderRadius: 'base', // <-- border radius is same for all variants and sizes
+    borderRadius: 'none', // <-- border radius is same for all variants and sizes
+    textDecoration: 'none',
+    _hover: {
+      transition: 'all 0.5s',
+    },
   },
   // Two sizes: sm and md
   sizes: {
@@ -75,10 +79,6 @@ const Button: ComponentStyleConfig = {
   defaultProps: {
     size: 'md',
     variant: 'solid',
-    textDecoration: 'none',
-    _hover: {
-      transition: 'all 0.5s',
-    },
   },
 };
 
