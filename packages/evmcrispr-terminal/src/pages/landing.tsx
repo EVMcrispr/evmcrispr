@@ -36,7 +36,7 @@ const Landing = () => {
     <>
       <Box as="main" maxWidth="956px" margin="0 auto">
         <FadeIn componentRef={typeRef}>
-          <Box pt={16} pb={8}>
+          <Box pt={16} pb={8} px={6}>
             <Text color="white" textAlign="center" fontSize="2xl">
               <Text as="strong" color="brand.green.300">
                 EVMcrispr
@@ -58,7 +58,7 @@ const Landing = () => {
         <FadeIn componentRef={buttonsRef}>
           <Center>
             <Stack
-              direction={{ base: 'column', sm: 'row' }}
+              direction={{ base: 'column', md: 'row' }}
               alignItems="center"
             >
               <Link
@@ -81,13 +81,28 @@ const Landing = () => {
         </FadeIn>
 
         <FadeIn componentRef={peepsRef}>
-          <Heading pt={16} textAlign="center" as="h1" size="lg">
+          <Heading
+            pt={16}
+            textAlign="center"
+            as="h1"
+            size="lg"
+            color="brand.green.300"
+          >
             Who&apos;s using EVMcrispr?
           </Heading>
         </FadeIn>
 
         <FadeIn componentRef={cardRef} onRest={handleCardContent}>
-          <Center pt={8} mb={28} width="100%" gap={16}>
+          <Stack
+            direction={{ base: 'column', md: 'row' }}
+            justify="center"
+            align="center"
+            pt={8}
+            mb={28}
+            width="100%"
+            gap={16}
+            pr={{ base: 4, md: 0 }}
+          >
             <Card
               showContent={showCardContent}
               image={Brett}
@@ -110,7 +125,7 @@ const Landing = () => {
               info="Co-founder of Giveth, Commons Stack & DAppNode"
               description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
             />
-          </Center>
+          </Stack>
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>

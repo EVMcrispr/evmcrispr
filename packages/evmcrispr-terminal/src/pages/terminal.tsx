@@ -69,7 +69,7 @@ const Terminal = () => {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <VStack mt={3} alignItems="flex-end" gap={3}>
+          <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
             {!address ? (
               <Button variant="lime" onClick={onOpen}>
                 Connect

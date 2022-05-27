@@ -30,6 +30,10 @@ const Button: ComponentStyleConfig = {
     _hover: {
       transition: 'all 0.5s',
     },
+    _focus: {
+      boxShadow: 'rgba(66, 153, 225, 0.6) 0px 0px 0px 2px',
+    },
+    fontWeight: 'normal',
   },
   // Two sizes: sm and md
   sizes: {
@@ -43,6 +47,11 @@ const Button: ComponentStyleConfig = {
       px: 6, // <-- these values are tokens from the design system
       py: 4, // <-- these values are tokens from the design system
     },
+    lg: {
+      fontSize: '2xl',
+      px: 6,
+      py: 3,
+    },
   },
   // Two variants: outline and solid
   variants: {
@@ -55,14 +64,14 @@ const Button: ComponentStyleConfig = {
       color: 'brand.green.300',
       bgColor: 'brand.blue.600',
       _hover: {
-        bgColor: 'brand.blue.900',
+        bgColor: 'gray.900',
       },
     },
     lime: {
-      color: 'brand.green.900',
+      color: 'gray.900',
       bgColor: 'brand.green.300',
       _hover: {
-        bgColor: 'brand.green.900',
+        bgColor: 'gray.900',
         color: 'brand.green.300',
       },
     },
@@ -77,8 +86,8 @@ const Button: ComponentStyleConfig = {
   },
   // The default size and variant values
   defaultProps: {
-    size: 'md',
     variant: 'solid',
+    size: 'lg',
   },
 };
 

@@ -13,9 +13,9 @@ const Header = () => {
 
   return (
     <Stack
-      direction={{ base: isTerminal ? 'row' : 'column' }}
+      direction={{ base: 'column', md: isTerminal ? 'row' : 'column' }}
       as="header"
-      alignItems={isTerminal ? 'flex-end' : 'center'}
+      alignItems={{ base: 'center', md: isTerminal ? 'flex-end' : 'center' }}
       justify="center"
     >
       <Link to="/">

@@ -42,6 +42,7 @@ export default function SelectWalletModal({
                 closeModal();
               }}
               w="100%"
+              size="md"
             >
               <HStack w="100%" justifyContent="center">
                 <Image
@@ -61,6 +62,7 @@ export default function SelectWalletModal({
                 closeModal();
               }}
               w="100%"
+              size="md"
             >
               <HStack w="100%" justifyContent="center">
                 <Image

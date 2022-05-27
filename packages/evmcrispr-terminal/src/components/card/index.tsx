@@ -1,6 +1,29 @@
 import { Box, Center, Text } from '@chakra-ui/react';
+import styled from '@emotion/styled';
 
 import Trail from '../animations/trail';
+
+const CardWrapper = styled(Box)`
+  & > div span:nth-child(1) {
+    top: -5px;
+    right: -5px;
+  }
+
+  & > div span:nth-child(2) {
+    bottom: -5px;
+    right: -5px;
+  }
+
+  & > div span:nth-child(3) {
+    top: -5px;
+    left: -5px;
+  }
+
+  & > div span:nth-child(4) {
+    bottom: -5px;
+    left: -5px;
+  }
+`;
 
 type CardProps = {
   image: any;
@@ -53,7 +76,7 @@ const Card = ({
   showContent,
 }: CardProps) => {
   return (
-    <Box width="255px" position="relative">
+    <CardWrapper width="255px" position="relative">
       <Box
         minHeight="310px"
         padding={6}
@@ -96,7 +119,7 @@ const Card = ({
       >
         <Pixels />
       </Box>
-    </Box>
+    </CardWrapper>
   );
 };
 
