@@ -58,8 +58,8 @@ const Card = ({
         minHeight="310px"
         padding={6}
         textAlign="center"
-        borderColor="brand.green.300"
         border="4px solid"
+        borderColor="brand.green.300"
         backgroundColor="black"
         zIndex="10"
         position="relative"
@@ -91,8 +91,8 @@ const Card = ({
         position="absolute"
         inset="0"
         transform="translate(25px, 25px)"
-        border="5px solid"
-        color="brand.green.300"
+        border="4px solid"
+        borderColor="brand.green.300"
       >
         <Pixels />
       </Box>
