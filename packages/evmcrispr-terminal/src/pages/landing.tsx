@@ -94,7 +94,7 @@ const Landing = () => {
 
         <FadeIn componentRef={cardRef} onRest={handleCardContent}>
           <Stack
-            direction={{ base: 'column', md: 'row' }}
+            direction={{ base: 'column', lg: 'row' }}
             justify="center"
             align="center"
             pt={8}
