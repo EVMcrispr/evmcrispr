@@ -109,7 +109,9 @@ const Terminal = () => {
           </VStack>
         </FadeIn>
       </Box>
-      <Footer />
+      <FadeIn componentRef={footerRef}>
+        <Footer />
+      </FadeIn>
       <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
     </>
   );
