@@ -1,3 +1,4 @@
+import '@fontsource/ubuntu-mono';
 import { HashRouter, Redirect, Route, Switch } from 'react-router-dom';
 
 import type { ComponentStyleConfig } from '@chakra-ui/react';
@@ -15,7 +16,8 @@ const Modal: ComponentStyleConfig = {
   baseStyle: {
     dialog: {
       bg: 'black',
-      border: '3px solid #75f248',
+      border: '3px solid',
+      borderColor: 'brand.green.300',
     },
   },
 };
@@ -23,7 +25,15 @@ const Modal: ComponentStyleConfig = {
 const Button: ComponentStyleConfig = {
   // The styles all button have in common
   baseStyle: {
-    borderRadius: 'base', // <-- border radius is same for all variants and sizes
+    borderRadius: 'none', // <-- border radius is same for all variants and sizes
+    textDecoration: 'none',
+    _hover: {
+      transition: 'all 0.5s',
+    },
+    _focus: {
+      boxShadow: 'rgba(66, 153, 225, 0.6) 0px 0px 0px 2px',
+    },
+    fontWeight: 'normal',
   },
   // Two sizes: sm and md
   sizes: {
@@ -37,23 +47,47 @@ const Button: ComponentStyleConfig = {
       px: 6, // <-- these values are tokens from the design system
       py: 4, // <-- these values are tokens from the design system
     },
+    lg: {
+      fontSize: '2xl',
+      px: 6,
+      py: 3,
+    },
   },
   // Two variants: outline and solid
   variants: {
     outline: {
       border: '2px solid',
-      borderColor: '#75f248',
-      color: '#75f248',
+      borderColor: 'brand.green.300',
+      color: 'brand.green.300',
     },
-    solid: {
-      bg: '#75f248',
-      color: 'white',
+    blue: {
+      color: 'brand.green.300',
+      bgColor: 'brand.blue.600',
+      _hover: {
+        bgColor: 'gray.900',
+      },
+    },
+    lime: {
+      color: 'gray.900',
+      bgColor: 'brand.green.300',
+      _hover: {
+        bgColor: 'gray.900',
+        color: 'brand.green.300',
+      },
+    },
+    warning: {
+      color: 'brand.warning.50',
+      bgColor: 'brand.warning.400',
+      _hover: {
+        bgColor: 'brand.warning.50',
+        color: 'brand.warning.400',
+      },
     },
   },
   // The default size and variant values
   defaultProps: {
-    size: 'md',
-    variant: 'outline',
+    variant: 'solid',
+    size: 'lg',
   },
 };
 
@@ -62,19 +96,23 @@ const theme = {
   useSystemColorMode: false,
   colors: {
     brand: {
-      900: '#1a365d',
-      800: '#153e75',
-      700: '#2a69ac',
-      green: '#75f248',
-      btn: {
-        bg: 'rgba(24, 24, 171, 1)',
-        color: 'rgba(223, 251, 79, 1)',
+      green: {
+        300: '#92ed5e',
+        900: '#041800',
+      },
+      warning: {
+        50: '#ffe8df',
+        400: '#ed6f2c',
+      },
+      blue: {
+        600: '#16169d',
+        900: '#02071c',
       },
     },
   },
   fonts: {
-    heading: 'Ubuntu Mono, monospace',
-    body: 'Ubuntu Mono, monospace',
+    heading: 'Ubuntu Mono, monospace, sans-serif',
+    body: 'Ubuntu Mono, monospace, sans-serif',
   },
   components: {
     Modal,

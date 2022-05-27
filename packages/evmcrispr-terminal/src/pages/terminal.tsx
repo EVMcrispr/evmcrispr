@@ -1,13 +1,14 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
+import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
 
-import { Stack, useDisclosure } from '@chakra-ui/react';
-
+import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
+
 import { theme } from '../editor/theme';
 import { conf, contribution, language } from '../editor/evmcl';
+
 import { useTerminal } from '../utils/useTerminal';
-import SelectWalletModal from '../components/Modal';
 import Footer from '../components/footer';
 
 const Terminal = () => {
@@ -31,8 +32,8 @@ const Terminal = () => {
   useChain([terminalRef, buttonsRef, footerRef]);
 
   return (
-    <div className="terminal-code">
-      <Stack spacing={8} marginBottom={24} className="content">
+    <>
+      <Box maxWidth="956px" margin="0 auto" my={16}>
         <FadeIn componentRef={terminalRef}>
           <Editor
             height="50vh"
@@ -68,47 +69,51 @@ const Terminal = () => {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <div className="script-actions">
+          <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
             {!address ? (
-              <button className="button button-success" onClick={onOpen}>
+              <Button variant="lime" onClick={onOpen}>
                 Connect
-              </button>
+              </Button>
             ) : (
               <>
                 {url ? (
-                  <button
-                    className="button button-warning"
+                  <Button
+                    variant="warning"
                     onClick={() => window.open(url, '_blank')}
                   >
                     Go to vote
-                  </button>
+                  </Button>
                 ) : null}
 
-                <button className="button button-success" onClick={onForward}>
+                <Button variant="lime" onClick={onForward}>
                   {`${
                     loading ? 'Forwarding' : 'Forward'
                   } from ${addressShortened}`}
-                </button>
-                <button onClick={onDisconnect}>Disconnect</button>
+                </Button>
+                <Button
+                  variant="link"
+                  color="white"
+                  onClick={onDisconnect}
+                  size="sm"
+                >
+                  Disconnect
+                </Button>
               </>
             )}
 
-            {error && (
-              <div
-                className="button button-warning"
-                style={{ cursor: 'default' }}
-              >
+            {error ? (
+              <Button variant="warning">
                 {error ? 'Error: ' + error : null}
-              </div>
-            )}
-          </div>
+              </Button>
+            ) : null}
+          </VStack>
         </FadeIn>
-      </Stack>
+      </Box>
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
       <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
-    </div>
+    </>
   );
 };
 

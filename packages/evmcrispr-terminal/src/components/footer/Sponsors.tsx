@@ -1,4 +1,12 @@
-import { Center, Heading, Link, Stack, Text, VStack } from '@chakra-ui/react';
+import {
+  Center,
+  Heading,
+  Image,
+  Link,
+  Stack,
+  Text,
+  VStack,
+} from '@chakra-ui/react';
 
 import giveth from '../../assets/giveth.svg';
 import OneHive from '../../assets/1hive.svg';
@@ -12,23 +20,24 @@ export const AragonSponsor = () => {
       py={20}
       background="repeating-linear-gradient(45deg,#000,#000 20px,#111 20px,#111 40px)"
       borderY="2px solid"
-      borderColor="brand.green"
+      borderColor="brand.green.300"
     >
       <Stack
-        direction={{ base: 'column', md: 'row', lg: 'row' }}
-        spacing={6}
+        direction={{ base: 'column', md: 'row' }}
+        spacing={8}
         border="2px solid"
         borderColor="transparent"
         py={20}
         className="box"
-        minWidth="55%"
+        minWidth={{ base: '70%', md: '55%' }}
         align="center"
         justify="center"
+        px={{ base: 10, lg: 0 }}
       >
-        <Text color="brand.green" size="md">
+        <Text color="brand.green.300" size="md">
           Sponsored by
         </Text>
-        <Link isExternal href="https://aragon.org/" paddingX={20}>
+        <Link isExternal href="https://aragon.org/">
           <img src={aragon} alt="Aragon" />
         </Link>
       </Stack>
@@ -63,21 +72,15 @@ export const AllSponsors = () => {
   return (
     <Center bgColor="rgba(24, 24, 24, 1)" p={14} as="section">
       <VStack spacing={12}>
-        <Heading
-          as="h2"
-          color="brand.green"
-          size="md"
-          textAlign="center"
-          css={{ fontFamily: 'Ubuntu Mono' }}
-        >
+        <Heading as="h2" color="brand.green.300" size="md" textAlign="center">
           <strong>EVMcrispr</strong> would have not been possible without the
           support of:
         </Heading>
         <Stack
-          direction={{ base: 'column', md: 'column', lg: 'row' }}
+          direction={{ base: 'column', md: 'row' }}
           justify="space-between"
           align="center"
-          width={{ md: '956px' }}
+          width={{ base: '100%', lg: '956px' }}
         >
           {sponsors.map(({ src, link, name }, i) => (
             <a
@@ -87,7 +90,11 @@ export const AllSponsors = () => {
               key={`sponsors-link-${i}`}
             >
               <VStack spacing={10} marginBottom={45}>
-                <img src={src} alt={name} />
+                <Image
+                  src={src}
+                  alt={name}
+                  boxSize={{ base: '75%', md: '100%' }}
+                />
                 <Text color="white">{name}</Text>
               </VStack>
             </a>

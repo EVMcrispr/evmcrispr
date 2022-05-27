@@ -7,7 +7,6 @@ html,
   background: black;
   margin: 0;
   padding: 0;
-  font-family: "Ubuntu Mono", monospace !important;
 }
 
 .App {
@@ -156,9 +155,6 @@ footer > label {
 }
 
 .cards {
-  margin-top: 70px;
-  margin-bottom: 120px;
-
   display: flex;
   align-items: center;
   justify-content: center;

@@ -91,6 +91,7 @@ exec agent:new transfer XDAI vault 100e18
   }
 
   async function onDisconnect() {
+    setError('');
     disconnect();
   }
 

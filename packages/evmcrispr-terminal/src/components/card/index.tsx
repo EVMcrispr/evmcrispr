@@ -1,4 +1,29 @@
+import { Box, Center, Text } from '@chakra-ui/react';
+import styled from '@emotion/styled';
+
 import Trail from '../animations/trail';
+
+const CardWrapper = styled(Box)`
+  & > div span:nth-child(1) {
+    top: -5px;
+    right: -5px;
+  }
+
+  & > div span:nth-child(2) {
+    bottom: -5px;
+    right: -5px;
+  }
+
+  & > div span:nth-child(3) {
+    top: -5px;
+    left: -5px;
+  }
+
+  & > div span:nth-child(4) {
+    bottom: -5px;
+    left: -5px;
+  }
+`;
 
 type CardProps = {
   image: any;
@@ -11,10 +36,34 @@ type CardProps = {
 
 const Pixels = () => (
   <>
-    <span className="card-pixel"></span>
-    <span className="card-pixel"></span>
-    <span className="card-pixel"></span>
-    <span className="card-pixel"></span>
+    <Box
+      background="black"
+      position="absolute"
+      height={2}
+      width={2}
+      as="span"
+    ></Box>
+    <Box
+      background="black"
+      position="absolute"
+      height={2}
+      width={2}
+      as="span"
+    ></Box>
+    <Box
+      background="black"
+      position="absolute"
+      height={2}
+      width={2}
+      as="span"
+    ></Box>
+    <Box
+      background="black"
+      position="absolute"
+      height={2}
+      width={2}
+      as="span"
+    ></Box>
   </>
 );
 
@@ -27,20 +76,50 @@ const Card = ({
   showContent,
 }: CardProps) => {
   return (
-    <div className="card">
-      <div className="card-content">
+    <CardWrapper width="255px" position="relative">
+      <Box
+        minHeight="310px"
+        padding={6}
+        textAlign="center"
+        border="4px solid"
+        borderColor="brand.green.300"
+        backgroundColor="black"
+        zIndex="10"
+        position="relative"
+      >
         <Pixels />
-        <Trail open={showContent} className="card-content-wrapper">
+        <Center
+          as={Trail}
+          open={showContent}
+          overflow="hidden"
+          gap={2}
+          flexDirection="column"
+        >
           <img src={image} alt={name} height={height} />
-          <label className="card-name">{name}</label>
-          <label className="card-info">{info}</label>
-          <label className="card-description">{description}</label>
-        </Trail>
-      </div>
-      <div className="card-shadow">
+          <Text
+            pt={8}
+            fontSize="15px"
+            color="brand.green.300"
+            fontWeight="bold"
+          >
+            {name}
+          </Text>
+          <Text fontSize="15px" fontWeight="bold">
+            {info}
+          </Text>
+          <Text fontSize="13px">{description}</Text>
+        </Center>
+      </Box>
+      <Box
+        position="absolute"
+        inset="0"
+        transform="translate(25px, 25px)"
+        border="4px solid"
+        borderColor="brand.green.300"
+      >
         <Pixels />
-      </div>
-    </div>
+      </Box>
+    </CardWrapper>
   );
 };
 
