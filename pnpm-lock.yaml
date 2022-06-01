@@ -120,6 +120,7 @@ importers:
       ethers: ^5.4.7
       events: ^3.3.0
       framer-motion: ^6
+      isomorphic-fetch: ^3.0.0
       monaco-editor: ^0.33.0
       process: ^0.11.10
       react: ^17.0.2
@@ -129,6 +130,7 @@ importers:
       react-router-dom: ^5.2.1
       react-transition-group: ^4.4.1
       styled-components: 5.2.1
+      swr: ^1.3.0
       use-persisted-state: ^0.3.3
       vite: ^2.9.7
       wagmi: ^0.3.4
@@ -148,6 +150,7 @@ importers:
       ethers: 5.6.6
       events: 3.3.0
       framer-motion: 6.3.3_sfoxds7t5ydpegc3knd667wn6m
+      isomorphic-fetch: 3.0.0
       monaco-editor: 0.33.0
       process: 0.11.10
       react: 17.0.2
@@ -157,6 +160,7 @@ importers:
       react-router-dom: 5.3.3_react@17.0.2
       react-transition-group: 4.4.2_sfoxds7t5ydpegc3knd667wn6m
       styled-components: 5.2.1_d5kzqcx725xkmyluugjzy5jwom
+      swr: 1.3.0_react@17.0.2
       use-persisted-state: 0.3.3_react@17.0.2
       wagmi: 0.3.5_rzfr7nyhcufi7retduwft3xwjq
       web-vitals: 1.1.2
@@ -3886,6 +3890,7 @@ packages:
 
   /@types/prop-types/15.7.5:
     resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
+    dev: true
 
   /@types/react-dom/17.0.17:
     resolution: {integrity: sha512-VjnqEmqGnasQKV0CWLevqMTXBYG9GbwuE6x3VetERLh0cq2LTptFE73MrQi2S7GkKXCf2GgwItB/melLnxfnsg==}
@@ -3920,6 +3925,7 @@ packages:
       '@types/prop-types': 15.7.5
       '@types/scheduler': 0.16.2
       csstype: 3.1.0
+    dev: true
 
   /@types/resolve/0.0.8:
     resolution: {integrity: sha512-auApPaJf3NPfe18hSoJkp8EbZzer2ISk7o8mCC3M9he/a04+gbMF97NkpD2S8riMGvm4BMRI59/SZQSaLTKpsQ==}
@@ -3942,6 +3948,7 @@ packages:
 
   /@types/scheduler/0.16.2:
     resolution: {integrity: sha512-hppQEBDmlwhFAXKJX2KnWLYu5yMfi91yazPb2l+lbJiwW+wdo1gNeRA+3RgNSO39WYX2euey41KEwnqesU2Jew==}
+    dev: true
 
   /@types/secp256k1/4.0.3:
     resolution: {integrity: sha512-Da66lEIFeIz9ltsdMZcpQvmrmmoqrfju8pm1BH8WbYjZSwUgCwXLb9C+9XYogwBITnbsSaMdVPb2ekf7TV+03w==}
@@ -13593,6 +13600,14 @@ packages:
       - utf-8-validate
     dev: true
     optional: true
+
+  /swr/1.3.0_react@17.0.2:
+    resolution: {integrity: sha512-dkghQrOl2ORX9HYrMDtPa7LTVHJjCTeZoB1dqTbnnEDlSvN8JEKpYIYurDfvbQFUUS8Cg8PceFVZNkW0KNNYPw==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 17.0.2
+    dev: false
 
   /table/6.8.0:
     resolution: {integrity: sha512-s/fitrbVeEyHKFa7mFdkuQMWlH1Wgw/yEXMt5xACT4ZpzWFluehAxRtUUQKPuWhaLAWhFcVx6w3oC8VKaUfPGA==}
