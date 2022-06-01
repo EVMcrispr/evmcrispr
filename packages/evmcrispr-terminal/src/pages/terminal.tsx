@@ -1,6 +1,7 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
+import useSWR from 'swr';
 
 import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
@@ -10,6 +11,7 @@ import { conf, contribution, language } from '../editor/evmcl';
 
 import { useTerminal } from '../utils/useTerminal';
 import Footer from '../components/footer';
+import pinataAuth from '../api/pinata/auth';
 
 const Terminal = () => {
   const {
@@ -29,7 +31,14 @@ const Terminal = () => {
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
 
+  const { data, error: fetchError } = useSWR(
+    'https://api.pinata.cloud',
+    pinataAuth,
+  );
+
   useChain([terminalRef, buttonsRef, footerRef]);
+
+  console.log({ data, fetchError });
 
   return (
     <>
