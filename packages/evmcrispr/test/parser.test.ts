@@ -3,7 +3,7 @@ import {
   commandParserDescribe,
   helperParserDescribe,
   primaryParsersDescribe,
-} from './parsers';
+} from './parser-describes';
 
 describe.only('cas11 parsers', () => {
   primaryParsersDescribe();
