@@ -3,6 +3,7 @@ import {
   commandParserDescribe,
   helperParserDescribe,
   primaryParsersDescribe,
+  scriptParserDescribe,
 } from './parser-describes';
 
 describe.only('cas11 parsers', () => {
@@ -13,4 +14,6 @@ describe.only('cas11 parsers', () => {
   helperParserDescribe();
 
   commandParserDescribe();
+
+  scriptParserDescribe();
 });
