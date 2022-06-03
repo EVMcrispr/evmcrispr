@@ -90,6 +90,9 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'aNewAgent',
           'create-flow',
           'create-super-flow-xtreme-aa',
+          'my-ens-name.eth',
+          'agent.open.0',
+          'superfluid-app.other-open.20',
         ].forEach((value) =>
           expect(runParser(identifierParser, value)).to.deep.equal({
             type: 'Identifier',
