@@ -67,9 +67,14 @@ export interface HelperFunctionNode extends Node {
 
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
-  name: string;
+  name: Node;
   args: Node[];
   body?: Node[];
+}
+
+export interface BlockExpressionNode extends Node {
+  type: NodeType.BlockExpression;
+  body: Node[];
 }
 
 export interface AsExpressionNode extends Node {

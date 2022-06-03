@@ -16,7 +16,6 @@ export const runParser = (
   const res = parser.run(value);
 
   if (res.isError) {
-    console.log(res);
     return res.error;
   }
 
@@ -24,9 +23,10 @@ export const runParser = (
 };
 
 export const runCases = (
-  cases: Case[],
+  caseOrCases: Case | Case[],
   parser: Parser<any, string, any>,
 ): void =>
-  cases.forEach(([value, expected, errorMsg]) =>
-    expect(runParser(parser, value), errorMsg).to.deep.equal(expected),
+  (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).forEach(
+    ([value, expected, errorMsg]) =>
+      expect(runParser(parser, value), errorMsg).to.deep.equal(expected),
   );
