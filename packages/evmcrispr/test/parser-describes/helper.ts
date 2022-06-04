@@ -18,7 +18,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
                 args: [],
               },
               { type: 'StringLiteral', value: 'this is a string param' },
-              { type: 'NumberLiteral', value: '10e18' },
+              { type: 'NumberLiteral', value: 10, power: 18 },
             ],
           },
           'invalid helper with call expression match',
@@ -52,11 +52,11 @@ export const helperParserDescribe = (): Mocha.Suite =>
                 type: 'HelperFunctionExpression',
                 name: { type: 'Identifier', value: 'calc' },
                 args: [
-                  { type: 'NumberLiteral', value: '34' },
+                  { type: 'NumberLiteral', value: 34 },
                   {
                     type: 'HelperFunctionExpression',
                     name: { type: 'Identifier', value: 'innerHelper' },
-                    args: [{ type: 'BoolLiteral', value: 'true' }],
+                    args: [{ type: 'BoolLiteral', value: true }],
                   },
                 ],
               },

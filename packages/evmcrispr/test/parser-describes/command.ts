@@ -32,7 +32,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
               callee: { type: 'Identifier', value: 'getData' },
               args: [
                 { type: 'StringLiteral', value: 'param1' },
-                { type: 'BoolLiteral', value: 'false' },
+                { type: 'BoolLiteral', value: false },
                 { type: 'Identifier', value: 'an-identifier' },
                 {
                   type: 'HelperFunctionExpression',
@@ -59,8 +59,8 @@ export const commandParserDescribe = (): Mocha.Suite =>
             type: AddressLiteral,
             value: '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
           },
-          { type: BoolLiteral, value: 'false' },
-          { type: NumberLiteral, value: '0' },
+          { type: BoolLiteral, value: false },
+          { type: NumberLiteral, value: 0 },
         ],
       };
       const command = `install wrapper-hooked-token-manager 0x83E57888cd55C3ea1cfbf0114C963564d81e318d false 0`;
@@ -226,7 +226,9 @@ export const commandParserDescribe = (): Mocha.Suite =>
                                     },
                                     {
                                       type: 'NumberLiteral',
-                                      value: '1e18mo',
+                                      value: 1,
+                                      power: 18,
+                                      timeUnit: 'mo',
                                     },
                                   ],
                                 },

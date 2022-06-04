@@ -88,8 +88,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                   value:
                                     '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
                                 },
-                                { type: 'BoolLiteral', value: 'false' },
-                                { type: 'NumberLiteral', value: '0' },
+                                { type: 'BoolLiteral', value: false },
+                                { type: 'NumberLiteral', value: 0 },
                               ],
                             },
                           ],
@@ -201,7 +201,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         },
                                         {
                                           type: 'NumberLiteral',
-                                          value: '15.45e18',
+                                          value: 15.45,
+                                          power: 18,
                                         },
                                       ],
                                     },
@@ -233,7 +234,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                 },
                                                 {
                                                   type: 'NumberLiteral',
-                                                  value: '4500.43e18',
+                                                  value: 4500.43,
+                                                  power: 18,
                                                 },
                                               ],
                                             },
@@ -258,7 +260,9 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                 },
                                                 {
                                                   type: 'NumberLiteral',
-                                                  value: '1e18mo',
+                                                  value: 1,
+                                                  power: 18,
+                                                  timeUnit: 'mo',
                                                 },
                                               ],
                                             },

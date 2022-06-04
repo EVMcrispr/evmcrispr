@@ -34,8 +34,38 @@ export interface Node {
   value?: any;
 }
 
-export interface LiteralExpressionNode extends Node {
-  type: LiteralExpression;
+export type LiteralExpressionNode =
+  | AddressLiteralNode
+  | BooleanLiteralNode
+  | BytesLiteralNode
+  | NumericLiteralNode
+  | StringLiteralNode;
+
+export interface AddressLiteralNode extends Node {
+  type: NodeType.AddressLiteral;
+  value: string;
+}
+
+export interface BytesLiteralNode extends Node {
+  type: NodeType.BytesLiteral;
+  value: string;
+}
+
+export interface StringLiteralNode extends Node {
+  type: NodeType.StringLiteral;
+  value: string;
+}
+
+export interface BooleanLiteralNode extends Node {
+  type: NodeType.BoolLiteral;
+  value: boolean;
+}
+
+export interface NumericLiteralNode extends Node {
+  type: NodeType.NumberLiteral;
+  value: number;
+  power?: number;
+  timeUnit?: string;
 }
 
 export interface GroupingExpressionNode extends Node {

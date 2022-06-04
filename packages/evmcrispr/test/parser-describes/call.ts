@@ -16,7 +16,7 @@ export const callParserDescribe = (): Mocha.Suite =>
             },
             callee: { type: 'Identifier', value: 'getEntry' },
             args: [
-              { type: 'NumberLiteral', value: '0' },
+              { type: 'NumberLiteral', value: 0 },
               {
                 type: 'HelperFunctionExpression',
                 name: { type: 'Identifier', value: 'token' },
@@ -43,7 +43,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                 callee: { type: 'Identifier', value: 'vault' },
                 args: [],
               },
-              { type: 'NumberLiteral', value: '10e18m' },
+              { type: 'NumberLiteral', value: 10, power: 18, timeUnit: 'm' },
               { type: 'StringLiteral', value: 'this is a nice description' },
             ],
           },

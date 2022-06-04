@@ -9,8 +9,11 @@ import {
   stringParser,
   variableIdentifierParser,
 } from '../../src/cas11/parsers/primaries';
+import type { NumericLiteralNode } from '../../src/cas11/types';
+import { NodeType } from '../../src/cas11/types';
 
-import { runParser } from '../test-helpers/cas11';
+import type { Case } from '../test-helpers/cas11';
+import { runCases, runParser } from '../test-helpers/cas11';
 
 export const primaryParsersDescribe = (): Mocha.Suite =>
   describe('Primary parsers', () => {
@@ -43,29 +46,42 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
         ['true', 'false'].forEach((value) =>
           expect(runParser(booleanParser, value)).to.deep.equal({
             type: 'BoolLiteral',
-            value,
+            value: value === 'true',
           }),
         );
       });
 
       it('should parse a numeric value', () => {
-        [
-          '15',
-          '4500.32',
-          '5e18',
-          '15.6e14mo',
-          '60s',
-          '4.2m',
-          '365d',
-          '72w',
-          '6.5mo',
-          '2y',
-        ].forEach((value) =>
-          expect(runParser(numberParser, value)).to.deep.equal({
-            type: 'NumberLiteral',
+        const node = (
+          value: number,
+          power?: number,
+          timeUnit?: string,
+        ): NumericLiteralNode => {
+          const n: NumericLiteralNode = {
+            type: NodeType.NumberLiteral,
             value,
-          }),
-        );
+          };
+          if (power) n.power = power;
+          if (timeUnit) n.timeUnit = timeUnit;
+
+          return n;
+        };
+        const cases: Case[] = [
+          ['15', node(15)],
+          ['9200e18', node(9200, 18)],
+          ['4500.32', node(4500.32)],
+          ['0.5e14', node(0.5, 14)],
+          ['20.3245e18mo', node(20.3245, 18, 'mo')],
+          ['50s', node(50, undefined, 's')],
+          ['5m', node(5, undefined, 'm')],
+          ['35h', node(35, undefined, 'h')],
+          ['365d', node(365, undefined, 'd')],
+          ['72w', node(72, undefined, 'w')],
+          ['6.5mo', node(6.5, undefined, 'mo')],
+          ['2.5y', node(2.5, undefined, 'y')],
+        ];
+
+        runCases(cases, numberParser);
       });
 
       it('should parse string values', () => {
