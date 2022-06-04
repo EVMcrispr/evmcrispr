@@ -144,6 +144,10 @@ export default function evmcl(
                     EvmclParser.bool(transferable)!,
                   )();
                 }
+                case 'dao': {
+                  const [name] = rest;
+                  return evmcrispr.aragon.newDao(name)();
+                }
                 default: {
                   throw new Error(
                     `Unrecognized subcommand: token ${subCommand}`,
