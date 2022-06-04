@@ -125,4 +125,13 @@ describe('EVM Command Line', () => {
       ],
     );
   });
+  it('new dao', async () => {
+    await check(
+      evmcl`
+      connect ${DAO.kernel} token-manager voting
+      new dao name
+      `,
+      [evm.aragon.newDao('name')],
+    );
+  });
 });
