@@ -56,5 +56,6 @@ export const timeUnits: { [key: string]: number } = {
   h: 3600,
   d: 86400,
   w: 604800,
+  mo: 2592000,
   y: 31536000,
 };
