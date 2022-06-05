@@ -136,7 +136,7 @@ export default function evmcl(
                     decimals = '18',
                     transferable = 'true',
                   ] = rest;
-                  return evmcrispr.newToken(
+                  return evmcrispr.aragon.newToken(
                     name,
                     symbol,
                     controller,
@@ -159,20 +159,20 @@ export default function evmcl(
           case 'install': {
             return async () => {
               const [identifier, ...initParams] = await parser.args(args);
-              return evmcrispr.install(identifier, initParams)();
+              return evmcrispr.aragon.install(identifier, initParams)();
             };
           }
           case 'upgrade': {
             return async () => {
               const [identifier, appAddress] = await parser.args(args);
-              return evmcrispr.upgrade(identifier, appAddress)();
+              return evmcrispr.aragon.upgrade(identifier, appAddress)();
             };
           }
           case 'grant': {
             return async () => {
               const [grantee, app, role, defaultPermissionManager] =
                 await parser.args(args);
-              return evmcrispr.grant(
+              return evmcrispr.aragon.grant(
                 [grantee, app, role],
                 defaultPermissionManager,
               )();
@@ -185,7 +185,7 @@ export default function evmcl(
               const removePermissionManager = EvmclParser.bool(
                 _removePermissionManager,
               );
-              return evmcrispr.revoke(
+              return evmcrispr.aragon.revoke(
                 [grantee, app, role],
                 removePermissionManager,
               )();
@@ -194,7 +194,7 @@ export default function evmcl(
           case 'exec': {
             return async () => {
               const [identifier, method, ...params] = await parser.args(args);
-              return evmcrispr.exec(identifier, method, params)();
+              return evmcrispr.aragon.exec(identifier, method, params)();
             };
           }
           case 'act': {
@@ -202,7 +202,7 @@ export default function evmcl(
               const [agent, target, signature, ...params] = await parser.args(
                 args,
               );
-              return evmcrispr.act(agent, target, signature, params)();
+              return evmcrispr.aragon.act(agent, target, signature, params)();
             };
           }
           default:

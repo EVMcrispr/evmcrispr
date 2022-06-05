@@ -94,14 +94,14 @@ describe('EVMcrispr action-encoding functions', () => {
 
   describe('grant()', () => {
     testBadPermission((badPermission) =>
-      evmcrispr.grant(badPermission, 'voting'),
+      evmcrispr.aragon.grant(badPermission, 'voting'),
     );
 
     it(
       'fails when receiving an invalid identifier as the permission manager',
       isValidIdentifier(
         (badIdentifier) =>
-          evmcrispr.grant(
+          evmcrispr.aragon.grant(
             ['voting', 'token-manager', 'MINT_ROLE'],
             badIdentifier,
           ),
@@ -112,7 +112,10 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when granting a permission to the same entity twice', async () => {
       await expectThrowAsync(
-        evmcrispr.grant(['voting', 'token-manager', 'MINT_ROLE'], 'voting'),
+        evmcrispr.aragon.grant(
+          ['voting', 'token-manager', 'MINT_ROLE'],
+          'voting',
+        ),
         {
           type: ErrorException,
         },
@@ -133,7 +136,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedCreatePermissionAction = await evmcrispr.grant(
+      const encodedCreatePermissionAction = await evmcrispr.aragon.grant(
         newPermission,
         PERMISSION_MANAGER,
       )();
@@ -152,7 +155,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.grant(
+      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
         grantPermission,
         PERMISSION_MANAGER,
       )();
@@ -173,7 +176,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.grant(
+      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
         GRANT_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
       )();
@@ -202,7 +205,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.grant(
+      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
         NEW_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
       )();
@@ -227,7 +230,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         }),
       );
-      const createActions = await evmcrispr.grantPermissions(
+      const createActions = await evmcrispr.aragon.grantPermissions(
         NEW_PERMISSIONS,
         PERMISSION_MANAGER,
       )();
@@ -247,7 +250,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         }),
       );
-      const grantActions = await evmcrispr.grantPermissions(
+      const grantActions = await evmcrispr.aragon.grantPermissions(
         grantPermissions.map((p) => resolvePermission(p)),
         PERMISSION_MANAGER,
       )();
@@ -292,7 +295,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it('is updated when a new app is installed', async () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new`;
-      await evmcrispr.install(appLabeledIdentifier, initializeParams)();
+      await evmcrispr.aragon.install(appLabeledIdentifier, initializeParams)();
       expect(evmcrispr.apps())
         .to.be.length(10)
         .and.to.include(appLabeledIdentifier);
@@ -304,7 +307,8 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier as the agent',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.act(badIdentifier, target, 'mint()', []),
+        (badIdentifier) =>
+          evmcrispr.aragon.act(badIdentifier, target, 'mint()', []),
         false,
         false,
       ),
@@ -313,7 +317,8 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier as the target',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.act('agent', badIdentifier, 'mint()', []),
+        (badIdentifier) =>
+          evmcrispr.aragon.act('agent', badIdentifier, 'mint()', []),
         false,
         false,
       ),
@@ -321,22 +326,22 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when receiving an invalid signature', async () => {
       await expectThrowAsync(
-        evmcrispr.act('agent', target, 'mint', []),
+        evmcrispr.aragon.act('agent', target, 'mint', []),
         undefined,
         'Wrong signature format: mint',
       );
       await expectThrowAsync(
-        evmcrispr.act('agent', target, 'mint(', []),
+        evmcrispr.aragon.act('agent', target, 'mint(', []),
         undefined,
         'Wrong signature format: mint(',
       );
       await expectThrowAsync(
-        evmcrispr.act('agent', target, 'mint(uint,)', []),
+        evmcrispr.aragon.act('agent', target, 'mint(uint,)', []),
         undefined,
         'Wrong signature format: mint(uint,)',
       );
       await expectThrowAsync(
-        evmcrispr.act('agent', target, 'mint(,uint)', []),
+        evmcrispr.aragon.act('agent', target, 'mint(,uint)', []),
         undefined,
         'Wrong signature format: mint(,uint)',
       );
@@ -361,7 +366,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ]),
         },
       ];
-      const callAction = await evmcrispr.act(
+      const callAction = await evmcrispr.aragon.act(
         'vault',
         actTarget,
         actSignature,
@@ -369,7 +374,7 @@ describe('EVMcrispr action-encoding functions', () => {
       )(); // TODO: Change it with an agent
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnres = await evmcrispr.act(
+      const callActionUnres = await evmcrispr.aragon.act(
         'vault',
         actTarget,
         actSignature,
@@ -383,7 +388,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.exec(badIdentifier, '', []),
+        (badIdentifier) => evmcrispr.aragon.exec(badIdentifier, '', []),
         false,
         false,
       ),
@@ -391,13 +396,13 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when calling an invalid method', async () => {
       await expectThrowAsync(
-        evmcrispr.exec('token-manager', 'unknownMethod', []),
+        evmcrispr.aragon.exec('token-manager', 'unknownMethod', []),
         undefined,
         'Unknown method',
       );
 
       await expectThrowAsync(
-        evmcrispr.exec('token-manager', 'mint', []),
+        evmcrispr.aragon.exec('token-manager', 'mint', []),
         undefined,
         "Invalid method's parameters",
       );
@@ -416,14 +421,14 @@ describe('EVMcrispr action-encoding functions', () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr.exec(
+      const callAction = await evmcrispr.aragon.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureParams,
       )();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = await evmcrispr.exec(
+      const callActionUnresolved = await evmcrispr.aragon.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureUnresolvedParams,
@@ -479,7 +484,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.install(badIdentifier),
+        (badIdentifier) => evmcrispr.aragon.install(badIdentifier),
         false,
         false,
       ),
@@ -488,7 +493,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when doesn't find the app's repo", async () => {
       const noRepoIdentifier = 'non-existent-repo.open:new-app';
 
-      await expectThrowAsync(evmcrispr.install(noRepoIdentifier), {
+      await expectThrowAsync(evmcrispr.aragon.install(noRepoIdentifier), {
         type: ErrorNotFound,
         name: 'ErrorRepoNotFound',
       });
@@ -514,14 +519,14 @@ describe('EVMcrispr action-encoding functions', () => {
           ]),
         },
       ];
-      const encodedAction = await evmcrispr.install(
+      const encodedAction = await evmcrispr.aragon.install(
         `${appIdentifier}:new-app`,
         initializeParams,
       )();
 
       expect(encodedAction).eql(expectedEncodedAction);
 
-      const encodedActionUnresolved = await evmcrispr.install(
+      const encodedActionUnresolved = await evmcrispr.aragon.install(
         `${appIdentifier}:new-app2`,
         initializeUnresolvedParams,
       )();
@@ -532,7 +537,7 @@ describe('EVMcrispr action-encoding functions', () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new-app`;
 
-      await evmcrispr.install(appLabeledIdentifier, initializeParams)();
+      await evmcrispr.aragon.install(appLabeledIdentifier, initializeParams)();
 
       const installedAppAddress = evmcrispr.app(appLabeledIdentifier).address;
 
@@ -542,10 +547,13 @@ describe('EVMcrispr action-encoding functions', () => {
     it('fails when installing apps with the same label', async () => {
       const { initializeParams } = APP;
 
-      await evmcrispr.install('token-manager:same-label', initializeParams)();
+      await evmcrispr.aragon.install(
+        'token-manager:same-label',
+        initializeParams,
+      )();
 
       await expectThrowAsync(
-        evmcrispr.install('token-manager:same-label', initializeParams),
+        evmcrispr.aragon.install('token-manager:same-label', initializeParams),
         {
           type: ErrorException,
         },
@@ -554,7 +562,9 @@ describe('EVMcrispr action-encoding functions', () => {
   });
 
   describe('revoke()', () => {
-    testBadPermission((badPermission) => evmcrispr.revoke(badPermission, true));
+    testBadPermission((badPermission) =>
+      evmcrispr.aragon.revoke(badPermission, true),
+    );
 
     it('encodes a revoke permission and remove manager action correctly', async () => {
       const revokePermission = REVOKE_PERMISSIONS[0];
@@ -573,13 +583,13 @@ describe('EVMcrispr action-encoding functions', () => {
           resolvedRevokePermission.slice(1, 3),
         ),
       };
-      const actions = await evmcrispr.revoke(revokePermission, true)();
+      const actions = await evmcrispr.aragon.revoke(revokePermission, true)();
 
       expect(actions).eql([expectedRevokeAction, expectedRemoveManagerAction]);
     });
 
     it("doesn't encode a remove manager action when told not to`", async () => {
-      const actions = await evmcrispr.revoke(
+      const actions = await evmcrispr.aragon.revoke(
         ['voting', 'voting', 'MODIFY_QUORUM_ROLE'],
         false,
       )();
@@ -590,7 +600,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when revoking a permission from an entity that doesn't have it", async () => {
       const [, app, role] = REVOKE_PERMISSIONS[0];
       await expectThrowAsync(
-        evmcrispr.revoke(['evm-script-registry', app, role], true),
+        evmcrispr.aragon.revoke(['evm-script-registry', app, role], true),
         {
           type: ErrorNotFound,
           name: 'ErrorPermissionNotFound',
@@ -624,7 +634,7 @@ describe('EVMcrispr action-encoding functions', () => {
         },
         [],
       );
-      const revokeActions = await evmcrispr.revokePermissions(
+      const revokeActions = await evmcrispr.aragon.revokePermissions(
         REVOKE_PERMISSIONS,
         true,
       )();
@@ -635,7 +645,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
   describe('setOracle()', () => {
     it('encodes an ACL oracle parameter from an address', () => {
-      const oracle = evmcrispr.setOracle(EOA_ADDRESS)();
+      const oracle = evmcrispr.aragon.setOracle(EOA_ADDRESS)();
       const expectedOracle = [
         `0xcb0100000000000000000000${EOA_ADDRESS.slice(2)}`,
       ];
@@ -643,7 +653,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('encodes an ACL oracle parameter from an app identifier', () => {
-      const oracle = evmcrispr.setOracle('voting')();
+      const oracle = evmcrispr.aragon.setOracle('voting')();
       const address = evmcrispr.app('voting').address;
       const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
@@ -651,8 +661,8 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('encodes an ACL oracle parameter from a counterfactual app', async () => {
       const { appIdentifier, initializeParams } = APP;
-      const oracleF = evmcrispr.setOracle(`${appIdentifier}:new-oracle`);
-      await evmcrispr.install(
+      const oracleF = evmcrispr.aragon.setOracle(`${appIdentifier}:new-oracle`);
+      await evmcrispr.aragon.install(
         `${appIdentifier}:new-oracle`,
         initializeParams,
       )();

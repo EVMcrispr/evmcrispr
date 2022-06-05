@@ -41,8 +41,8 @@ describe('EVM Command Line', () => {
         install token-manager:new token:TRUST false 0
       `,
       [
-        evm.newToken('Trust Token', 'TRUST', 'token-manager:new'),
-        evm.install('token-manager:new', ['token:TRUST', false, 0]),
+        evm.aragon.newToken('Trust Token', 'TRUST', 'token-manager:new'),
+        evm.aragon.install('token-manager:new', ['token:TRUST', false, 0]),
       ],
     );
   });
@@ -64,7 +64,7 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         install token-manager:new ${params}
       `,
-      [evm.install('token-manager:new', APP.initializeParams)],
+      [evm.aragon.install('token-manager:new', APP.initializeParams)],
     );
   });
   it('upgrade token-manager.aragonpm.eth address', async () => {
@@ -74,7 +74,7 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         upgrade token-manager.aragonpm.eth ${app}
       `,
-      [evm.upgrade('token-manager.aragonpm.eth', app)],
+      [evm.aragon.upgrade('token-manager.aragonpm.eth', app)],
     );
   });
   it('grant voting token-manager REVOKE_VESTINGS_ROLE', async () => {
@@ -84,7 +84,7 @@ describe('EVM Command Line', () => {
         grant voting token-manager REVOKE_VESTINGS_ROLE voting
       `,
       [
-        evm.grant(
+        evm.aragon.grant(
           ['voting', 'token-manager', 'REVOKE_VESTINGS_ROLE'],
           'voting',
         ),
@@ -97,7 +97,7 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         revoke voting token-manager MINT_ROLE
       `,
-      [evm.revoke(['voting', 'token-manager', 'MINT_ROLE'])],
+      [evm.aragon.revoke(['voting', 'token-manager', 'MINT_ROLE'])],
     );
   });
   it('exec token-manager mint vault 1e18', async () => {
@@ -106,7 +106,7 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         exec token-manager mint vault 100000e18
       `,
-      [evm.exec('token-manager', 'mint', ['vault', '100000e18'])],
+      [evm.aragon.exec('token-manager', 'mint', ['vault', '100000e18'])],
     );
   });
   it('act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]', async () => {
@@ -116,7 +116,7 @@ describe('EVM Command Line', () => {
         act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]
       `,
       [
-        evm.act('vault', 'vault', 'deposit(uint,uint[][])', [
+        evm.aragon.act('vault', 'vault', 'deposit(uint,uint[][])', [
           1,
           [
             [2, 3],
@@ -135,7 +135,7 @@ describe('EVM Command Line', () => {
       `,
       [
         evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
-        evm.exec('finance', 'newImmediatePayment', [
+        evm.aragon.exec('finance', 'newImmediatePayment', [
           evm.helpers.token(evm, 'SUSHI'),
           evm.helpers.me(evm),
           evm.helpers['token.balance'](evm, 'SUSHI', evm.helpers.me(evm)),

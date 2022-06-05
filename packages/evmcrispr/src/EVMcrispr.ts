@@ -3,10 +3,7 @@ import type { BigNumber, Signer, providers } from 'ethers';
 
 import { ErrorInvalid } from './errors';
 import {
-  ANY_ENTITY,
-  BURN_ENTITY,
   FORWARDER_TYPES,
-  NO_ENTITY,
   buildApp,
   buildAppArtifact,
   buildAppIdentifier,
@@ -35,10 +32,7 @@ import type {
   ForwardOptions,
   Helpers,
   LabeledAppIdentifier,
-  Params,
   ParsedApp,
-  Permission,
-  PermissionP,
 } from './types';
 import Connector from './Connector';
 import { IPFSResolver } from './IPFSResolver';
@@ -73,21 +67,6 @@ export default class EVMcrispr {
   aragon: AragonOS;
 
   resolver: any;
-
-  /**
-   * An address used for permission operations that denotes any type of Ethereum account.
-   */
-  ANY_ENTITY: Address = ANY_ENTITY;
-
-  /**
-   * An address used for permission operations that denotes no Ethereum account.
-   */
-  NO_ENTITY: Address = NO_ENTITY;
-
-  /**
-   * An address used for permission operations that denotes that the permission has been burnt.
-   */
-  BURN_ENTITY: Address = BURN_ENTITY;
 
   protected constructor(
     chainId: number,
@@ -191,33 +170,6 @@ export default class EVMcrispr {
   }
 
   /**
-   * Encode an action that creates a new app permission or grant it if it already exists.
-   * @param permission The permission to create.
-   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
-   * @returns A function that returns the permission action.
-   */
-  grant(
-    permission: Permission | PermissionP,
-    defaultPermissionManager: Entity,
-  ): ActionFunction {
-    return this.aragon.grant(permission, defaultPermissionManager);
-  }
-
-  /**
-   * Encode a set of actions that create new app permissions.
-   * @param permissions The permissions to create.
-   * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager
-   * of every permission created.
-   * @returns A function that returns an array of permission actions.
-   */
-  grantPermissions(
-    permissions: (Permission | PermissionP)[],
-    defaultPermissionManager: Entity,
-  ): ActionFunction {
-    return this.aragon.grantPermissions(permissions, defaultPermissionManager);
-  }
-
-  /**
    * Fetch the address of an existing or counterfactual app.
    * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
    * @returns The app's contract address.
@@ -242,23 +194,6 @@ export default class EVMcrispr {
         ?.functions.map(({ sig }) => sig.split('(')[0])
         .filter((n) => n !== 'initialize') || []
     );
-  }
-
-  /**
-   * Use DAO agent to call an external contract function
-   * @param agent App identifier of the agent that is going to be used to call the function
-   * @param target Address of the external contract
-   * @param signature Function signature that is going to be called
-   * @param params Array of parameters that are going to be used to call the function
-   * @returns A function that retuns an action to forward an agent call with the specified parameters
-   */
-  act(
-    agent: AppIdentifier,
-    target: Entity,
-    signature: string,
-    params: any[],
-  ): ActionFunction {
-    return this.aragon.act(agent, target, signature, params);
   }
 
   /**
@@ -309,35 +244,6 @@ export default class EVMcrispr {
         },
       ];
     };
-  }
-
-  /**
-   * Use DAO agent to perform a set of transactions using agent's execute function
-   * @param agent App identifier of the agent that is going to be used to perform the actions
-   * @param actions List of actions that the agent is going to perform
-   * @returns A function that retuns an action to forward an agent call with the specified parameters
-   */
-  agentExec(
-    agent: AppIdentifier,
-    actions: ActionFunction[],
-    useSafeExecute = false,
-  ): ActionFunction {
-    return this.aragon.agentExec(agent, actions, useSafeExecute);
-  }
-
-  /**
-   * Encode an action that calls an app's contract function.
-   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to call to.
-   * @param functionName Function name, such as mint.
-   * @param params Array with the parameters passed to the encoded function.
-   * @returns A function that retuns an action to forward a call with the specified parameters
-   */
-  exec(
-    appIdentifier: AppIdentifier | LabeledAppIdentifier,
-    functionName: string,
-    params: any[],
-  ): ActionFunction {
-    return this.aragon.exec(appIdentifier, functionName, params);
   }
 
   /**
@@ -495,77 +401,6 @@ export default class EVMcrispr {
       );
     }
     return txs;
-  }
-
-  newToken(
-    name: string,
-    symbol: string,
-    controller: Entity,
-    decimals = 18,
-    transferable = true,
-  ): ActionFunction {
-    return this.aragon.newToken(
-      name,
-      symbol,
-      controller,
-      decimals,
-      transferable,
-    );
-  }
-
-  /**
-   * Encode an action that installs a new app.
-   * @param identifier [[LabeledAppIdentifier | Identifier]] of the app to install.
-   * @param initParams Parameters to initialize the app.
-   * @returns A function which returns a promise that resolves to the installation action.
-   */
-  install(
-    identifier: LabeledAppIdentifier,
-    initParams: any[] = [],
-  ): ActionFunction {
-    return this.aragon.install(identifier, initParams);
-  }
-
-  /**
-   * Upgrade all installed apps of a specific APM repo to a new implementation contract.
-   * @param apmRepo ENS name of the APM repository
-   * @param newAppAddress Address of the new implementation contract
-   * @returns A function that returns the upgrade action
-   */
-  upgrade(apmRepo: string, newAppAddress: Address): ActionFunction {
-    return this.aragon.upgrade(apmRepo, newAppAddress);
-  }
-
-  /**
-   * Encode an action that revokes an app permission.
-   * @param permission The permission to revoke.
-   * @param removeManager A boolean that indicates whether or not to remove the permission manager.
-   * @returns A function that returns the revoking actions.
-   */
-  revoke(permission: Permission, removeManager = false): ActionFunction {
-    return this.aragon.revoke(permission, removeManager);
-  }
-
-  /**
-   * Encode a set of actions that revoke an app permission.
-   * @param permissions The permissions to revoke.
-   * @param removeManager A boolean that indicates wether or not to remove the permission manager.
-   * @returns A function that returns the revoking actions.
-   */
-  revokePermissions(
-    permissions: Permission[],
-    removeManager = false,
-  ): ActionFunction {
-    return this.aragon.revokePermissions(permissions, removeManager);
-  }
-
-  /**
-   * Encode a permission parameter array with an oracle.
-   * @param entity The address or app identifier used as oracle
-   * @returns A Params object that can be composed with other params or passed directly as a permission param
-   */
-  setOracle(entity: Entity): Params {
-    return this.aragon.setOracle(entity);
   }
 
   async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {

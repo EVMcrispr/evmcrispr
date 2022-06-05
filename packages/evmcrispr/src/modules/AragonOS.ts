@@ -3,6 +3,9 @@ import { constants, utils } from 'ethers';
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../errors';
 import type EVMcrispr from '../EVMcrispr';
 import {
+  ANY_ENTITY,
+  BURN_ENTITY,
+  NO_ENTITY,
   buildAppArtifact,
   buildAppPermissions,
   buildNonceForAddress,
@@ -32,6 +35,21 @@ export default class AragonOS {
   #installedAppCounter: number;
   #newTokenCounter: number;
   #newDaoCounter: number;
+
+  /**
+   * An address used for permission operations that denotes any type of Ethereum account.
+   */
+  ANY_ENTITY: Address = ANY_ENTITY;
+
+  /**
+   * An address used for permission operations that denotes no Ethereum account.
+   */
+  NO_ENTITY: Address = NO_ENTITY;
+
+  /**
+   * An address used for permission operations that denotes that the permission has been burnt.
+   */
+  BURN_ENTITY: Address = BURN_ENTITY;
 
   constructor(evm: EVMcrispr) {
     this.evm = evm;

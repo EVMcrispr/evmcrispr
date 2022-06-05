@@ -101,13 +101,13 @@ describe('EVMcrispr script-encoding functions', () => {
 
     // Prepare EVMcrispr action functions
     actionFunctions = [
-      evmcrispr.install(`${appIdentifier}:new-app`, initializeParams),
-      evmcrispr.grantPermissions(
+      evmcrispr.aragon.install(`${appIdentifier}:new-app`, initializeParams),
+      evmcrispr.aragon.grantPermissions(
         [...NEW_PERMISSIONS, grantPermission],
         PERMISSION_MANAGER,
       ),
-      evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true),
-      evmcrispr.exec(appIdentifier, callSelector, callSignatureParams),
+      evmcrispr.aragon.revokePermissions(REVOKE_PERMISSIONS, true),
+      evmcrispr.aragon.exec(appIdentifier, callSelector, callSignatureParams),
     ];
   });
 
@@ -140,7 +140,13 @@ describe('EVMcrispr script-encoding functions', () => {
       await expectThrowAsync(
         () =>
           evmcrispr.encode(
-            [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
+            [
+              evmcrispr.aragon.exec(
+                appIdentifier,
+                callSelector,
+                callSignatureParams,
+              ),
+            ],
             COMPLETE_FORWARDER_PATH,
           ),
         { type: ErrorInvalid },
@@ -176,7 +182,13 @@ describe('EVMcrispr script-encoding functions', () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
       const expectedEncodedScriptAction = await evmcrispr.encode(
-        [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
+        [
+          evmcrispr.aragon.exec(
+            appIdentifier,
+            callSelector,
+            callSignatureParams,
+          ),
+        ],
         COMPLETE_FORWARDER_PATH,
         { context: CONTEXT },
       );
