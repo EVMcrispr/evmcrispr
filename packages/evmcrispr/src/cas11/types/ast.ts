@@ -18,6 +18,7 @@ export enum NodeType {
   HelperFunctionExpression = 'HelperFunctionExpression',
   UnaryExpression = 'UnaryExpression',
 
+  CommandIdentifier = 'CommandIdentifier',
   Identifier = 'Identifier',
   VariableIdentifier = 'VariableIdentifier',
 }
@@ -73,6 +74,12 @@ export interface GroupingExpressionNode extends Node {
   expression: Node;
 }
 
+export interface CommandIdentifierNode {
+  type: NodeType.CommandIdentifier;
+  value: string;
+  module?: string;
+}
+
 export interface IdentifierNode extends Node {
   type: NodeType.Identifier;
   value: string;
@@ -85,7 +92,7 @@ export interface VariableIdentiferNode extends Node {
 
 export interface CallExpressionNode extends Node {
   type: NodeType.CallExpression;
-  callee: Node;
+  callee: AddressLiteralNode | IdentifierNode;
   args: Node[];
 }
 
@@ -97,9 +104,8 @@ export interface HelperFunctionNode extends Node {
 
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
-  name: Node;
+  name: CommandIdentifierNode;
   args: Node[];
-  body?: Node[];
 }
 
 export interface BlockExpressionNode extends Node {

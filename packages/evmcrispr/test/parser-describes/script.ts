@@ -10,7 +10,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
       load superfluid as sf
   
       
-      connect my-dao-ens (   
+      ar:connect my-dao-ens (   
         forward token-manager voting (
           install wrapper-hooked-token-manager.open 0x83E57888cd55C3ea1cfbf0114C963564d81e318d false 0
         )
@@ -18,8 +18,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
           set $agent finance:vault()
           forward wrappable-token-manager.open disputable-voting.open agent (
             set $daix @token("fDAIx")
-            token approve @token('DAI') @me 15.45e18
-            sf batchcall (
+            sf:token approve @token('DAI') @me 15.45e18
+            sf:batchcall (
               token upgrade $daix 4500.43e18
               flow create $daix $agent 1e18mo
               token downgrade @token('USDCx')
@@ -31,6 +31,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
   
       
       `;
+
+      // deepConsoleLog(scriptParser.run(script));
       const c: Case = [
         script,
         {
@@ -38,7 +40,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
           body: [
             {
               type: 'CommandExpression',
-              name: { type: 'Identifier', value: 'load' },
+              name: { type: 'CommandIdentifier', value: 'load' },
               args: [
                 {
                   type: 'AsExpression',
@@ -49,7 +51,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
             },
             {
               type: 'CommandExpression',
-              name: { type: 'Identifier', value: 'load' },
+              name: { type: 'CommandIdentifier', value: 'load' },
               args: [
                 {
                   type: 'AsExpression',
@@ -60,7 +62,11 @@ export const scriptParserDescribe = (): Mocha.Suite =>
             },
             {
               type: 'CommandExpression',
-              name: { type: 'Identifier', value: 'connect' },
+              name: {
+                type: 'CommandIdentifier',
+                value: 'connect',
+                module: 'ar',
+              },
               args: [
                 { type: 'Identifier', value: 'my-dao-ens' },
                 {
@@ -68,7 +74,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                   body: [
                     {
                       type: 'CommandExpression',
-                      name: { type: 'Identifier', value: 'forward' },
+                      name: { type: 'CommandIdentifier', value: 'forward' },
                       args: [
                         { type: 'Identifier', value: 'token-manager' },
                         { type: 'Identifier', value: 'voting' },
@@ -77,7 +83,10 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                           body: [
                             {
                               type: 'CommandExpression',
-                              name: { type: 'Identifier', value: 'install' },
+                              name: {
+                                type: 'CommandIdentifier',
+                                value: 'install',
+                              },
                               args: [
                                 {
                                   type: 'Identifier',
@@ -98,7 +107,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                     },
                     {
                       type: 'CommandExpression',
-                      name: { type: 'Identifier', value: 'forward' },
+                      name: { type: 'CommandIdentifier', value: 'forward' },
                       args: [
                         { type: 'Identifier', value: 'token-manager' },
                         { type: 'Identifier', value: 'voting' },
@@ -108,7 +117,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                           body: [
                             {
                               type: 'CommandExpression',
-                              name: { type: 'Identifier', value: 'set' },
+                              name: { type: 'CommandIdentifier', value: 'set' },
                               args: [
                                 { type: 'VariableIdentifier', value: '$agent' },
                                 {
@@ -127,7 +136,10 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                             },
                             {
                               type: 'CommandExpression',
-                              name: { type: 'Identifier', value: 'forward' },
+                              name: {
+                                type: 'CommandIdentifier',
+                                value: 'forward',
+                              },
                               args: [
                                 {
                                   type: 'Identifier',
@@ -144,7 +156,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                     {
                                       type: 'CommandExpression',
                                       name: {
-                                        type: 'Identifier',
+                                        type: 'CommandIdentifier',
                                         value: 'set',
                                       },
                                       args: [
@@ -170,8 +182,9 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                     {
                                       type: 'CommandExpression',
                                       name: {
-                                        type: 'Identifier',
+                                        type: 'CommandIdentifier',
                                         value: 'token',
+                                        module: 'sf',
                                       },
                                       args: [
                                         {
@@ -208,19 +221,19 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                     },
                                     {
                                       type: 'CommandExpression',
-                                      name: { type: 'Identifier', value: 'sf' },
+                                      name: {
+                                        type: 'CommandIdentifier',
+                                        value: 'batchcall',
+                                        module: 'sf',
+                                      },
                                       args: [
-                                        {
-                                          type: 'Identifier',
-                                          value: 'batchcall',
-                                        },
                                         {
                                           type: 'BlockExpression',
                                           body: [
                                             {
                                               type: 'CommandExpression',
                                               name: {
-                                                type: 'Identifier',
+                                                type: 'CommandIdentifier',
                                                 value: 'token',
                                               },
                                               args: [
@@ -242,7 +255,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                             {
                                               type: 'CommandExpression',
                                               name: {
-                                                type: 'Identifier',
+                                                type: 'CommandIdentifier',
                                                 value: 'flow',
                                               },
                                               args: [
@@ -269,7 +282,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                             {
                                               type: 'CommandExpression',
                                               name: {
-                                                type: 'Identifier',
+                                                type: 'CommandIdentifier',
                                                 value: 'token',
                                               },
                                               args: [

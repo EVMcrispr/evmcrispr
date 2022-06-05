@@ -6,7 +6,7 @@ import {
   scriptParserDescribe,
 } from './parser-describes';
 
-describe.only('cas11 parsers', () => {
+describe('CAS11 Parsers', () => {
   primaryParsersDescribe();
 
   callParserDescribe();

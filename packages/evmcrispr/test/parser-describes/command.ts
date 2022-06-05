@@ -9,6 +9,7 @@ const {
   BoolLiteral,
   NumberLiteral,
   CommandExpression,
+  CommandIdentifier,
   Identifier,
 } = NodeType;
 
@@ -19,7 +20,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
         'my-command @ipfs("upload this to ipfs") contract:getData("param1", false, an-identifier, @me) anotherIdentifier.open',
         {
           type: 'CommandExpression',
-          name: { type: 'Identifier', value: 'my-command' },
+          name: { type: 'CommandIdentifier', value: 'my-command' },
           args: [
             {
               type: 'HelperFunctionExpression',
@@ -52,7 +53,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
     it('should parse a command with trailing whitespaces', () => {
       const expectedCommandNode: CommandExpressionNode = {
         type: CommandExpression,
-        name: { type: Identifier, value: 'install' },
+        name: { type: CommandIdentifier, value: 'install' },
         args: [
           { type: Identifier, value: 'wrapper-hooked-token-manager' },
           {
@@ -92,7 +93,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           'load superfluid',
           {
             type: 'CommandExpression',
-            name: { type: 'Identifier', value: 'load' },
+            name: { type: 'CommandIdentifier', value: 'load' },
             args: [{ type: 'Identifier', value: 'superfluid' }],
           },
           'invalid `load` command match',
@@ -101,7 +102,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           'load aragonos as ar',
           {
             type: 'CommandExpression',
-            name: { type: 'Identifier', value: 'load' },
+            name: { type: 'CommandIdentifier', value: 'load' },
             args: [
               {
                 type: 'AsExpression',
@@ -115,7 +116,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           `switch gnosis`,
           {
             type: 'CommandExpression',
-            name: { type: 'Identifier', value: 'switch' },
+            name: { type: 'CommandIdentifier', value: 'switch' },
             args: [{ type: 'Identifier', value: 'gnosis' }],
           },
           'invalid `switch` command match',
@@ -124,7 +125,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           `set $new-variable 'a variable'`,
           {
             type: 'CommandExpression',
-            name: { type: 'Identifier', value: 'set' },
+            name: { type: 'CommandIdentifier', value: 'set' },
             args: [
               { type: 'VariableIdentifier', value: '$new-variable' },
               { type: 'StringLiteral', value: 'a variable' },
@@ -138,29 +139,18 @@ export const commandParserDescribe = (): Mocha.Suite =>
     });
 
     it('should parse commands followed by block expressions', () => {
-      // deepConsoleLog(
-      //   commandExpressionParser.run(`forward token-manager voting agent (
-      //   set $agent finance:vault()
-      //   forward wrappable-token-manager.open disputable-voting.open agent (
-      //     sf batchcall (
-      //       flow create @token('fDAIx') $agent 1e18mo
-      //     )
-      //   )
-      // )`),
-      // );
-
       const c: Case = [
         `forward token-manager voting agent (
           set $agent finance:vault()
           forward wrappable-token-manager.open disputable-voting.open agent (
-            sf batchcall (
+            sf:batchcall (
               flow create @token('fDAIx') $agent 1e18mo
             )
           )
         )`,
         {
           type: 'CommandExpression',
-          name: { type: 'Identifier', value: 'forward' },
+          name: { type: 'CommandIdentifier', value: 'forward' },
           args: [
             { type: 'Identifier', value: 'token-manager' },
             { type: 'Identifier', value: 'voting' },
@@ -170,7 +160,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
               body: [
                 {
                   type: 'CommandExpression',
-                  name: { type: 'Identifier', value: 'set' },
+                  name: { type: 'CommandIdentifier', value: 'set' },
                   args: [
                     { type: 'VariableIdentifier', value: '$agent' },
                     {
@@ -183,7 +173,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
                 },
                 {
                   type: 'CommandExpression',
-                  name: { type: 'Identifier', value: 'forward' },
+                  name: { type: 'CommandIdentifier', value: 'forward' },
                   args: [
                     {
                       type: 'Identifier',
@@ -196,15 +186,21 @@ export const commandParserDescribe = (): Mocha.Suite =>
                       body: [
                         {
                           type: 'CommandExpression',
-                          name: { type: 'Identifier', value: 'sf' },
+                          name: {
+                            type: 'CommandIdentifier',
+                            module: 'sf',
+                            value: 'batchcall',
+                          },
                           args: [
-                            { type: 'Identifier', value: 'batchcall' },
                             {
                               type: 'BlockExpression',
                               body: [
                                 {
                                   type: 'CommandExpression',
-                                  name: { type: 'Identifier', value: 'flow' },
+                                  name: {
+                                    type: 'CommandIdentifier',
+                                    value: 'flow',
+                                  },
                                   args: [
                                     { type: 'Identifier', value: 'create' },
                                     {
