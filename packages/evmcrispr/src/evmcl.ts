@@ -100,15 +100,10 @@ export default function evmcl(
     .map((command) => command.trim())
     .filter((command) => !!command);
 
-  const [, dao, pathstr, context] =
-    commands[0].match(
-      /^connect ([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))?$/,
-    ) || [];
-  if (!dao) {
-    throw new Error('First line must be a connect statement.');
-  }
-  commands.shift(); // removes first element
-  const path = pathstr.trim().split(' ');
+  let dao = '';
+  let path: string[] = [];
+  let context = '';
+
   const actions = async (evmcrispr: EVMcrispr) => {
     const parser = new EvmclParser(evmcrispr);
     return normalizeActions(
@@ -118,6 +113,21 @@ export default function evmcl(
           .split(' ')
           .map((s) => s.replace(/"/g, ' '));
         switch (commandName) {
+          case 'connect': {
+            const [, _dao, pathstr, _context] =
+              args
+                .join(' ')
+                .match(
+                  /^([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))?$/,
+                ) || [];
+            if (!_dao) {
+              throw new Error('First line must be a connect statement.');
+            }
+            dao = _dao;
+            path = pathstr.trim().split(' ');
+            context = _context;
+            return evmcrispr.aragon.connect(dao);
+          }
           case 'set': {
             return async () => {
               const [varName, ...value] = args;
@@ -187,14 +197,14 @@ export default function evmcl(
               );
               return evmcrispr.aragon.revoke(
                 [grantee, app, role],
-                removePermissionManager,
+                removePermissionManager || false,
               )();
             };
           }
           case 'exec': {
             return async () => {
               const [identifier, method, ...params] = await parser.args(args);
-              return evmcrispr.aragon.exec(identifier, method, params)();
+              return evmcrispr.std.exec(identifier, method, params)();
             };
           }
           case 'act': {
@@ -213,19 +223,19 @@ export default function evmcl(
   };
   return {
     encode: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      const evmcrispr = await EVMcrispr.create(signer, options);
       const _actions = await actions(evmcrispr);
       return evmcrispr.encode([_actions], path, { context });
     },
     forward: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      const evmcrispr = await EVMcrispr.create(signer, options);
       return evmcrispr.forward([await actions(evmcrispr)], path, {
         context,
         ...options,
       });
     },
     evmcrispr: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(dao, signer, options);
+      const evmcrispr = await EVMcrispr.create(signer, options);
       await evmcrispr.encode([await actions(evmcrispr)], path, { context });
       return evmcrispr;
     },

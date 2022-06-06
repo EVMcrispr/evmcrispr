@@ -4,41 +4,29 @@ import type { BigNumber, Signer, providers } from 'ethers';
 import { ErrorInvalid } from './errors';
 import {
   FORWARDER_TYPES,
-  buildApp,
-  buildAppArtifact,
-  buildAppIdentifier,
-  buildIpfsTemplate,
-  calculateNewProxyAddress,
   encodeActCall,
   encodeCallScript,
-  fetchAppArtifact,
-  getAragonEnsResolver,
   getForwarderFee,
   getForwarderType,
   isForwarder,
   normalizeActions,
-  resolveName,
 } from './utils';
 import type {
   Action,
   ActionFunction,
   Address,
-  App,
-  AppArtifactCache,
-  AppCache,
   AppIdentifier,
   EVMcrisprOptions,
   Entity,
   ForwardOptions,
   Helpers,
   LabeledAppIdentifier,
-  ParsedApp,
 } from './types';
-import Connector from './Connector';
 import { IPFSResolver } from './IPFSResolver';
 import { erc20ABI, forwarderABI } from './abis';
 import resolver from './utils/resolvers';
-import AragonOS from './modules/AragonOS';
+import AragonOS from './modules/aragonos/AragonOS';
+import Std from './modules/std/Std';
 import defaultHelpers from './helpers';
 
 type TransactionReceipt = providers.TransactionReceipt;
@@ -48,111 +36,72 @@ type TransactionReceipt = providers.TransactionReceipt;
  * @category Main
  */
 export default class EVMcrispr {
-  /**
-   * App cache that contains all the DAO's app.
-   */
-  #appCache: AppCache;
-  #appArtifactCache: AppArtifactCache;
   #addressBook: Map<string, Address>;
+  #abiStore: Map<string, utils.Interface>;
 
   #helpers: Helpers;
   #env: Map<string, any> = new Map();
-  /**
-   * The connector used to fetch Aragon apps.
-   */
-  protected _connector: Connector;
   protected _ipfsResolver: IPFSResolver;
   #signer: Signer;
+  #nonces: { [addr: string]: number } = {};
 
   aragon: AragonOS;
+  std: Std;
 
   resolver: any;
 
-  protected constructor(
-    chainId: number,
-    signer: Signer,
-    options: EVMcrisprOptions,
-  ) {
-    this.#appCache = new Map();
-    this.#appArtifactCache = new Map();
-    this._connector = new Connector(chainId, {
-      subgraphUrl: options.subgraphUrl,
-    });
+  protected constructor(signer: Signer, options: EVMcrisprOptions) {
     this.#addressBook = new Map();
-    this._ipfsResolver = new IPFSResolver(
-      buildIpfsTemplate(options.ipfsGateway),
-    );
+    this.#abiStore = new Map();
+    this._ipfsResolver = new IPFSResolver();
     this.#signer = signer;
     this.resolver = resolver(this);
     this.aragon = new AragonOS(this);
+    this.std = new Std(this);
     this.#helpers = { ...defaultHelpers, ...options?.helpers };
   }
 
   /**
    * Create a new EVMcrispr instance and connect it to a DAO by fetching and caching all its
    * apps and permissions data.
-   * @param daoAddressOrName The name or address of the DAO to connect to.
    * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
    * instance used to connect to Ethereum and sign any transaction needed.
    * @param options The optional configuration object.
    * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
   static async create(
-    daoAddressOrName: string,
     signer: Signer,
     options: EVMcrisprOptions = {},
   ): Promise<EVMcrispr> {
-    const chainId = await signer.getChainId();
-    const evmcrispr = new EVMcrispr(chainId, signer, options);
-    const networkName = (await signer.provider?.getNetwork())?.name;
-
-    if (utils.isAddress(daoAddressOrName)) {
-      await evmcrispr._connect(daoAddressOrName);
-    } else {
-      const daoAddress = await resolveName(
-        `${daoAddressOrName}.aragonid.eth`,
-        options.ensResolver || getAragonEnsResolver(chainId),
-        signer,
-      );
-      if (!daoAddress) {
-        throw new Error(
-          `ENS ${daoAddressOrName}.aragonid.eth not found in ${
-            networkName ?? 'unknown network'
-          }, please introduce the address of the DAO instead.`,
-        );
-      }
-      await evmcrispr._connect(daoAddress);
-    }
-
+    const evmcrispr = new EVMcrispr(signer, { ...options });
     return evmcrispr;
-  }
-
-  get appCache(): AppCache {
-    return this.#appCache;
-  }
-
-  get appArtifactCache(): AppArtifactCache {
-    return this.#appArtifactCache;
   }
 
   get ipfsResolver(): IPFSResolver {
     return this._ipfsResolver;
   }
 
-  get connector(): Connector {
-    return this._connector;
-  }
-
   get signer(): Signer {
     return this.#signer;
   }
 
-  get addressBook(): Map<string, string> {
+  get addressBook(): Map<string, Address> {
     return this.#addressBook;
+  }
+
+  get abiStore(): Map<Address, utils.Interface> {
+    return this.#abiStore;
   }
 
   get helpers(): Helpers {
     return this.#helpers;
+  }
+
+  incrementNonce(address: string) {
+    if (!this.#nonces[address]) {
+      this.#nonces[address] = 0;
+    }
+    return this.#nonces[address]++;
   }
 
   env(varName: string): any {
@@ -177,23 +126,6 @@ export default class EVMcrispr {
   app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Contract {
     const app = this.resolver.resolveApp(appIdentifier);
     return new Contract(app.address, app.abiInterface, this.#signer);
-  }
-
-  /**
-   * Returns the list of all (labeled and no labeled) app identifiers.
-   * @returns List of available app identifiers
-   */
-  apps(): (AppIdentifier | LabeledAppIdentifier)[] {
-    return [...this.#appCache.keys()];
-  }
-
-  appMethods(appIdentifier: AppIdentifier | LabeledAppIdentifier): string[] {
-    return (
-      this.#appArtifactCache
-        .get(this.resolver.resolveApp(appIdentifier).codeAddress)
-        ?.functions.map(({ sig }) => sig.split('(')[0])
-        .filter((n) => n !== 'initialize') || []
-    );
   }
 
   /**
@@ -256,31 +188,24 @@ export default class EVMcrispr {
    */
   async encode(
     actionFunctions: ActionFunction[],
-    path: Entity[],
+    path?: Entity[],
     options?: ForwardOptions,
   ): Promise<{
     actions: Action[];
     forward: () => Promise<TransactionReceipt[]>;
   }> {
-    if (actionFunctions.length === 0) {
-      throw new ErrorInvalid('No actions provided.');
-    }
-    if (path.length === 0) {
-      throw new ErrorInvalid('No forwader apps path provided.');
-    }
-    // Need to build the evmscript starting from the last forwarder
-    const forwarders = path
-      .map((entity) => this.resolver.resolveEntity(entity))
-      .reverse();
     const actions: Action[] = [];
-
     let script: string;
     let forwarderActions = await normalizeActions(actionFunctions)();
     let value = 0;
 
-    for (let i = 0; i < forwarders.length; i++) {
+    // Need to build the evmscript starting from the last forwarder
+    const forwarders =
+      path?.map((entity) => this.resolver.resolveEntity(entity)).reverse() ||
+      [];
+
+    for (const forwarderAddress of forwarders) {
       script = encodeCallScript(forwarderActions);
-      const forwarderAddress = forwarders[i];
       const forwarder = new Contract(
         forwarderAddress,
         forwarderABI,
@@ -401,96 +326,5 @@ export default class EVMcrispr {
       );
     }
     return txs;
-  }
-
-  async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
-    const appArtifactCache: AppArtifactCache = new Map();
-    const artifactApps = apps.filter((app) => app.artifact);
-    const artifactlessApps = apps.filter(
-      (app) => !app.artifact && app.contentUri,
-    );
-    const contentUris = artifactlessApps.map((app) => app.contentUri);
-
-    // Construct a contentUri => artifact map
-    const uriToArtifactKeys = [...new Set<string>(contentUris)];
-    const uriToArtifactValues: any[] = await Promise.all(
-      uriToArtifactKeys.map((contentUri) =>
-        fetchAppArtifact(this._ipfsResolver, contentUri),
-      ),
-    );
-    const uriToArtifactMap = Object.fromEntries(
-      uriToArtifactKeys.map((_, i) => [
-        uriToArtifactKeys[i],
-        uriToArtifactValues[i],
-      ]),
-    );
-
-    // Resolve all content uris to artifacts
-    const artifacts: any[] = contentUris.map((uri) => uriToArtifactMap[uri]);
-
-    artifactlessApps.forEach(({ codeAddress }, index) => {
-      const artifact = artifacts[index];
-
-      if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
-      }
-    });
-
-    artifactApps.forEach(({ artifact, codeAddress }) => {
-      if (!appArtifactCache.has(codeAddress)) {
-        appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
-      }
-    });
-
-    return appArtifactCache;
-  }
-
-  async #buildAppCache(apps: App[]): Promise<AppCache> {
-    const appCache: AppCache = new Map();
-    const appCounter = new Map();
-
-    const kernel = apps.find((app) => app.name.toLowerCase() === 'kernel')!;
-    const sortedParsedApps = [kernel];
-
-    const addressToApp = apps.reduce((accumulator, app) => {
-      accumulator.set(app.address, app);
-      return accumulator;
-    }, new Map());
-
-    // Sort apps by creation time
-    for (let i = 1; i <= addressToApp.size; i++) {
-      const address = calculateNewProxyAddress(
-        kernel.address,
-        utils.hexlify(i),
-      );
-
-      if (addressToApp.has(address)) {
-        sortedParsedApps.push(addressToApp.get(address));
-      }
-    }
-
-    // Create app cache
-    for (const app of sortedParsedApps) {
-      const { name } = app;
-      const counter = appCounter.has(name) ? appCounter.get(name) : 0;
-      const appIdentifier = buildAppIdentifier(app, counter);
-
-      appCache.set(appIdentifier, app);
-      appCounter.set(name, counter + 1);
-    }
-
-    return appCache;
-  }
-
-  protected async _connect(daoAddress: Address): Promise<void> {
-    const parsedApps = await this._connector.organizationApps(daoAddress);
-    const appResourcesCache = await this.#buildAppArtifactCache(parsedApps);
-    const apps = parsedApps
-      .map((parsedApp) => buildApp(parsedApp, appResourcesCache))
-      .filter((app) => !!app);
-    const appCache = await this.#buildAppCache(apps as App[]);
-
-    this.#appCache = appCache;
-    this.#appArtifactCache = appResourcesCache;
   }
 }

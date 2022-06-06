@@ -28,7 +28,8 @@ const main = async () => {
 
   beeSigner0.getChainId = async () => CHAIN_ID;
 
-  const evmcrispr = await EVMcrispr.create(ONE_HIVE_DAO, beeSigner0);
+  const evmcrispr = await EVMcrispr.create(beeSigner0);
+  await evmcrispr.aragon.connect(ONE_HIVE_DAO)();
 
   const agent = evmcrispr.app('agent:0')!;
   const daiAmount = await agent.balance(DAI);
@@ -58,7 +59,7 @@ const processVote = async (
   );
   const voteId = startVoteLog.topics[1];
 
-  const votingApp = evmcrispr.appCache.get('voting:0')!;
+  const votingApp = evmcrispr.aragon.dao!.appCache.get('voting:0')!;
   const votingBee0 = new Contract(
     votingApp.address,
     votingApp.abiInterface,

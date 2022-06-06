@@ -3,7 +3,7 @@ import { utils } from 'ethers';
 import hre from 'hardhat';
 import { multihash } from 'is-ipfs';
 
-import { Connector, ErrorException, ErrorNotFound } from '../src';
+import { ErrorException, ErrorNotFound } from '../src';
 import { parseContentUri } from '../src/utils';
 import type { ParsedApp } from '../src/types';
 import { DAO, EOA_ADDRESS } from './fixtures';
@@ -12,6 +12,7 @@ import {
   isValidArtifact,
   isValidParsedApp,
 } from './test-helpers/expects';
+import Connector from '../src/modules/aragonos/utils/Connector';
 
 const {
   network: {

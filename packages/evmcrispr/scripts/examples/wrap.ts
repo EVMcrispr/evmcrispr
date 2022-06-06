@@ -14,9 +14,10 @@ const main = async () => {
 
   signer.getChainId = async () => CHAIN_ID;
 
-  const evmcrispr = await EVMcrispr.create(DAO, signer);
+  const evmcrispr = await EVMcrispr.create(signer);
+  await evmcrispr.aragon.connect(DAO)();
 
-  const tokenManagerApp = evmcrispr.appCache.get(
+  const tokenManagerApp = evmcrispr.app(
     'wrappable-hooked-token-manager.open:0',
   )!;
   const tokenManager = new Contract(

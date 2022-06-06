@@ -11,7 +11,10 @@ export * from './aragon';
 export type ActionFunction = () => Promise<Action[]>;
 
 export type Helpers = {
-  [name: string]: (evm: EVMcrispr, ...rest: string[]) => any;
+  [name: string]: (
+    evm: EVMcrispr,
+    ...rest: ((() => Promise<string>) | string)[]
+  ) => any;
 };
 
 export type EVMcl = {
@@ -190,24 +193,17 @@ export interface App {
   registryName: string;
 }
 
+export interface EntityWithAbi {
+  address: Address;
+  abiInterface: utils.Interface;
+}
+
 /**
  * The EVMcrispr optional configuration object.
  */
 export interface EVMcrisprOptions {
-  /**
-   * An IPFS gateway url to fetch app data from.
-   */
-  ipfsGateway?: string;
-  /*
-   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth.
-   */
-  ensResolver?: string;
-  /**
-   * A custom subgraph url to connect to.
-   */
-  subgraphUrl?: string;
-
   helpers?: Helpers;
+  chainId?: number;
 }
 
 export interface ForwardOptions {

@@ -12,8 +12,11 @@ import { toDecimals } from './web3';
 
 export default function resolver(evmcrispr: EVMcrispr) {
   function resolveApp(entity: Entity): App {
+    if (!evmcrispr.aragon.dao) {
+      throw new Error('Not connected to any DAO');
+    }
     if (utils.isAddress(entity)) {
-      const app = [...evmcrispr.appCache.entries()].find(
+      const app = [...evmcrispr.aragon.dao.appCache.entries()].find(
         ([, app]) => app.address === entity,
       );
 
@@ -27,13 +30,13 @@ export default function resolver(evmcrispr: EVMcrispr) {
     }
     const resolvedIdentifier = resolveIdentifier(entity);
 
-    if (!evmcrispr.appCache.has(resolvedIdentifier)) {
+    if (!evmcrispr.aragon.dao.appCache.has(resolvedIdentifier)) {
       throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
         name: 'ErrorAppNotFound',
       });
     }
 
-    return evmcrispr.appCache.get(resolvedIdentifier)!;
+    return evmcrispr.aragon.dao.appCache.get(resolvedIdentifier)!;
   }
 
   function resolveEntity(entity: Entity): Address {

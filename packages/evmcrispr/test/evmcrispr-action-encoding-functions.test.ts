@@ -26,7 +26,8 @@ describe('EVMcrispr action-encoding functions', () => {
   beforeEach(async () => {
     const signer = await getSigner();
 
-    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
+    evmcrispr = await EVMcrispr.create(signer);
+    await evmcrispr.aragon.connect(DAO.kernel)();
   });
 
   const testBadPermission = (
@@ -216,49 +217,6 @@ describe('EVMcrispr action-encoding functions', () => {
     });
   });
 
-  describe('grantPermissions()', () => {
-    it('encodes a set of create permission actions correctly', async () => {
-      const expectedCreateActions = NEW_PERMISSIONS.map(
-        (createPermission): Action => ({
-          to: DAO.acl,
-          data: encodeActCall(
-            'createPermission(address,address,bytes32,address)',
-            [
-              ...resolvePermission(createPermission),
-              DAO[PERMISSION_MANAGER as keyof typeof DAO],
-            ],
-          ),
-        }),
-      );
-      const createActions = await evmcrispr.aragon.grantPermissions(
-        NEW_PERMISSIONS,
-        PERMISSION_MANAGER,
-      )();
-
-      expect(createActions).eql(expectedCreateActions);
-    });
-    it('encodes a set of grant permission actions correctly', async () => {
-      const grantPermissions: Permission[] = GRANT_PERMISSIONS.map(
-        ([, app, role]) => ['kernel', app, role],
-      );
-      const expectedGrantActions = grantPermissions.map(
-        (grantPermission): Action => ({
-          to: DAO.acl,
-          data: encodeActCall(
-            'grantPermission(address,address,bytes32)',
-            resolvePermission(grantPermission),
-          ),
-        }),
-      );
-      const grantActions = await evmcrispr.aragon.grantPermissions(
-        grantPermissions.map((p) => resolvePermission(p)),
-        PERMISSION_MANAGER,
-      )();
-
-      expect(grantActions).eql(expectedGrantActions);
-    });
-  });
-
   describe('app()', () => {
     it(
       'fails when receiving an invalid identifier',
@@ -280,7 +238,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
   describe('apps()', () => {
     it('returns the list of apps', () => {
-      expect(evmcrispr.apps()).to.be.eql([
+      expect(evmcrispr.aragon.dao?.apps()).to.be.eql([
         'kernel:0',
         'acl:0',
         'evm-script-registry:0',
@@ -296,7 +254,7 @@ describe('EVMcrispr action-encoding functions', () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new`;
       await evmcrispr.aragon.install(appLabeledIdentifier, initializeParams)();
-      expect(evmcrispr.apps())
+      expect(evmcrispr.aragon.dao?.apps())
         .to.be.length(10)
         .and.to.include(appLabeledIdentifier);
     });
@@ -388,7 +346,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.aragon.exec(badIdentifier, '', []),
+        (badIdentifier) => evmcrispr.std.exec(badIdentifier, '', []),
         false,
         false,
       ),
@@ -396,13 +354,13 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when calling an invalid method', async () => {
       await expectThrowAsync(
-        evmcrispr.aragon.exec('token-manager', 'unknownMethod', []),
+        evmcrispr.std.exec('token-manager', 'unknownMethod', []),
         undefined,
         'Unknown method',
       );
 
       await expectThrowAsync(
-        evmcrispr.aragon.exec('token-manager', 'mint', []),
+        evmcrispr.std.exec('token-manager', 'mint', []),
         undefined,
         "Invalid method's parameters",
       );
@@ -421,14 +379,14 @@ describe('EVMcrispr action-encoding functions', () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr.aragon.exec(
+      const callAction = await evmcrispr.std.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureParams,
       )();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = await evmcrispr.aragon.exec(
+      const callActionUnresolved = await evmcrispr.std.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureUnresolvedParams,
@@ -437,7 +395,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate non-constant function calls', () => {
-      const keys = evmcrispr.appMethods('token-manager');
+      const keys = evmcrispr.aragon.dao!.appMethods('token-manager');
       expect(keys).include.members([
         'assignVested',
         'mint',
@@ -609,43 +567,9 @@ describe('EVMcrispr action-encoding functions', () => {
     });
   });
 
-  describe('revokePermissions()', () => {
-    it('encodes a set of revoke permissions and permission manager actions correctly', async () => {
-      const expectedRevokeActions = REVOKE_PERMISSIONS.reduce(
-        (revokingActions: Action[], permission) => {
-          const resolvedPermission = resolvePermission(permission);
-          return [
-            ...revokingActions,
-            {
-              to: DAO.acl,
-              data: encodeActCall(
-                'revokePermission(address,address,bytes32)',
-                resolvedPermission,
-              ),
-            },
-            {
-              to: DAO.acl,
-              data: encodeActCall(
-                'removePermissionManager(address,bytes32)',
-                resolvedPermission.slice(1, 3),
-              ),
-            },
-          ];
-        },
-        [],
-      );
-      const revokeActions = await evmcrispr.aragon.revokePermissions(
-        REVOKE_PERMISSIONS,
-        true,
-      )();
-
-      expect(revokeActions).eql(expectedRevokeActions);
-    });
-  });
-
   describe('setOracle()', () => {
     it('encodes an ACL oracle parameter from an address', () => {
-      const oracle = evmcrispr.aragon.setOracle(EOA_ADDRESS)();
+      const oracle = evmcrispr.aragon.dao?.setOracle(EOA_ADDRESS)();
       const expectedOracle = [
         `0xcb0100000000000000000000${EOA_ADDRESS.slice(2)}`,
       ];
@@ -653,7 +577,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('encodes an ACL oracle parameter from an app identifier', () => {
-      const oracle = evmcrispr.aragon.setOracle('voting')();
+      const oracle = evmcrispr.aragon.dao?.setOracle('voting')();
       const address = evmcrispr.app('voting').address;
       const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
@@ -661,7 +585,9 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('encodes an ACL oracle parameter from a counterfactual app', async () => {
       const { appIdentifier, initializeParams } = APP;
-      const oracleF = evmcrispr.aragon.setOracle(`${appIdentifier}:new-oracle`);
+      const oracleF = evmcrispr.aragon.dao!.setOracle(
+        `${appIdentifier}:new-oracle`,
+      );
       await evmcrispr.aragon.install(
         `${appIdentifier}:new-oracle`,
         initializeParams,

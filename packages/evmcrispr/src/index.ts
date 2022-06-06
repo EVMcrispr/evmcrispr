@@ -1,4 +1,3 @@
-export { default as Connector } from './Connector';
 export { default as EVMcrispr } from './EVMcrispr';
 export { default as evmcl } from './evmcl';
 export {

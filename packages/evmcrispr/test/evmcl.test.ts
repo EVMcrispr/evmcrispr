@@ -14,11 +14,9 @@ async function check(
   actions: EVMcl,
   expectedActions: ActionFunction[],
   checkVars: string[] = [],
+  forwarders: string[] = ['token-manager', 'voting'],
 ) {
-  const expected = await evm.encode(expectedActions, [
-    'token-manager',
-    'voting',
-  ]);
+  const expected = await evm.encode(expectedActions, forwarders);
   const actual = await actions.encode(signer);
   expect(actual.actions).to.be.deep.eq(expected.actions);
   for (const varName of checkVars) {
@@ -31,7 +29,7 @@ async function check(
 describe('EVM Command Line', () => {
   beforeEach(async () => {
     signer = await getSigner();
-    evm = await EVMcrispr.create(DAO.kernel, signer);
+    evm = await EVMcrispr.create(signer);
   });
   it('new token "Trust Token" TRUST token-manager:new', async () => {
     await check(
@@ -41,6 +39,7 @@ describe('EVM Command Line', () => {
         install token-manager:new token:TRUST false 0
       `,
       [
+        evm.aragon.connect(DAO.kernel),
         evm.aragon.newToken('Trust Token', 'TRUST', 'token-manager:new'),
         evm.aragon.install('token-manager:new', ['token:TRUST', false, 0]),
       ],
@@ -53,7 +52,10 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         new token "Trust Token" TRUST agent
       `,
-      [evm.newToken('Trust Token', 'TRUST', 'agent')],
+      [
+        evm.aragon.connect(DAO.kernel),
+        evm.aragon.newToken('Trust Token', 'TRUST', 'agent'),
+      ],
     );
   });
 
@@ -64,7 +66,10 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         install token-manager:new ${params}
       `,
-      [evm.aragon.install('token-manager:new', APP.initializeParams)],
+      [
+        evm.aragon.connect(DAO.kernel),
+        evm.aragon.install('token-manager:new', APP.initializeParams),
+      ],
     );
   });
   it('upgrade token-manager.aragonpm.eth address', async () => {
@@ -74,7 +79,10 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         upgrade token-manager.aragonpm.eth ${app}
       `,
-      [evm.aragon.upgrade('token-manager.aragonpm.eth', app)],
+      [
+        evm.aragon.connect(DAO.kernel),
+        evm.aragon.upgrade('token-manager.aragonpm.eth', app),
+      ],
     );
   });
   it('grant voting token-manager REVOKE_VESTINGS_ROLE', async () => {
@@ -84,6 +92,7 @@ describe('EVM Command Line', () => {
         grant voting token-manager REVOKE_VESTINGS_ROLE voting
       `,
       [
+        evm.aragon.connect(DAO.kernel),
         evm.aragon.grant(
           ['voting', 'token-manager', 'REVOKE_VESTINGS_ROLE'],
           'voting',
@@ -97,7 +106,10 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         revoke voting token-manager MINT_ROLE
       `,
-      [evm.aragon.revoke(['voting', 'token-manager', 'MINT_ROLE'])],
+      [
+        evm.aragon.connect(DAO.kernel),
+        evm.aragon.revoke(['voting', 'token-manager', 'MINT_ROLE']),
+      ],
     );
   });
   it('exec token-manager mint vault 1e18', async () => {
@@ -106,7 +118,10 @@ describe('EVM Command Line', () => {
         connect ${DAO.kernel} token-manager voting
         exec token-manager mint vault 100000e18
       `,
-      [evm.aragon.exec('token-manager', 'mint', ['vault', '100000e18'])],
+      [
+        evm.aragon.connect(DAO.kernel),
+        evm.std.exec('token-manager', 'mint', ['vault', '100000e18']),
+      ],
     );
   });
   it('act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]', async () => {
@@ -116,6 +131,7 @@ describe('EVM Command Line', () => {
         act vault vault deposit(uint,uint[][]) 1 [[2,3],[4,5]]
       `,
       [
+        evm.aragon.connect(DAO.kernel),
         evm.aragon.act('vault', 'vault', 'deposit(uint,uint[][])', [
           1,
           [
@@ -134,8 +150,9 @@ describe('EVM Command Line', () => {
         exec finance newImmediatePayment @token(SUSHI) @me @token.balance(SUSHI,@me) "sushi for two"
       `,
       [
+        evm.aragon.connect(DAO.kernel),
         evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
-        evm.aragon.exec('finance', 'newImmediatePayment', [
+        evm.std.exec('finance', 'newImmediatePayment', [
           evm.helpers.token(evm, 'SUSHI'),
           evm.helpers.me(evm),
           evm.helpers['token.balance'](evm, 'SUSHI', evm.helpers.me(evm)),
@@ -153,15 +170,12 @@ describe('EVM Command Line', () => {
         exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)
       `,
       [
+        evm.aragon.connect(DAO.kernel),
         evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
-        evm.exec('vault', 'transfer', [
+        evm.std.exec('vault', 'transfer', [
           evm.helpers.token(evm, 'SUSHI'),
           evm.helpers.me(evm),
-          evm.helpers['token.balance'](
-            evm,
-            'SUSHI',
-            evm.resolver.resolveEntity('vault'),
-          ),
+          evm.helpers['token.balance'](evm, 'SUSHI', 'vault'),
         ]),
       ],
       ['$token.tokenlist'],
@@ -169,21 +183,22 @@ describe('EVM Command Line', () => {
   });
   it('set $var value in multiple words', async () => {
     await check(
-      evmcl`
-        connect ${DAO.kernel} token-manager voting
+      await evmcl`
         set $var value in multiple words
       `,
       [evm.set('$var', 'value in multiple words')],
       ['$var'],
+      [],
     );
   });
   it('new dao', async () => {
     await check(
       evmcl`
-      connect ${DAO.kernel} token-manager voting
-      new dao name
+        new dao name
       `,
       [evm.aragon.newDao('name')],
+      [],
+      [],
     );
   });
 });
