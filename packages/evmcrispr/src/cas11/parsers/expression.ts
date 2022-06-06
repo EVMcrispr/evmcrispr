@@ -2,9 +2,9 @@ import { choice, recursiveParser, sequenceOf, str } from 'arcsecond';
 
 import type { AsExpressionNode } from '../types';
 import { NodeType } from '../types';
+import { blockExpressionParser } from './block';
 
 import { callExpressionParser } from './call';
-import { blockExpressionParser } from './command';
 import { helperFunctionParser } from './helper';
 import { identifierParser, primaryParser } from './primaries';
 import { whitespace } from './utils';
