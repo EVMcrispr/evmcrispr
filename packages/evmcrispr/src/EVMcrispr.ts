@@ -1,16 +1,8 @@
-import { Contract, constants, utils } from 'ethers';
-import type { BigNumber, Signer, providers } from 'ethers';
+import { Contract } from 'ethers';
+import type { Signer, providers, utils } from 'ethers';
 
-import { ErrorInvalid } from './errors';
-import {
-  FORWARDER_TYPES,
-  encodeActCall,
-  encodeCallScript,
-  getForwarderFee,
-  getForwarderType,
-  isForwarder,
-  normalizeActions,
-} from './utils';
+import { encodeActCall, encodeCallScript, normalizeActions } from './utils';
+import { batchForwarderActions } from './modules/aragonos/utils/forwarders';
 import type {
   Action,
   ActionFunction,
@@ -23,7 +15,6 @@ import type {
   LabeledAppIdentifier,
 } from './types';
 import { IPFSResolver } from './IPFSResolver';
-import { erc20ABI, forwarderABI } from './abis';
 import resolver from './utils/resolvers';
 import AragonOS from './modules/aragonos/AragonOS';
 import Std from './modules/std/Std';
@@ -194,95 +185,16 @@ export default class EVMcrispr {
     actions: Action[];
     forward: () => Promise<TransactionReceipt[]>;
   }> {
-    const actions: Action[] = [];
-    let script: string;
-    let forwarderActions = await normalizeActions(actionFunctions)();
-    let value = 0;
-
-    // Need to build the evmscript starting from the last forwarder
+    const forwarderActions = await normalizeActions(actionFunctions)();
     const forwarders =
       path?.map((entity) => this.resolver.resolveEntity(entity)).reverse() ||
       [];
-
-    for (const forwarderAddress of forwarders) {
-      script = encodeCallScript(forwarderActions);
-      const forwarder = new Contract(
-        forwarderAddress,
-        forwarderABI,
-        this.#signer.provider,
-      );
-
-      if (!(await isForwarder(forwarder))) {
-        throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder.`);
-      }
-
-      const fee = await getForwarderFee(forwarder);
-
-      if (fee) {
-        const [feeTokenAddress, feeAmount] = fee;
-
-        // Check if fees are in ETH
-        if (feeTokenAddress === constants.AddressZero) {
-          value = feeAmount.toNumber();
-        } else {
-          const feeToken = new Contract(
-            feeTokenAddress,
-            erc20ABI,
-            this.#signer.provider,
-          );
-          const allowance = (await feeToken.allowance(
-            await this.#signer.getAddress(),
-            forwarderAddress,
-          )) as BigNumber;
-
-          if (allowance.gt(0) && allowance.lt(feeAmount)) {
-            actions.push({
-              to: feeTokenAddress,
-              data: feeToken.interface.encodeFunctionData('approve', [
-                forwarderAddress,
-                0,
-              ]),
-            });
-          }
-          if (allowance.eq(0)) {
-            actions.push({
-              to: feeTokenAddress,
-              data: feeToken.interface.encodeFunctionData('approve', [
-                forwarderAddress,
-                feeAmount,
-              ]),
-            });
-          }
-        }
-      }
-
-      if (
-        (await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT
-      ) {
-        if (!options?.context) {
-          throw new ErrorInvalid(`Context option missing.`);
-        }
-        forwarderActions = [
-          {
-            to: forwarderAddress,
-            data: encodeActCall('forward(bytes,bytes)', [
-              script,
-              utils.hexlify(utils.toUtf8Bytes(options?.context || '')),
-            ]),
-          },
-        ];
-      } else {
-        forwarderActions = [
-          {
-            to: forwarderAddress,
-            data: encodeActCall('forward(bytes)', [script]),
-          },
-        ];
-      }
-    }
-
-    actions.push({ ...forwarderActions[0], value });
-
+    const actions = await batchForwarderActions(
+      this.#signer,
+      forwarderActions,
+      forwarders,
+      options?.context,
+    );
     return {
       actions: actions,
       forward: () => this._forward(actions, options),

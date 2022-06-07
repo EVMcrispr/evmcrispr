@@ -156,7 +156,7 @@ export interface Action {
   /**
    * The ether which needs to be sent along with the action (in wei).
    */
-  value?: number;
+  value?: string | number;
 }
 
 /**
