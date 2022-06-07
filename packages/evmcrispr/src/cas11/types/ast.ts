@@ -10,6 +10,7 @@ export enum NodeType {
   StringLiteral = 'StringLiteral',
 
   AsExpression = 'AsExpression',
+  ArrayExpression = 'ArrayExpression',
   BinaryExpression = 'BinaryExpression',
   BlockExpression = 'BlockExpression',
   CallExpression = 'CallExpression',
@@ -67,6 +68,11 @@ export interface NumericLiteralNode extends Node {
   value: number;
   power?: number;
   timeUnit?: string;
+}
+
+export interface ArrayExpressionNode extends Node {
+  type: NodeType.ArrayExpression;
+  elements: Node[];
 }
 
 export interface GroupingExpressionNode extends Node {

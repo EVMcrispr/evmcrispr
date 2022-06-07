@@ -2,6 +2,7 @@ import { choice, recursiveParser, sequenceOf, str } from 'arcsecond';
 
 import type { AsExpressionNode } from '../types';
 import { NodeType } from '../types';
+import { arrayExpressionParser } from './array';
 import { blockExpressionParser } from './block';
 
 import { callExpressionParser } from './call';
@@ -30,5 +31,6 @@ export const expressionParser = recursiveParser(() =>
     callExpressionParser,
     primaryParser,
     blockExpressionParser,
+    arrayExpressionParser,
   ]),
 );
