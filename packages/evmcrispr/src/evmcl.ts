@@ -121,7 +121,7 @@ export default function evmcl(
           case 'set': {
             return async () => {
               const [varName, ...value] = args;
-              return evmcrispr.set(varName, await parser.args(value))();
+              return evmcrispr.set(varName, value.join(' '))();
             };
           }
           case 'new': {
