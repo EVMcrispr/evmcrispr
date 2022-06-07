@@ -22,6 +22,7 @@ const Header = () => {
       </Link>
       {location.pathname === '/terminal' ? (
         <Text
+          pl={2}
           onClick={onClick}
           color="white"
           fontSize="24px"
@@ -32,11 +33,11 @@ const Header = () => {
           overflow="hidden" // Ensures the content is not revealed until the animation
           borderRight=".5em solid transparent" // The typwriter cursor
           whiteSpace="nowrap" // / Keeps the content on a single line
-          letterSpacing=".15em" // Adjust as needed
-          width="350px"
+          letterSpacing=".12em" // Adjust as needed
+          width="380px"
           animation="typing 2.5s steps(40, end)"
         >
-          {`${codename ? `"${codename}"` : null} v${version}`}
+          {`${codename ? ` "${codename}"` : null} v${version}`}
         </Text>
       ) : null}
     </Stack>
