@@ -138,7 +138,9 @@ export default function resolver(evmcrispr: EVMcrispr) {
   ): Promise<any[]> {
     const _params = [];
     for (const param of params) {
-      _params.push(await Promise.resolve(param));
+      _params.push(
+        await Promise.resolve(typeof param === 'function' ? param() : param),
+      );
     }
     return resolveParams(_params, types);
   }
