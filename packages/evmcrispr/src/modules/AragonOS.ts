@@ -274,7 +274,12 @@ export default class AragonOS {
         );
       }
 
-      await this.#registerNextProxyAddress(controller);
+      try {
+        this.evm.resolver.resolveEntity(controller);
+      } catch (e) {
+        // If entity does not exist, it is probably because we will install it with the following commands
+        await this.#registerNextProxyAddress(controller);
+      }
       const controllerAddress = this.evm.resolver.resolveEntity(controller);
       const nonce = await buildNonceForAddress(
         factories.get(chainId)!,

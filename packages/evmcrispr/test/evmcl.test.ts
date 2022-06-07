@@ -47,6 +47,16 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('new token "Trust Token" TRUST agent', async () => {
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting
+        new token "Trust Token" TRUST agent
+      `,
+      [evm.newToken('Trust Token', 'TRUST', 'agent')],
+    );
+  });
+
   it('install token-manager:new param1 param2 param3', async () => {
     const params: string = APP.initializeParams.join(' ');
     await check(
