@@ -24,7 +24,7 @@ export const useTerminal = () => {
   const [code, setCode] = useCodeState(
     `# Available commands:
 
-connect <dao> <...path> [@context:https://yoursite.com]
+connect <dao> <...path> [--context https://yoursite.com]
 install <repo> [...initParams]
 grant <entity> <app> <role> [permissionManager]
 revoke <entity> <app> <role>
