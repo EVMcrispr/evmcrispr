@@ -3,7 +3,7 @@ import { utils } from 'ethers';
 
 import { ErrorInvalid, ErrorNotFound } from '../errors';
 import type EVMcrispr from '../EVMcrispr';
-import type { Address, App, Entity, Permission } from '../types';
+import type { Address, Entity, Permission } from '../types';
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from './acl';
 import { resolveIdentifier } from './identifiers';
 import { normalizeRole } from './normalizers';
@@ -11,34 +11,6 @@ import { timeUnits } from './parsers';
 import { toDecimals } from './web3';
 
 export default function resolver(evmcrispr: EVMcrispr) {
-  function resolveApp(entity: Entity): App {
-    if (!evmcrispr.aragon.dao) {
-      throw new Error('Not connected to any DAO');
-    }
-    if (utils.isAddress(entity)) {
-      const app = [...evmcrispr.aragon.dao.appCache.entries()].find(
-        ([, app]) => app.address === entity,
-      );
-
-      if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, {
-          name: 'ErrorAppNotFound',
-        });
-      }
-
-      return app[1];
-    }
-    const resolvedIdentifier = resolveIdentifier(entity);
-
-    if (!evmcrispr.aragon.dao.appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
-        name: 'ErrorAppNotFound',
-      });
-    }
-
-    return evmcrispr.aragon.dao.appCache.get(resolvedIdentifier)!;
-  }
-
   function resolveEntity(entity: Entity): Address {
     switch (entity) {
       case 'ANY_ENTITY':
@@ -50,11 +22,16 @@ export default function resolver(evmcrispr: EVMcrispr) {
         return NO_ENTITY;
       case 'BURN_ENTITY':
         return BURN_ENTITY;
-      default:
-        if (evmcrispr.addressBook.has(entity)) {
-          return evmcrispr.addressBook.get(entity)!;
+      default: {
+        if (utils.isAddress(entity)) {
+          return entity;
         }
-        return utils.isAddress(entity) ? entity : resolveApp(entity).address;
+        const id = resolveIdentifier(entity);
+        if (evmcrispr.addressBook.has(id)) {
+          return evmcrispr.addressBook.get(id)!;
+        }
+        throw new ErrorNotFound(`Entity ${entity} not found.`);
+      }
     }
   }
 
@@ -174,7 +151,6 @@ export default function resolver(evmcrispr: EVMcrispr) {
   }
 
   return {
-    resolveApp,
     resolveEntity,
     resolveNumber,
     resolveBoolean,

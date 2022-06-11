@@ -1,5 +1,5 @@
 import type { ActionFunction, AppIdentifier, Entity } from '../../..';
-import type AragonOS from '../AragonOS';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 /**
  * Use DAO agent to call an external contract function
@@ -10,7 +10,7 @@ import type AragonOS from '../AragonOS';
  * @returns A function that retuns an action to forward an agent call with the specified parameters
  */
 export function act(
-  module: AragonOS,
+  module: ConnectedAragonOS,
   agent: AppIdentifier,
   target: Entity,
   signature: string,

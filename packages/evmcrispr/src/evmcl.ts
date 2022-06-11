@@ -1,9 +1,11 @@
 import type { Signer } from 'ethers';
 
-import type { EVMcl } from './types';
+import type { Action, ActionFunction, EVMcl } from './types';
 
 import { normalizeActions } from './utils';
 import EVMcrispr from './EVMcrispr';
+import { ErrorException } from './errors';
+import type { ConnectedAragonOS } from './modules/aragonos/AragonOS';
 
 class EvmclParser {
   evmcrispr: EVMcrispr;
@@ -103,6 +105,8 @@ export default function evmcl(
   let dao = '';
   let path: string[] = [];
   let context = '';
+  let daoActions: null | ((aragon: ConnectedAragonOS) => Promise<Action[]>)[] =
+    null;
 
   const actions = async (evmcrispr: EVMcrispr) => {
     const parser = new EvmclParser(evmcrispr);
@@ -114,19 +118,27 @@ export default function evmcl(
           .map((s) => s.replace(/"/g, ' '));
         switch (commandName) {
           case 'connect': {
-            const [, _dao, pathstr, _context] =
-              args
-                .join(' ')
-                .match(
-                  /^([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))?$/,
-                ) || [];
-            if (!_dao) {
-              throw new Error('First line must be a connect statement.');
-            }
-            dao = _dao;
-            path = pathstr.trim().split(' ');
-            context = _context;
-            return evmcrispr.aragon.connect(dao);
+            return async () => {
+              if (daoActions) {
+                throw new ErrorException(
+                  `You can not use connect within connect (at least for now).`,
+                );
+              }
+              daoActions = [];
+              const [, _dao, pathstr, _context] =
+                args
+                  .join(' ')
+                  .match(
+                    /^([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))? \($/,
+                  ) || [];
+              if (!_dao) {
+                throw new Error('Malformed connect command.');
+              }
+              dao = _dao;
+              path = pathstr.trim().split(' ');
+              context = _context;
+              return [];
+            };
           }
           case 'set': {
             return async () => {
@@ -139,20 +151,28 @@ export default function evmcl(
               const [subCommand, ...rest] = args;
               switch (subCommand) {
                 case 'token': {
-                  const [
-                    name,
-                    symbol,
-                    controller,
-                    decimals = '18',
-                    transferable = 'true',
-                  ] = rest;
-                  return evmcrispr.aragon.newToken(
-                    name,
-                    symbol,
-                    controller,
-                    Number(decimals),
-                    EvmclParser.bool(transferable)!,
-                  )();
+                  if (!daoActions) {
+                    throw new ErrorException(
+                      `You must use connect before using ${commandName} token`,
+                    );
+                  }
+                  daoActions.push(async (aragon: ConnectedAragonOS) => {
+                    const [
+                      name,
+                      symbol,
+                      controller,
+                      decimals = '18',
+                      transferable = 'true',
+                    ] = rest;
+                    return aragon.newToken(
+                      name,
+                      symbol,
+                      controller,
+                      Number(decimals),
+                      EvmclParser.bool(transferable)!,
+                    )();
+                  });
+                  return [];
                 }
                 case 'dao': {
                   const [name] = rest;
@@ -168,51 +188,121 @@ export default function evmcl(
           }
           case 'install': {
             return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You must use connect before using ${commandName}`,
+                );
+              }
               const [identifier, ...initParams] = await parser.args(args);
-              return evmcrispr.aragon.install(identifier, initParams)();
+              daoActions.push((aragon: ConnectedAragonOS) => {
+                return aragon.install(identifier, initParams)();
+              });
+              return [];
             };
           }
           case 'upgrade': {
             return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You must use connect before using ${commandName}`,
+                );
+              }
               const [identifier, appAddress] = await parser.args(args);
-              return evmcrispr.aragon.upgrade(identifier, appAddress)();
+              daoActions.push((aragon: ConnectedAragonOS) => {
+                return aragon.upgrade(identifier, appAddress)();
+              });
+              return [];
             };
           }
           case 'grant': {
             return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You must use connect before using ${commandName}`,
+                );
+              }
               const [grantee, app, role, defaultPermissionManager] =
                 await parser.args(args);
-              return evmcrispr.aragon.grant(
-                [grantee, app, role],
-                defaultPermissionManager,
-              )();
+              daoActions.push((aragon: ConnectedAragonOS) => {
+                return aragon.grant(
+                  [grantee, app, role],
+                  defaultPermissionManager,
+                )();
+              });
+              return [];
             };
           }
           case 'revoke': {
             return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You must use connect before using ${commandName}`,
+                );
+              }
               const [grantee, app, role, _removePermissionManager] =
                 await parser.args(args);
               const removePermissionManager = EvmclParser.bool(
                 _removePermissionManager,
               );
-              return evmcrispr.aragon.revoke(
-                [grantee, app, role],
-                removePermissionManager || false,
-              )();
+              daoActions.push((aragon: ConnectedAragonOS) => {
+                return aragon.revoke(
+                  [grantee, app, role],
+                  removePermissionManager || false,
+                )();
+              });
+              return [];
             };
           }
           case 'exec': {
             return async () => {
               const [identifier, method, ...params] = await parser.args(args);
-              return evmcrispr.std.exec(identifier, method, params)();
+              if (!daoActions) {
+                return evmcrispr.std.exec(identifier, method, params)();
+              } else {
+                daoActions.push((aragon: ConnectedAragonOS) => {
+                  return aragon.exec(identifier, method, params)();
+                });
+                return [];
+              }
             };
           }
           case 'act': {
             return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You must use connect before using ${commandName}`,
+                );
+              }
               const [agent, target, signature, ...params] = await parser.args(
                 args,
               );
-              return evmcrispr.aragon.act(agent, target, signature, params)();
+              daoActions.push((aragon: ConnectedAragonOS) => {
+                return aragon.act(agent, target, signature, params)();
+              });
+              return [];
+            };
+          }
+          case ')': {
+            return async () => {
+              if (!daoActions) {
+                throw new ErrorException(
+                  `You cannot close with ) if you are not connected to a DAO.`,
+                );
+              }
+              const _daoActions = daoActions;
+              daoActions = null;
+              const z =
+                (dao: ConnectedAragonOS): ActionFunction =>
+                async () => {
+                  const x: Action[][] = [];
+                  for (const action of _daoActions) {
+                    x.push(await action(dao));
+                  }
+                  return x.flat();
+                };
+              return evmcrispr.aragon.connect(dao, (dao) => [z(dao)], path, {
+                context,
+              })();
             };
           }
           default:
@@ -225,18 +315,17 @@ export default function evmcl(
     encode: async (signer: Signer, options) => {
       const evmcrispr = await EVMcrispr.create(signer, options);
       const _actions = await actions(evmcrispr);
-      return evmcrispr.encode([_actions], path, { context });
+      return evmcrispr.encode([_actions]);
     },
     forward: async (signer: Signer, options) => {
       const evmcrispr = await EVMcrispr.create(signer, options);
-      return evmcrispr.forward([await actions(evmcrispr)], path, {
-        context,
+      return evmcrispr.forward([await actions(evmcrispr)], [], {
         ...options,
       });
     },
     evmcrispr: async (signer: Signer, options) => {
       const evmcrispr = await EVMcrispr.create(signer, options);
-      await evmcrispr.encode([await actions(evmcrispr)], path, { context });
+      await evmcrispr.encode([await actions(evmcrispr)]);
       return evmcrispr;
     },
     dao,

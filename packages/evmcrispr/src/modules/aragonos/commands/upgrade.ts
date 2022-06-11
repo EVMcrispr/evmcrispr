@@ -2,7 +2,7 @@ import { utils } from 'ethers';
 
 import type { ActionFunction, Address } from '../../..';
 import { ErrorException } from '../../../errors';
-import type AragonOS from '../AragonOS';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 /**
  * Upgrade all installed apps of a specific APM repo to a new implementation contract.
@@ -11,7 +11,7 @@ import type AragonOS from '../AragonOS';
  * @returns A function that returns the upgrade action
  */
 export function upgrade(
-  module: AragonOS,
+  module: ConnectedAragonOS,
   apmRepo: string,
   newAppAddress: Address,
 ): ActionFunction {
@@ -19,7 +19,7 @@ export function upgrade(
     if (!apmRepo.endsWith('.eth')) {
       throw new ErrorException(`The APM repo must be an ENS name.`);
     }
-    const kernel = module.evm.resolver.resolveApp('kernel');
+    const kernel = module.resolveApp('kernel');
     const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
     const appId = utils.namehash(apmRepo);
     return [

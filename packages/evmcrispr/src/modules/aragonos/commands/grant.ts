@@ -2,7 +2,7 @@ import { constants } from 'ethers';
 
 import type { ActionFunction, Entity, Permission, PermissionP } from '../../..';
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../../../errors';
-import type AragonOS from '../AragonOS';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 /**
  * Encode an action that creates a new app permission or grant it if it already exists.
@@ -11,7 +11,7 @@ import type AragonOS from '../AragonOS';
  * @returns A function that returns the permission action.
  */
 export function grant(
-  module: AragonOS,
+  module: ConnectedAragonOS,
   permission: Permission | PermissionP,
   defaultPermissionManager: Entity,
 ): ActionFunction {
@@ -30,10 +30,10 @@ export function grant(
     }
 
     const params = getParams();
-    const manager = module.evm.resolver.resolveEntity(defaultPermissionManager);
-    const { permissions: appPermissions } = module.evm.resolver.resolveApp(app);
+    const manager = module.resolveEntity(defaultPermissionManager);
+    const { permissions: appPermissions } = module.resolveApp(app);
     const { address: aclAddress, abiInterface: aclAbiInterface } =
-      module.evm.resolver.resolveApp('acl');
+      module.resolveApp('acl');
     const actions = [];
 
     if (!appPermissions.has(roleHash)) {

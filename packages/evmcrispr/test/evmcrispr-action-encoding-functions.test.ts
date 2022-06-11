@@ -19,15 +19,17 @@ import {
 } from './fixtures';
 import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
 import { EVMcrispr } from '../src';
+import type { ConnectedAragonOS } from '../src/modules/aragonos/AragonOS';
 
 describe('EVMcrispr action-encoding functions', () => {
   let evmcrispr: EVMcrispr;
+  let dao: ConnectedAragonOS;
 
   beforeEach(async () => {
     const signer = await getSigner();
 
     evmcrispr = await EVMcrispr.create(signer);
-    await evmcrispr.aragon.connect(DAO.kernel)();
+    dao = await evmcrispr.aragon.dao(DAO.kernel);
   });
 
   const testBadPermission = (
@@ -94,18 +96,13 @@ describe('EVMcrispr action-encoding functions', () => {
   };
 
   describe('grant()', () => {
-    testBadPermission((badPermission) =>
-      evmcrispr.aragon.grant(badPermission, 'voting'),
-    );
+    testBadPermission((badPermission) => dao.grant(badPermission, 'voting'));
 
     it(
       'fails when receiving an invalid identifier as the permission manager',
       isValidIdentifier(
         (badIdentifier) =>
-          evmcrispr.aragon.grant(
-            ['voting', 'token-manager', 'MINT_ROLE'],
-            badIdentifier,
-          ),
+          dao.grant(['voting', 'token-manager', 'MINT_ROLE'], badIdentifier),
         false,
         false,
       ),
@@ -113,10 +110,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when granting a permission to the same entity twice', async () => {
       await expectThrowAsync(
-        evmcrispr.aragon.grant(
-          ['voting', 'token-manager', 'MINT_ROLE'],
-          'voting',
-        ),
+        dao.grant(['voting', 'token-manager', 'MINT_ROLE'], 'voting'),
         {
           type: ErrorException,
         },
@@ -137,7 +131,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedCreatePermissionAction = await evmcrispr.aragon.grant(
+      const encodedCreatePermissionAction = await dao.grant(
         newPermission,
         PERMISSION_MANAGER,
       )();
@@ -156,7 +150,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
+      const encodedGrantPermissionAction = await dao.grant(
         grantPermission,
         PERMISSION_MANAGER,
       )();
@@ -177,7 +171,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
+      const encodedGrantPermissionAction = await dao.grant(
         GRANT_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
       )();
@@ -206,7 +200,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ),
         },
       ];
-      const encodedGrantPermissionAction = await evmcrispr.aragon.grant(
+      const encodedGrantPermissionAction = await dao.grant(
         NEW_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
       )();
@@ -220,17 +214,17 @@ describe('EVMcrispr action-encoding functions', () => {
   describe('app()', () => {
     it(
       'fails when receiving an invalid identifier',
-      isValidIdentifier((badIdentifier) => () => evmcrispr.app(badIdentifier)),
+      isValidIdentifier((badIdentifier) => () => dao.app(badIdentifier)),
     );
 
     it('fails when fetching non-existent app', async () => {
-      await expectThrowAsync(() => evmcrispr.app('non-existent.open'), {
+      await expectThrowAsync(() => dao.app('non-existent.open'), {
         type: ErrorNotFound,
         name: 'ErrorAppNotFound',
       });
     });
     it('returns the correct app address', () => {
-      const appAddress = evmcrispr.app('voting').address;
+      const appAddress = dao.app('voting').address;
 
       expect(addressesEqual(DAO.voting, appAddress)).to.be.true;
     });
@@ -238,7 +232,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
   describe('apps()', () => {
     it('returns the list of apps', () => {
-      expect(evmcrispr.aragon.dao?.apps()).to.be.eql([
+      expect(dao.apps()).to.be.eql([
         'kernel:0',
         'acl:0',
         'evm-script-registry:0',
@@ -253,10 +247,8 @@ describe('EVMcrispr action-encoding functions', () => {
     it('is updated when a new app is installed', async () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new`;
-      await evmcrispr.aragon.install(appLabeledIdentifier, initializeParams)();
-      expect(evmcrispr.aragon.dao?.apps())
-        .to.be.length(10)
-        .and.to.include(appLabeledIdentifier);
+      await dao.install(appLabeledIdentifier, initializeParams)();
+      expect(dao.apps()).to.be.length(10).and.to.include(appLabeledIdentifier);
     });
   });
 
@@ -265,8 +257,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier as the agent',
       isValidIdentifier(
-        (badIdentifier) =>
-          evmcrispr.aragon.act(badIdentifier, target, 'mint()', []),
+        (badIdentifier) => dao.act(badIdentifier, target, 'mint()', []),
         false,
         false,
       ),
@@ -275,8 +266,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier as the target',
       isValidIdentifier(
-        (badIdentifier) =>
-          evmcrispr.aragon.act('agent', badIdentifier, 'mint()', []),
+        (badIdentifier) => dao.act('agent', badIdentifier, 'mint()', []),
         false,
         false,
       ),
@@ -284,22 +274,22 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when receiving an invalid signature', async () => {
       await expectThrowAsync(
-        evmcrispr.aragon.act('agent', target, 'mint', []),
+        dao.act('agent', target, 'mint', []),
         undefined,
         'Wrong signature format: mint',
       );
       await expectThrowAsync(
-        evmcrispr.aragon.act('agent', target, 'mint(', []),
+        dao.act('agent', target, 'mint(', []),
         undefined,
         'Wrong signature format: mint(',
       );
       await expectThrowAsync(
-        evmcrispr.aragon.act('agent', target, 'mint(uint,)', []),
+        dao.act('agent', target, 'mint(uint,)', []),
         undefined,
         'Wrong signature format: mint(uint,)',
       );
       await expectThrowAsync(
-        evmcrispr.aragon.act('agent', target, 'mint(,uint)', []),
+        dao.act('agent', target, 'mint(,uint)', []),
         undefined,
         'Wrong signature format: mint(,uint)',
       );
@@ -324,7 +314,7 @@ describe('EVMcrispr action-encoding functions', () => {
           ]),
         },
       ];
-      const callAction = await evmcrispr.aragon.act(
+      const callAction = await dao.act(
         'vault',
         actTarget,
         actSignature,
@@ -332,7 +322,7 @@ describe('EVMcrispr action-encoding functions', () => {
       )(); // TODO: Change it with an agent
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnres = await evmcrispr.aragon.act(
+      const callActionUnres = await dao.act(
         'vault',
         actTarget,
         actSignature,
@@ -346,7 +336,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.std.exec(badIdentifier, '', []),
+        (badIdentifier) => dao.exec(badIdentifier, '', []),
         false,
         false,
       ),
@@ -354,13 +344,13 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when calling an invalid method', async () => {
       await expectThrowAsync(
-        evmcrispr.std.exec('token-manager', 'unknownMethod', []),
+        dao.exec('token-manager', 'unknownMethod', []),
         undefined,
         'Unknown method',
       );
 
       await expectThrowAsync(
-        evmcrispr.std.exec('token-manager', 'mint', []),
+        dao.exec('token-manager', 'mint', []),
         undefined,
         "Invalid method's parameters",
       );
@@ -379,14 +369,14 @@ describe('EVMcrispr action-encoding functions', () => {
           data: encodeActCall(callSignature, callSignatureParams),
         },
       ];
-      const callAction = await evmcrispr.std.exec(
+      const callAction = await dao.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureParams,
       )();
       expect(callAction).eql(expectedCallAction);
 
-      const callActionUnresolved = await evmcrispr.std.exec(
+      const callActionUnresolved = await dao.exec(
         APP.appIdentifier,
         callMethod,
         callSignatureUnresolvedParams,
@@ -395,7 +385,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate non-constant function calls', () => {
-      const keys = evmcrispr.aragon.dao!.appMethods('token-manager');
+      const keys = dao.appMethods('token-manager');
       expect(keys).include.members([
         'assignVested',
         'mint',
@@ -412,7 +402,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate parameter names of a function', () => {
-      const paramTypes = evmcrispr
+      const paramTypes = dao
         .app('token-manager')
         .interface.getFunction('mint')
         .inputs.map((i) => i.name);
@@ -420,7 +410,7 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('can enumerate parameter types of a function', () => {
-      const paramTypes = evmcrispr
+      const paramTypes = dao
         .app('token-manager')
         .interface.getFunction('mint')
         .inputs.map((i) => i.type);
@@ -430,7 +420,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it('throws an error when enumerating parameter names and types of a function', async () => {
       await expectThrowAsync(
         () =>
-          evmcrispr.app('token-manager').interface.getFunction('unknownMethod')
+          dao.app('token-manager').interface.getFunction('unknownMethod')
             .inputs,
         undefined,
         'Unknown method',
@@ -442,7 +432,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it(
       'fails when receiving an invalid identifier',
       isValidIdentifier(
-        (badIdentifier) => evmcrispr.aragon.install(badIdentifier),
+        (badIdentifier) => dao.install(badIdentifier),
         false,
         false,
       ),
@@ -451,7 +441,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when doesn't find the app's repo", async () => {
       const noRepoIdentifier = 'non-existent-repo.open:new-app';
 
-      await expectThrowAsync(evmcrispr.aragon.install(noRepoIdentifier), {
+      await expectThrowAsync(dao.install(noRepoIdentifier), {
         type: ErrorNotFound,
         name: 'ErrorRepoNotFound',
       });
@@ -477,14 +467,14 @@ describe('EVMcrispr action-encoding functions', () => {
           ]),
         },
       ];
-      const encodedAction = await evmcrispr.aragon.install(
+      const encodedAction = await dao.install(
         `${appIdentifier}:new-app`,
         initializeParams,
       )();
 
       expect(encodedAction).eql(expectedEncodedAction);
 
-      const encodedActionUnresolved = await evmcrispr.aragon.install(
+      const encodedActionUnresolved = await dao.install(
         `${appIdentifier}:new-app2`,
         initializeUnresolvedParams,
       )();
@@ -495,9 +485,9 @@ describe('EVMcrispr action-encoding functions', () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new-app`;
 
-      await evmcrispr.aragon.install(appLabeledIdentifier, initializeParams)();
+      await dao.install(appLabeledIdentifier, initializeParams)();
 
-      const installedAppAddress = evmcrispr.app(appLabeledIdentifier).address;
+      const installedAppAddress = dao.app(appLabeledIdentifier).address;
 
       expect(utils.isAddress(installedAppAddress)).to.be.true;
     });
@@ -505,13 +495,10 @@ describe('EVMcrispr action-encoding functions', () => {
     it('fails when installing apps with the same label', async () => {
       const { initializeParams } = APP;
 
-      await evmcrispr.aragon.install(
-        'token-manager:same-label',
-        initializeParams,
-      )();
+      await dao.install('token-manager:same-label', initializeParams)();
 
       await expectThrowAsync(
-        evmcrispr.aragon.install('token-manager:same-label', initializeParams),
+        dao.install('token-manager:same-label', initializeParams),
         {
           type: ErrorException,
         },
@@ -520,9 +507,7 @@ describe('EVMcrispr action-encoding functions', () => {
   });
 
   describe('revoke()', () => {
-    testBadPermission((badPermission) =>
-      evmcrispr.aragon.revoke(badPermission, true),
-    );
+    testBadPermission((badPermission) => dao.revoke(badPermission, true));
 
     it('encodes a revoke permission and remove manager action correctly', async () => {
       const revokePermission = REVOKE_PERMISSIONS[0];
@@ -541,13 +526,13 @@ describe('EVMcrispr action-encoding functions', () => {
           resolvedRevokePermission.slice(1, 3),
         ),
       };
-      const actions = await evmcrispr.aragon.revoke(revokePermission, true)();
+      const actions = await dao.revoke(revokePermission, true)();
 
       expect(actions).eql([expectedRevokeAction, expectedRemoveManagerAction]);
     });
 
     it("doesn't encode a remove manager action when told not to`", async () => {
-      const actions = await evmcrispr.aragon.revoke(
+      const actions = await dao.revoke(
         ['voting', 'voting', 'MODIFY_QUORUM_ROLE'],
         false,
       )();
@@ -558,7 +543,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when revoking a permission from an entity that doesn't have it", async () => {
       const [, app, role] = REVOKE_PERMISSIONS[0];
       await expectThrowAsync(
-        evmcrispr.aragon.revoke(['evm-script-registry', app, role], true),
+        dao.revoke(['evm-script-registry', app, role], true),
         {
           type: ErrorNotFound,
           name: 'ErrorPermissionNotFound',
@@ -569,7 +554,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
   describe('setOracle()', () => {
     it('encodes an ACL oracle parameter from an address', () => {
-      const oracle = evmcrispr.aragon.dao?.setOracle(EOA_ADDRESS)();
+      const oracle = dao.setOracle(EOA_ADDRESS)();
       const expectedOracle = [
         `0xcb0100000000000000000000${EOA_ADDRESS.slice(2)}`,
       ];
@@ -577,22 +562,17 @@ describe('EVMcrispr action-encoding functions', () => {
     });
 
     it('encodes an ACL oracle parameter from an app identifier', () => {
-      const oracle = evmcrispr.aragon.dao?.setOracle('voting')();
-      const address = evmcrispr.app('voting').address;
+      const oracle = dao.setOracle('voting')();
+      const address = dao.app('voting').address;
       const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);
     });
 
     it('encodes an ACL oracle parameter from a counterfactual app', async () => {
       const { appIdentifier, initializeParams } = APP;
-      const oracleF = evmcrispr.aragon.dao!.setOracle(
-        `${appIdentifier}:new-oracle`,
-      );
-      await evmcrispr.aragon.install(
-        `${appIdentifier}:new-oracle`,
-        initializeParams,
-      )();
-      const address = evmcrispr.app(`${appIdentifier}:new-oracle`).address;
+      const oracleF = dao.setOracle(`${appIdentifier}:new-oracle`);
+      await dao.install(`${appIdentifier}:new-oracle`, initializeParams)();
+      const address = dao.app(`${appIdentifier}:new-oracle`).address;
       const oracle = oracleF();
       const expectedOracle = [`0xcb0100000000000000000000${address.slice(2)}`];
       expect(expectedOracle).eql(oracle);

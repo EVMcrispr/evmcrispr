@@ -4,7 +4,7 @@ import type {
   LabeledAppIdentifier,
 } from '../../..';
 import { getFunctionParams } from '../../../utils';
-import type Std from '../Std';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 /**
  * Encode an action that calls an app's contract function.
@@ -14,14 +14,14 @@ import type Std from '../Std';
  * @returns A function that retuns an action to forward a call with the specified parameters
  */
 export function exec(
-  module: Std,
+  module: ConnectedAragonOS,
   appIdentifier: AppIdentifier | LabeledAppIdentifier,
   functionName: string,
   params: any[],
 ): ActionFunction {
   return async () => {
     try {
-      const targetApp = module.evm.resolver.resolveEntity(appIdentifier);
+      const targetApp = module.resolveApp(appIdentifier);
       const [, paramTypes] = getFunctionParams(
         functionName,
         targetApp.abiInterface,

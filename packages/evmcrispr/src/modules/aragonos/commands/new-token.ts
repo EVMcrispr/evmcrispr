@@ -1,12 +1,11 @@
 import { constants, utils } from 'ethers';
 
 import type { ActionFunction, Entity } from '../../..';
-import { ErrorException } from '../../../errors';
 import { buildNonceForAddress, calculateNewProxyAddress } from '../../../utils';
-import type AragonOS from '../AragonOS';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 export function newToken(
-  module: AragonOS,
+  module: ConnectedAragonOS,
   name: string,
   symbol: string,
   controller: Entity,
@@ -34,11 +33,7 @@ export function newToken(
     try {
       module.evm.resolver.resolveEntity(controller);
     } catch (e) {
-      if (module.dao) {
-        await module.dao.registerNextProxyAddress(controller);
-      } else {
-        throw new ErrorException('Not connected to any DAO');
-      }
+      await module.registerNextProxyAddress(controller);
     }
     const factoryAddr = factories.get(chainId)!;
     const controllerAddress = module.evm.resolver.resolveEntity(controller);

@@ -134,8 +134,8 @@ export const batchForwarderActions = async (
       ];
     }
   }
-  const lastAction = value
-    ? { ...forwarderActions[0], value }
-    : forwarderActions[0];
-  return [...actions, lastAction];
+  if (value) {
+    forwarderActions[forwarderActions.length - 1].value = value;
+  }
+  return [...actions, ...forwarderActions];
 };

@@ -1,18 +1,10 @@
-import type { BigNumber, Signer, providers } from 'ethers';
-import { Contract, constants, utils } from 'ethers';
+import type { providers } from 'ethers';
+import { utils } from 'ethers';
 
 import { EVMcrispr, evmcl } from '../../';
 import { impersonateAddress, increase } from '../../helpers/rpc';
-import { erc20ABI } from '../../src/abis';
 
 const CHAIN_ID = 137;
-
-// 1hivellc.aragonid.eth
-const ONE_HIVE_DAO = '0x9726f76e2993fc6d179af0ecddb297242fb437ff';
-
-// Tokens
-const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
-const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
 // Bee accounts
 const BEE_ADDRESS_0 = '0x625236038836cecc532664915bd0399647e7826b';
@@ -29,18 +21,15 @@ const main = async () => {
   beeSigner0.getChainId = async () => CHAIN_ID;
 
   const evmcrispr = await EVMcrispr.create(beeSigner0);
-  await evmcrispr.aragon.connect(ONE_HIVE_DAO)();
-
-  const agent = evmcrispr.app('agent:0')!;
-  const daiAmount = await agent.balance(DAI);
-  const usdcAmount = await agent.balance(USDC);
-  const ethAmount = await agent.balance(constants.AddressZero);
 
   const [txReceipt] = await evmcl`
-    connect ${ONE_HIVE_DAO} token-manager voting
-    exec finance newImmediatePayment ${DAI} ${RECIPIENT_ADDRESS} ${daiAmount} "${PAYMENT_REFERENCE}"
-    exec finance newImmediatePayment ${USDC} ${RECIPIENT_ADDRESS} ${usdcAmount} "${PAYMENT_REFERENCE}"
-    exec finance newImmediatePayment ETH ${RECIPIENT_ADDRESS} ${ethAmount} "${PAYMENT_REFERENCE}"
+    connect 1hivellc token-manager voting (
+      set $recipient ${RECIPIENT_ADDRESS}
+      set $reference "${PAYMENT_REFERENCE}"
+      exec finance newImmediatePayment @token(DAI) $recipient @token.balance(DAI,agent:0) $reference
+      exec finance newImmediatePayment @token(USDC) $recipient @token.balance(USDC,agent:0) $reference
+      exec finance newImmediatePayment @token(WETH) $recipient @token.balance(WETH,agent:0) $reference
+    )
   `.forward(beeSigner0);
 
   await processVote(txReceipt, evmcrispr);
@@ -59,46 +48,30 @@ const processVote = async (
   );
   const voteId = startVoteLog.topics[1];
 
-  const votingApp = evmcrispr.aragon.dao!.appCache.get('voting:0')!;
-  const votingBee0 = new Contract(
-    votingApp.address,
-    votingApp.abiInterface,
-    evmcrispr.signer,
-  );
-  const votingBee1 = votingBee0.connect(beeSigner1);
-  const votingBee2 = votingBee0.connect(beeSigner2);
-  const voteTime = await votingBee0.voteTime();
+  const votingApp = (await evmcrispr.aragon.dao('1hivellc')).app('voting:0')!;
+  const voteTime = await votingApp.voteTime();
 
-  await votingBee0.vote(voteId, true, true);
-  await votingBee1.vote(voteId, true, true);
-  await votingBee2.vote(voteId, true, true);
+  await votingApp.vote(voteId, true, true);
+  await votingApp.connect(beeSigner1).vote(voteId, true, true);
+  await votingApp.connect(beeSigner2).vote(voteId, true, true);
 
   await increase(voteTime);
 
   console.log('BALANCES BEFORE VOTE');
-  await checkAccountBalances(RECIPIENT_ADDRESS, beeSigner1);
-  await (await votingBee0.executeVote(voteId)).wait();
+  await checkAccountBalances(RECIPIENT_ADDRESS, evmcrispr);
+  await (await votingApp.executeVote(voteId)).wait();
 
   console.log('BALANCES AFTER VOTE');
-  await checkAccountBalances(RECIPIENT_ADDRESS, beeSigner1);
+  await checkAccountBalances(RECIPIENT_ADDRESS, evmcrispr);
 };
 
-const checkAccountBalances = async (account: string, signer: Signer) => {
-  const tokens = [DAI, USDC, 'ETH'];
-  const tokenNames = ['DAI', 'USDC', 'ETH'];
+const checkAccountBalances = async (account: string, evm: EVMcrispr) => {
+  const tokenNames = ['DAI', 'USDC', 'WETH'];
 
-  for (let i = 0; i < tokens.length; i++) {
-    let balance: BigNumber;
-    if (tokens[i] !== 'ETH') {
-      const token = new Contract(tokens[i], erc20ABI, signer);
-      balance = await token.balanceOf(account);
-    } else {
-      balance = await signer.provider!.getBalance(account);
-    }
+  for (const token of tokenNames) {
+    const balance = await evm.helpers['token.balance'](evm, token, account)();
     console.log('----------------------------------');
-    console.log(
-      `${tokenNames[i]}: ${Number(balance) / 1e18} (${balance.toString()})`,
-    );
+    console.log(`${token}: ${Number(balance) / 1e18} (${balance.toString()})`);
     console.log('----------------------------------');
   }
 };

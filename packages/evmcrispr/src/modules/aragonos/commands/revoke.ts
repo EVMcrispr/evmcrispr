@@ -1,6 +1,6 @@
 import type { ActionFunction, Permission } from '../../..';
 import { ErrorNotFound } from '../../../errors';
-import type AragonOS from '../AragonOS';
+import type { ConnectedAragonOS } from '../AragonOS';
 
 /**
  * Encode an action that revokes an app permission.
@@ -9,7 +9,7 @@ import type AragonOS from '../AragonOS';
  * @returns A function that returns the revoking actions.
  */
 export function revoke(
-  module: AragonOS,
+  module: ConnectedAragonOS,
   permission: Permission,
   removeManager = false,
 ): ActionFunction {
@@ -18,9 +18,9 @@ export function revoke(
     const [grantee, app, role] = permission;
     const [entityAddress, appAddress, roleHash] =
       module.evm.resolver.resolvePermission(permission);
-    const { permissions: appPermissions } = module.evm.resolver.resolveApp(app);
+    const { permissions: appPermissions } = module.resolveApp(app);
     const { address: aclAddress, abiInterface: aclAbiInterface } =
-      module.evm.resolver.resolveApp('acl');
+      module.resolveApp('acl');
 
     if (!appPermissions.has(roleHash)) {
       throw new ErrorNotFound(

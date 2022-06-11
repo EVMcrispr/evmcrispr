@@ -1,4 +1,3 @@
-import { Contract } from 'ethers';
 import type { Signer, providers, utils } from 'ethers';
 
 import { encodeActCall, encodeCallScript, normalizeActions } from './utils';
@@ -12,7 +11,6 @@ import type {
   Entity,
   ForwardOptions,
   Helpers,
-  LabeledAppIdentifier,
 } from './types';
 import { IPFSResolver } from './IPFSResolver';
 import resolver from './utils/resolvers';
@@ -107,16 +105,6 @@ export default class EVMcrispr {
       this.#env.set(varName, value);
       return [];
     };
-  }
-
-  /**
-   * Fetch the address of an existing or counterfactual app.
-   * @param appIdentifier The [[AppIdentifier | identifier]] of the app to fetch.
-   * @returns The app's contract address.
-   */
-  app(appIdentifier: AppIdentifier | LabeledAppIdentifier): Contract {
-    const app = this.resolver.resolveApp(appIdentifier);
-    return new Contract(app.address, app.abiInterface, this.#signer);
   }
 
   /**
