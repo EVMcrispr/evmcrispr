@@ -7,16 +7,14 @@ import type {
   ActionFunction,
   Address,
   AppIdentifier,
-  EVMcrisprOptions,
   Entity,
   ForwardOptions,
-  Helpers,
+  Helper,
 } from './types';
 import { IPFSResolver } from './IPFSResolver';
 import resolver from './utils/resolvers';
 import AragonOS from './modules/aragonos/AragonOS';
 import Std from './modules/std/Std';
-import defaultHelpers from './helpers';
 
 type TransactionReceipt = providers.TransactionReceipt;
 
@@ -28,7 +26,6 @@ export default class EVMcrispr {
   #addressBook: Map<string, Address>;
   #abiStore: Map<string, utils.Interface>;
 
-  #helpers: Helpers;
   #env: Map<string, any> = new Map();
   protected _ipfsResolver: IPFSResolver;
   #signer: Signer;
@@ -39,7 +36,7 @@ export default class EVMcrispr {
 
   resolver: any;
 
-  protected constructor(signer: Signer, options: EVMcrisprOptions) {
+  protected constructor(signer: Signer) {
     this.#addressBook = new Map();
     this.#abiStore = new Map();
     this._ipfsResolver = new IPFSResolver();
@@ -47,7 +44,6 @@ export default class EVMcrispr {
     this.resolver = resolver(this);
     this.aragon = new AragonOS(this);
     this.std = new Std(this);
-    this.#helpers = { ...defaultHelpers, ...options?.helpers };
   }
 
   /**
@@ -58,11 +54,8 @@ export default class EVMcrispr {
    * @param options The optional configuration object.
    * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
-  static async create(
-    signer: Signer,
-    options: EVMcrisprOptions = {},
-  ): Promise<EVMcrispr> {
-    const evmcrispr = new EVMcrispr(signer, { ...options });
+  static async create(signer: Signer): Promise<EVMcrispr> {
+    const evmcrispr = new EVMcrispr(signer);
     return evmcrispr;
   }
 
@@ -82,8 +75,11 @@ export default class EVMcrispr {
     return this.#abiStore;
   }
 
-  get helpers(): Helpers {
-    return this.#helpers;
+  get helpers(): { [name: string]: Helper } {
+    return {
+      ...this.std.helpers,
+      ...this.aragon.helpers,
+    };
   }
 
   incrementNonce(address: string) {

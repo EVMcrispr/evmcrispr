@@ -1,16 +1,23 @@
 import type { BigNumber } from 'ethers';
 import { utils } from 'ethers';
 
-import { ErrorInvalid, ErrorNotFound } from '../errors';
+import { ErrorNotFound } from '../errors';
 import type EVMcrispr from '../EVMcrispr';
-import type { Address, Entity, Permission } from '../types';
+import type { Address, Entity } from '../types';
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from './acl';
 import { resolveIdentifier } from './identifiers';
-import { normalizeRole } from './normalizers';
 import { timeUnits } from './parsers';
 import { toDecimals } from './web3';
 
-export default function resolver(evmcrispr: EVMcrispr) {
+export default function resolver(evmcrispr: EVMcrispr): {
+  resolveEntity: (entity: Entity) => Address;
+  resolveNumber: (number: string | number) => BigNumber | number;
+  resolveBoolean: (boolean: string | boolean) => boolean;
+  resolveBytes: (bytes: any, max: number) => string;
+  resolveParam: (param: any, type: string) => any;
+  resolveParams: (params: any[], types: string[]) => any[];
+  resolvePromises: (params: any[], types: string[]) => Promise<any[]>;
+} {
   function resolveEntity(entity: Entity): Address {
     switch (entity) {
       case 'ANY_ENTITY':
@@ -125,31 +132,6 @@ export default function resolver(evmcrispr: EVMcrispr) {
     return resolveParams(_params, types);
   }
 
-  function resolvePermission(
-    permission: Permission,
-  ): [Address, Address, string] {
-    if (!permission[0]) {
-      throw new ErrorInvalid(`Permission not well formed, grantee missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[1]) {
-      throw new ErrorInvalid(`Permission not well formed, app missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[2]) {
-      throw new ErrorInvalid(`Permission not well formed, role missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    return permission.map((entity, index) =>
-      index < permission.length - 1
-        ? resolveEntity(entity)
-        : normalizeRole(entity),
-    ) as [Address, Address, string];
-  }
-
   return {
     resolveEntity,
     resolveNumber,
@@ -158,6 +140,5 @@ export default function resolver(evmcrispr: EVMcrispr) {
     resolveParam,
     resolveParams,
     resolvePromises,
-    resolvePermission,
   };
 }

@@ -1,6 +1,7 @@
 import type { ActionFunction, Permission } from '../../..';
 import { ErrorNotFound } from '../../../errors';
 import type { ConnectedAragonOS } from '../AragonOS';
+import { resolvePermission } from '../utils/acl';
 
 /**
  * Encode an action that revokes an app permission.
@@ -16,8 +17,10 @@ export function revoke(
   return async () => {
     const actions = [];
     const [grantee, app, role] = permission;
-    const [entityAddress, appAddress, roleHash] =
-      module.evm.resolver.resolvePermission(permission);
+    const [entityAddress, appAddress, roleHash] = resolvePermission(
+      module.evm,
+      permission,
+    );
     const { permissions: appPermissions } = module.resolveApp(app);
     const { address: aclAddress, abiInterface: aclAbiInterface } =
       module.resolveApp('acl');

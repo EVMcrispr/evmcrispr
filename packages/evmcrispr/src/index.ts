@@ -26,7 +26,6 @@ export type {
   CallScriptAction,
   CompletePermission,
   Entity,
-  EVMcrisprOptions,
   ForwardOptions,
   LabeledAppIdentifier,
   ParsedApp,

@@ -1,12 +1,13 @@
 import { default as token, tokenBalance } from './token';
 import { default as me } from './me';
-import type { EVMcrispr } from '..';
-import type { LazyString } from '../types';
+import type { EVMcrispr } from '../../..';
+import type { LazyString } from '../../../types';
 
 function lazy(
+  evm: EVMcrispr,
   func: (evm: EVMcrispr, ...params: string[]) => Promise<string>,
-): (evm: EVMcrispr, ...params: LazyString[]) => LazyString {
-  return (evm: EVMcrispr, ...params: LazyString[]) => {
+): (...params: LazyString[]) => () => Promise<string> {
+  return (...params: LazyString[]) => {
     return async () => {
       const resolved: any = [];
       for (const param of params) {
@@ -17,8 +18,10 @@ function lazy(
   };
 }
 
-export default {
-  token: lazy(token),
-  'token.balance': lazy(tokenBalance),
-  me: lazy(me),
-};
+export default function (evm: EVMcrispr) {
+  return {
+    token: lazy(evm, token),
+    'token.balance': lazy(evm, tokenBalance),
+    me: lazy(evm, me),
+  };
+}

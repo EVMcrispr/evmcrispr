@@ -10,31 +10,23 @@ export * from './aragon';
 
 export type ActionFunction = () => Promise<Action[]>;
 
-export type Helpers = {
-  [name: string]: (
-    evm: EVMcrispr,
-    ...rest: ((() => Promise<string>) | string)[]
-  ) => any;
-};
+export type Helper = (...rest: LazyString[]) => () => Promise<string>;
 
 export type EVMcl = {
   encode: (
     signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
+    options?: ForwardOptions,
   ) => Promise<{
     actions: Action[];
     forward: () => Promise<providers.TransactionReceipt[]>;
   }>;
   forward: (
     signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
+    options?: ForwardOptions,
   ) => Promise<providers.TransactionReceipt[]>;
   dao: string;
   path: string[];
-  evmcrispr: (
-    signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
-  ) => Promise<EVMcrispr>;
+  evmcrispr: (signer: Signer, options?: ForwardOptions) => Promise<EVMcrispr>;
 };
 
 /**
@@ -196,14 +188,6 @@ export interface App {
 export interface EntityWithAbi {
   address: Address;
   abiInterface: utils.Interface;
-}
-
-/**
- * The EVMcrispr optional configuration object.
- */
-export interface EVMcrisprOptions {
-  helpers?: Helpers;
-  chainId?: number;
 }
 
 export interface ForwardOptions {

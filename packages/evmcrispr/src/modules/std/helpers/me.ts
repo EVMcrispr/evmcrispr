@@ -1,4 +1,4 @@
-import type { EVMcrispr } from '..';
+import type { EVMcrispr } from '../../..';
 
 function me(evm: EVMcrispr): Promise<string> {
   return evm.signer.getAddress();

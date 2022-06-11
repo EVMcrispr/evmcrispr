@@ -194,9 +194,9 @@ describe('EVM Command Line', () => {
           (dao) => [
             evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
             dao.exec('finance', 'newImmediatePayment', [
-              evm.helpers.token(evm, 'SUSHI'),
-              evm.helpers.me(evm),
-              evm.helpers['token.balance'](evm, 'SUSHI', evm.helpers.me(evm)),
+              evm.helpers.token('SUSHI'),
+              evm.helpers.me(),
+              evm.helpers['token.balance']('SUSHI', evm.helpers.me()),
               'sushi for two',
             ]),
           ],
@@ -220,9 +220,9 @@ describe('EVM Command Line', () => {
           (dao) => [
             evm.set('$token.tokenlist', 'https://token-list.sushi.com/'),
             dao.exec('vault', 'transfer', [
-              evm.helpers.token(evm, 'SUSHI'),
-              evm.helpers.me(evm),
-              evm.helpers['token.balance'](evm, 'SUSHI', 'vault'),
+              evm.helpers.token('SUSHI'),
+              evm.helpers.me(),
+              0, // evm.helpers['token.balance']('SUSHI', 'vault'),
             ]),
           ],
           ['token-manager', 'voting'],

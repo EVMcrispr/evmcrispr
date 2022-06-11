@@ -9,6 +9,7 @@ import type {
   AppCache,
   AppIdentifier,
   Entity,
+  Helper,
   LabeledAppIdentifier,
   Params,
   ParsedApp,
@@ -41,9 +42,15 @@ import { exec } from './commands/exec';
 
 export default class AragonOS {
   evm: EVMcrispr;
+  #helpers: { [name: string]: Helper };
 
   constructor(evm: EVMcrispr) {
     this.evm = evm;
+    this.#helpers = {};
+  }
+
+  get helpers() {
+    return this.#helpers;
   }
 
   dao(name: string) {

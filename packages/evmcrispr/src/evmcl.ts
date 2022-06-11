@@ -1,6 +1,6 @@
 import type { Signer } from 'ethers';
 
-import type { Action, ActionFunction, EVMcl } from './types';
+import type { Action, EVMcl } from './types';
 
 import { normalizeActions } from './utils';
 import EVMcrispr from './EVMcrispr';
@@ -75,12 +75,14 @@ class EvmclParser {
     }
   }
 
-  async #helper(arg: string): Promise<string> {
+  #helper(arg: string): () => Promise<string> {
     const [, ext, ...params] = arg.match(
       /^@([a-zA-Z0-9.]+)(?:\(([^,]+)(?:,([^,]+))*\))?$/, // FIXME: This regex do not support expressions like @h(@h(a,b),c)
     )!;
-    const _params = await this.args(params.filter((p) => !!p));
-    return this.evmcrispr.helpers[ext](this.evmcrispr, ..._params);
+    return async () => {
+      const _params = await this.args(params.filter((p) => !!p));
+      return this.evmcrispr.helpers[ext](..._params)();
+    };
   }
 
   async #recursiveArgParse(arg: any): Promise<any> {
@@ -291,18 +293,22 @@ export default function evmcl(
               }
               const _daoActions = daoActions;
               daoActions = null;
-              const z =
-                (dao: ConnectedAragonOS): ActionFunction =>
-                async () => {
-                  const x: Action[][] = [];
-                  for (const action of _daoActions) {
-                    x.push(await action(dao));
-                  }
-                  return x.flat();
-                };
-              return evmcrispr.aragon.connect(dao, (dao) => [z(dao)], path, {
-                context,
-              })();
+              return evmcrispr.aragon.connect(
+                dao,
+                (dao) => [
+                  async () => {
+                    const x: Action[][] = [];
+                    for (const action of _daoActions) {
+                      x.push(await action(dao));
+                    }
+                    return x.flat();
+                  },
+                ],
+                path,
+                {
+                  context,
+                },
+              )();
             };
           }
           default:
@@ -312,19 +318,19 @@ export default function evmcl(
     );
   };
   return {
-    encode: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(signer, options);
+    encode: async (signer: Signer) => {
+      const evmcrispr = await EVMcrispr.create(signer);
       const _actions = await actions(evmcrispr);
       return evmcrispr.encode([_actions]);
     },
     forward: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(signer, options);
+      const evmcrispr = await EVMcrispr.create(signer);
       return evmcrispr.forward([await actions(evmcrispr)], [], {
         ...options,
       });
     },
-    evmcrispr: async (signer: Signer, options) => {
-      const evmcrispr = await EVMcrispr.create(signer, options);
+    evmcrispr: async (signer: Signer) => {
+      const evmcrispr = await EVMcrispr.create(signer);
       await evmcrispr.encode([await actions(evmcrispr)]);
       return evmcrispr;
     },
