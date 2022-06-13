@@ -1,7 +1,6 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
-import useSWR from 'swr';
 
 import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
@@ -11,7 +10,7 @@ import { conf, contribution, language } from '../editor/evmcl';
 
 import { useTerminal } from '../utils/useTerminal';
 import Footer from '../components/footer';
-import pinataAuth from '../api/pinata/auth';
+import pinJSON from '../api/pinata/pinJSON';
 
 const Terminal = () => {
   const {
@@ -31,14 +30,24 @@ const Terminal = () => {
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
 
-  const { data, error: fetchError } = useSWR(
-    'https://api.pinata.cloud',
-    pinataAuth,
-  );
+  const terminalCodeWithDate = () => ({
+    text: code,
+    date: new Date().toISOString(),
+  });
+
+  const handleShare = async () => {
+    try {
+      const data = terminalCodeWithDate();
+      const { IpfsHash } = await pinJSON(data);
+      const url = window.location.href + '/' + IpfsHash;
+
+      return navigator.clipboard.writeText(url);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   useChain([terminalRef, buttonsRef, footerRef]);
-
-  console.log({ data, fetchError });
 
   return (
     <>
@@ -80,9 +89,12 @@ const Terminal = () => {
         <FadeIn componentRef={buttonsRef}>
           <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
             {!address ? (
-              <Button variant="lime" onClick={onOpen}>
-                Connect
-              </Button>
+              <>
+                <Button variant="lime" onClick={onOpen}>
+                  Connect
+                </Button>
+                <Button onClick={handleShare}>Share</Button>
+              </>
             ) : (
               <>
                 {url ? (
