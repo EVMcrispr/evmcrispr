@@ -10,13 +10,22 @@ import { APP, DAO, getSigner } from './fixtures';
 let signer: SignerWithAddress;
 let evm: EVMcrispr;
 
-async function check(actions: EVMcl, expectedActions: ActionFunction[]) {
+async function check(
+  actions: EVMcl,
+  expectedActions: ActionFunction[],
+  checkVars: string[] = [],
+) {
   const expected = await evm.encode(expectedActions, [
     'token-manager',
     'voting',
   ]);
   const actual = await actions.encode(signer);
   expect(actual.actions).to.be.deep.eq(expected.actions);
+  for (const varName of checkVars) {
+    expect((await actions.evmcrispr(signer)).env(varName)).to.be.eq(
+      evm.env(varName),
+    );
+  }
 }
 
 describe('EVM Command Line', () => {
@@ -35,6 +44,16 @@ describe('EVM Command Line', () => {
         evm.newToken('Trust Token', 'TRUST', 'token-manager:new'),
         evm.install('token-manager:new', ['token:TRUST', false, 0]),
       ],
+    );
+  });
+
+  it('new token "Trust Token" TRUST agent', async () => {
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting
+        new token "Trust Token" TRUST agent
+      `,
+      [evm.newToken('Trust Token', 'TRUST', 'agent')],
     );
   });
 
@@ -123,6 +142,7 @@ describe('EVM Command Line', () => {
           'sushi for two',
         ]),
       ],
+      ['$token.tokenlist'],
     );
   });
   it('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
@@ -144,6 +164,17 @@ describe('EVM Command Line', () => {
           ),
         ]),
       ],
+      ['$token.tokenlist'],
+    );
+  });
+  it('set $var value in multiple words', async () => {
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting
+        set $var value in multiple words
+      `,
+      [evm.set('$var', 'value in multiple words')],
+      ['$var'],
     );
   });
 });

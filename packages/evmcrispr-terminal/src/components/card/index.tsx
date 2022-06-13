@@ -69,7 +69,7 @@ const Pixels = () => (
 
 const Card = ({
   image,
-  height = 90,
+  height = 130,
   name,
   info,
   description,
@@ -78,7 +78,7 @@ const Card = ({
   return (
     <CardWrapper width="255px" position="relative">
       <Box
-        minHeight="310px"
+        minHeight="470"
         padding={6}
         textAlign="center"
         border="4px solid"
@@ -95,13 +95,10 @@ const Card = ({
           gap={2}
           flexDirection="column"
         >
-          <img src={image} alt={name} height={height} />
-          <Text
-            pt={8}
-            fontSize="15px"
-            color="brand.green.300"
-            fontWeight="bold"
-          >
+          <Box height="160">
+            <img src={image} alt={name} style={{ height }} />
+          </Box>
+          <Text fontSize="15px" color="brand.green.300" fontWeight="bold">
             {name}
           </Text>
           <Text fontSize="15px" fontWeight="bold">

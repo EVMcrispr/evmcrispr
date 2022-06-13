@@ -39,6 +39,8 @@ export type EVMcl = {
  */
 export type Address = string;
 
+export type LazyString = string | (() => Promise<string>);
+
 /** @internal */
 export type AppArtifactCache = Map<Address, AppArtifact>;
 
