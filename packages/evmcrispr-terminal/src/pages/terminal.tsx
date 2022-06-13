@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
+import { useNavigate, useParams } from 'react-router-dom';
+import useSWR from 'swr';
 
 import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
@@ -11,6 +14,7 @@ import { conf, contribution, language } from '../editor/evmcl';
 import { useTerminal } from '../utils/useTerminal';
 import Footer from '../components/footer';
 import pinJSON from '../api/pinata/pinJSON';
+import fetchPin from '../api/pinata/fetchPin';
 
 const Terminal = () => {
   const {
@@ -29,19 +33,44 @@ const Terminal = () => {
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
+  const params = useParams();
+  const navigate = useNavigate();
+
+  const { data, error: fetchError } = useSWR(
+    ['https://gateway.pinata.cloud', params?.hashId],
+    (url, hashId) => fetchPin(url, hashId),
+  );
+
+  useEffect(() => {
+    if (data !== null && !fetchError && typeof data !== 'undefined') {
+      setCode(data.text);
+    }
+  }, [data]);
 
   const terminalCodeWithDate = () => ({
     text: code,
     date: new Date().toISOString(),
   });
 
-  const handleShare = async () => {
-    try {
-      const data = terminalCodeWithDate();
-      const { IpfsHash } = await pinJSON(data);
-      const url = window.location.href + '/' + IpfsHash;
+  const getRootLocation = () => {
+    const url = window.location.href;
+    const urlArr = url.split('/');
+    const urlWithoutHash = urlArr.filter((u) => u !== params.hashId);
 
-      return navigator.clipboard.writeText(url);
+    return urlWithoutHash.join('/');
+  };
+
+  const handleShare = async () => {
+    const data = terminalCodeWithDate();
+
+    try {
+      const { IpfsHash } = await pinJSON(data);
+      const root = params?.hashId ? getRootLocation() : window.location.href;
+      const url = root + '/' + IpfsHash;
+
+      navigator.clipboard.writeText(url);
+
+      return navigate(`/terminal/${IpfsHash}`, { replace: true });
     } catch (e) {
       console.log(e);
     }
