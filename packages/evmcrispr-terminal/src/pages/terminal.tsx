@@ -5,7 +5,7 @@ import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
-import SelectWalletModal from '../components/modal';
+import SelectWalletModal from '../components/modal/wallet';
 import FadeIn from '../components/animations/fade-in';
 
 import { theme } from '../editor/theme';
