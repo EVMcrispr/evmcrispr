@@ -82,6 +82,22 @@ const Terminal = () => {
     <>
       <Box maxWidth="956px" margin="0 auto" my={16}>
         <FadeIn componentRef={terminalRef}>
+          <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
+            {!address ? (
+              <Button variant="lime" onClick={onOpen}>
+                Connect
+              </Button>
+            ) : (
+              <Button
+                variant="link"
+                color="white"
+                onClick={onDisconnect}
+                size="sm"
+              >
+                Disconnect
+              </Button>
+            )}
+          </VStack>
           <Editor
             height="50vh"
             theme="theme"
@@ -117,14 +133,7 @@ const Terminal = () => {
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
           <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-            {!address ? (
-              <>
-                <Button variant="lime" onClick={onOpen}>
-                  Connect
-                </Button>
-                <Button onClick={handleShare}>Share</Button>
-              </>
-            ) : (
+            {address ? (
               <>
                 {url ? (
                   <Button
@@ -140,16 +149,12 @@ const Terminal = () => {
                     loading ? 'Forwarding' : 'Forward'
                   } from ${addressShortened}`}
                 </Button>
-                <Button
-                  variant="link"
-                  color="white"
-                  onClick={onDisconnect}
-                  size="sm"
-                >
-                  Disconnect
-                </Button>
               </>
-            )}
+            ) : null}
+
+            <Button onClick={handleShare} variant="blue">
+              Share
+            </Button>
 
             {error ? (
               <Button variant="warning">
