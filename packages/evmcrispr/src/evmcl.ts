@@ -32,7 +32,7 @@ class EvmclParser {
     if (arg && arg[0] == '$') {
       return this.#env(arg);
     } else if (arg && arg[0] == '@') {
-      return this.#helper(arg);
+      return this.#helper(arg)();
     }
     return arg;
   }
@@ -137,7 +137,7 @@ export default function evmcl(
                 throw new Error('Malformed connect command.');
               }
               dao = _dao;
-              path = pathstr.trim().split(' ');
+              path = pathstr.trim() ? pathstr.trim().split(' ') : [];
               context = _context;
               return [];
             };

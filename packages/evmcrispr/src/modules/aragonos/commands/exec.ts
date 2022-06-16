@@ -36,8 +36,12 @@ export function exec(
         },
       ];
     } catch (err: any) {
-      err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
-      throw err;
+      try {
+        return module.evm.encodeAction(appIdentifier, functionName, params)();
+      } catch (e: any) {
+        err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;
+        throw err;
+      }
     }
   };
 }
