@@ -37,6 +37,9 @@ export function exec(
       ];
     } catch (err: any) {
       try {
+        if (!module.resolveEntity(appIdentifier)) {
+          throw err;
+        }
         return module.evm.encodeAction(appIdentifier, functionName, params)();
       } catch (e: any) {
         err.message = `Error when encoding call to method ${functionName} of app ${appIdentifier}: ${err.message}`;

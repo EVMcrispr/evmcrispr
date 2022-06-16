@@ -31,14 +31,14 @@ import {
   buildNonceForAddress,
   calculateNewProxyAddress,
   fetchAppArtifact,
-  getAragonEnsResolver,
   oracle,
   resolveIdentifier,
-  resolveName,
 } from '../../utils';
 import Connector from './utils/Connector';
 import { ErrorNotFound } from '../../errors';
 import { exec } from './commands/exec';
+import helpers from './helpers';
+import aragonEns from './helpers/aragonEns';
 
 export default class AragonOS {
   evm: EVMcrispr;
@@ -46,7 +46,7 @@ export default class AragonOS {
 
   constructor(evm: EVMcrispr) {
     this.evm = evm;
-    this.#helpers = {};
+    this.#helpers = helpers(evm);
   }
 
   get helpers() {
@@ -93,11 +93,10 @@ export default class AragonOS {
     if (utils.isAddress(daoAddressOrName)) {
       return ConnectedAragonOS._connect(module, daoAddressOrName);
     } else {
-      const daoAddress = await resolveName(
+      const daoAddress = await aragonEns(
+        module.evm,
         `${daoAddressOrName}.aragonid.eth`,
-        module.evm.env('$aragonos.ensResolver') ||
-          getAragonEnsResolver(await module.evm.signer.getChainId()),
-        module.evm.signer,
+        module.evm.env('$aragonos.ensResolver'),
       );
       if (!daoAddress) {
         throw new Error(

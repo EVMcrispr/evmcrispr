@@ -144,8 +144,9 @@ export default function evmcl(
           }
           case 'set': {
             return async () => {
-              const [varName, ...value] = args;
-              return evmcrispr.set(varName, value.join(' '))();
+              const [varName, ...rest] = args;
+              const value = rest.join(' ');
+              return evmcrispr.set(varName, await parser.arg(value))();
             };
           }
           case 'new': {

@@ -61,6 +61,9 @@ export async function resolveName(
   ensResolver: Address,
   signerOrProvider: ethers.Signer | providers.Provider,
 ): Promise<Address | null> {
+  if (!/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+eth/.test(name)) {
+    throw new Error(`ENS not valid: ${name}`);
+  }
   const namehash = utils.namehash(name);
   const resolver = await new Contract(
     ensResolver,

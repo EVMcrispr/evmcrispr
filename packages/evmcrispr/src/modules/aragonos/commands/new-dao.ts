@@ -1,13 +1,9 @@
 import { utils } from 'ethers';
 
 import type { ActionFunction } from '../../..';
-import {
-  buildNonceForAddress,
-  calculateNewProxyAddress,
-  getAragonEnsResolver,
-  resolveName,
-} from '../../../utils';
+import { buildNonceForAddress, calculateNewProxyAddress } from '../../../utils';
 import type AragonOS from '../AragonOS';
+import aragonEns from '../helpers/aragonEns';
 
 function registerAragonId(
   module: AragonOS,
@@ -48,16 +44,11 @@ export function newDao(module: AragonOS, name: string): ActionFunction {
   ]);
 
   return async () => {
-    const chainId = await module.evm.signer.getChainId();
-    const bareTemplateAddr = await resolveName(
+    const bareTemplateAddr = await aragonEns(
+      module.evm,
       `bare-template.aragonpm.eth`,
-      getAragonEnsResolver(chainId),
-      module.evm.signer,
+      module.evm.env('$aragonos.ensResolver'),
     );
-
-    if (!bareTemplateAddr) {
-      throw Error('Bare Template is not specified for network ' + chainId);
-    }
 
     const nonce = await buildNonceForAddress(
       bareTemplateAddr!,

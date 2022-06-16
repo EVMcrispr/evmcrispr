@@ -206,7 +206,8 @@ describe('EVM Command Line', () => {
       ['$token.tokenlist'],
     );
   });
-  it('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
+  it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
+    // FIXME
     await check(
       evmcl` 
         connect ${DAO.kernel} token-manager voting (
@@ -222,7 +223,7 @@ describe('EVM Command Line', () => {
             dao.exec('vault', 'transfer', [
               evm.helpers.token('SUSHI'),
               evm.helpers.me(),
-              0, // evm.helpers['token.balance']('SUSHI', 'vault'),
+              evm.helpers['token.balance']('SUSHI', 'vault'),
             ]),
           ],
           ['token-manager', 'voting'],
