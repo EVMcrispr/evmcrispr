@@ -88,8 +88,6 @@ export default class AragonOS {
     module: AragonOS,
     daoAddressOrName: string,
   ): Promise<ConnectedAragonOS> {
-    const networkName = (await module.evm.signer.provider?.getNetwork())?.name;
-
     if (utils.isAddress(daoAddressOrName)) {
       return ConnectedAragonOS._connect(module, daoAddressOrName);
     } else {
@@ -98,13 +96,6 @@ export default class AragonOS {
         `${daoAddressOrName}.aragonid.eth`,
         module.evm.env('$aragonos.ensResolver'),
       );
-      if (!daoAddress) {
-        throw new Error(
-          `ENS ${daoAddressOrName}.aragonid.eth not found in ${
-            networkName ?? 'unknown network'
-          }, please introduce the address of the DAO instead.`,
-        );
-      }
       return ConnectedAragonOS._connect(module, daoAddress);
     }
   }
@@ -179,7 +170,7 @@ export class ConnectedAragonOS extends AragonOS {
     return revoke(this, permission, removeManager);
   }
 
-  upgrade(apmRepo: string, newAppAddress: string): ActionFunction {
+  upgrade(apmRepo: string, newAppAddress?: string): ActionFunction {
     return upgrade(this, apmRepo, newAppAddress);
   }
 

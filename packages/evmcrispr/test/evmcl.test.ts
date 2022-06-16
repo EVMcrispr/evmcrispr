@@ -86,18 +86,67 @@ describe('EVM Command Line', () => {
       ],
     );
   });
-  it('upgrade token-manager.aragonpm.eth address', async () => {
-    const app: string = APP.actTarget;
+
+  it('upgrade token-manager', async () => {
     await check(
       evmcl`
         connect ${DAO.kernel} token-manager voting (
-          upgrade token-manager.aragonpm.eth ${app}
+          upgrade token-manager
         )
       `,
       [
         evm.aragon.connect(
           DAO.kernel,
-          (dao) => [dao.upgrade('token-manager.aragonpm.eth', app)],
+          (dao) => [dao.upgrade('token-manager')],
+          ['token-manager', 'voting'],
+        ),
+      ],
+    );
+  });
+  it('upgrade token-manager latest', async () => {
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting (
+          upgrade token-manager latest
+        )
+      `,
+      [
+        evm.aragon.connect(
+          DAO.kernel,
+          (dao) => [dao.upgrade('token-manager', 'latest')],
+          ['token-manager', 'voting'],
+        ),
+      ],
+    );
+  });
+  it('upgrade token-manager version', async () => {
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting (
+          upgrade token-manager 2.0.0
+        )
+      `,
+      [
+        evm.aragon.connect(
+          DAO.kernel,
+          (dao) => [dao.upgrade('token-manager', '2.0.0')],
+          ['token-manager', 'voting'],
+        ),
+      ],
+    );
+  });
+  it('upgrade token-manager address', async () => {
+    const app: string = APP.actTarget;
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting (
+          upgrade token-manager ${app}
+        )
+      `,
+      [
+        evm.aragon.connect(
+          DAO.kernel,
+          (dao) => [dao.upgrade('token-manager', app)],
           ['token-manager', 'voting'],
         ),
       ],

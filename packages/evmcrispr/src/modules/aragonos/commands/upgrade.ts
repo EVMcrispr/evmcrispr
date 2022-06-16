@@ -1,8 +1,12 @@
-import { utils } from 'ethers';
+import { Contract, constants, utils } from 'ethers';
+import { isAddress } from 'ethers/lib/utils';
 
 import type { ActionFunction, Address } from '../../..';
 import { ErrorException } from '../../../errors';
 import type { ConnectedAragonOS } from '../AragonOS';
+import aragonEns from '../helpers/aragonEns';
+
+const semanticVersion = /^([0-9]+)\.([0-9]+)\.([0-9]+)$/;
 
 /**
  * Upgrade all installed apps of a specific APM repo to a new implementation contract.
@@ -13,19 +17,49 @@ import type { ConnectedAragonOS } from '../AragonOS';
 export function upgrade(
   module: ConnectedAragonOS,
   apmRepo: string,
-  newAppAddress: Address,
+  newAppAddress?: Address,
 ): ActionFunction {
   return async () => {
-    if (!apmRepo.endsWith('.eth')) {
-      throw new ErrorException(`The APM repo must be an ENS name.`);
+    if (apmRepo.endsWith('aragonpm.eth')) {
+      throw new ErrorException(`The suffix aragonpm.eth is not needed.`);
     }
-    const kernel = module.resolveApp('kernel');
+
+    const name = `${apmRepo}.aragonpm.eth`;
+    const repoAddr = await aragonEns(module.evm, name);
+    const repo = new Contract(
+      repoAddr,
+      [
+        'function getBySemanticVersion(uint16[3] _semanticVersion) public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+        'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+      ],
+      module.evm.signer,
+    );
+
+    if (!newAppAddress || newAppAddress === 'latest') {
+      [, newAppAddress] = await repo.getLatest();
+    } else if (semanticVersion.test(newAppAddress)) {
+      [, newAppAddress] = await repo.getBySemanticVersion(
+        newAppAddress.split('.'),
+      );
+    } else if (!isAddress(newAppAddress)) {
+      throw new Error(
+        'Second upgrade parameter must be "latest", a semantic version, an address, or none',
+      );
+    }
+
+    const kernel = module.app('kernel');
     const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
-    const appId = utils.namehash(apmRepo);
+    const appId = utils.namehash(name);
+    if (
+      (await kernel.getApp(KERNEL_APP_BASE_NAMESPACE, appId)) ===
+      constants.AddressZero
+    ) {
+      throw new Error(`${apmRepo} not installed in current DAO.`);
+    }
     return [
       {
         to: kernel.address,
-        data: kernel.abiInterface.encodeFunctionData(
+        data: kernel.interface.encodeFunctionData(
           'setApp(bytes32,bytes32,address)',
           [KERNEL_APP_BASE_NAMESPACE, appId, newAppAddress],
         ),
