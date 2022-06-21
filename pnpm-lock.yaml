@@ -125,6 +125,7 @@ importers:
       process: ^0.11.10
       react: ^17.0.2
       react-dom: ^17.0.2
+      react-icons: ^4.4.0
       react-is: ^16.8.0
       react-router: ^6.3.0
       react-router-dom: ^6.3.0
@@ -155,6 +156,7 @@ importers:
       process: 0.11.10
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
+      react-icons: 4.4.0_react@17.0.2
       react-is: 16.13.1
       react-router: 6.3.0_react@17.0.2
       react-router-dom: 6.3.0_sfoxds7t5ydpegc3knd667wn6m
@@ -12230,6 +12232,14 @@ packages:
       use-sidecar: 1.1.2_hx2b44akkvgcgvvtmk7ds2qk6q
     transitivePeerDependencies:
       - '@types/react'
+    dev: false
+
+  /react-icons/4.4.0_react@17.0.2:
+    resolution: {integrity: sha512-fSbvHeVYo/B5/L4VhB7sBA1i2tS8MkT0Hb9t2H1AVPkwGfVHLJCqyr2Py9dKMxsyM63Eng1GkdZfbWj+Fmv8Rg==}
+    peerDependencies:
+      react: '*'
+    dependencies:
+      react: 17.0.2
     dev: false
 
   /react-is/16.13.1:
