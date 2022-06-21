@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
+import { Box, Button, VStack, useDisclosure, useToast } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
@@ -42,6 +42,8 @@ const Terminal = () => {
   const params = useParams();
   const navigate = useNavigate();
   const [link, setLink] = useState('');
+  const [isLoading, setLoader] = useState(false);
+  const toast = useToast();
 
   const { data, error: fetchError } = useSWR(
     ['https://gateway.pinata.cloud', params?.hashId],
@@ -54,11 +56,6 @@ const Terminal = () => {
     }
   }, [data, fetchError, setCode]);
 
-  const terminalCodeWithDate = () => ({
-    text: code,
-    date: new Date().toISOString(),
-  });
-
   const getRootLocation = () => {
     const url = window.location.href;
     const urlArr = url.split('/');
@@ -69,18 +66,32 @@ const Terminal = () => {
 
   const handleShare = async () => {
     try {
-      const data = terminalCodeWithDate();
-
+      setLoader(true);
       shareDisclosure.onOpen();
+
+      const data = {
+        text: code,
+        date: new Date().toISOString(),
+      };
 
       const { IpfsHash } = await pinJSON(data);
       const root = params?.hashId ? getRootLocation() : window.location.href;
       const url = root + '/' + IpfsHash;
 
       setLink(url);
+      setLoader(false);
 
       return navigate(`/terminal/${IpfsHash}`, { replace: true });
-    } catch (e) {
+    } catch (e: any) {
+      setLoader(false);
+      shareDisclosure.onClose();
+      toast({
+        status: 'error',
+        title: 'Error while trying to create sharable link',
+        description: e.message,
+        duration: 9000,
+        isClosable: true,
+      });
       console.log(e);
     }
   };
@@ -177,7 +188,7 @@ const Terminal = () => {
         <Footer />
       </FadeIn>
       <SelectWalletModal {...walletDisclosure} />
-      <ShareLinkModal url={link} {...shareDisclosure} />
+      <ShareLinkModal url={link} isLoading={isLoading} {...shareDisclosure} />
     </>
   );
 };

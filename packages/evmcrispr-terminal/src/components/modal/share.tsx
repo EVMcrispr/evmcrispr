@@ -1,4 +1,5 @@
 import {
+  Center,
   Icon as ChakraIcon,
   HStack,
   Link,
@@ -10,6 +11,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Spinner,
   Text,
   useToast,
 } from '@chakra-ui/react';
@@ -67,10 +69,12 @@ const ShareLinkModal = ({
   isOpen,
   onClose,
   url,
+  isLoading,
 }: {
   isOpen: boolean;
   onClose: () => void;
   url: string;
+  isLoading: boolean;
 }) => {
   const social = getSocial(url);
   const toast = useToast();
@@ -83,43 +87,55 @@ const ShareLinkModal = ({
           <ModalHeader color="white">Share to...</ModalHeader>
           <ModalCloseButton />
           <ModalBody paddingX={0} paddingBottom={0}>
-            <List>
-              {social.map(
-                (
-                  { text, Icon, link, isExternal = true, onClick = () => true },
-                  i,
-                ) => {
-                  return (
-                    <Link
-                      href={link()}
-                      isExternal={isExternal}
-                      onClick={() => onClick(toast)}
-                      _hover={{
-                        textDecoration: 'none',
-                      }}
-                      key={`share-link-${i}`}
-                    >
-                      <CustomListItem
-                        transitionProperty="all"
-                        transitionDuration="0.2"
+            {isLoading ? (
+              <Center p={4}>
+                <Spinner size="xl" color="brand.green.300" />
+              </Center>
+            ) : (
+              <List>
+                {social.map(
+                  (
+                    {
+                      text,
+                      Icon,
+                      link,
+                      isExternal = true,
+                      onClick = () => true,
+                    },
+                    i,
+                  ) => {
+                    return (
+                      <Link
+                        href={link()}
+                        isExternal={isExternal}
+                        onClick={() => onClick(toast)}
                         _hover={{
-                          backgroundColor: 'brand.green.300',
+                          textDecoration: 'none',
                         }}
-                        paddingX={6}
-                        paddingY={3}
+                        key={`share-link-${i}`}
                       >
-                        <HStack spacing={3}>
-                          <Icon />
-                          <Text color="white" fontSize="xl">
-                            {text}
-                          </Text>
-                        </HStack>
-                      </CustomListItem>
-                    </Link>
-                  );
-                },
-              )}
-            </List>
+                        <CustomListItem
+                          transitionProperty="all"
+                          transitionDuration="0.2"
+                          _hover={{
+                            backgroundColor: 'brand.green.300',
+                          }}
+                          paddingX={6}
+                          paddingY={3}
+                        >
+                          <HStack spacing={3}>
+                            <Icon />
+                            <Text color="white" fontSize="xl">
+                              {text}
+                            </Text>
+                          </HStack>
+                        </CustomListItem>
+                      </Link>
+                    );
+                  },
+                )}
+              </List>
+            )}
           </ModalBody>
         </ModalContent>
       </Modal>
