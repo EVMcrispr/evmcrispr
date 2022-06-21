@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
 import SelectWalletModal from '../components/modal/wallet';
+import ShareLinkModal from '../components/modal/share';
 import FadeIn from '../components/animations/fade-in';
 
 import { theme } from '../editor/theme';
@@ -29,12 +30,18 @@ const Terminal = () => {
     onDisconnect,
   } = useTerminal();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const walletDisclosure = useDisclosure({
+    id: 'wallet',
+  });
+  const shareDisclosure = useDisclosure({
+    id: 'share',
+  });
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
   const params = useParams();
   const navigate = useNavigate();
+  const [link, setLink] = useState('');
 
   const { data, error: fetchError } = useSWR(
     ['https://gateway.pinata.cloud', params?.hashId],
@@ -45,7 +52,7 @@ const Terminal = () => {
     if (data !== null && !fetchError && typeof data !== 'undefined') {
       setCode(data.text);
     }
-  }, [data]);
+  }, [data, fetchError, setCode]);
 
   const terminalCodeWithDate = () => ({
     text: code,
@@ -61,14 +68,16 @@ const Terminal = () => {
   };
 
   const handleShare = async () => {
-    const data = terminalCodeWithDate();
-
     try {
+      const data = terminalCodeWithDate();
+
+      shareDisclosure.onOpen();
+
       const { IpfsHash } = await pinJSON(data);
       const root = params?.hashId ? getRootLocation() : window.location.href;
       const url = root + '/' + IpfsHash;
 
-      navigator.clipboard.writeText(url);
+      setLink(url);
 
       return navigate(`/terminal/${IpfsHash}`, { replace: true });
     } catch (e) {
@@ -84,7 +93,7 @@ const Terminal = () => {
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
             {!address ? (
-              <Button variant="lime" onClick={onOpen}>
+              <Button variant="lime" onClick={walletDisclosure.onOpen}>
                 Connect
               </Button>
             ) : (
@@ -167,7 +176,8 @@ const Terminal = () => {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
-      <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
+      <SelectWalletModal {...walletDisclosure} />
+      <ShareLinkModal url={link} {...shareDisclosure} />
     </>
   );
 };

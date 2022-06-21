@@ -15,15 +15,15 @@ import { useConnect } from 'wagmi';
 
 export default function SelectWalletModal({
   isOpen,
-  closeModal,
+  onClose,
 }: {
   isOpen: boolean;
-  closeModal: () => void;
+  onClose: () => void;
 }) {
   const { connectors, connect } = useConnect();
 
   return (
-    <Modal isOpen={isOpen} onClose={closeModal} isCentered>
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
       <ModalContent w="300px">
         <ModalHeader color="white">Select Wallet</ModalHeader>
@@ -39,7 +39,7 @@ export default function SelectWalletModal({
               variant="outline"
               onClick={() => {
                 connect(connectors[0]);
-                closeModal();
+                onClose();
               }}
               w="100%"
               size="md"
@@ -59,7 +59,7 @@ export default function SelectWalletModal({
               variant="outline"
               onClick={() => {
                 connect(connectors[1]);
-                closeModal();
+                onClose();
               }}
               w="100%"
               size="md"
@@ -79,7 +79,7 @@ export default function SelectWalletModal({
               variant="outline"
               onClick={() => {
                 connect(connectors[2]);
-                closeModal();
+                onClose();
               }}
               w="100%"
             >
