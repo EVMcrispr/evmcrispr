@@ -69,7 +69,7 @@ const checkAccountBalances = async (account: string, evm: EVMcrispr) => {
   const tokenNames = ['DAI', 'USDC', 'WETH'];
 
   for (const token of tokenNames) {
-    const balance = await evm.helpers['token.balance'](evm, token, account)();
+    const balance = await evm.helpers['token.balance'](token, account)();
     console.log('----------------------------------');
     console.log(`${token}: ${Number(balance) / 1e18} (${balance.toString()})`);
     console.log('----------------------------------');
