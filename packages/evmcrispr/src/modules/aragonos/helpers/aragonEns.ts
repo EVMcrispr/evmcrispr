@@ -1,14 +1,11 @@
 import type { EVMcrispr } from '../../..';
 import { getAragonEnsResolver, resolveName } from '../../../utils';
 
-async function aragonEns(
-  evm: EVMcrispr,
-  ens: string,
-  ensResolver?: string,
-): Promise<string> {
+async function aragonEns(evm: EVMcrispr, ens: string): Promise<string> {
   const name = await resolveName(
     ens,
-    ensResolver ?? getAragonEnsResolver(await evm.signer.getChainId()),
+    (evm.env('$aragonos.ensResolver') as string) ||
+      getAragonEnsResolver(await evm.signer.getChainId()),
     evm.signer,
   );
 

@@ -47,7 +47,6 @@ export function newDao(module: AragonOS, name: string): ActionFunction {
     const bareTemplateAddr = await aragonEns(
       module.evm,
       `bare-template.aragonpm.eth`,
-      module.evm.env('$aragonos.ensResolver'),
     );
 
     const nonce = await buildNonceForAddress(

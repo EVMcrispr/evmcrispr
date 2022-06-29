@@ -1,6 +1,8 @@
 import type { ActionFunction } from '../../..';
 import type { ConnectedAragonOS } from '../AragonOS';
 import type AragonOS from '../AragonOS';
+import { normalizeActions } from '../../..';
+import { batchForwarderActions } from '../utils/forwarders';
 
 export function connect(
   module: AragonOS,
@@ -11,9 +13,16 @@ export function connect(
 ): ActionFunction {
   return async () => {
     const _dao = await module.dao(dao);
-    const _path = path.map(
-      (entity) => module.evm.resolver.resolveEntity(entity) as string,
+    const forwarderActions = await normalizeActions(actions(_dao))();
+    const forwarders =
+      path
+        ?.map((entity) => module.evm.resolver.resolveEntity(entity))
+        .reverse() || [];
+    return batchForwarderActions(
+      module.evm.signer,
+      forwarderActions,
+      forwarders,
+      opts?.context,
     );
-    return (await module.evm.encode(actions(_dao), _path, opts)).actions;
   };
 }

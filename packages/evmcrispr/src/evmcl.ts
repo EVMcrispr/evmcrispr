@@ -81,7 +81,11 @@ class EvmclParser {
     )!;
     return async () => {
       const _params = await this.args(params.filter((p) => !!p));
-      return this.evmcrispr.helpers[ext](..._params)();
+      try {
+        return this.evmcrispr.helpers[ext](..._params)();
+      } catch (e) {
+        throw new Error(`Helper @${ext} does not exist.`);
+      }
     };
   }
 
@@ -319,18 +323,16 @@ export default function evmcl(
     );
   };
   return {
-    encode: async (signer: Signer) => {
+    encode: async (signer: Signer | Promise<Signer>) => {
       const evmcrispr = await EVMcrispr.create(signer);
       const _actions = await actions(evmcrispr);
       return evmcrispr.encode([_actions]);
     },
-    forward: async (signer: Signer, options) => {
+    forward: async (signer: Signer | Promise<Signer>, options) => {
       const evmcrispr = await EVMcrispr.create(signer);
-      return evmcrispr.forward([await actions(evmcrispr)], [], {
-        ...options,
-      });
+      return evmcrispr.forward([await actions(evmcrispr)], options);
     },
-    evmcrispr: async (signer: Signer) => {
+    evmcrispr: async (signer: Signer | Promise<Signer>) => {
       const evmcrispr = await EVMcrispr.create(signer);
       await evmcrispr.encode([await actions(evmcrispr)]);
       return evmcrispr;

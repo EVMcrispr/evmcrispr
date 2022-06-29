@@ -8,25 +8,31 @@ export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
+export type VarVal = string | VarVal[];
+export type LazyVarVal = VarVal | (() => Promise<VarVal>);
+
 export type ActionFunction = () => Promise<Action[]>;
 
 export type Helper = (...rest: LazyString[]) => () => Promise<string>;
 
 export type EVMcl = {
   encode: (
-    signer: Signer,
+    signer: Signer | Promise<Signer>,
     options?: ForwardOptions,
   ) => Promise<{
     actions: Action[];
     forward: () => Promise<providers.TransactionReceipt[]>;
   }>;
   forward: (
-    signer: Signer,
+    signer: Signer | Promise<Signer>,
     options?: ForwardOptions,
   ) => Promise<providers.TransactionReceipt[]>;
   dao: string;
   path: string[];
-  evmcrispr: (signer: Signer, options?: ForwardOptions) => Promise<EVMcrispr>;
+  evmcrispr: (
+    signer: Signer | Promise<Signer>,
+    options?: ForwardOptions,
+  ) => Promise<EVMcrispr>;
 };
 
 /**
@@ -191,11 +197,6 @@ export interface EntityWithAbi {
 }
 
 export interface ForwardOptions {
-  /**
-   * The context information describing the forward evmscript.
-   * Needed for forwarders with context (AragonOS v5).
-   */
-  context?: string;
   gasPrice?: BigNumberish;
   gasLimit?: BigNumberish;
 }

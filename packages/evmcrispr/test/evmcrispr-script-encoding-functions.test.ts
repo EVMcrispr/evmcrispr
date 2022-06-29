@@ -26,7 +26,7 @@ import {
   createTestPreTxAction,
   createTestScriptEncodedAction,
 } from './test-helpers/actions';
-import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
+import { expectThrowAsync } from './test-helpers/expects';
 
 describe('EVMcrispr script-encoding functions', () => {
   let evmcrispr: EVMcrispr;
@@ -115,14 +115,6 @@ describe('EVMcrispr script-encoding functions', () => {
   });
 
   describe('encode()', () => {
-    it(
-      'should fail when passing an invalid set of forwarders',
-      isValidIdentifier(
-        (badIdentifier) => () =>
-          evmcrispr.encode(actionFunctions, [badIdentifier]),
-      ),
-    );
-
     it('should fail when encoding a set of actions into an EVM script using a context forwarder and not receiving a context', async () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
@@ -155,7 +147,6 @@ describe('EVMcrispr script-encoding functions', () => {
       ];
       const { actions: encodedScriptAction } = await evmcrispr.encode(
         actionFunctions,
-        [],
       );
 
       expect(encodedScriptAction, 'Transactions mismatch').eql(

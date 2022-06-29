@@ -38,7 +38,7 @@ export default class Connector {
    * @param options The optional configuration object.
    */
   constructor(chainId: number, options: { subgraphUrl?: string } = {}) {
-    const subgraphUrl = options.subgraphUrl ?? subgraphUrlFromChainId(chainId);
+    const subgraphUrl = options.subgraphUrl || subgraphUrlFromChainId(chainId);
 
     if (!subgraphUrl) {
       throw new ErrorException(

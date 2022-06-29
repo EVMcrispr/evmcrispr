@@ -49,11 +49,11 @@ export default class AragonOS {
     this.#helpers = helpers(evm);
   }
 
-  get helpers() {
+  get helpers(): { [name: string]: Helper } {
     return this.#helpers;
   }
 
-  dao(name: string) {
+  dao(name: string): Promise<ConnectedAragonOS> {
     return AragonOS._connectAddressOrName(this, name);
   }
 
@@ -94,7 +94,6 @@ export default class AragonOS {
       const daoAddress = await aragonEns(
         module.evm,
         `${daoAddressOrName}.aragonid.eth`,
-        module.evm.env('$aragonos.ensResolver'),
       );
       return ConnectedAragonOS._connect(module, daoAddress);
     }
@@ -128,7 +127,7 @@ export class ConnectedAragonOS extends AragonOS {
     const dao = new ConnectedAragonOS(
       evm,
       await evm.signer.getChainId(),
-      evm.env('$aragonos.subgraphUrl'),
+      evm.env('$aragonos.subgraphUrl') as string,
     );
     const parsedApps = await dao._connector.organizationApps(daoAddress);
     const appResourcesCache = await dao.#buildAppArtifactCache(parsedApps);
@@ -174,15 +173,15 @@ export class ConnectedAragonOS extends AragonOS {
     return upgrade(this, apmRepo, newAppAddress);
   }
 
-  get appCache() {
+  get appCache(): AppCache {
     return this.#appCache;
   }
 
-  get appArtifactCache() {
+  get appArtifactCache(): AppArtifactCache {
     return this.#appArtifactCache;
   }
 
-  get connector() {
+  get connector(): Connector {
     return this._connector;
   }
 

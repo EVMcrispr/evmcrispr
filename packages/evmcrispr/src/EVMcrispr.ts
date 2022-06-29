@@ -1,7 +1,6 @@
 import type { Signer, providers, utils } from 'ethers';
 
 import { encodeActCall, encodeCallScript, normalizeActions } from './utils';
-import { batchForwarderActions } from './modules/aragonos/utils/forwarders';
 import type {
   Action,
   ActionFunction,
@@ -10,6 +9,8 @@ import type {
   Entity,
   ForwardOptions,
   Helper,
+  LazyVarVal,
+  VarVal,
 } from './types';
 import { IPFSResolver } from './IPFSResolver';
 import resolver from './utils/resolvers';
@@ -26,7 +27,7 @@ export default class EVMcrispr {
   #addressBook: Map<string, Address>;
   #abiStore: Map<string, utils.Interface>;
 
-  #env: Map<string, any> = new Map();
+  #env: Map<string, VarVal> = new Map();
   protected _ipfsResolver: IPFSResolver;
   #signer: Signer;
   #nonces: { [addr: string]: number } = {};
@@ -51,12 +52,10 @@ export default class EVMcrispr {
    * apps and permissions data.
    * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
    * instance used to connect to Ethereum and sign any transaction needed.
-   * @param options The optional configuration object.
    * @returns A promise that resolves to a new `EVMcrispr` instance.
    */
-  static async create(signer: Signer): Promise<EVMcrispr> {
-    const evmcrispr = new EVMcrispr(signer);
-    return evmcrispr;
+  static async create(signer: Signer | Promise<Signer>): Promise<EVMcrispr> {
+    return new EVMcrispr(await signer);
   }
 
   get ipfsResolver(): IPFSResolver {
@@ -82,21 +81,24 @@ export default class EVMcrispr {
     };
   }
 
-  incrementNonce(address: string) {
+  incrementNonce(address: string): number {
     if (!this.#nonces[address]) {
       this.#nonces[address] = 0;
     }
     return this.#nonces[address]++;
   }
 
-  env(varName: string): any {
-    return this.#env.get(varName);
+  env(varName: string): VarVal {
+    return this.#env.get(varName) || '';
   }
 
-  set(varName: string, value: unknown): ActionFunction {
+  set(varName: string, value: LazyVarVal): ActionFunction {
     return async () => {
       if (varName[0] !== '$') {
         throw new Error('Environment variables must start with $ symbol.');
+      }
+      if (typeof value === 'function') {
+        value = await value();
       }
       this.#env.set(varName, value);
       return [];
@@ -163,22 +165,12 @@ export default class EVMcrispr {
    */
   async encode(
     actionFunctions: ActionFunction[],
-    path?: Entity[],
     options?: ForwardOptions,
   ): Promise<{
     actions: Action[];
     forward: () => Promise<TransactionReceipt[]>;
   }> {
-    const forwarderActions = await normalizeActions(actionFunctions)();
-    const forwarders =
-      path?.map((entity) => this.resolver.resolveEntity(entity)).reverse() ||
-      [];
-    const actions = await batchForwarderActions(
-      this.#signer,
-      forwarderActions,
-      forwarders,
-      options?.context,
-    );
+    const actions = await normalizeActions(actionFunctions)();
     return {
       actions: actions,
       forward: () => this._forward(actions, options),
@@ -188,20 +180,14 @@ export default class EVMcrispr {
   /**
    * Encode a set of actions into one and send it in a transaction.
    * @param actions The action-returning functions to encode.
-   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
    * @param options A forward options object.
    * @returns A promise that resolves to a receipt of the sent transaction.
    */
   async forward(
     actions: ActionFunction[],
-    path: Entity[],
     options?: ForwardOptions,
   ): Promise<providers.TransactionReceipt[]> {
-    const { actions: encodedActions } = await this.encode(
-      actions,
-      path,
-      options,
-    );
+    const { actions: encodedActions } = await this.encode(actions, options);
     return this._forward(encodedActions, options);
   }
 

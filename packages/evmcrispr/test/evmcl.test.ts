@@ -1,5 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
+import { utils } from 'ethers';
 
 import type { ActionFunction } from '../src';
 import { EVMcrispr } from '../src';
@@ -14,15 +15,22 @@ async function check(
   actions: EVMcl,
   expectedActions: ActionFunction[],
   checkVars: string[] = [],
-  forwarders: string[] = [],
+  checkWith: string[] = [],
 ) {
-  const expected = await evm.encode(expectedActions, forwarders);
+  const expected = await evm.encode(expectedActions);
   const actual = await actions.encode(signer);
   expect(actual.actions).to.be.deep.eq(expected.actions);
-  for (const varName of checkVars) {
-    expect((await actions.evmcrispr(signer)).env(varName)).to.be.eq(
-      evm.env(varName),
-    );
+  for (const i in checkVars) {
+    if (typeof checkWith[i] !== 'undefined') {
+      expect([
+        evm.env(checkVars[i]),
+        (await actions.evmcrispr(signer)).env(checkVars[i]),
+      ]).to.be.deep.eq([checkWith[i], checkWith[i]]);
+    } else {
+      expect((await actions.evmcrispr(signer)).env(checkVars[i])).to.be.deep.eq(
+        evm.env(checkVars[i]),
+      );
+    }
   }
 }
 
@@ -255,6 +263,45 @@ describe('EVM Command Line', () => {
       ['$token.tokenlist'],
     );
   });
+
+  it('set $var @id(@date(now))', async () => {
+    const evmSet = evm.set(
+      '$var',
+      evm.std.helpers.id(evm.std.helpers.date('now')),
+    );
+    const val = utils.id(Math.floor(new Date().valueOf() / 1000).toString());
+    await check(
+      evmcl` 
+        set $var @id(@date(now))
+      `,
+      [evmSet],
+      ['$var'],
+      [val],
+    );
+  });
+
+  it('set $var @date(2022-05-03T03:11:05Z,+5d-44m)', async () => {
+    await check(
+      evmcl` 
+        set $var @date(2022-05-03T03:11:05Z,+5d-44m)
+      `,
+      [
+        evm.set(
+          '$var',
+          evm.std.helpers.date('2022-05-03T03:11:05Z', '+5d-44m'),
+        ),
+      ],
+      ['$var'],
+      [
+        (
+          Math.floor(new Date('2022-05-03T03:11:05Z').valueOf() / 1000) +
+          5 * 24 * 60 * 60 -
+          44 * 60
+        ).toString(),
+      ],
+    );
+  });
+
   it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
     // FIXME
     await check(
@@ -279,6 +326,7 @@ describe('EVM Command Line', () => {
         ),
       ],
       ['$token.tokenlist'],
+      ['https://token-list.sushi.com/'],
     );
   });
   it('set $var value in multiple words', async () => {
@@ -288,7 +336,7 @@ describe('EVM Command Line', () => {
       `,
       [evm.set('$var', 'value in multiple words')],
       ['$var'],
-      [],
+      ['value in multiple words'],
     );
   });
   it('new dao', async () => {
@@ -297,7 +345,6 @@ describe('EVM Command Line', () => {
         new dao name
       `,
       [evm.aragon.newDao('name')],
-      [],
       [],
     );
   });
