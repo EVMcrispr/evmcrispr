@@ -8,7 +8,8 @@ html,
 }
 
 .App {
-  height: 100%; /* remove this line to see div.app is no more 100% height */
+  height: 100%;
+  /* remove this line to see div.app is no more 100% height */
   background: black;
   color: white;
   padding: 117px 0;
@@ -16,24 +17,37 @@ html,
 
 /* The typing effect */
 @keyframes typing {
-  from { width: 0 ;border-color: #fff }
-  to { width: 380px }
-  99% {border-color: #fff}
-  100% {border-color: transparent}
+  from {
+    width: 0;
+    border-color: #fff
+  }
+
+  to {
+    width: 480px
+  }
+
+  99% {
+    border-color: #fff
+  }
+
+  100% {
+    border-color: transparent
+  }
 }
 
 .box {
   position: relative;
   z-index: 0;
   background: rgba(150, 238, 100, 0.05);
-  clip-path: polygon(0 60.00px,30px 30px,60.00px 0,calc(100% - 60.00px) 0,calc(100% - 30px) 30px,100% 60.00px,100% calc(100% - 60.00px),calc(100% - 30px) calc(100% - 30px),calc(100% - 60.00px) 100%,60.00px 100%,30px calc(100% - 30px),0 calc(100% - 60.00px));
-  
+  clip-path: polygon(0 60.00px, 30px 30px, 60.00px 0, calc(100% - 60.00px) 0, calc(100% - 30px) 30px, 100% 60.00px, 100% calc(100% - 60.00px), calc(100% - 30px) calc(100% - 30px), calc(100% - 60.00px) 100%, 60.00px 100%, 30px calc(100% - 30px), 0 calc(100% - 60.00px));
+
 }
+
 .box:before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background: #75f248;
-  clip-path: polygon(0 60.00px,30px 30px,60.00px 0,calc(100% - 60.00px) 0,calc(100% - 30px) 30px,100% 60.00px,100% calc(100% - 60.00px),calc(100% - 30px) calc(100% - 30px),calc(100% - 60.00px) 100%,60.00px 100%,30px calc(100% - 30px),0 calc(100% - 60.00px),0 60.00px,2px  calc(60.00px + 0.83px),2px calc(100% - 60.00px - 0.83px),calc(30px + 1.41px) calc(100% - 30px - 1.41px),calc(60.00px + 0.83px) calc(100% - 2px),calc(100% - 60.00px - 0.83px) calc(100% - 2px),calc(100% - 30px - 1.41px) calc(100% - 30px - 1.41px),calc(100% - 2px) calc(100% - 60.00px - 0.83px),calc(100% - 2px) calc(60.00px + 0.83px),calc(100% - 30px - 1.41px) calc(30px + 1.41px),calc(100% - 60.00px - 0.83px) 2px,calc(60.00px + 0.83px) 2px,calc(30px + 1.41px) calc(30px + 1.41px),2px calc(60.00px + 0.83px));
+  clip-path: polygon(0 60.00px, 30px 30px, 60.00px 0, calc(100% - 60.00px) 0, calc(100% - 30px) 30px, 100% 60.00px, 100% calc(100% - 60.00px), calc(100% - 30px) calc(100% - 30px), calc(100% - 60.00px) 100%, 60.00px 100%, 30px calc(100% - 30px), 0 calc(100% - 60.00px), 0 60.00px, 2px calc(60.00px + 0.83px), 2px calc(100% - 60.00px - 0.83px), calc(30px + 1.41px) calc(100% - 30px - 1.41px), calc(60.00px + 0.83px) calc(100% - 2px), calc(100% - 60.00px - 0.83px) calc(100% - 2px), calc(100% - 30px - 1.41px) calc(100% - 30px - 1.41px), calc(100% - 2px) calc(100% - 60.00px - 0.83px), calc(100% - 2px) calc(60.00px + 0.83px), calc(100% - 30px - 1.41px) calc(30px + 1.41px), calc(100% - 60.00px - 0.83px) 2px, calc(60.00px + 0.83px) 2px, calc(30px + 1.41px) calc(30px + 1.41px), 2px calc(60.00px + 0.83px));
 }

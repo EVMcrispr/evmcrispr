@@ -34,7 +34,7 @@ const Header = () => {
           borderRight=".5em solid transparent" // The typwriter cursor
           whiteSpace="nowrap" // / Keeps the content on a single line
           letterSpacing=".12em" // Adjust as needed
-          width="380px"
+          width="480px"
           animation="typing 2.5s steps(40, end)"
         >
           {`${codename ? ` "${codename}"` : null} v${version}`}
