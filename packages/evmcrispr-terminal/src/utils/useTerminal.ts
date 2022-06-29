@@ -24,21 +24,24 @@ export const useTerminal = () => {
   const [code, setCode] = useCodeState(
     `# Available commands:
 
-connect <dao> <...path> [--context https://yoursite.com]
-install <repo> [...initParams]
-grant <entity> <app> <role> [permissionManager]
+connect <dao> <...path> [--context https://yoursite.com] (
+  <...commands>
+)
+install <repo> [...initParams] [--version <version>]
+grant <entity> <app> <role> [permissionManager] [--oracle <entity>]
 revoke <entity> <app> <role>
 exec <app> <methodName> [...params]
 act <agent> <targetAddr> <methodSignature> [...params]
 
 # Example (unwrap wxDAI):
 
-connect 1hive token-manager voting
-install agent:new
-grant voting agent:new TRANSFER_ROLE voting
-exec vault transfer @token(WXDAI) agent:new 100e18
-act agent:new @token(WXDAI) withdraw(uint256) 100e18
-exec agent:new transfer XDAI vault 100e18
+connect 1hive token-manager voting (
+  install agent:new
+  grant voting agent:new TRANSFER_ROLE voting
+  exec vault transfer @token(WXDAI) agent:new 100e18
+  act agent:new @token(WXDAI) withdraw(uint256) 100e18
+  exec agent:new transfer XDAI vault 100e18
+)
 `,
   );
 
@@ -70,7 +73,9 @@ exec agent:new transfer XDAI vault 100e18
       });
       const chainId = (await signer.provider?.getNetwork())?.chainId;
       const { dao, path, evmcrispr } = evmcl`${code}`;
-      const lastApp = (await evmcrispr(signer)).app(path.slice(-1)[0]).address;
+      const lastApp = (await (await evmcrispr(signer)).aragon.dao(dao)).app(
+        path.slice(-1)[0],
+      ).address;
       setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
     } catch (e: any) {
       console.error(e);
