@@ -1,4 +1,4 @@
-import { utils } from 'ethers';
+import { Contract, utils } from 'ethers';
 
 import type { ActionFunction, LabeledAppIdentifier } from '../../..';
 import { ErrorException } from '../../../errors';
@@ -11,6 +11,7 @@ import {
   parseLabeledAppIdentifier,
 } from '../../../utils';
 import type { ConnectedAragonOS } from '../AragonOS';
+import aragonEns from '../helpers/aragonEns';
 
 /**
  * Encode an action that installs a new app.
@@ -22,17 +23,29 @@ export function install(
   module: ConnectedAragonOS,
   identifier: LabeledAppIdentifier,
   initParams: any[] = [],
+  opts?: { version?: string },
 ): ActionFunction {
   return async () => {
     try {
       const [appName, registry] = parseLabeledAppIdentifier(identifier);
-      const appRepo = await module.connector.repo(appName, registry);
-      const { codeAddress, contentUri, artifact: repoArtifact } = appRepo;
+      const repoAddr = await aragonEns(module.evm, `${appName}.${registry}`);
+      const repo = new Contract(
+        repoAddr,
+        [
+          'function getBySemanticVersion(uint16[3] _semanticVersion) public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+          'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+        ],
+        module.evm.signer,
+      );
+      const [, codeAddress, contentUri] = await (opts?.version
+        ? repo.getBySemanticVersion(opts.version.split('.'))
+        : repo.getLatest());
 
       if (!module.appArtifactCache.has(codeAddress)) {
-        const artifact =
-          repoArtifact ??
-          (await fetchAppArtifact(module.evm.ipfsResolver, contentUri));
+        const artifact = await fetchAppArtifact(
+          module.evm.ipfsResolver,
+          utils.toUtf8String(contentUri),
+        );
         module.appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
       }
 

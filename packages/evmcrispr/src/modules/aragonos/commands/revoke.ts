@@ -1,4 +1,4 @@
-import type { ActionFunction, Permission } from '../../..';
+import type { ActionFunction, Entity } from '../../..';
 import { ErrorNotFound } from '../../../errors';
 import type { ConnectedAragonOS } from '../AragonOS';
 import { resolvePermission } from '../utils/acl';
@@ -11,15 +11,16 @@ import { resolvePermission } from '../utils/acl';
  */
 export function revoke(
   module: ConnectedAragonOS,
-  permission: Permission,
+  grantee: Entity,
+  app: Entity,
+  role: string,
   removeManager = false,
 ): ActionFunction {
   return async () => {
     const actions = [];
-    const [grantee, app, role] = permission;
     const [entityAddress, appAddress, roleHash] = resolvePermission(
       module.evm,
-      permission,
+      [grantee, app, role],
     );
     const { permissions: appPermissions } = module.resolveApp(app);
     const { address: aclAddress, abiInterface: aclAbiInterface } =

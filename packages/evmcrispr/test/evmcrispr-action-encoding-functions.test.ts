@@ -10,8 +10,10 @@ import {
   EOA_ADDRESS,
   GRANT_PERMISSIONS,
   GRANT_PERMISSION_PARAMS,
+  GRANT_PERMISSION_PARAMS_PARAMS,
   NEW_PERMISSIONS,
   NEW_PERMISSION_PARAMS,
+  NEW_PERMISSION_PARAMS_PARAMS,
   PERMISSION_MANAGER,
   REVOKE_PERMISSIONS,
   getSigner,
@@ -96,13 +98,13 @@ describe('EVMcrispr action-encoding functions', () => {
   };
 
   describe('grant()', () => {
-    testBadPermission((badPermission) => dao.grant(badPermission, 'voting'));
+    testBadPermission((badPermission) => dao.grant(...badPermission, 'voting'));
 
     it(
       'fails when receiving an invalid identifier as the permission manager',
       isValidIdentifier(
         (badIdentifier) =>
-          dao.grant(['voting', 'token-manager', 'MINT_ROLE'], badIdentifier),
+          dao.grant('voting', 'token-manager', 'MINT_ROLE', badIdentifier),
         false,
         false,
       ),
@@ -110,7 +112,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
     it('fails when granting a permission to the same entity twice', async () => {
       await expectThrowAsync(
-        dao.grant(['voting', 'token-manager', 'MINT_ROLE'], 'voting'),
+        dao.grant('voting', 'token-manager', 'MINT_ROLE', 'voting'),
         {
           type: ErrorException,
         },
@@ -132,7 +134,7 @@ describe('EVMcrispr action-encoding functions', () => {
         },
       ];
       const encodedCreatePermissionAction = await dao.grant(
-        newPermission,
+        ...newPermission,
         PERMISSION_MANAGER,
       )();
 
@@ -151,7 +153,7 @@ describe('EVMcrispr action-encoding functions', () => {
         },
       ];
       const encodedGrantPermissionAction = await dao.grant(
-        grantPermission,
+        ...grantPermission,
         PERMISSION_MANAGER,
       )();
 
@@ -166,14 +168,15 @@ describe('EVMcrispr action-encoding functions', () => {
             'grantPermissionP(address,address,bytes32,uint256[])',
             [
               ...resolvePermission(GRANT_PERMISSIONS[0]),
-              GRANT_PERMISSION_PARAMS[3](),
+              GRANT_PERMISSION_PARAMS_PARAMS(),
             ],
           ),
         },
       ];
       const encodedGrantPermissionAction = await dao.grant(
-        GRANT_PERMISSION_PARAMS,
+        ...GRANT_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
+        { params: GRANT_PERMISSION_PARAMS_PARAMS },
       )();
 
       expect(expectedGrantPermissionAction).eql(encodedGrantPermissionAction);
@@ -196,13 +199,17 @@ describe('EVMcrispr action-encoding functions', () => {
           to: DAO.acl,
           data: encodeActCall(
             'grantPermissionP(address,address,bytes32,uint256[])',
-            [...resolvePermission(newPermission), NEW_PERMISSION_PARAMS[3]()],
+            [
+              ...resolvePermission(newPermission),
+              NEW_PERMISSION_PARAMS_PARAMS(),
+            ],
           ),
         },
       ];
       const encodedGrantPermissionAction = await dao.grant(
-        NEW_PERMISSION_PARAMS,
+        ...NEW_PERMISSION_PARAMS,
         PERMISSION_MANAGER,
+        { params: NEW_PERMISSION_PARAMS_PARAMS },
       )();
 
       expect(expectedCreatePermissionWithParamsAction).eql(
@@ -442,8 +449,7 @@ describe('EVMcrispr action-encoding functions', () => {
       const noRepoIdentifier = 'non-existent-repo.open:new-app';
 
       await expectThrowAsync(dao.install(noRepoIdentifier), {
-        type: ErrorNotFound,
-        name: 'ErrorRepoNotFound',
+        type: Error,
       });
     });
 
@@ -507,7 +513,7 @@ describe('EVMcrispr action-encoding functions', () => {
   });
 
   describe('revoke()', () => {
-    testBadPermission((badPermission) => dao.revoke(badPermission, true));
+    testBadPermission((badPermission) => dao.revoke(...badPermission, true));
 
     it('encodes a revoke permission and remove manager action correctly', async () => {
       const revokePermission = REVOKE_PERMISSIONS[0];
@@ -526,14 +532,16 @@ describe('EVMcrispr action-encoding functions', () => {
           resolvedRevokePermission.slice(1, 3),
         ),
       };
-      const actions = await dao.revoke(revokePermission, true)();
+      const actions = await dao.revoke(...revokePermission, true)();
 
       expect(actions).eql([expectedRevokeAction, expectedRemoveManagerAction]);
     });
 
     it("doesn't encode a remove manager action when told not to`", async () => {
       const actions = await dao.revoke(
-        ['voting', 'voting', 'MODIFY_QUORUM_ROLE'],
+        'voting',
+        'voting',
+        'MODIFY_QUORUM_ROLE',
         false,
       )();
 
@@ -543,7 +551,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when revoking a permission from an entity that doesn't have it", async () => {
       const [, app, role] = REVOKE_PERMISSIONS[0];
       await expectThrowAsync(
-        dao.revoke(['evm-script-registry', app, role], true),
+        dao.revoke('evm-script-registry', app, role, true),
         {
           type: ErrorNotFound,
           name: 'ErrorPermissionNotFound',

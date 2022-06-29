@@ -103,9 +103,11 @@ describe('EVMcrispr script-encoding functions', () => {
         (dao) => [
           dao.install(`${appIdentifier}:new-app`, initializeParams),
           ...[...NEW_PERMISSIONS, grantPermission].map((p) =>
-            dao.grant(p, PERMISSION_MANAGER),
+            dao.grant(...p, PERMISSION_MANAGER),
           ),
-          normalizeActions(REVOKE_PERMISSIONS.map((p) => dao.revoke(p, true))),
+          normalizeActions(
+            REVOKE_PERMISSIONS.map((p) => dao.revoke(...p, true)),
+          ),
           dao.exec(appIdentifier, callSelector, callSignatureParams),
         ],
         COMPLETE_FORWARDER_PATH,
@@ -168,7 +170,7 @@ describe('EVMcrispr script-encoding functions', () => {
       const encodedScriptAction = await evmcl`
           connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
         ' ',
-      )} --context ${CONTEXT} (
+      )} --context "${CONTEXT}" (
             exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(
         ' ',
       )}

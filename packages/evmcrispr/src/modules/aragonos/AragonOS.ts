@@ -13,8 +13,6 @@ import type {
   LabeledAppIdentifier,
   Params,
   ParsedApp,
-  Permission,
-  PermissionP,
 } from '../../types';
 import { connect } from './commands/connect';
 import { act } from './commands/act';
@@ -155,18 +153,33 @@ export class ConnectedAragonOS extends AragonOS {
   }
 
   grant(
-    permission: Permission | PermissionP,
-    defaultPermissionManager: string,
+    grantee: Entity,
+    app: Entity,
+    role: string,
+    defaultPermissionManager?: string,
+    opts?: {
+      params?: () => string[];
+      oracle?: string;
+    },
   ): ActionFunction {
-    return grant(this, permission, defaultPermissionManager);
+    return grant(this, grantee, app, role, defaultPermissionManager, opts);
   }
 
-  install(identifier: string, initParams?: any[]): ActionFunction {
-    return install(this, identifier, initParams);
+  install(
+    identifier: string,
+    initParams?: any[],
+    opts?: { version?: string },
+  ): ActionFunction {
+    return install(this, identifier, initParams, opts);
   }
 
-  revoke(permission: Permission, removeManager?: boolean): ActionFunction {
-    return revoke(this, permission, removeManager);
+  revoke(
+    grantee: Entity,
+    app: Entity,
+    role: string,
+    removeManager?: boolean,
+  ): ActionFunction {
+    return revoke(this, grantee, app, role, removeManager);
   }
 
   upgrade(apmRepo: string, newAppAddress?: string): ActionFunction {

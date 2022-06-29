@@ -35,7 +35,7 @@ export function upgrade(
       module.evm.signer,
     );
 
-    if (!newAppAddress || newAppAddress === 'latest') {
+    if (!newAppAddress) {
       [, newAppAddress] = await repo.getLatest();
     } else if (semanticVersion.test(newAppAddress)) {
       [, newAppAddress] = await repo.getBySemanticVersion(
@@ -43,7 +43,7 @@ export function upgrade(
       );
     } else if (!isAddress(newAppAddress)) {
       throw new Error(
-        'Second upgrade parameter must be "latest", a semantic version, an address, or none',
+        'Second upgrade parameter must be a semantic version, an address, or nothing',
       );
     }
 

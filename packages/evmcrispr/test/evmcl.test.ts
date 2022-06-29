@@ -95,6 +95,30 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('install token-manager:new param1 param2 param3 param4 --version 1.0.0', async () => {
+    const params: string = APP.initializeParams.join(' ');
+    await check(
+      evmcl`
+        connect ${DAO.kernel} token-manager voting (
+          install token-manager:new ${params} false --version 1.0.0
+        )
+      `,
+      [
+        evm.aragon.connect(
+          DAO.kernel,
+          (dao) => [
+            dao.install(
+              'token-manager:new',
+              [...APP.initializeParams, 'false'],
+              { version: '1.0.0' },
+            ),
+          ],
+          ['token-manager', 'voting'],
+        ),
+      ],
+    );
+  });
+
   it('upgrade token-manager', async () => {
     await check(
       evmcl`
@@ -106,22 +130,6 @@ describe('EVM Command Line', () => {
         evm.aragon.connect(
           DAO.kernel,
           (dao) => [dao.upgrade('token-manager')],
-          ['token-manager', 'voting'],
-        ),
-      ],
-    );
-  });
-  it('upgrade token-manager latest', async () => {
-    await check(
-      evmcl`
-        connect ${DAO.kernel} token-manager voting (
-          upgrade token-manager latest
-        )
-      `,
-      [
-        evm.aragon.connect(
-          DAO.kernel,
-          (dao) => [dao.upgrade('token-manager', 'latest')],
           ['token-manager', 'voting'],
         ),
       ],
@@ -160,11 +168,11 @@ describe('EVM Command Line', () => {
       ],
     );
   });
-  it('grant voting token-manager REVOKE_VESTINGS_ROLE', async () => {
+  it('grant voting token-manager REVOKE_VESTINGS_ROLE --oracle token-manager', async () => {
     await check(
       evmcl`
         connect ${DAO.kernel} token-manager voting (
-          grant voting token-manager REVOKE_VESTINGS_ROLE voting
+          grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle token-manager
         )
       `,
       [
@@ -172,8 +180,11 @@ describe('EVM Command Line', () => {
           DAO.kernel,
           (dao) => [
             dao.grant(
-              ['voting', 'token-manager', 'REVOKE_VESTINGS_ROLE'],
               'voting',
+              'token-manager',
+              'REVOKE_VESTINGS_ROLE',
+              'voting',
+              { oracle: 'token-manager' },
             ),
           ],
           ['token-manager', 'voting'],
@@ -191,7 +202,7 @@ describe('EVM Command Line', () => {
       [
         evm.aragon.connect(
           DAO.kernel,
-          (dao) => [dao.revoke(['voting', 'token-manager', 'MINT_ROLE'])],
+          (dao) => [dao.revoke('voting', 'token-manager', 'MINT_ROLE')],
           ['token-manager', 'voting'],
         ),
       ],

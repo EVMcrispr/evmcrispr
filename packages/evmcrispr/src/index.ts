@@ -31,7 +31,6 @@ export type {
   ParsedApp,
   Params,
   Permission,
-  PermissionP,
   PermissionMap,
   Repo,
   Role,

@@ -126,17 +126,6 @@ export type Permission = [Entity, Entity, string];
  */
 export type PermissionMap = Map<RoleHash, Role>;
 
-/**
- * An array which follows the format `[<Grantee>, <App>, <Role>, <Manager>]`
- *
- * - **Grantee**: Entity that will be able to perform the permission.
- * - **App**: App entity that holds the allowed permission.
- * - **Role**: The permission's name.
- * - **Params**: Function that returns an array of encoded ACL parameters.
- * - **Manager**: Entity that will act as the permission manager.
- */
-export type PermissionP = [Entity, Entity, string, Params];
-
 // ---------------------- INTERFACES ----------------------
 
 /**

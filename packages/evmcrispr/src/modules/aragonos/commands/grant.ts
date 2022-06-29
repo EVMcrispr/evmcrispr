@@ -1,6 +1,6 @@
 import { constants } from 'ethers';
 
-import type { ActionFunction, Entity, Permission, PermissionP } from '../../..';
+import type { ActionFunction, Entity } from '../../..';
 import { ErrorException, ErrorInvalid, ErrorNotFound } from '../../../errors';
 import type { ConnectedAragonOS } from '../AragonOS';
 import { resolvePermission } from '../utils/acl';
@@ -13,11 +13,16 @@ import { resolvePermission } from '../utils/acl';
  */
 export function grant(
   module: ConnectedAragonOS,
-  permission: Permission | PermissionP,
-  defaultPermissionManager: Entity,
+  grantee: Entity,
+  app: Entity,
+  role: string,
+  defaultPermissionManager?: Entity,
+  opts?: {
+    params?: () => string[];
+    oracle?: string;
+  },
 ): ActionFunction {
   return async () => {
-    const [grantee, app, role, getParams = () => []] = permission;
     const [granteeAddress, appAddress, roleHash] = resolvePermission(
       module.evm,
       [grantee, app, role],
@@ -32,7 +37,11 @@ export function grant(
       );
     }
 
-    const params = getParams();
+    const params = opts?.params
+      ? opts.params()
+      : opts?.oracle
+      ? module.setOracle(opts.oracle)
+      : [];
     const manager = module.resolveEntity(defaultPermissionManager);
     const { permissions: appPermissions } = module.resolveApp(app);
     const { address: aclAddress, abiInterface: aclAbiInterface } =

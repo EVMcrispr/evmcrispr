@@ -1,5 +1,7 @@
 import type { Signer } from 'ethers';
 
+import minimist from 'minimist';
+
 import type { Action, EVMcl } from './types';
 
 import { normalizeActions } from './utils';
@@ -20,7 +22,15 @@ class EvmclParser {
    * @returns An array of parsed values ready for EVMcrispr
    */
   async args(args: string[]): Promise<any[]> {
-    return this.#recursiveArgParse(args.map(this.#array, this));
+    const { _ } = minimist(args, { string: '_' });
+    const _args = await this.#recursiveArgParse(_.map(this.#array, this));
+    return _args;
+  }
+
+  opts(args: string[]): { [arg: string]: any } {
+    const { _, ...opt } = minimist(args);
+    _; // Using here to avoid ts error.
+    return opt;
   }
 
   /**
@@ -131,18 +141,12 @@ export default function evmcl(
                 );
               }
               daoActions = [];
-              const [, _dao, pathstr, _context] =
-                args
-                  .join(' ')
-                  .match(
-                    /^([\w.-]+)((?: (?:[\w.]+(?:-[\w.]+)*(?::\d+)?))*)(?: --context (.+))? \($/,
-                  ) || [];
-              if (!_dao) {
+              const _args = minimist(args, { string: '_' })._;
+              if (_args[_args.length - 1] != '(') {
                 throw new Error('Malformed connect command.');
               }
-              dao = _dao;
-              path = pathstr.trim() ? pathstr.trim().split(' ') : [];
-              context = _context;
+              [dao, ...path] = _args.slice(0, -1);
+              ({ context } = parser.opts(args));
               return [];
             };
           }
@@ -201,8 +205,9 @@ export default function evmcl(
                 );
               }
               const [identifier, ...initParams] = await parser.args(args);
+              const opts = parser.opts(args);
               daoActions.push((aragon: ConnectedAragonOS) => {
-                return aragon.install(identifier, initParams)();
+                return aragon.install(identifier, initParams, opts)();
               });
               return [];
             };
@@ -230,10 +235,14 @@ export default function evmcl(
               }
               const [grantee, app, role, defaultPermissionManager] =
                 await parser.args(args);
+              const opts = parser.opts(args);
               daoActions.push((aragon: ConnectedAragonOS) => {
                 return aragon.grant(
-                  [grantee, app, role],
+                  grantee,
+                  app,
+                  role,
                   defaultPermissionManager,
+                  opts,
                 )();
               });
               return [];
@@ -253,7 +262,9 @@ export default function evmcl(
               );
               daoActions.push((aragon: ConnectedAragonOS) => {
                 return aragon.revoke(
-                  [grantee, app, role],
+                  grantee,
+                  app,
+                  role,
                   removePermissionManager || false,
                 )();
               });
