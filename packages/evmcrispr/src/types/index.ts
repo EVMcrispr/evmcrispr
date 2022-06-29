@@ -8,29 +8,30 @@ export * from './aragon';
 
 // ---------------------- TYPES ----------------------
 
+export type VarVal = string | VarVal[];
+export type LazyVarVal = VarVal | (() => Promise<VarVal>);
+
 export type ActionFunction = () => Promise<Action[]>;
 
-export type Helpers = {
-  [name: string]: (evm: EVMcrispr, ...rest: string[]) => any;
-};
+export type Helper = (...rest: LazyString[]) => () => Promise<string>;
 
 export type EVMcl = {
   encode: (
-    signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
+    signer: Signer | Promise<Signer>,
+    options?: ForwardOptions,
   ) => Promise<{
     actions: Action[];
     forward: () => Promise<providers.TransactionReceipt[]>;
   }>;
   forward: (
-    signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
+    signer: Signer | Promise<Signer>,
+    options?: ForwardOptions,
   ) => Promise<providers.TransactionReceipt[]>;
   dao: string;
   path: string[];
   evmcrispr: (
-    signer: Signer,
-    options?: EVMcrisprOptions & ForwardOptions,
+    signer: Signer | Promise<Signer>,
+    options?: ForwardOptions,
   ) => Promise<EVMcrispr>;
 };
 
@@ -125,17 +126,6 @@ export type Permission = [Entity, Entity, string];
  */
 export type PermissionMap = Map<RoleHash, Role>;
 
-/**
- * An array which follows the format `[<Grantee>, <App>, <Role>, <Manager>]`
- *
- * - **Grantee**: Entity that will be able to perform the permission.
- * - **App**: App entity that holds the allowed permission.
- * - **Role**: The permission's name.
- * - **Params**: Function that returns an array of encoded ACL parameters.
- * - **Manager**: Entity that will act as the permission manager.
- */
-export type PermissionP = [Entity, Entity, string, Params];
-
 // ---------------------- INTERFACES ----------------------
 
 /**
@@ -153,7 +143,7 @@ export interface Action {
   /**
    * The ether which needs to be sent along with the action (in wei).
    */
-  value?: number;
+  value?: string | number;
 }
 
 /**
@@ -190,32 +180,12 @@ export interface App {
   registryName: string;
 }
 
-/**
- * The EVMcrispr optional configuration object.
- */
-export interface EVMcrisprOptions {
-  /**
-   * An IPFS gateway url to fetch app data from.
-   */
-  ipfsGateway?: string;
-  /*
-   * An alternative ENS contract to resolve aragonid.eth and aragonpm.eth.
-   */
-  ensResolver?: string;
-  /**
-   * A custom subgraph url to connect to.
-   */
-  subgraphUrl?: string;
-
-  helpers?: Helpers;
+export interface EntityWithAbi {
+  address: Address;
+  abiInterface: utils.Interface;
 }
 
 export interface ForwardOptions {
-  /**
-   * The context information describing the forward evmscript.
-   * Needed for forwarders with context (AragonOS v5).
-   */
-  context?: string;
   gasPrice?: BigNumberish;
   gasLimit?: BigNumberish;
 }

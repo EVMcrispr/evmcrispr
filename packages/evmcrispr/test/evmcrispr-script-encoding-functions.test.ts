@@ -2,7 +2,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 
 import type { Action, ActionFunction } from '../src';
-import { EVMcrispr, ErrorInvalid, evmcl } from '../src';
+import { EVMcrispr, ErrorInvalid, evmcl, normalizeActions } from '../src';
 import {
   APP,
   COMPLETE_FORWARDER_PATH,
@@ -26,7 +26,7 @@ import {
   createTestPreTxAction,
   createTestScriptEncodedAction,
 } from './test-helpers/actions';
-import { expectThrowAsync, isValidIdentifier } from './test-helpers/expects';
+import { expectThrowAsync } from './test-helpers/expects';
 
 describe('EVMcrispr script-encoding functions', () => {
   let evmcrispr: EVMcrispr;
@@ -34,13 +34,10 @@ describe('EVMcrispr script-encoding functions', () => {
   let expectedActions: Action[];
   let actionFunctions: ActionFunction[];
 
-  before(async () => {
+  beforeEach(async () => {
     signer = await getSigner();
+    evmcrispr = await EVMcrispr.create(signer);
 
-    evmcrispr = await EVMcrispr.create(DAO.kernel, signer);
-  });
-
-  before(() => {
     const { acl, kernel } = DAO;
     const {
       appId,
@@ -101,48 +98,39 @@ describe('EVMcrispr script-encoding functions', () => {
 
     // Prepare EVMcrispr action functions
     actionFunctions = [
-      evmcrispr.install(`${appIdentifier}:new-app`, initializeParams),
-      evmcrispr.grantPermissions(
-        [...NEW_PERMISSIONS, grantPermission],
-        PERMISSION_MANAGER,
+      evmcrispr.aragon.connect(
+        DAO.kernel,
+        (dao) => [
+          dao.install(`${appIdentifier}:new-app`, initializeParams),
+          ...[...NEW_PERMISSIONS, grantPermission].map((p) =>
+            dao.grant(...p, PERMISSION_MANAGER),
+          ),
+          normalizeActions(
+            REVOKE_PERMISSIONS.map((p) => dao.revoke(...p, true)),
+          ),
+          dao.exec(appIdentifier, callSelector, callSignatureParams),
+        ],
+        COMPLETE_FORWARDER_PATH,
+        { context: CONTEXT },
       ),
-      evmcrispr.revokePermissions(REVOKE_PERMISSIONS, true),
-      evmcrispr.exec(appIdentifier, callSelector, callSignatureParams),
     ];
   });
 
   describe('encode()', () => {
-    it('should fail when passing an empty group of actions', async () => {
-      await expectThrowAsync(
-        () => evmcrispr.encode([], COMPLETE_FORWARDER_PATH),
-        { type: ErrorInvalid },
-      );
-    });
-
-    it('should fail when passing an empty set of forwarders', async () => {
-      await expectThrowAsync(() => evmcrispr.encode(actionFunctions, []), {
-        type: ErrorInvalid,
-      });
-    });
-
-    it(
-      'should fail when passing an invalid set of forwarders',
-      isValidIdentifier(
-        (badIdentifier) => () =>
-          evmcrispr.encode(actionFunctions, [badIdentifier]),
-      ),
-    );
-
     it('should fail when encoding a set of actions into an EVM script using a context forwarder and not receiving a context', async () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
-
       await expectThrowAsync(
         () =>
-          evmcrispr.encode(
-            [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
-            COMPLETE_FORWARDER_PATH,
-          ),
+          evmcrispr.encode([
+            evmcrispr.aragon.connect(
+              DAO.kernel,
+              (dao) => [
+                dao.exec(appIdentifier, callSelector, callSignatureParams),
+              ],
+              COMPLETE_FORWARDER_PATH,
+            ),
+          ]),
         { type: ErrorInvalid },
       );
     });
@@ -161,10 +149,6 @@ describe('EVMcrispr script-encoding functions', () => {
       ];
       const { actions: encodedScriptAction } = await evmcrispr.encode(
         actionFunctions,
-        COMPLETE_FORWARDER_PATH,
-        {
-          context: CONTEXT,
-        },
       );
 
       expect(encodedScriptAction, 'Transactions mismatch').eql(
@@ -175,16 +159,22 @@ describe('EVMcrispr script-encoding functions', () => {
     it('should encode an evmcl script', async () => {
       const { appIdentifier, callSignature, callSignatureParams } = APP;
       const callSelector = getSignatureSelector(callSignature);
-      const expectedEncodedScriptAction = await evmcrispr.encode(
-        [evmcrispr.exec(appIdentifier, callSelector, callSignatureParams)],
-        COMPLETE_FORWARDER_PATH,
-        { context: CONTEXT },
-      );
+      const expectedEncodedScriptAction = await evmcrispr.encode([
+        evmcrispr.aragon.connect(
+          DAO.kernel,
+          (dao) => [dao.exec(appIdentifier, callSelector, callSignatureParams)],
+          COMPLETE_FORWARDER_PATH,
+          { context: CONTEXT },
+        ),
+      ]);
       const encodedScriptAction = await evmcl`
           connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
         ' ',
-      )} --context ${CONTEXT}
-          exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(' ')}
+      )} --context "${CONTEXT}" (
+            exec ${appIdentifier} ${callSelector} ${callSignatureParams.join(
+        ' ',
+      )}
+          )
         `.encode(signer);
 
       expect(encodedScriptAction.actions, 'EVM script action mismatch').eql(

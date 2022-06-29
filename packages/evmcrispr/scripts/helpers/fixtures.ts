@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { subgraphUrlFromChainId } from '../../src/Connector';
+import { subgraphUrlFromChainId } from '../../src/modules/aragonos/utils/Connector';
 import { getSystemApp, parseRegistry } from '../../src/utils';
 
 export const basePath = (relativePath: string): string =>

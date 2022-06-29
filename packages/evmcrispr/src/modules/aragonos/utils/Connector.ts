@@ -1,9 +1,9 @@
 import fetch from 'isomorphic-fetch';
 
-import type { GraphQLBody } from './utils';
-import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './utils';
-import { ErrorException, ErrorNotFound } from './errors';
-import type { Address, ParsedApp, Repo } from './types';
+import type { GraphQLBody } from '../../../utils';
+import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from '../../../utils';
+import { ErrorException, ErrorNotFound } from '../../../errors';
+import type { Address, ParsedApp, Repo } from '../../../types';
 
 export function subgraphUrlFromChainId(chainId: number): string | null {
   switch (chainId) {
@@ -38,7 +38,7 @@ export default class Connector {
    * @param options The optional configuration object.
    */
   constructor(chainId: number, options: { subgraphUrl?: string } = {}) {
-    const subgraphUrl = options.subgraphUrl ?? subgraphUrlFromChainId(chainId);
+    const subgraphUrl = options.subgraphUrl || subgraphUrlFromChainId(chainId);
 
     if (!subgraphUrl) {
       throw new ErrorException(

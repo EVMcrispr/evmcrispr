@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-import type { EVMcrispr } from '..';
+import type { EVMcrispr } from '../../..';
 
 const ENV_TOKENLIST = '$token.tokenlist';
 const DEFAULT_TOKENLIST = 'https://tokens.uniswap.org/';

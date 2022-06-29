@@ -127,5 +127,5 @@ export const createTestScriptEncodedAction = (
     }
   }
 
-  return { ...forwarderActions[0], value: 0 };
+  return forwarderActions[0];
 };

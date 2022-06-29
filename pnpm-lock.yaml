@@ -81,16 +81,20 @@ importers:
   packages/evmcrispr:
     specifiers:
       '@types/isomorphic-fetch': ^0.0.36
+      '@types/minimist': ^1.2.2
       is-ipfs: ^6.0.2
       isomorphic-fetch: ^3.0.0
+      minimist: ^1.2.6
       msw: ^0.40.0
       node-fetch: ^3.2.4
       nyc: ^15.1.0
       ora: ^5.4.0
     dependencies:
       isomorphic-fetch: 3.0.0
+      minimist: 1.2.6
     devDependencies:
       '@types/isomorphic-fetch': 0.0.36
+      '@types/minimist': 1.2.2
       is-ipfs: 6.0.2_node-fetch@3.2.4
       msw: 0.40.0
       node-fetch: 3.2.4
@@ -99,7 +103,7 @@ importers:
 
   packages/evmcrispr-terminal:
     specifiers:
-      '@1hive/evmcrispr': 0.4.0
+      '@1hive/evmcrispr': 0.5.0
       '@chakra-ui/react': ^1.8.8
       '@emotion/react': ^11
       '@emotion/styled': ^11
@@ -10883,7 +10887,6 @@ packages:
 
   /minimist/1.2.6:
     resolution: {integrity: sha512-Jsjnk4bw3YJqYzbdyBiNsPWHPfO++UGG749Cxs6peCu5Xg4nrena6OVxOYxrQTqww0Jmwt+Ref8rggumkTLz9Q==}
-    dev: true
 
   /minipass/2.9.0:
     resolution: {integrity: sha512-wxfUjg9WebH+CUDX/CdbRlh5SmfZiy/hpkxaRI16Y9W56Pa75sWgd/rvFilSgrauD9NyFymP/+JFV3KwzIsJeg==}
@@ -12620,7 +12623,7 @@ packages:
     dev: true
 
   /require-directory/2.1.1:
-    resolution: {integrity: sha1-jGStX9MNqxyXbiNE/+f3kqam30I=}
+    resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
 
   /require-from-string/1.2.1:

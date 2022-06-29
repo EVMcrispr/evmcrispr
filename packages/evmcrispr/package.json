@@ -1,7 +1,7 @@
 {
   "name": "@1hive/evmcrispr",
-  "version": "0.4.0",
-  "codename": "vivid memories",
+  "version": "0.5.0",
+  "codename": "unplugged expressions",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",
@@ -10,6 +10,7 @@
   "sideEffects": false,
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.36",
+    "@types/minimist": "^1.2.2",
     "is-ipfs": "^6.0.2",
     "msw": "^0.40.0",
     "node-fetch": "^3.2.4",
@@ -17,7 +18,8 @@
     "ora": "^5.4.0"
   },
   "dependencies": {
-    "isomorphic-fetch": "^3.0.0"
+    "isomorphic-fetch": "^3.0.0",
+    "minimist": "^1.2.6"
   },
   "peerDependencies": {
     "ethers": "^5.6.4"

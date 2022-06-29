@@ -1,41 +1,23 @@
 import type { BigNumber } from 'ethers';
 import { utils } from 'ethers';
 
-import { ErrorInvalid, ErrorNotFound } from '../errors';
+import { ErrorNotFound } from '../errors';
 import type EVMcrispr from '../EVMcrispr';
-import type { Address, App, Entity, Permission } from '../types';
+import type { Address, Entity } from '../types';
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from './acl';
 import { resolveIdentifier } from './identifiers';
-import { normalizeRole } from './normalizers';
 import { timeUnits } from './parsers';
 import { toDecimals } from './web3';
 
-export default function resolver(evmcrispr: EVMcrispr) {
-  function resolveApp(entity: Entity): App {
-    if (utils.isAddress(entity)) {
-      const app = [...evmcrispr.appCache.entries()].find(
-        ([, app]) => app.address === entity,
-      );
-
-      if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, {
-          name: 'ErrorAppNotFound',
-        });
-      }
-
-      return app[1];
-    }
-    const resolvedIdentifier = resolveIdentifier(entity);
-
-    if (!evmcrispr.appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
-        name: 'ErrorAppNotFound',
-      });
-    }
-
-    return evmcrispr.appCache.get(resolvedIdentifier)!;
-  }
-
+export default function resolver(evmcrispr: EVMcrispr): {
+  resolveEntity: (entity: Entity) => Address;
+  resolveNumber: (number: string | number) => BigNumber | number;
+  resolveBoolean: (boolean: string | boolean) => boolean;
+  resolveBytes: (bytes: any, max: number) => string;
+  resolveParam: (param: any, type: string) => any;
+  resolveParams: (params: any[], types: string[]) => any[];
+  resolvePromises: (params: any[], types: string[]) => Promise<any[]>;
+} {
   function resolveEntity(entity: Entity): Address {
     switch (entity) {
       case 'ANY_ENTITY':
@@ -47,11 +29,16 @@ export default function resolver(evmcrispr: EVMcrispr) {
         return NO_ENTITY;
       case 'BURN_ENTITY':
         return BURN_ENTITY;
-      default:
-        if (evmcrispr.addressBook.has(entity)) {
-          return evmcrispr.addressBook.get(entity)!;
+      default: {
+        if (utils.isAddress(entity)) {
+          return entity;
         }
-        return utils.isAddress(entity) ? entity : resolveApp(entity).address;
+        const id = resolveIdentifier(entity);
+        if (evmcrispr.addressBook.has(id)) {
+          return evmcrispr.addressBook.get(id)!;
+        }
+        throw new ErrorNotFound(`Entity ${entity} not found.`);
+      }
     }
   }
 
@@ -145,33 +132,7 @@ export default function resolver(evmcrispr: EVMcrispr) {
     return resolveParams(_params, types);
   }
 
-  function resolvePermission(
-    permission: Permission,
-  ): [Address, Address, string] {
-    if (!permission[0]) {
-      throw new ErrorInvalid(`Permission not well formed, grantee missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[1]) {
-      throw new ErrorInvalid(`Permission not well formed, app missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    if (!permission[2]) {
-      throw new ErrorInvalid(`Permission not well formed, role missing`, {
-        name: 'ErrorInvalidIdentifier',
-      });
-    }
-    return permission.map((entity, index) =>
-      index < permission.length - 1
-        ? resolveEntity(entity)
-        : normalizeRole(entity),
-    ) as [Address, Address, string];
-  }
-
   return {
-    resolveApp,
     resolveEntity,
     resolveNumber,
     resolveBoolean,
@@ -179,6 +140,5 @@ export default function resolver(evmcrispr: EVMcrispr) {
     resolveParam,
     resolveParams,
     resolvePromises,
-    resolvePermission,
   };
 }

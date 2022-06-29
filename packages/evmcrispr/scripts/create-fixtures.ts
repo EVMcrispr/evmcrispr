@@ -2,8 +2,7 @@ import ora from 'ora';
 
 import fs from 'fs';
 import {
-  IPFS_GATEWAY,
-  buildIpfsTemplate,
+  // buildIpfsTemplate,
   fetchAppArtifact,
   parseContentUri,
 } from '../src/utils';
@@ -22,7 +21,7 @@ const REGISTRY_NAME = 'aragonpm.eth';
 
 let spinner = ora();
 
-const resolver = new IPFSResolver(buildIpfsTemplate(IPFS_GATEWAY));
+const resolver = new IPFSResolver();
 
 const createDAOAppsFixture = async () => {
   spinner = spinner.start('Create organization apps fixture');
