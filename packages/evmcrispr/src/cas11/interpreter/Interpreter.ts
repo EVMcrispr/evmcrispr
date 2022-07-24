@@ -1,8 +1,8 @@
 import { ErrorNotFound } from '../../errors';
-import type { Helpers } from '../../types';
 import { timeUnits, toDecimals } from '../../utils';
 import type {
   AST,
+  AsExpressionNode,
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
@@ -13,10 +13,11 @@ import type {
   VariableIdentiferNode,
 } from '../types';
 import { NodeType } from '../types';
-import defaultHelpers from '../../helpers';
+// import defaultHelpers from '../../helpers';
 import type { Module } from '../modules/Module';
-import { Core } from '../modules/Core';
+import { Std } from '../modules/std/Std';
 import { BindingsManager } from './BindingsManager';
+import type { Action } from '../..';
 
 const {
   AddressLiteral,
@@ -24,6 +25,8 @@ const {
   BytesLiteral,
   NumberLiteral,
   StringLiteral,
+
+  AsExpression,
 
   BlockExpression,
   CommandExpression,
@@ -34,32 +37,40 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-export type NodeResolver = (
-  ...args: any[]
-) => Promise<any> | Promise<void> | any;
+export type NodeResolver = (...args: any[]) => Promise<any> | Promise<void>;
 
 export class Interpreter {
   readonly ast: AST;
-  #core: Core;
+  #std: Std;
   #modules: Module[];
-  #helpers: Helpers;
 
   #bindingsManager: BindingsManager;
 
   constructor(ast: AST) {
     this.ast = ast;
     this.#modules = [];
-    this.#helpers = { ...defaultHelpers };
 
     this.#bindingsManager = new BindingsManager();
 
-    this.#core = new Core(this.#bindingsManager, this.#modules);
+    this.#std = new Std(this.#bindingsManager, this.#modules);
+  }
+
+  get std(): Std {
+    return this.#std;
+  }
+
+  getBinding(name: string, isUserVariable = false): any {
+    return this.#bindingsManager.getBinding(name, isUserVariable);
   }
 
   async interpret(): Promise<any> {
-    const nodeResolvers = this.interpretNodes(this.ast.body);
+    const nodeResolvers = this.#interpretNodes(this.ast.body);
+    const results: any = [];
 
-    const results = await Promise.all(nodeResolvers.map((r) => r()));
+    for (const nodeResolver of nodeResolvers) {
+      const resolvedNode = await nodeResolver();
+      results.push(resolvedNode);
+    }
 
     return results;
   }
@@ -73,6 +84,8 @@ export class Interpreter {
       case NumberLiteral:
         return this.#interpretLiteral(n as LiteralExpressionNode);
 
+      case AsExpression:
+        return this.#intrepretAsExpression(n as AsExpressionNode);
       case BlockExpression:
         return this.#interpretBlockExpression(n as BlockExpressionNode);
       case CallExpression:
@@ -84,14 +97,14 @@ export class Interpreter {
       case Identifier:
         return this.#interpretIdentifier(n as IdentifierNode);
       case VariableIdentifier:
-        return this.#interpretVariable(n as VariableIdentiferNode);
+        return this.#interpretVariableIdentifier(n as VariableIdentiferNode);
 
       default:
         throw new Error(`Unknown ${n.type} node found`);
     }
   }
 
-  interpretNodes(nodes: Node[]): NodeResolver[] {
+  #interpretNodes(nodes: Node[]): NodeResolver[] {
     const nodeResolvers: NodeResolver[] = [];
     for (const n of nodes) {
       nodeResolvers.push(this.#interpretNode(n));
@@ -100,13 +113,21 @@ export class Interpreter {
     return nodeResolvers;
   }
 
+  #intrepretAsExpression(n: AsExpressionNode): NodeResolver {
+    return async (...args) => {
+      const left = await this.#interpretNode(n.left)(args);
+      const right = await this.#interpretNode(n.right)(args);
+
+      return [left, right];
+    };
+  }
   #interpretBlockExpression(n: BlockExpressionNode): NodeResolver {
     return async (fn: () => Promise<void>) => {
       this.#bindingsManager.enterScope();
 
       await fn();
 
-      const res = await this.interpretNodes(n.body);
+      const res = this.#interpretNodes(n.body);
 
       this.#bindingsManager.exitScope();
 
@@ -126,7 +147,7 @@ export class Interpreter {
   }
 
   #interpretCommand(c: CommandExpressionNode): NodeResolver {
-    return () => {
+    return async () => {
       const { module: moduleName, value: commandName } = c.name;
 
       if (moduleName) {
@@ -144,8 +165,8 @@ export class Interpreter {
       }
 
       // Run core commands first.
-      if (this.#core.hasCommand(commandName)) {
-        return this.#runModuleCommand(c, this.#core);
+      if (this.#std.hasCommand(commandName)) {
+        return this.#runModuleCommand(c, this.#std);
       }
 
       const modules = this.#modules.filter((m) => m.hasCommand(commandName));
@@ -162,27 +183,28 @@ export class Interpreter {
     };
   }
 
-  async #runModuleCommand(
+  #runModuleCommand(
     c: CommandExpressionNode,
     module: Module,
-  ): Promise<any> {
-    const argNodeResolvers = this.interpretNodes(c.args);
+  ): Promise<Action | void> {
+    const argNodeResolvers = this.#interpretNodes(c.args);
 
-    module.interpretCommand(c.name.value, argNodeResolvers);
+    return module.interpretCommand(c.name.value, argNodeResolvers);
   }
 
   #interpretHelperFunction(n: HelperFunctionNode): NodeResolver {
     return async () => {
-      const args = await Promise.all(
-        n.args.map((arg) => this.#interpretNode(arg)),
-      );
-      console.log(args);
+      console.log(n);
+      // const args = await Promise.all(
+      //   n.args.map((arg) => this.#interpretNode(arg)),
+      // );
+      // console.log(args);
 
-      const helperFn = this.#helpers[n.name];
+      // const helperFn = this.#helpers[n.name];
 
-      if (!helperFn) {
-        throw new ErrorNotFound(`Helper @${n.name} not found`);
-      }
+      // if (!helperFn) {
+      //   throw new ErrorNotFound(`Helper @${n.name} not found`);
+      // }
 
       // TODO: call helper function
 
@@ -191,7 +213,7 @@ export class Interpreter {
   }
 
   #interpretLiteral(n: LiteralExpressionNode): NodeResolver {
-    return () => {
+    return async () => {
       switch (n.type) {
         case NodeType.AddressLiteral:
         case NodeType.BoolLiteral:
@@ -202,21 +224,41 @@ export class Interpreter {
           return toDecimals(n.value, n.power ?? 0).mul(
             timeUnits[n.timeUnit ?? 's'],
           );
+        default:
+          throw new Error('Unknown LiteralExpressionNode');
       }
     };
   }
 
   #interpretIdentifier(n: IdentifierNode): NodeResolver {
-    return () => {
-      console.log(n);
-      // TODO: implement logic
+    return async (fallbackToIdentifierName = false) => {
+      if (fallbackToIdentifierName) {
+        return n.value;
+      }
+
+      const binding = this.getBinding(n.value);
+
+      if (binding) {
+        return binding;
+      }
+
+      throw new Error(`${n.value} is not defined`);
     };
   }
 
-  #interpretVariable(n: VariableIdentiferNode): NodeResolver {
-    return () => {
-      console.log(n);
-      // TODO: implement logic
+  #interpretVariableIdentifier(n: VariableIdentiferNode): NodeResolver {
+    return async (fallbackToIdentiferName = false) => {
+      if (fallbackToIdentiferName) {
+        return n.value;
+      }
+
+      const binding = this.getBinding(n.value, true);
+
+      if (binding) {
+        return binding;
+      }
+
+      throw new Error(`${n.value} is not defined`);
     };
   }
 }

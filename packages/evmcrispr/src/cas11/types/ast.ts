@@ -126,7 +126,7 @@ export interface AsExpressionNode extends Node {
 }
 
 export type AST = {
-  type: string;
+  type: ASTType;
 
   body: Node[];
 };

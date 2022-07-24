@@ -1,19 +1,17 @@
-import Connector from '../../Connector';
-
 import type { NodeResolver } from '../interpreter/Interpreter';
 import type { BindingsManager } from '../interpreter/BindingsManager';
 
 import { Module } from './Module';
 
 export class AragonOS extends Module {
-  #connector: Connector;
-
   constructor(bindingsManager: BindingsManager, alias?: string) {
     super('aragonos', bindingsManager, alias);
     // TODO: set up connector
-    this.#connector = new Connector(4);
   }
 
+  hasCommand(commandName: string): boolean {
+    return commandName === 'connect';
+  }
   async interpretCommand(
     name: string,
     argNodeResolvers: NodeResolver[],
@@ -44,7 +42,6 @@ export class AragonOS extends Module {
   #setDAOContext(daoAddress: string): () => any {
     return () => {
       console.log(daoAddress);
-      console.log(this.#connector);
       this.#setIdentifiers();
       // TODO: fetch DAO data from connector
     };
