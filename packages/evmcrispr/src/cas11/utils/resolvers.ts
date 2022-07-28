@@ -1,11 +1,4 @@
-import type { NodeResolver } from '../interpreter/Interpreter';
+import type { LazyNode } from '../interpreter/Interpreter';
 
-export const runNodeResolvers = async (
-  nodeResolvers: NodeResolver[],
-  args: any[] = [],
-): Promise<any[]> =>
-  (
-    await Promise.all(
-      nodeResolvers.map((nodeResolver) => nodeResolver(...args)),
-    )
-  ).flat();
+export const resolveLazyNodes = async (lazyNodes: LazyNode[]): Promise<any[]> =>
+  (await Promise.all(lazyNodes.map((lazyNode) => lazyNode.execute()))).flat();

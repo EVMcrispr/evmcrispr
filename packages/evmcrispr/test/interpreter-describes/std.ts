@@ -1,25 +1,24 @@
 import { expect } from 'chai';
+import type { Signer } from 'ethers';
+import { ethers } from 'hardhat';
 
 import type { Action } from '../../src';
 
-import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
-import { AragonOS } from '../../src/cas11/modules/AragonOS';
-import { scriptParser } from '../../src/cas11/parsers/script';
-import type { AST } from '../../src/cas11/types';
+import { AragonOS } from '../../src/cas11/modules/aragonos/AragonOS';
 import { encodeActCall, toDecimals } from '../../src/utils';
-import { runParser } from '../test-helpers/cas11';
-
-const createInterpreter = (script: string): Interpreter => {
-  const ast = runParser(scriptParser, script) as AST;
-
-  return new Interpreter(ast);
-};
+import { createInterpreter } from '../test-helpers/cas11';
 
 export const std = (): Mocha.Suite =>
   describe('Std module', () => {
+    let signer: Signer;
+
+    before(async () => {
+      [signer] = await ethers.getSigners();
+    });
+
     describe('when intepreting load command', () => {
       it('should load a module correctly', async () => {
-        const interpreter = createInterpreter('load aragonos');
+        const interpreter = createInterpreter('load aragonos', signer);
         await interpreter.interpret();
 
         const modules = interpreter.std.modules;
@@ -30,7 +29,7 @@ export const std = (): Mocha.Suite =>
       });
 
       it('should load a module and set an alias for it correctly', async () => {
-        const interpreter = createInterpreter('load aragonos as ar');
+        const interpreter = createInterpreter('load aragonos as ar', signer);
 
         await interpreter.interpret();
 
@@ -41,7 +40,7 @@ export const std = (): Mocha.Suite =>
 
       it('should fail when trying to load a non-existent module', async () => {
         try {
-          await createInterpreter('load nonExistent').interpret();
+          await createInterpreter('load nonExistent', signer).interpret();
         } catch (err) {
           expect((err as Error).message).to.be.equals(
             'Module nonExistent not found',
@@ -51,10 +50,13 @@ export const std = (): Mocha.Suite =>
 
       it('should fail when trying to load a previously loaded module', async () => {
         try {
-          await createInterpreter(`
+          await createInterpreter(
+            `
               load aragonos
               load aragonos
-            `).interpret();
+            `,
+            signer,
+          ).interpret();
         } catch (err) {
           expect((err as Error).message).to.be.equals(
             'Module aragonos already loaded',
@@ -69,7 +71,7 @@ export const std = (): Mocha.Suite =>
 
     describe('when interpreting set command', () => {
       it('should set an user variable correctly', async () => {
-        const interpreter = createInterpreter('set $var 1e18');
+        const interpreter = createInterpreter('set $var 1e18', signer);
 
         await interpreter.interpret();
 
@@ -97,6 +99,7 @@ export const std = (): Mocha.Suite =>
 
         const interpreter = createInterpreter(
           `exec ${target} "${fnSig}" ${params.join(' ')}`,
+          signer,
         );
 
         const result = await interpreter.interpret();

@@ -1,3 +1,5 @@
+import type { Signer } from 'ethers';
+
 import { ErrorNotFound } from '../../errors';
 import { timeUnits, toDecimals } from '../../utils';
 import type {
@@ -6,10 +8,11 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
+  CommandFunction,
   HelperFunctionNode,
-  IdentifierNode,
   LiteralExpressionNode,
   Node,
+  ProbableIdentifierNode,
   VariableIdentiferNode,
 } from '../types';
 import { NodeType } from '../types';
@@ -17,7 +20,6 @@ import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager } from './BindingsManager';
-import type { Action } from '../..';
 
 const {
   AddressLiteral,
@@ -33,11 +35,14 @@ const {
   CallExpression,
   HelperFunctionExpression,
 
-  Identifier,
+  ProbableIdentifier,
   VariableIdentifier,
 } = NodeType;
 
-export type NodeResolver = (...args: any[]) => Promise<any> | Promise<void>;
+export type LazyNode = {
+  type: NodeType;
+  execute: (...args: any[]) => Promise<any> | Promise<void>;
+};
 
 export class Interpreter {
   readonly ast: AST;
@@ -46,17 +51,27 @@ export class Interpreter {
 
   #bindingsManager: BindingsManager;
 
-  constructor(ast: AST) {
+  #signer: Signer;
+
+  constructor(ast: AST, signer: Signer) {
     this.ast = ast;
     this.#modules = [];
 
     this.#bindingsManager = new BindingsManager();
-
     this.#std = new Std(this.#bindingsManager, this.#modules);
+    this.#signer = signer;
   }
 
   get std(): Std {
     return this.#std;
+  }
+
+  get bindingsManager(): BindingsManager {
+    return this.#bindingsManager;
+  }
+
+  set signer(signer: Signer) {
+    this.#signer = signer;
   }
 
   getBinding(name: string, isUserVariable = false): any {
@@ -64,18 +79,22 @@ export class Interpreter {
   }
 
   async interpret(): Promise<any> {
-    const nodeResolvers = this.#interpretNodes(this.ast.body);
+    const lazyNodes = this.#interpretNodes(this.ast.body);
     const results: any = [];
 
-    for (const nodeResolver of nodeResolvers) {
-      const resolvedNode = await nodeResolver();
-      results.push(resolvedNode);
+    for (const lazyNode of lazyNodes) {
+      const result = await lazyNode.execute();
+      if (Array.isArray(result)) {
+        results.push(...result);
+      } else {
+        results.push(result);
+      }
     }
 
     return results;
   }
 
-  #interpretNode(n: Node): NodeResolver {
+  #interpretNode(n: Node): LazyNode {
     switch (n.type) {
       case AddressLiteral:
       case BoolLiteral:
@@ -94,8 +113,8 @@ export class Interpreter {
         return this.#interpretCommand(n as CommandExpressionNode);
       case HelperFunctionExpression:
         return this.#interpretHelperFunction(n as HelperFunctionNode);
-      case Identifier:
-        return this.#interpretIdentifier(n as IdentifierNode);
+      case ProbableIdentifier:
+        return this.#interpretProbableIdentifier(n as ProbableIdentifierNode);
       case VariableIdentifier:
         return this.#interpretVariableIdentifier(n as VariableIdentiferNode);
 
@@ -104,8 +123,8 @@ export class Interpreter {
     }
   }
 
-  #interpretNodes(nodes: Node[]): NodeResolver[] {
-    const nodeResolvers: NodeResolver[] = [];
+  #interpretNodes(nodes: Node[]): LazyNode[] {
+    const nodeResolvers: LazyNode[] = [];
     for (const n of nodes) {
       nodeResolvers.push(this.#interpretNode(n));
     }
@@ -113,152 +132,175 @@ export class Interpreter {
     return nodeResolvers;
   }
 
-  #intrepretAsExpression(n: AsExpressionNode): NodeResolver {
-    return async (...args) => {
-      const left = await this.#interpretNode(n.left)(args);
-      const right = await this.#interpretNode(n.right)(args);
+  #intrepretAsExpression(n: AsExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async (...args) => {
+        const left = await this.#interpretNode(n.left).execute(args);
+        const right = await this.#interpretNode(n.right).execute(args);
 
-      return [left, right];
+        return [left, right];
+      },
     };
   }
-  #interpretBlockExpression(n: BlockExpressionNode): NodeResolver {
-    return async (fn: () => Promise<void>) => {
-      this.#bindingsManager.enterScope();
+  #interpretBlockExpression(n: BlockExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async (fn: () => Promise<void>) => {
+        this.#bindingsManager.enterScope();
 
-      await fn();
+        await fn();
 
-      const res = this.#interpretNodes(n.body);
+        const res = this.#interpretNodes(n.body);
 
-      this.#bindingsManager.exitScope();
+        this.#bindingsManager.exitScope();
 
-      return res;
-    };
-  }
-
-  #interpretCallFunction(n: CallExpressionNode): NodeResolver {
-    return async () => {
-      const args = await Promise.all(
-        n.args.map((arg) => this.#interpretNode(arg)),
-      );
-      console.log(args);
-
-      // TODO: implement call logic
+        return res;
+      },
     };
   }
 
-  #interpretCommand(c: CommandExpressionNode): NodeResolver {
-    return async () => {
-      const { module: moduleName, value: commandName } = c.name;
+  #interpretCallFunction(n: CallExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async () => {
+        const args = await Promise.all(
+          n.args.map((arg) => this.#interpretNode(arg)),
+        );
+        console.log(args);
 
-      if (moduleName) {
-        const module = this.#modules.find((m) => m.name === moduleName);
+        // TODO: implement call logic
+      },
+    };
+  }
 
-        if (!module) {
-          throw new ErrorNotFound(`Module ${moduleName} not found`);
-        } else if (!module.hasCommand(commandName)) {
-          throw new ErrorNotFound(
-            `Command ${commandName} not found for module ${moduleName}`,
+  #interpretCommand(c: CommandExpressionNode): LazyNode {
+    return {
+      type: c.type,
+      execute: async () => {
+        const { module: moduleName, value: commandName } = c.name;
+
+        if (moduleName) {
+          const module = this.#modules.find((m) =>
+            m.alias ? m.alias === moduleName : m.name === moduleName,
+          );
+
+          if (!module) {
+            throw new ErrorNotFound(`Module ${moduleName} not found`);
+          } else if (!module.hasCommand(commandName)) {
+            throw new ErrorNotFound(
+              `Command ${commandName} not found for module ${moduleName}`,
+            );
+          }
+
+          return this.#runModuleCommand(c, module);
+        }
+
+        // Run core commands first.
+        if (this.#std.hasCommand(commandName)) {
+          return this.#runModuleCommand(c, this.#std);
+        }
+
+        const modules = this.#modules.filter((m) => m.hasCommand(commandName));
+
+        if (modules.length > 1) {
+          throw new Error(
+            `Command ${commandName} found for the following modules: ${modules
+              .map((m) => m.name)
+              .join(', ')}`,
           );
         }
 
-        return this.#runModuleCommand(c, module);
-      }
-
-      // Run core commands first.
-      if (this.#std.hasCommand(commandName)) {
-        return this.#runModuleCommand(c, this.#std);
-      }
-
-      const modules = this.#modules.filter((m) => m.hasCommand(commandName));
-
-      if (modules.length > 1) {
-        throw new Error(
-          `Command ${commandName} found for the following modules: ${modules
-            .map((m) => m.name)
-            .join(', ')}`,
-        );
-      }
-
-      return this.#runModuleCommand(c, modules[0]);
+        return this.#runModuleCommand(c, modules[0]);
+      },
     };
   }
 
-  #runModuleCommand(
+  async #runModuleCommand(
     c: CommandExpressionNode,
     module: Module,
-  ): Promise<Action | void> {
-    const argNodeResolvers = this.#interpretNodes(c.args);
+  ): ReturnType<CommandFunction<Module>> {
+    const lazyNodes = this.#interpretNodes(c.args);
 
-    return module.interpretCommand(c.name.value, argNodeResolvers);
+    return module.interpretCommand(c.name.value, lazyNodes, this.#signer);
   }
 
-  #interpretHelperFunction(n: HelperFunctionNode): NodeResolver {
-    return async () => {
-      console.log(n);
-      // const args = await Promise.all(
-      //   n.args.map((arg) => this.#interpretNode(arg)),
-      // );
-      // console.log(args);
+  #interpretHelperFunction(n: HelperFunctionNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async () => {
+        console.log(n);
+        // const args = await Promise.all(
+        //   n.args.map((arg) => this.#interpretNode(arg)),
+        // );
+        // console.log(args);
 
-      // const helperFn = this.#helpers[n.name];
+        // const helperFn = this.#helpers[n.name];
 
-      // if (!helperFn) {
-      //   throw new ErrorNotFound(`Helper @${n.name} not found`);
-      // }
+        // if (!helperFn) {
+        //   throw new ErrorNotFound(`Helper @${n.name} not found`);
+        // }
 
-      // TODO: call helper function
+        // TODO: call helper function
 
-      return;
+        return;
+      },
     };
   }
 
-  #interpretLiteral(n: LiteralExpressionNode): NodeResolver {
-    return async () => {
-      switch (n.type) {
-        case NodeType.AddressLiteral:
-        case NodeType.BoolLiteral:
-        case NodeType.BytesLiteral:
-        case NodeType.StringLiteral:
+  #interpretLiteral(n: LiteralExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async () => {
+        switch (n.type) {
+          case NodeType.AddressLiteral:
+          case NodeType.BoolLiteral:
+          case NodeType.BytesLiteral:
+          case NodeType.StringLiteral:
+            return n.value;
+          case NodeType.NumberLiteral:
+            return toDecimals(n.value, n.power ?? 0).mul(
+              timeUnits[n.timeUnit ?? 's'],
+            );
+          default:
+            throw new Error('Unknown LiteralExpressionNode');
+        }
+      },
+    };
+  }
+
+  #interpretProbableIdentifier(n: ProbableIdentifierNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async (treatAsIdentifier = true) => {
+        if (treatAsIdentifier) {
+          const binding = this.getBinding(n.value);
+          if (binding) {
+            return binding;
+          }
+        }
+
+        return n.value;
+      },
+    };
+  }
+
+  #interpretVariableIdentifier(n: VariableIdentiferNode): LazyNode {
+    return {
+      type: n.type,
+      execute: async (fallbackToIdentiferName = false) => {
+        if (fallbackToIdentiferName) {
           return n.value;
-        case NodeType.NumberLiteral:
-          return toDecimals(n.value, n.power ?? 0).mul(
-            timeUnits[n.timeUnit ?? 's'],
-          );
-        default:
-          throw new Error('Unknown LiteralExpressionNode');
-      }
-    };
-  }
+        }
 
-  #interpretIdentifier(n: IdentifierNode): NodeResolver {
-    return async (fallbackToIdentifierName = false) => {
-      if (fallbackToIdentifierName) {
-        return n.value;
-      }
+        const binding = this.getBinding(n.value, true);
 
-      const binding = this.getBinding(n.value);
+        if (binding) {
+          return binding;
+        }
 
-      if (binding) {
-        return binding;
-      }
-
-      throw new Error(`${n.value} is not defined`);
-    };
-  }
-
-  #interpretVariableIdentifier(n: VariableIdentiferNode): NodeResolver {
-    return async (fallbackToIdentiferName = false) => {
-      if (fallbackToIdentiferName) {
-        return n.value;
-      }
-
-      const binding = this.getBinding(n.value, true);
-
-      if (binding) {
-        return binding;
-      }
-
-      throw new Error(`${n.value} is not defined`);
+        throw new Error(`${n.value} is not defined`);
+      },
     };
   }
 }

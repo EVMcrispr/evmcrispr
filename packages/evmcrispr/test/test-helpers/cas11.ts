@@ -1,8 +1,10 @@
 import type { Parser } from 'arcsecond';
 import { expect } from 'chai';
+import type { Signer } from 'ethers';
 
 import { inspect } from 'util';
 import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
+import { scriptParser } from '../../src/cas11/parsers/script';
 import type { AST, Node } from '../../src/cas11/types';
 import { ASTType } from '../../src/cas11/types';
 
@@ -32,11 +34,12 @@ export const runCases = (
 ): void =>
   (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).forEach(
     ([value, expected, errorMsg]) =>
-      expect(runParser(parser, value), errorMsg).to.deep.equal(expected),
+      expect(runParser(parser, value), errorMsg).eql(expected),
   );
 
 export const runInterpreterCases = async (
   caseOrCases: InterpreterCase | InterpreterCase[],
+  signer: Signer,
 ): Promise<void[]> =>
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
@@ -45,9 +48,18 @@ export const runInterpreterCases = async (
           type: ASTType.Program,
           body: [node],
         };
-        const [res] = await new Interpreter(ast).interpret();
+        const [res] = await new Interpreter(ast, signer).interpret();
 
         expect(res, errorMsg).to.equal(expected);
       },
     ),
   );
+
+export const createInterpreter = (
+  script: string,
+  signer: Signer,
+): Interpreter => {
+  const ast = runParser(scriptParser, script) as AST;
+
+  return new Interpreter(ast, signer);
+};

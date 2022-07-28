@@ -1,27 +1,43 @@
-import type { NodeResolver } from '../interpreter/Interpreter';
+import type { Signer } from 'ethers';
+
+import type { LazyNode } from '../interpreter/Interpreter';
 import type { BindingsManager } from '../interpreter/BindingsManager';
-import type { Action } from '../..';
+import type { CommandFunction } from '../types';
 
 export abstract class Module {
   name: string;
   alias?: string;
 
-  protected bindingsManager: BindingsManager;
+  #bindingsManager: BindingsManager;
 
   constructor(name: string, bindingsManager: BindingsManager, alias?: string) {
     this.name = name;
     this.alias = alias;
-    this.bindingsManager = bindingsManager;
+    this.#bindingsManager = bindingsManager;
+  }
+
+  get bindingsManager(): BindingsManager {
+    return this.#bindingsManager;
   }
 
   abstract hasCommand(commandName: string): boolean;
 
   abstract interpretCommand(
     name: string,
-    argNodeResolvers: NodeResolver[],
-  ): Promise<Action | void>;
+    lazyNodes: LazyNode[],
+    signer?: Signer,
+  ): ReturnType<CommandFunction<Module>>;
 
-  protected panic(msg: string): void {
+  getModuleVariable(name: string): any {
+    return this.bindingsManager.getBinding(`$${this.name}.${name}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  setModuleVariable(name: string, value: any): void {
+    this.bindingsManager.setBinding(`$${this.name}.${name}`, value);
+  }
+
+  panic(msg: string): void {
     throw new Error(msg);
   }
 }

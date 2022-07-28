@@ -1,3 +1,6 @@
+import type { Signer } from 'ethers';
+import { ethers } from 'hardhat';
+
 import type { NumericLiteralNode } from '../../src/cas11/types';
 import { NodeType } from '../../src/cas11/types';
 import { timeUnits, toDecimals } from '../../src/utils';
@@ -6,6 +9,11 @@ import { runInterpreterCases } from '../test-helpers/cas11';
 
 export const primary = (): Mocha.Suite =>
   describe('Primary interpreters', async () => {
+    let signer: Signer;
+
+    before(async () => {
+      [signer] = await ethers.getSigners();
+    });
     describe('when interpreting a literal node', () => {
       it('should interpret address node correctly', async () => {
         const c: InterpreterCase = [
@@ -16,7 +24,7 @@ export const primary = (): Mocha.Suite =>
           '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
         ];
 
-        await runInterpreterCases(c);
+        await runInterpreterCases(c, signer);
       });
 
       it('should interpret a boolean node correctly', async () => {
@@ -31,7 +39,7 @@ export const primary = (): Mocha.Suite =>
           [{ type: NodeType.BoolLiteral, value: true }, true],
         ];
 
-        await runInterpreterCases(cases);
+        await runInterpreterCases(cases, signer);
       });
 
       it('should intepret a bytes node correctly', async () => {
@@ -46,7 +54,7 @@ export const primary = (): Mocha.Suite =>
           ],
         ];
 
-        await runInterpreterCases(cases);
+        await runInterpreterCases(cases, signer);
       });
 
       it('should intepret a numeric node correctly', async () => {
@@ -124,7 +132,7 @@ export const primary = (): Mocha.Suite =>
           ],
         ];
 
-        await runInterpreterCases(cases);
+        await runInterpreterCases(cases, signer);
       });
 
       it('should intepret a string node correctly', async () => {
@@ -138,7 +146,7 @@ export const primary = (): Mocha.Suite =>
           ],
         ];
 
-        await runInterpreterCases(cases);
+        await runInterpreterCases(cases, signer);
       });
     });
 
