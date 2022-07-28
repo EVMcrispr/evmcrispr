@@ -31,6 +31,9 @@ const config: HardhatUserConfig = {
     ],
   },
   mocha: {
+    reporterOptions: {
+      maxDiffSize: 12000,
+    },
     timeout: 0,
     rootHooks: {
       beforeAll: () => {
