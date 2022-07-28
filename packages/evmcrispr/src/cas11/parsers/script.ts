@@ -1,7 +1,7 @@
 import type { Parser } from 'arcsecond';
 import { coroutine, toValue } from 'arcsecond';
 
-import { deepConsoleLog } from '../../../test/test-helpers/cas11';
+// import { deepConsoleLog } from '../../../test/test-helpers/cas11';
 
 import type { AST } from '../types';
 import { ASTType } from '../types';
@@ -21,7 +21,7 @@ export const scriptParser: Parser<AST> = coroutine(function* () {
 export const parseScript = (script: string): AST | undefined => {
   const res = scriptParser.run(script);
 
-  deepConsoleLog(res);
+  // deepConsoleLog(res);
   if (res.isError) {
     console.log(res.error);
     return;

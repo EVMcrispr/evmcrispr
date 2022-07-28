@@ -1,15 +1,19 @@
-import { char, coroutine, possibly, recursiveParser } from 'arcsecond';
+import { char, coroutine, letters, possibly, recursiveParser } from 'arcsecond';
 
-import { argumentsParser } from './call';
+import type { StringLiteralNode } from '../types';
 import { NodeType } from '../types';
-
-import { identifierParser } from './primaries';
+import { argumentsParser } from './expression';
 
 export const helperFunctionParser = recursiveParser(() =>
   coroutine(function* () {
     yield char('@');
 
-    const name = yield identifierParser;
+    const name = yield letters.map(
+      (value): StringLiteralNode => ({
+        type: NodeType.StringLiteral,
+        value,
+      }),
+    );
 
     const args = yield possibly(argumentsParser);
 

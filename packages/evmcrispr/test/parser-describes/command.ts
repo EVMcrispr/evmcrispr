@@ -8,9 +8,9 @@ const {
   AddressLiteral,
   BoolLiteral,
   NumberLiteral,
+  ProbableIdentifier,
   CommandExpression,
   CommandIdentifier,
-  Identifier,
 } = NodeType;
 
 export const commandParserDescribe = (): Mocha.Suite =>
@@ -24,25 +24,25 @@ export const commandParserDescribe = (): Mocha.Suite =>
           args: [
             {
               type: 'HelperFunctionExpression',
-              name: { type: 'Identifier', value: 'ipfs' },
+              name: { type: 'StringLiteral', value: 'ipfs' },
               args: [{ type: 'StringLiteral', value: 'upload this to ipfs' }],
             },
             {
               type: 'CallExpression',
-              target: { type: 'Identifier', value: 'contract' },
-              callee: { type: 'Identifier', value: 'getData' },
+              target: { type: 'ProbableIdentifier', value: 'contract' },
+              callee: { type: 'StringLiteral', value: 'getData' },
               args: [
                 { type: 'StringLiteral', value: 'param1' },
                 { type: 'BoolLiteral', value: false },
-                { type: 'Identifier', value: 'an-identifier' },
+                { type: 'ProbableIdentifier', value: 'an-identifier' },
                 {
                   type: 'HelperFunctionExpression',
-                  name: { type: 'Identifier', value: 'me' },
+                  name: { type: 'StringLiteral', value: 'me' },
                   args: [],
                 },
               ],
             },
-            { type: 'Identifier', value: 'anotherIdentifier.open' },
+            { type: 'ProbableIdentifier', value: 'anotherIdentifier.open' },
           ],
         },
       ];
@@ -55,7 +55,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
         type: CommandExpression,
         name: { type: CommandIdentifier, value: 'install' },
         args: [
-          { type: Identifier, value: 'wrapper-hooked-token-manager' },
+          { type: ProbableIdentifier, value: 'wrapper-hooked-token-manager' },
           {
             type: AddressLiteral,
             value: '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
@@ -94,7 +94,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           {
             type: 'CommandExpression',
             name: { type: 'CommandIdentifier', value: 'load' },
-            args: [{ type: 'Identifier', value: 'superfluid' }],
+            args: [{ type: 'ProbableIdentifier', value: 'superfluid' }],
           },
           'invalid `load` command match',
         ],
@@ -106,8 +106,8 @@ export const commandParserDescribe = (): Mocha.Suite =>
             args: [
               {
                 type: 'AsExpression',
-                left: { type: 'Identifier', value: 'aragonos' },
-                right: { type: 'Identifier', value: 'ar' },
+                left: { type: 'ProbableIdentifier', value: 'aragonos' },
+                right: { type: 'ProbableIdentifier', value: 'ar' },
               },
             ],
           },
@@ -117,7 +117,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           {
             type: 'CommandExpression',
             name: { type: 'CommandIdentifier', value: 'switch' },
-            args: [{ type: 'Identifier', value: 'gnosis' }],
+            args: [{ type: 'ProbableIdentifier', value: 'gnosis' }],
           },
           'invalid `switch` command match',
         ],
@@ -141,10 +141,10 @@ export const commandParserDescribe = (): Mocha.Suite =>
     it('should parse commands followed by block expressions', () => {
       const c: Case = [
         `forward token-manager voting agent (
-          set $agent finance:vault()
+          set $agent $finance:vault()
           forward wrappable-token-manager.open disputable-voting.open agent (
             sf:batchcall (
-              flow create @token('fDAIx') $agent 1e18mo
+              flow create @token(fDAIx) $agent 1e18mo
             )
           )
         )`,
@@ -152,9 +152,9 @@ export const commandParserDescribe = (): Mocha.Suite =>
           type: 'CommandExpression',
           name: { type: 'CommandIdentifier', value: 'forward' },
           args: [
-            { type: 'Identifier', value: 'token-manager' },
-            { type: 'Identifier', value: 'voting' },
-            { type: 'Identifier', value: 'agent' },
+            { type: 'ProbableIdentifier', value: 'token-manager' },
+            { type: 'ProbableIdentifier', value: 'voting' },
+            { type: 'ProbableIdentifier', value: 'agent' },
             {
               type: 'BlockExpression',
               body: [
@@ -165,8 +165,8 @@ export const commandParserDescribe = (): Mocha.Suite =>
                     { type: 'VariableIdentifier', value: '$agent' },
                     {
                       type: 'CallExpression',
-                      target: { type: 'Identifier', value: 'finance' },
-                      callee: { type: 'Identifier', value: 'vault' },
+                      target: { type: 'VariableIdentifier', value: '$finance' },
+                      callee: { type: 'StringLiteral', value: 'vault' },
                       args: [],
                     },
                   ],
@@ -176,11 +176,14 @@ export const commandParserDescribe = (): Mocha.Suite =>
                   name: { type: 'CommandIdentifier', value: 'forward' },
                   args: [
                     {
-                      type: 'Identifier',
+                      type: 'ProbableIdentifier',
                       value: 'wrappable-token-manager.open',
                     },
-                    { type: 'Identifier', value: 'disputable-voting.open' },
-                    { type: 'Identifier', value: 'agent' },
+                    {
+                      type: 'ProbableIdentifier',
+                      value: 'disputable-voting.open',
+                    },
+                    { type: 'ProbableIdentifier', value: 'agent' },
                     {
                       type: 'BlockExpression',
                       body: [
@@ -202,16 +205,19 @@ export const commandParserDescribe = (): Mocha.Suite =>
                                     value: 'flow',
                                   },
                                   args: [
-                                    { type: 'Identifier', value: 'create' },
+                                    {
+                                      type: 'ProbableIdentifier',
+                                      value: 'create',
+                                    },
                                     {
                                       type: 'HelperFunctionExpression',
                                       name: {
-                                        type: 'Identifier',
+                                        type: 'StringLiteral',
                                         value: 'token',
                                       },
                                       args: [
                                         {
-                                          type: 'StringLiteral',
+                                          type: 'ProbableIdentifier',
                                           value: 'fDAIx',
                                         },
                                       ],

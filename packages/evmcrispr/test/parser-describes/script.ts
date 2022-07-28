@@ -67,8 +67,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
               args: [
                 {
                   type: 'AsExpression',
-                  left: { type: 'Identifier', value: 'aragonos' },
-                  right: { type: 'Identifier', value: 'ar' },
+                  left: { type: 'ProbableIdentifier', value: 'aragonos' },
+                  right: { type: 'ProbableIdentifier', value: 'ar' },
                 },
               ],
             },
@@ -78,8 +78,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
               args: [
                 {
                   type: 'AsExpression',
-                  left: { type: 'Identifier', value: 'superfluid' },
-                  right: { type: 'Identifier', value: 'sf' },
+                  left: { type: 'ProbableIdentifier', value: 'superfluid' },
+                  right: { type: 'ProbableIdentifier', value: 'sf' },
                 },
               ],
             },
@@ -91,7 +91,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                 module: 'ar',
               },
               args: [
-                { type: 'Identifier', value: 'my-dao-ens' },
+                { type: 'ProbableIdentifier', value: 'my-dao-ens' },
                 {
                   type: 'BlockExpression',
                   body: [
@@ -99,8 +99,8 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                       type: 'CommandExpression',
                       name: { type: 'CommandIdentifier', value: 'forward' },
                       args: [
-                        { type: 'Identifier', value: 'token-manager' },
-                        { type: 'Identifier', value: 'voting' },
+                        { type: 'ProbableIdentifier', value: 'token-manager' },
+                        { type: 'ProbableIdentifier', value: 'voting' },
                         {
                           type: 'BlockExpression',
                           body: [
@@ -112,7 +112,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                               },
                               args: [
                                 {
-                                  type: 'Identifier',
+                                  type: 'ProbableIdentifier',
                                   value: 'wrapper-hooked-token-manager.open',
                                 },
                                 {
@@ -132,9 +132,9 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                       type: 'CommandExpression',
                       name: { type: 'CommandIdentifier', value: 'forward' },
                       args: [
-                        { type: 'Identifier', value: 'token-manager' },
-                        { type: 'Identifier', value: 'voting' },
-                        { type: 'Identifier', value: 'agent' },
+                        { type: 'ProbableIdentifier', value: 'token-manager' },
+                        { type: 'ProbableIdentifier', value: 'voting' },
+                        { type: 'ProbableIdentifier', value: 'agent' },
                         {
                           type: 'BlockExpression',
                           body: [
@@ -146,11 +146,11 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                 {
                                   type: 'CallExpression',
                                   target: {
-                                    type: 'Identifier',
+                                    type: 'ProbableIdentifier',
                                     value: 'finance',
                                   },
                                   callee: {
-                                    type: 'Identifier',
+                                    type: 'StringLiteral',
                                     value: 'vault',
                                   },
                                   args: [],
@@ -165,14 +165,14 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                               },
                               args: [
                                 {
-                                  type: 'Identifier',
+                                  type: 'ProbableIdentifier',
                                   value: 'wrappable-token-manager.open',
                                 },
                                 {
-                                  type: 'Identifier',
+                                  type: 'ProbableIdentifier',
                                   value: 'disputable-voting.open',
                                 },
-                                { type: 'Identifier', value: 'agent' },
+                                { type: 'ProbableIdentifier', value: 'agent' },
                                 {
                                   type: 'BlockExpression',
                                   body: [
@@ -190,7 +190,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         {
                                           type: 'HelperFunctionExpression',
                                           name: {
-                                            type: 'Identifier',
+                                            type: 'StringLiteral',
                                             value: 'token',
                                           },
                                           args: [
@@ -211,13 +211,13 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                       },
                                       args: [
                                         {
-                                          type: 'Identifier',
+                                          type: 'ProbableIdentifier',
                                           value: 'approve',
                                         },
                                         {
                                           type: 'HelperFunctionExpression',
                                           name: {
-                                            type: 'Identifier',
+                                            type: 'StringLiteral',
                                             value: 'token',
                                           },
                                           args: [
@@ -230,7 +230,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         {
                                           type: 'HelperFunctionExpression',
                                           name: {
-                                            type: 'Identifier',
+                                            type: 'StringLiteral',
                                             value: 'me',
                                           },
                                           args: [],
@@ -261,7 +261,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                               },
                                               args: [
                                                 {
-                                                  type: 'Identifier',
+                                                  type: 'ProbableIdentifier',
                                                   value: 'upgrade',
                                                 },
                                                 {
@@ -283,7 +283,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                               },
                                               args: [
                                                 {
-                                                  type: 'Identifier',
+                                                  type: 'ProbableIdentifier',
                                                   value: 'create',
                                                 },
                                                 {
@@ -310,13 +310,13 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                               },
                                               args: [
                                                 {
-                                                  type: 'Identifier',
+                                                  type: 'ProbableIdentifier',
                                                   value: 'downgrade',
                                                 },
                                                 {
                                                   type: 'HelperFunctionExpression',
                                                   name: {
-                                                    type: 'Identifier',
+                                                    type: 'StringLiteral',
                                                     value: 'token',
                                                   },
                                                   args: [

@@ -4,12 +4,16 @@ import {
   addressParser,
   booleanParser,
   hexadecimalParser,
-  identifierParser,
   numberParser,
+  probableIdentifierParser,
   stringParser,
   variableIdentifierParser,
 } from '../../src/cas11/parsers/primaries';
-import type { NumericLiteralNode } from '../../src/cas11/types';
+import type {
+  NumericLiteralNode,
+  ProbableIdentifierNode,
+  StringLiteralNode,
+} from '../../src/cas11/types';
 import { NodeType } from '../../src/cas11/types';
 
 import type { Case } from '../test-helpers/cas11';
@@ -84,22 +88,34 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
         runCases(cases, numberParser);
       });
 
-      it('should parse string values', () => {
-        [
-          [`'a test single quote string'`, 'a test single quote string'],
-          [`"a test double quote string"`, 'a test double quote string'],
-          [`' ( ͡° ͜ʖ ͡°) '`, ' ( ͡° ͜ʖ ͡°) '],
-        ].forEach(([value, expectedValue]) =>
-          expect(runParser(stringParser, value)).to.deep.equal({
-            type: 'StringLiteral',
-            value: expectedValue,
-          }),
-        );
-      });
-    });
+      it('should parse quoted string values', () => {
+        const node = (value: string): StringLiteralNode => {
+          const n: StringLiteralNode = {
+            type: NodeType.StringLiteral,
+            value,
+          };
+          return n;
+        };
 
-    describe('when parsing identifier values', () => {
-      it('should parse identifier values', () => {
+        const cases: Case[] = [
+          [`'a test single quote string'`, node('a test single quote string')],
+          [`"a test double quote string"`, node('a test double quote string')],
+          [`' ( ͡° ͜ʖ ͡°) '`, node(' ( ͡° ͜ʖ ͡°) ')],
+        ];
+
+        runCases(cases, stringParser);
+      });
+
+      it('should parse probable identifier values', () => {
+        const node = (value: string): ProbableIdentifierNode => {
+          const n: ProbableIdentifierNode = {
+            type: NodeType.ProbableIdentifier,
+            value,
+          };
+
+          return n;
+        };
+
         [
           'new',
           'install',
@@ -108,22 +124,27 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'create-super-flow-xtreme-aa',
           'my-ens-name.eth',
           'agent.open.0',
-          'superfluid-app.other-open.20',
+          'superfluid-app.other-open#20',
         ].forEach((value) =>
-          expect(runParser(identifierParser, value)).to.deep.equal({
-            type: 'Identifier',
-            value,
-          }),
+          expect(runParser(probableIdentifierParser, value)).to.eql(
+            node(value),
+          ),
         );
       });
+    });
 
+    describe('when parsing variable identifier values', () => {
       it('should parse variable values', () => {
-        ['$variable', '$aCamelCaseVariable', '$a-snake-case-variable'].forEach(
-          (value) =>
-            expect(runParser(variableIdentifierParser, value)).to.deep.equal({
-              type: 'VariableIdentifier',
-              value,
-            }),
+        [
+          '$variable',
+          '$aCamelCaseVariable',
+          '$a-snake-case-variable',
+          '$token-manager.open#0',
+        ].forEach((value) =>
+          expect(runParser(variableIdentifierParser, value)).to.deep.equal({
+            type: 'VariableIdentifier',
+            value,
+          }),
         );
       });
     });

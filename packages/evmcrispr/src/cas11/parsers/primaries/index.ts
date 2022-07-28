@@ -1,6 +1,9 @@
 import { choice, recursiveParser } from 'arcsecond';
 
-import { identifierParser, variableIdentifierParser } from './identifiers';
+import {
+  probableIdentifierParser,
+  variableIdentifierParser,
+} from './identifiers';
 import {
   addressParser,
   booleanParser,
@@ -17,7 +20,7 @@ export const primaryParser = recursiveParser(() =>
     numberParser,
     stringParser,
     variableIdentifierParser,
-    identifierParser,
+    probableIdentifierParser,
   ]),
 );
 

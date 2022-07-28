@@ -23,6 +23,25 @@ export const emptyLine = sequenceOf([possibly(whitespace), endOfLine]).map(
   () => null,
 );
 
+export const enclosedBy = (
+  openingChar: string,
+  closingChar: string,
+  parser: Parser<any, any, any>,
+): Parser<any, string, any> =>
+  coroutine(function* () {
+    yield char(openingChar);
+    yield optionalWhitespace;
+
+    const res = yield parser;
+    yield optionalWhitespace;
+    yield char(closingChar);
+
+    return res;
+  });
+// between(surroundedBy(optionalWhitespace)(char(openingChar)))(
+//   surroundedBy(optionalWhitespace)(char(closingChar)),
+// )(parser);
+
 export const surroundedBy = (
   parser: Parser<any, any, any>,
 ): ((p: Parser<unknown, string, any>) => Parser<unknown, any, any>) =>

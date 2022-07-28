@@ -1,36 +1,57 @@
 import type { Parser } from 'arcsecond';
-import { between, char, choice, coroutine, recursiveParser } from 'arcsecond';
+import {
+  char,
+  choice,
+  coroutine,
+  letters,
+  possibly,
+  recursiveParser,
+} from 'arcsecond';
 
+import type { StringLiteralNode } from '../types';
 import { NodeType } from '../types';
 
-import { addressParser, identifierParser, primaryParser } from './primaries';
-import { commaSeparated } from './utils';
+import {
+  addressParser,
+  probableIdentifierParser,
+  variableIdentifierParser,
+} from './primaries';
+import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
 
-export const callExpressionParser = recursiveParser(() =>
-  coroutine(function* () {
-    const target = yield choice([addressParser, identifierParser]);
-
-    yield char(':');
-
-    const callee = yield identifierParser;
-
-    const args = yield argumentsParser;
-
-    return {
-      type: NodeType.CallExpression,
-      target,
-      callee,
-      args: args,
-    };
-  }),
-);
-
-export const argumentsParser: Parser<unknown, string, any> = recursiveParser(
+export const callExpressionParser: Parser<any, string, any> = recursiveParser(
   () =>
-    between(char('('))(char(')'))(
-      commaSeparated(
-        choice([helperFunctionParser, callExpressionParser, primaryParser]),
-      ),
-    ),
+    coroutine(function* () {
+      const target = yield choice([
+        addressParser,
+        variableIdentifierParser,
+        helperFunctionParser,
+        probableIdentifierParser,
+      ]);
+
+      let res = yield char(':');
+      let callExpressionNode: any = target;
+
+      do {
+        const callee = yield letters.map(
+          (value): StringLiteralNode => ({
+            type: NodeType.StringLiteral,
+            value,
+          }),
+        );
+
+        const args = yield argumentsParser;
+
+        callExpressionNode = {
+          type: NodeType.CallExpression,
+          target: callExpressionNode,
+          callee,
+          args,
+        };
+
+        res = yield possibly(char(':'));
+      } while (res);
+
+      return callExpressionNode;
+    }),
 );

@@ -20,7 +20,7 @@ export enum NodeType {
   UnaryExpression = 'UnaryExpression',
 
   CommandIdentifier = 'CommandIdentifier',
-  Identifier = 'Identifier',
+  ProbableIdentifier = 'ProbableIdentifier',
   VariableIdentifier = 'VariableIdentifier',
 }
 
@@ -86,8 +86,8 @@ export interface CommandIdentifierNode {
   module?: string;
 }
 
-export interface IdentifierNode extends Node {
-  type: NodeType.Identifier;
+export interface ProbableIdentifierNode {
+  type: NodeType.ProbableIdentifier;
   value: string;
 }
 
@@ -98,7 +98,7 @@ export interface VariableIdentiferNode extends Node {
 
 export interface CallExpressionNode extends Node {
   type: NodeType.CallExpression;
-  callee: AddressLiteralNode | IdentifierNode;
+  callee: AddressLiteralNode | VariableIdentiferNode;
   args: Node[];
 }
 
@@ -121,8 +121,8 @@ export interface BlockExpressionNode extends Node {
 
 export interface AsExpressionNode extends Node {
   type: NodeType.AsExpression;
-  left: IdentifierNode;
-  right: IdentifierNode;
+  left: ProbableIdentifierNode | StringLiteralNode;
+  right: ProbableIdentifierNode | StringLiteralNode;
 }
 
 export type AST = {

@@ -1,4 +1,4 @@
-import { arrayExpressionParser } from '../../src/cas11/parsers/array';
+import { arrayExpresionParser } from '../../src/cas11/parsers/array';
 import type { Case } from '../test-helpers/cas11';
 import { runCases } from '../test-helpers/cas11';
 
@@ -7,7 +7,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
     it('should parse an array correctly', () => {
       const cases: Case[] = [
         [
-          '[1, "a text string", 3]',
+          '[    1, "a text string",    3    ]',
           {
             type: 'ArrayExpression',
             elements: [
@@ -19,22 +19,22 @@ export const arrayParserDescribe = (): Mocha.Suite =>
           'Invalid array match',
         ],
         [
-          '[145e18y, @token("DAI"), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], fDAIx:host()]',
+          '[145e18y, @token(DAI), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], $fDAIx:host()]',
           {
             type: 'ArrayExpression',
             elements: [
               { type: 'NumberLiteral', value: 145, power: 18, timeUnit: 'y' },
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'Identifier', value: 'token' },
-                args: [{ type: 'StringLiteral', value: 'DAI' }],
+                name: { type: 'StringLiteral', value: 'token' },
+                args: [{ type: 'ProbableIdentifier', value: 'DAI' }],
               },
               { type: 'BoolLiteral', value: false },
               {
                 type: 'ArrayExpression',
                 elements: [
                   { type: 'StringLiteral', value: 'a string' },
-                  { type: 'Identifier', value: 'anIdentifier' },
+                  { type: 'ProbableIdentifier', value: 'anIdentifier' },
                   {
                     type: 'ArrayExpression',
                     elements: [
@@ -44,7 +44,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
                         type: 'ArrayExpression',
                         elements: [
                           {
-                            type: 'Identifier',
+                            type: 'ProbableIdentifier',
                             value: 'aDeepDeepIdentifier.open',
                           },
                         ],
@@ -56,8 +56,8 @@ export const arrayParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'CallExpression',
-                target: { type: 'Identifier', value: 'fDAIx' },
-                callee: { type: 'Identifier', value: 'host' },
+                target: { type: 'VariableIdentifier', value: '$fDAIx' },
+                callee: { type: 'StringLiteral', value: 'host' },
                 args: [],
               },
             ],
@@ -66,6 +66,6 @@ export const arrayParserDescribe = (): Mocha.Suite =>
         ],
       ];
 
-      runCases(cases, arrayExpressionParser);
+      runCases(cases, arrayExpresionParser);
     });
   });

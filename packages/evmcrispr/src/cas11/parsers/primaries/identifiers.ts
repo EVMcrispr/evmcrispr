@@ -1,10 +1,13 @@
 import { recursiveParser, regex } from 'arcsecond';
 
-import type { IdentifierNode, VariableIdentiferNode } from '../../types';
+import type {
+  ProbableIdentifierNode,
+  VariableIdentiferNode,
+} from '../../types';
 import { NodeType } from '../../types';
 
 export const variableIdentifierParser = recursiveParser(() =>
-  regex(/^(\$(?!-)[a-zA-Z0-9-]{1,63}(?<!-))/).map(
+  regex(/^\$[a-zA-Z\d#-.]+/).map(
     (value): VariableIdentiferNode => ({
       type: NodeType.VariableIdentifier,
       value,
@@ -12,11 +15,11 @@ export const variableIdentifierParser = recursiveParser(() =>
   ),
 );
 
-export const identifierParser = recursiveParser(() =>
-  regex(/^((?!-)[a-zA-Z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))*(?<!-)/).map(
-    (value): IdentifierNode => ({
-      type: NodeType.Identifier,
-      value,
+export const probableIdentifierParser = recursiveParser(() =>
+  regex(/^[a-zA-Z\d#\-.]+/).map(
+    (value): ProbableIdentifierNode => ({
+      type: NodeType.ProbableIdentifier,
+      value: value as string,
     }),
   ),
 );
