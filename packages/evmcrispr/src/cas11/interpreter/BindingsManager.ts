@@ -32,15 +32,30 @@ export class BindingsManager {
       name,
       isUserVariable ? UserSpace : SystemSpace,
     );
+
     return binding && binding.length ? binding[0].value : undefined;
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  setBinding(name: string, value: any, isUserVariable = false): void {
-    this.#bindings.add({
+  setBinding(
+    name: string,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    value: any,
+    isUserVariable = false,
+    isGlobal = false,
+  ): void {
+    const binding: Binding = {
       identifier: name,
       value,
       type: isUserVariable ? UserSpace : SystemSpace,
-    });
+    };
+    if (isGlobal) {
+      this.#bindings.addToGlobalScope(binding);
+    } else {
+      this.#bindings.add(binding);
+    }
+  }
+
+  symbols(): any {
+    return this.#bindings.symbols;
   }
 }

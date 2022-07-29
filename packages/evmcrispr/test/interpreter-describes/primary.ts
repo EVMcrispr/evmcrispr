@@ -1,4 +1,5 @@
 import type { Signer } from 'ethers';
+import { constants } from 'ethers';
 import { ethers } from 'hardhat';
 
 import type { NumericLiteralNode } from '../../src/cas11/types';
@@ -151,7 +152,27 @@ export const primary = (): Mocha.Suite =>
     });
 
     describe('when intepreting an identifier node', () => {
-      it('should intepret an identifier correctly');
+      it('should intepret a probable identifier correctly', async () => {
+        const cases: InterpreterCase[] = [
+          [
+            {
+              type: NodeType.ProbableIdentifier,
+              value: 'token-manager.open#3',
+            },
+            'token-manager.open#3',
+          ],
+          [
+            {
+              type: NodeType.ProbableIdentifier,
+              value: 'ETH',
+            },
+            constants.AddressZero,
+          ],
+        ];
+
+        await runInterpreterCases(cases, signer);
+      });
       it('should interpret a variable correctly');
+      it('should fail when intepreting a non-existent variable');
     });
   });

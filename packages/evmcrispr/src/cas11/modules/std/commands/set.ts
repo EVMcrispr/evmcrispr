@@ -16,8 +16,8 @@ export const set: CommandFunction<Std> = async (std, lazyNodes) => {
     throw new Error(`${errorPrefix}: invalid variable`);
   }
 
-  const varName = (await varLazyNode.execute(true)) as string;
-  const varValue = await valueLazyNode.execute();
+  const varName = (await varLazyNode.resolve(true)) as string;
+  const varValue = await valueLazyNode.resolve();
 
   std.bindingsManager.setBinding(varName, varValue, true);
 };

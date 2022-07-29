@@ -1,6 +1,7 @@
 import { utils } from 'ethers';
 import type { Fragment, Interface } from 'ethers/lib/utils';
 
+import { ErrorInvalid } from '../../errors';
 import type { Action, Address } from '../..';
 
 const getFnSelector = (fragment: Fragment): string =>
@@ -19,7 +20,7 @@ export const encodeAction = (
     fnABI = new utils.Interface([fullSignature]);
   } catch (err) {
     console.log(err);
-    throw new Error(`Wrong signature format: ${signature}.`);
+    throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 
   const fnFragment = fnABI.fragments[0];

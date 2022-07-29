@@ -28,9 +28,9 @@ export const load: CommandFunction<Std> = async (std, lazyNodes) => {
     moduleAlias: string | undefined = undefined;
 
   if (lazyNode.type === AsExpression) {
-    [moduleName, moduleAlias] = await lazyNode.execute();
+    [moduleName, moduleAlias] = await lazyNode.resolve();
   } else {
-    moduleName = await lazyNode.execute(false);
+    moduleName = await lazyNode.resolve(false);
   }
 
   if (std.modules.find((m: any) => m.name === moduleName)) {

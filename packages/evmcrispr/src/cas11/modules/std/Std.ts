@@ -27,12 +27,6 @@ export class Std extends Module {
     return this.#ipfsResolver;
   }
 
-  hasCommand(commandName: string): boolean {
-    return (
-      commandName === 'load' || commandName === 'set' || commandName === 'exec'
-    );
-  }
-
   async interpretCommand(
     name: string,
     lazyNodes: LazyNode[],

@@ -1,9 +1,11 @@
 import type { Signer } from 'ethers';
+import { constants } from 'ethers';
 
 import { ErrorNotFound } from '../../errors';
 import { timeUnits, toDecimals } from '../../utils';
 import type {
   AST,
+  ArrayExpressionNode,
   AsExpressionNode,
   BlockExpressionNode,
   CallExpressionNode,
@@ -20,6 +22,7 @@ import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager } from './BindingsManager';
+import { resolveLazyNodes } from '../utils/resolvers';
 
 const {
   AddressLiteral,
@@ -29,6 +32,8 @@ const {
   StringLiteral,
 
   AsExpression,
+
+  ArrayExpression,
 
   BlockExpression,
   CommandExpression,
@@ -41,8 +46,16 @@ const {
 
 export type LazyNode = {
   type: NodeType;
-  execute: (...args: any[]) => Promise<any> | Promise<void>;
+  resolve: (...args: any[]) => Promise<any> | Promise<void>;
 };
+
+// Interpreter bindings
+
+// Implicit module use inside block expressions
+const CONTEXTUAL_MODULE = 'contextualModule';
+const IDENTIFIER_FORMATTER = 'identifierFormatter';
+
+type IdentifierFormatter = (identifier: string) => string;
 
 export class Interpreter {
   readonly ast: AST;
@@ -58,6 +71,8 @@ export class Interpreter {
     this.#modules = [];
 
     this.#bindingsManager = new BindingsManager();
+    this.#setDefaultBindings();
+
     this.#std = new Std(this.#bindingsManager, this.#modules);
     this.#signer = signer;
   }
@@ -80,18 +95,10 @@ export class Interpreter {
 
   async interpret(): Promise<any> {
     const lazyNodes = this.#interpretNodes(this.ast.body);
-    const results: any = [];
 
-    for (const lazyNode of lazyNodes) {
-      const result = await lazyNode.execute();
-      if (Array.isArray(result)) {
-        results.push(...result);
-      } else {
-        results.push(result);
-      }
-    }
-
-    return results;
+    return (await resolveLazyNodes(lazyNodes, true))
+      .flat()
+      .filter((result) => typeof result !== 'undefined');
   }
 
   #interpretNode(n: Node): LazyNode {
@@ -105,6 +112,8 @@ export class Interpreter {
 
       case AsExpression:
         return this.#intrepretAsExpression(n as AsExpressionNode);
+      case ArrayExpression:
+        return this.#interpretArrayExpression(n as ArrayExpressionNode);
       case BlockExpression:
         return this.#interpretBlockExpression(n as BlockExpressionNode);
       case CallExpression:
@@ -124,38 +133,64 @@ export class Interpreter {
   }
 
   #interpretNodes(nodes: Node[]): LazyNode[] {
-    const nodeResolvers: LazyNode[] = [];
+    const lazyNodes: LazyNode[] = [];
     for (const n of nodes) {
-      nodeResolvers.push(this.#interpretNode(n));
+      lazyNodes.push(this.#interpretNode(n));
     }
 
-    return nodeResolvers;
+    return lazyNodes;
   }
 
   #intrepretAsExpression(n: AsExpressionNode): LazyNode {
     return {
       type: n.type,
-      execute: async (...args) => {
-        const left = await this.#interpretNode(n.left).execute(args);
-        const right = await this.#interpretNode(n.right).execute(args);
+      resolve: async (...args) => {
+        const left = await this.#interpretNode(n.left).resolve(args);
+        const right = await this.#interpretNode(n.right).resolve(args);
 
         return [left, right];
       },
     };
   }
+
+  #interpretArrayExpression(n: ArrayExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      resolve: async () => {
+        const lazyNodes = this.#interpretNodes(n.elements);
+        return resolveLazyNodes(lazyNodes);
+      },
+    };
+  }
+
   #interpretBlockExpression(n: BlockExpressionNode): LazyNode {
     return {
       type: n.type,
-      execute: async (fn: () => Promise<void>) => {
+      resolve: async (
+        moduleName: string,
+        contextFn?: () => Promise<void>,
+        identifierFormatter?: IdentifierFormatter,
+      ) => {
         this.#bindingsManager.enterScope();
 
-        await fn();
+        this.#bindingsManager.setBinding(CONTEXTUAL_MODULE, moduleName);
+        if (identifierFormatter) {
+          this.#setInterpreterBindings(
+            IDENTIFIER_FORMATTER,
+            identifierFormatter,
+          );
+        }
 
-        const res = this.#interpretNodes(n.body);
+        if (contextFn) {
+          await contextFn();
+        }
+
+        const lazyNodes = this.#interpretNodes(n.body);
+        const results = await resolveLazyNodes(lazyNodes, true);
 
         this.#bindingsManager.exitScope();
 
-        return res;
+        return results;
       },
     };
   }
@@ -163,7 +198,7 @@ export class Interpreter {
   #interpretCallFunction(n: CallExpressionNode): LazyNode {
     return {
       type: n.type,
-      execute: async () => {
+      resolve: async () => {
         const args = await Promise.all(
           n.args.map((arg) => this.#interpretNode(arg)),
         );
@@ -177,8 +212,13 @@ export class Interpreter {
   #interpretCommand(c: CommandExpressionNode): LazyNode {
     return {
       type: c.type,
-      execute: async () => {
-        const { module: moduleName, value: commandName } = c.name;
+      resolve: async () => {
+        const { module: moduleName_ } = c.name;
+        const moduleName =
+          moduleName_ ??
+          (this.bindingsManager.getBinding(CONTEXTUAL_MODULE) as
+            | string
+            | undefined);
 
         if (moduleName) {
           const module = this.#modules.find((m) =>
@@ -187,31 +227,13 @@ export class Interpreter {
 
           if (!module) {
             throw new ErrorNotFound(`Module ${moduleName} not found`);
-          } else if (!module.hasCommand(commandName)) {
-            throw new ErrorNotFound(
-              `Command ${commandName} not found for module ${moduleName}`,
-            );
           }
 
           return this.#runModuleCommand(c, module);
         }
 
-        // Run core commands first.
-        if (this.#std.hasCommand(commandName)) {
-          return this.#runModuleCommand(c, this.#std);
-        }
-
-        const modules = this.#modules.filter((m) => m.hasCommand(commandName));
-
-        if (modules.length > 1) {
-          throw new Error(
-            `Command ${commandName} found for the following modules: ${modules
-              .map((m) => m.name)
-              .join(', ')}`,
-          );
-        }
-
-        return this.#runModuleCommand(c, modules[0]);
+        // When the execution flow is on root scope fallback to std module
+        return this.#runModuleCommand(c, this.#std);
       },
     };
   }
@@ -228,7 +250,7 @@ export class Interpreter {
   #interpretHelperFunction(n: HelperFunctionNode): LazyNode {
     return {
       type: n.type,
-      execute: async () => {
+      resolve: async () => {
         console.log(n);
         // const args = await Promise.all(
         //   n.args.map((arg) => this.#interpretNode(arg)),
@@ -251,7 +273,7 @@ export class Interpreter {
   #interpretLiteral(n: LiteralExpressionNode): LazyNode {
     return {
       type: n.type,
-      execute: async () => {
+      resolve: async () => {
         switch (n.type) {
           case NodeType.AddressLiteral:
           case NodeType.BoolLiteral:
@@ -272,15 +294,26 @@ export class Interpreter {
   #interpretProbableIdentifier(n: ProbableIdentifierNode): LazyNode {
     return {
       type: n.type,
-      execute: async (treatAsIdentifier = true) => {
+      resolve: async (treatAsIdentifier = true) => {
+        let identifier: string = n.value;
+
         if (treatAsIdentifier) {
-          const binding = this.getBinding(n.value);
+          const identifierFormatter = this.#getInterpreterBinding(
+            'identifierFormatter',
+          ) as IdentifierFormatter;
+
+          if (identifierFormatter) {
+            identifier = identifierFormatter(identifier);
+          }
+
+          const binding = this.bindingsManager.getBinding(identifier);
+
           if (binding) {
             return binding;
           }
         }
 
-        return n.value;
+        return identifier;
       },
     };
   }
@@ -288,12 +321,12 @@ export class Interpreter {
   #interpretVariableIdentifier(n: VariableIdentiferNode): LazyNode {
     return {
       type: n.type,
-      execute: async (fallbackToIdentiferName = false) => {
+      resolve: async (fallbackToIdentiferName = false) => {
         if (fallbackToIdentiferName) {
           return n.value;
         }
 
-        const binding = this.getBinding(n.value, true);
+        const binding = this.#bindingsManager.getBinding(n.value, true);
 
         if (binding) {
           return binding;
@@ -302,5 +335,18 @@ export class Interpreter {
         throw new Error(`${n.value} is not defined`);
       },
     };
+  }
+
+  #getInterpreterBinding(name: string): any {
+    return this.#bindingsManager.getBinding(`$interpreter.${name}`, false);
+  }
+
+  #setInterpreterBindings(name: string, value: any): void {
+    this.#bindingsManager.setBinding(`$interpreter.${name}`, value);
+  }
+
+  #setDefaultBindings(): void {
+    this.#bindingsManager.setBinding('DAIx', constants.AddressZero);
+    this.#bindingsManager.setBinding('ETH', constants.AddressZero);
   }
 }

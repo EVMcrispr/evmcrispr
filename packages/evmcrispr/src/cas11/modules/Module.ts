@@ -20,8 +20,6 @@ export abstract class Module {
     return this.#bindingsManager;
   }
 
-  abstract hasCommand(commandName: string): boolean;
-
   abstract interpretCommand(
     name: string,
     lazyNodes: LazyNode[],
@@ -33,8 +31,13 @@ export abstract class Module {
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  setModuleVariable(name: string, value: any): void {
-    this.bindingsManager.setBinding(`$${this.name}.${name}`, value);
+  setModuleVariable(name: string, value: any, isGlobal = false): void {
+    this.bindingsManager.setBinding(
+      `$${this.name}.${name}`,
+      value,
+      false,
+      isGlobal,
+    );
   }
 
   panic(msg: string): void {
