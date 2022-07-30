@@ -313,6 +313,24 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('set $var @ipfs(This should be pinned in IPFS)', async () => {
+    if (!process.env.VITE_PINATA_JWT) {
+      throw new Error('JWT not definied in environment variables.');
+    }
+    await check(
+      evmcl`
+        set $ipfs.jwt ${process.env.VITE_PINATA_JWT}
+        set $var @ipfs(This should be pinned in IPFS)
+      `,
+      [
+        evm.set('$ipfs.jwt', process.env.VITE_PINATA_JWT),
+        evm.set('$var', evm.std.helpers.ipfs('This should be pinned in IPFS')),
+      ],
+      ['$var'],
+      ['QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns'],
+    );
+  });
+
   it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
     // FIXME
     await check(
