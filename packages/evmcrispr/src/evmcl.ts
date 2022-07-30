@@ -271,6 +271,17 @@ export default function evmcl(
               return [];
             };
           }
+          case 'raw': {
+            return async () => {
+              const [to, data] = await parser.args(args);
+              return [
+                {
+                  to,
+                  data,
+                },
+              ];
+            };
+          }
           case 'exec': {
             return async () => {
               const [identifier, method, ...params] = await parser.args(args);
