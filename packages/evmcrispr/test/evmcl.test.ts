@@ -342,6 +342,27 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('set $var @get($weth,name():(string))', async () => {
+    await check(
+      evmcl`
+          set $weth 0xdf032bc4b9dc2782bb09352007d4c57b75160b15
+          set $abi name():(string)
+          set $var @get($weth,$abi)
+      `,
+      [
+        evm.set(
+          '$var',
+          evm.std.helpers.get(
+            '0xdf032bc4b9dc2782bb09352007d4c57b75160b15',
+            'name():(string)',
+          ),
+        ),
+      ],
+      ['$var'],
+      ['Wrapped Ether'],
+    );
+  });
+
   it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
     // FIXME
     await check(
