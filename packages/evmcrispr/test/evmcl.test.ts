@@ -331,6 +331,17 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('set $var @calc(2+3/2)', async () => {
+    await check(
+      evmcl`
+        set $var @calc(2+3/2)
+      `,
+      [evm.set('$var', evm.std.helpers.calc('2+3/2'))],
+      ['$var'],
+      ['3'],
+    );
+  });
+
   it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
     // FIXME
     await check(
