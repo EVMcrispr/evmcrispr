@@ -331,12 +331,16 @@ describe('EVM Command Line', () => {
     );
   });
 
-  it('set $var @calc(2+3/2)', async () => {
+  it('set $var @calc(2+$three/2)', async () => {
     await check(
       evmcl`
-        set $var @calc(2+3/2)
+        set $three 3
+        set $var @calc(2+$three/2)
       `,
-      [evm.set('$var', evm.std.helpers.calc('2+3/2'))],
+      [
+        evm.set('$three', '3'),
+        evm.set('$var', evm.std.helpers.calc('2+$three/2')),
+      ],
       ['$var'],
       ['3'],
     );

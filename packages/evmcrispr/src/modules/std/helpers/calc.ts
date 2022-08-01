@@ -4,18 +4,14 @@ import type { EVMcrispr } from '../../..';
 
 function process(
   operator: '*' | '/' | '+' | '-',
-  resolveNumber: (number: string | number) => BigNumber | number,
+  resolve: (number: string) => BigNumber,
   parts: (string | null)[],
 ): string[] {
   const opFunc = {
-    '*': (a: string, b: string) =>
-      BigNumber.from(resolveNumber(a)).mul(resolveNumber(b)).toString(),
-    '/': (a: string, b: string) =>
-      BigNumber.from(resolveNumber(a)).div(resolveNumber(b)).toString(),
-    '+': (a: string, b: string) =>
-      BigNumber.from(resolveNumber(a)).add(resolveNumber(b)).toString(),
-    '-': (a: string, b: string) =>
-      BigNumber.from(resolveNumber(a)).sub(resolveNumber(b)).toString(),
+    '*': (a: string, b: string) => resolve(a).mul(resolve(b)).toString(),
+    '/': (a: string, b: string) => resolve(a).div(resolve(b)).toString(),
+    '+': (a: string, b: string) => resolve(a).add(resolve(b)).toString(),
+    '-': (a: string, b: string) => resolve(a).sub(resolve(b)).toString(),
   };
   for (let i = 0; i < parts.length; i++) {
     if (parts[i] === operator) {
@@ -44,10 +40,22 @@ async function calc(evm: EVMcrispr, text: string): Promise<string> {
     .replace('-', ' - ')
     .split(' ');
 
-  parts = process('*', evm.resolver.resolveNumber, parts);
-  parts = process('/', evm.resolver.resolveNumber, parts);
-  parts = process('+', evm.resolver.resolveNumber, parts);
-  parts = process('-', evm.resolver.resolveNumber, parts);
+  const resolve = (number: string): BigNumber => {
+    if (number.startsWith('$')) {
+      if (Array.isArray(evm.env(number))) {
+        throw new Error(`${number} is not a number`);
+      } else {
+        return resolve(evm.env(number) as string);
+      }
+    } else {
+      return BigNumber.from(evm.resolver.resolveNumber(number));
+    }
+  };
+
+  parts = process('*', resolve, parts);
+  parts = process('/', resolve, parts);
+  parts = process('+', resolve, parts);
+  parts = process('-', resolve, parts);
 
   if (parts.length !== 1) {
     throw new Error('Malformed calc experession');
