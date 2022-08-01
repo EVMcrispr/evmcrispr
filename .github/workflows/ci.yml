@@ -76,6 +76,8 @@ jobs:
         run: pnpm test:coverage
         env:
           ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
+          VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
+          ETHERSCAN_API: ${{ secrets.ETHERSCAN_API }}
 
       - name: Coveralls
         uses: coverallsapp/github-action@master
