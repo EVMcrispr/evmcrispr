@@ -394,6 +394,47 @@ describe('EVM Command Line', () => {
       ['https://token-list.sushi.com/'],
     );
   });
+
+  it('exec @token(WETH) withdraw 40', async () => {
+    if (!process.env.ETHERSCAN_API) {
+      throw new Error('ETHERSCAN_API not definied in environment variables.');
+    }
+    await check(
+      await evmcl`
+        set $token.tokenlist https://gateway.ipfs.io/ipns/tokens.uniswap.org
+        set $etherscanAPI ${process.env.ETHERSCAN_API}
+        exec @token(WETH) withdraw 40
+      `,
+      [
+        evm.set('$etherscanAPI', process.env.ETHERSCAN_API),
+        evm.std.exec('0xc778417E063141139Fce010982780140Aa0cD5Ab', 'withdraw', [
+          40,
+        ]),
+      ],
+    );
+  });
+
+  it('exec 0xE039BdF1d874d27338e09B55CB09879Dedca52D8 withdraw @token(WETH) 20 @me', async () => {
+    if (!process.env.ETHERSCAN_API) {
+      throw new Error('ETHERSCAN_API not definied in environment variables.');
+    }
+    await check(
+      await evmcl`
+        set $token.tokenlist https://gateway.ipfs.io/ipns/tokens.uniswap.org
+        set $etherscanAPI ${process.env.ETHERSCAN_API}
+        exec 0xE039BdF1d874d27338e09B55CB09879Dedca52D8 withdraw @token(WETH) 20 @me
+      `,
+      [
+        evm.set('$etherscanAPI', process.env.ETHERSCAN_API),
+        evm.std.exec('0xE039BdF1d874d27338e09B55CB09879Dedca52D8', 'withdraw', [
+          '0xc778417E063141139Fce010982780140Aa0cD5Ab',
+          20,
+          await evm.std.helpers.me()(),
+        ]),
+      ],
+    );
+  });
+
   it('set $var value in multiple words', async () => {
     await check(
       await evmcl`
