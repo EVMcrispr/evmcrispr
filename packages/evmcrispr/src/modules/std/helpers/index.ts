@@ -2,6 +2,9 @@ import { default as token, tokenBalance } from './token';
 import { default as me } from './me';
 import { default as id } from './id';
 import { default as date } from './date';
+import { default as ipfs } from './ipfs';
+import { default as calc } from './calc';
+import { default as get } from './get';
 import type { EVMcrispr } from '../../..';
 import type { LazyString } from '../../../types';
 
@@ -27,5 +30,8 @@ export default function (evm: EVMcrispr) {
     me: lazy(evm, me),
     id: lazy(evm, id),
     date: lazy(evm, date),
+    ipfs: lazy(evm, ipfs),
+    calc: lazy(evm, calc),
+    get: lazy(evm, get),
   };
 }

@@ -1,7 +1,7 @@
 {
   "name": "@1hive/evmcrispr",
-  "version": "0.5.0",
-  "codename": "unplugged expressions",
+  "version": "0.6.0",
+  "codename": "fearless authenticity",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",

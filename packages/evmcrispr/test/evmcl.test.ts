@@ -313,6 +313,60 @@ describe('EVM Command Line', () => {
     );
   });
 
+  it('set $var @ipfs(This should be pinned in IPFS)', async () => {
+    if (!process.env.VITE_PINATA_JWT) {
+      throw new Error('JWT not definied in environment variables.');
+    }
+    await check(
+      evmcl`
+        set $ipfs.jwt ${process.env.VITE_PINATA_JWT}
+        set $var @ipfs(This should be pinned in IPFS)
+      `,
+      [
+        evm.set('$ipfs.jwt', process.env.VITE_PINATA_JWT),
+        evm.set('$var', evm.std.helpers.ipfs('This should be pinned in IPFS')),
+      ],
+      ['$var'],
+      ['QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns'],
+    );
+  });
+
+  it('set $var @calc(2+$three/2)', async () => {
+    await check(
+      evmcl`
+        set $three 3
+        set $var @calc(2+$three/2)
+      `,
+      [
+        evm.set('$three', '3'),
+        evm.set('$var', evm.std.helpers.calc('2+$three/2')),
+      ],
+      ['$var'],
+      ['3'],
+    );
+  });
+
+  it('set $var @get($weth,name():(string))', async () => {
+    await check(
+      evmcl`
+          set $weth 0xdf032bc4b9dc2782bb09352007d4c57b75160b15
+          set $abi name():(string)
+          set $var @get($weth,$abi)
+      `,
+      [
+        evm.set(
+          '$var',
+          evm.std.helpers.get(
+            '0xdf032bc4b9dc2782bb09352007d4c57b75160b15',
+            'name():(string)',
+          ),
+        ),
+      ],
+      ['$var'],
+      ['Wrapped Ether'],
+    );
+  });
+
   it.skip('exec vault transfer @token(SUSHI) @me @token.balance(SUSHI,vault)', async () => {
     // FIXME
     await check(
@@ -340,6 +394,47 @@ describe('EVM Command Line', () => {
       ['https://token-list.sushi.com/'],
     );
   });
+
+  it('exec @token(WETH) withdraw 40', async () => {
+    if (!process.env.ETHERSCAN_API) {
+      throw new Error('ETHERSCAN_API not definied in environment variables.');
+    }
+    await check(
+      await evmcl`
+        set $token.tokenlist https://gateway.ipfs.io/ipns/tokens.uniswap.org
+        set $etherscanAPI ${process.env.ETHERSCAN_API}
+        exec @token(WETH) withdraw 40
+      `,
+      [
+        evm.set('$etherscanAPI', process.env.ETHERSCAN_API),
+        evm.std.exec('0xc778417E063141139Fce010982780140Aa0cD5Ab', 'withdraw', [
+          40,
+        ]),
+      ],
+    );
+  });
+
+  it('exec 0xE039BdF1d874d27338e09B55CB09879Dedca52D8 withdraw @token(WETH) 20 @me', async () => {
+    if (!process.env.ETHERSCAN_API) {
+      throw new Error('ETHERSCAN_API not definied in environment variables.');
+    }
+    await check(
+      await evmcl`
+        set $token.tokenlist https://gateway.ipfs.io/ipns/tokens.uniswap.org
+        set $etherscanAPI ${process.env.ETHERSCAN_API}
+        exec 0xE039BdF1d874d27338e09B55CB09879Dedca52D8 withdraw @token(WETH) 20 @me
+      `,
+      [
+        evm.set('$etherscanAPI', process.env.ETHERSCAN_API),
+        evm.std.exec('0xE039BdF1d874d27338e09B55CB09879Dedca52D8', 'withdraw', [
+          '0xc778417E063141139Fce010982780140Aa0cD5Ab',
+          20,
+          await evm.std.helpers.me()(),
+        ]),
+      ],
+    );
+  });
+
   it('set $var value in multiple words', async () => {
     await check(
       await evmcl`

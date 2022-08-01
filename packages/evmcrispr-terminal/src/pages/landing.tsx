@@ -63,7 +63,7 @@ const Landing = () => {
             >
               <Link
                 isExternal
-                href="https://forum.1hive.org/t/commons-swarm-outcomes-3-3-a-tool-to-mutate-a-daos-dna/4924"
+                href="https://docs.evmcrispr.blossom.software/"
                 target="_blank"
                 rel="noreferrer"
               >

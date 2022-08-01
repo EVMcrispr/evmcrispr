@@ -25,6 +25,16 @@ export function upgrade(
     }
 
     const name = `${apmRepo}.aragonpm.eth`;
+    const kernel = module.app('kernel');
+    const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
+    const appId = utils.namehash(name);
+    if (
+      (await kernel.getApp(KERNEL_APP_BASE_NAMESPACE, appId)) ===
+      constants.AddressZero
+    ) {
+      throw new Error(`${apmRepo} not installed in current DAO.`);
+    }
+
     const repoAddr = await aragonEns(module.evm, name);
     const repo = new Contract(
       repoAddr,
@@ -47,15 +57,6 @@ export function upgrade(
       );
     }
 
-    const kernel = module.app('kernel');
-    const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
-    const appId = utils.namehash(name);
-    if (
-      (await kernel.getApp(KERNEL_APP_BASE_NAMESPACE, appId)) ===
-      constants.AddressZero
-    ) {
-      throw new Error(`${apmRepo} not installed in current DAO.`);
-    }
     return [
       {
         to: kernel.address,
