@@ -6,7 +6,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
     it('should parse helpers correctly', () => {
       const cases: [string, any, string?][] = [
         [
-          '@helperFunction(anotherToken:symbol(), "this is a string param", 10e18)',
+          '@helperFunction(anotherToken::symbol(), "this is a string param", 10e18)',
           {
             type: 'HelperFunctionExpression',
             name: { type: 'StringLiteral', value: 'helperFunction' },

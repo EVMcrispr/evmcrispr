@@ -2,20 +2,20 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import type { Action } from '../../src';
+import type { Action } from '../../../src';
+import { encodeActCall } from '../../../src';
 
-import { AragonOS } from '../../src/cas11/modules/aragonos/AragonOS';
-import { encodeActCall, toDecimals } from '../../src/utils';
-import { createInterpreter } from '../test-helpers/cas11';
+import { toDecimals } from '../../../src/utils';
 
-export const std = (): Mocha.Suite =>
-  describe('Std module', () => {
+import { createInterpreter } from '../../test-helpers/cas11';
+
+export const commandsDescribe = (): Mocha.Suite =>
+  describe('Commands', () => {
     let signer: Signer;
 
     before(async () => {
       [signer] = await ethers.getSigners();
     });
-
     describe('when intepreting load command', () => {
       it('should load a module correctly', async () => {
         const interpreter = createInterpreter('load aragonos', signer);
@@ -25,7 +25,8 @@ export const std = (): Mocha.Suite =>
         const module = modules[0];
 
         expect(modules.length).to.be.equal(1);
-        expect(module).instanceOf(AragonOS);
+        expect(module.name).equals('aragonos');
+        // expect(module).instanceOf(AragonOS);
       });
 
       it('should load a module and set an alias for it correctly', async () => {
@@ -52,9 +53,9 @@ export const std = (): Mocha.Suite =>
         try {
           await createInterpreter(
             `
-              load aragonos
-              load aragonos
-            `,
+            load aragonos
+            load aragonos
+          `,
             signer,
           ).interpret();
         } catch (err) {

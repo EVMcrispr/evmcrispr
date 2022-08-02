@@ -22,7 +22,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
 
         forward token-manager voting agent (
           
-          set $agent finance:vault()
+          set $agent finance::vault()
 
           forward wrappable-token-manager.open disputable-voting.open agent (
             set $daix @token("fDAIx")

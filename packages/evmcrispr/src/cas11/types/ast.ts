@@ -104,7 +104,7 @@ export interface CallExpressionNode extends Node {
 
 export interface HelperFunctionNode extends Node {
   type: NodeType.HelperFunctionExpression;
-  name: string;
+  name: StringLiteralNode;
   args: Node[];
 }
 

@@ -17,7 +17,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
   describe('Command parser', () => {
     it('should parse a command correctly', () => {
       const c: Case = [
-        'my-command @ipfs("upload this to ipfs") contract:getData("param1", false, an-identifier, @me) anotherIdentifier.open',
+        'my-command @ipfs("upload this to ipfs") contract::getData("param1", false, an-identifier, @me) anotherIdentifier.open',
         {
           type: 'CommandExpression',
           name: { type: 'CommandIdentifier', value: 'my-command' },
@@ -141,7 +141,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
     it('should parse commands followed by block expressions', () => {
       const c: Case = [
         `forward token-manager voting agent (
-          set $agent $finance:vault()
+          set $agent $finance::vault()
           forward wrappable-token-manager.open disputable-voting.open agent (
             sf:batchcall (
               flow create @token(fDAIx) $agent 1e18mo

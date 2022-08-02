@@ -9,7 +9,7 @@ import {
   str,
 } from 'arcsecond';
 
-import type { AsExpressionNode } from '../types';
+import type { AsExpressionNode, NodeParser } from '../types';
 import { NodeType } from '../types';
 import { arrayExpressionParser } from './array';
 import { blockExpressionParser } from './block';
@@ -37,15 +37,15 @@ const asExpressionParser = sequenceOf([
   }),
 );
 
-export const argumentExpressionParser: Parser<any, string, any> =
-  recursiveParser(() =>
+export const argumentExpressionParser = recursiveParser(
+  (): NodeParser =>
     choice([
       callExpressionParser,
       helperFunctionParser,
-      primaryParser,
       arrayExpressionParser,
+      primaryParser,
     ]),
-  );
+);
 
 export const expressionParser = recursiveParser(() =>
   choice([

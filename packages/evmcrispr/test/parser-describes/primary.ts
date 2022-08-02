@@ -125,6 +125,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'my-ens-name.eth',
           'agent.open.0',
           'superfluid-app.other-open#20',
+          '2015-20-09',
         ].forEach((value) =>
           expect(runParser(probableIdentifierParser, value)).to.eql(
             node(value),

@@ -1,7 +1,6 @@
-import type { Signer } from 'ethers';
-
 import type { Address } from '../../../..';
 import { resolveName } from '../../../../utils';
+import type { RawHelperFunction } from '../../../types';
 
 function getAragonEnsResolver(chainId: number): string {
   switch (chainId) {
@@ -14,11 +13,11 @@ function getAragonEnsResolver(chainId: number): string {
   }
 }
 
-export async function aragonEns(
+export const aragonEns: RawHelperFunction = async (
+  { signer },
   ens: string,
   ensResolver: Address,
-  signer: Signer,
-): Promise<string> {
+) => {
   const name = await resolveName(
     ens,
     ensResolver || getAragonEnsResolver(await signer.getChainId()),
@@ -30,4 +29,4 @@ export async function aragonEns(
   }
 
   return name;
-}
+};

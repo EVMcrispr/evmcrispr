@@ -1,7 +1,7 @@
 import type { Signer } from 'ethers';
 import { constants } from 'ethers';
 
-import { ErrorNotFound } from '../../errors';
+import { ErrorException, ErrorNotFound } from '../../errors';
 import { timeUnits, toDecimals } from '../../utils';
 import type {
   AST,
@@ -18,7 +18,6 @@ import type {
   VariableIdentiferNode,
 } from '../types';
 import { NodeType } from '../types';
-// import defaultHelpers from '../../helpers';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager } from './BindingsManager';
@@ -73,8 +72,8 @@ export class Interpreter {
     this.#bindingsManager = new BindingsManager();
     this.#setDefaultBindings();
 
-    this.#std = new Std(this.#bindingsManager, this.#modules);
     this.#signer = signer;
+    this.#std = new Std(this.#bindingsManager, this.#signer, this.#modules);
   }
 
   get std(): Std {
@@ -141,6 +140,16 @@ export class Interpreter {
     return lazyNodes;
   }
 
+  #interpretArrayExpression(n: ArrayExpressionNode): LazyNode {
+    return {
+      type: n.type,
+      resolve: async () => {
+        const lazyNodes = this.#interpretNodes(n.elements);
+        return resolveLazyNodes(lazyNodes);
+      },
+    };
+  }
+
   #intrepretAsExpression(n: AsExpressionNode): LazyNode {
     return {
       type: n.type,
@@ -153,22 +162,12 @@ export class Interpreter {
     };
   }
 
-  #interpretArrayExpression(n: ArrayExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async () => {
-        const lazyNodes = this.#interpretNodes(n.elements);
-        return resolveLazyNodes(lazyNodes);
-      },
-    };
-  }
-
   #interpretBlockExpression(n: BlockExpressionNode): LazyNode {
     return {
       type: n.type,
       resolve: async (
         moduleName: string,
-        contextFn?: () => Promise<void>,
+        contextMakerFn?: () => Promise<void>,
         identifierFormatter?: IdentifierFormatter,
       ) => {
         this.#bindingsManager.enterScope();
@@ -181,8 +180,8 @@ export class Interpreter {
           );
         }
 
-        if (contextFn) {
-          await contextFn();
+        if (contextMakerFn) {
+          await contextMakerFn();
         }
 
         const lazyNodes = this.#interpretNodes(n.body);
@@ -238,34 +237,30 @@ export class Interpreter {
     };
   }
 
-  async #runModuleCommand(
-    c: CommandExpressionNode,
-    module: Module,
-  ): ReturnType<CommandFunction<Module>> {
-    const lazyNodes = this.#interpretNodes(c.args);
-
-    return module.interpretCommand(c.name.value, lazyNodes, this.#signer);
-  }
-
   #interpretHelperFunction(n: HelperFunctionNode): LazyNode {
     return {
       type: n.type,
       resolve: async () => {
-        console.log(n);
-        // const args = await Promise.all(
-        //   n.args.map((arg) => this.#interpretNode(arg)),
-        // );
-        // console.log(args);
+        const helperName = await this.#interpretNode(n.name).resolve();
+        const args = await resolveLazyNodes(this.#interpretNodes(n.args));
+        const filteredModules = [...this.#modules, this.std].filter(
+          (m) => m.helpers[helperName],
+        );
 
-        // const helperFn = this.#helpers[n.name];
+        if (!filteredModules.length) {
+          throw new ErrorNotFound(`Helper @${helperName} not found`);
+        }
+        // TODO: Prefix helpers with module name/alias to avoid collisions
+        else if (filteredModules.length > 1) {
+          throw new ErrorException(
+            `Helper @${helperName} name colissions. Found ${filteredModules.length}`,
+          );
+        }
 
-        // if (!helperFn) {
-        //   throw new ErrorNotFound(`Helper @${n.name} not found`);
-        // }
+        const m = filteredModules[0];
+        const helper = m.helpers[helperName];
 
-        // TODO: call helper function
-
-        return;
+        return helper(...args);
       },
     };
   }
@@ -341,8 +336,18 @@ export class Interpreter {
     return this.#bindingsManager.getBinding(`$interpreter.${name}`, false);
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   #setInterpreterBindings(name: string, value: any): void {
     this.#bindingsManager.setBinding(`$interpreter.${name}`, value);
+  }
+
+  async #runModuleCommand(
+    c: CommandExpressionNode,
+    module: Module,
+  ): ReturnType<CommandFunction<Module>> {
+    const lazyNodes = this.#interpretNodes(c.args);
+
+    return module.interpretCommand(c.name.value, lazyNodes, this.#signer);
   }
 
   #setDefaultBindings(): void {

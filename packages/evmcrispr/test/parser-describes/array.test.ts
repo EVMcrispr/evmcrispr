@@ -1,4 +1,4 @@
-import { arrayExpresionParser } from '../../src/cas11/parsers/array';
+import { arrayExpressionParser } from '../../src/cas11/parsers/array';
 import type { Case } from '../test-helpers/cas11';
 import { runCases } from '../test-helpers/cas11';
 
@@ -19,7 +19,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
           'Invalid array match',
         ],
         [
-          '[145e18y, @token(DAI), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], $fDAIx:host()]',
+          '[145e18y, @token(DAI), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], $fDAIx::host()]',
           {
             type: 'ArrayExpression',
             elements: [
@@ -66,6 +66,6 @@ export const arrayParserDescribe = (): Mocha.Suite =>
         ],
       ];
 
-      runCases(cases, arrayExpresionParser);
+      runCases(cases, arrayExpressionParser);
     });
   });

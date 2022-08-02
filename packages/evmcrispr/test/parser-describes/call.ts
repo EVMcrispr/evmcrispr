@@ -7,7 +7,7 @@ export const callParserDescribe = (): Mocha.Suite =>
     it('should parse call expressions correctly', () => {
       const cases: Case[] = [
         [
-          `0x14FA5C16Af56190239B997485656F5c8b4f86c4b:getEntry(0, @token(WETH))`,
+          `0x14FA5C16Af56190239B997485656F5c8b4f86c4b::getEntry(0, @token(WETH))`,
           {
             type: 'CallExpression',
             target: {
@@ -26,7 +26,7 @@ export const callParserDescribe = (): Mocha.Suite =>
           },
         ],
         [
-          `$superfluid:createFlow(@token("DAIx"), $finance:vault([1,2,3]), $contract:method(), 10e18m, 'this is a nice description')`,
+          `$superfluid::createFlow(@token("DAIx"), $finance::vault([1,2,3]), $contract::method(), 10e18m, 'this is a nice description')`,
           {
             type: 'CallExpression',
             target: { type: 'VariableIdentifier', value: '$superfluid' },
@@ -83,7 +83,7 @@ export const callParserDescribe = (): Mocha.Suite =>
           'invalid nested call expression',
         ],
         [
-          `@token(DAIx):upgrade(@token(DAI), 1800e18)`,
+          `@token(DAIx)::upgrade(@token(DAI), 1800e18)`,
           {
             type: 'CallExpression',
             target: {
@@ -104,7 +104,7 @@ export const callParserDescribe = (): Mocha.Suite =>
           'invalid helper call expression',
         ],
         [
-          `$registryContract:getToken(1):approve(@me, 560.25e18):another()`,
+          `$registryContract::getToken(1)::approve(@me, 560.25e18)::another()`,
           {
             type: 'CallExpression',
             target: {

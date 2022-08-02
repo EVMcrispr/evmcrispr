@@ -1,20 +1,25 @@
+import type { Signer } from 'ethers';
+
 import type { LazyNode } from '../../interpreter/Interpreter';
 import type { BindingsManager } from '../../interpreter/BindingsManager';
 
 import { Module } from '../Module';
 import { IPFSResolver } from '../../../IPFSResolver';
 import { exec, load, set } from './commands';
+import { helpers } from './helpers';
 import type { CommandFunction } from '../../types';
 
 export class Std extends Module {
   #modules: Module[];
   #ipfsResolver: IPFSResolver;
-  // #helpers: Record<string, Helper>;
 
-  constructor(bindingsManager: BindingsManager, modules: Module[]) {
-    super('core', bindingsManager);
+  constructor(
+    bindingsManager: BindingsManager,
+    signer: Signer,
+    modules: Module[],
+  ) {
+    super('std', bindingsManager, signer, helpers);
 
-    // this.#helpers = {};
     this.#ipfsResolver = new IPFSResolver();
     this.#modules = modules;
   }

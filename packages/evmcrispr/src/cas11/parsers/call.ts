@@ -1,6 +1,5 @@
 import type { Parser } from 'arcsecond';
 import {
-  char,
   choice,
   coroutine,
   letters,
@@ -18,6 +17,7 @@ import {
 } from './primaries';
 import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
+import { callSymbolParser } from './utils';
 
 export const callExpressionParser: Parser<any, string, any> = recursiveParser(
   () =>
@@ -29,7 +29,7 @@ export const callExpressionParser: Parser<any, string, any> = recursiveParser(
         probableIdentifierParser,
       ]);
 
-      let res = yield char(':');
+      let res = yield callSymbolParser;
       let callExpressionNode: any = target;
 
       do {
@@ -49,7 +49,8 @@ export const callExpressionParser: Parser<any, string, any> = recursiveParser(
           args,
         };
 
-        res = yield possibly(char(':'));
+        // Check for chained call expressions
+        res = yield possibly(callSymbolParser);
       } while (res);
 
       return callExpressionNode;

@@ -48,7 +48,12 @@ export const load: CommandFunction<Std> = async (std, lazyNodes) => {
   switch (moduleName) {
     case 'aragonos':
       std.modules.push(
-        new AragonOS(std.bindingsManager, std.ipfsResolver, moduleAlias),
+        new AragonOS(
+          std.bindingsManager,
+          std.signer,
+          std.ipfsResolver,
+          moduleAlias,
+        ),
       );
       return;
     default:

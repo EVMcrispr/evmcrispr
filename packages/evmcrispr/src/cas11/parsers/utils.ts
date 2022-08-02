@@ -4,13 +4,20 @@ import {
   char,
   choice,
   coroutine,
+  endOfInput,
+  lookAhead,
   many,
   possibly,
   recursiveParser,
   regex,
   sepBy,
   sequenceOf,
+  str,
 } from 'arcsecond';
+
+import type { Node } from '../types';
+
+export const callSymbolParser = str('::');
 
 export const endOfLine = char('\n');
 
@@ -23,31 +30,25 @@ export const emptyLine = sequenceOf([possibly(whitespace), endOfLine]).map(
   () => null,
 );
 
-export const enclosedBy = (
-  openingChar: string,
-  closingChar: string,
-  parser: Parser<any, any, any>,
-): Parser<any, string, any> =>
-  coroutine(function* () {
-    yield char(openingChar);
-    yield optionalWhitespace;
+export const commonEnclosingCharParsers = [
+  char(','),
+  char(' '),
+  char(']'),
+  char(')'),
+  endOfLine,
+  endOfInput,
+];
 
-    const res = yield parser;
-    yield optionalWhitespace;
-    yield char(closingChar);
-
-    return res;
-  });
-// between(surroundedBy(optionalWhitespace)(char(openingChar)))(
-//   surroundedBy(optionalWhitespace)(char(closingChar)),
-// )(parser);
+export const enclosingLookaheadParser = lookAhead(
+  choice(commonEnclosingCharParsers),
+);
 
 export const surroundedBy = (
   parser: Parser<any, any, any>,
 ): ((p: Parser<unknown, string, any>) => Parser<unknown, any, any>) =>
   between(parser)(parser);
 
-export const commaSeparated: any = sepBy(
+export const commaSeparated = sepBy<any, Node, string, any>(
   surroundedBy(optionalWhitespace)(char(',')),
 );
 
