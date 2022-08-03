@@ -5,8 +5,8 @@ import { ethers } from 'hardhat';
 
 import { CallableExpression, ComparisonType } from '../../../src/cas11/utils';
 import {
-  itChecksInvalidArgs,
-  runExpression as runExpression_,
+  itChecksInvalidArgsLength,
+  runExpression,
 } from '../../test-helpers/cas11';
 
 const { Helper } = CallableExpression;
@@ -21,7 +21,7 @@ export const helpersDescribe = (): Mocha.Suite =>
     const lazySigner = () => signer;
 
     const runHelper = async (helper: string) => {
-      return runExpression_(helper, signer);
+      return runExpression(helper, signer);
     };
 
     before(async () => {
@@ -35,7 +35,7 @@ export const helpersDescribe = (): Mocha.Suite =>
         expect(res).to.equals(utils.id('an example test'));
       });
 
-      itChecksInvalidArgs(
+      itChecksInvalidArgsLength(
         Helper,
         '@id',
         ['exampleValue'],
@@ -54,7 +54,7 @@ export const helpersDescribe = (): Mocha.Suite =>
         expect(connectedAccount).to.equals(await signer.getAddress());
       });
 
-      itChecksInvalidArgs(
+      itChecksInvalidArgsLength(
         Helper,
         '@me',
         [],
@@ -72,7 +72,7 @@ export const helpersDescribe = (): Mocha.Suite =>
         );
       });
 
-      itChecksInvalidArgs(
+      itChecksInvalidArgsLength(
         Helper,
         '@token',
         ['DAI'],
@@ -99,7 +99,7 @@ export const helpersDescribe = (): Mocha.Suite =>
         expect(holderBalance).to.equals(expectedBalance);
       });
 
-      itChecksInvalidArgs(
+      itChecksInvalidArgsLength(
         Helper,
         '@token.balance',
         ['DAI', '@me'],
@@ -244,7 +244,7 @@ export const helpersDescribe = (): Mocha.Suite =>
         }
       });
 
-      itChecksInvalidArgs(
+      itChecksInvalidArgsLength(
         Helper,
         '@date',
         ['2010-05-05', '+2y'],

@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
 import { ErrorException, ErrorInvalid } from '../../../../errors';
+import { BindingsSpace } from '../../../interpreter/BindingsManager';
 import type { RawHelperFunction } from '../../../types';
 import {
   CallableExpression,
@@ -16,7 +17,8 @@ export const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
 const getTokenList = ({ bindingsManager }: Module): string => {
   const tokenList = String(
-    bindingsManager.getBinding(ENV_TOKENLIST) ?? DEFAULT_TOKEN_LIST,
+    bindingsManager.getBinding(ENV_TOKENLIST, BindingsSpace.USER) ??
+      DEFAULT_TOKEN_LIST,
   );
 
   // Always check user data inputs:

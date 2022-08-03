@@ -21,19 +21,20 @@ export class AragonDAO {
   #connector: Connector;
   #ipfsResolver: IPFSResolver;
 
+  #nestingIndex: number;
+
   constructor(
     chainId: number,
     subgraphUrl: string,
     ipfsResolver: IPFSResolver,
+    nestingIndex: number,
   ) {
     this.#appCache = new Map();
     this.#appArtifactCache = new Map();
     this.#connector = new Connector(chainId, { subgraphUrl });
     this.#ipfsResolver = ipfsResolver;
-  }
 
-  get connector(): Connector {
-    return this.#connector;
+    this.#nestingIndex = nestingIndex;
   }
 
   get appCache(): AppCache {
@@ -44,16 +45,30 @@ export class AragonDAO {
     return this.#appArtifactCache;
   }
 
+  get connector(): Connector {
+    return this.#connector;
+  }
+
+  get kernel(): App {
+    return this.resolveApp('kernel:0');
+  }
+
+  get nestingIndex(): number {
+    return this.#nestingIndex;
+  }
+
   static async create(
     daoAddress: Address,
     subgraphUrl: string,
     signer: Signer,
     ipfsResolver: IPFSResolver,
+    index: number,
   ): Promise<AragonDAO> {
     const dao = new AragonDAO(
       await signer.getChainId(),
       subgraphUrl,
       ipfsResolver,
+      index,
     );
 
     const parsedApps = await dao.connector.organizationApps(daoAddress);

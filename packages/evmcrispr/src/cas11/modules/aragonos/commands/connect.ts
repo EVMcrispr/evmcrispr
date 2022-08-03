@@ -5,28 +5,46 @@ import {
   ANY_ENTITY,
   BURN_ENTITY,
   NO_ENTITY,
+  addressesEqual,
   resolveIdentifier,
 } from '../../../../utils';
 import { ErrorException, ErrorInvalid } from '../../../../errors';
-import type { BindingsManager } from '../../../interpreter/BindingsManager';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
-import { aragonEns } from '../helpers/aragonEns';
+import { BindingsSpace } from '../../../interpreter/BindingsManager';
 
 const prefixError = 'Connect command error';
 
 const { BlockExpression } = NodeType;
+const { ADDR } = BindingsSpace;
 
-const setDAOContext = (bindingsManager: BindingsManager, dao: AragonDAO) => {
+const setDAOContext = (
+  aragonos: AragonOS,
+  dao: AragonDAO,
+  daoIndex: string | number,
+  daoName?: string,
+) => {
   return () => {
-    bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY);
-    bindingsManager.setBinding('NO_ENTITY', NO_ENTITY);
-    bindingsManager.setBinding('BURN_ENTITY', BURN_ENTITY);
+    const bindingsManager = aragonos.bindingsManager;
+
+    bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY, ADDR);
+    bindingsManager.setBinding('NO_ENTITY', NO_ENTITY, ADDR);
+    bindingsManager.setBinding('BURN_ENTITY', BURN_ENTITY, ADDR);
+
+    aragonos.setCurrentDAO(dao);
 
     dao.appCache.forEach((app, appIdentifier) => {
-      bindingsManager.setBinding(appIdentifier, app.address);
+      bindingsManager.setBinding(appIdentifier, app.address, ADDR);
+      bindingsManager.setBinding(
+        `_${daoIndex}:${appIdentifier}`,
+        app.address,
+        ADDR,
+      );
+      if (daoName) {
+        bindingsManager.setBinding(`_${daoName}`, app.address, ADDR);
+      }
     });
   };
 };
@@ -60,26 +78,42 @@ export const connect: CommandFunction<AragonOS> = async (
   if (utils.isAddress(daoAddressOrName)) {
     daoAddress = daoAddressOrName;
   } else {
-    const ensResolver = aragonos.getModuleVariable('ensResolver') as string;
-    daoAddress = await aragonEns(
+    const ensResolver = aragonos.getModuleBinding('ensResolver', true);
+    daoAddress = await aragonos.helpers.aragonEns(
       `${daoAddressOrName}.aragonid.eth`,
       ensResolver,
       signer,
     );
   }
 
+  const currentDao = aragonos.getCurrentDAO();
+
+  if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
+    throw new ErrorInvalid(
+      `${prefixError}: trying to connect to an already connected DAO (${daoAddress})`,
+    );
+  }
+
+  // Allow us to keep track of connected DAOs inside nested 'connect' commands
+  const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 0;
+
   const dao = await AragonDAO.create(
     daoAddress,
-    aragonos.getModuleVariable('subgraphUrl'),
+    aragonos.getModuleBinding('subgraphUrl', true),
     signer,
     aragonos.ipfsResolver,
+    nextNestingIndex,
   );
 
-  aragonos.setModuleVariable(daoAddressOrName, dao, true);
+  aragonos.connectedDAOs.push(dao);
+
+  const daoName = !utils.isAddress(daoAddressOrName)
+    ? daoAddressOrName
+    : undefined;
 
   return blockExpressionLazyNode.resolve(
     aragonos.alias ?? aragonos.name,
-    setDAOContext(aragonos.bindingsManager, dao),
+    setDAOContext(aragonos, dao, nextNestingIndex, daoName),
     resolveIdentifier,
   );
 };

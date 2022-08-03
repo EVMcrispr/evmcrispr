@@ -1,9 +1,15 @@
-import { literalDescribe, stdModuleDescribe } from './interpreter-describes/';
+import {
+  aragonosModuleDescribe,
+  literalDescribe,
+  stdModuleDescribe,
+} from './interpreter-describes/';
 
 describe('CAS11 Interpreter', () => {
   literalDescribe();
 
-  stdModuleDescribe();
+  describe('Modules', () => {
+    stdModuleDescribe();
 
-  // aragonosModuleDescribe();
+    aragonosModuleDescribe();
+  });
 });

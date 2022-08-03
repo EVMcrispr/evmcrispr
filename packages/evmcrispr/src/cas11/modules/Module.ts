@@ -2,6 +2,7 @@ import type { Signer } from 'ethers';
 
 import type { LazyNode } from '../interpreter/Interpreter';
 import type { BindingsManager } from '../interpreter/BindingsManager';
+import { BindingsSpace } from '../interpreter/BindingsManager';
 import type {
   CommandFunction,
   HelperFunctions,
@@ -21,6 +22,8 @@ const curryHelpers = (
     {},
   );
 };
+
+const buildConfigVar = (name: string): string => `$${name}.${name}`;
 
 export abstract class Module {
   name: string;
@@ -62,25 +65,23 @@ export abstract class Module {
     signer?: Signer,
   ): ReturnType<CommandFunction<Module>>;
 
-  getModuleVariable(name: string): any {
-    return this.bindingsManager.getBinding(this.#buildModuleVariable(name));
+  getModuleBinding(name: string, isConfigBinding = false): any {
+    if (isConfigBinding) {
+      return this.#bindingsManager.getBinding(
+        buildConfigVar(name),
+        BindingsSpace.USER,
+      );
+    }
+
+    return this.#bindingsManager.getCustomBinding(name, this.name);
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  setModuleVariable(name: string, value: any, isGlobal = false): void {
-    this.bindingsManager.setBinding(
-      this.#buildModuleVariable(name),
-      value,
-      false,
-      isGlobal,
-    );
+  setModuleBinding(name: string, value: any, isGlobal = false): void {
+    this.#bindingsManager.setCustomBinding(name, value, this.name, isGlobal);
   }
 
   panic(msg: string): void {
     throw new Error(msg);
-  }
-
-  #buildModuleVariable(name: string): string {
-    return `$${this.name}:${name}`;
   }
 }

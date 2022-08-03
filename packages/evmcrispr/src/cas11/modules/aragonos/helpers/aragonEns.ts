@@ -1,6 +1,12 @@
-import type { Address } from '../../../..';
+import { ErrorInvalid } from '../../../../errors';
 import { resolveName } from '../../../../utils';
 import type { RawHelperFunction } from '../../../types';
+import {
+  CallableExpression,
+  ComparisonType,
+  checkArgsLength,
+} from '../../../utils';
+import type { AragonOS } from '../AragonOS';
 
 function getAragonEnsResolver(chainId: number): string {
   switch (chainId) {
@@ -13,19 +19,26 @@ function getAragonEnsResolver(chainId: number): string {
   }
 }
 
-export const aragonEns: RawHelperFunction = async (
+export const aragonEns: RawHelperFunction<AragonOS> = async (
   { signer },
-  ens: string,
-  ensResolver: Address,
+  ...args: any[]
 ) => {
+  checkArgsLength('aragonEns', CallableExpression.Helper, args.length, {
+    type: ComparisonType.Between,
+    minValue: 1,
+    maxValue: 2,
+  });
+
+  const [ensName, ensResolver] = args;
+
   const name = await resolveName(
-    ens,
+    ensName,
     ensResolver || getAragonEnsResolver(await signer.getChainId()),
     signer,
   );
 
   if (!name) {
-    throw new Error(`ENS ${ens} can not be resolved.`);
+    throw new ErrorInvalid(`ENS ${ensName} can not be resolved.`);
   }
 
   return name;

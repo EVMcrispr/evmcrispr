@@ -1,8 +1,9 @@
 import { commandsDescribe } from './commands';
 import { helpersDescribe } from './helpers';
 
-export const stdModuleDescribe = (): Mocha.Suite =>
-  describe('Std', () => {
+export const aragonosModuleDescribe = (): Mocha.Suite =>
+  describe('AragonOS', () => {
     commandsDescribe();
+
     helpersDescribe();
   });

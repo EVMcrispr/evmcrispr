@@ -4,6 +4,7 @@ import { ethers } from 'hardhat';
 
 import type { Action } from '../../../src';
 import { encodeActCall } from '../../../src';
+import { BindingsSpace } from '../../../src/cas11/interpreter/BindingsManager';
 
 import { toDecimals } from '../../../src/utils';
 
@@ -76,7 +77,7 @@ export const commandsDescribe = (): Mocha.Suite =>
 
         await interpreter.interpret();
 
-        expect(interpreter.getBinding('$var', true)).to.be.equal(
+        expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.equal(
           toDecimals(1, 18),
         );
       });

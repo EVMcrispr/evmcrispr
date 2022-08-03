@@ -1,3 +1,4 @@
+import { BindingsSpace } from '../../../interpreter/BindingsManager';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
 import type { Std } from '../Std';
@@ -19,5 +20,5 @@ export const set: CommandFunction<Std> = async (std, lazyNodes) => {
   const varName = (await varLazyNode.resolve(true)) as string;
   const varValue = await valueLazyNode.resolve();
 
-  std.bindingsManager.setBinding(varName, varValue, true);
+  std.bindingsManager.setBinding(varName, varValue, BindingsSpace.USER);
 };

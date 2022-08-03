@@ -20,7 +20,7 @@ import type {
 import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
-import { BindingsManager } from './BindingsManager';
+import { BindingsManager, BindingsSpace } from './BindingsManager';
 import { resolveLazyNodes } from '../utils/resolvers';
 
 const {
@@ -43,10 +43,7 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-export type LazyNode = {
-  type: NodeType;
-  resolve: (...args: any[]) => Promise<any> | Promise<void>;
-};
+const { ADDR, INTERPRETER, USER } = BindingsSpace;
 
 // Interpreter bindings
 
@@ -55,6 +52,11 @@ const CONTEXTUAL_MODULE = 'contextualModule';
 const IDENTIFIER_FORMATTER = 'identifierFormatter';
 
 type IdentifierFormatter = (identifier: string) => string;
+
+export type LazyNode = {
+  type: NodeType;
+  resolve: (...args: any[]) => Promise<any> | Promise<void>;
+};
 
 export class Interpreter {
   readonly ast: AST;
@@ -88,8 +90,8 @@ export class Interpreter {
     this.#signer = signer;
   }
 
-  getBinding(name: string, isUserVariable = false): any {
-    return this.#bindingsManager.getBinding(name, isUserVariable);
+  getBinding(name: string, memSpace: BindingsSpace): any {
+    return this.#bindingsManager.getBinding(name, memSpace);
   }
 
   async interpret(): Promise<any> {
@@ -172,11 +174,17 @@ export class Interpreter {
       ) => {
         this.#bindingsManager.enterScope();
 
-        this.#bindingsManager.setBinding(CONTEXTUAL_MODULE, moduleName);
+        this.#bindingsManager.setBinding(
+          CONTEXTUAL_MODULE,
+          moduleName,
+          INTERPRETER,
+        );
+
         if (identifierFormatter) {
-          this.#setInterpreterBindings(
+          this.#bindingsManager.setBinding(
             IDENTIFIER_FORMATTER,
             identifierFormatter,
+            INTERPRETER,
           );
         }
 
@@ -215,7 +223,7 @@ export class Interpreter {
         const { module: moduleName_ } = c.name;
         const moduleName =
           moduleName_ ??
-          (this.bindingsManager.getBinding(CONTEXTUAL_MODULE) as
+          (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
             | string
             | undefined);
 
@@ -293,15 +301,16 @@ export class Interpreter {
         let identifier: string = n.value;
 
         if (treatAsIdentifier) {
-          const identifierFormatter = this.#getInterpreterBinding(
+          const identifierFormatter = this.#bindingsManager.getBinding(
             'identifierFormatter',
+            INTERPRETER,
           ) as IdentifierFormatter;
 
           if (identifierFormatter) {
             identifier = identifierFormatter(identifier);
           }
 
-          const binding = this.bindingsManager.getBinding(identifier);
+          const binding = this.bindingsManager.getBinding(identifier, ADDR);
 
           if (binding) {
             return binding;
@@ -321,7 +330,7 @@ export class Interpreter {
           return n.value;
         }
 
-        const binding = this.#bindingsManager.getBinding(n.value, true);
+        const binding = this.#bindingsManager.getBinding(n.value, USER);
 
         if (binding) {
           return binding;
@@ -330,15 +339,6 @@ export class Interpreter {
         throw new Error(`${n.value} is not defined`);
       },
     };
-  }
-
-  #getInterpreterBinding(name: string): any {
-    return this.#bindingsManager.getBinding(`$interpreter.${name}`, false);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  #setInterpreterBindings(name: string, value: any): void {
-    this.#bindingsManager.setBinding(`$interpreter.${name}`, value);
   }
 
   async #runModuleCommand(
@@ -351,7 +351,7 @@ export class Interpreter {
   }
 
   #setDefaultBindings(): void {
-    this.#bindingsManager.setBinding('DAIx', constants.AddressZero);
-    this.#bindingsManager.setBinding('ETH', constants.AddressZero);
+    this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
+    this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
   }
 }

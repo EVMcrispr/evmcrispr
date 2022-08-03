@@ -4,6 +4,7 @@ import type { Signer } from 'ethers';
 
 import { inspect } from 'util';
 import { ErrorInvalid } from '../../src';
+import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
 import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
 import type { AST, Node } from '../../src/cas11/types';
@@ -73,12 +74,19 @@ export const createInterpreter = (
 export const runExpression = async (
   helper: string,
   signer: Signer,
+  module?: string,
 ): Promise<string> => {
-  const i = createInterpreter(`set $res ${helper}`, signer);
-  // console.log(i.ast);
+  const i = createInterpreter(
+    `
+  ${module ? `load ${module}` : ''}
+  set $res ${helper}
+  `,
+    signer,
+  );
+
   await i.interpret();
 
-  return i.getBinding('$res', true);
+  return i.getBinding('$res', BindingsSpace.USER);
 };
 
 const plural = (length: number): string => (length > 1 ? 's' : '');
@@ -119,12 +127,13 @@ const getCallee = (argumentlessExpression: string): string => {
   }
 };
 
-export const itChecksInvalidArgs = (
+export const itChecksInvalidArgsLength = (
   expressionType: CallableExpression,
   argumentlessExpression: string,
   args: string[],
   c: Comparison,
   lazySigner: () => Signer,
+  module?: string,
 ): Mocha.Test => {
   const { type, minValue, maxValue } = c;
   return it('should fail when passing an invalid number of arguments', async () => {
@@ -143,6 +152,7 @@ export const itChecksInvalidArgs = (
           runExpression(
             updateExpressionArgs('add', argumentlessExpression, args, c),
             signer,
+            module,
           ),
         {
           type: ErrorInvalid,
@@ -164,6 +174,7 @@ export const itChecksInvalidArgs = (
             runExpression(
               updateExpressionArgs('remove', argumentlessExpression, args, c),
               signer,
+              module,
             ),
           {
             type: ErrorInvalid,
@@ -185,6 +196,7 @@ export const itChecksInvalidArgs = (
           runExpression(
             updateExpressionArgs('remove', argumentlessExpression, args, c),
             signer,
+            module,
           ),
         {
           type: ErrorInvalid,
