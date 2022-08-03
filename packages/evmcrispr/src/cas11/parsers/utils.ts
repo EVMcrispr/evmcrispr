@@ -17,7 +17,7 @@ import {
 
 import type { Node } from '../types';
 
-export const callSymbolParser = str('::');
+export const callOperatorParser = str('::');
 
 export const endOfLine = char('\n');
 

@@ -14,7 +14,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               type: 'AddressLiteral',
               value: '0x14FA5C16Af56190239B997485656F5c8b4f86c4b',
             },
-            callee: { type: 'StringLiteral', value: 'getEntry' },
+            method: { type: 'StringLiteral', value: 'getEntry' },
             args: [
               { type: 'NumberLiteral', value: 0 },
               {
@@ -30,7 +30,7 @@ export const callParserDescribe = (): Mocha.Suite =>
           {
             type: 'CallExpression',
             target: { type: 'VariableIdentifier', value: '$superfluid' },
-            callee: { type: 'StringLiteral', value: 'createFlow' },
+            method: { type: 'StringLiteral', value: 'createFlow' },
             args: [
               {
                 type: 'HelperFunctionExpression',
@@ -40,7 +40,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               {
                 type: 'CallExpression',
                 target: { type: 'VariableIdentifier', value: '$finance' },
-                callee: { type: 'StringLiteral', value: 'vault' },
+                method: { type: 'StringLiteral', value: 'vault' },
                 args: [
                   {
                     elements: [
@@ -63,7 +63,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'CallExpression',
-                callee: {
+                method: {
                   type: 'StringLiteral',
                   value: 'method',
                 },
@@ -91,7 +91,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               name: { type: 'StringLiteral', value: 'token' },
               args: [{ type: 'ProbableIdentifier', value: 'DAIx' }],
             },
-            callee: { type: 'StringLiteral', value: 'upgrade' },
+            method: { type: 'StringLiteral', value: 'upgrade' },
             args: [
               {
                 type: 'HelperFunctionExpression',
@@ -115,10 +115,10 @@ export const callParserDescribe = (): Mocha.Suite =>
                   type: 'VariableIdentifier',
                   value: '$registryContract',
                 },
-                callee: { type: 'StringLiteral', value: 'getToken' },
+                method: { type: 'StringLiteral', value: 'getToken' },
                 args: [{ type: 'NumberLiteral', value: 1 }],
               },
-              callee: { type: 'StringLiteral', value: 'approve' },
+              method: { type: 'StringLiteral', value: 'approve' },
               args: [
                 {
                   type: 'HelperFunctionExpression',
@@ -128,7 +128,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                 { type: 'NumberLiteral', value: 560.25, power: 18 },
               ],
             },
-            callee: { type: 'StringLiteral', value: 'another' },
+            method: { type: 'StringLiteral', value: 'another' },
             args: [],
           },
           'invalid recursive call expression',

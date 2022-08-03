@@ -11,12 +11,12 @@ import type {
   VariableIdentiferNode,
 } from '../../types';
 import { NodeType } from '../../types';
-import { callSymbolParser, commonEnclosingCharParsers } from '../utils';
+import { callOperatorParser, commonEnclosingCharParsers } from '../utils';
 
 export const variableIdentifierParser = recursiveParser(() =>
   sequenceOf([
-    regex(/^\$[a-zA-Z\d#\-.]+/),
-    lookAhead(choice([...commonEnclosingCharParsers, callSymbolParser])),
+    regex(/^\$(?:(?!::|\(|\)|\[|\]|,|\s).)+/),
+    lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
   ]).map(
     ([value]): VariableIdentiferNode => ({
       type: NodeType.VariableIdentifier,
@@ -28,7 +28,7 @@ export const variableIdentifierParser = recursiveParser(() =>
 export const probableIdentifierParser = recursiveParser(() =>
   sequenceOf([
     regex(/^(?:(?!::|\(|\)|\[|\]|,|\s).)+/),
-    lookAhead(choice([...commonEnclosingCharParsers, callSymbolParser])),
+    lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
   ]).map(
     ([value]): ProbableIdentifierNode => ({
       type: NodeType.ProbableIdentifier,

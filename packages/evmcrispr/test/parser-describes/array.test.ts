@@ -57,7 +57,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
               {
                 type: 'CallExpression',
                 target: { type: 'VariableIdentifier', value: '$fDAIx' },
-                callee: { type: 'StringLiteral', value: 'host' },
+                method: { type: 'StringLiteral', value: 'host' },
                 args: [],
               },
             ],

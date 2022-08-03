@@ -149,7 +149,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                     type: 'ProbableIdentifier',
                                     value: 'finance',
                                   },
-                                  callee: {
+                                  method: {
                                     type: 'StringLiteral',
                                     value: 'vault',
                                   },

@@ -7,7 +7,7 @@ import {
   recursiveParser,
 } from 'arcsecond';
 
-import type { StringLiteralNode } from '../types';
+import type { CallExpressionNode, StringLiteralNode } from '../types';
 import { NodeType } from '../types';
 
 import {
@@ -17,10 +17,10 @@ import {
 } from './primaries';
 import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
-import { callSymbolParser } from './utils';
+import { callOperatorParser } from './utils';
 
-export const callExpressionParser: Parser<any, string, any> = recursiveParser(
-  () =>
+export const callExpressionParser: Parser<CallExpressionNode, string, any> =
+  recursiveParser(() =>
     coroutine(function* () {
       const target = yield choice([
         addressParser,
@@ -29,11 +29,12 @@ export const callExpressionParser: Parser<any, string, any> = recursiveParser(
         probableIdentifierParser,
       ]);
 
-      let res = yield callSymbolParser;
+      let callSymbol: string | null =
+        (yield callOperatorParser) as unknown as string;
       let callExpressionNode: any = target;
 
       do {
-        const callee = yield letters.map(
+        const method = yield letters.map(
           (value): StringLiteralNode => ({
             type: NodeType.StringLiteral,
             value,
@@ -45,14 +46,16 @@ export const callExpressionParser: Parser<any, string, any> = recursiveParser(
         callExpressionNode = {
           type: NodeType.CallExpression,
           target: callExpressionNode,
-          callee,
+          method,
           args,
         };
 
         // Check for chained call expressions
-        res = yield possibly(callSymbolParser);
-      } while (res);
+        callSymbol = (yield possibly(callOperatorParser)) as unknown as
+          | string
+          | null;
+      } while (callSymbol);
 
       return callExpressionNode;
     }),
-);
+  );

@@ -124,7 +124,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'create-super-flow-xtreme-aa',
           'my-ens-name.eth',
           'agent.open.0',
-          'superfluid-app.other-open#20',
+          'superfluid-app.other-open:20',
           '2015-20-09',
         ].forEach((value) =>
           expect(runParser(probableIdentifierParser, value)).to.eql(
@@ -140,7 +140,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           '$variable',
           '$aCamelCaseVariable',
           '$a-snake-case-variable',
-          '$token-manager.open#0',
+          '$token-manager.open:0',
         ].forEach((value) =>
           expect(runParser(variableIdentifierParser, value)).to.deep.equal({
             type: 'VariableIdentifier',

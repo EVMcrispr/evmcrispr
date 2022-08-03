@@ -30,7 +30,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
             {
               type: 'CallExpression',
               target: { type: 'ProbableIdentifier', value: 'contract' },
-              callee: { type: 'StringLiteral', value: 'getData' },
+              method: { type: 'StringLiteral', value: 'getData' },
               args: [
                 { type: 'StringLiteral', value: 'param1' },
                 { type: 'BoolLiteral', value: false },
@@ -166,7 +166,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
                     {
                       type: 'CallExpression',
                       target: { type: 'VariableIdentifier', value: '$finance' },
-                      callee: { type: 'StringLiteral', value: 'vault' },
+                      method: { type: 'StringLiteral', value: 'vault' },
                       args: [],
                     },
                   ],

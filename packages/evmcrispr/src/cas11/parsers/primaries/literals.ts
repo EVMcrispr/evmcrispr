@@ -17,14 +17,14 @@ import type {
 } from '../../types';
 import { NodeType } from '../../types';
 import {
-  callSymbolParser,
+  callOperatorParser,
   commonEnclosingCharParsers,
   enclosingLookaheadParser,
 } from '../utils';
 
 export const addressParser = sequenceOf([
   regex(/^0x[a-fA-F0-9]{40}/),
-  lookAhead(choice([...commonEnclosingCharParsers, callSymbolParser])),
+  lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
 ]).map(
   ([value]): AddressLiteralNode => ({
     type: NodeType.AddressLiteral,

@@ -98,7 +98,12 @@ export interface VariableIdentiferNode extends Node {
 
 export interface CallExpressionNode extends Node {
   type: NodeType.CallExpression;
-  callee: AddressLiteralNode | VariableIdentiferNode;
+  target:
+    | AddressLiteralNode
+    | HelperFunctionNode
+    | ProbableIdentifierNode
+    | VariableIdentiferNode;
+  method: StringLiteralNode;
   args: Node[];
 }
 

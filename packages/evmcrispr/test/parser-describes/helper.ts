@@ -14,7 +14,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
               {
                 type: 'CallExpression',
                 target: { type: 'ProbableIdentifier', value: 'anotherToken' },
-                callee: { type: 'StringLiteral', value: 'symbol' },
+                method: { type: 'StringLiteral', value: 'symbol' },
                 args: [],
               },
               { type: 'StringLiteral', value: 'this is a string param' },
