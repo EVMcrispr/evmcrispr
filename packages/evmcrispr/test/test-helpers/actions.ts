@@ -37,7 +37,12 @@ export const createTestCallAction = (
 };
 
 export const createTestAction = (
-  operation: string,
+  operation:
+    | 'createPermission'
+    | 'grantPermission'
+    | 'newAppInstance'
+    | 'revokePermission'
+    | 'removePermissionManager',
   to: Address,
   parameters: any[],
 ): Action => {

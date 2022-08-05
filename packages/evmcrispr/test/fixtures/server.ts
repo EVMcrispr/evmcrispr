@@ -8,7 +8,6 @@ import organizationFixture from './subgraph-data/OrganizationAppsResponse.json';
 import tokenListFixture from './tokenlist/uniswap.json';
 import { addressesEqual } from '../../src/utils';
 import { IPFS_GATEWAY } from '../../src/IPFSResolver';
-import { DEFAULT_TOKEN_LIST } from '../../src/cas11/modules/std/helpers/token';
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
@@ -56,7 +55,7 @@ const handlers = [
       }
     },
   ),
-  rest.get(DEFAULT_TOKEN_LIST, (_, res, ctx) => {
+  rest.get('https://tokens.uniswap.org/', (_, res, ctx) => {
     return res(ctx.status(200), ctx.json(tokenListFixture));
   }),
 ];

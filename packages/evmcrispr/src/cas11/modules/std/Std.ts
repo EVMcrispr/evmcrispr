@@ -5,9 +5,10 @@ import type { BindingsManager } from '../../interpreter/BindingsManager';
 
 import { Module } from '../Module';
 import { IPFSResolver } from '../../../IPFSResolver';
-import { exec, load, set } from './commands';
+import { commands } from './commands';
 import { helpers } from './helpers';
 import type { CommandFunction } from '../../types';
+import { ErrorInvalid } from '../../../errors';
 
 export class Std extends Module {
   #modules: Module[];
@@ -36,15 +37,12 @@ export class Std extends Module {
     name: string,
     lazyNodes: LazyNode[],
   ): ReturnType<CommandFunction<Std>> {
-    switch (name) {
-      case 'load':
-        return load(this, lazyNodes);
-      case 'exec':
-        return exec(this, lazyNodes);
-      case 'set':
-        return set(this, lazyNodes);
-      default:
-        this.panic(`Command ${name} not found on module Std`);
+    const command = commands[name];
+
+    if (!command) {
+      throw new ErrorInvalid(`Command ${name} not found on module Std`);
     }
+
+    return command(this, lazyNodes);
   }
 }

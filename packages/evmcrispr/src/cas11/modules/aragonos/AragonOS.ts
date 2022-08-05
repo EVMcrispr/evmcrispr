@@ -6,8 +6,9 @@ import type { BindingsManager } from '../../interpreter/BindingsManager';
 import { Module } from '../Module';
 import type { IPFSResolver } from '../../../IPFSResolver';
 import type { CommandFunction } from '../../types';
+import { ErrorInvalid } from '../../../errors';
 import type { AragonDAO } from './AragonDAO';
-import { act, connect } from './commands';
+import { commands } from './commands';
 import { helpers } from './helpers';
 import { addressesEqual } from '../../../utils';
 import type { Address } from '../../..';
@@ -39,14 +40,13 @@ export class AragonOS extends Module {
     name: string,
     lazyNodes: LazyNode[],
   ): ReturnType<CommandFunction<AragonOS>> {
-    switch (name) {
-      case 'connect':
-        return connect(this, lazyNodes, this.signer);
-      case 'act':
-        return act(this, lazyNodes);
-      default:
-        this.panic(`Command ${name} not found on module AragonOS`);
+    const command = commands[name];
+
+    if (!command) {
+      throw new ErrorInvalid(`Command ${name} not found on module AragonOS`);
     }
+
+    return command(this, lazyNodes);
   }
 
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {

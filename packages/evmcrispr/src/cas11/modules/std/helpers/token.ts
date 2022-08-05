@@ -13,7 +13,7 @@ import type { Module } from '../../Module';
 import type { Std } from '../Std';
 
 const ENV_TOKENLIST = 'token.tokenlist';
-export const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
+const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
 const getTokenList = ({ bindingsManager }: Module): string => {
   const tokenList = String(

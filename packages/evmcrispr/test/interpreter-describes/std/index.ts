@@ -2,7 +2,7 @@ import { commandsDescribe } from './commands';
 import { helpersDescribe } from './helpers';
 
 export const stdModuleDescribe = (): Mocha.Suite =>
-  describe('Std', () => {
+  describe.only('Std', () => {
     commandsDescribe();
     helpersDescribe();
   });

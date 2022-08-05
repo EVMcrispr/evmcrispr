@@ -1,19 +1,26 @@
 import { utils } from 'ethers';
 
-import type { Address } from '../../../..';
+import type { Action, Address } from '../../../..';
 import {
   ANY_ENTITY,
   BURN_ENTITY,
   NO_ENTITY,
   addressesEqual,
-  resolveIdentifier,
 } from '../../../../utils';
-import { ErrorException, ErrorInvalid } from '../../../../errors';
+import { ErrorInvalid } from '../../../../errors';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
+import { formatIdentifier } from '../utils';
+import {
+  CallableExpression,
+  ComparisonType,
+  checkArgsLength,
+  resolveLazyNodes,
+} from '../../../utils';
+import { batchForwarderActions } from '../../../../modules/aragonos/utils/forwarders';
 
 const prefixError = 'Connect command error';
 
@@ -22,9 +29,7 @@ const { ADDR } = BindingsSpace;
 
 const setDAOContext = (
   aragonos: AragonOS,
-  dao: AragonDAO,
-  daoIndex: string | number,
-  daoName?: string,
+  { dao, index, name }: { dao: AragonDAO; index: number; name?: string },
 ) => {
   return () => {
     const bindingsManager = aragonos.bindingsManager;
@@ -38,12 +43,12 @@ const setDAOContext = (
     dao.appCache.forEach((app, appIdentifier) => {
       bindingsManager.setBinding(appIdentifier, app.address, ADDR);
       bindingsManager.setBinding(
-        `_${daoIndex}:${appIdentifier}`,
+        `_${index}:${appIdentifier}`,
         app.address,
         ADDR,
       );
-      if (daoName) {
-        bindingsManager.setBinding(`_${daoName}`, app.address, ADDR);
+      if (name) {
+        bindingsManager.setBinding(`_${name}`, app.address, ADDR);
       }
     });
   };
@@ -52,23 +57,22 @@ const setDAOContext = (
 export const connect: CommandFunction<AragonOS> = async (
   aragonos,
   lazyNodes,
-  signer,
 ) => {
-  if (!signer) {
-    throw new ErrorException('Signer missing');
-  }
+  checkArgsLength('connect', CallableExpression.Command, lazyNodes.length, {
+    type: ComparisonType.Greater,
+    minValue: 2,
+  });
 
-  if (lazyNodes.length < 2) {
+  const [daoNameLazyNode, ...rest] = lazyNodes;
+  const blockExpressionLazyNode = rest.pop();
+  const forwarderApps = await resolveLazyNodes(rest);
+
+  if (
+    !blockExpressionLazyNode ||
+    blockExpressionLazyNode.type !== BlockExpression
+  ) {
     throw new ErrorInvalid(
-      `${prefixError}: invalid number of arguments. Expected at least 2 and got ${lazyNodes.length}`,
-    );
-  }
-
-  const [daoNameLazyNode, blockExpressionLazyNode] = lazyNodes;
-
-  if (blockExpressionLazyNode.type !== BlockExpression) {
-    throw new ErrorInvalid(
-      `${prefixError}: second argument should be a group of commands`,
+      `${prefixError}: last argument should be a group of commands`,
     );
   }
 
@@ -82,7 +86,6 @@ export const connect: CommandFunction<AragonOS> = async (
     daoAddress = await aragonos.helpers.aragonEns(
       `${daoAddressOrName}.aragonid.eth`,
       ensResolver,
-      signer,
     );
   }
 
@@ -100,7 +103,7 @@ export const connect: CommandFunction<AragonOS> = async (
   const dao = await AragonDAO.create(
     daoAddress,
     aragonos.getModuleBinding('subgraphUrl', true),
-    signer,
+    aragonos.signer,
     aragonos.ipfsResolver,
     nextNestingIndex,
   );
@@ -111,9 +114,34 @@ export const connect: CommandFunction<AragonOS> = async (
     ? daoAddressOrName
     : undefined;
 
-  return blockExpressionLazyNode.resolve(
-    aragonos.alias ?? aragonos.name,
-    setDAOContext(aragonos, dao, nextNestingIndex, daoName),
-    resolveIdentifier,
+  const actions = (await blockExpressionLazyNode.resolve(
+    aragonos.contextualName,
+    setDAOContext(aragonos, { dao, index: nextNestingIndex, name: daoName }),
+    formatIdentifier,
+  )) as Action[];
+
+  const invalidApps: any[] = [];
+  const forwarderAppAddresses: Address[] = [];
+
+  forwarderApps.forEach((app) => {
+    const appAddress = dao.resolveApp(app)?.address;
+
+    !utils.isAddress(appAddress)
+      ? invalidApps.push(app)
+      : forwarderAppAddresses.push(appAddress);
+  });
+
+  if (invalidApps.length) {
+    throw new ErrorInvalid(
+      `${prefixError}: invalid forwarder addresses found for the following: ${invalidApps.join(
+        ', ',
+      )}`,
+    );
+  }
+
+  return batchForwarderActions(
+    aragonos.signer,
+    actions,
+    forwarderAppAddresses.reverse(),
   );
 };

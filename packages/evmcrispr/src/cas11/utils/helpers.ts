@@ -1,9 +1,9 @@
 import { ErrorInvalid } from '../../errors';
-import type { Comparison } from './expressions';
-import { CallableExpression, ComparisonType } from './expressions';
+import { Interpreter } from '../interpreter/Interpreter';
+import type { CallableExpression, Comparison } from './expressions';
+import { ComparisonType } from './expressions';
 
 const { Between, Equal, Greater } = ComparisonType;
-const { Helper } = CallableExpression;
 
 const checkComparisonError = (
   value: number,
@@ -20,8 +20,6 @@ const checkComparisonError = (
 };
 
 export const buildArgsLengthErrorMsg = (
-  callee: string,
-  type: CallableExpression,
   length: number,
   { type: comparisonType, minValue, maxValue }: Comparison,
 ): string => {
@@ -39,9 +37,7 @@ export const buildArgsLengthErrorMsg = (
       break;
   }
 
-  return `${
-    type === Helper ? '@' : ''
-  }${callee} ${type} error: invalid number of arguments. Expected ${comparisonText} argument${
+  return `invalid number of arguments. Expected ${comparisonText} argument${
     minValue > 1 || maxValue ? 's' : ''
   }, but got ${length}.`;
 };
@@ -55,8 +51,11 @@ export const checkArgsLength = (
   const isError = checkComparisonError(length, comparison);
 
   if (isError) {
-    throw new ErrorInvalid(
-      buildArgsLengthErrorMsg(name, type, length, comparison),
+    Interpreter.panic(
+      type,
+      name,
+      ErrorInvalid,
+      buildArgsLengthErrorMsg(length, comparison),
     );
   }
 };

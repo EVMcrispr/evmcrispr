@@ -22,6 +22,7 @@ import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
 import { resolveLazyNodes } from '../utils/resolvers';
+import type { CallableExpression } from '../utils';
 
 const {
   AddressLiteral,
@@ -53,6 +54,16 @@ const IDENTIFIER_FORMATTER = 'identifierFormatter';
 
 type IdentifierFormatter = (identifier: string) => string;
 
+export const buildErrorMsg = (
+  type: CallableExpression,
+  name: string,
+  msg: string,
+): string => {
+  const upperCaseName = name.charAt(0).toUpperCase() + name.slice(1);
+
+  return `${upperCaseName} ${type.toLowerCase()} error: ${msg}`;
+};
+
 export type LazyNode = {
   type: NodeType;
   resolve: (...args: any[]) => Promise<any> | Promise<void>;
@@ -78,10 +89,6 @@ export class Interpreter {
     this.#std = new Std(this.#bindingsManager, this.#signer, this.#modules);
   }
 
-  get std(): Std {
-    return this.#std;
-  }
-
   get bindingsManager(): BindingsManager {
     return this.#bindingsManager;
   }
@@ -92,6 +99,20 @@ export class Interpreter {
 
   getBinding(name: string, memSpace: BindingsSpace): any {
     return this.#bindingsManager.getBinding(name, memSpace);
+  }
+
+  getModule(aliasOrName: string): Module | undefined {
+    if (aliasOrName === this.#std.name || aliasOrName === this.#std.alias) {
+      return this.#std;
+    }
+
+    return this.#modules.find(
+      (m) => m.name === aliasOrName || m.alias === aliasOrName,
+    );
+  }
+
+  getAllModules(): Module[] {
+    return [this.#std, ...this.#modules];
   }
 
   async interpret(): Promise<any> {
@@ -251,7 +272,7 @@ export class Interpreter {
       resolve: async () => {
         const helperName = await this.#interpretNode(n.name).resolve();
         const args = await resolveLazyNodes(this.#interpretNodes(n.args));
-        const filteredModules = [...this.#modules, this.std].filter(
+        const filteredModules = [...this.#modules, this.#std].filter(
           (m) => m.helpers[helperName],
         );
 
@@ -353,5 +374,15 @@ export class Interpreter {
   #setDefaultBindings(): void {
     this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
     this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
+  }
+
+  static panic(
+    type: CallableExpression,
+    typeName: string,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    ErrorConstructor: any,
+    msg: string,
+  ): never {
+    throw new ErrorConstructor(buildErrorMsg(type, typeName, msg));
   }
 }

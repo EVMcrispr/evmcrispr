@@ -1,26 +1,34 @@
-// import type { CommandFunction } from '../../../types';
+import { ErrorInvalid } from '../../../../errors';
+import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
+import {
+  CallableExpression,
+  ComparisonType,
+  checkArgsLength,
+} from '../../../utils';
 import { AragonOS } from '../../aragonos/AragonOS';
 import type { Std } from '../Std';
-// import type { Std } from '../Std';
 
+const { Command } = CallableExpression;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
 
-const errorPrefix = 'Load command error';
-
 export const load: CommandFunction<Std> = async (std, lazyNodes) => {
-  if (lazyNodes.length !== 1) {
-    throw new Error(`${errorPrefix}: invalid number of arguments. Expected 1`);
-  }
+  checkArgsLength('load', Command, lazyNodes.length, {
+    type: ComparisonType.Equal,
+    minValue: 1,
+  });
 
   const [lazyNode] = lazyNodes;
   const type = lazyNode.type;
   const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
   if (type !== AsExpression && type !== StringLiteral && !isIdentifier) {
-    throw new Error(
-      `Load command error: invalid argument. Expected a string or an as expression`,
+    Interpreter.panic(
+      Command,
+      'load',
+      ErrorInvalid,
+      'invalid argument. Expected a string',
     );
   }
 
@@ -34,14 +42,24 @@ export const load: CommandFunction<Std> = async (std, lazyNodes) => {
   }
 
   if (std.modules.find((m: any) => m.name === moduleName)) {
-    std.panic(`Module ${moduleName} already loaded`);
+    Interpreter.panic(
+      Command,
+      'load',
+      ErrorInvalid,
+      `module ${moduleName} already loaded`,
+    );
   }
 
   if (moduleAlias) {
     const m = std.modules.find((m: any) => m.alias === moduleAlias);
 
     if (m) {
-      std.panic(`Alias already used for module ${m.name}`);
+      Interpreter.panic(
+        Command,
+        'load',
+        ErrorInvalid,
+        `alias already used for module ${m.name}`,
+      );
     }
   }
 
@@ -57,6 +75,11 @@ export const load: CommandFunction<Std> = async (std, lazyNodes) => {
       );
       return;
     default:
-      std.panic(`Module ${moduleName} not found`);
+      Interpreter.panic(
+        Command,
+        'load',
+        ErrorInvalid,
+        `module ${moduleName} not found`,
+      );
   }
 };

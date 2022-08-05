@@ -55,6 +55,10 @@ export abstract class Module {
     return this.#helpers;
   }
 
+  get contextualName(): string {
+    return this.alias ?? this.name;
+  }
+
   get signer(): Signer {
     return this.#signer;
   }
@@ -79,9 +83,5 @@ export abstract class Module {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   setModuleBinding(name: string, value: any, isGlobal = false): void {
     this.#bindingsManager.setCustomBinding(name, value, this.name, isGlobal);
-  }
-
-  panic(msg: string): void {
-    throw new Error(msg);
   }
 }

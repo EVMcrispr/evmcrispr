@@ -5,7 +5,10 @@ import type { Signer } from 'ethers';
 import { inspect } from 'util';
 import { ErrorInvalid } from '../../src';
 import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
-import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
+import {
+  Interpreter,
+  buildErrorMsg,
+} from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
 import type { AST, Node } from '../../src/cas11/types';
 import { ASTType } from '../../src/cas11/types';
@@ -156,11 +159,10 @@ export const itChecksInvalidArgsLength = (
           ),
         {
           type: ErrorInvalid,
-          message: buildArgsLengthErrorMsg(
-            callee,
+          message: buildErrorMsg(
             expressionType,
-            args.length + 1,
-            c,
+            callee,
+            buildArgsLengthErrorMsg(args.length + 1, c),
           ),
         },
         `invalid result when passing more than ${upperValue} argument${plural(
@@ -178,11 +180,10 @@ export const itChecksInvalidArgsLength = (
             ),
           {
             type: ErrorInvalid,
-            message: buildArgsLengthErrorMsg(
-              callee,
+            message: buildErrorMsg(
               expressionType,
-              minValue - 1,
-              c,
+              callee,
+              buildArgsLengthErrorMsg(minValue - 1, c),
             ),
           },
           `invalid result when passing less than ${minValue} argument${plural(
@@ -200,11 +201,10 @@ export const itChecksInvalidArgsLength = (
           ),
         {
           type: ErrorInvalid,
-          message: buildArgsLengthErrorMsg(
-            callee,
+          message: buildErrorMsg(
             expressionType,
-            args.length - 1,
-            c,
+            callee,
+            buildArgsLengthErrorMsg(args.length - 1, c),
           ),
         },
         `invalid result when passing less than ${minValue} argument${plural(

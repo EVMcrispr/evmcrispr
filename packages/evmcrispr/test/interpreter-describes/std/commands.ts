@@ -3,12 +3,18 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
 import type { Action } from '../../../src';
-import { encodeActCall } from '../../../src';
+import { ErrorInvalid, encodeActCall } from '../../../src';
 import { BindingsSpace } from '../../../src/cas11/interpreter/BindingsManager';
+import { buildErrorMsg } from '../../../src/cas11/interpreter/Interpreter';
+import { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
+import { CallableExpression } from '../../../src/cas11/utils';
 
 import { toDecimals } from '../../../src/utils';
 
 import { createInterpreter } from '../../test-helpers/cas11';
+import { expectThrowAsync } from '../../test-helpers/expects';
+
+const { Command } = CallableExpression;
 
 export const commandsDescribe = (): Mocha.Suite =>
   describe('Commands', () => {
@@ -17,53 +23,68 @@ export const commandsDescribe = (): Mocha.Suite =>
     before(async () => {
       [signer] = await ethers.getSigners();
     });
+
     describe('when intepreting load command', () => {
       it('should load a module correctly', async () => {
-        const interpreter = createInterpreter('load aragonos', signer);
+        const moduleName = 'aragonos';
+        const interpreter = createInterpreter(`load ${moduleName}`, signer);
+
         await interpreter.interpret();
 
-        const modules = interpreter.std.modules;
-        const module = modules[0];
+        const modules = interpreter.getAllModules();
+        const module = modules.find((m) => m.name === moduleName);
 
-        expect(modules.length).to.be.equal(1);
-        expect(module.name).equals('aragonos');
-        // expect(module).instanceOf(AragonOS);
+        expect(modules.length, 'total modules length mismatch').to.be.equal(2);
+        expect(module, "module doesn't exists").to.exist;
+        expect(module?.name, 'module name mismatch').to.equals(moduleName);
+        expect(module, 'module class mismatch').instanceOf(AragonOS);
       });
 
-      it('should load a module and set an alias for it correctly', async () => {
+      it('should set an alias for a module correctly', async () => {
         const interpreter = createInterpreter('load aragonos as ar', signer);
 
         await interpreter.interpret();
 
-        const module = interpreter.std.modules[0];
+        const module = interpreter.getModule('aragonos');
 
-        expect(module.alias).to.be.equal('ar');
+        expect(module?.alias).to.be.equal('ar');
       });
 
       it('should fail when trying to load a non-existent module', async () => {
-        try {
-          await createInterpreter('load nonExistent', signer).interpret();
-        } catch (err) {
-          expect((err as Error).message).to.be.equals(
-            'Module nonExistent not found',
-          );
-        }
+        const moduleName = 'nonExistent';
+        await expectThrowAsync(
+          () => createInterpreter(`load ${moduleName}`, signer).interpret(),
+          {
+            type: ErrorInvalid,
+            message: buildErrorMsg(
+              Command,
+              'load',
+              `module ${moduleName} not found`,
+            ),
+          },
+        );
       });
 
       it('should fail when trying to load a previously loaded module', async () => {
-        try {
-          await createInterpreter(
-            `
-            load aragonos
-            load aragonos
+        const moduleName = 'aragonos';
+        await expectThrowAsync(
+          () =>
+            createInterpreter(
+              `
+            load ${moduleName}
+            load ${moduleName}
           `,
-            signer,
-          ).interpret();
-        } catch (err) {
-          expect((err as Error).message).to.be.equals(
-            'Module aragonos already loaded',
-          );
-        }
+              signer,
+            ).interpret(),
+          {
+            type: ErrorInvalid,
+            message: buildErrorMsg(
+              Command,
+              'load',
+              `module ${moduleName} already loaded`,
+            ),
+          },
+        );
       });
 
       it(
