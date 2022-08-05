@@ -5,7 +5,7 @@ import type { Address, Params } from '../types';
 /**
  * An address used for permission operations that denotes any type of Ethereum account.
  */
-export const ANY_ENTITY: Address = '0x' + 'F'.repeat(40);
+export const ANY_ENTITY: Address = '0x' + 'f'.repeat(40);
 
 /**
  * An address used for permission operations that denotes no Ethereum account.

@@ -90,7 +90,7 @@ export class AragonDAO {
       );
 
       if (!app) {
-        throw new ErrorNotFound(`Address ${entity} doesn't match any app.`, {
+        throw new ErrorNotFound(`address ${entity} doesn't match any app.`, {
           name: 'ErrorAppNotFound',
         });
       }
@@ -100,7 +100,7 @@ export class AragonDAO {
     const resolvedIdentifier = resolveIdentifier(entity);
 
     if (!this.appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`App ${resolvedIdentifier} not found.`, {
+      throw new ErrorNotFound(`app ${resolvedIdentifier} not found.`, {
         name: 'ErrorAppNotFound',
       });
     }

@@ -3,7 +3,7 @@ import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { ErrorException, ErrorInvalid } from '../../../src';
+import { ErrorException, ErrorInvalid, ErrorNotFound } from '../../../src';
 import { buildErrorMsg } from '../../../src/cas11/interpreter/Interpreter';
 
 import type { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
@@ -12,6 +12,7 @@ import {
   ComparisonType,
   buildArgsLengthErrorMsg,
 } from '../../../src/cas11/utils';
+import { ANY_ENTITY, toDecimals } from '../../../src/utils';
 
 import { DAO } from '../../fixtures';
 import {
@@ -174,7 +175,7 @@ export const commandsDescribe = (): Mocha.Suite =>
     // });
 
     describe('grant <entity> <app> <role> [permissionManager]', async () => {
-      it('should return a valid grant permission action', async () => {
+      it('should grant a permission correctly', async () => {
         const interpreter = createAragonScriptInterpreter([
           `grant @me vault TRANSFER_ROLE`,
         ]);
@@ -195,15 +196,16 @@ export const commandsDescribe = (): Mocha.Suite =>
           utils.id('TRANSFER_ROLE'),
         )?.grantees;
 
-        expect(granteeActions, 'Action mismatch').to.eqls(
+        expect(granteeActions, 'Returned actions mismatch').to.eqls(
           expectedGranteeActions,
         );
-        expect(grantees, 'Permission grantee mismatch').to.include(
-          await signer.getAddress(),
-        );
+        expect(
+          grantees,
+          "Grantee wasn't found on DAO app's permissions",
+        ).to.include(await signer.getAddress());
       });
 
-      it('should return a valid create permission action', async () => {
+      it('should create a new permission correctly', async () => {
         const interpreter = createAragonScriptInterpreter([
           `grant voting token-manager ISSUE_ROLE @me`,
         ]);
@@ -224,16 +226,17 @@ export const commandsDescribe = (): Mocha.Suite =>
         const app = dao?.resolveApp('token-manager');
         const permission = app?.permissions?.get(utils.id('ISSUE_ROLE'));
 
-        expect(createPermissionAction, 'Actions mismatch').to.eql(
+        expect(createPermissionAction, 'Returned actions mismatch').to.eql(
           expectedCreatePermissionActions,
         );
         expect(
           permission?.grantees,
-          'Permission grantees mismatch',
+          "Grantee wasn't found on DAO app's permission",
         ).to.have.key(DAO.voting);
-        expect(permission?.manager, 'Permission manager mismatch').to.equals(
-          expectedPermissionManager,
-        );
+        expect(
+          permission?.manager,
+          "DAO app's permission manager mismatch",
+        ).to.equals(expectedPermissionManager);
       });
 
       it('should fail when executing it outside a "connect" command', async () => {
@@ -322,6 +325,193 @@ export const commandsDescribe = (): Mocha.Suite =>
               Command,
               'grant',
               `invalid permission manager. Expected an address, but got ${invalidPermissionManager}`,
+            ),
+          },
+        );
+      });
+    });
+
+    describe('revoke <grantee> <app> <role> [removeManager]', () => {
+      it('should revoke a permission correctly', async () => {
+        const interpeter = createAragonScriptInterpreter([
+          'revoke finance:0 vault:0 TRANSFER_ROLE',
+        ]);
+
+        const revokePermissionActions = await interpeter.interpret();
+
+        const role = utils.id('TRANSFER_ROLE');
+        const expectedRevokePermissionActions = [
+          createTestAction('revokePermission', DAO.acl, [
+            DAO.finance,
+            DAO.vault,
+            role,
+          ]),
+        ];
+
+        const aragonos = interpeter.getModule('aragonos') as AragonOS;
+        const dao = aragonos.getConnectedDAO(DAO.kernel);
+        const app = dao?.resolveApp('vault');
+        const appPermission = app?.permissions.get(role);
+
+        expect(
+          appPermission?.grantees,
+          "Grantee still exists on DAO app's permission",
+        ).to.not.have.key(DAO.finance);
+        expect(revokePermissionActions, 'Returned actions mismatch').to.eql(
+          expectedRevokePermissionActions,
+        );
+      });
+      it('should revoke a permission and a manager correctly', async () => {
+        const rawRole = 'CREATE_VOTES_ROLE';
+        const interpreter = createAragonScriptInterpreter([
+          `revoke ANY_ENTITY disputable-voting.open ${rawRole} true`,
+        ]);
+
+        const revokePermissionActions = await interpreter.interpret();
+
+        const role = utils.id(rawRole);
+        const expectedRevokePermissionActions = [
+          createTestAction('revokePermission', DAO.acl, [
+            ANY_ENTITY,
+            DAO['disputable-voting.open'],
+            role,
+          ]),
+          createTestAction('removePermissionManager', DAO.acl, [
+            DAO['disputable-voting.open'],
+            role,
+          ]),
+        ];
+
+        const aragonos = interpreter.getModule('aragonos') as AragonOS;
+        const dao = aragonos.getConnectedDAO(DAO.kernel);
+        const app = dao?.resolveApp(DAO['disputable-voting.open']);
+        const appPermission = app?.permissions.get(role);
+
+        expect(
+          appPermission?.grantees,
+          "Grantee still exists on DAO app's permission",
+        ).to.not.have.key(ANY_ENTITY);
+        expect(
+          appPermission?.manager,
+          "Permission manager still exists on DAO app's permission",
+        ).to.not.exist;
+        expect(revokePermissionActions, 'Returned actions mismatch').to.eql(
+          expectedRevokePermissionActions,
+        );
+      });
+      it('should fail when executing it outside a "connect" command', async () => {
+        await expectThrowAsync(
+          () =>
+            createInterpreter(
+              `
+              load aragonos as ar
+              ar:revoke voting token-manager MINT_ROLE`,
+              signer,
+            ).interpret(),
+          {
+            type: ErrorInvalid,
+            message: buildErrorMsg(
+              Command,
+              'revoke',
+              'must be used within a "connect" command',
+            ),
+          },
+        );
+      });
+      it('should fail when passing an invalid grantee address', async () => {
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              'revoke 1e18 token-manager MINT_ROLE',
+            ]).interpret(),
+          {
+            type: ErrorInvalid,
+            message: buildErrorMsg(
+              Command,
+              'revoke',
+              `grantee must be a valid address, got ${toDecimals(
+                1,
+                18,
+              ).toString()}`,
+            ),
+          },
+        );
+      });
+      it('should fail when passing an invalid remove manager flag', async () => {
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              'revoke voting token-manager MINT_ROLE 1e18',
+            ]).interpret(),
+          {
+            type: ErrorInvalid,
+            message: buildErrorMsg(
+              Command,
+              'revoke',
+              `invalid remove manager flag. Expected boolean but got ${typeof toDecimals(
+                1,
+                18,
+              )}`,
+            ),
+          },
+        );
+      });
+      it('should fail when revoking a permission from a non-app entity', async () => {
+        const nonAppAddress = await signer.getAddress();
+        const unknownIdentifier = 'unknown-app.open';
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `revoke voting ${unknownIdentifier} A_ROLE`,
+            ]).interpret(),
+          {
+            type: ErrorNotFound,
+            message: `app ${unknownIdentifier}:0 not found.`,
+            name: 'ErrorAppNotFound',
+          },
+          `Unknown identifier didn't fail properly`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `revoke voting ${nonAppAddress} MY_ROLE`,
+            ]).interpret(),
+          {
+            type: ErrorNotFound,
+            name: 'ErrorAppNotFound',
+            message: `address ${nonAppAddress} doesn't match any app.`,
+          },
+        );
+      });
+      it('should fail when revoking a non-existent permission', async () => {
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              'revoke voting token-manager UNKNOWN_ROLE',
+            ]).interpret(),
+          {
+            type: ErrorNotFound,
+            message: buildErrorMsg(
+              Command,
+              'revoke',
+              `given permission doesn't exists on app token-manager`,
+            ),
+          },
+        );
+      });
+      it("should fail when revoking a permission from an entity that doesn't have it", async () => {
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              'revoke voting token-manager ISSUE_ROLE',
+            ]).interpret(),
+          {
+            type: ErrorNotFound,
+            message: buildErrorMsg(
+              Command,
+              'revoke',
+              `grantee ${DAO.voting} doesn't have the given permission`,
             ),
           },
         );

@@ -22,7 +22,7 @@ import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
 import { resolveLazyNodes } from '../utils/resolvers';
-import type { CallableExpression } from '../utils';
+import { CallableExpression } from '../utils';
 
 const {
   AddressLiteral,
@@ -254,7 +254,12 @@ export class Interpreter {
           );
 
           if (!module) {
-            throw new ErrorNotFound(`Module ${moduleName} not found`);
+            Interpreter.panic(
+              CallableExpression.Command,
+              '',
+              ErrorNotFound,
+              `module ${moduleName} not found`,
+            );
           }
 
           return this.#runModuleCommand(c, module);
