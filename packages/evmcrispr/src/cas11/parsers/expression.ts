@@ -1,4 +1,3 @@
-import type { Parser } from 'arcsecond';
 import {
   between,
   char,
@@ -9,7 +8,12 @@ import {
   str,
 } from 'arcsecond';
 
-import type { AsExpressionNode, NodeParser } from '../types';
+import type {
+  ArgumentExpressionNode,
+  AsExpressionNode,
+  CommandArgExpressionNode,
+  NodeParser,
+} from '../types';
 import { NodeType } from '../types';
 import { arrayExpressionParser } from './array';
 import { blockExpressionParser } from './block';
@@ -23,44 +27,47 @@ import {
 } from './primaries';
 import { commaSeparated, whitespace } from './utils';
 
-const asExpressionParser = sequenceOf([
+const asExpressionParser: NodeParser<AsExpressionNode> = sequenceOf([
   choice([stringParser, probableIdentifierParser]),
   whitespace,
   str('as'),
   whitespace,
   choice([stringParser, probableIdentifierParser]),
-]).map(
-  ([left, , , , right]): AsExpressionNode => ({
-    type: NodeType.AsExpression,
-    left,
-    right,
-  }),
-);
+]).map(([left, , , , right]) => ({
+  type: NodeType.AsExpression,
+  left,
+  right,
+}));
 
-export const argumentExpressionParser = recursiveParser(
-  (): NodeParser =>
+export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
+  recursiveParser(() =>
     choice([
       callExpressionParser,
       helperFunctionParser,
       arrayExpressionParser,
       primaryParser,
     ]),
-);
+  );
 
-export const expressionParser = recursiveParser(() =>
-  choice([
-    asExpressionParser,
-    callExpressionParser,
-    helperFunctionParser,
-    blockExpressionParser,
-    arrayExpressionParser,
-    primaryParser,
-  ]),
-);
+export const expressionParser: NodeParser<CommandArgExpressionNode> =
+  recursiveParser(() =>
+    choice([
+      asExpressionParser,
+      callExpressionParser,
+      helperFunctionParser,
+      blockExpressionParser,
+      arrayExpressionParser,
+      primaryParser,
+    ]),
+  );
 
-export const argumentsParser: Parser<unknown, string, any> = recursiveParser(
-  () =>
-    between(sequenceOf([char('('), optionalWhitespace]))(
+export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
+  recursiveParser(() =>
+    between<
+      [string, string | null],
+      ArgumentExpressionNode[],
+      [string | null, string]
+    >(sequenceOf([char('('), optionalWhitespace]))(
       sequenceOf([optionalWhitespace, char(')')]),
-    )(commaSeparated(argumentExpressionParser)),
-);
+    )(commaSeparated<ArgumentExpressionNode>(argumentExpressionParser)),
+  );

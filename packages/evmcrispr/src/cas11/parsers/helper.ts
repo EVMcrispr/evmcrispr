@@ -1,28 +1,32 @@
 import { char, coroutine, possibly, recursiveParser, regex } from 'arcsecond';
 
-import type { StringLiteralNode } from '../types';
+import type {
+  ArgumentExpressionNode,
+  HelperFunctionNode,
+  NodeParser,
+} from '../types';
 import { NodeType } from '../types';
 import { argumentsParser } from './expression';
 
-const helperNameParser = regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/).map(
-  (value): StringLiteralNode => ({
-    type: NodeType.StringLiteral,
-    value,
-  }),
-);
+const helperNameParser = regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/);
 
-export const helperFunctionParser = recursiveParser(() =>
-  coroutine(function* () {
-    yield char('@');
+export const helperFunctionParser: NodeParser<HelperFunctionNode> =
+  recursiveParser(() =>
+    coroutine(function* () {
+      yield char('@');
 
-    const name = yield helperNameParser;
+      const name = (yield helperNameParser) as unknown as string;
 
-    const args = yield possibly(argumentsParser);
+      const args = (yield possibly(argumentsParser)) as unknown as
+        | null
+        | ArgumentExpressionNode[];
 
-    return {
-      type: NodeType.HelperFunctionExpression,
-      name,
-      args: args === null ? [] : args,
-    };
-  }),
-);
+      const n: HelperFunctionNode = {
+        type: NodeType.HelperFunctionExpression,
+        name,
+        args: args === null ? [] : args,
+      };
+
+      return n;
+    }),
+  );

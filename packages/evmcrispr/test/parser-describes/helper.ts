@@ -9,12 +9,12 @@ export const helperParserDescribe = (): Mocha.Suite =>
           '@helperFunction(anotherToken::symbol(), "this is a string param", 10e18)',
           {
             type: 'HelperFunctionExpression',
-            name: { type: 'StringLiteral', value: 'helperFunction' },
+            name: 'helperFunction',
             args: [
               {
                 type: 'CallExpression',
                 target: { type: 'ProbableIdentifier', value: 'anotherToken' },
-                method: { type: 'StringLiteral', value: 'symbol' },
+                method: 'symbol',
                 args: [],
               },
               { type: 'StringLiteral', value: 'this is a string param' },
@@ -27,7 +27,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
           `@token(WETH)`,
           {
             type: 'HelperFunctionExpression',
-            name: { type: 'StringLiteral', value: 'token' },
+            name: 'token',
             args: [{ type: 'ProbableIdentifier', value: 'WETH' }],
           },
           'invalid helper match',
@@ -36,7 +36,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
           `@now`,
           {
             type: 'HelperFunctionExpression',
-            name: { type: 'StringLiteral', value: 'now' },
+            name: 'now',
             args: [],
           },
           'invalid helper without args match',
@@ -45,17 +45,17 @@ export const helperParserDescribe = (): Mocha.Suite =>
           `@token('DAI', @calc(34, @innerHelper(true)))`,
           {
             type: 'HelperFunctionExpression',
-            name: { type: 'StringLiteral', value: 'token' },
+            name: 'token',
             args: [
               { type: 'StringLiteral', value: 'DAI' },
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'StringLiteral', value: 'calc' },
+                name: 'calc',
                 args: [
                   { type: 'NumberLiteral', value: 34 },
                   {
                     type: 'HelperFunctionExpression',
-                    name: { type: 'StringLiteral', value: 'innerHelper' },
+                    name: 'innerHelper',
                     args: [{ type: 'BoolLiteral', value: true }],
                   },
                 ],

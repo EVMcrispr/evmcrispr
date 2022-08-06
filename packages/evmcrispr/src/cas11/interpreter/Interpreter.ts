@@ -241,9 +241,8 @@ export class Interpreter {
     return {
       type: c.type,
       resolve: async () => {
-        const { module: moduleName_ } = c.name;
         const moduleName =
-          moduleName_ ??
+          c.module ??
           (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
             | string
             | undefined);
@@ -275,7 +274,7 @@ export class Interpreter {
     return {
       type: n.type,
       resolve: async () => {
-        const helperName = await this.#interpretNode(n.name).resolve();
+        const helperName = n.name;
         const args = await resolveLazyNodes(this.#interpretNodes(n.args));
         const filteredModules = [...this.#modules, this.#std].filter(
           (m) => m.helpers[helperName],
@@ -373,7 +372,7 @@ export class Interpreter {
   ): ReturnType<CommandFunction<Module>> {
     const lazyNodes = this.#interpretNodes(c.args);
 
-    return module.interpretCommand(c.name.value, lazyNodes, this.#signer);
+    return module.interpretCommand(c.name, lazyNodes, this.#signer);
   }
 
   #setDefaultBindings(): void {

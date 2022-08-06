@@ -1,23 +1,20 @@
-import type { Parser } from 'arcsecond';
 import { between, char, recursiveParser, sequenceOf } from 'arcsecond';
 
-import type { ArrayExpressionNode } from '../types';
+import type { ArrayExpressionNode, NodeParser } from '../types';
 import { NodeType } from '../types';
 
 import { argumentExpressionParser } from './expression';
 
 import { commaSeparated, optionalWhitespace } from './utils';
 
-export const arrayExpressionParser: Parser<ArrayExpressionNode, string, any> =
+export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
   recursiveParser(() =>
     between(sequenceOf([char('['), optionalWhitespace]))(
       sequenceOf([optionalWhitespace, char(']')]),
-    )(commaSeparated(argumentExpressionParser)).map(
-      (elements: any): ArrayExpressionNode => {
-        return {
-          type: NodeType.ArrayExpression,
-          elements,
-        };
-      },
-    ),
+    )(commaSeparated(argumentExpressionParser)).map((elements: any) => {
+      return {
+        type: NodeType.ArrayExpression,
+        elements,
+      };
+    }),
   );

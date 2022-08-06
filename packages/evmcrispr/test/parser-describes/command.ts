@@ -10,39 +10,245 @@ const {
   NumberLiteral,
   ProbableIdentifier,
   CommandExpression,
-  CommandIdentifier,
 } = NodeType;
 
 export const commandParserDescribe = (): Mocha.Suite =>
   describe('Command parser', () => {
     it('should parse a command correctly', () => {
+      const cases: Case[] = [
+        [
+          'my-command @ipfs("upload this to ipfs") contract::getData("param1", false, an-identifier, @me) anotherIdentifier.open',
+          {
+            type: 'CommandExpression',
+            name: 'my-command',
+            args: [
+              {
+                type: 'HelperFunctionExpression',
+                name: 'ipfs',
+                args: [{ type: 'StringLiteral', value: 'upload this to ipfs' }],
+              },
+              {
+                type: 'CallExpression',
+                target: { type: 'ProbableIdentifier', value: 'contract' },
+                method: 'getData',
+                args: [
+                  { type: 'StringLiteral', value: 'param1' },
+                  { type: 'BoolLiteral', value: false },
+                  { type: 'ProbableIdentifier', value: 'an-identifier' },
+                  {
+                    type: 'HelperFunctionExpression',
+                    name: 'me',
+                    args: [],
+                  },
+                ],
+              },
+              { type: 'ProbableIdentifier', value: 'anotherIdentifier.open' },
+            ],
+            opts: [],
+          },
+        ],
+        [
+          'load superfluid',
+          {
+            type: 'CommandExpression',
+            name: 'load',
+            args: [{ type: 'ProbableIdentifier', value: 'superfluid' }],
+            opts: [],
+          },
+          'invalid `load` command match',
+        ],
+        [
+          'load aragonos as ar',
+          {
+            type: 'CommandExpression',
+            name: 'load',
+            args: [
+              {
+                type: 'AsExpression',
+                left: { type: 'ProbableIdentifier', value: 'aragonos' },
+                right: { type: 'ProbableIdentifier', value: 'ar' },
+              },
+            ],
+            opts: [],
+          },
+        ],
+        [
+          `switch gnosis`,
+          {
+            type: 'CommandExpression',
+            name: 'switch',
+            args: [{ type: 'ProbableIdentifier', value: 'gnosis' }],
+            opts: [],
+          },
+          'invalid `switch` command match',
+        ],
+        [
+          `set $new-variable 'a variable'`,
+          {
+            type: 'CommandExpression',
+            name: 'set',
+            args: [
+              { type: 'VariableIdentifier', value: '$new-variable' },
+              { type: 'StringLiteral', value: 'a variable' },
+            ],
+            opts: [],
+          },
+          'invalid `set` command match',
+        ],
+      ];
+
+      runCases(cases, commandExpressionParser);
+    });
+
+    it('should parse a command with opt args correctly', async () => {
       const c: Case = [
-        'my-command @ipfs("upload this to ipfs") contract::getData("param1", false, an-identifier, @me) anotherIdentifier.open',
+        'example-command myArg1 125.23e18 @aHelper(contract::getSomething(), false) "text" --option1 optionValue --something-else @token(DAI) --anotherOne 1e18',
         {
           type: 'CommandExpression',
-          name: { type: 'CommandIdentifier', value: 'my-command' },
+          name: 'example-command',
           args: [
+            { type: 'ProbableIdentifier', value: 'myArg1' },
+            { type: 'NumberLiteral', value: 125.23, power: 18 },
             {
               type: 'HelperFunctionExpression',
-              name: { type: 'StringLiteral', value: 'ipfs' },
-              args: [{ type: 'StringLiteral', value: 'upload this to ipfs' }],
+              name: 'aHelper',
+              args: [
+                {
+                  type: 'CallExpression',
+                  target: { type: 'ProbableIdentifier', value: 'contract' },
+                  method: 'getSomething',
+                  args: [],
+                },
+                { type: 'BoolLiteral', value: false },
+              ],
+            },
+            { type: 'StringLiteral', value: 'text' },
+          ],
+          opts: [
+            {
+              type: 'CommandOpt',
+              name: 'option1',
+              value: { type: 'ProbableIdentifier', value: 'optionValue' },
             },
             {
-              type: 'CallExpression',
-              target: { type: 'ProbableIdentifier', value: 'contract' },
-              method: { type: 'StringLiteral', value: 'getData' },
+              type: 'CommandOpt',
+              name: 'something-else',
+              value: {
+                type: 'HelperFunctionExpression',
+                name: 'token',
+                args: [{ type: 'ProbableIdentifier', value: 'DAI' }],
+              },
+            },
+            {
+              type: 'CommandOpt',
+              name: 'anotherOne',
+              value: { type: 'NumberLiteral', value: 1, power: 18 },
+            },
+          ],
+        },
+      ];
+
+      runCases(c, commandExpressionParser);
+    });
+
+    it('should parse a command with in-between opt args', () => {
+      const c: Case = [
+        `exec 0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374 --inBetween a::getInfo() 1e18 --another-one @token.balance(GIV, @me) @token(DAI, "see") (
+          inside-command @me --t "testing" 25e16
+          another-ne token-manager:0 superfluid.open:3 --default true
+        ) --lastOne false`,
+        {
+          type: 'CommandExpression',
+          name: 'exec',
+          args: [
+            {
+              type: 'AddressLiteral',
+              value: '0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374',
+            },
+            { type: 'NumberLiteral', value: 1, power: 18 },
+            {
+              type: 'HelperFunctionExpression',
+              name: 'token',
               args: [
-                { type: 'StringLiteral', value: 'param1' },
-                { type: 'BoolLiteral', value: false },
-                { type: 'ProbableIdentifier', value: 'an-identifier' },
+                { type: 'ProbableIdentifier', value: 'DAI' },
+                { type: 'StringLiteral', value: 'see' },
+              ],
+            },
+            {
+              type: 'BlockExpression',
+              body: [
                 {
-                  type: 'HelperFunctionExpression',
-                  name: { type: 'StringLiteral', value: 'me' },
-                  args: [],
+                  type: 'CommandExpression',
+                  name: 'inside-command',
+                  args: [
+                    {
+                      type: 'HelperFunctionExpression',
+                      name: 'me',
+                      args: [],
+                    },
+                    { type: 'NumberLiteral', value: 25, power: 16 },
+                  ],
+                  opts: [
+                    {
+                      type: 'CommandOpt',
+                      name: 't',
+                      value: { type: 'StringLiteral', value: 'testing' },
+                    },
+                  ],
+                },
+                {
+                  type: 'CommandExpression',
+                  name: 'another-ne',
+                  args: [
+                    { type: 'ProbableIdentifier', value: 'token-manager:0' },
+                    {
+                      type: 'ProbableIdentifier',
+                      value: 'superfluid.open:3',
+                    },
+                  ],
+                  opts: [
+                    {
+                      type: 'CommandOpt',
+                      name: 'default',
+                      value: { type: 'BoolLiteral', value: true },
+                    },
+                  ],
                 },
               ],
             },
-            { type: 'ProbableIdentifier', value: 'anotherIdentifier.open' },
+          ],
+          opts: [
+            {
+              type: 'CommandOpt',
+              name: 'inBetween',
+              value: {
+                type: 'CallExpression',
+                target: { type: 'ProbableIdentifier', value: 'a' },
+                method: 'getInfo',
+                args: [],
+              },
+            },
+            {
+              type: 'CommandOpt',
+              name: 'another-one',
+              value: {
+                type: 'HelperFunctionExpression',
+                name: 'token.balance',
+                args: [
+                  { type: 'ProbableIdentifier', value: 'GIV' },
+                  {
+                    type: 'HelperFunctionExpression',
+                    name: 'me',
+                    args: [],
+                  },
+                ],
+              },
+            },
+            {
+              type: 'CommandOpt',
+              name: 'lastOne',
+              value: { type: 'BoolLiteral', value: false },
+            },
           ],
         },
       ];
@@ -53,7 +259,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
     it('should parse a command with trailing whitespaces', () => {
       const expectedCommandNode: CommandExpressionNode = {
         type: CommandExpression,
-        name: { type: CommandIdentifier, value: 'install' },
+        name: 'install',
         args: [
           { type: ProbableIdentifier, value: 'wrapper-hooked-token-manager' },
           {
@@ -63,6 +269,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
           { type: BoolLiteral, value: false },
           { type: NumberLiteral, value: 0 },
         ],
+        opts: [],
       };
       const command = `install wrapper-hooked-token-manager 0x83E57888cd55C3ea1cfbf0114C963564d81e318d false 0`;
 
@@ -87,57 +294,6 @@ export const commandParserDescribe = (): Mocha.Suite =>
       runCases(cases, commandExpressionParser);
     });
 
-    it('should parse system commands', () => {
-      const cases: Case[] = [
-        [
-          'load superfluid',
-          {
-            type: 'CommandExpression',
-            name: { type: 'CommandIdentifier', value: 'load' },
-            args: [{ type: 'ProbableIdentifier', value: 'superfluid' }],
-          },
-          'invalid `load` command match',
-        ],
-        [
-          'load aragonos as ar',
-          {
-            type: 'CommandExpression',
-            name: { type: 'CommandIdentifier', value: 'load' },
-            args: [
-              {
-                type: 'AsExpression',
-                left: { type: 'ProbableIdentifier', value: 'aragonos' },
-                right: { type: 'ProbableIdentifier', value: 'ar' },
-              },
-            ],
-          },
-        ],
-        [
-          `switch gnosis`,
-          {
-            type: 'CommandExpression',
-            name: { type: 'CommandIdentifier', value: 'switch' },
-            args: [{ type: 'ProbableIdentifier', value: 'gnosis' }],
-          },
-          'invalid `switch` command match',
-        ],
-        [
-          `set $new-variable 'a variable'`,
-          {
-            type: 'CommandExpression',
-            name: { type: 'CommandIdentifier', value: 'set' },
-            args: [
-              { type: 'VariableIdentifier', value: '$new-variable' },
-              { type: 'StringLiteral', value: 'a variable' },
-            ],
-          },
-          'invalid `set` command match',
-        ],
-      ];
-
-      runCases(cases, commandExpressionParser);
-    });
-
     it('should parse commands followed by block expressions', () => {
       const c: Case = [
         `forward token-manager voting agent (
@@ -150,7 +306,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
         )`,
         {
           type: 'CommandExpression',
-          name: { type: 'CommandIdentifier', value: 'forward' },
+          name: 'forward',
           args: [
             { type: 'ProbableIdentifier', value: 'token-manager' },
             { type: 'ProbableIdentifier', value: 'voting' },
@@ -160,20 +316,21 @@ export const commandParserDescribe = (): Mocha.Suite =>
               body: [
                 {
                   type: 'CommandExpression',
-                  name: { type: 'CommandIdentifier', value: 'set' },
+                  name: 'set',
                   args: [
                     { type: 'VariableIdentifier', value: '$agent' },
                     {
                       type: 'CallExpression',
                       target: { type: 'VariableIdentifier', value: '$finance' },
-                      method: { type: 'StringLiteral', value: 'vault' },
+                      method: 'vault',
                       args: [],
                     },
                   ],
+                  opts: [],
                 },
                 {
                   type: 'CommandExpression',
-                  name: { type: 'CommandIdentifier', value: 'forward' },
+                  name: 'forward',
                   args: [
                     {
                       type: 'ProbableIdentifier',
@@ -189,21 +346,15 @@ export const commandParserDescribe = (): Mocha.Suite =>
                       body: [
                         {
                           type: 'CommandExpression',
-                          name: {
-                            type: 'CommandIdentifier',
-                            module: 'sf',
-                            value: 'batchcall',
-                          },
+                          module: 'sf',
+                          name: 'batchcall',
                           args: [
                             {
                               type: 'BlockExpression',
                               body: [
                                 {
                                   type: 'CommandExpression',
-                                  name: {
-                                    type: 'CommandIdentifier',
-                                    value: 'flow',
-                                  },
+                                  name: 'flow',
                                   args: [
                                     {
                                       type: 'ProbableIdentifier',
@@ -211,10 +362,7 @@ export const commandParserDescribe = (): Mocha.Suite =>
                                     },
                                     {
                                       type: 'HelperFunctionExpression',
-                                      name: {
-                                        type: 'StringLiteral',
-                                        value: 'token',
-                                      },
+                                      name: 'token',
                                       args: [
                                         {
                                           type: 'ProbableIdentifier',
@@ -233,18 +381,22 @@ export const commandParserDescribe = (): Mocha.Suite =>
                                       timeUnit: 'mo',
                                     },
                                   ],
+                                  opts: [],
                                 },
                               ],
                             },
                           ],
+                          opts: [],
                         },
                       ],
                     },
                   ],
+                  opts: [],
                 },
               ],
             },
           ],
+          opts: [],
         },
       ];
 

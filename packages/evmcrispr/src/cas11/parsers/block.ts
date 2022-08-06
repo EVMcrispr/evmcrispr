@@ -1,17 +1,15 @@
-import type { Parser } from 'arcsecond';
-import { char, coroutine, recursiveParser } from 'arcsecond';
+import { char, coroutine, recursiveParser, sequenceOf } from 'arcsecond';
 
-import type { BlockExpressionNode } from '../types';
+import type {
+  BlockExpressionNode,
+  CommandExpressionNode,
+  NodeParser,
+} from '../types';
 import { NodeType } from '../types';
 import { commandExpressionParser } from './command';
-import {
-  endOfLine,
-  optionalEmptyLines,
-  optionalWhitespace,
-  surroundedBy,
-} from './utils';
+import { endOfLine, optionalEmptyLines, optionalWhitespace } from './utils';
 
-export const blockExpressionParser: Parser<BlockExpressionNode, string, any> =
+export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
     coroutine(function* () {
       yield char('(');
@@ -20,13 +18,17 @@ export const blockExpressionParser: Parser<BlockExpressionNode, string, any> =
 
       yield endOfLine;
 
-      const scopedCommands = yield optionalEmptyLines(commandExpressionParser);
+      const scopedCommands = (yield optionalEmptyLines<CommandExpressionNode>(
+        commandExpressionParser,
+      )) as unknown as CommandExpressionNode[];
 
-      yield surroundedBy(optionalWhitespace)(char(')'));
+      yield sequenceOf([optionalWhitespace, char(')')]);
 
-      return {
+      const n: BlockExpressionNode = {
         type: NodeType.BlockExpression,
         body: scopedCommands,
-      } as unknown as BlockExpressionNode;
+      };
+
+      return n;
     }),
   );

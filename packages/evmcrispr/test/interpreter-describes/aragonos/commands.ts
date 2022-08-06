@@ -27,7 +27,7 @@ import { expectThrowAsync } from '../../test-helpers/expects';
 const { Command } = CallableExpression;
 
 export const commandsDescribe = (): Mocha.Suite =>
-  describe.only('Commands', () => {
+  describe('Commands', () => {
     let signer: Signer;
 
     const createAragonScriptInterpreter = (commands: string[] = []) => {

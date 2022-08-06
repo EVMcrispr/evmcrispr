@@ -26,7 +26,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
               { type: 'NumberLiteral', value: 145, power: 18, timeUnit: 'y' },
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'StringLiteral', value: 'token' },
+                name: 'token',
                 args: [{ type: 'ProbableIdentifier', value: 'DAI' }],
               },
               { type: 'BoolLiteral', value: false },
@@ -57,7 +57,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
               {
                 type: 'CallExpression',
                 target: { type: 'VariableIdentifier', value: '$fDAIx' },
-                method: { type: 'StringLiteral', value: 'host' },
+                method: 'host',
                 args: [],
               },
             ],

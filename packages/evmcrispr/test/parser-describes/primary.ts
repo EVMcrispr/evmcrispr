@@ -105,7 +105,9 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
 
         runCases(cases, stringParser);
       });
+    });
 
+    describe('when parsing identifiers', () => {
       it('should parse probable identifier values', () => {
         const node = (value: string): ProbableIdentifierNode => {
           const n: ProbableIdentifierNode = {
@@ -132,9 +134,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           ),
         );
       });
-    });
 
-    describe('when parsing variable identifier values', () => {
       it('should parse variable values', () => {
         [
           '$variable',

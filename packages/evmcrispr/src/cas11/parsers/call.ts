@@ -1,4 +1,3 @@
-import type { Parser } from 'arcsecond';
 import {
   choice,
   coroutine,
@@ -7,7 +6,7 @@ import {
   recursiveParser,
 } from 'arcsecond';
 
-import type { CallExpressionNode, StringLiteralNode } from '../types';
+import type { CallExpressionNode, NodeParser } from '../types';
 import { NodeType } from '../types';
 
 import {
@@ -19,7 +18,7 @@ import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
 import { callOperatorParser } from './utils';
 
-export const callExpressionParser: Parser<CallExpressionNode, string, any> =
+export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
     coroutine(function* () {
       const target = yield choice([
@@ -34,12 +33,7 @@ export const callExpressionParser: Parser<CallExpressionNode, string, any> =
       let callExpressionNode: any = target;
 
       do {
-        const method = yield letters.map(
-          (value): StringLiteralNode => ({
-            type: NodeType.StringLiteral,
-            value,
-          }),
-        );
+        const method = yield letters;
 
         const args = yield argumentsParser;
 

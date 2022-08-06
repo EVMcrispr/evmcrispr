@@ -14,12 +14,12 @@ export const callParserDescribe = (): Mocha.Suite =>
               type: 'AddressLiteral',
               value: '0x14FA5C16Af56190239B997485656F5c8b4f86c4b',
             },
-            method: { type: 'StringLiteral', value: 'getEntry' },
+            method: 'getEntry',
             args: [
               { type: 'NumberLiteral', value: 0 },
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'StringLiteral', value: 'token' },
+                name: 'token',
                 args: [{ type: 'ProbableIdentifier', value: 'WETH' }],
               },
             ],
@@ -30,17 +30,17 @@ export const callParserDescribe = (): Mocha.Suite =>
           {
             type: 'CallExpression',
             target: { type: 'VariableIdentifier', value: '$superfluid' },
-            method: { type: 'StringLiteral', value: 'createFlow' },
+            method: 'createFlow',
             args: [
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'StringLiteral', value: 'token' },
+                name: 'token',
                 args: [{ type: 'StringLiteral', value: 'DAIx' }],
               },
               {
                 type: 'CallExpression',
                 target: { type: 'VariableIdentifier', value: '$finance' },
-                method: { type: 'StringLiteral', value: 'vault' },
+                method: 'vault',
                 args: [
                   {
                     elements: [
@@ -63,10 +63,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'CallExpression',
-                method: {
-                  type: 'StringLiteral',
-                  value: 'method',
-                },
+                method: 'method',
                 target: {
                   type: 'VariableIdentifier',
                   value: '$contract',
@@ -88,14 +85,14 @@ export const callParserDescribe = (): Mocha.Suite =>
             type: 'CallExpression',
             target: {
               type: 'HelperFunctionExpression',
-              name: { type: 'StringLiteral', value: 'token' },
+              name: 'token',
               args: [{ type: 'ProbableIdentifier', value: 'DAIx' }],
             },
-            method: { type: 'StringLiteral', value: 'upgrade' },
+            method: 'upgrade',
             args: [
               {
                 type: 'HelperFunctionExpression',
-                name: { type: 'StringLiteral', value: 'token' },
+                name: 'token',
                 args: [{ type: 'ProbableIdentifier', value: 'DAI' }],
               },
               { type: 'NumberLiteral', value: 1800, power: 18 },
@@ -115,20 +112,20 @@ export const callParserDescribe = (): Mocha.Suite =>
                   type: 'VariableIdentifier',
                   value: '$registryContract',
                 },
-                method: { type: 'StringLiteral', value: 'getToken' },
+                method: 'getToken',
                 args: [{ type: 'NumberLiteral', value: 1 }],
               },
-              method: { type: 'StringLiteral', value: 'approve' },
+              method: 'approve',
               args: [
                 {
                   type: 'HelperFunctionExpression',
-                  name: { type: 'StringLiteral', value: 'me' },
+                  name: 'me',
                   args: [],
                 },
                 { type: 'NumberLiteral', value: 560.25, power: 18 },
               ],
             },
-            method: { type: 'StringLiteral', value: 'another' },
+            method: 'another',
             args: [],
           },
           'invalid recursive call expression',

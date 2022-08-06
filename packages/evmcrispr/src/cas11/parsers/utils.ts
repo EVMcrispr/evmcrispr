@@ -15,7 +15,7 @@ import {
   str,
 } from 'arcsecond';
 
-import type { Node } from '../types';
+import type { Node, NodeParser } from '../types';
 
 export const callOperatorParser = str('::');
 
@@ -29,6 +29,8 @@ export const optionalWhitespace = possibly(whitespace);
 export const emptyLine = sequenceOf([possibly(whitespace), endOfLine]).map(
   () => null,
 );
+
+export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
 export const commonEnclosingCharParsers = [
   char(','),
@@ -44,21 +46,22 @@ export const enclosingLookaheadParser = lookAhead(
 );
 
 export const surroundedBy = (
-  parser: Parser<any, any, any>,
-): ((p: Parser<unknown, string, any>) => Parser<unknown, any, any>) =>
+  parser: Parser<any, string, any>,
+): ((p: Parser<any, string, any>) => Parser<any, string, any>) =>
   between(parser)(parser);
 
-export const commaSeparated = sepBy<any, Node, string, any>(
-  surroundedBy(optionalWhitespace)(char(',')),
-);
+export const commaSeparated: <T = Node>(
+  parser: NodeParser<T>,
+) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(',')));
 
-export const optionalEmptyLines = (
-  p: Parser<any, string, any>,
-): Parser<any, string, any> =>
+export const optionalEmptyLines = <T = Node>(
+  p: NodeParser<T>,
+): NodeParser<T[]> =>
   recursiveParser(() =>
     coroutine(function* () {
-      const lines = (yield many(choice([emptyLine, p]))) ?? [];
+      const lines = ((yield many(choice([emptyLine, p]))) ??
+        []) as unknown as (null | T)[];
 
-      return lines.filter((l: any) => !!l);
+      return lines.filter((l) => !!l) as T[];
     }),
   );

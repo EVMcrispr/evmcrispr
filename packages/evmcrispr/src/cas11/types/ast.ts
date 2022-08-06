@@ -22,6 +22,8 @@ export enum NodeType {
   CommandIdentifier = 'CommandIdentifier',
   ProbableIdentifier = 'ProbableIdentifier',
   VariableIdentifier = 'VariableIdentifier',
+
+  CommandOpt = 'CommandOpt',
 }
 
 export type LiteralExpression =
@@ -35,13 +37,6 @@ export interface Node {
   type: NodeType;
   value?: any;
 }
-
-export type LiteralExpressionNode =
-  | AddressLiteralNode
-  | BooleanLiteralNode
-  | BytesLiteralNode
-  | NumericLiteralNode
-  | StringLiteralNode;
 
 export interface AddressLiteralNode extends Node {
   type: NodeType.AddressLiteral;
@@ -80,12 +75,6 @@ export interface GroupingExpressionNode extends Node {
   expression: Node;
 }
 
-export interface CommandIdentifierNode {
-  type: NodeType.CommandIdentifier;
-  value: string;
-  module?: string;
-}
-
 export interface ProbableIdentifierNode {
   type: NodeType.ProbableIdentifier;
   value: string;
@@ -98,25 +87,29 @@ export interface VariableIdentiferNode extends Node {
 
 export interface CallExpressionNode extends Node {
   type: NodeType.CallExpression;
-  target:
-    | AddressLiteralNode
-    | HelperFunctionNode
-    | ProbableIdentifierNode
-    | VariableIdentiferNode;
-  method: StringLiteralNode;
+  target: ArgumentExpressionNode;
+  method: string;
   args: Node[];
 }
 
 export interface HelperFunctionNode extends Node {
   type: NodeType.HelperFunctionExpression;
-  name: StringLiteralNode;
-  args: Node[];
+  name: string;
+  args: ArgumentExpressionNode[];
 }
 
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
-  name: CommandIdentifierNode;
+  module?: string;
+  name: string;
   args: Node[];
+  opts: Node[];
+}
+
+export interface CommandOptNode extends Node {
+  type: NodeType.CommandOpt;
+  name: string;
+  value: ArgumentExpressionNode;
 }
 
 export interface BlockExpressionNode extends Node {
@@ -129,6 +122,29 @@ export interface AsExpressionNode extends Node {
   left: ProbableIdentifierNode | StringLiteralNode;
   right: ProbableIdentifierNode | StringLiteralNode;
 }
+
+export type LiteralExpressionNode =
+  | AddressLiteralNode
+  | BooleanLiteralNode
+  | BytesLiteralNode
+  | NumericLiteralNode
+  | StringLiteralNode;
+
+export type PrimaryExpressionNode =
+  | LiteralExpressionNode
+  | ProbableIdentifierNode
+  | VariableIdentiferNode;
+
+export type ArgumentExpressionNode =
+  | ArrayExpressionNode
+  | CallExpressionNode
+  | HelperFunctionNode
+  | PrimaryExpressionNode;
+
+export type CommandArgExpressionNode =
+  | AsExpressionNode
+  | ArgumentExpressionNode
+  | BlockExpressionNode;
 
 export type AST = {
   type: ASTType;

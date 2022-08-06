@@ -63,7 +63,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
           body: [
             {
               type: 'CommandExpression',
-              name: { type: 'CommandIdentifier', value: 'load' },
+              name: 'load',
               args: [
                 {
                   type: 'AsExpression',
@@ -71,10 +71,11 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                   right: { type: 'ProbableIdentifier', value: 'ar' },
                 },
               ],
+              opts: [],
             },
             {
               type: 'CommandExpression',
-              name: { type: 'CommandIdentifier', value: 'load' },
+              name: 'load',
               args: [
                 {
                   type: 'AsExpression',
@@ -82,14 +83,12 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                   right: { type: 'ProbableIdentifier', value: 'sf' },
                 },
               ],
+              opts: [],
             },
             {
               type: 'CommandExpression',
-              name: {
-                type: 'CommandIdentifier',
-                value: 'connect',
-                module: 'ar',
-              },
+              module: 'ar',
+              name: 'connect',
               args: [
                 { type: 'ProbableIdentifier', value: 'my-dao-ens' },
                 {
@@ -97,19 +96,19 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                   body: [
                     {
                       type: 'CommandExpression',
-                      name: { type: 'CommandIdentifier', value: 'forward' },
+                      name: 'forward',
                       args: [
-                        { type: 'ProbableIdentifier', value: 'token-manager' },
+                        {
+                          type: 'ProbableIdentifier',
+                          value: 'token-manager',
+                        },
                         { type: 'ProbableIdentifier', value: 'voting' },
                         {
                           type: 'BlockExpression',
                           body: [
                             {
                               type: 'CommandExpression',
-                              name: {
-                                type: 'CommandIdentifier',
-                                value: 'install',
-                              },
+                              name: 'install',
                               args: [
                                 {
                                   type: 'ProbableIdentifier',
@@ -123,16 +122,21 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                 { type: 'BoolLiteral', value: false },
                                 { type: 'NumberLiteral', value: 0 },
                               ],
+                              opts: [],
                             },
                           ],
                         },
                       ],
+                      opts: [],
                     },
                     {
                       type: 'CommandExpression',
-                      name: { type: 'CommandIdentifier', value: 'forward' },
+                      name: 'forward',
                       args: [
-                        { type: 'ProbableIdentifier', value: 'token-manager' },
+                        {
+                          type: 'ProbableIdentifier',
+                          value: 'token-manager',
+                        },
                         { type: 'ProbableIdentifier', value: 'voting' },
                         { type: 'ProbableIdentifier', value: 'agent' },
                         {
@@ -140,29 +144,27 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                           body: [
                             {
                               type: 'CommandExpression',
-                              name: { type: 'CommandIdentifier', value: 'set' },
+                              name: 'set',
                               args: [
-                                { type: 'VariableIdentifier', value: '$agent' },
+                                {
+                                  type: 'VariableIdentifier',
+                                  value: '$agent',
+                                },
                                 {
                                   type: 'CallExpression',
                                   target: {
                                     type: 'ProbableIdentifier',
                                     value: 'finance',
                                   },
-                                  method: {
-                                    type: 'StringLiteral',
-                                    value: 'vault',
-                                  },
+                                  method: 'vault',
                                   args: [],
                                 },
                               ],
+                              opts: [],
                             },
                             {
                               type: 'CommandExpression',
-                              name: {
-                                type: 'CommandIdentifier',
-                                value: 'forward',
-                              },
+                              name: 'forward',
                               args: [
                                 {
                                   type: 'ProbableIdentifier',
@@ -172,16 +174,16 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                   type: 'ProbableIdentifier',
                                   value: 'disputable-voting.open',
                                 },
-                                { type: 'ProbableIdentifier', value: 'agent' },
+                                {
+                                  type: 'ProbableIdentifier',
+                                  value: 'agent',
+                                },
                                 {
                                   type: 'BlockExpression',
                                   body: [
                                     {
                                       type: 'CommandExpression',
-                                      name: {
-                                        type: 'CommandIdentifier',
-                                        value: 'set',
-                                      },
+                                      name: 'set',
                                       args: [
                                         {
                                           type: 'VariableIdentifier',
@@ -189,10 +191,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         },
                                         {
                                           type: 'HelperFunctionExpression',
-                                          name: {
-                                            type: 'StringLiteral',
-                                            value: 'token',
-                                          },
+                                          name: 'token',
                                           args: [
                                             {
                                               type: 'StringLiteral',
@@ -201,14 +200,12 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                           ],
                                         },
                                       ],
+                                      opts: [],
                                     },
                                     {
                                       type: 'CommandExpression',
-                                      name: {
-                                        type: 'CommandIdentifier',
-                                        value: 'token',
-                                        module: 'sf',
-                                      },
+                                      module: 'sf',
+                                      name: 'token',
                                       args: [
                                         {
                                           type: 'ProbableIdentifier',
@@ -216,10 +213,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         },
                                         {
                                           type: 'HelperFunctionExpression',
-                                          name: {
-                                            type: 'StringLiteral',
-                                            value: 'token',
-                                          },
+                                          name: 'token',
                                           args: [
                                             {
                                               type: 'StringLiteral',
@@ -229,10 +223,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                         },
                                         {
                                           type: 'HelperFunctionExpression',
-                                          name: {
-                                            type: 'StringLiteral',
-                                            value: 'me',
-                                          },
+                                          name: 'me',
                                           args: [],
                                         },
                                         {
@@ -241,24 +232,19 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                           power: 18,
                                         },
                                       ],
+                                      opts: [],
                                     },
                                     {
                                       type: 'CommandExpression',
-                                      name: {
-                                        type: 'CommandIdentifier',
-                                        value: 'batchcall',
-                                        module: 'sf',
-                                      },
+                                      module: 'sf',
+                                      name: 'batchcall',
                                       args: [
                                         {
                                           type: 'BlockExpression',
                                           body: [
                                             {
                                               type: 'CommandExpression',
-                                              name: {
-                                                type: 'CommandIdentifier',
-                                                value: 'token',
-                                              },
+                                              name: 'token',
                                               args: [
                                                 {
                                                   type: 'ProbableIdentifier',
@@ -274,13 +260,11 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                   power: 18,
                                                 },
                                               ],
+                                              opts: [],
                                             },
                                             {
                                               type: 'CommandExpression',
-                                              name: {
-                                                type: 'CommandIdentifier',
-                                                value: 'flow',
-                                              },
+                                              name: 'flow',
                                               args: [
                                                 {
                                                   type: 'ProbableIdentifier',
@@ -301,13 +285,11 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                   timeUnit: 'mo',
                                                 },
                                               ],
+                                              opts: [],
                                             },
                                             {
                                               type: 'CommandExpression',
-                                              name: {
-                                                type: 'CommandIdentifier',
-                                                value: 'token',
-                                              },
+                                              name: 'token',
                                               args: [
                                                 {
                                                   type: 'ProbableIdentifier',
@@ -315,10 +297,7 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                 },
                                                 {
                                                   type: 'HelperFunctionExpression',
-                                                  name: {
-                                                    type: 'StringLiteral',
-                                                    value: 'token',
-                                                  },
+                                                  name: 'token',
                                                   args: [
                                                     {
                                                       type: 'StringLiteral',
@@ -327,22 +306,27 @@ export const scriptParserDescribe = (): Mocha.Suite =>
                                                   ],
                                                 },
                                               ],
+                                              opts: [],
                                             },
                                           ],
                                         },
                                       ],
+                                      opts: [],
                                     },
                                   ],
                                 },
                               ],
+                              opts: [],
                             },
                           ],
                         },
                       ],
+                      opts: [],
                     },
                   ],
                 },
               ],
+              opts: [],
             },
           ],
         },

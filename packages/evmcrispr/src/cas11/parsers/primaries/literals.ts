@@ -12,6 +12,7 @@ import type {
   AddressLiteralNode,
   BooleanLiteralNode,
   BytesLiteralNode,
+  NodeParser,
   NumericLiteralNode,
   StringLiteralNode,
 } from '../../types';
@@ -22,16 +23,15 @@ import {
   enclosingLookaheadParser,
 } from '../utils';
 
-export const addressParser = sequenceOf([
+export const addressParser: NodeParser<AddressLiteralNode> = sequenceOf([
   regex(/^0x[a-fA-F0-9]{40}/),
   lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
-]).map(
-  ([value]): AddressLiteralNode => ({
-    type: NodeType.AddressLiteral,
-    value,
-  }),
-);
-export const hexadecimalParser = sequenceOf([
+]).map(([value]) => ({
+  type: NodeType.AddressLiteral,
+  value,
+}));
+
+export const hexadecimalParser: NodeParser<BytesLiteralNode> = sequenceOf([
   regex(/^0x[0-9a-f]+/),
   enclosingLookaheadParser,
 ]).map(
@@ -41,23 +41,21 @@ export const hexadecimalParser = sequenceOf([
   }),
 );
 
-export const booleanParser = sequenceOf([
+export const booleanParser: NodeParser<BooleanLiteralNode> = sequenceOf([
   choice([str('true'), str('false')]),
   enclosingLookaheadParser,
-]).map(
-  ([value]): BooleanLiteralNode => ({
-    type: NodeType.BoolLiteral,
-    value: value === 'true',
-  }),
-);
+]).map(([value]) => ({
+  type: NodeType.BoolLiteral,
+  value: value === 'true',
+}));
 
 const numberRegex =
   /^(?<value>\d+(?:\.\d*)?)(?:e(?<power>\d+))?(?<timeUnit>mo|s|m|h|d|w|y)?/;
 
-export const numberParser = sequenceOf([
+export const numberParser: NodeParser<NumericLiteralNode> = sequenceOf([
   regex(numberRegex),
   enclosingLookaheadParser,
-]).map(([rawValue]): NumericLiteralNode => {
+]).map(([rawValue]) => {
   const res = numberRegex.exec(rawValue);
   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
   const { value, power, timeUnit } = res?.groups!;
@@ -72,12 +70,10 @@ export const numberParser = sequenceOf([
   return numericNode;
 });
 
-export const stringParser = choice([
+export const stringParser: NodeParser<StringLiteralNode> = choice([
   between(char('"'))(char('"'))(regex(/^[^"]*/)),
   between(char("'"))(char("'"))(regex(/^[^']*/)),
-]).map(
-  (value): StringLiteralNode => ({
-    type: NodeType.StringLiteral,
-    value: value as string,
-  }),
-);
+]).map((value) => ({
+  type: NodeType.StringLiteral,
+  value: value as string,
+}));
