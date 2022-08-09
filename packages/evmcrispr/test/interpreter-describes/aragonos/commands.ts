@@ -3,15 +3,12 @@ import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { ErrorException, ErrorInvalid, ErrorNotFound } from '../../../src';
-import { buildErrorMsg } from '../../../src/cas11/interpreter/Interpreter';
-
 import type { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
 import {
-  CallableExpression,
   ComparisonType,
   buildArgsLengthErrorMsg,
 } from '../../../src/cas11/utils';
+import { CommandError } from '../../../src/errors';
 import { ANY_ENTITY, toDecimals } from '../../../src/utils';
 
 import { DAO } from '../../fixtures';
@@ -23,8 +20,6 @@ import {
 
 import { createInterpreter } from '../../test-helpers/cas11';
 import { expectThrowAsync } from '../../test-helpers/expects';
-
-const { Command } = CallableExpression;
 
 export const commandsDescribe = (): Mocha.Suite =>
   describe('Commands', () => {
@@ -57,7 +52,7 @@ export const commandsDescribe = (): Mocha.Suite =>
         expect(dao!.nestingIndex, 'DAO nested index mismatch').to.equals(0);
         Object.entries(DAO).forEach(([appIdentifier, appAddress]) => {
           expect(
-            dao!.resolveApp(appIdentifier).address,
+            dao!.resolveApp(appIdentifier)!.address,
             `${appIdentifier} binding mismatch`,
           ).equals(appAddress);
         });
@@ -95,6 +90,14 @@ export const commandsDescribe = (): Mocha.Suite =>
       it('should interpret nested commands');
 
       it('should fail when not passing a commands block', async () => {
+        const error = new CommandError(
+          'connect',
+          buildArgsLengthErrorMsg(1, {
+            type: ComparisonType.Greater,
+            minValue: 2,
+          }),
+        );
+
         await expectThrowAsync(
           () =>
             createInterpreter(
@@ -105,20 +108,17 @@ export const commandsDescribe = (): Mocha.Suite =>
               signer,
             ).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'connect',
-              buildArgsLengthErrorMsg(1, {
-                type: ComparisonType.Greater,
-                minValue: 2,
-              }),
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when trying to connect to an already connected DAO', async () => {
+        const error = new CommandError(
+          'connect',
+          `trying to connect to an already connected DAO (${DAO.kernel})`,
+        );
         await expectThrowAsync(
           () =>
             createInterpreter(
@@ -134,12 +134,8 @@ export const commandsDescribe = (): Mocha.Suite =>
               signer,
             ).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'connect',
-              `trying to connect to an already connected DAO (${DAO.kernel})`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
@@ -174,7 +170,7 @@ export const commandsDescribe = (): Mocha.Suite =>
     //   });
     // });
 
-    describe('grant <entity> <app> <role> [permissionManager]', async () => {
+    describe('grant <entity> <app> <role> [permissionManager]', () => {
       it('should grant a permission correctly', async () => {
         const interpreter = createAragonScriptInterpreter([
           `grant @me vault TRANSFER_ROLE`,
@@ -240,6 +236,11 @@ export const commandsDescribe = (): Mocha.Suite =>
       });
 
       it('should fail when executing it outside a "connect" command', async () => {
+        const error = new CommandError(
+          'grant',
+          'must be used within a "connect" command',
+        );
+
         await expectThrowAsync(
           () =>
             createInterpreter(
@@ -251,81 +252,74 @@ export const commandsDescribe = (): Mocha.Suite =>
               signer,
             ).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'grant',
-              'must be used within a "connect" command',
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when granting an unknown permission', async () => {
+        const error = new CommandError(
+          'grant',
+          "given permission doesn't exists on app token-manager",
+        );
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'grant voting token-manager UNKNOWN_ROLE',
             ]).interpret(),
           {
-            type: ErrorException,
-            message: buildErrorMsg(
-              Command,
-              'grant',
-              "given permission doesn't exists on app token-manager",
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when granting a permission to an address that already has it', async () => {
+        const error = new CommandError('grant', 'permission manager missing');
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'grant voting token-manager ISSUE_ROLE',
             ]).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'grant',
-              'permission manager missing',
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when creating a permission without a permission manager', async () => {
+        const error = new CommandError('grant', 'permission manager missing');
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'grant voting token-manager ISSUE_ROLE',
             ]).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'grant',
-              'permission manager missing',
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when creating a permission with an invalid permission manager', async () => {
         const invalidPermissionManager = 'invalidPermissionManager';
+        const error = new CommandError(
+          'grant',
+          `invalid permission manager. Expected an address, but got ${invalidPermissionManager}`,
+        );
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               `grant voting token-manager ISSUE_ROLE "${invalidPermissionManager}"`,
             ]).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'grant',
-              `invalid permission manager. Expected an address, but got ${invalidPermissionManager}`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
@@ -400,6 +394,11 @@ export const commandsDescribe = (): Mocha.Suite =>
         );
       });
       it('should fail when executing it outside a "connect" command', async () => {
+        const error = new CommandError(
+          'revoke',
+          'must be used within a "connect" command',
+        );
+
         await expectThrowAsync(
           () =>
             createInterpreter(
@@ -409,67 +408,73 @@ export const commandsDescribe = (): Mocha.Suite =>
               signer,
             ).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'revoke',
-              'must be used within a "connect" command',
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
       it('should fail when passing an invalid grantee address', async () => {
+        const error = new CommandError(
+          'revoke',
+          `grantee must be a valid address, got ${toDecimals(
+            1,
+            18,
+          ).toString()}`,
+        );
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'revoke 1e18 token-manager MINT_ROLE',
             ]).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'revoke',
-              `grantee must be a valid address, got ${toDecimals(
-                1,
-                18,
-              ).toString()}`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
       it('should fail when passing an invalid remove manager flag', async () => {
+        const error = new CommandError(
+          'revoke',
+          `invalid remove manager flag. Expected boolean but got ${typeof toDecimals(
+            1,
+            18,
+          )}`,
+        );
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'revoke voting token-manager MINT_ROLE 1e18',
             ]).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'revoke',
-              `invalid remove manager flag. Expected boolean but got ${typeof toDecimals(
-                1,
-                18,
-              )}`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
       it('should fail when revoking a permission from a non-app entity', async () => {
         const nonAppAddress = await signer.getAddress();
         const unknownIdentifier = 'unknown-app.open';
+        let error = new CommandError(
+          'revoke',
+          `${unknownIdentifier}:0 is not a DAO's app`,
+        );
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               `revoke voting ${unknownIdentifier} A_ROLE`,
             ]).interpret(),
           {
-            type: ErrorNotFound,
-            message: `app ${unknownIdentifier}:0 not found.`,
-            name: 'ErrorAppNotFound',
+            type: error.constructor,
+            message: error.message,
           },
           `Unknown identifier didn't fail properly`,
+        );
+
+        error = new CommandError(
+          'revoke',
+          `${nonAppAddress} is not a DAO's app`,
         );
 
         await expectThrowAsync(
@@ -478,41 +483,41 @@ export const commandsDescribe = (): Mocha.Suite =>
               `revoke voting ${nonAppAddress} MY_ROLE`,
             ]).interpret(),
           {
-            type: ErrorNotFound,
-            name: 'ErrorAppNotFound',
-            message: `address ${nonAppAddress} doesn't match any app.`,
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
       it('should fail when revoking a non-existent permission', async () => {
+        const error = new CommandError(
+          'revoke',
+          `given permission doesn't exists on app token-manager`,
+        );
+
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'revoke voting token-manager UNKNOWN_ROLE',
             ]).interpret(),
           {
-            type: ErrorNotFound,
-            message: buildErrorMsg(
-              Command,
-              'revoke',
-              `given permission doesn't exists on app token-manager`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
       it("should fail when revoking a permission from an entity that doesn't have it", async () => {
+        const error = new CommandError(
+          'revoke',
+          `grantee ${DAO.voting} doesn't have the given permission`,
+        );
         await expectThrowAsync(
           () =>
             createAragonScriptInterpreter([
               'revoke voting token-manager ISSUE_ROLE',
             ]).interpret(),
           {
-            type: ErrorNotFound,
-            message: buildErrorMsg(
-              Command,
-              'revoke',
-              `grantee ${DAO.voting} doesn't have the given permission`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });

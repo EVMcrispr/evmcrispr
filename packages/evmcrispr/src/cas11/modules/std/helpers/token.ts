@@ -1,18 +1,17 @@
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
-import { ErrorException, ErrorInvalid } from '../../../../errors';
+import type { Address } from '../../../..';
+
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
-import type { RawHelperFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import { Interpreter } from '../../../interpreter/Interpreter';
+import type { HelperFunction, HelperFunctionNode } from '../../../types';
+import { NodeType } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Module } from '../../Module';
 import type { Std } from '../Std';
 
-const ENV_TOKENLIST = 'token.tokenlist';
+const ENV_TOKENLIST = '$token.tokenlist';
 const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
 const getTokenList = ({ bindingsManager }: Module): string => {
@@ -23,18 +22,19 @@ const getTokenList = ({ bindingsManager }: Module): string => {
 
   // Always check user data inputs:
   if (!tokenList.startsWith('https://')) {
-    throw new ErrorInvalid(`Tokenlist must be an HTTPS URL: ${tokenList}`);
+    Interpreter.panic(
+      { type: NodeType.VariableIdentifier, value: ENV_TOKENLIST },
+      `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
+    );
   }
   return tokenList;
 };
 
-export const token: RawHelperFunction<Std> = async (module, ...args) => {
-  checkArgsLength('token', CallableExpression.Helper, args.length, {
-    type: ComparisonType.Equal,
-    minValue: 1,
-  });
-
-  const [tokenSymbol] = args;
+const _token = async (
+  module: Module,
+  tokenSymbol: string,
+  h: HelperFunctionNode,
+): Promise<Address> => {
   const chainId = await module.signer.getChainId();
   const tokenList = getTokenList(module);
   const {
@@ -44,22 +44,44 @@ export const token: RawHelperFunction<Std> = async (module, ...args) => {
   const tokenAddress = tokens.find(
     (token) => token.symbol === tokenSymbol && token.chainId == chainId,
   )?.address;
+
   if (!tokenAddress) {
-    throw new ErrorException(
+    Interpreter.panic(
+      h,
       `${tokenSymbol} not supported in ${tokenList} in chain ${chainId}.`,
     );
   }
+
   return tokenAddress;
 };
 
-export const tokenBalance: RawHelperFunction<Std> = async (module, ...args) => {
-  checkArgsLength('token.balance', CallableExpression.Helper, args.length, {
+export const token: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNodes },
+) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Equal,
+    minValue: 1,
+  });
+  const [tokenSymbol] = await interpretNodes(h.args);
+
+  return _token(module, tokenSymbol, h);
+};
+
+export const tokenBalance: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNodes },
+) => {
+  checkArgsLength(h, {
     type: ComparisonType.Equal,
     minValue: 2,
   });
 
-  const [tokenSymbol, holder] = args;
-  const tokenAddr = await token(module, tokenSymbol);
+  const [tokenSymbol, holder] = await interpretNodes(h.args);
+
+  const tokenAddr = await _token(module, tokenSymbol, h);
   const contract = new ethers.Contract(
     tokenAddr,
     ['function balanceOf(address owner) view returns (uint)'],

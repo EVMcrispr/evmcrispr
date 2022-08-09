@@ -2,7 +2,6 @@ import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 
 import type { Address, App, AppCache, Entity, ParsedApp } from '../../..';
-import { ErrorNotFound } from '../../../errors';
 import type { IPFSResolver } from '../../../IPFSResolver';
 import Connector from '../../../modules/aragonos/utils/Connector';
 import type { AppArtifactCache } from '../../../types';
@@ -50,7 +49,7 @@ export class AragonDAO {
   }
 
   get kernel(): App {
-    return this.resolveApp('kernel:0');
+    return this.resolveApp('kernel:0')!;
   }
 
   get nestingIndex(): number {
@@ -83,29 +82,17 @@ export class AragonDAO {
     return dao;
   }
 
-  resolveApp(entity: Entity): App {
+  resolveApp(entity: Entity): App | undefined {
     if (utils.isAddress(entity)) {
       const app = [...this.appCache.entries()].find(
         ([, app]) => app.address === entity,
       );
 
-      if (!app) {
-        throw new ErrorNotFound(`address ${entity} doesn't match any app.`, {
-          name: 'ErrorAppNotFound',
-        });
-      }
-
-      return app[1];
+      return app ? app[1] : undefined;
     }
     const resolvedIdentifier = resolveIdentifier(entity);
 
-    if (!this.appCache.has(resolvedIdentifier)) {
-      throw new ErrorNotFound(`app ${resolvedIdentifier} not found.`, {
-        name: 'ErrorAppNotFound',
-      });
-    }
-
-    return this.appCache.get(resolvedIdentifier)!;
+    return this.appCache.get(resolvedIdentifier);
   }
 
   async #buildAppCache(apps: App[]): Promise<AppCache> {

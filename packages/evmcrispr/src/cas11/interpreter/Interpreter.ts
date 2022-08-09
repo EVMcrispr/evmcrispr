@@ -1,7 +1,12 @@
 import type { Signer } from 'ethers';
 import { constants } from 'ethers';
 
-import { ErrorException, ErrorNotFound } from '../../errors';
+import {
+  CommandError,
+  ErrorException,
+  ExpressionError,
+  HelperFunctionError,
+} from '../../errors';
 import { timeUnits, toDecimals } from '../../utils';
 import type {
   AST,
@@ -10,7 +15,6 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
-  CommandFunction,
   HelperFunctionNode,
   LiteralExpressionNode,
   Node,
@@ -21,8 +25,7 @@ import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
-import { resolveLazyNodes } from '../utils/resolvers';
-import { CallableExpression } from '../utils';
+import type { InterpretOptions, NodeInterpreter } from '../types/modules';
 
 const {
   AddressLiteral,
@@ -51,23 +54,6 @@ const { ADDR, INTERPRETER, USER } = BindingsSpace;
 // Implicit module use inside block expressions
 const CONTEXTUAL_MODULE = 'contextualModule';
 const IDENTIFIER_FORMATTER = 'identifierFormatter';
-
-type IdentifierFormatter = (identifier: string) => string;
-
-export const buildErrorMsg = (
-  type: CallableExpression,
-  name: string,
-  msg: string,
-): string => {
-  const upperCaseName = name.charAt(0).toUpperCase() + name.slice(1);
-
-  return `${upperCaseName} ${type.toLowerCase()} error: ${msg}`;
-};
-
-export type LazyNode = {
-  type: NodeType;
-  resolve: (...args: any[]) => Promise<any> | Promise<void>;
-};
 
 export class Interpreter {
   readonly ast: AST;
@@ -116,277 +102,251 @@ export class Interpreter {
   }
 
   async interpret(): Promise<any> {
-    const lazyNodes = this.#interpretNodes(this.ast.body);
+    const results = await this.interpretNodes(this.ast.body, true);
 
-    return (await resolveLazyNodes(lazyNodes, true))
-      .flat()
-      .filter((result) => typeof result !== 'undefined');
+    return results.flat().filter((result) => typeof result !== 'undefined');
   }
 
-  #interpretNode(n: Node): LazyNode {
+  interpretNode: NodeInterpreter = (n, options) => {
     switch (n.type) {
       case AddressLiteral:
       case BoolLiteral:
       case BytesLiteral:
       case StringLiteral:
       case NumberLiteral:
-        return this.#interpretLiteral(n as LiteralExpressionNode);
-
+        return this.#interpretLiteral(n as LiteralExpressionNode, options);
       case AsExpression:
-        return this.#intrepretAsExpression(n as AsExpressionNode);
+        return this.#intrepretAsExpression(n as AsExpressionNode, options);
       case ArrayExpression:
-        return this.#interpretArrayExpression(n as ArrayExpressionNode);
+        return this.#interpretArrayExpression(
+          n as ArrayExpressionNode,
+          options,
+        );
       case BlockExpression:
-        return this.#interpretBlockExpression(n as BlockExpressionNode);
+        return this.#interpretBlockExpression(
+          n as BlockExpressionNode,
+          options,
+        );
       case CallExpression:
-        return this.#interpretCallFunction(n as CallExpressionNode);
+        return this.#interpretCallFunction(n as CallExpressionNode, options);
       case CommandExpression:
-        return this.#interpretCommand(n as CommandExpressionNode);
+        return this.#interpretCommand(n as CommandExpressionNode, options);
       case HelperFunctionExpression:
-        return this.#interpretHelperFunction(n as HelperFunctionNode);
+        return this.#interpretHelperFunction(n as HelperFunctionNode, options);
       case ProbableIdentifier:
-        return this.#interpretProbableIdentifier(n as ProbableIdentifierNode);
+        return this.#interpretProbableIdentifier(
+          n as ProbableIdentifierNode,
+          options,
+        );
       case VariableIdentifier:
-        return this.#interpretVariableIdentifier(n as VariableIdentiferNode);
+        return this.#interpretVariableIdentifier(
+          n as VariableIdentiferNode,
+          options,
+        );
 
       default:
-        throw new Error(`Unknown ${n.type} node found`);
+        Interpreter.panic(n, `unknown ${n.type} node found`);
     }
-  }
+  };
 
-  #interpretNodes(nodes: Node[]): LazyNode[] {
-    const lazyNodes: LazyNode[] = [];
-    for (const n of nodes) {
-      lazyNodes.push(this.#interpretNode(n));
+  interpretNodes = async (
+    nodes: Node[],
+    sequentally = false,
+  ): Promise<any[]> => {
+    if (sequentally) {
+      const results: any = [];
+
+      for (const node of nodes) {
+        const result = await this.interpretNode(node);
+        if (Array.isArray(result)) {
+          results.push(...result);
+        } else {
+          results.push(result);
+        }
+      }
+
+      return results;
     }
 
-    return lazyNodes;
-  }
+    return await Promise.all(nodes.map((node) => this.interpretNode(node)));
+  };
 
-  #interpretArrayExpression(n: ArrayExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async () => {
-        const lazyNodes = this.#interpretNodes(n.elements);
-        return resolveLazyNodes(lazyNodes);
-      },
-    };
-  }
+  #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
+    return this.interpretNodes(n.elements);
+  };
 
-  #intrepretAsExpression(n: AsExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async (...args) => {
-        const left = await this.#interpretNode(n.left).resolve(args);
-        const right = await this.#interpretNode(n.right).resolve(args);
+  #intrepretAsExpression: NodeInterpreter<AsExpressionNode> = async (
+    n,
+    options,
+  ) => {
+    const left = await this.interpretNode(n.left, options);
+    const right = await this.interpretNode(n.right, options);
 
-        return [left, right];
-      },
-    };
-  }
+    return [left, right];
+  };
 
-  #interpretBlockExpression(n: BlockExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async (
-        moduleName: string,
-        contextMakerFn?: () => Promise<void>,
-        identifierFormatter?: IdentifierFormatter,
-      ) => {
-        this.#bindingsManager.enterScope();
+  #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
+    n,
+    { blockInitializer, blockModule, identifierFormatter } = {},
+  ) => {
+    this.#bindingsManager.enterScope();
 
-        this.#bindingsManager.setBinding(
-          CONTEXTUAL_MODULE,
-          moduleName,
-          INTERPRETER,
+    this.#bindingsManager.setBinding(
+      CONTEXTUAL_MODULE,
+      blockModule,
+      INTERPRETER,
+    );
+
+    if (identifierFormatter) {
+      this.#bindingsManager.setBinding(
+        IDENTIFIER_FORMATTER,
+        identifierFormatter,
+        INTERPRETER,
+      );
+    }
+
+    if (blockInitializer) {
+      await blockInitializer();
+    }
+
+    const results = await this.interpretNodes(n.body, true);
+
+    this.#bindingsManager.exitScope();
+
+    return results;
+  };
+
+  #interpretCallFunction: NodeInterpreter<CallExpressionNode> = async (n) => {
+    console.log(n);
+
+    return '';
+  };
+
+  #interpretCommand: NodeInterpreter<CommandExpressionNode> = (c) => {
+    let module: Module | undefined = this.#std;
+    const moduleName =
+      c.module ??
+      (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
+        | string
+        | undefined);
+
+    if (moduleName) {
+      module = this.#modules.find((m) =>
+        m.alias ? m.alias === moduleName : m.name === moduleName,
+      );
+
+      if (!module) {
+        Interpreter.panic(c, `module ${moduleName} not found`);
+      }
+    }
+
+    return module.interpretCommand(c, {
+      interpretNode: this.interpretNode,
+      interpretNodes: this.interpretNodes,
+    });
+  };
+
+  #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
+    const helperName = h.name;
+    const filteredModules = [...this.#modules, this.#std].filter(
+      (m) => !!m.helpers[helperName],
+    );
+
+    if (!filteredModules.length) {
+      Interpreter.panic(h, 'helper not found on any module');
+    }
+
+    // TODO: Prefix helpers with module name/alias to avoid collisions
+    else if (filteredModules.length > 1) {
+      Interpreter.panic(
+        h,
+        `name collisions found on modules ${filteredModules.join(', ')}`,
+      );
+    }
+
+    const m = filteredModules[0];
+
+    return m.interpretHelper(h, {
+      interpretNode: this.interpretNode,
+      interpretNodes: this.interpretNodes,
+    });
+  };
+
+  #interpretLiteral: NodeInterpreter<LiteralExpressionNode> = async (n) => {
+    switch (n.type) {
+      case NodeType.AddressLiteral:
+      case NodeType.BoolLiteral:
+      case NodeType.BytesLiteral:
+      case NodeType.StringLiteral:
+        return n.value;
+      case NodeType.NumberLiteral:
+        return toDecimals(n.value, n.power ?? 0).mul(
+          timeUnits[n.timeUnit ?? 's'],
         );
+      default:
+        Interpreter.panic(n, 'unknown literal expression node');
+    }
+  };
+
+  #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
+    async (n, { treatAsLiteral = true } = {}) => {
+      let identifier: string = n.value;
+
+      if (treatAsLiteral) {
+        const identifierFormatter = this.#bindingsManager.getBinding(
+          'identifierFormatter',
+          INTERPRETER,
+        ) as InterpretOptions['identifierFormatter'];
 
         if (identifierFormatter) {
-          this.#bindingsManager.setBinding(
-            IDENTIFIER_FORMATTER,
-            identifierFormatter,
-            INTERPRETER,
-          );
+          identifier = identifierFormatter(identifier);
         }
 
-        if (contextMakerFn) {
-          await contextMakerFn();
-        }
-
-        const lazyNodes = this.#interpretNodes(n.body);
-        const results = await resolveLazyNodes(lazyNodes, true);
-
-        this.#bindingsManager.exitScope();
-
-        return results;
-      },
-    };
-  }
-
-  #interpretCallFunction(n: CallExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async () => {
-        const args = await Promise.all(
-          n.args.map((arg) => this.#interpretNode(arg)),
-        );
-        console.log(args);
-
-        // TODO: implement call logic
-      },
-    };
-  }
-
-  #interpretCommand(c: CommandExpressionNode): LazyNode {
-    return {
-      type: c.type,
-      resolve: async () => {
-        const moduleName =
-          c.module ??
-          (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
-            | string
-            | undefined);
-
-        if (moduleName) {
-          const module = this.#modules.find((m) =>
-            m.alias ? m.alias === moduleName : m.name === moduleName,
-          );
-
-          if (!module) {
-            Interpreter.panic(
-              CallableExpression.Command,
-              '',
-              ErrorNotFound,
-              `module ${moduleName} not found`,
-            );
-          }
-
-          return this.#runModuleCommand(c, module);
-        }
-
-        // When the execution flow is on root scope fallback to std module
-        return this.#runModuleCommand(c, this.#std);
-      },
-    };
-  }
-
-  #interpretHelperFunction(n: HelperFunctionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async () => {
-        const helperName = n.name;
-        const args = await resolveLazyNodes(this.#interpretNodes(n.args));
-        const filteredModules = [...this.#modules, this.#std].filter(
-          (m) => m.helpers[helperName],
+        const addressBinding = this.bindingsManager.getBinding(
+          identifier,
+          ADDR,
         );
 
-        if (!filteredModules.length) {
-          throw new ErrorNotFound(`Helper @${helperName} not found`);
+        if (addressBinding) {
+          return addressBinding;
         }
-        // TODO: Prefix helpers with module name/alias to avoid collisions
-        else if (filteredModules.length > 1) {
-          throw new ErrorException(
-            `Helper @${helperName} name colissions. Found ${filteredModules.length}`,
-          );
-        }
+      }
 
-        const m = filteredModules[0];
-        const helper = m.helpers[helperName];
-
-        return helper(...args);
-      },
+      return identifier;
     };
-  }
 
-  #interpretLiteral(n: LiteralExpressionNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async () => {
-        switch (n.type) {
-          case NodeType.AddressLiteral:
-          case NodeType.BoolLiteral:
-          case NodeType.BytesLiteral:
-          case NodeType.StringLiteral:
-            return n.value;
-          case NodeType.NumberLiteral:
-            return toDecimals(n.value, n.power ?? 0).mul(
-              timeUnits[n.timeUnit ?? 's'],
-            );
-          default:
-            throw new Error('Unknown LiteralExpressionNode');
-        }
-      },
-    };
-  }
+  #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
+    n,
+    { treatAsLiteral = false } = {},
+  ) => {
+    if (treatAsLiteral) {
+      return n.value;
+    }
 
-  #interpretProbableIdentifier(n: ProbableIdentifierNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async (treatAsIdentifier = true) => {
-        let identifier: string = n.value;
+    const binding = this.#bindingsManager.getBinding(n.value, USER);
 
-        if (treatAsIdentifier) {
-          const identifierFormatter = this.#bindingsManager.getBinding(
-            'identifierFormatter',
-            INTERPRETER,
-          ) as IdentifierFormatter;
+    if (binding) {
+      return binding;
+    }
 
-          if (identifierFormatter) {
-            identifier = identifierFormatter(identifier);
-          }
-
-          const binding = this.bindingsManager.getBinding(identifier, ADDR);
-
-          if (binding) {
-            return binding;
-          }
-        }
-
-        return identifier;
-      },
-    };
-  }
-
-  #interpretVariableIdentifier(n: VariableIdentiferNode): LazyNode {
-    return {
-      type: n.type,
-      resolve: async (fallbackToIdentiferName = false) => {
-        if (fallbackToIdentiferName) {
-          return n.value;
-        }
-
-        const binding = this.#bindingsManager.getBinding(n.value, USER);
-
-        if (binding) {
-          return binding;
-        }
-
-        throw new Error(`${n.value} is not defined`);
-      },
-    };
-  }
-
-  async #runModuleCommand(
-    c: CommandExpressionNode,
-    module: Module,
-  ): ReturnType<CommandFunction<Module>> {
-    const lazyNodes = this.#interpretNodes(c.args);
-
-    return module.interpretCommand(c.name, lazyNodes, this.#signer);
-  }
+    Interpreter.panic(n, `$${n.value} not defined`);
+  };
 
   #setDefaultBindings(): void {
     this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
     this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
   }
 
-  static panic(
-    type: CallableExpression,
-    typeName: string,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    ErrorConstructor: any,
-    msg: string,
-  ): never {
-    throw new ErrorConstructor(buildErrorMsg(type, typeName, msg));
+  static panic(n: Node, msg: string): never {
+    switch (n.type) {
+      case CommandExpression:
+        throw new CommandError((n as CommandExpressionNode).name, msg);
+      case HelperFunctionExpression:
+        throw new HelperFunctionError((n as HelperFunctionNode).name, msg);
+      case VariableIdentifier:
+        throw new ExpressionError(msg, { name: 'VariableIdentifierError' });
+      default:
+        throw new ErrorException(msg);
+    }
   }
 }

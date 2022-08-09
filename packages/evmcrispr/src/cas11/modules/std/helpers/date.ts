@@ -1,10 +1,6 @@
 import { ErrorInvalid } from '../../../../errors';
-import type { RawHelperFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
 
 const iso8601Regex =
@@ -12,14 +8,14 @@ const iso8601Regex =
 const offsetRegex =
   /^(?:([-+]\d+)y)?(?:([-+]\d+)mo)?(?:([-+]\d+)w)?(?:([-+]\d+)d)?(?:([-+]\d+)h)?(?:([-+]\d+)m)?(?:([-+]\d+)s?)?$/;
 
-export const date: RawHelperFunction<Std> = async (_, ...args) => {
-  checkArgsLength('date', CallableExpression.Helper, args.length, {
+export const date: HelperFunction<Std> = async (_, h, { interpretNodes }) => {
+  checkArgsLength(h, {
     type: ComparisonType.Between,
     minValue: 1,
     maxValue: 2,
   });
 
-  const [date, offset] = args;
+  const [date, offset] = await interpretNodes(h.args);
   if (date != 'now' && !iso8601Regex.test(date)) {
     throw new ErrorInvalid('Invalid date provided.');
   }
@@ -45,5 +41,6 @@ export const date: RawHelperFunction<Std> = async (_, ...args) => {
     Number(hours) * 3600 +
     Number(minutes) * 60 +
     Number(seconds);
+
   return (Math.floor(_date.valueOf() / 1000) + offsetNum).toString();
 };

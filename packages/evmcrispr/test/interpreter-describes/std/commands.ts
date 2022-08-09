@@ -3,18 +3,15 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
 import type { Action } from '../../../src';
-import { ErrorInvalid, encodeActCall } from '../../../src';
+import { encodeActCall } from '../../../src';
 import { BindingsSpace } from '../../../src/cas11/interpreter/BindingsManager';
-import { buildErrorMsg } from '../../../src/cas11/interpreter/Interpreter';
 import { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
-import { CallableExpression } from '../../../src/cas11/utils';
+import { CommandError } from '../../../src/errors';
 
 import { toDecimals } from '../../../src/utils';
 
 import { createInterpreter } from '../../test-helpers/cas11';
 import { expectThrowAsync } from '../../test-helpers/expects';
-
-const { Command } = CallableExpression;
 
 export const commandsDescribe = (): Mocha.Suite =>
   describe('Commands', () => {
@@ -52,21 +49,27 @@ export const commandsDescribe = (): Mocha.Suite =>
 
       it('should fail when trying to load a non-existent module', async () => {
         const moduleName = 'nonExistent';
+        const error = new CommandError(
+          'load',
+          `module ${moduleName} not found`,
+        );
+
         await expectThrowAsync(
           () => createInterpreter(`load ${moduleName}`, signer).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'load',
-              `module ${moduleName} not found`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });
 
       it('should fail when trying to load a previously loaded module', async () => {
         const moduleName = 'aragonos';
+        const error = new CommandError(
+          'load',
+          `module ${moduleName} already loaded`,
+        );
+
         await expectThrowAsync(
           () =>
             createInterpreter(
@@ -77,12 +80,8 @@ export const commandsDescribe = (): Mocha.Suite =>
               signer,
             ).interpret(),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              Command,
-              'load',
-              `module ${moduleName} already loaded`,
-            ),
+            type: error.constructor,
+            message: error.message,
           },
         );
       });

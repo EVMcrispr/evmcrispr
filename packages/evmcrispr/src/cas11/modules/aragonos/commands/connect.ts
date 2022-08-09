@@ -7,22 +7,16 @@ import {
   NO_ENTITY,
   addressesEqual,
 } from '../../../../utils';
-import { ErrorInvalid } from '../../../../errors';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
 import { formatIdentifier } from '../utils';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-  resolveLazyNodes,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import { batchForwarderActions } from '../../../../modules/aragonos/utils/forwarders';
-
-const prefixError = 'Connect command error';
+import { _aragonEns } from '../helpers/aragonEns';
+import { Interpreter } from '../../../interpreter/Interpreter';
 
 const { BlockExpression } = NodeType;
 const { ADDR } = BindingsSpace;
@@ -31,14 +25,14 @@ const setDAOContext = (
   aragonos: AragonOS,
   { dao, index, name }: { dao: AragonDAO; index: number; name?: string },
 ) => {
-  return () => {
+  return async () => {
     const bindingsManager = aragonos.bindingsManager;
 
     bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY, ADDR);
     bindingsManager.setBinding('NO_ENTITY', NO_ENTITY, ADDR);
     bindingsManager.setBinding('BURN_ENTITY', BURN_ENTITY, ADDR);
 
-    aragonos.setCurrentDAO(dao);
+    aragonos.currentDAO = dao;
 
     dao.appCache.forEach((app, appIdentifier) => {
       bindingsManager.setBinding(appIdentifier, app.address, ADDR);
@@ -55,45 +49,46 @@ const setDAOContext = (
 };
 
 export const connect: CommandFunction<AragonOS> = async (
-  aragonos,
-  lazyNodes,
+  module,
+  c,
+  { interpretNode, interpretNodes },
 ) => {
-  checkArgsLength('connect', CallableExpression.Command, lazyNodes.length, {
+  checkArgsLength(c, {
     type: ComparisonType.Greater,
     minValue: 2,
   });
 
-  const [daoNameLazyNode, ...rest] = lazyNodes;
-  const blockExpressionLazyNode = rest.pop();
-  const forwarderApps = await resolveLazyNodes(rest);
+  const [daoNameNode, ...rest] = c.args;
+  const blockExpressionNode = rest.pop();
 
-  if (
-    !blockExpressionLazyNode ||
-    blockExpressionLazyNode.type !== BlockExpression
-  ) {
-    throw new ErrorInvalid(
-      `${prefixError}: last argument should be a group of commands`,
-    );
+  const forwarderApps = await interpretNodes(rest);
+
+  if (!blockExpressionNode || blockExpressionNode.type !== BlockExpression) {
+    Interpreter.panic(c, 'last argument should be a set of commands');
   }
 
-  const daoAddressOrName = await daoNameLazyNode.resolve();
+  const daoAddressOrName = await interpretNode(daoNameNode);
   let daoAddress: Address;
 
   if (utils.isAddress(daoAddressOrName)) {
     daoAddress = daoAddressOrName;
   } else {
-    const ensResolver = aragonos.getModuleBinding('ensResolver', true);
-    daoAddress = await aragonos.helpers.aragonEns(
-      `${daoAddressOrName}.aragonid.eth`,
-      ensResolver,
-    );
+    const daoENSName = `${daoAddressOrName}.aragonid.eth`;
+    const res = await _aragonEns(daoENSName, module);
+
+    if (!res) {
+      Interpreter.panic(c, `ENS DAO name ${daoENSName} couldn't be resolved`);
+    }
+
+    daoAddress = res;
   }
 
-  const currentDao = aragonos.getCurrentDAO();
+  const currentDao = module.currentDAO;
 
   if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
-    throw new ErrorInvalid(
-      `${prefixError}: trying to connect to an already connected DAO (${daoAddress})`,
+    Interpreter.panic(
+      c,
+      `trying to connect to an already connected DAO (${daoAddress})`,
     );
   }
 
@@ -102,45 +97,56 @@ export const connect: CommandFunction<AragonOS> = async (
 
   const dao = await AragonDAO.create(
     daoAddress,
-    aragonos.getModuleBinding('subgraphUrl', true),
-    aragonos.signer,
-    aragonos.ipfsResolver,
+    module.getModuleBinding('subgraphUrl', true),
+    module.signer,
+    module.ipfsResolver,
     nextNestingIndex,
   );
 
-  aragonos.connectedDAOs.push(dao);
+  module.connectedDAOs.push(dao);
 
   const daoName = !utils.isAddress(daoAddressOrName)
     ? daoAddressOrName
     : undefined;
 
-  const actions = (await blockExpressionLazyNode.resolve(
-    aragonos.contextualName,
-    setDAOContext(aragonos, { dao, index: nextNestingIndex, name: daoName }),
-    formatIdentifier,
-  )) as Action[];
+  const actions = (await interpretNode(blockExpressionNode, {
+    blockModule: module.contextualName,
+    blockInitializer: setDAOContext(module, {
+      dao,
+      index: nextNestingIndex,
+      name: daoName,
+    }),
+    identifierFormatter: formatIdentifier,
+  })) as Action[];
 
   const invalidApps: any[] = [];
   const forwarderAppAddresses: Address[] = [];
 
-  forwarderApps.forEach((app) => {
-    const appAddress = dao.resolveApp(app)?.address;
+  forwarderApps.forEach((appOrAddress: string) => {
+    const appAddress = utils.isAddress(appOrAddress)
+      ? appOrAddress
+      : dao.resolveApp(appOrAddress)?.address;
+
+    if (!appAddress) {
+      Interpreter.panic(c, `${appOrAddress} is not a DAO's forwarder app`);
+    }
 
     !utils.isAddress(appAddress)
-      ? invalidApps.push(app)
+      ? invalidApps.push(appOrAddress)
       : forwarderAppAddresses.push(appAddress);
   });
 
   if (invalidApps.length) {
-    throw new ErrorInvalid(
-      `${prefixError}: invalid forwarder addresses found for the following: ${invalidApps.join(
+    Interpreter.panic(
+      c,
+      `invalid forwarder addresses found for the following: ${invalidApps.join(
         ', ',
       )}`,
     );
   }
 
   return batchForwarderActions(
-    aragonos.signer,
+    module.signer,
     actions,
     forwarderAppAddresses.reverse(),
   );

@@ -1,55 +1,47 @@
 import { constants, utils } from 'ethers';
 
 import type { Action } from '../../../..';
-import { ErrorException, ErrorInvalid } from '../../../../errors';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
-import { resolveLazyNodes } from '../../../utils/resolvers';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 
-const { Command } = CallableExpression;
-
 // TODO: add support to permission params
-export const grant: CommandFunction<AragonOS> = async (aragonos, lazyNodes) => {
-  checkArgsLength('grant', CallableExpression.Command, lazyNodes.length, {
+export const grant: CommandFunction<AragonOS> = async (
+  module,
+  c,
+  { interpretNodes },
+) => {
+  checkArgsLength(c, {
     type: ComparisonType.Between,
     minValue: 3,
     maxValue: 4,
   });
 
-  const dao = aragonos.getCurrentDAO();
+  const dao = module.currentDAO;
 
   if (!dao || !(dao instanceof AragonDAO)) {
-    Interpreter.panic(
-      Command,
-      'grant',
-      ErrorInvalid,
-      'must be used within a "connect" command',
-    );
+    Interpreter.panic(c, 'must be used within a "connect" command');
   }
 
   const [granteeAddress, appAddress, role, defaultPermissionManagerAddress] =
-    await resolveLazyNodes(lazyNodes);
+    await interpretNodes(c.args);
   const roleHash = utils.id(role);
-  const { permissions: appPermissions, name } = dao!.resolveApp(appAddress);
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    Interpreter.panic(c, `${appAddress} is not a DAO's app`);
+  }
+
+  const { permissions: appPermissions, name } = app;
   const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp('acl');
+    dao!.resolveApp('acl')!;
   const actions: Action[] = [];
 
   if (!appPermissions.has(roleHash)) {
     // TODO: get app identifier. Maybe set it on cache
-    Interpreter.panic(
-      Command,
-      'grant',
-      ErrorException,
-      `given permission doesn't exists on app ${name}`,
-    );
+    Interpreter.panic(c, `given permission doesn't exists on app ${name}`);
   }
 
   const appPermission = appPermissions.get(roleHash)!;
@@ -63,9 +55,7 @@ export const grant: CommandFunction<AragonOS> = async (aragonos, lazyNodes) => {
     if (appPermission.grantees.has(granteeAddress)) {
       // TODO: get app identifier. Maybe set it on cache
       Interpreter.panic(
-        Command,
-        'grant',
-        ErrorException,
+        c,
         `grantee already has given permission on app ${name}`,
       );
     }
@@ -89,17 +79,10 @@ export const grant: CommandFunction<AragonOS> = async (aragonos, lazyNodes) => {
     appPermission.manager === constants.AddressZero
   ) {
     if (!defaultPermissionManagerAddress) {
-      Interpreter.panic(
-        Command,
-        'grant',
-        ErrorInvalid,
-        'permission manager missing',
-      );
+      Interpreter.panic(c, 'permission manager missing');
     } else if (!utils.isAddress(defaultPermissionManagerAddress)) {
       Interpreter.panic(
-        Command,
-        'grant',
-        ErrorInvalid,
+        c,
         `invalid permission manager. Expected an address, but got ${defaultPermissionManagerAddress}`,
       );
     }

@@ -1,22 +1,20 @@
 import { utils } from 'ethers';
 
-import type { RawHelperFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
 
-export const id: RawHelperFunction<Std> = async (
+export const id: HelperFunction<Std> = async (
   _,
-  ...args
+  h,
+  { interpretNodes },
 ): Promise<string> => {
-  checkArgsLength('id', CallableExpression.Helper, args.length, {
+  checkArgsLength(h, {
     type: ComparisonType.Equal,
     minValue: 1,
   });
 
-  const [text] = args;
+  const [text] = await interpretNodes(h.args);
+
   return utils.id(text);
 };

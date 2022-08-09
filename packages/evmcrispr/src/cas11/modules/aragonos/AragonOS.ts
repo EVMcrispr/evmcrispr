@@ -1,12 +1,9 @@
 import type { Signer } from 'ethers';
 
-import type { LazyNode } from '../../interpreter/Interpreter';
 import type { BindingsManager } from '../../interpreter/BindingsManager';
 
 import { Module } from '../Module';
 import type { IPFSResolver } from '../../../IPFSResolver';
-import type { CommandFunction } from '../../types';
-import { ErrorInvalid } from '../../../errors';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
 import { helpers } from './helpers';
@@ -23,7 +20,7 @@ export class AragonOS extends Module {
     ipfsResolver: IPFSResolver,
     alias?: string,
   ) {
-    super('aragonos', bindingsManager, signer, helpers, alias);
+    super('aragonos', bindingsManager, commands, helpers, signer, alias);
 
     this.#connectedDAOs = [];
     this.#ipfsResolver = ipfsResolver;
@@ -32,34 +29,22 @@ export class AragonOS extends Module {
   get connectedDAOs(): AragonDAO[] {
     return this.#connectedDAOs;
   }
-  get ipfsResolver(): IPFSResolver {
-    return this.#ipfsResolver;
+
+  get currentDAO(): AragonDAO | undefined {
+    return this.getModuleBinding('currentDAO') as AragonDAO | undefined;
   }
 
-  async interpretCommand(
-    name: string,
-    lazyNodes: LazyNode[],
-  ): ReturnType<CommandFunction<AragonOS>> {
-    const command = commands[name];
+  set currentDAO(dao: AragonDAO | undefined) {
+    this.setModuleBinding('currentDAO', dao);
+  }
 
-    if (!command) {
-      throw new ErrorInvalid(`Command ${name} not found on module AragonOS`);
-    }
-
-    return command(this, lazyNodes);
+  get ipfsResolver(): IPFSResolver {
+    return this.#ipfsResolver;
   }
 
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {
     return this.connectedDAOs.find((dao) =>
       addressesEqual(dao.kernel.address, daoAddress),
     );
-  }
-
-  getCurrentDAO(): AragonDAO | undefined {
-    return this.getModuleBinding('currentDAO') as AragonDAO | undefined;
-  }
-
-  setCurrentDAO(dao: AragonDAO): void {
-    this.setModuleBinding('currentDAO', dao);
   }
 }

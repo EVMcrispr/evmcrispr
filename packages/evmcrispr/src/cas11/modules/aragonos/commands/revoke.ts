@@ -1,78 +1,66 @@
 import { utils } from 'ethers';
 
 import type { Action } from '../../../..';
-import { ErrorInvalid, ErrorNotFound } from '../../../../errors';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-  resolveLazyNodes,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 
-const { Command } = CallableExpression;
-
-const revokePanic = (ErrorConstructor: any, msg: string) =>
-  Interpreter.panic(
-    CallableExpression.Command,
-    'revoke',
-    ErrorConstructor,
-    msg,
-  );
-
 export const revoke: CommandFunction<AragonOS> = async (
-  aragonos,
-  lazyNodes,
+  module,
+  c,
+  { interpretNodes },
 ) => {
-  checkArgsLength('revoke', Command, lazyNodes.length, {
+  checkArgsLength(c, {
     type: ComparisonType.Between,
     minValue: 3,
     maxValue: 4,
   });
 
-  const dao = aragonos.getCurrentDAO();
+  const dao = module.currentDAO;
 
   if (!dao || !(dao instanceof AragonDAO)) {
-    revokePanic(ErrorInvalid, 'must be used within a "connect" command');
+    Interpreter.panic(c, 'must be used within a "connect" command');
   }
 
   const [granteeAddress, appAddress, role, removeManager] =
-    await resolveLazyNodes(lazyNodes);
+    await interpretNodes(c.args);
 
   if (!utils.isAddress(granteeAddress)) {
-    revokePanic(
-      ErrorInvalid,
+    Interpreter.panic(
+      c,
       `grantee must be a valid address, got ${granteeAddress}`,
     );
   }
 
   const removeManagerType = typeof removeManager;
   if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
-    revokePanic(
-      ErrorInvalid,
+    Interpreter.panic(
+      c,
       `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
     );
   }
 
   const roleHash = utils.id(role);
-  const { permissions: appPermissions, name } = dao!.resolveApp(appAddress);
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    Interpreter.panic(c, `${appAddress} is not a DAO's app`);
+  }
+
+  const { permissions: appPermissions, name } = app;
   const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp('acl');
+    dao!.resolveApp('acl')!;
 
   if (!appPermissions.has(roleHash)) {
-    revokePanic(
-      ErrorNotFound,
-      `given permission doesn't exists on app ${name}`,
-    );
+    Interpreter.panic(c, `given permission doesn't exists on app ${name}`);
   }
 
   const appPermission = appPermissions.get(roleHash)!;
   if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
-    revokePanic(
-      ErrorNotFound,
+    Interpreter.panic(
+      c,
       `grantee ${granteeAddress} doesn't have the given permission`,
     );
   }

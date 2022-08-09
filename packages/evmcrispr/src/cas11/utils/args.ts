@@ -1,9 +1,17 @@
-import { ErrorInvalid } from '../../errors';
 import { Interpreter } from '../interpreter/Interpreter';
-import type { CallableExpression, Comparison } from './expressions';
-import { ComparisonType } from './expressions';
+import type { CallableExpressionNode } from '../types';
 
-const { Between, Equal, Greater } = ComparisonType;
+export enum ComparisonType {
+  Between = 'Between',
+  Equal = 'Equal',
+  Greater = 'Greater',
+}
+
+export interface Comparison {
+  type: ComparisonType;
+  minValue: number;
+  maxValue?: number;
+}
 
 const checkComparisonError = (
   value: number,
@@ -18,6 +26,8 @@ const checkComparisonError = (
       return !!maxValue && !(value >= minValue && value <= maxValue);
   }
 };
+
+const { Between, Equal, Greater } = ComparisonType;
 
 export const buildArgsLengthErrorMsg = (
   length: number,
@@ -43,19 +53,13 @@ export const buildArgsLengthErrorMsg = (
 };
 
 export const checkArgsLength = (
-  name: string,
-  type: CallableExpression,
-  length: number,
+  n: CallableExpressionNode,
   comparison: Comparison,
 ): void => {
-  const isError = checkComparisonError(length, comparison);
+  const argsLength = n.args.length;
+  const isError = checkComparisonError(argsLength, comparison);
 
   if (isError) {
-    Interpreter.panic(
-      type,
-      name,
-      ErrorInvalid,
-      buildArgsLengthErrorMsg(length, comparison),
-    );
+    Interpreter.panic(n, buildArgsLengthErrorMsg(argsLength, comparison));
   }
 };

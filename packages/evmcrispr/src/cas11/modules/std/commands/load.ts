@@ -1,85 +1,65 @@
-import { ErrorInvalid } from '../../../../errors';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import { AragonOS } from '../../aragonos/AragonOS';
 import type { Std } from '../Std';
 
-const { Command } = CallableExpression;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
 
-export const load: CommandFunction<Std> = async (std, lazyNodes) => {
-  checkArgsLength('load', Command, lazyNodes.length, {
+export const load: CommandFunction<Std> = async (
+  module,
+  c,
+  { interpretNode },
+) => {
+  checkArgsLength(c, {
     type: ComparisonType.Equal,
     minValue: 1,
   });
 
-  const [lazyNode] = lazyNodes;
-  const type = lazyNode.type;
+  const [argNode] = c.args;
+  const type = argNode.type;
   const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
   if (type !== AsExpression && type !== StringLiteral && !isIdentifier) {
-    Interpreter.panic(
-      Command,
-      'load',
-      ErrorInvalid,
-      'invalid argument. Expected a string',
-    );
+    Interpreter.panic(c, 'invalid argument. Expected a string');
   }
 
   let moduleName: string,
     moduleAlias: string | undefined = undefined;
 
-  if (lazyNode.type === AsExpression) {
-    [moduleName, moduleAlias] = await lazyNode.resolve();
+  if (argNode.type === AsExpression) {
+    [moduleName, moduleAlias] = await interpretNode(argNode);
   } else {
-    moduleName = await lazyNode.resolve(false);
+    moduleName = await interpretNode(argNode, {
+      treatAsLiteral: true,
+    });
   }
 
-  if (std.modules.find((m: any) => m.name === moduleName)) {
-    Interpreter.panic(
-      Command,
-      'load',
-      ErrorInvalid,
-      `module ${moduleName} already loaded`,
-    );
+  if (module.modules.find((m: any) => m.name === moduleName)) {
+    Interpreter.panic(c, `module ${moduleName} already loaded`);
   }
 
   if (moduleAlias) {
-    const m = std.modules.find((m: any) => m.alias === moduleAlias);
+    const m = module.modules.find((m: any) => m.alias === moduleAlias);
 
     if (m) {
-      Interpreter.panic(
-        Command,
-        'load',
-        ErrorInvalid,
-        `alias already used for module ${m.name}`,
-      );
+      Interpreter.panic(c, `alias already used for module ${m.name}`);
     }
   }
 
   switch (moduleName) {
     case 'aragonos':
-      std.modules.push(
+      module.modules.push(
         new AragonOS(
-          std.bindingsManager,
-          std.signer,
-          std.ipfsResolver,
+          module.bindingsManager,
+          module.signer,
+          module.ipfsResolver,
           moduleAlias,
         ),
       );
       return;
     default:
-      Interpreter.panic(
-        Command,
-        'load',
-        ErrorInvalid,
-        `module ${moduleName} not found`,
-      );
+      Interpreter.panic(c, `module ${moduleName} not found`);
   }
 };

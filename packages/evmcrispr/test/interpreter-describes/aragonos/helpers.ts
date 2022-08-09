@@ -2,7 +2,9 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { CallableExpression, ComparisonType } from '../../../src/cas11/utils';
+import { NodeType } from '../../../src/cas11/types';
+
+import { ComparisonType } from '../../../src/cas11/utils';
 
 import {
   itChecksInvalidArgsLength,
@@ -40,7 +42,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        CallableExpression.Helper,
+        NodeType.HelperFunctionExpression,
         '@aragonEns',
         ['mydao.aragonid.eth', '0x98Df287B6C145399Aaa709692c8D308357bC085D'],
         { type: ComparisonType.Between, minValue: 1, maxValue: 2 },

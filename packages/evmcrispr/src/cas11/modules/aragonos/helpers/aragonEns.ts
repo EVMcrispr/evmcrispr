@@ -1,11 +1,7 @@
-import { ErrorInvalid } from '../../../../errors';
 import { resolveName } from '../../../../utils';
-import type { RawHelperFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import { Interpreter } from '../../../interpreter/Interpreter';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 
 function getAragonEnsResolver(chainId: number): string {
@@ -19,26 +15,38 @@ function getAragonEnsResolver(chainId: number): string {
   }
 }
 
-export const aragonEns: RawHelperFunction<AragonOS> = async (
-  { signer },
-  ...args: any[]
+export const _aragonEns = async (
+  ensName: string,
+  module: AragonOS,
+): Promise<string | null> => {
+  const ensResolver = module.getModuleBinding('ensResolver', true);
+
+  const name = await resolveName(
+    ensName,
+    ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
+    module.signer,
+  );
+
+  return name;
+};
+
+export const aragonEns: HelperFunction<AragonOS> = async (
+  module,
+  h,
+  { interpretNodes },
 ) => {
-  checkArgsLength('aragonEns', CallableExpression.Helper, args.length, {
+  checkArgsLength(h, {
     type: ComparisonType.Between,
     minValue: 1,
     maxValue: 2,
   });
 
-  const [ensName, ensResolver] = args;
+  const [ensName] = await interpretNodes(h.args);
 
-  const name = await resolveName(
-    ensName,
-    ensResolver || getAragonEnsResolver(await signer.getChainId()),
-    signer,
-  );
+  const name = await _aragonEns(ensName, module);
 
   if (!name) {
-    throw new ErrorInvalid(`ENS ${ensName} can not be resolved.`);
+    Interpreter.panic(h, `ENS ${ensName} couldn't be resolved.`);
   }
 
   return name;

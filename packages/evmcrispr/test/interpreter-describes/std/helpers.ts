@@ -3,13 +3,15 @@ import type { Signer } from 'ethers';
 import { Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { CallableExpression, ComparisonType } from '../../../src/cas11/utils';
+import { NodeType } from '../../../src/cas11/types';
+
+import { ComparisonType } from '../../../src/cas11/utils';
 import {
   itChecksInvalidArgsLength,
   runExpression,
 } from '../../test-helpers/cas11';
 
-const { Helper } = CallableExpression;
+const { HelperFunctionExpression } = NodeType;
 const { Between, Equal } = ComparisonType;
 
 const toTimestamp = (date?: string): number =>
@@ -36,7 +38,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        Helper,
+        HelperFunctionExpression,
         '@id',
         ['exampleValue'],
         {
@@ -55,7 +57,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        Helper,
+        HelperFunctionExpression,
         '@me',
         [],
         { type: Equal, minValue: 0 },
@@ -73,7 +75,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        Helper,
+        HelperFunctionExpression,
         '@token',
         ['DAI'],
         {
@@ -100,7 +102,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        Helper,
+        HelperFunctionExpression,
         '@token.balance',
         ['DAI', '@me'],
         { type: Equal, minValue: 2 },
@@ -245,7 +247,7 @@ export const helpersDescribe = (): Mocha.Suite =>
       });
 
       itChecksInvalidArgsLength(
-        Helper,
+        HelperFunctionExpression,
         '@date',
         ['2010-05-05', '+2y'],
         {

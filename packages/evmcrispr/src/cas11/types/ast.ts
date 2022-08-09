@@ -135,6 +135,11 @@ export type PrimaryExpressionNode =
   | ProbableIdentifierNode
   | VariableIdentiferNode;
 
+export type CallableExpressionNode =
+  | CallExpressionNode
+  | CommandExpressionNode
+  | HelperFunctionNode;
+
 export type ArgumentExpressionNode =
   | ArrayExpressionNode
   | CallExpressionNode

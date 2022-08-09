@@ -84,3 +84,35 @@ export class ErrorUnexpectedResult extends ErrorException {
     super(message, { code, name });
   }
 }
+
+export class CommandError extends ErrorException {
+  constructor(
+    commandName: string,
+    message = 'an error happened while executing the command',
+    { code = 'CommandError', name = 'CommandError' }: ErrorOptions = {},
+  ) {
+    super(`${commandName}: ${message}`, { code, name });
+  }
+}
+
+export class HelperFunctionError extends ErrorException {
+  constructor(
+    helperName: string,
+    message = 'an error happened while executing the helper',
+    {
+      code = 'HelperFunctionError',
+      name = 'HelperFunctionError',
+    }: ErrorOptions = {},
+  ) {
+    super(`@${helperName}: ${message}`, { code, name });
+  }
+}
+
+export class ExpressionError extends ErrorException {
+  constructor(
+    message = 'an error happened with an expression',
+    { code = 'ExpressionError', name = 'ExpressionError' }: ErrorOptions = {},
+  ) {
+    super(message, { code, name });
+  }
+}

@@ -1,13 +1,9 @@
-import type { RawHelperFunction } from '../../../types';
-import {
-  CallableExpression,
-  ComparisonType,
-  checkArgsLength,
-} from '../../../utils';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
 
-export const me: RawHelperFunction<Std> = (module, ...args) => {
-  checkArgsLength('me', CallableExpression.Helper, args.length, {
+export const me: HelperFunction<Std> = async (module, h) => {
+  checkArgsLength(h, {
     type: ComparisonType.Equal,
     minValue: 0,
   });

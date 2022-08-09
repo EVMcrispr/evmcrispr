@@ -1,87 +1,62 @@
 import type { Signer } from 'ethers';
 
-import type { LazyNode } from '../interpreter/Interpreter';
 import type { BindingsManager } from '../interpreter/BindingsManager';
 import { BindingsSpace } from '../interpreter/BindingsManager';
 import type {
+  CommandExpressionNode,
   CommandFunction,
-  HelperFunctions,
-  RawHelperFunctions,
+  HelperFunction,
+  HelperFunctionNode,
 } from '../types';
-
-const curryHelpers = (
-  module: Module,
-  helpers: RawHelperFunctions<Module>,
-): HelperFunctions => {
-  return Object.keys(helpers).reduce(
-    (newHelpers: Record<string, (...args: any[]) => any>, helperName) => {
-      newHelpers[helperName] = (...args: any[]) =>
-        helpers[helperName](module, ...args);
-      return newHelpers;
-    },
-    {},
-  );
-};
+import type {
+  CommandFunctions,
+  HelperFunctions,
+  NodesInterpreters,
+} from '../types/modules';
 
 const buildConfigVar = (name: string): string => `$${name}.${name}`;
 
 export abstract class Module {
-  name: string;
-  alias?: string;
-
-  #bindingsManager: BindingsManager;
-  #helpers: HelperFunctions;
-  #signer: Signer;
-
   constructor(
-    name: string,
-    bindingsManager: BindingsManager,
-    signer: Signer,
-    helpers: RawHelperFunctions<any> = {},
-    alias?: string,
-  ) {
-    this.name = name;
-    this.alias = alias;
-    this.#bindingsManager = bindingsManager;
-    this.#helpers = curryHelpers(this, helpers);
-    this.#signer = signer;
-  }
-
-  get bindingsManager(): BindingsManager {
-    return this.#bindingsManager;
-  }
-
-  get helpers(): HelperFunctions {
-    return this.#helpers;
-  }
+    readonly name: string,
+    readonly bindingsManager: BindingsManager,
+    readonly commands: CommandFunctions<any>,
+    readonly helpers: HelperFunctions<any>,
+    readonly signer: Signer,
+    readonly alias?: string,
+  ) {}
 
   get contextualName(): string {
     return this.alias ?? this.name;
   }
 
-  get signer(): Signer {
-    return this.#signer;
+  interpretCommand(
+    c: CommandExpressionNode,
+    interpreters: NodesInterpreters,
+  ): ReturnType<CommandFunction<this>> {
+    return this.commands[c.name](this, c, interpreters);
   }
 
-  abstract interpretCommand(
-    name: string,
-    lazyNodes: LazyNode[],
-    signer?: Signer,
-  ): ReturnType<CommandFunction<Module>>;
+  interpretHelper(
+    h: HelperFunctionNode,
+    interpreters: NodesInterpreters,
+  ): ReturnType<HelperFunction<this>> {
+    return this.helpers[h.name](this, h, interpreters);
+  }
 
   getModuleBinding(name: string, isConfigBinding = false): any {
     if (isConfigBinding) {
-      return this.#bindingsManager.getBinding(
+      return this.bindingsManager.getBinding(
         buildConfigVar(name),
         BindingsSpace.USER,
       );
     }
 
-    return this.#bindingsManager.getCustomBinding(name, this.name);
+    return this.bindingsManager.getCustomBinding(name, this.name);
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   setModuleBinding(name: string, value: any, isGlobal = false): void {
-    this.#bindingsManager.setCustomBinding(name, value, this.name, isGlobal);
+    this.bindingsManager.setCustomBinding(name, value, this.name, isGlobal);
   }
 }

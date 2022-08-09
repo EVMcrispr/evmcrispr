@@ -3,19 +3,18 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 
 import { inspect } from 'util';
-import { ErrorInvalid } from '../../src';
+import type { ErrorException } from '../../src';
 import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
-import {
-  Interpreter,
-  buildErrorMsg,
-} from '../../src/cas11/interpreter/Interpreter';
+import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
 import type { AST, Node } from '../../src/cas11/types';
-import { ASTType } from '../../src/cas11/types';
-import type { CallableExpression, Comparison } from '../../src/cas11/utils';
+import { ASTType, NodeType } from '../../src/cas11/types';
+import type { Comparison } from '../../src/cas11/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/cas11/utils';
+import { CommandError, HelperFunctionError } from '../../src/errors';
 import { expectThrowAsync } from './expects';
 
+const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;
 
 export type Case = [string, any, string?];
@@ -131,7 +130,7 @@ const getCallee = (argumentlessExpression: string): string => {
 };
 
 export const itChecksInvalidArgsLength = (
-  expressionType: CallableExpression,
+  expressionType: NodeType,
   argumentlessExpression: string,
   args: string[],
   c: Comparison,
@@ -147,8 +146,17 @@ export const itChecksInvalidArgsLength = (
      */
     const signer = lazySigner();
     const callee = getCallee(argumentlessExpression);
+    let error: ErrorException;
+    let msg: string;
+
     if (type === Equal || type === Between) {
       const upperValue = maxValue ?? minValue;
+
+      msg = buildArgsLengthErrorMsg(args.length + 1, c);
+      error =
+        expressionType === CommandExpression
+          ? new CommandError(callee, msg)
+          : new HelperFunctionError(callee, msg);
 
       await expectThrowAsync(
         () =>
@@ -158,12 +166,8 @@ export const itChecksInvalidArgsLength = (
             module,
           ),
         {
-          type: ErrorInvalid,
-          message: buildErrorMsg(
-            expressionType,
-            callee,
-            buildArgsLengthErrorMsg(args.length + 1, c),
-          ),
+          type: error.constructor,
+          message: error.message,
         },
         `invalid result when passing more than ${upperValue} argument${plural(
           upperValue,
@@ -171,6 +175,12 @@ export const itChecksInvalidArgsLength = (
       );
 
       if (minValue > 0) {
+        msg = buildArgsLengthErrorMsg(minValue - 1, c);
+        error =
+          expressionType === CommandExpression
+            ? new CommandError(callee, msg)
+            : new HelperFunctionError(callee, msg);
+
         await expectThrowAsync(
           () =>
             runExpression(
@@ -179,12 +189,8 @@ export const itChecksInvalidArgsLength = (
               module,
             ),
           {
-            type: ErrorInvalid,
-            message: buildErrorMsg(
-              expressionType,
-              callee,
-              buildArgsLengthErrorMsg(minValue - 1, c),
-            ),
+            type: error.constructor,
+            message: error.message,
           },
           `invalid result when passing less than ${minValue} argument${plural(
             minValue,
@@ -192,6 +198,12 @@ export const itChecksInvalidArgsLength = (
         );
       }
     } else if (type === Greater) {
+      msg = buildArgsLengthErrorMsg(args.length - 1, c);
+      error =
+        expressionType === CommandExpression
+          ? new CommandError(callee, msg)
+          : new HelperFunctionError(callee, msg);
+
       await expectThrowAsync(
         () =>
           runExpression(
@@ -200,12 +212,8 @@ export const itChecksInvalidArgsLength = (
             module,
           ),
         {
-          type: ErrorInvalid,
-          message: buildErrorMsg(
-            expressionType,
-            callee,
-            buildArgsLengthErrorMsg(args.length - 1, c),
-          ),
+          type: error.constructor,
+          message: error.message,
         },
         `invalid result when passing less than ${minValue} argument${plural(
           minValue,
