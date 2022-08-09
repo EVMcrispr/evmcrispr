@@ -317,12 +317,7 @@ export class Interpreter {
 
   #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
     n,
-    { treatAsLiteral = false } = {},
   ) => {
-    if (treatAsLiteral) {
-      return n.value;
-    }
-
     const binding = this.#bindingsManager.getBinding(n.value, USER);
 
     if (binding) {

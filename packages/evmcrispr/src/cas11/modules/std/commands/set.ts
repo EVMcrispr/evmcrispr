@@ -20,7 +20,7 @@ export const set: CommandFunction<Std> = async (
     Interpreter.panic(c, 'expected a variable identifier');
   }
 
-  const varName = await interpretNode(varNode, { treatAsLiteral: true });
+  const varName = varNode.value;
   const varValue = await interpretNode(valueNode);
 
   module.bindingsManager.setBinding(varName, varValue, BindingsSpace.USER);
