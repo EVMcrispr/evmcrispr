@@ -29,7 +29,9 @@ export const load: CommandFunction<Std> = async (
     moduleAlias: string | undefined = undefined;
 
   if (argNode.type === AsExpression) {
-    [moduleName, moduleAlias] = await interpretNode(argNode);
+    [moduleName, moduleAlias] = await interpretNode(argNode, {
+      treatAsLiteral: true,
+    });
   } else {
     moduleName = await interpretNode(argNode, {
       treatAsLiteral: true,

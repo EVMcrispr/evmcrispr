@@ -289,10 +289,10 @@ export class Interpreter {
   };
 
   #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
-    async (n, { treatAsLiteral = true } = {}) => {
+    async (n, { treatAsLiteral = false } = {}) => {
       let identifier: string = n.value;
 
-      if (treatAsLiteral) {
+      if (!treatAsLiteral) {
         const identifierFormatter = this.#bindingsManager.getBinding(
           'identifierFormatter',
           INTERPRETER,
