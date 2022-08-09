@@ -1,5 +1,5 @@
-import type { Signer } from 'ethers';
-import { utils } from 'ethers';
+import type { providers } from 'ethers';
+import { Contract, utils } from 'ethers';
 
 import type { Address, App, AppCache, Entity, ParsedApp } from '../../..';
 import type { IPFSResolver } from '../../../IPFSResolver';
@@ -22,7 +22,10 @@ export class AragonDAO {
 
   #nestingIndex: number;
 
+  #provider: providers.Provider;
+
   constructor(
+    provider: providers.Provider,
     chainId: number,
     subgraphUrl: string,
     ipfsResolver: IPFSResolver,
@@ -34,6 +37,8 @@ export class AragonDAO {
     this.#ipfsResolver = ipfsResolver;
 
     this.#nestingIndex = nestingIndex;
+
+    this.#provider = provider;
   }
 
   get appCache(): AppCache {
@@ -59,12 +64,13 @@ export class AragonDAO {
   static async create(
     daoAddress: Address,
     subgraphUrl: string,
-    signer: Signer,
+    provider: providers.Provider,
     ipfsResolver: IPFSResolver,
     index: number,
   ): Promise<AragonDAO> {
     const dao = new AragonDAO(
-      await signer.getChainId(),
+      provider,
+      (await provider.getNetwork()).chainId,
       subgraphUrl,
       ipfsResolver,
       index,
@@ -80,6 +86,16 @@ export class AragonDAO {
     dao.#appCache = appCache;
     dao.#appArtifactCache = appResourcesCache;
     return dao;
+  }
+
+  getAppContract(entity: Entity): Contract | undefined {
+    const app = this.resolveApp(entity);
+
+    if (!app) {
+      return;
+    }
+
+    return new Contract(app.address, app.abiInterface, this.#provider);
   }
 
   resolveApp(entity: Entity): App | undefined {

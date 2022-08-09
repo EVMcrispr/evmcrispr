@@ -42,7 +42,8 @@ export const createTestAction = (
     | 'grantPermission'
     | 'newAppInstance'
     | 'revokePermission'
-    | 'removePermissionManager',
+    | 'removePermissionManager'
+    | 'setApp',
   to: Address,
   parameters: any[],
 ): Action => {
@@ -86,6 +87,11 @@ export const createTestAction = (
           'removePermissionManager(address,bytes32)',
           parameters,
         ),
+      };
+    case 'setApp':
+      return {
+        to,
+        data: encodeActCall('setApp(bytes32,bytes32,address)', parameters),
       };
     default:
       throw new Error(`Operation ${operation} unknown.`);

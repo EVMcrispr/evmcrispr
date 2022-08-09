@@ -5,6 +5,7 @@ import { connect } from './connect';
 import { grant } from './grant';
 import { forward } from './forward';
 import { revoke } from './revoke';
+import { upgrade } from './upgrade';
 
 export const commands: CommandFunctions<AragonOS> = {
   act,
@@ -12,4 +13,5 @@ export const commands: CommandFunctions<AragonOS> = {
   forward,
   grant,
   revoke,
+  upgrade,
 };

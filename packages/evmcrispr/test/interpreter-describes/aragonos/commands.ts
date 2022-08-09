@@ -4,13 +4,19 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
 import type { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
+import { getRepoContract } from '../../../src/cas11/modules/aragonos/utils';
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
   commaListItems,
 } from '../../../src/cas11/utils';
 import { CommandError } from '../../../src/errors';
-import { ANY_ENTITY, toDecimals } from '../../../src/utils';
+import {
+  ANY_ENTITY,
+  getAragonEnsResolver,
+  resolveName,
+  toDecimals,
+} from '../../../src/utils';
 
 import { DAO } from '../../fixtures';
 import {
@@ -601,6 +607,144 @@ export const commandsDescribe = (): Mocha.Suite =>
             grant tollgate.open finance CREATE_PAYMENTS_ROLE
           )`,
             ]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+    });
+
+    describe('upgrade <apmRepo> [newAppImplementationAddress]', () => {
+      const _aragonEns = async (
+        ensName: string,
+        module: AragonOS,
+      ): Promise<string | null> => {
+        const ensResolver = module.getModuleBinding('ensResolver', true);
+
+        const name = await resolveName(
+          ensName,
+          ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
+          module.signer,
+        );
+
+        return name;
+      };
+
+      it('should upgrade an app to the latest version', async () => {
+        const interpreter = createAragonScriptInterpreter([`upgrade voting`]);
+
+        const upgradeActions = await interpreter.interpret();
+
+        const repoAddress = await _aragonEns(
+          'voting.aragonpm.eth',
+          interpreter.getModule('aragonos') as AragonOS,
+        );
+        const repo = getRepoContract(repoAddress!, signer);
+        const [, latestImplementationAddress] = await repo.getLatest();
+        const expectedUpgradeActions = [
+          createTestAction('setApp', DAO.kernel, [
+            utils.id('base'),
+            utils.namehash('voting.aragonpm.eth'),
+            latestImplementationAddress,
+          ]),
+        ];
+
+        expect(upgradeActions).to.eql(expectedUpgradeActions);
+      });
+
+      it('should upgrade an app to the provided specific version', async () => {
+        const interpreter = createAragonScriptInterpreter([
+          `upgrade voting 3.0.3`,
+        ]);
+
+        const upgradeActions = await interpreter.interpret();
+
+        const repoAddress = await _aragonEns(
+          'voting.aragonpm.eth',
+          interpreter.getModule('aragonos') as AragonOS,
+        );
+        const repo = getRepoContract(repoAddress!, signer);
+        const [, newAppImplementation] = await repo.getBySemanticVersion([
+          '3',
+          '0',
+          '3',
+        ]);
+        const expectedUpgradeActions = [
+          createTestAction('setApp', DAO.kernel, [
+            utils.id('base'),
+            utils.namehash('voting.aragonpm.eth'),
+            newAppImplementation,
+          ]),
+        ];
+
+        expect(upgradeActions).to.eql(expectedUpgradeActions);
+      });
+
+      it('should fail when executing it outside a "connect" command', async () => {
+        const error = new CommandError(
+          'upgrade',
+          'must be used within a "connect" command',
+        );
+        await expectThrowAsync(
+          () =>
+            createInterpreter(
+              `
+            load aragonos as ar
+
+            ar:upgrade voting
+          `,
+              signer,
+            ).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when upgrading a non-existent app', async () => {
+        const apmRepo = 'superfluid.open';
+        const error = new CommandError(
+          'upgrade',
+          `${apmRepo}.aragonpm.eth not installed on current DAO.`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([`upgrade ${apmRepo}`]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when providing an invalid second parameter', async () => {
+        const error = new CommandError(
+          'upgrade',
+          'second upgrade parameter must be a semantic version, an address, or nothing',
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter(['upgrade voting 1e18']).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when upgrading an app to the same version', async () => {
+        const error = new CommandError(
+          'upgrade',
+          `trying to upgrade app to its current version`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter(['upgrade voting 2.3.0']).interpret(),
           {
             type: error.constructor,
             message: error.message,

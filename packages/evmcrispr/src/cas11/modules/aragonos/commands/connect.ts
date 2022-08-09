@@ -1,5 +1,7 @@
 import { utils } from 'ethers';
 
+import { ethers } from 'hardhat';
+
 import type { Action, Address } from '../../../..';
 import {
   ANY_ENTITY,
@@ -98,7 +100,8 @@ export const connect: CommandFunction<AragonOS> = async (
   const dao = await AragonDAO.create(
     daoAddress,
     module.getModuleBinding('subgraphUrl', true),
-    module.signer,
+    module.signer.provider ??
+      ethers.getDefaultProvider(await module.signer.getChainId()),
     module.ipfsResolver,
     nextNestingIndex,
   );
