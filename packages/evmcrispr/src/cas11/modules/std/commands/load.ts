@@ -55,6 +55,7 @@ export const load: CommandFunction<Std> = async (
       module.modules.push(
         new AragonOS(
           module.bindingsManager,
+          module.nonces,
           module.signer,
           module.ipfsResolver,
           moduleAlias,

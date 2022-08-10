@@ -16,11 +16,20 @@ export class AragonOS extends Module {
 
   constructor(
     bindingsManager: BindingsManager,
+    nonces: Record<string, number>,
     signer: Signer,
     ipfsResolver: IPFSResolver,
     alias?: string,
   ) {
-    super('aragonos', bindingsManager, commands, helpers, signer, alias);
+    super(
+      'aragonos',
+      bindingsManager,
+      nonces,
+      commands,
+      helpers,
+      signer,
+      alias,
+    );
 
     this.#connectedDAOs = [];
     this.#ipfsResolver = ipfsResolver;

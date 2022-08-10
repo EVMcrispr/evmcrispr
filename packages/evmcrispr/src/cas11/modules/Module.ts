@@ -1,5 +1,7 @@
 import type { Signer } from 'ethers';
 
+import type { Address } from '../..';
+
 import type { BindingsManager } from '../interpreter/BindingsManager';
 import { BindingsSpace } from '../interpreter/BindingsManager';
 import type {
@@ -20,6 +22,7 @@ export abstract class Module {
   constructor(
     readonly name: string,
     readonly bindingsManager: BindingsManager,
+    readonly nonces: Record<string, number>,
     readonly commands: CommandFunctions<any>,
     readonly helpers: HelperFunctions<any>,
     readonly signer: Signer,
@@ -53,6 +56,18 @@ export abstract class Module {
     }
 
     return this.bindingsManager.getCustomBinding(name, this.name);
+  }
+
+  getNonce(address: Address): number {
+    return this.nonces[address];
+  }
+
+  incrementNonce(address: Address): number {
+    if (!this.nonces[address]) {
+      this.nonces[address] = 0;
+    }
+
+    return this.nonces[address]++;
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

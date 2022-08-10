@@ -1,21 +1,7 @@
 import type { Signer, providers } from 'ethers';
 import { Contract } from 'ethers';
 
-import type { Address } from '../../..';
-import { isAppIdentifier, parseAppIdentifier } from '../../../utils';
-
-export const formatIdentifier = (possibleIdentifier: string): string => {
-  if (isAppIdentifier(possibleIdentifier)) {
-    const [, , appIndex] = parseAppIdentifier(possibleIdentifier)!;
-
-    if (!appIndex) {
-      return `${possibleIdentifier}:0`;
-    }
-    return possibleIdentifier;
-  }
-
-  return possibleIdentifier;
-};
+import type { Address } from '../../../..';
 
 export const getRepoContract = (
   repoAddress: Address,

@@ -4,6 +4,7 @@ import { act } from './act';
 import { connect } from './connect';
 import { grant } from './grant';
 import { forward } from './forward';
+import { newDAO } from './new-dao';
 import { revoke } from './revoke';
 import { upgrade } from './upgrade';
 
@@ -12,6 +13,7 @@ export const commands: CommandFunctions<AragonOS> = {
   connect,
   forward,
   grant,
+  'new-dao': newDAO,
   revoke,
   upgrade,
 };

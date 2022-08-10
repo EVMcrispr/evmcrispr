@@ -13,10 +13,11 @@ export class Std extends Module {
 
   constructor(
     bindingsManager: BindingsManager,
+    nonces: Record<string, number>,
     signer: Signer,
     modules: Module[],
   ) {
-    super('std', bindingsManager, commands, helpers, signer);
+    super('std', bindingsManager, nonces, commands, helpers, signer);
 
     this.#ipfsResolver = new IPFSResolver();
     this.#modules = modules;

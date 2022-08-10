@@ -40,12 +40,13 @@ export const createTestAction = (
   operation:
     | 'createPermission'
     | 'grantPermission'
+    | 'newInstance'
     | 'newAppInstance'
     | 'revokePermission'
     | 'removePermissionManager'
     | 'setApp',
   to: Address,
-  parameters: any[],
+  parameters?: any[],
 ): Action => {
   switch (operation) {
     case 'createPermission':
@@ -63,6 +64,11 @@ export const createTestAction = (
           'grantPermission(address,address,bytes32)',
           parameters,
         ),
+      };
+    case 'newInstance':
+      return {
+        to,
+        data: encodeActCall('newInstance()'),
       };
     case 'newAppInstance':
       return {

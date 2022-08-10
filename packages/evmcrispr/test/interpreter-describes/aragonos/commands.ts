@@ -3,8 +3,14 @@ import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
+import type { Action } from '../../../src';
+import { BindingsSpace } from '../../../src/cas11/interpreter/BindingsManager';
+
 import type { AragonOS } from '../../../src/cas11/modules/aragonos/AragonOS';
-import { getRepoContract } from '../../../src/cas11/modules/aragonos/utils';
+import {
+  getAragonRegistrarContract,
+  getRepoContract,
+} from '../../../src/cas11/modules/aragonos/utils';
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
@@ -13,6 +19,8 @@ import {
 import { CommandError } from '../../../src/errors';
 import {
   ANY_ENTITY,
+  buildNonceForAddress,
+  calculateNewProxyAddress,
   getAragonEnsResolver,
   resolveName,
   toDecimals,
@@ -27,6 +35,21 @@ import {
 
 import { createInterpreter } from '../../test-helpers/cas11';
 import { expectThrowAsync } from '../../test-helpers/expects';
+
+const _aragonEns = async (
+  ensName: string,
+  module: AragonOS,
+): Promise<string | null> => {
+  const ensResolver = module.getModuleBinding('ensResolver', true);
+
+  const name = await resolveName(
+    ensName,
+    ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
+    module.signer,
+  );
+
+  return name;
+};
 
 export const commandsDescribe = (): Mocha.Suite =>
   describe('Commands', () => {
@@ -616,21 +639,6 @@ export const commandsDescribe = (): Mocha.Suite =>
     });
 
     describe('upgrade <apmRepo> [newAppImplementationAddress]', () => {
-      const _aragonEns = async (
-        ensName: string,
-        module: AragonOS,
-      ): Promise<string | null> => {
-        const ensResolver = module.getModuleBinding('ensResolver', true);
-
-        const name = await resolveName(
-          ensName,
-          ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
-          module.signer,
-        );
-
-        return name;
-      };
-
       it('should upgrade an app to the latest version', async () => {
         const interpreter = createAragonScriptInterpreter([`upgrade voting`]);
 
@@ -750,6 +758,58 @@ export const commandsDescribe = (): Mocha.Suite =>
             message: error.message,
           },
         );
+      });
+    });
+
+    describe('new-dao <daoName>', () => {
+      it('should create a new dao correctly', async () => {
+        const daoName = 'my-evmcrispr-dao';
+        const interpreter = createInterpreter(
+          `
+          load aragonos as ar
+
+          ar:new-dao ${daoName}
+        `,
+          signer,
+        );
+
+        const newDAOActions = await interpreter.interpret();
+
+        const aragonos = interpreter.getModule('aragonos') as AragonOS;
+        const bareTemplateAddress = (await _aragonEns(
+          'bare-template.aragonpm.eth',
+          aragonos,
+        ))!;
+        const aragonRegistrar = await getAragonRegistrarContract(
+          signer.provider!,
+        );
+        const newDAOAddress = calculateNewProxyAddress(
+          bareTemplateAddress,
+          await buildNonceForAddress(
+            bareTemplateAddress,
+            0,
+            aragonos.signer.provider!,
+          ),
+        );
+        const expectedNewDAOActions: Action[] = [
+          createTestAction('newInstance', bareTemplateAddress!),
+          {
+            to: aragonRegistrar.address,
+            data: aragonRegistrar.interface.encodeFunctionData('register', [
+              utils.solidityKeccak256(['string'], [daoName]),
+              newDAOAddress,
+            ]),
+          },
+        ];
+
+        expect(
+          aragonos.bindingsManager.getBinding(
+            `_${daoName}`,
+            BindingsSpace.ADDR,
+          ),
+          'new DAO binding mismatch',
+        ).to.eq(newDAOAddress);
+        expect(newDAOActions, 'actions mismatch').to.eql(expectedNewDAOActions);
       });
     });
   });

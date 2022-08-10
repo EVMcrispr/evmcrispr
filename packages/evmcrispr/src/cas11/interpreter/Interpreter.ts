@@ -58,21 +58,26 @@ const IDENTIFIER_FORMATTER = 'identifierFormatter';
 export class Interpreter {
   readonly ast: AST;
   #std: Std;
-  #modules: Module[];
+  #modules: Module[] = [];
 
   #bindingsManager: BindingsManager;
+  #nonces: Record<string, number> = {};
 
   #signer: Signer;
 
   constructor(ast: AST, signer: Signer) {
     this.ast = ast;
-    this.#modules = [];
 
     this.#bindingsManager = new BindingsManager();
     this.#setDefaultBindings();
 
     this.#signer = signer;
-    this.#std = new Std(this.#bindingsManager, this.#signer, this.#modules);
+    this.#std = new Std(
+      this.#bindingsManager,
+      this.#nonces,
+      this.#signer,
+      this.#modules,
+    );
   }
 
   get bindingsManager(): BindingsManager {
