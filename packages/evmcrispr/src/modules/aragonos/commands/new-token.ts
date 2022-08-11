@@ -35,6 +35,7 @@ export function newToken(
     } catch (e) {
       await module.registerNextProxyAddress(controller);
     }
+
     const factoryAddr = factories.get(chainId)!;
     const controllerAddress = module.evm.resolver.resolveEntity(controller);
     const nonce = await buildNonceForAddress(

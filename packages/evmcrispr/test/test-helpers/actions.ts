@@ -38,6 +38,8 @@ export const createTestCallAction = (
 
 export const createTestAction = (
   operation:
+    | 'changeController'
+    | 'createCloneToken'
     | 'createPermission'
     | 'grantPermission'
     | 'newInstance'
@@ -49,6 +51,19 @@ export const createTestAction = (
   parameters?: any[],
 ): Action => {
   switch (operation) {
+    case 'changeController':
+      return {
+        to,
+        data: encodeActCall('changeController(address)', parameters),
+      };
+    case 'createCloneToken':
+      return {
+        to,
+        data: encodeActCall(
+          'createCloneToken(address,uint256,string,uint8,string,bool)',
+          parameters,
+        ),
+      };
     case 'createPermission':
       return {
         to,
