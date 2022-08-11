@@ -4,6 +4,7 @@ import type { Address } from '../..';
 
 import type { BindingsManager } from '../interpreter/BindingsManager';
 import { BindingsSpace } from '../interpreter/BindingsManager';
+import { Interpreter } from '../interpreter/Interpreter';
 import type {
   CommandExpressionNode,
   CommandFunction,
@@ -37,7 +38,16 @@ export abstract class Module {
     c: CommandExpressionNode,
     interpreters: NodesInterpreters,
   ): ReturnType<CommandFunction<this>> {
-    return this.commands[c.name](this, c, interpreters);
+    const command = this.commands[c.name];
+
+    if (!command) {
+      Interpreter.panic(
+        c,
+        `command not found on module ${this.contextualName}`,
+      );
+    }
+
+    return command(this, c, interpreters);
   }
 
   interpretHelper(
