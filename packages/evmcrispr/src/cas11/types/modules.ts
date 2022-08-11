@@ -6,7 +6,6 @@ export interface InterpretOptions {
   treatAsLiteral: boolean;
   blockModule: string;
   blockInitializer?(): Promise<void>;
-  identifierFormatter?(identifier: string): string;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (

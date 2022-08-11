@@ -1,13 +1,19 @@
 import type { Signer } from 'ethers';
 
 import type { BindingsManager } from '../../interpreter/BindingsManager';
+import { BindingsSpace } from '../../interpreter/BindingsManager';
 
 import { Module } from '../Module';
 import type { IPFSResolver } from '../../../IPFSResolver';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
+import { ErrorNotFound } from '../../../errors';
 import { helpers } from './helpers';
-import { addressesEqual } from '../../../utils';
+import {
+  addressesEqual,
+  buildNonceForAddress,
+  calculateNewProxyAddress,
+} from '../../../utils';
 import type { Address } from '../../..';
 
 export class AragonOS extends Module {
@@ -54,6 +60,30 @@ export class AragonOS extends Module {
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {
     return this.connectedDAOs.find((dao) =>
       addressesEqual(dao.kernel.address, daoAddress),
+    );
+  }
+
+  async registerNextProxyAddress(
+    identifier: string,
+    daoAddress: Address,
+  ): Promise<void> {
+    const connectedDAO = this.getConnectedDAO(daoAddress);
+
+    if (!connectedDAO) {
+      throw new ErrorNotFound(`couldn't found DAO ${daoAddress}`);
+    }
+
+    const kernel = connectedDAO.resolveApp('kernel')!;
+    const nonce = await buildNonceForAddress(
+      kernel.address,
+      this.incrementNonce(kernel.address),
+      this.signer.provider!,
+    );
+
+    this.bindingsManager.setBinding(
+      identifier,
+      calculateNewProxyAddress(kernel.address, nonce),
+      BindingsSpace.ADDR,
     );
   }
 }

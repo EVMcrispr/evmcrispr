@@ -14,7 +14,6 @@ import { NodeType } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
-import { formatIdentifier } from '../utils';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import { batchForwarderActions } from '../../../../modules/aragonos/utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -37,6 +36,13 @@ const setDAOContext = (
     aragonos.currentDAO = dao;
 
     dao.appCache.forEach((app, appIdentifier) => {
+      if (appIdentifier.endsWith(':0')) {
+        bindingsManager.setBinding(
+          appIdentifier.slice(0, appIdentifier.length - 2),
+          app.address,
+          ADDR,
+        );
+      }
       bindingsManager.setBinding(appIdentifier, app.address, ADDR);
       bindingsManager.setBinding(
         `_${index}:${appIdentifier}`,
@@ -119,7 +125,6 @@ export const connect: CommandFunction<AragonOS> = async (
       index: nextNestingIndex,
       name: daoName,
     }),
-    identifierFormatter: formatIdentifier,
   })) as Action[];
 
   const invalidApps: any[] = [];

@@ -25,7 +25,7 @@ import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
-import type { InterpretOptions, NodeInterpreter } from '../types/modules';
+import type { NodeInterpreter } from '../types/modules';
 
 const {
   AddressLiteral,
@@ -53,7 +53,6 @@ const { ADDR, INTERPRETER, USER } = BindingsSpace;
 
 // Implicit module use inside block expressions
 const CONTEXTUAL_MODULE = 'contextualModule';
-const IDENTIFIER_FORMATTER = 'identifierFormatter';
 
 export class Interpreter {
   readonly ast: AST;
@@ -192,7 +191,7 @@ export class Interpreter {
 
   #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
     n,
-    { blockInitializer, blockModule, identifierFormatter } = {},
+    { blockInitializer, blockModule } = {},
   ) => {
     this.#bindingsManager.enterScope();
 
@@ -201,14 +200,6 @@ export class Interpreter {
       blockModule,
       INTERPRETER,
     );
-
-    if (identifierFormatter) {
-      this.#bindingsManager.setBinding(
-        IDENTIFIER_FORMATTER,
-        identifierFormatter,
-        INTERPRETER,
-      );
-    }
 
     if (blockInitializer) {
       await blockInitializer();
@@ -295,18 +286,9 @@ export class Interpreter {
 
   #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
     async (n, { treatAsLiteral = false } = {}) => {
-      let identifier: string = n.value;
+      const identifier = n.value;
 
       if (!treatAsLiteral) {
-        const identifierFormatter = this.#bindingsManager.getBinding(
-          'identifierFormatter',
-          INTERPRETER,
-        ) as InterpretOptions['identifierFormatter'];
-
-        if (identifierFormatter) {
-          identifier = identifierFormatter(identifier);
-        }
-
         const addressBinding = this.bindingsManager.getBinding(
           identifier,
           ADDR,

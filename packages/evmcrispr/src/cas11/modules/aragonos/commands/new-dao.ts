@@ -13,10 +13,7 @@ import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
-import {
-  ARAGON_REGISTRARS,
-  getAragonRegistrarContract,
-} from '../utils/registrars';
+import { ARAGON_REGISTRARS, getAragonRegistrarContract } from '../utils';
 
 const registerAragonId = async (
   module: AragonOS,
