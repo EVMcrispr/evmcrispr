@@ -1,4 +1,3 @@
-import { evmcl } from '@1hive/evmcrispr';
 import { useState } from 'react';
 import createPersistedState from 'use-persisted-state';
 import { useAccount, useDisconnect, useSigner } from 'wagmi';
@@ -47,14 +46,21 @@ connect 1hive token-manager voting (
 
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
   async function onClick() {
     console.log('Loading current terminal in window.evmcrispr…');
     try {
       if (signer === undefined || signer === null)
         throw new Error('Account not connected');
-      const evmcrispr = await evmcl`${code}`.evmcrispr(signer);
-      window.evmcrispr = evmcrispr;
-      console.log(evmcrispr);
+      if (!isSafari) {
+        const { evmcl } = await import('@1hive/evmcrispr');
+        const evmcrispr = await evmcl`${code}`.evmcrispr(signer);
+        window.evmcrispr = evmcrispr;
+        console.log(evmcrispr);
+      } else {
+        throw new Error('Browser not supported');
+      }
     } catch (e: any) {
       console.error(e);
       setError(e.message);
