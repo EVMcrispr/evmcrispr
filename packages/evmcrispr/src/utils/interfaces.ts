@@ -2,6 +2,7 @@ import artifactKernel from '../system-artifacts/Kernel.json';
 import artifactACL from '../system-artifacts/ACL.json';
 import artifactEVMScriptRegistry from '../system-artifacts/EVMScriptRegistry.json';
 
+export const SIGNATURE_REGEX = /\w+\(((\w+(\[\d*\])*)+(,\w+(\[\d*\])*)*)?\)/;
 // acl.aragonpm.eth
 const ACL_APP_ID =
   '0xe3262375f45a6e2026b7e7b18c2b807434f2508fe1a2a3dfb493c7df8f4aad6a';

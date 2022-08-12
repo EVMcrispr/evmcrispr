@@ -1,6 +1,11 @@
 import type { Signer, providers, utils } from 'ethers';
 
-import { encodeActCall, encodeCallScript, normalizeActions } from './utils';
+import {
+  SIGNATURE_REGEX,
+  encodeActCall,
+  encodeCallScript,
+  normalizeActions,
+} from './utils';
 import type {
   Action,
   ActionFunction,
@@ -120,7 +125,7 @@ export default class EVMcrispr {
     params: any[],
   ): ActionFunction {
     return async () => {
-      if (!/\w+\(((\w+(\[\d*\])*)+(,\w+(\[\d*\])*)*)?\)/.test(signature)) {
+      if (!SIGNATURE_REGEX.test(signature)) {
         const contract = await fetchImplementationAddress(
           target,
           this.#signer.provider!,

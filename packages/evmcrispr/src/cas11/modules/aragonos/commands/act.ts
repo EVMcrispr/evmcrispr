@@ -1,6 +1,9 @@
 import { utils } from 'ethers';
 
+import type { Action } from '../../../..';
+
 import { batchForwarderActions } from '../../../../modules/aragonos/utils/forwarders';
+import { SIGNATURE_REGEX } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
@@ -21,18 +24,29 @@ export const act: CommandFunction<AragonOS> = async (
     await interpretNodes(c.args);
 
   if (!utils.isAddress(agentAddress)) {
-    Interpreter.panic(c, 'expected a valid agent address');
+    Interpreter.panic(
+      c,
+      `expected a valid agent address, but got ${agentAddress}`,
+    );
   }
   if (!utils.isAddress(targetAddress)) {
-    Interpreter.panic(c, 'expected a valid target address');
+    Interpreter.panic(
+      c,
+      `expected a valid target address, but got ${targetAddress}`,
+    );
   }
-  if (typeof signature !== 'string') {
-    Interpreter.panic(c, 'expected a valid signature');
+  if (!SIGNATURE_REGEX.test(signature)) {
+    Interpreter.panic(c, `expected a valid signature, but got ${signature}`);
   }
 
-  return batchForwarderActions(
-    module.signer,
-    [encodeAction(targetAddress, signature, params)],
-    [agentAddress],
-  );
+  let execAction: Action;
+
+  try {
+    execAction = encodeAction(targetAddress, signature, params);
+  } catch (err) {
+    const err_ = err as Error;
+    Interpreter.panic(c, err_.message);
+  }
+
+  return batchForwarderActions(module.signer, [execAction], [agentAddress]);
 };

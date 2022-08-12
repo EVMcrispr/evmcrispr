@@ -32,7 +32,6 @@ import {
 import { APP, DAO } from '../../fixtures';
 import {
   createTestAction,
-  // createTestCallAction,
   createTestScriptEncodedAction,
 } from '../../test-helpers/actions';
 
@@ -174,34 +173,118 @@ export const commandsDescribe = (): Mocha.Suite =>
       });
     });
 
-    // describe('act <agent> <methodSignature> [...params]', () => {
-    //   it('should interpret a valid command correctly', async () => {
-    //     const interpreter = createInterpreter(
-    //       createAragonScript([
-    //         `act vault vault "deposit(uint,uint[][])" 1 [[2,3],[4,5]]`,
-    //       ]),
-    //       signer,
-    //     );
+    describe('act <agent> <targetAddress> <methodSignature> [...params]', () => {
+      it('should interpret a valid command correctly', async () => {
+        const interpreter = createAragonScriptInterpreter([
+          `act agent vault "deposit(uint256,uint256[][])" 1 [[2,3],[4,5]]`,
+        ]);
 
-    //     const actions = await interpreter.interpret();
-    //     const expectedActActions = [
-    //       createTestScriptEncodedAction(
-    //         [
-    //           createTestCallAction(DAO.vault, 'deposit(uint,uint[][])', [
-    //             1,
-    //             [
-    //               [2, 3],
-    //               [4, 5],
-    //             ],
-    //           ]),
-    //         ],
-    //         ['vault'],
-    //       ),
-    //     ];
+        const actActions = await interpreter.interpret();
 
-    //     expect(actions).to.be.eql(expectedActActions);
-    //   });
-    // });
+        const fnABI = new utils.Interface([
+          'function deposit(uint256,uint256[][])',
+        ]);
+
+        const expectedActActions = [
+          createTestScriptEncodedAction(
+            [
+              {
+                to: DAO.vault,
+                data: fnABI.encodeFunctionData('deposit', [
+                  1,
+                  [
+                    [2, 3],
+                    [4, 5],
+                  ],
+                ]),
+              },
+            ],
+            ['agent'],
+          ),
+        ];
+
+        expect(actActions).to.be.eql(expectedActActions);
+      });
+
+      it('should fail when passing an invalid agent address', async () => {
+        const invalidAgentAddress = 'invalid-agent-address';
+        const error = new CommandError(
+          'act',
+          `expected a valid agent address, but got ${invalidAgentAddress}`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `act ${invalidAgentAddress} vault "deposit()"`,
+            ]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when passing an invalid target address', async () => {
+        const invalidTargetAddress = '2e18';
+        const error = new CommandError(
+          'act',
+          `expected a valid target address, but got 2000000000000000000`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `act agent:0 ${invalidTargetAddress} "deposit()"`,
+            ]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when passing an invalid signature', async () => {
+        const invalidSignature = 'deposit';
+        const error = new CommandError(
+          'act',
+          `expected a valid signature, but got ${invalidSignature}`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `act agent:0 vault ${invalidSignature}`,
+            ]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+
+      it('should fail when passing invalid function params', async () => {
+        const paramsErrors = [
+          '-param 0 of type address: invalid address. Got 1000000000000000000',
+          '-param 1 of type uint256: invalid BigNumber value. Got none',
+        ];
+        const error = new CommandError(
+          'act',
+          `error when encoding deposit call:\n${paramsErrors.join('\n')}`,
+        );
+
+        await expectThrowAsync(
+          () =>
+            createAragonScriptInterpreter([
+              `act agent:0 vault "deposit(address,uint256)" 1e18`,
+            ]).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
+      });
+    });
 
     describe('grant <entity> <app> <role> [permissionManager]', () => {
       it('should grant a permission correctly', async () => {
