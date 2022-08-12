@@ -129,7 +129,9 @@ export const createTestScriptEncodedAction = (
   for (const forwarder of forwardingPath) {
     script = encodeCallScript(forwarderActions);
     const forwarderType = getAppForwarderType(forwarder);
-    const forwarderAddress = resolveApp(forwarder);
+    const forwarderAddress = utils.isAddress(forwarder)
+      ? forwarder
+      : resolveApp(forwarder);
 
     switch (forwarderType) {
       case FORWARDER_TYPE:

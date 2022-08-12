@@ -249,13 +249,14 @@ describe('EVMcrispr action-encoding functions', () => {
         'voting:0',
         'disputable-voting.open:0',
         'tollgate.open:0',
+        'agent:0',
       ]);
     });
     it('is updated when a new app is installed', async () => {
       const { appIdentifier, initializeParams } = APP;
       const appLabeledIdentifier = `${appIdentifier}:new`;
       await dao.install(appLabeledIdentifier, initializeParams)();
-      expect(dao.apps()).to.be.length(10).and.to.include(appLabeledIdentifier);
+      expect(dao.apps()).to.be.length(11).and.to.include(appLabeledIdentifier);
     });
   });
 

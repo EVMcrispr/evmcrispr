@@ -10,6 +10,7 @@ export const DAO = {
   ['kernel']: '0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e',
   ['acl']: '0xbec954725a866994d68b7c01f30742b42965091e',
   ['voting']: '0xc59d4acea08cf51974dfeb422964e6c2d7eb906f',
+  ['agent']: '0xa11cfe0dfdadc5bf9fbc819a49a749401476c628',
 };
 
 // Needed to build the MockEVMcrispr cache

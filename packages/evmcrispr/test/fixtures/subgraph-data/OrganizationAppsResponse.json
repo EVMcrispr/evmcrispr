@@ -331,6 +331,32 @@
             "artifact": null,
             "contentUri": "ipfs:QmQENeebGJYfuT9ufCfWsRKbTQocD2SesLmobQpWfBuzp8"
           }
+        },
+        {
+          "address": "0xa11cfe0dfdadc5bf9fbc819a49a749401476c628",
+          "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
+          "repoName": "agent",
+          "repo": {
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
+          "roles": [
+            {
+              "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
+              "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xe10c2de02f1c64485b680fc561e8e9c680691faa",
+            "contentUri": "ipfs:QmbYBwyDt8VWvvK9Z2U3basyaPbnSpEunqzs2UGkMqZk7R",
+            "artifact": null
+          }
         }
       ],
       "id": "0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e"
