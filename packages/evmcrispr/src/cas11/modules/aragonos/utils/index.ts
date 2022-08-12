@@ -1,1 +1,3 @@
-export * from './aragonos';
+export * from './miniMeToken';
+export * from './registrars';
+export * from './repos';
