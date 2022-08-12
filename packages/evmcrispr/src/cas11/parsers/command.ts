@@ -90,7 +90,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
 
       const opts = commandArgsAndOpts.filter(
         (cArg) => cArg.type === NodeType.CommandOpt,
-      );
+      ) as CommandOptNode[];
 
       yield optionalWhitespace;
 

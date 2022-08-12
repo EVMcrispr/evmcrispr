@@ -8,9 +8,7 @@ import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
-import { getRepoContract } from '../utils';
-
-const SEMANTIC_VERSION_REGEX = /^([0-9]+)\.([0-9]+)\.([0-9]+)$/;
+import { SEMANTIC_VERSION_REGEX, getRepoContract } from '../utils';
 
 export const upgrade: CommandFunction<AragonOS> = async (
   module,

@@ -23,7 +23,18 @@ export const encodeAction = (
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 
-  const fnFragment = fnABI.fragments[0];
+  return {
+    to: target,
+    data: encodeCalldata(fnABI, signature.split('(')[0], params),
+  };
+};
+
+export const encodeCalldata = (
+  fnABI: Interface,
+  methodName: string,
+  params: any[],
+): string => {
+  const fnFragment = fnABI.getFunction(methodName);
   const errors: string[] = [];
 
   const encodedParams = fnFragment.inputs.reduce(
@@ -49,7 +60,9 @@ export const encodeAction = (
       } catch (err) {
         const err_ = err as Error;
         errors.push(
-          `Error encoding param ${name ?? i} of type ${type}: ${err_.message}`,
+          `-param ${name ?? i} of type ${type}: ${
+            err_.message.split(' (')[0] ?? err_.message
+          }. Got ${params[i]}`,
         );
       }
 
@@ -58,8 +71,11 @@ export const encodeAction = (
     '',
   );
 
-  return {
-    to: target,
-    data: `${getFnSelector(fnFragment)}${encodedParams}`,
-  };
+  if (errors.length) {
+    throw new ErrorInvalid(
+      `error when encoding ${methodName} call:\n${errors.join('\n')}`,
+    );
+  }
+
+  return `${getFnSelector(fnFragment)}${encodedParams}`;
 };

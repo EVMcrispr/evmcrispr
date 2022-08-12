@@ -103,7 +103,7 @@ export interface CommandExpressionNode extends Node {
   module?: string;
   name: string;
   args: Node[];
-  opts: Node[];
+  opts: CommandOptNode[];
 }
 
 export interface CommandOptNode extends Node {

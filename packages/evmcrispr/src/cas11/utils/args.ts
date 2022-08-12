@@ -1,5 +1,10 @@
 import { Interpreter } from '../interpreter/Interpreter';
-import type { CallableExpressionNode } from '../types';
+import type {
+  CallableExpressionNode,
+  CommandExpressionNode,
+  NodeInterpreter,
+} from '../types';
+import { commaListItems } from './formatters';
 
 export enum ComparisonType {
   Between = 'Between',
@@ -62,4 +67,36 @@ export const checkArgsLength = (
   if (isError) {
     Interpreter.panic(n, buildArgsLengthErrorMsg(argsLength, comparison));
   }
+};
+
+export const checkOpts = (
+  c: CommandExpressionNode,
+  validOpts: string[] = [],
+): void => {
+  const invalidOpts = c.opts
+    .filter((o) => !validOpts.includes(o.name))
+    .map((o) => o.name);
+
+  if (invalidOpts.length) {
+    Interpreter.panic(
+      c,
+      `the following provided options are not defined: ${commaListItems(
+        invalidOpts,
+      )}`,
+    );
+  }
+};
+
+export const getOptValue = async (
+  c: CommandExpressionNode,
+  optName: string,
+  interpretNode: NodeInterpreter,
+): Promise<any | undefined> => {
+  const opt = c.opts.find((o) => o.name === optName);
+
+  if (!opt) {
+    return;
+  }
+
+  return interpretNode(opt.value);
 };

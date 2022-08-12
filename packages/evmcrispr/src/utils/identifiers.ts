@@ -54,7 +54,7 @@ export const parseLabeledAppIdentifier = (
 ): string[] => {
   if (!isLabeledAppIdentifier(labeledAppIdentifier)) {
     throw new ErrorInvalid(
-      `Invalid labeled identifier ${labeledAppIdentifier}`,
+      `invalid labeled identifier ${labeledAppIdentifier}`,
       {
         name: 'ErrorInvalidIdentifier',
       },
