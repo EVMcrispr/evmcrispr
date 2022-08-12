@@ -5,7 +5,9 @@
         {
           "address": "0x1c06257469514574c0868fdcb83c5509b5513870",
           "appId": "0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1",
-          "implementation": { "address": "0x1b999dd2d3e85fa3ce9599ff98e90328378a98c7" },
+          "implementation": {
+            "address": "0x1b999dd2d3e85fa3ce9599ff98e90328378a98c7"
+          },
           "repo": {
             "lastVersion": {
               "artifact": "{\"environments\":{\"default\":{\"registry\":\"0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rpc\"},\"mainnet\":{\"registry\":\"0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"mainnet\"},\"rinkeby\":{\"registry\":\"0x98Df287B6C145399Aaa709692c8D308357bC085D\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"ropsten\":{\"registry\":\"0x6afe2cacee211ea9179992f89dc61ff25c61e923\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"ropsten\"},\"staging\":{\"registry\":\"0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"rinkeby-old\":{\"registry\":\"0xfbae32d1cde62858bc45f51efc8cc4fa1415447e\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"mumbai\":{\"registry\":\"0x431f0eed904590b176f9ff8c36a1c4ff0ee9b982\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"mumbai\"},\"matic\":{\"registry\":\"0x3c70a0190d09f34519e6e218364451add21b7d4b\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"matic\"}},\"roles\":[{\"name\":\"Transfer Vault's tokens\",\"id\":\"TRANSFER_ROLE\",\"params\":[\"Token address\",\"Receiver address\",\"Token amount\"],\"bytes\":\"0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c\"}],\"path\":\"contracts/Vault.sol\",\"functions\":[{\"roles\":[],\"notice\":\"\",\"abi\":{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},\"sig\":\"fallback\"},{\"roles\":[],\"notice\":\"Initialize Vault app\",\"abi\":{\"constant\":false,\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"initialize()\"},{\"roles\":[],\"notice\":\"Deposit `_value` `_token` to the vault\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},\"sig\":\"deposit(address,uint256)\"},{\"roles\":[\"TRANSFER_ROLE\"],\"notice\":\"Transfer `_value` `_token` from the Vault to `_to`\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"transfer(address,address,uint256)\"},{\"roles\":[],\"notice\":\"Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"transferToVault\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"transferToVault(address)\"}],\"deprecatedFunctions\":{},\"abi\":[{\"constant\":true,\"inputs\":[],\"name\":\"hasInitialized\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"TRANSFER_ROLE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_script\",\"type\":\"bytes\"}],\"name\":\"getEVMScriptExecutor\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getRecoveryVault\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isDepositable\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"allowRecoverability\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"appId\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getInitializationBlock\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"transferToVault\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_sender\",\"type\":\"address\"},{\"name\":\"_role\",\"type\":\"bytes32\"},{\"name\":\"_params\",\"type\":\"uint256[]\"}],\"name\":\"canPerform\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getEVMScriptRegistry\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"kernel\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isPetrified\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"balance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultTransfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"executor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"script\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"input\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"returnData\",\"type\":\"bytes\"}],\"name\":\"ScriptResult\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"vault\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"RecoverToVault\",\"type\":\"event\"}],\"flattenedCode\":\"./code.sol\",\"appName\":\"vault.aragonpm.eth\",\"appId\":\"0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1\"}\n",
@@ -16,12 +18,17 @@
           "repoName": "vault",
           "roles": [
             {
-              "grantees": [{ "granteeAddress": "0x67d35c1794cfd88f652866ba82c5e11a51e90f44" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0x67d35c1794cfd88f652866ba82c5e11a51e90f44"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c"
             }
           ],
           "version": {
+            "codeAddress": "0x35c5abf253c873dee9ee4fe2687cd378eff1263e",
             "artifact": "{\"environments\":{\"default\":{\"registry\":\"0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rpc\"},\"mainnet\":{\"registry\":\"0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"mainnet\"},\"rinkeby\":{\"registry\":\"0x98Df287B6C145399Aaa709692c8D308357bC085D\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"ropsten\":{\"registry\":\"0x6afe2cacee211ea9179992f89dc61ff25c61e923\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"ropsten\"},\"staging\":{\"registry\":\"0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"rinkeby-old\":{\"registry\":\"0xfbae32d1cde62858bc45f51efc8cc4fa1415447e\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"rinkeby\"},\"mumbai\":{\"registry\":\"0x431f0eed904590b176f9ff8c36a1c4ff0ee9b982\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"mumbai\"},\"matic\":{\"registry\":\"0x3c70a0190d09f34519e6e218364451add21b7d4b\",\"appName\":\"vault.aragonpm.eth\",\"network\":\"matic\"}},\"roles\":[{\"name\":\"Transfer Vault's tokens\",\"id\":\"TRANSFER_ROLE\",\"params\":[\"Token address\",\"Receiver address\",\"Token amount\"],\"bytes\":\"0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c\"}],\"path\":\"contracts/Vault.sol\",\"functions\":[{\"roles\":[],\"notice\":\"\",\"abi\":{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},\"sig\":\"fallback\"},{\"roles\":[],\"notice\":\"Initialize Vault app\",\"abi\":{\"constant\":false,\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"initialize()\"},{\"roles\":[],\"notice\":\"Deposit `_value` `_token` to the vault\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},\"sig\":\"deposit(address,uint256)\"},{\"roles\":[\"TRANSFER_ROLE\"],\"notice\":\"Transfer `_value` `_token` from the Vault to `_to`\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"transfer(address,address,uint256)\"},{\"roles\":[],\"notice\":\"Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.\",\"abi\":{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"transferToVault\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},\"sig\":\"transferToVault(address)\"}],\"deprecatedFunctions\":{},\"abi\":[{\"constant\":true,\"inputs\":[],\"name\":\"hasInitialized\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"TRANSFER_ROLE\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_script\",\"type\":\"bytes\"}],\"name\":\"getEVMScriptExecutor\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getRecoveryVault\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isDepositable\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"\",\"type\":\"address\"}],\"name\":\"allowRecoverability\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"appId\",\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getInitializationBlock\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"transferToVault\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_sender\",\"type\":\"address\"},{\"name\":\"_role\",\"type\":\"bytes32\"},{\"name\":\"_params\",\"type\":\"uint256[]\"}],\"name\":\"canPerform\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getEVMScriptRegistry\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"},{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"kernel\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isPetrified\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"balance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultTransfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"VaultDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"executor\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"script\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"input\",\"type\":\"bytes\"},{\"indexed\":false,\"name\":\"returnData\",\"type\":\"bytes\"}],\"name\":\"ScriptResult\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"vault\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"RecoverToVault\",\"type\":\"event\"}],\"flattenedCode\":\"./code.sol\",\"appName\":\"vault.aragonpm.eth\",\"appId\":\"0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1\"}\n",
             "contentUri": "ipfs:QmPpLxhZYgB8tEyVH8SV8JkZqFB3E64TXS1oHJuYu262Vn"
           }
@@ -29,33 +36,52 @@
         {
           "address": "0x2f3833143987136f917ff09af5970bf707ec0246",
           "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
-          "implementation": { "address": "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6" },
+          "implementation": {
+            "address": "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6"
+          },
           "repo": {
-            "lastVersion": { "artifact": null, "contentUri": "ipfs:QmUjpmLLZFisaMpHByphZ29yxpj9GWquoQBYnQd56HKpwk" },
+            "lastVersion": {
+              "artifact": null,
+              "contentUri": "ipfs:QmUjpmLLZFisaMpHByphZ29yxpj9GWquoQBYnQd56HKpwk"
+            },
             "registry": { "name": "aragonpm.eth" }
           },
           "repoName": "token-manager",
           "roles": [
             {
               "grantees": [
-                { "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b" },
-                { "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }
+                {
+                  "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b"
+                },
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
               ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686"
             },
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xe97b137254058bd94f28d2f3eb79e2d34074ffb488d042e3bc958e0a57d2fa22"
             }
           ],
-          "version": { "artifact": null, "contentUri": "ipfs:QmUjpmLLZFisaMpHByphZ29yxpj9GWquoQBYnQd56HKpwk" }
+          "version": {
+            "codeAddress": "0xe775468f3ee275f740a22eb9dd7adba9b7933aa0",
+            "artifact": null,
+            "contentUri": "ipfs:QmUjpmLLZFisaMpHByphZ29yxpj9GWquoQBYnQd56HKpwk"
+          }
         },
         {
           "address": "0x5f124b9a008f9424468addff38b98a1e5f509444",
           "appId": "0x0d321283289e70165ef6db7f11fc62c74a7d39dac3ee148428c4f9e3d74c6d61",
-          "implementation": { "address": "0xd6d06bb1f0434d4236486136ebee90b8f359d54c" },
+          "implementation": {
+            "address": "0xd6d06bb1f0434d4236486136ebee90b8f359d54c"
+          },
           "repo": {
             "lastVersion": {
               "artifact": "{\n\t\"environments\": {\n\t\t\"rinkeby\": {\n\t\t\t\"appName\": \"tollgate.open.aragonpm.eth\",\n\t\t\t\"network\": \"rinkeby\",\n\t\t\t\"registry\": \"0x98df287b6c145399aaa709692c8d308357bc085d\",\n\t\t\t\"wsRPC\": \"wss://rinkeby.eth.aragon.network/ws\"\n\t\t}\n\t},\n\t\"roles\": [\n\t\t{\n\t\t\t\"name\": \"Change fees destination address\",\n\t\t\t\"id\": \"CHANGE_DESTINATION_ROLE\",\n\t\t\t\"params\": [\n\t\t\t\t\"New address\",\n\t\t\t\t\"Current address\"\n\t\t\t],\n\t\t\t\"bytes\": \"0x1e0b7d474ea4782cf6997359ebef54005f75b0bd3f812c9cd9df211cb91b2f34\"\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Change fee amount\",\n\t\t\t\"id\": \"CHANGE_AMOUNT_ROLE\",\n\t\t\t\"params\": [\n\t\t\t\t\"New amount\",\n\t\t\t\t\"Current amount\"\n\t\t\t],\n\t\t\t\"bytes\": \"0xad724a52e657cbc0d6d10e7d75ebac6c2048adc575799be08d8d40d1df561bd1\"\n\t\t}\n\t],\n\t\"path\": \"contracts/Tollgate.sol\",\n\t\"appName\": \"tollgate.open.aragonpm.eth\",\n\t\"appId\": \"0x0d321283289e70165ef6db7f11fc62c74a7d39dac3ee148428c4f9e3d74c6d61\",\n\t\"abi\": [\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"hasInitialized\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_script\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"getEVMScriptExecutor\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getRecoveryVault\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeToken\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeAmount\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"allowRecoverability\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"appId\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getInitializationBlock\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"CHANGE_DESTINATION_ROLE\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"transferToVault\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_sender\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_role\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_params\",\n\t\t\t\t\t\"type\": \"uint256[]\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"canPerform\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getEVMScriptRegistry\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"CHANGE_AMOUNT_ROLE\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"kernel\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"isPetrified\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeDestination\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"previousAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"newAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ChangeFeeAmount\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"previousDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"newDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ChangeFeeDestination\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"executor\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"script\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"input\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"returnData\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ScriptResult\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"vault\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"amount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"RecoverToVault\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeToken\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"initialize\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"changeFeeAmount\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"changeFeeDestination\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"forwardFee\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"isForwarder\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"pure\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_evmScript\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"forward\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"canForward\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t}\n\t],\n\t\"functions\": [\n\t\t{\n\t\t\t\"sig\": \"initialize(address,uint256,address)\",\n\t\t\t\"roles\": [],\n\t\t\t\"notice\": \"Initialize Tollgate with fee of `@tokenAmount(_feeToken, _feeAmount)`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"changeFeeAmount(uint256)\",\n\t\t\t\"roles\": [\n\t\t\t\t\"CHANGE_AMOUNT_ROLE\"\n\t\t\t],\n\t\t\t\"notice\": \"Change fee to `@tokenAmount(self.feeToken(): address, _feeAmount)`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"changeFeeDestination(address)\",\n\t\t\t\"roles\": [\n\t\t\t\t\"CHANGE_DESTINATION_ROLE\"\n\t\t\t],\n\t\t\t\"notice\": \"Change fee destination to `_feeDestination`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"forward(bytes)\",\n\t\t\t\"roles\": [],\n\t\t\t\"notice\": \"Execute desired action after paying `@tokenAmount(self.feeToken(): address, self.feeAmount(): uint256)`\"\n\t\t}\n\t]\n}\n",
@@ -66,17 +92,26 @@
           "repoName": "tollgate",
           "roles": [
             {
-              "grantees": [{ "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x1e0b7d474ea4782cf6997359ebef54005f75b0bd3f812c9cd9df211cb91b2f34"
             },
             {
-              "grantees": [{ "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xad724a52e657cbc0d6d10e7d75ebac6c2048adc575799be08d8d40d1df561bd1"
             }
           ],
           "version": {
+            "codeAddress": "0xd6d06bb1f0434d4236486136ebee90b8f359d54c",
             "artifact": "{\n\t\"environments\": {\n\t\t\"rinkeby\": {\n\t\t\t\"appName\": \"tollgate.open.aragonpm.eth\",\n\t\t\t\"network\": \"rinkeby\",\n\t\t\t\"registry\": \"0x98df287b6c145399aaa709692c8d308357bc085d\",\n\t\t\t\"wsRPC\": \"wss://rinkeby.eth.aragon.network/ws\"\n\t\t}\n\t},\n\t\"roles\": [\n\t\t{\n\t\t\t\"name\": \"Change fees destination address\",\n\t\t\t\"id\": \"CHANGE_DESTINATION_ROLE\",\n\t\t\t\"params\": [\n\t\t\t\t\"New address\",\n\t\t\t\t\"Current address\"\n\t\t\t],\n\t\t\t\"bytes\": \"0x1e0b7d474ea4782cf6997359ebef54005f75b0bd3f812c9cd9df211cb91b2f34\"\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Change fee amount\",\n\t\t\t\"id\": \"CHANGE_AMOUNT_ROLE\",\n\t\t\t\"params\": [\n\t\t\t\t\"New amount\",\n\t\t\t\t\"Current amount\"\n\t\t\t],\n\t\t\t\"bytes\": \"0xad724a52e657cbc0d6d10e7d75ebac6c2048adc575799be08d8d40d1df561bd1\"\n\t\t}\n\t],\n\t\"path\": \"contracts/Tollgate.sol\",\n\t\"appName\": \"tollgate.open.aragonpm.eth\",\n\t\"appId\": \"0x0d321283289e70165ef6db7f11fc62c74a7d39dac3ee148428c4f9e3d74c6d61\",\n\t\"abi\": [\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"hasInitialized\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_script\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"getEVMScriptExecutor\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getRecoveryVault\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeToken\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeAmount\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"allowRecoverability\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"appId\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getInitializationBlock\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"CHANGE_DESTINATION_ROLE\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"transferToVault\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_sender\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_role\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_params\",\n\t\t\t\t\t\"type\": \"uint256[]\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"canPerform\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"getEVMScriptRegistry\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"CHANGE_AMOUNT_ROLE\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes32\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"kernel\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"isPetrified\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"feeDestination\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"previousAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"newAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ChangeFeeAmount\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"previousDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"newDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ChangeFeeDestination\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"executor\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"script\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"input\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"returnData\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"ScriptResult\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"anonymous\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"vault\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": true,\n\t\t\t\t\t\"name\": \"token\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"indexed\": false,\n\t\t\t\t\t\"name\": \"amount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"RecoverToVault\",\n\t\t\t\"type\": \"event\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeToken\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"initialize\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeAmount\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"changeFeeAmount\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_feeDestination\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"changeFeeDestination\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"forwardFee\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"uint256\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [],\n\t\t\t\"name\": \"isForwarder\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"pure\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": false,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"_evmScript\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"forward\",\n\t\t\t\"outputs\": [],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"nonpayable\",\n\t\t\t\"type\": \"function\"\n\t\t},\n\t\t{\n\t\t\t\"constant\": true,\n\t\t\t\"inputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"address\"\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bytes\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"name\": \"canForward\",\n\t\t\t\"outputs\": [\n\t\t\t\t{\n\t\t\t\t\t\"name\": \"\",\n\t\t\t\t\t\"type\": \"bool\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"payable\": false,\n\t\t\t\"stateMutability\": \"view\",\n\t\t\t\"type\": \"function\"\n\t\t}\n\t],\n\t\"functions\": [\n\t\t{\n\t\t\t\"sig\": \"initialize(address,uint256,address)\",\n\t\t\t\"roles\": [],\n\t\t\t\"notice\": \"Initialize Tollgate with fee of `@tokenAmount(_feeToken, _feeAmount)`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"changeFeeAmount(uint256)\",\n\t\t\t\"roles\": [\n\t\t\t\t\"CHANGE_AMOUNT_ROLE\"\n\t\t\t],\n\t\t\t\"notice\": \"Change fee to `@tokenAmount(self.feeToken(): address, _feeAmount)`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"changeFeeDestination(address)\",\n\t\t\t\"roles\": [\n\t\t\t\t\"CHANGE_DESTINATION_ROLE\"\n\t\t\t],\n\t\t\t\"notice\": \"Change fee destination to `_feeDestination`\"\n\t\t},\n\t\t{\n\t\t\t\"sig\": \"forward(bytes)\",\n\t\t\t\"roles\": [],\n\t\t\t\"notice\": \"Execute desired action after paying `@tokenAmount(self.feeToken(): address, self.feeAmount(): uint256)`\"\n\t\t}\n\t]\n}\n",
             "contentUri": "ipfs:QmYJpDeA3TD6PVdxdFJWvK6FdzvST1oqQvtYFxmMyNCFNF"
           }
@@ -84,30 +119,48 @@
         {
           "address": "0x67d35c1794cfd88f652866ba82c5e11a51e90f44",
           "appId": "0xbf8491150dafc5dcaee5b861414dca922de09ccffa344964ae167212e8c673ae",
-          "implementation": { "address": "0xf785c859667ae6a8e9278aae4346fef3c9990a44" },
+          "implementation": {
+            "address": "0xf785c859667ae6a8e9278aae4346fef3c9990a44"
+          },
           "repo": {
-            "lastVersion": { "artifact": null, "contentUri": "ipfs:QmYFzpTWpN1mFSPFg8fn5Knx9ka7prux8EB3zdwUf6Ubq1" },
+            "lastVersion": {
+              "artifact": null,
+              "contentUri": "ipfs:QmYFzpTWpN1mFSPFg8fn5Knx9ka7prux8EB3zdwUf6Ubq1"
+            },
             "registry": { "name": "aragonpm.eth" }
           },
           "repoName": "finance",
           "roles": [
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x30597dd103acfaef0649675953d9cb22faadab7e9d9ed57acc1c429d04b80777"
             },
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x563165d3eae48bcb0a092543ca070d989169c98357e9a1b324ec5da44bab75fd"
             },
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x5de467a460382d13defdc02aacddc9c7d6605d6d4e0b8bd2f70732cae8ea17bc"
             }
           ],
           "version": {
+            "codeAddress": "0x94d3013a8700e8b168f66529ad143590cc6b259d",
             "artifact": null,
             "contentUri": "ipfs:QmYFzpTWpN1mFSPFg8fn5Knx9ka7prux8EB3zdwUf6Ubq1"
           }
@@ -115,38 +168,61 @@
         {
           "address": "0x6e60be79144609ed744d38ca4eff0105ac7ac4dc",
           "appId": "0x705b5084c67966bb8e4640b28bab7a1e51e03d209d84e3a04d2a4f7415f93b34",
-          "implementation": { "address": "0x9347fff5175d9f4fa9ebab54642d74dfb0992bb9" },
+          "implementation": {
+            "address": "0x9347fff5175d9f4fa9ebab54642d74dfb0992bb9"
+          },
           "repo": {
-            "lastVersion": { "artifact": null, "contentUri": "ipfs:QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC" },
+            "lastVersion": {
+              "artifact": null,
+              "contentUri": "ipfs:QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC"
+            },
             "registry": { "name": "open.aragonpm.eth" }
           },
           "repoName": "disputable-voting",
           "roles": [
             {
-              "grantees": [{ "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc"
             }
           ],
-          "version": { "artifact": null, "contentUri": "ipfs:QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC" }
+          "version": {
+            "codeAddress": "0x9347fff5175d9f4fa9ebab54642d74dfb0992bb9",
+            "artifact": null,
+            "contentUri": "ipfs:QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC"
+          }
         },
         {
           "address": "0x73778c0c3a761405bddef887535647f0441f2016",
           "appId": "0xddbcfd564f642ab5627cf68b9b7d374fb4f8a36e941a75d89c87998cef03bd61",
-          "implementation": { "address": "0x7d388906fa0351f8472d8197bdc46ca9f2bd2dc8" },
+          "implementation": {
+            "address": "0x7d388906fa0351f8472d8197bdc46ca9f2bd2dc8"
+          },
           "repo": null,
           "repoName": null,
           "roles": [
             {
               "grantees": [
-                { "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0" },
-                { "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }
+                {
+                  "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0"
+                },
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
               ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xc4e90f38eea8c4212a009ca7b8947943ba4d4a58d19b683417f65291d1cd9ed2"
             },
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xf7a450ef335e1892cb42c8ca72e7242359d7711924b75db5717410da3f614aa3"
             }
@@ -155,15 +231,23 @@
         {
           "address": "0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e",
           "appId": "0x3b4bf6bf3ad5000ecf0f989d5befde585c6860fea3e574a4fab4c49d1c177d9c",
-          "implementation": { "address": "0xaa1a0367c7588937cbf542ef79cbfe83d317da88" },
+          "implementation": {
+            "address": "0xaa1a0367c7588937cbf542ef79cbfe83d317da88"
+          },
           "repo": null,
           "repoName": null,
           "roles": [
             {
               "grantees": [
-                { "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0" },
-                { "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b" },
-                { "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }
+                {
+                  "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0"
+                },
+                {
+                  "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b"
+                },
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
               ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xb6d92708f3d4817afc106147d969e229ced5c46e65e0a5002a0d391287762bd0"
@@ -173,16 +257,26 @@
         {
           "address": "0xbec954725a866994d68b7c01f30742b42965091e",
           "appId": "0xe3262375f45a6e2026b7e7b18c2b807434f2508fe1a2a3dfb493c7df8f4aad6a",
-          "implementation": { "address": "0x3ae935e863984ecffc980bf67bd73f56a41b94ea" },
+          "implementation": {
+            "address": "0x3ae935e863984ecffc980bf67bd73f56a41b94ea"
+          },
           "repo": null,
           "repoName": null,
           "roles": [
             {
               "grantees": [
-                { "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0" },
-                { "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b" },
-                { "granteeAddress": "0xad4d106b43b480faa3ef7f98464ffc27fc1faa96" },
-                { "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }
+                {
+                  "granteeAddress": "0x83356268bb32bf9cf656892508da955b232a32e0"
+                },
+                {
+                  "granteeAddress": "0xa3809a525b92a8a290e5d704f9be6b5046506a7b"
+                },
+                {
+                  "granteeAddress": "0xad4d106b43b480faa3ef7f98464ffc27fc1faa96"
+                },
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
               ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0x0b719b33c83b8e5d300c521cb8b54ae9bd933996a14bef8c2f4e0285d2d2400a"
@@ -192,30 +286,51 @@
         {
           "address": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
           "appId": "0x9fa3927f639745e587912d4b0fea7ef9013bf93fb907d29faeab57417ba6e1d4",
-          "implementation": { "address": "0x47bcf45e545acc80ff06f05291f995d4c3e15159" },
+          "implementation": {
+            "address": "0x47bcf45e545acc80ff06f05291f995d4c3e15159"
+          },
           "repo": {
-            "lastVersion": { "artifact": null, "contentUri": "ipfs:QmQENeebGJYfuT9ufCfWsRKbTQocD2SesLmobQpWfBuzp8" },
+            "lastVersion": {
+              "artifact": null,
+              "contentUri": "ipfs:QmQENeebGJYfuT9ufCfWsRKbTQocD2SesLmobQpWfBuzp8"
+            },
             "registry": { "name": "aragonpm.eth" }
           },
           "repoName": "voting",
           "roles": [
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xad15e7261800b4bb73f1b69d3864565ffb1fd00cb93cf14fe48da8f1f2149f39"
             },
             {
-              "grantees": [{ "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xda3972983e62bdf826c4b807c4c9c2b8a941e1f83dfa76d53d6aeac11e1be650"
             },
             {
-              "grantees": [{ "granteeAddress": "0x2f3833143987136f917ff09af5970bf707ec0246" }],
+              "grantees": [
+                {
+                  "granteeAddress": "0x2f3833143987136f917ff09af5970bf707ec0246"
+                }
+              ],
               "manager": "0xc59d4acea08cf51974dfeb422964e6c2d7eb906f",
               "roleHash": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc"
             }
           ],
-          "version": { "artifact": null, "contentUri": "ipfs:QmQENeebGJYfuT9ufCfWsRKbTQocD2SesLmobQpWfBuzp8" }
+          "version": {
+            "codeAddress": "0xb4fa71b3352d48aa93d34d085f87bb4af0ce6ab5",
+            "artifact": null,
+            "contentUri": "ipfs:QmQENeebGJYfuT9ufCfWsRKbTQocD2SesLmobQpWfBuzp8"
+          }
         }
       ],
       "id": "0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e"

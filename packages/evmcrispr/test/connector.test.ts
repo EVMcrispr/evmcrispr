@@ -1,6 +1,7 @@
 import { expect } from 'chai';
+import type { Signer } from 'ethers';
 import { utils } from 'ethers';
-import hre from 'hardhat';
+import hre, { ethers } from 'hardhat';
 import { multihash } from 'is-ipfs';
 
 import { ErrorException, ErrorNotFound } from '../src';
@@ -22,9 +23,11 @@ const {
 
 describe('Connector', () => {
   let connector: Connector;
+  let signer: Signer;
 
-  before(() => {
+  before(async () => {
     connector = new Connector(chainId || 4);
+    signer = (await ethers.getSigners())[0];
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
@@ -61,7 +64,7 @@ describe('Connector', () => {
     let daoApps: ParsedApp[];
 
     before(async () => {
-      daoApps = await connector.organizationApps(DAO.kernel);
+      daoApps = await connector.organizationApps(DAO.kernel, signer.provider!);
     });
 
     it('should find the apps of a valid dao', () => {
@@ -73,9 +76,12 @@ describe('Connector', () => {
     });
 
     it('should fail when fetching the apps of a non-existent dao', async () => {
-      await expectThrowAsync(() => connector.organizationApps(EOA_ADDRESS), {
-        type: ErrorNotFound,
-      });
+      await expectThrowAsync(
+        () => connector.organizationApps(EOA_ADDRESS, signer.provider!),
+        {
+          type: ErrorNotFound,
+        },
+      );
     });
   });
 });

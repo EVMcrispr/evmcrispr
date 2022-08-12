@@ -1,5 +1,7 @@
 import fetch from 'isomorphic-fetch';
 
+import type { providers } from 'ethers';
+
 import type { GraphQLBody } from '../../../utils';
 import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from '../../../utils';
 import { ErrorException, ErrorNotFound } from '../../../errors';
@@ -51,7 +53,7 @@ export default class Connector {
 
   protected async querySubgraph<T>(
     body: GraphQLBody,
-    parser?: (data: any) => T,
+    parser?: (data: any) => T | Promise<T>,
   ): Promise<T> {
     const rawResponse = await fetch(this.#subgraphUrl, {
       body: JSON.stringify(body),
@@ -101,7 +103,10 @@ export default class Connector {
    * @param daoAddress The address of the DAO to fetch.
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
-  async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
+  async organizationApps(
+    daoAddress: Address,
+    provider: providers.Provider,
+  ): Promise<ParsedApp[]> {
     return this.querySubgraph<ParsedApp[]>(
       ORGANIZATION_APPS(daoAddress.toLowerCase()),
       (data: any) => {
@@ -111,7 +116,7 @@ export default class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        return apps.map(parseApp);
+        return Promise.all(apps.map((app: any) => parseApp(app, provider)));
       },
     );
   }

@@ -13,6 +13,7 @@ import {
   fetchAppArtifact,
   resolveIdentifier,
 } from '../../../utils';
+import { AddressMap } from './AddressMap';
 
 export class AragonDAO {
   #appCache: AppCache;
@@ -32,7 +33,7 @@ export class AragonDAO {
     nestingIndex: number,
   ) {
     this.#appCache = new Map();
-    this.#appArtifactCache = new Map();
+    this.#appArtifactCache = new AddressMap();
     this.#connector = new Connector(chainId, { subgraphUrl });
     this.#ipfsResolver = ipfsResolver;
 
@@ -76,11 +77,18 @@ export class AragonDAO {
       index,
     );
 
-    const parsedApps = await dao.connector.organizationApps(daoAddress);
+    const parsedApps = await dao.connector.organizationApps(
+      daoAddress,
+      provider,
+    );
     const appResourcesCache = await dao.#buildAppArtifactCache(parsedApps);
-    const apps = parsedApps
-      .map((parsedApp: ParsedApp) => buildApp(parsedApp, appResourcesCache))
-      .filter((app: App | null) => !!app);
+    const apps = (
+      await Promise.all(
+        parsedApps.map((parsedApp: ParsedApp) =>
+          buildApp(parsedApp, appResourcesCache),
+        ),
+      )
+    ).filter((app: App | null) => !!app);
     const appCache = await dao.#buildAppCache(apps as App[]);
 
     dao.#appCache = appCache;
@@ -149,7 +157,7 @@ export class AragonDAO {
   }
 
   async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
-    const appArtifactCache: AppArtifactCache = new Map();
+    const appArtifactCache: AppArtifactCache = new AddressMap();
     const artifactApps = apps.filter((app) => app.artifact);
     const artifactlessApps = apps.filter(
       (app) => !app.artifact && app.contentUri,

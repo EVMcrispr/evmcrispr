@@ -31,9 +31,6 @@ export const ORGANIZATION_APPS = (id: string): GraphQLBody => ({
           address
           appId
           repoName
-          implementation {
-            address
-          }
           repo {
             registry {
               name

@@ -127,7 +127,10 @@ export class ConnectedAragonOS extends AragonOS {
       await evm.signer.getChainId(),
       evm.env('$aragonos.subgraphUrl') as string,
     );
-    const parsedApps = await dao._connector.organizationApps(daoAddress);
+    const parsedApps = await dao._connector.organizationApps(
+      daoAddress,
+      evm.signer.provider!,
+    );
     const appResourcesCache = await dao.#buildAppArtifactCache(parsedApps);
     const apps = parsedApps
       .map((parsedApp: ParsedApp) => buildApp(parsedApp, appResourcesCache))
