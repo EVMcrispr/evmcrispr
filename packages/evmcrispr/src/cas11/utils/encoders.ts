@@ -1,11 +1,8 @@
 import { utils } from 'ethers';
-import type { Fragment, Interface } from 'ethers/lib/utils';
+import type { Interface } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../../errors';
 import type { Action, Address } from '../..';
-
-const getFnSelector = (fragment: Fragment): string =>
-  utils.id(fragment.format('sighash')).substring(0, 10);
 
 export const encodeAction = (
   target: Address,
@@ -37,39 +34,31 @@ export const encodeCalldata = (
   const fnFragment = fnABI.getFunction(methodName);
   const errors: string[] = [];
 
-  const encodedParams = fnFragment.inputs.reduce(
-    (encodedParams, paramType, i) => {
-      const { name, type } = paramType;
-      try {
-        let paramValue = params[i];
+  // Encode parameters individually to generate better error messages
+  fnFragment.inputs.forEach((paramType, i) => {
+    const { name, type } = paramType;
+    try {
+      let paramValue = params[i];
 
-        if (
-          type.includes('byte') &&
-          typeof paramValue === 'string' &&
-          !paramValue.startsWith('0x')
-        ) {
-          paramValue = utils
-            .hexlify(utils.toUtf8Bytes(paramValue))
-            .padEnd(
-              parseInt(type.match(/^bytes(\d*)$/)![1] || '0') * 2 + 2,
-              '0',
-            );
-        }
-        const p = fnABI._encodeParams([paramType], [paramValue]);
-        return encodedParams + p.slice(2);
-      } catch (err) {
-        const err_ = err as Error;
-        errors.push(
-          `-param ${name ?? i} of type ${type}: ${
-            err_.message.split(' (')[0] ?? err_.message
-          }. Got ${params[i]}`,
-        );
+      if (
+        type.includes('byte') &&
+        typeof paramValue === 'string' &&
+        !paramValue.startsWith('0x')
+      ) {
+        paramValue = utils
+          .hexlify(utils.toUtf8Bytes(paramValue))
+          .padEnd(parseInt(type.match(/^bytes(\d*)$/)![1] || '0') * 2 + 2, '0');
       }
-
-      return encodedParams;
-    },
-    '',
-  );
+      fnABI._encodeParams([paramType], [paramValue]);
+    } catch (err) {
+      const err_ = err as Error;
+      errors.push(
+        `-param ${name ?? i} of type ${type}: ${
+          err_.message.split(' (')[0] ?? err_.message
+        }. Got ${params[i] ?? 'none'}`,
+      );
+    }
+  });
 
   if (errors.length) {
     throw new ErrorInvalid(
@@ -77,5 +66,11 @@ export const encodeCalldata = (
     );
   }
 
-  return `${getFnSelector(fnFragment)}${encodedParams}`;
+  /**
+   * Need to encode the function call as a whole to take into account previous parameter
+   * encodings when generating the offset values of possible dynamic type parameters.
+   * See https://docs.soliditylang.org/en/v0.8.16/abi-spec.html#use-of-dynamic-types
+   * for more information on how dynamic types are encoded
+   */
+  return fnABI.encodeFunctionData(methodName, params);
 };
