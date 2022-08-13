@@ -1,6 +1,7 @@
 import { utils } from 'ethers';
 
 import type { Action } from '../../../..';
+import { normalizeRole } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
@@ -42,7 +43,7 @@ export const revoke: CommandFunction<AragonOS> = async (
     );
   }
 
-  const roleHash = utils.id(role);
+  const roleHash = normalizeRole(role);
   const app = dao.resolveApp(appAddress);
 
   if (!app) {

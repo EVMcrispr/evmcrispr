@@ -2,6 +2,7 @@ import { constants, utils } from 'ethers';
 
 import type { Action, Params } from '../../../..';
 import { oracle } from '../../../..';
+import { normalizeRole } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import {
@@ -34,7 +35,7 @@ export const grant: CommandFunction<AragonOS> = async (
 
   const [granteeAddress, appAddress, role, defaultPermissionManagerAddress] =
     await interpretNodes(c.args);
-  const roleHash = utils.id(role);
+  const roleHash = normalizeRole(role);
   const app = dao.resolveApp(appAddress);
 
   if (!app) {
