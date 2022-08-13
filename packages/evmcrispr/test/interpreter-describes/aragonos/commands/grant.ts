@@ -4,6 +4,9 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
+import type { Action } from '../../../../src';
+import { oracle } from '../../../../src';
+
 import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
 
 import { CommandError } from '../../../../src/errors';
@@ -15,7 +18,7 @@ import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const grantDescribe = (): Suite =>
-  describe('grant <entity> <app> <role> [permissionManager]', () => {
+  describe('grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]', () => {
     let signer: Signer;
 
     let createAragonScriptInterpreter: ReturnType<
@@ -31,7 +34,7 @@ export const grantDescribe = (): Suite =>
       );
     });
 
-    it('should grant a permission correctly', async () => {
+    it('should return a correct grant permission action', async () => {
       const interpreter = createAragonScriptInterpreter([
         `grant @me vault TRANSFER_ROLE`,
       ]);
@@ -61,7 +64,7 @@ export const grantDescribe = (): Suite =>
       ).to.include(await signer.getAddress());
     });
 
-    it('should create a new permission correctly', async () => {
+    it('should return a correct create permission action', async () => {
       const interpreter = createAragonScriptInterpreter([
         `grant voting token-manager ISSUE_ROLE @me`,
       ]);
@@ -93,6 +96,68 @@ export const grantDescribe = (): Suite =>
         permission?.manager,
         "DAO app's permission manager mismatch",
       ).to.equals(expectedPermissionManager);
+    });
+
+    it('should return a correct parametric permission action when providing an oracle option', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        'grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle token-manager',
+      ]);
+
+      const grantPActions = await interpreter.interpret();
+
+      const expectedActions: Action[] = [
+        createTestAction('createPermission', DAO.acl, [
+          DAO.voting,
+          DAO['token-manager'],
+          utils.id('REVOKE_VESTINGS_ROLE'),
+          DAO.voting,
+        ]),
+        createTestAction('grantPermissionP', DAO.acl, [
+          DAO.voting,
+          DAO['token-manager'],
+          utils.id('REVOKE_VESTINGS_ROLE'),
+          oracle(DAO['token-manager'])(),
+        ]),
+      ];
+
+      expect(grantPActions).to.eql(expectedActions);
+    });
+
+    it('should fail when providing an invalid oracle option', async () => {
+      const invalidOracle = 'invalid-oracle';
+      const error = new CommandError(
+        'grant',
+        `invalid --oracle option. Expected an address, but got ${invalidOracle}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle ${invalidOracle}`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when granting a parametric permission to an existent grantee', async () => {
+      const error = new CommandError(
+        'grant',
+        `grantee ${DAO.voting} already has given permission on app token-manager`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `grant voting token-manager MINT_ROLE --oracle token-manager`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
     });
 
     it('should fail when executing it outside a "connect" command', async () => {

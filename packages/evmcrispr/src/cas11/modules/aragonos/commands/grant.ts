@@ -1,9 +1,15 @@
 import { constants, utils } from 'ethers';
 
-import type { Action } from '../../../..';
+import type { Action, Params } from '../../../..';
+import { oracle } from '../../../..';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import {
+  ComparisonType,
+  checkArgsLength,
+  checkOpts,
+  getOptValue,
+} from '../../../utils';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 
@@ -11,13 +17,14 @@ import type { AragonOS } from '../AragonOS';
 export const grant: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNodes },
+  { interpretNode, interpretNodes },
 ) => {
   checkArgsLength(c, {
     type: ComparisonType.Between,
     minValue: 3,
     maxValue: 4,
   });
+  checkOpts(c, ['oracle']);
 
   const dao = module.currentDAO;
 
@@ -46,11 +53,25 @@ export const grant: CommandFunction<AragonOS> = async (
 
   const appPermission = appPermissions.get(roleHash)!;
 
+  const oracleOpt = await getOptValue(c, 'oracle', interpretNode);
+  let params: ReturnType<Params> = [];
+
+  if (oracleOpt && !utils.isAddress(oracleOpt)) {
+    Interpreter.panic(
+      c,
+      `invalid --oracle option. Expected an address, but got ${oracleOpt}`,
+    );
+  }
+
+  if (oracleOpt) {
+    params = oracle(oracleOpt)();
+  }
+
   // If the permission already existed and no parameters are needed, just grant to a new entity and exit
   if (
     appPermission.manager !== '' &&
-    appPermission.manager !== constants.AddressZero
-    // && params.length == 0
+    appPermission.manager !== constants.AddressZero &&
+    params.length == 0
   ) {
     if (appPermission.grantees.has(granteeAddress)) {
       // TODO: get app identifier. Maybe set it on cache
@@ -103,24 +124,25 @@ export const grant: CommandFunction<AragonOS> = async (
   }
 
   // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
-  // if (params.length > 0) {
-  //   if (appPermission.grantees.has(granteeAddress)) {
-  //     throw new ErrorException(
-  //       `Grantee ${grantee} already has permission ${role}.`,
-  //     );
-  //   }
-  //   appPermission.grantees.add(granteeAddress);
+  if (params.length > 0) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      Interpreter.panic(
+        c,
+        `grantee ${granteeAddress} already has given permission on app ${name}`,
+      );
+    }
+    appPermission.grantees.add(granteeAddress);
 
-  //   actions.push({
-  //     to: aclAddress,
-  //     data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
-  //       granteeAddress,
-  //       appAddress,
-  //       roleHash,
-  //       params,
-  //     ]),
-  //   });
-  // }
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
+        granteeAddress,
+        appAddress,
+        roleHash,
+        params,
+      ]),
+    });
+  }
 
   return actions;
 };

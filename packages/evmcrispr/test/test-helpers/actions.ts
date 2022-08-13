@@ -42,6 +42,7 @@ export const createTestAction = (
     | 'createCloneToken'
     | 'createPermission'
     | 'grantPermission'
+    | 'grantPermissionP'
     | 'newInstance'
     | 'newAppInstance'
     | 'revokePermission'
@@ -50,73 +51,23 @@ export const createTestAction = (
   to: Address,
   parameters?: any[],
 ): Action => {
-  switch (operation) {
-    case 'changeController':
-      return {
-        to,
-        data: encodeActCall('changeController(address)', parameters),
-      };
-    case 'createCloneToken':
-      return {
-        to,
-        data: encodeActCall(
-          'createCloneToken(address,uint256,string,uint8,string,bool)',
-          parameters,
-        ),
-      };
-    case 'createPermission':
-      return {
-        to,
-        data: encodeActCall(
-          'createPermission(address,address,bytes32,address)',
-          parameters,
-        ),
-      };
-    case 'grantPermission':
-      return {
-        to,
-        data: encodeActCall(
-          'grantPermission(address,address,bytes32)',
-          parameters,
-        ),
-      };
-    case 'newInstance':
-      return {
-        to,
-        data: encodeActCall('newInstance()'),
-      };
-    case 'newAppInstance':
-      return {
-        to,
-        data: encodeActCall(
-          'newAppInstance(bytes32,address,bytes,bool)',
-          parameters,
-        ),
-      };
-    case 'revokePermission':
-      return {
-        to,
-        data: encodeActCall(
-          'revokePermission(address,address,bytes32)',
-          parameters,
-        ),
-      };
-    case 'removePermissionManager':
-      return {
-        to,
-        data: encodeActCall(
-          'removePermissionManager(address,bytes32)',
-          parameters,
-        ),
-      };
-    case 'setApp':
-      return {
-        to,
-        data: encodeActCall('setApp(bytes32,bytes32,address)', parameters),
-      };
-    default:
-      throw new Error(`Operation ${operation} unknown.`);
-  }
+  const multiFnsInterface = new utils.Interface([
+    'function changeController(address)',
+    'function createCloneToken(address,uint256,string,uint8,string,bool)',
+    'function createPermission(address,address,bytes32,address)',
+    'function grantPermission(address,address,bytes32)',
+    'function grantPermissionP(address,address,bytes32,uint256[])',
+    'function newInstance()',
+    'function newAppInstance(bytes32,address,bytes,bool)',
+    'function revokePermission(address,address,bytes32)',
+    'function removePermissionManager(address,bytes32)',
+    'function setApp(bytes32,bytes32,address)',
+  ]);
+
+  return {
+    to,
+    data: multiFnsInterface.encodeFunctionData(operation, parameters),
+  };
 };
 
 export const createTestScriptEncodedAction = (
