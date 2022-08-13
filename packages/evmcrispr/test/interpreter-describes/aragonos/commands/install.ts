@@ -1,0 +1,239 @@
+import { expect } from 'chai';
+import type { Signer } from 'ethers';
+import { ethers } from 'hardhat';
+import type { Suite } from 'mocha';
+
+import type { Action } from '../../../../src';
+import { encodeActCall } from '../../../../src';
+import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
+import { CommandError } from '../../../../src/errors';
+import { addressesEqual } from '../../../../src/utils';
+
+import { APP, DAO } from '../../../fixtures';
+import { createTestAction } from '../../../test-helpers/actions';
+import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import { createInterpreter } from '../../../test-helpers/cas11';
+import { expectThrowAsync } from '../../../test-helpers/expects';
+
+export const installDescribe = (): Suite =>
+  describe('install <repo> [initParams]', () => {
+    const {
+      appId,
+      appIdentifier,
+      codeAddress,
+      initializeParams,
+      initializeUnresolvedParams,
+      initializeSignature,
+    } = APP;
+    const newAppIdentifier = `${appIdentifier}:new-app`;
+
+    let signer: Signer;
+
+    let createAragonScriptInterpreter: ReturnType<
+      typeof createAragonScriptInterpreter_
+    >;
+
+    before(async () => {
+      [signer] = await ethers.getSigners();
+
+      createAragonScriptInterpreter = createAragonScriptInterpreter_(
+        signer,
+        DAO.kernel,
+      );
+    });
+
+    it('should install a new app correctly', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        `install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}`,
+      ]);
+
+      const installationActions = await interpreter.interpret();
+
+      const expectedInstallationActions: Action[] = [
+        createTestAction('newAppInstance', DAO.kernel, [
+          appId,
+          codeAddress,
+          encodeActCall(initializeSignature, initializeParams),
+          false,
+        ]),
+      ];
+      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const dao = aragonos.connectedDAOs[0];
+      const installedApp = dao.resolveApp(newAppIdentifier);
+
+      expect(installedApp, 'DAO does not have installed app').to.exist;
+      expect(
+        addressesEqual(installedApp!.codeAddress, codeAddress),
+        'wrong installed app version',
+      ).to.be.true;
+      expect(installationActions, 'installation actions mismatch').to.eql(
+        expectedInstallationActions,
+      );
+    });
+
+    it('should install a given version of an app correctly', async () => {
+      const specificVersion = '0xe775468f3ee275f740a22eb9dd7adba9b7933aa0';
+      const interpreter = createAragonScriptInterpreter([
+        `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+          ' ',
+        )} --version 2.2.0`,
+      ]);
+
+      const installationActions = await interpreter.interpret();
+
+      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const dao = aragonos.getConnectedDAO(DAO.kernel)!;
+      const installedApp = dao.resolveApp(newAppIdentifier);
+
+      const expectedInstallationActions = [
+        createTestAction('newAppInstance', DAO.kernel, [
+          appId,
+          specificVersion,
+          encodeActCall(initializeSignature, initializeParams),
+          false,
+        ]),
+      ];
+
+      expect(installedApp, ' DAO does not have installed app').to.exist;
+      expect(
+        addressesEqual(installedApp!.codeAddress, specificVersion),
+        'wrong installed app version',
+      ).to.be.true;
+      expect(installationActions, 'installation actions mismatch').to.eql(
+        expectedInstallationActions,
+      );
+    });
+
+    it('should fail when executing it outside a "connect" command', async () => {
+      const error = new CommandError(
+        'install',
+        `must be used within a "connect" command`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `
+        load aragonos as ar
+
+        ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}
+      `,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail passing an invalid repo identifier', async () => {
+      const invalidRepoIdentifier = `missing-label-repo`;
+      const error = new CommandError(
+        'install',
+        `invalid labeled identifier ${invalidRepoIdentifier}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `install ${invalidRepoIdentifier} ${initializeUnresolvedParams.join(
+              ' ',
+            )}`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when passing a repo that can not be resolved', async () => {
+      const invalidRepoENSName = `non-existent-repo:new-app`;
+      const error = new CommandError(
+        'install',
+        `ENS repo name ${
+          invalidRepoENSName.split(':')[0] + '.aragonpm.eth'
+        } couldn't be resolved`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `install ${invalidRepoENSName} ${initializeUnresolvedParams.join(
+              ' ',
+            )}`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when passing an invalid --version option', async () => {
+      const invalidVersion = '1e18';
+      const error = new CommandError(
+        'install',
+        `invalid --version option. Expected a semantic version, but got 1000000000000000000`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+              ' ',
+            )} --version ${invalidVersion}`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when installing an app with an identifier previously used', async () => {
+      const error = new CommandError(
+        'install',
+        `identifier ${newAppIdentifier} is already in use.`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+              ' ',
+            )}`,
+            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+              ' ',
+            )}`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when passing invalid initialize params', async () => {
+      const paramsErrors = [
+        '-param _token of type address: invalid address. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a',
+        '-param _maxAccountTokens of type uint256: invalid BigNumber value. Got false',
+      ];
+      const error = new CommandError(
+        'install',
+        `error when encoding initialize call:\n${paramsErrors.join('\n')}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createAragonScriptInterpreter([
+            `install ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,
+          ]).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+  });
