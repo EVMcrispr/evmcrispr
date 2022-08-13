@@ -4,7 +4,7 @@ import {
   stdModuleDescribe,
 } from './interpreter-describes/';
 
-describe('CAS11 Interpreter', () => {
+describe.only('CAS11 Interpreter', () => {
   literalDescribe();
 
   describe('Modules', () => {
