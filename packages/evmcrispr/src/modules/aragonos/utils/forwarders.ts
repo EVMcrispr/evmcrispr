@@ -69,7 +69,7 @@ export const batchForwarderActions = async (
     );
 
     if (!(await isForwarder(forwarder))) {
-      throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder.`);
+      throw new ErrorInvalid(`app ${forwarder.address} is not a forwarder`);
     }
 
     const fee = await getForwarderFee(forwarder);
@@ -114,7 +114,7 @@ export const batchForwarderActions = async (
 
     if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
       if (!context) {
-        throw new ErrorInvalid(`Context option missing.`);
+        throw new ErrorInvalid(`context option missing`);
       }
       forwarderActions = [
         {

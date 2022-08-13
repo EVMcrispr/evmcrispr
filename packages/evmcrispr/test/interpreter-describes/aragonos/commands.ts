@@ -17,6 +17,7 @@ import {
   ComparisonType,
   buildArgsLengthErrorMsg,
   commaListItems,
+  encodeCalldata,
 } from '../../../src/cas11/utils';
 import { CommandError } from '../../../src/errors';
 import {
@@ -29,9 +30,19 @@ import {
   toDecimals,
 } from '../../../src/utils';
 
-import { APP, DAO } from '../../fixtures';
+import {
+  APP,
+  COMPLETE_FORWARDER_PATH,
+  CONTEXT,
+  DAO,
+  FEE_AMOUNT,
+  FEE_FORWARDER,
+  FEE_TOKEN_ADDRESS,
+  resolveApp,
+} from '../../fixtures';
 import {
   createTestAction,
+  createTestPreTxAction,
   createTestScriptEncodedAction,
 } from '../../test-helpers/actions';
 
@@ -73,7 +84,111 @@ export const commandsDescribe = (): Mocha.Suite =>
       [signer] = await ethers.getSigners();
     });
 
-    describe('connect <daoNameOrAddress> [...appsPath] <commandsBlock>', () => {
+    describe('connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]', () => {
+      it('should return the correct actions when defining a complete forwarding path compose of a fee, normal and context forwarder', async () => {
+        const interpreter = createInterpreter(
+          `
+            load aragonos as ar
+  
+            ar:connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
+            ' ',
+          )} --context "${CONTEXT}" (
+              grant @me vault TRANSFER_ROLE
+              grant disputable-voting.open token-manager ISSUE_ROLE voting
+              revoke ANY_ENTITY tollgate.open CHANGE_AMOUNT_ROLE true
+              new-token "Other Token" OT token-manager:new
+              install token-manager:new token:OT true 0
+              act agent vault "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
+            )
+          `,
+          signer,
+        );
+
+        const forwardingAction = await interpreter.interpret();
+
+        const me = await signer.getAddress();
+        const chainId = await signer.getChainId();
+        const { appId, codeAddress, initializeSignature } = APP;
+        const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(
+          await signer.getChainId(),
+        )!;
+        const newTokenAddress = calculateNewProxyAddress(
+          tokenFactoryAddress,
+          await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),
+        );
+
+        const expectedForwardingActions = [
+          createTestPreTxAction('approve', FEE_TOKEN_ADDRESS, [
+            resolveApp(FEE_FORWARDER),
+            FEE_AMOUNT,
+          ]),
+          createTestScriptEncodedAction(
+            [
+              createTestAction('grantPermission', DAO.acl, [
+                me,
+                DAO.vault,
+                utils.id('TRANSFER_ROLE'),
+              ]),
+              createTestAction('createPermission', DAO.acl, [
+                DAO['disputable-voting.open'],
+                DAO['token-manager'],
+                utils.id('ISSUE_ROLE'),
+                DAO.voting,
+              ]),
+              createTestAction('revokePermission', DAO.acl, [
+                ANY_ENTITY,
+                DAO['tollgate.open'],
+                utils.id('CHANGE_AMOUNT_ROLE'),
+              ]),
+              createTestAction('removePermissionManager', DAO.acl, [
+                DAO['tollgate.open'],
+                utils.id('CHANGE_AMOUNT_ROLE'),
+              ]),
+              createTestAction(
+                'createCloneToken',
+                MINIME_TOKEN_FACTORIES.get(chainId)!,
+                [constants.AddressZero, 0, 'Other Token', 18, 'OT', true],
+              ),
+              createTestAction('changeController', newTokenAddress, [
+                calculateNewProxyAddress(
+                  DAO.kernel,
+                  await buildNonceForAddress(DAO.kernel, 0, signer.provider!),
+                ),
+              ]),
+              createTestAction('newAppInstance', DAO.kernel, [
+                appId,
+                codeAddress,
+                encodeCalldata(
+                  new utils.Interface([`function ${initializeSignature}`]),
+                  'initialize',
+                  [newTokenAddress, true, 0],
+                ),
+                false,
+              ]),
+              createTestScriptEncodedAction(
+                [
+                  {
+                    to: DAO.vault,
+                    data: new utils.Interface([
+                      'function transfer(address,address,uint256)',
+                    ]).encodeFunctionData('transfer', [
+                      '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
+                      me,
+                      toDecimals('10.50'),
+                    ]),
+                  },
+                ],
+                ['agent'],
+              ),
+            ],
+            COMPLETE_FORWARDER_PATH,
+            CONTEXT,
+          ),
+        ];
+
+        expect(forwardingAction).to.eqls(expectedForwardingActions);
+      });
+
       it('should set dao global binding', async () => {
         const interpreter = createAragonScriptInterpreter();
         await interpreter.interpret();
@@ -90,33 +205,26 @@ export const commandsDescribe = (): Mocha.Suite =>
         });
       });
 
-      it('should wrap block commands inside a forwarding action when forwader apps are provided', async () => {
-        const interpreter = createInterpreter(
-          `
-          load aragonos as ar
+      it('should fail when forwarding a set of actions through a context forwarder without defining a context', async () => {
+        const error = new CommandError('connect', `context option missing`);
 
-          ar:connect ${DAO.kernel} token-manager voting (
-            grant @me vault TRANSFER_ROLE
-          )
-        `,
-          signer,
+        await expectThrowAsync(
+          () =>
+            createInterpreter(
+              `
+              load aragonos as ar
+
+              ar:connect ${DAO.kernel} disputable-voting.open (
+                grant voting token-manager ISSUE_ROLE voting
+              )
+            `,
+              signer,
+            ).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
         );
-
-        const forwardingAction = await interpreter.interpret();
-        const expectedForwardingActions = [
-          createTestScriptEncodedAction(
-            [
-              createTestAction('grantPermission', DAO.acl, [
-                await signer.getAddress(),
-                DAO.vault,
-                utils.id('TRANSFER_ROLE'),
-              ]),
-            ],
-            ['token-manager', 'voting'],
-          ),
-        ];
-
-        expect(forwardingAction).to.eqls(expectedForwardingActions);
       });
 
       it('should interpret nested commands');
@@ -706,7 +814,7 @@ export const commandsDescribe = (): Mocha.Suite =>
       it('should fail when forwarding actions through non-forwarder entities', async () => {
         const error = new CommandError(
           'forward',
-          `App ${DAO.finance} is not a forwarder.`,
+          `app ${DAO.finance} is not a forwarder`,
         );
 
         await expectThrowAsync(

@@ -14,7 +14,12 @@ import { NodeType } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import {
+  ComparisonType,
+  checkArgsLength,
+  checkOpts,
+  getOptValue,
+} from '../../../utils';
 import { batchForwarderActions } from '../../../../modules/aragonos/utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
 import { Interpreter } from '../../../interpreter/Interpreter';
@@ -65,6 +70,7 @@ export const connect: CommandFunction<AragonOS> = async (
     type: ComparisonType.Greater,
     minValue: 2,
   });
+  checkOpts(c, ['context']);
 
   const [daoNameNode, ...rest] = c.args;
   const blockExpressionNode = rest.pop();
@@ -153,9 +159,21 @@ export const connect: CommandFunction<AragonOS> = async (
     );
   }
 
-  return batchForwarderActions(
-    module.signer,
-    actions,
-    forwarderAppAddresses.reverse(),
-  );
+  const context = await getOptValue(c, 'context', interpretNode);
+
+  let forwarderActions: Action[];
+
+  try {
+    forwarderActions = await batchForwarderActions(
+      module.signer,
+      actions,
+      forwarderAppAddresses.reverse(),
+      context,
+    );
+  } catch (err) {
+    const err_ = err as Error;
+    Interpreter.panic(c, err_.message);
+  }
+
+  return forwarderActions;
 };
