@@ -4,8 +4,10 @@ import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
 import { BindingsSpace } from '../../../../src/cas11/interpreter/BindingsManager';
+import { CommandError } from '../../../../src/errors';
 import { toDecimals } from '../../../../src/utils';
 import { createInterpreter } from '../../../test-helpers/cas11';
+import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const setDescribe = (): Suite =>
   describe('when interpreting set command', () => {
@@ -22,6 +24,43 @@ export const setDescribe = (): Suite =>
 
       expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.equal(
         toDecimals(1, 18),
+      );
+    });
+
+    it('should fail when setting an invalid variable identifier', async () => {
+      const error = new CommandError('set', 'expected a variable identifier');
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `
+       set var1 12e18
+      `,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when setting an already-defined variable', async () => {
+      const error = new CommandError('set', '$var1 already defined');
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `
+       set $var1 12e18
+       set $var1 "new"
+      `,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
       );
     });
   });

@@ -17,11 +17,15 @@ export const set: CommandFunction<Std> = async (
   const [varNode, valueNode] = c.args;
 
   if (varNode.type !== VariableIdentifier) {
-    Interpreter.panic(c, 'expected a variable identifier');
+    Interpreter.panic(c, `expected a variable identifier`);
   }
 
   const varName = varNode.value;
   const varValue = await interpretNode(valueNode);
+
+  if (module.bindingsManager.getBinding(varName, BindingsSpace.USER)) {
+    Interpreter.panic(c, `${varName} already defined`);
+  }
 
   module.bindingsManager.setBinding(varName, varValue, BindingsSpace.USER);
 };
