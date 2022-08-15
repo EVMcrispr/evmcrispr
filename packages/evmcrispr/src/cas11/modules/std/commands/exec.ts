@@ -1,3 +1,9 @@
+import { utils } from 'ethers';
+
+import type { Action } from '../../../..';
+
+import { SIGNATURE_REGEX } from '../../../../utils';
+import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import { encodeAction } from '../../../utils/encoders';
@@ -8,5 +14,25 @@ export const exec: CommandFunction<Std> = async (_, c, { interpretNodes }) => {
 
   const [targetAddress, signature, ...params] = await interpretNodes(c.args);
 
-  return [encodeAction(targetAddress, signature, params)];
+  if (!utils.isAddress(targetAddress)) {
+    Interpreter.panic(
+      c,
+      `expected a valid target address, but got ${targetAddress}`,
+    );
+  }
+
+  if (!SIGNATURE_REGEX.test(signature)) {
+    Interpreter.panic(c, `expected a valid signature, but got ${signature}`);
+  }
+
+  let execAction: Action;
+
+  try {
+    execAction = encodeAction(targetAddress, signature, params);
+  } catch (err) {
+    const err_ = err as Error;
+    Interpreter.panic(c, err_.message);
+  }
+
+  return [execAction];
 };

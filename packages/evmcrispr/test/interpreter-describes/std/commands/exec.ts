@@ -5,9 +5,11 @@ import type { Suite } from 'mocha';
 
 import type { Action } from '../../../../src';
 import { encodeActCall } from '../../../../src';
+import { CommandError } from '../../../../src/errors';
 
 import { toDecimals } from '../../../../src/utils';
 import { createInterpreter } from '../../../test-helpers/cas11';
+import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const execDescribe = (): Suite =>
   describe('when interpreting exec command', () => {
@@ -25,7 +27,7 @@ export const execDescribe = (): Suite =>
     ];
     const fnSig = 'approve(address,uint256)';
 
-    it('should encode a call method correctly', async () => {
+    it('should return a correct contract call action', async () => {
       const expectedCallAction: Action[] = [
         {
           to: target,
@@ -43,10 +45,65 @@ export const execDescribe = (): Suite =>
       expect(result).eql(expectedCallAction);
     });
 
-    // it('should fail when providing an invalid signature', async () => {
-    //   const interpreter = createInterpreter(
-    //     `exec ${target} "invalid(uint256," 1e18`,
-    //   );
+    it('should fail when providing an invalid target address', async () => {
+      const invalidTargetAddress = 'invalid-target';
+      const error = new CommandError(
+        'exec',
+        `expected a valid target address, but got ${invalidTargetAddress}`,
+      );
 
-    // });
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `exec ${invalidTargetAddress} "${fnSig}" 1e18`,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when providing an invalid signature', async () => {
+      const invalidSignature = 'invalid(uint256,';
+      const error = new CommandError(
+        'exec',
+        `expected a valid signature, but got ${invalidSignature}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `exec ${target} "${invalidSignature}" 1e18`,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
+    it('should fail when providing invalid call params', async () => {
+      const paramErrors = [
+        '-param 0 of type address: invalid address. Got false',
+      ];
+      const error = new CommandError(
+        'exec',
+        `error when encoding approve call:\n${paramErrors.join('\n')}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `exec ${target} "${fnSig}" false 1e18`,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
   });
