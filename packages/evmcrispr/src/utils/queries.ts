@@ -3,10 +3,14 @@ export type GraphQLBody = {
   variables: Record<string, any>;
 };
 
-export const REPO = (repoName: string): GraphQLBody => ({
+export const REPO = (
+  repoName: string,
+  registryName: string,
+  versions: string[] = [],
+): GraphQLBody => ({
   query: `
-    query Repos($repoName: String!) {
-      repos(where: { name: $repoName }) {
+    query Repos($repoName: String!, $registryName: String! $versions: [String!]!) {
+      repos(where: { name: $repoName, registry_: { name: $registryName } }) {
         lastVersion {
           artifact
           contentUri
@@ -15,11 +19,18 @@ export const REPO = (repoName: string): GraphQLBody => ({
         registry {
           name
         }
+        versions(where: { semanticVersion_in: $versions }) {
+          artifact
+          codeAddress
+          contentUri
+        }
       }
     }
 `,
   variables: {
     repoName,
+    registryName,
+    versions,
   },
 });
 

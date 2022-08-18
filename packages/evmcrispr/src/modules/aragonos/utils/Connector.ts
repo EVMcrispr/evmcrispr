@@ -80,22 +80,23 @@ export default class Connector {
    * @returns A promise that resolves to the app's repo.
    */
   async repo(repoName: string, registryName: string): Promise<Repo> {
-    return this.querySubgraph<Repo>(REPO(repoName), (data: any) => {
-      // Cant filter by registry when fetching repos so we need to do it here
-      const repo = data.repos
-        .filter(
-          ({ registry }: { registry: any }) => registry.name === registryName,
-        )
-        .pop();
+    return this.querySubgraph<Repo>(
+      REPO(repoName, registryName),
+      (data: any) => {
+        const repo = data.repos.pop();
 
-      if (!repo) {
-        throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`, {
-          name: 'ErrorRepoNotFound',
-        });
-      }
+        if (!repo) {
+          throw new ErrorNotFound(
+            `Repo ${repoName}.${registryName} not found`,
+            {
+              name: 'ErrorRepoNotFound',
+            },
+          );
+        }
 
-      return parseRepo(repo);
-    });
+        return parseRepo(repo);
+      },
+    );
   }
 
   /**
