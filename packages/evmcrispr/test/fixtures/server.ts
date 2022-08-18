@@ -1,13 +1,13 @@
+/* eslint-disable import/no-unresolved */
 import type { DefaultBodyType } from 'msw';
 import { graphql, rest } from 'msw';
 import { setupServer } from 'msw/node';
 
-import { artifacts } from './ipfs-data';
-import reposFixture from './subgraph-data/RepoResponse.json';
-import organizationFixture from './subgraph-data/OrganizationAppsResponse.json';
+import { artifacts } from './artifacts/';
+import { DAOs, REPOs } from './subgraph-data';
 import tokenListFixture from './tokenlist/uniswap.json';
-import { addressesEqual } from '../../src/utils';
 import { IPFS_GATEWAY } from '../../src/IPFSResolver';
+import { addressesEqual } from '../../src/utils';
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
@@ -15,13 +15,13 @@ const handlers = [
     (req, res, ctx) => {
       const repoName = req.variables.repoName;
 
-      const selectedRepo = reposFixture.data.repos.find(
-        (r) => r.name === repoName,
-      );
+      const selectedRepo = REPOs[repoName as keyof typeof REPOs];
 
       return res(
         ctx.status(200),
-        ctx.data({ repos: selectedRepo ? [selectedRepo] : [] }),
+        ctx.data({
+          repos: selectedRepo ? selectedRepo.data.repos : [],
+        }),
       );
     },
   ),
@@ -30,14 +30,20 @@ const handlers = [
     (req, res, ctx) => {
       const id = req.variables.id;
 
-      const organization = addressesEqual(
-        id,
-        organizationFixture.data.organization.id,
-      )
-        ? organizationFixture.data.organization
-        : null;
+      const daoAddresses = Object.keys(DAOs);
+      const dao =
+        DAOs[
+          daoAddresses.find((addr) =>
+            addressesEqual(addr, id),
+          ) as keyof typeof DAOs
+        ];
 
-      return res(ctx.status(200), ctx.data({ organization }));
+      return res(
+        ctx.status(200),
+        ctx.data({
+          organization: dao ? dao.data.organization : null,
+        }),
+      );
     },
   ),
   rest.get<DefaultBodyType, { cid: string; resource: string }>(
@@ -45,13 +51,18 @@ const handlers = [
     (req, res, ctx) => {
       const { cid, resource } = req.params;
 
-      if (resource === 'artifact.json') {
-        const artifact = artifacts[cid as keyof typeof artifacts];
-        if (!artifact) {
-          return res(ctx.status(404));
-        }
+      try {
+        if (resource === 'artifact.json') {
+          const artifact = artifacts[cid as keyof typeof artifacts];
 
-        return res(ctx.status(200), ctx.json(artifact));
+          if (!artifact) {
+            return res(ctx.status(404));
+          }
+
+          return res(ctx.status(200), ctx.json(artifact));
+        }
+      } catch (err) {
+        console.log(err);
       }
     },
   ),

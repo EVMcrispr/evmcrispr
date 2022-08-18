@@ -8,10 +8,10 @@ export const DAO = {
   ['disputable-voting.open']: '0x6e60be79144609ed744d38ca4eff0105ac7ac4dc',
   ['evm-script-registry']: '0x73778c0c3a761405bddef887535647f0441f2016',
   ['kernel']: '0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e',
+  ['agent']: '0xa11cfe0dfdadc5bf9fbc819a49a749401476c628',
   ['acl']: '0xbec954725a866994d68b7c01f30742b42965091e',
   ['voting']: '0xc59d4acea08cf51974dfeb422964e6c2d7eb906f',
-  ['agent']: '0xa11cfe0dfdadc5bf9fbc819a49a749401476c628',
 };
 
 // Needed to build the MockEVMcrispr cache
-export const KERNEL_TRANSACTION_COUNT = 9;
+export const KERNEL_TRANSACTION_COUNT = 10;
