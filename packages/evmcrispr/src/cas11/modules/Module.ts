@@ -17,7 +17,8 @@ import type {
   NodesInterpreters,
 } from '../types/modules';
 
-const buildConfigVar = (name: string): string => `$${name}.${name}`;
+const buildConfigVar = (moduleName: string, name: string): string =>
+  `$${moduleName}:${name}`;
 
 export abstract class Module {
   constructor(
@@ -57,15 +58,15 @@ export abstract class Module {
     return this.helpers[h.name](this, h, interpreters);
   }
 
-  getModuleBinding(name: string, isConfigBinding = false): any {
-    if (isConfigBinding) {
-      return this.bindingsManager.getBinding(
-        buildConfigVar(name),
-        BindingsSpace.USER,
-      );
-    }
+  getConfigBinding(name: string): any {
+    return this.bindingsManager.getBinding(
+      buildConfigVar(this.contextualName, name),
+      BindingsSpace.USER,
+    );
+  }
 
-    return this.bindingsManager.getCustomBinding(name, this.name);
+  getModuleBinding(name: string): any {
+    return this.bindingsManager.getCustomBinding(name, this.contextualName);
   }
 
   getNonce(address: Address): number {
@@ -82,6 +83,11 @@ export abstract class Module {
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   setModuleBinding(name: string, value: any, isGlobal = false): void {
-    this.bindingsManager.setCustomBinding(name, value, this.name, isGlobal);
+    this.bindingsManager.setCustomBinding(
+      name,
+      value,
+      this.contextualName,
+      isGlobal,
+    );
   }
 }

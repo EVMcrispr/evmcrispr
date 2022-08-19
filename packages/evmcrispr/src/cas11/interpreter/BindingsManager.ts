@@ -79,7 +79,4 @@ export class BindingsManager {
 
     return binding && binding.length ? binding[0].value : undefined;
   }
-  symbols(): any {
-    return this.#bindings.symbols;
-  }
 }

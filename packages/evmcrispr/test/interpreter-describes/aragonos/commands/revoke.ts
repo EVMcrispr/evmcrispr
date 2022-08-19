@@ -9,6 +9,7 @@ import { CommandError } from '../../../../src/errors';
 import { ANY_ENTITY, toDecimals } from '../../../../src/utils';
 
 import { DAO } from '../../../fixtures';
+import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 
 import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
@@ -32,7 +33,7 @@ export const revokeDescribe = (): Suite =>
       );
     });
 
-    it('should revoke a permission correctly', async () => {
+    it('should return a correct revoke permission action', async () => {
       const interpeter = createAragonScriptInterpreter([
         'revoke finance:0 vault:0 TRANSFER_ROLE',
       ]);
@@ -61,7 +62,7 @@ export const revokeDescribe = (): Suite =>
         expectedRevokePermissionActions,
       );
     });
-    it('should revoke a permission and a manager correctly', async () => {
+    it('should return a correct revoke and revoke manager action', async () => {
       const rawRole = 'CREATE_VOTES_ROLE';
       const interpreter = createAragonScriptInterpreter([
         `revoke ANY_ENTITY disputable-voting.open ${rawRole} true`,
@@ -99,6 +100,62 @@ export const revokeDescribe = (): Suite =>
         expectedRevokePermissionActions,
       );
     });
+
+    it('should return a correct revoke permission action from a different DAO app', async () => {
+      const interpreter = await createInterpreter(
+        `
+      load aragonos as ar
+
+      ar:connect ${DAO.kernel} (
+        connect ${DAO2.kernel} (
+          revoke _1:finance _1:vault TRANSFER_ROLE
+        )
+      )
+    `,
+        signer,
+      );
+
+      const revokeActions = await interpreter.interpret();
+
+      const expectedRevokeActions = [
+        createTestAction('revokePermission', DAO.acl, [
+          DAO.finance,
+          DAO.vault,
+          utils.id('TRANSFER_ROLE'),
+        ]),
+      ];
+
+      expect(revokeActions).to.eql(expectedRevokeActions);
+    });
+
+    it('should fail when passing an invalid DAO prefix', async () => {
+      const invalidDAOPrefix = `invalid-dao-prefix`;
+      const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
+      const error = new CommandError(
+        'revoke',
+        `couldn't found a DAO for ${invalidDAOPrefix} on given identifier ${appIdentifier}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `
+            load aragonos as ar
+            ar:connect ${DAO.kernel} (
+              connect ${DAO2.kernel} (
+                revoke _1:voting ${appIdentifier} SOME_ROLE
+              )
+            )
+          `,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
+    });
+
     it('should fail when executing it outside a "connect" command', async () => {
       const error = new CommandError(
         'revoke',
@@ -119,6 +176,7 @@ export const revokeDescribe = (): Suite =>
         },
       );
     });
+
     it('should fail when passing an invalid grantee address', async () => {
       const error = new CommandError(
         'revoke',
@@ -136,6 +194,7 @@ export const revokeDescribe = (): Suite =>
         },
       );
     });
+
     it('should fail when passing an invalid remove manager flag', async () => {
       const error = new CommandError(
         'revoke',
@@ -155,6 +214,7 @@ export const revokeDescribe = (): Suite =>
         },
       );
     });
+
     it('should fail when revoking a permission from a non-app entity', async () => {
       const nonAppAddress = await signer.getAddress();
       const unknownIdentifier = 'unknown-app.open';
@@ -188,6 +248,7 @@ export const revokeDescribe = (): Suite =>
         },
       );
     });
+
     it('should fail when revoking a non-existent permission', async () => {
       const error = new CommandError(
         'revoke',
@@ -205,6 +266,7 @@ export const revokeDescribe = (): Suite =>
         },
       );
     });
+
     it("should fail when revoking a permission from an entity that doesn't have it", async () => {
       const error = new CommandError(
         'revoke',

@@ -11,6 +11,7 @@ import {
   calculateNewProxyAddress,
 } from '../../../../src/utils';
 import { DAO } from '../../../fixtures';
+import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
@@ -33,7 +34,7 @@ export const newTokenDescribe = (): Suite =>
       );
     });
 
-    it('should create a new token correctly', async () => {
+    it('should return a correct new token action', async () => {
       const params = [
         'my-token',
         'MT',
@@ -42,7 +43,6 @@ export const newTokenDescribe = (): Suite =>
 
       const interpreter = await createAragonScriptInterpreter([
         `new-token ${params.join(' ')}`,
-        // `in`,
       ]);
 
       const newTokenActions = await interpreter.interpret();
@@ -66,6 +66,54 @@ export const newTokenDescribe = (): Suite =>
           calculateNewProxyAddress(
             DAO.kernel,
             await buildNonceForAddress(DAO.kernel, 0, signer.provider!),
+          ),
+        ]),
+      ];
+
+      expect(newTokenActions).to.eql(expectedNewTokenActions);
+    });
+
+    it('should return a correct new token action given a different DAO', async () => {
+      const params = [
+        'my-token',
+        'MT',
+        'token-manager.open:counter-factual-tm',
+      ];
+
+      const intepreter = createInterpreter(
+        `
+        load aragonos as ar
+
+        ar:connect ${DAO.kernel} (
+          connect ${DAO2.kernel} (
+            new-token ${params.join(' ')} --dao ${DAO2.kernel}
+          )
+        )
+      `,
+        signer,
+      );
+
+      const newTokenActions = await intepreter.interpret();
+
+      const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(
+        await signer.getChainId(),
+      )!;
+
+      const newTokenAddress = calculateNewProxyAddress(
+        tokenFactoryAddress,
+        await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),
+      );
+
+      const expectedNewTokenActions = [
+        createTestAction(
+          'createCloneToken',
+          MINIME_TOKEN_FACTORIES.get(await signer.getChainId())!,
+          [constants.AddressZero, 0, params[0], 18, params[1], true],
+        ),
+        createTestAction('changeController', newTokenAddress, [
+          calculateNewProxyAddress(
+            DAO2.kernel,
+            await buildNonceForAddress(DAO2.kernel, 0, signer.provider!),
           ),
         ]),
       ];

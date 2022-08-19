@@ -5,8 +5,8 @@ import { normalizeRole } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
-import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
+import { getDAO } from '../utils/commands';
 
 export const revoke: CommandFunction<AragonOS> = async (
   module,
@@ -19,14 +19,10 @@ export const revoke: CommandFunction<AragonOS> = async (
     maxValue: 4,
   });
 
-  const dao = module.currentDAO;
-
-  if (!dao || !(dao instanceof AragonDAO)) {
-    Interpreter.panic(c, 'must be used within a "connect" command');
-  }
-
   const [granteeAddress, appAddress, role, removeManager] =
     await interpretNodes(c.args);
+
+  const dao = getDAO(module, c, 1);
 
   if (!utils.isAddress(granteeAddress)) {
     Interpreter.panic(

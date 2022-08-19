@@ -10,6 +10,7 @@ import { CommandError } from '../../../../src/errors';
 import { addressesEqual } from '../../../../src/utils';
 
 import { APP, DAO } from '../../../fixtures';
+import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
@@ -42,7 +43,7 @@ export const installDescribe = (): Suite =>
       );
     });
 
-    it('should install a new app correctly', async () => {
+    it('should return a correct install action', async () => {
       const interpreter = createAragonScriptInterpreter([
         `install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}`,
       ]);
@@ -71,7 +72,7 @@ export const installDescribe = (): Suite =>
       );
     });
 
-    it('should install a given version of an app correctly', async () => {
+    it('should return a correct install action given a specific version', async () => {
       const specificVersion = '0xe775468f3ee275f740a22eb9dd7adba9b7933aa0';
       const interpreter = createAragonScriptInterpreter([
         `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
@@ -102,6 +103,38 @@ export const installDescribe = (): Suite =>
       expect(installationActions, 'installation actions mismatch').to.eql(
         expectedInstallationActions,
       );
+    });
+
+    it('should return a correct install action given a different DAO', async () => {
+      const interpreter = createInterpreter(
+        `
+        load aragonos as ar
+        ar:connect ${DAO.kernel} (
+          connect ${DAO2.kernel} (
+            install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+          ' ',
+        )} --dao 1
+          )
+        )
+      `,
+        signer,
+      );
+
+      const installActions = await interpreter.interpret();
+
+      const expectedInstallActions = [
+        createTestAction('newAppInstance', DAO.kernel, [
+          appId,
+          codeAddress,
+          encodeActCall(initializeSignature, [
+            DAO2.vault,
+            ...initializeParams.slice(1, initializeParams.length),
+          ]),
+          false,
+        ]),
+      ];
+
+      expect(installActions).to.eql(expectedInstallActions);
     });
 
     it('should fail when executing it outside a "connect" command', async () => {

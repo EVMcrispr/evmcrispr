@@ -9,6 +9,7 @@ import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import { SEMANTIC_VERSION_REGEX, getRepoContract } from '../utils';
+import { daoPrefixedIdentifierParser, getDAO } from '../utils/commands';
 
 export const upgrade: CommandFunction<AragonOS> = async (
   module,
@@ -21,16 +22,20 @@ export const upgrade: CommandFunction<AragonOS> = async (
     maxValue: 2,
   });
 
-  if (!module.currentDAO) {
-    Interpreter.panic(c, 'must be used within a "connect" command');
-  }
+  const dao = getDAO(module, c, 0);
 
-  const kernel = module.currentDAO.getAppContract('kernel')!;
+  const kernel = dao.getAppContract('kernel')!;
 
-  let [apmRepo, newAppAddress] = await Promise.all([
+  const args = await Promise.all([
     interpretNode(c.args[0], { treatAsLiteral: true }),
     c.args[1] ? interpretNode(c.args[1]) : undefined,
   ]);
+  const rawApmRepo = args[0];
+  let newAppAddress = args[1];
+
+  // Check for dao-prefixed identifiers
+  const parserRes = daoPrefixedIdentifierParser.run(rawApmRepo);
+  let apmRepo = !parserRes.isError ? parserRes.result[1] : rawApmRepo;
 
   if (
     !apmRepo.endsWith('aragonpm.eth') &&

@@ -12,7 +12,7 @@ export const _aragonEns = async (
   ensName: string,
   module: AragonOS,
 ): Promise<string | null> => {
-  const ensResolver = module.getModuleBinding('ensResolver', true);
+  const ensResolver = module.getConfigBinding('ensResolver');
 
   const name = await resolveName(
     ensName,

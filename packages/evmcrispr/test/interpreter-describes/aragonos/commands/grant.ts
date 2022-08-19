@@ -12,6 +12,7 @@ import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
 import { CommandError } from '../../../../src/errors';
 
 import { DAO } from '../../../fixtures';
+import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
@@ -121,6 +122,61 @@ export const grantDescribe = (): Suite =>
       ];
 
       expect(grantPActions).to.eql(expectedActions);
+    });
+
+    it(`should return a correct grant permission action from a different DAO app`, async () => {
+      const interpreter = createInterpreter(
+        `
+        load aragonos as ar
+
+        ar:connect ${DAO.kernel} (
+          connect ${DAO2.kernel} (
+            grant voting _1:tollgate.open:0 CHANGE_DESTINATION_ROLE
+          )
+        )
+      `,
+        signer,
+      );
+
+      const grantActions = await interpreter.interpret();
+
+      const expectedGrantActions = [
+        createTestAction('grantPermission', DAO.acl, [
+          DAO2.voting,
+          DAO['tollgate.open'],
+          utils.id('CHANGE_DESTINATION_ROLE'),
+        ]),
+      ];
+
+      expect(grantActions).to.eql(expectedGrantActions);
+    });
+
+    it('should fail when passing an invalid app DAO prefix', async () => {
+      const invalidDAOPrefix = `invalid-dao-prefix`;
+      const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
+      const error = new CommandError(
+        'grant',
+        `couldn't found a DAO for ${invalidDAOPrefix} on given identifier ${appIdentifier}`,
+      );
+
+      await expectThrowAsync(
+        () =>
+          createInterpreter(
+            `
+            load aragonos as ar
+            ar:connect ${DAO.kernel} (
+              connect ${DAO2.kernel} (
+                grant _1:voting ${appIdentifier} SOME_ROLE
+              )
+            )
+          `,
+            signer,
+          ).interpret(),
+        {
+          type: error.constructor,
+          message: error.message,
+        },
+      );
     });
 
     it('should fail when providing an invalid oracle option', async () => {

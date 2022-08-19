@@ -4,11 +4,13 @@ import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
 // eslint-disable-next-line
-const appIdentifierRegex =
+export const appIdentifierRegex =
   /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([0-9]{1,63}))?$/;
 // eslint-disable-next-line
-const labeledAppIdentifierRegex =
+export const labeledAppIdentifierRegex =
   /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([a-zA-Z0-9-]{1,63}))$/;
+export const optionalLabeledAppIdentifierRegex =
+  /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([a-zA-Z0-9-]{1,63}))?$/;
 
 export const parseRegistry = (registryEnsName: string): string => {
   // We denote the default aragonpm registry with an empty string

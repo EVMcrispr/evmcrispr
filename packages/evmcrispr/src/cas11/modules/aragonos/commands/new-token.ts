@@ -12,18 +12,19 @@ import { BindingsSpace } from '../../../interpreter/BindingsManager';
 
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { CommandFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { ComparisonType, checkArgsLength, checkOpts } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import {
   CONTROLLED_INTERFACE,
   MINIME_TOKEN_FACTORIES,
   MINIME_TOKEN_FACTORY_INTERFACE,
 } from '../utils';
+import { DAO_OPT_NAME, getDAOByOption } from '../utils/commands';
 
 export const newToken: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNodes },
+  { interpretNode, interpretNodes },
 ) => {
   const chainId = await module.signer.getChainId();
 
@@ -36,13 +37,12 @@ export const newToken: CommandFunction<AragonOS> = async (
     minValue: 3,
     maxValue: 5,
   });
+  checkOpts(c, [DAO_OPT_NAME]);
+
+  const dao = await getDAOByOption(module, c, interpretNode);
 
   const [name, symbol, controller, decimals = 18, transferable = true] =
     await interpretNodes(c.args);
-
-  if (!module.currentDAO) {
-    Interpreter.panic(c, 'must be used within a "connect" command');
-  }
 
   if (!BigNumber.isBigNumber(decimals) && !Number.isInteger(decimals)) {
     Interpreter.panic(
@@ -52,12 +52,10 @@ export const newToken: CommandFunction<AragonOS> = async (
   }
 
   let controllerAdddress: Address;
+
   if (!utils.isAddress(controller)) {
     if (isAppIdentifier(controller) || isLabeledAppIdentifier(controller)) {
-      await module.registerNextProxyAddress(
-        controller,
-        module.currentDAO.kernel.address,
-      );
+      await module.registerNextProxyAddress(controller, dao.kernel.address);
     } else {
       Interpreter.panic(
         c,

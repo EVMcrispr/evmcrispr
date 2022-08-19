@@ -19,6 +19,7 @@ import {
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import { SEMANTIC_VERSION_REGEX, getRepoContract } from '../utils';
+import { DAO_OPT_NAME, getDAOByOption } from '../utils/commands';
 
 export const install: CommandFunction<AragonOS> = async (
   module,
@@ -29,13 +30,9 @@ export const install: CommandFunction<AragonOS> = async (
     type: ComparisonType.Greater,
     minValue: 1,
   });
-  checkOpts(c, ['version']);
+  checkOpts(c, [DAO_OPT_NAME, 'version']);
 
-  const currentDAO = module.currentDAO;
-
-  if (!currentDAO) {
-    Interpreter.panic(c, `must be used within a "connect" command`);
-  }
+  const dao = await getDAOByOption(module, c, interpretNode);
 
   const [identifierNode, ...paramNodes] = c.args;
   const identifier = await interpretNode(identifierNode, {
@@ -79,13 +76,13 @@ export const install: CommandFunction<AragonOS> = async (
 
   const contentUri = utils.toUtf8String(rawContentUri);
   // Fallback to IPFS to retrieve app's data
-  if (!currentDAO.appArtifactCache.has(codeAddress)) {
+  if (!dao.appArtifactCache.has(codeAddress)) {
     const artifact = await fetchAppArtifact(module.ipfsResolver, contentUri);
-    currentDAO.appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
+    dao.appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
   }
 
-  const { abiInterface, roles } = currentDAO.appArtifactCache.get(codeAddress)!;
-  const kernel = currentDAO.kernel;
+  const { abiInterface, roles } = dao.appArtifactCache.get(codeAddress)!;
+  const kernel = dao.kernel;
   const initParams = await interpretNodes(paramNodes);
 
   let encodedInitializeFunction: string;
@@ -111,11 +108,11 @@ export const install: CommandFunction<AragonOS> = async (
     BindingsSpace.ADDR,
   );
 
-  if (currentDAO.appCache.has(identifier)) {
+  if (dao.appCache.has(identifier)) {
     Interpreter.panic(c, `identifier ${identifier} is already in use.`);
   }
 
-  currentDAO.appCache.set(identifier, {
+  dao.appCache.set(identifier, {
     abiInterface: abiInterface,
     address: proxyContractAddress,
     codeAddress,

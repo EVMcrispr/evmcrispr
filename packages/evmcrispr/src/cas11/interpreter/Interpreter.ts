@@ -226,10 +226,8 @@ export class Interpreter {
         | string
         | undefined);
 
-    if (moduleName) {
-      module = this.#modules.find((m) =>
-        m.alias ? m.alias === moduleName : m.name === moduleName,
-      );
+    if (moduleName && moduleName !== 'std') {
+      module = this.#modules.find((m) => m.contextualName === moduleName);
 
       if (!module) {
         Interpreter.panic(c, `module ${moduleName} not found`);

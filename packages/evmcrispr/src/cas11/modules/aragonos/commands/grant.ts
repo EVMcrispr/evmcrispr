@@ -11,10 +11,9 @@ import {
   checkOpts,
   getOptValue,
 } from '../../../utils';
-import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
+import { getDAO } from '../utils/commands';
 
-// TODO: add support to permission params
 export const grant: CommandFunction<AragonOS> = async (
   module,
   c,
@@ -27,15 +26,13 @@ export const grant: CommandFunction<AragonOS> = async (
   });
   checkOpts(c, ['oracle']);
 
-  const dao = module.currentDAO;
-
-  if (!dao || !(dao instanceof AragonDAO)) {
-    Interpreter.panic(c, 'must be used within a "connect" command');
-  }
+  const dao = getDAO(module, c, 1);
 
   const [granteeAddress, appAddress, role, defaultPermissionManagerAddress] =
     await interpretNodes(c.args);
+
   const roleHash = normalizeRole(role);
+
   const app = dao.resolveApp(appAddress);
 
   if (!app) {

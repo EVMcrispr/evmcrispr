@@ -30,6 +30,8 @@ import {
   FEE_TOKEN_ADDRESS,
   resolveApp,
 } from '../../../fixtures';
+import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
+import { DAO as DAO3 } from '../../../fixtures/mock-dao-3';
 import {
   createTestAction,
   createTestPreTxAction,
@@ -39,6 +41,8 @@ import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from 
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+
+const DAOs = [DAO, DAO2, DAO3];
 
 export const connectDescribe = (): Suite =>
   describe('connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]', () => {
@@ -161,19 +165,123 @@ export const connectDescribe = (): Suite =>
       expect(forwardingAction).to.eqls(expectedForwardingActions);
     });
 
-    it('should set dao global binding', async () => {
+    it('should set connected DAO variable', async () => {
       const interpreter = createAragonScriptInterpreter();
       await interpreter.interpret();
       const aragonos = interpreter.getModule('aragonos') as AragonOS;
       const dao = aragonos.getConnectedDAO(DAO.kernel);
 
       expect(dao).to.not.be.null;
-      expect(dao!.nestingIndex, 'DAO nested index mismatch').to.equals(0);
+      expect(dao!.nestingIndex, 'DAO nested index mismatch').to.equals(1);
       Object.entries(DAO).forEach(([appIdentifier, appAddress]) => {
         expect(
           dao!.resolveApp(appIdentifier)!.address,
           `${appIdentifier} binding mismatch`,
         ).equals(appAddress);
+      });
+    });
+
+    describe('when having nested connect commands', () => {
+      it('should set all the connected DAOs properly', async () => {
+        const interpreter = createInterpreter(
+          `
+          load aragonos as ar
+
+          ar:connect ${DAO.kernel} (
+            connect ${DAO2.kernel} (
+              std:set $var1 1
+              connect ${DAO3.kernel} (
+                std:set $var2 token-manager
+              )
+            )
+          )
+        `,
+          signer,
+        );
+
+        await interpreter.interpret();
+
+        const aragonos = interpreter.getModule('aragonos') as AragonOS;
+        const daos = aragonos.connectedDAOs;
+
+        expect(daos, 'connected DAOs length mismatch').to.be.lengthOf(3);
+
+        let i = 0;
+        for (const dao of daos) {
+          expect(dao.nestingIndex, `DAO ${i} nesting index mismatch`).to.equals(
+            i + 1,
+          );
+          Object.entries(DAOs[i]).forEach(([appIdentifier, appAddress]) => {
+            expect(
+              dao!.resolveApp(appIdentifier)!.address,
+              `DAO ${i} ${appIdentifier} binding mismatch`,
+            ).equals(appAddress);
+          });
+          i++;
+        }
+      });
+
+      it('should return the correct actions when using app identifiers from different DAOs', async () => {
+        const interpreter = createInterpreter(
+          `
+          load aragonos as ar
+
+          ar:connect ${DAO.kernel} (
+            connect ${DAO2.kernel} (
+              grant voting _1:voting CREATE_VOTES_ROLE
+              connect ${DAO3.kernel} (
+                grant _1:voting _2:token-manager ISSUE_ROLE voting
+              )
+            )
+            
+          )
+        `,
+          signer,
+        );
+
+        const nestedActions = await interpreter.interpret();
+
+        const expectedNestedActions = [
+          createTestAction('grantPermission', DAO.acl, [
+            DAO2.voting,
+            DAO.voting,
+            utils.id('CREATE_VOTES_ROLE'),
+          ]),
+          createTestAction('createPermission', DAO2.acl, [
+            DAO.voting,
+            DAO2['token-manager'],
+            utils.id('ISSUE_ROLE'),
+            DAO3.voting,
+          ]),
+        ];
+
+        expect(nestedActions).to.eql(expectedNestedActions);
+      });
+
+      it('should fail when trying to connect to an already connected DAO', async () => {
+        const error = new CommandError(
+          'connect',
+          `trying to connect to an already connected DAO (${DAO.kernel})`,
+        );
+        await expectThrowAsync(
+          () =>
+            createInterpreter(
+              `
+          load aragonos as ar
+  
+          ar:connect ${DAO.kernel} (
+            connect ${DAO.kernel} (
+  
+            )
+          )
+          `,
+              signer,
+            ).interpret(),
+          {
+            type: error.constructor,
+            message: error.message,
+          },
+        );
       });
     });
 
@@ -199,8 +307,6 @@ export const connectDescribe = (): Suite =>
       );
     });
 
-    it('should interpret nested commands');
-
     it('should fail when not passing a commands block', async () => {
       const error = new CommandError(
         'connect',
@@ -217,32 +323,6 @@ export const connectDescribe = (): Suite =>
         load aragonos as ar
         ar:connect ${DAO.kernel}
       `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
-    it('should fail when trying to connect to an already connected DAO', async () => {
-      const error = new CommandError(
-        'connect',
-        `trying to connect to an already connected DAO (${DAO.kernel})`,
-      );
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load aragonos as ar
-
-        ar:connect ${DAO.kernel} (
-          connect ${DAO.kernel} (
-
-          )
-        )
-        `,
             signer,
           ).interpret(),
         {
