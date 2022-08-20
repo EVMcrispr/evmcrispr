@@ -14,7 +14,10 @@ import { CommandError } from '../../../../src/errors';
 import { DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  itChecksBadPermission,
+} from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -99,7 +102,7 @@ export const grantDescribe = (): Suite =>
       ).to.equals(expectedPermissionManager);
     });
 
-    it('should return a correct parametric permission action when providing an oracle option', async () => {
+    it('should return a correct parametric permission action when receiving an oracle option', async () => {
       const interpreter = createAragonScriptInterpreter([
         'grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle token-manager',
       ]);
@@ -150,6 +153,10 @@ export const grantDescribe = (): Suite =>
 
       expect(grantActions).to.eql(expectedGrantActions);
     });
+
+    itChecksBadPermission('grant', (badPermission) =>
+      createAragonScriptInterpreter([`grant ${badPermission.join(' ')}`]),
+    );
 
     it('should fail when passing an invalid app DAO prefix', async () => {
       const invalidDAOPrefix = `invalid-dao-prefix`;
@@ -239,64 +246,16 @@ export const grantDescribe = (): Suite =>
       );
     });
 
-    it('should fail when granting an unknown permission', async () => {
-      const error = new CommandError(
-        'grant',
-        "given permission doesn't exists on app token-manager",
-      );
-
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'grant voting token-manager UNKNOWN_ROLE',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
     it('should fail when granting a permission to an address that already has it', async () => {
-      const error = new CommandError('grant', 'permission manager missing');
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'grant voting token-manager ISSUE_ROLE',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
-    it('should fail when creating a permission without a permission manager', async () => {
-      const error = new CommandError('grant', 'permission manager missing');
-
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'grant voting token-manager ISSUE_ROLE',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
-    it('should fail when creating a permission with an invalid permission manager', async () => {
-      const invalidPermissionManager = 'invalidPermissionManager';
+      const app = 'token-manager';
       const error = new CommandError(
         'grant',
-        `invalid permission manager. Expected an address, but got ${invalidPermissionManager}`,
+        `grantee already has given permission on app ${app}`,
       );
-
       await expectThrowAsync(
         () =>
           createAragonScriptInterpreter([
-            `grant voting token-manager ISSUE_ROLE "${invalidPermissionManager}"`,
+            `grant voting ${app} MINT_ROLE`,
           ]).interpret(),
         {
           type: error.constructor,

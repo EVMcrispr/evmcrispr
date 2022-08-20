@@ -28,16 +28,17 @@ export const expectThrowAsync = async (
     error = err;
   }
   const { type, name, message } = errorOptions;
-
+  7;
   expect(error, `Exception not thrown`).not.to.be.null;
+
+  if (message) {
+    expect(error!.message, customTestMessage).to.equal(message);
+  }
+
   expect(error!.constructor.name, customTestMessage).eq(type.name);
 
   if (name) {
     expect(error!.name, customTestMessage).to.be.eq(name);
-  }
-
-  if (message) {
-    expect(error!.message, customTestMessage).to.equal(message);
   }
 };
 

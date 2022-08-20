@@ -7,3 +7,9 @@ export const commaListItems = (items: any[]): string => {
 
   return `${someItems} and ${items[items.length - 1]}`;
 };
+
+export const listItems = (text: string, items: any[]): string => {
+  const formattedItems = items.map((i) => `- ${i}\n`);
+
+  return `${text}:\n${formattedItems.join('')}`;
+};

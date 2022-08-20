@@ -12,7 +12,10 @@ import { DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  itChecksBadPermission,
+} from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -62,6 +65,7 @@ export const revokeDescribe = (): Suite =>
         expectedRevokePermissionActions,
       );
     });
+
     it('should return a correct revoke and revoke manager action', async () => {
       const rawRole = 'CREATE_VOTES_ROLE';
       const interpreter = createAragonScriptInterpreter([
@@ -128,6 +132,10 @@ export const revokeDescribe = (): Suite =>
       expect(revokeActions).to.eql(expectedRevokeActions);
     });
 
+    itChecksBadPermission('revoke', (badPermission) =>
+      createAragonScriptInterpreter([`revoke ${badPermission.join(' ')}`]),
+    );
+
     it('should fail when passing an invalid DAO prefix', async () => {
       const invalidDAOPrefix = `invalid-dao-prefix`;
       const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
@@ -177,24 +185,6 @@ export const revokeDescribe = (): Suite =>
       );
     });
 
-    it('should fail when passing an invalid grantee address', async () => {
-      const error = new CommandError(
-        'revoke',
-        `grantee must be a valid address, got ${toDecimals(1, 18).toString()}`,
-      );
-
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'revoke 1e18 token-manager MINT_ROLE',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
     it('should fail when passing an invalid remove manager flag', async () => {
       const error = new CommandError(
         'revoke',
@@ -217,16 +207,15 @@ export const revokeDescribe = (): Suite =>
 
     it('should fail when revoking a permission from a non-app entity', async () => {
       const nonAppAddress = await signer.getAddress();
-      const unknownIdentifier = 'unknown-app.open';
       let error = new CommandError(
         'revoke',
-        `${unknownIdentifier} is not a DAO's app`,
+        `${nonAppAddress} is not a DAO's app`,
       );
 
       await expectThrowAsync(
         () =>
           createAragonScriptInterpreter([
-            `revoke voting ${unknownIdentifier} A_ROLE`,
+            `revoke voting ${nonAppAddress} A_ROLE`,
           ]).interpret(),
         {
           type: error.constructor,
@@ -241,24 +230,6 @@ export const revokeDescribe = (): Suite =>
         () =>
           createAragonScriptInterpreter([
             `revoke voting ${nonAppAddress} MY_ROLE`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
-    });
-
-    it('should fail when revoking a non-existent permission', async () => {
-      const error = new CommandError(
-        'revoke',
-        `given permission doesn't exists on app token-manager`,
-      );
-
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'revoke voting token-manager UNKNOWN_ROLE',
           ]).interpret(),
         {
           type: error.constructor,

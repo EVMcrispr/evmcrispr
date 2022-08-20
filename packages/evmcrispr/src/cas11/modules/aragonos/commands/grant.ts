@@ -2,9 +2,10 @@ import { constants, utils } from 'ethers';
 
 import type { Action, Params } from '../../../..';
 import { oracle } from '../../../..';
+import type { FullPermission } from '../../../../types';
 import { normalizeRole } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
-import type { CommandFunction } from '../../../types';
+import type { CommandFunction, InterpretOptions } from '../../../types';
 import {
   ComparisonType,
   checkArgsLength,
@@ -12,12 +13,12 @@ import {
   getOptValue,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { getDAO } from '../utils/commands';
+import { checkPermissionFormat, getDAO } from '../utils/commands';
 
 export const grant: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNode, interpretNodes },
+  { interpretNode },
 ) => {
   checkArgsLength(c, {
     type: ComparisonType.Between,
@@ -28,8 +29,19 @@ export const grant: CommandFunction<AragonOS> = async (
 
   const dao = getDAO(module, c, 1);
 
-  const [granteeAddress, appAddress, role, defaultPermissionManagerAddress] =
-    await interpretNodes(c.args);
+  const permissionMangerArgNode = c.args[3];
+  const permission = await Promise.all(
+    c.args.slice(0, 3).map((arg, i) => {
+      const opts: Partial<InterpretOptions> | undefined =
+        i !== 2 ? { allowNotFoundError: true } : undefined;
+
+      return interpretNode(arg, opts);
+    }),
+  );
+
+  checkPermissionFormat(c, permission as FullPermission);
+
+  const [granteeAddress, appAddress, role] = permission;
 
   const roleHash = normalizeRole(role);
 
@@ -97,9 +109,16 @@ export const grant: CommandFunction<AragonOS> = async (
     appPermission.manager === '' ||
     appPermission.manager === constants.AddressZero
   ) {
-    if (!defaultPermissionManagerAddress) {
-      Interpreter.panic(c, 'permission manager missing');
-    } else if (!utils.isAddress(defaultPermissionManagerAddress)) {
+    if (!permissionMangerArgNode) {
+      Interpreter.panic(c, 'required permission manager missing');
+    }
+
+    const defaultPermissionManagerAddress = await interpretNode(
+      permissionMangerArgNode,
+      { allowNotFoundError: true },
+    );
+
+    if (!utils.isAddress(defaultPermissionManagerAddress)) {
       Interpreter.panic(
         c,
         `invalid permission manager. Expected an address, but got ${defaultPermissionManagerAddress}`,

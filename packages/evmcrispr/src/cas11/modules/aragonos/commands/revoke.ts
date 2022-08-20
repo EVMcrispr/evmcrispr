@@ -1,17 +1,16 @@
-import { utils } from 'ethers';
-
 import type { Action } from '../../../..';
+import type { FullPermission } from '../../../../types';
 import { normalizeRole } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
-import type { CommandFunction } from '../../../types';
+import type { CommandFunction, InterpretOptions } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { getDAO } from '../utils/commands';
+import { checkPermissionFormat, getDAO } from '../utils/commands';
 
 export const revoke: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNodes },
+  { interpretNode },
 ) => {
   checkArgsLength(c, {
     type: ComparisonType.Between,
@@ -19,17 +18,19 @@ export const revoke: CommandFunction<AragonOS> = async (
     maxValue: 4,
   });
 
-  const [granteeAddress, appAddress, role, removeManager] =
-    await interpretNodes(c.args);
-
   const dao = getDAO(module, c, 1);
 
-  if (!utils.isAddress(granteeAddress)) {
-    Interpreter.panic(
-      c,
-      `grantee must be a valid address, got ${granteeAddress}`,
-    );
-  }
+  const args = await Promise.all(
+    c.args.map((arg, i) => {
+      const opts: Partial<InterpretOptions> | undefined =
+        i < 2 ? { allowNotFoundError: true } : undefined;
+      return interpretNode(arg, opts);
+    }),
+  );
+
+  checkPermissionFormat(c, args.slice(0, 3) as FullPermission);
+
+  const [granteeAddress, appAddress, role, removeManager] = args;
 
   const removeManagerType = typeof removeManager;
   if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {

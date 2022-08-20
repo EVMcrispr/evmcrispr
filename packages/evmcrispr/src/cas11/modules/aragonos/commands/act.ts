@@ -13,15 +13,22 @@ import type { AragonOS } from '../AragonOS';
 export const act: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNodes },
+  { interpretNode },
 ) => {
   checkArgsLength(c, {
     type: ComparisonType.Greater,
     minValue: 3,
   });
 
-  const [agentAddress, targetAddress, signature, ...params] =
-    await interpretNodes(c.args);
+  const [agentAddress, targetAddress, signature, ...params] = await Promise.all(
+    c.args.map((arg, i) => {
+      if (i < 2) {
+        return interpretNode(arg, { allowNotFoundError: true });
+      }
+
+      return interpretNode(arg);
+    }),
+  );
 
   if (!utils.isAddress(agentAddress)) {
     Interpreter.panic(
@@ -35,6 +42,7 @@ export const act: CommandFunction<AragonOS> = async (
       `expected a valid target address, but got ${targetAddress}`,
     );
   }
+
   if (!SIGNATURE_REGEX.test(signature)) {
     Interpreter.panic(c, `expected a valid signature, but got ${signature}`);
   }

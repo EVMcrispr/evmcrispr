@@ -1,5 +1,8 @@
 import type { Parser } from 'arcsecond';
 import { char, possibly, regex, sequenceOf } from 'arcsecond';
+import { utils } from 'ethers';
+
+import type { FullPermission } from '../../../../types';
 
 import { optionalLabeledAppIdentifierRegex } from '../../../../utils';
 import { Interpreter } from '../../../interpreter/Interpreter';
@@ -9,7 +12,7 @@ import type {
   NodeInterpreter,
 } from '../../../types';
 import { NodeType } from '../../../types';
-import { getOptValue } from '../../../utils';
+import { getOptValue, listItems } from '../../../utils';
 import type { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 
@@ -88,4 +91,32 @@ export const getDAOByOption = async (
   }
 
   return dao;
+};
+
+export const checkPermissionFormat = (
+  c: CommandExpressionNode,
+  p: FullPermission,
+): void | never => {
+  const errors: string[] = [];
+  const [granteeAddress, appAddress, role] = p;
+
+  if (!utils.isAddress(granteeAddress)) {
+    errors.push(
+      `Invalid grantee. Expected an address, but got ${granteeAddress}`,
+    );
+  }
+
+  if (!utils.isAddress(appAddress)) {
+    errors.push(`Invalid app. Expected an address, but got ${appAddress}`);
+  }
+
+  if (role.startsWith('0x')) {
+    if (role.length !== 66) {
+      errors.push(`Invalid role. Expected a valid hash, but got ${role}`);
+    }
+  }
+
+  if (errors.length) {
+    Interpreter.panic(c, listItems('invalid permission provided', errors));
+  }
 };

@@ -25,23 +25,20 @@ export const forward: CommandFunction<AragonOS> = async (
 
   const blockCommandsNode = c.args.pop()!;
 
-  const forwarderAppAddresses = await interpretNodes(c.args);
+  const forwarderAppAddresses = await interpretNodes(c.args, false, {
+    allowNotFoundError: true,
+  });
 
   const invalidForwarderApps: any[] = [];
 
-  forwarderAppAddresses.forEach((a, i) =>
-    !utils.isAddress(a) ? invalidForwarderApps.push([a, i]) : undefined,
+  forwarderAppAddresses.forEach((a) =>
+    !utils.isAddress(a) ? invalidForwarderApps.push(a) : undefined,
   );
 
   if (invalidForwarderApps.length) {
-    const formattedInvalidApps = invalidForwarderApps.map(
-      (e) => `${e[0]} (${e[1] + 1})`,
-    );
     Interpreter.panic(
       c,
-      `invalid addresses found for the following forwarders: ${commaListItems(
-        formattedInvalidApps,
-      )}`,
+      `${commaListItems(invalidForwarderApps)} are not valid forwarder address`,
     );
   }
 

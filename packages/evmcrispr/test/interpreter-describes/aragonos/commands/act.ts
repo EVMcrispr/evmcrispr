@@ -8,6 +8,7 @@ import { CommandError } from '../../../../src/errors';
 import { DAO } from '../../../fixtures';
 import { createTestScriptEncodedAction } from '../../../test-helpers/actions';
 import { createAragonScriptInterpreter as _createAragonScriptInterpreter } from '../../../test-helpers/aragonos';
+import { itChecksNonDefinedIdentifier } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const actDescribe = (): Suite =>
@@ -27,7 +28,7 @@ export const actDescribe = (): Suite =>
       );
     });
 
-    it('should interpret a valid command correctly', async () => {
+    it('should return a correct act action', async () => {
       const interpreter = createAragonScriptInterpreter([
         `act agent vault "deposit(uint256,uint256[][])" 1 [[2,3],[4,5]]`,
       ]);
@@ -59,8 +60,24 @@ export const actDescribe = (): Suite =>
       expect(actActions).to.be.eql(expectedActActions);
     });
 
-    it('should fail when passing an invalid agent address', async () => {
-      const invalidAgentAddress = 'invalid-agent-address';
+    itChecksNonDefinedIdentifier(
+      'should fail when receiving a non-defined agent identifier',
+      (nonDefinedIdentifier) =>
+        createAragonScriptInterpreter([
+          `act ${nonDefinedIdentifier} vault "deposit()"`,
+        ]),
+    );
+
+    itChecksNonDefinedIdentifier(
+      'should fail when receiving a non-defined target identifier',
+      (nonDefinedIdentifier) =>
+        createAragonScriptInterpreter([
+          `act agent ${nonDefinedIdentifier} "deposit()"`,
+        ]),
+    );
+
+    it('should fail when receiving an invalid agent address', async () => {
+      const invalidAgentAddress = 'false';
       const error = new CommandError(
         'act',
         `expected a valid agent address, but got ${invalidAgentAddress}`,
@@ -78,7 +95,7 @@ export const actDescribe = (): Suite =>
       );
     });
 
-    it('should fail when passing an invalid target address', async () => {
+    it('should fail when receiving an invalid target address', async () => {
       const invalidTargetAddress = '2e18';
       const error = new CommandError(
         'act',
@@ -97,26 +114,38 @@ export const actDescribe = (): Suite =>
       );
     });
 
-    it('should fail when passing an invalid signature', async () => {
-      const invalidSignature = 'deposit';
-      const error = new CommandError(
-        'act',
-        `expected a valid signature, but got ${invalidSignature}`,
-      );
+    it('should fail when receiving an invalid signature', async () => {
+      const cases = [
+        ['mint', 'no parenthesis'],
+        ['mint(', 'left parenthesis'],
+        ['mint)', 'right parenthesis'],
+        ['mint(uint,)', 'right comma'],
+        ['mint(,uint)', 'left comma'],
+      ];
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `act agent:0 vault ${invalidSignature}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+      await Promise.all(
+        cases.map(([invalidSignature, msg]) => {
+          const error = new CommandError(
+            'act',
+            `expected a valid signature, but got ${invalidSignature}`,
+          );
+
+          return expectThrowAsync(
+            () =>
+              createAragonScriptInterpreter([
+                `act agent:0 vault "${invalidSignature}"`,
+              ]).interpret(),
+            {
+              type: error.constructor,
+              message: error.message,
+            },
+            `${msg} signature error mismatch`,
+          );
+        }),
       );
     });
 
-    it('should fail when passing invalid function params', async () => {
+    it('should fail when receiving invalid function params', async () => {
       const paramsErrors = [
         '-param 0 of type address: invalid address. Got 1000000000000000000',
         '-param 1 of type uint256: invalid BigNumber value. Got none',

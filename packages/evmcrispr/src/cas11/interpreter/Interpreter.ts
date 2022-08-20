@@ -25,7 +25,7 @@ import { NodeType } from '../types';
 import type { Module } from '../modules/Module';
 import { Std } from '../modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
-import type { NodeInterpreter } from '../types/modules';
+import type { NodeInterpreter, NodesInterpreter } from '../types/modules';
 
 const {
   AddressLiteral,
@@ -153,15 +153,16 @@ export class Interpreter {
     }
   };
 
-  interpretNodes = async (
+  interpretNodes: NodesInterpreter = async (
     nodes: Node[],
     sequentally = false,
+    options,
   ): Promise<any[]> => {
     if (sequentally) {
       const results: any = [];
 
       for (const node of nodes) {
-        const result = await this.interpretNode(node);
+        const result = await this.interpretNode(node, options);
         if (Array.isArray(result)) {
           results.push(...result);
         } else {
@@ -172,7 +173,9 @@ export class Interpreter {
       return results;
     }
 
-    return await Promise.all(nodes.map((node) => this.interpretNode(node)));
+    return await Promise.all(
+      nodes.map((node) => this.interpretNode(node, options)),
+    );
   };
 
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
@@ -283,7 +286,7 @@ export class Interpreter {
   };
 
   #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
-    async (n, { treatAsLiteral = false } = {}) => {
+    async (n, { allowNotFoundError = false, treatAsLiteral = false } = {}) => {
       const identifier = n.value;
 
       if (!treatAsLiteral) {
@@ -294,6 +297,10 @@ export class Interpreter {
 
         if (addressBinding) {
           return addressBinding;
+        }
+
+        if (allowNotFoundError) {
+          Interpreter.panic(n, `identifier "${identifier}" not found`);
         }
       }
 
@@ -323,6 +330,8 @@ export class Interpreter {
         throw new CommandError((n as CommandExpressionNode).name, msg);
       case HelperFunctionExpression:
         throw new HelperFunctionError((n as HelperFunctionNode).name, msg);
+      case ProbableIdentifier:
+        throw new ExpressionError(msg, { name: 'IdentifierError' });
       case VariableIdentifier:
         throw new ExpressionError(msg, { name: 'VariableIdentifierError' });
       default:

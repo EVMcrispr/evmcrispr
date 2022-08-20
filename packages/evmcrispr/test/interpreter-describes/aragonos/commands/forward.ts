@@ -15,6 +15,10 @@ import {
   createTestScriptEncodedAction,
 } from '../../../test-helpers/actions';
 import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createInterpreter,
+  itChecksNonDefinedIdentifier,
+} from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const forwardDescribe = (): Suite =>
@@ -34,7 +38,7 @@ export const forwardDescribe = (): Suite =>
       );
     });
 
-    it('should forward a set of command actions correctly', async () => {
+    it('should return a correct forward action', async () => {
       const interpreter = createAragonScriptInterpreter([
         `
       forward token-manager:0 voting (
@@ -72,16 +76,31 @@ export const forwardDescribe = (): Suite =>
       expect(forwardActions).to.eql(expectedActions);
     });
 
+    itChecksNonDefinedIdentifier(
+      'should fail when receiving non-defined forwarder identifiers',
+      (nonDefinedIdentifier) =>
+        createInterpreter(
+          `
+        load aragonos as ar
+
+        ar:connect ${DAO.kernel} (
+          forward ${nonDefinedIdentifier} (
+            grant tollgate.open finance CREATE_PAYMENTS_ROLE
+          )
+        )
+      `,
+          signer,
+        ),
+    );
+
     it('should fail when forwarding actions through invalid forwarder addresses', async () => {
       const invalidAddresses = [
-        'an-unresolvedIdentifier',
-        '0x14FA5C16325f56190239B997485656F5c8b4f86c422b',
+        'false',
+        '0xab123cd1231255ab45323de234223422a12312321abaceff',
       ];
       const error = new CommandError(
         'forward',
-        `invalid addresses found for the following forwarders: ${commaListItems(
-          invalidAddresses.map((i, index) => `${i} (${index + 1})`),
-        )}`,
+        `${commaListItems(invalidAddresses)} are not valid forwarder address`,
       );
       await expectThrowAsync(
         () =>

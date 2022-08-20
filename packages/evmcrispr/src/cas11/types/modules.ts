@@ -3,6 +3,7 @@ import type { Module } from '../modules/Module';
 import type { CommandExpressionNode, HelperFunctionNode, Node } from './ast';
 
 export interface InterpretOptions {
+  allowNotFoundError: boolean;
   treatAsLiteral: boolean;
   blockModule: string;
   blockInitializer?(): Promise<void>;
@@ -15,6 +16,7 @@ export type NodeInterpreter<T extends Node = Node> = (
 export type NodesInterpreter = (
   nodes: Node[],
   sequentally?: boolean,
+  options?: Partial<InterpretOptions>,
 ) => Promise<any[]>;
 export type NodesInterpreters = {
   interpretNode: NodeInterpreter;

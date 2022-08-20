@@ -11,7 +11,11 @@ import type { AST, Node } from '../../src/cas11/types';
 import { ASTType, NodeType } from '../../src/cas11/types';
 import type { Comparison } from '../../src/cas11/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/cas11/utils';
-import { CommandError, HelperFunctionError } from '../../src/errors';
+import {
+  CommandError,
+  ExpressionError,
+  HelperFunctionError,
+} from '../../src/errors';
 import { expectThrowAsync } from './expects';
 
 const { CommandExpression } = NodeType;
@@ -141,8 +145,8 @@ export const itChecksInvalidArgsLength = (
   return it('should fail when passing an invalid number of arguments', async () => {
     /**
      * When calling the 'it' outter fn none of the 'before' statements have been executed
-     * so the signer hasn't been defined yet. To solve this, we pass a function that will be called
-     * when the "it" is executed.
+     * so the signer hasn't been defined yet. To solve this, we pass a callback returning
+     * the signer
      */
     const signer = lazySigner();
     const callee = getCallee(argumentlessExpression);
@@ -220,5 +224,26 @@ export const itChecksInvalidArgsLength = (
         )}`,
       );
     }
+  });
+};
+
+export const itChecksNonDefinedIdentifier = (
+  itName: string,
+  createInterpreter: (nonDefinedIdentifier: string) => Interpreter,
+): Mocha.Test => {
+  return it(itName, async () => {
+    const nonDefinedIdentifier = 'non-defined-address';
+    const error = new ExpressionError(
+      `identifier "${nonDefinedIdentifier}" not found`,
+      { name: 'IdentifierError' },
+    );
+
+    await expectThrowAsync(
+      () => createInterpreter(nonDefinedIdentifier).interpret(),
+      {
+        type: error.constructor,
+        message: error.message,
+      },
+    );
   });
 };

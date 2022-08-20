@@ -121,6 +121,7 @@ export type Params = (index?: number) => string[];
  */
 export type Permission = [Entity, Entity, string];
 
+export type FullPermission = [...Permission, string?];
 /**
  * A map which contains a set of [[Role]] indexed by their [[RoleHash]].
  */
