@@ -15,7 +15,7 @@ import {
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const execDescribe = (): Suite =>
-  describe.only('when interpreting exec command', () => {
+  describe('when interpreting exec command', () => {
     let signer: Signer;
 
     before(async () => {

@@ -17,9 +17,6 @@ import type {
   NodesInterpreters,
 } from '../types/modules';
 
-const buildConfigVar = (moduleName: string, name: string): string =>
-  `$${moduleName}:${name}`;
-
 export abstract class Module {
   constructor(
     readonly name: string,
@@ -33,6 +30,10 @@ export abstract class Module {
 
   get contextualName(): string {
     return this.alias ?? this.name;
+  }
+
+  buildConfigVar(name: string): string {
+    return `$${this.contextualName}:${name}`;
   }
 
   interpretCommand(
@@ -60,7 +61,7 @@ export abstract class Module {
 
   getConfigBinding(name: string): any {
     return this.bindingsManager.getBinding(
-      buildConfigVar(this.contextualName, name),
+      this.buildConfigVar(name),
       BindingsSpace.USER,
     );
   }

@@ -81,10 +81,13 @@ export const runExpression = async (
   helper: string,
   signer: Signer,
   module?: string,
+  configSetters: string[] = [],
 ): Promise<string> => {
   const i = createInterpreter(
     `
   ${module ? `load ${module}` : ''}
+
+  ${configSetters.join('\n')}
   set $res ${helper}
   `,
     signer,
@@ -142,7 +145,7 @@ export const itChecksInvalidArgsLength = (
   module?: string,
 ): Mocha.Test => {
   const { type, minValue, maxValue } = c;
-  return it('should fail when passing an invalid number of arguments', async () => {
+  return it('should fail when receiving an invalid number of arguments', async () => {
     /**
      * When calling the 'it' outter fn none of the 'before' statements have been executed
      * so the signer hasn't been defined yet. To solve this, we pass a callback returning

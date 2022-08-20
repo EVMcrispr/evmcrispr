@@ -28,7 +28,7 @@ export const expectThrowAsync = async (
     error = err;
   }
   const { type, name, message } = errorOptions;
-  7;
+
   expect(error, `Exception not thrown`).not.to.be.null;
 
   if (message) {
