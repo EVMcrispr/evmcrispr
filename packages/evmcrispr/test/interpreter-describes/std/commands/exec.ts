@@ -8,11 +8,14 @@ import { encodeActCall } from '../../../../src';
 import { CommandError } from '../../../../src/errors';
 
 import { toDecimals } from '../../../../src/utils';
-import { createInterpreter } from '../../../test-helpers/cas11';
+import {
+  createInterpreter,
+  itChecksNonDefinedIdentifier,
+} from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
 export const execDescribe = (): Suite =>
-  describe('when interpreting exec command', () => {
+  describe.only('when interpreting exec command', () => {
     let signer: Signer;
 
     before(async () => {
@@ -45,8 +48,19 @@ export const execDescribe = (): Suite =>
       expect(result).eql(expectedCallAction);
     });
 
-    it('should fail when providing an invalid target address', async () => {
-      const invalidTargetAddress = 'invalid-target';
+    itChecksNonDefinedIdentifier(
+      'should fail when receiving a non-defined target identifier',
+      (nonDefinedIdentifier) =>
+        createInterpreter(
+          `
+        exec ${nonDefinedIdentifier} "${fnSig}" 1e18
+      `,
+          signer,
+        ),
+    );
+
+    it('should fail when receiving an invalid target address', async () => {
+      const invalidTargetAddress = 'false';
       const error = new CommandError(
         'exec',
         `expected a valid target address, but got ${invalidTargetAddress}`,

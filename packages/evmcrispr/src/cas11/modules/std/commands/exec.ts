@@ -9,10 +9,17 @@ import { ComparisonType, checkArgsLength } from '../../../utils';
 import { encodeAction } from '../../../utils/encoders';
 import type { Std } from '../Std';
 
-export const exec: CommandFunction<Std> = async (_, c, { interpretNodes }) => {
+export const exec: CommandFunction<Std> = async (
+  _,
+  c,
+  { interpretNode, interpretNodes },
+) => {
   checkArgsLength(c, { type: ComparisonType.Greater, minValue: 3 });
 
-  const [targetAddress, signature, ...params] = await interpretNodes(c.args);
+  const targetAddress = await interpretNode(c.args.shift()!, {
+    allowNotFoundError: true,
+  });
+  const [signature, ...params] = await interpretNodes(c.args);
 
   if (!utils.isAddress(targetAddress)) {
     Interpreter.panic(
