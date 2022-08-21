@@ -1,4 +1,4 @@
-import type { Parser } from 'arcsecond';
+import type { Err, Parser } from 'arcsecond';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 
@@ -7,10 +7,11 @@ import type { ErrorException } from '../../src';
 import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
 import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
-import type { AST, Node } from '../../src/cas11/types';
+import type { AST, Node, NodeParser } from '../../src/cas11/types';
 import { ASTType, NodeType } from '../../src/cas11/types';
 import type { Comparison } from '../../src/cas11/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/cas11/utils';
+import { buildParserError } from '../../src/cas11/utils/parsers';
 import {
   CommandError,
   ExpressionError,
@@ -68,6 +69,23 @@ export const runInterpreterCases = async (
     ),
   );
 
+export const runErrorCase = (
+  parser: NodeParser,
+  text: string,
+  errType: string,
+  errMsg: string,
+) => {
+  const res = parser.run(text) as Err<string, any>;
+
+  expect(res.isError).to.be.true;
+  expect(res.error).to.be.eql(
+    buildParserError(
+      { index: res.index, error: res.error } as Err<string, any>,
+      errType,
+      errMsg,
+    ),
+  );
+};
 export const createInterpreter = (
   script: string,
   signer: Signer,
