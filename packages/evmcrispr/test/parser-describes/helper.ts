@@ -1,5 +1,8 @@
-import { helperFunctionParser } from '../../src/cas11/parsers/helper';
-import { runCases } from '../test-helpers/cas11';
+import {
+  HELPER_PARSER_ERROR,
+  helperFunctionParser,
+} from '../../src/cas11/parsers/helper';
+import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 export const helperParserDescribe = (): Mocha.Suite =>
   describe('Helper parser', () => {
@@ -67,5 +70,31 @@ export const helperParserDescribe = (): Mocha.Suite =>
       ];
 
       runCases(cases, helperFunctionParser);
+    });
+
+    it('should fail when parsing a helper with an invalid name', () => {
+      runErrorCase(
+        helperFunctionParser,
+        '@asd&$6',
+        HELPER_PARSER_ERROR,
+        'Expecting a helper name',
+      );
+    });
+
+    it('should fail when parsing a helper without a closing parenthesis', () => {
+      runErrorCase(
+        helperFunctionParser,
+        '@helper(asda,1e18',
+        HELPER_PARSER_ERROR,
+      );
+    });
+
+    it('should fail when parsing a helper with empty arguments', () => {
+      runErrorCase(
+        helperFunctionParser,
+        '@helper(arg1, 1e18, ,)',
+        HELPER_PARSER_ERROR,
+        'No expression found',
+      );
     });
   });

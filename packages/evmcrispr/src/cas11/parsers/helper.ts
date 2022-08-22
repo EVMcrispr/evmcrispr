@@ -1,4 +1,14 @@
-import { char, coroutine, possibly, recursiveParser, regex } from 'arcsecond';
+import {
+  char,
+  choice,
+  coroutine,
+  lookAhead,
+  possibly,
+  recursiveParser,
+  regex,
+  sequenceOf,
+  takeLeft,
+} from 'arcsecond';
 
 import type {
   ArgumentExpressionNode,
@@ -6,9 +16,20 @@ import type {
   NodeParser,
 } from '../types';
 import { NodeType } from '../types';
-import { argumentsParser } from './expression';
+import { buildParserError } from '../utils/parsers';
+import { argumentExpressionParser } from './expression';
+import {
+  commaSeparated,
+  enclosingLookaheadParser,
+  optionalWhitespace,
+} from './utils';
 
-const helperNameParser = regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/);
+export const HELPER_PARSER_ERROR = 'HelperParserError';
+const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
+  choice([enclosingLookaheadParser, lookAhead(char('('))]),
+).errorMap((err) =>
+  buildParserError(err, HELPER_PARSER_ERROR, 'Expecting a helper name'),
+);
 
 export const helperFunctionParser: NodeParser<HelperFunctionNode> =
   recursiveParser(() =>
@@ -17,9 +38,19 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
 
       const name = (yield helperNameParser) as unknown as string;
 
-      const args = (yield possibly(argumentsParser)) as unknown as
-        | null
-        | ArgumentExpressionNode[];
+      let args = null;
+
+      if (yield possibly(sequenceOf([char('('), optionalWhitespace]))) {
+        args = (yield commaSeparated(argumentExpressionParser).errorMap((err) =>
+          buildParserError(err, HELPER_PARSER_ERROR),
+        )) as unknown as ArgumentExpressionNode[];
+
+        yield sequenceOf([optionalWhitespace, char(')')]).errorMap((err) =>
+          buildParserError(err, HELPER_PARSER_ERROR),
+        );
+      }
+
+      yield enclosingLookaheadParser;
 
       const n: HelperFunctionNode = {
         type: NodeType.HelperFunctionExpression,
