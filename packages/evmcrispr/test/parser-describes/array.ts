@@ -1,6 +1,12 @@
-import { arrayExpressionParser } from '../../src/cas11/parsers/array';
+import type { Err } from 'arcsecond';
+import { expect } from 'chai';
+
+import {
+  ARRAY_PARSER_ERROR,
+  arrayExpressionParser,
+} from '../../src/cas11/parsers/array';
 import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
+import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 export const arrayParserDescribe = (): Mocha.Suite =>
   describe('Array parser', () => {
@@ -67,5 +73,32 @@ export const arrayParserDescribe = (): Mocha.Suite =>
       ];
 
       runCases(cases, arrayExpressionParser);
+    });
+
+    it('should fail when parsing an array with multiple primary values between commas', () => {
+      runErrorCase(
+        arrayExpressionParser,
+        '[1,multiple values between commas, false]',
+        ARRAY_PARSER_ERROR,
+        `Expecting character ']'`,
+      );
+    });
+
+    it('should fail when parsing an array with empty elements', () => {
+      runErrorCase(
+        arrayExpressionParser,
+        '[12e14w, ,,]',
+        ARRAY_PARSER_ERROR,
+        'No expression found',
+      );
+    });
+
+    it('should fail when parsing an array without closing bracket', () => {
+      const res = arrayExpressionParser.run('[12e14w, "asdas"');
+
+      expect(res.isError).to.be.true;
+      expect((res as Err<string, any>).error).to.equals(
+        `ArrayParserError(col: 16): Expecting character ']', but got end of input.`,
+      );
     });
   });

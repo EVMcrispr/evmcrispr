@@ -73,12 +73,12 @@ export const runErrorCase = (
   parser: NodeParser,
   text: string,
   errType: string,
-  errMsg: string,
+  errMsg?: string,
 ) => {
   const res = parser.run(text) as Err<string, any>;
 
   expect(res.isError).to.be.true;
-  expect(res.error).to.be.eql(
+  expect(res.error).to.equals(
     buildParserError(
       { index: res.index, error: res.error } as Err<string, any>,
       errType,

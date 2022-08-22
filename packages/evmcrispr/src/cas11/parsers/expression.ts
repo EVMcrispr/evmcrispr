@@ -15,6 +15,7 @@ import type {
   NodeParser,
 } from '../types';
 import { NodeType } from '../types';
+import { getIncorrectReceivedValue } from '../utils/parsers';
 import { arrayExpressionParser } from './array';
 import { blockExpressionParser } from './block';
 
@@ -46,7 +47,11 @@ export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
       helperFunctionParser,
       arrayExpressionParser,
       primaryParser,
-    ]),
+    ]).errorMap(({ error, index }) => {
+      return `ExpressionParserError(col: ${index}): No expression found${getIncorrectReceivedValue(
+        error,
+      )}`;
+    }),
   );
 
 export const expressionParser: NodeParser<CommandArgExpressionNode> =

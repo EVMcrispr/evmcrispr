@@ -26,7 +26,7 @@ import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase, runParser } from '../test-helpers/cas11';
 
 export const primaryParsersDescribe = (): Mocha.Suite =>
-  describe.only('Primary parsers', () => {
+  describe('Primary parsers', () => {
     describe('when parsing literal values', () => {
       describe('when parsing address values', () => {
         it('should parse them correctly', () => {
