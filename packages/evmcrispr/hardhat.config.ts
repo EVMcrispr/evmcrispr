@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     reporterOptions: {
-      maxDiffSize: 12000,
+      maxDiffSize: 120000,
     },
     timeout: 0,
     rootHooks: {
