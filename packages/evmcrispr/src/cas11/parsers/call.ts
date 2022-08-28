@@ -7,7 +7,12 @@ import {
   recursiveParser,
 } from 'arcsecond';
 
-import type { CallExpressionNode, NodeParser } from '../types';
+import type {
+  CallExpressionNode,
+  LocationData,
+  NodeParser,
+  NodeParserState,
+} from '../types';
 import { NodeType } from '../types';
 
 import {
@@ -17,7 +22,6 @@ import {
 } from './primaries';
 import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
-import type { LocationData, NodeParserState } from './utils';
 import {
   callOperatorParser,
   createNodeLocation,

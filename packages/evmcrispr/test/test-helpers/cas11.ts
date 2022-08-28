@@ -8,9 +8,13 @@ import type { ErrorException } from '../../src';
 import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
 import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
-import type { NodeParserState } from '../../src/cas11/parsers/utils';
 import { createParserState } from '../../src/cas11/parsers/utils';
-import type { AST, Node, NodeParser } from '../../src/cas11/types';
+import type {
+  AST,
+  Node,
+  NodeParser,
+  NodeParserState,
+} from '../../src/cas11/types';
 import { ASTType, NodeType } from '../../src/cas11/types';
 import type { Comparison } from '../../src/cas11/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/cas11/utils';
@@ -80,9 +84,10 @@ export const runErrorCase = (
   errType: string,
   errMsg?: string,
 ): void => {
-  const res = withData<any, string, NodeParserState>(parser)(
-    createParserState(),
-  ).run(text);
+  const parserState = createParserState();
+  const res = withData<any, string, NodeParserState>(parser)(parserState).run(
+    text,
+  );
 
   expect(res.isError, 'error not thrown').to.be.true;
   expect(
@@ -93,6 +98,7 @@ export const runErrorCase = (
       {
         index: res.index,
         error: (res as Err<string, NodeParserState>).error,
+        data: parserState,
       } as Err<string, any>,
       errType,
       errMsg,

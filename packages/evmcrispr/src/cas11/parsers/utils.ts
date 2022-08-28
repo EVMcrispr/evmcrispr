@@ -19,14 +19,13 @@ import {
   tapParser,
 } from 'arcsecond';
 
-import type { Location, Node, NodeParser } from '../types';
-
-export type LocationData = { line: number; index: number; offset: number };
-
-export type NodeParserState = {
-  line: number;
-  offset: number;
-};
+import type {
+  Location,
+  LocationData,
+  Node,
+  NodeParser,
+  NodeParserState,
+} from '../types';
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
@@ -150,5 +149,8 @@ export const locate = <N extends Node = Node>(
   createNode: (data: Ok<[LocationData, any[]], NodeParserState>) => N,
 ): Parser<N, string, any> =>
   recursiveParser(() =>
-    sequenceOf([currentContexDataParser, p]).mapFromData<N>(createNode),
+    sequenceOf<LocationData, any[]>([
+      currentContexDataParser,
+      p,
+    ]).mapFromData<N>(createNode),
   );

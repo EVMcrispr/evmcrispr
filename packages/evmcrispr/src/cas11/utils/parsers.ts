@@ -1,9 +1,9 @@
 import type { Err } from 'arcsecond';
 
-import type { NodeParserState } from '../parsers/utils';
+import type { NodeParserState } from '../types';
 
 export const buildParserError = (
-  { index, error }: Err<string, null> | Err<string, NodeParserState>,
+  { data, error, index }: Err<string, NodeParserState>,
   type: string,
   msg?: string,
 ): string => {
@@ -11,10 +11,11 @@ export const buildParserError = (
   const wrongValueEncountered =
     splitRes.length === 2 ? splitRes[1].trim() : null;
 
-  const errorMessage = msg
+  const parserMsg = msg
     ? `${msg}${wrongValueEncountered ? `, got ${wrongValueEncountered}` : ''}`
     : error.split('): ')[1];
-  return `${type}(col: ${index}): ${errorMessage}`;
+
+  return `${type}(${data.line},${index - data.offset}): ${parserMsg}`;
 };
 
 export const getIncorrectReceivedValue = (errorMsg: string): string => {

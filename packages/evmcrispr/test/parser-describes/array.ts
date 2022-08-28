@@ -6,8 +6,11 @@ import {
   ARRAY_PARSER_ERROR,
   arrayExpressionParser,
 } from '../../src/cas11/parsers/array';
-import type { NodeParserState } from '../../src/cas11/parsers/utils';
-import type { ArrayExpressionNode } from '../../src/cas11/types';
+import { createParserState } from '../../src/cas11/parsers/utils';
+import type {
+  ArrayExpressionNode,
+  NodeParserState,
+} from '../../src/cas11/types';
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase } from '../test-helpers/cas11';
 
@@ -195,11 +198,11 @@ export const arrayParserDescribe = (): Mocha.Suite =>
     it('should fail when parsing an array without closing bracket', () => {
       const res = withData<ArrayExpressionNode, string, NodeParserState>(
         arrayExpressionParser,
-      )({ line: 0, offset: 0 }).run('[12e14w, "asdas"');
+      )(createParserState()).run('[12e14w, "asdas"');
 
       expect(res.isError).to.be.true;
       expect((res as Err<string, any>).error).to.equals(
-        `ArrayParserError(col: 16): Expecting character ']', but got end of input.`,
+        `ArrayParserError(1,16): Expecting character ']', but got end of input.`,
       );
     });
   });

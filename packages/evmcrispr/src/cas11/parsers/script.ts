@@ -3,10 +3,9 @@ import type { Parser } from 'arcsecond';
 
 import { deepConsoleLog } from '../../../test/test-helpers/cas11';
 
-import type { AST } from '../types';
+import type { AST, NodeParserState } from '../types';
 import { ASTType } from '../types';
 import { commandExpressionParser } from './command';
-import type { NodeParserState } from './utils';
 import { createParserState, optionalEmptyLines } from './utils';
 
 export type ProgramParserData = {

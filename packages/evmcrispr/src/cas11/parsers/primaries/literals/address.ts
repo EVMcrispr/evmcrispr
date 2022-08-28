@@ -1,7 +1,7 @@
 import { choice, lookAhead, regex, sequenceOf } from 'arcsecond';
 
-import type { AddressLiteralNode, NodeParser } from '../../../types';
 import { NodeType } from '../../../types';
+import type { AddressLiteralNode, NodeParser } from '../../../types';
 import { buildParserError } from '../../../utils/parsers';
 import {
   baseEnclosingCharParsers,
