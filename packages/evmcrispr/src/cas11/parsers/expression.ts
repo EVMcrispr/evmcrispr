@@ -26,20 +26,33 @@ import {
   probableIdentifierParser,
   stringParser,
 } from './primaries';
-import { commaSeparated, whitespace } from './utils';
-
-const asExpressionParser: NodeParser<AsExpressionNode> = sequenceOf([
-  choice([stringParser, probableIdentifierParser]),
+import {
+  commaSeparated,
+  createNodeLocation,
+  locate,
   whitespace,
-  str('as'),
-  whitespace,
-  choice([stringParser, probableIdentifierParser]),
-]).map(([left, , , , right]) => ({
-  type: NodeType.AsExpression,
-  left,
-  right,
-}));
+} from './utils';
 
+const asExpressionParser: NodeParser<AsExpressionNode> =
+  locate<AsExpressionNode>(
+    sequenceOf([
+      choice([stringParser, probableIdentifierParser]),
+      whitespace,
+      str('as'),
+      whitespace,
+      choice([stringParser, probableIdentifierParser]),
+    ]),
+    ({ data, index, result: [initialContext, [left, , , , right]] }) => ({
+      type: NodeType.AsExpression,
+      left: left as AsExpressionNode['left'],
+      right: right as AsExpressionNode['right'],
+      loc: createNodeLocation(initialContext, {
+        line: data.line,
+        index,
+        offset: data.offset,
+      }),
+    }),
+  );
 export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
   recursiveParser(() =>
     choice([
@@ -48,23 +61,24 @@ export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
       arrayExpressionParser,
       primaryParser,
     ]).errorMap(({ error, index }) => {
-      return `ExpressionParserError(col: ${index}): No expression found${getIncorrectReceivedValue(
+      return `ExpressionParserError(col: ${index}): Expecting a valid expression${getIncorrectReceivedValue(
         error,
       )}`;
     }),
   );
 
-export const expressionParser: NodeParser<CommandArgExpressionNode> =
-  recursiveParser(() =>
-    choice([
-      asExpressionParser,
-      callExpressionParser,
-      helperFunctionParser,
-      blockExpressionParser,
-      arrayExpressionParser,
-      primaryParser,
-    ]),
-  );
+export const expressionParser: NodeParser<
+  CommandArgExpressionNode | string | null
+> = recursiveParser(() =>
+  choice([
+    asExpressionParser,
+    callExpressionParser,
+    helperFunctionParser,
+    blockExpressionParser,
+    arrayExpressionParser,
+    primaryParser,
+  ]),
+);
 
 export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
   recursiveParser(() =>

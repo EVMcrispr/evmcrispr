@@ -16,13 +16,31 @@ export const helperParserDescribe = (): Mocha.Suite =>
             args: [
               {
                 type: 'CallExpression',
-                target: { type: 'ProbableIdentifier', value: 'anotherToken' },
+                target: {
+                  type: 'ProbableIdentifier',
+                  value: 'anotherToken',
+                  loc: {
+                    start: { line: 1, col: 16 },
+                    end: { line: 1, col: 28 },
+                  },
+                },
                 method: 'symbol',
                 args: [],
+                loc: { start: { line: 1, col: 16 }, end: { line: 1, col: 38 } },
               },
-              { type: 'StringLiteral', value: 'this is a string param' },
-              { type: 'NumberLiteral', value: 10, power: 18 },
+              {
+                type: 'StringLiteral',
+                value: 'this is a string param',
+                loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 64 } },
+              },
+              {
+                type: 'NumberLiteral',
+                value: 10,
+                power: 18,
+                loc: { start: { line: 1, col: 66 }, end: { line: 1, col: 71 } },
+              },
             ],
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 72 } },
           },
           'invalid helper with call expression match',
         ],
@@ -31,7 +49,14 @@ export const helperParserDescribe = (): Mocha.Suite =>
           {
             type: 'HelperFunctionExpression',
             name: 'token',
-            args: [{ type: 'ProbableIdentifier', value: 'WETH' }],
+            args: [
+              {
+                type: 'ProbableIdentifier',
+                value: 'WETH',
+                loc: { start: { line: 1, col: 7 }, end: { line: 1, col: 11 } },
+              },
+            ],
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 12 } },
           },
           'invalid helper match',
         ],
@@ -41,6 +66,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
             type: 'HelperFunctionExpression',
             name: 'now',
             args: [],
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 4 } },
           },
           'invalid helper without args match',
         ],
@@ -50,20 +76,46 @@ export const helperParserDescribe = (): Mocha.Suite =>
             type: 'HelperFunctionExpression',
             name: 'token',
             args: [
-              { type: 'StringLiteral', value: 'DAI' },
+              {
+                type: 'StringLiteral',
+                value: 'DAI',
+                loc: { start: { line: 1, col: 7 }, end: { line: 1, col: 12 } },
+              },
               {
                 type: 'HelperFunctionExpression',
                 name: 'calc',
                 args: [
-                  { type: 'NumberLiteral', value: 34 },
+                  {
+                    type: 'NumberLiteral',
+                    value: 34,
+                    loc: {
+                      start: { line: 1, col: 20 },
+                      end: { line: 1, col: 22 },
+                    },
+                  },
                   {
                     type: 'HelperFunctionExpression',
                     name: 'innerHelper',
-                    args: [{ type: 'BoolLiteral', value: true }],
+                    args: [
+                      {
+                        type: 'BoolLiteral',
+                        value: true,
+                        loc: {
+                          start: { line: 1, col: 37 },
+                          end: { line: 1, col: 41 },
+                        },
+                      },
+                    ],
+                    loc: {
+                      start: { line: 1, col: 24 },
+                      end: { line: 1, col: 42 },
+                    },
                   },
                 ],
+                loc: { start: { line: 1, col: 14 }, end: { line: 1, col: 43 } },
               },
             ],
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 44 } },
           },
           'invalid nested helper match',
         ],
@@ -94,7 +146,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
         helperFunctionParser,
         '@helper(arg1, 1e18, ,)',
         HELPER_PARSER_ERROR,
-        'No expression found',
+        'Expecting a valid expression',
       );
     });
   });

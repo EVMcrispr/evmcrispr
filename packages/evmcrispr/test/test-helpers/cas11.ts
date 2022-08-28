@@ -1,4 +1,5 @@
 import type { Err, Parser } from 'arcsecond';
+import { withData } from 'arcsecond';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 
@@ -7,6 +8,8 @@ import type { ErrorException } from '../../src';
 import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
 import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 import { scriptParser } from '../../src/cas11/parsers/script';
+import type { NodeParserState } from '../../src/cas11/parsers/utils';
+import { createParserState } from '../../src/cas11/parsers/utils';
 import type { AST, Node, NodeParser } from '../../src/cas11/types';
 import { ASTType, NodeType } from '../../src/cas11/types';
 import type { Comparison } from '../../src/cas11/utils';
@@ -33,7 +36,9 @@ export const runParser = (
   parser: Parser<any, string, any>,
   value: string,
 ): any => {
-  const res = parser.run(value);
+  const res = withData<any, string, NodeParserState>(parser)(
+    createParserState(),
+  ).run(value);
 
   if (res.isError) {
     return res.error;
@@ -74,13 +79,21 @@ export const runErrorCase = (
   text: string,
   errType: string,
   errMsg?: string,
-) => {
-  const res = parser.run(text) as Err<string, any>;
+): void => {
+  const res = withData<any, string, NodeParserState>(parser)(
+    createParserState(),
+  ).run(text);
 
-  expect(res.isError).to.be.true;
-  expect(res.error).to.equals(
+  expect(res.isError, 'error not thrown').to.be.true;
+  expect(
+    (res as Err<string, NodeParserState>).error,
+    'error message mismatch',
+  ).to.equals(
     buildParserError(
-      { index: res.index, error: res.error } as Err<string, any>,
+      {
+        index: res.index,
+        error: (res as Err<string, NodeParserState>).error,
+      } as Err<string, any>,
       errType,
       errMsg,
     ),

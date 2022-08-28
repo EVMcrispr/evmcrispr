@@ -33,9 +33,20 @@ export type LiteralExpression =
   | NodeType.NumberLiteral
   | NodeType.StringLiteral;
 
+export type Position = {
+  line: number;
+  col: number;
+};
+
+export type Location = {
+  start: Position;
+  end: Position;
+};
+
 export interface Node {
   type: NodeType;
   value?: any;
+  loc?: Location;
 }
 
 export interface AddressLiteralNode extends Node {
@@ -75,7 +86,7 @@ export interface GroupingExpressionNode extends Node {
   expression: Node;
 }
 
-export interface ProbableIdentifierNode {
+export interface ProbableIdentifierNode extends Node {
   type: NodeType.ProbableIdentifier;
   value: string;
 }

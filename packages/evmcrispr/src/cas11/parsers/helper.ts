@@ -19,8 +19,12 @@ import { NodeType } from '../types';
 import { buildParserError } from '../utils/parsers';
 import { argumentExpressionParser } from './expression';
 import {
+  baseEnclosingCharParsers,
+  callOperatorParser,
   commaSeparated,
+  createNodeLocation,
   enclosingLookaheadParser,
+  locate,
   optionalWhitespace,
 } from './utils';
 
@@ -33,31 +37,39 @@ const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
 
 export const helperFunctionParser: NodeParser<HelperFunctionNode> =
   recursiveParser(() =>
-    coroutine(function* () {
-      yield char('@');
+    locate<HelperFunctionNode>(
+      coroutine(function* () {
+        yield char('@');
 
-      const name = (yield helperNameParser) as unknown as string;
+        const name = (yield helperNameParser) as unknown as string;
 
-      let args = null;
+        let args = null;
 
-      if (yield possibly(sequenceOf([char('('), optionalWhitespace]))) {
-        args = (yield commaSeparated(argumentExpressionParser).errorMap((err) =>
-          buildParserError(err, HELPER_PARSER_ERROR),
-        )) as unknown as ArgumentExpressionNode[];
+        if (yield possibly(sequenceOf([char('('), optionalWhitespace]))) {
+          args = (yield commaSeparated(argumentExpressionParser).errorMap(
+            (err) => buildParserError(err, HELPER_PARSER_ERROR),
+          )) as unknown as ArgumentExpressionNode[];
 
-        yield sequenceOf([optionalWhitespace, char(')')]).errorMap((err) =>
-          buildParserError(err, HELPER_PARSER_ERROR),
+          yield sequenceOf([optionalWhitespace, char(')')]).errorMap((err) =>
+            buildParserError(err, HELPER_PARSER_ERROR),
+          );
+        }
+
+        yield lookAhead(
+          choice([...baseEnclosingCharParsers, callOperatorParser]),
         );
-      }
 
-      yield enclosingLookaheadParser;
-
-      const n: HelperFunctionNode = {
+        return [name, args === null ? [] : args];
+      }),
+      ({ data, index, result: [initialContext, [name, args]] }) => ({
         type: NodeType.HelperFunctionExpression,
-        name,
-        args: args === null ? [] : args,
-      };
-
-      return n;
-    }),
+        name: name as HelperFunctionNode['name'],
+        args: args as HelperFunctionNode['args'],
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
+      }),
+    ),
   );

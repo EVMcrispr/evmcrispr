@@ -6,7 +6,6 @@ import type { Address } from '../../../..';
 import { BindingsSpace } from '../../../interpreter/BindingsManager';
 import { Interpreter } from '../../../interpreter/Interpreter';
 import type { HelperFunction, HelperFunctionNode } from '../../../types';
-import { NodeType } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Module } from '../../Module';
 import type { Std } from '../Std';
@@ -14,7 +13,10 @@ import type { Std } from '../Std';
 const ENV_TOKENLIST = '$token.tokenlist';
 const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
-const getTokenList = ({ bindingsManager }: Module): string => {
+const getTokenList = (
+  { bindingsManager }: Module,
+  h: HelperFunctionNode,
+): string => {
   const tokenList = String(
     bindingsManager.getBinding(ENV_TOKENLIST, BindingsSpace.USER) ??
       DEFAULT_TOKEN_LIST,
@@ -23,7 +25,7 @@ const getTokenList = ({ bindingsManager }: Module): string => {
   // Always check user data inputs:
   if (!tokenList.startsWith('https://')) {
     Interpreter.panic(
-      { type: NodeType.VariableIdentifier, value: ENV_TOKENLIST },
+      h,
       `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
     );
   }
@@ -36,7 +38,7 @@ const _token = async (
   h: HelperFunctionNode,
 ): Promise<Address> => {
   const chainId = await module.signer.getChainId();
-  const tokenList = getTokenList(module);
+  const tokenList = getTokenList(module, h);
   const {
     tokens,
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =

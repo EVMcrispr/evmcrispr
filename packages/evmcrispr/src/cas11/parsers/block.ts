@@ -1,4 +1,4 @@
-import { char, coroutine, recursiveParser, sequenceOf } from 'arcsecond';
+import { coroutine, recursiveParser, sequenceOf } from 'arcsecond';
 
 import type {
   BlockExpressionNode,
@@ -6,29 +6,41 @@ import type {
   NodeParser,
 } from '../types';
 import { NodeType } from '../types';
+import { buildParserError } from '../utils/parsers';
 import { commandExpressionParser } from './command';
-import { endOfLine, optionalEmptyLines, optionalWhitespace } from './utils';
+import {
+  closingCharParser,
+  createNodeLocation,
+  endOfLine,
+  locate,
+  openingCharParser,
+  optionalEmptyLines,
+} from './utils';
+
+const BLOCK_PARSER_ERROR = 'BlockParserError';
 
 export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
-    coroutine(function* () {
-      yield char('(');
+    locate<BlockExpressionNode>(
+      coroutine(function* () {
+        yield sequenceOf([openingCharParser('('), endOfLine]);
 
-      yield optionalWhitespace;
+        const scopedCommands = (yield optionalEmptyLines(
+          commandExpressionParser,
+        )) as unknown as CommandExpressionNode[];
 
-      yield endOfLine;
+        yield closingCharParser(')');
 
-      const scopedCommands = (yield optionalEmptyLines<CommandExpressionNode>(
-        commandExpressionParser,
-      )) as unknown as CommandExpressionNode[];
-
-      yield sequenceOf([optionalWhitespace, char(')')]);
-
-      const n: BlockExpressionNode = {
+        return [scopedCommands];
+      }).errorMap((err) => buildParserError(err, BLOCK_PARSER_ERROR)),
+      ({
+        data: { line, offset },
+        index,
+        result: [initialContext, [scopedCommands]],
+      }) => ({
         type: NodeType.BlockExpression,
-        body: scopedCommands,
-      };
-
-      return n;
-    }),
+        body: scopedCommands as BlockExpressionNode['body'],
+        loc: createNodeLocation(initialContext, { index, line, offset }),
+      }),
+    ),
   );

@@ -13,42 +13,59 @@ import type {
 } from '../../types';
 import { NodeType } from '../../types';
 import { buildParserError } from '../../utils/parsers';
-import { callOperatorParser, commonEnclosingCharParsers } from '../utils';
+import {
+  baseEnclosingCharParsers,
+  callOperatorParser,
+  createNodeLocation,
+  locate,
+} from '../utils';
 
 export const VARIABLE_PARSER_ERROR = 'VariableParserError';
 
-export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'ProbableIdentifierParserError';
+export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
 
 export const variableIdentifierParser: NodeParser<VariableIdentiferNode> =
   recursiveParser(() =>
-    sequenceOf([
-      regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
-      lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
-    ])
-      .errorMap((err) =>
+    locate<VariableIdentiferNode>(
+      sequenceOf([
+        regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
+        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
+      ]).errorMap((err) =>
         buildParserError(err, VARIABLE_PARSER_ERROR, 'Expecting a variable'),
-      )
-      .map(([value]) => ({
+      ),
+      ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.VariableIdentifier,
-        value,
-      })),
+        value: value as VariableIdentiferNode['value'],
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
+      }),
+    ),
   );
 
 export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
   recursiveParser(() =>
-    sequenceOf([
-      regex(/^(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
-      lookAhead(choice([...commonEnclosingCharParsers, callOperatorParser])),
-    ])
-      .errorMap((err) =>
+    locate<ProbableIdentifierNode>(
+      sequenceOf([
+        regex(/^(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
+        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
+      ]).errorMap((err) =>
         buildParserError(
           err,
           PROBABLE_IDENTIFIER_PARSER_ERROR,
           'Expecting an identifier',
         ),
-      )
-      .map(([value]) => ({
+      ),
+      ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.ProbableIdentifier,
-        value: value as string,
-      })),
+        value: value as ProbableIdentifierNode['value'],
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
+      }),
+    ),
   );

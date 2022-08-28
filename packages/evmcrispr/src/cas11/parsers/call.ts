@@ -1,3 +1,4 @@
+import type { Parser } from 'arcsecond';
 import {
   choice,
   coroutine,
@@ -16,40 +17,87 @@ import {
 } from './primaries';
 import { argumentsParser } from './expression';
 import { helperFunctionParser } from './helper';
-import { callOperatorParser } from './utils';
+import type { LocationData, NodeParserState } from './utils';
+import {
+  callOperatorParser,
+  createNodeLocation,
+  currentContexDataParser,
+} from './utils';
+
+const chainedCallExpressionParser = (
+  target: CallExpressionNode,
+): Parser<CallExpressionNode, string, NodeParserState> =>
+  recursiveParser(() =>
+    coroutine(function* () {
+      const initialContext =
+        (yield currentContexDataParser) as unknown as LocationData;
+
+      const method = (yield letters) as unknown as CallExpressionNode['method'];
+
+      const args =
+        (yield argumentsParser) as unknown as CallExpressionNode['args'];
+
+      const finalContext =
+        (yield currentContexDataParser) as unknown as LocationData;
+
+      const n: CallExpressionNode = {
+        type: NodeType.CallExpression,
+        target,
+        method,
+        args,
+        loc: createNodeLocation(initialContext, finalContext),
+      };
+
+      // Check for further chained call expressions
+      if (yield possibly(callOperatorParser)) {
+        const chainedNode = (yield chainedCallExpressionParser(
+          n,
+        )) as unknown as CallExpressionNode;
+        return chainedNode;
+      }
+
+      return n;
+    }),
+  );
 
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
     coroutine(function* () {
-      const target = yield choice([
+      const initialContext =
+        (yield currentContexDataParser) as unknown as LocationData;
+      const target = (yield choice([
         addressParser,
         variableIdentifierParser,
         helperFunctionParser,
         probableIdentifierParser,
-      ]);
+      ])) as unknown as CallExpressionNode['target'];
 
-      let callSymbol: string | null =
-        (yield callOperatorParser) as unknown as string;
-      let callExpressionNode: any = target;
+      yield callOperatorParser;
 
-      do {
-        const method = yield letters;
+      const method = (yield letters) as unknown as CallExpressionNode['method'];
+      const args =
+        (yield argumentsParser) as unknown as CallExpressionNode['args'];
 
-        const args = yield argumentsParser;
+      const finalContext =
+        (yield currentContexDataParser) as unknown as LocationData;
 
-        callExpressionNode = {
-          type: NodeType.CallExpression,
-          target: callExpressionNode,
-          method,
-          args,
-        };
+      const n: CallExpressionNode = {
+        type: NodeType.CallExpression,
+        target,
+        method,
+        args,
+        loc: createNodeLocation(initialContext, finalContext),
+      };
 
-        // Check for chained call expressions
-        callSymbol = (yield possibly(callOperatorParser)) as unknown as
-          | string
-          | null;
-      } while (callSymbol);
+      // Check for chained call expressions
+      if (yield possibly(callOperatorParser)) {
+        const chainedCallNode = (yield chainedCallExpressionParser(
+          n,
+        )) as unknown as CallExpressionNode;
 
-      return callExpressionNode;
+        return chainedCallNode;
+      }
+
+      return n;
     }),
   );

@@ -16,14 +16,29 @@ import {
 } from '../../src/cas11/parsers/primaries';
 import { HEXADECIMAL_PARSER_ERROR } from '../../src/cas11/parsers/primaries/literals/hexadecimal';
 import type {
+  BooleanLiteralNode,
+  BytesLiteralNode,
+  Location,
   NumericLiteralNode,
   ProbableIdentifierNode,
   StringLiteralNode,
+  VariableIdentiferNode,
 } from '../../src/cas11/types';
 import { NodeType } from '../../src/cas11/types';
 
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase, runParser } from '../test-helpers/cas11';
+
+const buildLocation = (value: string): Location => ({
+  start: {
+    line: 1,
+    col: 0,
+  },
+  end: {
+    line: 1,
+    col: value.length,
+  },
+});
 
 export const primaryParsersDescribe = (): Mocha.Suite =>
   describe('Primary parsers', () => {
@@ -38,6 +53,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           ).to.deep.equal({
             type: 'AddressLiteral',
             value: '0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3',
+            loc: buildLocation('0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3'),
           });
         });
 
@@ -52,16 +68,23 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
       });
 
       describe('when parsing hexadecimal values', () => {
+        const n = (value: string): BytesLiteralNode => ({
+          type: NodeType.BytesLiteral,
+          value,
+          loc: buildLocation(value),
+        });
         it('should parse them correctly', () => {
-          [
-            '0xa3432da4567be',
-            '0x0e80f0b30000000000000000000000008e6cd950ad6ba651f6dd608dc70e5886b1aa6b240000000000000000000000002f00df4f995451e0df337b91744006eb8892bfb10000000000000000000000000000000000000000000000004563918244f40000',
-          ].forEach((value) =>
-            expect(runParser(hexadecimalParser, value)).to.deep.equal({
-              type: 'BytesLiteral',
-              value,
-            }),
-          );
+          const cases: Case[] = [
+            ['0xa3432da4567be', n('0xa3432da4567be')],
+            [
+              '0x0e80f0b30000000000000000000000008e6cd950ad6ba651f6dd608dc70e5886b1aa6b240000000000000000000000002f00df4f995451e0df337b91744006eb8892bfb10000000000000000000000000000000000000000000000004563918244f40000',
+              n(
+                '0x0e80f0b30000000000000000000000008e6cd950ad6ba651f6dd608dc70e5886b1aa6b240000000000000000000000002f00df4f995451e0df337b91744006eb8892bfb10000000000000000000000000000000000000000000000004563918244f40000',
+              ),
+            ],
+          ];
+
+          runCases(cases, hexadecimalParser);
         });
 
         it('should fail when parsing an invalid one', () => {
@@ -76,12 +99,18 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
 
       describe('when parsing boolean values', () => {
         it('should parse them correctly', () => {
-          ['true', 'false'].forEach((value) =>
-            expect(runParser(booleanParser, value)).to.deep.equal({
-              type: 'BoolLiteral',
-              value: value === 'true',
-            }),
-          );
+          const n = (value: boolean): BooleanLiteralNode => ({
+            type: NodeType.BoolLiteral,
+            value,
+            loc: buildLocation(value ? 'true' : 'false'),
+          });
+
+          const cases: Case[] = [
+            ['true', n(true)],
+            ['false', n(false)],
+          ];
+
+          runCases(cases, booleanParser);
         });
 
         it('should fail when parsing an invalid one', () => {
@@ -106,6 +135,11 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             const n: NumericLiteralNode = {
               type: NodeType.NumberLiteral,
               value,
+              loc: buildLocation(
+                value.toString() +
+                  (power ? power?.toString() + 'e' : '') +
+                  (timeUnit ?? ''),
+              ),
             };
             if (power) n.power = power;
             if (timeUnit) n.timeUnit = timeUnit;
@@ -161,11 +195,21 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
       });
 
       describe('when parsing string values', () => {
-        it('should parse quoted ones', () => {
+        it('should parse quoted strings', () => {
           const node = (value: string): StringLiteralNode => {
             const n: StringLiteralNode = {
               type: NodeType.StringLiteral,
               value,
+              loc: {
+                start: {
+                  line: 1,
+                  col: 0,
+                },
+                end: {
+                  line: 1,
+                  col: value.length + 2,
+                },
+              },
             };
             return n;
           };
@@ -179,14 +223,14 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
               `"a test double quote string"`,
               node('a test double quote string'),
             ],
-            [`' ( ͡° ͜ʖ ͡°) '`, node(' ( ͡° ͜ʖ ͡°) ')],
+            [`'alpha (with beta) ? --'`, node('alpha (with beta) ? --')],
           ];
 
           runCases(cases, stringParser);
         });
       });
 
-      it('should fail when parsing an invalid one', () => {
+      it('should fail when parsing an invalid string', () => {
         runErrorCase(
           stringParser,
           '"asdadasdasd',
@@ -202,6 +246,16 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           const n: ProbableIdentifierNode = {
             type: NodeType.ProbableIdentifier,
             value,
+            loc: {
+              start: {
+                line: 1,
+                col: 0,
+              },
+              end: {
+                line: 1,
+                col: value.length,
+              },
+            },
           };
 
           return n;
@@ -234,17 +288,19 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
       });
 
       it('should parse variable values', () => {
-        [
-          '$variable',
-          '$aCamelCaseVariable',
-          '$a-snake-case-variable',
-          '$token-manager.open:0',
-        ].forEach((value) =>
-          expect(runParser(variableIdentifierParser, value)).to.deep.equal({
-            type: 'VariableIdentifier',
-            value,
-          }),
-        );
+        const n = (value: string): VariableIdentiferNode => ({
+          type: NodeType.VariableIdentifier,
+          value,
+          loc: buildLocation(value),
+        });
+        const cases: Case[] = [
+          ['$variable', n('$variable')],
+          ['$aCamelCaseVariable', n('$aCamelCaseVariable')],
+          ['$a-snake-case-variable', n('$a-snake-case-variable')],
+          ['$token-manager.open:0', n('$token-manager.open:0')],
+        ];
+
+        runCases(cases, variableIdentifierParser);
       });
 
       it('should fail when parsing invalid variables', () => {
