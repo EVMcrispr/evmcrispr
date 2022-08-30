@@ -115,7 +115,7 @@ export const createInterpreter = (
 };
 
 export const runExpression = async (
-  helper: string,
+  expression: string,
   signer: Signer,
   module?: string,
   configSetters: string[] = [],
@@ -125,7 +125,7 @@ export const runExpression = async (
   ${module ? `load ${module}` : ''}
 
   ${configSetters.join('\n')}
-  set $res ${helper}
+  set $res ${expression}
   `,
     signer,
   );

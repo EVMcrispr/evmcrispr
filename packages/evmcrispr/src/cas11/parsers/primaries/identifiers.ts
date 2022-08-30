@@ -69,3 +69,33 @@ export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
       }),
     ),
   );
+
+// const FULL_IDENTIFIER_REGEX = /^(?:(?!::|\(|\)).)+/;
+
+export const fullProbableIdentifierParser: NodeParser<ProbableIdentifierNode> =
+  recursiveParser(() =>
+    locate<ProbableIdentifierNode>(
+      sequenceOf([
+        regex(/^(?:(?!::|\(|\)).)+/),
+        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
+      ]).errorMap((err) =>
+        buildParserError(
+          err,
+          PROBABLE_IDENTIFIER_PARSER_ERROR,
+          'Expecting an identifier',
+        ),
+      ),
+      ({ data, index, result: [initialContext, [value]] }) => ({
+        type: NodeType.ProbableIdentifier,
+        value: value as ProbableIdentifierNode['value'],
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
+      }),
+    ),
+  );
+// calc((1 + 1e18) / 25 * ((25 - 1) / 2) * 2 * (2))
+
+// get(adress, transfer(123, 1e18))

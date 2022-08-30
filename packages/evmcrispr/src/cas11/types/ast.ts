@@ -134,6 +134,19 @@ export interface AsExpressionNode extends Node {
   right: ProbableIdentifierNode | StringLiteralNode;
 }
 
+export type OperableExpressionNode =
+  | CallExpressionNode
+  | HelperFunctionNode
+  | NumericLiteralNode
+  | BinaryExpressionNode;
+
+export interface BinaryExpressionNode extends Node {
+  type: NodeType.BinaryExpression;
+  operator: '+' | '-' | '*' | '/';
+  left: OperableExpressionNode;
+  right: OperableExpressionNode;
+}
+
 export type LiteralExpressionNode =
   | AddressLiteralNode
   | BooleanLiteralNode
@@ -146,12 +159,8 @@ export type PrimaryExpressionNode =
   | ProbableIdentifierNode
   | VariableIdentiferNode;
 
-export type CallableExpressionNode =
-  | CallExpressionNode
-  | CommandExpressionNode
-  | HelperFunctionNode;
-
 export type ArgumentExpressionNode =
+  | BinaryExpressionNode
   | ArrayExpressionNode
   | CallExpressionNode
   | HelperFunctionNode

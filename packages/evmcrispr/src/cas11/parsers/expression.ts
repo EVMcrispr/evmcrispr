@@ -16,6 +16,7 @@ import type {
 } from '../types';
 import { NodeType } from '../types';
 import { getIncorrectReceivedValue } from '../utils/parsers';
+import { arithmeticParser } from './arithmetic';
 import { arrayExpressionParser } from './array';
 import { blockExpressionParser } from './block';
 
@@ -56,6 +57,7 @@ const asExpressionParser: NodeParser<AsExpressionNode> =
 export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
   recursiveParser(() =>
     choice([
+      arithmeticParser,
       callExpressionParser,
       helperFunctionParser,
       arrayExpressionParser,
@@ -71,6 +73,7 @@ export const expressionParser: NodeParser<
   CommandArgExpressionNode | string | null
 > = recursiveParser(() =>
   choice([
+    arithmeticParser,
     asExpressionParser,
     callExpressionParser,
     helperFunctionParser,

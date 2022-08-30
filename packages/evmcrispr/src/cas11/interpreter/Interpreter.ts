@@ -1,5 +1,5 @@
 import type { Signer } from 'ethers';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 
 import {
   CommandError,
@@ -12,6 +12,7 @@ import type {
   AST,
   ArrayExpressionNode,
   AsExpressionNode,
+  BinaryExpressionNode,
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
@@ -37,6 +38,8 @@ const {
   AsExpression,
 
   ArrayExpression,
+
+  BinaryExpression,
 
   BlockExpression,
   CommandExpression,
@@ -126,6 +129,11 @@ export class Interpreter {
           n as ArrayExpressionNode,
           options,
         );
+      case BinaryExpression:
+        return this.#interpretBinaryExpression(
+          n as BinaryExpressionNode,
+          options,
+        );
       case BlockExpression:
         return this.#interpretBlockExpression(
           n as BlockExpressionNode,
@@ -190,6 +198,50 @@ export class Interpreter {
     const right = await this.interpretNode(n.right, options);
 
     return [left, right];
+  };
+
+  #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
+    n,
+  ) => {
+    const [leftOperand_, rightOperand_] = await this.interpretNodes([
+      n.left,
+      n.right,
+    ]);
+
+    let leftOperand: BigNumber, rightOperand: BigNumber;
+
+    try {
+      leftOperand = BigNumber.from(leftOperand_);
+    } catch (err) {
+      Interpreter.panic(
+        n,
+        `invalid left operand. Expected a number but got "${leftOperand_}"`,
+      );
+    }
+
+    try {
+      rightOperand = BigNumber.from(rightOperand_);
+    } catch (err) {
+      Interpreter.panic(
+        n,
+        `invalid right operand. Expected a number but got "${rightOperand_}"`,
+      );
+    }
+
+    switch (n.operator) {
+      case '+':
+        return leftOperand.add(rightOperand);
+      case '-':
+        return leftOperand.sub(rightOperand);
+      case '*':
+        return leftOperand.mul(rightOperand);
+      case '/': {
+        if (rightOperand.eq(0)) {
+          Interpreter.panic(n, `invalid operation. Can't divide by zero`);
+        }
+        return leftOperand.div(rightOperand);
+      }
+    }
   };
 
   #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
@@ -326,6 +378,8 @@ export class Interpreter {
 
   static panic(n: Node, msg: string): never {
     switch (n.type) {
+      case BinaryExpression:
+        throw new ExpressionError(msg, { name: 'ArithmeticExpression' });
       case CommandExpression:
         throw new CommandError((n as CommandExpressionNode).name, msg);
       case HelperFunctionExpression:

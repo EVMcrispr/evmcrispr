@@ -1,7 +1,8 @@
 import { Interpreter } from '../interpreter/Interpreter';
 import type {
-  CallableExpressionNode,
+  CallExpressionNode,
   CommandExpressionNode,
+  HelperFunctionNode,
   NodeInterpreter,
 } from '../types';
 import { commaListItems } from './formatters';
@@ -11,6 +12,11 @@ export enum ComparisonType {
   Equal = 'Equal',
   Greater = 'Greater',
 }
+
+type CallableExpressionNode =
+  | CallExpressionNode
+  | CommandExpressionNode
+  | HelperFunctionNode;
 
 export interface Comparison {
   type: ComparisonType;

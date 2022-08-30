@@ -1,4 +1,5 @@
 export * from './array';
+export * from './arithmetic';
 export * from './call';
 export * from './command';
 export * from './helper';

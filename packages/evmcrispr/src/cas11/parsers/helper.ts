@@ -25,6 +25,7 @@ import {
   createNodeLocation,
   enclosingLookaheadParser,
   locate,
+  openingCharParser,
   optionalWhitespace,
 } from './utils';
 
@@ -45,7 +46,7 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
 
         let args = null;
 
-        if (yield possibly(sequenceOf([char('('), optionalWhitespace]))) {
+        if (yield possibly(openingCharParser('('))) {
           args = (yield commaSeparated(argumentExpressionParser).errorMap(
             (err) => buildParserError(err, HELPER_PARSER_ERROR),
           )) as unknown as ArgumentExpressionNode[];
