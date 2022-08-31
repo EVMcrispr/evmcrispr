@@ -1,6 +1,4 @@
-import { utils } from 'ethers';
-
-import { ethers } from 'hardhat';
+import { ethers, utils } from 'ethers';
 
 import type { Action, Address } from '../../../..';
 import {
