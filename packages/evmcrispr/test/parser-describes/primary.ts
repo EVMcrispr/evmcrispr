@@ -189,7 +189,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             numberParser,
             '123.45e13w34',
             errorType,
-            'Invalid time unit. Expecting letters only',
+            `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
           );
         });
       });

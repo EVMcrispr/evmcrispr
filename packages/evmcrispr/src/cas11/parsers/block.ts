@@ -12,9 +12,9 @@ import {
   closingCharParser,
   createNodeLocation,
   endOfLine,
+  linesParser,
   locate,
   openingCharParser,
-  optionalEmptyLines,
 } from './utils';
 
 const BLOCK_PARSER_ERROR = 'BlockParserError';
@@ -25,7 +25,7 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
       coroutine(function* () {
         yield sequenceOf([openingCharParser('('), endOfLine]);
 
-        const scopedCommands = (yield optionalEmptyLines(
+        const scopedCommands = (yield linesParser(
           commandExpressionParser,
         )) as unknown as CommandExpressionNode[];
 

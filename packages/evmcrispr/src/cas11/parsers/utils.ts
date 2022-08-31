@@ -26,6 +26,7 @@ import type {
   NodeParser,
   NodeParserState,
 } from '../types';
+import { commentParser } from './comment';
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
@@ -89,13 +90,11 @@ export const commaSeparated: <T = Node>(
   parser: NodeParser<T>,
 ) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(',')));
 
-export const optionalEmptyLines = <T = Node>(
-  p: NodeParser<T>,
-): NodeParser<T[]> =>
+export const linesParser = <T = Node>(p: NodeParser<T>): NodeParser<T[]> =>
   recursiveParser(() =>
     coroutine(function* () {
       const lines = (yield many(
-        choice([emptyLine, p]),
+        choice([commentParser.map(() => null), emptyLine, p]),
       )) as unknown as (null | T)[];
 
       return lines.filter((l) => !!l) as T[];

@@ -49,7 +49,7 @@ export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
   recursiveParser(() =>
     locate<ProbableIdentifierNode>(
       sequenceOf([
-        regex(/^(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
+        regex(/^(?:(?!::|--|\(|\)|\[|\]|,|#|\s).)+/),
         lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
       ]).errorMap((err) =>
         buildParserError(

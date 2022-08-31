@@ -19,6 +19,7 @@ import type {
 } from '../types';
 import { NodeType } from '../types';
 import { buildParserError } from '../utils/parsers';
+import { commentParser } from './comment';
 
 import { argumentExpressionParser, expressionParser } from './expression';
 import {
@@ -122,6 +123,10 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           )[] = [];
 
           do {
+            if (yield possibly(lookAhead(commentParser))) {
+              break;
+            }
+
             yield whitespace;
 
             const arg = (yield commandArgsParser) as unknown as
@@ -140,6 +145,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           ) as CommandOptNode[];
 
           const { name, module } = commandName;
+
           return [module, name, args, opts];
         }),
         ({
@@ -159,7 +165,10 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           }),
         }),
       ),
-      sequenceOf([optionalWhitespace, endOfCommandParser]),
+      choice([
+        commentParser,
+        sequenceOf([optionalWhitespace, endOfCommandParser]),
+      ]),
     ]).map(([, commandNode]) => {
       return commandNode;
     }),

@@ -3,6 +3,7 @@ import {
   arrayParserDescribe,
   callParserDescribe,
   commandParserDescribe,
+  commentParserDescribe,
   helperParserDescribe,
   primaryParsersDescribe,
   scriptParserDescribe,
@@ -16,6 +17,8 @@ describe('CAS11 Parsers', () => {
   callParserDescribe();
 
   commandParserDescribe();
+
+  commentParserDescribe();
 
   helperParserDescribe();
 
