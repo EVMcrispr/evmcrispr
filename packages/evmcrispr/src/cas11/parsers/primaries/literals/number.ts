@@ -1,4 +1,4 @@
-import { char, coroutine, digits, letters, possibly } from 'arcsecond';
+import { char, choice, coroutine, digits, possibly, str } from 'arcsecond';
 
 import type { NodeParser, NumericLiteralNode } from '../../../types';
 import { NodeType } from '../../../types';
@@ -10,6 +10,16 @@ import {
 } from '../../utils';
 
 export const NUMBER_PARSER_ERROR = 'NumberParserError';
+
+const timeUnitsParser = choice([
+  str('mo'),
+  str('s'),
+  str('m'),
+  str('h'),
+  str('d'),
+  str('w'),
+  str('y'),
+]);
 
 export const numberParser: NodeParser<NumericLiteralNode> =
   locate<NumericLiteralNode>(
@@ -43,7 +53,7 @@ export const numberParser: NodeParser<NumericLiteralNode> =
         )) as unknown as string | undefined;
       }
 
-      const timeUnit = (yield possibly(letters)) as unknown as
+      const timeUnit = (yield possibly(timeUnitsParser)) as unknown as
         | string
         | undefined;
 
@@ -51,7 +61,7 @@ export const numberParser: NodeParser<NumericLiteralNode> =
         buildParserError(
           err,
           'NumberParserError',
-          'Invalid time unit. Expecting letters only',
+          `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
         ),
       );
 
