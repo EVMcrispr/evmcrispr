@@ -39,7 +39,7 @@ export const execDescribe = (): Suite =>
       ];
 
       const interpreter = createInterpreter(
-        `exec ${target} "${fnSig}" ${params.join(' ')}`,
+        `exec ${target} ${fnSig} ${params.join(' ')}`,
         signer,
       );
 
@@ -69,7 +69,7 @@ export const execDescribe = (): Suite =>
       await expectThrowAsync(
         () =>
           createInterpreter(
-            `exec ${invalidTargetAddress} "${fnSig}" 1e18`,
+            `exec ${invalidTargetAddress} ${fnSig} 1e18`,
             signer,
           ).interpret(),
         {
@@ -80,7 +80,7 @@ export const execDescribe = (): Suite =>
     });
 
     it('should fail when providing an invalid signature', async () => {
-      const invalidSignature = 'invalid(uint256,';
+      const invalidSignature = 'invalid(uint256,)';
       const error = new CommandError(
         'exec',
         `expected a valid signature, but got ${invalidSignature}`,
@@ -89,7 +89,7 @@ export const execDescribe = (): Suite =>
       await expectThrowAsync(
         () =>
           createInterpreter(
-            `exec ${target} "${invalidSignature}" 1e18`,
+            `exec ${target} ${invalidSignature} 1e18`,
             signer,
           ).interpret(),
         {
@@ -111,7 +111,7 @@ export const execDescribe = (): Suite =>
       await expectThrowAsync(
         () =>
           createInterpreter(
-            `exec ${target} "${fnSig}" false 1e18`,
+            `exec ${target} ${fnSig} false 1e18`,
             signer,
           ).interpret(),
         {

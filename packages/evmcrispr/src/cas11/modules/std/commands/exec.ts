@@ -16,10 +16,14 @@ export const exec: CommandFunction<Std> = async (
 ) => {
   checkArgsLength(c, { type: ComparisonType.Greater, minValue: 3 });
 
-  const targetAddress = await interpretNode(c.args.shift()!, {
-    allowNotFoundError: true,
-  });
-  const [signature, ...params] = await interpretNodes(c.args);
+  const targetNode = c.args.shift()!;
+  const signatureNode = c.args.shift()!;
+
+  const [targetAddress, signature, params] = await Promise.all([
+    interpretNode(targetNode, { allowNotFoundError: true }),
+    interpretNode(signatureNode, { treatAsLiteral: true }),
+    interpretNodes(c.args),
+  ]);
 
   if (!utils.isAddress(targetAddress)) {
     Interpreter.panic(
