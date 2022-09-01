@@ -271,6 +271,8 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'agent.open.0',
           'superfluid-app.other-open:20',
           '2015-20-09',
+          'aSIgnature(with,some,params)',
+          'noParamSignature()',
         ].forEach((value) =>
           expect(runParser(probableIdentifierParser, value)).to.eql(
             node(value),

@@ -1,6 +1,11 @@
+import type { Parser } from 'arcsecond';
 import {
+  char,
   choice,
+  coroutine,
   lookAhead,
+  many1,
+  possibly,
   recursiveParser,
   regex,
   sequenceOf,
@@ -45,13 +50,51 @@ export const variableIdentifierParser: NodeParser<VariableIdentiferNode> =
     ),
   );
 
+const identifierRegexParser = regex(/^(?:(?!::|--|#|,|\(|\[|\)|\]|\s).)+/);
+const encloseIdentifierRegexParser = regex(
+  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|\s).)+/,
+);
+
+const sequenceOf_ = (parsers: Parser<any, string, any>[]) =>
+  sequenceOf(parsers).map((values) => values.join(''));
+
+export const enclosedIdentifierParser: Parser<any, string, any> =
+  recursiveParser(() =>
+    many1(
+      choice([
+        sequenceOf_([char('('), possibly(enclosedIdentifierParser), char(')')]),
+        sequenceOf_([char('['), possibly(enclosedIdentifierParser), char(']')]),
+        encloseIdentifierRegexParser,
+      ]),
+    ).map((values) => values.filter((v) => !!v).join('')),
+  );
+
 export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
   recursiveParser(() =>
     locate<ProbableIdentifierNode>(
-      sequenceOf([
-        regex(/^(?:(?!::|--|\(|\)|\[|\]|,|#|\s).)+/),
-        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
-      ]).errorMap((err) =>
+      coroutine(function* () {
+        const parts = (yield many1(
+          choice([
+            sequenceOf_([
+              char('('),
+              possibly(enclosedIdentifierParser),
+              char(')'),
+            ]),
+            sequenceOf_([
+              char('['),
+              possibly(enclosedIdentifierParser),
+              char(']'),
+            ]),
+            identifierRegexParser,
+          ]),
+        )) as unknown as string[];
+
+        yield lookAhead(
+          choice([...baseEnclosingCharParsers, callOperatorParser]),
+        );
+
+        return [parts.filter((v) => !!v).join('')];
+      }).errorMap((err) =>
         buildParserError(
           err,
           PROBABLE_IDENTIFIER_PARSER_ERROR,
@@ -69,33 +112,3 @@ export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
       }),
     ),
   );
-
-// const FULL_IDENTIFIER_REGEX = /^(?:(?!::|\(|\)).)+/;
-
-export const fullProbableIdentifierParser: NodeParser<ProbableIdentifierNode> =
-  recursiveParser(() =>
-    locate<ProbableIdentifierNode>(
-      sequenceOf([
-        regex(/^(?:(?!::|\(|\)).)+/),
-        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
-      ]).errorMap((err) =>
-        buildParserError(
-          err,
-          PROBABLE_IDENTIFIER_PARSER_ERROR,
-          'Expecting an identifier',
-        ),
-      ),
-      ({ data, index, result: [initialContext, [value]] }) => ({
-        type: NodeType.ProbableIdentifier,
-        value: value as ProbableIdentifierNode['value'],
-        loc: createNodeLocation(initialContext, {
-          line: data.line,
-          index,
-          offset: data.offset,
-        }),
-      }),
-    ),
-  );
-// calc((1 + 1e18) / 25 * ((25 - 1) / 2) * 2 * (2))
-
-// get(adress, transfer(123, 1e18))

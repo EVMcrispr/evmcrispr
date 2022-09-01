@@ -148,9 +148,6 @@ const updateExpressionArgs = (
       return `${argumentlessExpression}(${[...args, `'extra argument'`].join(
         ',',
       )})`;
-
-    // x = max - min + 1    2 - 1 + 1
-    // max - x  = min - 1
     case 'remove':
       return `${argumentlessExpression}(${args
         .slice(
