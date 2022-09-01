@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unresolved */
 import type { DefaultBodyType, PathParams } from 'msw';
 import { graphql, rest } from 'msw';
 import { setupServer } from 'msw/node';
