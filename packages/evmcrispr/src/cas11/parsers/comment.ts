@@ -6,12 +6,12 @@ import {
   sequenceOf,
 } from 'arcsecond';
 
-import { endOfLine, optionalWhitespace } from './utils';
+import { endLine, optionalWhitespace } from './utils';
 
 const commentInitializerChar = char('#');
 
 export const commentParser = sequenceOf([
   optionalWhitespace,
   commentInitializerChar,
-  everythingUntil(choice([endOfInput, endOfLine])),
+  everythingUntil(choice([endOfInput, endLine])),
 ]);

@@ -27,6 +27,7 @@ import {
   createNodeLocation,
   currentContexDataParser,
 } from './utils';
+import { buildParserError } from '../utils/parsers';
 
 const chainedCallExpressionParser = (
   target: CallExpressionNode,
@@ -64,23 +65,29 @@ const chainedCallExpressionParser = (
     }),
   );
 
+const enclosingParsers = [callOperatorParser];
+
+const callableExpressions = choice([
+  addressParser(enclosingParsers),
+  variableIdentifierParser(enclosingParsers),
+  helperFunctionParser,
+  probableIdentifierParser(enclosingParsers),
+]);
+
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
     coroutine(function* () {
       const initialContext =
         (yield currentContexDataParser) as unknown as LocationData;
-      const target = (yield choice([
-        addressParser,
-        variableIdentifierParser,
-        helperFunctionParser,
-        probableIdentifierParser,
-      ])) as unknown as CallExpressionNode['target'];
+      const target =
+        (yield callableExpressions) as unknown as CallExpressionNode['target'];
 
       yield callOperatorParser;
 
       const method = (yield letters) as unknown as CallExpressionNode['method'];
-      const args =
-        (yield argumentsParser) as unknown as CallExpressionNode['args'];
+      const args = (yield argumentsParser.errorMap((err) =>
+        buildParserError(err, ''),
+      )) as unknown as CallExpressionNode['args'];
 
       const finalContext =
         (yield currentContexDataParser) as unknown as LocationData;

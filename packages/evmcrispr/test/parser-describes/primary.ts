@@ -47,7 +47,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
         it('should parse them correctly', () => {
           expect(
             runParser(
-              addressParser,
+              addressParser(),
               '0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3',
             ),
           ).to.deep.equal({
@@ -59,7 +59,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
 
         it('should fail when parsing an invalid one', () => {
           runErrorCase(
-            addressParser,
+            addressParser(),
             '0xasdabmtbrtbrtgsdfsvbrty',
             ADDRESS_PARSER_ERROR,
             'Expecting an address',
@@ -84,12 +84,12 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             ],
           ];
 
-          runCases(cases, hexadecimalParser);
+          runCases(cases, hexadecimalParser());
         });
 
         it('should fail when parsing an invalid one', () => {
           runErrorCase(
-            hexadecimalParser,
+            hexadecimalParser(),
             '0xasdadqlkerrtrtnrn',
             HEXADECIMAL_PARSER_ERROR,
             'Expecting a hexadecimal value',
@@ -110,12 +110,12 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             ['false', n(false)],
           ];
 
-          runCases(cases, booleanParser);
+          runCases(cases, booleanParser());
         });
 
         it('should fail when parsing an invalid one', () => {
           runErrorCase(
-            booleanParser,
+            booleanParser(),
             'fals',
             BOOLEAN_PARSER_ERROR,
             'Expecting "true" or "false"',
@@ -161,12 +161,12 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             ['2.5y', node(2.5, undefined, 'y')],
           ];
 
-          runCases(cases, numberParser);
+          runCases(cases, numberParser());
         });
 
         it('should fail when parsing an incomplete decimal', () => {
           runErrorCase(
-            numberParser,
+            numberParser(),
             '123.e18',
             errorType,
             'Invalid decimal. Expecting digits',
@@ -176,7 +176,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
         it('should fail when parsing an incomplete exponent', () => {
           () => {
             runErrorCase(
-              numberParser,
+              numberParser(),
               '123.2ew',
               errorType,
               'Invalid exponent. Expecting digits',
@@ -186,7 +186,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
 
         it('should fail when parsing an invalid time unit', () => {
           runErrorCase(
-            numberParser,
+            numberParser(),
             '123.45e13w34',
             errorType,
             `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
@@ -226,13 +226,13 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
             [`'alpha (with beta) ? --'`, node('alpha (with beta) ? --')],
           ];
 
-          runCases(cases, stringParser);
+          runCases(cases, stringParser());
         });
       });
 
       it('should fail when parsing an invalid string', () => {
         runErrorCase(
-          stringParser,
+          stringParser(),
           '"asdadasdasd',
           STRING_PARSER_ERROR,
           'Expecting a quoted string',
@@ -274,7 +274,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           'aSIgnature(with,some,params)',
           'noParamSignature()',
         ].forEach((value) =>
-          expect(runParser(probableIdentifierParser, value)).to.eql(
+          expect(runParser(probableIdentifierParser(), value)).to.eql(
             node(value),
           ),
         );
@@ -282,7 +282,7 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
 
       it('fail when parsing an invalid identifier', () => {
         runErrorCase(
-          probableIdentifierParser,
+          probableIdentifierParser(),
           'asd([[))',
           PROBABLE_IDENTIFIER_PARSER_ERROR,
           'Expecting an identifier',
@@ -302,12 +302,12 @@ export const primaryParsersDescribe = (): Mocha.Suite =>
           ['$token-manager.open:0', n('$token-manager.open:0')],
         ];
 
-        runCases(cases, variableIdentifierParser);
+        runCases(cases, variableIdentifierParser());
       });
 
       it('should fail when parsing invalid variables', () => {
         runErrorCase(
-          variableIdentifierParser,
+          variableIdentifierParser(),
           '$asd/()',
           VARIABLE_PARSER_ERROR,
           'Expecting a variable',

@@ -25,7 +25,6 @@ export const getDescribe = (): Mocha.Suite =>
         signer,
       );
 
-      console.log(name);
       expect(name).to.eq('Wrapped Ether');
     });
 

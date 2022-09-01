@@ -1,6 +1,6 @@
 import { char, choice, coroutine, digits, possibly, str } from 'arcsecond';
 
-import type { NodeParser, NumericLiteralNode } from '../../../types';
+import type { EnclosingNodeParser, NumericLiteralNode } from '../../../types';
 import { NodeType } from '../../../types';
 import { buildParserError } from '../../../utils/parsers';
 import {
@@ -21,7 +21,9 @@ const timeUnitsParser = choice([
   str('y'),
 ]);
 
-export const numberParser: NodeParser<NumericLiteralNode> =
+export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
+  enclosingParsers = [],
+) =>
   locate<NumericLiteralNode>(
     coroutine(function* () {
       let value: number;
@@ -57,7 +59,7 @@ export const numberParser: NodeParser<NumericLiteralNode> =
         | string
         | undefined;
 
-      yield enclosingLookaheadParser.errorMap((err) =>
+      yield enclosingLookaheadParser(enclosingParsers).errorMap((err) =>
         buildParserError(
           err,
           'NumberParserError',

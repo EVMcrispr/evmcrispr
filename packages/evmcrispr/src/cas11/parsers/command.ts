@@ -1,8 +1,9 @@
 import {
-  char,
   choice,
   coroutine,
+  either,
   endOfInput,
+  everyCharUntil,
   lookAhead,
   possibly,
   recursiveParser,
@@ -23,9 +24,11 @@ import { commentParser } from './comment';
 
 import { argumentExpressionParser, expressionParser } from './expression';
 import {
+  addNewError,
   camelAndKebabCase,
   createNodeLocation,
   enclose,
+  endLine,
   endOfLine,
   locate,
   optOperatorParser,
@@ -61,33 +64,34 @@ const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
     return commandName;
   });
 
-const commandOptParser: NodeParser<CommandOptNode> = locate<CommandOptNode>(
-  sequenceOf([
-    optOperatorParser,
-    enclose(camelAndKebabCase).errorMap((err) =>
-      buildParserError(
-        err,
-        COMMAND_PARSER_ERROR,
-        'Expecting a valid option name',
+export const commandOptParser: NodeParser<CommandOptNode> =
+  locate<CommandOptNode>(
+    sequenceOf([
+      optOperatorParser,
+      enclose(camelAndKebabCase).errorMap((err) =>
+        buildParserError(
+          err,
+          COMMAND_PARSER_ERROR,
+          'Expecting a valid option name',
+        ),
       ),
-    ),
-    whitespace,
-    argumentExpressionParser,
-  ]),
-  ({ data, index, result: [initialContext, [, name, , value]] }) => ({
-    type: NodeType.CommandOpt,
-    name: name as CommandOptNode['name'],
-    value: value as CommandOptNode['value'],
-    loc: createNodeLocation(initialContext, {
-      line: data.line,
-      index,
-      offset: data.offset,
+      whitespace,
+      argumentExpressionParser(),
+    ]),
+    ({ data, index, result: [initialContext, [, name, , value]] }) => ({
+      type: NodeType.CommandOpt,
+      name: name as CommandOptNode['name'],
+      value: value as CommandOptNode['value'],
+      loc: createNodeLocation(initialContext, {
+        line: data.line,
+        index,
+        offset: data.offset,
+      }),
     }),
-  }),
-);
+  );
 
 const isLastParameter = possibly(
-  lookAhead(sequenceOf([optionalWhitespace, choice([char('\n'), endOfInput])])),
+  lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),
 );
 
 const commandArgsParser = coroutine(function* () {
@@ -98,7 +102,7 @@ const commandArgsParser = coroutine(function* () {
       (yield commandOptParser) as unknown as CommandArgExpressionNode;
   } else {
     commandArgOrOpt =
-      (yield expressionParser) as unknown as CommandArgExpressionNode;
+      (yield expressionParser()) as unknown as CommandArgExpressionNode;
   }
 
   return commandArgOrOpt;
@@ -106,7 +110,7 @@ const commandArgsParser = coroutine(function* () {
 
 export const COMMAND_PARSER_ERROR = 'CommandParserError';
 
-export const endOfCommandParser = choice([endOfLine, endOfInput]);
+export const endOfCommandParser = choice([endLine, lookAhead(endOfInput)]);
 
 export const commandExpressionParser: NodeParser<CommandExpressionNode> =
   recursiveParser(() =>
@@ -123,17 +127,27 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           )[] = [];
 
           do {
+            /**
+             * Check if there's a comment ahead but don't consume it
+             * to avoid having an incorrect loc property
+             */
             if (yield possibly(lookAhead(commentParser))) {
               break;
             }
 
             yield whitespace;
 
-            const arg = (yield commandArgsParser) as unknown as
-              | CommandArgExpressionNode
-              | CommandOptNode;
+            const res = (yield either(commandArgsParser)) as unknown as {
+              isError: boolean;
+              value: any;
+            };
 
-            commandArgsAndOpts.push(arg);
+            if (res.isError) {
+              yield addNewError(res.value);
+              yield everyCharUntil(choice([whitespace, endOfLine]));
+            } else {
+              commandArgsAndOpts.push(res.value);
+            }
           } while (!(yield isLastParameter));
 
           const args = commandArgsAndOpts.filter(

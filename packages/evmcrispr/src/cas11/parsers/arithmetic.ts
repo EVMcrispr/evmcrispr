@@ -96,8 +96,8 @@ const binaryExpression =
 const operableExpressions = choice([
   callExpressionParser,
   helperFunctionParser,
-  variableIdentifierParser,
-  numberParser,
+  variableIdentifierParser([plus, minus, times, divide, char(')')]),
+  numberParser([plus, minus, times, divide, char(')')]),
 ]);
 
 // Each precedence group consists of a set of equal precedence terms,

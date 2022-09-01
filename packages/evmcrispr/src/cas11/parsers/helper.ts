@@ -1,12 +1,10 @@
 import {
   char,
-  choice,
   coroutine,
   lookAhead,
   possibly,
   recursiveParser,
   regex,
-  sequenceOf,
   takeLeft,
 } from 'arcsecond';
 
@@ -17,21 +15,25 @@ import type {
 } from '../types';
 import { NodeType } from '../types';
 import { buildParserError } from '../utils/parsers';
-import { argumentExpressionParser } from './expression';
+import { argumentsParser } from './expression';
 import {
-  baseEnclosingCharParsers,
   callOperatorParser,
-  commaSeparated,
+  comma,
   createNodeLocation,
   enclosingLookaheadParser,
   locate,
   openingCharParser,
-  optionalWhitespace,
 } from './utils';
 
 export const HELPER_PARSER_ERROR = 'HelperParserError';
 const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
-  choice([enclosingLookaheadParser, lookAhead(char('('))]),
+  enclosingLookaheadParser([
+    char('('),
+    comma,
+    char(']'),
+    callOperatorParser,
+    char(')'),
+  ]),
 ).errorMap((err) =>
   buildParserError(err, HELPER_PARSER_ERROR, 'Expecting a helper name'),
 );
@@ -46,19 +48,11 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
 
         let args = null;
 
-        if (yield possibly(openingCharParser('('))) {
-          args = (yield commaSeparated(argumentExpressionParser).errorMap(
-            (err) => buildParserError(err, HELPER_PARSER_ERROR),
-          )) as unknown as ArgumentExpressionNode[];
-
-          yield sequenceOf([optionalWhitespace, char(')')]).errorMap((err) =>
+        if (yield possibly(lookAhead(openingCharParser('(')))) {
+          args = (yield argumentsParser.errorMap((err) =>
             buildParserError(err, HELPER_PARSER_ERROR),
-          );
+          )) as unknown as ArgumentExpressionNode[];
         }
-
-        yield lookAhead(
-          choice([...baseEnclosingCharParsers, callOperatorParser]),
-        );
 
         return [name, args === null ? [] : args];
       }),

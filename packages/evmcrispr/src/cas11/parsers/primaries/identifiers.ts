@@ -3,7 +3,6 @@ import {
   char,
   choice,
   coroutine,
-  lookAhead,
   many1,
   possibly,
   recursiveParser,
@@ -12,29 +11,26 @@ import {
 } from 'arcsecond';
 
 import type {
-  NodeParser,
+  EnclosingNodeParser,
   ProbableIdentifierNode,
   VariableIdentiferNode,
 } from '../../types';
 import { NodeType } from '../../types';
 import { buildParserError } from '../../utils/parsers';
-import {
-  baseEnclosingCharParsers,
-  callOperatorParser,
-  createNodeLocation,
-  locate,
-} from '../utils';
+import { createNodeLocation, enclosingLookaheadParser, locate } from '../utils';
 
 export const VARIABLE_PARSER_ERROR = 'VariableParserError';
 
 export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
 
-export const variableIdentifierParser: NodeParser<VariableIdentiferNode> =
+export const variableIdentifierParser: EnclosingNodeParser<
+  VariableIdentiferNode
+> = (enclosingParsers = []) =>
   recursiveParser(() =>
     locate<VariableIdentiferNode>(
       sequenceOf([
         regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
-        lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
+        enclosingLookaheadParser(enclosingParsers),
       ]).errorMap((err) =>
         buildParserError(err, VARIABLE_PARSER_ERROR, 'Expecting a variable'),
       ),
@@ -50,9 +46,9 @@ export const variableIdentifierParser: NodeParser<VariableIdentiferNode> =
     ),
   );
 
-const identifierRegexParser = regex(/^(?:(?!::|--|#|,|\(|\[|\)|\]|\s).)+/);
+const identifierRegexParser = regex(/^(?:(?!::|--|#|,|\(|\[|\)|\]|@|\s).)+/);
 const encloseIdentifierRegexParser = regex(
-  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|\s).)+/,
+  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s).)+/,
 );
 
 const sequenceOf_ = (parsers: Parser<any, string, any>[]) =>
@@ -69,7 +65,9 @@ export const enclosedIdentifierParser: Parser<any, string, any> =
     ).map((values) => values.filter((v) => !!v).join('')),
   );
 
-export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
+export const probableIdentifierParser: EnclosingNodeParser<
+  ProbableIdentifierNode
+> = (enclosingParsers = []) =>
   recursiveParser(() =>
     locate<ProbableIdentifierNode>(
       coroutine(function* () {
@@ -89,9 +87,7 @@ export const probableIdentifierParser: NodeParser<ProbableIdentifierNode> =
           ]),
         )) as unknown as string[];
 
-        yield lookAhead(
-          choice([...baseEnclosingCharParsers, callOperatorParser]),
-        );
+        yield enclosingLookaheadParser(enclosingParsers);
 
         return [parts.filter((v) => !!v).join('')];
       }).errorMap((err) =>

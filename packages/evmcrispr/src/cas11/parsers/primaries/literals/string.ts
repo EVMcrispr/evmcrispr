@@ -1,19 +1,28 @@
-import { between, char, choice, regex } from 'arcsecond';
+import { between, char, choice, regex, sequenceOf } from 'arcsecond';
 
-import type { NodeParser, StringLiteralNode } from '../../../types';
+import type { EnclosingNodeParser, StringLiteralNode } from '../../../types';
 import { NodeType } from '../../../types';
 import { buildParserError } from '../../../utils/parsers';
-import { createNodeLocation, locate } from '../../utils';
+import {
+  createNodeLocation,
+  enclosingLookaheadParser,
+  locate,
+} from '../../utils';
 
 export const STRING_PARSER_ERROR = 'StringParserError';
 
-export const stringParser: NodeParser<StringLiteralNode> =
+export const stringParser: EnclosingNodeParser<StringLiteralNode> = (
+  enclosingParsers = [],
+) =>
   locate<StringLiteralNode>(
-    choice<any, any>([
-      between(char('"'))(char('"'))(regex(/^[^"]*/)),
-      between(char("'"))(char("'"))(regex(/^[^']*/)),
+    sequenceOf([
+      choice<any, any>([
+        between(char('"'))(char('"'))(regex(/^[^"]*/)),
+        between(char("'"))(char("'"))(regex(/^[^']*/)),
+      ]),
+      enclosingLookaheadParser(enclosingParsers),
     ])
-      .map((x) => [x])
+      .map(([x]) => [x])
       .errorMap((err) =>
         buildParserError(err, STRING_PARSER_ERROR, 'Expecting a quoted string'),
       ),

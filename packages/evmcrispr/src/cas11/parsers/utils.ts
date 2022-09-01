@@ -4,10 +4,11 @@ import {
   char,
   choice,
   coroutine,
+  either,
   endOfInput,
+  everyCharUntil,
   getData,
   lookAhead,
-  many,
   possibly,
   recursiveParser,
   regex,
@@ -26,11 +27,13 @@ import type {
   NodeParser,
   NodeParserState,
 } from '../types';
+import { buildParserError } from '../utils/parsers';
 import { commentParser } from './comment';
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
   offset: 0,
+  errors: [],
 });
 
 export const createNodeLocation = (
@@ -54,24 +57,23 @@ export const callOperatorParser = str('::');
 export const optOperatorParser = str('--');
 
 // Overwrite arcsecond's parser as it ignores newline character
-export const whitespace = regex(/^ +/);
+export const whitespace = regex(/^ +/).errorMap((err) =>
+  buildParserError(err, 'ParserError', 'Expecting whitespace'),
+);
 
 export const optionalWhitespace = possibly(whitespace);
 
 export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
-export const baseEnclosingCharParsers = [
-  char(','),
-  char(']'),
-  char(')'),
-  char('\n'),
-  endOfInput,
-  char(' '),
-];
+export const comma = char(',');
+export const endOfLine = char('\n');
 
-export const enclosingLookaheadParser = lookAhead(
-  choice(baseEnclosingCharParsers),
-);
+export const baseEnclosingCharParsers = [endOfLine, endOfInput, whitespace];
+
+export const enclosingLookaheadParser = (
+  enclosingParsers: Parser<string, string, any>[] = [],
+): Parser<any, string, any> =>
+  lookAhead(choice([...baseEnclosingCharParsers, ...enclosingParsers]));
 
 export const enclose = (
   p: Parser<any, string, any>,
@@ -90,14 +92,36 @@ export const commaSeparated: <T = Node>(
   parser: NodeParser<T>,
 ) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(',')));
 
-export const linesParser = <T = Node>(p: NodeParser<T>): NodeParser<T[]> =>
+export const linesParser = <T = Node>(
+  lineParser: NodeParser<T>,
+  endingParser: Parser<any, string, any> = sequenceOf([
+    optionalWhitespace,
+    endOfInput,
+  ]),
+): NodeParser<T[]> =>
   recursiveParser(() =>
     coroutine(function* () {
-      const lines = (yield many(
-        choice([commentParser.map(() => null), emptyLine, p]),
-      )) as unknown as (null | T)[];
+      const lines = [];
+      let res: { isError: boolean; value: any };
+      while (
+        !(yield possibly(choice([endingParser, endOfInput.map(() => 'END')])))
+      ) {
+        res = (yield either(
+          choice([lineParser, emptyLine, commentParser.map(() => null)]),
+        )) as unknown as { isError: boolean; value: any };
 
-      return lines.filter((l) => !!l) as T[];
+        if (res.isError) {
+          yield addNewError(res.value);
+          yield everyCharUntil(choice([endingParser, endOfLine, endOfInput]));
+          if (yield possibly(lookAhead(endOfLine))) {
+            yield endLine;
+          }
+        } else if (res.value !== null) {
+          lines.push(res.value);
+        }
+      }
+
+      return lines as T[];
     }),
   );
 
@@ -134,14 +158,26 @@ export const addNewLine = (
     }),
   );
 
-export const endOfLine = sequenceOf([
-  char('\n'),
+export const addNewError = (
+  error: string,
+): Parser<any, string, NodeParserState> =>
+  getData.chain<any>((state: NodeParserState) =>
+    setData<any, string, NodeParserState>({
+      ...state,
+      errors: [...state.errors, error],
+    }),
+  );
+
+export const endLine = sequenceOf([
+  endOfLine,
   currentContexDataParser.chain((context) => addNewLine(context!.index)),
 ]);
 
-export const emptyLine = sequenceOf([possibly(whitespace), endOfLine]).map(
-  () => null,
-);
+export const emptyLine = sequenceOf([optionalWhitespace, endLine])
+  .map(() => null)
+  .errorMap((err) =>
+    buildParserError(err, 'LineParserError', 'Expecting empty line'),
+  );
 
 export const locate = <N extends Node = Node>(
   p: Parser<any[], string, NodeParserState>,

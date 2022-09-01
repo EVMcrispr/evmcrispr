@@ -1,6 +1,7 @@
 import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,
+  commandOptParser,
 } from '../../src/cas11/parsers/command';
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase } from '../test-helpers/cas11';
@@ -842,8 +843,8 @@ export const commandParserDescribe = (): Mocha.Suite =>
 
     it('should fail when parsing an invalid opt name', () => {
       runErrorCase(
-        commandExpressionParser,
-        'my-command 1e18 --asd$ asd',
+        commandOptParser,
+        '--asd$ asd',
         COMMAND_PARSER_ERROR,
         'Expecting a valid option name',
       );

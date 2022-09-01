@@ -1,6 +1,6 @@
 import { choice, sequenceOf, str } from 'arcsecond';
 
-import type { BooleanLiteralNode, NodeParser } from '../../../types';
+import type { BooleanLiteralNode, EnclosingNodeParser } from '../../../types';
 import { NodeType } from '../../../types';
 import { buildParserError } from '../../../utils/parsers';
 import {
@@ -11,11 +11,13 @@ import {
 
 export const BOOLEAN_PARSER_ERROR = 'BooleanParserError';
 
-export const booleanParser: NodeParser<BooleanLiteralNode> =
+export const booleanParser: EnclosingNodeParser<BooleanLiteralNode> = (
+  enclosingParsers = [],
+) =>
   locate<BooleanLiteralNode>(
     sequenceOf([
       choice([str('true'), str('false')]),
-      enclosingLookaheadParser,
+      enclosingLookaheadParser(enclosingParsers),
     ]).errorMap((err) =>
       buildParserError(
         err,

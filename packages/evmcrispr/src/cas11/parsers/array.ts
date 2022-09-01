@@ -1,4 +1,4 @@
-import { between, recursiveParser } from 'arcsecond';
+import { between, char, recursiveParser } from 'arcsecond';
 
 import type { ArrayExpressionNode, NodeParser } from '../types';
 import { NodeType } from '../types';
@@ -7,6 +7,7 @@ import { argumentExpressionParser } from './expression';
 
 import {
   closingCharParser,
+  comma,
   commaSeparated,
   createNodeLocation,
   locate,
@@ -19,7 +20,7 @@ export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
   recursiveParser(() =>
     locate<ArrayExpressionNode>(
       between(openingCharParser('['))(closingCharParser(']'))(
-        commaSeparated(argumentExpressionParser),
+        commaSeparated(argumentExpressionParser([comma, char(']')])),
       )
         .map((elements) => [elements])
         .errorMap((err) => buildParserError(err, ARRAY_PARSER_ERROR)),

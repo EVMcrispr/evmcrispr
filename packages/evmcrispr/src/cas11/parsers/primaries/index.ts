@@ -1,11 +1,7 @@
 import { choice, recursiveParser } from 'arcsecond';
 
-import type { NodeParser, PrimaryExpressionNode } from '../../types';
+import type { EnclosingNodeParser, PrimaryExpressionNode } from '../../types';
 
-import {
-  probableIdentifierParser,
-  variableIdentifierParser,
-} from './identifiers';
 import {
   addressParser,
   booleanParser,
@@ -14,18 +10,18 @@ import {
   stringParser,
 } from './literals';
 
-export const primaryParser: NodeParser<PrimaryExpressionNode> = recursiveParser(
-  () =>
+export const primaryParser: EnclosingNodeParser<PrimaryExpressionNode> = (
+  enclosingParsers = [],
+) =>
+  recursiveParser(() =>
     choice([
-      addressParser,
-      hexadecimalParser,
-      booleanParser,
-      numberParser,
-      stringParser,
-      variableIdentifierParser,
-      probableIdentifierParser,
+      addressParser(enclosingParsers),
+      hexadecimalParser(enclosingParsers),
+      booleanParser(enclosingParsers),
+      numberParser(enclosingParsers),
+      stringParser(enclosingParsers),
     ]),
-);
+  );
 
 export * from './identifiers';
 

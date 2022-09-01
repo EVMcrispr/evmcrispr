@@ -11,7 +11,7 @@ import { commandExpressionParser } from './command';
 import {
   closingCharParser,
   createNodeLocation,
-  endOfLine,
+  endLine,
   linesParser,
   locate,
   openingCharParser,
@@ -23,13 +23,12 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
     locate<BlockExpressionNode>(
       coroutine(function* () {
-        yield sequenceOf([openingCharParser('('), endOfLine]);
+        yield sequenceOf([openingCharParser('('), endLine]);
 
         const scopedCommands = (yield linesParser(
           commandExpressionParser,
+          closingCharParser(')'),
         )) as unknown as CommandExpressionNode[];
-
-        yield closingCharParser(')');
 
         return [scopedCommands];
       }).errorMap((err) => buildParserError(err, BLOCK_PARSER_ERROR)),

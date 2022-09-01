@@ -2,7 +2,6 @@ import {
   between,
   char,
   choice,
-  optionalWhitespace,
   recursiveParser,
   sequenceOf,
   str,
@@ -12,6 +11,7 @@ import type {
   ArgumentExpressionNode,
   AsExpressionNode,
   CommandArgExpressionNode,
+  EnclosingNodeParser,
   NodeParser,
 } from '../types';
 import { NodeType } from '../types';
@@ -26,22 +26,26 @@ import {
   primaryParser,
   probableIdentifierParser,
   stringParser,
+  variableIdentifierParser,
 } from './primaries';
 import {
+  closingCharParser,
+  comma,
   commaSeparated,
   createNodeLocation,
   locate,
+  openingCharParser,
   whitespace,
 } from './utils';
 
 const asExpressionParser: NodeParser<AsExpressionNode> =
   locate<AsExpressionNode>(
     sequenceOf([
-      choice([stringParser, probableIdentifierParser]),
+      choice([stringParser(), probableIdentifierParser()]),
       whitespace,
       str('as'),
       whitespace,
-      choice([stringParser, probableIdentifierParser]),
+      choice([stringParser(), probableIdentifierParser()]),
     ]),
     ({ data, index, result: [initialContext, [left, , , , right]] }) => ({
       type: NodeType.AsExpression,
@@ -54,34 +58,45 @@ const asExpressionParser: NodeParser<AsExpressionNode> =
       }),
     }),
   );
-export const argumentExpressionParser: NodeParser<ArgumentExpressionNode> =
+export const argumentExpressionParser: EnclosingNodeParser<
+  ArgumentExpressionNode
+> = (enclosingParsers = []) =>
   recursiveParser(() =>
     choice([
       arithmeticParser,
       callExpressionParser,
       helperFunctionParser,
       arrayExpressionParser,
-      primaryParser,
-    ]).errorMap(({ error, index }) => {
-      return `ExpressionParserError(col: ${index}): Expecting a valid expression${getIncorrectReceivedValue(
-        error,
-      )}`;
+      primaryParser(enclosingParsers),
+      variableIdentifierParser(enclosingParsers),
+      probableIdentifierParser(enclosingParsers),
+    ]).errorMap(({ data, error, index }) => {
+      return `ExpressionParserError(${data.line},${
+        index - data.offset
+      }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
     }),
   );
 
-export const expressionParser: NodeParser<
+export const expressionParser: EnclosingNodeParser<
   CommandArgExpressionNode | string | null
-> = recursiveParser(() =>
-  choice([
-    arithmeticParser,
-    asExpressionParser,
-    callExpressionParser,
-    helperFunctionParser,
-    blockExpressionParser,
-    arrayExpressionParser,
-    primaryParser,
-  ]),
-);
+> = (enclosingParsers = []) =>
+  recursiveParser(() =>
+    choice([
+      arithmeticParser,
+      asExpressionParser,
+      callExpressionParser,
+      helperFunctionParser,
+      blockExpressionParser,
+      arrayExpressionParser,
+      primaryParser(enclosingParsers),
+      variableIdentifierParser(enclosingParsers),
+      probableIdentifierParser(enclosingParsers),
+    ]).errorMap(({ data, error, index }) => {
+      return `ExpressionParserError(${data.line},${
+        index - data.offset
+      }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
+    }),
+  );
 
 export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
   recursiveParser(() =>
@@ -89,7 +104,9 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
       [string, string | null],
       ArgumentExpressionNode[],
       [string | null, string]
-    >(sequenceOf([char('('), optionalWhitespace]))(
-      sequenceOf([optionalWhitespace, char(')')]),
-    )(commaSeparated<ArgumentExpressionNode>(argumentExpressionParser)),
+    >(openingCharParser('('))(closingCharParser(')'))(
+      commaSeparated<ArgumentExpressionNode>(
+        argumentExpressionParser([comma, char(')')]),
+      ),
+    ),
   );

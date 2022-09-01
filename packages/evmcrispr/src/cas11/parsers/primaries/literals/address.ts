@@ -1,22 +1,23 @@
-import { choice, lookAhead, regex, sequenceOf } from 'arcsecond';
+import { regex, sequenceOf } from 'arcsecond';
 
 import { NodeType } from '../../../types';
-import type { AddressLiteralNode, NodeParser } from '../../../types';
+import type { AddressLiteralNode, EnclosingNodeParser } from '../../../types';
 import { buildParserError } from '../../../utils/parsers';
 import {
-  baseEnclosingCharParsers,
-  callOperatorParser,
   createNodeLocation,
+  enclosingLookaheadParser,
   locate,
 } from '../../utils';
 
 export const ADDRESS_PARSER_ERROR = 'AddressParserError';
 
-export const addressParser: NodeParser<AddressLiteralNode> =
+export const addressParser: EnclosingNodeParser<AddressLiteralNode> = (
+  enclosingParsers = [],
+) =>
   locate<AddressLiteralNode>(
     sequenceOf([
       regex(/^0x[a-fA-F0-9]{40}/),
-      lookAhead(choice([...baseEnclosingCharParsers, callOperatorParser])),
+      enclosingLookaheadParser(enclosingParsers),
     ]).errorMap((err) =>
       buildParserError(err, ADDRESS_PARSER_ERROR, 'Expecting an address'),
     ),
