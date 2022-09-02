@@ -14,8 +14,10 @@ import {
 } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
+const ETHERSCAN_API = process.env.ETHERSCAN_API;
+
 export const execDescribe = (): Suite =>
-  describe('when interpreting exec command', () => {
+  describe.only('when interpreting exec command', () => {
     let signer: Signer;
 
     before(async () => {
@@ -30,14 +32,7 @@ export const execDescribe = (): Suite =>
     ];
     const fnSig = 'approve(address,uint256)';
 
-    it('should return a correct contract call action', async () => {
-      const expectedCallAction: Action[] = [
-        {
-          to: target,
-          data: encodeActCall(fnSig, resolvedParams),
-        },
-      ];
-
+    it('should return a correct exec action', async () => {
       const interpreter = createInterpreter(
         `exec ${target} ${fnSig} ${params.join(' ')}`,
         signer,
@@ -45,7 +40,38 @@ export const execDescribe = (): Suite =>
 
       const result = await interpreter.interpret();
 
+      const expectedCallAction: Action[] = [
+        {
+          to: target,
+          data: encodeActCall(fnSig, resolvedParams),
+        },
+      ];
+
       expect(result).eql(expectedCallAction);
+    });
+
+    it("should return exec action when receiving just the method's name", async () => {
+      const interpreter = createInterpreter(
+        `
+        set $std:etherscanAPI  ${ETHERSCAN_API}
+        exec ${target} transfer @me 1500e18
+        `,
+        signer,
+      );
+
+      const callActions = await interpreter.interpret();
+
+      const expectedCallActions: Action[] = [
+        {
+          to: target,
+          data: encodeActCall('transfer(address,uint256)', [
+            await signer.getAddress(),
+            toDecimals(1500),
+          ]),
+        },
+      ];
+
+      expect(callActions).to.eql(expectedCallActions);
     });
 
     itChecksNonDefinedIdentifier(
@@ -83,13 +109,15 @@ export const execDescribe = (): Suite =>
       const invalidSignature = 'invalid(uint256,)';
       const error = new CommandError(
         'exec',
-        `expected a valid signature, but got ${invalidSignature}`,
+        `error when getting function from ABI - no matching function (argument="signature", value="invalid(uint256,)", code=INVALID_ARGUMENT, version=abi/5.6.2)`,
       );
 
       await expectThrowAsync(
         () =>
           createInterpreter(
-            `exec ${target} ${invalidSignature} 1e18`,
+            `
+            set $std:etherscanAPI ${ETHERSCAN_API}
+            exec ${target} ${invalidSignature} 1e18`,
             signer,
           ).interpret(),
         {
@@ -98,6 +126,16 @@ export const execDescribe = (): Suite =>
         },
       );
     });
+
+    it(
+      "should fail when providing a method's name whose contract ABI isn't found",
+    );
+
+    it("should fail when providing an ABI duplicated method's name");
+
+    it(
+      "should fail when providing a method's name of a contract which isn't verified",
+    );
 
     it('should fail when providing invalid call params', async () => {
       const paramErrors = [

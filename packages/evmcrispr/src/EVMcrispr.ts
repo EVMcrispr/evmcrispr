@@ -22,7 +22,7 @@ import resolver from './utils/resolvers';
 import AragonOS from './modules/aragonos/AragonOS';
 import Std from './modules/std/Std';
 import { fetchImplementationAddress } from './utils/proxies';
-import { getAbiEntries } from './utils/abis';
+import { getAbiSignatures } from './utils/abis';
 
 type TransactionReceipt = providers.TransactionReceipt;
 
@@ -130,18 +130,17 @@ export default class EVMcrispr {
           target,
           this.#signer.provider!,
         );
-        const signatures = await getAbiEntries(
+        const abi = await getAbiSignatures(
           this.env('$etherscanAPI') as string,
           contract ?? target,
           await this.#signer.getChainId(),
-          signature,
         );
-        if (signatures.length === 0) {
+        if (!abi) {
           throw new Error(
             'Wrong signature format and ABI not found: ' + signature + '.',
           );
         } else {
-          signature = signatures[0].split(' ')[1]; // TODO: pick the proper one based on the params
+          signature = abi[0].split(' ')[1]; // TODO: pick the proper one based on the params
         }
       }
       const paramTypes = signature.split('(')[1].slice(0, -1).split(',');

@@ -136,7 +136,6 @@ export const connectDescribe = (): Suite =>
               codeAddress,
               encodeCalldata(
                 new utils.Interface([`function ${initializeSignature}`]),
-                'initialize',
                 [newTokenAddress, true, 0],
               ),
               false,

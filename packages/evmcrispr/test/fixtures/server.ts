@@ -2,21 +2,23 @@ import type { DefaultBodyType, PathParams } from 'msw';
 import { graphql, rest } from 'msw';
 import { setupServer } from 'msw/node';
 
+import { utils } from 'ethers';
+
 import { artifacts } from './artifacts/';
+import { etherscan } from './etherscan';
 import { DAOs, REPOs } from './subgraph-data';
 import tokenListFixture from './tokenlist/uniswap.json';
 import { IPFS_GATEWAY } from '../../src/IPFSResolver';
 import { addressesEqual } from '../../src/utils';
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
+// const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API;
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
     'Repos',
     (req, res, ctx) => {
-      const repoName = req.variables.repoName;
-
-      const selectedRepo = REPOs[repoName as keyof typeof REPOs];
+      const selectedRepo = REPOs[req.variables.repoName as keyof typeof REPOs];
 
       return res(
         ctx.status(200),
@@ -65,6 +67,39 @@ const handlers = [
       } catch (err) {
         console.log(err);
       }
+    },
+  ),
+  rest.get<DefaultBodyType>(
+    `https://api-rinkeby.etherscan.io/api`,
+    (req, res, ctx) => {
+      console.log('hre');
+      const address = req.url.searchParams.get('address');
+
+      if (!address || !utils.isAddress(address)) {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            status: '0',
+            message: 'NOTOK',
+            result: 'Invalid Address format',
+          }),
+        );
+      }
+
+      const data = etherscan[address.toLowerCase() as keyof typeof etherscan];
+
+      if (!data) {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            status: '0',
+            message: 'NOTOK',
+            result: 'Contract source code not verified',
+          }),
+        );
+      }
+
+      return res(ctx.status(200), ctx.json(data));
     },
   ),
   rest.get('https://tokens.uniswap.org/', (_, res, ctx) => {

@@ -5,12 +5,9 @@ import type { AST, NodeParserState } from '../types';
 import { ASTType } from '../types';
 import { commandExpressionParser } from './command';
 import { createParserState, linesParser } from './utils';
+import { ErrorException } from '../../../dist/1hive-evmcrispr.cjs';
 
-export type ProgramParserData = {
-  lines: number;
-  line: number;
-};
-export const scriptParser: Parser<AST, string, ProgramParserData> = coroutine(
+export const scriptParser: Parser<AST, string, NodeParserState> = coroutine(
   function* () {
     yield setData<any, string, NodeParserState>(createParserState());
 
@@ -23,3 +20,18 @@ export const scriptParser: Parser<AST, string, ProgramParserData> = coroutine(
     } as unknown as AST;
   },
 );
+
+export const parseScript = (script: string): { ast: AST; errors: string[] } => {
+  const res = scriptParser.run(script);
+
+  if (res.isError) {
+    throw new ErrorException(
+      `An error occurred while parsing script: ${res.error}`,
+    );
+  }
+
+  return {
+    ast: res.result,
+    errors: res.data.errors,
+  };
+};

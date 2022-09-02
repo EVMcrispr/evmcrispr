@@ -88,11 +88,7 @@ export const install: CommandFunction<AragonOS> = async (
   let encodedInitializeFunction: string;
 
   try {
-    encodedInitializeFunction = encodeCalldata(
-      abiInterface,
-      'initialize',
-      initParams,
-    );
+    encodedInitializeFunction = encodeCalldata(abiInterface, initParams);
   } catch (err: any) {
     const err_ = err as Error;
 

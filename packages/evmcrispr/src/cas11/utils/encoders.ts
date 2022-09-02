@@ -6,32 +6,33 @@ import type { Action, Address } from '../..';
 
 export const encodeAction = (
   target: Address,
-  signature: string,
+  signature: string | Interface,
   params: any[],
 ): Action => {
   let fnABI: Interface;
-  const fullSignature = signature.startsWith('function')
-    ? signature
-    : `function ${signature}`;
+
   try {
-    fnABI = new utils.Interface([fullSignature]);
+    if (signature instanceof utils.Interface) {
+      fnABI = signature;
+    } else {
+      const fullSignature = signature.startsWith('function')
+        ? signature
+        : `function ${signature}`;
+      fnABI = new utils.Interface([fullSignature]);
+    }
   } catch (err) {
-    console.log(err);
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 
   return {
     to: target,
-    data: encodeCalldata(fnABI, signature.split('(')[0], params),
+    data: encodeCalldata(fnABI, params),
   };
 };
 
-export const encodeCalldata = (
-  fnABI: Interface,
-  methodName: string,
-  params: any[],
-): string => {
-  const fnFragment = fnABI.getFunction(methodName);
+export const encodeCalldata = (fnABI: Interface, params: any[]): string => {
+  const fnFragment = fnABI.fragments[0];
+  const methodName = fnFragment.name;
   const errors: string[] = [];
 
   // Encode parameters individually to generate better error messages

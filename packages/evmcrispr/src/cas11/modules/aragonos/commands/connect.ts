@@ -65,6 +65,17 @@ const setDAOContext = (
     }
 
     dao.appCache.forEach((app, appIdentifier) => {
+      bindingsManager.setBinding(
+        app.address,
+        app.abiInterface,
+        BindingsSpace.ABI,
+      );
+      bindingsManager.setBinding(
+        app.codeAddress,
+        app.abiInterface,
+        BindingsSpace.ABI,
+      );
+
       if (appIdentifier.endsWith(':0')) {
         const nameWithoutIndex = appIdentifier.slice(
           0,
