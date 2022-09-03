@@ -286,7 +286,7 @@ export class EVMcrispr {
 
     this.#bindingsManager.exitScope();
 
-    return results;
+    return results.filter((r) => !!r);
   };
 
   #interpretCallFunction: NodeInterpreter<CallExpressionNode> = async (n) => {
