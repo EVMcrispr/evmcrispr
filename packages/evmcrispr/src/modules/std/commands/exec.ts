@@ -21,7 +21,7 @@ export const exec: CommandFunction<Std> = async (
   c,
   { interpretNode, interpretNodes },
 ) => {
-  checkArgsLength(c, { type: ComparisonType.Greater, minValue: 3 });
+  checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
 
   const targetNode = c.args.shift()!;
   const signatureNode = c.args.shift()!;
@@ -69,7 +69,12 @@ export const exec: CommandFunction<Std> = async (
         );
       } catch (err) {
         const err_ = err as Error;
-        EVMcrispr.panic(c, err_.message);
+        EVMcrispr.panic(
+          c,
+          `an error ocurred while fetching ABI for ${
+            implementationAddress ?? targetAddress
+          } - ${err_.message}`,
+        );
       }
 
       if (!fetchedAbi) {
