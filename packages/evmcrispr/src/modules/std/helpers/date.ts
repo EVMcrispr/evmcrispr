@@ -1,18 +1,26 @@
+import { ErrorInvalid } from '../../../errors';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import type { Std } from '../Std';
+
 const iso8601Regex =
-  /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)/;
+  /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/;
 const offsetRegex =
   /^(?:([-+]\d+)y)?(?:([-+]\d+)mo)?(?:([-+]\d+)w)?(?:([-+]\d+)d)?(?:([-+]\d+)h)?(?:([-+]\d+)m)?(?:([-+]\d+)s?)?$/;
 
-async function date(
-  _: unknown,
-  date: string,
-  offset?: string,
-): Promise<string> {
+export const date: HelperFunction<Std> = async (_, h, { interpretNodes }) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Between,
+    minValue: 1,
+    maxValue: 2,
+  });
+
+  const [date, offset] = await interpretNodes(h.args);
   if (date != 'now' && !iso8601Regex.test(date)) {
-    throw new Error('Invalid date provided.');
+    throw new ErrorInvalid('Invalid date provided.');
   }
   if (offset && !offsetRegex.test(offset)) {
-    throw new Error('Invalid offset provided.');
+    throw new ErrorInvalid('Invalid offset provided.');
   }
   const _date = date == 'now' ? Date.now() : new Date(date);
   const [
@@ -33,7 +41,6 @@ async function date(
     Number(hours) * 3600 +
     Number(minutes) * 60 +
     Number(seconds);
-  return (Math.floor(_date.valueOf() / 1000) + offsetNum).toString();
-}
 
-export default date;
+  return (Math.floor(_date.valueOf() / 1000) + offsetNum).toString();
+};

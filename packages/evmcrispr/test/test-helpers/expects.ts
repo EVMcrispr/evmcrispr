@@ -2,10 +2,13 @@ import { expect } from 'chai';
 import { utils } from 'ethers';
 import { multihash } from 'is-ipfs';
 
-import type { ErrorException } from '../../src';
-import { ErrorInvalid } from '../../src';
-import { parseContentUri } from '../../src/utils';
-import type { AragonArtifact, ParsedApp } from '../../src/types';
+import type { ErrorException } from '../../src/errors';
+import { ErrorInvalid } from '../../src/errors';
+import type {
+  AragonArtifact,
+  ParsedApp,
+} from '../../src/modules/aragonos/types';
+import { parseContentUri } from '../../src/modules/aragonos/utils';
 
 const { isAddress } = utils;
 

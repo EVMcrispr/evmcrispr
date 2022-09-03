@@ -4,7 +4,7 @@ import { constants } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { MINIME_TOKEN_FACTORIES } from '../../../../src/cas11/modules/aragonos/utils';
+import { MINIME_TOKEN_FACTORIES } from '../../../../src/modules/aragonos/utils';
 import { CommandError } from '../../../../src/errors';
 import {
   buildNonceForAddress,

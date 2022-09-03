@@ -1,127 +1,160 @@
-import { constants } from 'ethers';
+import { constants, utils } from 'ethers';
 
-import type { ActionFunction, Entity } from '../../..';
-import { ErrorException, ErrorInvalid, ErrorNotFound } from '../../../errors';
-import type { ConnectedAragonOS } from '../AragonOS';
-import { resolvePermission } from '../utils/acl';
+import type { Action, CommandFunction, InterpretOptions } from '../../../types';
+import {
+  ComparisonType,
+  checkArgsLength,
+  checkOpts,
+  getOptValue,
+} from '../../../utils';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type { AragonOS } from '../AragonOS';
+import { checkPermissionFormat, getDAO } from '../utils/commands';
+import { normalizeRole, oracle } from '../utils';
+import type { FullPermission, Params } from '../types';
 
-/**
- * Encode an action that creates a new app permission or grant it if it already exists.
- * @param permission The permission to create.
- * @param defaultPermissionManager The [[Entity | entity]] to set as the permission manager.
- * @returns A function that returns the permission action.
- */
-export function grant(
-  module: ConnectedAragonOS,
-  grantee: Entity,
-  app: Entity,
-  role: string,
-  defaultPermissionManager?: Entity,
-  opts?: {
-    params?: () => string[];
-    oracle?: string;
-  },
-): ActionFunction {
-  return async () => {
-    const [granteeAddress, appAddress, roleHash] = resolvePermission(
-      module.evm,
-      [grantee, app, role],
+export const grant: CommandFunction<AragonOS> = async (
+  module,
+  c,
+  { interpretNode },
+) => {
+  checkArgsLength(c, {
+    type: ComparisonType.Between,
+    minValue: 3,
+    maxValue: 4,
+  });
+  checkOpts(c, ['oracle']);
+
+  const dao = getDAO(module, c, 1);
+
+  const permissionMangerArgNode = c.args[3];
+  const permission = await Promise.all(
+    c.args.slice(0, 3).map((arg, i) => {
+      const opts: Partial<InterpretOptions> | undefined =
+        i !== 2 ? { allowNotFoundError: true } : undefined;
+
+      return interpretNode(arg, opts);
+    }),
+  );
+
+  checkPermissionFormat(c, permission as FullPermission);
+
+  const [granteeAddress, appAddress, role] = permission;
+
+  const roleHash = normalizeRole(role);
+
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    EVMcrispr.panic(c, `${appAddress} is not a DAO's app`);
+  }
+
+  const { permissions: appPermissions, name } = app;
+  const { address: aclAddress, abiInterface: aclAbiInterface } =
+    dao!.resolveApp('acl')!;
+  const actions: Action[] = [];
+
+  if (!appPermissions.has(roleHash)) {
+    // TODO: get app identifier. Maybe set it on cache
+    EVMcrispr.panic(c, `given permission doesn't exists on app ${name}`);
+  }
+
+  const appPermission = appPermissions.get(roleHash)!;
+
+  const oracleOpt = await getOptValue(c, 'oracle', interpretNode);
+  let params: ReturnType<Params> = [];
+
+  if (oracleOpt && !utils.isAddress(oracleOpt)) {
+    EVMcrispr.panic(
+      c,
+      `invalid --oracle option. Expected an address, but got ${oracleOpt}`,
+    );
+  }
+
+  if (oracleOpt) {
+    params = oracle(oracleOpt)();
+  }
+
+  // If the permission already existed and no parameters are needed, just grant to a new entity and exit
+  if (
+    appPermission.manager !== '' &&
+    appPermission.manager !== constants.AddressZero &&
+    params.length == 0
+  ) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      // TODO: get app identifier. Maybe set it on cache
+      EVMcrispr.panic(c, `grantee already has given permission on app ${name}`);
+    }
+    appPermission.grantees.add(granteeAddress);
+
+    return [
+      {
+        to: aclAddress,
+        data: aclAbiInterface.encodeFunctionData('grantPermission', [
+          granteeAddress,
+          appAddress,
+          roleHash,
+        ]),
+      },
+    ];
+  }
+
+  // If the permission does not exist previously, create it
+  if (
+    appPermission.manager === '' ||
+    appPermission.manager === constants.AddressZero
+  ) {
+    if (!permissionMangerArgNode) {
+      EVMcrispr.panic(c, 'required permission manager missing');
+    }
+
+    const defaultPermissionManagerAddress = await interpretNode(
+      permissionMangerArgNode,
+      { allowNotFoundError: true },
     );
 
-    if (!defaultPermissionManager) {
-      throw new ErrorInvalid(
-        `Permission not well formed, permission manager missing`,
-        {
-          name: 'ErrorInvalidIdentifier',
-        },
+    if (!utils.isAddress(defaultPermissionManagerAddress)) {
+      EVMcrispr.panic(
+        c,
+        `invalid permission manager. Expected an address, but got ${defaultPermissionManagerAddress}`,
       );
     }
+    appPermissions.set(roleHash, {
+      manager: defaultPermissionManagerAddress,
+      grantees: new Set([granteeAddress]),
+    });
 
-    const params = opts?.params
-      ? opts.params()
-      : opts?.oracle
-      ? module.setOracle(opts.oracle)
-      : [];
-    const manager = module.resolveEntity(defaultPermissionManager);
-    const { permissions: appPermissions } = module.resolveApp(app);
-    const { address: aclAddress, abiInterface: aclAbiInterface } =
-      module.resolveApp('acl');
-    const actions = [];
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('createPermission', [
+        granteeAddress,
+        appAddress,
+        roleHash,
+        defaultPermissionManagerAddress,
+      ]),
+    });
+  }
 
-    if (!appPermissions.has(roleHash)) {
-      throw new ErrorNotFound(
-        `Permission ${role} doesn't exists in app ${app}.`,
+  // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
+  if (params.length > 0) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      EVMcrispr.panic(
+        c,
+        `grantee ${granteeAddress} already has given permission on app ${name}`,
       );
     }
+    appPermission.grantees.add(granteeAddress);
 
-    const appPermission = appPermissions.get(roleHash)!;
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
+        granteeAddress,
+        appAddress,
+        roleHash,
+        params,
+      ]),
+    });
+  }
 
-    // If the permission already existed and no parameters are needed, just grant to a new entity and exit
-    if (
-      appPermission.manager !== '' &&
-      appPermission.manager !== constants.AddressZero &&
-      params.length == 0
-    ) {
-      if (appPermission.grantees.has(granteeAddress)) {
-        throw new ErrorException(
-          `Grantee ${grantee} already has permission ${role}`,
-        );
-      }
-      appPermission.grantees.add(granteeAddress);
-
-      return [
-        {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData('grantPermission', [
-            granteeAddress,
-            appAddress,
-            roleHash,
-          ]),
-        },
-      ];
-    }
-
-    // If the permission does not exist previously, create it
-    if (
-      appPermission.manager === '' ||
-      appPermission.manager === constants.AddressZero
-    ) {
-      appPermissions.set(roleHash, {
-        manager,
-        grantees: new Set([granteeAddress]),
-      });
-
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('createPermission', [
-          granteeAddress,
-          appAddress,
-          roleHash,
-          manager,
-        ]),
-      });
-    }
-
-    // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
-    if (params.length > 0) {
-      if (appPermission.grantees.has(granteeAddress)) {
-        throw new ErrorException(
-          `Grantee ${grantee} already has permission ${role}.`,
-        );
-      }
-      appPermission.grantees.add(granteeAddress);
-
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
-          granteeAddress,
-          appAddress,
-          roleHash,
-          params,
-        ]),
-      });
-    }
-
-    return actions;
-  };
-}
+  return actions;
+};

@@ -1,4 +1,4 @@
-import { callExpressionParser } from '../../src/cas11/parsers/call';
+import { callExpressionParser } from '../../src/parsers/call';
 import type { Case } from '../test-helpers/cas11';
 import { runCases } from '../test-helpers/cas11';
 

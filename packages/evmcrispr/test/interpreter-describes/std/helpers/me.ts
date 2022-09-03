@@ -3,8 +3,8 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { NodeType } from '../../../../src/cas11/types';
-import { ComparisonType } from '../../../../src/cas11/utils';
+import { NodeType } from '../../../../src/types';
+import { ComparisonType } from '../../../../src/utils';
 import {
   itChecksInvalidArgsLength,
   preparingExpression,

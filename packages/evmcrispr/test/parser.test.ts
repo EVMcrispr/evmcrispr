@@ -9,7 +9,7 @@ import {
   scriptParserDescribe,
 } from './parser-describes';
 
-describe('CAS11 Parsers', () => {
+describe.only('CAS11 Parsers', () => {
   arithmeticParserDescribe();
 
   arrayParserDescribe();

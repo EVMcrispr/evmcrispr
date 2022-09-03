@@ -1,10 +1,10 @@
 import type { BigNumber, Signer } from 'ethers';
 import { Contract, constants, utils } from 'ethers';
 
-import type { Action } from '../../..';
 import { erc20ABI } from '../../../abis';
 import { ErrorInvalid } from '../../../errors';
-import { encodeActCall, encodeCallScript } from '../../../utils';
+import type { Action } from '../../../types';
+import { encodeActCall, encodeCallScript } from './evmscripts';
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,

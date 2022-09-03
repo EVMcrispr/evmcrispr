@@ -4,12 +4,12 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import type { Interpreter } from '../../../../src';
+import type { EVMcrispr } from '../../../../src/EVMcrispr';
 
-import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
-import type { CommandExpressionNode } from '../../../../src/cas11/types';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import type { CommandExpressionNode } from '../../../../src/types';
 import { CommandError } from '../../../../src/errors';
-import { ANY_ENTITY, toDecimals } from '../../../../src/utils';
+import { toDecimals } from '../../../../src/utils';
 
 import { DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
@@ -22,6 +22,7 @@ import {
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+import { ANY_ENTITY } from '../../../../src/modules/aragonos/utils';
 
 export const revokeDescribe = (): Suite =>
   describe('revoke <grantee> <app> <role> [removeManager]', () => {
@@ -196,7 +197,7 @@ export const revokeDescribe = (): Suite =>
     });
 
     it('should fail when revoking a permission from a non-app entity', async () => {
-      let interpreter: Interpreter;
+      let interpreter: EVMcrispr;
       let c: CommandExpressionNode;
       const nonAppAddress = await signer.getAddress();
 

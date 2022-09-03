@@ -1,4 +1,4 @@
-import { arithmeticParser } from '../../src/cas11/parsers/arithmetic';
+import { arithmeticParser } from '../../src/parsers/arithmetic';
 import type { Case } from '../test-helpers/cas11';
 import { runCases } from '../test-helpers/cas11';
 

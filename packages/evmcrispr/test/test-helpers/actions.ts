@@ -1,13 +1,16 @@
 import { utils } from 'ethers';
 
 import type { Action, Address } from '../../src/types';
-import { encodeActCall, encodeCallScript } from '../../src/utils';
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
   getAppForwarderType,
 } from './forwarders';
 import { resolveApp } from '../fixtures';
+import {
+  encodeActCall,
+  encodeCallScript,
+} from '../../src/modules/aragonos/utils';
 
 export const createTestPreTxAction = (
   operation: string,

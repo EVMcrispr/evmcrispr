@@ -2,7 +2,7 @@ import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,
   commandOptParser,
-} from '../../src/cas11/parsers/command';
+} from '../../src/parsers/command';
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase } from '../test-helpers/cas11';
 

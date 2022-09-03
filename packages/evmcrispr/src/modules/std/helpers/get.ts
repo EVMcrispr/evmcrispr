@@ -1,21 +1,35 @@
-import { Contract } from 'ethers';
+import { Contract, utils } from 'ethers';
 
-import type { EVMcrispr } from '../../..';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import type { Std } from '../Std';
 
-async function get(
-  evm: EVMcrispr,
-  addr: string,
-  abi: string,
-  ...params: string[]
-): Promise<string> {
-  const [entity] = await evm.resolver.resolvePromises([addr], ['address']);
+export const get: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNode, interpretNodes },
+) => {
+  checkArgsLength(h, { type: ComparisonType.Equal, minValue: 2 });
+
+  const addressNode = h.args.shift()!;
+  const abiNode = h.args.shift()!;
+  const [address, abi, ...params] = await Promise.all([
+    interpretNode(addressNode),
+    interpretNode(abiNode, { treatAsLiteral: true }),
+    interpretNodes(h.args),
+  ]);
+
+  if (!utils.isAddress(address)) {
+    EVMcrispr.panic(h, `expected a valid target address, but got "${address}"`);
+  }
+
   const [body, returns] = abi.split(':');
   const contract = new Contract(
-    entity,
+    address,
     [`function ${body} external view returns ${returns}`],
-    evm.signer,
+    module.signer,
   );
-  return contract[body](...params);
-}
 
-export default get;
+  return contract[body](...params);
+};

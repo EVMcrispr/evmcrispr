@@ -1,22 +1,28 @@
 import type { Signer } from 'ethers';
 
-import type { Address, Permission } from '../../src';
+import type { Address } from '../../src';
 
-import type { Interpreter } from '../../src/cas11/interpreter/Interpreter';
+import type { EVMcrispr } from '../../src/EVMcrispr';
 
-import type { AragonOS } from '../../src/cas11/modules/aragonos/AragonOS';
+import type { AragonOS } from '../../src/modules/aragonos/AragonOS';
 import type {
   AST,
   BlockExpressionNode,
   CommandExpressionNode,
-} from '../../src/cas11/types';
-import { NodeType } from '../../src/cas11/types';
-import { listItems } from '../../src/cas11/utils';
+} from '../../src/types';
+import { NodeType } from '../../src/types';
+import { listItems } from '../../src/utils';
 import { CommandError } from '../../src/errors';
-import type { FullPermission } from '../../src/types';
-import { getAragonEnsResolver, resolveName } from '../../src/utils';
 import { createInterpreter, itChecksNonDefinedIdentifier } from './cas11';
 import { expectThrowAsync } from './expects';
+import {
+  getAragonEnsResolver,
+  resolveName,
+} from '../../src/modules/aragonos/utils';
+import type {
+  FullPermission,
+  Permission,
+} from '../../src/modules/aragonos/types';
 
 export const _aragonEns = async (
   ensName: string,
@@ -35,7 +41,7 @@ export const _aragonEns = async (
 
 export const createAragonScriptInterpreter =
   (signer: Signer, daoAddress: Address) =>
-  (commands: string[] = []): Interpreter => {
+  (commands: string[] = []): EVMcrispr => {
     return createInterpreter(
       `
   load aragonos as ar
@@ -87,7 +93,7 @@ export const itChecksBadPermission = (
   commandName: string,
   createPermissionActionInterpreter: (
     badPermission: FullPermission,
-  ) => Interpreter,
+  ) => EVMcrispr,
   checkPermissionManager = false,
 ): void => {
   const permissionErrorText = 'invalid permission provided';

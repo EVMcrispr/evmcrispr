@@ -1,50 +1,96 @@
 import { ethers } from 'ethers';
+import fetch from 'isomorphic-fetch';
 
-import type { EVMcrispr } from '../../..';
+import { BindingsSpace } from '../../../BindingsManager';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type {
+  Address,
+  HelperFunction,
+  HelperFunctionNode,
+} from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import type { Module } from '../../Module';
+import type { Std } from '../Std';
 
 const ENV_TOKENLIST = '$token.tokenlist';
-const DEFAULT_TOKENLIST = 'https://tokens.uniswap.org/';
+const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
-async function token(evm: EVMcrispr, tokenSymbol: string): Promise<string> {
-  const chainId = await evm.signer.getChainId();
-  const tokenlist = _tokenlist(evm);
+const getTokenList = (
+  { bindingsManager }: Module,
+  h: HelperFunctionNode,
+): string => {
+  const tokenList = String(
+    bindingsManager.getBinding(ENV_TOKENLIST, BindingsSpace.USER) ??
+      DEFAULT_TOKEN_LIST,
+  );
+
+  // Always check user data inputs:
+  if (!tokenList.startsWith('https://')) {
+    EVMcrispr.panic(
+      h,
+      `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
+    );
+  }
+  return tokenList;
+};
+
+const _token = async (
+  module: Module,
+  tokenSymbol: string,
+  h: HelperFunctionNode,
+): Promise<Address> => {
+  const chainId = await module.signer.getChainId();
+  const tokenList = getTokenList(module, h);
   const {
     tokens,
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =
-    await fetch(tokenlist).then((r) => r.json());
+    await fetch(tokenList).then((r) => r.json());
   const tokenAddress = tokens.find(
     (token) => token.symbol === tokenSymbol && token.chainId == chainId,
   )?.address;
+
   if (!tokenAddress) {
-    throw new Error(
-      `${tokenSymbol} not supported in ${tokenlist} in chain ${chainId}.`,
+    EVMcrispr.panic(
+      h,
+      `${tokenSymbol} not supported in ${tokenList} in chain ${chainId}.`,
     );
   }
+
   return tokenAddress;
-}
+};
 
-function _tokenlist(evm: EVMcrispr) {
-  const tokenlist = String(evm.env(ENV_TOKENLIST) ?? DEFAULT_TOKENLIST);
-  // Always check user data inputs:
-  if (!tokenlist.startsWith('https://')) {
-    throw new Error(`Tokenlist must be an HTTPS URL: ${tokenlist}`);
-  }
-  return tokenlist;
-}
+export const token: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNodes },
+) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Equal,
+    minValue: 1,
+  });
+  const [tokenSymbol] = await interpretNodes(h.args);
 
-export async function tokenBalance(
-  evm: EVMcrispr,
-  tokenSymbol: string,
-  account: string,
-): Promise<string> {
-  const tokenAddr = await token(evm, tokenSymbol);
+  return _token(module, tokenSymbol, h);
+};
+
+export const tokenBalance: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNodes },
+) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Equal,
+    minValue: 2,
+  });
+
+  const [tokenSymbol, holder] = await interpretNodes(h.args);
+
+  const tokenAddr = await _token(module, tokenSymbol, h);
   const contract = new ethers.Contract(
     tokenAddr,
     ['function balanceOf(address owner) view returns (uint)'],
-    evm.signer,
+    module.signer,
   );
-  const [entity] = await evm.resolver.resolvePromises([account], ['address']);
-  return (await contract.balanceOf(entity)).toString();
-}
 
-export default token;
+  return (await contract.balanceOf(holder)).toString();
+};

@@ -1,223 +1,121 @@
-import type { Signer, providers, utils } from 'ethers';
+import type { Signer, providers } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 
 import {
-  SIGNATURE_REGEX,
-  encodeActCall,
-  encodeCallScript,
-  normalizeActions,
-} from './utils';
+  CommandError,
+  ErrorException,
+  ExpressionError,
+  HelperFunctionError,
+} from './errors';
+import { timeUnits, toDecimals } from './utils';
 import type {
+  AST,
   Action,
-  ActionFunction,
-  Address,
-  AppIdentifier,
-  Entity,
+  ArrayExpressionNode,
+  AsExpressionNode,
+  BinaryExpressionNode,
+  BlockExpressionNode,
+  CallExpressionNode,
+  CommandExpressionNode,
   ForwardOptions,
-  Helper,
-  LazyVarVal,
-  VarVal,
+  HelperFunctionNode,
+  LiteralExpressionNode,
+  Node,
+  ProbableIdentifierNode,
+  VariableIdentiferNode,
 } from './types';
-import { IPFSResolver } from './IPFSResolver';
-import resolver from './utils/resolvers';
-import AragonOS from './modules/aragonos/AragonOS';
-import Std from './modules/std/Std';
-import { fetchImplementationAddress } from './utils/proxies';
-import { getAbiSignatures } from './utils/abis';
+import { NodeType } from './types';
+import type { Module } from './modules/Module';
+import { Std } from './modules/std/Std';
+import { BindingsManager, BindingsSpace } from './BindingsManager';
+import type { NodeInterpreter, NodesInterpreter } from './types/modules';
 
-type TransactionReceipt = providers.TransactionReceipt;
+const {
+  AddressLiteral,
+  BoolLiteral,
+  BytesLiteral,
+  NumberLiteral,
+  StringLiteral,
 
-/**
- * The default main EVMcrispr class that expose all the functionalities.
- * @category Main
- */
-export default class EVMcrispr {
-  #addressBook: Map<string, Address>;
-  #abiStore: Map<string, utils.Interface>;
+  AsExpression,
 
-  #env: Map<string, VarVal> = new Map();
-  protected _ipfsResolver: IPFSResolver;
+  ArrayExpression,
+
+  BinaryExpression,
+
+  BlockExpression,
+  CommandExpression,
+  CallExpression,
+  HelperFunctionExpression,
+
+  ProbableIdentifier,
+  VariableIdentifier,
+} = NodeType;
+
+const { ADDR, INTERPRETER, USER } = BindingsSpace;
+
+// Interpreter bindings
+
+// Implicit module use inside block expressions
+const CONTEXTUAL_MODULE = 'contextualModule';
+
+export class EVMcrispr {
+  readonly ast: AST;
+  #std: Std;
+  #modules: Module[] = [];
+
+  #bindingsManager: BindingsManager;
+  #nonces: Record<string, number> = {};
+
   #signer: Signer;
-  #nonces: { [addr: string]: number } = {};
 
-  aragon: AragonOS;
-  std: Std;
+  constructor(ast: AST, signer: Signer) {
+    this.ast = ast;
 
-  resolver: any;
+    this.#bindingsManager = new BindingsManager();
+    this.#setDefaultBindings();
 
-  protected constructor(signer: Signer) {
-    this.#addressBook = new Map();
-    this.#abiStore = new Map();
-    this._ipfsResolver = new IPFSResolver();
     this.#signer = signer;
-    this.resolver = resolver(this);
-    this.aragon = new AragonOS(this);
-    this.std = new Std(this);
+    this.#std = new Std(
+      this.#bindingsManager,
+      this.#nonces,
+      this.#signer,
+      this.#modules,
+    );
   }
 
-  /**
-   * Create a new EVMcrispr instance and connect it to a DAO by fetching and caching all its
-   * apps and permissions data.
-   * @param signer An ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers)
-   * instance used to connect to Ethereum and sign any transaction needed.
-   * @returns A promise that resolves to a new `EVMcrispr` instance.
-   */
-  static async create(signer: Signer | Promise<Signer>): Promise<EVMcrispr> {
-    return new EVMcrispr(await signer);
+  get bindingsManager(): BindingsManager {
+    return this.#bindingsManager;
   }
 
-  get ipfsResolver(): IPFSResolver {
-    return this._ipfsResolver;
+  set signer(signer: Signer) {
+    this.#signer = signer;
   }
 
-  get signer(): Signer {
-    return this.#signer;
+  getBinding(name: string, memSpace: BindingsSpace): any {
+    return this.#bindingsManager.getBinding(name, memSpace);
   }
 
-  get addressBook(): Map<string, Address> {
-    return this.#addressBook;
-  }
-
-  get abiStore(): Map<Address, utils.Interface> {
-    return this.#abiStore;
-  }
-
-  get helpers(): { [name: string]: Helper } {
-    return {
-      ...this.std.helpers,
-      ...this.aragon.helpers,
-    };
-  }
-
-  incrementNonce(address: string): number {
-    if (!this.#nonces[address]) {
-      this.#nonces[address] = 0;
+  getModule(aliasOrName: string): Module | undefined {
+    if (aliasOrName === this.#std.name || aliasOrName === this.#std.alias) {
+      return this.#std;
     }
-    return this.#nonces[address]++;
+
+    return this.#modules.find(
+      (m) => m.name === aliasOrName || m.alias === aliasOrName,
+    );
   }
 
-  env(varName: string): VarVal {
-    return this.#env.get(varName) || '';
+  getAllModules(): Module[] {
+    return [this.#std, ...this.#modules];
   }
 
-  set(varName: string, value: LazyVarVal): ActionFunction {
-    return async () => {
-      if (varName[0] !== '$') {
-        throw new Error('Environment variables must start with $ symbol.');
-      }
-      if (typeof value === 'function') {
-        value = await value();
-      }
-      this.#env.set(varName, value);
-      return [];
-    };
-  }
-
-  /**
-   * Creates an action based on the passed parameters
-   * @param target Action's to field
-   * @param signature Function signature, such as mint(address,uint256)
-   * @param params List of parameters passed to the function
-   * @returns A function that returns the encoded action
-   */
-  encodeAction(
-    target: Entity,
-    signature: string,
-    params: any[],
-  ): ActionFunction {
-    return async () => {
-      if (!SIGNATURE_REGEX.test(signature)) {
-        const contract = await fetchImplementationAddress(
-          target,
-          this.#signer.provider!,
-        );
-        const abi = await getAbiSignatures(
-          this.env('$etherscanAPI') as string,
-          contract ?? target,
-          await this.#signer.getChainId(),
-        );
-        if (!abi) {
-          throw new Error(
-            'Wrong signature format and ABI not found: ' + signature + '.',
-          );
-        } else {
-          signature = abi[0].split(' ')[1]; // TODO: pick the proper one based on the params
-        }
-      }
-      const paramTypes = signature.split('(')[1].slice(0, -1).split(',');
-      return [
-        {
-          to: this.resolver.resolveEntity(target),
-          data: encodeActCall(
-            signature,
-            this.resolver.resolveParams(params, paramTypes),
-          ),
-        },
-      ];
-    };
-  }
-
-  /**
-   * Send a set of transactions to a contract that implements the IForwarder interface
-   * @param forwarder App identifier of the forwarder that is going to be used
-   * @param actions List of actions that the forwarder is going to recieive
-   * @returns A function that retuns the forward action
-   */
-  forwardActions(
-    forwarder: AppIdentifier,
-    actions: ActionFunction[],
-  ): ActionFunction {
-    return async () => {
-      const script = encodeCallScript(await normalizeActions(actions)());
-      return [
-        {
-          to: this.resolver.resolveEntity(forwarder),
-          data: encodeActCall('forward(bytes)', [script]),
-        },
-      ];
-    };
-  }
-
-  /**
-   * Encode a set of actions into one using a path of forwarding apps.
-   * @param actions The array of action-returning functions to encode.
-   * @param path A group of forwarder app [[Entity | entities]] used to encode the actions.
-   * @param options The forward options object.
-   * @returns A promise that resolves to an object containing the encoded forwarding action as well as
-   * any pre-transactions that need to be executed in advance.
-   */
-  async encode(
-    actionFunctions: ActionFunction[],
-    options?: ForwardOptions,
-  ): Promise<{
-    actions: Action[];
-    forward: () => Promise<TransactionReceipt[]>;
-  }> {
-    const actions = await normalizeActions(actionFunctions)();
-    return {
-      actions: actions,
-      forward: () => this._forward(actions, options),
-    };
-  }
-
-  /**
-   * Encode a set of actions into one and send it in a transaction.
-   * @param actions The action-returning functions to encode.
-   * @param options A forward options object.
-   * @returns A promise that resolves to a receipt of the sent transaction.
-   */
-  async forward(
-    actions: ActionFunction[],
-    options?: ForwardOptions,
-  ): Promise<providers.TransactionReceipt[]> {
-    const { actions: encodedActions } = await this.encode(actions, options);
-    return this._forward(encodedActions, options);
-  }
-
-  protected async _forward(
+  async executeActions(
     actions: Action[],
     options?: ForwardOptions,
-  ): Promise<TransactionReceipt[]> {
+  ): Promise<providers.TransactionReceipt[]> {
     const txs = [];
+
     for (const action of actions) {
       txs.push(
         await (
@@ -230,5 +128,290 @@ export default class EVMcrispr {
       );
     }
     return txs;
+  }
+
+  async interpret(): Promise<Action[]> {
+    const results = await this.interpretNodes(this.ast.body, true);
+
+    return results.flat().filter((result) => typeof result !== 'undefined');
+  }
+
+  interpretNode: NodeInterpreter = (n, options) => {
+    switch (n.type) {
+      case AddressLiteral:
+      case BoolLiteral:
+      case BytesLiteral:
+      case StringLiteral:
+      case NumberLiteral:
+        return this.#interpretLiteral(n as LiteralExpressionNode, options);
+      case AsExpression:
+        return this.#intrepretAsExpression(n as AsExpressionNode, options);
+      case ArrayExpression:
+        return this.#interpretArrayExpression(
+          n as ArrayExpressionNode,
+          options,
+        );
+      case BinaryExpression:
+        return this.#interpretBinaryExpression(
+          n as BinaryExpressionNode,
+          options,
+        );
+      case BlockExpression:
+        return this.#interpretBlockExpression(
+          n as BlockExpressionNode,
+          options,
+        );
+      case CallExpression:
+        return this.#interpretCallFunction(n as CallExpressionNode, options);
+      case CommandExpression:
+        return this.#interpretCommand(n as CommandExpressionNode, options);
+      case HelperFunctionExpression:
+        return this.#interpretHelperFunction(n as HelperFunctionNode, options);
+      case ProbableIdentifier:
+        return this.#interpretProbableIdentifier(
+          n as ProbableIdentifierNode,
+          options,
+        );
+      case VariableIdentifier:
+        return this.#interpretVariableIdentifier(
+          n as VariableIdentiferNode,
+          options,
+        );
+
+      default:
+        EVMcrispr.panic(n, `unknown ${n.type} node found`);
+    }
+  };
+
+  interpretNodes: NodesInterpreter = async (
+    nodes: Node[],
+    sequentally = false,
+    options,
+  ): Promise<any[]> => {
+    if (sequentally) {
+      const results: any = [];
+
+      for (const node of nodes) {
+        const result = await this.interpretNode(node, options);
+        if (Array.isArray(result)) {
+          results.push(...result);
+        } else {
+          results.push(result);
+        }
+      }
+
+      return results;
+    }
+
+    return await Promise.all(
+      nodes.map((node) => this.interpretNode(node, options)),
+    );
+  };
+
+  #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
+    return this.interpretNodes(n.elements);
+  };
+
+  #intrepretAsExpression: NodeInterpreter<AsExpressionNode> = async (
+    n,
+    options,
+  ) => {
+    const left = await this.interpretNode(n.left, options);
+    const right = await this.interpretNode(n.right, options);
+
+    return [left, right];
+  };
+
+  #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
+    n,
+  ) => {
+    const [leftOperand_, rightOperand_] = await this.interpretNodes([
+      n.left,
+      n.right,
+    ]);
+
+    let leftOperand: BigNumber, rightOperand: BigNumber;
+
+    try {
+      leftOperand = BigNumber.from(leftOperand_);
+    } catch (err) {
+      EVMcrispr.panic(
+        n,
+        `invalid left operand. Expected a number but got "${leftOperand_}"`,
+      );
+    }
+
+    try {
+      rightOperand = BigNumber.from(rightOperand_);
+    } catch (err) {
+      EVMcrispr.panic(
+        n,
+        `invalid right operand. Expected a number but got "${rightOperand_}"`,
+      );
+    }
+
+    switch (n.operator) {
+      case '+':
+        return leftOperand.add(rightOperand);
+      case '-':
+        return leftOperand.sub(rightOperand);
+      case '*':
+        return leftOperand.mul(rightOperand);
+      case '/': {
+        if (rightOperand.eq(0)) {
+          EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
+        }
+        return leftOperand.div(rightOperand);
+      }
+    }
+  };
+
+  #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
+    n,
+    { blockInitializer, blockModule } = {},
+  ) => {
+    this.#bindingsManager.enterScope();
+
+    this.#bindingsManager.setBinding(
+      CONTEXTUAL_MODULE,
+      blockModule,
+      INTERPRETER,
+    );
+
+    if (blockInitializer) {
+      await blockInitializer();
+    }
+
+    const results = await this.interpretNodes(n.body, true);
+
+    this.#bindingsManager.exitScope();
+
+    return results;
+  };
+
+  #interpretCallFunction: NodeInterpreter<CallExpressionNode> = async (n) => {
+    console.log(n);
+
+    return '';
+  };
+
+  #interpretCommand: NodeInterpreter<CommandExpressionNode> = (c) => {
+    let module: Module | undefined = this.#std;
+    const moduleName =
+      c.module ??
+      (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
+        | string
+        | undefined);
+
+    if (moduleName && moduleName !== 'std') {
+      module = this.#modules.find((m) => m.contextualName === moduleName);
+
+      if (!module) {
+        EVMcrispr.panic(c, `module ${moduleName} not found`);
+      }
+    }
+
+    return module.interpretCommand(c, {
+      interpretNode: this.interpretNode,
+      interpretNodes: this.interpretNodes,
+    });
+  };
+
+  #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
+    const helperName = h.name;
+    const filteredModules = [...this.#modules, this.#std].filter(
+      (m) => !!m.helpers[helperName],
+    );
+
+    if (!filteredModules.length) {
+      EVMcrispr.panic(h, 'helper not found on any module');
+    }
+
+    // TODO: Prefix helpers with module name/alias to avoid collisions
+    else if (filteredModules.length > 1) {
+      EVMcrispr.panic(
+        h,
+        `name collisions found on modules ${filteredModules.join(', ')}`,
+      );
+    }
+
+    const m = filteredModules[0];
+
+    return m.interpretHelper(h, {
+      interpretNode: this.interpretNode,
+      interpretNodes: this.interpretNodes,
+    });
+  };
+
+  #interpretLiteral: NodeInterpreter<LiteralExpressionNode> = async (n) => {
+    switch (n.type) {
+      case NodeType.AddressLiteral:
+      case NodeType.BoolLiteral:
+      case NodeType.BytesLiteral:
+      case NodeType.StringLiteral:
+        return n.value;
+      case NodeType.NumberLiteral:
+        return toDecimals(n.value, n.power ?? 0).mul(
+          timeUnits[n.timeUnit ?? 's'],
+        );
+      default:
+        EVMcrispr.panic(n, 'unknown literal expression node');
+    }
+  };
+
+  #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
+    async (n, { allowNotFoundError = false, treatAsLiteral = false } = {}) => {
+      const identifier = n.value;
+
+      if (!treatAsLiteral) {
+        const addressBinding = this.bindingsManager.getBinding(
+          identifier,
+          ADDR,
+        );
+
+        if (addressBinding) {
+          return addressBinding;
+        }
+
+        if (allowNotFoundError) {
+          EVMcrispr.panic(n, `identifier "${identifier}" not found`);
+        }
+      }
+
+      return identifier;
+    };
+
+  #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
+    n,
+  ) => {
+    const binding = this.#bindingsManager.getBinding(n.value, USER);
+
+    if (binding) {
+      return binding;
+    }
+
+    EVMcrispr.panic(n, `$${n.value} not defined`);
+  };
+
+  #setDefaultBindings(): void {
+    this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
+    this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
+  }
+
+  static panic(n: Node, msg: string): never {
+    switch (n.type) {
+      case BinaryExpression:
+        throw new ExpressionError(msg, { name: 'ArithmeticExpression' });
+      case CommandExpression:
+        throw new CommandError(n as CommandExpressionNode, msg);
+      case HelperFunctionExpression:
+        throw new HelperFunctionError(n as HelperFunctionNode, msg);
+      case ProbableIdentifier:
+        throw new ExpressionError(msg, { name: 'IdentifierError' });
+      case VariableIdentifier:
+        throw new ExpressionError(msg, { name: 'VariableIdentifierError' });
+      default:
+        throw new ErrorException(msg);
+    }
   }
 }

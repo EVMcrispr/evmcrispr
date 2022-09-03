@@ -7,7 +7,7 @@ import type { Suite } from 'mocha';
 import type { Action } from '../../../../src';
 import { oracle } from '../../../../src';
 
-import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 
 import { CommandError } from '../../../../src/errors';
 

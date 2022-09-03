@@ -2,8 +2,8 @@ import type { Signer } from 'ethers';
 import { constants } from 'ethers';
 import { ethers } from 'hardhat';
 
-import type { NumericLiteralNode } from '../../src/cas11/types';
-import { NodeType } from '../../src/cas11/types';
+import type { NumericLiteralNode } from '../../src/types';
+import { NodeType } from '../../src/types';
 import { timeUnits, toDecimals } from '../../src/utils';
 import type { InterpreterCase } from '../test-helpers/cas11';
 import { runInterpreterCases } from '../test-helpers/cas11';

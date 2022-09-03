@@ -1,7 +1,7 @@
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
-} from '../../src/cas11/parsers/helper';
+} from '../../src/parsers/helper';
 import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 export const helperParserDescribe = (): Mocha.Suite =>

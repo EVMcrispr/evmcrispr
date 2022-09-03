@@ -4,8 +4,8 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
-import { getRepoContract } from '../../../../src/cas11/modules/aragonos/utils';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import { getRepoContract } from '../../../../src/modules/aragonos/utils';
 
 import { CommandError } from '../../../../src/errors';
 import { DAO } from '../../../fixtures';

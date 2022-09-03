@@ -3,8 +3,8 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { BindingsSpace } from '../../../../src/cas11/interpreter/BindingsManager';
-import type { CommandExpressionNode } from '../../../../src/cas11/types';
+import { BindingsSpace } from '../../../../src/BindingsManager';
+import type { CommandExpressionNode } from '../../../../src/types';
 import { CommandError } from '../../../../src/errors';
 import { toDecimals } from '../../../../src/utils';
 import { createInterpreter } from '../../../test-helpers/cas11';

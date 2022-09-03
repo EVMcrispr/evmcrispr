@@ -4,21 +4,21 @@ import { constants, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 
-import { MINIME_TOKEN_FACTORIES } from '../../../../src/cas11/modules/aragonos/utils';
+import {
+  ANY_ENTITY,
+  MINIME_TOKEN_FACTORIES,
+} from '../../../../src/modules/aragonos/utils';
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
-  encodeCalldata,
-} from '../../../../src/cas11/utils';
-import { CommandError } from '../../../../src/errors';
-import {
-  ANY_ENTITY,
   buildNonceForAddress,
   calculateNewProxyAddress,
+  encodeCalldata,
   toDecimals,
 } from '../../../../src/utils';
+import { CommandError } from '../../../../src/errors';
 
 import {
   APP,

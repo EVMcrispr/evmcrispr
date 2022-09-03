@@ -1,4 +1,4 @@
-import type { AST, CommandExpressionNode } from '../../src/cas11/types';
+import type { AST, CommandExpressionNode } from '../../src/types';
 
 export const findStdCommandNode = (
   ast: AST,

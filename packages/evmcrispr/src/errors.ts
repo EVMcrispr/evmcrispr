@@ -1,8 +1,4 @@
-import type {
-  CommandExpressionNode,
-  HelperFunctionNode,
-  Node,
-} from './cas11/types';
+import type { CommandExpressionNode, HelperFunctionNode, Node } from './types';
 
 function defineNonEnumerable(
   instance: Record<string, any>,

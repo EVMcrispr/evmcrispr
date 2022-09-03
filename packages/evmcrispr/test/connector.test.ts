@@ -5,15 +5,15 @@ import hre, { ethers } from 'hardhat';
 import { multihash } from 'is-ipfs';
 
 import { ErrorException, ErrorNotFound } from '../src';
-import { parseContentUri } from '../src/utils';
-import type { ParsedApp } from '../src/types';
 import { DAO, EOA_ADDRESS } from './fixtures';
 import {
   expectThrowAsync,
   isValidArtifact,
   isValidParsedApp,
 } from './test-helpers/expects';
-import Connector from '../src/modules/aragonos/utils/Connector';
+import Connector from '../src/modules/aragonos/Connector';
+import { parseContentUri } from '../src/modules/aragonos/utils';
+import type { ParsedApp } from '../src/modules/aragonos/types';
 
 const {
   network: {

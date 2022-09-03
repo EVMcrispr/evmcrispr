@@ -4,10 +4,8 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { commaListItems } from '../../../../src/cas11/utils';
+import { commaListItems } from '../../../../src/utils';
 import { CommandError } from '../../../../src/errors';
-
-import { ANY_ENTITY } from '../../../../src/utils';
 
 import { DAO } from '../../../fixtures';
 import {
@@ -23,6 +21,7 @@ import {
   itChecksNonDefinedIdentifier,
 } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+import { ANY_ENTITY } from '../../../../src/modules/aragonos/utils';
 
 export const forwardDescribe = (): Suite =>
   describe('forward <...path> <commandsBlock>', () => {

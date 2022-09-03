@@ -1,11 +1,11 @@
 import fs from 'fs';
-import { subgraphUrlFromChainId } from '../../src/modules/aragonos/utils/Connector';
+import { subgraphUrlFromChainId } from '../../src/modules/aragonos/Connector';
 import {
   ORGANIZATION_APPS,
   REPO,
   getSystemApp,
   parseRegistry,
-} from '../../src/utils';
+} from '../../src/modules/aragonos/utils';
 
 export const basePath = (relativePath: string): string =>
   `test/fixtures/${relativePath}`;

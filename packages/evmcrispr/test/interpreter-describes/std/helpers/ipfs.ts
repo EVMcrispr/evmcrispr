@@ -6,9 +6,9 @@ import type { Suite } from 'mocha';
 import type {
   CommandExpressionNode,
   HelperFunctionNode,
-} from '../../../../src/cas11/types';
-import { NodeType } from '../../../../src/cas11/types';
-import { ComparisonType } from '../../../../src/cas11/utils';
+} from '../../../../src/types';
+import { NodeType } from '../../../../src/types';
+import { ComparisonType } from '../../../../src/utils';
 import { HelperFunctionError } from '../../../../src/errors';
 import {
   createInterpreter,

@@ -1,20 +1,33 @@
-import type { ActionFunction, EVMcrispr, Entity } from '../..';
-import type { Helper } from '../../types';
-import { exec } from './commands/exec';
-import helpers from './helpers';
+import type { Signer } from 'ethers';
 
-export default class Std {
-  evm: EVMcrispr;
-  #helpers: { [name: string]: Helper };
+import type { BindingsManager } from '../../BindingsManager';
 
-  constructor(evm: EVMcrispr) {
-    this.evm = evm;
-    this.#helpers = helpers(evm);
+import { Module } from '../Module';
+import { IPFSResolver } from '../../IPFSResolver';
+import { commands } from './commands';
+import { helpers } from './helpers';
+
+export class Std extends Module {
+  #modules: Module[];
+  #ipfsResolver: IPFSResolver;
+
+  constructor(
+    bindingsManager: BindingsManager,
+    nonces: Record<string, number>,
+    signer: Signer,
+    modules: Module[],
+  ) {
+    super('std', bindingsManager, nonces, commands, helpers, signer);
+
+    this.#ipfsResolver = new IPFSResolver();
+    this.#modules = modules;
   }
-  get helpers() {
-    return this.#helpers;
+
+  get modules(): Module[] {
+    return this.#modules;
   }
-  exec(target: Entity, method: string, params: any[]): ActionFunction {
-    return exec(this, target, method, params);
+
+  get ipfsResolver(): IPFSResolver {
+    return this.#ipfsResolver;
   }
 }

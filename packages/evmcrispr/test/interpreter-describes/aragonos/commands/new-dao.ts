@@ -5,9 +5,9 @@ import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
 import type { Action } from '../../../../src';
-import { BindingsSpace } from '../../../../src/cas11/interpreter/BindingsManager';
-import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
-import { getAragonRegistrarContract } from '../../../../src/cas11/modules/aragonos/utils';
+import { BindingsSpace } from '../../../../src/BindingsManager';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import { getAragonRegistrarContract } from '../../../../src/modules/aragonos/utils';
 import {
   buildNonceForAddress,
   calculateNewProxyAddress,

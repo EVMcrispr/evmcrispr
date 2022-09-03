@@ -1,68 +1,96 @@
 import { utils } from 'ethers';
 
-import type { ActionFunction } from '../../..';
-import { buildNonceForAddress, calculateNewProxyAddress } from '../../../utils';
-import type AragonOS from '../AragonOS';
-import aragonEns from '../helpers/aragonEns';
+import { CommandError } from '../../../errors';
 
-function registerAragonId(
+import {
+  ComparisonType,
+  buildNonceForAddress,
+  calculateNewProxyAddress,
+  checkArgsLength,
+} from '../../../utils';
+import { BindingsSpace } from '../../../BindingsManager';
+
+import type { Action, CommandFunction } from '../../../types';
+import type { AragonOS } from '../AragonOS';
+import { _aragonEns } from '../helpers/aragonEns';
+import { ARAGON_REGISTRARS, getAragonRegistrarContract } from '../utils';
+
+const registerAragonId = async (
   module: AragonOS,
   name: string,
   owner: string,
-): ActionFunction {
-  const aragonIds = new Map([
-    [1, '0x546aa2eae2514494eeadb7bbb35243348983c59d'],
-    [4, '0x3665e7bfd4d3254ae7796779800f5b603c43c60d'],
-    [100, '0x0b3b17f9705783bb51ae8272f3245d6414229b36'],
-    [137, '0x7b9cd2d5eCFE44C8b64E01B93973491BBDAe879B'],
-  ]);
-  const aragonId = new utils.Interface([
-    'function register(bytes32 _subnode, address _owner) external',
-  ]);
-  return async () => {
-    const chainId = await module.evm.signer.getChainId();
-    if (!aragonIds.has(chainId)) {
-      throw new Error(
-        `We do not support aragonids for network with chain id ${chainId} yet.`,
-      );
-    }
-    return [
-      {
-        to: aragonIds.get(chainId)!,
-        data: aragonId.encodeFunctionData('register', [
-          utils.solidityKeccak256(['string'], [name]),
-          owner,
-        ]),
-      },
-    ];
-  };
-}
+): Promise<Action[]> => {
+  const aragonRegistrar = await getAragonRegistrarContract(
+    module.signer.provider!,
+  );
 
-export function newDao(module: AragonOS, name: string): ActionFunction {
+  const chainId = await module.signer.getChainId();
+
+  if (!ARAGON_REGISTRARS.has(chainId)) {
+    throw new Error(`no Aragon registrar was found on chain ${chainId}`);
+  }
+
+  return [
+    {
+      to: ARAGON_REGISTRARS.get(chainId)!,
+      data: aragonRegistrar.interface.encodeFunctionData('register', [
+        utils.solidityKeccak256(['string'], [name]),
+        owner,
+      ]),
+    },
+  ];
+};
+
+export const newDAO: CommandFunction<AragonOS> = async (
+  module,
+  c,
+  { interpretNode },
+) => {
+  checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
+
+  const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
+
   const bareTemplate = new utils.Interface([
     'function newInstance() public returns (address)',
   ]);
 
-  return async () => {
-    const bareTemplateAddr = await aragonEns(
-      module.evm,
-      `bare-template.aragonpm.eth`,
-    );
+  const bareTemplateAddr = (await _aragonEns(
+    `bare-template.aragonpm.eth`,
+    module,
+  ))!;
 
-    const nonce = await buildNonceForAddress(
-      bareTemplateAddr!,
-      module.evm.incrementNonce(bareTemplateAddr),
-      module.evm.signer.provider!,
-    );
-    const newDaoAddress = calculateNewProxyAddress(bareTemplateAddr, nonce);
-    module.evm.addressBook.set(`dao:${name}`, newDaoAddress);
+  const nonce = await buildNonceForAddress(
+    bareTemplateAddr,
+    module.incrementNonce(bareTemplateAddr),
+    module.signer.provider!,
+  );
+  const newDaoAddress = calculateNewProxyAddress(bareTemplateAddr, nonce);
 
-    return [
-      {
-        to: bareTemplateAddr!,
-        data: bareTemplate.encodeFunctionData('newInstance', []),
-      },
-      ...(await registerAragonId(module, name, newDaoAddress)()),
-    ];
-  };
-}
+  module.bindingsManager.setBinding(
+    `_${daoName}`,
+    newDaoAddress,
+    BindingsSpace.ADDR,
+  );
+
+  let registerAragonIdActions: Action[] = [];
+
+  try {
+    registerAragonIdActions = await registerAragonId(
+      module,
+      daoName,
+      newDaoAddress,
+    );
+  } catch (err) {
+    const err_ = err as Error;
+
+    throw new CommandError(c, err_.message);
+  }
+
+  return [
+    {
+      to: bareTemplateAddr!,
+      data: bareTemplate.encodeFunctionData('newInstance', []),
+    },
+    ...registerAragonIdActions,
+  ];
+};

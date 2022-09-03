@@ -5,12 +5,9 @@ import { expect } from 'chai';
 import {
   ARRAY_PARSER_ERROR,
   arrayExpressionParser,
-} from '../../src/cas11/parsers/array';
-import { createParserState } from '../../src/cas11/parsers/utils';
-import type {
-  ArrayExpressionNode,
-  NodeParserState,
-} from '../../src/cas11/types';
+} from '../../src/parsers/array';
+import { createParserState } from '../../src/parsers/utils';
+import type { ArrayExpressionNode, NodeParserState } from '../../src/types';
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase } from '../test-helpers/cas11';
 

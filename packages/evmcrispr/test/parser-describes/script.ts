@@ -1,4 +1,4 @@
-import { scriptParser } from '../../src/cas11/parsers/script';
+import { scriptParser } from '../../src/parsers/script';
 import type { Case } from '../test-helpers/cas11';
 import { runCases } from '../test-helpers/cas11';
 

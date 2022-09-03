@@ -3,8 +3,8 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
-import type { CommandExpressionNode } from '../../../../src/cas11/types';
+import { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import type { CommandExpressionNode } from '../../../../src/types';
 
 import { CommandError } from '../../../../src/errors';
 

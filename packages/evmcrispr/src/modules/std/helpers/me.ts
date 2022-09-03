@@ -1,7 +1,12 @@
-import type { EVMcrispr } from '../../..';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import type { Std } from '../Std';
 
-function me(evm: EVMcrispr): Promise<string> {
-  return evm.signer.getAddress();
-}
+export const me: HelperFunction<Std> = async (module, h) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Equal,
+    minValue: 0,
+  });
 
-export default me;
+  return module.signer.getAddress();
+};

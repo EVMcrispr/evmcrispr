@@ -1,11 +1,11 @@
 import ora from 'ora';
 
 import fs from 'fs';
+
 import {
-  // buildIpfsTemplate,
   fetchAppArtifact,
   parseContentUri,
-} from '../src/utils';
+} from '../src/modules/aragonos/utils';
 import {
   basePath,
   fetchOrganizationApps,

@@ -5,10 +5,10 @@ import type { Signer } from 'ethers';
 
 import { inspect } from 'util';
 import type { ErrorException } from '../../src';
-import { BindingsSpace } from '../../src/cas11/interpreter/BindingsManager';
-import { Interpreter } from '../../src/cas11/interpreter/Interpreter';
-import { scriptParser } from '../../src/cas11/parsers/script';
-import { createParserState } from '../../src/cas11/parsers/utils';
+import { BindingsSpace } from '../../src/BindingsManager';
+import { EVMcrispr } from '../../src/EVMcrispr';
+import { scriptParser } from '../../src/parsers/script';
+import { createParserState } from '../../src/parsers/utils';
 import type {
   AST,
   CommandExpressionNode,
@@ -16,11 +16,11 @@ import type {
   Node,
   NodeParser,
   NodeParserState,
-} from '../../src/cas11/types';
-import { ASTType, NodeType } from '../../src/cas11/types';
-import type { Comparison } from '../../src/cas11/utils';
-import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/cas11/utils';
-import { buildParserError } from '../../src/cas11/utils/parsers';
+} from '../../src/types';
+import { ASTType, NodeType } from '../../src/types';
+import type { Comparison } from '../../src/utils';
+import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/utils';
+import { buildParserError } from '../../src/utils/parsers';
 import {
   CommandError,
   ExpressionError,
@@ -73,7 +73,7 @@ export const runInterpreterCases = async (
           type: ASTType.Program,
           body: [node],
         };
-        const [res] = await new Interpreter(ast, signer).interpret();
+        const [res] = await new EVMcrispr(ast, signer).interpret();
 
         expect(res, errorMsg).to.equal(expected);
       },
@@ -110,10 +110,10 @@ export const runErrorCase = (
 export const createInterpreter = (
   script: string,
   signer: Signer,
-): Interpreter => {
+): EVMcrispr => {
   const ast = runParser(scriptParser, script) as AST;
 
-  return new Interpreter(ast, signer);
+  return new EVMcrispr(ast, signer);
 };
 
 export const preparingExpression = async (
@@ -282,7 +282,7 @@ export const itChecksInvalidArgsLength = (
 
 export const itChecksNonDefinedIdentifier = (
   itName: string,
-  createInterpreter: (nonDefinedIdentifier: string) => Interpreter,
+  createInterpreter: (nonDefinedIdentifier: string) => EVMcrispr,
 ): Mocha.Test => {
   return it(itName, async () => {
     const nonDefinedIdentifier = 'non-defined-address';

@@ -13,8 +13,8 @@ import {
   probableIdentifierParser,
   stringParser,
   variableIdentifierParser,
-} from '../../src/cas11/parsers/primaries';
-import { HEXADECIMAL_PARSER_ERROR } from '../../src/cas11/parsers/primaries/literals/hexadecimal';
+} from '../../src/parsers/primaries';
+import { HEXADECIMAL_PARSER_ERROR } from '../../src/parsers/primaries/literals/hexadecimal';
 import type {
   BooleanLiteralNode,
   BytesLiteralNode,
@@ -23,8 +23,8 @@ import type {
   ProbableIdentifierNode,
   StringLiteralNode,
   VariableIdentiferNode,
-} from '../../src/cas11/types';
-import { NodeType } from '../../src/cas11/types';
+} from '../../src/types';
+import { NodeType } from '../../src/types';
 
 import type { Case } from '../test-helpers/cas11';
 import { runCases, runErrorCase, runParser } from '../test-helpers/cas11';

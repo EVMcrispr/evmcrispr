@@ -1,81 +1,29 @@
-import type { providers } from 'ethers';
-import { Contract } from 'ethers';
+import type { Err } from 'arcsecond';
 
-import { getSystemApp, isSystemApp } from '.';
-import type { Address, ParsedApp, Repo } from '../types';
+import type { NodeParserState } from '../types';
 
-export const parseAppArtifactName = (name: string): string => {
-  if (!name) {
-    return '';
-  }
-  // Split by the first '.' occurrence only.
-  const parsedName = name.split(/\.(.+)/);
+export const buildParserError = (
+  { data, error, index }: Err<string, NodeParserState>,
+  type: string,
+  msg?: string,
+): string => {
+  const splitRes = error.split('got');
+  const wrongValueEncountered =
+    splitRes.length === 2 ? splitRes[1].trim() : null;
 
-  return parsedName.length > 1 ? parsedName[1] : '';
+  const parserMsg = msg
+    ? `${msg}${wrongValueEncountered ? `, got ${wrongValueEncountered}` : ''}`
+    : error.split('): ')[1];
+
+  return `${type}(${data.line}:${index - data.offset}): ${parserMsg}`;
 };
 
-const fetchImplementationAddress = (
-  appAddress: Address,
-  provider: providers.Provider,
-): Promise<Address> => {
-  const app = new Contract(
-    appAddress,
-    ['function implementation() public view returns (address)'],
-    provider,
-  );
+export const getIncorrectReceivedValue = (errorMsg: string): string => {
+  const splitRes = errorMsg.split('got ');
 
-  return app.implementation();
-};
-
-export const parseApp = async (
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  app: any,
-  provider: providers.Provider,
-): Promise<ParsedApp> => {
-  const { address, appId, repoName, roles, version } = app;
-  const { registry } = app.repo || {};
-  const { codeAddress, artifact: rawArtifact, contentUri } = version || {};
-  let artifact, name;
-
-  if (isSystemApp(appId)) {
-    const systemApp = getSystemApp(appId)!;
-    artifact = systemApp.artifact;
-    name = systemApp.name;
-  } else {
-    artifact = JSON.parse(rawArtifact ?? null);
-    name = repoName;
+  if (splitRes.length === 2) {
+    return `, got ${splitRes[1].trim()}`;
   }
 
-  return {
-    address,
-    appId,
-    artifact,
-    codeAddress:
-      codeAddress ?? (await fetchImplementationAddress(address, provider)),
-    contentUri,
-    name,
-    registryName: registry?.name,
-    roles,
-  };
-};
-
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const parseRepo = (repo: any): Repo => {
-  const { artifact: rawArtifact, contentUri, codeAddress } = repo.lastVersion;
-
-  return {
-    artifact: JSON.parse(rawArtifact),
-    contentUri,
-    codeAddress,
-  };
-};
-
-export const timeUnits: { [key: string]: number } = {
-  s: 1,
-  m: 60,
-  h: 3600,
-  d: 86400,
-  w: 604800,
-  mo: 2592000,
-  y: 31536000,
+  return '';
 };
