@@ -145,14 +145,20 @@ export const connect: CommandFunction<AragonOS> = async (
   // Allow us to keep track of connected DAOs inside nested 'connect' commands
   const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
-  const dao = await AragonDAO.create(
-    daoAddress,
-    module.getConfigBinding('subgraphUrl'),
-    module.signer.provider ??
-      ethers.getDefaultProvider(await module.signer.getChainId()),
-    module.ipfsResolver,
-    nextNestingIndex,
-  );
+  let dao: AragonDAO;
+  try {
+    dao = await AragonDAO.create(
+      daoAddress,
+      module.getConfigBinding('subgraphUrl'),
+      module.signer.provider ??
+        ethers.getDefaultProvider(await module.signer.getChainId()),
+      module.ipfsResolver,
+      nextNestingIndex,
+    );
+  } catch (err) {
+    const err_ = err as Error;
+    EVMcrispr.panic(c, err_.message);
+  }
 
   module.connectedDAOs.push(dao);
 
