@@ -309,6 +309,11 @@ export class EVMcrispr {
       if (!module) {
         EVMcrispr.panic(c, `module ${moduleName} not found`);
       }
+
+      // Fallback to Std module
+      if (!module.commands[c.name] && this.#std.commands[c.name]) {
+        module = this.#std;
+      }
     }
 
     return module.interpretCommand(c, {
