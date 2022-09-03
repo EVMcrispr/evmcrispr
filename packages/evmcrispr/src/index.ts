@@ -34,5 +34,12 @@ export type {
   RoleHash,
 } from './modules/aragonos/types';
 
+export { Std } from './modules/std/Std';
+export { AragonDAO } from './modules/aragonos/AragonDAO';
+export { AragonOS } from './modules/aragonos/AragonOS';
+
+export { BindingsManager, BindingsSpace } from './BindingsManager';
 export { EVMcrispr } from './EVMcrispr';
-export { scriptParser } from './parsers/script';
+export * from './IPFSResolver';
+
+export { scriptParser, parseScript } from './parsers/script';
