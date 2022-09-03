@@ -1,5 +1,5 @@
 import type { Signer, providers } from 'ethers';
-import { BigNumber, constants } from 'ethers';
+import { BigNumber, Contract, constants, utils } from 'ethers';
 
 import {
   CommandError,
@@ -52,7 +52,7 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-const { ADDR, INTERPRETER, USER } = BindingsSpace;
+const { ABI, ADDR, INTERPRETER, USER } = BindingsSpace;
 
 // Interpreter bindings
 
@@ -290,9 +290,43 @@ export class EVMcrispr {
   };
 
   #interpretCallFunction: NodeInterpreter<CallExpressionNode> = async (n) => {
-    console.log(n);
+    const [targetAddress, ...args] = await this.interpretNodes([
+      n.target,
+      ...n.args,
+    ]);
 
-    return '';
+    if (!utils.isAddress(targetAddress)) {
+      EVMcrispr.panic(
+        n,
+        `invalid target. Expected an address, but got ${targetAddress}`,
+      );
+    }
+
+    const targetInterface = this.#bindingsManager.getBinding(
+      targetAddress,
+      ABI,
+    ) as utils.Interface | undefined;
+    if (!targetInterface) {
+      EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
+    }
+
+    const contract = new Contract(targetAddress, targetInterface, this.#signer);
+    let res;
+
+    try {
+      res = await contract[n.method](...args);
+    } catch (err) {
+      const err_ = err as Error;
+
+      EVMcrispr.panic(
+        n,
+        `error occured whe calling ${n.target.value ?? targetAddress}: ${
+          err_.message
+        }`,
+      );
+    }
+
+    return res;
   };
 
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = (c) => {
