@@ -125,7 +125,7 @@ export interface CommandOptNode extends Node {
 
 export interface BlockExpressionNode extends Node {
   type: NodeType.BlockExpression;
-  body: Node[];
+  body: CommandExpressionNode[];
 }
 
 export interface AsExpressionNode extends Node {
@@ -174,5 +174,5 @@ export type CommandArgExpressionNode =
 export type AST = {
   type: ASTType;
 
-  body: Node[];
+  body: CommandExpressionNode[];
 };

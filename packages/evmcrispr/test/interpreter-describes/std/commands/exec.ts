@@ -13,11 +13,12 @@ import {
   itChecksNonDefinedIdentifier,
 } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+import { findStdCommandNode } from '../../../test-helpers/std';
 
 const ETHERSCAN_API = process.env.ETHERSCAN_API;
 
 export const execDescribe = (): Suite =>
-  describe.only('when interpreting exec command', () => {
+  describe('when interpreting exec command', () => {
     let signer: Signer;
 
     before(async () => {
@@ -87,44 +88,34 @@ export const execDescribe = (): Suite =>
 
     it('should fail when receiving an invalid target address', async () => {
       const invalidTargetAddress = 'false';
+      const interpreter = createInterpreter(
+        `exec ${invalidTargetAddress} ${fnSig} 1e18`,
+        signer,
+      );
+      const c = findStdCommandNode(interpreter.ast, 'exec')!;
       const error = new CommandError(
-        'exec',
+        c,
         `expected a valid target address, but got ${invalidTargetAddress}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `exec ${invalidTargetAddress} ${fnSig} 1e18`,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when providing an invalid signature', async () => {
       const invalidSignature = 'invalid(uint256,)';
+      const interpreter = createInterpreter(
+        `
+        set $std:etherscanAPI ${ETHERSCAN_API}
+        exec ${target} ${invalidSignature} 1e18`,
+        signer,
+      );
+      const c = findStdCommandNode(interpreter.ast, 'exec')!;
       const error = new CommandError(
-        'exec',
+        c,
         `error when getting function from ABI - no matching function (argument="signature", value="invalid(uint256,)", code=INVALID_ARGUMENT, version=abi/5.6.2)`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-            set $std:etherscanAPI ${ETHERSCAN_API}
-            exec ${target} ${invalidSignature} 1e18`,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it(
@@ -141,21 +132,16 @@ export const execDescribe = (): Suite =>
       const paramErrors = [
         '-param 0 of type address: invalid address. Got false',
       ];
+      const interpreter = createInterpreter(
+        `exec ${target} ${fnSig} false 1e18`,
+        signer,
+      );
+      const c = findStdCommandNode(interpreter.ast, 'exec')!;
       const error = new CommandError(
-        'exec',
+        c,
         `error when encoding approve call:\n${paramErrors.join('\n')}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `exec ${target} ${fnSig} false 1e18`,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

@@ -9,7 +9,7 @@ import { ComparisonType } from '../../../../src/cas11/utils';
 
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 export const idDescribe = (): Suite =>
@@ -22,9 +22,12 @@ export const idDescribe = (): Suite =>
     });
 
     it('return the hashed value', async () => {
-      const res = await runExpression(`@id('an example test')`, signer);
+      const [interpret] = await preparingExpression(
+        `@id('an example test')`,
+        signer,
+      );
 
-      expect(res).to.equals(utils.id('an example test'));
+      expect(await interpret()).to.equals(utils.id('an example test'));
     });
 
     itChecksInvalidArgsLength(

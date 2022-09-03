@@ -131,7 +131,7 @@ describe('EVMcrispr script-encoding functions', () => {
               COMPLETE_FORWARDER_PATH,
             ),
           ]),
-        { type: ErrorInvalid },
+        new ErrorInvalid(),
       );
     });
 

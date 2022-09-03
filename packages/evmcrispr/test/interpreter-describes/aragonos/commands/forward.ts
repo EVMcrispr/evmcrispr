@@ -14,7 +14,10 @@ import {
   createTestAction,
   createTestScriptEncodedAction,
 } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
+} from '../../../test-helpers/aragonos';
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
@@ -98,41 +101,31 @@ export const forwardDescribe = (): Suite =>
         'false',
         '0xab123cd1231255ab45323de234223422a12312321abaceff',
       ];
+      const interpreter = createAragonScriptInterpreter([
+        `forward ${invalidAddresses.join(' ')} (
+      grant tollgate.open finance CREATE_PAYMENTS_ROLE
+    )`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'forward')!;
       const error = new CommandError(
-        'forward',
+        c,
         `${commaListItems(invalidAddresses)} are not valid forwarder address`,
       );
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `forward ${invalidAddresses.join(' ')} (
-          grant tollgate.open finance CREATE_PAYMENTS_ROLE
-        )`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when forwarding actions through non-forwarder entities', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        `forward token-manager finance (
+    grant tollgate.open finance CREATE_PAYMENTS_ROLE
+  )`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'forward')!;
       const error = new CommandError(
-        'forward',
+        c,
         `app ${DAO.finance} is not a forwarder`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `forward token-manager finance (
-        grant tollgate.open finance CREATE_PAYMENTS_ROLE
-      )`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

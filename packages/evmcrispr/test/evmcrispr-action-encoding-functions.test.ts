@@ -64,10 +64,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when receiving a permission holder app address that doesn't match any DAO app", async () => {
       await expectThrowAsync(
         evmcrisprPermissionMethod(['voting', EOA_ADDRESS, 'ROLE']),
-        {
-          type: ErrorNotFound,
-          name: 'ErrorAppNotFound',
-        },
+        new ErrorNotFound('', { name: 'ErrorAppNotFound' }),
       );
     });
 
@@ -78,7 +75,7 @@ describe('EVMcrispr action-encoding functions', () => {
           'token-manager',
           '0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366',
         ]),
-        { type: ErrorInvalid, name: 'ErrorInvalidRole' },
+        new ErrorInvalid('', { name: 'ErrorInvalidRole' }),
         'Invalid hash role',
       );
     });
@@ -90,9 +87,7 @@ describe('EVMcrispr action-encoding functions', () => {
           'token-manager',
           'NON_EXISTENT_ROLE',
         ]),
-        {
-          type: ErrorNotFound,
-        },
+        new ErrorNotFound(),
       );
     });
   };
@@ -113,9 +108,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it('fails when granting a permission to the same entity twice', async () => {
       await expectThrowAsync(
         dao.grant('voting', 'token-manager', 'MINT_ROLE', 'voting'),
-        {
-          type: ErrorException,
-        },
+        new ErrorException(),
       );
     });
 
@@ -225,10 +218,10 @@ describe('EVMcrispr action-encoding functions', () => {
     );
 
     it('fails when fetching non-existent app', async () => {
-      await expectThrowAsync(() => dao.app('non-existent.open'), {
-        type: ErrorNotFound,
-        name: 'ErrorAppNotFound',
-      });
+      await expectThrowAsync(
+        () => dao.app('non-existent.open'),
+        new ErrorNotFound('', { name: 'ErrorAppNotFound' }),
+      );
     });
     it('returns the correct app address', () => {
       const appAddress = dao.app('voting').address;
@@ -449,9 +442,7 @@ describe('EVMcrispr action-encoding functions', () => {
     it("fails when doesn't find the app's repo", async () => {
       const noRepoIdentifier = 'non-existent-repo.open:new-app';
 
-      await expectThrowAsync(dao.install(noRepoIdentifier), {
-        type: Error,
-      });
+      await expectThrowAsync(dao.install(noRepoIdentifier));
     });
 
     it('encodes an installation action correctly', async () => {
@@ -506,9 +497,7 @@ describe('EVMcrispr action-encoding functions', () => {
 
       await expectThrowAsync(
         dao.install('token-manager:same-label', initializeParams),
-        {
-          type: ErrorException,
-        },
+        new ErrorException(),
       );
     });
   });
@@ -553,10 +542,7 @@ describe('EVMcrispr action-encoding functions', () => {
       const [, app, role] = REVOKE_PERMISSIONS[0];
       await expectThrowAsync(
         dao.revoke('evm-script-registry', app, role, true),
-        {
-          type: ErrorNotFound,
-          name: 'ErrorPermissionNotFound',
-        },
+        new ErrorNotFound('', { name: 'ErrorPermissionNotFound' }),
       );
     });
   });

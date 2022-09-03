@@ -13,7 +13,10 @@ import {
 import { DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
+} from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -122,82 +125,62 @@ export const newTokenDescribe = (): Suite =>
     });
 
     it('should fail when executing it outside a "connect" command', async () => {
+      const interpreter = createInterpreter(
+        `
+      load aragonos as ar
+
+      ar:new-token "a new token" ANT token-manager.open:counter-factual-tm
+    `,
+        signer,
+      );
+      const c = interpreter.ast.body[1];
       const error = new CommandError(
-        'new-token',
+        c,
         'must be used within a "connect" command',
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-          load aragonos as ar
-
-          ar:new-token "a new token" ANT token-manager.open:counter-factual-tm
-        `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing an invalid token decimals value', async () => {
       const invalidDecimals = 'invalidDecimals';
+      const interpreter = createAragonScriptInterpreter([
+        `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
       const error = new CommandError(
-        'new-token',
+        c,
         `invalid decimals. Expected an integer number, but got ${invalidDecimals}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing an invalid controller', async () => {
       const invalidController = 'asd:123-asd&45';
+      const interpreter = createAragonScriptInterpreter([
+        `new-token "a new token" ANT ${invalidController}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
       const error = new CommandError(
-        'new-token',
+        c,
         `invalid controller. Expected an address or an app identifier, but got ${invalidController}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `new-token "a new token" ANT ${invalidController}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing an invalid transferable flag', async () => {
       const invalidTransferable = 'an-invalid-value';
+      const interpreter = createAragonScriptInterpreter([
+        `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
       const error = new CommandError(
-        'new-token',
+        c,
         `invalid transferable flag. Expected a boolean, but got ${invalidTransferable}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

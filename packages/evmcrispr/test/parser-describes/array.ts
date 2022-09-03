@@ -202,7 +202,7 @@ export const arrayParserDescribe = (): Mocha.Suite =>
 
       expect(res.isError).to.be.true;
       expect((res as Err<string, any>).error).to.equals(
-        `ArrayParserError(1,16): Expecting character ']', but got end of input.`,
+        `ArrayParserError(1:16): Expecting character ']', but got end of input.`,
       );
     });
   });

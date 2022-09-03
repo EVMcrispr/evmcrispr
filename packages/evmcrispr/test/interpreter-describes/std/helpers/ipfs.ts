@@ -3,12 +3,17 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
+import type {
+  CommandExpressionNode,
+  HelperFunctionNode,
+} from '../../../../src/cas11/types';
 import { NodeType } from '../../../../src/cas11/types';
 import { ComparisonType } from '../../../../src/cas11/utils';
 import { HelperFunctionError } from '../../../../src/errors';
 import {
+  createInterpreter,
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -31,49 +36,51 @@ export const ipfsDescribe = (): Suite =>
     });
 
     it('should upload text to IPFS and return hash', async () => {
-      const ipfsHash = await runExpression(
+      const [interpret] = await preparingExpression(
         `@ipfs('${ipfsData}')`,
         signer,
         undefined,
         [`set $std:${JWT_VAR_NAME} ${PINATA_JWT}`],
       );
 
-      expect(ipfsHash).to.equals(
+      expect(await interpret()).to.equals(
         'QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns',
       );
     });
 
     it('should fail when not setting pinata JWT variable', async () => {
+      const interpreter = createInterpreter(
+        `
+        set $res @ipfs('some text')
+      `,
+        signer,
+      );
+      const h = (interpreter.ast.body[0] as CommandExpressionNode)
+        .args[1] as HelperFunctionNode;
       const error = new HelperFunctionError(
-        'ipfs',
+        h,
         '$std:ipfs.jwt is not defined. Go to pinata.cloud and obtain your API key, please',
       );
 
-      await expectThrowAsync(
-        () => runExpression("@ipfs('some text')", signer),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(async () => interpreter.interpret(), error);
     });
 
     it('should fail when setting an invalid pinata JWT', async () => {
+      const interpreter = createInterpreter(
+        `
+        set $std:ipfs.jwt "an invalid JWT"
+        set $res @ipfs("someText")
+      `,
+        signer,
+      );
+      const h = (interpreter.ast.body[1] as CommandExpressionNode)
+        .args[1] as HelperFunctionNode;
       const error = new HelperFunctionError(
-        'ipfs',
+        h,
         'an error occurred while uploading data to IPFS: Invalid/expired credentials',
       );
 
-      await expectThrowAsync(
-        () =>
-          runExpression('@ipfs("someText")', signer, undefined, [
-            `set $std:ipfs.jwt "an invalid JWT"`,
-          ]),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     itChecksInvalidArgsLength(

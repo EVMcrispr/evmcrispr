@@ -83,7 +83,7 @@ export const newDAO: CommandFunction<AragonOS> = async (
   } catch (err) {
     const err_ = err as Error;
 
-    throw new CommandError('new-dao', err_.message);
+    throw new CommandError(c, err_.message);
   }
 
   return [

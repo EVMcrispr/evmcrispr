@@ -15,7 +15,7 @@ export const buildParserError = (
     ? `${msg}${wrongValueEncountered ? `, got ${wrongValueEncountered}` : ''}`
     : error.split('): ')[1];
 
-  return `${type}(${data.line},${index - data.offset}): ${parserMsg}`;
+  return `${type}(${data.line}:${index - data.offset}): ${parserMsg}`;
 };
 
 export const getIncorrectReceivedValue = (errorMsg: string): string => {

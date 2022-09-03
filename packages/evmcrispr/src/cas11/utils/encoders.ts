@@ -30,8 +30,14 @@ export const encodeAction = (
   };
 };
 
-export const encodeCalldata = (fnABI: Interface, params: any[]): string => {
-  const fnFragment = fnABI.fragments[0];
+export const encodeCalldata = (
+  fnInterfaceOrFragment: Interface | utils.Fragment,
+  params: any[],
+): string => {
+  const fnInterface = utils.Interface.isInterface(fnInterfaceOrFragment)
+    ? fnInterfaceOrFragment
+    : new utils.Interface([fnInterfaceOrFragment]);
+  const fnFragment = fnInterface.fragments[0];
   const methodName = fnFragment.name;
   const errors: string[] = [];
 
@@ -50,7 +56,7 @@ export const encodeCalldata = (fnABI: Interface, params: any[]): string => {
           .hexlify(utils.toUtf8Bytes(paramValue))
           .padEnd(parseInt(type.match(/^bytes(\d*)$/)![1] || '0') * 2 + 2, '0');
       }
-      fnABI._encodeParams([paramType], [paramValue]);
+      utils.defaultAbiCoder.encode([paramType], [paramValue]);
     } catch (err) {
       const err_ = err as Error;
       errors.push(
@@ -73,5 +79,5 @@ export const encodeCalldata = (fnABI: Interface, params: any[]): string => {
    * See https://docs.soliditylang.org/en/v0.8.16/abi-spec.html#use-of-dynamic-types
    * for more information on how dynamic types are encoded
    */
-  return fnABI.encodeFunctionData(methodName, params);
+  return fnInterface.encodeFunctionData(methodName, params);
 };

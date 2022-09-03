@@ -15,6 +15,7 @@ import { createTestAction } from '../../../test-helpers/actions';
 import {
   _aragonEns,
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
@@ -121,72 +122,58 @@ export const upgradeDescribe = (): Suite =>
     });
 
     it('should fail when executing it outside a "connect" command', async () => {
+      const interpreter = createInterpreter(
+        `
+    load aragonos as ar
+
+    ar:upgrade voting
+  `,
+        signer,
+      );
+      const c = interpreter.ast.body[1];
       const error = new CommandError(
-        'upgrade',
+        c,
         'must be used within a "connect" command',
       );
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load aragonos as ar
-
-        ar:upgrade voting
-      `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when upgrading a non-existent app', async () => {
       const apmRepo = 'superfluid.open';
+      const interpreter = createAragonScriptInterpreter([`upgrade ${apmRepo}`]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
       const error = new CommandError(
-        'upgrade',
+        c,
         `${apmRepo}.aragonpm.eth not installed on current DAO.`,
       );
 
-      await expectThrowAsync(
-        () => createAragonScriptInterpreter([`upgrade ${apmRepo}`]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when providing an invalid second parameter', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        'upgrade voting 1e18',
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
+
       const error = new CommandError(
-        'upgrade',
+        c,
         'second upgrade parameter must be a semantic version, an address, or nothing',
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter(['upgrade voting 1e18']).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when upgrading an app to the same version', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        'upgrade voting 2.3.0',
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
       const error = new CommandError(
-        'upgrade',
+        c,
         `trying to upgrade app to its current version`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter(['upgrade voting 2.3.0']).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

@@ -11,6 +11,8 @@ import { scriptParser } from '../../src/cas11/parsers/script';
 import { createParserState } from '../../src/cas11/parsers/utils';
 import type {
   AST,
+  CommandExpressionNode,
+  HelperFunctionNode,
   Node,
   NodeParser,
   NodeParserState,
@@ -114,12 +116,12 @@ export const createInterpreter = (
   return new Interpreter(ast, signer);
 };
 
-export const runExpression = async (
+export const preparingExpression = async (
   expression: string,
   signer: Signer,
   module?: string,
   configSetters: string[] = [],
-): Promise<string> => {
+): Promise<[Awaited<any>, HelperFunctionNode]> => {
   const i = createInterpreter(
     `
   ${module ? `load ${module}` : ''}
@@ -130,9 +132,18 @@ export const runExpression = async (
     signer,
   );
 
-  await i.interpret();
+  const setCommand = i.ast.body.find(
+    (n) => (n as CommandExpressionNode).name === 'set',
+  )! as CommandExpressionNode;
+  const h = setCommand.args[1] as HelperFunctionNode;
 
-  return i.getBinding('$res', BindingsSpace.USER);
+  return [
+    async () => {
+      await i.interpret();
+      return i.getBinding('$res', BindingsSpace.USER);
+    },
+    h,
+  ];
 };
 
 const plural = (length: number): string => (length > 1 ? 's' : '');
@@ -170,6 +181,20 @@ const getCallee = (argumentlessExpression: string): string => {
   }
 };
 
+const createCommandNode = (name: string): CommandExpressionNode => ({
+  type: CommandExpression,
+  name: name,
+  module: '',
+  args: [],
+  opts: [],
+});
+
+// const createHelperNode = (name: string): HelperFunctionNode => ({
+//   type: HelperFunctionExpression,
+//   name: name,
+//   args: [],
+// });
+
 export const itChecksInvalidArgsLength = (
   expressionType: NodeType,
   argumentlessExpression: string,
@@ -194,22 +219,19 @@ export const itChecksInvalidArgsLength = (
       const upperValue = maxValue ?? minValue;
 
       msg = buildArgsLengthErrorMsg(args.length + 1, c);
+      const [interpret, h] = await preparingExpression(
+        updateExpressionArgs('add', argumentlessExpression, args, c),
+        signer,
+        module,
+      );
       error =
         expressionType === CommandExpression
-          ? new CommandError(callee, msg)
-          : new HelperFunctionError(callee, msg);
+          ? new CommandError(createCommandNode(callee), msg)
+          : new HelperFunctionError(h, msg);
 
       await expectThrowAsync(
-        () =>
-          runExpression(
-            updateExpressionArgs('add', argumentlessExpression, args, c),
-            signer,
-            module,
-          ),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+        () => interpret(),
+        error,
         `invalid result when passing more than ${upperValue} argument${plural(
           upperValue,
         )}`,
@@ -217,22 +239,19 @@ export const itChecksInvalidArgsLength = (
 
       if (minValue > 0) {
         msg = buildArgsLengthErrorMsg(minValue - 1, c);
+        const [interpret, h] = await preparingExpression(
+          updateExpressionArgs('remove', argumentlessExpression, args, c),
+          signer,
+          module,
+        );
         error =
           expressionType === CommandExpression
-            ? new CommandError(callee, msg)
-            : new HelperFunctionError(callee, msg);
+            ? new CommandError(createCommandNode(callee), msg)
+            : new HelperFunctionError(h, msg);
 
         await expectThrowAsync(
-          () =>
-            runExpression(
-              updateExpressionArgs('remove', argumentlessExpression, args, c),
-              signer,
-              module,
-            ),
-          {
-            type: error.constructor,
-            message: error.message,
-          },
+          () => interpret(),
+          error,
           `invalid result when passing less than ${minValue} argument${plural(
             minValue,
           )}`,
@@ -240,22 +259,19 @@ export const itChecksInvalidArgsLength = (
       }
     } else if (type === Greater) {
       msg = buildArgsLengthErrorMsg(args.length - 1, c);
+      const [interpret, h] = await preparingExpression(
+        updateExpressionArgs('remove', argumentlessExpression, args, c),
+        signer,
+        module,
+      );
       error =
         expressionType === CommandExpression
-          ? new CommandError(callee, msg)
-          : new HelperFunctionError(callee, msg);
+          ? new CommandError(createCommandNode(callee), msg)
+          : new HelperFunctionError(h, msg);
 
       await expectThrowAsync(
-        () =>
-          runExpression(
-            updateExpressionArgs('remove', argumentlessExpression, args, c),
-            signer,
-            module,
-          ),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+        () => interpret(),
+        error,
         `invalid result when passing less than ${minValue} argument${plural(
           minValue,
         )}`,
@@ -277,10 +293,7 @@ export const itChecksNonDefinedIdentifier = (
 
     await expectThrowAsync(
       () => createInterpreter(nonDefinedIdentifier).interpret(),
-      {
-        type: error.constructor,
-        message: error.message,
-      },
+      error,
     );
   });
 };

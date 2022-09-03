@@ -7,7 +7,10 @@ import type { Suite } from 'mocha';
 import { CommandError } from '../../../../src/errors';
 import { DAO } from '../../../fixtures';
 import { createTestScriptEncodedAction } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as _createAragonScriptInterpreter } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as _createAragonScriptInterpreter,
+  findAragonOSCommandNode,
+} from '../../../test-helpers/aragonos';
 import { itChecksNonDefinedIdentifier } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -78,40 +81,30 @@ export const actDescribe = (): Suite =>
 
     it('should fail when receiving an invalid agent address', async () => {
       const invalidAgentAddress = 'false';
+      const interpreter = createAragonScriptInterpreter([
+        `act ${invalidAgentAddress} vault "deposit()"`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
       const error = new CommandError(
-        'act',
+        c,
         `expected a valid agent address, but got ${invalidAgentAddress}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `act ${invalidAgentAddress} vault "deposit()"`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when receiving an invalid target address', async () => {
       const invalidTargetAddress = '2e18';
+      const interpreter = createAragonScriptInterpreter([
+        `act agent:0 ${invalidTargetAddress} "deposit()"`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
       const error = new CommandError(
-        'act',
+        c,
         `expected a valid target address, but got 2000000000000000000`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `act agent:0 ${invalidTargetAddress} "deposit()"`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when receiving an invalid signature', async () => {
@@ -125,20 +118,18 @@ export const actDescribe = (): Suite =>
 
       await Promise.all(
         cases.map(([invalidSignature, msg]) => {
+          const interpreter = createAragonScriptInterpreter([
+            `act agent:0 vault "${invalidSignature}"`,
+          ]);
+          const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
           const error = new CommandError(
-            'act',
+            c,
             `expected a valid signature, but got ${invalidSignature}`,
           );
 
           return expectThrowAsync(
-            () =>
-              createAragonScriptInterpreter([
-                `act agent:0 vault "${invalidSignature}"`,
-              ]).interpret(),
-            {
-              type: error.constructor,
-              message: error.message,
-            },
+            () => interpreter.interpret(),
+            error,
             `${msg} signature error mismatch`,
           );
         }),
@@ -150,20 +141,15 @@ export const actDescribe = (): Suite =>
         '-param 0 of type address: invalid address. Got 1000000000000000000',
         '-param 1 of type uint256: invalid BigNumber value. Got none',
       ];
+      const interpreter = createAragonScriptInterpreter([
+        `act agent:0 vault "deposit(address,uint256)" 1e18`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
       const error = new CommandError(
-        'act',
+        c,
         `error when encoding deposit call:\n${paramsErrors.join('\n')}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `act agent:0 vault "deposit(address,uint256)" 1e18`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

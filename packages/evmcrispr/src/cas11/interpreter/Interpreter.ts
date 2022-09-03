@@ -381,9 +381,9 @@ export class Interpreter {
       case BinaryExpression:
         throw new ExpressionError(msg, { name: 'ArithmeticExpression' });
       case CommandExpression:
-        throw new CommandError((n as CommandExpressionNode).name, msg);
+        throw new CommandError(n as CommandExpressionNode, msg);
       case HelperFunctionExpression:
-        throw new HelperFunctionError((n as HelperFunctionNode).name, msg);
+        throw new HelperFunctionError(n as HelperFunctionNode, msg);
       case ProbableIdentifier:
         throw new ExpressionError(msg, { name: 'IdentifierError' });
       case VariableIdentifier:

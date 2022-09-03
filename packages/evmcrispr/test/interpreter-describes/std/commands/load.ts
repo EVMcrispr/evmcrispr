@@ -4,11 +4,13 @@ import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
 import { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
+import type { CommandExpressionNode } from '../../../../src/cas11/types';
 
 import { CommandError } from '../../../../src/errors';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+import { findStdCommandNode } from '../../../test-helpers/std';
 
 export const loadDescribe = (): Suite =>
   describe('when intepreting load command', () => {
@@ -45,38 +47,26 @@ export const loadDescribe = (): Suite =>
 
     it('should fail when trying to load a non-existent module', async () => {
       const moduleName = 'nonExistent';
-      const error = new CommandError('load', `module ${moduleName} not found`);
+      const interpreter = createInterpreter(`load ${moduleName}`, signer);
+      const c = findStdCommandNode(interpreter.ast, 'load')!;
+      const error = new CommandError(c, `module ${moduleName} not found`);
 
-      await expectThrowAsync(
-        () => createInterpreter(`load ${moduleName}`, signer).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when trying to load a previously loaded module', async () => {
       const moduleName = 'aragonos';
-      const error = new CommandError(
-        'load',
-        `module ${moduleName} already loaded`,
+      const interpreter = createInterpreter(
+        `
+    load ${moduleName}
+    load ${moduleName}
+  `,
+        signer,
       );
+      const c = interpreter.ast.body[1] as CommandExpressionNode;
+      const error = new CommandError(c, `module ${moduleName} already loaded`);
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load ${moduleName}
-        load ${moduleName}
-      `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it(

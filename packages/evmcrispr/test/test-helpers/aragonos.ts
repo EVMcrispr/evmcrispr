@@ -5,6 +5,12 @@ import type { Address, Permission } from '../../src';
 import type { Interpreter } from '../../src/cas11/interpreter/Interpreter';
 
 import type { AragonOS } from '../../src/cas11/modules/aragonos/AragonOS';
+import type {
+  AST,
+  BlockExpressionNode,
+  CommandExpressionNode,
+} from '../../src/cas11/types';
+import { NodeType } from '../../src/cas11/types';
 import { listItems } from '../../src/cas11/utils';
 import { CommandError } from '../../src/errors';
 import type { FullPermission } from '../../src/types';
@@ -40,6 +46,42 @@ export const createAragonScriptInterpreter =
       signer,
     );
   };
+
+export const findAragonOSCommandNode = (
+  ast: AST,
+  commandName: string,
+  nestingLevel = 0,
+  index = 0,
+): CommandExpressionNode | undefined => {
+  let connectNode = ast.body.find(
+    (n) =>
+      n.type === NodeType.CommandExpression &&
+      (n as CommandExpressionNode).name === 'connect',
+  ) as CommandExpressionNode;
+
+  if (nestingLevel) {
+    let i = 0;
+    while (i < nestingLevel) {
+      const blockNode = connectNode.args.find(
+        (arg) => arg.type === NodeType.BlockExpression,
+      ) as BlockExpressionNode;
+
+      connectNode = blockNode.body.find((c) => c.name === 'connect')!;
+      i++;
+    }
+  }
+
+  if (commandName === 'connect') {
+    return connectNode;
+  }
+
+  const blockNode = connectNode.args.find(
+    (n) => n.type === NodeType.BlockExpression,
+  ) as BlockExpressionNode;
+  const commandNodes = blockNode.body.filter((c) => c.name === commandName);
+
+  return commandNodes[index];
+};
 
 export const itChecksBadPermission = (
   commandName: string,
@@ -77,114 +119,86 @@ export const itChecksBadPermission = (
 
   it('should fail when receiving an invalid grantee address', async () => {
     const invalidGrantee = 'false';
+    const interpreter = createPermissionActionInterpreter([
+      invalidGrantee,
+      permission[1],
+      permission[2],
+    ]);
+    const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
-      commandName,
+      c!,
       listItems(permissionErrorText, [
         `Invalid grantee. Expected an address, but got ${invalidGrantee}`,
       ]),
     );
 
-    await expectThrowAsync(
-      () =>
-        createPermissionActionInterpreter([
-          invalidGrantee,
-          permission[1],
-          permission[2],
-        ]).interpret(),
-      {
-        type: error.constructor,
-        message: error.message,
-      },
-    );
+    await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
   it('should fail when receiving an invalid app address', async () => {
     const invalidApp = 'false';
+    const interpreter = createPermissionActionInterpreter([
+      permission[0],
+      invalidApp,
+      permission[2],
+    ]);
+    const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
-      commandName,
+      c!,
       listItems(permissionErrorText, [
         `Invalid app. Expected an address, but got ${invalidApp}`,
       ]),
     );
 
-    await expectThrowAsync(
-      () =>
-        createPermissionActionInterpreter([
-          permission[0],
-          invalidApp,
-          permission[2],
-        ]).interpret(),
-      {
-        type: error.constructor,
-        message: error.message,
-      },
-    );
+    await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
   it('should fail when receiving a non-existent role', async () => {
     const nonExistentRole = 'NON_EXISTENT_ROLE';
+    const interpreter = createPermissionActionInterpreter([
+      permission[0],
+      permission[1],
+      nonExistentRole,
+    ]);
+    const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
-      commandName,
+      c!,
       `given permission doesn't exists on app ${permission[1]}`,
     );
 
-    await expectThrowAsync(
-      () =>
-        createPermissionActionInterpreter([
-          permission[0],
-          permission[1],
-          nonExistentRole,
-        ]).interpret(),
-      {
-        type: error.constructor,
-        message: error.message,
-      },
-    );
+    await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
   it('should fail when receiving an invalid hash role', async () => {
     const invalidHashRole =
       '0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366';
+    const interpreter = createPermissionActionInterpreter([
+      permission[0],
+      permission[1],
+      invalidHashRole,
+    ]);
+    const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
     const error = new CommandError(
-      commandName,
+      c,
       listItems(permissionErrorText, [
         `Invalid role. Expected a valid hash, but got ${invalidHashRole}`,
       ]),
     );
 
-    await expectThrowAsync(
-      () =>
-        createPermissionActionInterpreter([
-          permission[0],
-          permission[1],
-          invalidHashRole,
-        ]).interpret(),
-      {
-        type: error.constructor,
-        message: error.message,
-      },
-    );
+    await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
   if (checkPermissionManager) {
     it('should fail when not receiving permission manager', async () => {
-      const error = new CommandError(
-        commandName,
-        'required permission manager missing',
-      );
+      const interpreter = createPermissionActionInterpreter([
+        permission[0],
+        permission[1],
+        permission[2],
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
+      const error = new CommandError(c, 'required permission manager missing');
 
-      await expectThrowAsync(
-        () =>
-          createPermissionActionInterpreter([
-            permission[0],
-            permission[1],
-            permission[2],
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     itChecksNonDefinedIdentifier(
@@ -198,22 +212,17 @@ export const itChecksBadPermission = (
 
     it('should fail when receiving an invalid permission manager address', async () => {
       const invalidManager = 'false';
+      const interpreter = createPermissionActionInterpreter([
+        ...permission,
+        invalidManager,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
       const error = new CommandError(
-        commandName,
+        c,
         `invalid permission manager. Expected an address, but got ${invalidManager}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createPermissionActionInterpreter([
-            ...permission,
-            invalidManager,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   }
 };

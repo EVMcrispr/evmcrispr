@@ -31,7 +31,7 @@ describe('Connector', () => {
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
-    expectThrowAsync(() => new Connector(999), { type: ErrorException });
+    expectThrowAsync(() => new Connector(999), new ErrorException());
   });
 
   describe('repo()', () => {
@@ -55,7 +55,7 @@ describe('Connector', () => {
     it('should fail when fetching a non-existent repo', async () => {
       await expectThrowAsync(
         () => connector.repo('non-existent-repo', 'aragonpm.eth'),
-        { type: ErrorNotFound },
+        new ErrorNotFound(),
       );
     });
   });
@@ -78,9 +78,7 @@ describe('Connector', () => {
     it('should fail when fetching the apps of a non-existent dao', async () => {
       await expectThrowAsync(
         () => connector.organizationApps(EOA_ADDRESS, signer.provider!),
-        {
-          type: ErrorNotFound,
-        },
+        new ErrorNotFound(),
       );
     });
   });

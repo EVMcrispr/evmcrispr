@@ -37,7 +37,10 @@ import {
   createTestPreTxAction,
   createTestScriptEncodedAction,
 } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
+} from '../../../test-helpers/aragonos';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
@@ -258,76 +261,66 @@ export const connectDescribe = (): Suite =>
       });
 
       it('should fail when trying to connect to an already connected DAO', async () => {
-        const error = new CommandError(
+        const interpreter = createInterpreter(
+          `
+      load aragonos as ar
+
+      ar:connect ${DAO.kernel} (
+        connect ${DAO.kernel} (
+
+        )
+      )
+      `,
+          signer,
+        );
+
+        const connectNode = findAragonOSCommandNode(
+          interpreter.ast,
           'connect',
+          1,
+        )!;
+        const error = new CommandError(
+          connectNode,
           `trying to connect to an already connected DAO (${DAO.kernel})`,
         );
-        await expectThrowAsync(
-          () =>
-            createInterpreter(
-              `
-          load aragonos as ar
-  
-          ar:connect ${DAO.kernel} (
-            connect ${DAO.kernel} (
-  
-            )
-          )
-          `,
-              signer,
-            ).interpret(),
-          {
-            type: error.constructor,
-            message: error.message,
-          },
-        );
+        await expectThrowAsync(() => interpreter.interpret(), error);
       });
     });
 
     it('should fail when forwarding a set of actions through a context forwarder without defining a context', async () => {
-      const error = new CommandError('connect', `context option missing`);
+      const interpreter = createInterpreter(
+        `
+      load aragonos as ar
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-          load aragonos as ar
-
-          ar:connect ${DAO.kernel} disputable-voting.open (
-            grant voting token-manager ISSUE_ROLE voting
-          )
-        `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+      ar:connect ${DAO.kernel} disputable-voting.open (
+        grant voting token-manager ISSUE_ROLE voting
+      )
+    `,
+        signer,
       );
+      const c = findAragonOSCommandNode(interpreter.ast, 'connect')!;
+      const error = new CommandError(c, `context option missing`);
+
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when not passing a commands block', async () => {
+      const interpreter = createInterpreter(
+        `
+    load aragonos as ar
+    ar:connect ${DAO.kernel}
+  `,
+        signer,
+      );
+      const c = findAragonOSCommandNode(interpreter.ast, 'connect')!;
       const error = new CommandError(
-        'connect',
+        c,
         buildArgsLengthErrorMsg(1, {
           type: ComparisonType.Greater,
           minValue: 2,
         }),
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load aragonos as ar
-        ar:connect ${DAO.kernel}
-      `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

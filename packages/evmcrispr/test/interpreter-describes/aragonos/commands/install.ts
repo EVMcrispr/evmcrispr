@@ -12,7 +12,10 @@ import { addressesEqual } from '../../../../src/utils';
 import { APP, DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
-import { createAragonScriptInterpreter as createAragonScriptInterpreter_ } from '../../../test-helpers/aragonos';
+import {
+  createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
+} from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 
@@ -138,114 +141,83 @@ export const installDescribe = (): Suite =>
     });
 
     it('should fail when executing it outside a "connect" command', async () => {
+      const interpreter = createInterpreter(
+        `
+    load aragonos as ar
+
+    ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}
+  `,
+        signer,
+      );
+      const c = interpreter.ast.body[1];
       const error = new CommandError(
-        'install',
+        c,
         `must be used within a "connect" command`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load aragonos as ar
-
-        ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}
-      `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail passing an invalid repo identifier', async () => {
       const invalidRepoIdentifier = `missing-label-repo`;
+      const interpreter = createAragonScriptInterpreter([
+        `install ${invalidRepoIdentifier} ${initializeUnresolvedParams.join(
+          ' ',
+        )}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'install')!;
       const error = new CommandError(
-        'install',
+        c,
         `invalid labeled identifier ${invalidRepoIdentifier}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `install ${invalidRepoIdentifier} ${initializeUnresolvedParams.join(
-              ' ',
-            )}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing a repo that can not be resolved', async () => {
       const invalidRepoENSName = `non-existent-repo:new-app`;
+      const interpreter = createAragonScriptInterpreter([
+        `install ${invalidRepoENSName} ${initializeUnresolvedParams.join(' ')}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'install')!;
       const error = new CommandError(
-        'install',
+        c,
         `ENS repo name ${
           invalidRepoENSName.split(':')[0] + '.aragonpm.eth'
         } couldn't be resolved`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `install ${invalidRepoENSName} ${initializeUnresolvedParams.join(
-              ' ',
-            )}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing an invalid --version option', async () => {
       const invalidVersion = '1e18';
+      const interpreter = createAragonScriptInterpreter([
+        `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+          ' ',
+        )} --version ${invalidVersion}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'install')!;
       const error = new CommandError(
-        'install',
+        c,
         `invalid --version option. Expected a semantic version, but got 1000000000000000000`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
-              ' ',
-            )} --version ${invalidVersion}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when installing an app with an identifier previously used', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        `install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}`,
+        `install ${newAppIdentifier} ${initializeUnresolvedParams.join(' ')}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'install', 0, 1)!;
       const error = new CommandError(
-        'install',
+        c,
         `identifier ${newAppIdentifier} is already in use.`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
-              ' ',
-            )}`,
-            `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
-              ' ',
-            )}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing invalid initialize params', async () => {
@@ -253,20 +225,16 @@ export const installDescribe = (): Suite =>
         '-param _token of type address: invalid address. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a',
         '-param _maxAccountTokens of type uint256: invalid BigNumber value. Got false',
       ];
+      const interpreter = createAragonScriptInterpreter([
+        `install ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'install')!;
+
       const error = new CommandError(
-        'install',
+        c,
         `error when encoding initialize call:\n${paramsErrors.join('\n')}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `install ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

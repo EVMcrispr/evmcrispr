@@ -7,7 +7,7 @@ import { NodeType } from '../../../../src/cas11/types';
 import { ComparisonType } from '../../../../src/cas11/utils';
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 export const aragonEnsDescribe = (): Suite =>
@@ -20,21 +20,21 @@ export const aragonEnsDescribe = (): Suite =>
     });
 
     it('should interpret it correctly', async () => {
-      const repoRes = await runExpression(
+      const [repoRes] = await preparingExpression(
         '@aragonEns(hooked-token-manager-no-controller.open.aragonpm.eth)',
         signer,
         'aragonos',
       );
-      const daoRes = await runExpression(
+      const [daoRes] = await preparingExpression(
         `@aragonEns(hive.aragonid.eth)`,
         signer,
         'aragonos',
       );
 
-      expect(repoRes, 'Repo address mismatch').to.equals(
+      expect(await repoRes(), 'Repo address mismatch').to.equals(
         '0xe4247F171f823e226E3F8617Eec606Eb55B54b7a',
       );
-      expect(daoRes, 'DAO address mismatch').to.equals(
+      expect(await daoRes(), 'DAO address mismatch').to.equals(
         `0xe520428C232F6Da6f694b121181f907931fD2211`,
       );
     });

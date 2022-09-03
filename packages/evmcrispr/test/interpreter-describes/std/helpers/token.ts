@@ -8,7 +8,7 @@ import { ComparisonType } from '../../../../src/cas11/utils';
 
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 export const tokenDescribe = (): Suite =>
@@ -21,9 +21,9 @@ export const tokenDescribe = (): Suite =>
     });
 
     it('should interpret it correctly', async () => {
-      const tokenAddress = await runExpression('@token(DAI)', signer);
+      const [interpret] = await preparingExpression('@token(DAI)', signer);
 
-      expect(tokenAddress).to.equals(
+      expect(await interpret()).to.equals(
         '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
       );
     });

@@ -7,7 +7,7 @@ import { ComparisonType } from '../../../../src/cas11/utils';
 
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 export const getDescribe = (): Mocha.Suite =>
@@ -20,12 +20,12 @@ export const getDescribe = (): Mocha.Suite =>
     });
 
     it('should interpret it correctly', async () => {
-      const name = await runExpression(
+      const [interpret] = await preparingExpression(
         '@get(0xdf032bc4b9dc2782bb09352007d4c57b75160b15, name():(string))',
         signer,
       );
 
-      expect(name).to.eq('Wrapped Ether');
+      expect(await interpret()).to.eq('Wrapped Ether');
     });
 
     itChecksInvalidArgsLength(

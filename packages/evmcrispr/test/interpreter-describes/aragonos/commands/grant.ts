@@ -16,6 +16,7 @@ import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
   itChecksBadPermission,
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
@@ -161,106 +162,81 @@ export const grantDescribe = (): Suite =>
     it('should fail when passing an invalid app DAO prefix', async () => {
       const invalidDAOPrefix = `invalid-dao-prefix`;
       const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
+      const interpreter = createInterpreter(
+        `
+        load aragonos as ar
+        ar:connect ${DAO.kernel} (
+          connect ${DAO2.kernel} (
+            grant _1:voting ${appIdentifier} SOME_ROLE
+          )
+        )
+      `,
+        signer,
+      );
+      const c = findAragonOSCommandNode(interpreter.ast, 'grant', 1)!;
       const error = new CommandError(
-        'grant',
+        c,
         `couldn't found a DAO for ${invalidDAOPrefix} on given identifier ${appIdentifier}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-            load aragonos as ar
-            ar:connect ${DAO.kernel} (
-              connect ${DAO2.kernel} (
-                grant _1:voting ${appIdentifier} SOME_ROLE
-              )
-            )
-          `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when providing an invalid oracle option', async () => {
       const invalidOracle = 'invalid-oracle';
+      const interpreter = createAragonScriptInterpreter([
+        `grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle ${invalidOracle}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'grant')!;
       const error = new CommandError(
-        'grant',
+        c,
         `invalid --oracle option. Expected an address, but got ${invalidOracle}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `grant voting token-manager REVOKE_VESTINGS_ROLE voting --oracle ${invalidOracle}`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when granting a parametric permission to an existent grantee', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        `grant voting token-manager MINT_ROLE --oracle token-manager`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'grant')!;
       const error = new CommandError(
-        'grant',
+        c,
         `grantee ${DAO.voting} already has given permission on app token-manager`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `grant voting token-manager MINT_ROLE --oracle token-manager`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when executing it outside a "connect" command', async () => {
+      const interpreter = createInterpreter(
+        `
+    load aragonos as ar
+
+    ar:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE
+  `,
+        signer,
+      );
+      const c = interpreter.ast.body[1];
       const error = new CommandError(
-        'grant',
+        c,
         'must be used within a "connect" command',
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        load aragonos as ar
-
-        ar:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE
-      `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when granting a permission to an address that already has it', async () => {
       const app = 'token-manager';
+      const interpreter = createAragonScriptInterpreter([
+        `grant voting ${app} MINT_ROLE`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'grant')!;
       const error = new CommandError(
-        'grant',
+        c,
         `grantee already has given permission on app ${app}`,
       );
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `grant voting ${app} MINT_ROLE`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });

@@ -7,7 +7,7 @@ import { ExpressionError } from '../../src/errors';
 
 import { toDecimals } from '../../src/utils';
 
-import { createInterpreter, runExpression } from '../test-helpers/cas11';
+import { createInterpreter, preparingExpression } from '../test-helpers/cas11';
 import { expectThrowAsync } from '../test-helpers/expects';
 
 export const arithmeticDescribe = (): Mocha.Suite =>
@@ -20,16 +20,21 @@ export const arithmeticDescribe = (): Mocha.Suite =>
     });
 
     it('should return the correct result of an arithmetic operation', async () => {
-      const res = await runExpression('(120 - 5 * 4 + 500)', signer);
+      const [interpret] = await preparingExpression(
+        '(120 - 5 * 4 + 500)',
+        signer,
+      );
+      const res = await interpret();
 
       expect(res).to.eql(BigNumber.from(600));
     });
 
     it('should return the correct result of an arithmetic operation containing priority parenthesis', async () => {
-      const res = await runExpression(
+      const [interpret] = await preparingExpression(
         '((121e18 / 4) * (50 - 2) - 55e18)',
         signer,
       );
+      const res = await interpret();
 
       expect(res).to.eql(toDecimals(1397, 18));
     });
@@ -55,11 +60,7 @@ export const arithmeticDescribe = (): Mocha.Suite =>
       `,
             signer,
           ).interpret(),
-        {
-          type: leftOperandErr.constructor,
-          message: leftOperandErr.message,
-          name: leftOperandErr.name,
-        },
+        leftOperandErr,
         'invalid left operand error',
       );
 
@@ -73,25 +74,18 @@ export const arithmeticDescribe = (): Mocha.Suite =>
       `,
             signer,
           ).interpret(),
-        {
-          type: rightOperandErr.constructor,
-          message: rightOperandErr.message,
-          name: rightOperandErr.name,
-        },
+        rightOperandErr,
         'invalid right operand error',
       );
     });
 
     it('should fail when trying to perform a division by zero', async () => {
+      const [interpret] = await preparingExpression('(4 / 0)', signer);
       const err = new ExpressionError(
         `invalid operation. Can't divide by zero`,
         { name },
       );
 
-      await expectThrowAsync(() => runExpression('(4 / 0)', signer), {
-        type: err.constructor,
-        message: err.message,
-        name: err.name,
-      });
+      await expectThrowAsync(() => interpret(), err);
     });
   });

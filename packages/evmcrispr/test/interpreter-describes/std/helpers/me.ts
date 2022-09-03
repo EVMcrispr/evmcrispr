@@ -7,7 +7,7 @@ import { NodeType } from '../../../../src/cas11/types';
 import { ComparisonType } from '../../../../src/cas11/utils';
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 export const meDescribe = (): Suite =>
@@ -20,9 +20,9 @@ export const meDescribe = (): Suite =>
     });
 
     it('should return the current connected account', async () => {
-      const connectedAccount = await runExpression(`@me`, signer);
+      const [interpret] = await preparingExpression(`@me`, signer);
 
-      expect(connectedAccount).to.equals(await signer.getAddress());
+      expect(await interpret()).to.equals(await signer.getAddress());
     });
 
     itChecksInvalidArgsLength(

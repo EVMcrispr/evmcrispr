@@ -7,7 +7,7 @@ import { NodeType } from '../../../../src/cas11/types';
 import { ComparisonType } from '../../../../src/cas11/utils';
 import {
   itChecksInvalidArgsLength,
-  runExpression,
+  preparingExpression,
 } from '../../../test-helpers/cas11';
 
 const toTimestamp = (date?: string): number =>
@@ -19,7 +19,7 @@ export const dateDescribe = (): Suite =>
     const lazySigner = () => signer;
 
     const runHelper = async (helper: string) => {
-      return runExpression(helper, signer);
+      return preparingExpression(helper, signer);
     };
 
     before(async () => {
@@ -27,7 +27,7 @@ export const dateDescribe = (): Suite =>
     });
 
     it('should interpret it correctly', async () => {
-      const cases: [() => Promise<string>, number, string][] = [
+      const cases: [() => ReturnType<typeof runHelper>, number, string][] = [
         [() => runHelper('@date(now)'), toTimestamp(), 'current date mismatch'],
         [
           () => runHelper('@date(2015)'),
@@ -148,9 +148,12 @@ export const dateDescribe = (): Suite =>
       ];
 
       for (const [valueFn, expectedValue, errorMsg] of cases) {
-        const value = await valueFn();
+        const [interpret] = await valueFn();
 
-        expect(value).to.equals(Math.floor(expectedValue).toString(), errorMsg);
+        expect(await interpret()).to.equals(
+          Math.floor(expectedValue).toString(),
+          errorMsg,
+        );
       }
     });
 

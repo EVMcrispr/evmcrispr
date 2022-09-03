@@ -4,7 +4,10 @@ import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
+import type { Interpreter } from '../../../../src';
+
 import type { AragonOS } from '../../../../src/cas11/modules/aragonos/AragonOS';
+import type { CommandExpressionNode } from '../../../../src/cas11/types';
 import { CommandError } from '../../../../src/errors';
 import { ANY_ENTITY, toDecimals } from '../../../../src/utils';
 
@@ -14,6 +17,7 @@ import { createTestAction } from '../../../test-helpers/actions';
 
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
+  findAragonOSCommandNode,
   itChecksBadPermission,
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
@@ -139,119 +143,100 @@ export const revokeDescribe = (): Suite =>
     it('should fail when passing an invalid DAO prefix', async () => {
       const invalidDAOPrefix = `invalid-dao-prefix`;
       const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
+      const interpreter = createInterpreter(
+        `
+        load aragonos as ar
+        ar:connect ${DAO.kernel} (
+          connect ${DAO2.kernel} (
+            revoke _1:voting ${appIdentifier} SOME_ROLE
+          )
+        )
+      `,
+        signer,
+      );
+      const c = findAragonOSCommandNode(interpreter.ast, 'revoke', 1)!;
+
       const error = new CommandError(
-        'revoke',
+        c,
         `couldn't found a DAO for ${invalidDAOPrefix} on given identifier ${appIdentifier}`,
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-            load aragonos as ar
-            ar:connect ${DAO.kernel} (
-              connect ${DAO2.kernel} (
-                revoke _1:voting ${appIdentifier} SOME_ROLE
-              )
-            )
-          `,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when executing it outside a "connect" command', async () => {
+      const interpreter = createInterpreter(
+        `
+      load aragonos as ar
+      ar:revoke voting token-manager MINT_ROLE`,
+        signer,
+      );
+      const c = interpreter.ast.body[1];
       const error = new CommandError(
-        'revoke',
+        c,
         'must be used within a "connect" command',
       );
 
-      await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-          load aragonos as ar
-          ar:revoke voting token-manager MINT_ROLE`,
-            signer,
-          ).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when passing an invalid remove manager flag', async () => {
+      const interpreter = createAragonScriptInterpreter([
+        'revoke voting token-manager MINT_ROLE 1e18',
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
       const error = new CommandError(
-        'revoke',
+        c,
         `invalid remove manager flag. Expected boolean but got ${typeof toDecimals(
           1,
           18,
         )}`,
       );
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'revoke voting token-manager MINT_ROLE 1e18',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     it('should fail when revoking a permission from a non-app entity', async () => {
+      let interpreter: Interpreter;
+      let c: CommandExpressionNode;
       const nonAppAddress = await signer.getAddress();
-      let error = new CommandError(
-        'revoke',
-        `${nonAppAddress} is not a DAO's app`,
-      );
+
+      interpreter = createAragonScriptInterpreter([
+        `revoke voting ${nonAppAddress} A_ROLE`,
+      ]);
+      c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
+      let error = new CommandError(c, `${nonAppAddress} is not a DAO's app`);
 
       await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            `revoke voting ${nonAppAddress} A_ROLE`,
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+        () => interpreter.interpret(),
+        error,
         `Unknown identifier didn't fail properly`,
       );
 
-      error = new CommandError('revoke', `${nonAppAddress} is not a DAO's app`);
+      interpreter = createAragonScriptInterpreter([
+        `revoke voting ${nonAppAddress} MY_ROLE`,
+      ]);
+      c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
+
+      error = new CommandError(c, `${nonAppAddress} is not a DAO's app`);
 
       await expectThrowAsync(
         () =>
           createAragonScriptInterpreter([
             `revoke voting ${nonAppAddress} MY_ROLE`,
           ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
+        error,
       );
     });
 
     it("should fail when revoking a permission from an entity that doesn't have it", async () => {
+      const interpreter = createAragonScriptInterpreter([
+        'revoke voting token-manager ISSUE_ROLE',
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
       const error = new CommandError(
-        'revoke',
+        c,
         `grantee ${DAO.voting} doesn't have the given permission`,
       );
-      await expectThrowAsync(
-        () =>
-          createAragonScriptInterpreter([
-            'revoke voting token-manager ISSUE_ROLE',
-          ]).interpret(),
-        {
-          type: error.constructor,
-          message: error.message,
-        },
-      );
+      await expectThrowAsync(() => interpreter.interpret(), error);
     });
   });
