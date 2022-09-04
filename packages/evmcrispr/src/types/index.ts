@@ -1,6 +1,6 @@
 import type { BigNumberish } from 'ethers';
 
-export * from './action';
+export * from './actions';
 export * from './ast';
 export * from './modules';
 export * from './parsers';
