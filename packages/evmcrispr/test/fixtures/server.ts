@@ -72,7 +72,6 @@ const handlers = [
   rest.get<DefaultBodyType>(
     `https://api-rinkeby.etherscan.io/api`,
     (req, res, ctx) => {
-      console.log('hre');
       const address = req.url.searchParams.get('address');
 
       if (!address || !utils.isAddress(address)) {

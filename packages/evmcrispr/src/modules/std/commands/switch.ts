@@ -42,7 +42,7 @@ export const _switch: CommandFunction<Std> = async (
   chainId = Number(networkNameOrId.toString());
 
   if (!Number.isInteger(chainId)) {
-    if (typeof chainId !== 'string') {
+    if (typeof networkNameOrId !== 'string') {
       EVMcrispr.panic(
         c,
         `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
