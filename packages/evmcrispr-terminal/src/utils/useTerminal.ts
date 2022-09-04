@@ -61,28 +61,36 @@ export const useTerminal = () => {
   const [url] = useState('');
   const [code, setCode] = useCodeState(
     `# Available commands:
-
-load <module> [as <alias>]
-switch <chainId>
-connect <dao> <...path> [--context https://yoursite.com] (
-  <...commands>
-)
-install <repo> [...initParams] [--version <version>]
-grant <entity> <app> <role> [permissionManager] [--oracle <entity>]
-revoke <entity> <app> <role>
-exec <app> <methodName> [...params]
-act <agent> <targetAddr> <methodSignature> [...params]
+# Standard commands:
+# exec <contractAddress> <methodNameOrSignature> [...params]
+# load <module> [as <alias>]
+# set $<varName> <value>
+# switch <chainId>
+# AragonOS commands
+# act <agent> <targetAddr> <methodSignature> [...params]
+# connect <dao> [...path] [--context https://yoursite.com] (
+#   <...commands>
+# )
+# forward <...path> (
+#  <...commands>
+# )
+# grant <entity> <app> <role> [permissionManager] [--oracle <entity>]
+# install <repo> [...initParams] [--version <version>]
+# new-dao <daoName>
+# new-token <name> <symbol> <controllerAddress> [decimals = 18] [transferable = true]
+# revoke <entity> <app> <role>
+# upgrade <appRepoName> [version = latest]
 
 # Example (unwrap wxDAI):
-load aragonos as ar
-
-ar:connect 1hive token-manager voting (
-  install agent:new
-  grant voting agent:new TRANSFER_ROLE voting
-  exec vault transfer @token(WXDAI) agent:new 100e18
-  act agent:new @token(WXDAI) withdraw(uint256) 100e18
-  exec agent:new transfer XDAI vault 100e18
-)
+# load aragonos as ar
+# 
+# ar:connect 1hive token-manager voting (
+#   install agent:new
+#   grant voting agent:new TRANSFER_ROLE voting
+#   exec vault transfer @token(WXDAI) agent:new 100e18
+#   act agent:new @token(WXDAI) withdraw(uint256) 100e18
+#   exec agent:new transfer XDAI vault 100e18
+# )
 `,
   );
 
