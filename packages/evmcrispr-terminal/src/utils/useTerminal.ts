@@ -1,9 +1,12 @@
-import { evmcl } from '@1hive/evmcrispr';
+import type { Action, ForwardOptions } from '@1hive/evmcrispr';
+import { EVMcrispr, parseScript } from '@1hive/evmcrispr';
+import { isProviderAction } from '@1hive/evmcrispr/src/types';
+import type { providers } from 'ethers';
 import { useState } from 'react';
 import createPersistedState from 'use-persisted-state';
-import { useAccount, useDisconnect, useSigner } from 'wagmi';
-
-import { client } from './utils';
+import type { Connector } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { InjectedConnector } from 'wagmi/connectors/injected';
 
 const useCodeState = createPersistedState<string>('code');
 
@@ -13,17 +16,54 @@ declare global {
   }
 }
 
+// TODO: Migrate logic to evmcrispr
+const executeActions = async (
+  actions: Action[],
+  connector: Connector,
+  options?: ForwardOptions,
+): Promise<providers.TransactionReceipt[]> => {
+  const txs = [];
+
+  if (!(connector instanceof InjectedConnector)) {
+    throw new Error(
+      `Provider action-returning commands are only supported by injected wallets (e.g. Metamask)`,
+    );
+  }
+
+  for (const action of actions) {
+    if (isProviderAction(action)) {
+      const [chainParam] = action.params;
+
+      await connector.switchChain(Number(chainParam.chainId));
+    } else {
+      const signer = await connector.getSigner();
+      txs.push(
+        await (
+          await signer.sendTransaction({
+            ...action,
+            gasPrice: options?.gasPrice,
+            gasLimit: options?.gasLimit,
+          })
+        ).wait(),
+      );
+    }
+  }
+  return txs;
+};
+
 export const useTerminal = () => {
-  const { data: signer } = useSigner();
   const { data: account } = useAccount();
+  const { activeConnector } = useConnect();
   const { disconnect } = useDisconnect();
   const address = account?.address || '';
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState('');
+  const [url] = useState('');
   const [code, setCode] = useCodeState(
     `# Available commands:
 
+load <module> [as <alias>]
+switch <chainId>
 connect <dao> <...path> [--context https://yoursite.com] (
   <...commands>
 )
@@ -34,8 +74,9 @@ exec <app> <methodName> [...params]
 act <agent> <targetAddr> <methodSignature> [...params]
 
 # Example (unwrap wxDAI):
+load aragonos as ar
 
-connect 1hive token-manager voting (
+ar:connect 1hive token-manager voting (
   install agent:new
   grant voting agent:new TRANSFER_ROLE voting
   exec vault transfer @token(WXDAI) agent:new 100e18
@@ -49,59 +90,70 @@ connect 1hive token-manager voting (
 
   async function onClick() {
     console.log('Loading current terminal in window.evmcrispr…');
-    try {
-      if (signer === undefined || signer === null)
-        throw new Error('Account not connected');
-      const evmcrispr = await evmcl`${code}`.evmcrispr(signer);
-      window.evmcrispr = evmcrispr;
-      console.log(evmcrispr);
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message);
-    }
+
+    // try {
+    //   if (signer === undefined || signer === null)
+    //     throw new Error('Account not connected');
+    //   // const evmcrispr = await evmcl`${code}`.evmcrispr(signer);
+    //   // window.evmcrispr = evmcrispr;
+    // } catch (e: any) {
+    //   console.error(e);
+    //   setErrors([e.message]);
+    // }
   }
 
   async function onForward() {
-    setError('');
+    setErrors([]);
     setLoading(true);
 
     try {
-      if (signer === undefined || signer === null)
+      const signer = await activeConnector?.getSigner();
+      if (!activeConnector || signer === undefined || signer === null)
         throw new Error('Account not connected');
-      await evmcl`${code}`.forward(signer, {
-        gasLimit: 10_000_000,
-      });
-      const chainId = (await signer.provider?.getNetwork())?.chainId;
-      const { dao, path, evmcrispr } = evmcl`${code}`;
-      const lastApp = (await (await evmcrispr(signer)).aragon.dao(dao)).app(
-        path.slice(-1)[0],
-      ).address;
-      setUrl(`https://${client(chainId)}/#/${dao}/${lastApp}`);
-    } catch (e: any) {
+
+      const { ast, errors } = parseScript(code);
+
+      if (errors.length) {
+        setLoading(false);
+        setErrors(errors);
+        return;
+      }
+      const crispr = new EVMcrispr(ast, signer);
+
+      const actions = await crispr.interpret();
+
+      await executeActions(actions, activeConnector, { gasLimit: 10_000_000 });
+
+      // TODO: adapt to cas11 changes
+      // const chainId = (await signer.provider?.getNetwork())?.chainId;
+      // setUrl(`https://${client(chainId)}/#/${connectedDAO.kernel.address}/${}`);
+    } catch (err: any) {
+      const e = err as Error;
       console.error(e);
       if (
         e.message.startsWith('transaction failed') &&
         /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
       ) {
-        setError(
+        setErrors([
           `Transaction failed, watch in block explorer ${
             e.message.split('"')[1]
           }`,
-        );
+        ]);
       } else {
-        setError(e.message);
+        setErrors([e.message]);
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function onDisconnect() {
-    setError('');
+    setErrors([]);
     disconnect();
   }
 
   return {
-    error,
+    errors,
     loading,
     url,
     code,
