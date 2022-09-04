@@ -111,6 +111,9 @@ export const itChecksBadPermission = (
         permission[1],
         permission[2],
       ]),
+    commandName,
+    0,
+    true,
   );
 
   itChecksNonDefinedIdentifier(
@@ -121,6 +124,9 @@ export const itChecksBadPermission = (
         nonDefinedIdentifier,
         permission[2],
       ]),
+    commandName,
+    1,
+    true,
   );
 
   it('should fail when receiving an invalid grantee address', async () => {
@@ -214,6 +220,9 @@ export const itChecksBadPermission = (
           ...permission,
           nonDefinedIdentifier,
         ]),
+      commandName,
+      3,
+      true,
     );
 
     it('should fail when receiving an invalid permission manager address', async () => {

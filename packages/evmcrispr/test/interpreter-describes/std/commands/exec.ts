@@ -84,6 +84,8 @@ export const execDescribe = (): Suite =>
       `,
           signer,
         ),
+      'exec',
+      0,
     );
 
     it('should fail when receiving an invalid target address', async () => {

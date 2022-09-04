@@ -2,8 +2,8 @@ import { ethers, utils } from 'ethers';
 
 import type { Action, Address } from '../../..';
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from '../utils';
-import type { CommandFunction } from '../../../types';
-import { NodeType } from '../../../types';
+import type { CommandFunction, TransactionAction } from '../../../types';
+import { NodeType, isProviderAction } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import type { BindingsManager } from '../../../BindingsManager';
@@ -175,6 +175,10 @@ export const connect: CommandFunction<AragonOS> = async (
     }),
   })) as Action[];
 
+  if (actions.find((a) => isProviderAction(a))) {
+    EVMcrispr.panic(c, `can't switch networks inside a connect command`);
+  }
+
   const invalidApps: any[] = [];
   const forwarderAppAddresses: Address[] = [];
 
@@ -208,7 +212,7 @@ export const connect: CommandFunction<AragonOS> = async (
   try {
     forwarderActions = await batchForwarderActions(
       module.signer,
-      actions,
+      actions as TransactionAction[],
       forwarderAppAddresses.reverse(),
       context,
     );

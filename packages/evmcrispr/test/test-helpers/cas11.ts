@@ -11,6 +11,7 @@ import { scriptParser } from '../../src/parsers/script';
 import { createParserState } from '../../src/parsers/utils';
 import type {
   AST,
+  BlockExpressionNode,
   CommandExpressionNode,
   HelperFunctionNode,
   Node,
@@ -135,14 +136,14 @@ export const preparingExpression = async (
   const setCommand = i.ast.body.find(
     (n) => (n as CommandExpressionNode).name === 'set',
   )! as CommandExpressionNode;
-  const h = setCommand.args[1] as HelperFunctionNode;
+  const n = setCommand.args[1] as HelperFunctionNode;
 
   return [
     async () => {
       await i.interpret();
       return i.getBinding('$res', BindingsSpace.USER);
     },
-    h,
+    n,
   ];
 };
 
@@ -283,17 +284,31 @@ export const itChecksInvalidArgsLength = (
 export const itChecksNonDefinedIdentifier = (
   itName: string,
   createInterpreter: (nonDefinedIdentifier: string) => EVMcrispr,
+  commandName: string,
+  argIndex: number,
+  isAragonOS = false,
 ): Mocha.Test => {
   return it(itName, async () => {
     const nonDefinedIdentifier = 'non-defined-address';
+    const interpreter = createInterpreter(nonDefinedIdentifier);
+    let body = interpreter.ast.body;
+    if (isAragonOS) {
+      const connect = body.find((c) => c.name === 'connect')!;
+      body = (connect.args[connect.args.length - 1] as BlockExpressionNode)
+        .body;
+    }
+    const c = body.find((n) => n.name === commandName);
+
+    if (!c) {
+      throw new Error('Command not found');
+    }
+
     const error = new ExpressionError(
+      c.args[argIndex],
       `identifier "${nonDefinedIdentifier}" not found`,
       { name: 'IdentifierError' },
     );
 
-    await expectThrowAsync(
-      () => createInterpreter(nonDefinedIdentifier).interpret(),
-      error,
-    );
+    await expectThrowAsync(() => interpreter.interpret(), error);
   });
 };

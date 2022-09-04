@@ -126,11 +126,12 @@ export class HelperFunctionError extends NodeError {
   }
 }
 
-export class ExpressionError extends ErrorException {
+export class ExpressionError extends NodeError {
   constructor(
+    n: Node,
     message = 'an error happened with an expression',
     { code = 'ExpressionError', name = 'ExpressionError' }: ErrorOptions = {},
   ) {
-    super(message, { code, name });
+    super(name, n, message, { code, name });
   }
 }

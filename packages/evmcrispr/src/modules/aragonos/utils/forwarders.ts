@@ -3,7 +3,7 @@ import { Contract, constants, utils } from 'ethers';
 
 import { erc20ABI } from '../../../abis';
 import { ErrorInvalid } from '../../../errors';
-import type { Action } from '../../../types';
+import type { Action, TransactionAction } from '../../../types';
 import { encodeActCall, encodeCallScript } from './evmscripts';
 
 export const FORWARDER_TYPES = {
@@ -52,7 +52,7 @@ export const forwarderABI = [
 
 export const batchForwarderActions = async (
   signer: Signer,
-  forwarderActions: Action[],
+  forwarderActions: TransactionAction[],
   forwarders: string[],
   context?: string,
 ): Promise<Action[]> => {

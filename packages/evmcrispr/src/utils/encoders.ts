@@ -2,13 +2,14 @@ import { utils } from 'ethers';
 import type { Interface } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../errors';
-import type { Action, Address } from '../..';
+import type { Address } from '../..';
+import type { TransactionAction } from '../types';
 
 export const encodeAction = (
   target: Address,
   signature: string | Interface,
   params: any[],
-): Action => {
+): TransactionAction => {
   let fnABI: Interface;
 
   try {

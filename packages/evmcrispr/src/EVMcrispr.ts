@@ -1,4 +1,4 @@
-import type { Signer, providers } from 'ethers';
+import type { Signer } from 'ethers';
 import { BigNumber, Contract, constants, utils } from 'ethers';
 
 import {
@@ -17,7 +17,6 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
-  ForwardOptions,
   HelperFunctionNode,
   LiteralExpressionNode,
   Node,
@@ -108,26 +107,6 @@ export class EVMcrispr {
 
   getAllModules(): Module[] {
     return [this.#std, ...this.#modules];
-  }
-
-  async executeActions(
-    actions: Action[],
-    options?: ForwardOptions,
-  ): Promise<providers.TransactionReceipt[]> {
-    const txs = [];
-
-    for (const action of actions) {
-      txs.push(
-        await (
-          await this.#signer.sendTransaction({
-            ...action,
-            gasPrice: options?.gasPrice,
-            gasLimit: options?.gasLimit,
-          })
-        ).wait(),
-      );
-    }
-    return txs;
   }
 
   async interpret(): Promise<Action[]> {
@@ -429,7 +408,7 @@ export class EVMcrispr {
       return binding;
     }
 
-    EVMcrispr.panic(n, `$${n.value} not defined`);
+    EVMcrispr.panic(n, `${n.value} not defined`);
   };
 
   #setDefaultBindings(): void {
@@ -440,15 +419,17 @@ export class EVMcrispr {
   static panic(n: Node, msg: string): never {
     switch (n.type) {
       case BinaryExpression:
-        throw new ExpressionError(msg, { name: 'ArithmeticExpression' });
+        throw new ExpressionError(n, msg, {
+          name: 'ArithmeticExpressionError',
+        });
       case CommandExpression:
         throw new CommandError(n as CommandExpressionNode, msg);
       case HelperFunctionExpression:
         throw new HelperFunctionError(n as HelperFunctionNode, msg);
       case ProbableIdentifier:
-        throw new ExpressionError(msg, { name: 'IdentifierError' });
+        throw new ExpressionError(n, msg, { name: 'IdentifierError' });
       case VariableIdentifier:
-        throw new ExpressionError(msg, { name: 'VariableIdentifierError' });
+        throw new ExpressionError(n, msg, { name: 'VariableIdentifierError' });
       default:
         throw new ErrorException(msg);
     }

@@ -12,7 +12,7 @@ import { expectThrowAsync } from '../test-helpers/expects';
 
 export const arithmeticDescribe = (): Mocha.Suite =>
   describe('arithmetic interpreter', () => {
-    const name = 'ArithmeticExpression';
+    const name = 'ArithmeticExpressionError';
     let signer: Signer;
 
     before(async () => {
@@ -41,47 +41,53 @@ export const arithmeticDescribe = (): Mocha.Suite =>
 
     it('should fail when one of the operands is not a number', async () => {
       const invalidValue = 'a string';
+      const leftOperandInterpreter = createInterpreter(
+        `
+    set $var1 "${invalidValue}"
+
+    set $res ($var1 * 2)
+  `,
+        signer,
+      );
+      const leftOperandNode = leftOperandInterpreter.ast.body[1].args[1];
       const leftOperandErr = new ExpressionError(
+        leftOperandNode,
         `invalid left operand. Expected a number but got "${invalidValue}"`,
         { name },
       );
+
+      const rightOperandInterpreter = createInterpreter(
+        `
+    set $var1 "${invalidValue}"
+
+    set $res (2 * $var1)
+  `,
+        signer,
+      );
+      const rightOperandNode = rightOperandInterpreter.ast.body[1].args[1];
       const rightOperandErr = new ExpressionError(
+        rightOperandNode,
         `invalid right operand. Expected a number but got "${invalidValue}"`,
         { name },
       );
 
       await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        set $var1 "${invalidValue}"
-
-        set $res ($var1 * 2)
-      `,
-            signer,
-          ).interpret(),
+        () => leftOperandInterpreter.interpret(),
         leftOperandErr,
         'invalid left operand error',
       );
 
       await expectThrowAsync(
-        () =>
-          createInterpreter(
-            `
-        set $var1 "${invalidValue}"
-
-        set $res (2 * $var1)
-      `,
-            signer,
-          ).interpret(),
+        () => rightOperandInterpreter.interpret(),
         rightOperandErr,
         'invalid right operand error',
       );
     });
 
     it('should fail when trying to perform a division by zero', async () => {
-      const [interpret] = await preparingExpression('(4 / 0)', signer);
+      const [interpret, n] = await preparingExpression('(4 / 0)', signer);
       const err = new ExpressionError(
+        n,
         `invalid operation. Can't divide by zero`,
         { name },
       );

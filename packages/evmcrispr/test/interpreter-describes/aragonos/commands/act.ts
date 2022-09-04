@@ -69,6 +69,9 @@ export const actDescribe = (): Suite =>
         createAragonScriptInterpreter([
           `act ${nonDefinedIdentifier} vault "deposit()"`,
         ]),
+      'act',
+      0,
+      true,
     );
 
     itChecksNonDefinedIdentifier(
@@ -77,6 +80,9 @@ export const actDescribe = (): Suite =>
         createAragonScriptInterpreter([
           `act agent ${nonDefinedIdentifier} "deposit()"`,
         ]),
+      'act',
+      1,
+      true,
     );
 
     it('should fail when receiving an invalid agent address', async () => {

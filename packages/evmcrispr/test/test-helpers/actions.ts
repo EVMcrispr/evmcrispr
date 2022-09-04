@@ -1,6 +1,6 @@
 import { utils } from 'ethers';
 
-import type { Action, Address } from '../../src/types';
+import type { Action, Address, TransactionAction } from '../../src/types';
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
@@ -53,7 +53,7 @@ export const createTestAction = (
     | 'setApp',
   to: Address,
   parameters?: any[],
-): Action => {
+): TransactionAction => {
   const multiFnsInterface = new utils.Interface([
     'function changeController(address)',
     'function createCloneToken(address,uint256,string,uint8,string,bool)',
@@ -74,10 +74,10 @@ export const createTestAction = (
 };
 
 export const createTestScriptEncodedAction = (
-  forwarderActions: Action[],
+  forwarderActions: TransactionAction[],
   path: string[],
   context?: string,
-): Action => {
+): TransactionAction => {
   let script: string;
   const forwardingPath = [...path].reverse();
   for (const forwarder of forwardingPath) {

@@ -55,7 +55,9 @@ describe('Connector', () => {
     it('should fail when fetching a non-existent repo', async () => {
       await expectThrowAsync(
         () => connector.repo('non-existent-repo', 'aragonpm.eth'),
-        new ErrorNotFound(),
+        new ErrorNotFound('Repo non-existent-repo.aragonpm.eth not found', {
+          name: 'ErrorRepoNotFound',
+        }),
       );
     });
   });
@@ -78,7 +80,7 @@ describe('Connector', () => {
     it('should fail when fetching the apps of a non-existent dao', async () => {
       await expectThrowAsync(
         () => connector.organizationApps(EOA_ADDRESS, signer.provider!),
-        new ErrorNotFound(),
+        new ErrorNotFound('Organization apps not found'),
       );
     });
   });

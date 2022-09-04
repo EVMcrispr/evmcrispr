@@ -93,6 +93,9 @@ export const forwardDescribe = (): Suite =>
       `,
           signer,
         ),
+      'forward',
+      0,
+      true,
     );
 
     it('should fail when forwarding actions through invalid forwarder addresses', async () => {

@@ -1,6 +1,11 @@
 import { utils } from 'ethers';
 
-import type { Action, CommandFunction } from '../../../types';
+import type {
+  Action,
+  CommandFunction,
+  TransactionAction,
+} from '../../../types';
+import { isProviderAction } from '../../../types';
 import type { ErrorException } from '../../../errors';
 
 import { batchForwarderActions } from '../utils/forwarders';
@@ -41,16 +46,20 @@ export const forward: CommandFunction<AragonOS> = async (
     );
   }
 
-  const blockCommands = await interpretNode(blockCommandsNode, {
+  const blockActions = (await interpretNode(blockCommandsNode, {
     blockModule: module.contextualName,
-  });
+  })) as Action[];
 
   let forwarderActions: Action[] = [];
+
+  if (blockActions.find((a) => isProviderAction(a))) {
+    EVMcrispr.panic(c, `can't switch networks inside a connect command`);
+  }
 
   try {
     forwarderActions = await batchForwarderActions(
       module.signer,
-      blockCommands,
+      blockActions as TransactionAction[],
       forwarderAppAddresses.reverse(),
     );
   } catch (err) {
