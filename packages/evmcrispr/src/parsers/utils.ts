@@ -92,33 +92,79 @@ export const commaSeparated: <T = Node>(
   parser: NodeParser<T>,
 ) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(',')));
 
+const defaultEndingParser = possibly(
+  sequenceOf([optionalWhitespace, endOfInput]).map(
+    () => 'DEFAULT_END_OF_INPUT',
+  ),
+);
 export const linesParser = <T = Node>(
   lineParser: NodeParser<T>,
-  endingParser: Parser<any, string, any> = sequenceOf([
-    optionalWhitespace,
-    endOfInput,
-  ]),
+  endingParser: Parser<any, string, any>,
+  {
+    endingChar,
+    parserErrorType,
+    initialIndex,
+    initialState,
+  }: {
+    endingChar: string;
+    parserErrorType: string;
+    initialState: NodeParserState;
+    initialIndex: number;
+  } = {
+    endingChar: '',
+    parserErrorType: 'ParserError',
+    initialState: { errors: [], line: 0, offset: 0 },
+    initialIndex: 0,
+  },
 ): NodeParser<T[]> =>
   recursiveParser(() =>
     coroutine(function* () {
       const lines = [];
       let res: { isError: boolean; value: any };
-      while (
-        !(yield possibly(choice([endingParser, endOfInput.map(() => 'END')])))
-      ) {
+      const parsers = endingParser
+        ? [endingParser, defaultEndingParser]
+        : [defaultEndingParser];
+      let endOfParse = (yield possibly(choice(parsers))) as unknown;
+
+      while (!endOfParse) {
         res = (yield either(
           choice([lineParser, emptyLine, commentParser.map(() => null)]),
         )) as unknown as { isError: boolean; value: any };
 
         if (res.isError) {
           yield addNewError(res.value);
-          yield everyCharUntil(choice([endingParser, endOfLine, endOfInput]));
+          yield everyCharUntil(
+            choice(
+              endingParser
+                ? [endingParser, endOfLine, endOfInput]
+                : [endOfLine, endOfInput],
+            ),
+          );
           if (yield possibly(lookAhead(endOfLine))) {
             yield endLine;
           }
         } else if (res.value !== null) {
           lines.push(res.value);
         }
+
+        endOfParse = (yield possibly(choice(parsers))) as unknown;
+      }
+
+      if (endingParser && endOfParse === 'DEFAULT_END_OF_INPUT') {
+        yield addNewError(
+          buildParserError(
+            {
+              data: initialState,
+              index: initialIndex,
+              error: '',
+              isError: true,
+            },
+            parserErrorType,
+            `Expecting closing ${
+              endingChar ? `"${endingChar}"` : 'character'
+            }, but got end of input`,
+          ),
+        );
       }
 
       return lines as T[];

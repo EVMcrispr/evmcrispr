@@ -1,9 +1,10 @@
-import { coroutine, recursiveParser, sequenceOf } from 'arcsecond';
+import { coroutine, getData, recursiveParser, sequenceOf } from 'arcsecond';
 
 import type {
   BlockExpressionNode,
   CommandExpressionNode,
   NodeParser,
+  NodeParserState,
 } from '../types';
 import { NodeType } from '../types';
 import { buildParserError } from '../utils/parsers';
@@ -23,11 +24,20 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
     locate<BlockExpressionNode>(
       coroutine(function* () {
+        const [initialState, initialIndex] = (yield getData.mapFromData(
+          ({ data, index }) => [data, index],
+        )) as unknown as [NodeParserState, number];
         yield sequenceOf([openingCharParser('('), endLine]);
 
         const scopedCommands = (yield linesParser(
           commandExpressionParser,
           closingCharParser(')'),
+          {
+            endingChar: ')',
+            parserErrorType: BLOCK_PARSER_ERROR,
+            initialState,
+            initialIndex,
+          },
         )) as unknown as CommandExpressionNode[];
 
         return [scopedCommands];
