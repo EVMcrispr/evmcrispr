@@ -6,7 +6,7 @@ This version comprises a complete refactoring, restructuring and abstraction of 
 
 The functionality (commands and helpers) has been move to separated modules and the library is now a set of composable parsers that scan the cas11 scripts producing an AST (Abstract Syntax Tree) structure which is later processed by an interpreter (the evmcrispr).
 
-New features
+## New features
 
 - New `switch <network name or id>` command that allows you to dynamically switch the chain at any point of the script.
 
