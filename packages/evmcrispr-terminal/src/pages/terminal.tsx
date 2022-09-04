@@ -1,6 +1,15 @@
 import Editor from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Box, Button, VStack, useDisclosure } from '@chakra-ui/react';
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Box,
+  Button,
+  Spinner,
+  VStack,
+  useDisclosure,
+} from '@chakra-ui/react';
 
 import SelectWalletModal from '../components/modal';
 import FadeIn from '../components/animations/fade-in';
@@ -13,7 +22,7 @@ import Footer from '../components/footer';
 
 const Terminal = () => {
   const {
-    error,
+    errors,
     loading,
     url,
     code,
@@ -28,6 +37,8 @@ const Terminal = () => {
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
+
+  const forwardingText = `Forwarding from ${addressShortened}`;
 
   useChain([terminalRef, buttonsRef, footerRef]);
 
@@ -85,10 +96,14 @@ const Terminal = () => {
                   </Button>
                 ) : null}
 
-                <Button variant="lime" onClick={onForward}>
-                  {`${
-                    loading ? 'Forwarding' : 'Forward'
-                  } from ${addressShortened}`}
+                <Button variant="lime" onClick={onForward} disabled={loading}>
+                  {loading ? (
+                    <Box>
+                      <Spinner verticalAlign="middle" /> {forwardingText}
+                    </Box>
+                  ) : (
+                    forwardingText
+                  )}
                 </Button>
                 <Button
                   variant="link"
@@ -101,10 +116,15 @@ const Terminal = () => {
               </>
             )}
 
-            {error ? (
-              <Button variant="warning">
-                {error ? 'Error: ' + error : null}
-              </Button>
+            {errors ? (
+              <Box justifyContent="left">
+                {errors.map((e, index) => (
+                  <Alert key={index} status="error">
+                    <AlertIcon />
+                    <AlertDescription>{e}</AlertDescription>
+                  </Alert>
+                ))}
+              </Box>
             ) : null}
           </VStack>
         </FadeIn>

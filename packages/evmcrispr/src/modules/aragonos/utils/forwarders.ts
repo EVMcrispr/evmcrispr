@@ -1,10 +1,10 @@
 import type { BigNumber, Signer } from 'ethers';
 import { Contract, constants, utils } from 'ethers';
 
-import type { Action } from '../../..';
 import { erc20ABI } from '../../../abis';
 import { ErrorInvalid } from '../../../errors';
-import { encodeActCall, encodeCallScript } from '../../../utils';
+import type { Action, TransactionAction } from '../../../types';
+import { encodeActCall, encodeCallScript } from './evmscripts';
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -52,7 +52,7 @@ export const forwarderABI = [
 
 export const batchForwarderActions = async (
   signer: Signer,
-  forwarderActions: Action[],
+  forwarderActions: TransactionAction[],
   forwarders: string[],
   context?: string,
 ): Promise<Action[]> => {
@@ -69,7 +69,7 @@ export const batchForwarderActions = async (
     );
 
     if (!(await isForwarder(forwarder))) {
-      throw new ErrorInvalid(`App ${forwarder.address} is not a forwarder.`);
+      throw new ErrorInvalid(`app ${forwarder.address} is not a forwarder`);
     }
 
     const fee = await getForwarderFee(forwarder);
@@ -114,7 +114,7 @@ export const batchForwarderActions = async (
 
     if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
       if (!context) {
-        throw new ErrorInvalid(`Context option missing.`);
+        throw new ErrorInvalid(`context option missing`);
       }
       forwarderActions = [
         {

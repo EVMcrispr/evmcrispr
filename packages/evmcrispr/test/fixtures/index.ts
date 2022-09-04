@@ -1,4 +1,4 @@
-export * from './mock-dao';
+export { DAO } from './mock-dao';
 export * from './mock-app';
 export * from './mock-forwarders';
 export * from './mock-permissions';

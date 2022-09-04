@@ -8,7 +8,7 @@ import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { ethers } from 'ethers';
 import '../walletconnect-compat';
 
-const CHAIN_WHITELIST = [1, 3, 100, 137];
+const CHAIN_WHITELIST = [1, 3, 4, 100, 137];
 const INFURA_ID = import.meta.env.VITE_INFURA_ID;
 
 const chains = [
@@ -55,12 +55,11 @@ const getProvider = ({
 }) => {
   if (chainId && CHAIN_WHITELIST.includes(chainId)) {
     if (chainId == 100) {
-      return new JsonRpcProvider('https://rpc.gnosischain.com');
+      return new JsonRpcProvider('https://rpc.gnosischain.com', chainId);
     } else {
       return new InfuraProvider(chainId, INFURA_ID);
     }
   }
-
   return ethers.getDefaultProvider();
 };
 

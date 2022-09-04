@@ -1,15 +1,30 @@
 import fetch from 'isomorphic-fetch';
 
-import type { EVMcrispr } from '../../..';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type { HelperFunction } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import type { Std } from '../Std';
 
-async function ipfs(evm: EVMcrispr, text: string): Promise<string> {
-  if (!evm.env('$ipfs.jwt')) {
-    throw new Error(
-      '$ipfs.jwt is not definied. Go to pinata.cloud and obtain your API key, please.',
+const IPFS_VAR_NAME = 'ipfs.jwt';
+
+export const ipfs: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNode },
+) => {
+  checkArgsLength(h, { type: ComparisonType.Equal, minValue: 1 });
+  const jwt = module.getConfigBinding(IPFS_VAR_NAME);
+
+  if (!jwt) {
+    EVMcrispr.panic(
+      h,
+      `${module.buildConfigVar(
+        IPFS_VAR_NAME,
+      )} is not defined. Go to pinata.cloud and obtain your API key, please`,
     );
   }
 
-  const jwt = evm.env('$ipfs.jwt');
+  const text = await interpretNode(h.args[0], { treatAsLiteral: true });
 
   const data = JSON.stringify({
     pinataOptions: {
@@ -35,8 +50,17 @@ async function ipfs(evm: EVMcrispr, text: string): Promise<string> {
     config,
   );
 
-  const response = (await res.json()) as { IpfsHash: string };
-  return response.IpfsHash;
-}
+  const { error, IpfsHash } = (await res.json()) as {
+    IpfsHash: string;
+    error?: { reason: string; details: string };
+  };
 
-export default ipfs;
+  if (error) {
+    EVMcrispr.panic(
+      h,
+      `an error occurred while uploading data to IPFS: ${error.details}`,
+    );
+  }
+
+  return IpfsHash;
+};

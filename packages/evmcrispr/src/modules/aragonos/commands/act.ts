@@ -1,54 +1,62 @@
-import type { ActionFunction, AppIdentifier, Entity } from '../../..';
-import type { ConnectedAragonOS } from '../AragonOS';
+import { utils } from 'ethers';
 
-/**
- * Use DAO agent to call an external contract function
- * @param agent App identifier of the agent that is going to be used to call the function
- * @param target Address of the external contract
- * @param signature Function signature that is going to be called
- * @param params Array of parameters that are going to be used to call the function
- * @returns A function that retuns an action to forward an agent call with the specified parameters
- */
-export function act(
-  module: ConnectedAragonOS,
-  agent: AppIdentifier,
-  target: Entity,
-  signature: string,
-  params: any[],
-): ActionFunction {
-  return async () => {
-    return module.evm.forwardActions(agent, [
-      module.evm.encodeAction(target, signature, params),
-    ])();
-  };
-}
+import type { Action, CommandFunction } from '../../../types';
 
-// /**
-//  * Use DAO agent to perform a set of transactions using agent's execute function
-//  * @param agent App identifier of the agent that is going to be used to perform the actions
-//  * @param actions List of actions that the agent is going to perform
-//  * @returns A function that retuns an action to forward an agent call with the specified parameters
-//  */
-// agentExec(
-//   agent: AppIdentifier,
-//   actions: ActionFunction[],
-//   useSafeExecute = false,
-// ): ActionFunction {
-//   return async () => {
-//     return (
-//       await Promise.all(
-//         (
-//           await normalizeActions(actions)()
-//         ).map((action) =>
-//           useSafeExecute
-//             ? this.exec(agent, 'safeExecute', [action.to, action.data])()
-//             : this.exec(agent, 'execute', [
-//                 action.to,
-//                 action.value ?? 0,
-//                 action.data,
-//               ])(),
-//         ),
-//       )
-//     ).flat();
-//   };
-// }
+import { batchForwarderActions } from '../utils/forwarders';
+import {
+  ComparisonType,
+  SIGNATURE_REGEX,
+  checkArgsLength,
+  encodeAction,
+} from '../../../utils';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type { AragonOS } from '../AragonOS';
+
+export const act: CommandFunction<AragonOS> = async (
+  module,
+  c,
+  { interpretNode },
+) => {
+  checkArgsLength(c, {
+    type: ComparisonType.Greater,
+    minValue: 3,
+  });
+
+  const [agentAddress, targetAddress, signature, ...params] = await Promise.all(
+    c.args.map((arg, i) => {
+      if (i < 2) {
+        return interpretNode(arg, { allowNotFoundError: true });
+      }
+
+      return interpretNode(arg);
+    }),
+  );
+
+  if (!utils.isAddress(agentAddress)) {
+    EVMcrispr.panic(
+      c,
+      `expected a valid agent address, but got ${agentAddress}`,
+    );
+  }
+  if (!utils.isAddress(targetAddress)) {
+    EVMcrispr.panic(
+      c,
+      `expected a valid target address, but got ${targetAddress}`,
+    );
+  }
+
+  if (!SIGNATURE_REGEX.test(signature)) {
+    EVMcrispr.panic(c, `expected a valid signature, but got ${signature}`);
+  }
+
+  let execAction: Action;
+
+  try {
+    execAction = encodeAction(targetAddress, signature, params);
+  } catch (err) {
+    const err_ = err as Error;
+    EVMcrispr.panic(c, err_.message);
+  }
+
+  return batchForwarderActions(module.signer, [execAction], [agentAddress]);
+};

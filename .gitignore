@@ -7,7 +7,7 @@ yarn.lock
 .pnp
 .pnp.js
 
-artifacts
+./artifacts
 deployments
 cache
 typechain

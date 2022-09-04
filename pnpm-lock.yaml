@@ -82,15 +82,19 @@ importers:
     specifiers:
       '@types/isomorphic-fetch': ^0.0.36
       '@types/minimist': ^1.2.2
+      arcsecond: ^4.1.0
       is-ipfs: ^6.0.2
       isomorphic-fetch: ^3.0.0
+      jsymbol: ^0.3.5
       minimist: ^1.2.6
       msw: ^0.40.0
       node-fetch: ^3.2.4
       nyc: ^15.1.0
       ora: ^5.4.0
     dependencies:
+      arcsecond: 4.1.0
       isomorphic-fetch: 3.0.0
+      jsymbol: 0.3.5
       minimist: 1.2.6
     devDependencies:
       '@types/isomorphic-fetch': 0.0.36
@@ -4633,6 +4637,10 @@ packages:
   /archy/1.0.0:
     resolution: {integrity: sha512-Xg+9RwCg/0p32teKdGMPTPnVXKD0w3DfHnFTficozsAgsvq2XenPJq/MYpzzQ/v8zrOyJn6Ds39VA4JIDwFfqw==}
     dev: true
+
+  /arcsecond/4.1.0:
+    resolution: {integrity: sha512-tmZZWu7YvI6y/Fx9RhBk4zH0jwpO8kFIiavPSDryyUmgKc0FjyOxLnMT0nGe2ZjMA4DJDQpIqrCU+IRt0gwErw==}
+    dev: false
 
   /arg/4.1.3:
     resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}
@@ -10052,6 +10060,10 @@ packages:
       array-includes: 3.1.5
       object.assign: 4.1.2
     dev: true
+
+  /jsymbol/0.3.5:
+    resolution: {integrity: sha512-L80TYzVbKo8DRXz0lyb5Cl1hZgbIUuDaD2KuncmpqKM3IVEcINHmCe+Vv86ZqnHDX8hcHCuAhDrzrvQE3Nlqxg==}
+    dev: false
 
   /keccak/3.0.2:
     resolution: {integrity: sha512-PyKKjkH53wDMLGrvmRGSNWgmSxZOUqbnXwKL9tmgbFYA1iAYqW21kfR7mZXV0MlESiefxQQE9X9fTa3X+2MPDQ==}

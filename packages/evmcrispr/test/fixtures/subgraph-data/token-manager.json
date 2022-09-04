@@ -1,0 +1,21 @@
+{
+  "data": {
+    "repos": [
+      {
+        "lastVersion": {
+          "artifact": null,
+          "contentUri": "ipfs:QmYX4sKWmss3r4BiZUcLc4LGsNWb2nU34bjmf1VaJsyyhs",
+          "codeAddress": "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6"
+        },
+        "registry": { "name": "aragonpm.eth" },
+        "versions": [
+          {
+            "artifact": null,
+            "codeAddress": "0x3ec5e6239a90332a13155f5d7382e0db70c36a8a",
+            "contentUri": "ipfs:QmTwm6Jvg6GsFshtp69fq8Nz887cu1oPvW3K7iPgNjNW7V"
+          }
+        ]
+      }
+    ]
+  }
+}

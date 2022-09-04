@@ -1,3 +1,5 @@
+import type { CommandExpressionNode, HelperFunctionNode, Node } from './types';
+
 function defineNonEnumerable(
   instance: Record<string, any>,
   name: string,
@@ -82,5 +84,54 @@ export class ErrorUnexpectedResult extends ErrorException {
     }: ErrorOptions = {},
   ) {
     super(message, { code, name });
+  }
+}
+
+export class NodeError extends ErrorException {
+  constructor(
+    nodeName: string,
+    { loc }: Node,
+    msg: string,
+    { code = 'NodeError', name = 'NodeError' }: ErrorOptions = {},
+  ) {
+    let location = '';
+    if (loc) {
+      const { start, end } = loc;
+      location = `${start.line}:${start.col},${end.line}:${end.col}`;
+    }
+    super(`${nodeName}(${location}): ${msg}`, { code, name });
+  }
+}
+export class CommandError extends NodeError {
+  constructor(
+    c: CommandExpressionNode,
+    msg = 'an error happened while executing the command',
+    { code = 'CommandError', name = 'CommandError' }: ErrorOptions = {},
+  ) {
+    const commandName = `${c.module ? `${c.module}:` : ''}${c.name}`;
+    super(commandName, c, msg, { code, name });
+  }
+}
+
+export class HelperFunctionError extends NodeError {
+  constructor(
+    h: HelperFunctionNode,
+    msg = 'an error happened while executing the helper',
+    {
+      code = 'HelperFunctionError',
+      name = 'HelperFunctionError',
+    }: ErrorOptions = {},
+  ) {
+    super(`@${h.name}`, h, msg, { code, name });
+  }
+}
+
+export class ExpressionError extends NodeError {
+  constructor(
+    n: Node,
+    message = 'an error happened with an expression',
+    { code = 'ExpressionError', name = 'ExpressionError' }: ErrorOptions = {},
+  ) {
+    super(name, n, message, { code, name });
   }
 }

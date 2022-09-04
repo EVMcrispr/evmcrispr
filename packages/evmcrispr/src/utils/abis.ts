@@ -1,14 +1,12 @@
-import { ethers } from 'ethers';
+import { utils } from 'ethers';
+
+import { ErrorConnection, ErrorException } from '../errors';
 
 export async function getAbiEntries(
   etherscanAPI: string,
   address: string,
   chainId: number,
-  name?: string,
-): Promise<string[]> {
-  if (!address) {
-    return [];
-  }
+): Promise<utils.Interface> {
   let network: string;
   switch (chainId) {
     case 1:
@@ -18,24 +16,21 @@ export async function getAbiEntries(
       network = '-rinkeby';
       break;
     default:
-      throw new Error('Network not supported in Etherscan.');
+      throw new ErrorException('network not supported in Etherscan.');
   }
-  let abi = await fetch(
+  const response = (await fetch(
     `https://api${network}.etherscan.io/api?module=contract&action=getabi&address=${address}&apikey=${etherscanAPI}`,
   )
     .then((response) => response.json())
-    .then((data) => data.result);
-  if (!abi.startsWith('[')) {
-    abi = '[]';
+    .then((data) => data)) as {
+    status: string;
+    message: string;
+    result: string;
+  };
+
+  if (response.status == '0') {
+    throw new ErrorConnection(response.result);
   }
-  const functions = JSON.parse(abi)
-    .filter((fragment: ethers.utils.Fragment) => fragment.type === 'function')
-    .filter(
-      (fragment: ethers.utils.FunctionFragment) =>
-        !name || fragment.name === name,
-    )
-    .map((fragment: ethers.utils.FunctionFragment) =>
-      ethers.utils.FunctionFragment.from(fragment).format('minimal'),
-    ) as string[];
-  return functions;
+
+  return new utils.Interface(response.result);
 }

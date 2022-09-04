@@ -1,18 +1,19 @@
 import { expect } from 'chai';
+import type { Signer } from 'ethers';
 import { utils } from 'ethers';
-import hre from 'hardhat';
+import hre, { ethers } from 'hardhat';
 import { multihash } from 'is-ipfs';
 
 import { ErrorException, ErrorNotFound } from '../src';
-import { parseContentUri } from '../src/utils';
-import type { ParsedApp } from '../src/types';
 import { DAO, EOA_ADDRESS } from './fixtures';
 import {
   expectThrowAsync,
   isValidArtifact,
   isValidParsedApp,
 } from './test-helpers/expects';
-import Connector from '../src/modules/aragonos/utils/Connector';
+import Connector from '../src/modules/aragonos/Connector';
+import { parseContentUri } from '../src/modules/aragonos/utils';
+import type { ParsedApp } from '../src/modules/aragonos/types';
 
 const {
   network: {
@@ -22,13 +23,15 @@ const {
 
 describe('Connector', () => {
   let connector: Connector;
+  let signer: Signer;
 
-  before(() => {
+  before(async () => {
     connector = new Connector(chainId || 4);
+    signer = (await ethers.getSigners())[0];
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
-    expectThrowAsync(() => new Connector(999), { type: ErrorException });
+    expectThrowAsync(() => new Connector(999), new ErrorException());
   });
 
   describe('repo()', () => {
@@ -52,7 +55,9 @@ describe('Connector', () => {
     it('should fail when fetching a non-existent repo', async () => {
       await expectThrowAsync(
         () => connector.repo('non-existent-repo', 'aragonpm.eth'),
-        { type: ErrorNotFound },
+        new ErrorNotFound('Repo non-existent-repo.aragonpm.eth not found', {
+          name: 'ErrorRepoNotFound',
+        }),
       );
     });
   });
@@ -61,7 +66,7 @@ describe('Connector', () => {
     let daoApps: ParsedApp[];
 
     before(async () => {
-      daoApps = await connector.organizationApps(DAO.kernel);
+      daoApps = await connector.organizationApps(DAO.kernel, signer.provider!);
     });
 
     it('should find the apps of a valid dao', () => {
@@ -73,9 +78,10 @@ describe('Connector', () => {
     });
 
     it('should fail when fetching the apps of a non-existent dao', async () => {
-      await expectThrowAsync(() => connector.organizationApps(EOA_ADDRESS), {
-        type: ErrorNotFound,
-      });
+      await expectThrowAsync(
+        () => connector.organizationApps(EOA_ADDRESS, signer.provider!),
+        new ErrorNotFound('Organization apps not found'),
+      );
     });
   });
 });

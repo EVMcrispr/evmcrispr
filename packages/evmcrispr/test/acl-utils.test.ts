@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 
+import type { Params } from '../src/modules/aragonos/types';
+
 import {
   and,
   arg,
@@ -13,8 +15,7 @@ import {
   paramValue,
   timestamp,
   xor,
-} from '../src/utils/acl';
-import type { Params } from '../src/types';
+} from '../src/modules/aragonos/utils/acl';
 
 function onlyParam(param: Params): string {
   const _param = param(0);

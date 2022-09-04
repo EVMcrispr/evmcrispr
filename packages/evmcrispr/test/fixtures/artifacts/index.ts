@@ -1,0 +1,30 @@
+// WARNING: this file is generated automatically
+import QmYZpZ7tNzHmcqZbALcMxp53Tzub3P7NNgitoMa92D6gbD from './QmYZpZ7tNzHmcqZbALcMxp53Tzub3P7NNgitoMa92D6gbD.json';
+import QmNUpvLVMVUJUo1DcV6bBspQxj7kJEcbNiKJniQDUSuyyf from './QmNUpvLVMVUJUo1DcV6bBspQxj7kJEcbNiKJniQDUSuyyf.json';
+import QmYJpDeA3TD6PVdxdFJWvK6FdzvST1oqQvtYFxmMyNCFNF from './QmYJpDeA3TD6PVdxdFJWvK6FdzvST1oqQvtYFxmMyNCFNF.json';
+import QmVcrxBJSv1N5guD95y4rYnXfxctgrB5RuEVcLCZrmpc8T from './QmVcrxBJSv1N5guD95y4rYnXfxctgrB5RuEVcLCZrmpc8T.json';
+import QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC from './QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC.json';
+import QmbYBwyDt8VWvvK9Z2U3basyaPbnSpEunqzs2UGkMqZk7R from './QmbYBwyDt8VWvvK9Z2U3basyaPbnSpEunqzs2UGkMqZk7R.json';
+import QmPTCTJawMWhgRwswAxm33z119RcnZb5thtBUbLUNZWt7N from './QmPTCTJawMWhgRwswAxm33z119RcnZb5thtBUbLUNZWt7N.json';
+import QmVYHtcB8EEgCPaSTAzWBpCudrKKMfx4LdJ4Q8dUvN9DcK from './QmVYHtcB8EEgCPaSTAzWBpCudrKKMfx4LdJ4Q8dUvN9DcK.json';
+import QmRC1vdDTdpGo5TbuYBoAwuWgDFsJ1DjFGbz5nXsoSiLJP from './QmRC1vdDTdpGo5TbuYBoAwuWgDFsJ1DjFGbz5nXsoSiLJP.json';
+import QmeMabCnkA5BtTTszqqRztYKCXZqE9VQFH4Vx7dY9ue2nA from './QmeMabCnkA5BtTTszqqRztYKCXZqE9VQFH4Vx7dY9ue2nA.json';
+import QmSdTTMMghXWgvC6PembcqHScMirYw56j8xxLKGkX7r747 from './QmSdTTMMghXWgvC6PembcqHScMirYw56j8xxLKGkX7r747.json';
+import QmYX4sKWmss3r4BiZUcLc4LGsNWb2nU34bjmf1VaJsyyhs from './QmYX4sKWmss3r4BiZUcLc4LGsNWb2nU34bjmf1VaJsyyhs.json';
+import QmTwm6Jvg6GsFshtp69fq8Nz887cu1oPvW3K7iPgNjNW7V from './QmTwm6Jvg6GsFshtp69fq8Nz887cu1oPvW3K7iPgNjNW7V.json';
+
+export const artifacts = {
+  QmYZpZ7tNzHmcqZbALcMxp53Tzub3P7NNgitoMa92D6gbD,
+  QmNUpvLVMVUJUo1DcV6bBspQxj7kJEcbNiKJniQDUSuyyf,
+  QmYJpDeA3TD6PVdxdFJWvK6FdzvST1oqQvtYFxmMyNCFNF,
+  QmVcrxBJSv1N5guD95y4rYnXfxctgrB5RuEVcLCZrmpc8T,
+  QmUc5z22sCe6CJoJm4LjWV1h2RDq7BQqyEfkJ2Z7bmUawC,
+  QmbYBwyDt8VWvvK9Z2U3basyaPbnSpEunqzs2UGkMqZk7R,
+  QmPTCTJawMWhgRwswAxm33z119RcnZb5thtBUbLUNZWt7N,
+  QmVYHtcB8EEgCPaSTAzWBpCudrKKMfx4LdJ4Q8dUvN9DcK,
+  QmRC1vdDTdpGo5TbuYBoAwuWgDFsJ1DjFGbz5nXsoSiLJP,
+  QmeMabCnkA5BtTTszqqRztYKCXZqE9VQFH4Vx7dY9ue2nA,
+  QmSdTTMMghXWgvC6PembcqHScMirYw56j8xxLKGkX7r747,
+  QmYX4sKWmss3r4BiZUcLc4LGsNWb2nU34bjmf1VaJsyyhs,
+  QmTwm6Jvg6GsFshtp69fq8Nz887cu1oPvW3K7iPgNjNW7V,
+};

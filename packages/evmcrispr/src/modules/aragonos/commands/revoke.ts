@@ -1,70 +1,90 @@
-import type { ActionFunction, Entity } from '../../..';
-import { ErrorNotFound } from '../../../errors';
-import type { ConnectedAragonOS } from '../AragonOS';
-import { resolvePermission } from '../utils/acl';
+import type { Action, CommandFunction, InterpretOptions } from '../../../types';
+import { ComparisonType, checkArgsLength } from '../../../utils';
+import { EVMcrispr } from '../../../EVMcrispr';
+import type { AragonOS } from '../AragonOS';
+import { checkPermissionFormat, getDAO } from '../utils/commands';
+import type { FullPermission } from '../types';
+import { normalizeRole } from '../utils';
 
-/**
- * Encode an action that revokes an app permission.
- * @param permission The permission to revoke.
- * @param removeManager A boolean that indicates whether or not to remove the permission manager.
- * @returns A function that returns the revoking actions.
- */
-export function revoke(
-  module: ConnectedAragonOS,
-  grantee: Entity,
-  app: Entity,
-  role: string,
-  removeManager = false,
-): ActionFunction {
-  return async () => {
-    const actions = [];
-    const [entityAddress, appAddress, roleHash] = resolvePermission(
-      module.evm,
-      [grantee, app, role],
+export const revoke: CommandFunction<AragonOS> = async (
+  module,
+  c,
+  { interpretNode },
+) => {
+  checkArgsLength(c, {
+    type: ComparisonType.Between,
+    minValue: 3,
+    maxValue: 4,
+  });
+
+  const dao = getDAO(module, c, 1);
+
+  const args = await Promise.all(
+    c.args.map((arg, i) => {
+      const opts: Partial<InterpretOptions> | undefined =
+        i < 2 ? { allowNotFoundError: true } : undefined;
+      return interpretNode(arg, opts);
+    }),
+  );
+
+  checkPermissionFormat(c, args.slice(0, 3) as FullPermission);
+
+  const [granteeAddress, appAddress, role, removeManager] = args;
+
+  const removeManagerType = typeof removeManager;
+  if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
+    EVMcrispr.panic(
+      c,
+      `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
     );
-    const { permissions: appPermissions } = module.resolveApp(app);
-    const { address: aclAddress, abiInterface: aclAbiInterface } =
-      module.resolveApp('acl');
+  }
 
-    if (!appPermissions.has(roleHash)) {
-      throw new ErrorNotFound(
-        `Permission ${role} doesn't exists in app ${app}.`,
-      );
-    }
+  const roleHash = normalizeRole(role);
+  const app = dao.resolveApp(appAddress);
 
-    const appPermission = appPermissions.get(roleHash)!;
+  if (!app) {
+    EVMcrispr.panic(c, `${appAddress} is not a DAO's app`);
+  }
 
-    if (!appPermission.grantees.has(entityAddress)) {
-      throw new ErrorNotFound(
-        `Entity ${grantee} doesn't have permission ${role} to be revoked.`,
-        {
-          name: 'ErrorPermissionNotFound',
-        },
-      );
-    }
+  const { permissions: appPermissions, name } = app;
+  const { address: aclAddress, abiInterface: aclAbiInterface } =
+    dao!.resolveApp('acl')!;
 
-    appPermission.grantees.delete(entityAddress);
+  if (!appPermissions.has(roleHash)) {
+    EVMcrispr.panic(c, `given permission doesn't exists on app ${name}`);
+  }
 
+  const appPermission = appPermissions.get(roleHash)!;
+  if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
+    EVMcrispr.panic(
+      c,
+      `grantee ${granteeAddress} doesn't have the given permission`,
+    );
+  }
+
+  appPermission.grantees.delete(granteeAddress);
+
+  const actions: Action[] = [];
+
+  actions.push({
+    to: aclAddress,
+    data: aclAbiInterface.encodeFunctionData('revokePermission', [
+      granteeAddress,
+      appAddress,
+      roleHash,
+    ]),
+  });
+
+  if (removeManager) {
+    delete appPermission.manager;
     actions.push({
       to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData('revokePermission', [
-        entityAddress,
+      data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
         appAddress,
         roleHash,
       ]),
     });
+  }
 
-    if (removeManager) {
-      delete appPermission.manager;
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
-          appAddress,
-          roleHash,
-        ]),
-      });
-    }
-
-    return actions;
-  };
-}
+  return actions;
+};

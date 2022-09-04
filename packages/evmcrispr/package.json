@@ -1,7 +1,7 @@
 {
   "name": "@1hive/evmcrispr",
   "version": "0.6.0",
-  "codename": "fearless authenticity",
+  "codename": "branchy syntax",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",
@@ -18,8 +18,10 @@
     "ora": "^5.4.0"
   },
   "dependencies": {
+    "arcsecond": "^4.1.0",
     "isomorphic-fetch": "^3.0.0",
-    "minimist": "^1.2.6"
+    "minimist": "^1.2.6",
+    "jsymbol": "^0.3.5"
   },
   "peerDependencies": {
     "ethers": "^5.6.4"
