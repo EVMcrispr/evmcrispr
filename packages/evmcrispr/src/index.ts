@@ -18,6 +18,7 @@ export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 export type { ErrorOptions } from './errors';
 export type { Address, Action, ForwardOptions } from './types';
 export type {
+  Abi,
   App,
   AppCache,
   AppIdentifier,
