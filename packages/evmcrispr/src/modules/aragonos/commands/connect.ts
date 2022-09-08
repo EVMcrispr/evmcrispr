@@ -6,8 +6,8 @@ import type { CommandFunction, TransactionAction } from '../../../types';
 import { NodeType, isProviderAction } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
-import type { BindingsManager } from '../../../BindingsManager';
 import { BindingsSpace } from '../../../BindingsManager';
+import type { BindingsManager } from '../../../BindingsManager';
 import {
   ComparisonType,
   addressesEqual,
@@ -20,7 +20,7 @@ import { _aragonEns } from '../helpers/aragonEns';
 import { EVMcrispr } from '../../../EVMcrispr';
 
 const { BlockExpression } = NodeType;
-const { ADDR } = BindingsSpace;
+const { ABI, ADDR } = BindingsSpace;
 
 const setAppBindings = (
   bindingsManager: BindingsManager,
@@ -61,16 +61,13 @@ const setDAOContext = (
     }
 
     dao.appCache.forEach((app, appIdentifier) => {
-      bindingsManager.setBinding(
-        app.address,
-        app.abiInterface,
-        BindingsSpace.ABI,
-      );
-      bindingsManager.setBinding(
-        app.codeAddress,
-        app.abiInterface,
-        BindingsSpace.ABI,
-      );
+      bindingsManager.setBinding(app.address, app.abiInterface, ABI);
+
+      // There could be the case of having multiple same-version apps on the DAO
+      // so avoid setting the same binding twice
+      if (!bindingsManager.hasBinding(app.codeAddress, ABI)) {
+        bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI);
+      }
 
       if (appIdentifier.endsWith(':0')) {
         const nameWithoutIndex = appIdentifier.slice(

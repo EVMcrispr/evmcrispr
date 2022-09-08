@@ -1,6 +1,8 @@
 import type { AstSymbol } from 'jsymbol';
 import { SymbolTable } from 'jsymbol';
 
+import { ErrorException } from './errors';
+
 export enum BindingsSpace {
   USER = 'USER',
   ADDR = 'ADDR',
@@ -35,6 +37,10 @@ export class BindingsManager {
     return this.#getBinding(name, space);
   }
 
+  hasBinding(name: string, memSpace: BindingsSpace): boolean {
+    return !!this.#getBinding(name, memSpace);
+  }
+
   setBinding(
     name: string,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -67,10 +73,18 @@ export class BindingsManager {
       value,
       type,
     };
-    if (isGlobal) {
-      this.#bindings.addToGlobalScope(binding);
-    } else {
-      this.#bindings.add(binding);
+    try {
+      if (isGlobal) {
+        this.#bindings.addToGlobalScope(binding);
+      } else {
+        this.#bindings.add(binding);
+      }
+    } catch (err) {
+      throw new ErrorException(
+        `${
+          isGlobal ? 'global' : ''
+        } binding ${identifier} already exists on current scope of ${type} memory space`,
+      );
     }
   }
 
