@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
+import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
@@ -49,6 +50,40 @@ export const execDescribe = (): Suite =>
       ];
 
       expect(result).eql(expectedCallAction);
+    });
+
+    it('should return a correct exec action when having to implicitly convert any string parameter to bytes when expecting one', async () => {
+      const targetAddress = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
+      const params = [
+        ['0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667'],
+        'QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2',
+      ];
+      const interpreter = createInterpreter(
+        `exec ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
+          params[1]
+        }`,
+        signer,
+      );
+      const fnABI = new utils.Interface([
+        'function addBatches(bytes32[],bytes)',
+      ]);
+
+      const actActions = await interpreter.interpret();
+
+      const expectedActActions: Action[] = [
+        {
+          to: targetAddress,
+          data: fnABI.encodeFunctionData('addBatches', [
+            params[0],
+            utils.hexlify(
+              utils.toUtf8Bytes(
+                'QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2',
+              ),
+            ),
+          ]),
+        },
+      ];
+      expect(actActions).to.be.eql(expectedActActions);
     });
 
     it("should return exec action when receiving just the method's name", async () => {
