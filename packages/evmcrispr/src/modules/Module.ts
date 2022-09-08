@@ -1,12 +1,7 @@
 import type { Signer } from 'ethers';
 
-import type { Address } from '../../dist/1hive-evmcrispr.cjs.js';
-
-import type { BindingsManager } from '../BindingsManager';
-import { BindingsSpace } from '../BindingsManager';
-import { EVMcrispr } from '../EVMcrispr';
-
 import type {
+  Address,
   CommandExpressionNode,
   CommandFunction,
   CommandFunctions,
@@ -15,6 +10,10 @@ import type {
   HelperFunctions,
   NodesInterpreters,
 } from '../types';
+
+import type { BindingsManager } from '../BindingsManager';
+import { BindingsSpace } from '../BindingsManager';
+import { EVMcrispr } from '../EVMcrispr';
 
 export abstract class Module {
   constructor(

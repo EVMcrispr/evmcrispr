@@ -15,11 +15,9 @@ export enum NodeType {
   BlockExpression = 'BlockExpression',
   CallExpression = 'CallExpression',
   CommandExpression = 'CommandExpression',
-  GroupingExpression = 'GroupingExpression',
   HelperFunctionExpression = 'HelperFunctionExpression',
   UnaryExpression = 'UnaryExpression',
 
-  CommandIdentifier = 'CommandIdentifier',
   ProbableIdentifier = 'ProbableIdentifier',
   VariableIdentifier = 'VariableIdentifier',
 
@@ -79,11 +77,6 @@ export interface NumericLiteralNode extends Node {
 export interface ArrayExpressionNode extends Node {
   type: NodeType.ArrayExpression;
   elements: Node[];
-}
-
-export interface GroupingExpressionNode extends Node {
-  type: NodeType.GroupingExpression;
-  expression: Node;
 }
 
 export interface ProbableIdentifierNode extends Node {

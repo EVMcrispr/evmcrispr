@@ -2,8 +2,7 @@ import { utils } from 'ethers';
 import type { Interface } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../errors';
-import type { Address } from '../..';
-import type { TransactionAction } from '../types';
+import type { Address, TransactionAction } from '../types';
 
 export const encodeAction = (
   target: Address,

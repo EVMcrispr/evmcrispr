@@ -1,6 +1,6 @@
 import { utils } from 'ethers';
 
-import type { Action } from '../../../../dist/1hive-evmcrispr.cjs.js';
+import type { Action, CommandFunction } from '../../../types';
 
 import {
   ComparisonType,
@@ -12,7 +12,6 @@ import { getAbiEntries } from '../../../utils/abis';
 import { fetchImplementationAddress } from '../../../utils/proxies';
 import { BindingsSpace } from '../../../BindingsManager';
 import { EVMcrispr } from '../../../EVMcrispr';
-import type { CommandFunction } from '../../../types';
 import type { Std } from '../Std';
 
 const { ABI } = BindingsSpace;
