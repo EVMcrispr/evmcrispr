@@ -1,4 +1,4 @@
-import { utils } from 'ethers';
+import { Contract, utils } from 'ethers';
 
 import { ErrorException } from '../../../errors';
 import {
@@ -11,7 +11,11 @@ import { BindingsSpace } from '../../../BindingsManager';
 import type { Action, CommandFunction } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
-import { ARAGON_REGISTRARS, getAragonRegistrarContract } from '../utils';
+import {
+  ARAGON_REGISTRARS,
+  DAO_FACTORIES,
+  getAragonRegistrarContract,
+} from '../utils';
 
 const registerAragonId = async (
   module: AragonOS,
@@ -54,17 +58,31 @@ export const newDAO: CommandFunction<AragonOS> = async (
     'function newInstance() public returns (address)',
   ]);
 
-  const bareTemplateAddr = (await _aragonEns(
+  const bareTemplateRepoAddr = (await _aragonEns(
     `bare-template.aragonpm.eth`,
     module,
   ))!;
 
+  const bareTemplateRepo = new Contract(
+    bareTemplateRepoAddr,
+    [
+      'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+    ],
+    module.signer,
+  );
+
+  const bareTemplateAddr = (await bareTemplateRepo.getLatest()).contractAddress;
+
+  const daoFactory = DAO_FACTORIES.get(await module.signer.getChainId());
+  if (!daoFactory) {
+    throw new ErrorException('network not supported');
+  }
   const nonce = await buildNonceForAddress(
-    bareTemplateAddr,
-    module.incrementNonce(bareTemplateAddr),
+    daoFactory,
+    module.incrementNonce(daoFactory),
     module.signer.provider!,
   );
-  const newDaoAddress = calculateNewProxyAddress(bareTemplateAddr, nonce);
+  const newDaoAddress = calculateNewProxyAddress(daoFactory, nonce);
 
   module.bindingsManager.setBinding(
     `_${daoName}`,

@@ -1,19 +1,14 @@
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { utils } from 'ethers';
+import { defaultAbiCoder } from 'ethers/lib/utils';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import type { Action } from '../../../../src';
 import { BindingsSpace } from '../../../../src/BindingsManager';
 import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
-import { getAragonRegistrarContract } from '../../../../src/modules/aragonos/utils';
-import {
-  buildNonceForAddress,
-  calculateNewProxyAddress,
-} from '../../../../src/utils';
-import { createTestAction } from '../../../test-helpers/actions';
-import { _aragonEns } from '../../../test-helpers/aragonos';
+import type { TransactionAction } from '../../../../src/types';
+import { addressesEqual } from '../../../../src/utils';
+
 import { createInterpreter } from '../../../test-helpers/cas11';
 
 export const newDaoDescribe = (): Suite =>
@@ -37,37 +32,32 @@ export const newDaoDescribe = (): Suite =>
 
       const newDAOActions = await interpreter.interpret();
 
+      const tx = await signer.sendTransaction(
+        newDAOActions[0] as TransactionAction,
+      );
+
       const aragonos = interpreter.getModule('aragonos') as AragonOS;
-      const bareTemplateAddress = (await _aragonEns(
-        'bare-template.aragonpm.eth',
-        aragonos,
-      ))!;
-      const aragonRegistrar = await getAragonRegistrarContract(
-        signer.provider!,
-      );
-      const newDAOAddress = calculateNewProxyAddress(
-        bareTemplateAddress,
-        await buildNonceForAddress(
-          bareTemplateAddress,
-          0,
-          aragonos.signer.provider!,
-        ),
-      );
-      const expectedNewDAOActions: Action[] = [
-        createTestAction('newInstance', bareTemplateAddress!),
-        {
-          to: aragonRegistrar.address,
-          data: aragonRegistrar.interface.encodeFunctionData('register', [
-            utils.solidityKeccak256(['string'], [daoName]),
-            newDAOAddress,
-          ]),
-        },
-      ];
+
+      const receipt = await tx.wait();
+
+      const lastLog = receipt.logs.pop();
+
+      expect(lastLog).to.not.be.undefined;
+
+      const newDAOAddress = defaultAbiCoder.decode(
+        ['address'],
+        lastLog!.data,
+      )[0];
 
       expect(
-        aragonos.bindingsManager.getBinding(`_${daoName}`, BindingsSpace.ADDR),
+        addressesEqual(
+          aragonos.bindingsManager.getBinding(
+            `_${daoName}`,
+            BindingsSpace.ADDR,
+          ),
+          newDAOAddress,
+        ),
         'new DAO binding mismatch',
-      ).to.eq(newDAOAddress);
-      expect(newDAOActions, 'actions mismatch').to.eql(expectedNewDAOActions);
+      ).to.be.true;
     });
   });
