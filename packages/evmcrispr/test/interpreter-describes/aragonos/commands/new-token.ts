@@ -1,24 +1,26 @@
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { constants } from 'ethers';
+import { Contract } from 'ethers';
 import { ethers } from 'hardhat';
 import type { Suite } from 'mocha';
 
-import { MINIME_TOKEN_FACTORIES } from '../../../../src/modules/aragonos/utils';
 import { CommandError } from '../../../../src/errors';
 import {
+  addressesEqual,
   buildNonceForAddress,
   calculateNewProxyAddress,
 } from '../../../../src/utils';
 import { DAO } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
-import { createTestAction } from '../../../test-helpers/actions';
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
+import type { TransactionAction } from '../../../../src/types';
+import type { AragonOS } from '../../../../src';
+import { BindingsSpace } from '../../../../src';
 
 export const newTokenDescribe = (): Suite =>
   describe('new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]', () => {
@@ -46,85 +48,153 @@ export const newTokenDescribe = (): Suite =>
 
       const interpreter = await createAragonScriptInterpreter([
         `new-token ${params.join(' ')}`,
+        `set $token token:MT`,
+        `set $controller token-manager.open:counter-factual-tm`,
       ]);
 
       const newTokenActions = await interpreter.interpret();
 
-      const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(
-        await signer.getChainId(),
-      )!;
-
-      const newTokenAddress = calculateNewProxyAddress(
-        tokenFactoryAddress,
-        await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),
+      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const tx1 = await signer.sendTransaction(
+        newTokenActions[0] as TransactionAction,
       );
 
-      const expectedNewTokenActions = [
-        createTestAction(
-          'createCloneToken',
-          MINIME_TOKEN_FACTORIES.get(await signer.getChainId())!,
-          [constants.AddressZero, 0, params[0], 18, params[1], true],
-        ),
-        createTestAction('changeController', newTokenAddress, [
-          calculateNewProxyAddress(
-            DAO.kernel,
-            await buildNonceForAddress(DAO.kernel, 0, signer.provider!),
-          ),
-        ]),
-      ];
+      await tx1.wait();
 
-      expect(newTokenActions).to.eql(expectedNewTokenActions);
+      const tx2 = await signer.sendTransaction(
+        newTokenActions[1] as TransactionAction,
+      );
+
+      await tx2.wait();
+
+      const tokenAddr = aragonos.bindingsManager.getBinding(
+        `$token`,
+        BindingsSpace.USER,
+      );
+
+      const tokenManagerAddr = aragonos.bindingsManager.getBinding(
+        `$controller`,
+        BindingsSpace.USER,
+      );
+
+      const token = new Contract(
+        tokenAddr,
+        ['function controller() view returns (address)'],
+        signer,
+      );
+
+      expect(addressesEqual(await token.controller(), tokenManagerAddr)).to.be
+        .true;
     });
 
     it('should return a correct new token action given a different DAO', async () => {
       const params = [
         'my-token',
         'MT',
-        'token-manager.open:counter-factual-tm',
+        `_${DAO.kernel}:token-manager.open:counter-factual-tm`,
       ];
 
-      const intepreter = createInterpreter(
+      const interpreter = createInterpreter(
         `
         load aragonos as ar
 
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
-            new-token ${params.join(' ')} --dao ${DAO2.kernel}
+            new-token ${params.join(' ')}
+            set $token token:MT
+            set $controller _${DAO.kernel}:token-manager.open:counter-factual-tm
           )
         )
       `,
         signer,
       );
 
-      const newTokenActions = await intepreter.interpret();
+      const newTokenActions = await interpreter.interpret();
 
-      const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(
-        await signer.getChainId(),
-      )!;
-
-      const newTokenAddress = calculateNewProxyAddress(
-        tokenFactoryAddress,
-        await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),
+      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const tx1 = await signer.sendTransaction(
+        newTokenActions[0] as TransactionAction,
       );
 
-      const expectedNewTokenActions = [
-        createTestAction(
-          'createCloneToken',
-          MINIME_TOKEN_FACTORIES.get(await signer.getChainId())!,
-          [constants.AddressZero, 0, params[0], 18, params[1], true],
-        ),
-        createTestAction('changeController', newTokenAddress, [
-          calculateNewProxyAddress(
-            DAO2.kernel,
-            await buildNonceForAddress(DAO2.kernel, 0, signer.provider!),
-          ),
-        ]),
-      ];
+      await tx1.wait();
 
-      expect(newTokenActions).to.eql(expectedNewTokenActions);
+      const tx2 = await signer.sendTransaction(
+        newTokenActions[1] as TransactionAction,
+      );
+
+      await tx2.wait();
+
+      const tokenAddr = aragonos.bindingsManager.getBinding(
+        `$token`,
+        BindingsSpace.USER,
+      );
+
+      const tokenManagerAddr = aragonos.bindingsManager.getBinding(
+        `$controller`,
+        BindingsSpace.USER,
+      );
+
+      const token = new Contract(
+        tokenAddr,
+        ['function controller() view returns (address)'],
+        signer,
+      );
+      const addr = calculateNewProxyAddress(
+        DAO.kernel,
+        await buildNonceForAddress(DAO.kernel, 0, signer.provider!),
+      );
+
+      expect(addressesEqual(addr, tokenManagerAddr)).to.be.true;
+      expect(addressesEqual(await token.controller(), tokenManagerAddr)).to.be
+        .true;
     });
 
-    it('should fail when executing it outside a "connect" command', async () => {
+    it('should return a correct new token action when it is not connected to a DAO', async () => {
+      const params = [
+        'my-token',
+        'MT',
+        `0xf762d8c9ea241a72a0b322a28e96155a03566acd`,
+      ];
+
+      const interpreter = createInterpreter(
+        `
+        load aragonos as ar
+        ar:new-token ${params.join(' ')}
+        set $token token:MT
+      `,
+        signer,
+      );
+
+      const newTokenActions = await interpreter.interpret();
+
+      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const tx1 = await signer.sendTransaction(
+        newTokenActions[0] as TransactionAction,
+      );
+
+      await tx1.wait();
+
+      const tx2 = await signer.sendTransaction(
+        newTokenActions[1] as TransactionAction,
+      );
+
+      await tx2.wait();
+
+      const tokenAddr = aragonos.bindingsManager.getBinding(
+        `$token`,
+        BindingsSpace.USER,
+      );
+
+      const token = new Contract(
+        tokenAddr,
+        ['function controller() view returns (address)'],
+        signer,
+      );
+
+      expect(addressesEqual(await token.controller(), params[2])).to.be.true;
+    });
+
+    it('should fail when executing it using a conterfactual app outside a "connect" command', async () => {
       const interpreter = createInterpreter(
         `
       load aragonos as ar
@@ -136,7 +206,7 @@ export const newTokenDescribe = (): Suite =>
       const c = interpreter.ast.body[1];
       const error = new CommandError(
         c,
-        'must be used within a "connect" command',
+        'invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm',
       );
 
       await expectThrowAsync(() => interpreter.interpret(), error);

@@ -1,5 +1,9 @@
+import { isAddress } from 'ethers/lib/utils';
+
 import { ErrorInvalid } from '../../../errors';
 import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
+import type { Module } from '../../Module';
+import { BindingsSpace } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
@@ -8,7 +12,7 @@ export const appIdentifierRegex =
   /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([0-9]{1,63}))?$/;
 // eslint-disable-next-line
 export const labeledAppIdentifierRegex =
-  /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([a-zA-Z0-9-]{1,63}))$/;
+  /^(?:_((?!-)[a-z0-9-]{1,63}(?<!-)):)?((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([a-zA-Z0-9-]{1,63}))$/;
 export const optionalLabeledAppIdentifierRegex =
   /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([a-zA-Z0-9-]{1,63}))?$/;
 
@@ -63,13 +67,14 @@ export const parseLabeledAppIdentifier = (
     );
   }
 
-  const [appIdentifier, registry, label] =
+  const [dao, appIdentifier, registry, label] =
     parseLabeledIdentifier(labeledAppIdentifier)!;
 
   return [
     appIdentifier,
     registry ? `${registry}.aragonpm.eth` : DEFAULT_REGISTRY,
     label,
+    dao,
   ];
 };
 
@@ -106,3 +111,20 @@ export const buildAppIdentifier = (
     return `${name}:${appCounter}`;
   }
 };
+
+export function getDaoAddrFromIdentifier(
+  identifier: string,
+  module: Module,
+): string | undefined {
+  if (identifier.startsWith('_')) {
+    const dao = identifier.split(':')[0].substring(1);
+    if (isAddress(dao)) {
+      return dao;
+    } else {
+      return module.bindingsManager.getBinding(
+        `_${dao}:kernel`,
+        BindingsSpace.ADDR,
+      );
+    }
+  }
+}

@@ -65,7 +65,7 @@ export class AragonOS extends Module {
   async registerNextProxyAddress(
     identifier: string,
     daoAddress: Address,
-  ): Promise<void> {
+  ): Promise<string> {
     const connectedDAO = this.getConnectedDAO(daoAddress);
 
     if (!connectedDAO) {
@@ -79,10 +79,8 @@ export class AragonOS extends Module {
       this.signer.provider!,
     );
 
-    this.bindingsManager.setBinding(
-      identifier,
-      calculateNewProxyAddress(kernel.address, nonce),
-      BindingsSpace.ADDR,
-    );
+    const addr = calculateNewProxyAddress(kernel.address, nonce);
+    this.bindingsManager.setBinding(identifier, addr, BindingsSpace.ADDR);
+    return addr;
   }
 }

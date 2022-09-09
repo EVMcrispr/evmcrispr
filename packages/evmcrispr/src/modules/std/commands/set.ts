@@ -27,5 +27,10 @@ export const set: CommandFunction<Std> = async (
     throw new ErrorException(`${varName} already defined`);
   }
 
-  module.bindingsManager.setBinding(varName, varValue, BindingsSpace.USER);
+  module.bindingsManager.setBinding(
+    varName,
+    varValue,
+    BindingsSpace.USER,
+    true,
+  );
 };

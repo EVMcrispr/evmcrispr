@@ -5,7 +5,6 @@ import {
   buildNonceForAddress,
   calculateNewProxyAddress,
   checkArgsLength,
-  checkOpts,
 } from '../../../utils';
 import { BindingsSpace } from '../../../BindingsManager';
 import { ErrorException } from '../../../errors';
@@ -15,15 +14,14 @@ import {
   CONTROLLED_INTERFACE,
   MINIME_TOKEN_FACTORIES,
   MINIME_TOKEN_FACTORY_INTERFACE,
-  isAppIdentifier,
+  getDaoAddrFromIdentifier,
   isLabeledAppIdentifier,
 } from '../utils';
-import { DAO_OPT_NAME, getDAOByOption } from '../utils/commands';
 
 export const newToken: CommandFunction<AragonOS> = async (
   module,
   c,
-  { interpretNode, interpretNodes },
+  { interpretNodes },
 ) => {
   const chainId = await module.signer.getChainId();
 
@@ -38,9 +36,6 @@ export const newToken: CommandFunction<AragonOS> = async (
     minValue: 3,
     maxValue: 5,
   });
-  checkOpts(c, [DAO_OPT_NAME]);
-
-  const dao = await getDAOByOption(module, c, interpretNode);
 
   const [name, symbol, controller, decimals = 18, transferable = true] =
     await interpretNodes(c.args);
@@ -51,22 +46,33 @@ export const newToken: CommandFunction<AragonOS> = async (
     );
   }
 
-  let controllerAdddress: Address;
+  let controllerAddress: Address;
 
-  if (!utils.isAddress(controller)) {
-    if (isAppIdentifier(controller) || isLabeledAppIdentifier(controller)) {
-      await module.registerNextProxyAddress(controller, dao.kernel.address);
-    } else {
-      throw new ErrorException(
-        `invalid controller. Expected an address or an app identifier, but got ${controller}`,
-      );
-    }
-    controllerAdddress = module.bindingsManager.getBinding(
+  const identifierBinding = module.bindingsManager.getBinding(
+    controller,
+    BindingsSpace.ADDR,
+  );
+
+  if (utils.isAddress(controller)) {
+    controllerAddress = controller;
+  } else if (identifierBinding) {
+    controllerAddress = identifierBinding;
+  } else if (isLabeledAppIdentifier(controller) && module.currentDAO) {
+    const kernel =
+      getDaoAddrFromIdentifier(c.args[2].value, module) ||
+      module.currentDAO?.kernel.address;
+    controllerAddress = await module.registerNextProxyAddress(
       controller,
-      BindingsSpace.ADDR,
+      kernel,
+    );
+  } else if (isLabeledAppIdentifier(controller) && !module.currentDAO) {
+    throw new ErrorException(
+      `invalid controller. Expected a labeled app identifier witin a connect command for ${controller}`,
     );
   } else {
-    controllerAdddress = controller;
+    throw new ErrorException(
+      `invalid controller. Expected an address or an app identifier, but got ${controller}`,
+    );
   }
 
   if (
@@ -110,7 +116,7 @@ export const newToken: CommandFunction<AragonOS> = async (
     {
       to: newTokenAddress,
       data: CONTROLLED_INTERFACE.encodeFunctionData('changeController', [
-        controllerAdddress,
+        controllerAddress,
       ]),
     },
   ];
