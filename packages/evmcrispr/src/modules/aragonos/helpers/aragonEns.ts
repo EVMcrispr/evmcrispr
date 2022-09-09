@@ -1,8 +1,8 @@
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import type { HelperFunction } from '../../../types';
-import { EVMcrispr } from '../../../EVMcrispr';
 import { getAragonEnsResolver, resolveName } from '../utils';
+import { ErrorException } from '../../../errors';
 
 export const _aragonEns = async (
   ensName: string,
@@ -35,7 +35,7 @@ export const aragonEns: HelperFunction<AragonOS> = async (
   const name = await _aragonEns(ensName, module);
 
   if (!name) {
-    EVMcrispr.panic(h, `ENS ${ensName} couldn't be resolved.`);
+    throw new ErrorException(`ENS ${ensName} couldn't be resolved.`);
   }
 
   return name;

@@ -3,7 +3,7 @@ import type { CommandFunction } from '../../../types';
 import { NodeType } from '../../../types';
 import { AragonOS } from '../../aragonos/AragonOS';
 import type { Std } from '../Std';
-import { EVMcrispr } from '../../../EVMcrispr';
+import { ErrorException } from '../../../errors';
 
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
 
@@ -22,7 +22,7 @@ export const load: CommandFunction<Std> = async (
   const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
   if (type !== AsExpression && type !== StringLiteral && !isIdentifier) {
-    EVMcrispr.panic(c, 'invalid argument. Expected a string');
+    throw new ErrorException('invalid argument. Expected a string');
   }
 
   let moduleName: string,
@@ -39,14 +39,14 @@ export const load: CommandFunction<Std> = async (
   }
 
   if (module.modules.find((m: any) => m.name === moduleName)) {
-    EVMcrispr.panic(c, `module ${moduleName} already loaded`);
+    throw new ErrorException(`module ${moduleName} already loaded`);
   }
 
   if (moduleAlias) {
     const m = module.modules.find((m: any) => m.alias === moduleAlias);
 
     if (m) {
-      EVMcrispr.panic(c, `alias already used for module ${m.name}`);
+      throw new ErrorException(`alias already used for module ${m.name}`);
     }
   }
 
@@ -63,6 +63,6 @@ export const load: CommandFunction<Std> = async (
       );
       return;
     default:
-      EVMcrispr.panic(c, `module ${moduleName} not found`);
+      throw new ErrorException(`module ${moduleName} not found`);
   }
 };

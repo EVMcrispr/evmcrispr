@@ -149,7 +149,7 @@ export const execDescribe = (): Suite =>
       const c = findStdCommandNode(interpreter.ast, 'exec')!;
       const error = new CommandError(
         c,
-        `error when getting function from ABI - no matching function (argument="signature", value="invalid(uint256,)", code=INVALID_ARGUMENT, version=abi/5.6.2)`,
+        `error when getting function from ABI - no matching function (argument="signature", value="invalid(uint256,)", code=INVALID_ARGUMENT, version=abi/5.7.0)`,
       );
 
       await expectThrowAsync(() => interpreter.interpret(), error);

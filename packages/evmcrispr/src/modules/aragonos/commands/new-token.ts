@@ -8,7 +8,7 @@ import {
   checkOpts,
 } from '../../../utils';
 import { BindingsSpace } from '../../../BindingsManager';
-import { EVMcrispr } from '../../../EVMcrispr';
+import { ErrorException } from '../../../errors';
 import type { Address, CommandFunction } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import {
@@ -28,7 +28,9 @@ export const newToken: CommandFunction<AragonOS> = async (
   const chainId = await module.signer.getChainId();
 
   if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
-    EVMcrispr.panic(c, `no MiniMeTokenFactory was found on chain ${chainId}`);
+    throw new ErrorException(
+      `no MiniMeTokenFactory was found on chain ${chainId}`,
+    );
   }
 
   checkArgsLength(c, {
@@ -44,8 +46,7 @@ export const newToken: CommandFunction<AragonOS> = async (
     await interpretNodes(c.args);
 
   if (!BigNumber.isBigNumber(decimals) && !Number.isInteger(decimals)) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `invalid decimals. Expected an integer number, but got ${decimals.toString()}`,
     );
   }
@@ -56,8 +57,7 @@ export const newToken: CommandFunction<AragonOS> = async (
     if (isAppIdentifier(controller) || isLabeledAppIdentifier(controller)) {
       await module.registerNextProxyAddress(controller, dao.kernel.address);
     } else {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `invalid controller. Expected an address or an app identifier, but got ${controller}`,
       );
     }
@@ -74,14 +74,15 @@ export const newToken: CommandFunction<AragonOS> = async (
     transferable !== 'true' &&
     transferable !== 'false'
   ) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `invalid transferable flag. Expected a boolean, but got ${transferable}`,
     );
   }
 
   if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
-    EVMcrispr.panic(c, `no MiniMeTokenFactory was found on chain ${chainId}`);
+    throw new ErrorException(
+      `no MiniMeTokenFactory was found on chain ${chainId}`,
+    );
   }
 
   const factoryAddr = MINIME_TOKEN_FACTORIES.get(chainId)!;

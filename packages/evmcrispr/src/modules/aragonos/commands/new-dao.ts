@@ -1,7 +1,6 @@
 import { utils } from 'ethers';
 
-import { CommandError } from '../../../errors';
-
+import { ErrorException } from '../../../errors';
 import {
   ComparisonType,
   buildNonceForAddress,
@@ -9,7 +8,6 @@ import {
   checkArgsLength,
 } from '../../../utils';
 import { BindingsSpace } from '../../../BindingsManager';
-
 import type { Action, CommandFunction } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -27,7 +25,9 @@ const registerAragonId = async (
   const chainId = await module.signer.getChainId();
 
   if (!ARAGON_REGISTRARS.has(chainId)) {
-    throw new Error(`no Aragon registrar was found on chain ${chainId}`);
+    throw new ErrorException(
+      `no Aragon registrar was found on chain ${chainId}`,
+    );
   }
 
   return [
@@ -74,17 +74,11 @@ export const newDAO: CommandFunction<AragonOS> = async (
 
   let registerAragonIdActions: Action[] = [];
 
-  try {
-    registerAragonIdActions = await registerAragonId(
-      module,
-      daoName,
-      newDaoAddress,
-    );
-  } catch (err) {
-    const err_ = err as Error;
-
-    throw new CommandError(c, err_.message);
-  }
+  registerAragonIdActions = await registerAragonId(
+    module,
+    daoName,
+    newDaoAddress,
+  );
 
   return [
     {

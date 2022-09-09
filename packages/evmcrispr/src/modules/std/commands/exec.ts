@@ -1,6 +1,6 @@
 import { utils } from 'ethers';
 
-import type { Action, CommandFunction } from '../../../types';
+import type { CommandFunction } from '../../../types';
 
 import {
   ComparisonType,
@@ -11,8 +11,8 @@ import {
 import { getAbiEntries } from '../../../utils/abis';
 import { fetchImplementationAddress } from '../../../utils/proxies';
 import { BindingsSpace } from '../../../BindingsManager';
-import { EVMcrispr } from '../../../EVMcrispr';
 import type { Std } from '../Std';
+import { ErrorException } from '../../../errors';
 
 const { ABI } = BindingsSpace;
 
@@ -35,8 +35,7 @@ export const exec: CommandFunction<Std> = async (
   let finalSignature = signature;
 
   if (!utils.isAddress(targetAddress)) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `expected a valid target address, but got ${targetAddress}`,
     );
   }
@@ -48,12 +47,7 @@ export const exec: CommandFunction<Std> = async (
     ) as utils.Interface;
 
     if (abi) {
-      try {
-        finalSignature = abi.getFunction(signature).format('minimal');
-      } catch (err) {
-        const err_ = err as Error;
-        EVMcrispr.panic(c, err_.message);
-      }
+      finalSignature = abi.getFunction(signature).format('minimal');
     } else {
       const implementationAddress = await fetchImplementationAddress(
         targetAddress,
@@ -69,8 +63,7 @@ export const exec: CommandFunction<Std> = async (
         );
       } catch (err) {
         const err_ = err as Error;
-        EVMcrispr.panic(
-          c,
+        throw new ErrorException(
           `an error ocurred while fetching ABI for ${
             implementationAddress ?? targetAddress
           } - ${err_.message}`,
@@ -78,15 +71,14 @@ export const exec: CommandFunction<Std> = async (
       }
 
       if (!fetchedAbi) {
-        EVMcrispr.panic(c, `ABI not found for signature "${signature}"`);
+        throw new ErrorException(`ABI not found for signature "${signature}"`);
       }
 
       try {
         finalSignature = fetchedAbi.getFunction(signature).format('minimal');
       } catch (err) {
         const err_ = err as Error;
-        EVMcrispr.panic(
-          c,
+        throw new ErrorException(
           `error when getting function from ABI - ${err_.message}`,
         );
       }
@@ -102,14 +94,7 @@ export const exec: CommandFunction<Std> = async (
     }
   }
 
-  let execAction: Action;
-
-  try {
-    execAction = encodeAction(targetAddress, finalSignature, params);
-  } catch (err) {
-    const err_ = err as Error;
-    EVMcrispr.panic(c, err_.message);
-  }
+  const execAction = encodeAction(targetAddress, finalSignature, params);
 
   return [execAction];
 };

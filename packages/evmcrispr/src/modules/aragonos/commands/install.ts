@@ -1,5 +1,6 @@
 import { utils } from 'ethers';
 
+import { ErrorException } from '../../../errors';
 import {
   ComparisonType,
   checkArgsLength,
@@ -8,7 +9,6 @@ import {
   getOptValue,
 } from '../../../utils';
 import { BindingsSpace } from '../../../BindingsManager';
-import { EVMcrispr } from '../../../EVMcrispr';
 import type { CommandFunction } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -39,20 +39,15 @@ export const install: CommandFunction<AragonOS> = async (
   const identifier = await interpretNode(identifierNode, {
     treatAsLiteral: true,
   });
-  let appName: string, registry: string;
-
-  try {
-    [appName, registry] = parseLabeledAppIdentifier(identifier);
-  } catch (err) {
-    const err_ = err as Error;
-    EVMcrispr.panic(c, err_.message);
-  }
+  const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
   const repoENSName = `${appName}.${registry}`;
   const repoAddr = await _aragonEns(repoENSName, module);
 
   if (!repoAddr) {
-    EVMcrispr.panic(c, `ENS repo name ${repoENSName} couldn't be resolved`);
+    throw new ErrorException(
+      `ENS repo name ${repoENSName} couldn't be resolved`,
+    );
   }
 
   const repo = getRepoContract(repoAddr, module.signer);
@@ -62,8 +57,7 @@ export const install: CommandFunction<AragonOS> = async (
 
   if (version) {
     if (!SEMANTIC_VERSION_REGEX.test(version)) {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `invalid --version option. Expected a semantic version, but got ${version}`,
       );
     }
@@ -86,16 +80,8 @@ export const install: CommandFunction<AragonOS> = async (
   const kernel = dao.kernel;
   const initParams = await interpretNodes(paramNodes);
 
-  let encodedInitializeFunction: string;
-
-  try {
-    const fnFragment = abiInterface.getFunction('initialize');
-    encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
-  } catch (err: any) {
-    const err_ = err as Error;
-
-    EVMcrispr.panic(c, err_.message);
-  }
+  const fnFragment = abiInterface.getFunction('initialize');
+  const encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
 
   const appId = utils.namehash(`${appName}.${registry}`);
   if (!module.bindingsManager.getBinding(identifier, BindingsSpace.ADDR)) {
@@ -107,7 +93,7 @@ export const install: CommandFunction<AragonOS> = async (
   );
 
   if (dao.appCache.has(identifier)) {
-    EVMcrispr.panic(c, `identifier ${identifier} is already in use.`);
+    throw new ErrorException(`identifier ${identifier} is already in use.`);
   }
 
   dao.appCache.set(identifier, {

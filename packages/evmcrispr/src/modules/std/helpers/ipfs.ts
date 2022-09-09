@@ -1,6 +1,6 @@
 import fetch from 'isomorphic-fetch';
 
-import { EVMcrispr } from '../../../EVMcrispr';
+import { ErrorException } from '../../../errors';
 import type { HelperFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
@@ -16,8 +16,7 @@ export const ipfs: HelperFunction<Std> = async (
   const jwt = module.getConfigBinding(IPFS_VAR_NAME);
 
   if (!jwt) {
-    EVMcrispr.panic(
-      h,
+    throw new ErrorException(
       `${module.buildConfigVar(
         IPFS_VAR_NAME,
       )} is not defined. Go to pinata.cloud and obtain your API key, please`,
@@ -56,8 +55,7 @@ export const ipfs: HelperFunction<Std> = async (
   };
 
   if (error) {
-    EVMcrispr.panic(
-      h,
+    throw new ErrorException(
       `an error occurred while uploading data to IPFS: ${error.details}`,
     );
   }

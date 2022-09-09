@@ -1,13 +1,10 @@
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
+import { ErrorException } from '../../..';
+
 import { BindingsSpace } from '../../../BindingsManager';
-import { EVMcrispr } from '../../../EVMcrispr';
-import type {
-  Address,
-  HelperFunction,
-  HelperFunctionNode,
-} from '../../../types';
+import type { Address, HelperFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Module } from '../../Module';
 import type { Std } from '../Std';
@@ -15,10 +12,7 @@ import type { Std } from '../Std';
 const ENV_TOKENLIST = '$token.tokenlist';
 const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
-const getTokenList = (
-  { bindingsManager }: Module,
-  h: HelperFunctionNode,
-): string => {
+const getTokenList = ({ bindingsManager }: Module): string => {
   const tokenList = String(
     bindingsManager.getBinding(ENV_TOKENLIST, BindingsSpace.USER) ??
       DEFAULT_TOKEN_LIST,
@@ -26,8 +20,7 @@ const getTokenList = (
 
   // Always check user data inputs:
   if (!tokenList.startsWith('https://')) {
-    EVMcrispr.panic(
-      h,
+    throw new ErrorException(
       `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
     );
   }
@@ -37,10 +30,9 @@ const getTokenList = (
 const _token = async (
   module: Module,
   tokenSymbol: string,
-  h: HelperFunctionNode,
 ): Promise<Address> => {
   const chainId = await module.signer.getChainId();
-  const tokenList = getTokenList(module, h);
+  const tokenList = getTokenList(module);
   const {
     tokens,
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =
@@ -50,8 +42,7 @@ const _token = async (
   )?.address;
 
   if (!tokenAddress) {
-    EVMcrispr.panic(
-      h,
+    throw new ErrorException(
       `${tokenSymbol} not supported in ${tokenList} in chain ${chainId}.`,
     );
   }
@@ -70,7 +61,7 @@ export const token: HelperFunction<Std> = async (
   });
   const [tokenSymbol] = await interpretNodes(h.args);
 
-  return _token(module, tokenSymbol, h);
+  return _token(module, tokenSymbol);
 };
 
 export const tokenBalance: HelperFunction<Std> = async (
@@ -85,7 +76,7 @@ export const tokenBalance: HelperFunction<Std> = async (
 
   const [tokenSymbol, holder] = await interpretNodes(h.args);
 
-  const tokenAddr = await _token(module, tokenSymbol, h);
+  const tokenAddr = await _token(module, tokenSymbol);
   const contract = new ethers.Contract(
     tokenAddr,
     ['function balanceOf(address owner) view returns (uint)'],

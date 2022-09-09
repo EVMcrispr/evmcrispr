@@ -2,7 +2,6 @@ import type { Parser } from 'arcsecond';
 import { char, possibly, regex, sequenceOf } from 'arcsecond';
 import { utils } from 'ethers';
 
-import { EVMcrispr } from '../../../EVMcrispr';
 import { NodeType } from '../../../types';
 import type {
   CommandExpressionNode,
@@ -14,6 +13,7 @@ import type { AragonOS } from '../AragonOS';
 import type { FullPermission } from '../types';
 import { optionalLabeledAppIdentifierRegex } from './identifiers';
 import { getOptValue, listItems } from '../../../utils';
+import { ErrorException } from '../../../errors';
 
 export const DAO_OPT_NAME = 'dao';
 
@@ -47,8 +47,7 @@ export const getDAO = (
 
       dao = module.getModuleBinding(daoIdentifier);
       if (!dao) {
-        EVMcrispr.panic(
-          c,
+        throw new ErrorException(
           `couldn't found a DAO for ${daoIdentifier} on given identifier ${n.value}`,
         );
       }
@@ -56,7 +55,7 @@ export const getDAO = (
   }
 
   if (!dao) {
-    EVMcrispr.panic(c, 'must be used within a "connect" command');
+    throw new ErrorException('must be used within a "connect" command');
   }
 
   return dao;
@@ -74,7 +73,7 @@ export const getDAOByOption = async (
   if (!daoIdentifier) {
     dao = module.currentDAO;
     if (!dao) {
-      EVMcrispr.panic(c, `must be used within a "connect" command`);
+      throw new ErrorException(`must be used within a "connect" command`);
     }
   } else {
     daoIdentifier = daoIdentifier.toString
@@ -82,8 +81,7 @@ export const getDAOByOption = async (
       : daoIdentifier;
     dao = module.getModuleBinding(daoIdentifier);
     if (!dao) {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `--dao option error. No DAO found for identifier ${daoIdentifier}`,
       );
     }
@@ -92,10 +90,7 @@ export const getDAOByOption = async (
   return dao;
 };
 
-export const checkPermissionFormat = (
-  c: CommandExpressionNode,
-  p: FullPermission,
-): void | never => {
+export const checkPermissionFormat = (p: FullPermission): void | never => {
   const errors: string[] = [];
   const [granteeAddress, appAddress, role] = p;
 
@@ -116,6 +111,6 @@ export const checkPermissionFormat = (
   }
 
   if (errors.length) {
-    EVMcrispr.panic(c, listItems('invalid permission provided', errors));
+    throw new ErrorException(listItems('invalid permission provided', errors));
   }
 };

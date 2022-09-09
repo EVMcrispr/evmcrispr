@@ -1,5 +1,6 @@
 import { constants, utils } from 'ethers';
 
+import { ErrorException } from '../../../errors';
 import type { Action, CommandFunction, InterpretOptions } from '../../../types';
 import {
   ComparisonType,
@@ -7,7 +8,6 @@ import {
   checkOpts,
   getOptValue,
 } from '../../../utils';
-import { EVMcrispr } from '../../../EVMcrispr';
 import type { AragonOS } from '../AragonOS';
 import { checkPermissionFormat, getDAO } from '../utils/commands';
 import { normalizeRole, oracle } from '../utils';
@@ -37,7 +37,7 @@ export const grant: CommandFunction<AragonOS> = async (
     }),
   );
 
-  checkPermissionFormat(c, permission as FullPermission);
+  checkPermissionFormat(permission as FullPermission);
 
   const [granteeAddress, appAddress, role] = permission;
 
@@ -46,7 +46,7 @@ export const grant: CommandFunction<AragonOS> = async (
   const app = dao.resolveApp(appAddress);
 
   if (!app) {
-    EVMcrispr.panic(c, `${appAddress} is not a DAO's app`);
+    throw new ErrorException(`${appAddress} is not a DAO's app`);
   }
 
   const { permissions: appPermissions, name } = app;
@@ -56,7 +56,7 @@ export const grant: CommandFunction<AragonOS> = async (
 
   if (!appPermissions.has(roleHash)) {
     // TODO: get app identifier. Maybe set it on cache
-    EVMcrispr.panic(c, `given permission doesn't exists on app ${name}`);
+    throw new ErrorException(`given permission doesn't exists on app ${name}`);
   }
 
   const appPermission = appPermissions.get(roleHash)!;
@@ -65,8 +65,7 @@ export const grant: CommandFunction<AragonOS> = async (
   let params: ReturnType<Params> = [];
 
   if (oracleOpt && !utils.isAddress(oracleOpt)) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `invalid --oracle option. Expected an address, but got ${oracleOpt}`,
     );
   }
@@ -83,7 +82,9 @@ export const grant: CommandFunction<AragonOS> = async (
   ) {
     if (appPermission.grantees.has(granteeAddress)) {
       // TODO: get app identifier. Maybe set it on cache
-      EVMcrispr.panic(c, `grantee already has given permission on app ${name}`);
+      throw new ErrorException(
+        `grantee already has given permission on app ${name}`,
+      );
     }
     appPermission.grantees.add(granteeAddress);
 
@@ -105,7 +106,7 @@ export const grant: CommandFunction<AragonOS> = async (
     appPermission.manager === constants.AddressZero
   ) {
     if (!permissionMangerArgNode) {
-      EVMcrispr.panic(c, 'required permission manager missing');
+      throw new ErrorException('required permission manager missing');
     }
 
     const defaultPermissionManagerAddress = await interpretNode(
@@ -114,8 +115,7 @@ export const grant: CommandFunction<AragonOS> = async (
     );
 
     if (!utils.isAddress(defaultPermissionManagerAddress)) {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `invalid permission manager. Expected an address, but got ${defaultPermissionManagerAddress}`,
       );
     }
@@ -138,8 +138,7 @@ export const grant: CommandFunction<AragonOS> = async (
   // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
   if (params.length > 0) {
     if (appPermission.grantees.has(granteeAddress)) {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `grantee ${granteeAddress} already has given permission on app ${name}`,
       );
     }

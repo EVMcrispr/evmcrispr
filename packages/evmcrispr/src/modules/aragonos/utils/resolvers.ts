@@ -1,6 +1,8 @@
 import type { providers } from 'ethers';
 import { Contract, ethers, utils } from 'ethers';
 
+import { ErrorException } from '../../../errors';
+
 import type { Address } from '../../../types';
 
 export function getAragonEnsResolver(chainId: number): string {
@@ -20,7 +22,7 @@ export async function resolveName(
   signerOrProvider: ethers.Signer | providers.Provider,
 ): Promise<Address | null> {
   if (!/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+eth/.test(name)) {
-    throw new Error(`ENS not valid: ${name}`);
+    throw new ErrorException(`ENS not valid: ${name}`);
   }
   const namehash = utils.namehash(name);
   const resolver = await new Contract(

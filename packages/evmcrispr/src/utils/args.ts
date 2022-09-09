@@ -1,4 +1,4 @@
-import { EVMcrispr } from '../EVMcrispr';
+import { ErrorException } from '../errors';
 import type {
   CallExpressionNode,
   CommandExpressionNode,
@@ -71,7 +71,7 @@ export const checkArgsLength = (
   const isError = checkComparisonError(argsLength, comparison);
 
   if (isError) {
-    EVMcrispr.panic(n, buildArgsLengthErrorMsg(argsLength, comparison));
+    throw new ErrorException(buildArgsLengthErrorMsg(argsLength, comparison));
   }
 };
 
@@ -84,8 +84,7 @@ export const checkOpts = (
     .map((o) => o.name);
 
   if (invalidOpts.length) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `the following provided options are not defined: ${commaListItems(
         invalidOpts,
       )}`,

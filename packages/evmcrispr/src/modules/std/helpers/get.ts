@@ -1,6 +1,6 @@
 import { Contract, utils } from 'ethers';
 
-import { EVMcrispr } from '../../../EVMcrispr';
+import { ErrorException } from '../../../errors';
 import type { HelperFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
@@ -21,7 +21,9 @@ export const get: HelperFunction<Std> = async (
   ]);
 
   if (!utils.isAddress(address)) {
-    EVMcrispr.panic(h, `expected a valid target address, but got "${address}"`);
+    throw new ErrorException(
+      `expected a valid target address, but got "${address}"`,
+    );
   }
 
   const [body, returns] = abi.split(':');

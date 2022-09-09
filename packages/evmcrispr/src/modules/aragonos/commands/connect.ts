@@ -1,11 +1,16 @@
 import { ethers, utils } from 'ethers';
 
-import type { Action, Address } from '../../..';
-import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from '../utils';
-import type { CommandFunction, TransactionAction } from '../../../types';
+import { ErrorException } from '../../../errors';
+import type {
+  Action,
+  Address,
+  CommandFunction,
+  TransactionAction,
+} from '../../../types';
 import { NodeType, isProviderAction } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
+import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from '../utils';
 import { BindingsSpace } from '../../../BindingsManager';
 import type { BindingsManager } from '../../../BindingsManager';
 import {
@@ -17,7 +22,6 @@ import {
 } from '../../../utils';
 import { batchForwarderActions } from '../utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
-import { EVMcrispr } from '../../../EVMcrispr';
 
 const { BlockExpression } = NodeType;
 const { ABI, ADDR } = BindingsSpace;
@@ -111,7 +115,7 @@ export const connect: CommandFunction<AragonOS> = async (
   const forwarderApps = await interpretNodes(rest);
 
   if (!blockExpressionNode || blockExpressionNode.type !== BlockExpression) {
-    EVMcrispr.panic(c, 'last argument should be a set of commands');
+    throw new ErrorException('last argument should be a set of commands');
   }
 
   const daoAddressOrName = await interpretNode(daoNameNode);
@@ -124,7 +128,9 @@ export const connect: CommandFunction<AragonOS> = async (
     const res = await _aragonEns(daoENSName, module);
 
     if (!res) {
-      EVMcrispr.panic(c, `ENS DAO name ${daoENSName} couldn't be resolved`);
+      throw new ErrorException(
+        `ENS DAO name ${daoENSName} couldn't be resolved`,
+      );
     }
 
     daoAddress = res;
@@ -133,8 +139,7 @@ export const connect: CommandFunction<AragonOS> = async (
   const currentDao = module.currentDAO;
 
   if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `trying to connect to an already connected DAO (${daoAddress})`,
     );
   }
@@ -142,20 +147,14 @@ export const connect: CommandFunction<AragonOS> = async (
   // Allow us to keep track of connected DAOs inside nested 'connect' commands
   const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
-  let dao: AragonDAO;
-  try {
-    dao = await AragonDAO.create(
-      daoAddress,
-      module.getConfigBinding('subgraphUrl'),
-      module.signer.provider ??
-        ethers.getDefaultProvider(await module.signer.getChainId()),
-      module.ipfsResolver,
-      nextNestingIndex,
-    );
-  } catch (err) {
-    const err_ = err as Error;
-    EVMcrispr.panic(c, err_.message);
-  }
+  const dao = await AragonDAO.create(
+    daoAddress,
+    module.getConfigBinding('subgraphUrl'),
+    module.signer.provider ??
+      ethers.getDefaultProvider(await module.signer.getChainId()),
+    module.ipfsResolver,
+    nextNestingIndex,
+  );
 
   module.connectedDAOs.push(dao);
 
@@ -173,7 +172,7 @@ export const connect: CommandFunction<AragonOS> = async (
   })) as Action[];
 
   if (actions.find((a) => isProviderAction(a))) {
-    EVMcrispr.panic(c, `can't switch networks inside a connect command`);
+    throw new ErrorException(`can't switch networks inside a connect command`);
   }
 
   const invalidApps: any[] = [];
@@ -185,7 +184,7 @@ export const connect: CommandFunction<AragonOS> = async (
       : dao.resolveApp(appOrAddress)?.address;
 
     if (!appAddress) {
-      EVMcrispr.panic(c, `${appOrAddress} is not a DAO's forwarder app`);
+      throw new ErrorException(`${appOrAddress} is not a DAO's forwarder app`);
     }
 
     !utils.isAddress(appAddress)
@@ -194,8 +193,7 @@ export const connect: CommandFunction<AragonOS> = async (
   });
 
   if (invalidApps.length) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `invalid forwarder addresses found for the following: ${invalidApps.join(
         ', ',
       )}`,
@@ -204,19 +202,10 @@ export const connect: CommandFunction<AragonOS> = async (
 
   const context = await getOptValue(c, 'context', interpretNode);
 
-  let forwarderActions: Action[];
-
-  try {
-    forwarderActions = await batchForwarderActions(
-      module.signer,
-      actions as TransactionAction[],
-      forwarderAppAddresses.reverse(),
-      context,
-    );
-  } catch (err) {
-    const err_ = err as Error;
-    EVMcrispr.panic(c, err_.message);
-  }
-
-  return forwarderActions;
+  return batchForwarderActions(
+    module.signer,
+    actions as TransactionAction[],
+    forwarderAppAddresses.reverse(),
+    context,
+  );
 };

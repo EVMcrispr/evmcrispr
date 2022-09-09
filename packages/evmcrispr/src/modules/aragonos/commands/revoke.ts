@@ -1,6 +1,6 @@
+import { ErrorException } from '../../../errors';
 import type { Action, CommandFunction, InterpretOptions } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
-import { EVMcrispr } from '../../../EVMcrispr';
 import type { AragonOS } from '../AragonOS';
 import { checkPermissionFormat, getDAO } from '../utils/commands';
 import type { FullPermission } from '../types';
@@ -27,14 +27,13 @@ export const revoke: CommandFunction<AragonOS> = async (
     }),
   );
 
-  checkPermissionFormat(c, args.slice(0, 3) as FullPermission);
+  checkPermissionFormat(args.slice(0, 3) as FullPermission);
 
   const [granteeAddress, appAddress, role, removeManager] = args;
 
   const removeManagerType = typeof removeManager;
   if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
     );
   }
@@ -43,7 +42,7 @@ export const revoke: CommandFunction<AragonOS> = async (
   const app = dao.resolveApp(appAddress);
 
   if (!app) {
-    EVMcrispr.panic(c, `${appAddress} is not a DAO's app`);
+    throw new ErrorException(`${appAddress} is not a DAO's app`);
   }
 
   const { permissions: appPermissions, name } = app;
@@ -51,13 +50,12 @@ export const revoke: CommandFunction<AragonOS> = async (
     dao!.resolveApp('acl')!;
 
   if (!appPermissions.has(roleHash)) {
-    EVMcrispr.panic(c, `given permission doesn't exists on app ${name}`);
+    throw new ErrorException(`given permission doesn't exists on app ${name}`);
   }
 
   const appPermission = appPermissions.get(roleHash)!;
   if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `grantee ${granteeAddress} doesn't have the given permission`,
     );
   }

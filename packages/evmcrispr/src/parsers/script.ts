@@ -5,7 +5,7 @@ import type { AST, NodeParserState } from '../types';
 import { ASTType } from '../types';
 import { commandExpressionParser } from './command';
 import { createParserState, linesParser } from './utils';
-import { ErrorException } from '..';
+import { ErrorException } from '../errors';
 
 export const scriptParser: Parser<AST, string, NodeParserState> = coroutine(
   function* () {

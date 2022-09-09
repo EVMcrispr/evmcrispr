@@ -1,6 +1,8 @@
 import type { providers } from 'ethers';
 import { Contract } from 'ethers';
 
+import { ErrorException } from '../../../errors';
+
 export const ARAGON_REGISTRARS = new Map([
   [1, '0x546aa2eae2514494eeadb7bbb35243348983c59d'],
   [4, '0x3665e7bfd4d3254ae7796779800f5b603c43c60d'],
@@ -14,7 +16,9 @@ export const getAragonRegistrarContract = async (
   const chainId = (await provider.getNetwork()).chainId;
 
   if (!ARAGON_REGISTRARS.has(chainId)) {
-    throw new Error(`aragon registrars on chain ${chainId} not supported`);
+    throw new ErrorException(
+      `aragon registrars on chain ${chainId} not supported`,
+    );
   }
 
   return new Contract(

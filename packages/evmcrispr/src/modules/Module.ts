@@ -13,7 +13,7 @@ import type {
 
 import type { BindingsManager } from '../BindingsManager';
 import { BindingsSpace } from '../BindingsManager';
-import { EVMcrispr } from '../EVMcrispr';
+import { ErrorException } from '..';
 
 export abstract class Module {
   constructor(
@@ -41,7 +41,9 @@ export abstract class Module {
     const command = this.commands[c.name];
 
     if (!command) {
-      EVMcrispr.panic(c, `command not found on module ${this.contextualName}`);
+      throw new ErrorException(
+        `command not found on module ${this.contextualName}`,
+      );
     }
 
     return command(this, c, interpreters);

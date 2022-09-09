@@ -1,5 +1,7 @@
 import { BigNumber, utils } from 'ethers';
 
+import { ErrorException } from '../../../errors';
+
 import type { Address } from '../../../types';
 import type { Params } from '../types/permission';
 
@@ -50,7 +52,7 @@ const SpecialArgId = {
 
 function arg(id: number): any {
   if (id < 0 || id > 199) {
-    throw new Error(
+    throw new ErrorException(
       `Argument id must be positive and can not be greater than 199`,
     );
   }

@@ -1,22 +1,20 @@
 import { utils } from 'ethers';
 
+import { ErrorException } from '../../../errors';
 import type {
   Action,
   CommandFunction,
   TransactionAction,
 } from '../../../types';
 import { isProviderAction } from '../../../types';
-import type { ErrorException } from '../../../errors';
 
 import { batchForwarderActions } from '../utils/forwarders';
-import { EVMcrispr } from '../../../EVMcrispr';
 import {
   ComparisonType,
   checkArgsLength,
   commaListItems,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-
 export const forward: CommandFunction<AragonOS> = async (
   module,
   c,
@@ -40,8 +38,7 @@ export const forward: CommandFunction<AragonOS> = async (
   );
 
   if (invalidForwarderApps.length) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       `${commaListItems(invalidForwarderApps)} are not valid forwarder address`,
     );
   }
@@ -50,22 +47,13 @@ export const forward: CommandFunction<AragonOS> = async (
     blockModule: module.contextualName,
   })) as Action[];
 
-  let forwarderActions: Action[] = [];
-
   if (blockActions.find((a) => isProviderAction(a))) {
-    EVMcrispr.panic(c, `can't switch networks inside a connect command`);
+    throw new ErrorException(`can't switch networks inside a connect command`);
   }
 
-  try {
-    forwarderActions = await batchForwarderActions(
-      module.signer,
-      blockActions as TransactionAction[],
-      forwarderAppAddresses.reverse(),
-    );
-  } catch (err) {
-    const err_ = err as ErrorException;
-    EVMcrispr.panic(c, err_.message);
-  }
-
-  return forwarderActions;
+  return batchForwarderActions(
+    module.signer,
+    blockActions as TransactionAction[],
+    forwarderAppAddresses.reverse(),
+  );
 };

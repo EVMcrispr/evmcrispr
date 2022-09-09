@@ -6,6 +6,7 @@ import {
   ErrorException,
   ExpressionError,
   HelperFunctionError,
+  NodeError,
 } from './errors';
 import { timeUnits, toDecimals } from './utils';
 import type {
@@ -308,7 +309,7 @@ export class EVMcrispr {
     return res;
   };
 
-  #interpretCommand: NodeInterpreter<CommandExpressionNode> = (c) => {
+  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (c) => {
     let module: Module | undefined = this.#std;
     const moduleName =
       c.module ??
@@ -329,10 +330,25 @@ export class EVMcrispr {
       }
     }
 
-    return module.interpretCommand(c, {
-      interpretNode: this.interpretNode,
-      interpretNodes: this.interpretNodes,
-    });
+    let res: Awaited<ReturnType<typeof module.interpretCommand>>;
+
+    try {
+      res = await module.interpretCommand(c, {
+        interpretNode: this.interpretNode,
+        interpretNodes: this.interpretNodes,
+      });
+    } catch (err) {
+      // Avoid wrapping a node error insde another node error
+      if (err instanceof NodeError) {
+        throw err;
+      }
+
+      const err_ = err as Error;
+
+      EVMcrispr.panic(c, err_.message);
+    }
+
+    return res;
   };
 
   #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
@@ -355,10 +371,25 @@ export class EVMcrispr {
 
     const m = filteredModules[0];
 
-    return m.interpretHelper(h, {
-      interpretNode: this.interpretNode,
-      interpretNodes: this.interpretNodes,
-    });
+    let res: Awaited<ReturnType<typeof m.interpretHelper>>;
+
+    try {
+      res = await m.interpretHelper(h, {
+        interpretNode: this.interpretNode,
+        interpretNodes: this.interpretNodes,
+      });
+    } catch (err) {
+      // Avoid wrapping a node error insde another node error
+      if (err instanceof NodeError) {
+        throw err;
+      }
+
+      const err_ = err as Error;
+
+      EVMcrispr.panic(h, err_.message);
+    }
+
+    return res;
   };
 
   #interpretLiteral: NodeInterpreter<LiteralExpressionNode> = async (n) => {

@@ -6,12 +6,12 @@ import {
   addressesEqual,
   checkArgsLength,
 } from '../../../utils';
-import { EVMcrispr } from '../../../EVMcrispr';
 import type { CommandFunction } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import { SEMANTIC_VERSION_REGEX, getRepoContract } from '../utils';
 import { daoPrefixedIdentifierParser, getDAO } from '../utils/commands';
+import { ErrorException } from '../../../errors';
 
 export const upgrade: CommandFunction<AragonOS> = async (
   module,
@@ -55,13 +55,13 @@ export const upgrade: CommandFunction<AragonOS> = async (
   );
 
   if (currentAppAddress === constants.AddressZero) {
-    EVMcrispr.panic(c, `${apmRepo} not installed on current DAO.`);
+    throw new ErrorException(`${apmRepo} not installed on current DAO.`);
   }
 
   const repoAddr = await _aragonEns(apmRepo, module);
 
   if (!repoAddr) {
-    EVMcrispr.panic(c, `ENS repo name ${apmRepo} couldn't be resolved`);
+    throw new ErrorException(`ENS repo name ${apmRepo} couldn't be resolved`);
   }
 
   const repo = getRepoContract(repoAddr, module.signer);
@@ -73,14 +73,13 @@ export const upgrade: CommandFunction<AragonOS> = async (
       newAppAddress.split('.'),
     );
   } else if (!isAddress(newAppAddress)) {
-    EVMcrispr.panic(
-      c,
+    throw new ErrorException(
       'second upgrade parameter must be a semantic version, an address, or nothing',
     );
   }
 
   if (addressesEqual(currentAppAddress, newAppAddress)) {
-    EVMcrispr.panic(c, `trying to upgrade app to its current version`);
+    throw new ErrorException(`trying to upgrade app to its current version`);
   }
 
   return [

@@ -1,7 +1,6 @@
 import { providers } from 'ethers';
 
-import { EVMcrispr } from '../../../EVMcrispr';
-
+import { ErrorException } from '../../../errors';
 import type { CommandFunction, ProviderAction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
@@ -33,7 +32,7 @@ export const _switch: CommandFunction<Std> = async (
 
   const provider = module.signer.provider;
   if (!(provider instanceof providers.JsonRpcProvider)) {
-    EVMcrispr.panic(c, 'JSON-RPC based providers supported only');
+    throw new ErrorException('JSON-RPC based providers supported only');
   }
 
   const [networkNameOrId] = await interpretNodes(c.args);
@@ -43,8 +42,7 @@ export const _switch: CommandFunction<Std> = async (
 
   if (!Number.isInteger(chainId)) {
     if (typeof networkNameOrId !== 'string') {
-      EVMcrispr.panic(
-        c,
+      throw new ErrorException(
         `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
       );
     }
@@ -53,7 +51,7 @@ export const _switch: CommandFunction<Std> = async (
         networkNameOrId?.toLowerCase() as keyof typeof nameToChainId
       ];
     if (!chainId) {
-      EVMcrispr.panic(c, `chain "${networkNameOrId}" not found`);
+      throw new ErrorException(`chain "${networkNameOrId}" not found`);
     }
   }
 
