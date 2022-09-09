@@ -1,5 +1,17 @@
 # @1hive/evmcrispr
 
+## 0.7.1
+
+### Patch Changes
+
+- 317a0a2: -
+  - `new-dao` command fixes.
+  - Allow to use `new-token` command outside of `connect`.
+  - Fix implicit string-to-bytes conversion.
+  - Refactor interpreter error handling.
+  - Refactor aragonos `Connector` instantiation.
+  - Add missing kernel-prefixed dao app bindings.
+
 ## 0.7.0
 
 ### Minor Changes
