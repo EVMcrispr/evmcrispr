@@ -149,9 +149,9 @@ export const connect: CommandFunction<AragonOS> = async (
 
   const dao = await AragonDAO.create(
     daoAddress,
-    module.getConfigBinding('subgraphUrl'),
     module.signer.provider ??
       ethers.getDefaultProvider(await module.signer.getChainId()),
+    module.connector,
     module.ipfsResolver,
     nextNestingIndex,
   );

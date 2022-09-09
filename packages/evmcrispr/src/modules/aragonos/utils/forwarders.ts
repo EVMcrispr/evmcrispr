@@ -1,7 +1,7 @@
 import type { BigNumber, Signer } from 'ethers';
 import { Contract, constants, utils } from 'ethers';
 
-import { erc20ABI } from '../../../abis';
+import { erc20ABI } from '../abis';
 import { ErrorInvalid } from '../../../errors';
 import type { Action, TransactionAction } from '../../../types';
 import { encodeActCall, encodeCallScript } from './evmscripts';

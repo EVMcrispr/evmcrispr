@@ -13,15 +13,18 @@ import {
 import { Module } from '../Module';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
+import Connector from './Connector';
 import { helpers } from './helpers';
 
 export class AragonOS extends Module {
+  #connector: Connector;
   #ipfsResolver: IPFSResolver;
   #connectedDAOs: AragonDAO[];
 
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
+    networkId: number,
     signer: Signer,
     ipfsResolver: IPFSResolver,
     alias?: string,
@@ -36,8 +39,13 @@ export class AragonOS extends Module {
       alias,
     );
 
+    this.#connector = new Connector(networkId);
     this.#connectedDAOs = [];
     this.#ipfsResolver = ipfsResolver;
+  }
+
+  get connector(): Connector {
+    return this.#connector;
   }
 
   get connectedDAOs(): AragonDAO[] {

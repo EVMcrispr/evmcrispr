@@ -10,7 +10,6 @@ import type {
   ParsedApp,
 } from './types';
 import type { IPFSResolver } from '../../IPFSResolver';
-import Connector from './Connector';
 import { calculateNewProxyAddress } from '../../utils';
 import {
   buildApp,
@@ -20,28 +19,19 @@ import {
   resolveIdentifier,
 } from './utils';
 import { AddressMap } from './AddressMap';
+import type Connector from './Connector';
 
 export class AragonDAO {
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
-  #connector: Connector;
-  #ipfsResolver: IPFSResolver;
 
   #nestingIndex: number;
 
   #provider: providers.Provider;
 
-  constructor(
-    provider: providers.Provider,
-    chainId: number,
-    subgraphUrl: string,
-    ipfsResolver: IPFSResolver,
-    nestingIndex: number,
-  ) {
+  constructor(provider: providers.Provider, nestingIndex: number) {
     this.#appCache = new Map();
     this.#appArtifactCache = new AddressMap();
-    this.#connector = new Connector(chainId, { subgraphUrl });
-    this.#ipfsResolver = ipfsResolver;
 
     this.#nestingIndex = nestingIndex;
 
@@ -56,10 +46,6 @@ export class AragonDAO {
     return this.#appArtifactCache;
   }
 
-  get connector(): Connector {
-    return this.#connector;
-  }
-
   get kernel(): App {
     return this.resolveApp('kernel:0')!;
   }
@@ -70,24 +56,18 @@ export class AragonDAO {
 
   static async create(
     daoAddress: Address,
-    subgraphUrl: string,
     provider: providers.Provider,
+    connector: Connector,
     ipfsResolver: IPFSResolver,
     index: number,
   ): Promise<AragonDAO> {
-    const dao = new AragonDAO(
-      provider,
-      (await provider.getNetwork()).chainId,
-      subgraphUrl,
-      ipfsResolver,
-      index,
-    );
+    const dao = new AragonDAO(provider, index);
 
-    const parsedApps = await dao.connector.organizationApps(
-      daoAddress,
-      provider,
+    const parsedApps = await connector.organizationApps(daoAddress, provider);
+    const appResourcesCache = await dao.#buildAppArtifactCache(
+      parsedApps,
+      ipfsResolver,
     );
-    const appResourcesCache = await dao.#buildAppArtifactCache(parsedApps);
     const apps = (
       await Promise.all(
         parsedApps.map((parsedApp: ParsedApp) =>
@@ -99,6 +79,7 @@ export class AragonDAO {
 
     dao.#appCache = appCache;
     dao.#appArtifactCache = appResourcesCache;
+
     return dao;
   }
 
@@ -162,7 +143,10 @@ export class AragonDAO {
     return appCache;
   }
 
-  async #buildAppArtifactCache(apps: ParsedApp[]): Promise<AppArtifactCache> {
+  async #buildAppArtifactCache(
+    apps: ParsedApp[],
+    ipfsResolver: IPFSResolver,
+  ): Promise<AppArtifactCache> {
     const appArtifactCache: AppArtifactCache = new AddressMap();
     const artifactApps = apps.filter((app) => app.artifact);
     const artifactlessApps = apps.filter(
@@ -174,7 +158,7 @@ export class AragonDAO {
     const uriToArtifactKeys = [...new Set<string>(contentUris)];
     const uriToArtifactValues: any[] = await Promise.all(
       uriToArtifactKeys.map((contentUri) =>
-        fetchAppArtifact(this.#ipfsResolver, contentUri),
+        fetchAppArtifact(ipfsResolver, contentUri),
       ),
     );
     const uriToArtifactMap = Object.fromEntries(
