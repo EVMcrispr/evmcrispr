@@ -232,7 +232,7 @@ export const connectDescribe = (): Suite =>
             connect ${DAO2.kernel} (
               grant voting _1:voting CREATE_VOTES_ROLE
               connect ${DAO3.kernel} (
-                grant _1:voting _2:token-manager ISSUE_ROLE voting
+                grant _1:voting _${DAO2.kernel}:token-manager ISSUE_ROLE voting
               )
             )
             

@@ -25,14 +25,20 @@ export class AragonDAO {
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
 
+  #name?: string;
   #nestingIndex: number;
 
   #provider: providers.Provider;
 
-  constructor(provider: providers.Provider, nestingIndex: number) {
+  constructor(
+    provider: providers.Provider,
+    nestingIndex: number,
+    name?: string,
+  ) {
     this.#appCache = new Map();
     this.#appArtifactCache = new AddressMap();
 
+    this.#name = name;
     this.#nestingIndex = nestingIndex;
 
     this.#provider = provider;
@@ -50,6 +56,10 @@ export class AragonDAO {
     return this.resolveApp('kernel:0')!;
   }
 
+  get name(): string | undefined {
+    return this.#name;
+  }
+
   get nestingIndex(): number {
     return this.#nestingIndex;
   }
@@ -60,8 +70,9 @@ export class AragonDAO {
     connector: Connector,
     ipfsResolver: IPFSResolver,
     index: number,
+    name?: string,
   ): Promise<AragonDAO> {
-    const dao = new AragonDAO(provider, index);
+    const dao = new AragonDAO(provider, index, name);
 
     const parsedApps = await connector.organizationApps(daoAddress, provider);
     const appResourcesCache = await dao.#buildAppArtifactCache(

@@ -30,25 +30,27 @@ const setAppBindings = (
   bindingsManager: BindingsManager,
   appName: string,
   appAddress: Address,
-  daoIndex: number,
-  daoName?: string,
+  dao: AragonDAO,
 ) => {
   bindingsManager.setBinding(appName, appAddress, ADDR);
-  bindingsManager.setBinding(`_${daoIndex}:${appName}`, appAddress, ADDR);
-  if (daoName) {
-    bindingsManager.setBinding(`_${daoName}:${appName}`, appAddress, ADDR);
+  bindingsManager.setBinding(
+    `_${dao.nestingIndex}:${appName}`,
+    appAddress,
+    ADDR,
+  );
+  bindingsManager.setBinding(
+    `_${dao.kernel.address}:${appName}`,
+    appAddress,
+    ADDR,
+  );
+  if (dao.name) {
+    bindingsManager.setBinding(`_${dao.name}:${appName}`, appAddress, ADDR);
   }
 };
 
-const setDAOContext = (
-  aragonos: AragonOS,
-  {
-    dao,
-    index,
-    name: daoName,
-  }: { dao: AragonDAO; index: number; name?: string },
-) => {
+const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
+    const { name, nestingIndex } = dao;
     const bindingsManager = aragonos.bindingsManager;
 
     bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY, ADDR);
@@ -57,11 +59,11 @@ const setDAOContext = (
 
     aragonos.currentDAO = dao;
 
-    // We can reference DAOs by their name nesting index or kernel address
+    // We can reference DAOs by their name, nesting index or kernel address
     aragonos.setModuleBinding(dao.kernel.address, dao);
-    aragonos.setModuleBinding(index.toString(), dao);
-    if (daoName) {
-      aragonos.setModuleBinding(daoName, dao);
+    aragonos.setModuleBinding(nestingIndex.toString(), dao);
+    if (name) {
+      aragonos.setModuleBinding(name, dao);
     }
 
     dao.appCache.forEach((app, appIdentifier) => {
@@ -78,22 +80,10 @@ const setDAOContext = (
           0,
           appIdentifier.length - 2,
         );
-        setAppBindings(
-          bindingsManager,
-          nameWithoutIndex,
-          app.address,
-          index,
-          daoName,
-        );
+        setAppBindings(bindingsManager, nameWithoutIndex, app.address, dao);
       }
 
-      setAppBindings(
-        bindingsManager,
-        appIdentifier,
-        app.address,
-        index,
-        daoName,
-      );
+      setAppBindings(bindingsManager, appIdentifier, app.address, dao);
     });
   };
 };
@@ -147,6 +137,10 @@ export const connect: CommandFunction<AragonOS> = async (
   // Allow us to keep track of connected DAOs inside nested 'connect' commands
   const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
+  const daoName = !utils.isAddress(daoAddressOrName)
+    ? daoAddressOrName
+    : undefined;
+
   const dao = await AragonDAO.create(
     daoAddress,
     module.signer.provider ??
@@ -154,21 +148,14 @@ export const connect: CommandFunction<AragonOS> = async (
     module.connector,
     module.ipfsResolver,
     nextNestingIndex,
+    daoName,
   );
 
   module.connectedDAOs.push(dao);
 
-  const daoName = !utils.isAddress(daoAddressOrName)
-    ? daoAddressOrName
-    : undefined;
-
   const actions = (await interpretNode(blockExpressionNode, {
     blockModule: module.contextualName,
-    blockInitializer: setDAOContext(module, {
-      dao,
-      index: nextNestingIndex,
-      name: daoName,
-    }),
+    blockInitializer: setDAOContext(module, dao),
   })) as Action[];
 
   if (actions.find((a) => isProviderAction(a))) {

@@ -8,3 +8,4 @@
 - Fix implicit string-to-bytes conversion.
 - Refactor interpreter error handling.
 - Refactor aragonos `Connector` instantiation.
+- Add missing kernel-prefixed dao app bindings.
