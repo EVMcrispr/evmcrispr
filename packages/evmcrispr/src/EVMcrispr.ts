@@ -10,7 +10,6 @@ import {
 } from './errors';
 import { timeUnits, toDecimals } from './utils';
 import type {
-  AST,
   Action,
   ArrayExpressionNode,
   AsExpressionNode,
@@ -26,9 +25,10 @@ import type {
 } from './types';
 import { NodeType } from './types';
 import type { Module } from './modules/Module';
-import { Std } from './modules/std/Std';
+import { Std } from './modules/std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
+import type { Cas11AST } from './Cas11AST';
 
 const {
   AddressLiteral,
@@ -60,40 +60,31 @@ const { ABI, ADDR, INTERPRETER, USER } = BindingsSpace;
 const CONTEXTUAL_MODULE = 'contextualModule';
 
 export class EVMcrispr {
-  readonly ast: AST;
+  readonly ast: Cas11AST;
+  readonly bindingsManager: BindingsManager;
+  readonly signer: Signer;
+
   #std: Std;
   #modules: Module[] = [];
-
-  #bindingsManager: BindingsManager;
   #nonces: Record<string, number> = {};
 
-  #signer: Signer;
-
-  constructor(ast: AST, signer: Signer) {
+  constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
 
-    this.#bindingsManager = new BindingsManager();
+    this.bindingsManager = new BindingsManager();
     this.#setDefaultBindings();
 
-    this.#signer = signer;
+    this.signer = signer;
     this.#std = new Std(
-      this.#bindingsManager,
+      this.bindingsManager,
       this.#nonces,
-      this.#signer,
+      this.signer,
       this.#modules,
     );
   }
 
-  get bindingsManager(): BindingsManager {
-    return this.#bindingsManager;
-  }
-
-  set signer(signer: Signer) {
-    this.#signer = signer;
-  }
-
   getBinding(name: string, memSpace: BindingsSpace): any {
-    return this.#bindingsManager.getBinding(name, memSpace);
+    return this.bindingsManager.getBinding(name, memSpace);
   }
 
   getModule(aliasOrName: string): Module | undefined {
@@ -250,9 +241,9 @@ export class EVMcrispr {
     n,
     { blockInitializer, blockModule } = {},
   ) => {
-    this.#bindingsManager.enterScope();
+    this.bindingsManager.enterScope();
 
-    this.#bindingsManager.setBinding(
+    this.bindingsManager.setBinding(
       CONTEXTUAL_MODULE,
       blockModule,
       INTERPRETER,
@@ -264,7 +255,7 @@ export class EVMcrispr {
 
     const results = await this.interpretNodes(n.body, true);
 
-    this.#bindingsManager.exitScope();
+    this.bindingsManager.exitScope();
 
     return results.filter((r) => !!r);
   };
@@ -282,7 +273,7 @@ export class EVMcrispr {
       );
     }
 
-    const targetInterface = this.#bindingsManager.getBinding(
+    const targetInterface = this.bindingsManager.getBinding(
       targetAddress,
       ABI,
     ) as utils.Interface | undefined;
@@ -290,7 +281,7 @@ export class EVMcrispr {
       EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
     }
 
-    const contract = new Contract(targetAddress, targetInterface, this.#signer);
+    const contract = new Contract(targetAddress, targetInterface, this.signer);
     let res;
 
     try {
@@ -313,7 +304,7 @@ export class EVMcrispr {
     let module: Module | undefined = this.#std;
     const moduleName =
       c.module ??
-      (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
+      (this.bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
         | string
         | undefined);
 
@@ -433,7 +424,7 @@ export class EVMcrispr {
   #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
     n,
   ) => {
-    const binding = this.#bindingsManager.getBinding(n.value, USER);
+    const binding = this.bindingsManager.getBinding(n.value, USER);
 
     if (binding) {
       return binding;
@@ -443,8 +434,8 @@ export class EVMcrispr {
   };
 
   #setDefaultBindings(): void {
-    this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
-    this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
   }
 
   static panic(n: Node, msg: string): never {

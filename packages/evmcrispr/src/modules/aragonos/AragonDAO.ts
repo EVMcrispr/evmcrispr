@@ -19,7 +19,7 @@ import {
   resolveIdentifier,
 } from './utils';
 import { AddressMap } from './AddressMap';
-import type Connector from './Connector';
+import type { Connector } from './Connector';
 
 export class AragonDAO {
   #appCache: AppCache;

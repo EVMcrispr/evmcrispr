@@ -13,7 +13,7 @@ import {
 import { Module } from '../Module';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
-import Connector from './Connector';
+import { Connector } from './Connector';
 import { helpers } from './helpers';
 
 export class AragonOS extends Module {

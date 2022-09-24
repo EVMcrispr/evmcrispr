@@ -164,8 +164,7 @@ export type CommandArgExpressionNode =
   | ArgumentExpressionNode
   | BlockExpressionNode;
 
-export type AST = {
+export interface AST {
   type: ASTType;
-
-  body: CommandExpressionNode[];
-};
+  body: Node[];
+}

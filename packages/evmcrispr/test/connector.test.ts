@@ -11,7 +11,7 @@ import {
   isValidArtifact,
   isValidParsedApp,
 } from './test-helpers/expects';
-import Connector from '../src/modules/aragonos/Connector';
+import { Connector } from '../src/modules/aragonos/Connector';
 import { parseContentUri } from '../src/modules/aragonos/utils';
 import type { ParsedApp } from '../src/modules/aragonos/types';
 

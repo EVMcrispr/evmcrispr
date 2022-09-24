@@ -35,11 +35,12 @@ export type {
   RoleHash,
 } from './modules/aragonos/types';
 
-export { Std } from './modules/std/Std';
-export { AragonDAO } from './modules/aragonos/AragonDAO';
-export { AragonOS } from './modules/aragonos/AragonOS';
+export { Std } from './modules/std';
+export { AragonOS, AragonDAO, Connector } from './modules/aragonos';
 
 export { BindingsManager, BindingsSpace } from './BindingsManager';
+export { Cas11AST } from './Cas11AST';
+export type { Cas11ASTCommand } from './Cas11AST';
 export { EVMcrispr } from './EVMcrispr';
 export * from './IPFSResolver';
 
