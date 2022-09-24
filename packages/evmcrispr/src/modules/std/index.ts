@@ -1,3 +1,3 @@
 export { Std } from './Std';
-export { commands } from './commands';
-export { helpers } from './helpers';
+export { commands as stdCommands } from './commands';
+export { helpers as stdHelpers } from './helpers';
