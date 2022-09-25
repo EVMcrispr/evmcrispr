@@ -1,6 +1,16 @@
 export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 export type { ErrorOptions } from './errors';
-export type { Address, Action, ForwardOptions } from './types';
+export type {
+  Address,
+  Action,
+  CommandFunction,
+  CommandFunctions,
+  HelperFunction,
+  HelperFunctions,
+  ForwardOptions,
+} from './types';
+export * from './types/ast';
+export { isProviderAction } from './types';
 
 export { Module } from './modules/Module';
 export * from './modules/std';
