@@ -1,10 +1,18 @@
-import type { AST, BlockExpressionNode, CommandExpressionNode } from './types';
+import type {
+  AST,
+  BlockExpressionNode,
+  CommandExpressionNode,
+  Node,
+} from './types';
 import { ASTType, NodeType } from './types';
 
-export type Cas11ASTCommand = {
-  node: CommandExpressionNode;
-  parent?: Cas11ASTCommand;
-};
+const isLineWithinBlock = ({ type, loc }: Node, line: number) =>
+  !!(
+    type === NodeType.BlockExpression &&
+    loc &&
+    line >= loc.start.line &&
+    line <= loc.end.line
+  );
 
 export class Cas11AST implements AST {
   type: ASTType = ASTType.Program;
@@ -14,46 +22,41 @@ export class Cas11AST implements AST {
     this.body = body;
   }
 
-  getCommandAtLine(line: number): Cas11ASTCommand | undefined {
-    return this.#getCommandAtLine(this.body, line);
+  getCommandAtLine(line: number): CommandExpressionNode | undefined {
+    return this.#getCommandAtLine(line, this.body);
   }
 
   getCommandsUntilLine(
-    commandNames: string[],
     line: number,
-  ): Cas11ASTCommand[] {
-    return this.#getCommandsUntilLine(this.body, commandNames, line);
+    globalScopeCommandNames?: string[],
+  ): CommandExpressionNode[] {
+    return this.#getCommandsUntilLine(
+      this.body,
+      line,
+      true,
+      globalScopeCommandNames,
+    );
   }
 
   #getCommandAtLine(
-    body: CommandExpressionNode[],
     line: number,
-    parent?: Cas11ASTCommand,
+    body: CommandExpressionNode[],
   ): ReturnType<typeof this.getCommandAtLine> {
     const selectedNode: CommandExpressionNode | undefined = body.find(
       (c) => c.loc?.start.line === line,
     );
 
     if (selectedNode) {
-      return {
-        node: selectedNode,
-        parent,
-      };
+      return selectedNode;
     }
 
     for (const c of body) {
-      const blockNode = c.args.find(
-        ({ type, loc }) =>
-          type === NodeType.BlockExpression &&
-          line >= loc!.start.line &&
-          line <= loc!.end.line,
+      const blockNode = c.args.find((n) =>
+        isLineWithinBlock(n, line),
       ) as BlockExpressionNode;
 
       if (blockNode) {
-        const command = this.#getCommandAtLine(blockNode.body, line, {
-          node: c,
-          parent,
-        });
+        const command = this.#getCommandAtLine(line, blockNode.body);
 
         return command;
       }
@@ -62,11 +65,11 @@ export class Cas11AST implements AST {
 
   #getCommandsUntilLine(
     body: CommandExpressionNode[],
-    names: string[],
     line: number,
-    parent?: Cas11ASTCommand,
+    lineWithinBlock: boolean,
+    globalScopeCommandNames?: string[],
   ): ReturnType<typeof this.getCommandsUntilLine> {
-    const commands: Cas11ASTCommand[] = [];
+    const commands: CommandExpressionNode[] = [];
 
     body.forEach((c) => {
       // Skip nodes higher than given line
@@ -74,18 +77,23 @@ export class Cas11AST implements AST {
         return;
       }
 
-      if (names.includes(c.name)) {
-        commands.push({ node: c, parent });
+      if (lineWithinBlock || globalScopeCommandNames?.includes(c.name)) {
+        commands.push(c);
       }
 
       // Check for block expressions
       c.args.forEach((arg) => {
-        if (arg.type === NodeType.BlockExpression) {
+        if (
+          isLineWithinBlock(arg, line) ||
+          (arg.type === NodeType.BlockExpression &&
+            globalScopeCommandNames?.length)
+        ) {
+          const argBlock = arg as BlockExpressionNode;
           const innerCommands = this.#getCommandsUntilLine(
-            (arg as BlockExpressionNode).body,
-            names,
+            argBlock.body,
             line,
-            { node: c, parent },
+            isLineWithinBlock(argBlock, line),
+            globalScopeCommandNames,
           );
           commands.push(...innerCommands);
         }
