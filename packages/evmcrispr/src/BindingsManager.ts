@@ -7,18 +7,24 @@ export enum BindingsSpace {
   USER = 'USER',
   ADDR = 'ADDR',
   ABI = 'ABI',
+  DATA_PROVIDER = 'DATA_PROVIDER',
+  MODULE = 'MODULE',
   INTERPRETER = 'INTERPRETER',
 }
 
-interface Binding extends AstSymbol<string> {
+export interface Binding extends AstSymbol<string> {
+  type: string;
   value: any;
 }
 
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
 
-  constructor() {
+  constructor(initialBindings: Binding[] = []) {
     this.#bindings = new SymbolTable<Binding>((b) => b.identifier);
+    initialBindings.forEach((b) => {
+      this.setCustomBinding(b.identifier, b.value, b.type, false);
+    });
   }
 
   enterScope(): void {
@@ -37,8 +43,22 @@ export class BindingsManager {
     return this.#getBinding(name, space);
   }
 
-  hasBinding(name: string, memSpace: BindingsSpace): boolean {
-    return !!this.#getBinding(name, memSpace);
+  getAllBindings(): Map<string, Binding[]> {
+    return this.#bindings.symbols;
+  }
+
+  getBindingsFromSpaces(...spaces: BindingsSpace[]): Binding[] {
+    const bindings: Binding[] = [];
+
+    this.getAllBindings().forEach((binding) => {
+      bindings.push(
+        ...binding.filter((b) =>
+          spaces.includes(BindingsSpace[b.type as keyof typeof BindingsSpace]),
+        ),
+      );
+    });
+
+    return bindings;
   }
 
   setBinding(
@@ -49,6 +69,12 @@ export class BindingsManager {
     isGlobal = false,
   ): void {
     this.#setBinding(name, value, memSpace, isGlobal);
+  }
+
+  setBindings(bindings: Binding[], isGlobal = false): void {
+    bindings.forEach(({ identifier, value, type }) =>
+      this.#setBinding(identifier, value, type, isGlobal),
+    );
   }
 
   setCustomBinding(
@@ -92,5 +118,9 @@ export class BindingsManager {
     const binding = this.#bindings.lookup(identifier, type);
 
     return binding && binding.length ? binding[0].value : undefined;
+  }
+
+  hasBinding(name: string, memSpace: BindingsSpace): boolean {
+    return !!this.#getBinding(name, memSpace);
   }
 }
