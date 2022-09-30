@@ -1,6 +1,6 @@
 import { utils } from 'ethers';
 
-import type { CommandFunction } from '../../../types';
+import type { ICommand } from '../../../types';
 
 import {
   ComparisonType,
@@ -16,85 +16,85 @@ import { ErrorException } from '../../../errors';
 
 const { ABI } = BindingsSpace;
 
-export const exec: CommandFunction<Std> = async (
-  module,
-  c,
-  { interpretNode, interpretNodes },
-) => {
-  checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
+export const exec: ICommand<Std> = {
+  async run(module, c, { interpretNode, interpretNodes }) {
+    checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
 
-  const targetNode = c.args.shift()!;
-  const signatureNode = c.args.shift()!;
+    const targetNode = c.args.shift()!;
+    const signatureNode = c.args.shift()!;
 
-  const [targetAddress, signature, params] = await Promise.all([
-    interpretNode(targetNode, { allowNotFoundError: true }),
-    interpretNode(signatureNode, { treatAsLiteral: true }),
-    interpretNodes(c.args),
-  ]);
+    const [targetAddress, signature, params] = await Promise.all([
+      interpretNode(targetNode, { allowNotFoundError: true }),
+      interpretNode(signatureNode, { treatAsLiteral: true }),
+      interpretNodes(c.args),
+    ]);
 
-  let finalSignature = signature;
+    let finalSignature = signature;
 
-  if (!utils.isAddress(targetAddress)) {
-    throw new ErrorException(
-      `expected a valid target address, but got ${targetAddress}`,
-    );
-  }
-
-  if (!SIGNATURE_REGEX.test(signature)) {
-    const abi = module.bindingsManager.getBinding(
-      targetAddress,
-      ABI,
-    ) as utils.Interface;
-
-    if (abi) {
-      finalSignature = abi.getFunction(signature).format('minimal');
-    } else {
-      const implementationAddress = await fetchImplementationAddress(
-        targetAddress,
-        module.signer.provider!,
+    if (!utils.isAddress(targetAddress)) {
+      throw new ErrorException(
+        `expected a valid target address, but got ${targetAddress}`,
       );
-      const etherscanAPI = module.getConfigBinding('etherscanAPI');
-      let fetchedAbi: utils.Interface;
-      try {
-        fetchedAbi = await getAbiEntries(
-          etherscanAPI,
-          implementationAddress ?? targetAddress,
-          await module.signer.getChainId(),
-        );
-      } catch (err) {
-        const err_ = err as Error;
-        throw new ErrorException(
-          `an error ocurred while fetching ABI for ${
-            implementationAddress ?? targetAddress
-          } - ${err_.message}`,
-        );
-      }
+    }
 
-      if (!fetchedAbi) {
-        throw new ErrorException(`ABI not found for signature "${signature}"`);
-      }
+    if (!SIGNATURE_REGEX.test(signature)) {
+      const abi = module.bindingsManager.getBinding(
+        targetAddress,
+        ABI,
+      ) as utils.Interface;
 
-      try {
-        finalSignature = fetchedAbi.getFunction(signature).format('minimal');
-      } catch (err) {
-        const err_ = err as Error;
-        throw new ErrorException(
-          `error when getting function from ABI - ${err_.message}`,
+      if (abi) {
+        finalSignature = abi.getFunction(signature).format('minimal');
+      } else {
+        const implementationAddress = await fetchImplementationAddress(
+          targetAddress,
+          module.signer.provider!,
         );
-      }
+        const etherscanAPI = module.getConfigBinding('etherscanAPI');
+        let fetchedAbi: utils.Interface;
+        try {
+          fetchedAbi = await getAbiEntries(
+            etherscanAPI,
+            implementationAddress ?? targetAddress,
+            await module.signer.getChainId(),
+          );
+        } catch (err) {
+          const err_ = err as Error;
+          throw new ErrorException(
+            `an error ocurred while fetching ABI for ${
+              implementationAddress ?? targetAddress
+            } - ${err_.message}`,
+          );
+        }
 
-      module.bindingsManager.setBinding(targetAddress, fetchedAbi, ABI);
-      if (implementationAddress) {
-        module.bindingsManager.setBinding(
-          implementationAddress,
-          fetchedAbi,
-          ABI,
-        );
+        if (!fetchedAbi) {
+          throw new ErrorException(
+            `ABI not found for signature "${signature}"`,
+          );
+        }
+
+        try {
+          finalSignature = fetchedAbi.getFunction(signature).format('minimal');
+        } catch (err) {
+          const err_ = err as Error;
+          throw new ErrorException(
+            `error when getting function from ABI - ${err_.message}`,
+          );
+        }
+
+        module.bindingsManager.setBinding(targetAddress, fetchedAbi, ABI);
+        if (implementationAddress) {
+          module.bindingsManager.setBinding(
+            implementationAddress,
+            fetchedAbi,
+            ABI,
+          );
+        }
       }
     }
-  }
 
-  const execAction = encodeAction(targetAddress, finalSignature, params);
+    const execAction = encodeAction(targetAddress, finalSignature, params);
 
-  return [execAction];
+    return [execAction];
+  },
 };

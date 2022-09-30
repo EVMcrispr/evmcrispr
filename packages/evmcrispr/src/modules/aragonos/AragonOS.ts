@@ -10,7 +10,7 @@ import {
   buildNonceForAddress,
   calculateNewProxyAddress,
 } from '../../utils';
-import { Module } from '../Module';
+import { Module } from '../../Module';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
 import { Connector } from './Connector';

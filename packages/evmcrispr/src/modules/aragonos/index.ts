@@ -1,4 +1,4 @@
-export { AragonOS } from './AragonOS';
+import { AragonOS } from './AragonOS';
 export { AragonDAO } from './AragonDAO';
 export { Connector } from './Connector';
 
@@ -34,5 +34,6 @@ export {
 } from './utils/acl';
 export { encodeActCall, encodeCallScript } from './utils/evmscripts';
 
-export { commands as aragonosCommands } from './commands';
-export { helpers as aragonosHelpers } from './helpers';
+export const ModuleConstructor = AragonOS.constructor;
+export { commands } from './commands';
+export { helpers } from './helpers';

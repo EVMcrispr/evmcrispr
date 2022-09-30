@@ -4,23 +4,23 @@ import type {
   Address,
   CommandExpressionNode,
   CommandFunction,
-  CommandFunctions,
+  Commands,
   HelperFunction,
   HelperFunctionNode,
   HelperFunctions,
   NodesInterpreters,
-} from '../types';
+} from './types';
 
-import type { BindingsManager } from '../BindingsManager';
-import { BindingsSpace } from '../BindingsManager';
-import { ErrorException } from '..';
+import type { BindingsManager } from './BindingsManager';
+import { BindingsSpace } from './BindingsManager';
+import { ErrorException } from './errors';
 
 export abstract class Module {
   constructor(
     readonly name: string,
     readonly bindingsManager: BindingsManager,
     readonly nonces: Record<string, number>,
-    readonly commands: CommandFunctions<any>,
+    readonly commands: Commands<any>,
     readonly helpers: HelperFunctions<any>,
     readonly signer: Signer,
     readonly alias?: string,
@@ -46,7 +46,7 @@ export abstract class Module {
       );
     }
 
-    return command(this, c, interpreters);
+    return command.run(this, c, interpreters);
   }
 
   interpretHelper(

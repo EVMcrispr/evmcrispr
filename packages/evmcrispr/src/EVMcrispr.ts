@@ -24,8 +24,8 @@ import type {
   VariableIdentiferNode,
 } from './types';
 import { NodeType } from './types';
-import type { Module } from './modules/Module';
-import { Std } from './modules/std';
+import type { Module } from './Module';
+import { Std } from './modules/std/Std';
 import { BindingsManager, BindingsSpace } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
 import type { Cas11AST } from './Cas11AST';

@@ -2,7 +2,7 @@ import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../../../errors';
 import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
-import type { Module } from '../../Module';
+import type { Module } from '../../../Module';
 import { BindingsSpace } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';

@@ -1,5 +1,6 @@
-import type { Action } from '..';
-import type { Module } from '../modules/Module';
+import type { Binding, BindingsManager } from '../BindingsManager';
+import type { Action } from '../types';
+import type { Module } from '../Module';
 import type { CommandExpressionNode, HelperFunctionNode, Node } from './ast';
 
 export interface InterpretOptions {
@@ -28,14 +29,29 @@ export type CommandFunction<T extends Module> = (
   c: CommandExpressionNode,
   interpreters: NodesInterpreters,
 ) => Promise<Action[] | void>;
-export type CommandFunctions<T extends Module> = Record<
-  string,
-  CommandFunction<T>
->;
-
 export type HelperFunction<T> = (
   module: T,
   h: HelperFunctionNode,
   interpreters: NodesInterpreters,
 ) => Promise<string>;
-export type HelperFunctions<T> = Record<string, HelperFunction<T>>;
+export type HelperFunctions<T = Module> = Record<string, HelperFunction<T>>;
+
+export interface ICommand<T extends Module = Module> {
+  buildCompletionItemsForArg?(
+    argIndex: number,
+    nodeArgs: Node[],
+    cache: BindingsManager,
+  ): (string | number)[];
+  run: CommandFunction<T>;
+  runEagerExecution?(
+    nodeArgs: Node[],
+    cache: BindingsManager,
+  ): Promise<Binding | undefined>;
+}
+export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
+
+export interface ModuleExports<T extends Module = Module> {
+  ModuleConstructor: Module['constructor'];
+  commands: Commands<T>;
+  helpers: HelperFunctions<T>;
+}

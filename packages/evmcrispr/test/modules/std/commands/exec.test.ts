@@ -3,8 +3,8 @@ import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
-import type { Action } from '../../../../src';
-import { encodeActCall } from '../../../../src';
+import type { Action } from '../../../../src/types';
+import { encodeActCall } from '../../../../src/modules/aragonos/utils';
 import { CommandError } from '../../../../src/errors';
 
 import { toDecimals } from '../../../../src/utils';

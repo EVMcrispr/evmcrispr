@@ -4,7 +4,7 @@ import { ErrorException } from '../../../errors';
 import type {
   Action,
   Address,
-  CommandFunction,
+  ICommand,
   TransactionAction,
 } from '../../../types';
 import { NodeType, isProviderAction } from '../../../types';
@@ -88,111 +88,113 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   };
 };
 
-export const connect: CommandFunction<AragonOS> = async (
-  module,
-  c,
-  { interpretNode, interpretNodes },
-) => {
-  checkArgsLength(c, {
-    type: ComparisonType.Greater,
-    minValue: 2,
-  });
-  checkOpts(c, ['context']);
+export const connect: ICommand<AragonOS> = {
+  async run(module, c, { interpretNode, interpretNodes }) {
+    checkArgsLength(c, {
+      type: ComparisonType.Greater,
+      minValue: 2,
+    });
+    checkOpts(c, ['context']);
 
-  const [daoNameNode, ...rest] = c.args;
-  const blockExpressionNode = rest.pop();
+    const [daoNameNode, ...rest] = c.args;
+    const blockExpressionNode = rest.pop();
 
-  const forwarderApps = await interpretNodes(rest);
+    const forwarderApps = await interpretNodes(rest);
 
-  if (!blockExpressionNode || blockExpressionNode.type !== BlockExpression) {
-    throw new ErrorException('last argument should be a set of commands');
-  }
+    if (!blockExpressionNode || blockExpressionNode.type !== BlockExpression) {
+      throw new ErrorException('last argument should be a set of commands');
+    }
 
-  const daoAddressOrName = await interpretNode(daoNameNode);
-  let daoAddress: Address;
+    const daoAddressOrName = await interpretNode(daoNameNode);
+    let daoAddress: Address;
 
-  if (utils.isAddress(daoAddressOrName)) {
-    daoAddress = daoAddressOrName;
-  } else {
-    const daoENSName = `${daoAddressOrName}.aragonid.eth`;
-    const res = await _aragonEns(daoENSName, module);
+    if (utils.isAddress(daoAddressOrName)) {
+      daoAddress = daoAddressOrName;
+    } else {
+      const daoENSName = `${daoAddressOrName}.aragonid.eth`;
+      const res = await _aragonEns(daoENSName, module);
 
-    if (!res) {
+      if (!res) {
+        throw new ErrorException(
+          `ENS DAO name ${daoENSName} couldn't be resolved`,
+        );
+      }
+
+      daoAddress = res;
+    }
+
+    const currentDao = module.currentDAO;
+
+    if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
       throw new ErrorException(
-        `ENS DAO name ${daoENSName} couldn't be resolved`,
+        `trying to connect to an already connected DAO (${daoAddress})`,
       );
     }
 
-    daoAddress = res;
-  }
+    // Allow us to keep track of connected DAOs inside nested 'connect' commands
+    const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
-  const currentDao = module.currentDAO;
+    const daoName = !utils.isAddress(daoAddressOrName)
+      ? daoAddressOrName
+      : undefined;
 
-  if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
-    throw new ErrorException(
-      `trying to connect to an already connected DAO (${daoAddress})`,
+    const dao = await AragonDAO.create(
+      daoAddress,
+      module.signer.provider ??
+        ethers.getDefaultProvider(await module.signer.getChainId()),
+      module.connector,
+      module.ipfsResolver,
+      nextNestingIndex,
+      daoName,
     );
-  }
 
-  // Allow us to keep track of connected DAOs inside nested 'connect' commands
-  const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
+    module.connectedDAOs.push(dao);
 
-  const daoName = !utils.isAddress(daoAddressOrName)
-    ? daoAddressOrName
-    : undefined;
+    const actions = (await interpretNode(blockExpressionNode, {
+      blockModule: module.contextualName,
+      blockInitializer: setDAOContext(module, dao),
+    })) as Action[];
 
-  const dao = await AragonDAO.create(
-    daoAddress,
-    module.signer.provider ??
-      ethers.getDefaultProvider(await module.signer.getChainId()),
-    module.connector,
-    module.ipfsResolver,
-    nextNestingIndex,
-    daoName,
-  );
-
-  module.connectedDAOs.push(dao);
-
-  const actions = (await interpretNode(blockExpressionNode, {
-    blockModule: module.contextualName,
-    blockInitializer: setDAOContext(module, dao),
-  })) as Action[];
-
-  if (actions.find((a) => isProviderAction(a))) {
-    throw new ErrorException(`can't switch networks inside a connect command`);
-  }
-
-  const invalidApps: any[] = [];
-  const forwarderAppAddresses: Address[] = [];
-
-  forwarderApps.forEach((appOrAddress: string) => {
-    const appAddress = utils.isAddress(appOrAddress)
-      ? appOrAddress
-      : dao.resolveApp(appOrAddress)?.address;
-
-    if (!appAddress) {
-      throw new ErrorException(`${appOrAddress} is not a DAO's forwarder app`);
+    if (actions.find((a) => isProviderAction(a))) {
+      throw new ErrorException(
+        `can't switch networks inside a connect command`,
+      );
     }
 
-    !utils.isAddress(appAddress)
-      ? invalidApps.push(appOrAddress)
-      : forwarderAppAddresses.push(appAddress);
-  });
+    const invalidApps: any[] = [];
+    const forwarderAppAddresses: Address[] = [];
 
-  if (invalidApps.length) {
-    throw new ErrorException(
-      `invalid forwarder addresses found for the following: ${invalidApps.join(
-        ', ',
-      )}`,
+    forwarderApps.forEach((appOrAddress: string) => {
+      const appAddress = utils.isAddress(appOrAddress)
+        ? appOrAddress
+        : dao.resolveApp(appOrAddress)?.address;
+
+      if (!appAddress) {
+        throw new ErrorException(
+          `${appOrAddress} is not a DAO's forwarder app`,
+        );
+      }
+
+      !utils.isAddress(appAddress)
+        ? invalidApps.push(appOrAddress)
+        : forwarderAppAddresses.push(appAddress);
+    });
+
+    if (invalidApps.length) {
+      throw new ErrorException(
+        `invalid forwarder addresses found for the following: ${invalidApps.join(
+          ', ',
+        )}`,
+      );
+    }
+
+    const context = await getOptValue(c, 'context', interpretNode);
+
+    return batchForwarderActions(
+      module.signer,
+      actions as TransactionAction[],
+      forwarderAppAddresses.reverse(),
+      context,
     );
-  }
-
-  const context = await getOptValue(c, 'context', interpretNode);
-
-  return batchForwarderActions(
-    module.signer,
-    actions as TransactionAction[],
-    forwarderAppAddresses.reverse(),
-    context,
-  );
+  },
 };

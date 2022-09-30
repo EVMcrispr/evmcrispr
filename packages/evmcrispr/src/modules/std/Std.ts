@@ -2,7 +2,7 @@ import type { Signer } from 'ethers';
 
 import type { BindingsManager } from '../../BindingsManager';
 
-import { Module } from '../Module';
+import { Module } from '../../Module';
 import { IPFSResolver } from '../../IPFSResolver';
 import { commands } from './commands';
 import { helpers } from './helpers';

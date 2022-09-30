@@ -1,12 +1,12 @@
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
-import { ErrorException } from '../../..';
+import { ErrorException } from '../../../errors';
 
 import { BindingsSpace } from '../../../BindingsManager';
 import type { Address, HelperFunction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Module } from '../../Module';
+import type { Module } from '../../../Module';
 import type { Std } from '../Std';
 
 const ENV_TOKENLIST = '$token.tokenlist';

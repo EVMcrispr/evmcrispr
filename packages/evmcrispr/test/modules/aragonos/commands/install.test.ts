@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import type { Action } from '../../../../src';
-import { encodeActCall } from '../../../../src';
+import type { Action } from '../../../../src/types';
+import { encodeActCall } from '../../../../src/modules/aragonos/utils';
 import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 import { CommandError } from '../../../../src/errors';
 import { addressesEqual } from '../../../../src/utils';
