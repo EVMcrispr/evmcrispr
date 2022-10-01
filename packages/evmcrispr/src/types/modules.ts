@@ -1,7 +1,11 @@
-import type { Binding, BindingsManager } from '../BindingsManager';
-import type { Action } from '../types';
-import type { Module } from '../Module';
+import type { ethers } from 'ethers';
+
+import type { Action } from './actions';
 import type { CommandExpressionNode, HelperFunctionNode, Node } from './ast';
+import type { Binding } from './bindings';
+import type { BindingsManager } from '../BindingsManager';
+import type { IPFSResolver } from '../IPFSResolver';
+import type { Module } from '../Module';
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -41,12 +45,14 @@ export interface ICommand<T extends Module = Module> {
     argIndex: number,
     nodeArgs: Node[],
     cache: BindingsManager,
-  ): (string | number)[];
+  ): string[];
   run: CommandFunction<T>;
   runEagerExecution?(
     nodeArgs: Node[],
     cache: BindingsManager,
-  ): Promise<Binding | undefined>;
+    provider: ethers.providers.Provider,
+    ipfsResolver: IPFSResolver,
+  ): Promise<Binding | Binding[] | undefined>;
 }
 export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
 
@@ -54,4 +60,9 @@ export interface ModuleExports<T extends Module = Module> {
   ModuleConstructor: Module['constructor'];
   commands: Commands<T>;
   helpers: HelperFunctions<T>;
+}
+
+export interface IDataProvider {
+  readonly type: string;
+  getIdentifiers(addPrefix: boolean): string[];
 }

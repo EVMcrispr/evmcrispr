@@ -6,9 +6,9 @@ import {
   calculateNewProxyAddress,
   checkArgsLength,
 } from '../../../utils';
-import { BindingsSpace } from '../../../BindingsManager';
 import { ErrorException } from '../../../errors';
 import type { Address, ICommand } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import {
   CONTROLLED_INTERFACE,
@@ -45,7 +45,7 @@ export const newToken: ICommand<AragonOS> = {
 
     let controllerAddress: Address;
 
-    const identifierBinding = module.bindingsManager.getBinding(
+    const identifierBinding = module.bindingsManager.getBindingValue(
       controller,
       BindingsSpace.ADDR,
     );

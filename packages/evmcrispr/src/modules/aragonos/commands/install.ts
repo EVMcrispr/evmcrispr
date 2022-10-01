@@ -8,8 +8,8 @@ import {
   encodeCalldata,
   getOptValue,
 } from '../../../utils';
-import { BindingsSpace } from '../../../BindingsManager';
 import type { ICommand } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import {
@@ -39,7 +39,11 @@ export const install: ICommand<AragonOS> = {
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
     const repoENSName = `${appName}.${registry}`;
-    const repoAddr = await _aragonEns(repoENSName, module);
+    const repoAddr = await _aragonEns(
+      repoENSName,
+      module.signer.provider!,
+      module.getConfigBinding('ensResolver'),
+    );
 
     if (!repoAddr) {
       throw new ErrorException(
@@ -81,13 +85,15 @@ export const install: ICommand<AragonOS> = {
     const encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
 
     const appId = utils.namehash(`${appName}.${registry}`);
-    if (!module.bindingsManager.getBinding(identifier, BindingsSpace.ADDR)) {
+    if (
+      !module.bindingsManager.getBindingValue(identifier, BindingsSpace.ADDR)
+    ) {
       await module.registerNextProxyAddress(identifier, kernel.address);
     }
-    const proxyContractAddress = module.bindingsManager.getBinding(
+    const proxyContractAddress = module.bindingsManager.getBindingValue(
       identifier,
       BindingsSpace.ADDR,
-    );
+    )!;
 
     if (dao.appCache.has(identifier)) {
       throw new ErrorException(`identifier ${identifier} is already in use.`);

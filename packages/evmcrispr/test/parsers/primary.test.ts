@@ -22,7 +22,7 @@ import type {
   NumericLiteralNode,
   ProbableIdentifierNode,
   StringLiteralNode,
-  VariableIdentiferNode,
+  VariableIdentifierNode,
 } from '../../src/types';
 import { NodeType } from '../../src/types';
 
@@ -283,7 +283,7 @@ describe('Parsers - primary', () => {
     });
 
     it('should parse variable values', () => {
-      const n = (value: string): VariableIdentiferNode => ({
+      const n = (value: string): VariableIdentifierNode => ({
         type: NodeType.VariableIdentifier,
         value,
         loc: buildLocation(value),

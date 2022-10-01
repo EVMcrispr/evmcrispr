@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { BindingsSpace } from '../../../../src/BindingsManager';
 import type { CommandExpressionNode } from '../../../../src/types';
+import { BindingsSpace } from '../../../../src/types';
 import { CommandError } from '../../../../src/errors';
 import { toDecimals } from '../../../../src/utils';
 import { createInterpreter } from '../../../test-helpers/cas11';

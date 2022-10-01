@@ -2,7 +2,7 @@ import type { Parser } from 'arcsecond';
 import { char, possibly, regex, sequenceOf } from 'arcsecond';
 import { utils } from 'ethers';
 
-import { NodeType } from '../../../types';
+import { BindingsSpace, NodeType } from '../../../types';
 import type {
   CommandExpressionNode,
   Node,
@@ -45,7 +45,10 @@ export const getDAO = (
     if (!res.isError && res.result[0]) {
       const [daoIdentifier] = res.result;
 
-      dao = module.getModuleBinding(daoIdentifier);
+      dao = module.bindingsManager.getBindingValue(
+        daoIdentifier,
+        BindingsSpace.DATA_PROVIDER,
+      ) as AragonDAO | undefined;
       if (!dao) {
         throw new ErrorException(
           `couldn't found a DAO for ${daoIdentifier} on given identifier ${n.value}`,
@@ -79,7 +82,10 @@ export const getDAOByOption = async (
     daoIdentifier = daoIdentifier.toString
       ? daoIdentifier.toString()
       : daoIdentifier;
-    dao = module.getModuleBinding(daoIdentifier);
+    dao = module.bindingsManager.getBindingValue(
+      daoIdentifier,
+      BindingsSpace.DATA_PROVIDER,
+    ) as AragonDAO | undefined;
     if (!dao) {
       throw new ErrorException(
         `--dao option error. No DAO found for identifier ${daoIdentifier}`,

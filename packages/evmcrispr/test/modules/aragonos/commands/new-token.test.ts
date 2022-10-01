@@ -18,8 +18,8 @@ import {
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 import type { TransactionAction } from '../../../../src/types';
-import type { AragonOS } from '../../../../src';
-import { BindingsSpace } from '../../../../src';
+import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import { BindingsSpace } from '../../../../src/types';
 
 describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]', () => {
   let signer: Signer;
@@ -61,15 +61,15 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     await tx2.wait();
 
-    const tokenAddr = aragonos.bindingsManager.getBinding(
+    const tokenAddr = aragonos.bindingsManager.getBindingValue(
       `$token`,
       BindingsSpace.USER,
-    );
+    )!;
 
-    const tokenManagerAddr = aragonos.bindingsManager.getBinding(
+    const tokenManagerAddr = aragonos.bindingsManager.getBindingValue(
       `$controller`,
       BindingsSpace.USER,
-    );
+    )!;
 
     const token = new Contract(
       tokenAddr,
@@ -118,15 +118,15 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     await tx2.wait();
 
-    const tokenAddr = aragonos.bindingsManager.getBinding(
+    const tokenAddr = aragonos.bindingsManager.getBindingValue(
       `$token`,
       BindingsSpace.USER,
-    );
+    )!;
 
-    const tokenManagerAddr = aragonos.bindingsManager.getBinding(
+    const tokenManagerAddr = aragonos.bindingsManager.getBindingValue(
       `$controller`,
       BindingsSpace.USER,
-    );
+    )!;
 
     const token = new Contract(
       tokenAddr,
@@ -174,10 +174,10 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     await tx2.wait();
 
-    const tokenAddr = aragonos.bindingsManager.getBinding(
+    const tokenAddr = aragonos.bindingsManager.getBindingValue(
       `$token`,
       BindingsSpace.USER,
-    );
+    )!;
 
     const token = new Contract(
       tokenAddr,

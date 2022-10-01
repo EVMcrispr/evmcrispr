@@ -21,14 +21,16 @@ import type {
   LiteralExpressionNode,
   Node,
   ProbableIdentifierNode,
-  VariableIdentiferNode,
+  RelativeBinding,
+  VariableIdentifierNode,
 } from './types';
-import { NodeType } from './types';
+import { BindingsSpace, NodeType } from './types';
 import type { Module } from './Module';
 import { Std } from './modules/std/Std';
-import { BindingsManager, BindingsSpace } from './BindingsManager';
+import { BindingsManager } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
 import type { Cas11AST } from './Cas11AST';
+import { IPFSResolver } from './IPFSResolver';
 
 const {
   AddressLiteral,
@@ -79,12 +81,16 @@ export class EVMcrispr {
       this.bindingsManager,
       this.#nonces,
       this.signer,
+      new IPFSResolver(),
       this.#modules,
     );
   }
 
-  getBinding(name: string, memSpace: BindingsSpace): any {
-    return this.bindingsManager.getBinding(name, memSpace);
+  getBinding<BSpace extends BindingsSpace>(
+    name: string,
+    memSpace: BSpace,
+  ): RelativeBinding<BSpace>['value'] | undefined {
+    return this.bindingsManager.getBindingValue(name, memSpace);
   }
 
   getModule(aliasOrName: string): Module | undefined {
@@ -145,7 +151,7 @@ export class EVMcrispr {
         );
       case VariableIdentifier:
         return this.#interpretVariableIdentifier(
-          n as VariableIdentiferNode,
+          n as VariableIdentifierNode,
           options,
         );
 
@@ -243,11 +249,13 @@ export class EVMcrispr {
   ) => {
     this.bindingsManager.enterScope();
 
-    this.bindingsManager.setBinding(
-      CONTEXTUAL_MODULE,
-      blockModule,
-      INTERPRETER,
-    );
+    if (blockModule) {
+      this.bindingsManager.setBinding(
+        CONTEXTUAL_MODULE,
+        blockModule,
+        INTERPRETER,
+      );
+    }
 
     if (blockInitializer) {
       await blockInitializer();
@@ -273,7 +281,7 @@ export class EVMcrispr {
       );
     }
 
-    const targetInterface = this.bindingsManager.getBinding(
+    const targetInterface = this.bindingsManager.getBindingValue(
       targetAddress,
       ABI,
     ) as utils.Interface | undefined;
@@ -304,7 +312,7 @@ export class EVMcrispr {
     let module: Module | undefined = this.#std;
     const moduleName =
       c.module ??
-      (this.bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
+      (this.bindingsManager.getBindingValue(CONTEXTUAL_MODULE, INTERPRETER) as
         | string
         | undefined);
 
@@ -404,7 +412,7 @@ export class EVMcrispr {
       const identifier = n.value;
 
       if (!treatAsLiteral) {
-        const addressBinding = this.bindingsManager.getBinding(
+        const addressBinding = this.bindingsManager.getBindingValue(
           identifier,
           ADDR,
         );
@@ -421,17 +429,16 @@ export class EVMcrispr {
       return identifier;
     };
 
-  #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
-    n,
-  ) => {
-    const binding = this.bindingsManager.getBinding(n.value, USER);
+  #interpretVariableIdentifier: NodeInterpreter<VariableIdentifierNode> =
+    async (n) => {
+      const binding = this.bindingsManager.getBindingValue(n.value, USER);
 
-    if (binding) {
-      return binding;
-    }
+      if (binding) {
+        return binding;
+      }
 
-    EVMcrispr.panic(n, `${n.value} not defined`);
-  };
+      EVMcrispr.panic(n, `${n.value} not defined`);
+    };
 
   #setDefaultBindings(): void {
     this.bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);

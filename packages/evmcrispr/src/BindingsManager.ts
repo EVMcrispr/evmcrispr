@@ -1,21 +1,12 @@
-import type { AstSymbol } from 'jsymbol';
 import { SymbolTable } from 'jsymbol';
 
 import { ErrorException } from './errors';
+import type { Binding, BindingsSpace, RelativeBinding } from './types';
 
-export enum BindingsSpace {
-  USER = 'USER',
-  ADDR = 'ADDR',
-  ABI = 'ABI',
-  DATA_PROVIDER = 'DATA_PROVIDER',
-  MODULE = 'MODULE',
-  INTERPRETER = 'INTERPRETER',
-}
-
-export interface Binding extends AstSymbol<string> {
-  type: string;
-  value: any;
-}
+const isSpaceBinding =
+  <BSpace extends BindingsSpace>(space: BSpace) =>
+  (b: Binding): b is RelativeBinding<BSpace> =>
+    b.type === space;
 
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
@@ -23,7 +14,7 @@ export class BindingsManager {
   constructor(initialBindings: Binding[] = []) {
     this.#bindings = new SymbolTable<Binding>((b) => b.identifier);
     initialBindings.forEach((b) => {
-      this.setCustomBinding(b.identifier, b.value, b.type, false);
+      this.setBinding(b.identifier, b.value, b.type, false);
     });
   }
 
@@ -35,63 +26,75 @@ export class BindingsManager {
     this.#bindings.exitScope();
   }
 
-  getBinding(name: string, space: BindingsSpace): any {
+  getBindingValue<BSpace extends BindingsSpace>(
+    name: string,
+    space: BSpace,
+  ): RelativeBinding<BSpace>['value'] | undefined {
     return this.#getBinding(name, space);
   }
 
-  getCustomBinding(name: string, space: string): any {
-    return this.#getBinding(name, space);
+  getBinding<BSpace extends BindingsSpace>(
+    identifier: string,
+    type: BSpace,
+  ): RelativeBinding<BSpace> | undefined {
+    const binding = this.#bindings.lookup(identifier, type);
+    return binding?.length
+      ? (binding[0] as RelativeBinding<BSpace>)
+      : undefined;
   }
 
   getAllBindings(): Map<string, Binding[]> {
     return this.#bindings.symbols;
   }
 
-  getBindingsFromSpaces(...spaces: BindingsSpace[]): Binding[] {
-    const bindings: Binding[] = [];
+  getAllBindingsFromSpace<BSpace extends BindingsSpace>(
+    space: BSpace,
+  ): RelativeBinding<BSpace>[] {
+    const spaceBindings: RelativeBinding<BSpace>[] = [];
 
-    this.getAllBindings().forEach((binding) => {
-      bindings.push(
-        ...binding.filter((b) =>
-          spaces.includes(BindingsSpace[b.type as keyof typeof BindingsSpace]),
-        ),
+    this.getAllBindings().forEach((bindings) => {
+      const filteredBindings = bindings.filter<RelativeBinding<BSpace>>(
+        isSpaceBinding(space),
       );
+      spaceBindings.push(...filteredBindings);
     });
 
-    return bindings;
+    return spaceBindings;
   }
 
-  setBinding(
+  getAllBindingsFromSpaces(...spaces: BindingsSpace[]): Binding[] {
+    return spaces.flatMap((space) => this.getAllBindingsFromSpace(space));
+  }
+
+  setBinding<BSpace extends BindingsSpace>(
     name: string,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    value: any,
-    memSpace: BindingsSpace,
+    value: RelativeBinding<BSpace>['value'],
+    memSpace: BSpace,
     isGlobal = false,
   ): void {
     this.#setBinding(name, value, memSpace, isGlobal);
   }
 
   setBindings(bindings: Binding[], isGlobal = false): void {
-    bindings.forEach(({ identifier, value, type }) =>
-      this.#setBinding(identifier, value, type, isGlobal),
-    );
+    bindings.forEach(({ identifier, value, type }) => {
+      this.#setBinding(identifier, value, type, isGlobal);
+    });
   }
 
-  setCustomBinding(
-    name: string,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    value: any,
-    type: string,
-    isGlobal = false,
-  ): void {
-    this.#setBinding(name, value, type, isGlobal);
+  mergeBindings(...bindings: Binding[]): void {
+    bindings.forEach((b) => {
+      if (!this.hasBinding(b.identifier, b.type)) {
+        this.#bindings.add(b);
+      }
+    });
   }
 
   #setBinding(
     identifier: string,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     value: any,
-    type: string,
+    type: BindingsSpace,
     isGlobal: boolean,
   ): void {
     const binding: Binding = {
@@ -114,7 +117,10 @@ export class BindingsManager {
     }
   }
 
-  #getBinding(identifier: string, type: string): any {
+  #getBinding<BSpace extends BindingsSpace>(
+    identifier: string,
+    type: BSpace,
+  ): RelativeBinding<BSpace>['value'] | undefined {
     const binding = this.#bindings.lookup(identifier, type);
 
     return binding && binding.length ? binding[0].value : undefined;

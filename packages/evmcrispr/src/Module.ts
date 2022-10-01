@@ -10,10 +10,11 @@ import type {
   HelperFunctions,
   NodesInterpreters,
 } from './types';
+import { BindingsSpace } from './types';
 
 import type { BindingsManager } from './BindingsManager';
-import { BindingsSpace } from './BindingsManager';
 import { ErrorException } from './errors';
+import type { IPFSResolver } from './IPFSResolver';
 
 export abstract class Module {
   constructor(
@@ -23,6 +24,7 @@ export abstract class Module {
     readonly commands: Commands<any>,
     readonly helpers: HelperFunctions<any>,
     readonly signer: Signer,
+    readonly ipfsResolver: IPFSResolver,
     readonly alias?: string,
   ) {}
 
@@ -31,7 +33,7 @@ export abstract class Module {
   }
 
   buildConfigVar(name: string): string {
-    return `$${this.contextualName}:${name}`;
+    return `$${this.name}:${name}`;
   }
 
   interpretCommand(
@@ -57,14 +59,10 @@ export abstract class Module {
   }
 
   getConfigBinding(name: string): any {
-    return this.bindingsManager.getBinding(
+    return this.bindingsManager.getBindingValue(
       this.buildConfigVar(name),
       BindingsSpace.USER,
     );
-  }
-
-  getModuleBinding(name: string): any {
-    return this.bindingsManager.getCustomBinding(name, this.contextualName);
   }
 
   getNonce(address: Address): number {
@@ -77,15 +75,5 @@ export abstract class Module {
     }
 
     return this.nonces[address]++;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  setModuleBinding(name: string, value: any, isGlobal = false): void {
-    this.bindingsManager.setCustomBinding(
-      name,
-      value,
-      this.contextualName,
-      isGlobal,
-    );
   }
 }

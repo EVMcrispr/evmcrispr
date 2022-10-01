@@ -1,7 +1,6 @@
 import { ErrorException } from '../../../errors';
-import { BindingsSpace } from '../../../BindingsManager';
+import { BindingsSpace, NodeType } from '../../../types';
 import type { ICommand } from '../../../types';
-import { NodeType } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
 
@@ -15,7 +14,7 @@ export const set: ICommand<Std> = {
         return [];
       case 1: {
         const labels = cache
-          .getBindingsFromSpaces(ADDR, USER)
+          .getAllBindingsFromSpaces(ADDR, USER)
           .map((b) => b.identifier);
         return labels;
       }
@@ -35,23 +34,18 @@ export const set: ICommand<Std> = {
     const varName = varNode.value;
     const varValue = await interpretNode(valueNode);
 
-    if (module.bindingsManager.getBinding(varName, BindingsSpace.USER)) {
+    if (module.bindingsManager.getBindingValue(varName, BindingsSpace.USER)) {
       throw new ErrorException(`${varName} already defined`);
     }
 
-    module.bindingsManager.setBinding(
-      varName,
-      varValue,
-      BindingsSpace.USER,
-      true,
-    );
+    module.bindingsManager.setBinding(varName, varValue, USER, true);
   },
   async runEagerExecution(nodeArgs) {
     const varNameNode = nodeArgs[0];
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
-      return { identifier: varName, value: varName, type: BindingsSpace.USER };
+      return { identifier: varName, value: varName, type: USER };
     }
   },
 };

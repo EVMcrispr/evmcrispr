@@ -1,17 +1,6 @@
 export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
 export type { ErrorOptions } from './errors';
-export type {
-  Address,
-  Action,
-  CommandFunction,
-  Commands,
-  ICommand,
-  HelperFunction,
-  HelperFunctions,
-  ForwardOptions,
-} from './types';
-export * from './types/ast';
-export { isProviderAction } from './types';
+export * from './types';
 
 export { Module } from './Module';
 export {
@@ -25,8 +14,8 @@ export {
   helpers as aragonosHelpers,
 } from './modules/aragonos';
 
-export { BindingsManager, BindingsSpace } from './BindingsManager';
-export type { Binding } from './BindingsManager';
+export { BindingsManager } from './BindingsManager';
+
 export { Cas11AST } from './Cas11AST';
 export { EVMcrispr } from './EVMcrispr';
 export * from './IPFSResolver';

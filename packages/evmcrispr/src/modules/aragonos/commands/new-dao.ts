@@ -7,8 +7,8 @@ import {
   calculateNewProxyAddress,
   checkArgsLength,
 } from '../../../utils';
-import { BindingsSpace } from '../../../BindingsManager';
 import type { Action, ICommand } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import {
@@ -57,7 +57,8 @@ export const newDAO: ICommand<AragonOS> = {
 
     const bareTemplateRepoAddr = (await _aragonEns(
       `bare-template.aragonpm.eth`,
-      module,
+      module.signer.provider!,
+      module.getConfigBinding('ensResolver'),
     ))!;
 
     const bareTemplateRepo = new Contract(

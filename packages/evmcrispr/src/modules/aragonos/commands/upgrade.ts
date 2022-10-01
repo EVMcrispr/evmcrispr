@@ -55,7 +55,11 @@ export const upgrade: ICommand<AragonOS> = {
       throw new ErrorException(`${apmRepo} not installed on current DAO.`);
     }
 
-    const repoAddr = await _aragonEns(apmRepo, module);
+    const repoAddr = await _aragonEns(
+      apmRepo,
+      module.signer.provider!,
+      module.getConfigBinding('ensResolver'),
+    );
 
     if (!repoAddr) {
       throw new ErrorException(`ENS repo name ${apmRepo} couldn't be resolved`);

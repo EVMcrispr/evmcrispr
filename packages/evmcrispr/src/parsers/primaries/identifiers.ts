@@ -13,7 +13,7 @@ import {
 import type {
   EnclosingNodeParser,
   ProbableIdentifierNode,
-  VariableIdentiferNode,
+  VariableIdentifierNode,
 } from '../../types';
 import { NodeType } from '../../types';
 import { buildParserError } from '../../utils/parsers';
@@ -24,10 +24,10 @@ export const VARIABLE_PARSER_ERROR = 'VariableParserError';
 export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
 
 export const variableIdentifierParser: EnclosingNodeParser<
-  VariableIdentiferNode
+  VariableIdentifierNode
 > = (enclosingParsers = []) =>
   recursiveParser(() =>
-    locate<VariableIdentiferNode>(
+    locate<VariableIdentifierNode>(
       sequenceOf([
         regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
         enclosingLookaheadParser(enclosingParsers),
@@ -36,7 +36,7 @@ export const variableIdentifierParser: EnclosingNodeParser<
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.VariableIdentifier,
-        value: value as VariableIdentiferNode['value'],
+        value: value as VariableIdentifierNode['value'],
         loc: createNodeLocation(initialContext, {
           line: data.line,
           index,

@@ -1,9 +1,9 @@
 import type { Signer } from 'ethers';
 
 import type { BindingsManager } from '../../BindingsManager';
-import { BindingsSpace } from '../../BindingsManager';
 import { ErrorNotFound } from '../../errors';
 import type { IPFSResolver } from '../../IPFSResolver';
+import { BindingsSpace } from '../../types';
 import type { Address } from '../../types';
 import {
   addressesEqual,
@@ -13,18 +13,14 @@ import {
 import { Module } from '../../Module';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
-import { Connector } from './Connector';
 import { helpers } from './helpers';
 
 export class AragonOS extends Module {
-  #connector: Connector;
-  #ipfsResolver: IPFSResolver;
   #connectedDAOs: AragonDAO[];
 
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
-    networkId: number,
     signer: Signer,
     ipfsResolver: IPFSResolver,
     alias?: string,
@@ -36,16 +32,11 @@ export class AragonOS extends Module {
       commands,
       helpers,
       signer,
+      ipfsResolver,
       alias,
     );
 
-    this.#connector = new Connector(networkId);
     this.#connectedDAOs = [];
-    this.#ipfsResolver = ipfsResolver;
-  }
-
-  get connector(): Connector {
-    return this.#connector;
   }
 
   get connectedDAOs(): AragonDAO[] {
@@ -53,15 +44,22 @@ export class AragonOS extends Module {
   }
 
   get currentDAO(): AragonDAO | undefined {
-    return this.getModuleBinding('currentDAO') as AragonDAO | undefined;
+    return this.bindingsManager.getBindingValue(
+      'currentDAO',
+      BindingsSpace.DATA_PROVIDER,
+    ) as AragonDAO | undefined;
   }
 
   set currentDAO(dao: AragonDAO | undefined) {
-    this.setModuleBinding('currentDAO', dao);
-  }
+    if (!dao) {
+      return;
+    }
 
-  get ipfsResolver(): IPFSResolver {
-    return this.#ipfsResolver;
+    this.bindingsManager.setBinding(
+      'currentDAO',
+      dao,
+      BindingsSpace.DATA_PROVIDER,
+    );
   }
 
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {

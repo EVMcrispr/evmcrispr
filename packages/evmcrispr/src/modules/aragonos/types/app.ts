@@ -49,8 +49,6 @@ export interface AppMethod {
   notice: string | null;
 }
 
-export type Abi = (utils.EventFragment | utils.FunctionFragment)[];
-
 export interface AragonEnvironment {
   network: string;
   registry?: string;
@@ -94,7 +92,7 @@ export interface AragonAppJson {
 
 export interface AragonArtifact extends AragonAppJson {
   roles: AragonArtifactRole[];
-  abi: Abi;
+  abi: (utils.EventFragment | utils.FunctionFragment)[];
   /**
    * All publicly accessible functions
    * Includes metadata needed for radspec and transaction pathing

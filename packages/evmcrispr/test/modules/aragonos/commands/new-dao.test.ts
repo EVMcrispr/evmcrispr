@@ -3,7 +3,7 @@ import type { Signer } from 'ethers';
 import { defaultAbiCoder } from 'ethers/lib/utils';
 import { ethers } from 'hardhat';
 
-import { BindingsSpace } from '../../../../src/BindingsManager';
+import { BindingsSpace } from '../../../../src/types';
 import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 import type { TransactionAction } from '../../../../src/types';
 import { addressesEqual } from '../../../../src/utils';
@@ -46,7 +46,10 @@ describe('AragonOS > commands > new-dao <daoName>', () => {
 
     expect(
       addressesEqual(
-        aragonos.bindingsManager.getBinding(`_${daoName}`, BindingsSpace.ADDR),
+        aragonos.bindingsManager.getBindingValue(
+          `_${daoName}`,
+          BindingsSpace.ADDR,
+        )!,
         newDAOAddress,
       ),
       'new DAO binding mismatch',

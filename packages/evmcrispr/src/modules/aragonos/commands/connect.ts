@@ -7,11 +7,10 @@ import type {
   ICommand,
   TransactionAction,
 } from '../../../types';
-import { NodeType, isProviderAction } from '../../../types';
+import { BindingsSpace, NodeType, isProviderAction } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from '../utils';
-import { BindingsSpace } from '../../../BindingsManager';
 import type { BindingsManager } from '../../../BindingsManager';
 import {
   ComparisonType,
@@ -24,7 +23,7 @@ import { batchForwarderActions } from '../utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
 
 const { BlockExpression } = NodeType;
-const { ABI, ADDR } = BindingsSpace;
+const { ABI, ADDR, DATA_PROVIDER } = BindingsSpace;
 
 const setAppBindings = (
   bindingsManager: BindingsManager,
@@ -60,10 +59,10 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
     aragonos.currentDAO = dao;
 
     // We can reference DAOs by their name, nesting index or kernel address
-    aragonos.setModuleBinding(dao.kernel.address, dao);
-    aragonos.setModuleBinding(nestingIndex.toString(), dao);
+    bindingsManager.setBinding(dao.kernel.address, dao, DATA_PROVIDER);
+    bindingsManager.setBinding(nestingIndex.toString(), dao, DATA_PROVIDER);
     if (name) {
-      aragonos.setModuleBinding(name, dao);
+      bindingsManager.setBinding(name, dao, DATA_PROVIDER);
     }
 
     dao.appCache.forEach((app, appIdentifier) => {
@@ -112,11 +111,15 @@ export const connect: ICommand<AragonOS> = {
       daoAddress = daoAddressOrName;
     } else {
       const daoENSName = `${daoAddressOrName}.aragonid.eth`;
-      const res = await _aragonEns(daoENSName, module);
+      const res = await _aragonEns(
+        daoENSName,
+        module.signer.provider!,
+        module.getConfigBinding('ensResolver'),
+      );
 
       if (!res) {
         throw new ErrorException(
-          `ENS DAO name ${daoENSName} couldn't be resolved`,
+          `ENS DAO name ${daoAddressOrName} couldn't be resolved`,
         );
       }
 
@@ -142,7 +145,6 @@ export const connect: ICommand<AragonOS> = {
       daoAddress,
       module.signer.provider ??
         ethers.getDefaultProvider(await module.signer.getChainId()),
-      module.connector,
       module.ipfsResolver,
       nextNestingIndex,
       daoName,

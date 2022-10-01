@@ -1,29 +1,18 @@
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type {
+  AliasBinding,
   AsExpressionNode,
-  Commands,
-  HelperFunctions,
   ICommand,
+  ModuleBinding,
   ModuleExports,
 } from '../../../types';
-import { NodeType } from '../../../types';
+import { BindingsSpace, NodeType } from '../../../types';
 import { AragonOS } from '../../aragonos/AragonOS';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
-import type { Binding } from '../../../BindingsManager';
-import { BindingsSpace } from '../../../BindingsManager';
 
+const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
-
-const addPrefixToCommands = (commands: Commands, prefix: string): Commands => {
-  return Object.keys(commands).reduce(
-    (newCommands, commandName) => ({
-      ...newCommands,
-      [`${prefix}:${commandName}`]: commands[commandName],
-    }),
-    {},
-  );
-};
 
 export const load: ICommand<Std> = {
   async run(module, c, { interpretNode }) {
@@ -71,7 +60,6 @@ export const load: ICommand<Std> = {
           new AragonOS(
             module.bindingsManager,
             module.nonces,
-            await module.signer.getChainId(),
             module.signer,
             module.ipfsResolver,
             moduleAlias,
@@ -94,39 +82,38 @@ export const load: ICommand<Std> = {
     } else {
       moduleName = moduleNameArg.value;
     }
+    const aliasBinding: AliasBinding | undefined = moduleAlias
+      ? {
+          type: ALIAS,
+          identifier: moduleAlias,
+          value: moduleName,
+        }
+      : undefined;
 
-    const binding: Binding = {
-      identifier: moduleName,
-      type: BindingsSpace.MODULE,
-      value: '',
-    };
+    const moduleBinding = cache.getBinding(moduleName, MODULE);
 
-    const module = cache.getBinding(moduleName, BindingsSpace.MODULE) as {
-      commands: Commands;
-      helpers: HelperFunctions;
-    };
-    const commandPrefix = moduleAlias ?? moduleName;
-
-    if (module) {
-      const newCommands = addPrefixToCommands(module.commands, commandPrefix);
-      // TODO: Add prefixes to helpers when we support them in parsers
-      binding.value = { commands: newCommands, helpers: module.helpers };
-      return binding;
+    if (moduleBinding) {
+      return aliasBinding ? [aliasBinding, moduleBinding] : moduleBinding;
     }
 
     try {
+      console.log('LOAD MODULES');
       const { commands, helpers } = (await import(
         /* @vite-ignore */
         `../../${moduleName}`
       )) as ModuleExports;
 
-      const newCommands = addPrefixToCommands(commands, commandPrefix);
+      const newModuleBinding: ModuleBinding = {
+        type: MODULE,
+        identifier: moduleName,
+        value: {
+          commands,
+          helpers,
+        },
+      };
 
-      // TODO: Add prefixes to helpers when we support them in parsers
-      binding.value = { commands: newCommands, helpers };
-      return binding;
+      return aliasBinding ? [aliasBinding, newModuleBinding] : newModuleBinding;
     } catch (err) {
-      console.error(err);
       return;
     }
   },

@@ -6,7 +6,6 @@ import type { Signer } from 'ethers';
 import { inspect } from 'util';
 import type { ErrorException } from '../../src';
 import { Cas11AST } from '../../src';
-import { BindingsSpace } from '../../src/BindingsManager';
 import { EVMcrispr } from '../../src/EVMcrispr';
 import { scriptParser } from '../../src/parsers/script';
 import { createParserState } from '../../src/parsers/utils';
@@ -18,7 +17,7 @@ import type {
   NodeParser,
   NodeParserState,
 } from '../../src/types';
-import { NodeType } from '../../src/types';
+import { BindingsSpace, NodeType } from '../../src/types';
 import type { Comparison } from '../../src/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/utils';
 import { buildParserError } from '../../src/utils/parsers';

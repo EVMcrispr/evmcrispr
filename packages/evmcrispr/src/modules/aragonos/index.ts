@@ -3,7 +3,6 @@ export { AragonDAO } from './AragonDAO';
 export { Connector } from './Connector';
 
 export type {
-  Abi,
   App,
   AppCache,
   AppIdentifier,

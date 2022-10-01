@@ -1,5 +1,6 @@
 import { utils } from 'ethers';
 
+import { BindingsSpace } from '../../../types';
 import type { ICommand } from '../../../types';
 
 import {
@@ -10,7 +11,6 @@ import {
 } from '../../../utils';
 import { getAbiEntries } from '../../../utils/abis';
 import { fetchImplementationAddress } from '../../../utils/proxies';
-import { BindingsSpace } from '../../../BindingsManager';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 
@@ -38,7 +38,7 @@ export const exec: ICommand<Std> = {
     }
 
     if (!SIGNATURE_REGEX.test(signature)) {
-      const abi = module.bindingsManager.getBinding(
+      const abi = module.bindingsManager.getBindingValue(
         targetAddress,
         ABI,
       ) as utils.Interface;

@@ -84,7 +84,7 @@ export interface ProbableIdentifierNode extends Node {
   value: string;
 }
 
-export interface VariableIdentiferNode extends Node {
+export interface VariableIdentifierNode extends Node {
   type: NodeType.VariableIdentifier;
   value: string;
 }
@@ -150,7 +150,7 @@ export type LiteralExpressionNode =
 export type PrimaryExpressionNode =
   | LiteralExpressionNode
   | ProbableIdentifierNode
-  | VariableIdentiferNode;
+  | VariableIdentifierNode;
 
 export type ArgumentExpressionNode =
   | BinaryExpressionNode

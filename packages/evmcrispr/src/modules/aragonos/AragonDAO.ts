@@ -1,7 +1,7 @@
 import type { providers } from 'ethers';
 import { Contract, utils } from 'ethers';
 
-import type { Address } from '../../types';
+import type { Address, IDataProvider } from '../../types';
 import type {
   App,
   AppArtifactCache,
@@ -19,28 +19,32 @@ import {
   resolveIdentifier,
 } from './utils';
 import { AddressMap } from './AddressMap';
-import type { Connector } from './Connector';
+import { Connector } from './Connector';
 
-export class AragonDAO {
+export class AragonDAO implements IDataProvider {
+  type: string;
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
-
   #name?: string;
   #nestingIndex: number;
 
+  #connector: Connector;
   #provider: providers.Provider;
 
   constructor(
+    chainId: number,
     provider: providers.Provider,
     nestingIndex: number,
     name?: string,
   ) {
+    this.type = 'ARAGON_DAO';
     this.#appCache = new Map();
     this.#appArtifactCache = new AddressMap();
 
     this.#name = name;
     this.#nestingIndex = nestingIndex;
 
+    this.#connector = new Connector(chainId);
     this.#provider = provider;
   }
 
@@ -67,14 +71,21 @@ export class AragonDAO {
   static async create(
     daoAddress: Address,
     provider: providers.Provider,
-    connector: Connector,
     ipfsResolver: IPFSResolver,
     index: number,
     name?: string,
   ): Promise<AragonDAO> {
-    const dao = new AragonDAO(provider, index, name);
+    const dao = new AragonDAO(
+      (await provider.getNetwork()).chainId,
+      provider,
+      index,
+      name,
+    );
 
-    const parsedApps = await connector.organizationApps(daoAddress, provider);
+    const parsedApps = await dao.#connector.organizationApps(
+      daoAddress,
+      provider,
+    );
     const appResourcesCache = await dao.#buildAppArtifactCache(
       parsedApps,
       ipfsResolver,
@@ -197,5 +208,19 @@ export class AragonDAO {
     });
 
     return appArtifactCache;
+  }
+
+  getIdentifiers(addPrefix = false): string[] {
+    const appIdentifiers: string[] = [];
+
+    this.#appCache.forEach((_, key) => {
+      const appName = key.endsWith(':0') ? key.slice(0, key.length - 2) : key;
+      const formattedAppName = addPrefix
+        ? `_${this.#name ?? this.kernel.address}:${appName}`
+        : appName;
+      appIdentifiers.push(formattedAppName);
+    });
+
+    return appIdentifiers;
   }
 }

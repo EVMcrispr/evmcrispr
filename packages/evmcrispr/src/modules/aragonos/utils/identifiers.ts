@@ -3,7 +3,7 @@ import { isAddress } from 'ethers/lib/utils';
 import { ErrorInvalid } from '../../../errors';
 import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
 import type { Module } from '../../../Module';
-import { BindingsSpace } from '../../../BindingsManager';
+import { BindingsSpace } from '../../../types';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
@@ -121,7 +121,7 @@ export function getDaoAddrFromIdentifier(
     if (isAddress(dao)) {
       return dao;
     } else {
-      return module.bindingsManager.getBinding(
+      return module.bindingsManager.getBindingValue(
         `_${dao}:kernel`,
         BindingsSpace.ADDR,
       );

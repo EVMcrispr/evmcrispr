@@ -21,14 +21,6 @@ const nameToChainId = {
 };
 
 export const _switch: ICommand<Std> = {
-  buildCompletionItemsForArg(argIndex) {
-    switch (argIndex) {
-      case 0:
-        return [...Object.keys(nameToChainId), ...Object.values(nameToChainId)];
-      default:
-        return [];
-    }
-  },
   async run(module, c, { interpretNodes }): Promise<ProviderAction[]> {
     checkArgsLength(c, {
       type: ComparisonType.Equal,
