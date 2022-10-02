@@ -97,4 +97,10 @@ export const exec: ICommand<Std> = {
 
     return [execAction];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

@@ -119,4 +119,10 @@ export const install: ICommand<AragonOS> = {
       },
     ];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

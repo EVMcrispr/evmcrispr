@@ -1,11 +1,16 @@
 import type { ethers } from 'ethers';
 
 import type { Action } from './actions';
-import type { CommandExpressionNode, HelperFunctionNode, Node } from './ast';
-import type { Binding } from './bindings';
+import type {
+  CommandExpressionNode,
+  HelperFunctionNode,
+  Node,
+  Position,
+} from './ast';
 import type { BindingsManager } from '../BindingsManager';
 import type { IPFSResolver } from '../IPFSResolver';
 import type { Module } from '../Module';
+import type { Binding } from './bindings';
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -41,18 +46,19 @@ export type HelperFunction<T> = (
 export type HelperFunctions<T = Module> = Record<string, HelperFunction<T>>;
 
 export interface ICommand<T extends Module = Module> {
-  buildCompletionItemsForArg?(
+  buildCompletionItemsForArg(
     argIndex: number,
     nodeArgs: Node[],
     cache: BindingsManager,
   ): string[];
   run: CommandFunction<T>;
-  runEagerExecution?(
+  runEagerExecution(
     nodeArgs: Node[],
     cache: BindingsManager,
     provider: ethers.providers.Provider,
     ipfsResolver: IPFSResolver,
-  ): Promise<Binding | Binding[] | undefined>;
+    caretPos: Position,
+  ): Promise<Binding | Binding[] | void>;
 }
 export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
 

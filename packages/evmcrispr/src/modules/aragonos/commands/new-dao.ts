@@ -105,4 +105,10 @@ export const newDAO: ICommand<AragonOS> = {
       ...registerAragonIdActions,
     ];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

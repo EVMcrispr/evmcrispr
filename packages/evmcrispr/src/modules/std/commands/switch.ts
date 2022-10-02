@@ -59,4 +59,10 @@ export const _switch: ICommand<Std> = {
       },
     ];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

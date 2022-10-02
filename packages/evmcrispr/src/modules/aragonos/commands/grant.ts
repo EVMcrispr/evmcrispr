@@ -156,4 +156,10 @@ export const grant: ICommand<AragonOS> = {
 
     return actions;
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

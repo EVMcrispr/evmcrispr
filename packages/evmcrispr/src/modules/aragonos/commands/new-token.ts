@@ -118,4 +118,10 @@ export const newToken: ICommand<AragonOS> = {
       },
     ];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

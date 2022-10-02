@@ -55,4 +55,10 @@ export const forward: ICommand<AragonOS> = {
       forwarderAppAddresses.reverse(),
     );
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

@@ -4,7 +4,9 @@ import { ErrorException } from '../../../errors';
 import type {
   Action,
   Address,
+  DataProviderBinding,
   ICommand,
+  IDataProvider,
   TransactionAction,
 } from '../../../types';
 import { BindingsSpace, NodeType, isProviderAction } from '../../../types';
@@ -15,6 +17,7 @@ import type { BindingsManager } from '../../../BindingsManager';
 import {
   ComparisonType,
   addressesEqual,
+  beforeOrEqualNode,
   checkArgsLength,
   checkOpts,
   getOptValue,
@@ -22,8 +25,8 @@ import {
 import { batchForwarderActions } from '../utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
 
-const { BlockExpression } = NodeType;
-const { ABI, ADDR, DATA_PROVIDER } = BindingsSpace;
+const { AddressLiteral, BlockExpression, ProbableIdentifier } = NodeType;
+const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
 
 const setAppBindings = (
   bindingsManager: BindingsManager,
@@ -198,5 +201,86 @@ export const connect: ICommand<AragonOS> = {
       forwarderAppAddresses.reverse(),
       context,
     );
+  },
+  async runEagerExecution(
+    nodeArgs,
+    cache,
+    provider,
+    ipfsResolver,
+    caretPos,
+  ): Promise<DataProviderBinding | undefined> {
+    const daoNode = nodeArgs[0];
+
+    if (
+      beforeOrEqualNode(daoNode, caretPos) ||
+      !daoNode ||
+      ![AddressLiteral, ProbableIdentifier].includes(daoNode.type)
+    ) {
+      console.log('SKIP RUN EAGER EXECUTION');
+      return;
+    }
+
+    const daoNameOrAddress = daoNode.value;
+
+    const cachedDAO = cache.getBinding(daoNameOrAddress, DATA_PROVIDER);
+
+    if (cachedDAO) {
+      console.log('RETURNING CACHED DAO');
+      return cachedDAO;
+    }
+
+    let daoAddress: string, daoName: string | undefined;
+    if (utils.isAddress(daoNameOrAddress)) {
+      daoAddress = daoNameOrAddress;
+    } else {
+      const daoENSName = `${daoNameOrAddress}.aragonid.eth`;
+      const res = await _aragonEns(
+        daoENSName,
+        provider,
+        cache.getBindingValue(`aragonos:ensResolver`, USER),
+      );
+
+      if (!res) {
+        return;
+      }
+      daoAddress = res;
+      daoName = daoNameOrAddress;
+    }
+
+    try {
+      console.log('CREATING DAO');
+      const dao = await AragonDAO.create(
+        daoAddress,
+        provider,
+        ipfsResolver,
+        0,
+        daoName,
+      );
+
+      return {
+        identifier: daoNameOrAddress,
+        value: dao,
+        type: BindingsSpace.DATA_PROVIDER,
+      };
+    } catch (err) {
+      return;
+    }
+  },
+  buildCompletionItemsForArg(argIndex, nodeArgs, cache) {
+    if (argIndex > 0) {
+      const dataProviders = cache
+        .getAllBindingsFromSpace(BindingsSpace.DATA_PROVIDER)
+        .map<IDataProvider>((b) => b.value)
+        .filter<AragonDAO>(
+          (dataProvider): dataProvider is AragonDAO =>
+            dataProvider.type === 'ARAGON_DAO',
+        );
+
+      return dataProviders.flatMap((provider) =>
+        provider.getIdentifiers(false),
+      );
+    }
+
+    return [];
   },
 };

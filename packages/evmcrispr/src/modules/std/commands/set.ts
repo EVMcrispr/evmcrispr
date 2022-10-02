@@ -8,14 +8,17 @@ const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;
 
 export const set: ICommand<Std> = {
-  buildCompletionItemsForArg(argIndex, _, cache) {
+  buildCompletionItemsForArg(argIndex, nodeArgs, cache) {
     switch (argIndex) {
       case 0:
         return [];
       case 1: {
+        const currentVarName = nodeArgs[0].value;
         const labels = cache
-          .getAllBindingsFromSpaces(ADDR, USER)
-          .map((b) => b.identifier);
+          .getAllBindingsFromSpaces(ADDR)
+          .map((b) => b.identifier)
+          .filter((identifier) => identifier !== currentVarName);
+        console.log(labels);
         return labels;
       }
       default:
@@ -41,11 +44,11 @@ export const set: ICommand<Std> = {
     module.bindingsManager.setBinding(varName, varValue, USER, true);
   },
   async runEagerExecution(nodeArgs) {
-    const varNameNode = nodeArgs[0];
+    const [varNameNode, varValueNode] = nodeArgs;
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
-      return { identifier: varName, value: varName, type: USER };
+      return { identifier: varName, value: varValueNode?.value, type: USER };
     }
   },
 };

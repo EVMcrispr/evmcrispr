@@ -70,6 +70,9 @@ export const load: ICommand<Std> = {
         throw new ErrorException(`module ${moduleName} not found`);
     }
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
   async runEagerExecution(nodeArgs, cache) {
     const moduleNameArg = nodeArgs[0];
     let moduleName: string,

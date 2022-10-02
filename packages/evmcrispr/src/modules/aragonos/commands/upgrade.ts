@@ -93,4 +93,10 @@ export const upgrade: ICommand<AragonOS> = {
       },
     ];
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

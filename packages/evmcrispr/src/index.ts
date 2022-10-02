@@ -20,4 +20,6 @@ export { Cas11AST } from './Cas11AST';
 export { EVMcrispr } from './EVMcrispr';
 export * from './IPFSResolver';
 
+export * from './utils/ast';
+
 export { scriptParser, parseScript } from './parsers/script';

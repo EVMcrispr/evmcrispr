@@ -50,4 +50,10 @@ export const act: ICommand<AragonOS> = {
 
     return batchForwarderActions(module.signer, [execAction], [agentAddress]);
   },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };
