@@ -121,10 +121,25 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           const commandName =
             (yield commandNameParser) as unknown as CommandName;
 
+          const { name, module } = commandName;
+
           const commandArgsAndOpts: (
             | CommandArgExpressionNode
             | CommandOptNode
           )[] = [];
+
+          if (
+            yield possibly(
+              lookAhead(
+                sequenceOf([
+                  optionalWhitespace,
+                  choice([endOfLine, endOfInput]),
+                ]),
+              ),
+            )
+          ) {
+            return [module, name, [], []];
+          }
 
           do {
             /**
@@ -157,8 +172,6 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           const opts = commandArgsAndOpts.filter(
             (cArg) => cArg.type === NodeType.CommandOpt,
           ) as CommandOptNode[];
-
-          const { name, module } = commandName;
 
           return [module, name, args, opts];
         }),

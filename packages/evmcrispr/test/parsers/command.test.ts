@@ -178,6 +178,18 @@ describe('Parsers - command expression', () => {
         },
         'invalid `set` command match',
       ],
+      [
+        `mod:no-arg-command`,
+        {
+          type: 'CommandExpression',
+          module: 'mod',
+          name: 'no-arg-command',
+          args: [],
+          opts: [],
+          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 18 } },
+        },
+        'invalid command without args match',
+      ],
     ];
 
     runCases(cases, commandExpressionParser);
