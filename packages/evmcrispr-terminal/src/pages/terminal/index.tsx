@@ -10,8 +10,8 @@ import {
   BindingsManager,
   BindingsSpace,
   EVMcrispr,
-  NodeType,
-  insideNode,
+  calculateCurrentArgIndex,
+  hasCommandsBlock,
   isProviderAction,
   parseScript,
 } from '@1hive/evmcrispr';
@@ -86,10 +86,8 @@ const executeActions = async (
   return txs;
 };
 
-const hasCommandsBlock = (c: CommandExpressionNode): boolean =>
-  !!c.args.find((arg) => arg.type === NodeType.BlockExpression);
 const calculateCommandNameLength = (c: CommandExpressionNode) =>
-  (c.module ?? '' + (c.module ? ':' : '') + c.name).length;
+  ((c.module ?? '') + (c.module ? ':' : '') + c.name).length;
 
 export const Terminal = () => {
   const monaco = useMonaco();
@@ -280,7 +278,7 @@ export const Terminal = () => {
           if (lastCommand && lastCommand.buildCompletionItemsForArg) {
             currentArgCompletions = lastCommand
               .buildCompletionItemsForArg(
-                c.args.findIndex((arg) => insideNode(arg, calibratedPos)),
+                calculateCurrentArgIndex(c, calibratedPos),
                 currentCommandNode.args,
                 eagerBindingsManager,
               )

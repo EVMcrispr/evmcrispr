@@ -140,6 +140,11 @@ export interface BinaryExpressionNode extends Node {
   right: OperableExpressionNode;
 }
 
+export type NodeWithArguments =
+  | CommandExpressionNode
+  | HelperFunctionNode
+  | CallExpressionNode;
+
 export type LiteralExpressionNode =
   | AddressLiteralNode
   | BooleanLiteralNode
