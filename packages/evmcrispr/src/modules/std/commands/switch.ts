@@ -59,8 +59,16 @@ export const _switch: ICommand<Std> = {
       },
     ];
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex) {
+    switch (argIndex) {
+      case 0:
+        return [
+          ...Object.keys(nameToChainId),
+          ...Object.values(nameToChainId).map((chainId) => chainId.toString()),
+        ];
+      default:
+        return [];
+    }
   },
   async runEagerExecution() {
     return;
