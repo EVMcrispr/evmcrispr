@@ -11,6 +11,7 @@ import {
   BindingsSpace,
   EVMcrispr,
   NodeType,
+  insideNode,
   isProviderAction,
   parseScript,
 } from '@1hive/evmcrispr';
@@ -88,7 +89,7 @@ const executeActions = async (
 const hasCommandsBlock = (c: CommandExpressionNode): boolean =>
   !!c.args.find((arg) => arg.type === NodeType.BlockExpression);
 const calculateCommandNameLength = (c: CommandExpressionNode) =>
-  (c.module + (c.module ? ':' : '') + c.name).length;
+  (c.module ?? '' + (c.module ? ':' : '') + c.name).length;
 
 export const Terminal = () => {
   const monaco = useMonaco();
@@ -157,11 +158,11 @@ export const Terminal = () => {
             startLineNumber: currPos.lineNumber,
             endLineNumber: currPos.lineNumber,
             startColumn: startColumn,
-            // If word exists retrieve the column where it ends
+            // If word exists retrieve the end column of the whole word
             endColumn: model.getWordAtPosition(currPos)?.endColumn ?? endColumn,
           };
+          // Monaco editor positions start at 1
           const calibratedPos: Position = {
-            // Monaco editor positions start at 1
             col: currPos.column - 1,
             line: currPos.lineNumber,
           };
@@ -169,7 +170,7 @@ export const Terminal = () => {
           // Prepare eager bindings manager
           const eagerBindingsManager = new BindingsManager();
 
-          // Get command nodes
+          // Get command nodes until caret position
           const commandNodes: CommandExpressionNode[] =
             ast.getCommandsUntilLine(currPos.lineNumber, ['load', 'set']);
 
@@ -207,7 +208,7 @@ export const Terminal = () => {
           const c = commandNodes[commandNodes.length - 1];
           const typingCommand =
             emptyLine ||
-            // Caret position is within command name location
+            // Check if caret position is within the command name location
             (!!c.loc &&
               calibratedPos.col >= c.loc.start.col &&
               calibratedPos.col <= calculateCommandNameLength(c));
@@ -219,6 +220,10 @@ export const Terminal = () => {
           }
 
           const filteredCommandNodes = restOfCommandNodes
+            /**
+             * Filter out any command with a commands block that doesn't
+             * contain the current caret
+             */
             .filter((c) => {
               const itHasCommandsBlock = hasCommandsBlock(c);
               const loc = c.loc;
@@ -247,6 +252,7 @@ export const Terminal = () => {
             calibratedPos,
           );
 
+          // Populate eager bindings manager
           eagerBindings.forEach((binding, i) => {
             if (!binding) {
               return;
@@ -271,21 +277,19 @@ export const Terminal = () => {
             moduleBindings,
           );
 
-          if (lastCommand) {
-            if (lastCommand.buildCompletionItemsForArg) {
-              currentArgCompletions = lastCommand
-                .buildCompletionItemsForArg(
-                  currentCommandNode.args.length,
-                  currentCommandNode.args,
-                  eagerBindingsManager,
-                )
-                .map<languages.CompletionItem>((identifier) => ({
-                  label: identifier,
-                  insertText: identifier,
-                  range,
-                  kind: 3,
-                }));
-            }
+          if (lastCommand && lastCommand.buildCompletionItemsForArg) {
+            currentArgCompletions = lastCommand
+              .buildCompletionItemsForArg(
+                c.args.findIndex((arg) => insideNode(arg, calibratedPos)),
+                currentCommandNode.args,
+                eagerBindingsManager,
+              )
+              .map<languages.CompletionItem>((identifier) => ({
+                label: identifier,
+                insertText: identifier,
+                range,
+                kind: 3,
+              }));
           }
 
           // Update cache with latest bindings
