@@ -1,5 +1,5 @@
-import type { Module } from '@1hive/evmcrispr';
-import { stdCommands, stdHelpers } from '@1hive/evmcrispr';
+import type { Binding } from '@1hive/evmcrispr';
+import { BindingsManager, BindingsSpace, IPFSResolver } from '@1hive/evmcrispr';
 import { createStore } from '@udecode/zustood';
 
 const scriptPlaceholder = `# Available commands:
@@ -35,25 +35,19 @@ const scriptPlaceholder = `# Available commands:
 # )
 `;
 
-export type ModuleData = {
-  commands: string[];
-  helpers: string[];
-};
-
 type TerminalStoreState = {
-  modules: Record<string, ModuleData>;
+  aliases: BindingsManager;
+  bindingsCache: BindingsManager;
+  ipfsResolver: IPFSResolver;
   script: string;
   errors: string[];
   isLoading: boolean;
 };
 
 const initialState: TerminalStoreState = {
-  modules: {
-    std: {
-      commands: Object.keys(stdCommands),
-      helpers: Object.keys(stdHelpers),
-    },
-  },
+  aliases: new BindingsManager(),
+  bindingsCache: new BindingsManager(),
+  ipfsResolver: new IPFSResolver(),
   script: scriptPlaceholder,
   errors: [],
   isLoading: false,
@@ -62,19 +56,34 @@ const initialState: TerminalStoreState = {
 const terminalStore = createStore('terminal-store')(initialState, {
   persist: {
     enabled: true,
-    partialize: (state) => ({ ...initialState, script: state.script }),
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    partialize: (state) => ({
+      script: state.script,
+    }),
   },
   devtools: { enabled: process.env.NODE_ENV === 'development' },
-}).extendActions((set) => ({
-  addModules: (modules: Module[]) => {
-    set.state((draft) => {
-      modules.forEach(({ name, commands, helpers }) => {
-        draft.modules[name] = {
-          commands: Object.keys(commands),
-          helpers: Object.keys(helpers),
-        };
+}).extendActions((set, get) => ({
+  updateCacheBindings(...bindings: (Binding | Binding[] | undefined)[]) {
+    const flattenBindings = bindings
+      .filter<Binding | Binding[]>((b): b is Binding | Binding[] => !!b)
+      .flat();
+    const newBindings = flattenBindings
+      .filter((b) =>
+        [BindingsSpace.DATA_PROVIDER, BindingsSpace.MODULE].includes(b.type),
+      )
+      .filter(
+        ({ identifier, type }) =>
+          !get.bindingsCache().hasBinding(identifier, type),
+      );
+    console.log(newBindings);
+
+    if (newBindings.length) {
+      console.log('UPDATING CACHE');
+      set.state((draft) => {
+        draft.bindingsCache.mergeBindings(...newBindings);
       });
-    });
+    }
   },
 }));
 

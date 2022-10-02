@@ -1,5 +1,19 @@
-import type { Action, Cas11ASTCommand, ForwardOptions } from '@1hive/evmcrispr';
-import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
+import type {
+  Action,
+  AliasBinding,
+  CommandExpressionNode,
+  ForwardOptions,
+  ModuleBinding,
+  Position,
+} from '@1hive/evmcrispr';
+import {
+  BindingsManager,
+  BindingsSpace,
+  EVMcrispr,
+  NodeType,
+  isProviderAction,
+  parseScript,
+} from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
@@ -14,9 +28,11 @@ import {
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import type { Connector } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
-import { useAccount, useConnect, useDisconnect, useSigner } from 'wagmi';
-import type { Signer, providers } from 'ethers';
+import type { providers } from 'ethers';
+
+import type { IRange, languages } from 'monaco-editor';
 
 import { theme } from '../../editor/theme';
 import { conf, contribution } from '../../editor/evmcl';
@@ -28,6 +44,10 @@ import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import {
   buildModuleCompletionItems,
   buildVarCompletionItems,
+  getCommandFromModule,
+  getModuleBindings,
+  resolveAliases,
+  runEagerExecutions,
 } from '../../utils/autocompletion';
 
 // TODO: Migrate logic to evmcrispr
@@ -65,13 +85,20 @@ const executeActions = async (
   return txs;
 };
 
+const hasCommandsBlock = (c: CommandExpressionNode): boolean =>
+  !!c.args.find((arg) => arg.type === NodeType.BlockExpression);
+const calculateCommandNameLength = (c: CommandExpressionNode) =>
+  (c.module + (c.module ? ':' : '') + c.name).length;
+
 export const Terminal = () => {
   const monaco = useMonaco();
-  const { errors, isLoading, modules, script } = useTerminalStore();
+  const { bindingsCache, ipfsResolver, errors, isLoading, script } =
+    useTerminalStore();
   const { data: account } = useAccount();
   const { activeConnector } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: signer } = useSigner();
+  const provider = useProvider();
+  // const { data: signer } = useSigner();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
@@ -88,63 +115,191 @@ export const Terminal = () => {
     if (!monaco) {
       return;
     }
+
+    console.log('SETTING LANGUAGE');
+
+    // const moduleNames = Object.keys(modules);
+
+    // const commands = moduleNames.flatMap((n) => modules[n].commands);
+
+    // const helpers = moduleNames.flatMap((n) => modules[n].helpers);
+
+    // const tokensProvider = monaco.languages.setMonarchTokensProvider(
+    //   'evmcl',
+
+    //   createLanguage(commands, helpers),
+    // );
+
+    // return () => {
+    //   tokensProvider.dispose();
+    // };
+  }, [monaco]);
+
+  useEffect(() => {
+    if (!monaco || !provider) {
+      return;
+    }
     console.log('REGISTERING COMPLETION ITEM');
 
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'evmcl',
       {
-        provideCompletionItems: async (model, currentPosition) => {
+        provideCompletionItems: async (model, currPos) => {
           console.log('CALLING FUNCTION');
           const { ast } = parseScript(model.getValue());
 
-          const lineContent = model
-            .getLineContent(currentPosition.lineNumber)
-            .trim();
+          const lineContent = model.getLineContent(currPos.lineNumber).trim();
           const emptyLine = !lineContent.length;
-          const { startColumn, endColumn, word } =
-            model.getWordUntilPosition(currentPosition);
-          const typingWord = endColumn === currentPosition.column;
-          const range = {
-            startLineNumber: currentPosition.lineNumber,
-            endLineNumber: currentPosition.lineNumber,
+          const { startColumn, endColumn } =
+            model.getWordUntilPosition(currPos);
+
+          const range: IRange = {
+            startLineNumber: currPos.lineNumber,
+            endLineNumber: currPos.lineNumber,
             startColumn: startColumn,
-            endColumn: endColumn,
+            // If word exists retrieve the column where it ends
+            endColumn: model.getWordAtPosition(currPos)?.endColumn ?? endColumn,
+          };
+          const calibratedPos: Position = {
+            // Monaco editor positions start at 1
+            col: currPos.column - 1,
+            line: currPos.lineNumber,
           };
 
-          // Get AST nodes
-          let commands: Cas11ASTCommand[] = [];
-          if (currentPosition.lineNumber > 1) {
-            commands = ast.getCommandsUntilLine(
-              ['load', 'set'],
-              currentPosition.lineNumber - 1,
-            );
-          }
+          // Prepare eager bindings manager
+          const eagerBindingsManager = new BindingsManager();
 
-          // Build completion items
-          const variableCompletionItems = buildVarCompletionItems(
-            commands,
-            range,
+          // Get command nodes
+          const commandNodes: CommandExpressionNode[] =
+            ast.getCommandsUntilLine(currPos.lineNumber, ['load', 'set']);
+
+          // Build module bindings
+          const moduleAndAliasBindings = await getModuleBindings(
+            commandNodes,
+            bindingsCache,
+            provider,
+            ipfsResolver,
+            calibratedPos,
           );
+          const moduleBindings = moduleAndAliasBindings.filter<ModuleBinding>(
+            (b): b is ModuleBinding => b.type === BindingsSpace.MODULE,
+          );
+          const aliasBindings = moduleAndAliasBindings.filter<AliasBinding>(
+            (b): b is AliasBinding => b.type === BindingsSpace.ALIAS,
+          );
+
+          // Resolve module aliases
+          const restOfCommandNodes = resolveAliases(
+            commandNodes.filter((c) => c.name !== 'load'),
+            aliasBindings,
+          );
+          const currentCommandNode =
+            restOfCommandNodes[restOfCommandNodes.length - 1];
+
+          // Build module completion items
           const { commandCompletionItems, helperCompletionItems } =
             await buildModuleCompletionItems(
-              commands,
-              modules,
-              signer as Signer,
+              moduleBindings,
               range,
-              terminalStoreActions.addModules,
+              aliasBindings,
             );
 
+          const c = commandNodes[commandNodes.length - 1];
           const typingCommand =
-            typingWord && lineContent.length === word.length;
+            emptyLine ||
+            // Caret position is within command name location
+            (!!c.loc &&
+              calibratedPos.col >= c.loc.start.col &&
+              calibratedPos.col <= calculateCommandNameLength(c));
 
-          if (emptyLine || typingCommand) {
+          if (typingCommand) {
             return {
               suggestions: commandCompletionItems,
             };
           }
 
+          const filteredCommandNodes = restOfCommandNodes
+            .filter((c) => {
+              const itHasCommandsBlock = hasCommandsBlock(c);
+              const loc = c.loc;
+              const currentLine = currPos.lineNumber;
+              return (
+                !itHasCommandsBlock ||
+                (itHasCommandsBlock &&
+                  loc &&
+                  loc.start.line >= currentLine &&
+                  currentLine <= loc.end.line)
+              );
+            })
+            // Filter out command nodes with unknown module prefixes
+            .filter((c) => {
+              const command = getCommandFromModule(c, moduleBindings);
+              return !!command;
+            });
+
+          // Get bindings from eager execution functions
+          const eagerBindings = await runEagerExecutions(
+            filteredCommandNodes,
+            moduleBindings,
+            bindingsCache,
+            provider,
+            ipfsResolver,
+            calibratedPos,
+          );
+
+          eagerBindings.forEach((binding, i) => {
+            if (!binding) {
+              return;
+            }
+            const commandNode = filteredCommandNodes[i];
+
+            if (hasCommandsBlock(commandNode)) {
+              eagerBindingsManager.enterScope();
+            }
+
+            eagerBindingsManager.mergeBindings(binding);
+          });
+
+          const variableCompletionItems = buildVarCompletionItems(
+            eagerBindingsManager,
+            range,
+          );
+
+          let currentArgCompletions: languages.CompletionItem[] = [];
+          const lastCommand = getCommandFromModule(
+            currentCommandNode,
+            moduleBindings,
+          );
+
+          if (lastCommand) {
+            if (lastCommand.buildCompletionItemsForArg) {
+              currentArgCompletions = lastCommand
+                .buildCompletionItemsForArg(
+                  currentCommandNode.args.length,
+                  currentCommandNode.args,
+                  eagerBindingsManager,
+                )
+                .map<languages.CompletionItem>((identifier) => ({
+                  label: identifier,
+                  insertText: identifier,
+                  range,
+                  kind: 3,
+                }));
+            }
+          }
+
+          // Update cache with latest bindings
+          terminalStoreActions.updateCacheBindings(
+            moduleBindings,
+            eagerBindings,
+          );
+
           return {
-            suggestions: [...helperCompletionItems, ...variableCompletionItems],
+            suggestions: [
+              ...currentArgCompletions,
+              ...helperCompletionItems,
+              ...variableCompletionItems,
+            ],
           };
         },
       },
@@ -153,7 +308,7 @@ export const Terminal = () => {
     return () => {
       completionProvider.dispose();
     };
-  }, [monaco, signer, modules]);
+  }, [bindingsCache, monaco, provider, ipfsResolver]);
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);

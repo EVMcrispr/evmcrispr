@@ -1,133 +1,141 @@
 import type {
-  AsExpressionNode,
-  Cas11ASTCommand,
-  Module,
+  AliasBinding,
+  Binding,
+  BindingsManager,
+  CommandExpressionNode,
+  ICommand,
+  ModuleBinding,
+  ModuleData,
 } from '@1hive/evmcrispr';
-import { Cas11AST, EVMcrispr, NodeType } from '@1hive/evmcrispr';
-import type { Signer } from 'ethers';
+import { BindingsSpace, stdCommands, stdHelpers } from '@1hive/evmcrispr';
 import type { IRange, languages } from 'monaco-editor';
 
-import type { ModuleData } from '../pages/terminal/use-terminal-store';
-
-const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
-
 type CompletionItem = languages.CompletionItem;
-type ModuleCompletionData = {
-  prefix: string;
-  commands: string[];
-  helpers: string[];
+type AllEagerExecParams = Parameters<Required<ICommand>['runEagerExecution']>;
+type EagerExecParams = [
+  AllEagerExecParams[1],
+  AllEagerExecParams[2],
+  AllEagerExecParams[3],
+  AllEagerExecParams[4],
+];
+
+const DEFAULT_MODULE_BINDING: ModuleBinding = {
+  type: BindingsSpace.MODULE,
+  identifier: 'std',
+  value: { commands: stdCommands, helpers: stdHelpers },
 };
 
+export const resolveAliases = (
+  commandNodes: CommandExpressionNode[],
+  aliasBindings: AliasBinding[],
+): CommandExpressionNode[] =>
+  commandNodes.map((c) => ({
+    ...c,
+    module:
+      aliasBindings.find((b) => b.identifier === c.module)?.value ?? c.module,
+  }));
+
+export const getModuleBindings = async (
+  commandNodes: CommandExpressionNode[],
+  ...eagerExecFnParams: EagerExecParams
+): Promise<(ModuleBinding | AliasBinding)[]> => {
+  const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
+  const moduleBindings = (await runEagerExecutions(
+    loadCommandNodes,
+    [DEFAULT_MODULE_BINDING],
+    ...eagerExecFnParams,
+  )) as ModuleBinding[];
+
+  return [DEFAULT_MODULE_BINDING, ...moduleBindings];
+};
+
+export const getCommandFromModule = (
+  c: CommandExpressionNode,
+  moduleBindings: ModuleBinding[],
+): ICommand | undefined => {
+  const commandModule = c.module ?? DEFAULT_MODULE_BINDING.identifier;
+  const moduleData = moduleBindings.find(
+    (b) => b.identifier === commandModule,
+  )?.value;
+
+  return moduleData?.commands[c.name];
+};
+
+export const runEagerExecutions = async (
+  commandNodes: CommandExpressionNode[],
+  moduleBindings: ModuleBinding[],
+  ...eagerExecFnParams: EagerExecParams
+): Promise<Binding[]> => {
+  const commandEagerExecutionFns = commandNodes.map((c) =>
+    getCommandFromModule(c, moduleBindings)!.runEagerExecution(
+      c.args,
+      ...eagerExecFnParams,
+    ),
+  );
+  const bindings = (await Promise.all(commandEagerExecutionFns))
+    .filter((b) => !!b)
+    .flatMap((bindingOrBindings) => bindingOrBindings) as Binding[];
+
+  return bindings;
+};
+
+const getPrefix = (aliasBindings: AliasBinding[], moduleName: string): string =>
+  aliasBindings.find((b) => b.value === moduleName)?.identifier ?? moduleName;
+
 export const buildModuleCompletionItems = async (
-  astCommands: Cas11ASTCommand[],
-  moduleCache: Record<string, ModuleData>,
-  signer: Signer,
+  moduleBindings: ModuleBinding[],
   range: IRange,
-  updateCache: (modules: Module[]) => void,
+  aliasBindings: AliasBinding[] = [],
 ): Promise<{
   commandCompletionItems: CompletionItem[];
   helperCompletionItems: CompletionItem[];
 }> => {
-  const loadCommands = astCommands.filter(
-    (c) =>
-      c.node.name === 'load' &&
-      [ProbableIdentifier, StringLiteral, AsExpression].includes(
-        c.node.args[0].type,
-      ),
-  );
-  const moduleNames: { name: string; alias?: string }[] = [
-    { name: 'std', alias: '' },
-    ...loadCommands.map((c) => {
-      const moduleNameArg = c.node.args[0];
+  const modulePrefixesAndData: [string | undefined, ModuleData][] =
+    moduleBindings.map((b) => [
+      b.identifier === DEFAULT_MODULE_BINDING.identifier
+        ? undefined
+        : getPrefix(aliasBindings, b.identifier),
+      b.value,
+    ]);
 
-      if (moduleNameArg.type === AsExpression) {
-        const asNode = moduleNameArg as AsExpressionNode;
-        return { name: asNode.left.value, alias: asNode.right.value };
-      } else {
-        return { name: moduleNameArg.value };
-      }
-    }),
-  ];
+  return {
+    commandCompletionItems: modulePrefixesAndData.flatMap(([prefix, m]) =>
+      Object.keys(m.commands)
+        .map((name) => `${prefix ? `${prefix}:` : ''}${name}`)
+        .map((name) => ({
+          label: name,
+          insertText: name,
+          kind: 1,
+          range,
+        })),
+    ),
 
-  const unresolvedLoadNodes = moduleNames
-    .filter((n) => !moduleCache[n.name])
-    .map((_, i) => loadCommands[i].node);
-
-  let modulesData: ModuleCompletionData[] = moduleNames
-    .filter((n) => moduleCache[n.name])
-    .map((n) => {
-      const { commands, helpers } = moduleCache[n.name];
-      return {
-        prefix: n.alias ?? n.name,
-        commands,
-        helpers,
-      };
-    });
-
-  if (unresolvedLoadNodes.length) {
-    try {
-      const interpreter: EVMcrispr = new EVMcrispr(
-        new Cas11AST(unresolvedLoadNodes),
-        signer,
-      );
-
-      await interpreter.interpret();
-
-      const allModules = interpreter.getAllModules();
-      const newModulesData = allModules.map(
-        (m, i): ModuleCompletionData => ({
-          prefix: allModules[i].contextualName,
-          commands: Object.keys(m.commands),
-          helpers: Object.keys(m.helpers),
-        }),
-      );
-
-      modulesData = [...modulesData, ...newModulesData];
-
-      updateCache(allModules);
-      // eslint-disable-next-line no-empty
-    } catch (err) {}
-  }
-
-  const commandCompletionItems: CompletionItem[] = modulesData
-    .flatMap(({ prefix, commands }) =>
-      commands.map(
-        (commandName) => `${prefix ? `${prefix}:` : ''}${commandName}`,
-      ),
-    )
-    .map((name) => ({
-      label: name,
-      insertText: name,
-      kind: 1,
-      range,
-    }));
-  const helperCompletionItems: CompletionItem[] = modulesData
-    .flatMap(({ helpers }) => helpers)
-    .map((name) => `@${name}`)
-    .map((name) => ({
-      label: name,
-      insertText: `${name}()`,
-      kind: 9,
-      range,
-    }));
-
-  return { commandCompletionItems, helperCompletionItems };
+    // TODO: add prefixes to helpers after it's supported on parsers
+    helperCompletionItems: modulePrefixesAndData
+      .flatMap(([, m]) => Object.keys(m.helpers).map((name) => `@${name}`))
+      .map((name) => ({
+        label: name,
+        insertText: `${name}()`,
+        kind: 9,
+        range,
+      })),
+  };
 };
 
 export const buildVarCompletionItems = (
-  commands: Cas11ASTCommand[],
+  bindings: BindingsManager,
   range: IRange,
-): languages.CompletionItem[] => {
-  const setCommands = commands.filter((c) => c.node.name === 'set');
+): CompletionItem[] => {
+  const varNames = bindings
+    .getAllBindingsFromSpace(BindingsSpace.USER)
+    .map((b) => b.identifier);
 
-  const varNames = setCommands.map(
-    ({ node: { args } }): languages.CompletionItem => ({
-      label: args[0].value,
-      insertText: args[0].value,
+  return varNames.map(
+    (name): languages.CompletionItem => ({
+      label: name,
+      insertText: name,
       kind: 4,
       range,
     }),
   );
-
-  return varNames;
 };
