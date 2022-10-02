@@ -117,6 +117,7 @@ export const buildModuleCompletionItems = async (
         label: name,
         insertText: `${name}()`,
         kind: 9,
+        sortText: '3',
         range,
       })),
   };
@@ -135,6 +136,7 @@ export const buildVarCompletionItems = (
       label: name,
       insertText: name,
       kind: 4,
+      sortText: '2',
       range,
     }),
   );

@@ -286,6 +286,7 @@ export const Terminal = () => {
                 label: identifier,
                 insertText: identifier,
                 range,
+                sortText: '1',
                 kind: 3,
               }));
           }
