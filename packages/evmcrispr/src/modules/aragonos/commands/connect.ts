@@ -203,13 +203,13 @@ export const connect: ICommand<AragonOS> = {
     );
   },
   async runEagerExecution(
-    nodeArgs,
+    { args },
     cache,
     provider,
     ipfsResolver,
     caretPos,
   ): Promise<DataProviderBinding | undefined> {
-    const daoNode = nodeArgs[0];
+    const daoNode = args[0];
 
     if (
       beforeOrEqualNode(daoNode, caretPos) ||
@@ -266,7 +266,7 @@ export const connect: ICommand<AragonOS> = {
       return;
     }
   },
-  buildCompletionItemsForArg(argIndex, nodeArgs, cache) {
+  buildCompletionItemsForArg(argIndex, _, cache) {
     if (argIndex > 0) {
       const dataProviders = cache
         .getAllBindingsFromSpace(BindingsSpace.DATA_PROVIDER)

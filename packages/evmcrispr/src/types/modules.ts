@@ -49,11 +49,12 @@ export interface ICommand<T extends Module = Module> {
   buildCompletionItemsForArg(
     argIndex: number,
     nodeArgs: Node[],
-    cache: BindingsManager,
+    bindingsManager: BindingsManager,
+    caretPos: Position,
   ): string[];
   run: CommandFunction<T>;
   runEagerExecution(
-    nodeArgs: Node[],
+    c: CommandExpressionNode,
     cache: BindingsManager,
     provider: ethers.providers.Provider,
     ipfsResolver: IPFSResolver,

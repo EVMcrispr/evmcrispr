@@ -1,7 +1,7 @@
+import type { utils } from 'ethers';
 import type { AstSymbol } from 'jsymbol';
 
 import type { Commands, HelperFunctions, IDataProvider } from './modules';
-import type { Abi } from './web3';
 
 export enum BindingsSpace {
   USER = 'USER',
@@ -27,7 +27,7 @@ export interface AddressBinding extends IBinding<string> {
   type: BindingsSpace.ADDR;
 }
 
-export interface AbiBinding extends IBinding<Abi> {
+export interface AbiBinding extends IBinding<utils.Interface> {
   type: BindingsSpace.ABI;
 }
 

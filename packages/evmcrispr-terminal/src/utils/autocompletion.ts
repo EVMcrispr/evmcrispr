@@ -19,56 +19,67 @@ type EagerExecParams = [
   AllEagerExecParams[4],
 ];
 
+export type ModulesRegistry = Record<string, ModuleData>;
+
+const { MODULE, USER } = BindingsSpace;
+
 const DEFAULT_MODULE_BINDING: ModuleBinding = {
-  type: BindingsSpace.MODULE,
+  type: MODULE,
   identifier: 'std',
   value: { commands: stdCommands, helpers: stdHelpers },
 };
 
-export const resolveAliases = (
-  commandNodes: CommandExpressionNode[],
-  aliasBindings: AliasBinding[],
-): CommandExpressionNode[] =>
-  commandNodes.map((c) => ({
-    ...c,
-    module:
-      aliasBindings.find((b) => b.identifier === c.module)?.value ?? c.module,
-  }));
-
-export const getModuleBindings = async (
+export const runLoadCommands = async (
   commandNodes: CommandExpressionNode[],
   ...eagerExecFnParams: EagerExecParams
-): Promise<(ModuleBinding | AliasBinding)[]> => {
+): Promise<(AliasBinding | ModuleBinding)[]> => {
   const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
-  const moduleBindings = (await runEagerExecutions(
+  const moduleAndAliasBindings = (await runEagerExecutions(
     loadCommandNodes,
-    [DEFAULT_MODULE_BINDING],
+    { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
     ...eagerExecFnParams,
-  )) as ModuleBinding[];
+  )) as (AliasBinding | ModuleBinding)[];
 
-  return [DEFAULT_MODULE_BINDING, ...moduleBindings];
+  return [DEFAULT_MODULE_BINDING, ...moduleAndAliasBindings];
 };
 
-export const getCommandFromModule = (
-  c: CommandExpressionNode,
+export const buildModuleRegistry = (
   moduleBindings: ModuleBinding[],
+  aliasBindings: AliasBinding[],
+): ModulesRegistry => {
+  return aliasBindings.reduce<ModulesRegistry>(
+    (prevRegistry, { identifier: aliasName, value: moduleName }) => {
+      const module = moduleBindings.find(
+        (b) => b.identifier === moduleName,
+      )!.value;
+
+      prevRegistry[moduleName] = module;
+      prevRegistry[aliasName] = module;
+
+      return prevRegistry;
+    },
+    { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
+  );
+};
+
+export const resolveCommandNode = (
+  c: CommandExpressionNode,
+  moduleRegistry: ModulesRegistry,
 ): ICommand | undefined => {
   const commandModule = c.module ?? DEFAULT_MODULE_BINDING.identifier;
-  const moduleData = moduleBindings.find(
-    (b) => b.identifier === commandModule,
-  )?.value;
+  const moduleData = moduleRegistry[commandModule];
 
   return moduleData?.commands[c.name];
 };
 
 export const runEagerExecutions = async (
   commandNodes: CommandExpressionNode[],
-  moduleBindings: ModuleBinding[],
+  moduleRegistry: ModulesRegistry,
   ...eagerExecFnParams: EagerExecParams
 ): Promise<Binding[]> => {
   const commandEagerExecutionFns = commandNodes.map((c) =>
-    getCommandFromModule(c, moduleBindings)!.runEagerExecution(
-      c.args,
+    resolveCommandNode(c, moduleRegistry)!.runEagerExecution(
+      c,
       ...eagerExecFnParams,
     ),
   );
@@ -84,8 +95,8 @@ const getPrefix = (aliasBindings: AliasBinding[], moduleName: string): string =>
 
 export const buildModuleCompletionItems = async (
   moduleBindings: ModuleBinding[],
-  range: IRange,
   aliasBindings: AliasBinding[] = [],
+  range: IRange,
 ): Promise<{
   commandCompletionItems: CompletionItem[];
   helperCompletionItems: CompletionItem[];
@@ -128,7 +139,7 @@ export const buildVarCompletionItems = (
   range: IRange,
 ): CompletionItem[] => {
   const varNames = bindings
-    .getAllBindingsFromSpace(BindingsSpace.USER)
+    .getAllBindingsFromSpace(USER)
     .map((b) => b.identifier);
 
   return varNames.map(

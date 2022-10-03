@@ -1,4 +1,8 @@
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import {
+  ComparisonType,
+  checkArgsLength,
+  insideNodeLocation,
+} from '../../../utils';
 import type {
   AliasBinding,
   AsExpressionNode,
@@ -70,11 +74,32 @@ export const load: ICommand<Std> = {
         throw new ErrorException(`module ${moduleName} not found`);
     }
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex, nodeArgs, _, caretPos) {
+    switch (argIndex) {
+      case 0: {
+        const arg = nodeArgs[0];
+        if (
+          arg &&
+          arg.type === AsExpression &&
+          insideNodeLocation((arg as AsExpressionNode).right, caretPos)
+        ) {
+          return [];
+        }
+        return ['aragonos'];
+      }
+      default:
+        return [];
+    }
   },
-  async runEagerExecution(nodeArgs, cache) {
-    const moduleNameArg = nodeArgs[0];
+  async runEagerExecution(
+    { args },
+    cache,
+  ): Promise<ModuleBinding | (AliasBinding | ModuleBinding)[] | undefined> {
+    if (!args.length) {
+      return;
+    }
+
+    const moduleNameArg = args[0];
     let moduleName: string,
       moduleAlias = '';
 

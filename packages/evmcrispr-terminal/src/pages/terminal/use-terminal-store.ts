@@ -64,19 +64,22 @@ const terminalStore = createStore('terminal-store')(initialState, {
   },
   devtools: { enabled: process.env.NODE_ENV === 'development' },
 }).extendActions((set, get) => ({
-  updateCacheBindings(...bindings: (Binding | Binding[] | undefined)[]) {
+  updateBindingsCache(...bindings: (Binding | Binding[] | undefined)[]) {
     const flattenBindings = bindings
       .filter<Binding | Binding[]>((b): b is Binding | Binding[] => !!b)
       .flat();
     const newBindings = flattenBindings
       .filter((b) =>
-        [BindingsSpace.DATA_PROVIDER, BindingsSpace.MODULE].includes(b.type),
+        [
+          BindingsSpace.DATA_PROVIDER,
+          BindingsSpace.MODULE,
+          BindingsSpace.ABI,
+        ].includes(b.type),
       )
       .filter(
         ({ identifier, type }) =>
           !get.bindingsCache().hasBinding(identifier, type),
       );
-    console.log(newBindings);
 
     if (newBindings.length) {
       console.log('UPDATING CACHE');
