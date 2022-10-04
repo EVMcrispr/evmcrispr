@@ -1,11 +1,3 @@
-import type {
-  Action,
-  AliasBinding,
-  CommandExpressionNode,
-  ForwardOptions,
-  ModuleBinding,
-  Position,
-} from '@1hive/evmcrispr';
 import {
   BindingsManager,
   BindingsSpace,
@@ -14,6 +6,14 @@ import {
   hasCommandsBlock,
   isProviderAction,
   parseScript,
+} from '@1hive/evmcrispr';
+import type {
+  Action,
+  AliasBinding,
+  CommandExpressionNode,
+  ForwardOptions,
+  ModuleBinding,
+  Position,
 } from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
@@ -225,21 +225,18 @@ export const Terminal = () => {
             .filter((c) => {
               const itHasCommandsBlock = hasCommandsBlock(c);
               const loc = c.loc;
-              const currentLine = currPos.lineNumber;
+              const currentLine = calibratedPos.line;
+
               return (
                 !itHasCommandsBlock ||
                 (itHasCommandsBlock &&
                   loc &&
-                  loc.start.line >= currentLine &&
+                  currentLine >= loc.start.line &&
                   currentLine <= loc.end.line)
               );
             })
             // Filter out command nodes with unknown module prefixes
-            .filter((c) => {
-              const command = resolveCommandNode(c, modulesRegistry);
-
-              return !!command;
-            });
+            .filter((c) => !!resolveCommandNode(c, modulesRegistry));
 
           // Get bindings from eager execution functions
           const eagerBindings = await runEagerExecutions(
@@ -252,17 +249,18 @@ export const Terminal = () => {
           );
 
           // Populate eager bindings manager
-          eagerBindings.forEach((binding, i) => {
-            if (!binding) {
-              return;
-            }
+          eagerBindings.forEach((bindingOrBindings, i) => {
             const commandNode = filteredCommandNodes[i];
 
             if (hasCommandsBlock(commandNode)) {
               eagerBindingsManager.enterScope();
             }
 
-            eagerBindingsManager.mergeBindings(binding);
+            eagerBindingsManager.mergeBindings(
+              ...(Array.isArray(bindingOrBindings)
+                ? bindingOrBindings
+                : [bindingOrBindings]),
+            );
           });
 
           const variableCompletionItems = buildVarCompletionItems(
@@ -296,7 +294,7 @@ export const Terminal = () => {
           // Update cache with latest bindings
           terminalStoreActions.updateBindingsCache(
             moduleBindings,
-            eagerBindings,
+            eagerBindings.flat(),
           );
 
           return {

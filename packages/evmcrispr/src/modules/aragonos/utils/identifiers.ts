@@ -2,8 +2,8 @@ import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../../../errors';
 import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
-import type { Module } from '../../../Module';
 import { BindingsSpace } from '../../../types';
+import type { BindingsManager } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
@@ -114,17 +114,22 @@ export const buildAppIdentifier = (
 
 export function getDaoAddrFromIdentifier(
   identifier: string,
-  module: Module,
+  bindingsManager: BindingsManager,
 ): string | undefined {
   if (identifier.startsWith('_')) {
-    const dao = identifier.split(':')[0].substring(1);
-    if (isAddress(dao)) {
-      return dao;
+    const daoPrefix = identifier.split(':')[0].substring(1);
+    if (isAddress(daoPrefix)) {
+      return daoPrefix;
     } else {
-      return module.bindingsManager.getBindingValue(
-        `_${dao}:kernel`,
+      return bindingsManager.getBindingValue(
+        `_${daoPrefix}:kernel`,
         BindingsSpace.ADDR,
       );
     }
   }
 }
+
+export const createDaoPrefixedIdentifier = (
+  appIdentifier: AppIdentifier | LabeledAppIdentifier,
+  daoNameOrAddress: string,
+): string => `_${daoNameOrAddress}:${appIdentifier}`;

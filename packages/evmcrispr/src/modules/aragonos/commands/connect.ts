@@ -2,57 +2,122 @@ import { ethers, utils } from 'ethers';
 
 import { ErrorException } from '../../../errors';
 import type {
+  AbiBinding,
   Action,
   Address,
-  DataProviderBinding,
+  AddressBinding,
+  Binding,
   ICommand,
-  IDataProvider,
   TransactionAction,
 } from '../../../types';
 import { BindingsSpace, NodeType, isProviderAction } from '../../../types';
 import { AragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
-import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from '../utils';
-import type { BindingsManager } from '../../../BindingsManager';
+import {
+  ANY_ENTITY,
+  BURN_ENTITY,
+  NO_ENTITY,
+  createDaoPrefixedIdentifier,
+  getDAOAppIdentifiers,
+} from '../utils';
 import {
   ComparisonType,
   addressesEqual,
   beforeOrEqualNode,
   checkArgsLength,
   checkOpts,
+  getAddressFromNode,
   getOptValue,
+  isAddressNodishType,
 } from '../../../utils';
 import { batchForwarderActions } from '../utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
+import type { App, AppIdentifier } from '../types';
 
-const { AddressLiteral, BlockExpression, ProbableIdentifier } = NodeType;
 const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
 
-const setAppBindings = (
-  bindingsManager: BindingsManager,
-  appName: string,
-  appAddress: Address,
+const buildAppBindings = (
+  appIdentifier: AppIdentifier,
+  app: App,
   dao: AragonDAO,
-) => {
-  bindingsManager.setBinding(appName, appAddress, ADDR);
-  bindingsManager.setBinding(
-    `_${dao.nestingIndex}:${appName}`,
-    appAddress,
-    ADDR,
-  );
-  bindingsManager.setBinding(
-    `_${dao.kernel.address}:${appName}`,
-    appAddress,
-    ADDR,
-  );
-  if (dao.name) {
-    bindingsManager.setBinding(`_${dao.name}:${appName}`, appAddress, ADDR);
+  prefixBindings: boolean,
+): (AbiBinding | AddressBinding)[] => {
+  const bindingIdentifiers = [];
+
+  if (appIdentifier.endsWith(':1')) {
+    const nameWithoutIndex = appIdentifier.slice(0, -2);
+    bindingIdentifiers.push(
+      prefixBindings
+        ? createDaoPrefixedIdentifier(
+            nameWithoutIndex,
+            dao.name ?? dao.kernel.address,
+          )
+        : nameWithoutIndex,
+    );
+  } else {
+    bindingIdentifiers.push(
+      prefixBindings
+        ? createDaoPrefixedIdentifier(
+            appIdentifier,
+            dao.name ?? dao.kernel.address,
+          )
+        : appIdentifier,
+    );
   }
+
+  const appAddressBindings = bindingIdentifiers.map<AddressBinding>(
+    (identifier) => ({
+      type: ADDR,
+      identifier,
+      value: app.address,
+    }),
+  );
+  const appAbiBinding: AbiBinding = {
+    type: ABI,
+    identifier: app.address,
+    value: app.abiInterface,
+  };
+
+  return [...appAddressBindings, appAbiBinding];
+};
+
+const buildDAOBindings = (
+  dao: AragonDAO,
+  prefixBindings: boolean,
+): Binding[] => {
+  const daoBindings: Binding[] = [
+    {
+      type: DATA_PROVIDER,
+      identifier: dao.name ?? dao.kernel.address,
+      value: dao,
+    },
+  ];
+
+  dao.appCache.forEach((app, appIdentifier) => {
+    const appBindings = buildAppBindings(
+      appIdentifier,
+      app,
+      dao,
+      prefixBindings,
+    );
+
+    // There could be the case of having multiple same-version apps on the DAO
+    // so avoid setting the same binding twice
+    if (!appBindings.find((b) => b.identifier === app.codeAddress)) {
+      appBindings.push({
+        type: ABI,
+        identifier: app.codeAddress,
+        value: app.abiInterface,
+      });
+    }
+    daoBindings.push(...appBindings);
+  });
+
+  return daoBindings;
 };
 
 const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
-    const { name, nestingIndex } = dao;
     const bindingsManager = aragonos.bindingsManager;
 
     bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY, ADDR);
@@ -61,32 +126,9 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
 
     aragonos.currentDAO = dao;
 
-    // We can reference DAOs by their name, nesting index or kernel address
-    bindingsManager.setBinding(dao.kernel.address, dao, DATA_PROVIDER);
-    bindingsManager.setBinding(nestingIndex.toString(), dao, DATA_PROVIDER);
-    if (name) {
-      bindingsManager.setBinding(name, dao, DATA_PROVIDER);
-    }
+    const daoBindings = buildDAOBindings(dao, true);
 
-    dao.appCache.forEach((app, appIdentifier) => {
-      bindingsManager.setBinding(app.address, app.abiInterface, ABI);
-
-      // There could be the case of having multiple same-version apps on the DAO
-      // so avoid setting the same binding twice
-      if (!bindingsManager.hasBinding(app.codeAddress, ABI)) {
-        bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI);
-      }
-
-      if (appIdentifier.endsWith(':0')) {
-        const nameWithoutIndex = appIdentifier.slice(
-          0,
-          appIdentifier.length - 2,
-        );
-        setAppBindings(bindingsManager, nameWithoutIndex, app.address, dao);
-      }
-
-      setAppBindings(bindingsManager, appIdentifier, app.address, dao);
-    });
+    bindingsManager.setBindings(daoBindings);
   };
 };
 
@@ -103,7 +145,10 @@ export const connect: ICommand<AragonOS> = {
 
     const forwarderApps = await interpretNodes(rest);
 
-    if (!blockExpressionNode || blockExpressionNode.type !== BlockExpression) {
+    if (
+      !blockExpressionNode ||
+      blockExpressionNode.type !== NodeType.BlockExpression
+    ) {
       throw new ErrorException('last argument should be a set of commands');
     }
 
@@ -208,28 +253,30 @@ export const connect: ICommand<AragonOS> = {
     provider,
     ipfsResolver,
     caretPos,
-  ): Promise<DataProviderBinding | undefined> {
+    closestCommandToCaret,
+  ) {
     const daoNode = args[0];
 
     if (
       beforeOrEqualNode(daoNode, caretPos) ||
       !daoNode ||
-      ![AddressLiteral, ProbableIdentifier].includes(daoNode.type)
+      !isAddressNodishType(daoNode)
     ) {
-      console.log('SKIP RUN EAGER EXECUTION');
       return;
     }
 
-    const daoNameOrAddress = daoNode.value;
+    const daoNameOrAddress =
+      getAddressFromNode(daoNode, cache) ?? daoNode.value;
 
-    const cachedDAO = cache.getBinding(daoNameOrAddress, DATA_PROVIDER);
+    const cachedDAO = cache.getBindingValue(daoNameOrAddress, DATA_PROVIDER) as
+      | AragonDAO
+      | undefined;
 
     if (cachedDAO) {
-      console.log('RETURNING CACHED DAO');
-      return cachedDAO;
+      return buildDAOBindings(cachedDAO, closestCommandToCaret);
     }
 
-    let daoAddress: string, daoName: string | undefined;
+    let daoAddress: string;
     if (utils.isAddress(daoNameOrAddress)) {
       daoAddress = daoNameOrAddress;
     } else {
@@ -244,41 +291,26 @@ export const connect: ICommand<AragonOS> = {
         return;
       }
       daoAddress = res;
-      daoName = daoNameOrAddress;
     }
 
     try {
-      console.log('CREATING DAO');
       const dao = await AragonDAO.create(
         daoAddress,
         provider,
         ipfsResolver,
         0,
-        daoName,
+        daoNameOrAddress,
       );
 
-      return {
-        identifier: daoNameOrAddress,
-        value: dao,
-        type: BindingsSpace.DATA_PROVIDER,
-      };
+      return buildDAOBindings(dao, closestCommandToCaret);
     } catch (err) {
+      // TODO: handle non-existent dao case
       return;
     }
   },
   buildCompletionItemsForArg(argIndex, _, cache) {
     if (argIndex > 0) {
-      const dataProviders = cache
-        .getAllBindingsFromSpace(BindingsSpace.DATA_PROVIDER)
-        .map<IDataProvider>((b) => b.value)
-        .filter<AragonDAO>(
-          (dataProvider): dataProvider is AragonDAO =>
-            dataProvider.type === 'ARAGON_DAO',
-        );
-
-      return dataProviders.flatMap((provider) =>
-        provider.getIdentifiers(false),
-      );
+      return getDAOAppIdentifiers(cache);
     }
 
     return [];

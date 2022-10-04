@@ -15,10 +15,9 @@ export const set: ICommand<Std> = {
       case 1: {
         const currentVarName = nodeArgs[0].value;
         const labels = cache
-          .getAllBindingsFromSpaces(ADDR)
-          .map((b) => b.identifier)
+          .getAllBindingIdentifiers({ spaceFilters: [ADDR] })
+          // Filter out the variable being declared
           .filter((identifier) => identifier !== currentVarName);
-        console.log(labels);
         return labels;
       }
       default:
@@ -43,8 +42,8 @@ export const set: ICommand<Std> = {
 
     module.bindingsManager.setBinding(varName, varValue, USER, true);
   },
-  async runEagerExecution(nodeArgs) {
-    const [varNameNode, varValueNode] = nodeArgs;
+  async runEagerExecution({ args }) {
+    const [varNameNode, varValueNode] = args;
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;

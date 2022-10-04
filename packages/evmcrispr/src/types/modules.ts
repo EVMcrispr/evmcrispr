@@ -59,6 +59,7 @@ export interface ICommand<T extends Module = Module> {
     provider: ethers.providers.Provider,
     ipfsResolver: IPFSResolver,
     caretPos: Position,
+    closestCommandToCaret: boolean,
   ): Promise<Binding | Binding[] | void>;
 }
 export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
@@ -71,5 +72,4 @@ export interface ModuleExports<T extends Module = Module> {
 
 export interface IDataProvider {
   readonly type: string;
-  getIdentifiers(addPrefix: boolean): string[];
 }

@@ -3,7 +3,12 @@ import { SymbolTable } from 'jsymbol';
 import { ErrorException } from './errors';
 import type { Binding, BindingsSpace, RelativeBinding } from './types';
 
-const isSpaceBinding =
+type AllBindingsOpts = {
+  onlyLocal?: boolean;
+  spaceFilters?: BindingsSpace[];
+};
+
+export const isSpaceBinding =
   <BSpace extends BindingsSpace>(space: BSpace) =>
   (b: Binding): b is RelativeBinding<BSpace> =>
     b.type === space;
@@ -43,27 +48,38 @@ export class BindingsManager {
       : undefined;
   }
 
-  getAllBindings(): Map<string, Binding[]> {
-    return this.#bindings.symbols;
+  getAllBindings({
+    onlyLocal = false,
+    spaceFilters: spaces = [],
+  }: AllBindingsOpts): Binding[] {
+    const allBindingsMapping = new Map<string, Binding[]>();
+    let currentBindings: SymbolTable<Binding> | undefined = this.#bindings;
+
+    do {
+      currentBindings.symbols.forEach((bindings, identifier) => {
+        if (allBindingsMapping.has(identifier)) {
+          return;
+        }
+
+        let filteredBindings = bindings;
+        if (spaces.length) {
+          filteredBindings = bindings.filter((b) => spaces.includes(b.type));
+        }
+
+        allBindingsMapping.set(identifier, filteredBindings);
+      });
+      currentBindings = currentBindings.parent;
+    } while (!onlyLocal && currentBindings);
+
+    return [...allBindingsMapping.values()].flat();
   }
 
-  getAllBindingsFromSpace<BSpace extends BindingsSpace>(
-    space: BSpace,
-  ): RelativeBinding<BSpace>[] {
-    const spaceBindings: RelativeBinding<BSpace>[] = [];
-
-    this.getAllBindings().forEach((bindings) => {
-      const filteredBindings = bindings.filter<RelativeBinding<BSpace>>(
-        isSpaceBinding(space),
-      );
-      spaceBindings.push(...filteredBindings);
-    });
-
-    return spaceBindings;
+  getAllBindingIdentifiers(opts: AllBindingsOpts): Binding['identifier'][] {
+    return this.getAllBindings(opts).map((b) => b.identifier);
   }
 
-  getAllBindingsFromSpaces(...spaces: BindingsSpace[]): Binding[] {
-    return spaces.flatMap((space) => this.getAllBindingsFromSpace(space));
+  getAllBindingValues(opts: AllBindingsOpts): Binding['value'][] {
+    return this.getAllBindings(opts).map((b) => b.value);
   }
 
   setBinding<BSpace extends BindingsSpace>(

@@ -34,11 +34,13 @@ export const runLoadCommands = async (
   ...eagerExecFnParams: EagerExecParams
 ): Promise<(AliasBinding | ModuleBinding)[]> => {
   const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
-  const moduleAndAliasBindings = (await runEagerExecutions(
-    loadCommandNodes,
-    { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
-    ...eagerExecFnParams,
-  )) as (AliasBinding | ModuleBinding)[];
+  const moduleAndAliasBindings = (
+    await runEagerExecutions(
+      loadCommandNodes,
+      { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
+      ...eagerExecFnParams,
+    )
+  ).flat() as (AliasBinding | ModuleBinding)[];
 
   return [DEFAULT_MODULE_BINDING, ...moduleAndAliasBindings];
 };
@@ -76,18 +78,24 @@ export const runEagerExecutions = async (
   commandNodes: CommandExpressionNode[],
   moduleRegistry: ModulesRegistry,
   ...eagerExecFnParams: EagerExecParams
-): Promise<Binding[]> => {
-  const commandEagerExecutionFns = commandNodes.map((c) =>
-    resolveCommandNode(c, moduleRegistry)!.runEagerExecution(
+): Promise<(Binding | Binding[])[]> => {
+  const commandsSet = new Set<string>();
+  const commandEagerExecutionFns = commandNodes.reverse().map((c) => {
+    const fullName = `${c.module}:${c.name}`;
+    const eagerFn = resolveCommandNode(c, moduleRegistry)!.runEagerExecution(
       c,
       ...eagerExecFnParams,
-    ),
-  );
-  const bindings = (await Promise.all(commandEagerExecutionFns))
-    .filter((b) => !!b)
-    .flatMap((bindingOrBindings) => bindingOrBindings) as Binding[];
+      commandsSet.has(fullName),
+    );
+    commandsSet.add(fullName);
 
-  return bindings;
+    return eagerFn;
+  });
+  const bindings = (await Promise.all(commandEagerExecutionFns)).filter<
+    Binding | Binding[]
+  >((b): b is Binding | Binding[] => !!b);
+
+  return bindings.reverse();
 };
 
 const getPrefix = (aliasBindings: AliasBinding[], moduleName: string): string =>
@@ -138,9 +146,7 @@ export const buildVarCompletionItems = (
   bindings: BindingsManager,
   range: IRange,
 ): CompletionItem[] => {
-  const varNames = bindings
-    .getAllBindingsFromSpace(USER)
-    .map((b) => b.identifier);
+  const varNames = bindings.getAllBindingIdentifiers({ spaceFilters: [USER] });
 
   return varNames.map(
     (name): languages.CompletionItem => ({

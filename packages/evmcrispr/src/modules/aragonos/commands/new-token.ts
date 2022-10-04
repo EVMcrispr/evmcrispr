@@ -56,7 +56,7 @@ export const newToken: ICommand<AragonOS> = {
       controllerAddress = identifierBinding;
     } else if (isLabeledAppIdentifier(controller) && module.currentDAO) {
       const kernel =
-        getDaoAddrFromIdentifier(c.args[2].value, module) ||
+        getDaoAddrFromIdentifier(c.args[2].value, module.bindingsManager) ||
         module.currentDAO?.kernel.address;
       controllerAddress = await module.registerNextProxyAddress(
         controller,

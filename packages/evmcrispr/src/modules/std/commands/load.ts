@@ -125,7 +125,6 @@ export const load: ICommand<Std> = {
     }
 
     try {
-      console.log('LOAD MODULES');
       const { commands, helpers } = (await import(
         /* @vite-ignore */
         `../../${moduleName}`

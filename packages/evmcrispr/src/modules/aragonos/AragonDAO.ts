@@ -21,6 +21,12 @@ import {
 import { AddressMap } from './AddressMap';
 import { Connector } from './Connector';
 
+export const DATA_PROVIDER_TYPE = 'ARAGONOS_DAO';
+
+export const isAragonDAO = (
+  dataProvider: IDataProvider,
+): dataProvider is AragonDAO => dataProvider.type === DATA_PROVIDER_TYPE;
+
 export class AragonDAO implements IDataProvider {
   type: string;
   #appCache: AppCache;
@@ -37,7 +43,7 @@ export class AragonDAO implements IDataProvider {
     nestingIndex: number,
     name?: string,
   ) {
-    this.type = 'ARAGON_DAO';
+    this.type = DATA_PROVIDER_TYPE;
     this.#appCache = new Map();
     this.#appArtifactCache = new AddressMap();
 
@@ -155,7 +161,7 @@ export class AragonDAO implements IDataProvider {
     // Create app cache
     for (const app of sortedParsedApps) {
       const { name } = app;
-      const counter = appCounter.has(name) ? appCounter.get(name) : 0;
+      const counter = appCounter.has(name) ? appCounter.get(name) : 1;
       const appIdentifier = buildAppIdentifier(app, counter);
 
       appCache.set(appIdentifier, app);
@@ -208,19 +214,5 @@ export class AragonDAO implements IDataProvider {
     });
 
     return appArtifactCache;
-  }
-
-  getIdentifiers(addPrefix = false): string[] {
-    const appIdentifiers: string[] = [];
-
-    this.#appCache.forEach((_, key) => {
-      const appName = key.endsWith(':0') ? key.slice(0, key.length - 2) : key;
-      const formattedAppName = addPrefix
-        ? `_${this.#name ?? this.kernel.address}:${appName}`
-        : appName;
-      appIdentifiers.push(formattedAppName);
-    });
-
-    return appIdentifiers;
   }
 }
