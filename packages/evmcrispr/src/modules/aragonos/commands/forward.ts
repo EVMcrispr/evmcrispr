@@ -11,6 +11,7 @@ import {
   commaListItems,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
+import { getDAOAppIdentifiers } from '../utils';
 
 export const forward: ICommand<AragonOS> = {
   async run(module, c, { interpretNode, interpretNodes }) {
@@ -55,8 +56,8 @@ export const forward: ICommand<AragonOS> = {
       forwarderAppAddresses.reverse(),
     );
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(_, __, bindingsManager) {
+    return getDAOAppIdentifiers(bindingsManager);
   },
   async runEagerExecution() {
     return;
