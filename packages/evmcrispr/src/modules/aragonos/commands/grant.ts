@@ -1,16 +1,23 @@
 import { constants, utils } from 'ethers';
 
 import { ErrorException } from '../../../errors';
+import { BindingsSpace } from '../../../types';
 import type { Action, ICommand, InterpretOptions } from '../../../types';
 import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
+  getAddressFromNode,
   getOptValue,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { checkPermissionFormat, getDAO } from '../utils/commands';
-import { normalizeRole, oracle } from '../utils';
+import {
+  getAppRoles,
+  getDAOAppIdentifiers,
+  normalizeRole,
+  oracle,
+} from '../utils';
 import type { FullPermission, Params } from '../types';
 
 export const grant: ICommand<AragonOS> = {
@@ -156,7 +163,29 @@ export const grant: ICommand<AragonOS> = {
 
     return actions;
   },
-  buildCompletionItemsForArg() {
+  buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
+    switch (argIndex) {
+      case 0:
+        return bindingsManager.getAllBindingIdentifiers({
+          spaceFilters: [BindingsSpace.ADDR],
+        });
+      case 1:
+        return getDAOAppIdentifiers(bindingsManager);
+      case 2: {
+        const appNode = nodeArgs[1];
+        const appAddress = getAddressFromNode(appNode, bindingsManager);
+
+        if (!appAddress) {
+          return [];
+        }
+
+        return getAppRoles(bindingsManager, appAddress);
+      }
+      case 3:
+        return bindingsManager.getAllBindingIdentifiers({
+          spaceFilters: [BindingsSpace.ADDR],
+        });
+    }
     return [];
   },
   async runEagerExecution() {

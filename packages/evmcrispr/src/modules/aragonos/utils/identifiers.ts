@@ -112,13 +112,24 @@ export const buildAppIdentifier = (
   }
 };
 
+export const parsePrefixedDAOIdentifier = (
+  identifier: string,
+): [string | undefined, string] => {
+  if (identifier.startsWith('_')) {
+    const elements = identifier.split(':');
+    return [elements[0].substring(1), elements[1]];
+  }
+
+  return [undefined, identifier];
+};
+
 export function getDaoAddrFromIdentifier(
   identifier: string,
   bindingsManager: BindingsManager,
 ): string | undefined {
   if (identifier.startsWith('_')) {
-    const daoPrefix = identifier.split(':')[0].substring(1);
-    if (isAddress(daoPrefix)) {
+    const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
+    if (isAddress(daoPrefix!)) {
       return daoPrefix;
     } else {
       return bindingsManager.getBindingValue(
