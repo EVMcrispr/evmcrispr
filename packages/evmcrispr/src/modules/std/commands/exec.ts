@@ -1,20 +1,23 @@
 import { utils } from 'ethers';
 
 import { BindingsSpace } from '../../../types';
-import type { ICommand } from '../../../types';
+import type { Address, ICommand } from '../../../types';
 
 import {
   ComparisonType,
   SIGNATURE_REGEX,
+  addressesEqual,
+  beforeOrEqualNode,
   checkArgsLength,
   encodeAction,
+  getAddressFromNode,
+  insideNodeLine,
 } from '../../../utils';
-import { getAbiEntries } from '../../../utils/abis';
-import { fetchImplementationAddress } from '../../../utils/proxies';
+import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 
-const { ABI } = BindingsSpace;
+const { ABI, ADDR } = BindingsSpace;
 
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
@@ -23,47 +26,42 @@ export const exec: ICommand<Std> = {
     const targetNode = c.args.shift()!;
     const signatureNode = c.args.shift()!;
 
-    const [targetAddress, signature, params] = await Promise.all([
+    const [contractAddress, signature, params] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
       interpretNode(signatureNode, { treatAsLiteral: true }),
       interpretNodes(c.args),
     ]);
 
     let finalSignature = signature;
+    let targetAddress: Address = contractAddress;
 
-    if (!utils.isAddress(targetAddress)) {
+    if (!utils.isAddress(contractAddress)) {
       throw new ErrorException(
-        `expected a valid target address, but got ${targetAddress}`,
+        `expected a valid target address, but got ${contractAddress}`,
       );
     }
 
     if (!SIGNATURE_REGEX.test(signature)) {
       const abi = module.bindingsManager.getBindingValue(
-        targetAddress,
+        contractAddress,
         ABI,
       ) as utils.Interface;
 
       if (abi) {
         finalSignature = abi.getFunction(signature).format('minimal');
       } else {
-        const implementationAddress = await fetchImplementationAddress(
-          targetAddress,
-          module.signer.provider!,
-        );
         const etherscanAPI = module.getConfigBinding('etherscanAPI');
         let fetchedAbi: utils.Interface;
         try {
-          fetchedAbi = await getAbiEntries(
+          [targetAddress, fetchedAbi] = await fetchAbi(
+            contractAddress,
+            module.signer.provider!,
             etherscanAPI,
-            implementationAddress ?? targetAddress,
-            await module.signer.getChainId(),
           );
         } catch (err) {
           const err_ = err as Error;
           throw new ErrorException(
-            `an error ocurred while fetching ABI for ${
-              implementationAddress ?? targetAddress
-            } - ${err_.message}`,
+            `an error ocurred while fetching ABI for ${contractAddress} - ${err_.message}`,
           );
         }
 
@@ -82,13 +80,9 @@ export const exec: ICommand<Std> = {
           );
         }
 
-        module.bindingsManager.setBinding(targetAddress, fetchedAbi, ABI);
-        if (implementationAddress) {
-          module.bindingsManager.setBinding(
-            implementationAddress,
-            fetchedAbi,
-            ABI,
-          );
+        module.bindingsManager.setBinding(contractAddress, fetchedAbi, ABI);
+        if (!addressesEqual(targetAddress, contractAddress)) {
+          module.bindingsManager.setBinding(targetAddress, fetchedAbi, ABI);
         }
       }
     }
@@ -97,10 +91,77 @@ export const exec: ICommand<Std> = {
 
     return [execAction];
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
+    switch (argIndex) {
+      // Contract address and params
+      case 0:
+        return bindingsManager.getAllBindingIdentifiers({
+          spaceFilters: [ADDR],
+        });
+      // Contract method
+      case 1: {
+        const contractAddress = getAddressFromNode(
+          nodeArgs[0],
+          bindingsManager,
+        );
+        if (!contractAddress) {
+          return [];
+        }
+        const abi = bindingsManager.getBindingValue(contractAddress, ABI);
+        if (!abi) {
+          return [];
+        }
+        const nonConstantFns = Object.keys(abi.functions)
+          // Only consider functions that change state
+          .filter((fnName) => !abi.functions[fnName].constant)
+          .map((fnName) => abi.functions[fnName].format());
+        return nonConstantFns;
+      }
+      default: {
+        if (argIndex >= 2) {
+          return bindingsManager.getAllBindingIdentifiers({
+            spaceFilters: [ADDR],
+          });
+        }
+        return [];
+      }
+    }
   },
-  async runEagerExecution() {
-    return;
+  async runEagerExecution(c, cache, provider, _, caretPos) {
+    if (
+      !insideNodeLine(c, caretPos) ||
+      !c.args.length ||
+      beforeOrEqualNode(c.args[0], caretPos)
+    ) {
+      return;
+    }
+
+    const contractAddress = getAddressFromNode(c.args[0], cache);
+
+    if (!contractAddress) {
+      return;
+    }
+
+    const cachedAbi = cache.getBindingValue(contractAddress, BindingsSpace.ABI);
+
+    if (cachedAbi) {
+      return {
+        type: BindingsSpace.ABI,
+        identifier: contractAddress,
+        value: cachedAbi,
+      };
+    }
+
+    const [targetAddress, abi] = await fetchAbi(contractAddress, provider, '');
+
+    const addresses = addressesEqual(targetAddress, contractAddress)
+      ? [contractAddress]
+      : [contractAddress, targetAddress];
+
+    return addresses.map((addr) => ({
+      type: BindingsSpace.ABI,
+      identifier: addr,
+      value: abi,
+    }));
   },
 };

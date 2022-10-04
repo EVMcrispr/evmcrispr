@@ -1,8 +1,11 @@
+import type { providers } from 'ethers';
 import { utils } from 'ethers';
 
 import { ErrorConnection, ErrorException } from '../errors';
+import type { Address } from '../types';
+import { fetchImplementationAddress } from './proxies';
 
-export async function getAbiEntries(
+async function getAbiEntries(
   etherscanAPI: string,
   address: string,
   chainId: number,
@@ -34,3 +37,25 @@ export async function getAbiEntries(
 
   return new utils.Interface(response.result);
 }
+
+export const fetchAbi = async (
+  contractAddress: Address,
+  provider: providers.Provider,
+  etherscanAPI: string,
+): Promise<[Address, utils.Interface]> => {
+  const implementationAddress = await fetchImplementationAddress(
+    contractAddress,
+    provider,
+  );
+  const targetAddress = implementationAddress ?? contractAddress;
+
+  const fetchedAbi = await getAbiEntries(
+    etherscanAPI,
+    targetAddress,
+    (
+      await provider.getNetwork()
+    ).chainId,
+  );
+
+  return [targetAddress, fetchedAbi];
+};
