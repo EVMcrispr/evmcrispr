@@ -8,6 +8,11 @@ type AllBindingsOpts = {
   spaceFilters?: BindingsSpace[];
 };
 
+const defaultOpts: AllBindingsOpts = {
+  onlyLocal: false,
+  spaceFilters: [],
+};
+
 export const isSpaceBinding =
   <BSpace extends BindingsSpace>(space: BSpace) =>
   (b: Binding): b is RelativeBinding<BSpace> =>
@@ -51,7 +56,7 @@ export class BindingsManager {
   getAllBindings({
     onlyLocal = false,
     spaceFilters: spaces = [],
-  }: AllBindingsOpts): Binding[] {
+  }: AllBindingsOpts = defaultOpts): Binding[] {
     const allBindingsMapping = new Map<string, Binding[]>();
     let currentBindings: SymbolTable<Binding> | undefined = this.#bindings;
 
@@ -74,12 +79,18 @@ export class BindingsManager {
     return [...allBindingsMapping.values()].flat();
   }
 
-  getAllBindingIdentifiers(opts: AllBindingsOpts): Binding['identifier'][] {
+  getAllBindingIdentifiers(
+    opts: AllBindingsOpts = defaultOpts,
+  ): Binding['identifier'][] {
     return this.getAllBindings(opts).map((b) => b.identifier);
   }
 
-  getAllBindingValues(opts: AllBindingsOpts): Binding['value'][] {
+  getAllBindingValues(opts: AllBindingsOpts = defaultOpts): Binding['value'][] {
     return this.getAllBindings(opts).map((b) => b.value);
+  }
+
+  getParentScope(): SymbolTable<Binding> | undefined {
+    return this.#bindings.parent;
   }
 
   setBinding<BSpace extends BindingsSpace>(
@@ -88,17 +99,30 @@ export class BindingsManager {
     value: RelativeBinding<BSpace>['value'],
     memSpace: BSpace,
     isGlobal = false,
+    parent?: RelativeBinding<BSpace>,
   ): void {
-    this.#setBinding(name, value, memSpace, isGlobal);
+    this.#setBinding(
+      {
+        identifier: name,
+        value,
+        type: memSpace,
+        parent,
+      } as Binding,
+      isGlobal,
+    );
   }
 
-  setBindings(bindings: Binding[], isGlobal = false): void {
-    bindings.forEach(({ identifier, value, type }) => {
-      this.#setBinding(identifier, value, type, isGlobal);
-    });
+  setBindings(bindingOrbindings: Binding | Binding[], isGlobal = false): void {
+    if (Array.isArray(bindingOrbindings)) {
+      bindingOrbindings.forEach((b) => {
+        this.#setBinding(b, isGlobal);
+      });
+    } else {
+      this.#setBinding(bindingOrbindings, isGlobal);
+    }
   }
 
-  mergeBindings(...bindings: Binding[]): void {
+  mergeBindings(bindings: Binding[]): void {
     bindings.forEach((b) => {
       if (!this.hasBinding(b.identifier, b.type)) {
         this.#bindings.add(b);
@@ -106,18 +130,7 @@ export class BindingsManager {
     });
   }
 
-  #setBinding(
-    identifier: string,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    value: any,
-    type: BindingsSpace,
-    isGlobal: boolean,
-  ): void {
-    const binding: Binding = {
-      identifier: identifier,
-      value,
-      type,
-    };
+  #setBinding(binding: Binding, isGlobal: boolean): void {
     try {
       if (isGlobal) {
         this.#bindings.addToGlobalScope(binding);
@@ -126,9 +139,9 @@ export class BindingsManager {
       }
     } catch (err) {
       throw new ErrorException(
-        `${
-          isGlobal ? 'global' : ''
-        } binding ${identifier} already exists on current scope of ${type} memory space`,
+        `${isGlobal ? 'global' : ''} binding ${
+          binding.identifier
+        } already exists on current scope of ${binding.type} memory space`,
       );
     }
   }
