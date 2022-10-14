@@ -67,13 +67,15 @@ export class EVMcrispr {
   readonly signer: Signer;
 
   #std: Std;
-  #modules: Module[] = [];
-  #nonces: Record<string, number> = {};
+  #modules: Module[];
+  #nonces: Record<string, number>;
 
   constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
 
     this.bindingsManager = new BindingsManager();
+    this.#modules = [];
+    this.#nonces = {};
     this.#setDefaultBindings();
 
     this.signer = signer;
