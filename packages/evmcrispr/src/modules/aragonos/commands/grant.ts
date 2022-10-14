@@ -194,10 +194,24 @@ export const grant: ICommand<AragonOS> = {
           (role) => !dao.hasPermission(grantee, appAddress, role),
         );
       }
-      case 3:
+      case 3: {
+        const appNode = nodeArgs[1];
+        const dao = getDAO(bindingsManager, appNode);
+        const appAddress = interpretNodeSync(appNode, bindingsManager);
+        const role = interpretNodeSync(nodeArgs[2], bindingsManager);
+
+        if (
+          !appAddress ||
+          !role ||
+          dao.hasPermissionManager(appAddress, role)
+        ) {
+          return [];
+        }
+
         return bindingsManager.getAllBindingIdentifiers({
           spaceFilters: [BindingsSpace.ADDR],
         });
+      }
     }
     return [];
   },
@@ -207,10 +221,10 @@ export const grant: ICommand<AragonOS> = {
       return;
     }
 
-    return (currentBindingsManager) => {
-      const dao = getDAO(currentBindingsManager, c.args[1]);
+    return (eagerBindingsManager) => {
+      const dao = getDAO(eagerBindingsManager, c.args[1]);
       const argValues = c.args.map((arg) =>
-        interpretNodeSync(arg, currentBindingsManager),
+        interpretNodeSync(arg, eagerBindingsManager),
       );
 
       try {

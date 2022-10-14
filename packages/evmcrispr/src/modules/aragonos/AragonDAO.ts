@@ -10,9 +10,10 @@ import type {
   Entity,
   LabeledAppIdentifier,
   ParsedApp,
+  Role,
 } from './types';
 import type { IPFSResolver } from '../../IPFSResolver';
-import { addressesEqual, calculateNewProxyAddress } from '../../utils';
+import { calculateNewProxyAddress } from '../../utils';
 import {
   buildApp,
   buildAppArtifact,
@@ -197,38 +198,48 @@ export class AragonDAO implements IDataProvider {
     return this.appCache.get(resolvedIdentifier);
   }
 
+  getPermission(entity: Entity, roleNameOrHash: string): Role | undefined {
+    const roleHash = normalizeRole(roleNameOrHash);
+    const app = this.resolveApp(entity);
+
+    if (!app || !app.permissions.has(roleHash)) {
+      return;
+    }
+
+    return app.permissions.get(roleHash)!;
+  }
+
   hasPermission(
     entity: Address,
     appIdentifier: LabeledAppIdentifier,
     roleNameOrHash: string,
   ): boolean {
-    const roleHash = normalizeRole(roleNameOrHash);
-    const app = this.resolveApp(appIdentifier);
+    const role = this.getPermission(appIdentifier, roleNameOrHash);
 
-    if (!app || !app.permissions.has(roleHash)) {
-      return false;
-    }
-
-    const role = app.permissions.get(roleHash)!;
-
-    return role.grantees.has(entity);
+    return !!role && role.grantees.has(entity);
   }
 
-  isPermissionManager(
-    entity: Address,
-    appIdentifier: LabeledAppIdentifier,
-    roleNameOrHash: string,
-  ): boolean {
-    const roleHash = normalizeRole(roleNameOrHash);
-    const app = this.resolveApp(appIdentifier);
+  hasPermissionManager(entity: Entity, roleNameOrHash: string): boolean {
+    const role = this.getPermission(entity, roleNameOrHash);
 
-    if (!app || app.permissions.has(roleHash)) {
+    if (!role) {
       return false;
     }
 
-    const role = app.permissions.get(roleHash)!;
+    return !!role.manager;
+  }
 
-    return role.manager ? addressesEqual(entity, role.manager) : false;
+  getPermissionManager(
+    entity: Entity,
+    roleNameOrHash: string,
+  ): Address | undefined {
+    const role = this.getPermission(entity, roleNameOrHash);
+
+    if (!role) {
+      return;
+    }
+
+    return role.manager;
   }
 
   clone(): AragonDAO {
