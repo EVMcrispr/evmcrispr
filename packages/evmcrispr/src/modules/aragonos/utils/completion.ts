@@ -4,18 +4,24 @@ import type { BindingsManager } from '../../../BindingsManager';
 import type { DataProviderBinding } from '../../../types';
 import { BindingsSpace } from '../../../types';
 import type { AragonDAO } from '../AragonDAO';
-import { DATA_PROVIDER_TYPE } from '../AragonDAO';
 import type { AppIdentifier } from '../types';
 import { createDaoPrefixedIdentifier } from './identifiers';
 
 export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
-  const dataProviders = bindingsManager.getAllBindingValues({
-    spaceFilters: [BindingsSpace.DATA_PROVIDER],
-  }) as DataProviderBinding['value'][];
-  const daos = dataProviders.filter<AragonDAO>(
-    (dataProvider): dataProvider is AragonDAO =>
-      dataProvider.type === DATA_PROVIDER_TYPE,
-  );
+  const daos: AragonDAO[] = [];
+
+  let currentDAOBinding = bindingsManager.getBinding(
+    'currentDAO',
+    BindingsSpace.DATA_PROVIDER,
+  ) as DataProviderBinding<AragonDAO> | undefined;
+
+  while (currentDAOBinding) {
+    daos.push(currentDAOBinding.value);
+    currentDAOBinding = currentDAOBinding.parent as
+      | DataProviderBinding<AragonDAO>
+      | undefined;
+  }
+
   return daos;
 };
 
@@ -25,7 +31,7 @@ export const getDAOAppIdentifiers = (
   const daos = getDAOs(bindingsManager);
 
   return daos.flatMap((dao, i) => {
-    const firstDAO = i === daos.length - 1;
+    const firstDAO = i === 0;
     return [...dao.appCache.keys()].map((appIdentifier) => {
       const formattedIdentifier = appIdentifier.endsWith(':1')
         ? appIdentifier.slice(0, -2)

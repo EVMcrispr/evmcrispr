@@ -2,8 +2,7 @@ import { ErrorException } from '../../../errors';
 import type { Action, ICommand, InterpretOptions } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { checkPermissionFormat, getDAO } from '../utils/commands';
-import type { FullPermission } from '../types';
+import { getDAO, isPermission } from '../utils/commands';
 import { normalizeRole } from '../utils';
 
 export const revoke: ICommand<AragonOS> = {
@@ -14,7 +13,7 @@ export const revoke: ICommand<AragonOS> = {
       maxValue: 4,
     });
 
-    const dao = getDAO(module, c, 1);
+    const dao = getDAO(module.bindingsManager, c.args[1]);
 
     const args = await Promise.all(
       c.args.map((arg, i) => {
@@ -24,7 +23,7 @@ export const revoke: ICommand<AragonOS> = {
       }),
     );
 
-    checkPermissionFormat(args.slice(0, 3) as FullPermission);
+    isPermission(args.slice(0, 3));
 
     const [granteeAddress, appAddress, role, removeManager] = args;
 

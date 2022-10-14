@@ -1,6 +1,8 @@
 import type { utils } from 'ethers';
 import type { AstSymbol } from 'jsymbol';
 
+import type { BindingsManager } from '../BindingsManager';
+
 import type { Commands, HelperFunctions, IDataProvider } from './modules';
 
 export enum BindingsSpace {
@@ -16,6 +18,7 @@ export enum BindingsSpace {
 export interface IBinding<V> extends AstSymbol<BindingsSpace> {
   type: BindingsSpace;
   value: V;
+  parent?: IBinding<V>;
 }
 
 export type ModuleData = {
@@ -43,13 +46,16 @@ export interface AliasBinding extends IBinding<string> {
   type: BindingsSpace.ALIAS;
 }
 
-export interface DataProviderBinding extends IBinding<IDataProvider> {
+export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
+  extends IBinding<T> {
   type: BindingsSpace.DATA_PROVIDER;
 }
 
 export interface InterpreterBinding extends IBinding<string> {
   type: BindingsSpace.INTERPRETER;
 }
+
+export type LazyBindings = (currentBindingsManager: BindingsManager) => void;
 
 export type Binding =
   | AddressBinding

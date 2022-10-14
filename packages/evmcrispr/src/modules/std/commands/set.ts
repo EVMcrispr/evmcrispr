@@ -8,17 +8,12 @@ const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;
 
 export const set: ICommand<Std> = {
-  buildCompletionItemsForArg(argIndex, nodeArgs, cache) {
+  buildCompletionItemsForArg(argIndex, _, cache) {
     switch (argIndex) {
       case 0:
         return [];
       case 1: {
-        const currentVarName = nodeArgs[0].value;
-        const labels = cache
-          .getAllBindingIdentifiers({ spaceFilters: [ADDR] })
-          // Filter out the variable being declared
-          .filter((identifier) => identifier !== currentVarName);
-        return labels;
+        return cache.getAllBindingIdentifiers({ spaceFilters: [ADDR] });
       }
       default:
         return [];
@@ -47,7 +42,9 @@ export const set: ICommand<Std> = {
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
-      return { identifier: varName, value: varValueNode?.value, type: USER };
+
+      return (eagerBindingsManager) =>
+        eagerBindingsManager.setBinding(varName, varValueNode.value, USER);
     }
   },
 };

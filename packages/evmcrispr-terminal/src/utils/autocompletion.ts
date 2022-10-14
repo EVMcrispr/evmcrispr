@@ -1,13 +1,18 @@
 import type {
-  AliasBinding,
-  Binding,
   BindingsManager,
   CommandExpressionNode,
   ICommand,
+  LazyBindings,
   ModuleBinding,
   ModuleData,
+  Position,
 } from '@1hive/evmcrispr';
-import { BindingsSpace, stdCommands, stdHelpers } from '@1hive/evmcrispr';
+import {
+  BindingsSpace,
+  calculateCurrentArgIndex,
+  stdCommands,
+  stdHelpers,
+} from '@1hive/evmcrispr';
 import type { IRange, languages } from 'monaco-editor';
 
 type CompletionItem = languages.CompletionItem;
@@ -16,10 +21,12 @@ type EagerExecParams = [
   AllEagerExecParams[1],
   AllEagerExecParams[2],
   AllEagerExecParams[3],
-  AllEagerExecParams[4],
 ];
 
-export type ModulesRegistry = Record<string, ModuleData>;
+export type ModulesRegistry = Record<
+  string,
+  { data: ModuleData; alias: string }
+>;
 
 const { MODULE, USER } = BindingsSpace;
 
@@ -31,122 +38,169 @@ const DEFAULT_MODULE_BINDING: ModuleBinding = {
 
 export const runLoadCommands = async (
   commandNodes: CommandExpressionNode[],
-  ...eagerExecFnParams: EagerExecParams
-): Promise<(AliasBinding | ModuleBinding)[]> => {
+  eagerBindingsManager: BindingsManager,
+  ...eagerFnParams: EagerExecParams
+): Promise<void> => {
+  eagerBindingsManager.setBinding(
+    'std',
+    { commands: stdCommands, helpers: stdHelpers },
+    BindingsSpace.MODULE,
+  );
+  eagerBindingsManager.setBinding('std', 'std', BindingsSpace.ALIAS);
   const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
-  const moduleAndAliasBindings = (
-    await runEagerExecutions(
-      loadCommandNodes,
-      { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
-      ...eagerExecFnParams,
-    )
-  ).flat() as (AliasBinding | ModuleBinding)[];
-
-  return [DEFAULT_MODULE_BINDING, ...moduleAndAliasBindings];
-};
-
-export const buildModuleRegistry = (
-  moduleBindings: ModuleBinding[],
-  aliasBindings: AliasBinding[],
-): ModulesRegistry => {
-  return aliasBindings.reduce<ModulesRegistry>(
-    (prevRegistry, { identifier: aliasName, value: moduleName }) => {
-      const module = moduleBindings.find(
-        (b) => b.identifier === moduleName,
-      )!.value;
-
-      prevRegistry[moduleName] = module;
-      prevRegistry[aliasName] = module;
-
-      return prevRegistry;
-    },
-    { [DEFAULT_MODULE_BINDING.identifier]: DEFAULT_MODULE_BINDING.value },
+  await runEagerExecutions(
+    loadCommandNodes,
+    eagerBindingsManager,
+    ...eagerFnParams,
   );
 };
 
 export const resolveCommandNode = (
   c: CommandExpressionNode,
-  moduleRegistry: ModulesRegistry,
+  eagerBindingsManager: BindingsManager,
 ): ICommand | undefined => {
-  const commandModule = c.module ?? DEFAULT_MODULE_BINDING.identifier;
-  const moduleData = moduleRegistry[commandModule];
+  const moduleName = c.module ?? DEFAULT_MODULE_BINDING.identifier;
+  const resolvedModuleName =
+    eagerBindingsManager.getBindingValue(moduleName, BindingsSpace.ALIAS) ??
+    moduleName;
+  const module = eagerBindingsManager.getBindingValue(
+    resolvedModuleName,
+    BindingsSpace.MODULE,
+  );
 
-  return moduleData?.commands[c.name];
+  if (!module) {
+    return;
+  }
+
+  return module.commands[c.name];
 };
 
 export const runEagerExecutions = async (
   commandNodes: CommandExpressionNode[],
-  moduleRegistry: ModulesRegistry,
-  ...eagerExecFnParams: EagerExecParams
-): Promise<(Binding | Binding[])[]> => {
-  const commandsSet = new Set<string>();
-  const commandEagerExecutionFns = commandNodes.reverse().map((c) => {
-    const fullName = `${c.module}:${c.name}`;
-    const eagerFn = resolveCommandNode(c, moduleRegistry)!.runEagerExecution(
-      c,
-      ...eagerExecFnParams,
-      commandsSet.has(fullName),
-    );
-    commandsSet.add(fullName);
+  eagerBindingsManager: BindingsManager,
+  ...eagerFnParams: EagerExecParams
+): Promise<void> => {
+  const executedCommands = new Set<string>();
 
-    return eagerFn;
-  });
-  const bindings = (await Promise.all(commandEagerExecutionFns)).filter<
-    Binding | Binding[]
-  >((b): b is Binding | Binding[] => !!b);
+  // Prepare all eager run functions
+  const commandEagerExecutionFns = [...commandNodes]
+    /**
+     * Reverse the command list in order to keep track of
+     * the first executed command of every type
+     */
+    .reverse()
+    .map((c) => {
+      const commandFullName = `${c.module}:${c.name}`;
 
-  return bindings.reverse();
+      const command = resolveCommandNode(c, eagerBindingsManager);
+
+      if (!command) {
+        return;
+      }
+
+      const isClosestCommandToCaret = !executedCommands.has(commandFullName);
+      const eagerFn = command.runEagerExecution(
+        c,
+        ...eagerFnParams,
+        isClosestCommandToCaret,
+      );
+
+      executedCommands.add(commandFullName);
+
+      return eagerFn;
+    });
+
+  // Execute them all at once
+  const lazyBindingResolvers = (
+    await Promise.all(commandEagerExecutionFns)
+  ).filter<LazyBindings>((b): b is LazyBindings => !!b);
+
+  // Populate the eager bindings manager by resolving the lazy bindings
+  lazyBindingResolvers
+    /**
+     * Reverse back the lazy binding resolvers so we execute them
+     * in the the order the original commands were given
+     */
+    .reverse()
+    .forEach((resolveLazyBinding) => resolveLazyBinding(eagerBindingsManager));
 };
 
-const getPrefix = (aliasBindings: AliasBinding[], moduleName: string): string =>
-  aliasBindings.find((b) => b.value === moduleName)?.identifier ?? moduleName;
-
 export const buildModuleCompletionItems = async (
-  moduleBindings: ModuleBinding[],
-  aliasBindings: AliasBinding[] = [],
-  range: IRange,
+  bindingsManager: BindingsManager,
+  range: /* IRange */ any,
 ): Promise<{
   commandCompletionItems: CompletionItem[];
   helperCompletionItems: CompletionItem[];
 }> => {
-  const modulePrefixesAndData: [string | undefined, ModuleData][] =
-    moduleBindings.map((b) => [
-      b.identifier === DEFAULT_MODULE_BINDING.identifier
-        ? undefined
-        : getPrefix(aliasBindings, b.identifier),
-      b.value,
-    ]);
+  const moduleBindings = bindingsManager.getAllBindings({
+    spaceFilters: [BindingsSpace.MODULE],
+  }) as ModuleBinding[];
+
+  const moduleAliases = moduleBindings.map(
+    ({ identifier }) =>
+      bindingsManager.getBindingValue(identifier, BindingsSpace.ALIAS) ??
+      identifier,
+  );
 
   return {
-    commandCompletionItems: modulePrefixesAndData.flatMap(([prefix, m]) =>
-      Object.keys(m.commands)
-        .map((name) => `${prefix ? `${prefix}:` : ''}${name}`)
-        .map((name) => ({
-          label: name,
-          insertText: name,
-          kind: 1,
-          range,
-        })),
+    commandCompletionItems: moduleBindings.flatMap(
+      ({ value: module }, index) => {
+        const moduleAlias = moduleAliases[index];
+        return Object.keys(module.commands)
+          .map(
+            (commandName) =>
+              `${
+                moduleAlias === DEFAULT_MODULE_BINDING.identifier
+                  ? ''
+                  : `${moduleAlias}:`
+              }${commandName}`,
+          )
+          .map((name) => ({
+            label: name,
+            insertText: name,
+            kind: 1,
+            range,
+          }));
+      },
     ),
 
     // TODO: add prefixes to helpers after it's supported on parsers
-    helperCompletionItems: modulePrefixesAndData
-      .flatMap(([, m]) => Object.keys(m.helpers).map((name) => `@${name}`))
-      .map((name) => ({
-        label: name,
-        insertText: `${name}()`,
-        kind: 9,
-        sortText: '3',
-        range,
-      })),
+    helperCompletionItems: moduleBindings.flatMap(({ value: module }) => {
+      return Object.keys(module.helpers)
+        .map((helperName) => `@${helperName}`)
+        .map((name) => ({
+          label: name,
+          insertText: `${name}()`,
+          kind: 9,
+          sortText: '3',
+          range,
+        }));
+    }),
   };
 };
 
 export const buildVarCompletionItems = (
   bindings: BindingsManager,
   range: IRange,
+  currentCommandNode: CommandExpressionNode,
+  currentPos: Position,
 ): CompletionItem[] => {
-  const varNames = bindings.getAllBindingIdentifiers({ spaceFilters: [USER] });
+  const currentArgIndex = calculateCurrentArgIndex(
+    currentCommandNode,
+    currentPos,
+  );
+  let varNames = bindings.getAllBindingIdentifiers({ spaceFilters: [USER] });
+
+  if (currentCommandNode.name === 'set') {
+    // Don't return suggestions for a variable declaration
+    if (currentArgIndex === 0) {
+      return [];
+      // Don't return the current declared variable as a suggestion
+    } else if (currentArgIndex === 1) {
+      const currentVarName = currentCommandNode.args[0].value;
+      varNames = varNames.filter((varName) => varName !== currentVarName);
+    }
+  }
 
   return varNames.map(
     (name): languages.CompletionItem => ({

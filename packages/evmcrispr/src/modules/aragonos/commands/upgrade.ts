@@ -21,7 +21,7 @@ export const upgrade: ICommand<AragonOS> = {
       maxValue: 2,
     });
 
-    const dao = getDAO(module, c, 0);
+    const dao = getDAO(module.bindingsManager, c.args[0]);
 
     const kernel = dao.getAppContract('kernel')!;
 

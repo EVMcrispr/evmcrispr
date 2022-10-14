@@ -3,13 +3,7 @@ import {
   checkArgsLength,
   insideNodeLocation,
 } from '../../../utils';
-import type {
-  AliasBinding,
-  AsExpressionNode,
-  ICommand,
-  ModuleBinding,
-  ModuleExports,
-} from '../../../types';
+import type { AsExpressionNode, ICommand, ModuleExports } from '../../../types';
 import { BindingsSpace, NodeType } from '../../../types';
 import { AragonOS } from '../../aragonos/AragonOS';
 import type { Std } from '../Std';
@@ -91,10 +85,7 @@ export const load: ICommand<Std> = {
         return [];
     }
   },
-  async runEagerExecution(
-    { args },
-    cache,
-  ): Promise<ModuleBinding | (AliasBinding | ModuleBinding)[] | undefined> {
+  async runEagerExecution({ args }, cache) {
     if (!args.length) {
       return;
     }
@@ -110,18 +101,17 @@ export const load: ICommand<Std> = {
     } else {
       moduleName = moduleNameArg.value;
     }
-    const aliasBinding: AliasBinding | undefined = moduleAlias
-      ? {
-          type: ALIAS,
-          identifier: moduleAlias,
-          value: moduleName,
-        }
-      : undefined;
 
     const moduleBinding = cache.getBinding(moduleName, MODULE);
 
     if (moduleBinding) {
-      return aliasBinding ? [aliasBinding, moduleBinding] : moduleBinding;
+      return (eagerBindingsManager) => {
+        if (moduleAlias) {
+          eagerBindingsManager.setBinding(moduleName, moduleAlias, ALIAS);
+          eagerBindingsManager.setBinding(moduleAlias, moduleName, ALIAS);
+        }
+        eagerBindingsManager.setBindings(moduleBinding);
+      };
     }
 
     try {
@@ -130,16 +120,21 @@ export const load: ICommand<Std> = {
         `../../${moduleName}`
       )) as ModuleExports;
 
-      const newModuleBinding: ModuleBinding = {
-        type: MODULE,
-        identifier: moduleName,
-        value: {
-          commands,
-          helpers,
-        },
-      };
+      // Cache module
+      cache.setBinding(moduleName, { commands, helpers }, MODULE);
 
-      return aliasBinding ? [aliasBinding, newModuleBinding] : newModuleBinding;
+      return (eagerBindingsManager) => {
+        if (moduleAlias) {
+          eagerBindingsManager.setBinding(moduleName, moduleAlias, ALIAS);
+          eagerBindingsManager.setBinding(moduleAlias, moduleName, ALIAS);
+        }
+
+        eagerBindingsManager.setBinding(
+          moduleName,
+          { commands, helpers },
+          MODULE,
+        );
+      };
     } catch (err) {
       return;
     }

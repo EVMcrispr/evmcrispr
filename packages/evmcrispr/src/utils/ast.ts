@@ -15,7 +15,10 @@ import { BindingsSpace, NodeType } from '../types';
 
 const {
   AddressLiteral,
+  BoolLiteral,
   BlockExpression,
+  BytesLiteral,
+  NumberLiteral,
   StringLiteral,
   ProbableIdentifier,
   VariableIdentifier,
@@ -91,23 +94,28 @@ export const calculateCurrentArgIndex = (
 export const hasCommandsBlock = (n: NodeWithArguments): boolean =>
   !!n.args.find((arg) => arg.type === BlockExpression);
 
-export const getAddressFromNode = (
+export const interpretNodeSync = (
   n: Node,
   bindingsManager: BindingsManager,
 ): Address | undefined => {
   switch (n.type) {
     case AddressLiteral:
-      return n.value;
+    case BoolLiteral:
+    case BytesLiteral:
     case StringLiteral:
+      return n.value;
+    case NumberLiteral:
       return utils.isAddress(n.value) ? n.value : undefined;
     case ProbableIdentifier:
-      return bindingsManager.getBindingValue(n.value, BindingsSpace.ADDR);
+      return (
+        bindingsManager.getBindingValue(n.value, BindingsSpace.ADDR) ?? n.value
+      );
     case VariableIdentifier: {
       const value = bindingsManager.getBindingValue(
         n.value,
         BindingsSpace.USER,
       );
-      return value && utils.isAddress(value) ? value : undefined;
+      return value;
     }
   }
 };

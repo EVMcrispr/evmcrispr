@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 
 import { BindingsSpace } from '../../../types';
-import type { Address, ICommand } from '../../../types';
+import type { AbiBinding, Address, ICommand } from '../../../types';
 
 import {
   ComparisonType,
@@ -10,8 +10,8 @@ import {
   beforeOrEqualNode,
   checkArgsLength,
   encodeAction,
-  getAddressFromNode,
   insideNodeLine,
+  interpretNodeSync,
 } from '../../../utils';
 import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
@@ -100,21 +100,20 @@ export const exec: ICommand<Std> = {
         });
       // Contract method
       case 1: {
-        const contractAddress = getAddressFromNode(
-          nodeArgs[0],
-          bindingsManager,
-        );
-        if (!contractAddress) {
+        const value = interpretNodeSync(nodeArgs[0], bindingsManager);
+        if (!value || !utils.isAddress(value)) {
           return [];
         }
-        const abi = bindingsManager.getBindingValue(contractAddress, ABI);
+        const abi = bindingsManager.getBindingValue(value, ABI);
         if (!abi) {
           return [];
         }
         const nonConstantFns = Object.keys(abi.functions)
           // Only consider functions that change state
           .filter((fnName) => !abi.functions[fnName].constant)
-          .map((fnName) => abi.functions[fnName].format());
+          .map((fnName) => {
+            return abi.functions[fnName].format();
+          });
         return nonConstantFns;
       }
       default: {
@@ -127,7 +126,7 @@ export const exec: ICommand<Std> = {
       }
     }
   },
-  async runEagerExecution(c, cache, provider, _, caretPos) {
+  async runEagerExecution(c, cache, { provider }, caretPos) {
     if (
       !insideNodeLine(c, caretPos) ||
       !c.args.length ||
@@ -136,32 +135,40 @@ export const exec: ICommand<Std> = {
       return;
     }
 
-    const contractAddress = getAddressFromNode(c.args[0], cache);
+    const value = interpretNodeSync(c.args[0], cache);
 
-    if (!contractAddress) {
+    if (!value || !utils.isAddress(value)) {
       return;
     }
 
-    const cachedAbi = cache.getBindingValue(contractAddress, BindingsSpace.ABI);
+    const cachedAbi = cache.getBindingValue(value, BindingsSpace.ABI);
 
     if (cachedAbi) {
-      return {
-        type: BindingsSpace.ABI,
-        identifier: contractAddress,
-        value: cachedAbi,
+      return (eagerBindingsManager) => {
+        eagerBindingsManager.mergeBindings([
+          {
+            type: BindingsSpace.ABI,
+            identifier: value,
+            value: cachedAbi,
+          },
+        ]);
       };
     }
 
-    const [targetAddress, abi] = await fetchAbi(contractAddress, provider, '');
+    const [targetAddress, abi] = await fetchAbi(value, provider, '');
 
-    const addresses = addressesEqual(targetAddress, contractAddress)
-      ? [contractAddress]
-      : [contractAddress, targetAddress];
+    const addresses = addressesEqual(targetAddress, value)
+      ? [value]
+      : [value, targetAddress];
 
-    return addresses.map((addr) => ({
-      type: BindingsSpace.ABI,
-      identifier: addr,
-      value: abi,
-    }));
+    return (eagerBindingsManager) => {
+      const abiBindings = addresses.map<AbiBinding>((addr) => ({
+        type: BindingsSpace.ABI,
+        identifier: addr,
+        value: abi,
+      }));
+
+      eagerBindingsManager.mergeBindings(abiBindings);
+    };
   },
 };

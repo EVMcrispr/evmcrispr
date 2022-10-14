@@ -85,7 +85,7 @@ export const resolveIdentifier = (
     const [, , appIndex] = parseAppIdentifier(identifier)!;
 
     if (!appIndex) {
-      return `${identifier}:0`;
+      return `${identifier}:1`;
     }
     return identifier;
   }

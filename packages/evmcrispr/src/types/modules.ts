@@ -1,4 +1,4 @@
-import type { ethers } from 'ethers';
+import type { Signer, providers } from 'ethers';
 
 import type { Action } from './actions';
 import type {
@@ -10,7 +10,7 @@ import type {
 import type { BindingsManager } from '../BindingsManager';
 import type { IPFSResolver } from '../IPFSResolver';
 import type { Module } from '../Module';
-import type { Binding } from './bindings';
+import type { LazyBindings } from './bindings';
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -45,22 +45,21 @@ export type HelperFunction<T> = (
 ) => Promise<string>;
 export type HelperFunctions<T = Module> = Record<string, HelperFunction<T>>;
 
-export interface ICommand<T extends Module = Module> {
+export interface ICommand<M extends Module = Module> {
   buildCompletionItemsForArg(
     argIndex: number,
     nodeArgs: Node[],
     bindingsManager: BindingsManager,
     caretPos: Position,
   ): string[];
-  run: CommandFunction<T>;
+  run: CommandFunction<M>;
   runEagerExecution(
     c: CommandExpressionNode,
     cache: BindingsManager,
-    provider: ethers.providers.Provider,
-    ipfsResolver: IPFSResolver,
+    fetchers: { ipfsResolver: IPFSResolver; provider: providers.Provider },
     caretPos: Position,
     closestCommandToCaret: boolean,
-  ): Promise<Binding | Binding[] | void>;
+  ): Promise<LazyBindings | void>;
 }
 export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
 
@@ -72,4 +71,14 @@ export interface ModuleExports<T extends Module = Module> {
 
 export interface IDataProvider {
   readonly type: string;
+}
+
+export interface IModuleConstructor {
+  new (
+    bindingsManager: BindingsManager,
+    nonces: Record<string, number>,
+    signer: Signer,
+    ipfsResolver: IPFSResolver,
+    alias?: string,
+  ): Module;
 }

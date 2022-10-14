@@ -7,21 +7,125 @@ import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
-  getAddressFromNode,
   getOptValue,
+  interpretNodeSync,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { checkPermissionFormat, getDAO } from '../utils/commands';
+import { getDAO, isPermission } from '../utils/commands';
 import {
   getAppRoles,
   getDAOAppIdentifiers,
   normalizeRole,
   oracle,
 } from '../utils';
-import type { FullPermission, Params } from '../types';
+import type { CompletePermission, Params } from '../types';
+import type { AragonDAO } from '../AragonDAO';
+
+const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
+  const [granteeAddress, appAddress, role, permissionManager, params = []] =
+    permission;
+
+  const roleHash = normalizeRole(role);
+
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    throw new ErrorException(`${appAddress} is not a DAO's app`);
+  }
+
+  const { permissions: appPermissions, name } = app;
+  const { address: aclAddress, abiInterface: aclAbiInterface } =
+    dao!.resolveApp('acl')!;
+  const actions: Action[] = [];
+
+  if (!appPermissions.has(roleHash)) {
+    // TODO: get app identifier. Maybe set it on cache
+    throw new ErrorException(`given permission doesn't exists on app ${name}`);
+  }
+
+  const appPermission = appPermissions.get(roleHash)!;
+
+  // If the permission already existed and no parameters are needed, just grant to a new entity and exit
+  if (
+    appPermission.manager !== '' &&
+    appPermission.manager !== constants.AddressZero &&
+    params.length == 0
+  ) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      // TODO: get app identifier. Maybe set it on cache
+      throw new ErrorException(
+        `grantee already has given permission on app ${name}`,
+      );
+    }
+    appPermission.grantees.add(granteeAddress);
+
+    return [
+      {
+        to: aclAddress,
+        data: aclAbiInterface.encodeFunctionData('grantPermission', [
+          granteeAddress,
+          appAddress,
+          roleHash,
+        ]),
+      },
+    ];
+  }
+
+  // If the permission does not exist previously, create it
+  if (
+    appPermission.manager === '' ||
+    appPermission.manager === constants.AddressZero
+  ) {
+    if (!permissionManager) {
+      throw new ErrorException('required permission manager missing');
+    }
+
+    if (!utils.isAddress(permissionManager)) {
+      throw new ErrorException(
+        `invalid permission manager. Expected an address, but got ${permissionManager}`,
+      );
+    }
+    appPermissions.set(roleHash, {
+      manager: permissionManager,
+      grantees: new Set([granteeAddress]),
+    });
+
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('createPermission', [
+        granteeAddress,
+        appAddress,
+        roleHash,
+        permissionManager,
+      ]),
+    });
+  }
+
+  // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
+  if (params.length > 0) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      throw new ErrorException(
+        `grantee ${granteeAddress} already has given permission on app ${name}`,
+      );
+    }
+    appPermission.grantees.add(granteeAddress);
+
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
+        granteeAddress,
+        appAddress,
+        roleHash,
+        params,
+      ]),
+    });
+  }
+
+  return actions;
+};
 
 export const grant: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode }) {
+  async run({ bindingsManager }, c, { interpretNode }) {
     checkArgsLength(c, {
       type: ComparisonType.Between,
       minValue: 3,
@@ -29,10 +133,15 @@ export const grant: ICommand<AragonOS> = {
     });
     checkOpts(c, ['oracle']);
 
-    const dao = getDAO(module, c, 1);
+    const dao = getDAO(bindingsManager, c.args[1]);
 
     const permissionMangerArgNode = c.args[3];
-    const permission = await Promise.all(
+    const permissionManager = permissionMangerArgNode
+      ? await interpretNode(permissionMangerArgNode, {
+          allowNotFoundError: true,
+        })
+      : undefined;
+    const [grantee, app, role] = await Promise.all(
       c.args.slice(0, 3).map((arg, i) => {
         const opts: Partial<InterpretOptions> | undefined =
           i !== 2 ? { allowNotFoundError: true } : undefined;
@@ -40,35 +149,7 @@ export const grant: ICommand<AragonOS> = {
         return interpretNode(arg, opts);
       }),
     );
-
-    checkPermissionFormat(permission as FullPermission);
-
-    const [granteeAddress, appAddress, role] = permission;
-
-    const roleHash = normalizeRole(role);
-
-    const app = dao.resolveApp(appAddress);
-
-    if (!app) {
-      throw new ErrorException(`${appAddress} is not a DAO's app`);
-    }
-
-    const { permissions: appPermissions, name } = app;
-    const { address: aclAddress, abiInterface: aclAbiInterface } =
-      dao!.resolveApp('acl')!;
-    const actions: Action[] = [];
-
-    if (!appPermissions.has(roleHash)) {
-      // TODO: get app identifier. Maybe set it on cache
-      throw new ErrorException(
-        `given permission doesn't exists on app ${name}`,
-      );
-    }
-
-    const appPermission = appPermissions.get(roleHash)!;
-
     const oracleOpt = await getOptValue(c, 'oracle', interpretNode);
-    let params: ReturnType<Params> = [];
 
     if (oracleOpt && !utils.isAddress(oracleOpt)) {
       throw new ErrorException(
@@ -76,92 +157,19 @@ export const grant: ICommand<AragonOS> = {
       );
     }
 
+    let params: ReturnType<Params> = [];
+
     if (oracleOpt) {
       params = oracle(oracleOpt)();
     }
 
-    // If the permission already existed and no parameters are needed, just grant to a new entity and exit
-    if (
-      appPermission.manager !== '' &&
-      appPermission.manager !== constants.AddressZero &&
-      params.length == 0
-    ) {
-      if (appPermission.grantees.has(granteeAddress)) {
-        // TODO: get app identifier. Maybe set it on cache
-        throw new ErrorException(
-          `grantee already has given permission on app ${name}`,
-        );
-      }
-      appPermission.grantees.add(granteeAddress);
+    const permission: any[] = [grantee, app, role, permissionManager, params];
 
-      return [
-        {
-          to: aclAddress,
-          data: aclAbiInterface.encodeFunctionData('grantPermission', [
-            granteeAddress,
-            appAddress,
-            roleHash,
-          ]),
-        },
-      ];
+    if (!isPermission(permission)) {
+      throw new ErrorException('Invalid permission');
     }
 
-    // If the permission does not exist previously, create it
-    if (
-      appPermission.manager === '' ||
-      appPermission.manager === constants.AddressZero
-    ) {
-      if (!permissionMangerArgNode) {
-        throw new ErrorException('required permission manager missing');
-      }
-
-      const defaultPermissionManagerAddress = await interpretNode(
-        permissionMangerArgNode,
-        { allowNotFoundError: true },
-      );
-
-      if (!utils.isAddress(defaultPermissionManagerAddress)) {
-        throw new ErrorException(
-          `invalid permission manager. Expected an address, but got ${defaultPermissionManagerAddress}`,
-        );
-      }
-      appPermissions.set(roleHash, {
-        manager: defaultPermissionManagerAddress,
-        grantees: new Set([granteeAddress]),
-      });
-
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('createPermission', [
-          granteeAddress,
-          appAddress,
-          roleHash,
-          defaultPermissionManagerAddress,
-        ]),
-      });
-    }
-
-    // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
-    if (params.length > 0) {
-      if (appPermission.grantees.has(granteeAddress)) {
-        throw new ErrorException(
-          `grantee ${granteeAddress} already has given permission on app ${name}`,
-        );
-      }
-      appPermission.grantees.add(granteeAddress);
-
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
-          granteeAddress,
-          appAddress,
-          roleHash,
-          params,
-        ]),
-      });
-    }
-
-    return actions;
+    return _grant(dao, permission);
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
     switch (argIndex) {
@@ -173,13 +181,18 @@ export const grant: ICommand<AragonOS> = {
         return getDAOAppIdentifiers(bindingsManager);
       case 2: {
         const appNode = nodeArgs[1];
-        const appAddress = getAddressFromNode(appNode, bindingsManager);
+        const grantee = interpretNodeSync(nodeArgs[0], bindingsManager);
+        const dao = getDAO(bindingsManager, appNode);
+        const appAddress = interpretNodeSync(appNode, bindingsManager);
 
-        if (!appAddress) {
+        if (!grantee || !appAddress || !utils.isAddress(appAddress)) {
           return [];
         }
 
-        return getAppRoles(bindingsManager, appAddress);
+        // Get the available roles for the given grantee on the given app
+        return getAppRoles(bindingsManager, appAddress).filter(
+          (role) => !dao.hasPermission(grantee, appAddress, role),
+        );
       }
       case 3:
         return bindingsManager.getAllBindingIdentifiers({
@@ -188,7 +201,28 @@ export const grant: ICommand<AragonOS> = {
     }
     return [];
   },
-  async runEagerExecution() {
-    return;
+  async runEagerExecution(c, _, __, caretPos) {
+    // Skip over current commands
+    if (caretPos.line <= c.loc!.start.line) {
+      return;
+    }
+
+    return (currentBindingsManager) => {
+      const dao = getDAO(currentBindingsManager, c.args[1]);
+      const argValues = c.args.map((arg) =>
+        interpretNodeSync(arg, currentBindingsManager),
+      );
+
+      try {
+        if (!isPermission(argValues)) {
+          return;
+        }
+
+        _grant(dao, argValues);
+        // eslint-disable-next-line no-empty
+      } catch (err) {}
+
+      return;
+    };
   },
 };

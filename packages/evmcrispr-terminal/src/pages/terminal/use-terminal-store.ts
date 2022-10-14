@@ -1,5 +1,4 @@
-import type { Binding } from '@1hive/evmcrispr';
-import { BindingsManager, BindingsSpace, IPFSResolver } from '@1hive/evmcrispr';
+import { BindingsManager, IPFSResolver } from '@1hive/evmcrispr';
 import { createStore } from '@udecode/zustood';
 
 const scriptPlaceholder = `# Available commands:
@@ -63,32 +62,7 @@ const terminalStore = createStore('terminal-store')(initialState, {
     }),
   },
   devtools: { enabled: process.env.NODE_ENV === 'development' },
-}).extendActions((set, get) => ({
-  updateBindingsCache(...bindings: (Binding | Binding[] | undefined)[]) {
-    const flattenBindings = bindings
-      .filter<Binding | Binding[]>((b): b is Binding | Binding[] => !!b)
-      .flat();
-    const newBindings = flattenBindings
-      .filter((b) =>
-        [
-          BindingsSpace.DATA_PROVIDER,
-          BindingsSpace.MODULE,
-          BindingsSpace.ABI,
-        ].includes(b.type),
-      )
-      .filter(
-        ({ identifier, type }) =>
-          !get.bindingsCache().hasBinding(identifier, type),
-      );
-
-    if (newBindings.length) {
-      console.log('UPDATING CACHE');
-      set.state((draft) => {
-        draft.bindingsCache.mergeBindings(...newBindings);
-      });
-    }
-  },
-}));
+});
 
 export const useTerminalStore = terminalStore.useStore;
 export const terminalStoreSelectors = terminalStore.use;

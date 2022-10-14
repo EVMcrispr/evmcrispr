@@ -1,6 +1,5 @@
 import {
   BindingsManager,
-  BindingsSpace,
   EVMcrispr,
   calculateCurrentArgIndex,
   hasCommandsBlock,
@@ -9,10 +8,8 @@ import {
 } from '@1hive/evmcrispr';
 import type {
   Action,
-  AliasBinding,
   CommandExpressionNode,
   ForwardOptions,
-  ModuleBinding,
   Position,
 } from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
@@ -44,7 +41,6 @@ import Footer from '../../components/footer';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import {
   buildModuleCompletionItems,
-  buildModuleRegistry,
   buildVarCompletionItems,
   resolveCommandNode,
   runEagerExecutions,
@@ -146,7 +142,6 @@ export const Terminal = () => {
         provideCompletionItems: async (model, currPos) => {
           console.log('CALLING FUNCTION');
           const { ast } = parseScript(model.getValue());
-
           const lineContent = model.getLineContent(currPos.lineNumber).trim();
           const emptyLine = !lineContent.length;
           const { startColumn, endColumn } =
@@ -173,33 +168,19 @@ export const Terminal = () => {
             ast.getCommandsUntilLine(currPos.lineNumber, ['load', 'set']);
 
           // Build module bindings
-          const loadBindings = await runLoadCommands(
+          await runLoadCommands(
             commandNodes,
+            eagerBindingsManager,
             bindingsCache,
-            provider,
-            ipfsResolver,
+            { provider, ipfsResolver },
             calibratedPos,
-          );
-          const moduleBindings = loadBindings.filter<ModuleBinding>(
-            (b): b is ModuleBinding => b.type === BindingsSpace.MODULE,
-          );
-          const aliasBindings = loadBindings.filter<AliasBinding>(
-            (b): b is AliasBinding => b.type === BindingsSpace.ALIAS,
-          );
-          const modulesRegistry = buildModuleRegistry(
-            moduleBindings,
-            aliasBindings,
           );
 
           const currentCommandNode = commandNodes[commandNodes.length - 1];
 
           // Build module completion items
           const { commandCompletionItems, helperCompletionItems } =
-            await buildModuleCompletionItems(
-              moduleBindings,
-              aliasBindings,
-              range,
-            );
+            await buildModuleCompletionItems(eagerBindingsManager, range);
 
           const typingCommand =
             emptyLine ||
@@ -236,45 +217,31 @@ export const Terminal = () => {
               );
             })
             // Filter out command nodes with unknown module prefixes
-            .filter((c) => !!resolveCommandNode(c, modulesRegistry));
+            .filter((c) => !!resolveCommandNode(c, eagerBindingsManager));
 
-          // Get bindings from eager execution functions
-          const eagerBindings = await runEagerExecutions(
+          // Run eager execution to get lazy bindings
+          await runEagerExecutions(
             filteredCommandNodes,
-            modulesRegistry,
+            eagerBindingsManager,
             bindingsCache,
-            provider,
-            ipfsResolver,
+            { provider, ipfsResolver },
             calibratedPos,
           );
-
-          // Populate eager bindings manager
-          eagerBindings.forEach((bindingOrBindings, i) => {
-            const commandNode = filteredCommandNodes[i];
-
-            if (hasCommandsBlock(commandNode)) {
-              eagerBindingsManager.enterScope();
-            }
-
-            eagerBindingsManager.mergeBindings(
-              ...(Array.isArray(bindingOrBindings)
-                ? bindingOrBindings
-                : [bindingOrBindings]),
-            );
-          });
 
           const variableCompletionItems = buildVarCompletionItems(
             eagerBindingsManager,
             range,
+            currentCommandNode,
+            calibratedPos,
           );
 
           let currentArgCompletions: languages.CompletionItem[] = [];
           const lastCommand = resolveCommandNode(
             currentCommandNode,
-            modulesRegistry,
+            eagerBindingsManager,
           );
 
-          if (lastCommand && lastCommand.buildCompletionItemsForArg) {
+          if (lastCommand) {
             currentArgCompletions = lastCommand
               .buildCompletionItemsForArg(
                 calculateCurrentArgIndex(currentCommandNode, calibratedPos),
@@ -290,12 +257,6 @@ export const Terminal = () => {
                 kind: 3,
               }));
           }
-
-          // Update cache with latest bindings
-          terminalStoreActions.updateBindingsCache(
-            moduleBindings,
-            eagerBindings.flat(),
-          );
 
           return {
             suggestions: [
