@@ -101,15 +101,18 @@ export const runEagerExecutions = async (
       }
 
       const isClosestCommandToCaret = !executedCommands.has(commandFullName);
-      const eagerFn = command.runEagerExecution(
-        c,
-        ...eagerFnParams,
-        isClosestCommandToCaret,
-      );
 
-      executedCommands.add(commandFullName);
+      try {
+        const eagerFn = command.runEagerExecution(
+          c,
+          ...eagerFnParams,
+          isClosestCommandToCaret,
+        );
+        executedCommands.add(commandFullName);
 
-      return eagerFn;
+        return eagerFn;
+        // eslint-disable-next-line no-empty
+      } catch (err) {}
     });
 
   // Execute them all at once
@@ -124,7 +127,12 @@ export const runEagerExecutions = async (
      * in the the order the original commands were given
      */
     .reverse()
-    .forEach((resolveLazyBinding) => resolveLazyBinding(eagerBindingsManager));
+    .forEach((resolveLazyBinding) => {
+      try {
+        resolveLazyBinding(eagerBindingsManager);
+        // eslint-disable-next-line no-empty
+      } catch (err) {}
+    });
 };
 
 export const buildModuleCompletionItems = (

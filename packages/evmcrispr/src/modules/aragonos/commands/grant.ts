@@ -215,28 +215,18 @@ export const grant: ICommand<AragonOS> = {
     }
     return [];
   },
-  async runEagerExecution(c, _, __, caretPos) {
-    // Skip over current commands
-    if (caretPos.line <= c.loc!.start.line) {
-      return;
-    }
-
+  async runEagerExecution(c) {
     return (eagerBindingsManager) => {
       const dao = getDAO(eagerBindingsManager, c.args[1]);
       const argValues = c.args.map((arg) =>
         interpretNodeSync(arg, eagerBindingsManager),
       );
 
-      try {
-        if (!isPermission(argValues)) {
-          return;
-        }
+      if (!isPermission(argValues)) {
+        return;
+      }
 
-        _grant(dao, argValues);
-        // eslint-disable-next-line no-empty
-      } catch (err) {}
-
-      return;
+      _grant(dao, argValues);
     };
   },
 };
