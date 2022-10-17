@@ -1,16 +1,15 @@
-import {
-  BindingsManager,
-  EVMcrispr,
-  calculateCurrentArgIndex,
-  hasCommandsBlock,
-  isProviderAction,
-  parseScript,
-} from '@1hive/evmcrispr';
 import type {
   Action,
   CommandExpressionNode,
   ForwardOptions,
   Position,
+} from '@1hive/evmcrispr';
+import {
+  BindingsManager,
+  EVMcrispr,
+  hasCommandsBlock,
+  isProviderAction,
+  parseScript,
 } from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
@@ -30,7 +29,7 @@ import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import type { providers } from 'ethers';
 
-import type { IRange, languages } from 'monaco-editor';
+import type { IRange } from 'monaco-editor';
 
 import { theme } from '../../editor/theme';
 import { conf, contribution } from '../../editor/evmcl';
@@ -40,6 +39,7 @@ import FadeIn from '../../components/animations/fade-in';
 import Footer from '../../components/footer';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import {
+  buildCurrentArgCompletionItems,
   buildModuleCompletionItems,
   buildVarCompletionItems,
   resolveCommandNode,
@@ -82,8 +82,14 @@ const executeActions = async (
   return txs;
 };
 
-const calculateCommandNameLength = (c: CommandExpressionNode) =>
-  ((c.module ?? '') + (c.module ? ':' : '') + c.name).length;
+const calculateCommandNameLength = (c: CommandExpressionNode) => {
+  const offset = c.loc?.start.col ?? 0;
+  // Take into account colon as well
+  const moduleNameLength = (c.module ?? '').length;
+  const colonLength = c.module ? 1 : 0;
+
+  return offset + moduleNameLength + colonLength + c.name.length;
+};
 
 export const Terminal = () => {
   const monaco = useMonaco();
@@ -136,17 +142,16 @@ export const Terminal = () => {
     }
     console.log('REGISTERING COMPLETION ITEM');
 
+    let lastCaretLine = 0;
+    let lastCurrentCommands: CommandExpressionNode[] = [];
+
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'evmcl',
       {
         provideCompletionItems: async (model, currPos) => {
-          console.log('CALLING FUNCTION');
-          const { ast } = parseScript(model.getValue());
-          const lineContent = model.getLineContent(currPos.lineNumber).trim();
-          const emptyLine = !lineContent.length;
+          const currentLineContent = model.getLineContent(currPos.lineNumber);
           const { startColumn, endColumn } =
             model.getWordUntilPosition(currPos);
-
           const range: IRange = {
             startLineNumber: currPos.lineNumber,
             endLineNumber: currPos.lineNumber,
@@ -155,48 +160,62 @@ export const Terminal = () => {
             endColumn: model.getWordAtPosition(currPos)?.endColumn ?? endColumn,
           };
           // Monaco editor positions start at 1
-          const calibratedPos: Position = {
+          const calibratedCurrPos: Position = {
             col: currPos.column - 1,
             line: currPos.lineNumber,
           };
-
-          // Prepare eager bindings manager
+          const isSameLine = currPos.lineNumber === lastCaretLine;
           const eagerBindingsManager = new BindingsManager();
 
+          /**
+           * Compute the AST of large scripts can get expensive.
+           * Do it only when the caret's line has changed.
+           */
+          if (!isSameLine) {
+            const { ast } = parseScript(model.getValue());
+            const commands = ast.getCommandsUntilLine(
+              Math.max(calibratedCurrPos.line, 0),
+              ['load', 'set'],
+            );
+            const lastCommand = commands[commands.length - 1];
+
+            if (
+              lastCommand &&
+              lastCommand.loc?.start.line === calibratedCurrPos.line
+            ) {
+              commands.pop();
+            }
+
+            lastCurrentCommands = commands;
+            lastCaretLine = calibratedCurrPos.line;
+          }
+
+          const { ast: currentLineAST } = parseScript(
+            [
+              /**
+               * Add previous lines to keep the correct
+               * current line location
+               */
+              ...Array(currPos.lineNumber - 1).map(() => ''),
+              currentLineContent,
+            ].join('\n'),
+          );
+          const currentCommandNode = currentLineAST.body[0];
+
           // Get command nodes until caret position
-          const commandNodes: CommandExpressionNode[] =
-            ast.getCommandsUntilLine(currPos.lineNumber, ['load', 'set']);
+          const currentCommandNodes: CommandExpressionNode[] =
+            lastCurrentCommands;
 
           // Build module bindings
           await runLoadCommands(
-            commandNodes,
+            currentCommandNodes,
             eagerBindingsManager,
             bindingsCache,
             { provider, ipfsResolver },
-            calibratedPos,
+            calibratedCurrPos,
           );
 
-          const currentCommandNode = commandNodes[commandNodes.length - 1];
-
-          // Build module completion items
-          const { commandCompletionItems, helperCompletionItems } =
-            await buildModuleCompletionItems(eagerBindingsManager, range);
-
-          const typingCommand =
-            emptyLine ||
-            // Check if caret position is within the command name location
-            (!!currentCommandNode.loc &&
-              calibratedPos.col >= currentCommandNode.loc.start.col &&
-              calibratedPos.col <=
-                calculateCommandNameLength(currentCommandNode));
-
-          if (typingCommand) {
-            return {
-              suggestions: commandCompletionItems,
-            };
-          }
-
-          const filteredCommandNodes = commandNodes
+          const filteredCommandNodes = currentCommandNodes
             // Filter out load command nodes previously resolved
             .filter((c) => c.name !== 'load')
             /**
@@ -206,8 +225,7 @@ export const Terminal = () => {
             .filter((c) => {
               const itHasCommandsBlock = hasCommandsBlock(c);
               const loc = c.loc;
-              const currentLine = calibratedPos.line;
-
+              const currentLine = calibratedCurrPos.line;
               return (
                 !itHasCommandsBlock ||
                 (itHasCommandsBlock &&
@@ -219,48 +237,52 @@ export const Terminal = () => {
             // Filter out command nodes with unknown module prefixes
             .filter((c) => !!resolveCommandNode(c, eagerBindingsManager));
 
-          // Run eager execution to get lazy bindings
           await runEagerExecutions(
-            filteredCommandNodes,
+            currentCommandNode
+              ? [...filteredCommandNodes, currentCommandNode]
+              : filteredCommandNodes,
             eagerBindingsManager,
             bindingsCache,
             { provider, ipfsResolver },
-            calibratedPos,
+            calibratedCurrPos,
           );
+
+          // Build module completion items
+          const { commandCompletionItems, helperCompletionItems } =
+            buildModuleCompletionItems(eagerBindingsManager, range);
+          const emptyLine = !currentLineContent.trim().length;
+
+          const displayCommandSuggestions =
+            emptyLine ||
+            // Check if caret position is within the command name location
+            (!!currentCommandNode?.loc &&
+              calibratedCurrPos.col >= currentCommandNode.loc.start.col &&
+              calibratedCurrPos.col <=
+                calculateCommandNameLength(currentCommandNode));
+
+          if (displayCommandSuggestions) {
+            return {
+              suggestions: commandCompletionItems,
+            };
+          }
 
           const variableCompletionItems = buildVarCompletionItems(
             eagerBindingsManager,
+            currentCommandNode,
             range,
-            currentCommandNode,
-            calibratedPos,
+            calibratedCurrPos,
           );
 
-          let currentArgCompletions: languages.CompletionItem[] = [];
-          const lastCommand = resolveCommandNode(
-            currentCommandNode,
+          const currentArgCompletionItems = buildCurrentArgCompletionItems(
             eagerBindingsManager,
+            currentCommandNode,
+            range,
+            calibratedCurrPos,
           );
-
-          if (lastCommand) {
-            currentArgCompletions = lastCommand
-              .buildCompletionItemsForArg(
-                calculateCurrentArgIndex(currentCommandNode, calibratedPos),
-                currentCommandNode.args,
-                eagerBindingsManager,
-                calibratedPos,
-              )
-              .map<languages.CompletionItem>((identifier) => ({
-                label: identifier,
-                insertText: identifier,
-                range,
-                sortText: '1',
-                kind: 3,
-              }));
-          }
 
           return {
             suggestions: [
-              ...currentArgCompletions,
+              ...currentArgCompletionItems,
               ...helperCompletionItems,
               ...variableCompletionItems,
             ],
@@ -345,6 +367,8 @@ export const Terminal = () => {
               fontSize: 22,
               fontFamily: 'Ubuntu Mono',
               detectIndentation: false,
+              quickSuggestionsDelay: 50,
+              suggestOnTriggerCharacters: false,
               tabSize: 2,
               language: 'evmcl',
               minimap: {

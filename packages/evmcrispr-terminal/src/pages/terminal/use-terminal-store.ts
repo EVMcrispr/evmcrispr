@@ -35,7 +35,6 @@ const scriptPlaceholder = `# Available commands:
 `;
 
 type TerminalStoreState = {
-  aliases: BindingsManager;
   bindingsCache: BindingsManager;
   ipfsResolver: IPFSResolver;
   script: string;
@@ -44,7 +43,6 @@ type TerminalStoreState = {
 };
 
 const initialState: TerminalStoreState = {
-  aliases: new BindingsManager(),
   bindingsCache: new BindingsManager(),
   ipfsResolver: new IPFSResolver(),
   script: scriptPlaceholder,

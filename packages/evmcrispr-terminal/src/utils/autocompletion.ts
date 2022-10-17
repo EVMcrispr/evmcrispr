@@ -13,8 +13,10 @@ import {
   stdCommands,
   stdHelpers,
 } from '@1hive/evmcrispr';
-import type { IRange, languages } from 'monaco-editor';
+import type { IRange } from 'monaco-editor';
+import { languages } from 'monaco-editor';
 
+const { Field, Property, Variable } = languages.CompletionItemKind;
 type CompletionItem = languages.CompletionItem;
 type AllEagerExecParams = Parameters<Required<ICommand>['runEagerExecution']>;
 type EagerExecParams = [
@@ -125,20 +127,20 @@ export const runEagerExecutions = async (
     .forEach((resolveLazyBinding) => resolveLazyBinding(eagerBindingsManager));
 };
 
-export const buildModuleCompletionItems = async (
-  bindingsManager: BindingsManager,
-  range: /* IRange */ any,
-): Promise<{
+export const buildModuleCompletionItems = (
+  eagerBindingsManager: BindingsManager,
+  range: IRange,
+): {
   commandCompletionItems: CompletionItem[];
   helperCompletionItems: CompletionItem[];
-}> => {
-  const moduleBindings = bindingsManager.getAllBindings({
+} => {
+  const moduleBindings = eagerBindingsManager.getAllBindings({
     spaceFilters: [BindingsSpace.MODULE],
   }) as ModuleBinding[];
 
   const moduleAliases = moduleBindings.map(
     ({ identifier }) =>
-      bindingsManager.getBindingValue(identifier, BindingsSpace.ALIAS) ??
+      eagerBindingsManager.getBindingValue(identifier, BindingsSpace.ALIAS) ??
       identifier,
   );
 
@@ -171,7 +173,7 @@ export const buildModuleCompletionItems = async (
         .map((name) => ({
           label: name,
           insertText: `${name}()`,
-          kind: 9,
+          kind: Property,
           sortText: '3',
           range,
         }));
@@ -180,16 +182,18 @@ export const buildModuleCompletionItems = async (
 };
 
 export const buildVarCompletionItems = (
-  bindings: BindingsManager,
-  range: IRange,
+  eagerBindingsManager: BindingsManager,
   currentCommandNode: CommandExpressionNode,
+  range: IRange,
   currentPos: Position,
 ): CompletionItem[] => {
   const currentArgIndex = calculateCurrentArgIndex(
     currentCommandNode,
     currentPos,
   );
-  let varNames = bindings.getAllBindingIdentifiers({ spaceFilters: [USER] });
+  let varNames = eagerBindingsManager.getAllBindingIdentifiers({
+    spaceFilters: [USER],
+  });
 
   if (currentCommandNode.name === 'set') {
     // Don't return suggestions for a variable declaration
@@ -203,12 +207,44 @@ export const buildVarCompletionItems = (
   }
 
   return varNames.map(
-    (name): languages.CompletionItem => ({
+    (name): CompletionItem => ({
       label: name,
       insertText: name,
-      kind: 4,
+      kind: Variable,
       sortText: '2',
       range,
     }),
   );
+};
+
+export const buildCurrentArgCompletionItems = (
+  eagerBindingsManager: BindingsManager,
+  currentCommandNode: CommandExpressionNode,
+  range: IRange,
+  currentPos: Position,
+): CompletionItem[] => {
+  let currentArgCompletionItems: languages.CompletionItem[] = [];
+
+  const lastCommand = currentCommandNode
+    ? resolveCommandNode(currentCommandNode, eagerBindingsManager)
+    : undefined;
+
+  if (lastCommand) {
+    currentArgCompletionItems = lastCommand
+      .buildCompletionItemsForArg(
+        calculateCurrentArgIndex(currentCommandNode, currentPos),
+        currentCommandNode.args,
+        eagerBindingsManager,
+        currentPos,
+      )
+      .map<languages.CompletionItem>((identifier) => ({
+        label: identifier,
+        insertText: identifier,
+        range,
+        sortText: '1',
+        kind: Field,
+      }));
+  }
+
+  return currentArgCompletionItems;
 };
