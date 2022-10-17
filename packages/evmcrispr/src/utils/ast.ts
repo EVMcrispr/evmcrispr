@@ -49,6 +49,10 @@ export const insideNodeLocation = ({ loc }: Node, pos: Position): boolean => {
   );
 };
 
+export const inSameLineThanNode = ({ loc }: Node, pos: Position): boolean => {
+  return loc?.start.line === pos.line;
+};
+
 export const beforeOrEqualNode = (
   { loc }: Node,
   pos: Position,
@@ -60,7 +64,7 @@ export const beforeOrEqualNode = (
 
   return (
     pos.line === loc.start.line &&
-    pos.col < loc[strictBefore ? 'start' : 'end'].col
+    pos.col <= loc[strictBefore ? 'start' : 'end'].col
   );
 };
 

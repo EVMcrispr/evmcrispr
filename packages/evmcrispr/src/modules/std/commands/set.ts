@@ -1,7 +1,11 @@
 import { ErrorException } from '../../../errors';
 import { BindingsSpace, NodeType } from '../../../types';
 import type { ICommand } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import {
+  ComparisonType,
+  checkArgsLength,
+  inSameLineThanNode,
+} from '../../../utils';
 import type { Std } from '../Std';
 
 const { VariableIdentifier } = NodeType;
@@ -37,8 +41,12 @@ export const set: ICommand<Std> = {
 
     module.bindingsManager.setBinding(varName, varValue, USER, true);
   },
-  async runEagerExecution({ args }) {
-    const [varNameNode, varValueNode] = args;
+  async runEagerExecution(c, _, __, caretPos) {
+    if (inSameLineThanNode(c, caretPos)) {
+      return;
+    }
+
+    const [varNameNode, varValueNode] = c.args;
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
