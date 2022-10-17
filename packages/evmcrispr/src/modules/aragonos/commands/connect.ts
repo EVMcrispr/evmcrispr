@@ -278,8 +278,8 @@ export const connect: ICommand<AragonOS> = {
     const daoNode = args[0];
 
     if (
-      beforeOrEqualNode(daoNode, caretPos) ||
       !daoNode ||
+      beforeOrEqualNode(daoNode, caretPos) ||
       !isAddressNodishType(daoNode)
     ) {
       return;
