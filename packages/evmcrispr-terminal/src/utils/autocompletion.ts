@@ -14,8 +14,11 @@ import {
   stdCommands,
   stdHelpers,
 } from '@1hive/evmcrispr';
+import { utils } from 'ethers';
 import type { IRange } from 'monaco-editor';
 import { languages } from 'monaco-editor';
+
+import { shortenAddress } from './web3';
 
 const { Field, Property, Variable } = languages.CompletionItemKind;
 type CompletionItem = languages.CompletionItem;
@@ -269,7 +272,9 @@ export const buildCurrentArgCompletionItems = (
         currentPos,
       )
       .map<languages.CompletionItem>((identifier) => ({
-        label: identifier,
+        label: utils.isAddress(identifier)
+          ? shortenAddress(identifier)
+          : identifier,
         insertText: identifier,
         range,
         sortText: '1',
