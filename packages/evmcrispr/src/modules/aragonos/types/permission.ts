@@ -1,4 +1,5 @@
 import type { Address } from '../../../types';
+import type { AddressSet } from '../AddressSet';
 import type { AppIdentifier, LabeledAppIdentifier } from './app';
 
 /**
@@ -66,7 +67,7 @@ export interface Role {
   /**
    * The entities that are allowed to perform this permission.
    */
-  grantees: Set<Address>;
+  grantees: AddressSet;
 }
 
 /**

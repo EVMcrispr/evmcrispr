@@ -10,11 +10,13 @@ import type {
   Entity,
   LabeledAppIdentifier,
   ParsedApp,
+  PermissionMap,
   Role,
 } from './types';
 import type { IPFSResolver } from '../../IPFSResolver';
 import { calculateNewProxyAddress } from '../../utils';
 import {
+  INITIAL_APP_INDEX,
   buildApp,
   buildAppArtifact,
   buildAppIdentifier,
@@ -139,7 +141,7 @@ export class AragonDAO implements IDataProvider {
   }
 
   get kernel(): App {
-    return this.resolveApp('kernel:1')!;
+    return this.resolveApp(`kernel${INITIAL_APP_INDEX}`)!;
   }
 
   get name(): string | undefined {
@@ -196,6 +198,13 @@ export class AragonDAO implements IDataProvider {
     const resolvedIdentifier = resolveIdentifier(entity);
 
     return this.appCache.get(resolvedIdentifier);
+  }
+
+  getPermissions(): [string, PermissionMap][] {
+    return [...this.appCache.entries()].map(([appName, app]) => [
+      appName,
+      app.permissions,
+    ]);
   }
 
   getPermission(entity: Entity, roleNameOrHash: string): Role | undefined {

@@ -20,6 +20,7 @@ import {
 } from '../utils';
 import type { CompletePermission, Params } from '../types';
 import type { AragonDAO } from '../AragonDAO';
+import { AddressSet } from '../AddressSet';
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -87,7 +88,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     }
     appPermissions.set(roleHash, {
       manager: permissionManager,
-      grantees: new Set([granteeAddress]),
+      grantees: new AddressSet([granteeAddress]),
     });
 
     actions.push({

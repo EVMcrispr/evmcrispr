@@ -47,7 +47,7 @@ export interface AliasBinding extends IBinding<string> {
 }
 
 export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
-  extends IBinding<T | null> {
+  extends IBinding<T> {
   type: BindingsSpace.DATA_PROVIDER;
 }
 

@@ -20,6 +20,7 @@ import {
   BURN_ENTITY,
   NO_ENTITY,
   createDaoPrefixedIdentifier,
+  formatAppIdentifier,
   getDAOAppIdentifiers,
 } from '../utils';
 import {
@@ -47,9 +48,7 @@ const buildAppBindings = (
   addPrefixedBindings: boolean,
 ): (AbiBinding | AddressBinding)[] => {
   const bindingIdentifiers = [];
-  const finalAppIdentifier = appIdentifier.endsWith(':1')
-    ? appIdentifier.slice(0, -2)
-    : appIdentifier;
+  const finalAppIdentifier = formatAppIdentifier(appIdentifier);
 
   bindingIdentifiers.push(finalAppIdentifier);
 

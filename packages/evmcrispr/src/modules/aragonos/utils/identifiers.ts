@@ -7,6 +7,8 @@ import type { BindingsManager } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
+export const INITIAL_APP_INDEX = ':1';
+
 // eslint-disable-next-line
 export const appIdentifierRegex =
   /^((?!-)[a-z0-9-]{1,63}(?<!-))(?:\.([a-z0-9-]{1,63}))?(?::([0-9]{1,63}))?$/;
@@ -78,6 +80,17 @@ export const parseLabeledAppIdentifier = (
   ];
 };
 
+export const formatAppIdentifier = (
+  appIdentifier: LabeledAppIdentifier,
+): string => {
+  // Remove redundant index
+  if (appIdentifier.endsWith(INITIAL_APP_INDEX)) {
+    return appIdentifier.slice(0, -2);
+  }
+
+  return appIdentifier;
+};
+
 export const resolveIdentifier = (
   identifier: string,
 ): AppIdentifier | LabeledAppIdentifier => {
@@ -85,7 +98,7 @@ export const resolveIdentifier = (
     const [, , appIndex] = parseAppIdentifier(identifier)!;
 
     if (!appIndex) {
-      return `${identifier}:1`;
+      return `${identifier}${INITIAL_APP_INDEX}`;
     }
     return identifier;
   }

@@ -5,7 +5,10 @@ import type { DataProviderBinding } from '../../../types';
 import { BindingsSpace } from '../../../types';
 import type { AragonDAO } from '../AragonDAO';
 import type { AppIdentifier } from '../types';
-import { createDaoPrefixedIdentifier } from './identifiers';
+import {
+  createDaoPrefixedIdentifier,
+  formatAppIdentifier,
+} from './identifiers';
 
 export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
   const daos: AragonDAO[] = [];
@@ -33,9 +36,7 @@ export const getDAOAppIdentifiers = (
   return daos.flatMap((dao, i) => {
     const firstDAO = i === 0;
     return [...dao.appCache.keys()].map((appIdentifier) => {
-      const formattedIdentifier = appIdentifier.endsWith(':1')
-        ? appIdentifier.slice(0, -2)
-        : appIdentifier;
+      const formattedIdentifier = formatAppIdentifier(appIdentifier);
       return firstDAO
         ? formattedIdentifier
         : createDaoPrefixedIdentifier(
