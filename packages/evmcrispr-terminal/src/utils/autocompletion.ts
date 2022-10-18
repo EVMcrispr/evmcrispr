@@ -10,6 +10,7 @@ import type {
 import {
   BindingsSpace,
   calculateCurrentArgIndex,
+  hasCommandsBlock,
   stdCommands,
   stdHelpers,
 } from '@1hive/evmcrispr';
@@ -43,13 +44,10 @@ export const runLoadCommands = async (
   eagerBindingsManager: BindingsManager,
   ...eagerFnParams: EagerExecParams
 ): Promise<void> => {
-  eagerBindingsManager.setBinding(
-    'std',
-    { commands: stdCommands, helpers: stdHelpers },
-    BindingsSpace.MODULE,
-  );
-  eagerBindingsManager.setBinding('std', 'std', BindingsSpace.ALIAS);
+  eagerBindingsManager.setBindings(DEFAULT_MODULE_BINDING);
+
   const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
+
   await runEagerExecutions(
     loadCommandNodes,
     eagerBindingsManager,
@@ -60,11 +58,15 @@ export const runLoadCommands = async (
 export const resolveCommandNode = (
   c: CommandExpressionNode,
   eagerBindingsManager: BindingsManager,
+  parentModule: string,
 ): ICommand | undefined => {
-  const moduleName = c.module ?? DEFAULT_MODULE_BINDING.identifier;
+  const moduleName =
+    c.module ?? parentModule ?? DEFAULT_MODULE_BINDING.identifier;
+
   const resolvedModuleName =
     eagerBindingsManager.getBindingValue(moduleName, BindingsSpace.ALIAS) ??
     moduleName;
+
   const module = eagerBindingsManager.getBindingValue(
     resolvedModuleName,
     BindingsSpace.MODULE,
@@ -82,8 +84,22 @@ export const runEagerExecutions = async (
   eagerBindingsManager: BindingsManager,
   ...eagerFnParams: EagerExecParams
 ): Promise<void> => {
-  const executedCommands = new Set<string>();
+  let parentCommandModule = DEFAULT_MODULE_BINDING.identifier;
+  /**
+   * Keep track of commands' modules across nested command blocks
+   */
+  const commandToModule = commandNodes.reduce<string[]>(
+    (commandToModule, c) => {
+      if (hasCommandsBlock(c)) {
+        parentCommandModule = c.module ?? parentCommandModule;
+      }
+      commandToModule.push(c.module ?? parentCommandModule);
+      return commandToModule;
+    },
+    [],
+  );
 
+  const executedCommands = new Set<string>();
   // Prepare all eager run functions
   const commandEagerExecutionFns = [...commandNodes]
     /**
@@ -91,10 +107,15 @@ export const runEagerExecutions = async (
      * the first executed command of every type
      */
     .reverse()
-    .map((c) => {
-      const commandFullName = `${c.module}:${c.name}`;
+    .map((c, index) => {
+      const commandModule = commandToModule[commandToModule.length - 1 - index];
+      const commandFullName = `${commandModule}:${c.name}`;
 
-      const command = resolveCommandNode(c, eagerBindingsManager);
+      const command = resolveCommandNode(
+        c,
+        eagerBindingsManager,
+        commandModule,
+      );
 
       if (!command) {
         return;
@@ -142,6 +163,9 @@ export const buildModuleCompletionItems = (
   commandCompletionItems: CompletionItem[];
   helperCompletionItems: CompletionItem[];
 } => {
+  const scopeModule =
+    eagerBindingsManager.getScopeModule() ?? DEFAULT_MODULE_BINDING.identifier;
+
   const moduleBindings = eagerBindingsManager.getAllBindings({
     spaceFilters: [BindingsSpace.MODULE],
   }) as ModuleBinding[];
@@ -160,9 +184,7 @@ export const buildModuleCompletionItems = (
           .map(
             (commandName) =>
               `${
-                moduleAlias === DEFAULT_MODULE_BINDING.identifier
-                  ? ''
-                  : `${moduleAlias}:`
+                scopeModule === moduleAlias ? '' : `${moduleAlias}:`
               }${commandName}`,
           )
           .map((name) => ({
@@ -228,13 +250,14 @@ export const buildVarCompletionItems = (
 export const buildCurrentArgCompletionItems = (
   eagerBindingsManager: BindingsManager,
   currentCommandNode: CommandExpressionNode,
+  parentModule: string,
   range: IRange,
   currentPos: Position,
 ): CompletionItem[] => {
   let currentArgCompletionItems: languages.CompletionItem[] = [];
 
   const lastCommand = currentCommandNode
-    ? resolveCommandNode(currentCommandNode, eagerBindingsManager)
+    ? resolveCommandNode(currentCommandNode, eagerBindingsManager, parentModule)
     : undefined;
 
   if (lastCommand) {

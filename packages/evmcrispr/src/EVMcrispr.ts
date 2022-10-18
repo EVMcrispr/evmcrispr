@@ -54,12 +54,7 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-const { ABI, ADDR, INTERPRETER, USER } = BindingsSpace;
-
-// Interpreter bindings
-
-// Implicit module use inside block expressions
-const CONTEXTUAL_MODULE = 'contextualModule';
+const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 
 export class EVMcrispr {
   readonly ast: Cas11AST;
@@ -195,10 +190,12 @@ export class EVMcrispr {
     n,
     options,
   ) => {
-    const left = await this.interpretNode(n.left, options);
-    const right = await this.interpretNode(n.right, options);
+    const name = await this.interpretNode(n.left, options);
+    const alias = await this.interpretNode(n.right, options);
 
-    return [left, right];
+    this.bindingsManager.setBinding(name, alias, ALIAS);
+
+    return [name, alias];
   };
 
   #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
@@ -249,15 +246,7 @@ export class EVMcrispr {
     n,
     { blockInitializer, blockModule } = {},
   ) => {
-    this.bindingsManager.enterScope();
-
-    if (blockModule) {
-      this.bindingsManager.setBinding(
-        CONTEXTUAL_MODULE,
-        blockModule,
-        INTERPRETER,
-      );
-    }
+    this.bindingsManager.enterScope(blockModule);
 
     if (blockInitializer) {
       await blockInitializer();
@@ -312,11 +301,7 @@ export class EVMcrispr {
 
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (c) => {
     let module: Module | undefined = this.#std;
-    const moduleName =
-      c.module ??
-      (this.bindingsManager.getBindingValue(CONTEXTUAL_MODULE, INTERPRETER) as
-        | string
-        | undefined);
+    const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
     if (moduleName && moduleName !== 'std') {
       module = this.#modules.find((m) => m.contextualName === moduleName);

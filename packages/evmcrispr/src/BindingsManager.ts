@@ -1,7 +1,8 @@
 import { SymbolTable } from 'jsymbol';
 
 import { ErrorException } from './errors';
-import type { Binding, BindingsSpace, RelativeBinding } from './types';
+import type { Binding, RelativeBinding } from './types';
+import { BindingsSpace } from './types';
 
 type AllBindingsOpts = {
   onlyLocal?: boolean;
@@ -12,6 +13,8 @@ const defaultOpts: AllBindingsOpts = {
   onlyLocal: false,
   spaceFilters: [],
 };
+
+const SCOPE_MODULE_IDENTIFIER = 'scopeModule';
 
 export const isSpaceBinding =
   <BSpace extends BindingsSpace>(space: BSpace) =>
@@ -28,8 +31,22 @@ export class BindingsManager {
     });
   }
 
-  enterScope(): void {
+  enterScope(scopeModule?: string): void {
+    const scopeModuleValue =
+      scopeModule ??
+      // Use parent's scope module when none was provided
+      this.getBindingValue(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER) ??
+      'std';
+
     this.#bindings.enterScope();
+
+    const b: Binding = {
+      identifier: SCOPE_MODULE_IDENTIFIER,
+      value: scopeModuleValue,
+      type: BindingsSpace.OTHER,
+    };
+
+    this.#setBinding(b, false);
   }
 
   exitScope(): void {
@@ -91,6 +108,10 @@ export class BindingsManager {
 
   getParentScope(): SymbolTable<Binding> | undefined {
     return this.#bindings.parent;
+  }
+
+  getScopeModule(): string | undefined {
+    return this.#getBinding(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER);
   }
 
   setBinding<BSpace extends BindingsSpace>(

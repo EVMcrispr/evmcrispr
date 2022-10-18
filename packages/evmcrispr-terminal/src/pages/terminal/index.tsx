@@ -42,7 +42,6 @@ import {
   buildCurrentArgCompletionItems,
   buildModuleCompletionItems,
   buildVarCompletionItems,
-  resolveCommandNode,
   runEagerExecutions,
   runLoadCommands,
 } from '../../utils/autocompletion';
@@ -143,6 +142,7 @@ export const Terminal = () => {
     console.log('REGISTERING COMPLETION ITEM');
 
     let lastCaretLine = 0;
+    let lastParentCurrentCommandModule = 'std';
     let lastCurrentCommands: CommandExpressionNode[] = [];
 
     const completionProvider = monaco.languages.registerCompletionItemProvider(
@@ -186,7 +186,31 @@ export const Terminal = () => {
               commands.pop();
             }
 
-            lastCurrentCommands = commands;
+            lastCurrentCommands = commands
+              /**
+               * Filter out any command with a commands block that doesn't
+               * contain the current caret
+               */
+              .filter((c) => {
+                const itHasCommandsBlock = hasCommandsBlock(c);
+                const loc = c.loc;
+                const currentLine = calibratedCurrPos.line;
+                if (
+                  !itHasCommandsBlock ||
+                  (itHasCommandsBlock &&
+                    loc &&
+                    currentLine >= loc.start.line &&
+                    currentLine <= loc.end.line)
+                ) {
+                  if (itHasCommandsBlock) {
+                    lastParentCurrentCommandModule =
+                      c.module ?? lastParentCurrentCommandModule;
+                  }
+                  return true;
+                }
+
+                return false;
+              });
             lastCaretLine = calibratedCurrPos.line;
           }
 
@@ -217,25 +241,7 @@ export const Terminal = () => {
 
           const filteredCommandNodes = currentCommandNodes
             // Filter out load command nodes previously resolved
-            .filter((c) => c.name !== 'load')
-            /**
-             * Filter out any command with a commands block that doesn't
-             * contain the current caret
-             */
-            .filter((c) => {
-              const itHasCommandsBlock = hasCommandsBlock(c);
-              const loc = c.loc;
-              const currentLine = calibratedCurrPos.line;
-              return (
-                !itHasCommandsBlock ||
-                (itHasCommandsBlock &&
-                  loc &&
-                  currentLine >= loc.start.line &&
-                  currentLine <= loc.end.line)
-              );
-            })
-            // Filter out command nodes with unknown module prefixes
-            .filter((c) => !!resolveCommandNode(c, eagerBindingsManager));
+            .filter((c) => c.name !== 'load');
 
           await runEagerExecutions(
             currentCommandNode
@@ -276,6 +282,7 @@ export const Terminal = () => {
           const currentArgCompletionItems = buildCurrentArgCompletionItems(
             eagerBindingsManager,
             currentCommandNode,
+            lastParentCurrentCommandModule,
             range,
             calibratedCurrPos,
           );

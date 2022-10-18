@@ -1,7 +1,7 @@
 import type { providers } from 'ethers';
 import { utils } from 'ethers';
 
-import { ErrorException } from '../../../errors';
+import { ErrorException, ErrorNotFound } from '../../../errors';
 import type {
   AbiBinding,
   Action,
@@ -136,7 +136,7 @@ const createDAO = async (
     const res = await _aragonEns(daoENSName, provider!, ensResolver);
 
     if (!res) {
-      throw new ErrorException(
+      throw new ErrorNotFound(
         `ENS DAO name ${daoAddressOrName} couldn't be resolved`,
       );
     }
@@ -269,13 +269,13 @@ export const connect: ICommand<AragonOS> = {
     );
   },
   async runEagerExecution(
-    { args },
+    c,
     cache,
     { ipfsResolver, provider },
     caretPos,
     closestCommandToCaret,
   ) {
-    const daoNode = args[0];
+    const daoNode = c.args[0];
 
     if (
       !daoNode ||
@@ -298,7 +298,7 @@ export const connect: ICommand<AragonOS> = {
           DATA_PROVIDER,
         );
 
-        eagerBindingsManager.enterScope();
+        eagerBindingsManager.enterScope(c.module);
         eagerBindingsManager.setBindings(
           buildDAOBindings(clonedDAO, upperDAOBinding, !closestCommandToCaret),
         );
@@ -338,7 +338,8 @@ export const connect: ICommand<AragonOS> = {
 
         currentDAOBinding.parent = upperDAOBinding;
 
-        eagerBindingsManager.enterScope();
+        eagerBindingsManager.enterScope(c.module);
+
         eagerBindingsManager.setBindings(daoBindings);
       };
     } catch (err) {

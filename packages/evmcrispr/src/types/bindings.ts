@@ -11,7 +11,7 @@ export enum BindingsSpace {
   ABI = 'ABI',
   DATA_PROVIDER = 'DATA_PROVIDER',
   MODULE = 'MODULE',
-  INTERPRETER = 'INTERPRETER',
+  OTHER = 'OTHER',
   ALIAS = 'ALIAS',
 }
 
@@ -47,12 +47,12 @@ export interface AliasBinding extends IBinding<string> {
 }
 
 export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
-  extends IBinding<T> {
+  extends IBinding<T | null> {
   type: BindingsSpace.DATA_PROVIDER;
 }
 
-export interface InterpreterBinding extends IBinding<string> {
-  type: BindingsSpace.INTERPRETER;
+export interface OtherBinding extends IBinding<string> {
+  type: BindingsSpace.OTHER;
 }
 
 export type LazyBindings = (currentBindingsManager: BindingsManager) => void;
@@ -64,7 +64,7 @@ export type Binding =
   | UserBinding
   | AliasBinding
   | DataProviderBinding
-  | InterpreterBinding;
+  | OtherBinding;
 
 export type RelativeBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
@@ -79,6 +79,6 @@ export type RelativeBinding<B extends BindingsSpace> =
     ? DataProviderBinding
     : B extends BindingsSpace.USER
     ? UserBinding
-    : B extends BindingsSpace.INTERPRETER
-    ? InterpreterBinding
+    : B extends BindingsSpace.OTHER
+    ? OtherBinding
     : any;
