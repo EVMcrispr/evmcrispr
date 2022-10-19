@@ -23,6 +23,74 @@ import {
   normalizeRole,
 } from '../utils';
 import { AddressSet } from '../AddressSet';
+import type { AragonDAO } from '../AragonDAO';
+
+const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
+  const permission = resolvedArgs.slice(0, 3);
+
+  if (!isPermission(permission)) {
+    throw new ErrorException('Invalid permission');
+  }
+
+  const [, , , removeManager] = resolvedArgs;
+
+  const removeManagerType = typeof removeManager;
+  if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
+    throw new ErrorException(
+      `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
+    );
+  }
+
+  const [granteeAddress, appAddress, role] = permission;
+
+  const roleHash = normalizeRole(role);
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    throw new ErrorException(`${appAddress} is not a DAO's app`);
+  }
+
+  const { permissions: appPermissions, name } = app;
+  const { address: aclAddress, abiInterface: aclAbiInterface } =
+    dao!.resolveApp('acl')!;
+
+  if (!appPermissions.has(roleHash)) {
+    throw new ErrorException(`given permission doesn't exists on app ${name}`);
+  }
+
+  const appPermission = appPermissions.get(roleHash)!;
+  if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
+    throw new ErrorException(
+      `grantee ${granteeAddress} doesn't have the given permission`,
+    );
+  }
+
+  appPermission.grantees.delete(granteeAddress);
+
+  const actions: Action[] = [];
+
+  actions.push({
+    to: aclAddress,
+    data: aclAbiInterface.encodeFunctionData('revokePermission', [
+      granteeAddress,
+      appAddress,
+      roleHash,
+    ]),
+  });
+
+  if (removeManager) {
+    delete appPermission.manager;
+    actions.push({
+      to: aclAddress,
+      data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
+        appAddress,
+        roleHash,
+      ]),
+    });
+  }
+
+  return actions;
+};
 
 export const revoke: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
@@ -42,66 +110,7 @@ export const revoke: ICommand<AragonOS> = {
       }),
     );
 
-    isPermission(args.slice(0, 3));
-
-    const [granteeAddress, appAddress, role, removeManager] = args;
-
-    const removeManagerType = typeof removeManager;
-    if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
-      throw new ErrorException(
-        `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
-      );
-    }
-
-    const roleHash = normalizeRole(role);
-    const app = dao.resolveApp(appAddress);
-
-    if (!app) {
-      throw new ErrorException(`${appAddress} is not a DAO's app`);
-    }
-
-    const { permissions: appPermissions, name } = app;
-    const { address: aclAddress, abiInterface: aclAbiInterface } =
-      dao!.resolveApp('acl')!;
-
-    if (!appPermissions.has(roleHash)) {
-      throw new ErrorException(
-        `given permission doesn't exists on app ${name}`,
-      );
-    }
-
-    const appPermission = appPermissions.get(roleHash)!;
-    if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
-      throw new ErrorException(
-        `grantee ${granteeAddress} doesn't have the given permission`,
-      );
-    }
-
-    appPermission.grantees.delete(granteeAddress);
-
-    const actions: Action[] = [];
-
-    actions.push({
-      to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData('revokePermission', [
-        granteeAddress,
-        appAddress,
-        roleHash,
-      ]),
-    });
-
-    if (removeManager) {
-      delete appPermission.manager;
-      actions.push({
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
-          appAddress,
-          roleHash,
-        ]),
-      });
-    }
-
-    return actions;
+    return _revoke(dao, args);
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
     const revokeeAddress = nodeArgs[0]
@@ -206,7 +215,15 @@ export const revoke: ICommand<AragonOS> = {
         return [];
     }
   },
-  async runEagerExecution() {
-    return;
+  async runEagerExecution({ args }) {
+    return (eagerBindingsManager) => {
+      const appNode = args[1];
+      const resolvedArgs = args.map((arg) =>
+        interpretNodeSync(arg, eagerBindingsManager),
+      );
+      const dao = getDAO(eagerBindingsManager, appNode);
+
+      _revoke(dao, resolvedArgs);
+    };
   },
 };
