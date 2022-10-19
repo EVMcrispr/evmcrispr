@@ -1,16 +1,24 @@
 import { utils } from 'ethers';
 
-import type { ICommand } from '../../../types';
+import type { AbiBinding, ICommand } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import { batchForwarderActions } from '../utils/forwarders';
 import { ErrorException } from '../../../errors';
 import {
   ComparisonType,
   SIGNATURE_REGEX,
+  addressesEqual,
+  beforeOrEqualNode,
   checkArgsLength,
   encodeAction,
+  fetchAbi,
+  insideNodeLine,
+  interpretNodeSync,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
+import { formatAppIdentifier, getDAOs } from '../utils';
 
+const { ABI, ADDR } = BindingsSpace;
 export const act: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
     checkArgsLength(c, {
@@ -50,10 +58,108 @@ export const act: ICommand<AragonOS> = {
 
     return batchForwarderActions(module.signer, [execAction], [agentAddress]);
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
+    switch (argIndex) {
+      case 0: {
+        const daos = getDAOs(bindingsManager);
+
+        // Return every app on every DAO that includes 'agent'
+        return daos.flatMap((dao) =>
+          [...dao.appCache.entries()]
+            .filter(([appIdentifier]) => appIdentifier.includes('agent'))
+            .map(([appIdentifier]) => formatAppIdentifier(appIdentifier)),
+        );
+      }
+      case 1: {
+        console.log('here');
+        return bindingsManager.getAllBindingIdentifiers({
+          spaceFilters: [ADDR],
+        });
+      }
+      case 2: {
+        const targetAddress = interpretNodeSync(nodeArgs[1], bindingsManager);
+
+        if (!targetAddress || !utils.isAddress(targetAddress)) {
+          return [];
+        }
+
+        const abi = bindingsManager.getBindingValue(targetAddress, ABI);
+
+        if (!abi) {
+          return [];
+        }
+
+        const nonConstantFns = Object.keys(abi.functions)
+          // Only consider functions that change state
+          .filter((fnName) => !abi.functions[fnName].constant)
+          .map((fnName) => {
+            return abi.functions[fnName].format();
+          });
+
+        return nonConstantFns;
+      }
+      default: {
+        if (argIndex >= 2) {
+          return bindingsManager.getAllBindingIdentifiers({
+            spaceFilters: [ADDR],
+          });
+        }
+
+        return [];
+      }
+    }
   },
-  async runEagerExecution() {
-    return;
+  async runEagerExecution(c, cache, { provider }, caretPos) {
+    if (
+      !insideNodeLine(c, caretPos) ||
+      c.args.length < 2 ||
+      beforeOrEqualNode(c.args[1], caretPos)
+    ) {
+      return;
+    }
+
+    const resolvedTargetAddress = interpretNodeSync(c.args[1], cache);
+
+    if (!resolvedTargetAddress || !utils.isAddress(resolvedTargetAddress)) {
+      return;
+    }
+
+    const cachedAbi = cache.getBindingValue(resolvedTargetAddress, ABI);
+
+    if (cachedAbi) {
+      return (eagerBindingsManager) => {
+        eagerBindingsManager.mergeBindings([
+          {
+            type: ABI,
+            identifier: resolvedTargetAddress,
+            value: cachedAbi,
+          },
+        ]);
+      };
+    }
+
+    const [targetAddress, abi] = await fetchAbi(
+      resolvedTargetAddress,
+      provider,
+      // TODO: use etherscan API to fetch the abis
+      '',
+    );
+
+    const addresses = addressesEqual(targetAddress, resolvedTargetAddress)
+      ? [resolvedTargetAddress]
+      : [resolvedTargetAddress, targetAddress];
+
+    const abiBindings = addresses.map<AbiBinding>((addr) => ({
+      type: BindingsSpace.ABI,
+      identifier: addr,
+      value: abi,
+    }));
+
+    // Cache fetched ABIs
+    cache.setBindings(abiBindings);
+
+    return (eagerBindingsManager) => {
+      eagerBindingsManager.mergeBindings(abiBindings);
+    };
   },
 };
