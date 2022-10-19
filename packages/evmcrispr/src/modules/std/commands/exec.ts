@@ -100,20 +100,25 @@ export const exec: ICommand<Std> = {
         });
       // Contract method
       case 1: {
-        const value = interpretNodeSync(nodeArgs[0], bindingsManager);
-        if (!value || !utils.isAddress(value)) {
+        const targetAddress = interpretNodeSync(nodeArgs[0], bindingsManager);
+
+        if (!targetAddress || !utils.isAddress(targetAddress)) {
           return [];
         }
-        const abi = bindingsManager.getBindingValue(value, ABI);
+
+        const abi = bindingsManager.getBindingValue(targetAddress, ABI);
+
         if (!abi) {
           return [];
         }
+
         const nonConstantFns = Object.keys(abi.functions)
           // Only consider functions that change state
           .filter((fnName) => !abi.functions[fnName].constant)
           .map((fnName) => {
             return abi.functions[fnName].format();
           });
+
         return nonConstantFns;
       }
       default: {
@@ -135,39 +140,50 @@ export const exec: ICommand<Std> = {
       return;
     }
 
-    const value = interpretNodeSync(c.args[0], cache);
+    const resolvedTargetAddress = interpretNodeSync(c.args[0], cache);
 
-    if (!value || !utils.isAddress(value)) {
+    if (!resolvedTargetAddress || !utils.isAddress(resolvedTargetAddress)) {
       return;
     }
 
-    const cachedAbi = cache.getBindingValue(value, BindingsSpace.ABI);
+    const cachedAbi = cache.getBindingValue(
+      resolvedTargetAddress,
+      BindingsSpace.ABI,
+    );
 
     if (cachedAbi) {
       return (eagerBindingsManager) => {
         eagerBindingsManager.mergeBindings([
           {
             type: BindingsSpace.ABI,
-            identifier: value,
+            identifier: resolvedTargetAddress,
             value: cachedAbi,
           },
         ]);
       };
     }
 
-    const [targetAddress, abi] = await fetchAbi(value, provider, '');
+    const [targetAddress, abi] = await fetchAbi(
+      resolvedTargetAddress,
+      provider,
+      // TODO: use etherscan API to fetch the abis
+      '',
+    );
 
-    const addresses = addressesEqual(targetAddress, value)
-      ? [value]
-      : [value, targetAddress];
+    const addresses = addressesEqual(targetAddress, resolvedTargetAddress)
+      ? [resolvedTargetAddress]
+      : [resolvedTargetAddress, targetAddress];
+
+    const abiBindings = addresses.map<AbiBinding>((addr) => ({
+      type: BindingsSpace.ABI,
+      identifier: addr,
+      value: abi,
+    }));
+
+    // Cache fetched ABIs
+    cache.setBindings(abiBindings);
 
     return (eagerBindingsManager) => {
-      const abiBindings = addresses.map<AbiBinding>((addr) => ({
-        type: BindingsSpace.ABI,
-        identifier: addr,
-        value: abi,
-      }));
-
       eagerBindingsManager.mergeBindings(abiBindings);
     };
   },
