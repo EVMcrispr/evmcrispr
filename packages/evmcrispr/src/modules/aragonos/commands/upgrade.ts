@@ -9,7 +9,11 @@ import {
 import type { ICommand } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
-import { SEMANTIC_VERSION_REGEX, getRepoContract } from '../utils';
+import {
+  SEMANTIC_VERSION_REGEX,
+  getDAOAppIdentifiers,
+  getRepoContract,
+} from '../utils';
 import { daoPrefixedIdentifierParser, getDAO } from '../utils/commands';
 import { ErrorException } from '../../../errors';
 
@@ -93,8 +97,13 @@ export const upgrade: ICommand<AragonOS> = {
       },
     ];
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex, _, bindingsManager) {
+    switch (argIndex) {
+      case 0:
+        return getDAOAppIdentifiers(bindingsManager);
+      default:
+        return [];
+    }
   },
   async runEagerExecution() {
     return;
