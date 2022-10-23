@@ -1,5 +1,5 @@
 import type { providers } from 'ethers';
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, Wallet, utils } from 'ethers';
 
 import type { Address } from '../types';
 
@@ -48,3 +48,7 @@ export function addressesEqual(first: Address, second: Address): boolean {
   second = second && second.toLowerCase();
   return first === second;
 }
+
+export const getRandomAddress = (): Address => {
+  return Wallet.createRandom().address;
+};

@@ -1,5 +1,3 @@
-import { utils } from 'ethers';
-
 import type { BindingsManager } from '../../../BindingsManager';
 import type { DataProviderBinding } from '../../../types';
 import { BindingsSpace } from '../../../types';
@@ -51,27 +49,22 @@ export const getAppRoles = (
   bindingsManager: BindingsManager,
   appAddressOrIdentifier: AppIdentifier,
 ): string[] => {
-  const appAddress = utils.isAddress(appAddressOrIdentifier)
-    ? appAddressOrIdentifier
-    : bindingsManager.getBindingValue(
-        appAddressOrIdentifier,
-        BindingsSpace.ADDR,
-      );
   const daos = getDAOs(bindingsManager);
-  const isDAOApp =
-    !!appAddress && !!daos.find((dao) => dao.resolveApp(appAddress));
-  const appAbiInterface = appAddress
-    ? bindingsManager.getBindingValue(appAddress, BindingsSpace.ABI)
+
+  const appCodeAddress = daos
+    .find((dao) => dao.resolveApp(appAddressOrIdentifier))
+    ?.resolveApp(appAddressOrIdentifier)?.codeAddress;
+  const appAbiInterface = appCodeAddress
+    ? bindingsManager.getBindingValue(appCodeAddress, BindingsSpace.ABI)
     : undefined;
 
-  if (!appAbiInterface || !isDAOApp) {
+  if (!appAbiInterface || !appCodeAddress) {
     return [];
   }
 
-  const appRoles = Object.keys(appAbiInterface.functions)
-    .filter((fnName) => fnName.includes('_ROLE()'))
-    // Get rid of fn parenthesis
-    .map((fnName) => fnName.slice(0, -2));
+  const appRoles = Object.values(appAbiInterface.functions)
+    .filter((fnFragment) => fnFragment.name.includes('_ROLE'))
+    .map((fnFragment) => fnFragment.name);
 
   return appRoles;
 };

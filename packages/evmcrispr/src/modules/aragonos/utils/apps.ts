@@ -77,3 +77,25 @@ export const buildAppArtifact = (artifact: any): AppArtifact => ({
   roles: artifact.roles,
   functions: artifact.functions,
 });
+
+export const buildArtifactFromABI = (
+  appName: string,
+  appRegistry: string,
+  abiInterface: utils.Interface,
+): AppArtifact => {
+  const roleNames = Object.values(abiInterface.functions)
+    .filter((fnFragment) => fnFragment.name.endsWith('_ROLE'))
+    .map((fnFragment) => fnFragment.name);
+
+  return {
+    appName: `${appName}.${appRegistry}`,
+    abiInterface,
+    roles: roleNames.map((name) => ({
+      bytes: utils.id(name),
+      id: name,
+      name,
+      params: [],
+    })),
+    functions: [],
+  };
+};
