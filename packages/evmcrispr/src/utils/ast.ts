@@ -98,6 +98,27 @@ export const calculateCurrentArgIndex = (
 export const hasCommandsBlock = (n: NodeWithArguments): boolean =>
   !!n.args.find((arg) => arg.type === BlockExpression);
 
+export const getDeepestNodeWithArgs = (
+  n: NodeWithArguments,
+  pos: Position,
+): { node: NodeWithArguments; arg: Node; argIndex: number } => {
+  let currentNodeWithArgs = n;
+  let currentArgIndex = calculateCurrentArgIndex(n, pos);
+  let currentArg = currentNodeWithArgs.args[currentArgIndex];
+
+  while (currentArg && isNodeWithArgs(currentArg)) {
+    currentNodeWithArgs = currentArg;
+    currentArgIndex = calculateCurrentArgIndex(currentNodeWithArgs, pos);
+    currentArg = currentNodeWithArgs.args[currentArgIndex];
+  }
+
+  return {
+    node: currentNodeWithArgs,
+    arg: currentArg,
+    argIndex: currentArgIndex,
+  };
+};
+
 export const interpretNodeSync = (
   n: Node,
   bindingsManager: BindingsManager,
@@ -137,3 +158,11 @@ export const isAddressNodishType = (
     ProbableIdentifier,
     VariableIdentifier,
   ].includes(n.type);
+
+export const isNodeWithArgs = (n: Node): n is NodeWithArguments => {
+  if ((n as NodeWithArguments).args) {
+    return true;
+  }
+
+  return false;
+};

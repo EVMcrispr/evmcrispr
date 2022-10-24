@@ -1,6 +1,9 @@
 import {
   BindingsManager,
+  BindingsSpace,
   EVMcrispr,
+  NodeType,
+  getDeepestNodeWithArgs,
   hasCommandsBlock,
   isProviderAction,
   parseScript,
@@ -29,7 +32,8 @@ import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import type { providers } from 'ethers';
 
-import type { IRange, languages } from 'monaco-editor';
+import { languages } from 'monaco-editor';
+import type { IRange } from 'monaco-editor';
 
 import { theme } from '../../editor/theme';
 import {
@@ -187,7 +191,24 @@ export const Terminal = () => {
               currentLineContent,
             ].join('\n'),
           );
-          const currentCommandNode = currentLineAST.body[0];
+
+          const currentCommandNode = currentLineAST.getCommandAtLine(
+            currPos.lineNumber,
+          );
+          // TODO: Maybe we should
+          const { arg: currentArg } = currentCommandNode
+            ? getDeepestNodeWithArgs(currentCommandNode, calibratedCurrPos)
+            : { arg: undefined };
+
+          if (
+            currentCommandNode &&
+            currentArg &&
+            currentArg.type === NodeType.StringLiteral
+          ) {
+            return {
+              suggestions: [],
+            };
+          }
 
           let contextModuleName = 'std';
           // Get command nodes until caret position
@@ -275,6 +296,24 @@ export const Terminal = () => {
               range,
               calibratedCurrPos,
             );
+          }
+          // TODO: Only display identifiers when located inside a
+          // node with args which may not be completed , e.g.
+          // @helper(a, <here>).
+          // Need to update parser to support incorrect expressions
+          // and add <empty-error> on those situations
+          else {
+            currentArgCompletionItems = eagerBindingsManager
+              .getAllBindingIdentifiers({
+                spaceFilters: [BindingsSpace.ADDR],
+              })
+              .map<languages.CompletionItem>((identifier) => ({
+                insertText: identifier,
+                label: identifier,
+                kind: languages.CompletionItemKind.Field,
+                range,
+                sortText: '1',
+              }));
           }
 
           return {

@@ -34,7 +34,7 @@ export type ModulesRegistry = Record<
   { data: ModuleData; alias: string }
 >;
 
-const { MODULE, USER } = BindingsSpace;
+const { ALIAS, MODULE, USER } = BindingsSpace;
 
 export const DEFAULT_MODULE_BINDING: ModuleBinding = {
   type: MODULE,
@@ -67,12 +67,11 @@ export const resolveCommandNode = (
     c.module ?? parentModule ?? DEFAULT_MODULE_BINDING.identifier;
 
   const resolvedModuleName =
-    eagerBindingsManager.getBindingValue(moduleName, BindingsSpace.ALIAS) ??
-    moduleName;
+    eagerBindingsManager.getBindingValue(moduleName, ALIAS) ?? moduleName;
 
   const module = eagerBindingsManager.getBindingValue(
     resolvedModuleName,
-    BindingsSpace.MODULE,
+    MODULE,
   );
 
   if (!module) {
@@ -170,13 +169,12 @@ export const buildModuleCompletionItems = (
     eagerBindingsManager.getScopeModule() ?? DEFAULT_MODULE_BINDING.identifier;
 
   const moduleBindings = eagerBindingsManager.getAllBindings({
-    spaceFilters: [BindingsSpace.MODULE],
+    spaceFilters: [MODULE],
   }) as ModuleBinding[];
 
   const moduleAliases = moduleBindings.map(
     ({ identifier }) =>
-      eagerBindingsManager.getBindingValue(identifier, BindingsSpace.ALIAS) ??
-      identifier,
+      eagerBindingsManager.getBindingValue(identifier, ALIAS) ?? identifier,
   );
 
   return {
@@ -257,7 +255,7 @@ export const buildCurrentArgCompletionItems = (
   range: IRange,
   currentPos: Position,
 ): CompletionItem[] => {
-  let currentArgCompletionItems: languages.CompletionItem[] = [];
+  let currentArgCompletionItems: CompletionItem[] = [];
 
   const lastCommand = resolveCommandNode(
     currentCommandNode,
