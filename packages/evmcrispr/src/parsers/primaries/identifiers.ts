@@ -46,9 +46,11 @@ export const variableIdentifierParser: EnclosingNodeParser<
     ),
   );
 
-const identifierRegexParser = regex(/^(?:(?!::|--|#|,|\(|\[|\)|\]|@|\s).)+/);
+const identifierRegexParser = regex(
+  /^(?:(?!::|--|#|,|\(|\[|\)|\]|@|\s|"|').)+/,
+);
 const encloseIdentifierRegexParser = regex(
-  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s).)+/,
+  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s|'|").)+/,
 );
 
 const sequenceOf_ = (parsers: Parser<any, string, any>[]) =>
