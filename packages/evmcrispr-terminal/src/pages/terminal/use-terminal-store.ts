@@ -2,21 +2,15 @@ import type {
   AsExpressionNode,
   Cas11AST,
   CommandExpressionNode,
+  IPFSResolver,
   Position,
 } from '@1hive/evmcrispr';
-import {
-  BindingsManager,
-  IPFSResolver,
-  NodeType,
-  parseScript,
-} from '@1hive/evmcrispr';
+import { BindingsManager, NodeType, parseScript } from '@1hive/evmcrispr';
 import { createStore } from '@udecode/zustood';
 import type { providers } from 'ethers';
 
-import {
-  DEFAULT_MODULE_BINDING,
-  runEagerExecutions,
-} from '../../utils/autocompletion';
+import { runEagerExecutions } from '../../editor/autocompletion';
+import { DEFAULT_MODULE_BINDING } from '../../utils';
 
 const scriptPlaceholder = `# Available commands:
 # Standard commands:
@@ -53,7 +47,6 @@ const scriptPlaceholder = `# Available commands:
 
 export type TerminalStoreState = {
   bindingsCache: BindingsManager;
-  ipfsResolver: IPFSResolver;
   script: string;
   errors: string[];
   isLoading: boolean;
@@ -66,7 +59,6 @@ export type TerminalStoreState = {
 
 const initialState: TerminalStoreState = {
   bindingsCache: new BindingsManager([DEFAULT_MODULE_BINDING]),
-  ipfsResolver: new IPFSResolver(),
   script: scriptPlaceholder,
   errors: [],
   isLoading: false,

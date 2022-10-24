@@ -1,4 +1,4 @@
-function client(chainId: number | undefined): string | undefined {
+export const client = (chainId: number | undefined): string | undefined => {
   switch (chainId) {
     case 4:
       return 'rinkeby.client.aragon.org';
@@ -7,6 +7,4 @@ function client(chainId: number | undefined): string | undefined {
     default:
       return 'client.aragon.org';
   }
-}
-
-export { client };
+};

@@ -2,7 +2,15 @@ import type { BindingsManager } from '@1hive/evmcrispr';
 import { BindingsSpace } from '@1hive/evmcrispr';
 import type { languages } from 'monaco-editor';
 
-import { DEFAULT_MODULE_BINDING } from '../utils/autocompletion';
+import { DEFAULT_MODULE_BINDING } from '../utils';
+
+const DEFAULT_COMMAND_KEYWORDS = Object.keys(
+  DEFAULT_MODULE_BINDING.value.commands,
+).flatMap((name) => [name, `std:${name}`]);
+
+const DEFAULT_HELPER_KEYWORDS = Object.keys(
+  DEFAULT_MODULE_BINDING.value.helpers,
+).map((name) => `@${name}`);
 
 const bounded = (text: string) => `\\b${text}\\b`;
 
@@ -50,14 +58,6 @@ export const conf: languages.LanguageConfiguration = {
   },
   wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()=+[{\]}\\|;'",.<>/?\s]+)/g,
 };
-
-const DEFAULT_COMMAND_KEYWORDS = Object.keys(
-  DEFAULT_MODULE_BINDING.value.commands,
-).flatMap((name) => [name, `std:${name}`]);
-
-const DEFAULT_HELPER_KEYWORDS = Object.keys(
-  DEFAULT_MODULE_BINDING.value.helpers,
-).map((name) => `@${name}`);
 
 export const getModulesKeywords = (
   currentModuleNames: { name: string; alias?: string }[],

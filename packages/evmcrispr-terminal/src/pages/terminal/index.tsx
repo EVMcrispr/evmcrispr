@@ -1,19 +1,10 @@
 import {
-  BindingsManager,
-  BindingsSpace,
   EVMcrispr,
-  NodeType,
-  getDeepestNodeWithArgs,
-  hasCommandsBlock,
+  IPFSResolver,
   isProviderAction,
   parseScript,
 } from '@1hive/evmcrispr';
-import type {
-  Action,
-  CommandExpressionNode,
-  ForwardOptions,
-  Position,
-} from '@1hive/evmcrispr';
+import type { Action, ForwardOptions } from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
@@ -32,9 +23,6 @@ import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import type { providers } from 'ethers';
 
-import { languages } from 'monaco-editor';
-import type { IRange } from 'monaco-editor';
-
 import { theme } from '../../editor/theme';
 import {
   conf,
@@ -47,14 +35,10 @@ import SelectWalletModal from '../../components/modal';
 import FadeIn from '../../components/animations/fade-in';
 import Footer from '../../components/footer';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
-import {
-  buildCurrentArgCompletionItems,
-  buildModuleCompletionItems,
-  buildVarCompletionItems,
-  runEagerExecutions,
-  runLoadCommands,
-} from '../../utils/autocompletion';
+import { createProvideCompletionItemsFn } from '../../editor/autocompletion';
 import { useDebounce } from '../../hooks/useDebounce';
+
+const ipfsResolver = new IPFSResolver();
 
 // TODO: Migrate logic to evmcrispr
 const executeActions = async (
@@ -91,26 +75,10 @@ const executeActions = async (
   return txs;
 };
 
-const calculateCommandNameLength = (c: CommandExpressionNode) => {
-  const offset = c.loc?.start.col ?? 0;
-  // Take into account colon as well
-  const moduleNameLength = (c.module ?? '').length;
-  const colonLength = c.module ? 1 : 0;
-
-  return offset + moduleNameLength + colonLength + c.name.length;
-};
-
 export const Terminal = () => {
   const monaco = useMonaco();
-  const {
-    bindingsCache,
-    ipfsResolver,
-    errors,
-    isLoading,
-    script,
-    ast,
-    currentModuleNames,
-  } = useTerminalStore();
+  const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
+    useTerminalStore();
   const { data: account } = useAccount();
   const { activeConnector } = useConnect();
   const { disconnect } = useDisconnect();
@@ -159,178 +127,18 @@ export const Terminal = () => {
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'evmcl',
       {
-        provideCompletionItems: async (model, currPos) => {
-          const currentLineContent = model.getLineContent(currPos.lineNumber);
-          const { startColumn, endColumn } =
-            model.getWordUntilPosition(currPos);
-          const range: IRange = {
-            startLineNumber: currPos.lineNumber,
-            endLineNumber: currPos.lineNumber,
-            startColumn: startColumn,
-            // If word exists retrieve the end column of the whole word
-            endColumn: model.getWordAtPosition(currPos)?.endColumn ?? endColumn,
-          };
-          // Monaco editor positions start at 1
-          const calibratedCurrPos: Position = {
-            col: currPos.column - 1,
-            line: currPos.lineNumber,
-          };
-          const eagerBindingsManager = new BindingsManager();
-
-          if (!ast) {
-            return;
-          }
-
-          const { ast: currentLineAST } = parseScript(
-            [
-              /**
-               * Add previous lines to keep the correct
-               * current line location
-               */
-              ...Array(currPos.lineNumber - 1).map(() => ''),
-              currentLineContent,
-            ].join('\n'),
-          );
-
-          const currentCommandNode = currentLineAST.getCommandAtLine(
-            currPos.lineNumber,
-          );
-          // TODO: Maybe we should
-          const { arg: currentArg } = currentCommandNode
-            ? getDeepestNodeWithArgs(currentCommandNode, calibratedCurrPos)
-            : { arg: undefined };
-
-          if (
-            currentCommandNode &&
-            currentArg &&
-            currentArg.type === NodeType.StringLiteral
-          ) {
-            return {
-              suggestions: [],
-            };
-          }
-
-          let contextModuleName = 'std';
-          // Get command nodes until caret position
-          const commandNodes: CommandExpressionNode[] = ast
-            .getCommandsUntilLine(calibratedCurrPos.line - 1, ['load', 'set'])
-            /**
-             * Filter out any command with a commands block that doesn't
-             * contain the current caret
-             */
-            .filter((c) => {
-              const itHasCommandsBlock = hasCommandsBlock(c);
-              const loc = c.loc;
-              const currentLine = calibratedCurrPos.line;
-              if (
-                !itHasCommandsBlock ||
-                (itHasCommandsBlock &&
-                  loc &&
-                  currentLine >= loc.start.line &&
-                  currentLine <= loc.end.line)
-              ) {
-                if (itHasCommandsBlock) {
-                  contextModuleName = c.module ?? contextModuleName;
-                }
-                return true;
-              }
-
-              return false;
-            });
-
-          // Build module bindings
-          await runLoadCommands(
-            commandNodes,
-            eagerBindingsManager,
-            bindingsCache,
-            { provider, ipfsResolver },
-            calibratedCurrPos,
-          );
-
-          const filteredCommandNodes = commandNodes
-            // Filter out load command nodes previously resolved
-            .filter((c) => c.name !== 'load');
-
-          await runEagerExecutions(
-            currentCommandNode
-              ? [...filteredCommandNodes, currentCommandNode]
-              : filteredCommandNodes,
-            eagerBindingsManager,
-            bindingsCache,
-            { provider, ipfsResolver },
-            calibratedCurrPos,
-          );
-
-          // Build module completion items
-          const { commandCompletionItems, helperCompletionItems } =
-            buildModuleCompletionItems(eagerBindingsManager, range);
-          const emptyLine = !currentLineContent.trim().length;
-
-          const displayCommandSuggestions =
-            emptyLine ||
-            // Check if caret position is within the command name location
-            (!!currentCommandNode?.loc &&
-              calibratedCurrPos.col >= currentCommandNode.loc.start.col &&
-              calibratedCurrPos.col <=
-                calculateCommandNameLength(currentCommandNode));
-
-          if (displayCommandSuggestions) {
-            return {
-              suggestions: commandCompletionItems,
-            };
-          }
-
-          const variableCompletionItems = buildVarCompletionItems(
-            eagerBindingsManager,
-            range,
-            calibratedCurrPos,
-            currentCommandNode,
-          );
-          let currentArgCompletionItems: languages.CompletionItem[] = [];
-
-          if (currentCommandNode) {
-            currentArgCompletionItems = buildCurrentArgCompletionItems(
-              eagerBindingsManager,
-              currentCommandNode,
-              contextModuleName,
-              range,
-              calibratedCurrPos,
-            );
-          }
-          // TODO: Only display identifiers when located inside a
-          // node with args which may not be completed , e.g.
-          // @helper(a, <here>).
-          // Need to update parser to support incorrect expressions
-          // and add <empty-error> on those situations
-          else {
-            currentArgCompletionItems = eagerBindingsManager
-              .getAllBindingIdentifiers({
-                spaceFilters: [BindingsSpace.ADDR],
-              })
-              .map<languages.CompletionItem>((identifier) => ({
-                insertText: identifier,
-                label: identifier,
-                kind: languages.CompletionItemKind.Field,
-                range,
-                sortText: '1',
-              }));
-          }
-
-          return {
-            suggestions: [
-              ...currentArgCompletionItems,
-              ...helperCompletionItems,
-              ...variableCompletionItems,
-            ],
-          };
-        },
+        provideCompletionItems: createProvideCompletionItemsFn(
+          bindingsCache,
+          { provider, ipfsResolver },
+          ast,
+        ),
       },
     );
 
     return () => {
       completionProvider.dispose();
     };
-  }, [bindingsCache, monaco, provider, ipfsResolver, ast]);
+  }, [bindingsCache, monaco, provider, ast]);
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
