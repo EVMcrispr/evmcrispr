@@ -1,15 +1,15 @@
-import type {
-  Action,
-  CommandExpressionNode,
-  ForwardOptions,
-  Position,
-} from '@1hive/evmcrispr';
 import {
   BindingsManager,
   EVMcrispr,
   hasCommandsBlock,
   isProviderAction,
   parseScript,
+} from '@1hive/evmcrispr';
+import type {
+  Action,
+  CommandExpressionNode,
+  ForwardOptions,
+  Position,
 } from '@1hive/evmcrispr';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
@@ -29,7 +29,7 @@ import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import type { providers } from 'ethers';
 
-import type { IRange } from 'monaco-editor';
+import type { IRange, languages } from 'monaco-editor';
 
 import { theme } from '../../editor/theme';
 import { conf, contribution } from '../../editor/evmcl';
@@ -45,6 +45,7 @@ import {
   runEagerExecutions,
   runLoadCommands,
 } from '../../utils/autocompletion';
+import { useDebounce } from '../../hooks/useDebounce';
 
 // TODO: Migrate logic to evmcrispr
 const executeActions = async (
@@ -92,7 +93,7 @@ const calculateCommandNameLength = (c: CommandExpressionNode) => {
 
 export const Terminal = () => {
   const monaco = useMonaco();
-  const { bindingsCache, ipfsResolver, errors, isLoading, script } =
+  const { bindingsCache, ipfsResolver, errors, isLoading, script, ast } =
     useTerminalStore();
   const { data: account } = useAccount();
   const { activeConnector } = useConnect();
@@ -109,41 +110,19 @@ export const Terminal = () => {
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
   const forwardingText = `Forwarding from ${addressShortened}`;
 
+  const debouncedScript = useDebounce(script, 200);
+
   useChain([terminalRef, buttonsRef, footerRef]);
 
   useEffect(() => {
-    if (!monaco) {
-      return;
-    }
-
-    console.log('SETTING LANGUAGE');
-
-    // const moduleNames = Object.keys(modules);
-
-    // const commands = moduleNames.flatMap((n) => modules[n].commands);
-
-    // const helpers = moduleNames.flatMap((n) => modules[n].helpers);
-
-    // const tokensProvider = monaco.languages.setMonarchTokensProvider(
-    //   'evmcl',
-
-    //   createLanguage(commands, helpers),
-    // );
-
-    // return () => {
-    //   tokensProvider.dispose();
-    // };
-  }, [monaco]);
+    terminalStoreActions.processScript();
+  }, [debouncedScript]);
 
   useEffect(() => {
     if (!monaco || !provider) {
       return;
     }
     console.log('REGISTERING COMPLETION ITEM');
-
-    let lastCaretLine = 0;
-    let lastParentCurrentCommandModule = 'std';
-    let lastCurrentCommands: CommandExpressionNode[] = [];
 
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'evmcl',
@@ -164,54 +143,10 @@ export const Terminal = () => {
             col: currPos.column - 1,
             line: currPos.lineNumber,
           };
-          const isSameLine = currPos.lineNumber === lastCaretLine;
           const eagerBindingsManager = new BindingsManager();
 
-          /**
-           * Compute the AST of large scripts can get expensive.
-           * Do it only when the caret's line has changed.
-           */
-          if (!isSameLine) {
-            const { ast } = parseScript(model.getValue());
-            const commands = ast.getCommandsUntilLine(
-              Math.max(calibratedCurrPos.line, 0),
-              ['load', 'set'],
-            );
-            const lastCommand = commands[commands.length - 1];
-
-            if (
-              lastCommand &&
-              lastCommand.loc?.start.line === calibratedCurrPos.line
-            ) {
-              commands.pop();
-            }
-
-            lastCurrentCommands = commands
-              /**
-               * Filter out any command with a commands block that doesn't
-               * contain the current caret
-               */
-              .filter((c) => {
-                const itHasCommandsBlock = hasCommandsBlock(c);
-                const loc = c.loc;
-                const currentLine = calibratedCurrPos.line;
-                if (
-                  !itHasCommandsBlock ||
-                  (itHasCommandsBlock &&
-                    loc &&
-                    currentLine >= loc.start.line &&
-                    currentLine <= loc.end.line)
-                ) {
-                  if (itHasCommandsBlock) {
-                    lastParentCurrentCommandModule =
-                      c.module ?? lastParentCurrentCommandModule;
-                  }
-                  return true;
-                }
-
-                return false;
-              });
-            lastCaretLine = calibratedCurrPos.line;
+          if (!ast) {
+            return;
           }
 
           const { ast: currentLineAST } = parseScript(
@@ -226,20 +161,44 @@ export const Terminal = () => {
           );
           const currentCommandNode = currentLineAST.body[0];
 
+          let contextModuleName = 'std';
           // Get command nodes until caret position
-          const currentCommandNodes: CommandExpressionNode[] =
-            lastCurrentCommands;
+          const commandNodes: CommandExpressionNode[] = ast
+            .getCommandsUntilLine(calibratedCurrPos.line - 1, ['load', 'set'])
+            /**
+             * Filter out any command with a commands block that doesn't
+             * contain the current caret
+             */
+            .filter((c) => {
+              const itHasCommandsBlock = hasCommandsBlock(c);
+              const loc = c.loc;
+              const currentLine = calibratedCurrPos.line;
+              if (
+                !itHasCommandsBlock ||
+                (itHasCommandsBlock &&
+                  loc &&
+                  currentLine >= loc.start.line &&
+                  currentLine <= loc.end.line)
+              ) {
+                if (itHasCommandsBlock) {
+                  contextModuleName = c.module ?? contextModuleName;
+                }
+                return true;
+              }
+
+              return false;
+            });
 
           // Build module bindings
           await runLoadCommands(
-            currentCommandNodes,
+            commandNodes,
             eagerBindingsManager,
             bindingsCache,
             { provider, ipfsResolver },
             calibratedCurrPos,
           );
 
-          const filteredCommandNodes = currentCommandNodes
+          const filteredCommandNodes = commandNodes
             // Filter out load command nodes previously resolved
             .filter((c) => c.name !== 'load');
 
@@ -274,18 +233,21 @@ export const Terminal = () => {
 
           const variableCompletionItems = buildVarCompletionItems(
             eagerBindingsManager,
-            currentCommandNode,
             range,
             calibratedCurrPos,
+            currentCommandNode,
           );
+          let currentArgCompletionItems: languages.CompletionItem[] = [];
 
-          const currentArgCompletionItems = buildCurrentArgCompletionItems(
-            eagerBindingsManager,
-            currentCommandNode,
-            lastParentCurrentCommandModule,
-            range,
-            calibratedCurrPos,
-          );
+          if (currentCommandNode) {
+            currentArgCompletionItems = buildCurrentArgCompletionItems(
+              eagerBindingsManager,
+              currentCommandNode,
+              contextModuleName,
+              range,
+              calibratedCurrPos,
+            );
+          }
 
           return {
             suggestions: [
@@ -301,7 +263,7 @@ export const Terminal = () => {
     return () => {
       completionProvider.dispose();
     };
-  }, [bindingsCache, monaco, provider, ipfsResolver]);
+  }, [bindingsCache, monaco, provider, ipfsResolver, ast]);
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
@@ -360,7 +322,18 @@ export const Terminal = () => {
             theme="theme"
             language="evmcl"
             value={script}
-            onChange={(str) => terminalStoreActions.script(str || '')}
+            onChange={(str, ev) => {
+              terminalStoreActions.script(str ?? '');
+              const change = ev.changes[0];
+              const startLineNumber = change.range.startLineNumber;
+              const newLine = change.text
+                ? change.text.split('\n').length +
+                  startLineNumber -
+                  // Substract current line
+                  1
+                : startLineNumber;
+              terminalStoreActions.updateCurrentLine(newLine);
+            }}
             beforeMount={(monaco) => {
               monaco.editor.defineTheme('theme', theme);
               monaco.languages.register(contribution);
@@ -374,8 +347,7 @@ export const Terminal = () => {
               fontSize: 22,
               fontFamily: 'Ubuntu Mono',
               detectIndentation: false,
-              quickSuggestionsDelay: 50,
-              suggestOnTriggerCharacters: false,
+              quickSuggestionsDelay: 100,
               tabSize: 2,
               language: 'evmcl',
               minimap: {

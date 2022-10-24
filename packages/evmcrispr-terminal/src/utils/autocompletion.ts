@@ -36,7 +36,7 @@ export type ModulesRegistry = Record<
 
 const { MODULE, USER } = BindingsSpace;
 
-const DEFAULT_MODULE_BINDING: ModuleBinding = {
+export const DEFAULT_MODULE_BINDING: ModuleBinding = {
   type: MODULE,
   identifier: 'std',
   value: { commands: stdCommands, helpers: stdHelpers },
@@ -216,19 +216,19 @@ export const buildModuleCompletionItems = (
 
 export const buildVarCompletionItems = (
   eagerBindingsManager: BindingsManager,
-  currentCommandNode: CommandExpressionNode,
   range: IRange,
   currentPos: Position,
+  currentCommandNode?: CommandExpressionNode,
 ): CompletionItem[] => {
-  const currentArgIndex = calculateCurrentArgIndex(
-    currentCommandNode,
-    currentPos,
-  );
   let varNames = eagerBindingsManager.getAllBindingIdentifiers({
     spaceFilters: [USER],
   });
 
-  if (currentCommandNode.name === 'set') {
+  if (currentCommandNode && currentCommandNode.name === 'set') {
+    const currentArgIndex = calculateCurrentArgIndex(
+      currentCommandNode,
+      currentPos,
+    );
     // Don't return suggestions for a variable declaration
     if (currentArgIndex === 0) {
       return [];
@@ -259,9 +259,11 @@ export const buildCurrentArgCompletionItems = (
 ): CompletionItem[] => {
   let currentArgCompletionItems: languages.CompletionItem[] = [];
 
-  const lastCommand = currentCommandNode
-    ? resolveCommandNode(currentCommandNode, eagerBindingsManager, parentModule)
-    : undefined;
+  const lastCommand = resolveCommandNode(
+    currentCommandNode,
+    eagerBindingsManager,
+    parentModule,
+  );
 
   if (lastCommand) {
     currentArgCompletionItems = lastCommand

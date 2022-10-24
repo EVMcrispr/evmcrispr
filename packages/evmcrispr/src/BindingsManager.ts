@@ -57,17 +57,14 @@ export class BindingsManager {
     name: string,
     space: BSpace,
   ): RelativeBinding<BSpace>['value'] | undefined {
-    return this.#getBinding(name, space);
+    return this.#getBinding(name, space)?.value;
   }
 
   getBinding<BSpace extends BindingsSpace>(
     identifier: string,
     type: BSpace,
   ): RelativeBinding<BSpace> | undefined {
-    const binding = this.#bindings.lookup(identifier, type);
-    return binding?.length
-      ? (binding[0] as RelativeBinding<BSpace>)
-      : undefined;
+    return this.#getBinding(identifier, type);
   }
 
   getAllBindings({
@@ -111,7 +108,8 @@ export class BindingsManager {
   }
 
   getScopeModule(): string | undefined {
-    return this.#getBinding(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER);
+    return this.#getBinding(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER)
+      ?.value;
   }
 
   setBinding<BSpace extends BindingsSpace>(
@@ -170,10 +168,12 @@ export class BindingsManager {
   #getBinding<BSpace extends BindingsSpace>(
     identifier: string,
     type: BSpace,
-  ): RelativeBinding<BSpace>['value'] | undefined {
+  ): RelativeBinding<BSpace> | undefined {
     const binding = this.#bindings.lookup(identifier, type);
 
-    return binding && binding.length ? binding[0].value : undefined;
+    return binding && binding.length
+      ? (binding[0] as RelativeBinding<BSpace>)
+      : undefined;
   }
 
   hasBinding(name: string, memSpace: BindingsSpace): boolean {
