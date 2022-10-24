@@ -1,6 +1,7 @@
 export * from './ast';
 export * from './abis';
 export * from './args';
+export * from './commands';
 export * from './encoders';
 export * from './formatters';
 export * from './parsers';

@@ -12,6 +12,7 @@ import {
   encodeAction,
   insideNodeLine,
   interpretNodeSync,
+  tryAndCacheNotFound,
 } from '../../../utils';
 import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
@@ -163,12 +164,24 @@ export const exec: ICommand<Std> = {
       };
     }
 
-    const [targetAddress, abi] = await fetchAbi(
+    const result = await tryAndCacheNotFound(
+      () =>
+        fetchAbi(
+          resolvedTargetAddress,
+          provider,
+          // TODO: use etherscan API to fetch the abis
+          '',
+        ),
       resolvedTargetAddress,
-      provider,
-      // TODO: use etherscan API to fetch the abis
-      '',
+      ABI,
+      cache,
     );
+
+    if (!result) {
+      return;
+    }
+
+    const [targetAddress, abi] = result;
 
     const addresses = addressesEqual(targetAddress, resolvedTargetAddress)
       ? [resolvedTargetAddress]

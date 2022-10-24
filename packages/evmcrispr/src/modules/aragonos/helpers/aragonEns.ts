@@ -2,14 +2,14 @@ import type { ethers } from 'ethers';
 
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import type { HelperFunction } from '../../../types';
+import type { HelperFunction, Nullable } from '../../../types';
 import { getAragonEnsResolver, resolveName } from '../utils';
 import { ErrorException } from '../../../errors';
 
 export const _aragonEns = async (
   ensName: string,
   provider: ethers.providers.Provider,
-  customENSResolver?: string,
+  customENSResolver?: Nullable<string>,
 ): Promise<string | null> => {
   const name = await resolveName(
     ensName,

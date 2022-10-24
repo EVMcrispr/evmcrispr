@@ -11,8 +11,9 @@ import {
   getRandomAddress,
   inSameLineThanNode,
   interpretNodeSync,
+  tryAndCacheNotFound,
 } from '../../../utils';
-import type { Address, ICommand } from '../../../types';
+import type { Address, ICommand, Nullable } from '../../../types';
 import { BindingsSpace } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -203,8 +204,8 @@ export const install: ICommand<AragonOS> = {
     const [appName, appRegistry] =
       parseLabeledAppIdentifier(labeledAppIdentifier);
     let artifact: AppArtifact,
-      proxyAddress: Address | undefined,
-      codeAddress: Address | undefined;
+      proxyAddress: Nullable<Address> | undefined,
+      codeAddress: Nullable<Address> | undefined;
 
     proxyAddress = cache.getBindingValue(labeledAppIdentifier, OTHER);
     if (proxyAddress) {
@@ -212,21 +213,33 @@ export const install: ICommand<AragonOS> = {
     }
 
     if (!codeAddress) {
-      const repoData = await fetchRepoData(
-        appName,
-        appRegistry,
-        'latest',
-        provider,
+      const repoData = await tryAndCacheNotFound(
+        () => fetchRepoData(appName, appRegistry, 'latest', provider),
+        `${appName}.${appRegistry}`,
+        ADDR,
+        cache,
       );
+
+      if (!repoData) {
+        return;
+      }
+
       codeAddress = repoData.codeAddress;
       // Check if there's already an ABI for this implementation
       const abiInterface = cache.getBindingValue(codeAddress, ABI);
 
       if (!abiInterface) {
-        const rawArtifact = await fetchAppArtifact(
-          ipfsResolver,
-          repoData.contentUri,
+        const rawArtifact = await tryAndCacheNotFound(
+          () => fetchAppArtifact(ipfsResolver, repoData.contentUri),
+          codeAddress,
+          ABI,
+          cache,
         );
+
+        if (!rawArtifact) {
+          return;
+        }
+
         artifact = buildAppArtifact(rawArtifact);
         proxyAddress = getRandomAddress();
         // Cache fetched ABI

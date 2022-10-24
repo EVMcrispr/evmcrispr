@@ -1,7 +1,7 @@
 import { SymbolTable } from 'jsymbol';
 
 import { ErrorException } from './errors';
-import type { Binding, RelativeBinding } from './types';
+import type { Binding, OtherBinding, RelativeBinding } from './types';
 import { BindingsSpace } from './types';
 
 type AllBindingsOpts = {
@@ -15,11 +15,6 @@ const defaultOpts: AllBindingsOpts = {
 };
 
 const SCOPE_MODULE_IDENTIFIER = 'scopeModule';
-
-export const isSpaceBinding =
-  <BSpace extends BindingsSpace>(space: BSpace) =>
-  (b: Binding): b is RelativeBinding<BSpace> =>
-    b.type === space;
 
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
@@ -40,13 +35,13 @@ export class BindingsManager {
 
     this.#bindings.enterScope();
 
-    const b: Binding = {
+    const b: OtherBinding = {
       identifier: SCOPE_MODULE_IDENTIFIER,
       value: scopeModuleValue,
       type: BindingsSpace.OTHER,
     };
 
-    this.#setBinding(b, false);
+    this.#setBinding(b as Binding, false);
   }
 
   exitScope(): void {
@@ -107,7 +102,7 @@ export class BindingsManager {
     return this.#bindings.parent;
   }
 
-  getScopeModule(): string | undefined {
+  getScopeModule(): string | null | undefined {
     return this.#getBinding(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER)
       ?.value;
   }

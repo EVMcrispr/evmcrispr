@@ -140,7 +140,7 @@ export const interpretNodeSync = (
         n.value,
         BindingsSpace.USER,
       );
-      return value;
+      return value ?? undefined;
     }
   }
 };

@@ -15,9 +15,11 @@ export enum BindingsSpace {
   ALIAS = 'ALIAS',
 }
 
+export type Nullable<T> = T | null;
+
 export interface IBinding<V> extends AstSymbol<BindingsSpace> {
   type: BindingsSpace;
-  value: V;
+  value: Nullable<V>;
   parent?: IBinding<V>;
 }
 
@@ -66,6 +68,10 @@ export type Binding =
   | DataProviderBinding
   | OtherBinding;
 
+export type NullableBinding<B extends Binding = Binding> = Omit<B, 'value'> & {
+  value: null | B['value'];
+};
+
 export type RelativeBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
     ? AbiBinding
@@ -81,4 +87,21 @@ export type RelativeBinding<B extends BindingsSpace> =
     ? UserBinding
     : B extends BindingsSpace.OTHER
     ? OtherBinding
+    : unknown;
+
+export type RelativeNullableBinding<B extends BindingsSpace> =
+  B extends BindingsSpace.ABI
+    ? NullableBinding<AbiBinding>
+    : B extends BindingsSpace.ADDR
+    ? NullableBinding<AddressBinding>
+    : B extends BindingsSpace.ALIAS
+    ? NullableBinding<AliasBinding>
+    : B extends BindingsSpace.MODULE
+    ? NullableBinding<ModuleBinding>
+    : B extends BindingsSpace.DATA_PROVIDER
+    ? NullableBinding<DataProviderBinding>
+    : B extends BindingsSpace.USER
+    ? NullableBinding<UserBinding>
+    : B extends BindingsSpace.OTHER
+    ? NullableBinding<OtherBinding>
     : any;

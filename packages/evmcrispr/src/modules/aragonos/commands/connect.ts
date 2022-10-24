@@ -10,10 +10,11 @@ import type {
   Binding,
   DataProviderBinding,
   ICommand,
+  Nullable,
   TransactionAction,
 } from '../../../types';
 import { BindingsSpace, NodeType, isProviderAction } from '../../../types';
-import { AragonDAO } from '../AragonDAO';
+import { AragonDAO, isAragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import {
   ANY_ENTITY,
@@ -32,6 +33,7 @@ import {
   getOptValue,
   interpretNodeSync,
   isAddressNodishType,
+  tryAndCacheNotFound,
 } from '../../../utils';
 import { batchForwarderActions } from '../utils/forwarders';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -79,7 +81,7 @@ const buildAppBindings = (
 
 const buildDAOBindings = (
   dao: AragonDAO,
-  upperDAOBinding?: DataProviderBinding,
+  upperDAOBinding?: Nullable<DataProviderBinding>,
   addPrefixedBindings = true,
 ): Binding[] => {
   const daoBindings: Binding[] = [
@@ -92,7 +94,7 @@ const buildDAOBindings = (
       type: DATA_PROVIDER,
       identifier: 'currentDAO',
       value: dao,
-      parent: upperDAOBinding,
+      parent: upperDAOBinding ?? undefined,
     },
   ];
 
@@ -124,7 +126,7 @@ const createDAO = async (
   bindingsManager: BindingsManager,
   provider: providers.Provider,
   ipfsResolver: IPFSResolver,
-  ensResolver?: string,
+  ensResolver?: Nullable<string>,
 ): Promise<AragonDAO> => {
   let daoAddress: Address;
 
@@ -180,9 +182,13 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
 
     aragonos.currentDAO = dao;
 
+    const upperDAOBinding = bindingsManager.getBinding(
+      'currentDAO',
+      BindingsSpace.DATA_PROVIDER,
+    );
     const daoBindings = buildDAOBindings(
       dao,
-      bindingsManager.getBinding('currentDAO', BindingsSpace.DATA_PROVIDER),
+      upperDAOBinding === null ? undefined : upperDAOBinding,
     );
 
     bindingsManager.setBindings(daoBindings);
@@ -290,7 +296,12 @@ export const connect: ICommand<AragonOS> = {
     const cachedDAOBinding = cache.getBinding(daoNameOrAddress, DATA_PROVIDER);
 
     if (cachedDAOBinding) {
-      const clonedDAO = (cachedDAOBinding.value as AragonDAO).clone();
+      const cachedDAO = cachedDAOBinding.value;
+      if (!cachedDAO || !isAragonDAO(cachedDAO)) {
+        return;
+      }
+
+      const clonedDAO = cachedDAO.clone();
       return (eagerBindingsManager) => {
         const upperDAOBinding = eagerBindingsManager.getBinding(
           'currentDAO',
@@ -304,48 +315,52 @@ export const connect: ICommand<AragonOS> = {
       };
     }
 
-    try {
-      const dao = await createDAO(
-        daoNameOrAddress,
-        cache,
-        provider,
-        ipfsResolver,
-        cache.getBindingValue(`aragonos:ensResolver`, USER),
-      );
+    const dao = await tryAndCacheNotFound(
+      () =>
+        createDAO(
+          daoNameOrAddress,
+          cache,
+          provider,
+          ipfsResolver,
+          cache.getBindingValue(`aragonos:ensResolver`, USER),
+        ),
+      daoNameOrAddress,
+      DATA_PROVIDER,
+      cache,
+    );
 
-      const daoBindings = buildDAOBindings(
-        dao,
-        undefined,
-        !closestCommandToCaret,
-      );
-      const abiInterfaceBindings = daoBindings.filter<AbiBinding>(
-        (binding): binding is AbiBinding => binding.type === ABI,
-      );
-
-      // Cache DAO and ABIs
-      cache.setBinding(daoNameOrAddress, dao.clone(), DATA_PROVIDER);
-      cache.mergeBindings(abiInterfaceBindings);
-
-      return (eagerBindingsManager) => {
-        const upperDAOBinding = eagerBindingsManager.getBinding(
-          'currentDAO',
-          BindingsSpace.DATA_PROVIDER,
-        );
-        const currentDAOBinding = daoBindings.find(
-          (b) => b.identifier === 'currentDAO',
-        )!;
-
-        currentDAOBinding.parent = upperDAOBinding;
-
-        eagerBindingsManager.enterScope(c.module);
-
-        eagerBindingsManager.setBindings(daoBindings);
-      };
-    } catch (err) {
-      console.warn(err);
-      // TODO: handle non-existent dao case
+    if (!dao) {
       return;
     }
+
+    const daoBindings = buildDAOBindings(
+      dao,
+      undefined,
+      !closestCommandToCaret,
+    );
+    const abiInterfaceBindings = daoBindings.filter<AbiBinding>(
+      (binding): binding is AbiBinding => binding.type === ABI,
+    );
+
+    // Cache DAO and ABIs
+    cache.setBinding(daoNameOrAddress, dao.clone(), DATA_PROVIDER);
+    cache.mergeBindings(abiInterfaceBindings);
+
+    return (eagerBindingsManager) => {
+      const upperDAOBinding = eagerBindingsManager.getBinding(
+        'currentDAO',
+        BindingsSpace.DATA_PROVIDER,
+      );
+      const currentDAOBinding = daoBindings.find(
+        (b) => b.identifier === 'currentDAO',
+      )!;
+
+      currentDAOBinding.parent = upperDAOBinding;
+
+      eagerBindingsManager.enterScope(c.module);
+
+      eagerBindingsManager.setBindings(daoBindings);
+    };
   },
   buildCompletionItemsForArg(argIndex, _, bindingsManager) {
     if (argIndex > 0) {

@@ -14,6 +14,7 @@ import {
   fetchAbi,
   insideNodeLine,
   interpretNodeSync,
+  tryAndCacheNotFound,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { formatAppIdentifier, getDAOs } from '../utils';
@@ -137,13 +138,24 @@ export const act: ICommand<AragonOS> = {
       };
     }
 
-    const [targetAddress, abi] = await fetchAbi(
+    const result = await tryAndCacheNotFound(
+      () =>
+        fetchAbi(
+          resolvedTargetAddress,
+          provider,
+          // TODO: use etherscan API to fetch the abis
+          '',
+        ),
       resolvedTargetAddress,
-      provider,
-      // TODO: use etherscan API to fetch the abis
-      '',
+      ABI,
+      cache,
     );
 
+    if (!result) {
+      return;
+    }
+
+    const [targetAddress, abi] = result;
     const addresses = addressesEqual(targetAddress, resolvedTargetAddress)
       ? [resolvedTargetAddress]
       : [resolvedTargetAddress, targetAddress];
