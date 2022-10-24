@@ -9,12 +9,13 @@ import type {
   NodeInterpreter,
 } from '../../../types';
 import type { AragonDAO } from '../AragonDAO';
-import type { AragonOS } from '../AragonOS';
 import type { CompletePermission } from '../types';
 import { optionalLabeledAppIdentifierRegex } from './identifiers';
 import { getOptValue, listItems } from '../../../utils';
 import { ErrorException } from '../../../errors';
 import type { BindingsManager } from '../../../BindingsManager';
+
+const { DATA_PROVIDER } = BindingsSpace;
 
 export const DAO_OPT_NAME = 'dao';
 
@@ -36,10 +37,9 @@ export const getDAO = (
   bindingsManager: BindingsManager,
   appNode: Node,
 ): AragonDAO => {
-  let dao = bindingsManager.getBindingValue(
-    'currentDAO',
-    BindingsSpace.DATA_PROVIDER,
-  ) as AragonDAO | undefined;
+  let dao = bindingsManager.getBindingValue('currentDAO', DATA_PROVIDER) as
+    | AragonDAO
+    | undefined;
 
   if (appNode.type === NodeType.ProbableIdentifier) {
     const res = daoPrefixedIdentifierParser.run(appNode.value);
@@ -47,10 +47,9 @@ export const getDAO = (
     if (!res.isError && res.result[0]) {
       const [daoIdentifier] = res.result;
 
-      dao = bindingsManager.getBindingValue(
-        daoIdentifier,
-        BindingsSpace.DATA_PROVIDER,
-      ) as AragonDAO | undefined;
+      dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
+        | AragonDAO
+        | undefined;
       if (!dao) {
         throw new ErrorException(
           `couldn't found a DAO for ${daoIdentifier} on given identifier ${appNode.value}`,
@@ -67,8 +66,8 @@ export const getDAO = (
 };
 
 export const getDAOByOption = async (
-  module: AragonOS,
   c: CommandExpressionNode,
+  bindingsManager: BindingsManager,
   interpretNode: NodeInterpreter,
 ): Promise<AragonDAO> => {
   let daoIdentifier = await getOptValue(c, 'dao', interpretNode);
@@ -76,7 +75,10 @@ export const getDAOByOption = async (
   let dao: AragonDAO | undefined;
 
   if (!daoIdentifier) {
-    dao = module.currentDAO;
+    dao = bindingsManager.getBindingValue(
+      'currentDAO',
+      DATA_PROVIDER,
+    ) as AragonDAO;
     if (!dao) {
       throw new ErrorException(`must be used within a "connect" command`);
     }
@@ -84,10 +86,9 @@ export const getDAOByOption = async (
     daoIdentifier = daoIdentifier.toString
       ? daoIdentifier.toString()
       : daoIdentifier;
-    dao = module.bindingsManager.getBindingValue(
-      daoIdentifier,
-      BindingsSpace.DATA_PROVIDER,
-    ) as AragonDAO | undefined;
+    dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
+      | AragonDAO
+      | undefined;
     if (!dao) {
       throw new ErrorException(
         `--dao option error. No DAO found for identifier ${daoIdentifier}`,
@@ -103,7 +104,7 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
   const [granteeAddress, appAddress, role, managerAddress] = p;
 
   if (p.length > 4) {
-    return false;
+    errors.push(`Invalid number of elements. Expected 4, but got ${p.length}`);
   }
 
   if (!utils.isAddress(granteeAddress)) {

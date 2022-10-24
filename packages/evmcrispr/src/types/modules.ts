@@ -71,6 +71,7 @@ export interface ModuleExports<T extends Module = Module> {
 
 export interface IDataProvider {
   readonly type: string;
+  clone(): IDataProvider;
 }
 
 export interface IModuleConstructor {

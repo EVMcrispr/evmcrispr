@@ -71,7 +71,6 @@ export const act: ICommand<AragonOS> = {
         );
       }
       case 1: {
-        console.log('here');
         return bindingsManager.getAllBindingIdentifiers({
           spaceFilters: [ADDR],
         });
