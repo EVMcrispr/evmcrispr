@@ -32,7 +32,12 @@ import type { providers } from 'ethers';
 import type { IRange, languages } from 'monaco-editor';
 
 import { theme } from '../../editor/theme';
-import { conf, contribution } from '../../editor/evmcl';
+import {
+  conf,
+  contribution,
+  createLanguage,
+  getModulesKeywords,
+} from '../../editor/evmcl';
 
 import SelectWalletModal from '../../components/modal';
 import FadeIn from '../../components/animations/fade-in';
@@ -93,13 +98,19 @@ const calculateCommandNameLength = (c: CommandExpressionNode) => {
 
 export const Terminal = () => {
   const monaco = useMonaco();
-  const { bindingsCache, ipfsResolver, errors, isLoading, script, ast } =
-    useTerminalStore();
+  const {
+    bindingsCache,
+    ipfsResolver,
+    errors,
+    isLoading,
+    script,
+    ast,
+    currentModuleNames,
+  } = useTerminalStore();
   const { data: account } = useAccount();
   const { activeConnector } = useConnect();
   const { disconnect } = useDisconnect();
   const provider = useProvider();
-  // const { data: signer } = useSigner();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
@@ -119,11 +130,28 @@ export const Terminal = () => {
   }, [debouncedScript]);
 
   useEffect(() => {
+    if (!monaco) {
+      return;
+    }
+    const { commandKeywords, helperKeywords } = getModulesKeywords(
+      currentModuleNames,
+      bindingsCache,
+    );
+
+    const tokensProvider = monaco.languages.setMonarchTokensProvider(
+      'evmcl',
+      createLanguage(commandKeywords, helperKeywords),
+    );
+
+    return () => {
+      tokensProvider.dispose();
+    };
+  }, [monaco, currentModuleNames, bindingsCache]);
+
+  useEffect(() => {
     if (!monaco || !provider) {
       return;
     }
-    console.log('REGISTERING COMPLETION ITEM');
-
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       'evmcl',
       {

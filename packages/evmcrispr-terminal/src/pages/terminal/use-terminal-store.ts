@@ -57,7 +57,7 @@ export type TerminalStoreState = {
   script: string;
   errors: string[];
   isLoading: boolean;
-  currentModules: { name: string; alias?: string }[];
+  currentModuleNames: { name: string; alias?: string }[];
   lastLine: number;
   currentLine: number;
   currentCommandNodes: CommandExpressionNode[];
@@ -70,7 +70,7 @@ const initialState: TerminalStoreState = {
   script: scriptPlaceholder,
   errors: [],
   isLoading: false,
-  currentModules: [],
+  currentModuleNames: [],
   lastLine: -1,
   currentLine: 0,
   currentCommandNodes: [],
@@ -110,7 +110,7 @@ const terminalStore = createStore('terminal-store')(initialState, {
         provider: providers.Provider;
       };
       const pos = {} as Position;
-      const oldModules = get.currentModules();
+      const oldModules = get.currentModuleNames();
 
       /**
        * Check for differences between new and old modules
@@ -125,7 +125,7 @@ const terminalStore = createStore('terminal-store')(initialState, {
           pos,
         );
 
-        set.currentModules(newModuleNames);
+        set.currentModuleNames(newModuleNames);
       } else {
         for (const { name, alias } of newModuleNames) {
           if (!oldModules.find((m) => m.alias === alias && m.name === name)) {
@@ -136,7 +136,7 @@ const terminalStore = createStore('terminal-store')(initialState, {
               fetchers,
               pos,
             );
-            set.currentModules(newModuleNames);
+            set.currentModuleNames(newModuleNames);
             return;
           }
         }
