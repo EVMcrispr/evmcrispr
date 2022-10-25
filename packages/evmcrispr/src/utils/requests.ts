@@ -1,7 +1,7 @@
 import type { BindingsManager } from '../BindingsManager';
 import type { BindingsSpace } from '../types';
 
-const TIMER_MILLISECONDS = 5000;
+const TIMER_MILLISECONDS = 8500;
 
 export const setTimer = <T>(fn: () => Promise<T>): Promise<T | never> =>
   Promise.race<T | never>([
@@ -26,8 +26,10 @@ export const tryAndCacheNotFound = async <T>(
 
   try {
     const result = await setTimer(fetchResourceFn);
+    console.log(result);
     return result;
   } catch (err) {
+    console.log(err);
     if (!cache.hasBinding(resourceName, bindingSpace)) {
       cache.setBinding(resourceName, null, bindingSpace);
     }
