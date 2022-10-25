@@ -415,7 +415,7 @@ export const createProvideCompletionItemsFn: (
       emptyLine ||
       // Check if caret position is within the command name location
       (!!currentCommandNode?.loc &&
-        calibratedCurrPos.col >= currentCommandNode.loc.start.col &&
+        calibratedCurrPos.col >= 0 &&
         calibratedCurrPos.col <=
           calculateCommandNameLength(currentCommandNode));
 

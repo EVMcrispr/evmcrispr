@@ -86,7 +86,7 @@ export const calculateCurrentArgIndex = (
        * return the former's index
        */
     } else if (lastArgCol > pos.col && pos.col < argLoc.start.col) {
-      return i - 1;
+      return Math.min(0, i - 1);
     }
 
     lastArgCol = argLoc.end.col;
