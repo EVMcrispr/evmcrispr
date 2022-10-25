@@ -42,7 +42,7 @@ export class BindingsManager {
       type: BindingsSpace.OTHER,
     };
 
-    this.#setBinding(b as Binding, false);
+    this.#setBinding(b as Binding, false, false);
   }
 
   exitScope(): void {
@@ -121,6 +121,7 @@ export class BindingsManager {
     memSpace: BSpace,
     isGlobal = false,
     parent?: RelativeBinding<BSpace>,
+    overwrite = false,
   ): void {
     this.#setBinding(
       {
@@ -130,16 +131,21 @@ export class BindingsManager {
         parent,
       } as Binding,
       isGlobal,
+      overwrite,
     );
   }
 
-  setBindings(bindingOrbindings: Binding | Binding[], isGlobal = false): void {
+  setBindings(
+    bindingOrbindings: Binding | Binding[],
+    isGlobal = false,
+    overwrite = false,
+  ): void {
     if (Array.isArray(bindingOrbindings)) {
       bindingOrbindings.forEach((b) => {
-        this.#setBinding(b, isGlobal);
+        this.#setBinding(b, isGlobal, overwrite);
       });
     } else {
-      this.#setBinding(bindingOrbindings, isGlobal);
+      this.#setBinding(bindingOrbindings, isGlobal, overwrite);
     }
   }
 
@@ -151,7 +157,7 @@ export class BindingsManager {
     });
   }
 
-  #setBinding(binding: Binding, isGlobal: boolean): void {
+  #setBinding(binding: Binding, isGlobal: boolean, overwrite: boolean): void {
     try {
       if (isGlobal) {
         this.#bindings.addToGlobalScope(binding);
@@ -159,6 +165,13 @@ export class BindingsManager {
         this.#bindings.add(binding);
       }
     } catch (err) {
+      if (overwrite) {
+        const b = this.#bindings.localLookup(binding.identifier, binding.type)!;
+        b[0]!.value = binding.value;
+
+        return;
+      }
+
       throw new ErrorException(
         `${isGlobal ? 'global' : ''} binding ${
           binding.identifier
