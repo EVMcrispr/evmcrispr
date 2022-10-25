@@ -28,7 +28,6 @@ export const tryAndCacheNotFound = async <T>(
     const result = await setTimer(fetchResourceFn);
     return result;
   } catch (err) {
-    console.log(err);
     if (!cache.hasBinding(resourceName, bindingSpace)) {
       cache.setBinding(resourceName, null, bindingSpace);
     }
