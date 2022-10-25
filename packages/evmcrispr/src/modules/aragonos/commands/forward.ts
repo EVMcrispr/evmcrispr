@@ -1,59 +1,71 @@
 import { utils } from 'ethers';
 
 import { ErrorException } from '../../../errors';
-import type {
-  Action,
-  CommandFunction,
-  TransactionAction,
-} from '../../../types';
+import type { Action, ICommand, TransactionAction } from '../../../types';
 import { isProviderAction } from '../../../types';
 
 import { batchForwarderActions } from '../utils/forwarders';
 import {
   ComparisonType,
   checkArgsLength,
+  checkOpts,
   commaListItems,
+  getOptValue,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-export const forward: CommandFunction<AragonOS> = async (
-  module,
-  c,
-  { interpretNode, interpretNodes },
-) => {
-  checkArgsLength(c, {
-    type: ComparisonType.Greater,
-    minValue: 2,
-  });
+import { getDAOAppIdentifiers } from '../utils';
 
-  const blockCommandsNode = c.args.pop()!;
+export const forward: ICommand<AragonOS> = {
+  async run(module, c, { interpretNode, interpretNodes }) {
+    checkArgsLength(c, {
+      type: ComparisonType.Greater,
+      minValue: 2,
+    });
+    checkOpts(c, ['context']);
 
-  const forwarderAppAddresses = await interpretNodes(c.args, false, {
-    allowNotFoundError: true,
-  });
+    const blockCommandsNode = c.args.pop()!;
 
-  const invalidForwarderApps: any[] = [];
+    const forwarderAppAddresses = await interpretNodes(c.args, false, {
+      allowNotFoundError: true,
+    });
 
-  forwarderAppAddresses.forEach((a) =>
-    !utils.isAddress(a) ? invalidForwarderApps.push(a) : undefined,
-  );
+    const invalidForwarderApps: any[] = [];
 
-  if (invalidForwarderApps.length) {
-    throw new ErrorException(
-      `${commaListItems(invalidForwarderApps)} are not valid forwarder address`,
+    forwarderAppAddresses.forEach((a) =>
+      !utils.isAddress(a) ? invalidForwarderApps.push(a) : undefined,
     );
-  }
 
-  const blockActions = (await interpretNode(blockCommandsNode, {
-    blockModule: module.contextualName,
-  })) as Action[];
+    if (invalidForwarderApps.length) {
+      throw new ErrorException(
+        `${commaListItems(
+          invalidForwarderApps,
+        )} are not valid forwarder address`,
+      );
+    }
 
-  if (blockActions.find((a) => isProviderAction(a))) {
-    throw new ErrorException(`can't switch networks inside a connect command`);
-  }
+    const blockActions = (await interpretNode(blockCommandsNode, {
+      blockModule: module.contextualName,
+    })) as Action[];
 
-  return batchForwarderActions(
-    module.signer,
-    blockActions as TransactionAction[],
-    forwarderAppAddresses.reverse(),
-  );
+    if (blockActions.find((a) => isProviderAction(a))) {
+      throw new ErrorException(
+        `can't switch networks inside a connect command`,
+      );
+    }
+
+    const context = await getOptValue(c, 'context', interpretNode);
+
+    return batchForwarderActions(
+      module.signer,
+      blockActions as TransactionAction[],
+      forwarderAppAddresses.reverse(),
+      context,
+    );
+  },
+  buildCompletionItemsForArg(_, __, bindingsManager) {
+    return getDAOAppIdentifiers(bindingsManager);
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

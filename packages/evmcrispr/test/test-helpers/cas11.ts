@@ -5,12 +5,11 @@ import type { Signer } from 'ethers';
 
 import { inspect } from 'util';
 import type { ErrorException } from '../../src';
-import { BindingsSpace } from '../../src/BindingsManager';
+import { Cas11AST } from '../../src';
 import { EVMcrispr } from '../../src/EVMcrispr';
 import { scriptParser } from '../../src/parsers/script';
 import { createParserState } from '../../src/parsers/utils';
 import type {
-  AST,
   BlockExpressionNode,
   CommandExpressionNode,
   HelperFunctionNode,
@@ -18,7 +17,7 @@ import type {
   NodeParser,
   NodeParserState,
 } from '../../src/types';
-import { ASTType, NodeType } from '../../src/types';
+import { BindingsSpace, NodeType } from '../../src/types';
 import type { Comparison } from '../../src/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/utils';
 import { buildParserError } from '../../src/utils/parsers';
@@ -70,11 +69,10 @@ export const runInterpreterCases = async (
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
-        const ast: AST = {
-          type: ASTType.Program,
-          body: [node],
-        };
-        const [res] = await new EVMcrispr(ast, signer).interpret();
+        const [res] = await new EVMcrispr(
+          new Cas11AST([node]),
+          signer,
+        ).interpret();
 
         expect(res, errorMsg).to.equal(expected);
       },
@@ -112,7 +110,7 @@ export const createInterpreter = (
   script: string,
   signer: Signer,
 ): EVMcrispr => {
-  const ast = runParser(scriptParser, script) as AST;
+  const ast = runParser(scriptParser, script) as Cas11AST;
 
   return new EVMcrispr(ast, signer);
 };

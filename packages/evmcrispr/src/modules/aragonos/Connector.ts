@@ -31,7 +31,7 @@ type QueryResult = {
  * Connector that expose functionalities to fetch app data from subgraphs and IPFS.
  * @category Utility
  */
-export default class Connector {
+export class Connector {
   #subgraphUrl: string;
 
   /**

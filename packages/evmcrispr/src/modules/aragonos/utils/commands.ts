@@ -2,18 +2,20 @@ import type { Parser } from 'arcsecond';
 import { char, possibly, regex, sequenceOf } from 'arcsecond';
 import { utils } from 'ethers';
 
-import { NodeType } from '../../../types';
+import { BindingsSpace, NodeType } from '../../../types';
 import type {
   CommandExpressionNode,
   Node,
   NodeInterpreter,
 } from '../../../types';
 import type { AragonDAO } from '../AragonDAO';
-import type { AragonOS } from '../AragonOS';
-import type { FullPermission } from '../types';
+import type { CompletePermission } from '../types';
 import { optionalLabeledAppIdentifierRegex } from './identifiers';
 import { getOptValue, listItems } from '../../../utils';
 import { ErrorException } from '../../../errors';
+import type { BindingsManager } from '../../../BindingsManager';
+
+const { DATA_PROVIDER } = BindingsSpace;
 
 export const DAO_OPT_NAME = 'dao';
 
@@ -32,23 +34,25 @@ export const daoPrefixedIdentifierParser: Parser<
 ]);
 
 export const getDAO = (
-  module: AragonOS,
-  c: CommandExpressionNode,
-  appIndex: number,
+  bindingsManager: BindingsManager,
+  appNode: Node,
 ): AragonDAO => {
-  let dao = module.currentDAO;
-  const n: Node = c.args[appIndex];
+  let dao = bindingsManager.getBindingValue('currentDAO', DATA_PROVIDER) as
+    | AragonDAO
+    | undefined;
 
-  if (n.type === NodeType.ProbableIdentifier) {
-    const res = daoPrefixedIdentifierParser.run(n.value);
+  if (appNode.type === NodeType.ProbableIdentifier) {
+    const res = daoPrefixedIdentifierParser.run(appNode.value);
 
     if (!res.isError && res.result[0]) {
       const [daoIdentifier] = res.result;
 
-      dao = module.getModuleBinding(daoIdentifier);
+      dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
+        | AragonDAO
+        | undefined;
       if (!dao) {
         throw new ErrorException(
-          `couldn't found a DAO for ${daoIdentifier} on given identifier ${n.value}`,
+          `couldn't found a DAO for ${daoIdentifier} on given identifier ${appNode.value}`,
         );
       }
     }
@@ -62,8 +66,8 @@ export const getDAO = (
 };
 
 export const getDAOByOption = async (
-  module: AragonOS,
   c: CommandExpressionNode,
+  bindingsManager: BindingsManager,
   interpretNode: NodeInterpreter,
 ): Promise<AragonDAO> => {
   let daoIdentifier = await getOptValue(c, 'dao', interpretNode);
@@ -71,7 +75,10 @@ export const getDAOByOption = async (
   let dao: AragonDAO | undefined;
 
   if (!daoIdentifier) {
-    dao = module.currentDAO;
+    dao = bindingsManager.getBindingValue(
+      'currentDAO',
+      DATA_PROVIDER,
+    ) as AragonDAO;
     if (!dao) {
       throw new ErrorException(`must be used within a "connect" command`);
     }
@@ -79,7 +86,9 @@ export const getDAOByOption = async (
     daoIdentifier = daoIdentifier.toString
       ? daoIdentifier.toString()
       : daoIdentifier;
-    dao = module.getModuleBinding(daoIdentifier);
+    dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
+      | AragonDAO
+      | undefined;
     if (!dao) {
       throw new ErrorException(
         `--dao option error. No DAO found for identifier ${daoIdentifier}`,
@@ -90,9 +99,9 @@ export const getDAOByOption = async (
   return dao;
 };
 
-export const checkPermissionFormat = (p: FullPermission): void | never => {
+export const isPermission = (p: any[]): p is CompletePermission | never => {
   const errors: string[] = [];
-  const [granteeAddress, appAddress, role] = p;
+  const [granteeAddress, appAddress, role, managerAddress] = p;
 
   if (!utils.isAddress(granteeAddress)) {
     errors.push(
@@ -110,7 +119,15 @@ export const checkPermissionFormat = (p: FullPermission): void | never => {
     }
   }
 
+  if (managerAddress && !utils.isAddress(managerAddress)) {
+    errors.push(
+      `Invalid permission manager. Expected an address, but got ${managerAddress}`,
+    );
+  }
+
   if (errors.length) {
     throw new ErrorException(listItems('invalid permission provided', errors));
   }
+
+  return true;
 };

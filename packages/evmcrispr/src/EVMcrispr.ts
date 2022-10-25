@@ -10,7 +10,6 @@ import {
 } from './errors';
 import { timeUnits, toDecimals } from './utils';
 import type {
-  AST,
   Action,
   ArrayExpressionNode,
   AsExpressionNode,
@@ -22,13 +21,16 @@ import type {
   LiteralExpressionNode,
   Node,
   ProbableIdentifierNode,
-  VariableIdentiferNode,
+  RelativeBinding,
+  VariableIdentifierNode,
 } from './types';
-import { NodeType } from './types';
-import type { Module } from './modules/Module';
+import { BindingsSpace, NodeType } from './types';
+import type { Module } from './Module';
 import { Std } from './modules/std/Std';
-import { BindingsManager, BindingsSpace } from './BindingsManager';
+import { BindingsManager } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
+import type { Cas11AST } from './Cas11AST';
+import { IPFSResolver } from './IPFSResolver';
 
 const {
   AddressLiteral,
@@ -52,48 +54,40 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-const { ABI, ADDR, INTERPRETER, USER } = BindingsSpace;
-
-// Interpreter bindings
-
-// Implicit module use inside block expressions
-const CONTEXTUAL_MODULE = 'contextualModule';
+const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 
 export class EVMcrispr {
-  readonly ast: AST;
+  readonly ast: Cas11AST;
+  readonly bindingsManager: BindingsManager;
+  readonly signer: Signer;
+
   #std: Std;
-  #modules: Module[] = [];
+  #modules: Module[];
+  #nonces: Record<string, number>;
 
-  #bindingsManager: BindingsManager;
-  #nonces: Record<string, number> = {};
-
-  #signer: Signer;
-
-  constructor(ast: AST, signer: Signer) {
+  constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
 
-    this.#bindingsManager = new BindingsManager();
+    this.bindingsManager = new BindingsManager();
+    this.#modules = [];
+    this.#nonces = {};
     this.#setDefaultBindings();
 
-    this.#signer = signer;
+    this.signer = signer;
     this.#std = new Std(
-      this.#bindingsManager,
+      this.bindingsManager,
       this.#nonces,
-      this.#signer,
+      this.signer,
+      new IPFSResolver(),
       this.#modules,
     );
   }
 
-  get bindingsManager(): BindingsManager {
-    return this.#bindingsManager;
-  }
-
-  set signer(signer: Signer) {
-    this.#signer = signer;
-  }
-
-  getBinding(name: string, memSpace: BindingsSpace): any {
-    return this.#bindingsManager.getBinding(name, memSpace);
+  getBinding<BSpace extends BindingsSpace>(
+    name: string,
+    memSpace: BSpace,
+  ): RelativeBinding<BSpace>['value'] | undefined {
+    return this.bindingsManager.getBindingValue(name, memSpace);
   }
 
   getModule(aliasOrName: string): Module | undefined {
@@ -154,7 +148,7 @@ export class EVMcrispr {
         );
       case VariableIdentifier:
         return this.#interpretVariableIdentifier(
-          n as VariableIdentiferNode,
+          n as VariableIdentifierNode,
           options,
         );
 
@@ -196,10 +190,12 @@ export class EVMcrispr {
     n,
     options,
   ) => {
-    const left = await this.interpretNode(n.left, options);
-    const right = await this.interpretNode(n.right, options);
+    const name = await this.interpretNode(n.left, options);
+    const alias = await this.interpretNode(n.right, options);
 
-    return [left, right];
+    this.bindingsManager.setBinding(name, alias, ALIAS);
+
+    return [name, alias];
   };
 
   #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
@@ -250,13 +246,7 @@ export class EVMcrispr {
     n,
     { blockInitializer, blockModule } = {},
   ) => {
-    this.#bindingsManager.enterScope();
-
-    this.#bindingsManager.setBinding(
-      CONTEXTUAL_MODULE,
-      blockModule,
-      INTERPRETER,
-    );
+    this.bindingsManager.enterScope(blockModule);
 
     if (blockInitializer) {
       await blockInitializer();
@@ -264,7 +254,7 @@ export class EVMcrispr {
 
     const results = await this.interpretNodes(n.body, true);
 
-    this.#bindingsManager.exitScope();
+    this.bindingsManager.exitScope();
 
     return results.filter((r) => !!r);
   };
@@ -282,7 +272,7 @@ export class EVMcrispr {
       );
     }
 
-    const targetInterface = this.#bindingsManager.getBinding(
+    const targetInterface = this.bindingsManager.getBindingValue(
       targetAddress,
       ABI,
     ) as utils.Interface | undefined;
@@ -290,7 +280,7 @@ export class EVMcrispr {
       EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
     }
 
-    const contract = new Contract(targetAddress, targetInterface, this.#signer);
+    const contract = new Contract(targetAddress, targetInterface, this.signer);
     let res;
 
     try {
@@ -311,11 +301,7 @@ export class EVMcrispr {
 
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (c) => {
     let module: Module | undefined = this.#std;
-    const moduleName =
-      c.module ??
-      (this.#bindingsManager.getBinding(CONTEXTUAL_MODULE, INTERPRETER) as
-        | string
-        | undefined);
+    const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
     if (moduleName && moduleName !== 'std') {
       module = this.#modules.find((m) => m.contextualName === moduleName);
@@ -413,7 +399,7 @@ export class EVMcrispr {
       const identifier = n.value;
 
       if (!treatAsLiteral) {
-        const addressBinding = this.bindingsManager.getBinding(
+        const addressBinding = this.bindingsManager.getBindingValue(
           identifier,
           ADDR,
         );
@@ -430,21 +416,20 @@ export class EVMcrispr {
       return identifier;
     };
 
-  #interpretVariableIdentifier: NodeInterpreter<VariableIdentiferNode> = (
-    n,
-  ) => {
-    const binding = this.#bindingsManager.getBinding(n.value, USER);
+  #interpretVariableIdentifier: NodeInterpreter<VariableIdentifierNode> =
+    async (n) => {
+      const binding = this.bindingsManager.getBindingValue(n.value, USER);
 
-    if (binding) {
-      return binding;
-    }
+      if (binding) {
+        return binding;
+      }
 
-    EVMcrispr.panic(n, `${n.value} not defined`);
-  };
+      EVMcrispr.panic(n, `${n.value} not defined`);
+    };
 
   #setDefaultBindings(): void {
-    this.#bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
-    this.#bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
   }
 
   static panic(n: Node, msg: string): never {

@@ -1,7 +1,7 @@
 import { providers } from 'ethers';
 
 import { ErrorException } from '../../../errors';
-import type { CommandFunction, ProviderAction } from '../../../types';
+import type { ICommand, ProviderAction } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { Std } from '../Std';
 
@@ -20,45 +20,57 @@ const nameToChainId = {
   arbitrumRinkeby: 421611,
 };
 
-export const _switch: CommandFunction<Std> = async (
-  module,
-  c,
-  { interpretNodes },
-): Promise<ProviderAction[]> => {
-  checkArgsLength(c, {
-    type: ComparisonType.Equal,
-    minValue: 1,
-  });
+export const _switch: ICommand<Std> = {
+  async run(module, c, { interpretNodes }): Promise<ProviderAction[]> {
+    checkArgsLength(c, {
+      type: ComparisonType.Equal,
+      minValue: 1,
+    });
 
-  const provider = module.signer.provider;
-  if (!(provider instanceof providers.JsonRpcProvider)) {
-    throw new ErrorException('JSON-RPC based providers supported only');
-  }
-
-  const [networkNameOrId] = await interpretNodes(c.args);
-
-  let chainId: number;
-  chainId = Number(networkNameOrId.toString());
-
-  if (!Number.isInteger(chainId)) {
-    if (typeof networkNameOrId !== 'string') {
-      throw new ErrorException(
-        `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
-      );
+    const provider = module.signer.provider;
+    if (!(provider instanceof providers.JsonRpcProvider)) {
+      throw new ErrorException('JSON-RPC based providers supported only');
     }
-    chainId =
-      nameToChainId[
-        networkNameOrId?.toLowerCase() as keyof typeof nameToChainId
-      ];
-    if (!chainId) {
-      throw new ErrorException(`chain "${networkNameOrId}" not found`);
-    }
-  }
 
-  return [
-    {
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${chainId.toString(16)}` }],
-    },
-  ];
+    const [networkNameOrId] = await interpretNodes(c.args);
+
+    let chainId: number;
+    chainId = Number(networkNameOrId.toString());
+
+    if (!Number.isInteger(chainId)) {
+      if (typeof networkNameOrId !== 'string') {
+        throw new ErrorException(
+          `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
+        );
+      }
+      chainId =
+        nameToChainId[
+          networkNameOrId?.toLowerCase() as keyof typeof nameToChainId
+        ];
+      if (!chainId) {
+        throw new ErrorException(`chain "${networkNameOrId}" not found`);
+      }
+    }
+
+    return [
+      {
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${chainId.toString(16)}` }],
+      },
+    ];
+  },
+  buildCompletionItemsForArg(argIndex) {
+    switch (argIndex) {
+      case 0:
+        return [
+          ...Object.keys(nameToChainId),
+          ...Object.values(nameToChainId).map((chainId) => chainId.toString()),
+        ];
+      default:
+        return [];
+    }
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

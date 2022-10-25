@@ -1,36 +1,61 @@
 import { ErrorException } from '../../../errors';
-import { BindingsSpace } from '../../../BindingsManager';
-import type { CommandFunction } from '../../../types';
-import { NodeType } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { BindingsSpace, NodeType } from '../../../types';
+import type { ICommand } from '../../../types';
+import {
+  ComparisonType,
+  checkArgsLength,
+  inSameLineThanNode,
+} from '../../../utils';
 import type { Std } from '../Std';
 
 const { VariableIdentifier } = NodeType;
+const { ADDR, USER } = BindingsSpace;
 
-export const set: CommandFunction<Std> = async (
-  module,
-  c,
-  { interpretNode },
-) => {
-  checkArgsLength(c, { type: ComparisonType.Equal, minValue: 2 });
+export const set: ICommand<Std> = {
+  buildCompletionItemsForArg(argIndex, _, cache) {
+    switch (argIndex) {
+      case 0:
+        return [];
+      case 1: {
+        return cache.getAllBindingIdentifiers({ spaceFilters: [ADDR] });
+      }
+      default:
+        return [];
+    }
+  },
+  async run(module, c, { interpretNode }) {
+    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 2 });
 
-  const [varNode, valueNode] = c.args;
+    const [varNode, valueNode] = c.args;
 
-  if (varNode.type !== VariableIdentifier) {
-    throw new ErrorException(`expected a variable identifier`);
-  }
+    if (varNode.type !== VariableIdentifier) {
+      throw new ErrorException(`expected a variable identifier`);
+    }
 
-  const varName = varNode.value;
-  const varValue = await interpretNode(valueNode);
+    const varName = varNode.value;
+    const varValue = await interpretNode(valueNode);
 
-  if (module.bindingsManager.getBinding(varName, BindingsSpace.USER)) {
-    throw new ErrorException(`${varName} already defined`);
-  }
+    if (module.bindingsManager.getBindingValue(varName, BindingsSpace.USER)) {
+      throw new ErrorException(`${varName} already defined`);
+    }
 
-  module.bindingsManager.setBinding(
-    varName,
-    varValue,
-    BindingsSpace.USER,
-    true,
-  );
+    module.bindingsManager.setBinding(varName, varValue, USER, true);
+  },
+  async runEagerExecution(c, cache, __, caretPos) {
+    if (inSameLineThanNode(c, caretPos)) {
+      return;
+    }
+
+    const [varNameNode, varValueNode] = c.args;
+
+    if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
+      const varName = varNameNode.value;
+      const varValue = varValueNode.value;
+
+      cache.setBinding(varName, varValue, USER, false, undefined, true);
+
+      return (eagerBindingsManager) =>
+        eagerBindingsManager.setBinding(varName, varValueNode.value, USER);
+    }
+  },
 };

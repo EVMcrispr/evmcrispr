@@ -1,16 +1,11 @@
 import type { BigNumberish } from 'ethers';
 
 export * from './actions';
+export * from './bindings';
 export * from './ast';
 export * from './modules';
 export * from './parsers';
-
-// ---------------------- TYPES ----------------------
-
-/**
- * A string that contains an Ethereum address.
- */
-export type Address = string;
+export * from './web3';
 
 // ---------------------- INTERFACES ----------------------
 

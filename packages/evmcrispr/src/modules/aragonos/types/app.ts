@@ -49,8 +49,6 @@ export interface AppMethod {
   notice: string | null;
 }
 
-export type Abi = (utils.EventFragment | utils.FunctionFragment)[];
-
 export interface AragonEnvironment {
   network: string;
   registry?: string;
@@ -94,7 +92,7 @@ export interface AragonAppJson {
 
 export interface AragonArtifact extends AragonAppJson {
   roles: AragonArtifactRole[];
-  abi: Abi;
+  abi: (utils.EventFragment | utils.FunctionFragment)[];
   /**
    * All publicly accessible functions
    * Includes metadata needed for radspec and transaction pathing
@@ -132,7 +130,7 @@ export interface AppArtifact {
 }
 
 /**
- * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:1`):
+ * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:0`):
  *
  * - **AppName**: Name of the app as it appears in the APM excluding the ens registry name. For example: the
  * app name of `voting.aragonpm.eth` is `voting`.

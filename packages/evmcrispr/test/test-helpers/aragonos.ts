@@ -97,11 +97,7 @@ export const itChecksBadPermission = (
   checkPermissionManager = false,
 ): void => {
   const permissionErrorText = 'invalid permission provided';
-  const permission: Permission = [
-    'token-manager',
-    'finance',
-    'CREATE_PAYMENTS_ROLE',
-  ];
+  const permission: Permission = ['kernel', 'acl', 'CREATE_PERMISSIONS_ROLE'];
 
   itChecksNonDefinedIdentifier(
     'should fail when receiving a non-defined grantee identifier',

@@ -3,11 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { Stack, Text } from '@chakra-ui/react';
 
 import logo from '../../assets/logo.svg';
-import { useTerminal } from '../../utils/useTerminal';
 
 const Header = () => {
   const location = useLocation();
-  const { onClick } = useTerminal();
   const isTerminal = location.pathname === '/terminal';
 
   return (
@@ -23,7 +21,6 @@ const Header = () => {
       {location.pathname === '/terminal' ? (
         <Text
           pl={2}
-          onClick={onClick}
           color="white"
           fontSize="24px"
           border="none"
