@@ -1,8 +1,4 @@
-import {
-  ComparisonType,
-  checkArgsLength,
-  insideNodeLocation,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength, insideNode } from '../../../utils';
 import type { AsExpressionNode, ICommand, ModuleExports } from '../../../types';
 import { BindingsSpace, NodeType } from '../../../types';
 import { AragonOS } from '../../aragonos/AragonOS';
@@ -75,7 +71,7 @@ export const load: ICommand<Std> = {
         if (
           arg &&
           arg.type === AsExpression &&
-          insideNodeLocation((arg as AsExpressionNode).right, caretPos)
+          insideNode((arg as AsExpressionNode).right, caretPos)
         ) {
           return [];
         }
@@ -85,8 +81,8 @@ export const load: ICommand<Std> = {
         return [];
     }
   },
-  async runEagerExecution({ args }, cache) {
-    if (!args.length) {
+  async runEagerExecution({ args }, cache, _, caretPos) {
+    if (!args.length || insideNode(args[0], caretPos)) {
       return;
     }
 

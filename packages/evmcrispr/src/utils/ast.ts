@@ -34,7 +34,7 @@ export const insideNodeLine = ({ loc }: Node, { line }: Position): boolean => {
   return line >= start.line && line <= end.line;
 };
 
-export const insideNodeLocation = ({ loc }: Node, pos: Position): boolean => {
+export const insideNode = ({ loc }: Node, pos: Position): boolean => {
   if (!loc) {
     return false;
   }
@@ -79,7 +79,7 @@ export const calculateCurrentArgIndex = (
     const argNode = n.args[i];
     const argLoc = argNode.loc!;
 
-    if (insideNodeLocation(argNode, pos)) {
+    if (insideNode(argNode, pos)) {
       return i;
       /**
        * For cases where the position is located between two arguments we
