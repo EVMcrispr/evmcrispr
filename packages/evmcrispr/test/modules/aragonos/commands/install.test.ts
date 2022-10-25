@@ -74,11 +74,11 @@ describe('AragonOS > commands > install <repo> [initParams]', () => {
   });
 
   it('should return a correct install action given a specific version', async () => {
-    const specificVersion = '0xe775468f3ee275f740a22eb9dd7adba9b7933aa0';
+    const specificVersion = '0x714c925ede405687752c4ad32078137c4f179538';
     const interpreter = createAragonScriptInterpreter([
       `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
         ' ',
-      )} --version 2.2.0`,
+      )} --version 1.0.1`,
     ]);
 
     const installationActions = await interpreter.interpret();
@@ -114,7 +114,7 @@ describe('AragonOS > commands > install <repo> [initParams]', () => {
           connect ${DAO2.kernel} (
             install ${newAppIdentifier} ${initializeUnresolvedParams.join(
         ' ',
-      )} --dao 1
+      )} --dao ${DAO.kernel}
           )
         )
       `,
@@ -128,7 +128,7 @@ describe('AragonOS > commands > install <repo> [initParams]', () => {
         appId,
         codeAddress,
         encodeActCall(initializeSignature, [
-          DAO2.vault,
+          DAO2.agent,
           ...initializeParams.slice(1, initializeParams.length),
         ]),
         false,

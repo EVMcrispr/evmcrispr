@@ -1,43 +1,34 @@
 {
-  "path": "contracts/TokenManager.sol",
+  "path": "contracts/HookedTokenManager.sol",
   "environments": {
     "default": {
       "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
-      "appName": "token-manager.aragonpm.eth",
+      "appName": "hooked-token-manager.open.aragonpm.eth",
       "network": "rpc"
     },
     "mainnet": {
       "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-      "appName": "token-manager.aragonpm.eth",
+      "appName": "hooked-token-manager.open.aragonpm.eth",
       "network": "mainnet"
     },
     "rinkeby": {
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
-      "appName": "token-manager.aragonpm.eth",
+      "appName": "hooked-token-manager-no-controller.open.aragonpm.eth",
       "network": "rinkeby"
     },
-    "ropsten": {
-      "registry": "0x6afe2cacee211ea9179992f89dc61ff25c61e923",
-      "appName": "token-manager.aragonpm.eth",
-      "network": "ropsten"
-    },
-    "staging": {
-      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "token-manager.aragonpm.eth",
-      "network": "rinkeby"
-    },
-    "rinkeby-old": {
-      "registry": "0xfbae32d1cde62858bc45f51efc8cc4fa1415447e",
-      "appName": "token-manager.aragonpm.eth",
-      "network": "rinkeby"
-    },
-    "mumbai": {
-      "registry": "0x431f0eed904590b176f9ff8c36a1c4ff0ee9b982",
-      "appName": "token-manager.aragonpm.eth",
-      "network": "mumbai"
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "appName": "hooked-token-manager-no-controller.open.aragonpm.eth",
+      "network": "xdai"
     }
   },
   "roles": [
+    {
+      "name": "Change token controller",
+      "id": "CHANGE_CONTROLLER_ROLE",
+      "params": ["New controller"],
+      "bytes": "0xef016956077d57f898d61ee6289c302ca41fc32bf895b87259c37a0005d0bf1f"
+    },
     {
       "name": "Mint tokens",
       "id": "MINT_ROLE",
@@ -67,6 +58,12 @@
       "id": "BURN_ROLE",
       "params": ["Holder", "Token amount"],
       "bytes": "0xe97b137254058bd94f28d2f3eb79e2d34074ffb488d042e3bc958e0a57d2fa22"
+    },
+    {
+      "name": "Set hooks",
+      "id": "SET_HOOK_ROLE",
+      "params": ["Hook"],
+      "bytes": "0xed0b3a1f9ade7707147da3c9b4175ccde2d62145e0ba6b632770cbd2f1c9e34b"
     }
   ],
   "functions": [
@@ -87,6 +84,48 @@
         "type": "function"
       },
       "sig": "initialize(address,bool,uint256)"
+    },
+    {
+      "roles": ["CHANGE_CONTROLLER_ROLE"],
+      "notice": "Change the token controller to `_newController`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_newController", "type": "address" }],
+        "name": "changeTokenController",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeTokenController(address)"
+    },
+    {
+      "roles": ["SET_HOOK_ROLE"],
+      "notice": "Create a new Token Manager hook for `_hook`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_hook", "type": "address" }],
+        "name": "registerHook",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "registerHook(address)"
+    },
+    {
+      "roles": ["SET_HOOK_ROLE"],
+      "notice": "Revoke Token Manager hook #`_hookId`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_hookId", "type": "uint256" }],
+        "name": "revokeHook",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "revokeHook(uint256)"
     },
     {
       "roles": ["MINT_ROLE"],
@@ -215,9 +254,9 @@
       "abi": {
         "constant": false,
         "inputs": [
-          { "name": "", "type": "address" },
-          { "name": "", "type": "address" },
-          { "name": "", "type": "uint256" }
+          { "name": "_holder", "type": "address" },
+          { "name": "_spender", "type": "address" },
+          { "name": "_amount", "type": "uint256" }
         ],
         "name": "onApprove",
         "outputs": [{ "name": "", "type": "bool" }],
@@ -257,6 +296,20 @@
     },
     {
       "roles": [],
+      "notice": "Execute desired action as a token holder",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_evmScript", "type": "bytes" }],
+        "name": "forward",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "forward(bytes)"
+    },
+    {
+      "roles": [],
       "notice": "Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.",
       "abi": {
         "constant": false,
@@ -272,6 +325,15 @@
   ],
   "deprecatedFunctions": {},
   "abi": [
+    {
+      "constant": true,
+      "inputs": [{ "name": "_interfaceId", "type": "bytes4" }],
+      "name": "supportsInterface",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
     {
       "constant": true,
       "inputs": [],
@@ -364,6 +426,15 @@
       "type": "function"
     },
     {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_CONTROLLER_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "constant": false,
       "inputs": [
         { "name": "_from", "type": "address" },
@@ -372,6 +443,24 @@
       ],
       "name": "onTransfer",
       "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "forwarderType",
+      "outputs": [{ "name": "", "type": "uint8" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_hook", "type": "address" }],
+      "name": "registerHook",
+      "outputs": [{ "name": "", "type": "uint256" }],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -486,6 +575,15 @@
       "type": "function"
     },
     {
+      "constant": false,
+      "inputs": [{ "name": "_hookId", "type": "uint256" }],
+      "name": "revokeHook",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "constant": true,
       "inputs": [],
       "name": "BURN_ROLE",
@@ -538,6 +636,15 @@
     },
     {
       "constant": false,
+      "inputs": [{ "name": "_newController", "type": "address" }],
+      "name": "changeTokenController",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
       "inputs": [{ "name": "_evmScript", "type": "bytes" }],
       "name": "forward",
       "outputs": [],
@@ -548,9 +655,9 @@
     {
       "constant": false,
       "inputs": [
-        { "name": "", "type": "address" },
-        { "name": "", "type": "address" },
-        { "name": "", "type": "uint256" }
+        { "name": "_holder", "type": "address" },
+        { "name": "_spender", "type": "address" },
+        { "name": "_amount", "type": "uint256" }
       ],
       "name": "onApprove",
       "outputs": [{ "name": "", "type": "bool" }],
@@ -614,6 +721,15 @@
       "outputs": [{ "name": "", "type": "bool" }],
       "payable": true,
       "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "SET_HOOK_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -689,6 +805,6 @@
     }
   ],
   "flattenedCode": "./code.sol",
-  "appName": "token-manager.aragonpm.eth",
-  "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f"
+  "appName": "hooked-token-manager-no-controller.open.aragonpm.eth",
+  "appId": "0xa2a1b99c88fa1519d5f1a8efa0c90cfd0e570095d71a4d45850205108a8f9a70"
 }

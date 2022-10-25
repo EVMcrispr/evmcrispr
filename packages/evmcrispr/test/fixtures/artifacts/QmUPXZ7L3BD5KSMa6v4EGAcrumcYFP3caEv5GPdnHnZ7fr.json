@@ -1,5 +1,11 @@
 {
   "environments": {
+    "default": { "appName": "tollgate.aragonpm.eth", "network": "rpc" },
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "appName": "tollgate.1hive.aragonpm.eth",
+      "network": "xdai"
+    },
     "rinkeby": {
       "appName": "tollgate.open.aragonpm.eth",
       "network": "rinkeby",
@@ -22,8 +28,13 @@
     }
   ],
   "path": "contracts/Tollgate.sol",
-  "appName": "tollgate.open.aragonpm.eth",
-  "appId": "0x0d321283289e70165ef6db7f11fc62c74a7d39dac3ee148428c4f9e3d74c6d61",
+  "appName": "tollgate.1hive.aragonpm.eth",
+  "env": {
+    "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+    "appName": "tollgate.1hive.aragonpm.eth",
+    "network": "xdai"
+  },
+  "appId": "0x836ff04da2bec0b03737840f75c97c87a712fb9176ab6538c2516987973cb472",
   "abi": [
     {
       "constant": true,
@@ -286,26 +297,78 @@
       "type": "function"
     }
   ],
+  "deployment": {
+    "contractName": "Tollgate",
+    "compiledAt": "2020-04-17T18:48:23.994Z",
+    "compiler": {
+      "name": "solc",
+      "version": "0.4.24+commit.e67f0147.Emscripten.clang",
+      "optimizer": { "enabled": true, "runs": 1 }
+    },
+    "flattenedCode": "./code.sol",
+    "transactionHash": "0x9e95a5d5b4f6bbd14cdb5da7900c98ce76ca325f62d0b08a55cab30058c4d39d"
+  },
   "functions": [
     {
       "sig": "initialize(address,uint256,address)",
       "roles": [],
-      "notice": "Initialize Tollgate with fee of `@tokenAmount(_feeToken, _feeAmount)`"
+      "notice": "Initialize Tollgate with fee of `@tokenAmount(_feeToken, _feeAmount)`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_feeToken", "type": "address" },
+          { "name": "_feeAmount", "type": "uint256" },
+          { "name": "_feeDestination", "type": "address" }
+        ],
+        "name": "initialize",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
     },
     {
       "sig": "changeFeeAmount(uint256)",
       "roles": ["CHANGE_AMOUNT_ROLE"],
-      "notice": "Change fee to `@tokenAmount(self.feeToken(): address, _feeAmount)`"
+      "notice": "Change fee to `@tokenAmount(self.feeToken(): address, _feeAmount)`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_feeAmount", "type": "uint256" }],
+        "name": "changeFeeAmount",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
     },
     {
       "sig": "changeFeeDestination(address)",
       "roles": ["CHANGE_DESTINATION_ROLE"],
-      "notice": "Change fee destination to `_feeDestination`"
+      "notice": "Change fee destination to `_feeDestination`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_feeDestination", "type": "address" }],
+        "name": "changeFeeDestination",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
     },
     {
       "sig": "forward(bytes)",
       "roles": [],
-      "notice": "Execute desired action after paying `@tokenAmount(self.feeToken(): address, self.feeAmount(): uint256)`"
+      "notice": "Execute desired action after paying `@tokenAmount(self.feeToken(): address, self.feeAmount(): uint256)`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_evmScript", "type": "bytes" }],
+        "name": "forward",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
     }
-  ]
+  ],
+  "deprecatedFunctions": {}
 }

@@ -8,7 +8,9 @@ import { batchForwarderActions } from '../utils/forwarders';
 import {
   ComparisonType,
   checkArgsLength,
+  checkOpts,
   commaListItems,
+  getOptValue,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
 import { getDAOAppIdentifiers } from '../utils';
@@ -19,6 +21,7 @@ export const forward: ICommand<AragonOS> = {
       type: ComparisonType.Greater,
       minValue: 2,
     });
+    checkOpts(c, ['context']);
 
     const blockCommandsNode = c.args.pop()!;
 
@@ -50,10 +53,13 @@ export const forward: ICommand<AragonOS> = {
       );
     }
 
+    const context = await getOptValue(c, 'context', interpretNode);
+
     return batchForwarderActions(
       module.signer,
       blockActions as TransactionAction[],
       forwarderAppAddresses.reverse(),
+      context,
     );
   },
   buildCompletionItemsForArg(_, __, bindingsManager) {

@@ -1,40 +1,31 @@
 {
   "path": "contracts/Agent.sol",
+  "appName": "agent.aragonpm.eth",
   "environments": {
     "default": {
       "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
-      "appName": "agent.aragonpm.eth",
       "network": "rpc"
     },
     "mainnet": {
       "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-      "appName": "agent.aragonpm.eth",
       "network": "mainnet"
     },
     "rinkeby": {
       "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
-      "appName": "agent.aragonpm.eth",
       "network": "rinkeby"
+    },
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "wsRPC": "wss://xdai.1hive.org/",
+      "network": "xdai"
     },
     "ropsten": {
       "registry": "0x6afe2cacee211ea9179992f89dc61ff25c61e923",
-      "appName": "agent.aragonpm.eth",
       "network": "ropsten"
     },
     "staging": {
       "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "agent.aragonpm.eth",
       "network": "rinkeby"
-    },
-    "mumbai": {
-      "registry": "0x431f0eed904590b176f9ff8c36a1c4ff0ee9b982",
-      "appName": "agent.aragonpm.eth",
-      "network": "mumbai"
-    },
-    "matic": {
-      "registry": "0x3c70a0190d09f34519e6e218364451add21b7d4b",
-      "appName": "agent.aragonpm.eth",
-      "network": "matic"
     }
   },
   "roles": [
@@ -79,6 +70,12 @@
       "id": "DESIGNATE_SIGNER_ROLE",
       "params": ["Designated signer address"],
       "bytes": "0x23ce341656c3f14df6692eebd4757791e33662b7dcf9970c8308303da5472b7c"
+    },
+    {
+      "name": "Run EVM Script",
+      "id": "RUN_SCRIPT_ROLE",
+      "params": ["EVM Script"],
+      "bytes": "0xb421f7ad7646747f3051c50c0b8e2377839296cd4973e27f63821d73e390338f"
     }
   ],
   "functions": [
@@ -827,6 +824,5 @@
     }
   ],
   "flattenedCode": "./code.sol",
-  "appName": "agent.aragonpm.eth",
   "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a"
 }

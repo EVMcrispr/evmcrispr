@@ -103,10 +103,6 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
   const errors: string[] = [];
   const [granteeAddress, appAddress, role, managerAddress] = p;
 
-  if (p.length > 4) {
-    errors.push(`Invalid number of elements. Expected 4, but got ${p.length}`);
-  }
-
   if (!utils.isAddress(granteeAddress)) {
     errors.push(
       `Invalid grantee. Expected an address, but got ${granteeAddress}`,

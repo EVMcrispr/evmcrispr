@@ -114,7 +114,7 @@ describe('Cas11AST', () => {
           args: [
             {
               type: 'AddressLiteral',
-              value: '0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e',
+              value: '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8',
               loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
             },
             {
@@ -153,7 +153,7 @@ describe('Cas11AST', () => {
                   args: [
                     {
                       type: 'AddressLiteral',
-                      value: '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
+                      value: '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155',
                       loc: {
                         start: { line: 7, col: 14 },
                         end: { line: 7, col: 56 },
@@ -296,7 +296,7 @@ describe('Cas11AST', () => {
             args: [
               {
                 type: 'AddressLiteral',
-                value: '0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e',
+                value: '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8',
                 loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
               },
               {
@@ -335,7 +335,7 @@ describe('Cas11AST', () => {
                     args: [
                       {
                         type: 'AddressLiteral',
-                        value: '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
+                        value: '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155',
                         loc: {
                           start: { line: 7, col: 14 },
                           end: { line: 7, col: 56 },
@@ -434,7 +434,7 @@ describe('Cas11AST', () => {
             args: [
               {
                 type: 'AddressLiteral',
-                value: '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
+                value: '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155',
                 loc: { start: { line: 7, col: 14 }, end: { line: 7, col: 56 } },
               },
               {
@@ -592,7 +592,7 @@ describe('Cas11AST', () => {
             args: [
               {
                 type: 'AddressLiteral',
-                value: '0x8bebd1c49336bf491ef7bd8a7f9a5d267081b33e',
+                value: '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8',
                 loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
               },
               {
@@ -631,7 +631,7 @@ describe('Cas11AST', () => {
                     args: [
                       {
                         type: 'AddressLiteral',
-                        value: '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
+                        value: '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155',
                         loc: {
                           start: { line: 7, col: 14 },
                           end: { line: 7, col: 56 },

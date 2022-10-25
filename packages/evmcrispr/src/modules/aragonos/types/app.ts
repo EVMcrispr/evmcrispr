@@ -130,7 +130,7 @@ export interface AppArtifact {
 }
 
 /**
- * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:1`):
+ * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:0`):
  *
  * - **AppName**: Name of the app as it appears in the APM excluding the ens registry name. For example: the
  * app name of `voting.aragonpm.eth` is `voting`.

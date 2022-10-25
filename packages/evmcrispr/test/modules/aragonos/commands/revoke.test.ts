@@ -21,7 +21,6 @@ import {
 } from '../../../test-helpers/aragonos';
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
-import { ANY_ENTITY } from '../../../../src/modules/aragonos/utils';
 
 describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', () => {
   let signer: Signer;
@@ -41,38 +40,38 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
 
   it('should return a correct revoke permission action', async () => {
     const interpeter = createAragonScriptInterpreter([
-      'revoke finance:0 vault:0 TRANSFER_ROLE',
+      'revoke disputable-voting.open:0 acl:0 CREATE_PERMISSIONS_ROLE',
     ]);
 
     const revokePermissionActions = await interpeter.interpret();
 
-    const role = utils.id('TRANSFER_ROLE');
+    const role = utils.id('CREATE_PERMISSIONS_ROLE');
     const expectedRevokePermissionActions = [
       createTestAction('revokePermission', DAO.acl, [
-        DAO.finance,
-        DAO.vault,
+        DAO['disputable-voting.open'],
+        DAO.acl,
         role,
       ]),
     ];
 
     const aragonos = interpeter.getModule('aragonos') as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO.kernel);
-    const app = dao?.resolveApp('vault');
+    const app = dao?.resolveApp('acl');
     const appPermission = app?.permissions.get(role);
 
     expect(
       appPermission?.grantees,
       "Grantee still exists on DAO app's permission",
-    ).to.not.have.key(DAO.finance);
+    ).to.not.have.key(DAO['disputable-voting.open']);
     expect(revokePermissionActions, 'Returned actions mismatch').to.eql(
       expectedRevokePermissionActions,
     );
   });
 
   it('should return a correct revoke and revoke manager action', async () => {
-    const rawRole = 'CREATE_VOTES_ROLE';
+    const rawRole = 'CREATE_PERMISSIONS_ROLE';
     const interpreter = createAragonScriptInterpreter([
-      `revoke ANY_ENTITY disputable-voting.open ${rawRole} true`,
+      `revoke disputable-voting.open:0 acl:0 ${rawRole} true`,
     ]);
 
     const revokePermissionActions = await interpreter.interpret();
@@ -80,25 +79,22 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
     const role = utils.id(rawRole);
     const expectedRevokePermissionActions = [
       createTestAction('revokePermission', DAO.acl, [
-        ANY_ENTITY,
         DAO['disputable-voting.open'],
+        DAO.acl,
         role,
       ]),
-      createTestAction('removePermissionManager', DAO.acl, [
-        DAO['disputable-voting.open'],
-        role,
-      ]),
+      createTestAction('removePermissionManager', DAO.acl, [DAO.acl, role]),
     ];
 
     const aragonos = interpreter.getModule('aragonos') as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO.kernel);
-    const app = dao?.resolveApp(DAO['disputable-voting.open']);
+    const app = dao?.resolveApp(DAO['acl']);
     const appPermission = app?.permissions.get(role);
 
     expect(
       appPermission?.grantees,
       "Grantee still exists on DAO app's permission",
-    ).to.not.have.key(ANY_ENTITY);
+    ).to.not.have.key(DAO['disputable-voting.open']);
     expect(
       appPermission?.manager,
       "Permission manager still exists on DAO app's permission",
@@ -115,7 +111,7 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
 
       ar:connect ${DAO.kernel} (
         connect ${DAO2.kernel} (
-          revoke _1:finance _1:vault TRANSFER_ROLE
+          revoke _${DAO.kernel}:disputable-voting.open _${DAO.kernel}:acl CREATE_PERMISSIONS_ROLE
         )
       )
     `,
@@ -126,9 +122,9 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
 
     const expectedRevokeActions = [
       createTestAction('revokePermission', DAO.acl, [
-        DAO.finance,
-        DAO.vault,
-        utils.id('TRANSFER_ROLE'),
+        DAO['disputable-voting.open'],
+        DAO.acl,
+        utils.id('CREATE_PERMISSIONS_ROLE'),
       ]),
     ];
 
@@ -181,7 +177,7 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
 
   it('should fail when passing an invalid remove manager flag', async () => {
     const interpreter = createAragonScriptInterpreter([
-      'revoke voting token-manager MINT_ROLE 1e18',
+      'revoke disputable-voting.open acl CREATE_PERMISSIONS_ROLE 1e18',
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
     const error = new CommandError(
@@ -200,7 +196,7 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
     const nonAppAddress = await signer.getAddress();
 
     interpreter = createAragonScriptInterpreter([
-      `revoke voting ${nonAppAddress} A_ROLE`,
+      `revoke disputable-voting.open ${nonAppAddress} A_ROLE`,
     ]);
     c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
     let error = new CommandError(c, `${nonAppAddress} is not a DAO's app`);
@@ -212,7 +208,7 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
     );
 
     interpreter = createAragonScriptInterpreter([
-      `revoke voting ${nonAppAddress} MY_ROLE`,
+      `revoke disputable-voting.open ${nonAppAddress} MY_ROLE`,
     ]);
     c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
 
@@ -221,7 +217,7 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
     await expectThrowAsync(
       () =>
         createAragonScriptInterpreter([
-          `revoke voting ${nonAppAddress} MY_ROLE`,
+          `revoke disputable-voting.open ${nonAppAddress} MY_ROLE`,
         ]).interpret(),
       error,
     );
@@ -229,12 +225,12 @@ describe('AragonOS > commands > revoke <grantee> <app> <role> [removeManager]', 
 
   it("should fail when revoking a permission from an entity that doesn't have it", async () => {
     const interpreter = createAragonScriptInterpreter([
-      'revoke voting token-manager ISSUE_ROLE',
+      'revoke kernel acl CREATE_PERMISSIONS_ROLE',
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'revoke')!;
     const error = new CommandError(
       c,
-      `grantee ${DAO.voting} doesn't have the given permission`,
+      `grantee ${DAO.kernel} doesn't have the given permission`,
     );
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

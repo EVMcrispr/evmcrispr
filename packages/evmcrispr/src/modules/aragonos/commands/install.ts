@@ -83,7 +83,9 @@ const setApp = (
   bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI);
   bindingsManager.setBinding(app.address, app.abiInterface, ABI);
 
-  bindingsManager.setBinding(app.name, app.address!, ADDR);
+  if (!bindingsManager.hasBinding(app.name, ADDR)) {
+    bindingsManager.setBinding(app.name, app.address, ADDR);
+  }
 };
 
 export const install: ICommand<AragonOS> = {
@@ -111,6 +113,7 @@ export const install: ICommand<AragonOS> = {
       appName,
       registry,
       version ?? 'latest',
+      module.signer.provider!,
       module.getConfigBinding('ensResolver'),
     );
 
@@ -153,7 +156,7 @@ export const install: ICommand<AragonOS> = {
         address: proxyContractAddress,
         codeAddress,
         contentUri,
-        name: appName,
+        name: identifier,
         permissions: buildAppPermissions(roles, []),
         registryName: registry,
       },

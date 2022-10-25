@@ -3,7 +3,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { utils } from 'ethers';
 
 import { DAO } from '.';
-import type { Permission } from '../../src';
+import type { Permission } from '../../src/modules/aragonos/types';
 import { KERNEL_TRANSACTION_COUNT } from './mock-dao';
 
 export const resolvePermission = (permission: Permission): Permission => {
@@ -17,10 +17,6 @@ export const resolvePermission = (permission: Permission): Permission => {
       ? element
       : DAO[element as keyof typeof DAO];
   }) as Permission;
-};
-
-export const resolveApp = (appName: string): string => {
-  return DAO[appName as keyof typeof DAO];
 };
 
 export const getSignatureSelector = (signature: string): string => {

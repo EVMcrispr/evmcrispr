@@ -102,7 +102,9 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
   // Create app cache
   for (const app of sortedParsedApps) {
     const { name } = app;
-    const counter = appCounter.has(name) ? appCounter.get(name) : 1;
+    const counter = appCounter.has(name)
+      ? appCounter.get(name)
+      : Number(INITIAL_APP_INDEX[1]);
     const appIdentifier = buildAppIdentifier(app, counter);
 
     appCache.set(appIdentifier, app);
@@ -177,14 +179,17 @@ export class AragonDAO implements IDataProvider {
     return new AragonDAO(appCache, appResourcesCache, index, name);
   }
 
-  getAppContract(entity: Entity): Contract | undefined {
+  getAppContract(
+    entity: Entity,
+    provider: providers.Provider,
+  ): Contract | undefined {
     const app = this.resolveApp(entity);
 
     if (!app) {
       return;
     }
 
-    return new Contract(app.address, app.abiInterface);
+    return new Contract(app.address, app.abiInterface, provider);
   }
 
   resolveApp(entity: Entity): App | undefined {

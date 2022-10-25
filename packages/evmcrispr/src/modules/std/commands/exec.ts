@@ -154,7 +154,7 @@ export const exec: ICommand<Std> = {
 
     if (cachedAbi) {
       return (eagerBindingsManager) => {
-        eagerBindingsManager.mergeBindings([
+        eagerBindingsManager.trySetBindings([
           {
             type: BindingsSpace.ABI,
             identifier: resolvedTargetAddress,
@@ -197,7 +197,7 @@ export const exec: ICommand<Std> = {
     cache.setBindings(abiBindings);
 
     return (eagerBindingsManager) => {
-      eagerBindingsManager.mergeBindings(abiBindings);
+      eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
 };

@@ -41,10 +41,10 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
   it('should return a correct forward action', async () => {
     const interpreter = createAragonScriptInterpreter([
       `
-      forward token-manager:0 voting (
-        grant finance token-manager ISSUE_ROLE voting
-        revoke ANY_ENTITY tollgate.open CHANGE_DESTINATION_ROLE true
-      )
+      forward disputable-voting.open (
+        grant disputable-voting.open disputable-conviction-voting.open PAUSE_CONTRACT_ROLE disputable-voting.open
+        revoke ANY_ENTITY disputable-conviction-voting.open CREATE_PROPOSALS_ROLE true
+      ) --context "test"
     `,
     ]);
 
@@ -54,22 +54,24 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
       createTestScriptEncodedAction(
         [
           createTestAction('createPermission', DAO.acl, [
-            DAO.finance,
-            DAO['token-manager'],
-            utils.id('ISSUE_ROLE'),
-            DAO.voting,
+            DAO['disputable-voting.open'],
+            DAO['disputable-conviction-voting.open'],
+            utils.id('PAUSE_CONTRACT_ROLE'),
+            DAO['disputable-voting.open'],
           ]),
           createTestAction('revokePermission', DAO.acl, [
             ANY_ENTITY,
-            DAO['tollgate.open'],
-            utils.id('CHANGE_DESTINATION_ROLE'),
+            DAO['disputable-conviction-voting.open'],
+            utils.id('CREATE_PROPOSALS_ROLE'),
           ]),
           createTestAction('removePermissionManager', DAO.acl, [
-            DAO['tollgate.open'],
-            utils.id('CHANGE_DESTINATION_ROLE'),
+            DAO['disputable-conviction-voting.open'],
+            utils.id('CREATE_PROPOSALS_ROLE'),
           ]),
         ],
-        ['token-manager', 'voting'],
+        ['disputable-voting.open'],
+        DAO,
+        'test',
       ),
     ];
 
@@ -116,12 +118,12 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
 
   it('should fail when forwarding actions through non-forwarder entities', async () => {
     const interpreter = createAragonScriptInterpreter([
-      `forward token-manager finance (
-    grant tollgate.open finance CREATE_PAYMENTS_ROLE
+      `forward acl (
+    grant disputable-voting.open disputable-conviction-voting.open PAUSE_CONTRACT_ROLE disputable-voting.open
   )`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'forward')!;
-    const error = new CommandError(c, `app ${DAO.finance} is not a forwarder`);
+    const error = new CommandError(c, `app ${DAO.acl} is not a forwarder`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

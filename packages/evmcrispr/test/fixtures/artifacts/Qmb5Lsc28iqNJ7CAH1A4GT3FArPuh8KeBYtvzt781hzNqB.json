@@ -1,0 +1,1247 @@
+{
+  "path": "contracts/DisputableVoting.sol",
+  "environments": {
+    "default": {
+      "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
+      "appName": "disputable-voting.aragonpm.eth",
+      "network": "rpc"
+    },
+    "mainnet": {
+      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+      "appName": "disputable-voting.open.aragonpm.eth",
+      "network": "mainnet"
+    },
+    "rinkeby": {
+      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
+      "appName": "disputable-voting.open.aragonpm.eth",
+      "network": "rinkeby"
+    },
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "appName": "disputable-voting.open.aragonpm.eth",
+      "network": "xdai"
+    },
+    "ropsten": {
+      "registry": "0x6afe2cacee211ea9179992f89dc61ff25c61e923",
+      "appName": "disputable-voting.open.aragonpm.eth",
+      "network": "ropsten"
+    },
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "appName": "disputable-voting.open.aragonpm.eth",
+      "network": "rinkeby"
+    }
+  },
+  "roles": [
+    {
+      "name": "Create new votes",
+      "id": "CREATE_VOTES_ROLE",
+      "params": [],
+      "bytes": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc"
+    },
+    {
+      "name": "Challenge votes",
+      "id": "CHALLENGE_ROLE",
+      "params": [],
+      "bytes": "0xef025787d7cd1a96d9014b8dc7b44899b8c1350859fb9e1e05f5a546dd65158d"
+    },
+    {
+      "name": "Modify vote time",
+      "id": "CHANGE_VOTE_TIME_ROLE",
+      "params": ["New vote time"],
+      "bytes": "0xbc5d8ebc0830a2fed8649987b8263de1397b7fa892f3b87dc2d8cad35c691f86"
+    },
+    {
+      "name": "Modify support",
+      "id": "CHANGE_SUPPORT_ROLE",
+      "params": ["New required support"],
+      "bytes": "0xf3a5f71f3cb50dae9454dd13cdf0fd1b559f7e20d63c08902592486e6d460c90"
+    },
+    {
+      "name": "Modify quorum",
+      "id": "CHANGE_QUORUM_ROLE",
+      "params": ["New minimum acceptance quorum"],
+      "bytes": "0xa3f675280fb3c54662067f92659ca1ee3ef7c1a7f2a6ff03a5c4228aa26b6a82"
+    },
+    {
+      "name": "Modify delegated voting period",
+      "id": "CHANGE_DELEGATED_VOTING_PERIOD_ROLE",
+      "params": ["New delegated voting period"],
+      "bytes": "0x59ba415d96e104e6483d76b79d9cd09941d04e229adcd62d7dc672c93975a19d"
+    },
+    {
+      "name": "Modify quiet ending configuration",
+      "id": "CHANGE_QUIET_ENDING_ROLE",
+      "params": ["New quiet ending period", "New quiet ending extension"],
+      "bytes": "0x4f885d966bcd49734218a6e280d58c840b86e8cc13610b21ebd46f0b1da362c2"
+    },
+    {
+      "name": "Modify execution delay",
+      "id": "CHANGE_EXECUTION_DELAY_ROLE",
+      "params": ["New execution delay"],
+      "bytes": "0x5e3a3edc315e366a0cc5c94ca94a8f9bbc2f1feebb2ef7704bfefcff0cdc4ee7"
+    }
+  ],
+  "functions": [
+    {
+      "roles": [],
+      "notice": "Initialize Disputable Voting with `_token.symbol(): string` for governance, a voting duration of `@transformTime(_voteTime)`, minimum support of `@formatPct(_supportRequiredPct)`%, minimum acceptance quorum of `@formatPct(_minAcceptQuorumPct)`%, a delegated voting period of `@transformTime(_delegatedVotingPeriod), and a execution delay of `@transformTime(_executionDelay)`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_token", "type": "address" },
+          { "name": "_voteTime", "type": "uint64" },
+          { "name": "_supportRequiredPct", "type": "uint64" },
+          { "name": "_minAcceptQuorumPct", "type": "uint64" },
+          { "name": "_delegatedVotingPeriod", "type": "uint64" },
+          { "name": "_quietEndingPeriod", "type": "uint64" },
+          { "name": "_quietEndingExtension", "type": "uint64" },
+          { "name": "_executionDelay", "type": "uint64" }
+        ],
+        "name": "initialize",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "initialize(address,uint64,uint64,uint64,uint64,uint64,uint64,uint64)"
+    },
+    {
+      "roles": ["CHANGE_VOTE_TIME_ROLE"],
+      "notice": "Change vote time to `@transformTime(_voteTime)`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_voteTime", "type": "uint64" }],
+        "name": "changeVoteTime",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeVoteTime(uint64)"
+    },
+    {
+      "roles": ["CHANGE_SUPPORT_ROLE"],
+      "notice": "Change required support to `@formatPct(_supportRequiredPct)`%",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_supportRequiredPct", "type": "uint64" }],
+        "name": "changeSupportRequiredPct",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeSupportRequiredPct(uint64)"
+    },
+    {
+      "roles": ["CHANGE_QUORUM_ROLE"],
+      "notice": "Change minimum acceptance quorum to `@formatPct(_minAcceptQuorumPct)`%",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_minAcceptQuorumPct", "type": "uint64" }],
+        "name": "changeMinAcceptQuorumPct",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeMinAcceptQuorumPct(uint64)"
+    },
+    {
+      "roles": ["CHANGE_DELEGATED_VOTING_PERIOD_ROLE"],
+      "notice": "Change delegated voting period to `@transformTime(_delegatedVotingPeriod)`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_delegatedVotingPeriod", "type": "uint64" }],
+        "name": "changeDelegatedVotingPeriod",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeDelegatedVotingPeriod(uint64)"
+    },
+    {
+      "roles": ["CHANGE_QUIET_ENDING_ROLE"],
+      "notice": "Change quiet ending period to `@transformTime(_quietEndingPeriod)` with extensions of `@transformTime(_quietEndingExtension)`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_quietEndingPeriod", "type": "uint64" },
+          { "name": "_quietEndingExtension", "type": "uint64" }
+        ],
+        "name": "changeQuietEndingConfiguration",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeQuietEndingConfiguration(uint64,uint64)"
+    },
+    {
+      "roles": ["CHANGE_EXECUTION_DELAY_ROLE"],
+      "notice": "Change execution delay to `@transformTime(_executionDelay)`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_executionDelay", "type": "uint64" }],
+        "name": "changeExecutionDelay",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "changeExecutionDelay(uint64)"
+    },
+    {
+      "roles": ["CREATE_VOTES_ROLE"],
+      "notice": "Create a new vote about \"`_context`\"",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_executionScript", "type": "bytes" },
+          { "name": "_context", "type": "bytes" }
+        ],
+        "name": "newVote",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "newVote(bytes,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_voteId", "type": "uint256" },
+          { "name": "_supports", "type": "bool" }
+        ],
+        "name": "vote",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "vote(uint256,bool)"
+    },
+    {
+      "roles": [],
+      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId` on behalf of delegated voters",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_voteId", "type": "uint256" },
+          { "name": "_supports", "type": "bool" },
+          { "name": "_voters", "type": "address[]" }
+        ],
+        "name": "voteOnBehalfOf",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "voteOnBehalfOf(uint256,bool,address[])"
+    },
+    {
+      "roles": [],
+      "notice": "Execute vote #`_voteId`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_voteId", "type": "uint256" },
+          { "name": "_executionScript", "type": "bytes" }
+        ],
+        "name": "executeVote",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "executeVote(uint256,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": "`_representative == 0x0 ? 'Set your voting representative to ' + _representative : 'Remove your representative'`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_representative", "type": "address" }],
+        "name": "setRepresentative",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "setRepresentative(address)"
+    },
+    {
+      "roles": [],
+      "notice": "Create a vote to execute the desired action",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_evmScript", "type": "bytes" },
+          { "name": "_context", "type": "bytes" }
+        ],
+        "name": "forward",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "forward(bytes,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": "Create a vote to execute the desired action",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_evmScript", "type": "bytes" },
+          { "name": "_context", "type": "bytes" }
+        ],
+        "name": "forward",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "forward(bytes,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_disputableActionId", "type": "uint256" },
+          { "name": "_challengeId", "type": "uint256" },
+          { "name": "_challenger", "type": "address" }
+        ],
+        "name": "onDisputableActionChallenged",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionChallenged(uint256,uint256,address)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionAllowed",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionAllowed(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionRejected",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionRejected(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionVoided",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionVoided(uint256)"
+    },
+    {
+      "roles": ["SET_AGREEMENT_ROLE"],
+      "notice": "Set Agreement to `_agreement`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_agreement", "type": "address" }],
+        "name": "setAgreement",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "setAgreement(address)"
+    },
+    {
+      "roles": [],
+      "notice": "Set Agreement to `_agreement`",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_agreement", "type": "address" }],
+        "name": "setAgreement",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "setAgreement(address)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_disputableActionId", "type": "uint256" },
+          { "name": "_challengeId", "type": "uint256" },
+          { "name": "_challenger", "type": "address" }
+        ],
+        "name": "onDisputableActionChallenged",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionChallenged(uint256,uint256,address)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionAllowed",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionAllowed(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionRejected",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionRejected(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": null,
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+        "name": "onDisputableActionVoided",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "onDisputableActionVoided(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_token", "type": "address" }],
+        "name": "transferToVault",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "transferToVault(address)"
+    }
+  ],
+  "deprecatedFunctions": {},
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_VOTE_TIME_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_interfaceId", "type": "bytes4" }],
+      "name": "supportsInterface",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "hasInitialized",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_executionScript", "type": "bytes" },
+        { "name": "_context", "type": "bytes" }
+      ],
+      "name": "newVote",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "isVoteOpenForVoting",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "MAX_VOTES_DELEGATION_SET_LENGTH",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_agreement", "type": "address" }],
+      "name": "setAgreement",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_script", "type": "bytes" }],
+      "name": "getEVMScriptExecutor",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getRecoveryVault",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_settingId", "type": "uint256" }],
+      "name": "getSetting",
+      "outputs": [
+        { "name": "voteTime", "type": "uint64" },
+        { "name": "supportRequiredPct", "type": "uint64" },
+        { "name": "minAcceptQuorumPct", "type": "uint64" },
+        { "name": "delegatedVotingPeriod", "type": "uint64" },
+        { "name": "quietEndingPeriod", "type": "uint64" },
+        { "name": "quietEndingExtension", "type": "uint64" },
+        { "name": "executionDelay", "type": "uint64" }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "settingsLength",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_quietEndingPeriod", "type": "uint64" },
+        { "name": "_quietEndingExtension", "type": "uint64" }
+      ],
+      "name": "changeQuietEndingConfiguration",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_EXECUTION_DELAY_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "forwarderType",
+      "outputs": [{ "name": "", "type": "uint8" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_representative", "type": "address" }],
+      "name": "setRepresentative",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "getVote",
+      "outputs": [
+        { "name": "yea", "type": "uint256" },
+        { "name": "nay", "type": "uint256" },
+        { "name": "totalPower", "type": "uint256" },
+        { "name": "startDate", "type": "uint64" },
+        { "name": "snapshotBlock", "type": "uint64" },
+        { "name": "status", "type": "uint8" },
+        { "name": "settingId", "type": "uint256" },
+        { "name": "actionId", "type": "uint256" },
+        { "name": "pausedAt", "type": "uint64" },
+        { "name": "pauseDuration", "type": "uint64" },
+        { "name": "quietEndingExtensionDuration", "type": "uint64" },
+        { "name": "quietEndingSnapshotSupport", "type": "uint8" },
+        { "name": "executionScriptHash", "type": "bytes32" }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_evmScript", "type": "bytes" },
+        { "name": "_context", "type": "bytes" }
+      ],
+      "name": "forward",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_minAcceptQuorumPct", "type": "uint64" }],
+      "name": "changeMinAcceptQuorumPct",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_SUPPORT_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "canChallenge",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_executionDelay", "type": "uint64" }],
+      "name": "changeExecutionDelay",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_supports", "type": "bool" },
+        { "name": "_voters", "type": "address[]" }
+      ],
+      "name": "voteOnBehalfOf",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "canClose",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_DELEGATED_VOTING_PERIOD_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionAllowed",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_supportRequiredPct", "type": "uint64" }],
+      "name": "changeSupportRequiredPct",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "token", "type": "address" }],
+      "name": "allowRecoverability",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_disputableActionId", "type": "uint256" },
+        { "name": "_challengeId", "type": "uint256" },
+        { "name": "_challenger", "type": "address" }
+      ],
+      "name": "onDisputableActionChallenged",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "appId",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_voters", "type": "address[]" },
+        { "name": "_representative", "type": "address" }
+      ],
+      "name": "canVoteOnBehalfOf",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_QUIET_ENDING_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getInitializationBlock",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHALLENGE_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_voter", "type": "address" },
+        { "name": "_representative", "type": "address" }
+      ],
+      "name": "isRepresentativeOf",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_executionScript", "type": "bytes" }
+      ],
+      "name": "executeVote",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHANGE_QUORUM_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_voter", "type": "address" }
+      ],
+      "name": "getCastVote",
+      "outputs": [
+        { "name": "state", "type": "uint8" },
+        { "name": "caster", "type": "address" }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_token", "type": "address" }],
+      "name": "transferToVault",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_sender", "type": "address" },
+        { "name": "_role", "type": "bytes32" },
+        { "name": "_params", "type": "uint256[]" }
+      ],
+      "name": "canPerform",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getEVMScriptRegistry",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "canRepresentativesVote",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_token", "type": "address" },
+        { "name": "_voteTime", "type": "uint64" },
+        { "name": "_supportRequiredPct", "type": "uint64" },
+        { "name": "_minAcceptQuorumPct", "type": "uint64" },
+        { "name": "_delegatedVotingPeriod", "type": "uint64" },
+        { "name": "_quietEndingPeriod", "type": "uint64" },
+        { "name": "_quietEndingExtension", "type": "uint64" },
+        { "name": "_executionDelay", "type": "uint64" }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionVoided",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_delegatedVotingPeriod", "type": "uint64" }],
+      "name": "changeDelegatedVotingPeriod",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getAgreement",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CREATE_VOTES_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_sender", "type": "address" },
+        { "name": "_evmScript", "type": "bytes" }
+      ],
+      "name": "canForward",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_voteTime", "type": "uint64" }],
+      "name": "changeVoteTime",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_supports", "type": "bool" }
+      ],
+      "name": "vote",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voteId", "type": "uint256" }],
+      "name": "canExecute",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_voteId", "type": "uint256" },
+        { "name": "_voter", "type": "address" }
+      ],
+      "name": "canVote",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "SET_AGREEMENT_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "kernel",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isPetrified",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "votesLength",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionRejected",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "token",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "PCT_BASE",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isForwarder",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": false, "name": "settingId", "type": "uint256" }],
+      "name": "NewSetting",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": false, "name": "voteTime", "type": "uint64" }],
+      "name": "ChangeVoteTime",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "supportRequiredPct", "type": "uint64" }
+      ],
+      "name": "ChangeSupportRequired",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "minAcceptQuorumPct", "type": "uint64" }
+      ],
+      "name": "ChangeMinQuorum",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "delegatedVotingPeriod", "type": "uint64" }
+      ],
+      "name": "ChangeDelegatedVotingPeriod",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "quietEndingPeriod", "type": "uint64" },
+        { "indexed": false, "name": "quietEndingExtension", "type": "uint64" }
+      ],
+      "name": "ChangeQuietEndingConfiguration",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "executionDelay", "type": "uint64" }
+      ],
+      "name": "ChangeExecutionDelay",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voteId", "type": "uint256" },
+        { "indexed": true, "name": "creator", "type": "address" },
+        { "indexed": false, "name": "context", "type": "bytes" },
+        { "indexed": false, "name": "executionScript", "type": "bytes" }
+      ],
+      "name": "StartVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voteId", "type": "uint256" },
+        { "indexed": true, "name": "challengeId", "type": "uint256" }
+      ],
+      "name": "PauseVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "voteId", "type": "uint256" }],
+      "name": "ResumeVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "voteId", "type": "uint256" }],
+      "name": "CancelVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "voteId", "type": "uint256" }],
+      "name": "ExecuteVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voteId", "type": "uint256" },
+        { "indexed": false, "name": "passing", "type": "bool" }
+      ],
+      "name": "QuietEndingExtendVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voteId", "type": "uint256" },
+        { "indexed": true, "name": "voter", "type": "address" },
+        { "indexed": false, "name": "supports", "type": "bool" },
+        { "indexed": false, "name": "caster", "type": "address" }
+      ],
+      "name": "CastVote",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voter", "type": "address" },
+        { "indexed": true, "name": "representative", "type": "address" }
+      ],
+      "name": "ChangeRepresentative",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "voteId", "type": "uint256" },
+        { "indexed": true, "name": "voter", "type": "address" },
+        { "indexed": true, "name": "representative", "type": "address" }
+      ],
+      "name": "ProxyVoteFailure",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "executor", "type": "address" },
+        { "indexed": false, "name": "script", "type": "bytes" },
+        { "indexed": false, "name": "input", "type": "bytes" },
+        { "indexed": false, "name": "returnData", "type": "bytes" }
+      ],
+      "name": "ScriptResult",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "vault", "type": "address" },
+        { "indexed": true, "name": "token", "type": "address" },
+        { "indexed": false, "name": "amount", "type": "uint256" }
+      ],
+      "name": "RecoverToVault",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "agreement", "type": "address" }],
+      "name": "AgreementSet",
+      "type": "event"
+    }
+  ],
+  "flattenedCode": "./code.sol",
+  "appName": "disputable-voting.open.aragonpm.eth",
+  "appId": "0x705b5084c67966bb8e4640b28bab7a1e51e03d209d84e3a04d2a4f7415f93b34"
+}

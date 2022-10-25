@@ -7,7 +7,7 @@ import type { BindingsManager } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
 
-export const INITIAL_APP_INDEX = ':1';
+export const INITIAL_APP_INDEX = ':0';
 
 // eslint-disable-next-line
 export const appIdentifierRegex =
@@ -139,7 +139,7 @@ export const parsePrefixedDAOIdentifier = (
 export function getDaoAddrFromIdentifier(
   identifier: string,
   bindingsManager: BindingsManager,
-): string | undefined {
+): string | undefined | null {
   if (identifier.startsWith('_')) {
     const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
     if (isAddress(daoPrefix!)) {

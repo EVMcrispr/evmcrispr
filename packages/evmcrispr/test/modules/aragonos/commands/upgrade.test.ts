@@ -31,25 +31,27 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       signer,
-      DAO.kernel,
+      DAO2.kernel,
     );
   });
 
   it("should return a correct upgrade action to the latest app's version", async () => {
-    const interpreter = createAragonScriptInterpreter([`upgrade voting`]);
+    const interpreter = createAragonScriptInterpreter([
+      `upgrade disputable-conviction-voting.open`,
+    ]);
 
     const upgradeActions = await interpreter.interpret();
 
     const repoAddress = await _aragonEns(
-      'voting.aragonpm.eth',
+      'disputable-conviction-voting.open.aragonpm.eth',
       interpreter.getModule('aragonos') as AragonOS,
     );
     const repo = getRepoContract(repoAddress!, signer);
     const [, latestImplementationAddress] = await repo.getLatest();
     const expectedUpgradeActions = [
-      createTestAction('setApp', DAO.kernel, [
+      createTestAction('setApp', DAO2.kernel, [
         utils.id('base'),
-        utils.namehash('voting.aragonpm.eth'),
+        utils.namehash('disputable-conviction-voting.open.aragonpm.eth'),
         latestImplementationAddress,
       ]),
     ];
@@ -58,24 +60,26 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
   });
 
   it('should return a correct upgrade action given a specific version', async () => {
-    const interpreter = createAragonScriptInterpreter([`upgrade voting 3.0.3`]);
+    const interpreter = createAragonScriptInterpreter([
+      `upgrade disputable-conviction-voting.open 2.0.0`,
+    ]);
 
     const upgradeActions = await interpreter.interpret();
 
     const repoAddress = await _aragonEns(
-      'voting.aragonpm.eth',
+      'disputable-conviction-voting.open.aragonpm.eth',
       interpreter.getModule('aragonos') as AragonOS,
     );
     const repo = getRepoContract(repoAddress!, signer);
     const [, newAppImplementation] = await repo.getBySemanticVersion([
-      '3',
+      '2',
       '0',
-      '3',
+      '0',
     ]);
     const expectedUpgradeActions = [
-      createTestAction('setApp', DAO.kernel, [
+      createTestAction('setApp', DAO2.kernel, [
         utils.id('base'),
-        utils.namehash('voting.aragonpm.eth'),
+        utils.namehash('disputable-conviction-voting.open.aragonpm.eth'),
         newAppImplementation,
       ]),
     ];
@@ -90,7 +94,7 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             connect ${DAO3.kernel} (
-              upgrade _2:voting
+              upgrade _${DAO2.kernel}:disputable-conviction-voting.open
             )
           )
         )
@@ -101,7 +105,7 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
     const upgradeActions = await interpreter.interpret();
 
     const repoAddress = await _aragonEns(
-      'voting.aragonpm.eth',
+      'disputable-conviction-voting.open.aragonpm.eth',
       interpreter.getModule('aragonos') as AragonOS,
     );
     const repo = getRepoContract(repoAddress!, signer);
@@ -109,7 +113,7 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
     const expectedUpgradeActions = [
       createTestAction('setApp', DAO2.kernel, [
         utils.id('base'),
-        utils.namehash('voting.aragonpm.eth'),
+        utils.namehash('disputable-conviction-voting.open.aragonpm.eth'),
         latestImplementationAddress,
       ]),
     ];
@@ -147,7 +151,9 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
   });
 
   it('should fail when providing an invalid second parameter', async () => {
-    const interpreter = createAragonScriptInterpreter(['upgrade voting 1e18']);
+    const interpreter = createAragonScriptInterpreter([
+      'upgrade disputable-conviction-voting.open 1e18',
+    ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
 
     const error = new CommandError(
@@ -159,7 +165,9 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
   });
 
   it('should fail when upgrading an app to the same version', async () => {
-    const interpreter = createAragonScriptInterpreter(['upgrade voting 2.3.0']);
+    const interpreter = createAragonScriptInterpreter([
+      'upgrade disputable-conviction-voting.open 1.0.0',
+    ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
     const error = new CommandError(
       c,

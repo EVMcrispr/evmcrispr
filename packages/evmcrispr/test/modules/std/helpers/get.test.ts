@@ -13,6 +13,7 @@ import {
 describe('Std > helpers > @get(contractAddress, method)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
+  const targetAddress = '0x44fA8E6f47987339850636F88629646662444217';
 
   before(async () => {
     [signer] = await ethers.getSigners();
@@ -20,17 +21,17 @@ describe('Std > helpers > @get(contractAddress, method)', () => {
 
   it('should interpret it correctly', async () => {
     const [interpret] = await preparingExpression(
-      '@get(0xdf032bc4b9dc2782bb09352007d4c57b75160b15, name():(string))',
+      `@get(${targetAddress}, name():(string))`,
       signer,
     );
 
-    expect(await interpret()).to.eq('Wrapped Ether');
+    expect(await interpret()).to.eq('Dai Stablecoin on xDai');
   });
 
   itChecksInvalidArgsLength(
     NodeType.HelperFunctionExpression,
     '@get',
-    ['0xdf032bc4b9dc2782bb09352007d4c57b75160b15', 'name():(string)'],
+    [targetAddress, 'name():(string)'],
     {
       type: ComparisonType.Equal,
       minValue: 2,

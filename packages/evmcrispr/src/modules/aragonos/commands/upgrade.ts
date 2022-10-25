@@ -27,7 +27,7 @@ export const upgrade: ICommand<AragonOS> = {
 
     const dao = getDAO(module.bindingsManager, c.args[0]);
 
-    const kernel = dao.getAppContract('kernel')!;
+    const kernel = dao.getAppContract('kernel', module.signer.provider!)!;
 
     const args = await Promise.all([
       interpretNode(c.args[0], { treatAsLiteral: true }),

@@ -1,37 +1,523 @@
 {
-  "path": "contracts/DisputableVoting.sol",
-  "environments": {
-    "default": {
-      "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
-      "appName": "disputable-voting.aragonpm.eth",
-      "network": "rpc"
+  "functions": [
+    {
+      "roles": [],
+      "notice": "Initialize Disputable Voting with `_token.symbol(): string` for governance, a voting duration of `@transformTime(_voteTime)`, minimum support of `@formatPct(_supportRequiredPct)`%, minimum acceptance quorum of `@formatPct(_minAcceptQuorumPct)`%, a delegated voting period of `@transformTime(_delegatedVotingPeriod), and a execution delay of `@transformTime(_executionDelay)`",
+      "abi": {
+        "type": "function",
+        "name": "initialize",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_token",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_voteTime",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_supportRequiredPct",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_minAcceptQuorumPct",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_delegatedVotingPeriod",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_quietEndingPeriod",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_quietEndingExtension",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_executionDelay",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "initialize(address,uint64,uint64,uint64,uint64,uint64,uint64,uint64)"
     },
-    "mainnet": {
-      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-      "appName": "disputable-voting.open.aragonpm.eth",
-      "network": "mainnet"
+    {
+      "roles": ["CHANGE_VOTE_TIME_ROLE"],
+      "notice": "Change vote time to `@transformTime(_voteTime)`",
+      "abi": {
+        "type": "function",
+        "name": "changeVoteTime",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_voteTime",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeVoteTime(uint64)"
     },
-    "rinkeby": {
-      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
-      "appName": "disputable-voting.open.aragonpm.eth",
-      "network": "rinkeby"
+    {
+      "roles": ["CHANGE_SUPPORT_ROLE"],
+      "notice": "Change required support to `@formatPct(_supportRequiredPct)`%",
+      "abi": {
+        "type": "function",
+        "name": "changeSupportRequiredPct",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_supportRequiredPct",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeSupportRequiredPct(uint64)"
     },
-    "ropsten": {
-      "registry": "0x6afe2cacee211ea9179992f89dc61ff25c61e923",
-      "appName": "disputable-voting.open.aragonpm.eth",
-      "network": "ropsten"
+    {
+      "roles": ["CHANGE_QUORUM_ROLE"],
+      "notice": "Change minimum acceptance quorum to `@formatPct(_minAcceptQuorumPct)`%",
+      "abi": {
+        "type": "function",
+        "name": "changeMinAcceptQuorumPct",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_minAcceptQuorumPct",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeMinAcceptQuorumPct(uint64)"
     },
-    "staging": {
-      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "disputable-voting.open.aragonpm.eth",
-      "network": "rinkeby"
+    {
+      "roles": ["CHANGE_DELEGATED_VOTING_PERIOD_ROLE"],
+      "notice": "Change delegated voting period to `@transformTime(_delegatedVotingPeriod)`",
+      "abi": {
+        "type": "function",
+        "name": "changeDelegatedVotingPeriod",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_delegatedVotingPeriod",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeDelegatedVotingPeriod(uint64)"
+    },
+    {
+      "roles": ["CHANGE_QUIET_ENDING_ROLE"],
+      "notice": "Change quiet ending period to `@transformTime(_quietEndingPeriod)` with extensions of `@transformTime(_quietEndingExtension)`",
+      "abi": {
+        "type": "function",
+        "name": "changeQuietEndingConfiguration",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_quietEndingPeriod",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          },
+          {
+            "name": "_quietEndingExtension",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeQuietEndingConfiguration(uint64,uint64)"
+    },
+    {
+      "roles": ["CHANGE_EXECUTION_DELAY_ROLE"],
+      "notice": "Change execution delay to `@transformTime(_executionDelay)`",
+      "abi": {
+        "type": "function",
+        "name": "changeExecutionDelay",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_executionDelay",
+            "type": "uint64",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint64",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "changeExecutionDelay(uint64)"
+    },
+    {
+      "roles": ["CREATE_VOTES_ROLE"],
+      "notice": "Create a new vote about \"`_context`\"",
+      "abi": {
+        "type": "function",
+        "name": "newVote",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_executionScript",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          },
+          {
+            "name": "_context",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": null,
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "newVote(bytes,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`",
+      "abi": {
+        "type": "function",
+        "name": "vote",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_voteId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_supports",
+            "type": "bool",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bool",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "vote(uint256,bool)"
+    },
+    {
+      "roles": [],
+      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId` on behalf of delegated voters",
+      "abi": {
+        "type": "function",
+        "name": "voteOnBehalfOf",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_voteId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_supports",
+            "type": "bool",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bool",
+            "_isParamType": true
+          },
+          {
+            "name": "_voters",
+            "type": "address[]",
+            "indexed": null,
+            "components": null,
+            "arrayLength": -1,
+            "arrayChildren": {
+              "name": null,
+              "type": "address",
+              "indexed": null,
+              "components": null,
+              "arrayLength": null,
+              "arrayChildren": null,
+              "baseType": "address",
+              "_isParamType": true
+            },
+            "baseType": "array",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "voteOnBehalfOf(uint256,bool,address[])"
+    },
+    {
+      "roles": [],
+      "notice": "Execute vote #`_voteId`",
+      "abi": {
+        "type": "function",
+        "name": "executeVote",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_voteId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_executionScript",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "executeVote(uint256,bytes)"
+    },
+    {
+      "roles": [],
+      "notice": "`_representative == 0x0 ? 'Set your voting representative to ' + _representative : 'Remove your representative'`",
+      "abi": {
+        "type": "function",
+        "name": "setRepresentative",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_representative",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "setRepresentative(address)"
+    },
+    {
+      "roles": [],
+      "notice": "Create a vote to execute the desired action",
+      "abi": {
+        "type": "function",
+        "name": "forward",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_evmScript",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          },
+          {
+            "name": "_context",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "forward(bytes,bytes)"
     }
-  },
+  ],
+  "deprecatedFunctions": {},
   "roles": [
     {
       "name": "Create new votes",
       "id": "CREATE_VOTES_ROLE",
-      "params": [],
+      "params": ["Sender"],
       "bytes": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc"
     },
     {
@@ -75,400 +561,15 @@
       "id": "CHANGE_EXECUTION_DELAY_ROLE",
       "params": ["New execution delay"],
       "bytes": "0x5e3a3edc315e366a0cc5c94ca94a8f9bbc2f1feebb2ef7704bfefcff0cdc4ee7"
+    },
+    {
+      "name": "Set agreement",
+      "id": "SET_AGREEMENT_ROLE",
+      "params": [],
+      "bytes": "0x8dad640ab1b088990c972676ada708447affc660890ec9fc9a5483241c49f036"
     }
   ],
-  "functions": [
-    {
-      "roles": [],
-      "notice": "Initialize Disputable Voting with `_token.symbol(): string` for governance, a voting duration of `@transformTime(_voteTime)`, minimum support of `@formatPct(_supportRequiredPct)`%, minimum acceptance quorum of `@formatPct(_minAcceptQuorumPct)`%, a delegated voting period of `@transformTime(_delegatedVotingPeriod), and a execution delay of `@transformTime(_executionDelay)`",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_token", "type": "address" },
-          { "name": "_voteTime", "type": "uint64" },
-          { "name": "_supportRequiredPct", "type": "uint64" },
-          { "name": "_minAcceptQuorumPct", "type": "uint64" },
-          { "name": "_delegatedVotingPeriod", "type": "uint64" },
-          { "name": "_quietEndingPeriod", "type": "uint64" },
-          { "name": "_quietEndingExtension", "type": "uint64" },
-          { "name": "_executionDelay", "type": "uint64" }
-        ],
-        "name": "initialize",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "initialize(address,uint64,uint64,uint64,uint64,uint64,uint64,uint64)"
-    },
-    {
-      "roles": ["CHANGE_VOTE_TIME_ROLE"],
-      "notice": "Change vote time to `@transformTime(_voteTime)`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_voteTime", "type": "uint64" }],
-        "name": "changeVoteTime",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeVoteTime(uint64)"
-    },
-    {
-      "roles": ["CHANGE_SUPPORT_ROLE"],
-      "notice": "Change required support to `@formatPct(_supportRequiredPct)`%",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_supportRequiredPct", "type": "uint64" }],
-        "name": "changeSupportRequiredPct",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeSupportRequiredPct(uint64)"
-    },
-    {
-      "roles": ["CHANGE_QUORUM_ROLE"],
-      "notice": "Change minimum acceptance quorum to `@formatPct(_minAcceptQuorumPct)`%",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_minAcceptQuorumPct", "type": "uint64" }],
-        "name": "changeMinAcceptQuorumPct",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeMinAcceptQuorumPct(uint64)"
-    },
-    {
-      "roles": ["CHANGE_DELEGATED_VOTING_PERIOD_ROLE"],
-      "notice": "Change delegated voting period to `@transformTime(_delegatedVotingPeriod)`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_delegatedVotingPeriod", "type": "uint64" }],
-        "name": "changeDelegatedVotingPeriod",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeDelegatedVotingPeriod(uint64)"
-    },
-    {
-      "roles": ["CHANGE_QUIET_ENDING_ROLE"],
-      "notice": "Change quiet ending period to `@transformTime(_quietEndingPeriod)` with extensions of `@transformTime(_quietEndingExtension)`",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_quietEndingPeriod", "type": "uint64" },
-          { "name": "_quietEndingExtension", "type": "uint64" }
-        ],
-        "name": "changeQuietEndingConfiguration",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeQuietEndingConfiguration(uint64,uint64)"
-    },
-    {
-      "roles": ["CHANGE_EXECUTION_DELAY_ROLE"],
-      "notice": "Change execution delay to `@transformTime(_executionDelay)`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_executionDelay", "type": "uint64" }],
-        "name": "changeExecutionDelay",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "changeExecutionDelay(uint64)"
-    },
-    {
-      "roles": ["CREATE_VOTES_ROLE"],
-      "notice": "Create a new vote about \"`_context`\"",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_executionScript", "type": "bytes" },
-          { "name": "_context", "type": "bytes" }
-        ],
-        "name": "newVote",
-        "outputs": [{ "name": "", "type": "uint256" }],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "newVote(bytes,bytes)"
-    },
-    {
-      "roles": [],
-      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_voteId", "type": "uint256" },
-          { "name": "_supports", "type": "bool" }
-        ],
-        "name": "vote",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "vote(uint256,bool)"
-    },
-    {
-      "roles": [],
-      "notice": "Vote `_supports ? 'yes' : 'no'` in vote #`_voteId` on behalf of delegated voters",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_voteId", "type": "uint256" },
-          { "name": "_supports", "type": "bool" },
-          { "name": "_voters", "type": "address[]" }
-        ],
-        "name": "voteOnBehalfOf",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "voteOnBehalfOf(uint256,bool,address[])"
-    },
-    {
-      "roles": [],
-      "notice": "Execute vote #`_voteId`",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_voteId", "type": "uint256" },
-          { "name": "_executionScript", "type": "bytes" }
-        ],
-        "name": "executeVote",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "executeVote(uint256,bytes)"
-    },
-    {
-      "roles": [],
-      "notice": "`_representative == 0x0 ? 'Set your voting representative to ' + _representative : 'Remove your representative'`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_representative", "type": "address" }],
-        "name": "setRepresentative",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "setRepresentative(address)"
-    },
-    {
-      "roles": [],
-      "notice": "Create a vote to execute the desired action",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_evmScript", "type": "bytes" },
-          { "name": "_context", "type": "bytes" }
-        ],
-        "name": "forward",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "forward(bytes,bytes)"
-    },
-    {
-      "roles": [],
-      "notice": "Create a vote to execute the desired action",
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_evmScript", "type": "bytes" },
-          { "name": "_context", "type": "bytes" }
-        ],
-        "name": "forward",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "forward(bytes,bytes)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_disputableActionId", "type": "uint256" },
-          { "name": "_challengeId", "type": "uint256" },
-          { "name": "_challenger", "type": "address" }
-        ],
-        "name": "onDisputableActionChallenged",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionChallenged(uint256,uint256,address)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionAllowed",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionAllowed(uint256)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionRejected",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionRejected(uint256)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionVoided",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionVoided(uint256)"
-    },
-    {
-      "roles": ["SET_AGREEMENT_ROLE"],
-      "notice": "Set Agreement to `_agreement`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_agreement", "type": "address" }],
-        "name": "setAgreement",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "setAgreement(address)"
-    },
-    {
-      "roles": [],
-      "notice": "Set Agreement to `_agreement`",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_agreement", "type": "address" }],
-        "name": "setAgreement",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "setAgreement(address)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [
-          { "name": "_disputableActionId", "type": "uint256" },
-          { "name": "_challengeId", "type": "uint256" },
-          { "name": "_challenger", "type": "address" }
-        ],
-        "name": "onDisputableActionChallenged",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionChallenged(uint256,uint256,address)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionAllowed",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionAllowed(uint256)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionRejected",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionRejected(uint256)"
-    },
-    {
-      "roles": [],
-      "notice": null,
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
-        "name": "onDisputableActionVoided",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "onDisputableActionVoided(uint256)"
-    },
-    {
-      "roles": [],
-      "notice": "Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.",
-      "abi": {
-        "constant": false,
-        "inputs": [{ "name": "_token", "type": "address" }],
-        "name": "transferToVault",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      "sig": "transferToVault(address)"
-    }
-  ],
-  "deprecatedFunctions": {},
+  "dependencies": [],
   "abi": [
     {
       "constant": true,

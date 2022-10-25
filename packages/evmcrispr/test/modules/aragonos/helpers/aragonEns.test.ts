@@ -24,16 +24,16 @@ describe('AragonOS > helpers > @aragonEns()', () => {
       'aragonos',
     );
     const [daoRes] = await preparingExpression(
-      `@aragonEns(hive.aragonid.eth)`,
+      `@aragonEns(test.aragonid.eth)`,
       signer,
       'aragonos',
     );
 
     expect(await repoRes(), 'Repo address mismatch').to.equals(
-      '0xe4247F171f823e226E3F8617Eec606Eb55B54b7a',
+      '0x7762A148DeA89C5099c0B14c260a2e24bB3AD264',
     );
     expect(await daoRes(), 'DAO address mismatch').to.equals(
-      `0xe520428C232F6Da6f694b121181f907931fD2211`,
+      `0x380498cF5C188BAD479EFbc0Ea1eC40d49D5C58d`,
     );
   });
 

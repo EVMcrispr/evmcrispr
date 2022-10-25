@@ -5,10 +5,7 @@ import { ethers } from 'hardhat';
 
 import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 
-import {
-  ANY_ENTITY,
-  MINIME_TOKEN_FACTORIES,
-} from '../../../../src/modules/aragonos/utils';
+import { MINIME_TOKEN_FACTORIES } from '../../../../src/modules/aragonos/utils';
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
@@ -22,12 +19,10 @@ import { CommandError } from '../../../../src/errors';
 import {
   APP,
   COMPLETE_FORWARDER_PATH,
-  CONTEXT,
   DAO,
   FEE_AMOUNT,
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
-  resolveApp,
 } from '../../../fixtures';
 import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { DAO as DAO3 } from '../../../fixtures/mock-dao-3';
@@ -67,15 +62,13 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       `
         load aragonos as ar
 
-        ar:connect ${DAO.kernel} ${COMPLETE_FORWARDER_PATH.join(
-        ' ',
-      )} --context "${CONTEXT}" (
-          grant @me vault TRANSFER_ROLE
-          grant disputable-voting.open token-manager ISSUE_ROLE voting
-          revoke ANY_ENTITY tollgate.open CHANGE_AMOUNT_ROLE true
+        ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(' ')} (
+          grant @me agent TRANSFER_ROLE
+          grant dandelion-voting.1hive token-manager ISSUE_ROLE dandelion-voting.1hive
+          revoke dandelion-voting.1hive tollgate.1hive CHANGE_AMOUNT_ROLE true
           new-token "Other Token" OT token-manager:new
           install token-manager:new token:OT true 0
-          act agent vault "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
+          act agent agent:1 "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
         )
       `,
       signer,
@@ -96,29 +89,28 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
     const expectedForwardingActions = [
       createTestPreTxAction('approve', FEE_TOKEN_ADDRESS, [
-        resolveApp(FEE_FORWARDER),
+        DAO3[FEE_FORWARDER],
         FEE_AMOUNT,
       ]),
       createTestScriptEncodedAction(
         [
-          createTestAction('grantPermission', DAO.acl, [
+          createTestAction('grantPermission', DAO3.acl, [
             me,
-            DAO.vault,
+            DAO3.agent,
             utils.id('TRANSFER_ROLE'),
           ]),
-          createTestAction('createPermission', DAO.acl, [
-            DAO['disputable-voting.open'],
-            DAO['token-manager'],
+          createTestAction('grantPermission', DAO3.acl, [
+            DAO3['dandelion-voting.1hive'],
+            DAO3['token-manager'],
             utils.id('ISSUE_ROLE'),
-            DAO.voting,
           ]),
-          createTestAction('revokePermission', DAO.acl, [
-            ANY_ENTITY,
-            DAO['tollgate.open'],
+          createTestAction('revokePermission', DAO3.acl, [
+            DAO3['dandelion-voting.1hive'],
+            DAO3['tollgate.1hive'],
             utils.id('CHANGE_AMOUNT_ROLE'),
           ]),
-          createTestAction('removePermissionManager', DAO.acl, [
-            DAO['tollgate.open'],
+          createTestAction('removePermissionManager', DAO3.acl, [
+            DAO3['tollgate.1hive'],
             utils.id('CHANGE_AMOUNT_ROLE'),
           ]),
           createTestAction(
@@ -128,11 +120,11 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           ),
           createTestAction('changeController', newTokenAddress, [
             calculateNewProxyAddress(
-              DAO.kernel,
-              await buildNonceForAddress(DAO.kernel, 0, signer.provider!),
+              DAO3.kernel,
+              await buildNonceForAddress(DAO3.kernel, 0, signer.provider!),
             ),
           ]),
-          createTestAction('newAppInstance', DAO.kernel, [
+          createTestAction('newAppInstance', DAO3.kernel, [
             appId,
             codeAddress,
             encodeCalldata(
@@ -144,21 +136,22 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           createTestScriptEncodedAction(
             [
               {
-                to: DAO.vault,
+                to: DAO3['agent:1'],
                 data: new utils.Interface([
                   'function transfer(address,address,uint256)',
                 ]).encodeFunctionData('transfer', [
-                  '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
+                  '0x44fA8E6f47987339850636F88629646662444217',
                   me,
                   toDecimals('10.50'),
                 ]),
               },
             ],
             ['agent'],
+            DAO3,
           ),
         ],
         COMPLETE_FORWARDER_PATH,
-        CONTEXT,
+        DAO3,
       ),
     ];
 
@@ -228,9 +221,9 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
           ar:connect ${DAO.kernel} (
             connect ${DAO2.kernel} (
-              grant voting _1:voting CREATE_VOTES_ROLE
+              grant disputable-voting.open _${DAO.kernel}:agent TRANSFER_ROLE
               connect ${DAO3.kernel} (
-                grant _1:voting _${DAO2.kernel}:token-manager ISSUE_ROLE voting
+                grant _${DAO.kernel}:disputable-voting.open _${DAO2.kernel}:acl CREATE_PERMISSIONS_ROLE
               )
             )
             
@@ -243,15 +236,14 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
       const expectedNestedActions = [
         createTestAction('grantPermission', DAO.acl, [
-          DAO2.voting,
-          DAO.voting,
-          utils.id('CREATE_VOTES_ROLE'),
+          DAO2['disputable-voting.open'],
+          DAO.agent,
+          utils.id('TRANSFER_ROLE'),
         ]),
-        createTestAction('createPermission', DAO2.acl, [
-          DAO.voting,
-          DAO2['token-manager'],
-          utils.id('ISSUE_ROLE'),
-          DAO3.voting,
+        createTestAction('grantPermission', DAO2.acl, [
+          DAO['disputable-voting.open'],
+          DAO2['acl'],
+          utils.id('CREATE_PERMISSIONS_ROLE'),
         ]),
       ];
 
@@ -290,8 +282,8 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       `
       load aragonos as ar
 
-      ar:connect ${DAO.kernel} disputable-voting.open (
-        grant voting token-manager ISSUE_ROLE voting
+      ar:connect ${DAO2.kernel} disputable-voting.open (
+        grant kernel acl CREATE_PERMISSIONS_ROLE
       )
     `,
       signer,

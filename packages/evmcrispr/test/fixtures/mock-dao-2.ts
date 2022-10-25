@@ -1,14 +1,19 @@
 // WARNING: this file is generated automatically
 
 export const DAO = {
-  ['voting']: '0x0e8c9affd6b125049f9801f40c66390e3020f2d1',
-  ['token-manager']: '0x74fc04c6cf3d52ed2ba9fa44189d867c916f6ac9',
-  ['acl']: '0x9b91eee11b827a9241c3ab3820c7970bf2fc1fbd',
-  ['kernel']: '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
-  ['vault']: '0xb30f319d9e0dc5d9968d5a4bbd93ba4c3b24204d',
-  ['evm-script-registry']: '0xbf5f125ae36241c702a5706589ae59e998debb4e',
-  ['finance']: '0xd5b47a9e2edb7b7c0a945d2402275552d4cc3b3f',
+  ['disputable-conviction-voting.open']:
+    '0x0b21081c6f8b1990f53fc76279cc41ba22d7afe2',
+  ['evm-script-registry']: '0x0d33a5ca7149d24628efd43564f577ced33dd34b',
+  ['agent']: '0x4ba7362f9189572cbb1216819a45aba0d0b2d1cb',
+  ['agreement.open']: '0x59a15718992a42082ab2306bc6cbd662958a178c',
+  ['brightid-register.open']: '0x7714eb44754cb9db6d65b61f3352df12600dc593',
+  ['dynamic-issuance.open']: '0x783da66eea5a93f46f386806fce49ce18937f861',
+  ['kernel']: '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155',
+  ['acl']: '0xbc4fb635636b81e60a4e356c4dceb53cac507d03',
+  ['hooked-token-manager-no-controller.open']:
+    '0xed062e26c8f41a9088d060156edc7fc6c17d5825',
+  ['disputable-voting.open']: '0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a',
 };
 
 // Needed to build the MockEVMcrispr cache
-export const KERNEL_TRANSACTION_COUNT = 7;
+export const KERNEL_TRANSACTION_COUNT = 10;

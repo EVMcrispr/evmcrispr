@@ -19,6 +19,7 @@ import type { AragonOS } from '../AragonOS';
 import {
   ANY_ENTITY,
   BURN_ENTITY,
+  INITIAL_APP_INDEX,
   NO_ENTITY,
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
@@ -48,9 +49,14 @@ const buildAppBindings = (
   app: App,
   dao: AragonDAO,
   addPrefixedBindings: boolean,
+  omitRedudantIdentifier: boolean,
 ): (AbiBinding | AddressBinding)[] => {
   const bindingIdentifiers = [];
   const finalAppIdentifier = formatAppIdentifier(appIdentifier);
+
+  if (!omitRedudantIdentifier && appIdentifier.endsWith(INITIAL_APP_INDEX)) {
+    bindingIdentifiers.push(appIdentifier);
+  }
 
   bindingIdentifiers.push(finalAppIdentifier);
 
@@ -83,6 +89,7 @@ const buildDAOBindings = (
   dao: AragonDAO,
   upperDAOBinding?: Nullable<DataProviderBinding>,
   addPrefixedBindings = true,
+  omitRedudantIdentifier = false,
 ): Binding[] => {
   const daoBindings: Binding[] = [
     {
@@ -104,6 +111,7 @@ const buildDAOBindings = (
       app,
       dao,
       addPrefixedBindings,
+      omitRedudantIdentifier,
     );
 
     // There could be the case of having multiple same-version apps on the DAO
@@ -191,7 +199,15 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
       upperDAOBinding === null ? undefined : upperDAOBinding,
     );
 
-    bindingsManager.setBindings(daoBindings);
+    const nonAbiBindings = daoBindings.filter((b) => b.type !== ABI);
+    const abiBindings = daoBindings.filter((b) => b.type === ABI);
+
+    bindingsManager.setBindings(nonAbiBindings);
+    /**
+     * We could have multiple apps from the same repo version
+     * so try to set the ABI if doesn't exists
+     */
+    bindingsManager.trySetBindings(abiBindings);
   };
 };
 
@@ -310,7 +326,12 @@ export const connect: ICommand<AragonOS> = {
 
         eagerBindingsManager.enterScope(c.module);
         eagerBindingsManager.setBindings(
-          buildDAOBindings(clonedDAO, upperDAOBinding, !closestCommandToCaret),
+          buildDAOBindings(
+            clonedDAO,
+            upperDAOBinding,
+            !closestCommandToCaret,
+            true,
+          ),
         );
       };
     }
@@ -337,14 +358,15 @@ export const connect: ICommand<AragonOS> = {
       dao,
       undefined,
       !closestCommandToCaret,
+      true,
     );
-    const abiInterfaceBindings = daoBindings.filter<AbiBinding>(
+    const abiBindings = daoBindings.filter<AbiBinding>(
       (binding): binding is AbiBinding => binding.type === ABI,
     );
 
     // Cache DAO and ABIs
     cache.setBinding(daoNameOrAddress, dao.clone(), DATA_PROVIDER);
-    cache.mergeBindings(abiInterfaceBindings);
+    cache.trySetBindings(abiBindings);
 
     return (eagerBindingsManager) => {
       const upperDAOBinding = eagerBindingsManager.getBinding(
@@ -359,7 +381,10 @@ export const connect: ICommand<AragonOS> = {
 
       eagerBindingsManager.enterScope(c.module);
 
-      eagerBindingsManager.setBindings(daoBindings);
+      const nonAbiBindings = daoBindings.filter((b) => b.type !== ABI);
+
+      eagerBindingsManager.setBindings(nonAbiBindings);
+      eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
   buildCompletionItemsForArg(argIndex, _, bindingsManager) {

@@ -128,7 +128,7 @@ export const act: ICommand<AragonOS> = {
 
     if (cachedAbi) {
       return (eagerBindingsManager) => {
-        eagerBindingsManager.mergeBindings([
+        eagerBindingsManager.trySetBindings([
           {
             type: ABI,
             identifier: resolvedTargetAddress,
@@ -170,7 +170,7 @@ export const act: ICommand<AragonOS> = {
     cache.setBindings(abiBindings);
 
     return (eagerBindingsManager) => {
-      eagerBindingsManager.mergeBindings(abiBindings);
+      eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
 };

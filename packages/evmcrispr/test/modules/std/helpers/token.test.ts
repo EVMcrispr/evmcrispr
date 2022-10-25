@@ -22,7 +22,7 @@ describe('Std > helpers > @token(tokenSymbol)', () => {
     const [interpret] = await preparingExpression('@token(DAI)', signer);
 
     expect(await interpret()).to.equals(
-      '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
+      '0x44fA8E6f47987339850636F88629646662444217',
     );
   });
 

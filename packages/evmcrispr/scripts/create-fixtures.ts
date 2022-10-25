@@ -16,15 +16,27 @@ import {
 } from './helpers/fixtures';
 import { IPFSResolver } from '../src/IPFSResolver';
 
-const CHAIN_ID = 4; // Rinkeby
+// // Rinkeby
+// const CHAIN_ID = 4;
+// const DAO_ADDRESSES: string[] = [
+//   '0x8bebd1c49336Bf491ef7bd8a7f9A5d267081b33E',
+//   '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
+//   '0x0d9938b8720eb5124371c9fa2049144626f67d2e',
+// ];
+// // [<repoName>, <registryName>, <versions>]
+// const REPOS: [string, string, string[]][] = [
+//   ['token-manager', 'aragonpm.eth', ['1,0,0']],
+// ];
+
+// Gnosis Chain
+const CHAIN_ID = 100;
 const DAO_ADDRESSES: string[] = [
-  '0x8bebd1c49336Bf491ef7bd8a7f9A5d267081b33E',
-  '0xb2a22974bd09eb5d1b5c726e7c29f4faef636dd2',
-  '0x0d9938b8720eb5124371c9fa2049144626f67d2e',
+  '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8', // TEC
+  '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155', // 1hive,
+  '0xb56a8003a8d2efab7d2d4c10617d787e9e4b582c', // TEC Hatch
 ];
-// [<repoName>, <registryName>, <versions>]
 const REPOS: [string, string, string[]][] = [
-  ['token-manager', 'aragonpm.eth', ['1,0,0']],
+  ['token-manager', 'aragonpm.eth', ['1,0,2']],
 ];
 
 let spinner = ora();

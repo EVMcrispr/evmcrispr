@@ -143,7 +143,7 @@ export class BindingsManager {
     }
   }
 
-  mergeBindings(bindings: Binding[]): void {
+  trySetBindings(bindings: Binding[]): void {
     bindings.forEach((b) => {
       if (!this.hasBinding(b.identifier, b.type)) {
         this.#bindings.add(b);
