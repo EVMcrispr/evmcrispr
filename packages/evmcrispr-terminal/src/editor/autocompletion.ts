@@ -50,7 +50,9 @@ const runLoadCommands = async (
 ): Promise<void> => {
   eagerBindingsManager.setBindings(DEFAULT_MODULE_BINDING);
 
-  const loadCommandNodes = commandNodes.filter((c) => c.name === 'load');
+  const loadCommandNodes = commandNodes.filter((c) =>
+    ['load', 'std:load'].includes(c.name),
+  );
 
   await runEagerExecutions(
     loadCommandNodes,
@@ -414,9 +416,18 @@ export const createProvideCompletionItemsFn: (
       calibratedCurrPos,
     );
 
+    // Resolve variables
+    await runEagerExecutions(
+      commandNodes.filter((c) => ['set', 'std:set'].includes(c.name)),
+      eagerBindingsManager,
+      bindingsCache,
+      { ipfsResolver, provider },
+      calibratedCurrPos,
+    );
+
     const filteredCommandNodes = commandNodes
       // Filter out load command nodes previously resolved
-      .filter((c) => c.name !== 'load');
+      .filter((c) => !['load', 'std:load', 'set', 'std:set'].includes(c.name));
 
     await runEagerExecutions(
       currentCommandNode

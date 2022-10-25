@@ -41,7 +41,7 @@ export const set: ICommand<Std> = {
 
     module.bindingsManager.setBinding(varName, varValue, USER, true);
   },
-  async runEagerExecution(c, _, __, caretPos) {
+  async runEagerExecution(c, cache, __, caretPos) {
     if (inSameLineThanNode(c, caretPos)) {
       return;
     }
@@ -50,6 +50,9 @@ export const set: ICommand<Std> = {
 
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
+      const varValue = varValueNode.value;
+
+      cache.setBinding(varName, varValue, USER, false, undefined, true);
 
       return (eagerBindingsManager) =>
         eagerBindingsManager.setBinding(varName, varValueNode.value, USER);

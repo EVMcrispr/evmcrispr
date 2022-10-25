@@ -305,7 +305,11 @@ export const connect: ICommand<AragonOS> = {
     ) {
       return;
     }
+    console.log(
+      cache.getAllBindingValues({ spaceFilters: [BindingsSpace.USER] }),
+    );
     const daoAddress = interpretNodeSync(daoNode, cache);
+    console.log(daoAddress);
     const daoNameOrAddress =
       daoAddress && utils.isAddress(daoAddress) ? daoAddress : daoNode.value;
 
