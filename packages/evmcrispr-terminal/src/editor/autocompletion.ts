@@ -298,6 +298,23 @@ export const resolveCommandNode = (
   return module.commands[c.name];
 };
 
+const removePossibleFollowingBlock = (
+  currentLine: string,
+  currPos: Position,
+): string => {
+  const matchIndexes = ['(', ')']
+    .map((char) => currentLine.indexOf(char))
+    .filter((n) => n > -1 && n >= currPos.col);
+
+  if (!matchIndexes.length) {
+    return currentLine;
+  }
+
+  const endMark = Math.min(...matchIndexes);
+
+  return currentLine.slice(0, endMark);
+};
+
 export const createProvideCompletionItemsFn: (
   bindingsCache: BindingsManager,
   fetchers: { ipfsResolver: IPFSResolver; provider: providers.Provider },
@@ -332,7 +349,12 @@ export const createProvideCompletionItemsFn: (
          * current line location
          */
         ...Array(currPos.lineNumber - 1).map(() => ''),
-        currentLineContent,
+        /**
+         * Remove any following unfinished commands block so we can parse
+         * the line gracefully
+         */
+        // TODO: Remove this fn after implementing blank spaces in parser for possible errors
+        removePossibleFollowingBlock(currentLineContent, calibratedCurrPos),
       ].join('\n'),
     );
 
