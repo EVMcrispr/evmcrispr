@@ -26,7 +26,6 @@ export const tryAndCacheNotFound = async <T>(
 
   try {
     const result = await setTimer(fetchResourceFn);
-    console.log(result);
     return result;
   } catch (err) {
     console.log(err);
