@@ -1,7 +1,16 @@
 import { ComparisonType, checkArgsLength, insideNode } from '../../../utils';
-import type { AsExpressionNode, ICommand, ModuleExports } from '../../../types';
+import type {
+  AsExpressionNode,
+  Commands,
+  HelperFunctions,
+  ICommand,
+} from '../../../types';
 import { BindingsSpace, NodeType } from '../../../types';
 import { AragonOS } from '../../aragonos/AragonOS';
+import {
+  commands as aragonosCommands,
+  helpers as aragonosHelpers,
+} from '../../aragonos/';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 
@@ -111,10 +120,23 @@ export const load: ICommand<Std> = {
     }
 
     try {
-      const { commands, helpers } = (await import(
-        /* @vite-ignore */
-        `../../${moduleName}`
-      )) as ModuleExports;
+      let commands: Commands, helpers: HelperFunctions;
+
+      // TODO: Replace with dynamic imports after moving aragonOS to its own package
+      switch (moduleName) {
+        /**
+         * Import the modules statically for the moment as
+         * Fleek complains about dynamic imports
+         */
+        case 'aragonos':
+          {
+            commands = aragonosCommands as Commands;
+            helpers = aragonosHelpers as HelperFunctions;
+          }
+          break;
+        default:
+          return;
+      }
 
       // Cache module
       cache.setBinding(moduleName, { commands, helpers }, MODULE);
