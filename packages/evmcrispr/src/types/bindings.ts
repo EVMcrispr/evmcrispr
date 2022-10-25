@@ -23,6 +23,13 @@ export interface IBinding<V> extends AstSymbol<BindingsSpace> {
   parent?: IBinding<V>;
 }
 
+export type NoNullableBinding<B extends Binding = Binding> = Omit<
+  B,
+  'value'
+> & {
+  value: NonNullable<B['value']>;
+};
+
 export type ModuleData = {
   commands: Commands<any>;
   helpers: HelperFunctions<any>;

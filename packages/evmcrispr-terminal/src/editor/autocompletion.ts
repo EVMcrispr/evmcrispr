@@ -6,6 +6,7 @@ import type {
   LazyBindings,
   ModuleBinding,
   ModuleData,
+  NoNullableBinding,
   Position,
 } from '@1hive/evmcrispr';
 import {
@@ -70,12 +71,15 @@ const buildModuleCompletionItems = (
 
   const moduleBindings = eagerBindingsManager.getAllBindings({
     spaceFilters: [MODULE],
-  }) as ModuleBinding[];
+    ignoreNullValues: true,
+  }) as NoNullableBinding<ModuleBinding>[];
 
-  const moduleAliases = moduleBindings.map(
-    ({ identifier }) =>
-      eagerBindingsManager.getBindingValue(identifier, ALIAS) ?? identifier,
-  );
+  const moduleAliases = moduleBindings
+    .filter((b) => !!b.value)
+    .map(
+      ({ identifier }) =>
+        eagerBindingsManager.getBindingValue(identifier, ALIAS) ?? identifier,
+    );
 
   return {
     commandCompletionItems: moduleBindings.flatMap(
@@ -333,8 +337,9 @@ export const createProvideCompletionItemsFn: (
     );
 
     const currentCommandNode = currentLineAST.getCommandAtLine(
-      currPos.lineNumber,
+      calibratedCurrPos.line,
     );
+
     // TODO: Maybe we should
     const { arg: currentArg } = currentCommandNode
       ? getDeepestNodeWithArgs(currentCommandNode, calibratedCurrPos)

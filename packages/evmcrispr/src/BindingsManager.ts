@@ -4,10 +4,11 @@ import { ErrorException } from './errors';
 import type { Binding, OtherBinding, RelativeBinding } from './types';
 import { BindingsSpace } from './types';
 
-type AllBindingsOpts = {
-  onlyLocal?: boolean;
-  spaceFilters?: BindingsSpace[];
-};
+type AllBindingsOpts = Partial<{
+  onlyLocal: boolean;
+  spaceFilters: BindingsSpace[];
+  ignoreNullValues?: boolean;
+}>;
 
 const defaultOpts: AllBindingsOpts = {
   onlyLocal: false,
@@ -65,6 +66,7 @@ export class BindingsManager {
   getAllBindings({
     onlyLocal = false,
     spaceFilters: spaces = [],
+    ignoreNullValues = true,
   }: AllBindingsOpts = defaultOpts): Binding[] {
     const allBindingsMapping = new Map<string, Binding[]>();
     let currentBindings: SymbolTable<Binding> | undefined = this.#bindings;
@@ -85,7 +87,12 @@ export class BindingsManager {
       currentBindings = currentBindings.parent;
     } while (!onlyLocal && currentBindings);
 
-    return [...allBindingsMapping.values()].flat();
+    const bindings = [...allBindingsMapping.values()].flat();
+
+    if (ignoreNullValues) {
+      return bindings.filter((b) => !!b.value);
+    }
+    return bindings;
   }
 
   getAllBindingIdentifiers(

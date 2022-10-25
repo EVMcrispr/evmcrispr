@@ -160,30 +160,6 @@ const terminalStore = createStore('terminal-store')(initialState, {
         'load',
         'set',
       ]);
-      // /**
-      //  * Filter out any command with a commands block that doesn't
-      //  * contain the current caret
-      //  */
-      // .filter((c) => {
-      //   const itHasCommandsBlock = hasCommandsBlock(c);
-      //   const loc = c.loc;
-      //   const currentLine = targetLine;
-      //   if (
-      //     !itHasCommandsBlock ||
-      //     (itHasCommandsBlock &&
-      //       loc &&
-      //       currentLine >= loc.start.line &&
-      //       currentLine <= loc.end.line)
-      //   ) {
-      //     if (itHasCommandsBlock) {
-      //       currentCommandParentModule =
-      //         c.module ?? currentCommandParentModule;
-      //     }
-      //     return true;
-      //   }
-
-      //   return false;
-      // });
 
       set.ast(ast);
       set.updateCurrentModules(commandNodes.filter((c) => c.name === 'load'));

@@ -6,6 +6,7 @@ import type {
   AddressBinding,
   ICommand,
   InterpretOptions,
+  NoNullableBinding,
 } from '../../../types';
 import { BindingsSpace } from '../../../types';
 import {
@@ -128,7 +129,7 @@ export const revoke: ICommand<AragonOS> = {
         const granteeAddresses = new AddressSet();
         const identifierBindings = bindingsManager.getAllBindings({
           spaceFilters: [BindingsSpace.ADDR],
-        }) as AddressBinding[];
+        }) as NoNullableBinding<AddressBinding>[];
         const daosAppsPermissions = getDAOs(bindingsManager).map((dao) =>
           dao.getPermissions(),
         );
