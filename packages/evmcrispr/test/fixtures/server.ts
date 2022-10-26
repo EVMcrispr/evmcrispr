@@ -6,6 +6,7 @@ import { utils } from 'ethers';
 
 import { artifacts } from './artifacts/';
 import { etherscan } from './etherscan';
+import { blockscout } from './blockscout';
 import { DAOs, REPOs } from './subgraph-data';
 import tokenListFixture from './tokenlist/uniswap.json';
 import { IPFS_GATEWAY } from '../../src/IPFSResolver';
@@ -18,7 +19,9 @@ const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
     'Repos',
     (req, res, ctx) => {
-      const selectedRepo = REPOs[req.variables.repoName as keyof typeof REPOs];
+      const selectedRepo = REPOs[
+        req.variables.repoName as keyof typeof REPOs
+      ] as any;
 
       return res(
         ctx.status(200),
@@ -86,6 +89,38 @@ const handlers = [
       }
 
       const data = etherscan[address.toLowerCase() as keyof typeof etherscan];
+
+      if (!data) {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            status: '0',
+            message: 'NOTOK',
+            result: 'Contract source code not verified',
+          }),
+        );
+      }
+
+      return res(ctx.status(200), ctx.json(data));
+    },
+  ),
+  rest.get<DefaultBodyType>(
+    `https://blockscout.com/xdai/mainnet/api`,
+    (req, res, ctx) => {
+      const address = req.url.searchParams.get('address');
+
+      if (!address || !utils.isAddress(address)) {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            status: '0',
+            message: 'NOTOK',
+            result: 'Invalid Address format',
+          }),
+        );
+      }
+
+      const data = blockscout[address.toLowerCase() as keyof typeof blockscout];
 
       if (!data) {
         return res(

@@ -1,19 +1,21 @@
+import type { ethers } from 'ethers';
+
 import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import type { HelperFunction } from '../../../types';
+import type { HelperFunction, Nullable } from '../../../types';
 import { getAragonEnsResolver, resolveName } from '../utils';
 import { ErrorException } from '../../../errors';
 
 export const _aragonEns = async (
   ensName: string,
-  module: AragonOS,
+  provider: ethers.providers.Provider,
+  customENSResolver?: Nullable<string>,
 ): Promise<string | null> => {
-  const ensResolver = module.getModuleBinding('ensResolver');
-
   const name = await resolveName(
     ensName,
-    ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
-    module.signer,
+    customENSResolver ||
+      getAragonEnsResolver((await provider.getNetwork()).chainId),
+    provider,
   );
 
   return name;
@@ -32,7 +34,12 @@ export const aragonEns: HelperFunction<AragonOS> = async (
 
   const [ensName] = await interpretNodes(h.args);
 
-  const name = await _aragonEns(ensName, module);
+  const customENSResolver = module.getConfigBinding('ensResolver');
+  const name = await _aragonEns(
+    ensName,
+    module.signer.provider!,
+    customENSResolver,
+  );
 
   if (!name) {
     throw new ErrorException(`ENS ${ensName} couldn't be resolved.`);

@@ -7,8 +7,8 @@ import {
   calculateNewProxyAddress,
   checkArgsLength,
 } from '../../../utils';
-import { BindingsSpace } from '../../../BindingsManager';
-import type { Action, CommandFunction } from '../../../types';
+import type { Action, ICommand } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
 import {
@@ -45,64 +45,70 @@ const registerAragonId = async (
   ];
 };
 
-export const newDAO: CommandFunction<AragonOS> = async (
-  module,
-  c,
-  { interpretNode },
-) => {
-  checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
+export const newDAO: ICommand<AragonOS> = {
+  async run(module, c, { interpretNode }) {
+    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
 
-  const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
+    const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
 
-  const bareTemplate = new utils.Interface([
-    'function newInstance() public returns (address)',
-  ]);
+    const bareTemplate = new utils.Interface([
+      'function newInstance() public returns (address)',
+    ]);
 
-  const bareTemplateRepoAddr = (await _aragonEns(
-    `bare-template.aragonpm.eth`,
-    module,
-  ))!;
+    const bareTemplateRepoAddr = (await _aragonEns(
+      `bare-template.aragonpm.eth`,
+      module.signer.provider!,
+      module.getConfigBinding('ensResolver'),
+    ))!;
 
-  const bareTemplateRepo = new Contract(
-    bareTemplateRepoAddr,
-    [
-      'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
-    ],
-    module.signer,
-  );
+    const bareTemplateRepo = new Contract(
+      bareTemplateRepoAddr,
+      [
+        'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+      ],
+      module.signer,
+    );
 
-  const bareTemplateAddr = (await bareTemplateRepo.getLatest()).contractAddress;
+    const bareTemplateAddr = (await bareTemplateRepo.getLatest())
+      .contractAddress;
 
-  const daoFactory = DAO_FACTORIES.get(await module.signer.getChainId());
-  if (!daoFactory) {
-    throw new ErrorException('network not supported');
-  }
-  const nonce = await buildNonceForAddress(
-    daoFactory,
-    module.incrementNonce(daoFactory),
-    module.signer.provider!,
-  );
-  const newDaoAddress = calculateNewProxyAddress(daoFactory, nonce);
+    const daoFactory = DAO_FACTORIES.get(await module.signer.getChainId());
+    if (!daoFactory) {
+      throw new ErrorException('network not supported');
+    }
+    const nonce = await buildNonceForAddress(
+      daoFactory,
+      module.incrementNonce(daoFactory),
+      module.signer.provider!,
+    );
+    const newDaoAddress = calculateNewProxyAddress(daoFactory, nonce);
 
-  module.bindingsManager.setBinding(
-    `_${daoName}`,
-    newDaoAddress,
-    BindingsSpace.ADDR,
-  );
+    module.bindingsManager.setBinding(
+      `_${daoName}`,
+      newDaoAddress,
+      BindingsSpace.ADDR,
+    );
 
-  let registerAragonIdActions: Action[] = [];
+    let registerAragonIdActions: Action[] = [];
 
-  registerAragonIdActions = await registerAragonId(
-    module,
-    daoName,
-    newDaoAddress,
-  );
+    registerAragonIdActions = await registerAragonId(
+      module,
+      daoName,
+      newDaoAddress,
+    );
 
-  return [
-    {
-      to: bareTemplateAddr!,
-      data: bareTemplate.encodeFunctionData('newInstance', []),
-    },
-    ...registerAragonIdActions,
-  ];
+    return [
+      {
+        to: bareTemplateAddr!,
+        data: bareTemplate.encodeFunctionData('newInstance', []),
+      },
+      ...registerAragonIdActions,
+    ];
+  },
+  buildCompletionItemsForArg() {
+    return [];
+  },
+  async runEagerExecution() {
+    return;
+  },
 };

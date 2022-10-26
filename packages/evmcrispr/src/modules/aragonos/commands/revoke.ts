@@ -1,35 +1,39 @@
+import { utils } from 'ethers';
+
 import { ErrorException } from '../../../errors';
-import type { Action, CommandFunction, InterpretOptions } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import type {
+  Action,
+  AddressBinding,
+  ICommand,
+  InterpretOptions,
+  NoNullableBinding,
+} from '../../../types';
+import { BindingsSpace } from '../../../types';
+import {
+  ComparisonType,
+  addressesEqual,
+  checkArgsLength,
+  interpretNodeSync,
+} from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { checkPermissionFormat, getDAO } from '../utils/commands';
-import type { FullPermission } from '../types';
-import { normalizeRole } from '../utils';
+import { getDAO, isPermission } from '../utils/commands';
+import {
+  formatAppIdentifier,
+  getAppRoles,
+  getDAOs,
+  normalizeRole,
+} from '../utils';
+import { AddressSet } from '../AddressSet';
+import type { AragonDAO } from '../AragonDAO';
 
-export const revoke: CommandFunction<AragonOS> = async (
-  module,
-  c,
-  { interpretNode },
-) => {
-  checkArgsLength(c, {
-    type: ComparisonType.Between,
-    minValue: 3,
-    maxValue: 4,
-  });
+const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
+  const permission = resolvedArgs.slice(0, 3);
 
-  const dao = getDAO(module, c, 1);
+  if (!isPermission(permission)) {
+    throw new ErrorException('Invalid permission');
+  }
 
-  const args = await Promise.all(
-    c.args.map((arg, i) => {
-      const opts: Partial<InterpretOptions> | undefined =
-        i < 2 ? { allowNotFoundError: true } : undefined;
-      return interpretNode(arg, opts);
-    }),
-  );
-
-  checkPermissionFormat(args.slice(0, 3) as FullPermission);
-
-  const [granteeAddress, appAddress, role, removeManager] = args;
+  const [, , , removeManager] = resolvedArgs;
 
   const removeManagerType = typeof removeManager;
   if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
@@ -37,6 +41,8 @@ export const revoke: CommandFunction<AragonOS> = async (
       `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
     );
   }
+
+  const [granteeAddress, appAddress, role] = permission;
 
   const roleHash = normalizeRole(role);
   const app = dao.resolveApp(appAddress);
@@ -85,4 +91,140 @@ export const revoke: CommandFunction<AragonOS> = async (
   }
 
   return actions;
+};
+
+export const revoke: ICommand<AragonOS> = {
+  async run(module, c, { interpretNode }) {
+    checkArgsLength(c, {
+      type: ComparisonType.Between,
+      minValue: 3,
+      maxValue: 4,
+    });
+
+    const dao = getDAO(module.bindingsManager, c.args[1]);
+
+    const args = await Promise.all(
+      c.args.map((arg, i) => {
+        const opts: Partial<InterpretOptions> | undefined =
+          i < 2 ? { allowNotFoundError: true } : undefined;
+        return interpretNode(arg, opts);
+      }),
+    );
+
+    return _revoke(dao, args);
+  },
+  buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
+    const revokeeAddress = nodeArgs[0]
+      ? interpretNodeSync(nodeArgs[0], bindingsManager)
+      : undefined;
+    const appAddress = nodeArgs[1]
+      ? interpretNodeSync(nodeArgs[1], bindingsManager)
+      : undefined;
+    const role = nodeArgs[2]
+      ? interpretNodeSync(nodeArgs[2], bindingsManager)
+      : undefined;
+
+    switch (argIndex) {
+      case 0: {
+        const granteeAddresses = new AddressSet();
+        const identifierBindings = bindingsManager.getAllBindings({
+          spaceFilters: [BindingsSpace.ADDR],
+        }) as NoNullableBinding<AddressBinding>[];
+        const daosAppsPermissions = getDAOs(bindingsManager).map((dao) =>
+          dao.getPermissions(),
+        );
+
+        /**
+         * Get every grantee of every pemission of every app
+         * on every DAO
+         */
+        daosAppsPermissions.forEach((daoAppsPermissions) => {
+          daoAppsPermissions.forEach(([, appPermissions]) => {
+            [...appPermissions.values()].forEach((role) => {
+              role.grantees.forEach(granteeAddresses.add, granteeAddresses);
+            });
+          });
+        });
+
+        /**
+         * Format grantees by replacing every address with its equivalent
+         * identifier, if exists
+         */
+        return [...granteeAddresses].map((granteeAddress) => {
+          const granteeIdentifier = identifierBindings.find(({ value }) =>
+            addressesEqual(value, granteeAddress),
+          )?.identifier;
+
+          return granteeIdentifier ?? granteeAddress;
+        });
+      }
+      case 1: {
+        const daosAppsPermissions = getDAOs(bindingsManager).map((dao) =>
+          dao.getPermissions(),
+        );
+
+        if (!revokeeAddress || !utils.isAddress(revokeeAddress)) {
+          return [];
+        }
+
+        const granteeApps = new Set<string>();
+
+        /**
+         * Fetch grantee's permissions on every app of every DAO
+         */
+        daosAppsPermissions.forEach((daoAppsPermissions) => {
+          daoAppsPermissions.forEach(([appIdentifier, appPermissions]) => {
+            [...appPermissions.values()].forEach((role) => {
+              if (role.grantees.has(revokeeAddress)) {
+                granteeApps.add(formatAppIdentifier(appIdentifier));
+              }
+            });
+          });
+        });
+        return [...granteeApps];
+      }
+      case 2: {
+        const appNode = nodeArgs[1];
+        const dao = getDAO(bindingsManager, appNode);
+
+        if (
+          !revokeeAddress ||
+          !utils.isAddress(revokeeAddress) ||
+          !appAddress ||
+          !utils.isAddress(appAddress)
+        ) {
+          return [];
+        }
+        // Get the grantee's permissions on the given app
+        return getAppRoles(bindingsManager, appAddress).filter((role) =>
+          dao.hasPermission(revokeeAddress, appAddress, role),
+        );
+      }
+      case 3: {
+        if (!role || !appAddress || !utils.isAddress(appAddress)) {
+          return [];
+        }
+
+        const appNode = nodeArgs[1];
+        const roleHash = normalizeRole(role);
+        const dao = getDAO(bindingsManager, appNode);
+        const hasManager = dao.hasPermissionManager(appAddress, roleHash);
+
+        return hasManager ? ['true'] : [];
+      }
+      default:
+        return [];
+    }
+  },
+  async runEagerExecution({ args }) {
+    return (eagerBindingsManager) => {
+      const appNode = args[1];
+      const resolvedArgs = args.map((arg) =>
+        interpretNodeSync(arg, eagerBindingsManager),
+      );
+      const dao = getDAO(eagerBindingsManager, appNode);
+
+      _revoke(dao, resolvedArgs);
+    };
+  },
 };

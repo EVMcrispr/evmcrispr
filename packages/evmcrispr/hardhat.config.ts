@@ -54,10 +54,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 4,
+      chainId: 100,
       forking: {
         url: ARCHIVE_NODE_ENDPOINT,
-        blockNumber: 11189880,
+        blockNumber: 24_730_000,
       },
     },
   },

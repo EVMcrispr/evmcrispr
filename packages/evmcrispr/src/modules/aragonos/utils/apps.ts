@@ -1,6 +1,7 @@
 import { utils } from 'ethers';
 
 import type { Address } from '../../../types';
+import { AddressSet } from '../AddressSet';
 import type {
   App,
   AppArtifact,
@@ -18,7 +19,7 @@ export const buildAppPermissions = (
 ): PermissionMap => {
   const appPermissions = artifactRoles.reduce(
     (roleMap: PermissionMap, role: any) => {
-      roleMap.set(role.bytes, { manager: '', grantees: new Set() });
+      roleMap.set(role.bytes, { manager: '', grantees: new AddressSet() });
       return roleMap;
     },
     new Map(),
@@ -28,7 +29,7 @@ export const buildAppPermissions = (
     appPermissions.set(role.roleHash, {
       ...appPermissions.get(role.roleHash),
       manager: role.manager,
-      grantees: new Set(
+      grantees: new AddressSet(
         role.grantees.map(
           ({ granteeAddress }: { granteeAddress: Address }) => granteeAddress,
         ),
@@ -76,3 +77,25 @@ export const buildAppArtifact = (artifact: any): AppArtifact => ({
   roles: artifact.roles,
   functions: artifact.functions,
 });
+
+export const buildArtifactFromABI = (
+  appName: string,
+  appRegistry: string,
+  abiInterface: utils.Interface,
+): AppArtifact => {
+  const roleNames = Object.values(abiInterface.functions)
+    .filter((fnFragment) => fnFragment.name.endsWith('_ROLE'))
+    .map((fnFragment) => fnFragment.name);
+
+  return {
+    appName: `${appName}.${appRegistry}`,
+    abiInterface,
+    roles: roleNames.map((name) => ({
+      bytes: utils.id(name),
+      id: name,
+      name,
+      params: [],
+    })),
+    functions: [],
+  };
+};

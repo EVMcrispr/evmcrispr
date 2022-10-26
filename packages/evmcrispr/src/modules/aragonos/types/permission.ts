@@ -1,4 +1,5 @@
 import type { Address } from '../../../types';
+import type { AddressSet } from '../AddressSet';
 import type { AppIdentifier, LabeledAppIdentifier } from './app';
 
 /**
@@ -10,7 +11,13 @@ import type { AppIdentifier, LabeledAppIdentifier } from './app';
  * - **Params**: Function that returns an array of encoded ACL parameters.
  * - **Manager**: Entity that will act as the permission manager.
  */
-export type CompletePermission = [Entity, Entity, string, Params, string];
+export type CompletePermission = [
+  Entity,
+  Entity,
+  string,
+  string?,
+  ReturnType<Params>?,
+];
 
 /**
  * A string which can be a [[AppIdentifier]], [[LabeledAppIdentifier]] or [[Address]].
@@ -60,7 +67,7 @@ export interface Role {
   /**
    * The entities that are allowed to perform this permission.
    */
-  grantees: Set<Address>;
+  grantees: AddressSet;
 }
 
 /**

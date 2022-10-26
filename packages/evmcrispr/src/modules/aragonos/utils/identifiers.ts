@@ -2,10 +2,12 @@ import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorInvalid } from '../../../errors';
 import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
-import type { Module } from '../../Module';
-import { BindingsSpace } from '../../../BindingsManager';
+import { BindingsSpace } from '../../../types';
+import type { BindingsManager } from '../../../BindingsManager';
 
 const DEFAULT_REGISTRY = 'aragonpm.eth';
+
+export const INITIAL_APP_INDEX = ':0';
 
 // eslint-disable-next-line
 export const appIdentifierRegex =
@@ -78,6 +80,17 @@ export const parseLabeledAppIdentifier = (
   ];
 };
 
+export const formatAppIdentifier = (
+  appIdentifier: LabeledAppIdentifier,
+): string => {
+  // Remove redundant index
+  if (appIdentifier.endsWith(INITIAL_APP_INDEX)) {
+    return appIdentifier.slice(0, -2);
+  }
+
+  return appIdentifier;
+};
+
 export const resolveIdentifier = (
   identifier: string,
 ): AppIdentifier | LabeledAppIdentifier => {
@@ -85,7 +98,7 @@ export const resolveIdentifier = (
     const [, , appIndex] = parseAppIdentifier(identifier)!;
 
     if (!appIndex) {
-      return `${identifier}:0`;
+      return `${identifier}${INITIAL_APP_INDEX}`;
     }
     return identifier;
   }
@@ -112,19 +125,35 @@ export const buildAppIdentifier = (
   }
 };
 
+export const parsePrefixedDAOIdentifier = (
+  identifier: string,
+): [string | undefined, string] => {
+  if (identifier.startsWith('_')) {
+    const elements = identifier.split(':');
+    return [elements[0].substring(1), elements[1]];
+  }
+
+  return [undefined, identifier];
+};
+
 export function getDaoAddrFromIdentifier(
   identifier: string,
-  module: Module,
-): string | undefined {
+  bindingsManager: BindingsManager,
+): string | undefined | null {
   if (identifier.startsWith('_')) {
-    const dao = identifier.split(':')[0].substring(1);
-    if (isAddress(dao)) {
-      return dao;
+    const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
+    if (isAddress(daoPrefix!)) {
+      return daoPrefix;
     } else {
-      return module.bindingsManager.getBinding(
-        `_${dao}:kernel`,
+      return bindingsManager.getBindingValue(
+        `_${daoPrefix}:kernel`,
         BindingsSpace.ADDR,
       );
     }
   }
 }
+
+export const createDaoPrefixedIdentifier = (
+  appIdentifier: AppIdentifier | LabeledAppIdentifier,
+  daoNameOrAddress: string,
+): string => `_${daoNameOrAddress}:${appIdentifier}`;

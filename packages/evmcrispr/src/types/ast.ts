@@ -84,7 +84,7 @@ export interface ProbableIdentifierNode extends Node {
   value: string;
 }
 
-export interface VariableIdentiferNode extends Node {
+export interface VariableIdentifierNode extends Node {
   type: NodeType.VariableIdentifier;
   value: string;
 }
@@ -140,6 +140,11 @@ export interface BinaryExpressionNode extends Node {
   right: OperableExpressionNode;
 }
 
+export type NodeWithArguments =
+  | CommandExpressionNode
+  | HelperFunctionNode
+  | CallExpressionNode;
+
 export type LiteralExpressionNode =
   | AddressLiteralNode
   | BooleanLiteralNode
@@ -150,7 +155,7 @@ export type LiteralExpressionNode =
 export type PrimaryExpressionNode =
   | LiteralExpressionNode
   | ProbableIdentifierNode
-  | VariableIdentiferNode;
+  | VariableIdentifierNode;
 
 export type ArgumentExpressionNode =
   | BinaryExpressionNode
@@ -164,8 +169,7 @@ export type CommandArgExpressionNode =
   | ArgumentExpressionNode
   | BlockExpressionNode;
 
-export type AST = {
+export interface AST {
   type: ASTType;
-
-  body: CommandExpressionNode[];
-};
+  body: Node[];
+}

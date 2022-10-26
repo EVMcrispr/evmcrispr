@@ -1,12 +1,12 @@
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
-import { ErrorException } from '../../..';
+import { ErrorException } from '../../../errors';
 
-import { BindingsSpace } from '../../../BindingsManager';
 import type { Address, HelperFunction } from '../../../types';
+import { BindingsSpace } from '../../../types';
 import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Module } from '../../Module';
+import type { Module } from '../../../Module';
 import type { Std } from '../Std';
 
 const ENV_TOKENLIST = '$token.tokenlist';
@@ -14,7 +14,7 @@ const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
 
 const getTokenList = ({ bindingsManager }: Module): string => {
   const tokenList = String(
-    bindingsManager.getBinding(ENV_TOKENLIST, BindingsSpace.USER) ??
+    bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
       DEFAULT_TOKEN_LIST,
   );
 

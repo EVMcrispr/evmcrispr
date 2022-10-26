@@ -8,10 +8,13 @@ import {
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Spinner,
   Text,
   VStack,
 } from '@chakra-ui/react';
+import { useEffect } from 'react';
 import { useConnect } from 'wagmi';
+import { InjectedConnector } from 'wagmi/connectors/injected';
 
 export default function SelectWalletModal({
   isOpen,
@@ -20,8 +23,23 @@ export default function SelectWalletModal({
   isOpen: boolean;
   closeModal: () => void;
 }) {
-  const { connectors, connect } = useConnect();
+  const {
+    connectors,
+    connect,
+    isConnecting,
+    isError,
+    isConnected,
+    pendingConnector,
+  } = useConnect();
 
+  const connectingToMetamask =
+    pendingConnector instanceof InjectedConnector && isConnecting;
+
+  useEffect(() => {
+    if (isError || isConnected) {
+      closeModal();
+    }
+  }, [isError, isConnected, closeModal]);
   return (
     <Modal isOpen={isOpen} onClose={closeModal} isCentered>
       <ModalOverlay />
@@ -36,15 +54,16 @@ export default function SelectWalletModal({
         <ModalBody paddingBottom="1.5rem">
           <VStack>
             <Button
+              disabled={connectingToMetamask}
               variant="outline"
               onClick={() => {
                 connect(connectors[0]);
-                closeModal();
               }}
               w="100%"
               size="md"
             >
               <HStack w="100%" justifyContent="center">
+                {connectingToMetamask && <Spinner verticalAlign="middle" />}
                 <Image
                   src="/wallets/metamask.svg"
                   alt="Metamask Logo"
@@ -59,7 +78,6 @@ export default function SelectWalletModal({
               variant="outline"
               onClick={() => {
                 connect(connectors[1]);
-                closeModal();
               }}
               w="100%"
               size="md"

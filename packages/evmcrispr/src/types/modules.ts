@@ -1,6 +1,16 @@
-import type { Action } from '..';
-import type { Module } from '../modules/Module';
-import type { CommandExpressionNode, HelperFunctionNode, Node } from './ast';
+import type { Signer, providers } from 'ethers';
+
+import type { Action } from './actions';
+import type {
+  CommandExpressionNode,
+  HelperFunctionNode,
+  Node,
+  Position,
+} from './ast';
+import type { BindingsManager } from '../BindingsManager';
+import type { IPFSResolver } from '../IPFSResolver';
+import type { Module } from '../Module';
+import type { LazyBindings } from './bindings';
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -28,14 +38,48 @@ export type CommandFunction<T extends Module> = (
   c: CommandExpressionNode,
   interpreters: NodesInterpreters,
 ) => Promise<Action[] | void>;
-export type CommandFunctions<T extends Module> = Record<
-  string,
-  CommandFunction<T>
->;
-
 export type HelperFunction<T> = (
   module: T,
   h: HelperFunctionNode,
   interpreters: NodesInterpreters,
 ) => Promise<string>;
-export type HelperFunctions<T> = Record<string, HelperFunction<T>>;
+export type HelperFunctions<T = Module> = Record<string, HelperFunction<T>>;
+
+export interface ICommand<M extends Module = Module> {
+  buildCompletionItemsForArg(
+    argIndex: number,
+    nodeArgs: Node[],
+    bindingsManager: BindingsManager,
+    caretPos: Position,
+  ): string[];
+  run: CommandFunction<M>;
+  runEagerExecution(
+    c: CommandExpressionNode,
+    cache: BindingsManager,
+    fetchers: { ipfsResolver: IPFSResolver; provider: providers.Provider },
+    caretPos: Position,
+    closestCommandToCaret: boolean,
+  ): Promise<LazyBindings | void>;
+}
+export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
+
+export interface ModuleExports<T extends Module = Module> {
+  ModuleConstructor: Module['constructor'];
+  commands: Commands<T>;
+  helpers: HelperFunctions<T>;
+}
+
+export interface IDataProvider {
+  readonly type: string;
+  clone(): IDataProvider;
+}
+
+export interface IModuleConstructor {
+  new (
+    bindingsManager: BindingsManager,
+    nonces: Record<string, number>,
+    signer: Signer,
+    ipfsResolver: IPFSResolver,
+    alias?: string,
+  ): Module;
+}

@@ -1,5 +1,5 @@
-import type { Entity, Permission } from '../../src';
-import { and, oracle, timestamp } from '../../src';
+import type { Entity, Permission } from '../../src/modules/aragonos';
+import { and, oracle, timestamp } from '../../src/modules/aragonos';
 
 export const GRANT_PERMISSIONS: Permission[] = [
   ['0xc125218F4Df091eE40624784caF7F47B9738086f', 'token-manager', 'MINT_ROLE'],

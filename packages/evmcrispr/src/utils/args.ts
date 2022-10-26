@@ -92,11 +92,11 @@ export const checkOpts = (
   }
 };
 
-export const getOptValue = async (
+export const getOptValue = (
   c: CommandExpressionNode,
   optName: string,
   interpretNode: NodeInterpreter,
-): Promise<any | undefined> => {
+): Promise<any | undefined> | (any | undefined) => {
   const opt = c.opts.find((o) => o.name === optName);
 
   if (!opt) {

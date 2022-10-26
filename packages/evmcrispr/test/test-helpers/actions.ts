@@ -6,7 +6,6 @@ import {
   FORWARDER_TYPE,
   getAppForwarderType,
 } from './forwarders';
-import { resolveApp } from '../fixtures';
 import {
   encodeActCall,
   encodeCallScript,
@@ -76,6 +75,7 @@ export const createTestAction = (
 export const createTestScriptEncodedAction = (
   forwarderActions: TransactionAction[],
   path: string[],
+  dao: Record<string, string>,
   context?: string,
 ): TransactionAction => {
   let script: string;
@@ -85,7 +85,7 @@ export const createTestScriptEncodedAction = (
     const forwarderType = getAppForwarderType(forwarder);
     const forwarderAddress = utils.isAddress(forwarder)
       ? forwarder
-      : resolveApp(forwarder);
+      : dao[forwarder];
 
     switch (forwarderType) {
       case FORWARDER_TYPE:

@@ -61,13 +61,14 @@ export async function fetchImplementationAddress(
     const proxyContract = new Contract(
       address,
       [
-        'function implementation() public returns (address)',
+        'function implementation() public view returns (address)',
         'function childImplementation() external view returns (address)',
       ],
       provider,
     );
     implementationAddress = await proxyContract.implementation();
   } catch (e) {
+    console.log(e);
     implementationAddress = null;
     const beaconAddress = await getAddressFromStorageSlot(
       address,
@@ -78,7 +79,7 @@ export async function fetchImplementationAddress(
       const proxyContract = new Contract(
         beaconAddress,
         [
-          'function implementation() public returns (address)',
+          'function implementation() public view returns (address)',
           'function childImplementation() external view returns (address)',
         ],
         provider,

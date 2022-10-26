@@ -1,4 +1,4 @@
-import type { CommandFunctions } from '../../../types';
+import type { Commands } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { act } from './act';
 import { connect } from './connect';
@@ -10,7 +10,7 @@ import { newToken } from './new-token';
 import { revoke } from './revoke';
 import { upgrade } from './upgrade';
 
-export const commands: CommandFunctions<AragonOS> = {
+export const commands: Commands<AragonOS> = {
   act,
   connect,
   forward,

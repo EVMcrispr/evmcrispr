@@ -1,22 +1,22 @@
+import type { BindingsManager } from '@1hive/evmcrispr';
+import { BindingsSpace } from '@1hive/evmcrispr';
 import type { languages } from 'monaco-editor';
+
+import { DEFAULT_MODULE_BINDING } from '../utils';
+
+const DEFAULT_COMMAND_KEYWORDS = Object.keys(
+  DEFAULT_MODULE_BINDING.value.commands,
+).flatMap((name) => [name, `std:${name}`]);
+
+const DEFAULT_HELPER_KEYWORDS = Object.keys(
+  DEFAULT_MODULE_BINDING.value.helpers,
+).map((name) => `@${name}`);
 
 const bounded = (text: string) => `\\b${text}\\b`;
 
 const identifierStart = '[a-zA-Z]';
 const identifierContinue = '[\\-:a-zA-Z0-9]';
 const identifier = bounded(`${identifierStart}${identifierContinue}*`);
-
-const keywords = [
-  'connect',
-  'install',
-  'upgrade',
-  'grant',
-  'revoke',
-  'exec',
-  'act',
-  'new',
-  'set',
-];
 
 const namedLiterals = ['true', 'false'];
 
@@ -36,13 +36,18 @@ export const conf: languages.LanguageConfiguration = {
     { open: '(', close: ')' },
     { open: "'", close: "'" },
     { open: "'''", close: "'''" },
+    { open: '"', close: '"' },
+    { open: '"""', close: '"""' },
   ],
   autoClosingPairs: [
     { open: '{', close: '}' },
     { open: '[', close: ']' },
     { open: '(', close: ')' },
     { open: "'", close: "'", notIn: ['string', 'comment'] },
+    { open: "'", close: "'", notIn: ['string', 'comment'] },
     { open: "'''", close: "'''", notIn: ['string', 'comment'] },
+    { open: '"', close: '"', notIn: ['string', 'comment'] },
+    { open: '"""', close: '"""', notIn: ['string', 'comment'] },
   ],
   autoCloseBefore: ":.,=}])' \n\t",
   indentationRules: {
@@ -51,9 +56,47 @@ export const conf: languages.LanguageConfiguration = {
     ),
     decreaseIndentPattern: new RegExp('^((?!.*?\\/\\*).*\\*/)?\\s*[\\}\\]].*$'),
   },
+  wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()=+[{\]}\\|;'",.<>/?\s]+)/g,
 };
 
-export const language = {
+export const getModulesKeywords = (
+  currentModuleNames: { name: string; alias?: string }[],
+  bindingsCache: BindingsManager,
+): { commandKeywords: string[]; helperKeywords: string[] } => {
+  const commandKeywords: string[] = [];
+  const helperKeywords: string[] = [];
+
+  currentModuleNames.forEach(({ name: moduleName, alias: moduleAlias }) => {
+    const moduleData = bindingsCache.getBindingValue(
+      moduleName,
+      BindingsSpace.MODULE,
+    );
+    if (!moduleData) {
+      return;
+    }
+
+    const commandNames = Object.keys(moduleData.commands).flatMap((name) => [
+      name,
+      `${moduleAlias ?? moduleName}:${name}`,
+    ]);
+    const helperNames = Object.keys(moduleData.helpers).map(
+      (name) => `@${name}`,
+    );
+
+    commandKeywords.push(...commandNames);
+    helperKeywords.push(...helperNames);
+  });
+
+  return {
+    commandKeywords,
+    helperKeywords,
+  };
+};
+
+export const createLanguage: (
+  commands: string[],
+  helpers: string[],
+) => languages.IMonarchLanguage = (commands, helpers) => ({
   defaultToken: '',
   tokenPostfix: '.evmcl',
 
@@ -63,7 +106,10 @@ export const language = {
     { open: '(', close: ')', token: 'delimiter.parenthesis' },
   ],
 
-  keywords,
+  commands: [...DEFAULT_COMMAND_KEYWORDS, ...commands, 'as'],
+
+  helpers: [...DEFAULT_HELPER_KEYWORDS, ...helpers],
+
   namedLiterals,
 
   escapes: `\\\\(u{[0-9A-Fa-f]+}|n|r|t|\\\\|'|\\\${)`,
@@ -71,20 +117,16 @@ export const language = {
   tokenizer: {
     root: [{ include: '@expression' }, { include: '@whitespace' }],
 
-    stringVerbatim: [
-      { regex: `(|'|'')[^']`, action: { token: 'string' } },
-      { regex: `'''`, action: { token: 'string.quote', next: '@pop' } },
-    ],
-
     stringLiteral: [
       {
         regex: `\\\${`,
         action: { token: 'delimiter.bracket', next: '@bracketCounting' },
       },
-      { regex: `[^\\\\'$]+`, action: { token: 'string' } },
+      { regex: `[^\\\\'"$]+`, action: { token: 'string' } },
       { regex: '@escapes', action: { token: 'string.escape' } },
       { regex: `\\\\.`, action: { token: 'string.escape.invalid' } },
       { regex: `'`, action: { token: 'string', next: '@pop' } },
+      { regex: `"`, action: { token: 'string', next: '@pop' } },
     ],
 
     bracketCounting: [
@@ -105,24 +147,42 @@ export const language = {
 
     expression: [
       {
-        regex: `'''`,
-        action: { token: 'string.quote', next: '@stringVerbatim' },
+        regex: `'`,
+        action: { token: 'string.literal', next: '@stringLiteral' },
       },
-      { regex: `'`, action: { token: 'string.quote', next: '@stringLiteral' } },
-      { regex: numericLiteral, action: { token: 'number' } },
+      {
+        regex: `"`,
+        action: { token: 'string.literal', next: '@stringLiteral' },
+      },
+
+      { regex: bounded(numericLiteral), action: { token: 'number' } },
       {
         regex: identifier,
         action: {
           cases: {
-            '@keywords': { token: 'keyword' },
-            '@namedLiterals': { token: 'keyword' },
+            '@commands': { token: 'command' },
+            '@namedLiterals': { token: 'literal' },
             '@default': { token: 'identifier' },
           },
         },
       },
+      {
+        regex: /@[a-zA-Z.]+/,
+        action: {
+          cases: {
+            '@helpers': { token: 'helper' },
+          },
+        },
+      },
+      {
+        regex: /\$[a-zA-Z0-9]+/,
+        action: {
+          token: 'variable',
+        },
+      },
     ],
   },
-};
+});
 
 export const contribution = {
   id: 'evmcl',
