@@ -13,11 +13,12 @@ import {
   AlertIcon,
   Box,
   Button,
+  Collapse,
   Spinner,
   VStack,
   useDisclosure,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Connector } from 'wagmi';
 import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
@@ -75,6 +76,8 @@ const executeActions = async (
   return txs;
 };
 
+const COLLAPSE_THRESHOLD = 30;
+
 export const Terminal = () => {
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
@@ -90,6 +93,9 @@ export const Terminal = () => {
   const footerRef = useSpringRef();
   const [url] = useState('');
   const [firstTry, setFirstTry] = useState(true);
+  const [showCollapse, setShowCollapse] = useState(false);
+  const [showExpandBtn, setShowExpandBtn] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const address = account?.address ?? '';
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
@@ -154,6 +160,14 @@ export const Terminal = () => {
       completionProvider.dispose();
     };
   }, [bindingsCache, monaco, provider, ast]);
+
+  useEffect(() => {
+    if (!errors.length) {
+      setShowExpandBtn(false);
+    } else if (contentRef.current) {
+      setShowExpandBtn(contentRef.current.clientHeight > COLLAPSE_THRESHOLD);
+    }
+  }, [errors]);
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
@@ -295,13 +309,39 @@ export const Terminal = () => {
             )}
 
             {errors ? (
-              <Box justifyContent="left">
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="left"
+                maxWidth="100%"
+                wordBreak="break-all"
+              >
                 {errors.map((e, index) => (
                   <Alert key={index} status="error">
-                    <AlertIcon />
-                    <AlertDescription>{e}</AlertDescription>
+                    <Box display="flex" alignItems="flex-start">
+                      <AlertIcon />
+                      <AlertDescription>
+                        <Collapse
+                          startingHeight={COLLAPSE_THRESHOLD}
+                          in={showCollapse}
+                        >
+                          <div ref={contentRef}>{e}</div>
+                        </Collapse>
+                      </AlertDescription>
+                    </Box>
                   </Alert>
                 ))}
+                {showExpandBtn && (
+                  <Button
+                    width="30"
+                    alignSelf="flex-end"
+                    size="sm"
+                    onClick={() => setShowCollapse((show) => !show)}
+                    mt="1rem"
+                  >
+                    Show {showCollapse ? 'Less' : 'More'}
+                  </Button>
+                )}
               </Box>
             ) : null}
           </VStack>
