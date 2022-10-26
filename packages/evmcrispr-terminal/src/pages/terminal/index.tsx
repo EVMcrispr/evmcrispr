@@ -80,7 +80,8 @@ export const Terminal = () => {
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
   const { data: account } = useAccount();
-  const { activeConnector } = useConnect();
+  const { connectors, activeConnector, connect, isConnected, isConnecting } =
+    useConnect();
   const { disconnect } = useDisconnect();
   const provider = useProvider();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -88,6 +89,7 @@ export const Terminal = () => {
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
   const [url] = useState('');
+  const [firstTry, setFirstTry] = useState(true);
 
   const address = account?.address ?? '';
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
@@ -96,6 +98,19 @@ export const Terminal = () => {
   const debouncedScript = useDebounce(script, 200);
 
   useChain([terminalRef, buttonsRef, footerRef]);
+
+  /**
+   * Try to connect as soon as page mounts
+   * to have access to a provider to use on
+   * auto-completion
+   */
+  useEffect(() => {
+    if (!firstTry || isConnected) {
+      return;
+    }
+    connect(connectors[0]);
+    setFirstTry(false);
+  }, [firstTry, connect, connectors, isConnected]);
 
   useEffect(() => {
     terminalStoreActions.processScript();
@@ -239,8 +254,14 @@ export const Terminal = () => {
         <FadeIn componentRef={buttonsRef}>
           <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
             {!address ? (
-              <Button variant="lime" onClick={onOpen}>
-                Connect
+              <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
+                {isConnecting ? (
+                  <Box>
+                    <Spinner verticalAlign="middle" /> Connecting…
+                  </Box>
+                ) : (
+                  'Connect'
+                )}
               </Button>
             ) : (
               <>
