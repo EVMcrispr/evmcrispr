@@ -66,7 +66,7 @@ export const optionalWhitespace = possibly(whitespace);
 export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
 export const comma = char(',');
-export const endOfLine = char('\n');
+export const endOfLine = regex(/^\r?\n/);
 
 export const baseEnclosingCharParsers = [endOfLine, endOfInput, whitespace];
 

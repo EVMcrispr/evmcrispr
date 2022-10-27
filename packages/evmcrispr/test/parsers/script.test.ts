@@ -6,8 +6,7 @@ describe('Parsers - script', () => {
   it('should parse an script correctly', () => {
     const script = `
       load aragonos as ar
-      load superfluid as sf
-  
+      load superfluid as sf\r\n
       
       ar:connect my-dao-ens (   
         forward token-manager voting      (
