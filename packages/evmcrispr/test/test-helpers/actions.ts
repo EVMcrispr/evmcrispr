@@ -1,13 +1,15 @@
 import { utils } from 'ethers';
 
-import type { Action, Address } from '../../src/types';
-import { encodeActCall, encodeCallScript } from '../../src/utils';
+import type { Action, Address, TransactionAction } from '../../src/types';
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
   getAppForwarderType,
 } from './forwarders';
-import { resolveApp } from '../fixtures';
+import {
+  encodeActCall,
+  encodeCallScript,
+} from '../../src/modules/aragonos/utils';
 
 export const createTestPreTxAction = (
   operation: string,
@@ -37,67 +39,53 @@ export const createTestCallAction = (
 };
 
 export const createTestAction = (
-  operation: string,
+  operation:
+    | 'changeController'
+    | 'createCloneToken'
+    | 'createPermission'
+    | 'grantPermission'
+    | 'grantPermissionP'
+    | 'newInstance'
+    | 'newAppInstance'
+    | 'revokePermission'
+    | 'removePermissionManager'
+    | 'setApp',
   to: Address,
-  parameters: any[],
-): Action => {
-  switch (operation) {
-    case 'createPermission':
-      return {
-        to,
-        data: encodeActCall(
-          'createPermission(address,address,bytes32,address)',
-          parameters,
-        ),
-      };
-    case 'grantPermission':
-      return {
-        to,
-        data: encodeActCall(
-          'grantPermission(address,address,bytes32)',
-          parameters,
-        ),
-      };
-    case 'newAppInstance':
-      return {
-        to,
-        data: encodeActCall(
-          'newAppInstance(bytes32,address,bytes,bool)',
-          parameters,
-        ),
-      };
-    case 'revokePermission':
-      return {
-        to,
-        data: encodeActCall(
-          'revokePermission(address,address,bytes32)',
-          parameters,
-        ),
-      };
-    case 'removePermissionManager':
-      return {
-        to,
-        data: encodeActCall(
-          'removePermissionManager(address,bytes32)',
-          parameters,
-        ),
-      };
-    default:
-      throw new Error(`Operation ${operation} unknown.`);
-  }
+  parameters?: any[],
+): TransactionAction => {
+  const multiFnsInterface = new utils.Interface([
+    'function changeController(address)',
+    'function createCloneToken(address,uint256,string,uint8,string,bool)',
+    'function createPermission(address,address,bytes32,address)',
+    'function grantPermission(address,address,bytes32)',
+    'function grantPermissionP(address,address,bytes32,uint256[])',
+    'function newInstance()',
+    'function newAppInstance(bytes32,address,bytes,bool)',
+    'function revokePermission(address,address,bytes32)',
+    'function removePermissionManager(address,bytes32)',
+    'function setApp(bytes32,bytes32,address)',
+  ]);
+
+  return {
+    to,
+    data: multiFnsInterface.encodeFunctionData(operation, parameters),
+  };
 };
 
 export const createTestScriptEncodedAction = (
-  forwarderActions: Action[],
+  forwarderActions: TransactionAction[],
   path: string[],
+  dao: Record<string, string>,
   context?: string,
-): Action => {
+): TransactionAction => {
   let script: string;
   const forwardingPath = [...path].reverse();
   for (const forwarder of forwardingPath) {
     script = encodeCallScript(forwarderActions);
     const forwarderType = getAppForwarderType(forwarder);
-    const forwarderAddress = resolveApp(forwarder);
+    const forwarderAddress = utils.isAddress(forwarder)
+      ? forwarder
+      : dao[forwarder];
 
     switch (forwarderType) {
       case FORWARDER_TYPE:
@@ -127,5 +115,5 @@ export const createTestScriptEncodedAction = (
     }
   }
 
-  return { ...forwarderActions[0], value: 0 };
+  return forwarderActions[0];
 };

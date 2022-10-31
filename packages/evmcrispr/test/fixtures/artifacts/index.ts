@@ -1,0 +1,50 @@
+// WARNING: this file is generated automatically
+import QmYXRbeeit6mDGkKHHBrtfAVzVCcpfy7mRKh3q4CZwCBHg from './QmYXRbeeit6mDGkKHHBrtfAVzVCcpfy7mRKh3q4CZwCBHg.json';
+import QmbHQftzWRv5PzhJTQHLFF2rYude8K3EXQSffWH7yB5z8S from './QmbHQftzWRv5PzhJTQHLFF2rYude8K3EXQSffWH7yB5z8S.json';
+import QmcyRHTRoom5Kd1CaheWKKivkARnpXhNh87KukDBTaBTSC from './QmcyRHTRoom5Kd1CaheWKKivkARnpXhNh87KukDBTaBTSC.json';
+import QmZUQFEoULoSrF8aa8ub61VPZDrjMqnpqVFRFBge2fiMXo from './QmZUQFEoULoSrF8aa8ub61VPZDrjMqnpqVFRFBge2fiMXo.json';
+import QmZrN4TB3H7fBFrukFiWvbiG2n1V9XFy6GFefE8zzysqe8 from './QmZrN4TB3H7fBFrukFiWvbiG2n1V9XFy6GFefE8zzysqe8.json';
+import QmTgqjnoPb7jfKBaKDYBYt9DR1YnwvGtiHQYEzvG7BW6DX from './QmTgqjnoPb7jfKBaKDYBYt9DR1YnwvGtiHQYEzvG7BW6DX.json';
+import QmW8K3pwRGnGDjwQb66pAD9N8bXjpQtLM2vdKGyw1vfdyo from './QmW8K3pwRGnGDjwQb66pAD9N8bXjpQtLM2vdKGyw1vfdyo.json';
+import QmXeaqu2CDFor6Xa1azzAzskb1y4kgmuVdL4WDWK5zcmRi from './QmXeaqu2CDFor6Xa1azzAzskb1y4kgmuVdL4WDWK5zcmRi.json';
+import Qmbh1AtQfE6qv3bqBgDy3YbcWCRQoWgArwAEYejUXD8A66 from './Qmbh1AtQfE6qv3bqBgDy3YbcWCRQoWgArwAEYejUXD8A66.json';
+import QmX9WfXEQrPU4jMxBdPga6fbq79DCPqfcNA75Xo9Mi9Zyx from './QmX9WfXEQrPU4jMxBdPga6fbq79DCPqfcNA75Xo9Mi9Zyx.json';
+import Qmec1RUNuygtD1L2SC1Fgp4Cp7JV2SeRrMDAAEZjsgLZn4 from './Qmec1RUNuygtD1L2SC1Fgp4Cp7JV2SeRrMDAAEZjsgLZn4.json';
+import QmRcrF7Kjg83h1xTn7yjEzMXy82bhpKWz6sEMpP1T8MYSG from './QmRcrF7Kjg83h1xTn7yjEzMXy82bhpKWz6sEMpP1T8MYSG.json';
+import Qmb5Lsc28iqNJ7CAH1A4GT3FArPuh8KeBYtvzt781hzNqB from './Qmb5Lsc28iqNJ7CAH1A4GT3FArPuh8KeBYtvzt781hzNqB.json';
+import QmV4ZEPhRPEqGipoPJVHn8F2Kby9JgNUfFNd7tr3ZmpuL6 from './QmV4ZEPhRPEqGipoPJVHn8F2Kby9JgNUfFNd7tr3ZmpuL6.json';
+import QmUQANzdvsTYLFxdrPqQU9HxQ4qP3VKdAhJb2iQMp6yZYC from './QmUQANzdvsTYLFxdrPqQU9HxQ4qP3VKdAhJb2iQMp6yZYC.json';
+import QmaxwbpFvYj5RtD886xa3tFbfb51a7J2sTkTFsbGewBp4j from './QmaxwbpFvYj5RtD886xa3tFbfb51a7J2sTkTFsbGewBp4j.json';
+import QmUPXZ7L3BD5KSMa6v4EGAcrumcYFP3caEv5GPdnHnZ7fr from './QmUPXZ7L3BD5KSMa6v4EGAcrumcYFP3caEv5GPdnHnZ7fr.json';
+import QmXVKrQPg8ZeLhU8AsTGCiC486V4Nadbom2GECtV91RCM6 from './QmXVKrQPg8ZeLhU8AsTGCiC486V4Nadbom2GECtV91RCM6.json';
+import QmYHVNYhcEp8tpZd1PsiJFEbVGA9D8ooFVyLWQxSq7NAS7 from './QmYHVNYhcEp8tpZd1PsiJFEbVGA9D8ooFVyLWQxSq7NAS7.json';
+import QmQDyPpFCDqquSNQU1fHnmhURKBTpxdqsiuQYfX57mXmzC from './QmQDyPpFCDqquSNQU1fHnmhURKBTpxdqsiuQYfX57mXmzC.json';
+import QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf from './QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf.json';
+import QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z from './QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z.json';
+import QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG from './QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG.json';
+
+export const artifacts = {
+  QmYXRbeeit6mDGkKHHBrtfAVzVCcpfy7mRKh3q4CZwCBHg,
+  QmbHQftzWRv5PzhJTQHLFF2rYude8K3EXQSffWH7yB5z8S,
+  QmcyRHTRoom5Kd1CaheWKKivkARnpXhNh87KukDBTaBTSC,
+  QmZUQFEoULoSrF8aa8ub61VPZDrjMqnpqVFRFBge2fiMXo,
+  QmZrN4TB3H7fBFrukFiWvbiG2n1V9XFy6GFefE8zzysqe8,
+  QmTgqjnoPb7jfKBaKDYBYt9DR1YnwvGtiHQYEzvG7BW6DX,
+  QmW8K3pwRGnGDjwQb66pAD9N8bXjpQtLM2vdKGyw1vfdyo,
+  QmXeaqu2CDFor6Xa1azzAzskb1y4kgmuVdL4WDWK5zcmRi,
+  Qmbh1AtQfE6qv3bqBgDy3YbcWCRQoWgArwAEYejUXD8A66,
+  QmX9WfXEQrPU4jMxBdPga6fbq79DCPqfcNA75Xo9Mi9Zyx,
+  Qmec1RUNuygtD1L2SC1Fgp4Cp7JV2SeRrMDAAEZjsgLZn4,
+  QmRcrF7Kjg83h1xTn7yjEzMXy82bhpKWz6sEMpP1T8MYSG,
+  Qmb5Lsc28iqNJ7CAH1A4GT3FArPuh8KeBYtvzt781hzNqB,
+  QmV4ZEPhRPEqGipoPJVHn8F2Kby9JgNUfFNd7tr3ZmpuL6,
+  QmUQANzdvsTYLFxdrPqQU9HxQ4qP3VKdAhJb2iQMp6yZYC,
+  QmaxwbpFvYj5RtD886xa3tFbfb51a7J2sTkTFsbGewBp4j,
+  QmUPXZ7L3BD5KSMa6v4EGAcrumcYFP3caEv5GPdnHnZ7fr,
+  QmXVKrQPg8ZeLhU8AsTGCiC486V4Nadbom2GECtV91RCM6,
+  QmYHVNYhcEp8tpZd1PsiJFEbVGA9D8ooFVyLWQxSq7NAS7,
+  QmQDyPpFCDqquSNQU1fHnmhURKBTpxdqsiuQYfX57mXmzC,
+  QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf,
+  QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z,
+  QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG,
+};

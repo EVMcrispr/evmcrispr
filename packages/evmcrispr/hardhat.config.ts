@@ -31,6 +31,9 @@ const config: HardhatUserConfig = {
     ],
   },
   mocha: {
+    reporterOptions: {
+      maxDiffSize: 120000,
+    },
     timeout: 0,
     rootHooks: {
       beforeAll: () => {
@@ -51,10 +54,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 4,
+      chainId: 100,
       forking: {
         url: ARCHIVE_NODE_ENDPOINT,
-        blockNumber: 10316339,
+        blockNumber: 24_730_000,
       },
     },
   },

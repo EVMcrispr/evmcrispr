@@ -2,9 +2,13 @@ import { expect } from 'chai';
 import { utils } from 'ethers';
 import { multihash } from 'is-ipfs';
 
-import { ErrorInvalid } from '../../src';
-import { parseContentUri } from '../../src/utils';
-import type { AragonArtifact, ParsedApp } from '../../src/types';
+import type { ErrorException } from '../../src/errors';
+import { ErrorInvalid } from '../../src/errors';
+import type {
+  AragonArtifact,
+  ParsedApp,
+} from '../../src/modules/aragonos/types';
+import { parseContentUri } from '../../src/modules/aragonos/utils';
 
 const { isAddress } = utils;
 
@@ -16,9 +20,7 @@ export const expectHash = (hash: string, message?: string): void => {
 
 export const expectThrowAsync = async (
   method: () => any,
-  errorOptions: { type: any; name?: string; message?: string } = {
-    type: Error,
-  },
+  expectedError?: ErrorException,
   customTestMessage = '',
 ): Promise<void> => {
   let error: Error | null = null;
@@ -27,17 +29,21 @@ export const expectThrowAsync = async (
   } catch (err: any) {
     error = err;
   }
-  const { type, name, message } = errorOptions;
+  const type = expectedError
+    ? expectedError.constructor
+    : new Error().constructor;
+  const { name, message } = expectedError || {};
 
   expect(error, `Exception not thrown`).not.to.be.null;
+
+  if (message && message.length) {
+    expect(error!.message, customTestMessage).to.equal(message);
+  }
+
   expect(error!.constructor.name, customTestMessage).eq(type.name);
 
   if (name) {
     expect(error!.name, customTestMessage).to.be.eq(name);
-  }
-
-  if (message) {
-    expect(error!.message, customTestMessage).to.equal(message);
   }
 };
 
@@ -61,42 +67,44 @@ export const isValidIdentifier = (
   checkAppIdentifier = false,
 ): (() => Promise<void>) => {
   return async () => {
-    const errorOptions = { type: ErrorInvalid, name: 'ErrorInvalidIdentifier' };
+    const expectedError = new ErrorInvalid('', {
+      name: 'ErrorInvalidIdentifier',
+    });
 
     await expectThrowAsync(
       evmcrisprMethod(''),
-      errorOptions,
+      expectedError,
       'Empty identifier',
     );
 
     await expectThrowAsync(
       evmcrisprMethod('Vault'),
-      errorOptions,
+      expectedError,
       'Uppercase letter in identifier',
     );
 
     await expectThrowAsync(
       evmcrisprMethod('vault:'),
-      errorOptions,
+      expectedError,
       'Incomplete identifier',
     );
 
     await expectThrowAsync(
       evmcrisprMethod('vault%'),
-      errorOptions,
+      expectedError,
       'Invalid character in identifier',
     );
 
     await expectThrowAsync(
       evmcrisprMethod('vault.'),
-      errorOptions,
+      expectedError,
       'Incomplete repository in identifier',
     );
 
     if (checkLabeledAppIdentifier) {
       await expectThrowAsync(
         evmcrisprMethod('vault:new-vau/lt'),
-        errorOptions,
+        expectedError,
         'Label containing invalid character',
       );
     }
@@ -104,7 +112,7 @@ export const isValidIdentifier = (
     if (checkAppIdentifier) {
       await expectThrowAsync(
         evmcrisprMethod('vault:2new'),
-        errorOptions,
+        expectedError,
         'Index containing non-numeric character',
       );
     }

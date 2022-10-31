@@ -1,29 +1,37 @@
-import type { Entity, Permission, PermissionP } from '../../src';
-import { and, oracle, timestamp } from '../../src';
+import type { Entity, Permission } from '../../src/modules/aragonos';
+import { and, oracle, timestamp } from '../../src/modules/aragonos';
 
 export const GRANT_PERMISSIONS: Permission[] = [
   ['0xc125218F4Df091eE40624784caF7F47B9738086f', 'token-manager', 'MINT_ROLE'],
   ['0xc125218F4Df091eE40624784caF7F47B9738086f', 'token-manager', 'BURN_ROLE'],
 ];
 
-export const GRANT_PERMISSION_PARAMS: PermissionP = [
+export const GRANT_PERMISSION_PARAMS: Permission = [
   '0xc125218F4Df091eE40624784caF7F47B9738086f',
   'token-manager',
   'MINT_ROLE',
-  and(oracle('0x0'), timestamp.gte(10000000)),
 ];
+
+export const GRANT_PERMISSION_PARAMS_PARAMS = and(
+  oracle('0x0'),
+  timestamp.gte(10000000),
+);
 
 export const NEW_PERMISSIONS: Permission[] = [
   ['voting', 'token-manager', 'ISSUE_ROLE'],
   ['voting', 'token-manager', 'REVOKE_VESTINGS_ROLE'],
 ];
 
-export const NEW_PERMISSION_PARAMS: PermissionP = [
+export const NEW_PERMISSION_PARAMS: Permission = [
   'voting',
   'token-manager',
   'ISSUE_ROLE',
-  and(oracle('0x0'), timestamp.gte(10000000)),
 ];
+
+export const NEW_PERMISSION_PARAMS_PARAMS = and(
+  oracle('0x0'),
+  timestamp.gte(10000000),
+);
 
 export const REVOKE_PERMISSIONS: Permission[] = [
   ['voting', 'finance', 'CREATE_PAYMENTS_ROLE'],

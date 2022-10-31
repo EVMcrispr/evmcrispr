@@ -1,60 +1,29 @@
-import { getSystemApp, isSystemApp } from '.';
-import type { ParsedApp, Repo } from '../types';
+import type { Err } from 'arcsecond';
 
-export const parseAppArtifactName = (name: string): string => {
-  if (!name) {
-    return '';
-  }
-  // Split by the first '.' occurrence only.
-  const parsedName = name.split(/\.(.+)/);
+import type { NodeParserState } from '../types';
 
-  return parsedName.length > 1 ? parsedName[1] : '';
+export const buildParserError = (
+  { data, error, index }: Err<string, NodeParserState>,
+  type: string,
+  msg?: string,
+): string => {
+  const splitRes = error.split('got');
+  const wrongValueEncountered =
+    splitRes.length === 2 ? splitRes[1].trim() : null;
+
+  const parserMsg = msg
+    ? `${msg}${wrongValueEncountered ? `, got ${wrongValueEncountered}` : ''}`
+    : error.split('): ')[1];
+
+  return `${type}(${data.line}:${index - data.offset}): ${parserMsg}`;
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const parseApp = (app: any): ParsedApp => {
-  const { address, appId, implementation, repoName, roles, version } = app;
-  const { registry } = app.repo || {};
-  const { codeAddress, artifact: rawArtifact, contentUri } = version || {};
-  let artifact, name;
+export const getIncorrectReceivedValue = (errorMsg: string): string => {
+  const splitRes = errorMsg.split('got ');
 
-  if (isSystemApp(appId)) {
-    const systemApp = getSystemApp(appId)!;
-    artifact = systemApp.artifact;
-    name = systemApp.name;
-  } else {
-    artifact = JSON.parse(rawArtifact ?? null);
-    name = repoName;
+  if (splitRes.length === 2) {
+    return `, got ${splitRes[1].trim()}`;
   }
 
-  return {
-    address,
-    appId,
-    artifact,
-    codeAddress: codeAddress ?? implementation.address,
-    contentUri,
-    name,
-    registryName: registry?.name,
-    roles,
-  };
-};
-
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const parseRepo = (repo: any): Repo => {
-  const { artifact: rawArtifact, contentUri, codeAddress } = repo.lastVersion;
-
-  return {
-    artifact: JSON.parse(rawArtifact),
-    contentUri,
-    codeAddress,
-  };
-};
-
-export const timeUnits: { [key: string]: number } = {
-  s: 1,
-  m: 60,
-  h: 3600,
-  d: 86400,
-  w: 604800,
-  y: 31536000,
+  return '';
 };
