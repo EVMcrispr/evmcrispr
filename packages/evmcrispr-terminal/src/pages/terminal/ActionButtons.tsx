@@ -15,7 +15,11 @@ import {
   Button,
   Collapse,
   VStack,
+  useDisclosure,
 } from '@chakra-ui/react';
+
+import ShareButton from './ShareButton';
+import ShareLinkModal from '../../components/modal/share';
 
 function ErrorMsg({ errors }: { errors: string[] }) {
   const [showCollapse, setShowCollapse] = useState(false);
@@ -119,7 +123,11 @@ export default function ActionButtons({
 }: TerminalButtonsType) {
   const { activeConnector } = useConnect();
   const [url] = useState('');
-
+  const [link, setLink] = useState('');
+  const [isUploading, setUploadStatus] = useState(false);
+  const shareDisclosure = useDisclosure({
+    id: 'share',
+  });
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   async function onExecute() {
@@ -167,31 +175,41 @@ export default function ActionButtons({
   }
 
   return (
-    <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-      {address ? (
-        <>
-          {url ? (
+    <>
+      <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
+        {address ? (
+          <>
+            {url ? (
+              <Button
+                variant="warning"
+                onClick={() => window.open(url, '_blank')}
+              >
+                Go to vote
+              </Button>
+            ) : null}
+
             <Button
-              variant="warning"
-              onClick={() => window.open(url, '_blank')}
+              variant="lime"
+              isLoading={isLoading}
+              onClick={onExecute}
+              // disabled={isLoading}
+              loadingText={`Forwarding from ${addressShortened}`}
             >
-              Go to vote
+              Forward from {addressShortened}
             </Button>
-          ) : null}
+          </>
+        ) : null}
 
-          <Button
-            variant="lime"
-            isLoading={isLoading}
-            onClick={onExecute}
-            // disabled={isLoading}
-            loadingText={`Forwarding from ${addressShortened}`}
-          >
-            Forward from {addressShortened}
-          </Button>
-        </>
-      ) : null}
+        <ShareButton
+          script={script}
+          setLink={setLink}
+          setUploadStatus={setUploadStatus}
+          {...shareDisclosure}
+        />
 
-      {errors ? <ErrorMsg errors={errors} /> : null}
-    </VStack>
+        {errors ? <ErrorMsg errors={errors} /> : null}
+      </VStack>
+      <ShareLinkModal url={link} isLoading={isUploading} {...shareDisclosure} />
+    </>
   );
 }
