@@ -17,8 +17,6 @@ import {
   VStack,
 } from '@chakra-ui/react';
 
-import { terminalStoreActions } from './useTerminalStore';
-
 function ErrorMsg({ errors }: { errors: string[] }) {
   const [showCollapse, setShowCollapse] = useState(false);
   const [showExpandBtn, setShowExpandBtn] = useState(false);
@@ -105,16 +103,18 @@ const executeActions = async (
 };
 
 type TerminalButtonsType = {
-  terminalStore: {
+  terminalStoreState: {
     errors: string[];
     isLoading: boolean;
     script: string;
   };
   address: string;
+  terminalStoreActions: Record<string, (param: any) => void>;
 };
 
-export default function TerminalButtons({
-  terminalStore: { errors, isLoading, script },
+export default function ActionButtons({
+  terminalStoreState: { errors, isLoading, script },
+  terminalStoreActions,
   address = '',
 }: TerminalButtonsType) {
   const { activeConnector } = useConnect();
@@ -128,6 +128,7 @@ export default function TerminalButtons({
 
     try {
       const signer = await activeConnector?.getSigner();
+
       if (!activeConnector || signer === undefined || signer === null)
         throw new Error('Account not connected');
 

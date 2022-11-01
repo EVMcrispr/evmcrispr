@@ -8,7 +8,7 @@ import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 
 import FadeIn from '../../components/animations/fade-in';
 import Footer from '../../components/footer';
-import TerminalButtons from './Buttons';
+import ActionButons from './ActionButtons';
 import SelectWalletModal from '../../components/modal/wallet';
 
 import { useDebounce } from '../../hooks/useDebounce';
@@ -185,13 +185,14 @@ export default function Terminal() {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <TerminalButtons
-            terminalStore={{
+          <ActionButons
+            terminalStoreState={{
               errors,
               isLoading,
               script,
             }}
             address={address}
+            terminalStoreActions={terminalStoreActions}
           />
         </FadeIn>
       </Box>
