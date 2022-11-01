@@ -37,9 +37,9 @@ export default function SelectWalletModal({
 
   useEffect(() => {
     if (isError || isConnected) {
-      closeModal();
+      onClose();
     }
-  }, [isError, isConnected, closeModal]);
+  }, [isError, isConnected, onClose]);
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />

@@ -350,7 +350,7 @@ export const Terminal = () => {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
-      <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
+      <SelectWalletModal isOpen={isOpen} onClose={onClose} />
     </>
   );
 };
