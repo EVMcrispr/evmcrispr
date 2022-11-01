@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
 import { InjectedConnector } from 'wagmi/connectors/injected';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useConnect } from 'wagmi';
 
 import type { Action, ForwardOptions } from '@1hive/evmcrispr';
 import type { providers } from 'ethers';
@@ -14,7 +14,6 @@ import {
   Box,
   Button,
   Collapse,
-  Spinner,
   VStack,
 } from '@chakra-ui/react';
 
@@ -111,26 +110,17 @@ type TerminalButtonsType = {
     isLoading: boolean;
     script: string;
   };
-  onOpen: () => void;
+  address: string;
 };
 
 export default function TerminalButtons({
   terminalStore: { errors, isLoading, script },
-  onOpen,
+  address = '',
 }: TerminalButtonsType) {
-  const { disconnect } = useDisconnect();
-  const { data: account } = useAccount();
-  const { activeConnector, isConnecting } = useConnect();
+  const { activeConnector } = useConnect();
   const [url] = useState('');
 
-  const address = account?.address ?? '';
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
-  const forwardingText = `Forwarding from ${addressShortened}`;
-
-  async function onDisconnect() {
-    terminalStoreActions.errors([]);
-    disconnect();
-  }
 
   async function onExecute() {
     terminalStoreActions.errors([]);
@@ -177,17 +167,7 @@ export default function TerminalButtons({
 
   return (
     <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-      {!address ? (
-        <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
-          {isConnecting ? (
-            <Box>
-              <Spinner verticalAlign="middle" /> Connecting…
-            </Box>
-          ) : (
-            'Connect'
-          )}
-        </Button>
-      ) : (
+      {address ? (
         <>
           {url ? (
             <Button
@@ -198,20 +178,17 @@ export default function TerminalButtons({
             </Button>
           ) : null}
 
-          <Button variant="lime" onClick={onExecute} disabled={isLoading}>
-            {isLoading ? (
-              <Box>
-                <Spinner verticalAlign="middle" /> {forwardingText}
-              </Box>
-            ) : (
-              forwardingText
-            )}
-          </Button>
-          <Button variant="link" color="white" onClick={onDisconnect} size="sm">
-            Disconnect
+          <Button
+            variant="lime"
+            isLoading={isLoading}
+            onClick={onExecute}
+            // disabled={isLoading}
+            loadingText={`Forwarding from ${addressShortened}`}
+          >
+            Forward from {addressShortened}
           </Button>
         </>
-      )}
+      ) : null}
 
       {errors ? <ErrorMsg errors={errors} /> : null}
     </VStack>
