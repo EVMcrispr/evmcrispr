@@ -8,7 +8,7 @@ import Wagmi from './providers/Wagmi';
 import Header from './components/header';
 
 import Landing from './pages/landing';
-import { Terminal } from './pages/terminal';
+import Terminal from './pages/terminal';
 
 const Modal: ComponentStyleConfig = {
   // The styles all button have in common

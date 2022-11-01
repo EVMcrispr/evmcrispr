@@ -1,29 +1,19 @@
-import {
-  EVMcrispr,
-  IPFSResolver,
-  isProviderAction,
-  parseScript,
-} from '@1hive/evmcrispr';
-import type { Action, ForwardOptions } from '@1hive/evmcrispr';
+import { IPFSResolver } from '@1hive/evmcrispr';
+import type { Monaco } from '@monaco-editor/react';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  Box,
-  Button,
-  Collapse,
-  Spinner,
-  VStack,
-  useDisclosure,
-} from '@chakra-ui/react';
-import { useEffect, useRef, useState } from 'react';
-import type { Connector } from 'wagmi';
-import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
-import { InjectedConnector } from 'wagmi/connectors/injected';
-import type { providers } from 'ethers';
+import { Box, useDisclosure } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import { useConnect, useProvider } from 'wagmi';
 
+import FadeIn from '../../components/animations/fade-in';
+import Footer from '../../components/footer';
+import TerminalButtons from './Buttons';
+import SelectWalletModal from '../../components/modal/wallet';
+
+import { useDebounce } from '../../hooks/useDebounce';
+import { terminalStoreActions, useTerminalStore } from './useTerminalStore';
+import { createProvideCompletionItemsFn } from '../../editor/autocompletion';
 import { theme } from '../../editor/theme';
 import {
   conf,
@@ -32,74 +22,21 @@ import {
   getModulesKeywords,
 } from '../../editor/evmcl';
 
-import SelectWalletModal from '../../components/modal/wallet';
-import FadeIn from '../../components/animations/fade-in';
-import Footer from '../../components/footer';
-import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
-import { createProvideCompletionItemsFn } from '../../editor/autocompletion';
-import { useDebounce } from '../../hooks/useDebounce';
-
 const ipfsResolver = new IPFSResolver();
 
-// TODO: Migrate logic to evmcrispr
-const executeActions = async (
-  actions: Action[],
-  connector: Connector,
-  options?: ForwardOptions,
-): Promise<providers.TransactionReceipt[]> => {
-  const txs = [];
+export default function Terminal() {
+  const [firstTry, setFirstTry] = useState(true);
+  const { onOpen, isOpen, onClose } = useDisclosure();
 
-  if (!(connector instanceof InjectedConnector)) {
-    throw new Error(
-      `Provider action-returning commands are only supported by injected wallets (e.g. Metamask)`,
-    );
-  }
-
-  for (const action of actions) {
-    if (isProviderAction(action)) {
-      const [chainParam] = action.params;
-
-      await connector.switchChain(Number(chainParam.chainId));
-    } else {
-      const signer = await connector.getSigner();
-      txs.push(
-        await (
-          await signer.sendTransaction({
-            ...action,
-            gasPrice: options?.gasPrice,
-            gasLimit: options?.gasLimit,
-          })
-        ).wait(),
-      );
-    }
-  }
-  return txs;
-};
-
-const COLLAPSE_THRESHOLD = 30;
-
-export const Terminal = () => {
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
-  const { data: account } = useAccount();
-  const { connectors, activeConnector, connect, isConnected, isConnecting } =
-    useConnect();
-  const { disconnect } = useDisconnect();
+  const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
-  const [url] = useState('');
-  const [firstTry, setFirstTry] = useState(true);
-  const [showCollapse, setShowCollapse] = useState(false);
-  const [showExpandBtn, setShowExpandBtn] = useState(false);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-
-  const address = account?.address ?? '';
-  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
-  const forwardingText = `Forwarding from ${addressShortened}`;
 
   const debouncedScript = useDebounce(script, 200);
 
@@ -161,60 +98,28 @@ export const Terminal = () => {
     };
   }, [bindingsCache, monaco, provider, ast]);
 
-  useEffect(() => {
-    if (!errors.length) {
-      setShowExpandBtn(false);
-    } else if (contentRef.current) {
-      setShowExpandBtn(contentRef.current.clientHeight > COLLAPSE_THRESHOLD);
-    }
-  }, [errors]);
-
-  async function onDisconnect() {
-    terminalStoreActions.errors([]);
-    disconnect();
+  function handleOnChange(str: string | undefined, ev: any) {
+    terminalStoreActions.script(str ?? '');
+    const change = ev.changes[0];
+    const startLineNumber = change.range.startLineNumber;
+    const newLine = change.text
+      ? change.text.split('\n').length +
+        startLineNumber -
+        // Substract current line
+        1
+      : startLineNumber;
+    terminalStoreActions.updateCurrentLine(newLine);
   }
 
-  async function onExecute() {
-    terminalStoreActions.errors([]);
-    terminalStoreActions.isLoading(true);
+  function handleBeforeMount(monaco: Monaco) {
+    monaco.editor.defineTheme('theme', theme);
+    monaco.languages.register(contribution);
+    monaco.languages.setLanguageConfiguration('evmcl', conf);
+  }
 
-    try {
-      const signer = await activeConnector?.getSigner();
-      if (!activeConnector || signer === undefined || signer === null)
-        throw new Error('Account not connected');
-
-      const { ast, errors } = parseScript(script);
-
-      if (errors.length) {
-        terminalStoreActions.isLoading(false);
-        terminalStoreActions.errors(errors);
-        return;
-      }
-      const actions = await new EVMcrispr(ast, signer).interpret();
-
-      await executeActions(actions, activeConnector, { gasLimit: 10_000_000 });
-
-      // TODO: adapt to cas11 changes
-      // const chainId = (await signer.provider?.getNetwork())?.chainId;
-      // setUrl(`https://${client(chainId)}/#/${connectedDAO.kernel.address}/${}`);
-    } catch (err: any) {
-      const e = err as Error;
-      console.error(e);
-      if (
-        e.message.startsWith('transaction failed') &&
-        /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
-      ) {
-        terminalStoreActions.errors([
-          `Transaction failed, watch in block explorer ${
-            e.message.split('"')[1]
-          }`,
-        ]);
-      } else {
-        terminalStoreActions.errors([e.message]);
-      }
-    } finally {
-      terminalStoreActions.isLoading(false);
-    }
+  function handleOnMount(editor: any) {
+    editor.setPosition({ lineNumber: 10000, column: 0 });
+    editor.focus();
   }
 
   return (
@@ -226,27 +131,9 @@ export const Terminal = () => {
             theme="theme"
             language="evmcl"
             value={script}
-            onChange={(str, ev) => {
-              terminalStoreActions.script(str ?? '');
-              const change = ev.changes[0];
-              const startLineNumber = change.range.startLineNumber;
-              const newLine = change.text
-                ? change.text.split('\n').length +
-                  startLineNumber -
-                  // Substract current line
-                  1
-                : startLineNumber;
-              terminalStoreActions.updateCurrentLine(newLine);
-            }}
-            beforeMount={(monaco) => {
-              monaco.editor.defineTheme('theme', theme);
-              monaco.languages.register(contribution);
-              monaco.languages.setLanguageConfiguration('evmcl', conf);
-            }}
-            onMount={(editor) => {
-              editor.setPosition({ lineNumber: 10000, column: 0 });
-              editor.focus();
-            }}
+            onChange={handleOnChange}
+            beforeMount={handleBeforeMount}
+            onMount={handleOnMount}
             options={{
               fontSize: 22,
               fontFamily: 'Ubuntu Mono',
@@ -266,85 +153,14 @@ export const Terminal = () => {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-            {!address ? (
-              <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
-                {isConnecting ? (
-                  <Box>
-                    <Spinner verticalAlign="middle" /> Connecting…
-                  </Box>
-                ) : (
-                  'Connect'
-                )}
-              </Button>
-            ) : (
-              <>
-                {url ? (
-                  <Button
-                    variant="warning"
-                    onClick={() => window.open(url, '_blank')}
-                  >
-                    Go to vote
-                  </Button>
-                ) : null}
-
-                <Button variant="lime" onClick={onExecute} disabled={isLoading}>
-                  {isLoading ? (
-                    <Box>
-                      <Spinner verticalAlign="middle" /> {forwardingText}
-                    </Box>
-                  ) : (
-                    forwardingText
-                  )}
-                </Button>
-                <Button
-                  variant="link"
-                  color="white"
-                  onClick={onDisconnect}
-                  size="sm"
-                >
-                  Disconnect
-                </Button>
-              </>
-            )}
-
-            {errors ? (
-              <Box
-                display="flex"
-                flexDirection="column"
-                justifyContent="left"
-                maxWidth="100%"
-                wordBreak="break-all"
-              >
-                {errors.map((e, index) => (
-                  <Alert key={index} status="error">
-                    <Box display="flex" alignItems="flex-start">
-                      <AlertIcon />
-                      <AlertDescription>
-                        <Collapse
-                          startingHeight={COLLAPSE_THRESHOLD}
-                          in={showCollapse}
-                        >
-                          <div ref={contentRef}>{e}</div>
-                        </Collapse>
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
-                ))}
-                {showExpandBtn && (
-                  <Button
-                    width="30"
-                    alignSelf="flex-end"
-                    size="sm"
-                    onClick={() => setShowCollapse((show) => !show)}
-                    mt="1rem"
-                  >
-                    Show {showCollapse ? 'Less' : 'More'}
-                  </Button>
-                )}
-              </Box>
-            ) : null}
-          </VStack>
+          <TerminalButtons
+            terminalStore={{
+              errors,
+              isLoading,
+              script,
+            }}
+            onOpen={onOpen}
+          />
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>
@@ -353,4 +169,4 @@ export const Terminal = () => {
       <SelectWalletModal isOpen={isOpen} onClose={onClose} />
     </>
   );
-};
+}
