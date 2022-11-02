@@ -68,7 +68,6 @@ export async function fetchImplementationAddress(
     );
     implementationAddress = await proxyContract.implementation();
   } catch (e) {
-    console.log(e);
     implementationAddress = null;
     const beaconAddress = await getAddressFromStorageSlot(
       address,
