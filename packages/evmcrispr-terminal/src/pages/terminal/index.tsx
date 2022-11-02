@@ -8,7 +8,7 @@ import { useConnect, useProvider } from 'wagmi';
 
 import FadeIn from '../../components/animations/fade-in';
 import Footer from '../../components/footer';
-import TerminalButtons from './Buttons';
+import ActionButtons from './ActionButtons';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { terminalStoreActions, useTerminalStore } from './useTerminalStore';
@@ -21,12 +21,13 @@ import {
   createLanguage,
   getModulesKeywords,
 } from '../../editor/evmcl';
+import SelectWalletModal from '../../components/modal';
 
 const ipfsResolver = new IPFSResolver();
 
 export default function Terminal() {
   const [firstTry, setFirstTry] = useState(true);
-  const { onOpen } = useDisclosure();
+  const { onOpen, isOpen, onClose } = useDisclosure();
 
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
@@ -153,12 +154,13 @@ export default function Terminal() {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <TerminalButtons
-            terminalStore={{
+          <ActionButtons
+            terminalStoreState={{
               errors,
               isLoading,
               script,
             }}
+            terminalStoreActions={terminalStoreActions}
             onOpen={onOpen}
           />
         </FadeIn>
@@ -166,6 +168,7 @@ export default function Terminal() {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
+      <SelectWalletModal isOpen={isOpen} onClose={onClose} />
     </>
   );
 }

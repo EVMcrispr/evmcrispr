@@ -14,11 +14,8 @@ import {
   Box,
   Button,
   Collapse,
-  Spinner,
   VStack,
 } from '@chakra-ui/react';
-
-import { terminalStoreActions } from './useTerminalStore';
 
 function ErrorMsg({ errors }: { errors: string[] }) {
   const [showCollapse, setShowCollapse] = useState(false);
@@ -105,19 +102,21 @@ const executeActions = async (
   return txs;
 };
 
-type TerminalButtonsType = {
-  terminalStore: {
+type ActionButtonsType = {
+  terminalStoreState: {
     errors: string[];
     isLoading: boolean;
     script: string;
   };
   onOpen: () => void;
+  terminalStoreActions: Record<string, any>;
 };
 
-export default function TerminalButtons({
-  terminalStore: { errors, isLoading, script },
+export default function ActionButtons({
+  terminalStoreState: { errors, isLoading, script },
+  terminalStoreActions,
   onOpen,
-}: TerminalButtonsType) {
+}: ActionButtonsType) {
   const { disconnect } = useDisconnect();
   const { data: account } = useAccount();
   const { activeConnector, isConnecting } = useConnect();
@@ -125,7 +124,6 @@ export default function TerminalButtons({
 
   const address = account?.address ?? '';
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
-  const forwardingText = `Forwarding from ${addressShortened}`;
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
@@ -178,14 +176,14 @@ export default function TerminalButtons({
   return (
     <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
       {!address ? (
-        <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
-          {isConnecting ? (
-            <Box>
-              <Spinner verticalAlign="middle" /> Connecting…
-            </Box>
-          ) : (
-            'Connect'
-          )}
+        <Button
+          variant="lime"
+          onClick={onOpen}
+          disabled={isConnecting}
+          isLoading={isConnecting}
+          loadingText={'Connecting...'}
+        >
+          Connect
         </Button>
       ) : (
         <>
@@ -198,14 +196,14 @@ export default function TerminalButtons({
             </Button>
           ) : null}
 
-          <Button variant="lime" onClick={onExecute} disabled={isLoading}>
-            {isLoading ? (
-              <Box>
-                <Spinner verticalAlign="middle" /> {forwardingText}
-              </Box>
-            ) : (
-              forwardingText
-            )}
+          <Button
+            variant="lime"
+            onClick={onExecute}
+            disabled={isLoading}
+            isLoading={isLoading}
+            loadingText={`Forwarding from ${addressShortened}`}
+          >
+            Forward from {addressShortened}
           </Button>
           <Button variant="link" color="white" onClick={onDisconnect} size="sm">
             Disconnect
