@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 
@@ -6,6 +6,8 @@ import type { HardhatUserConfig } from 'hardhat/config';
 
 import { server } from './test/fixtures/server';
 
+dotenv.config();
+console.log(JSON.stringify(process.env));
 const ARCHIVE_NODE_ENDPOINT = process.env.ARCHIVE_NODE_ENDPOINT;
 
 if (!ARCHIVE_NODE_ENDPOINT) {
