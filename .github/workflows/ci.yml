@@ -76,7 +76,7 @@ jobs:
           CI_BRANCH_BASE: master
 
       - name: Tests
-        if: steps.changed-files.outputs.any_changed == 'true'
+        # if: steps.changed-files.outputs.any_changed == 'true'
         run: pnpm test:coverage
         env:
           ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
@@ -85,7 +85,7 @@ jobs:
 
       - name: Coveralls
         uses: coverallsapp/github-action@master
-        if: steps.changed-files.outputs.any_changed == 'true'
+        # if: steps.changed-files.outputs.any_changed == 'true'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
