@@ -50,6 +50,25 @@ describe('Std > commands > exec <target> <fnSignature> [<...params>]', () => {
     expect(result).eql(expectedCallAction);
   });
 
+  it('should return a correct exec action with value', async () => {
+    const interpreter = createInterpreter(
+      `exec ${target} ${fnSig} ${params.join(' ')} --value 1e18`,
+      signer,
+    );
+
+    const result = await interpreter.interpret();
+
+    const expectedCallAction: Action[] = [
+      {
+        to: target,
+        data: encodeActCall(fnSig, resolvedParams),
+        value: '1000000000000000000',
+      },
+    ];
+
+    expect(result).eql(expectedCallAction);
+  });
+
   it('should return a correct exec action when having to implicitly convert any string parameter to bytes when expecting one', async () => {
     const targetAddress = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
     const params = [
@@ -172,6 +191,17 @@ describe('Std > commands > exec <target> <fnSignature> [<...params>]', () => {
       c,
       `error when encoding approve call:\n${paramErrors.join('\n')}`,
     );
+
+    await expectThrowAsync(() => interpreter.interpret(), error);
+  });
+
+  it('should fail when providing invalid value parameter', async () => {
+    const interpreter = createInterpreter(
+      `exec ${target} ${fnSig} @me 1e18 --value tata`,
+      signer,
+    );
+    const c = findStdCommandNode(interpreter.ast, 'exec')!;
+    const error = new CommandError(c, `expected a valid value, but got tata`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

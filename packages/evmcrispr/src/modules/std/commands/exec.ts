@@ -1,4 +1,4 @@
-import { utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
 
 import { BindingsSpace } from '../../../types';
 import type { AbiBinding, Address, ICommand } from '../../../types';
@@ -9,7 +9,9 @@ import {
   addressesEqual,
   beforeOrEqualNode,
   checkArgsLength,
+  checkOpts,
   encodeAction,
+  getOptValue,
   insideNodeLine,
   interpretNodeSync,
   tryAndCacheNotFound,
@@ -23,6 +25,7 @@ const { ABI, ADDR } = BindingsSpace;
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
+    checkOpts(c, ['value']);
 
     const targetNode = c.args.shift()!;
     const signatureNode = c.args.shift()!;
@@ -32,6 +35,8 @@ export const exec: ICommand<Std> = {
       interpretNode(signatureNode, { treatAsLiteral: true }),
       interpretNodes(c.args),
     ]);
+
+    const value = await getOptValue(c, 'value', interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -89,6 +94,13 @@ export const exec: ICommand<Std> = {
     }
 
     const execAction = encodeAction(targetAddress, finalSignature, params);
+
+    if (value) {
+      if (!BigNumber.isBigNumber(value)) {
+        throw new ErrorException(`expected a valid value, but got ${value}`);
+      }
+      execAction.value = value.toString();
+    }
 
     return [execAction];
   },
