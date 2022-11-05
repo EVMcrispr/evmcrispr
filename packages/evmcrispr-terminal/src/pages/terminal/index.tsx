@@ -14,8 +14,12 @@ import {
   Box,
   Button,
   Collapse,
+  FormLabel,
+  HStack,
   Spinner,
+  Switch,
   VStack,
+  useBoolean,
   useDisclosure,
 } from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
@@ -106,6 +110,7 @@ export const Terminal = () => {
   const [firstTry, setFirstTry] = useState(true);
   const [showCollapse, setShowCollapse] = useState(false);
   const [showExpandBtn, setShowExpandBtn] = useState(false);
+  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   const address = account?.address ?? '';
@@ -203,7 +208,11 @@ export const Terminal = () => {
       }
       const actions = await new EVMcrispr(ast, signer).interpret();
 
-      await executeActions(actions, activeConnector, { gasLimit: 10_000_000 });
+      await executeActions(
+        actions,
+        activeConnector,
+        maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
+      );
 
       // TODO: adapt to cas11 changes
       // const chainId = (await signer.provider?.getNetwork())?.chainId;
@@ -277,85 +286,102 @@ export const Terminal = () => {
           />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
-          <VStack mt={3} alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-            {!address ? (
-              <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
-                {isConnecting ? (
-                  <Box>
-                    <Spinner verticalAlign="middle" /> Connecting…
-                  </Box>
-                ) : (
-                  'Connect'
-                )}
-              </Button>
-            ) : (
-              <>
-                {url ? (
-                  <Button
-                    variant="warning"
-                    onClick={() => window.open(url, '_blank')}
-                  >
-                    Go to vote
-                  </Button>
-                ) : null}
-
-                <Button variant="lime" onClick={onExecute} disabled={isLoading}>
-                  {isLoading ? (
+          <HStack mt={3} align="flex-start">
+            <HStack width="100%">
+              <FormLabel htmlFor="maximize-gas-limit">
+                Maximize gas limit?
+              </FormLabel>
+              <Switch
+                id="maximize-gas-limit"
+                size="sm"
+                checked={maximizeGasLimit}
+                onChange={setMaximizeGasLimit.toggle}
+              />
+            </HStack>
+            <VStack alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
+              {!address ? (
+                <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
+                  {isConnecting ? (
                     <Box>
-                      <Spinner verticalAlign="middle" /> {forwardingText}
+                      <Spinner verticalAlign="middle" /> Connecting…
                     </Box>
                   ) : (
-                    forwardingText
+                    'Connect'
                   )}
                 </Button>
-                <Button
-                  variant="link"
-                  color="white"
-                  onClick={onDisconnect}
-                  size="sm"
-                >
-                  Disconnect
-                </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  {url ? (
+                    <Button
+                      variant="warning"
+                      onClick={() => window.open(url, '_blank')}
+                    >
+                      Go to vote
+                    </Button>
+                  ) : null}
 
-            {errors ? (
-              <Box
-                display="flex"
-                flexDirection="column"
-                justifyContent="left"
-                maxWidth="100%"
-                wordBreak="break-all"
-              >
-                {errors.map((e, index) => (
-                  <Alert key={index} status="error">
-                    <Box display="flex" alignItems="flex-start">
-                      <AlertIcon />
-                      <AlertDescription>
-                        <Collapse
-                          startingHeight={COLLAPSE_THRESHOLD}
-                          in={showCollapse}
-                        >
-                          <div ref={contentRef}>{e}</div>
-                        </Collapse>
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
-                ))}
-                {showExpandBtn && (
                   <Button
-                    width="30"
-                    alignSelf="flex-end"
-                    size="sm"
-                    onClick={() => setShowCollapse((show) => !show)}
-                    mt="1rem"
+                    variant="lime"
+                    onClick={onExecute}
+                    disabled={isLoading}
                   >
-                    Show {showCollapse ? 'Less' : 'More'}
+                    {isLoading ? (
+                      <Box>
+                        <Spinner verticalAlign="middle" /> {forwardingText}
+                      </Box>
+                    ) : (
+                      forwardingText
+                    )}
                   </Button>
-                )}
-              </Box>
-            ) : null}
-          </VStack>
+                  <Button
+                    variant="link"
+                    color="white"
+                    onClick={onDisconnect}
+                    size="sm"
+                  >
+                    Disconnect
+                  </Button>
+                </>
+              )}
+
+              {errors ? (
+                <Box
+                  display="flex"
+                  flexDirection="column"
+                  justifyContent="left"
+                  maxWidth="100%"
+                  wordBreak="break-all"
+                >
+                  {errors.map((e, index) => (
+                    <Alert key={index} status="error">
+                      <Box display="flex" alignItems="flex-start">
+                        <AlertIcon />
+                        <AlertDescription>
+                          <Collapse
+                            startingHeight={COLLAPSE_THRESHOLD}
+                            in={showCollapse}
+                          >
+                            <div ref={contentRef}>{e}</div>
+                          </Collapse>
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+                  ))}
+                  {showExpandBtn && (
+                    <Button
+                      width="30"
+                      alignSelf="flex-end"
+                      size="sm"
+                      onClick={() => setShowCollapse((show) => !show)}
+                      mt="1rem"
+                    >
+                      Show {showCollapse ? 'Less' : 'More'}
+                    </Button>
+                  )}
+                </Box>
+              ) : null}
+            </VStack>
+          </HStack>
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>
