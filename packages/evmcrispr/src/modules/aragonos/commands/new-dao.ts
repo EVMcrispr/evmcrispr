@@ -23,10 +23,10 @@ const registerAragonId = async (
   owner: string,
 ): Promise<Action[]> => {
   const aragonRegistrar = await getAragonRegistrarContract(
-    module.signer.provider!,
+    await module.getProvider(),
   );
 
-  const chainId = await module.signer.getChainId();
+  const chainId = await module.getChainId();
 
   if (!ARAGON_REGISTRARS.has(chainId)) {
     throw new ErrorException(
@@ -49,6 +49,8 @@ export const newDAO: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
     checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
 
+    const provider = await module.getProvider();
+
     const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
 
     const bareTemplate = new utils.Interface([
@@ -57,7 +59,7 @@ export const newDAO: ICommand<AragonOS> = {
 
     const bareTemplateRepoAddr = (await _aragonEns(
       `bare-template.aragonpm.eth`,
-      module.signer.provider!,
+      provider,
       module.getConfigBinding('ensResolver'),
     ))!;
 
@@ -66,20 +68,20 @@ export const newDAO: ICommand<AragonOS> = {
       [
         'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
       ],
-      module.signer,
+      provider,
     );
 
     const bareTemplateAddr = (await bareTemplateRepo.getLatest())
       .contractAddress;
 
-    const daoFactory = DAO_FACTORIES.get(await module.signer.getChainId());
+    const daoFactory = DAO_FACTORIES.get(await module.getChainId());
     if (!daoFactory) {
       throw new ErrorException('network not supported');
     }
     const nonce = await buildNonceForAddress(
       daoFactory,
-      module.incrementNonce(daoFactory),
-      module.signer.provider!,
+      await module.incrementNonce(daoFactory),
+      provider,
     );
     const newDaoAddress = calculateNewProxyAddress(daoFactory, nonce);
 

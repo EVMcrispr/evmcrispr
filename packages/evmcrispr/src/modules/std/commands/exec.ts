@@ -61,7 +61,7 @@ export const exec: ICommand<Std> = {
         try {
           [targetAddress, fetchedAbi] = await fetchAbi(
             contractAddress,
-            module.signer.provider!,
+            await module.getProvider(),
             etherscanAPI,
           );
         } catch (err) {

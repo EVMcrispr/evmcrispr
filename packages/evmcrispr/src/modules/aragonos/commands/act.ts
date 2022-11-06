@@ -57,7 +57,7 @@ export const act: ICommand<AragonOS> = {
 
     const execAction = encodeAction(targetAddress, signature, params);
 
-    return batchForwarderActions(module.signer, [execAction], [agentAddress]);
+    return batchForwarderActions(module, [execAction], [agentAddress]);
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
     switch (argIndex) {

@@ -27,7 +27,7 @@ export const upgrade: ICommand<AragonOS> = {
 
     const dao = getDAO(module.bindingsManager, c.args[0]);
 
-    const kernel = dao.getAppContract('kernel', module.signer.provider!)!;
+    const kernel = dao.getAppContract('kernel', await module.getProvider())!;
 
     const args = await Promise.all([
       interpretNode(c.args[0], { treatAsLiteral: true }),
@@ -61,7 +61,7 @@ export const upgrade: ICommand<AragonOS> = {
 
     const repoAddr = await _aragonEns(
       apmRepo,
-      module.signer.provider!,
+      await module.getProvider(),
       module.getConfigBinding('ensResolver'),
     );
 
@@ -69,7 +69,7 @@ export const upgrade: ICommand<AragonOS> = {
       throw new ErrorException(`ENS repo name ${apmRepo} couldn't be resolved`);
     }
 
-    const repo = getRepoContract(repoAddr, module.signer);
+    const repo = getRepoContract(repoAddr, await module.getProvider());
 
     if (!newAppAddress) {
       [, newAppAddress] = await repo.getLatest();

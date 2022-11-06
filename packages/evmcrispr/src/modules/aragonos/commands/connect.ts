@@ -235,7 +235,7 @@ export const connect: ICommand<AragonOS> = {
     const dao = await createDAO(
       daoAddressOrName,
       module.bindingsManager,
-      module.signer.provider!,
+      await module.getProvider(),
       module.ipfsResolver,
       module.getConfigBinding('ensResolver'),
     );
@@ -283,7 +283,7 @@ export const connect: ICommand<AragonOS> = {
     const context = await getOptValue(c, 'context', interpretNode);
 
     return batchForwarderActions(
-      module.signer,
+      module,
       actions as TransactionAction[],
       forwarderAppAddresses.reverse(),
       context,

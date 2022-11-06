@@ -19,7 +19,7 @@ export function getAragonEnsResolver(chainId: number): string {
 export async function resolveName(
   name: string,
   ensResolver: Address,
-  signerOrProvider: ethers.Signer | providers.Provider,
+  provider: providers.Provider,
 ): Promise<Address | null> {
   if (!/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+eth/.test(name)) {
     throw new ErrorException(`ENS not valid: ${name}`);
@@ -28,13 +28,13 @@ export async function resolveName(
   const resolver = await new Contract(
     ensResolver,
     ['function resolver(bytes32 node) external view returns (address)'],
-    signerOrProvider,
+    provider,
   ).resolver(namehash);
   if (resolver === ethers.constants.AddressZero) return null;
   const daoAddress = await new Contract(
     resolver,
     ['function addr(bytes32 node) external view returns (address ret)'],
-    signerOrProvider,
+    provider,
   ).addr(namehash);
   return daoAddress === ethers.constants.AddressZero ? null : daoAddress;
 }

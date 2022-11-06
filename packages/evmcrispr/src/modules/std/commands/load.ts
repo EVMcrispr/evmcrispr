@@ -63,7 +63,7 @@ export const load: ICommand<Std> = {
           new AragonOS(
             module.bindingsManager,
             module.nonces,
-            module.signer,
+            module.evmcrispr,
             module.ipfsResolver,
             moduleAlias,
           ),

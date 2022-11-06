@@ -79,9 +79,7 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     const me = await signer.getAddress();
     const chainId = await signer.getChainId();
     const { appId, codeAddress, initializeSignature } = APP;
-    const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(
-      await signer.getChainId(),
-    )!;
+    const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(chainId)!;
     const newTokenAddress = calculateNewProxyAddress(
       tokenFactoryAddress,
       await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),

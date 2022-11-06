@@ -1,4 +1,4 @@
-import type { Signer, providers } from 'ethers';
+import type { providers } from 'ethers';
 
 import type { Action } from './actions';
 import type {
@@ -11,6 +11,7 @@ import type { BindingsManager } from '../BindingsManager';
 import type { IPFSResolver } from '../IPFSResolver';
 import type { Module } from '../Module';
 import type { LazyBindings } from './bindings';
+import type { EVMcrispr } from '..';
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -78,7 +79,7 @@ export interface IModuleConstructor {
   new (
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
-    signer: Signer,
+    evmcrispr: EVMcrispr,
     ipfsResolver: IPFSResolver,
     alias?: string,
   ): Module;

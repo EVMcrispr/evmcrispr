@@ -5,12 +5,12 @@ import type { Address } from '../../src';
 import type { EVMcrispr } from '../../src/EVMcrispr';
 
 import type { AragonOS } from '../../src/modules/aragonos/AragonOS';
+import { NodeType } from '../../src/types';
 import type {
   AST,
   BlockExpressionNode,
   CommandExpressionNode,
 } from '../../src/types';
-import { NodeType } from '../../src/types';
 import { listItems } from '../../src/utils';
 import { CommandError } from '../../src/errors';
 import { createInterpreter, itChecksNonDefinedIdentifier } from './cas11';
@@ -32,8 +32,8 @@ export const _aragonEns = async (
 
   const name = await resolveName(
     ensName,
-    ensResolver || getAragonEnsResolver(await module.signer.getChainId()),
-    module.signer,
+    ensResolver || getAragonEnsResolver(await module.getChainId()),
+    await module.getProvider(),
   );
 
   return name;

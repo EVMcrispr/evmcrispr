@@ -20,7 +20,7 @@ import {
 
 export const newToken: ICommand<AragonOS> = {
   async run(module, c, { interpretNodes }) {
-    const chainId = await module.signer.getChainId();
+    const chainId = await module.getChainId();
 
     if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
       throw new ErrorException(
@@ -91,8 +91,8 @@ export const newToken: ICommand<AragonOS> = {
     const factoryAddr = MINIME_TOKEN_FACTORIES.get(chainId)!;
     const nonce = await buildNonceForAddress(
       factoryAddr,
-      module.incrementNonce(factoryAddr),
-      module.signer.provider!,
+      await module.incrementNonce(factoryAddr),
+      await module.getProvider(),
     );
     const newTokenAddress = calculateNewProxyAddress(factoryAddr, nonce);
 

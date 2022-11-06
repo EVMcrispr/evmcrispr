@@ -1,5 +1,3 @@
-import type { Signer } from 'ethers';
-
 import type { BindingsManager } from '../../BindingsManager';
 import { ErrorNotFound } from '../../errors';
 import type { IPFSResolver } from '../../IPFSResolver';
@@ -14,6 +12,7 @@ import { Module } from '../../Module';
 import type { AragonDAO } from './AragonDAO';
 import { commands } from './commands';
 import { helpers } from './helpers';
+import type { EVMcrispr } from '../../EVMcrispr';
 
 export class AragonOS extends Module {
   #connectedDAOs: AragonDAO[];
@@ -21,7 +20,7 @@ export class AragonOS extends Module {
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
-    signer: Signer,
+    evmcrispr: EVMcrispr,
     ipfsResolver: IPFSResolver,
     alias?: string,
   ) {
@@ -31,7 +30,7 @@ export class AragonOS extends Module {
       nonces,
       commands,
       helpers,
-      signer,
+      evmcrispr,
       ipfsResolver,
       alias,
     );
@@ -81,8 +80,8 @@ export class AragonOS extends Module {
     const kernel = connectedDAO.resolveApp('kernel')!;
     const nonce = await buildNonceForAddress(
       kernel.address,
-      this.incrementNonce(kernel.address),
-      this.signer.provider!,
+      await this.incrementNonce(kernel.address),
+      await this.getProvider(),
     );
 
     const addr = calculateNewProxyAddress(kernel.address, nonce);

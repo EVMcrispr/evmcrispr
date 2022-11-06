@@ -30,7 +30,7 @@ export const get: HelperFunction<Std> = async (
   const contract = new Contract(
     address,
     [`function ${body} external view returns ${returns}`],
-    module.signer,
+    await module.getProvider(),
   );
 
   return contract[body](...params);
