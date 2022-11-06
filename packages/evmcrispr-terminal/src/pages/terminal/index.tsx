@@ -36,12 +36,13 @@ import {
   getModulesKeywords,
 } from '../../editor/evmcl';
 
-import SelectWalletModal from '../../components/modal';
+import SelectWalletModal from '../../components/wallet-modal';
 import FadeIn from '../../components/animations/fade-in';
 import Footer from '../../components/footer';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import { createProvideCompletionItemsFn } from '../../editor/autocompletion';
 import { useDebounce } from '../../hooks/useDebounce';
+import LogModal from '../../components/log-modal';
 
 const ipfsResolver = new IPFSResolver();
 
@@ -102,11 +103,21 @@ export const Terminal = () => {
     useConnect();
   const { disconnect } = useDisconnect();
   const provider = useProvider();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isWalletModalOpen,
+    onOpen: onWalletModalOpen,
+    onClose: onWalletModalClose,
+  } = useDisclosure();
+  const {
+    isOpen: isLogModalOpen,
+    onOpen: onLogModalOpen,
+    onClose: _onLogModalClose,
+  } = useDisclosure();
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
   const [url] = useState('');
+  const [logs, setLogs] = useState<string[]>([]);
   const [firstTry, setFirstTry] = useState(true);
   const [showCollapse, setShowCollapse] = useState(false);
   const [showExpandBtn, setShowExpandBtn] = useState(false);
@@ -190,6 +201,19 @@ export const Terminal = () => {
     disconnect();
   }
 
+  function onLogModalClose() {
+    _onLogModalClose();
+    setLogs([]);
+  }
+
+  const logListener = (message: string, prevMessages: string[]) => {
+    if (!isLogModalOpen) {
+      onLogModalOpen();
+    }
+    console.log(message);
+    setLogs([...prevMessages, message]);
+  };
+
   async function onExecute() {
     terminalStoreActions.errors([]);
     terminalStoreActions.isLoading(true);
@@ -206,7 +230,10 @@ export const Terminal = () => {
         terminalStoreActions.errors(errors);
         return;
       }
-      const actions = await new EVMcrispr(ast, signer).interpret();
+
+      const actions = await new EVMcrispr(ast, signer)
+        .registerLogListener(logListener)
+        .interpret();
 
       await executeActions(
         actions,
@@ -300,7 +327,11 @@ export const Terminal = () => {
             </HStack>
             <VStack alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
               {!address ? (
-                <Button variant="lime" onClick={onOpen} disabled={isConnecting}>
+                <Button
+                  variant="lime"
+                  onClick={onWalletModalOpen}
+                  disabled={isConnecting}
+                >
                   {isConnecting ? (
                     <Box>
                       <Spinner verticalAlign="middle" /> Connecting…
@@ -387,7 +418,15 @@ export const Terminal = () => {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
-      <SelectWalletModal isOpen={isOpen} closeModal={onClose} />
+      <SelectWalletModal
+        isOpen={isWalletModalOpen}
+        closeModal={onWalletModalClose}
+      />
+      <LogModal
+        isOpen={isLogModalOpen}
+        logs={logs}
+        closeModal={onLogModalClose}
+      />
     </>
   );
 };

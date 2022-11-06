@@ -117,6 +117,13 @@ export class EVMcrispr {
     return this.getProvider();
   }
 
+  registerLogListener(
+    listener: (message: string, prevMessages: string[]) => void,
+  ): EVMcrispr {
+    this.#std.registerLogListener(listener);
+    return this;
+  }
+
   getBinding<BSpace extends BindingsSpace>(
     name: string,
     memSpace: BSpace,
