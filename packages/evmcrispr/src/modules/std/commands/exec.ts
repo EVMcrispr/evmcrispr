@@ -1,5 +1,7 @@
 import { BigNumber, utils } from 'ethers';
 
+import { Interface } from 'ethers/lib/utils';
+
 import { BindingsSpace } from '../../../types';
 import type { AbiBinding, Address, ICommand } from '../../../types';
 
@@ -19,6 +21,8 @@ import {
 import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
+import type { HelperFunctionNode } from '../../..';
+import { erc20ABI } from '../../aragonos/abis';
 
 const { ABI, ADDR } = BindingsSpace;
 
@@ -113,6 +117,21 @@ export const exec: ICommand<Std> = {
         });
       // Contract method
       case 1: {
+        // Check if it's a @token helper and provide ERC-20 functions
+        if (
+          nodeArgs[0].type === 'HelperFunctionExpression' &&
+          (nodeArgs[0] as HelperFunctionNode).name === 'token'
+        ) {
+          const abi = new Interface(erc20ABI);
+          const functions = Object.keys(abi.functions)
+            // Only consider functions that change state
+            .filter((fnName) => !abi.functions[fnName].constant)
+            .map((fnName) => {
+              return abi.functions[fnName].format();
+            });
+          return functions;
+        }
+
         const targetAddress = interpretNodeSync(nodeArgs[0], bindingsManager);
 
         if (!targetAddress || !utils.isAddress(targetAddress)) {
