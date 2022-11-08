@@ -88,16 +88,6 @@ export const Terminal = () => {
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
 
-  // TODO: It needs a refactor, it should not use a location.href change
-  const encodedScript = new URLSearchParams(
-    window.location.hash.split('?')[1],
-  ).get('script');
-  if (encodedScript) {
-    terminalStoreActions.script(encodedScript);
-    terminalStoreActions.processScript();
-    window.location.href = window.location.hash.split('?')[0];
-  }
-
   const { data: account } = useAccount();
   const { connectors, activeConnector, connect, isConnected, isConnecting } =
     useConnect();
@@ -195,6 +185,17 @@ export const Terminal = () => {
       setShowExpandBtn(contentRef.current.clientHeight > COLLAPSE_THRESHOLD);
     }
   }, [errors]);
+
+  // Set up a script if we have one in the URL
+  useEffect(() => {
+    const encodedScript = new URLSearchParams(
+      window.location.hash.split('?')[1],
+    ).get('script');
+    if (encodedScript) {
+      terminalStoreActions.script(encodedScript);
+      terminalStoreActions.processScript();
+    }
+  }, []);
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
