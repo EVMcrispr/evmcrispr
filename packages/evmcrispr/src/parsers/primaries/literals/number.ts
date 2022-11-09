@@ -26,7 +26,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
 ) =>
   locate<NumericLiteralNode>(
     coroutine(function* () {
-      let value: number;
+      let value: string;
 
       const integers = yield digits;
 
@@ -39,9 +39,9 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
           ),
         );
 
-        value = Number(`${integers}.${decimals}`);
+        value = `${integers}.${decimals}`;
       } else {
-        value = Number(integers);
+        value = String(integers);
       }
 
       let power: string | undefined;

@@ -19,7 +19,7 @@ export const callParserDescribe = (): Mocha.Suite =>
             args: [
               {
                 type: 'NumberLiteral',
-                value: 0,
+                value: '0',
                 loc: { start: { line: 1, col: 53 }, end: { line: 1, col: 54 } },
               },
               {
@@ -84,7 +84,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                     elements: [
                       {
                         type: 'NumberLiteral',
-                        value: 1,
+                        value: '1',
                         loc: {
                           start: { line: 1, col: 57 },
                           end: { line: 1, col: 58 },
@@ -92,7 +92,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                       },
                       {
                         type: 'NumberLiteral',
-                        value: 2,
+                        value: '2',
                         loc: {
                           start: { line: 1, col: 59 },
                           end: { line: 1, col: 60 },
@@ -100,7 +100,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                       },
                       {
                         type: 'NumberLiteral',
-                        value: 3,
+                        value: '3',
                         loc: {
                           start: { line: 1, col: 61 },
                           end: { line: 1, col: 62 },
@@ -131,7 +131,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'NumberLiteral',
-                value: 10,
+                value: '10',
                 power: 18,
                 timeUnit: 'm',
                 loc: { start: { line: 1, col: 87 }, end: { line: 1, col: 93 } },
@@ -187,7 +187,7 @@ export const callParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'NumberLiteral',
-                value: 1800,
+                value: '1800',
                 power: 18,
                 loc: { start: { line: 1, col: 35 }, end: { line: 1, col: 42 } },
               },
@@ -216,7 +216,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                 args: [
                   {
                     type: 'NumberLiteral',
-                    value: 1,
+                    value: '1',
                     loc: {
                       start: { line: 1, col: 28 },
                       end: { line: 1, col: 29 },
@@ -238,7 +238,7 @@ export const callParserDescribe = (): Mocha.Suite =>
                 },
                 {
                   type: 'NumberLiteral',
-                  value: 560.25,
+                  value: '560.25',
                   power: 18,
                   loc: {
                     start: { line: 1, col: 45 },

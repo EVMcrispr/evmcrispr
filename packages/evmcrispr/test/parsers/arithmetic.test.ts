@@ -14,12 +14,12 @@ describe('Parsers - arithmetic', () => {
           operator: '+',
           left: {
             type: 'NumberLiteral',
-            value: 9,
+            value: '9',
             loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 2 } },
           },
           right: {
             type: 'NumberLiteral',
-            value: 5,
+            value: '5',
             loc: { start: { line: 1, col: 5 }, end: { line: 1, col: 6 } },
           },
           loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 6 } },
@@ -32,19 +32,19 @@ describe('Parsers - arithmetic', () => {
             operator: '*',
             left: {
               type: 'NumberLiteral',
-              value: 4,
+              value: '4',
               loc: { start: { line: 1, col: 9 }, end: { line: 1, col: 10 } },
             },
             right: {
               type: 'NumberLiteral',
-              value: 4,
+              value: '4',
               loc: { start: { line: 1, col: 13 }, end: { line: 1, col: 14 } },
             },
             loc: { start: { line: 1, col: 9 }, end: { line: 1, col: 14 } },
           },
           right: {
             type: 'NumberLiteral',
-            value: 3,
+            value: '3',
             loc: { start: { line: 1, col: 17 }, end: { line: 1, col: 18 } },
           },
           loc: { start: { line: 1, col: 9 }, end: { line: 1, col: 18 } },
@@ -68,12 +68,12 @@ describe('Parsers - arithmetic', () => {
             operator: '+',
             left: {
               type: 'NumberLiteral',
-              value: 9,
+              value: '9',
               loc: { start: { line: 1, col: 4 }, end: { line: 1, col: 5 } },
             },
             right: {
               type: 'NumberLiteral',
-              value: 5,
+              value: '5',
               loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 9 } },
             },
             loc: { start: { line: 1, col: 4 }, end: { line: 1, col: 9 } },
@@ -83,7 +83,7 @@ describe('Parsers - arithmetic', () => {
             operator: '*',
             left: {
               type: 'NumberLiteral',
-              value: 4,
+              value: '4',
               loc: { start: { line: 1, col: 12 }, end: { line: 1, col: 13 } },
             },
             right: {
@@ -91,7 +91,7 @@ describe('Parsers - arithmetic', () => {
               operator: '/',
               left: {
                 type: 'NumberLiteral',
-                value: 4,
+                value: '4',
                 loc: {
                   start: { line: 1, col: 17 },
                   end: { line: 1, col: 18 },
@@ -99,7 +99,7 @@ describe('Parsers - arithmetic', () => {
               },
               right: {
                 type: 'NumberLiteral',
-                value: 3,
+                value: '3',
                 loc: {
                   start: { line: 1, col: 21 },
                   end: { line: 1, col: 22 },
@@ -123,12 +123,12 @@ describe('Parsers - arithmetic', () => {
             operator: '+',
             left: {
               type: 'NumberLiteral',
-              value: 9,
+              value: '9',
               loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 2 } },
             },
             right: {
               type: 'NumberLiteral',
-              value: 5,
+              value: '5',
               loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 9 } },
             },
             loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 9 } },
@@ -141,7 +141,7 @@ describe('Parsers - arithmetic', () => {
               operator: '*',
               left: {
                 type: 'NumberLiteral',
-                value: 4,
+                value: '4',
                 loc: {
                   start: { line: 1, col: 15 },
                   end: { line: 1, col: 16 },
@@ -149,7 +149,7 @@ describe('Parsers - arithmetic', () => {
               },
               right: {
                 type: 'NumberLiteral',
-                value: 4,
+                value: '4',
                 loc: {
                   start: { line: 1, col: 26 },
                   end: { line: 1, col: 27 },
@@ -159,7 +159,7 @@ describe('Parsers - arithmetic', () => {
             },
             right: {
               type: 'NumberLiteral',
-              value: 3,
+              value: '3',
               loc: { start: { line: 1, col: 35 }, end: { line: 1, col: 36 } },
             },
             loc: { start: { line: 1, col: 15 }, end: { line: 1, col: 36 } },
@@ -181,7 +181,7 @@ describe('Parsers - arithmetic', () => {
         operator: '+',
         left: {
           type: 'NumberLiteral',
-          value: 9,
+          value: '9',
           loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 2 } },
         },
         right: {
@@ -192,12 +192,12 @@ describe('Parsers - arithmetic', () => {
             operator: '-',
             left: {
               type: 'NumberLiteral',
-              value: 5,
+              value: '5',
               loc: { start: { line: 1, col: 6 }, end: { line: 1, col: 7 } },
             },
             right: {
               type: 'NumberLiteral',
-              value: 4,
+              value: '4',
               loc: { start: { line: 1, col: 10 }, end: { line: 1, col: 11 } },
             },
             loc: { start: { line: 1, col: 6 }, end: { line: 1, col: 11 } },
@@ -207,12 +207,12 @@ describe('Parsers - arithmetic', () => {
             operator: '/',
             left: {
               type: 'NumberLiteral',
-              value: 4,
+              value: '4',
               loc: { start: { line: 1, col: 16 }, end: { line: 1, col: 17 } },
             },
             right: {
               type: 'NumberLiteral',
-              value: 3,
+              value: '3',
               loc: { start: { line: 1, col: 20 }, end: { line: 1, col: 21 } },
             },
             loc: { start: { line: 1, col: 16 }, end: { line: 1, col: 21 } },
@@ -237,7 +237,7 @@ describe('Parsers - arithmetic', () => {
           operator: '+',
           left: {
             type: 'NumberLiteral',
-            value: 90.45,
+            value: '90.45',
             power: 18,
             loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 9 } },
           },
@@ -249,7 +249,7 @@ describe('Parsers - arithmetic', () => {
               operator: '-',
               left: {
                 type: 'NumberLiteral',
-                value: 5000,
+                value: '5000',
                 power: 18,
                 loc: {
                   start: { line: 1, col: 13 },
@@ -307,7 +307,7 @@ describe('Parsers - arithmetic', () => {
               },
               right: {
                 type: 'NumberLiteral',
-                value: 3,
+                value: '3',
                 loc: {
                   start: { line: 1, col: 81 },
                   end: { line: 1, col: 82 },

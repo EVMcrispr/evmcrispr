@@ -69,7 +69,7 @@ export interface BooleanLiteralNode extends Node {
 
 export interface NumericLiteralNode extends Node {
   type: NodeType.NumberLiteral;
-  value: number;
+  value: string;
   power?: number;
   timeUnit?: string;
 }

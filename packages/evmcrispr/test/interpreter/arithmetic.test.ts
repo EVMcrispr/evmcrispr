@@ -20,12 +20,14 @@ describe('Interpreter - arithmetics', () => {
 
   it('should return the correct result of an arithmetic operation', async () => {
     const [interpret] = await preparingExpression(
-      '(120 - 5 * 4 + 500)',
+      '(120 - 5e22 * 4 + 500e33)',
       signer,
     );
     const res = await interpret();
 
-    expect(res).to.eql(BigNumber.from(600));
+    expect(res).to.eql(
+      BigNumber.from(120).sub(toDecimals(20, 22)).add(toDecimals(500, 33)),
+    );
   });
 
   it('should return the correct result of an arithmetic operation containing priority parenthesis', async () => {

@@ -209,7 +209,7 @@ describe('Parsers - command expression', () => {
           },
           {
             type: 'NumberLiteral',
-            value: 125.23,
+            value: '125.23',
             power: 18,
             loc: { start: { line: 1, col: 23 }, end: { line: 1, col: 32 } },
           },
@@ -293,7 +293,7 @@ describe('Parsers - command expression', () => {
             name: 'anotherOne',
             value: {
               type: 'NumberLiteral',
-              value: 1,
+              value: '1',
               power: 18,
               loc: {
                 start: { line: 1, col: 146 },
@@ -327,7 +327,7 @@ describe('Parsers - command expression', () => {
           },
           {
             type: 'NumberLiteral',
-            value: 1,
+            value: '1',
             power: 18,
             loc: { start: { line: 1, col: 73 }, end: { line: 1, col: 77 } },
           },
@@ -372,7 +372,7 @@ describe('Parsers - command expression', () => {
                   },
                   {
                     type: 'NumberLiteral',
-                    value: 25,
+                    value: '25',
                     power: 16,
                     loc: {
                       start: { line: 2, col: 43 },
@@ -548,7 +548,7 @@ describe('Parsers - command expression', () => {
             },
             {
               type: 'NumberLiteral',
-              value: 0,
+              value: '0',
               loc: { start: { line: 1, col: 86 }, end: { line: 1, col: 87 } },
             },
           ],
@@ -580,7 +580,7 @@ describe('Parsers - command expression', () => {
             },
             {
               type: 'NumberLiteral',
-              value: 0,
+              value: '0',
               loc: { start: { line: 1, col: 89 }, end: { line: 1, col: 90 } },
             },
           ],
@@ -612,7 +612,7 @@ describe('Parsers - command expression', () => {
             },
             {
               type: 'NumberLiteral',
-              value: 0,
+              value: '0',
               loc: { start: { line: 1, col: 93 }, end: { line: 1, col: 94 } },
             },
           ],
@@ -773,7 +773,7 @@ describe('Parsers - command expression', () => {
                                   },
                                   {
                                     type: 'NumberLiteral',
-                                    value: 1,
+                                    value: '1',
                                     power: 18,
                                     timeUnit: 'mo',
                                     loc: {

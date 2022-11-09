@@ -136,14 +136,14 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
   });
 
   it('should fail when receiving an invalid target address', async () => {
-    const invalidTargetAddress = '2e18';
+    const invalidTargetAddress = '2.22e18';
     const interpreter = createAragonScriptInterpreter([
       `act agent ${invalidTargetAddress} "deposit()"`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
     const error = new CommandError(
       c,
-      `expected a valid target address, but got 2000000000000000000`,
+      `expected a valid target address, but got 2220000000000000000`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

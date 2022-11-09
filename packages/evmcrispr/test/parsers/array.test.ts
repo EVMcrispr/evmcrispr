@@ -21,7 +21,7 @@ describe('Parsers - array', () => {
           elements: [
             {
               type: 'NumberLiteral',
-              value: 1,
+              value: '1',
               loc: { start: { line: 1, col: 5 }, end: { line: 1, col: 6 } },
             },
             {
@@ -31,7 +31,7 @@ describe('Parsers - array', () => {
             },
             {
               type: 'NumberLiteral',
-              value: 3,
+              value: '3',
               loc: { start: { line: 1, col: 28 }, end: { line: 1, col: 29 } },
             },
           ],
@@ -46,7 +46,7 @@ describe('Parsers - array', () => {
           elements: [
             {
               type: 'NumberLiteral',
-              value: 145,
+              value: '145',
               power: 18,
               timeUnit: 'y',
               loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 8 } },
@@ -95,7 +95,7 @@ describe('Parsers - array', () => {
                   elements: [
                     {
                       type: 'NumberLiteral',
-                      value: 1,
+                      value: '1',
                       loc: {
                         start: { line: 1, col: 58 },
                         end: { line: 1, col: 59 },
@@ -103,7 +103,7 @@ describe('Parsers - array', () => {
                     },
                     {
                       type: 'NumberLiteral',
-                      value: 2,
+                      value: '2',
                       loc: {
                         start: { line: 1, col: 61 },
                         end: { line: 1, col: 62 },

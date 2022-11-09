@@ -133,7 +133,7 @@ describe('Parsers - primary', () => {
         ): NumericLiteralNode => {
           const n: NumericLiteralNode = {
             type: NodeType.NumberLiteral,
-            value,
+            value: String(value),
             loc: buildLocation(
               value.toString() +
                 (power ? power?.toString() + 'e' : '') +
