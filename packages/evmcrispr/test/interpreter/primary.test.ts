@@ -65,7 +65,7 @@ describe('Interpreter - primaries', async () => {
       ): NumericLiteralNode => {
         const n: NumericLiteralNode = {
           type: NodeType.NumberLiteral,
-          value,
+          value: String(value),
         };
         if (power) n.power = power;
         if (timeUnit) n.timeUnit = timeUnit;
