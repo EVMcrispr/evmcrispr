@@ -280,6 +280,9 @@ export class EVMcrispr {
         }
         return leftOperand.div(rightOperand);
       }
+      case '^': {
+        return leftOperand.pow(rightOperand);
+      }
     }
   };
 

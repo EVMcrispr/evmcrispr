@@ -20,7 +20,7 @@ describe('Interpreter - arithmetics', () => {
 
   it('should return the correct result of an arithmetic operation', async () => {
     const [interpret] = await preparingExpression(
-      '(120 - 5e22 * 4 + 500e33)',
+      '(120 - 5e22 * 2 ^ 2 + 500e33)',
       signer,
     );
     const res = await interpret();
@@ -32,12 +32,12 @@ describe('Interpreter - arithmetics', () => {
 
   it('should return the correct result of an arithmetic operation containing priority parenthesis', async () => {
     const [interpret] = await preparingExpression(
-      '((121e18 / 4) * (50 - 2) - 55e18)',
+      '((121e18 / 4) * (9 - 2) ^ 2 - 55e18)',
       signer,
     );
     const res = await interpret();
 
-    expect(res).to.eql(toDecimals(1397, 18));
+    expect(res).to.eql(toDecimals('1427.25', 18));
   });
 
   it('should fail when one of the operands is not a number', async () => {

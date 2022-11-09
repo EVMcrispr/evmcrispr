@@ -135,7 +135,7 @@ export type OperableExpressionNode =
 
 export interface BinaryExpressionNode extends Node {
   type: NodeType.BinaryExpression;
-  operator: '+' | '-' | '*' | '/';
+  operator: '+' | '-' | '*' | '/' | '^';
   left: OperableExpressionNode;
   right: OperableExpressionNode;
 }

@@ -40,6 +40,7 @@ const plus = char('+');
 const minus = char('-');
 const times = char('*');
 const divide = char('/');
+const exp = char('^');
 
 type RawExpression = [
   BinaryExpressionNode['operator'],
@@ -96,8 +97,8 @@ const binaryExpression =
 const operableExpressions = choice([
   callExpressionParser,
   helperFunctionParser,
-  variableIdentifierParser([plus, minus, times, divide, char(')')]),
-  numberParser([plus, minus, times, divide, char(')')]),
+  variableIdentifierParser([plus, minus, times, divide, exp, char(')')]),
+  numberParser([plus, minus, times, divide, exp, char(')')]),
 ]);
 
 // Each precedence group consists of a set of equal precedence terms,
@@ -106,7 +107,8 @@ const expression: Parser<any, string, NodeParserState> = recursiveParser(() =>
   choice([additionOrSubtraction, term]),
 );
 const term = recursiveParser(() => choice([multiplicationOrDivision, factor]));
-const factor = recursiveParser(() =>
+const factor = recursiveParser(() => choice([exponentiation, baseOrPow]));
+const baseOrPow = recursiveParser(() =>
   choice([operableExpressions, betweenParentheses(expression)]),
 );
 
@@ -115,6 +117,7 @@ const additionOrSubtraction = binaryExpression(choice([plus, minus]))(term);
 const multiplicationOrDivision = binaryExpression(choice([times, divide]))(
   factor,
 );
+const exponentiation = binaryExpression(exp)(baseOrPow);
 
 const buildArithmeticExpressionNode = (
   rawTreeExpression: RawExpression,
