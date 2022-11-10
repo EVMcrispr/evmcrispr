@@ -5,6 +5,19 @@ import { ErrorConnection, ErrorException } from '../errors';
 import type { Address } from '../types';
 import { fetchImplementationAddress } from './proxies';
 
+function getEtherscanNetworkName(chainId: number): string {
+  switch (chainId) {
+    case 1:
+      return '';
+    case 4:
+      return 'rinkeby';
+    case 5:
+      return 'goerli';
+    default:
+      throw new ErrorException(`No network name found for chain id ${chainId}`);
+  }
+}
+
 async function getAbiEntries(
   etherscanAPI: string,
   address: string,
@@ -13,11 +26,14 @@ async function getAbiEntries(
   let baseUrl: string;
   switch (chainId) {
     case 1:
-      baseUrl = 'https://api.etherscan.io/api';
-      break;
     case 4:
-      baseUrl = 'https://api-rinkeby.etherscan.io/api';
+    case 5: {
+      const networkName = getEtherscanNetworkName(chainId);
+      baseUrl = `https://api${
+        networkName ? `-${networkName}` : ''
+      }.etherscan.io/api`;
       break;
+    }
     case 100:
       baseUrl = 'https://blockscout.com/xdai/mainnet/api';
       break;

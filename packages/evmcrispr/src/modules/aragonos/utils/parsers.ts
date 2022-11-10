@@ -33,8 +33,8 @@ export const parseApp = async (
   app: any,
   provider: providers.Provider,
 ): Promise<ParsedApp> => {
-  const { address, appId, repoName, roles, version } = app;
-  const { registry } = app.repo || {};
+  const { address, appId, roles, version } = app;
+  const { name: repoName, registry } = app.repo || {};
   const { codeAddress, artifact: rawArtifact, contentUri } = version || {};
   let artifact, name;
 
@@ -56,7 +56,10 @@ export const parseApp = async (
     contentUri,
     name,
     registryName: registry?.name,
-    roles,
+    roles: (roles as any[]).map((role) => ({
+      ...role,
+      roleHash: role['hash'] ?? role['roleHash'],
+    })),
   };
 };
 

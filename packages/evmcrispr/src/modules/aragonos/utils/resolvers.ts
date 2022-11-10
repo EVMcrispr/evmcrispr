@@ -5,14 +5,20 @@ import { ErrorException } from '../../../errors';
 
 import type { Address } from '../../../types';
 
-export function getAragonEnsResolver(chainId: number): string {
+export function getAragonEnsResolver(chainId: number): string | never {
   switch (chainId) {
+    case 1:
+      return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
     case 4:
       return '0x98Df287B6C145399Aaa709692c8D308357bC085D';
+    case 5:
+      return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
     case 100:
       return '0xaafca6b0c89521752e559650206d7c925fd0e530';
     default:
-      return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+      throw new ErrorException(
+        `No Aragon ENS resolver found for chain id ${chainId}`,
+      );
   }
 }
 

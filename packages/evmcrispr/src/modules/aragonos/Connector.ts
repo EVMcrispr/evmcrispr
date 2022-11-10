@@ -2,23 +2,25 @@ import fetch from 'isomorphic-fetch';
 import type { providers } from 'ethers';
 
 import { ErrorException, ErrorNotFound } from '../../errors';
-import type { GraphQLBody } from './utils';
+import type { GraphQLBody, QueryConfig } from './utils';
 import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './utils';
 import type { ParsedApp, Repo } from './types';
 import type { Address } from '../../types';
 
-export function subgraphUrlFromChainId(chainId: number): string | null {
+export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {
     case 1:
       return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet';
     case 4:
       return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby';
+    case 5:
+      return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli';
     case 100:
       return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai';
     case 137:
       return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon';
     default:
-      return null;
+      throw new ErrorException(`No subgraph found for chain id ${chainId}`);
   }
 }
 
@@ -33,13 +35,18 @@ type QueryResult = {
  */
 export class Connector {
   #subgraphUrl: string;
+  #provider: providers.Provider;
 
   /**
    * Create a new Connector instance.
    * @param chainId The network id to connect to.
    * @param options The optional configuration object.
    */
-  constructor(chainId: number, options: { subgraphUrl?: string } = {}) {
+  constructor(
+    chainId: number,
+    provider: providers.Provider,
+    options: { subgraphUrl?: string } = {},
+  ) {
     const subgraphUrl = options.subgraphUrl || subgraphUrlFromChainId(chainId);
 
     if (!subgraphUrl) {
@@ -49,6 +56,7 @@ export class Connector {
     }
 
     this.#subgraphUrl = subgraphUrl;
+    this.#provider = provider;
   }
 
   protected async querySubgraph<T>(
@@ -104,12 +112,12 @@ export class Connector {
    * @param daoAddress The address of the DAO to fetch.
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
-  async organizationApps(
-    daoAddress: Address,
-    provider: providers.Provider,
-  ): Promise<ParsedApp[]> {
+  async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
+    const chainId = (await this.#provider.getNetwork()).chainId;
+    const queryConfig: QueryConfig = { isGoerliSubgraph: chainId === 5 };
+
     return this.querySubgraph<ParsedApp[]>(
-      ORGANIZATION_APPS(daoAddress.toLowerCase()),
+      ORGANIZATION_APPS(daoAddress.toLowerCase(), queryConfig),
       (data: any) => {
         const apps = data?.organization?.apps;
 
@@ -117,7 +125,9 @@ export class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        return Promise.all(apps.map((app: any) => parseApp(app, provider)));
+        return Promise.all(
+          apps.map((app: any) => parseApp(app, this.#provider)),
+        );
       },
     );
   }

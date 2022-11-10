@@ -1,0 +1,74 @@
+{
+  "data": {
+    "organization": {
+      "apps": [
+        {
+          "address": "0x18cab99a64979037e1ac7f85736c264031bf8ae1",
+          "appId": "0xddbcfd564f642ab5627cf68b9b7d374fb4f8a36e941a75d89c87998cef03bd61",
+          "repo": null,
+          "roles": [
+            {
+              "hash": "0xc4e90f38eea8c4212a009ca7b8947943ba4d4a58d19b683417f65291d1cd9ed2",
+              "manager": "0xe52f5852e23df4232ad39cba5b569f84fe855f56",
+              "grantees": [
+                {
+                  "granteeAddress": "0xc096770a17b24cefa725122e4c823f450abea7b4"
+                },
+                {
+                  "granteeAddress": "0xe52f5852e23df4232ad39cba5b569f84fe855f56"
+                }
+              ]
+            },
+            {
+              "hash": "0xf7a450ef335e1892cb42c8ca72e7242359d7711924b75db5717410da3f614aa3",
+              "manager": "0xe52f5852e23df4232ad39cba5b569f84fe855f56",
+              "grantees": [
+                {
+                  "granteeAddress": "0xe52f5852e23df4232ad39cba5b569f84fe855f56"
+                }
+              ]
+            }
+          ],
+          "version": null
+        },
+        {
+          "address": "0xd2fab1d412ebc47bb5313087889cf7ff9999614b",
+          "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
+          "repo": {
+            "name": "token-manager",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
+          "roles": [
+            {
+              "hash": "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686",
+              "manager": "0xe52f5852e23df4232ad39cba5b569f84fe855f56",
+              "grantees": [
+                {
+                  "granteeAddress": "0xb5c9ed9da161d4c89fa290c99d4f242089cc0026"
+                },
+                {
+                  "granteeAddress": "0xe52f5852e23df4232ad39cba5b569f84fe855f56"
+                }
+              ]
+            },
+            {
+              "hash": "0xe97b137254058bd94f28d2f3eb79e2d34074ffb488d042e3bc958e0a57d2fa22",
+              "manager": "0xe52f5852e23df4232ad39cba5b569f84fe855f56",
+              "grantees": [
+                {
+                  "granteeAddress": "0xe52f5852e23df4232ad39cba5b569f84fe855f56"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0x714c925ede405687752c4ad32078137c4f179538",
+            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf"
+          }
+        }
+      ]
+    }
+  }
+}
