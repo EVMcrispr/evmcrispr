@@ -83,7 +83,7 @@ const executeActions = async (
 
 const COLLAPSE_THRESHOLD = 30;
 
-export const Terminal = () => {
+export default function Terminal() {
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
@@ -430,4 +430,4 @@ export const Terminal = () => {
       />
     </>
   );
-};
+}
