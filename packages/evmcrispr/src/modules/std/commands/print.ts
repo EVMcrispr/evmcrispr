@@ -22,7 +22,7 @@ export const print: ICommand<Std> = {
       strings.join(''),
     );
 
-    module.log(varValue);
+    module.evmcrispr.log(varValue);
   },
   async runEagerExecution() {
     return;

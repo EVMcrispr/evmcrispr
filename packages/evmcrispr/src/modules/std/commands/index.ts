@@ -7,7 +7,7 @@ import { set } from './set';
 import { _switch } from './switch';
 import { raw } from './raw';
 import { print } from './print';
-import { sim } from './sim';
+import { _for } from './for';
 
 export const commands: Commands<Std> = {
   exec,
@@ -16,5 +16,5 @@ export const commands: Commands<Std> = {
   switch: _switch,
   raw,
   print,
-  sim,
+  for: _for,
 };

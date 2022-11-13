@@ -67,6 +67,13 @@ export class EVMcrispr {
   #account: Address | undefined;
   #chainId: number | undefined;
   #signer: Signer;
+  #provider: providers.Provider | undefined;
+
+  #logListeners: ((
+    message: [string, boolean | undefined],
+    prevMessages: [string, boolean | undefined][],
+  ) => void)[];
+  #prevMessages: [string, boolean | undefined][];
 
   constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
@@ -84,6 +91,9 @@ export class EVMcrispr {
       new IPFSResolver(),
       this.#modules,
     );
+
+    this.#logListeners = [];
+    this.#prevMessages = [];
   }
 
   async getChainId(): Promise<number> {
@@ -93,10 +103,27 @@ export class EVMcrispr {
     );
   }
 
+  setProvider(provider: providers.Provider | undefined): void {
+    this.#provider = provider;
+  }
+
   async getProvider(): Promise<providers.Provider> {
+    if (this.#provider) {
+      return this.#provider;
+    }
+
     if (!this.#chainId) {
       return this.#signer.provider!;
     }
+
+    const chainId = await this.#signer
+      .provider!.getNetwork()
+      .then(({ chainId }: any) => chainId);
+
+    if (chainId == this.#chainId) {
+      return this.#signer.provider!;
+    }
+
     switch (this.#chainId) {
       case 100:
         return new ethers.providers.JsonRpcProvider(
@@ -117,10 +144,20 @@ export class EVMcrispr {
     return this.getProvider();
   }
 
+  log(message: string, tick?: boolean | undefined): void {
+    this.#logListeners.forEach((listener) =>
+      listener([message, tick], this.#prevMessages),
+    );
+    this.#prevMessages.push([message, tick]);
+  }
+
   registerLogListener(
-    listener: (message: string, prevMessages: string[]) => void,
+    listener: (
+      message: [string, boolean | undefined],
+      prevMessages: [string, boolean | undefined][],
+    ) => void,
   ): EVMcrispr {
-    this.#std.registerLogListener(listener);
+    this.#logListeners.push(listener);
     return this;
   }
 
@@ -145,9 +182,12 @@ export class EVMcrispr {
     return [this.#std, ...this.#modules];
   }
 
-  async interpret(): Promise<Action[]> {
-    const results = await this.interpretNodes(this.ast.body, true);
-
+  async interpret(
+    commandCallback?: (action: Action) => Promise<void>,
+  ): Promise<Action[]> {
+    const results = await this.interpretNodes(this.ast.body, true, {
+      commandCallback,
+    });
     return results.flat().filter((result) => typeof result !== 'undefined');
   }
 
@@ -288,15 +328,15 @@ export class EVMcrispr {
 
   #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
     n,
-    { blockInitializer, blockModule } = {},
+    opts = {},
   ) => {
-    this.bindingsManager.enterScope(blockModule);
+    this.bindingsManager.enterScope(opts.blockModule);
 
-    if (blockInitializer) {
-      await blockInitializer();
+    if (opts.blockInitializer) {
+      await opts.blockInitializer();
     }
 
-    const results = await this.interpretNodes(n.body, true);
+    const results = await this.interpretNodes(n.body, true, opts);
 
     this.bindingsManager.exitScope();
 
@@ -347,7 +387,10 @@ export class EVMcrispr {
     return res;
   };
 
-  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (c) => {
+  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
+    c,
+    { commandCallback } = {},
+  ) => {
     let module: Module | undefined = this.#std;
     const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
@@ -371,6 +414,12 @@ export class EVMcrispr {
         interpretNode: this.interpretNode,
         interpretNodes: this.interpretNodes,
       });
+
+      if (res && commandCallback) {
+        for (const action of res) {
+          await commandCallback(action);
+        }
+      }
     } catch (err) {
       // Avoid wrapping a node error insde another node error
       if (err instanceof NodeError) {

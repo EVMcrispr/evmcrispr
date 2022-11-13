@@ -107,7 +107,7 @@ export const Terminal = () => {
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
   const [url] = useState('');
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<[string, boolean | undefined][]>([]);
   const [firstTry, setFirstTry] = useState(true);
   const [showCollapse, setShowCollapse] = useState(false);
   const [showExpandBtn, setShowExpandBtn] = useState(false);
@@ -207,7 +207,10 @@ export const Terminal = () => {
     setLogs([]);
   }
 
-  const logListener = (message: string, prevMessages: string[]) => {
+  const logListener = (
+    message: [string, boolean | undefined],
+    prevMessages: [string, boolean | undefined][],
+  ) => {
     if (!isLogModalOpen) {
       onLogModalOpen();
     }
@@ -232,15 +235,25 @@ export const Terminal = () => {
         return;
       }
 
-      const actions = await new EVMcrispr(ast, signer)
-        .registerLogListener(logListener)
-        .interpret();
+      // Run a first time to look for errors
+      // await new EVMcrispr(ast, signer).interpret()
 
-      await executeActions(
-        actions,
-        activeConnector,
-        maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
-      );
+      // Run a second time executing the actions
+      await new EVMcrispr(ast, signer)
+        .registerLogListener(logListener)
+        .interpret(async (action) => {
+          await executeActions(
+            [action],
+            activeConnector,
+            maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
+          );
+        });
+
+      // await executeActions(
+      //   actions,
+      //   activeConnector,
+      //   maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
+      // );
 
       // TODO: adapt to cas11 changes
       // const chainId = (await signer.provider?.getNetwork())?.chainId;

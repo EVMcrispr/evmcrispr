@@ -1,16 +1,14 @@
 import {
-  List,
-  ListIcon,
-  ListItem,
+  Alert,
+  AlertIcon,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Stack,
 } from '@chakra-ui/react';
-
-import { InfoIcon } from '@chakra-ui/icons';
 
 export default function LogModal({
   isOpen,
@@ -19,7 +17,7 @@ export default function LogModal({
 }: {
   isOpen: boolean;
   closeModal: () => void;
-  logs: string[];
+  logs: [string, boolean | undefined][];
 }) {
   return (
     <Modal isOpen={isOpen} onClose={closeModal} isCentered>
@@ -33,14 +31,23 @@ export default function LogModal({
           }}
         />
         <ModalBody paddingBottom="1.5rem" color="white">
-          <List spacing={3}>
+          <Stack spacing={3}>
             {logs.map((log, i) => (
-              <ListItem key={i}>
-                <ListIcon as={InfoIcon} />
+              <Alert
+                key={i}
+                status={
+                  log[1] === true
+                    ? 'success'
+                    : log[1] === false
+                    ? 'error'
+                    : 'info'
+                }
+              >
+                <AlertIcon />
                 {log}
-              </ListItem>
+              </Alert>
             ))}
-          </List>
+          </Stack>
         </ModalBody>
       </ModalContent>
     </Modal>

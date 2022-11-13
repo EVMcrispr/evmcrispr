@@ -11,8 +11,13 @@ import {
   commands as aragonosCommands,
   helpers as aragonosHelpers,
 } from '../../aragonos/';
+import {
+  commands as tenderlyCommands,
+  helpers as tenderlyHelpers,
+} from '../../tenderly/';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
+import { Tenderly } from '../../tenderly/Tenderly';
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
@@ -69,6 +74,17 @@ export const load: ICommand<Std> = {
           ),
         );
         return;
+      case 'tenderly':
+        module.modules.push(
+          new Tenderly(
+            module.bindingsManager,
+            module.nonces,
+            module.evmcrispr,
+            module.ipfsResolver,
+            moduleAlias,
+          ),
+        );
+        return;
       default:
         throw new ErrorException(`module ${moduleName} not found`);
     }
@@ -84,7 +100,7 @@ export const load: ICommand<Std> = {
         ) {
           return [];
         }
-        return ['aragonos'];
+        return ['aragonos', 'tenderly'];
       }
       default:
         return [];
@@ -132,6 +148,12 @@ export const load: ICommand<Std> = {
           {
             commands = aragonosCommands as Commands;
             helpers = aragonosHelpers as HelperFunctions;
+          }
+          break;
+        case 'tenderly':
+          {
+            commands = tenderlyCommands as Commands;
+            helpers = tenderlyHelpers as HelperFunctions;
           }
           break;
         default:

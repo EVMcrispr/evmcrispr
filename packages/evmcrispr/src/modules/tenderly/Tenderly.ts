@@ -6,30 +6,23 @@ import { commands } from './commands';
 import { helpers } from './helpers';
 import type { EVMcrispr } from '../../EVMcrispr';
 
-export class Std extends Module {
-  #modules: Module[];
-
+export class Tenderly extends Module {
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
     evmcrispr: EVMcrispr,
     ipfsResolver: IPFSResolver,
-    modules: Module[],
+    alias?: string,
   ) {
     super(
-      'std',
+      'tenderly',
       bindingsManager,
       nonces,
       commands,
       helpers,
       evmcrispr,
       ipfsResolver,
+      alias,
     );
-
-    this.#modules = modules;
-  }
-
-  get modules(): Module[] {
-    return this.#modules;
   }
 }

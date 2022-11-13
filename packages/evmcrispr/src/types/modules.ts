@@ -18,6 +18,7 @@ export interface InterpretOptions {
   treatAsLiteral: boolean;
   blockModule: string;
   blockInitializer?(): Promise<void>;
+  commandCallback?(action: Action): Promise<void>;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
