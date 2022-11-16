@@ -1,10 +1,12 @@
+import { useEffect, useState } from 'react';
+
 import { IPFSResolver } from '@1hive/evmcrispr';
+import { useAccount, useConnect, useProvider } from 'wagmi';
 import type { Monaco } from '@monaco-editor/react';
+
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
-import { useAccount, useConnect, useProvider } from 'wagmi';
 
 import {
   conf,

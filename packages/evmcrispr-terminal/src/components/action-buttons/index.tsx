@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
 import { useConnect, useDisconnect } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
@@ -8,12 +8,7 @@ import type { Connector } from 'wagmi';
 import type { providers } from 'ethers';
 
 import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  Box,
   Button,
-  Collapse,
   FormLabel,
   HStack,
   Switch,
@@ -24,8 +19,7 @@ import {
 
 import SelectWalletModal from '../wallet-modal';
 import LogModal from '../log-modal';
-
-const COLLAPSE_THRESHOLD = 30;
+import ErrorMsg from './error-msg';
 
 // TODO: Migrate logic to evmcrispr
 const executeActions = async (
@@ -66,7 +60,7 @@ type ActionButtonsType = {
   address: string;
   terminalStoreActions: Record<string, any>;
   terminalStoreState: {
-    errors?: Array<any>;
+    errors?: string[];
     isLoading: boolean;
     script: any;
   };
@@ -77,14 +71,9 @@ export default function ActionButtons({
   terminalStoreActions,
   terminalStoreState,
 }: ActionButtonsType) {
-  const [showCollapse, setShowCollapse] = useState(false);
   const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [url] = useState('');
-  const [showExpandBtn, setShowExpandBtn] = useState(false);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const { activeConnector, isConnecting } = useConnect();
-  const { errors, isLoading, script } = terminalStoreState;
 
   const {
     isOpen: isWalletModalOpen,
@@ -97,21 +86,24 @@ export default function ActionButtons({
     onClose: _onLogModalClose,
   } = useDisclosure();
 
-  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
   const { disconnect } = useDisconnect();
+  const { activeConnector, isConnecting } = useConnect();
+
+  const { errors, isLoading, script } = terminalStoreState;
+  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   async function onDisconnect() {
     terminalStoreActions.errors([]);
     disconnect();
   }
 
-  const logListener = (message: string, prevMessages: string[]) => {
+  function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
       onLogModalOpen();
     }
     console.log(message);
     setLogs([...prevMessages, message]);
-  };
+  }
 
   function onLogModalClose() {
     _onLogModalClose();
@@ -167,14 +159,6 @@ export default function ActionButtons({
       terminalStoreActions.isLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (!errors?.length) {
-      setShowExpandBtn(false);
-    } else if (contentRef.current) {
-      setShowExpandBtn(contentRef.current.clientHeight > COLLAPSE_THRESHOLD);
-    }
-  }, [errors]);
 
   return (
     <>
@@ -232,42 +216,7 @@ export default function ActionButtons({
             </>
           )}
 
-          {errors ? (
-            <Box
-              display="flex"
-              flexDirection="column"
-              justifyContent="left"
-              maxWidth="100%"
-              wordBreak="break-all"
-            >
-              {errors.map((e, index) => (
-                <Alert key={index} status="error">
-                  <Box display="flex" alignItems="flex-start">
-                    <AlertIcon />
-                    <AlertDescription>
-                      <Collapse
-                        startingHeight={COLLAPSE_THRESHOLD}
-                        in={showCollapse}
-                      >
-                        <div ref={contentRef}>{e}</div>
-                      </Collapse>
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-              ))}
-              {showExpandBtn && (
-                <Button
-                  width="30"
-                  alignSelf="flex-end"
-                  size="sm"
-                  onClick={() => setShowCollapse((show) => !show)}
-                  mt="1rem"
-                >
-                  Show {showCollapse ? 'Less' : 'More'}
-                </Button>
-              )}
-            </Box>
-          ) : null}
+          {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>
       </HStack>
       <SelectWalletModal
