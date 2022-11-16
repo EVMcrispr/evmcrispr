@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import type { CommandExpressionNode } from '../../../../src/types';
 import { BindingsSpace } from '../../../../src/types';
 import { CommandError } from '../../../../src/errors';
 import { toDecimals } from '../../../../src/utils';
@@ -40,7 +39,7 @@ describe('Std > commands > set <varName> <varValue>', () => {
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when setting an already-defined variable', async () => {
+  it('should update the value when setting an already-defined variable', async () => {
     const interpreter = createInterpreter(
       `
         set $var1 12e18
@@ -48,8 +47,11 @@ describe('Std > commands > set <varName> <varValue>', () => {
       `,
       signer,
     );
-    const c = interpreter.ast.body[1] as CommandExpressionNode;
-    const error = new CommandError(c, '$var1 already defined');
-    await expectThrowAsync(() => interpreter.interpret(), error);
+
+    await interpreter.interpret();
+
+    expect(interpreter.getBinding('$var1', BindingsSpace.USER)).to.be.equal(
+      'new',
+    );
   });
 });
