@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
+import { useConnect, useDisconnect } from 'wagmi';
+import { InjectedConnector } from 'wagmi/connectors/injected';
+
 import type { Action, ForwardOptions } from '@1hive/evmcrispr';
 import type { Connector } from 'wagmi';
-import { useConnect, useDisconnect } from 'wagmi';
+import type { providers } from 'ethers';
+
 import {
   Alert,
   AlertDescription,
@@ -18,8 +22,6 @@ import {
   useBoolean,
   useDisclosure,
 } from '@chakra-ui/react';
-import { InjectedConnector } from 'wagmi/connectors/injected';
-import type { providers } from 'ethers';
 
 import SelectWalletModal from '../../components/wallet-modal';
 import LogModal from '../../components/log-modal';
