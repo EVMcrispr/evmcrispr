@@ -11,16 +11,19 @@ import {
   contribution,
   createLanguage,
   getModulesKeywords,
-} from '../../editor/evmcl';
-import { createProvideCompletionItemsFn } from '../../editor/autocompletion';
-import { theme } from '../../editor/theme';
+} from '../editor/evmcl';
+import { createProvideCompletionItemsFn } from '../editor/autocompletion';
+import { theme } from '../editor/theme';
 
-import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
-import { useDebounce } from '../../hooks/useDebounce';
+import {
+  terminalStoreActions,
+  useTerminalStore,
+} from '../hooks/use-terminal-store';
+import { useDebounce } from '../hooks/useDebounce';
 
-import FadeIn from '../../components/animations/fade-in';
-import Footer from '../../components/footer';
-import ActionButtons from './ActionButtons';
+import FadeIn from '../components/animations/fade-in';
+import Footer from '../components/footer';
+import ActionButtons from '../components/action-buttons';
 
 const ipfsResolver = new IPFSResolver();
 
