@@ -10,11 +10,11 @@ export const get: HelperFunction<Std> = async (
   h,
   { interpretNode, interpretNodes },
 ) => {
-  checkArgsLength(h, { type: ComparisonType.Equal, minValue: 2 });
+  checkArgsLength(h, { type: ComparisonType.Greater, minValue: 2 });
 
   const addressNode = h.args.shift()!;
   const abiNode = h.args.shift()!;
-  const [address, abi, ...params] = await Promise.all([
+  const [address, abi, params] = await Promise.all([
     interpretNode(addressNode),
     interpretNode(abiNode, { treatAsLiteral: true }),
     interpretNodes(h.args),
