@@ -16,7 +16,6 @@ import {
   Collapse,
   FormLabel,
   HStack,
-  Spinner,
   Switch,
   VStack,
   useBoolean,
@@ -99,7 +98,6 @@ export default function ActionButtons({
   } = useDisclosure();
 
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
-  const forwardingText = `Forwarding from ${addressShortened}`;
   const { disconnect } = useDisconnect();
 
   async function onDisconnect() {
@@ -198,14 +196,10 @@ export default function ActionButtons({
               variant="lime"
               onClick={onWalletModalOpen}
               disabled={isConnecting}
+              isLoading={isConnecting}
+              loadingText={'Connecting…'}
             >
-              {isConnecting ? (
-                <Box>
-                  <Spinner verticalAlign="middle" /> Connecting…
-                </Box>
-              ) : (
-                'Connect'
-              )}
+              Connect
             </Button>
           ) : (
             <>
@@ -218,14 +212,14 @@ export default function ActionButtons({
                 </Button>
               ) : null}
 
-              <Button variant="lime" onClick={onExecute} disabled={isLoading}>
-                {isLoading ? (
-                  <Box>
-                    <Spinner verticalAlign="middle" /> {forwardingText}
-                  </Box>
-                ) : (
-                  forwardingText
-                )}
+              <Button
+                variant="lime"
+                onClick={onExecute}
+                disabled={isLoading}
+                isLoading={isLoading}
+                loadingText={`Forwarding from ${addressShortened}`}
+              >
+                Forward from {addressShortened}
               </Button>
               <Button
                 variant="link"
