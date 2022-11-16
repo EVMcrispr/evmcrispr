@@ -1,4 +1,5 @@
 import { IPFSResolver } from '@1hive/evmcrispr';
+import type { Monaco } from '@monaco-editor/react';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import { Box } from '@chakra-ui/react';
@@ -110,6 +111,30 @@ export default function Terminal() {
     }
   }, []);
 
+  function handleOnChangeEditor(str: string | undefined, ev: any) {
+    terminalStoreActions.script(str ?? '');
+    const change = ev.changes[0];
+    const startLineNumber = change.range.startLineNumber;
+    const newLine = change.text
+      ? change.text.split('\n').length +
+        startLineNumber -
+        // Substract current line
+        1
+      : startLineNumber;
+    terminalStoreActions.updateCurrentLine(newLine);
+  }
+
+  function handleBeforeMountEditor(monaco: Monaco) {
+    monaco.editor.defineTheme('theme', theme);
+    monaco.languages.register(contribution);
+    monaco.languages.setLanguageConfiguration('evmcl', conf);
+  }
+
+  function handleOnMountEditor(editor: any) {
+    editor.setPosition({ lineNumber: 10000, column: 0 });
+    editor.focus();
+  }
+
   return (
     <>
       <Box maxWidth="956px" margin="0 auto" my={16}>
@@ -119,27 +144,9 @@ export default function Terminal() {
             theme="theme"
             language="evmcl"
             value={script}
-            onChange={(str, ev) => {
-              terminalStoreActions.script(str ?? '');
-              const change = ev.changes[0];
-              const startLineNumber = change.range.startLineNumber;
-              const newLine = change.text
-                ? change.text.split('\n').length +
-                  startLineNumber -
-                  // Substract current line
-                  1
-                : startLineNumber;
-              terminalStoreActions.updateCurrentLine(newLine);
-            }}
-            beforeMount={(monaco) => {
-              monaco.editor.defineTheme('theme', theme);
-              monaco.languages.register(contribution);
-              monaco.languages.setLanguageConfiguration('evmcl', conf);
-            }}
-            onMount={(editor) => {
-              editor.setPosition({ lineNumber: 10000, column: 0 });
-              editor.focus();
-            }}
+            onChange={handleOnChangeEditor}
+            beforeMount={handleBeforeMountEditor}
+            onMount={handleOnMountEditor}
             options={{
               fontSize: 22,
               fontFamily: 'Ubuntu Mono',
