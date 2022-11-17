@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
-import { useAccount, useConnect, useProvider } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
 import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Container } from '@chakra-ui/react';
+import { Button, Container, VStack, useDisclosure } from '@chakra-ui/react';
 
 import {
   conf,
@@ -26,22 +26,30 @@ import { useDebounce } from '../hooks/useDebounce';
 import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
+import SelectWalletModal from '../components/wallet-modal';
 
 const ipfsResolver = new IPFSResolver();
 
 export default function Terminal() {
+  const [firstTry, setFirstTry] = useState(true);
+  const terminalRef = useSpringRef();
+  const buttonsRef = useSpringRef();
+  const footerRef = useSpringRef();
+
+  const {
+    isOpen: isWalletModalOpen,
+    onOpen: onWalletModalOpen,
+    onClose: onWalletModalClose,
+  } = useDisclosure();
+
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
 
   const { data: account } = useAccount();
-  const { connectors, connect, isConnected } = useConnect();
+  const { connectors, connect, isConnected, isConnecting } = useConnect();
   const provider = useProvider();
-
-  const terminalRef = useSpringRef();
-  const buttonsRef = useSpringRef();
-  const footerRef = useSpringRef();
-  const [firstTry, setFirstTry] = useState(true);
+  const { disconnect } = useDisconnect();
 
   const address = account?.address ?? '';
 
@@ -140,10 +148,36 @@ export default function Terminal() {
     editor.focus();
   }
 
+  async function onDisconnect() {
+    terminalStoreActions.errors([]);
+    disconnect();
+  }
+
   return (
     <>
       <Container maxWidth="8xl" my={16}>
         <FadeIn componentRef={terminalRef}>
+          <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
+            {address ? (
+              <Button
+                variant="link"
+                color="white"
+                onClick={onDisconnect}
+                size="sm"
+              >
+                Disconnect
+              </Button>
+            ) : (
+              <Button
+                variant="lime"
+                isLoading={isConnecting}
+                loadingText={'Connecting…'}
+                onClick={onWalletModalOpen}
+              >
+                Connect
+              </Button>
+            )}
+          </VStack>
           <MonacoEditor
             height="50vh"
             theme="theme"
@@ -185,6 +219,10 @@ export default function Terminal() {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
+      <SelectWalletModal
+        isOpen={isWalletModalOpen}
+        onClose={onWalletModalClose}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
-import { useConnect, useDisconnect } from 'wagmi';
+import { useConnect } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 
 import type { Action, ForwardOptions } from '@1hive/evmcrispr';
@@ -17,7 +17,6 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 
-import SelectWalletModal from '../wallet-modal';
 import LogModal from '../log-modal';
 import ErrorMsg from './error-msg';
 
@@ -76,26 +75,15 @@ export default function ActionButtons({
   const [url] = useState('');
 
   const {
-    isOpen: isWalletModalOpen,
-    onOpen: onWalletModalOpen,
-    onClose: onWalletModalClose,
-  } = useDisclosure();
-  const {
     isOpen: isLogModalOpen,
     onOpen: onLogModalOpen,
     onClose: _onLogModalClose,
   } = useDisclosure();
 
-  const { disconnect } = useDisconnect();
-  const { activeConnector, isConnecting } = useConnect();
+  const { activeConnector } = useConnect();
 
   const { errors, isLoading, script } = terminalStoreState;
   const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
-
-  async function onDisconnect() {
-    terminalStoreActions.errors([]);
-    disconnect();
-  }
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -175,17 +163,7 @@ export default function ActionButtons({
           />
         </HStack>
         <VStack alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
-          {!address ? (
-            <Button
-              variant="lime"
-              onClick={onWalletModalOpen}
-              disabled={isConnecting}
-              isLoading={isConnecting}
-              loadingText={'Connecting…'}
-            >
-              Connect
-            </Button>
-          ) : (
+          {address ? (
             <>
               {url ? (
                 <Button
@@ -205,24 +183,12 @@ export default function ActionButtons({
               >
                 Forward from {addressShortened}
               </Button>
-              <Button
-                variant="link"
-                color="white"
-                onClick={onDisconnect}
-                size="sm"
-              >
-                Disconnect
-              </Button>
             </>
-          )}
+          ) : null}
 
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>
       </HStack>
-      <SelectWalletModal
-        isOpen={isWalletModalOpen}
-        closeModal={onWalletModalClose}
-      />
       <LogModal
         isOpen={isLogModalOpen}
         logs={logs}
