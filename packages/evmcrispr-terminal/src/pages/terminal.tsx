@@ -6,7 +6,7 @@ import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Box } from '@chakra-ui/react';
+import { Container } from '@chakra-ui/react';
 
 import {
   conf,
@@ -142,7 +142,7 @@ export default function Terminal() {
 
   return (
     <>
-      <Box maxWidth="956px" margin="0 auto" my={16}>
+      <Container maxWidth="8xl" my={16}>
         <FadeIn componentRef={terminalRef}>
           <MonacoEditor
             height="50vh"
@@ -181,7 +181,7 @@ export default function Terminal() {
             }}
           />
         </FadeIn>
-      </Box>
+      </Container>
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
