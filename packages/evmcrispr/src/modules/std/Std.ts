@@ -8,8 +8,6 @@ import type { EVMcrispr } from '../../EVMcrispr';
 
 export class Std extends Module {
   #modules: Module[];
-  #logListeners: ((message: string, prevMessages: string[]) => void)[];
-  #prevMessages: string[];
 
   constructor(
     bindingsManager: BindingsManager,
@@ -29,24 +27,9 @@ export class Std extends Module {
     );
 
     this.#modules = modules;
-    this.#logListeners = [];
-    this.#prevMessages = [];
   }
 
   get modules(): Module[] {
     return this.#modules;
-  }
-
-  registerLogListener(
-    listener: (message: string, prevMessages: string[]) => void,
-  ): void {
-    this.#logListeners.push(listener);
-  }
-
-  log(message: string): void {
-    this.#logListeners.forEach((listener) =>
-      listener(message, this.#prevMessages),
-    );
-    this.#prevMessages.push(message);
   }
 }
