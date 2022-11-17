@@ -18,10 +18,10 @@ import { InjectedConnector } from 'wagmi/connectors/injected';
 
 export default function SelectWalletModal({
   isOpen,
-  closeModal,
+  onClose,
 }: {
   isOpen: boolean;
-  closeModal: () => void;
+  onClose: () => void;
 }) {
   const {
     connectors,
@@ -37,11 +37,11 @@ export default function SelectWalletModal({
 
   useEffect(() => {
     if (isError || isConnected) {
-      closeModal();
+      onClose();
     }
-  }, [isError, isConnected, closeModal]);
+  }, [isError, isConnected, onClose]);
   return (
-    <Modal isOpen={isOpen} onClose={closeModal} isCentered>
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
       <ModalContent w="300px">
         <ModalHeader color="white">Select Wallet</ModalHeader>
@@ -97,7 +97,7 @@ export default function SelectWalletModal({
               variant="outline"
               onClick={() => {
                 connect(connectors[2]);
-                closeModal();
+                onClose();
               }}
               w="100%"
             >

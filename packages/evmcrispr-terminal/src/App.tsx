@@ -1,5 +1,5 @@
 import '@fontsource/ubuntu-mono';
-import { HashRouter, Redirect, Route, Switch } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { ChakraProvider, DarkMode, extendTheme } from '@chakra-ui/react';
 
@@ -18,12 +18,15 @@ const App = () => {
         <DarkMode>
           <Wagmi>
             <HashRouter>
-              <Header />
-              <Switch>
-                <Route exact path="/terminal" render={() => <Terminal />} />
-                <Route exact path="/" render={() => <Landing />} />
-                <Redirect to="/" />
-              </Switch>
+              <Routes>
+                <Route path="/" element={<Header />}>
+                  <Route index element={<Landing />} />
+                  <Route path="terminal" element={<Terminal />}>
+                    <Route path=":hashId" element={<Terminal />} />
+                  </Route>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
             </HashRouter>
           </Wagmi>
         </DarkMode>
