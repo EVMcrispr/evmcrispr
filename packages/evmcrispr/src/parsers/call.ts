@@ -5,6 +5,7 @@ import {
   letters,
   possibly,
   recursiveParser,
+  regex,
 } from 'arcsecond';
 
 import type {
@@ -84,7 +85,10 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
 
       yield callOperatorParser;
 
-      const method = (yield letters) as unknown as CallExpressionNode['method'];
+      const methodRegex = /^[a-zA-Z_{1}][a-zA-Z0-9_]+/;
+      const method = (yield regex(
+        methodRegex,
+      )) as unknown as CallExpressionNode['method'];
       const args = (yield argumentsParser.errorMap((err) =>
         buildParserError(err, ''),
       )) as unknown as CallExpressionNode['args'];
