@@ -1,16 +1,30 @@
 import {
-  List,
-  ListIcon,
-  ListItem,
+  Alert,
+  AlertIcon,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Stack,
 } from '@chakra-ui/react';
 
-import { InfoIcon } from '@chakra-ui/icons';
+const status = (log: string) => {
+  return log.startsWith(':success:')
+    ? 'success'
+    : log.startsWith(':error:')
+    ? 'error'
+    : 'info';
+};
+
+const stripString = (log: string): string => {
+  return log.startsWith(':success:')
+    ? log.slice(':success:'.length)
+    : log.startsWith(':error:')
+    ? log.slice(':error:'.length)
+    : log;
+};
 
 export default function LogModal({
   isOpen,
@@ -22,9 +36,9 @@ export default function LogModal({
   logs: string[];
 }) {
   return (
-    <Modal isOpen={isOpen} onClose={closeModal} isCentered>
+    <Modal size="6xl" isOpen={isOpen} onClose={closeModal} isCentered>
       <ModalOverlay />
-      <ModalContent w="300px">
+      <ModalContent>
         <ModalHeader color="white">Logs</ModalHeader>
         <ModalCloseButton
           _focus={{
@@ -33,14 +47,14 @@ export default function LogModal({
           }}
         />
         <ModalBody paddingBottom="1.5rem" color="white">
-          <List spacing={3}>
+          <Stack spacing={3}>
             {logs.map((log, i) => (
-              <ListItem key={i}>
-                <ListIcon as={InfoIcon} />
-                {log}
-              </ListItem>
+              <Alert key={i} status={status(log)}>
+                <AlertIcon />
+                {stripString(log)}
+              </Alert>
             ))}
-          </List>
+          </Stack>
         </ModalBody>
       </ModalContent>
     </Modal>
