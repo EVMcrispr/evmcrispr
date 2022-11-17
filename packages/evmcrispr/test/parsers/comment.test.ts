@@ -63,7 +63,7 @@ describe('Parsers - comment', () => {
               },
               {
                 type: 'NumberLiteral',
-                value: 1,
+                value: '1',
                 power: 18,
                 loc: {
                   start: { line: 6, col: 18 },
@@ -135,7 +135,7 @@ describe('Parsers - comment', () => {
               },
               {
                 type: 'NumberLiteral',
-                value: 1,
+                value: '1',
                 power: 18,
                 loc: {
                   start: { line: 3, col: 20 },

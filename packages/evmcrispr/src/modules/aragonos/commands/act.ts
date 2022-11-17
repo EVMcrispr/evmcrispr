@@ -17,7 +17,7 @@ import {
   tryAndCacheNotFound,
 } from '../../../utils';
 import type { AragonOS } from '../AragonOS';
-import { formatAppIdentifier, getDAOs } from '../utils';
+import { getDAOAppIdentifiers } from '../utils';
 
 const { ABI, ADDR } = BindingsSpace;
 export const act: ICommand<AragonOS> = {
@@ -57,18 +57,14 @@ export const act: ICommand<AragonOS> = {
 
     const execAction = encodeAction(targetAddress, signature, params);
 
-    return batchForwarderActions(module.signer, [execAction], [agentAddress]);
+    return batchForwarderActions(module, [execAction], [agentAddress]);
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
     switch (argIndex) {
       case 0: {
-        const daos = getDAOs(bindingsManager);
-
         // Return every app on every DAO that includes 'agent'
-        return daos.flatMap((dao) =>
-          [...dao.appCache.entries()]
-            .filter(([appIdentifier]) => appIdentifier.includes('agent'))
-            .map(([appIdentifier]) => formatAppIdentifier(appIdentifier)),
+        return getDAOAppIdentifiers(bindingsManager).filter((appIdentifier) =>
+          appIdentifier.includes('agent'),
         );
       }
       case 1: {

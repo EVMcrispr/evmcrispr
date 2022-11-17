@@ -35,11 +35,14 @@ export const set: ICommand<Std> = {
     const varName = varNode.value;
     const varValue = await interpretNode(valueNode);
 
-    if (module.bindingsManager.getBindingValue(varName, BindingsSpace.USER)) {
-      throw new ErrorException(`${varName} already defined`);
-    }
-
-    module.bindingsManager.setBinding(varName, varValue, USER, true);
+    module.bindingsManager.setBinding(
+      varName,
+      varValue,
+      USER,
+      true,
+      undefined,
+      true,
+    );
   },
   async runEagerExecution(c, cache, __, caretPos) {
     if (inSameLineThanNode(c, caretPos)) {

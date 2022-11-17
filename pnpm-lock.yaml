@@ -107,7 +107,8 @@ importers:
 
   packages/evmcrispr-terminal:
     specifiers:
-      '@1hive/evmcrispr': 0.7.1
+      '@1hive/evmcrispr': 0.8.0
+      '@chakra-ui/icons': ^2.0.11
       '@chakra-ui/react': ^1.8.8
       '@emotion/react': ^11
       '@emotion/styled': ^11
@@ -144,6 +145,7 @@ importers:
       zustand: ^4.1.1
     dependencies:
       '@1hive/evmcrispr': link:../evmcrispr
+      '@chakra-ui/icons': 2.0.11_react@17.0.2
       '@chakra-ui/react': 1.8.9_eajgddgihhshq5rspmmj3d4ylm
       '@emotion/react': 11.10.4_pxzommwrsowkd4kgag6q3sluym
       '@emotion/styled': 11.10.4_2ouydixtphow5rli3xzdyewxza
@@ -1843,6 +1845,26 @@ packages:
       react: 17.0.2
     dev: false
 
+  /@chakra-ui/icon/3.0.11_react@17.0.2:
+    resolution: {integrity: sha512-RG4jf/XmBdaxOYI5J5QstEtTCPoVlmrQ/XiWhvN0LTgAnmZIqVwFl3Uw+satArdStHAs0GmJZg/E/soFTWuFmw==}
+    peerDependencies:
+      '@chakra-ui/system': '>=2.0.0'
+      react: '>=18'
+    dependencies:
+      '@chakra-ui/shared-utils': 2.0.2
+      react: 17.0.2
+    dev: false
+
+  /@chakra-ui/icons/2.0.11_react@17.0.2:
+    resolution: {integrity: sha512-WjxrFMt9hHpuZlnBh4fhtGOkIVlwYwHNmwq4sJGxYWlg8UnEhVJMoOojheJDy/d3Gp9+ApetlK3vt8fV/rZamg==}
+    peerDependencies:
+      '@chakra-ui/system': '>=2.0.0'
+      react: '>=18'
+    dependencies:
+      '@chakra-ui/icon': 3.0.11_react@17.0.2
+      react: 17.0.2
+    dev: false
+
   /@chakra-ui/image/1.1.10_5qblqjf622vzzkdskgddihcrca:
     resolution: {integrity: sha512-PJZmhQ/R1PgdMyCRjALfoyq1FNh/WzMAw70sliHLtLcb9hBXniwQZuckYfUshCkUoFBj/ow9d4byn9Culdpk7Q==}
     peerDependencies:
@@ -2158,6 +2180,10 @@ packages:
       '@chakra-ui/system': 1.12.1_eiduz6gn53osuo65buerufurei
       '@chakra-ui/utils': 1.10.4
       react: 17.0.2
+    dev: false
+
+  /@chakra-ui/shared-utils/2.0.2:
+    resolution: {integrity: sha512-wC58Fh6wCnFFQyiebVZ0NI7PFW9+Vch0QE6qN7iR+bLseOzQY9miYuzPJ1kMYiFd6QTOmPJkI39M3wHqrPYiOg==}
     dev: false
 
   /@chakra-ui/skeleton/1.2.14_pxdbridytcwh2pl2xoesyqu7iq:
@@ -5341,7 +5367,7 @@ packages:
   /axios/0.21.4:
     resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
     dependencies:
-      follow-redirects: 1.15.2_debug@4.3.4
+      follow-redirects: 1.15.2
     transitivePeerDependencies:
       - debug
     dev: false
@@ -9107,6 +9133,16 @@ packages:
       tslib: 2.4.0
     dev: false
 
+  /follow-redirects/1.15.2:
+    resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+    dev: false
+
   /follow-redirects/1.15.2_debug@4.3.4:
     resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
     engines: {node: '>=4.0'}
@@ -9117,6 +9153,7 @@ packages:
         optional: true
     dependencies:
       debug: 4.3.4
+    dev: true
 
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -10504,13 +10541,13 @@ packages:
       '@types/connect': 3.4.35
       '@types/node': 12.20.55
       '@types/ws': 7.4.7
+      JSONStream: 1.3.5
       commander: 2.20.3
       delay: 5.0.0
       es6-promisify: 5.0.0
       eyes: 0.1.8
       isomorphic-ws: 4.0.1_ws@7.5.9
       json-stringify-safe: 5.0.1
-      JSONStream: 1.3.5
       lodash: 4.17.21
       uuid: 8.3.2
       ws: 7.5.9

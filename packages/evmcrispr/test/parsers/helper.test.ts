@@ -35,7 +35,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
               },
               {
                 type: 'NumberLiteral',
-                value: 10,
+                value: '10',
                 power: 18,
                 loc: { start: { line: 1, col: 66 }, end: { line: 1, col: 71 } },
               },
@@ -87,7 +87,7 @@ export const helperParserDescribe = (): Mocha.Suite =>
                 args: [
                   {
                     type: 'NumberLiteral',
-                    value: 34,
+                    value: '34',
                     loc: {
                       start: { line: 1, col: 20 },
                       end: { line: 1, col: 22 },

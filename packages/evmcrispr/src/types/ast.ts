@@ -69,7 +69,7 @@ export interface BooleanLiteralNode extends Node {
 
 export interface NumericLiteralNode extends Node {
   type: NodeType.NumberLiteral;
-  value: number;
+  value: string;
   power?: number;
   timeUnit?: string;
 }
@@ -135,7 +135,7 @@ export type OperableExpressionNode =
 
 export interface BinaryExpressionNode extends Node {
   type: NodeType.BinaryExpression;
-  operator: '+' | '-' | '*' | '/';
+  operator: '+' | '-' | '*' | '/' | '^';
   left: OperableExpressionNode;
   right: OperableExpressionNode;
 }

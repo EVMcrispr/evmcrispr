@@ -1,4 +1,6 @@
-import { utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
+
+import { Interface } from 'ethers/lib/utils';
 
 import { BindingsSpace } from '../../../types';
 import type { AbiBinding, Address, ICommand } from '../../../types';
@@ -9,7 +11,9 @@ import {
   addressesEqual,
   beforeOrEqualNode,
   checkArgsLength,
+  checkOpts,
   encodeAction,
+  getOptValue,
   insideNodeLine,
   interpretNodeSync,
   tryAndCacheNotFound,
@@ -17,12 +21,15 @@ import {
 import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
+import type { HelperFunctionNode } from '../../..';
+import { erc20ABI } from '../../aragonos/abis';
 
 const { ABI, ADDR } = BindingsSpace;
 
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
+    checkOpts(c, ['value']);
 
     const targetNode = c.args.shift()!;
     const signatureNode = c.args.shift()!;
@@ -32,6 +39,8 @@ export const exec: ICommand<Std> = {
       interpretNode(signatureNode, { treatAsLiteral: true }),
       interpretNodes(c.args),
     ]);
+
+    const value = await getOptValue(c, 'value', interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -56,7 +65,7 @@ export const exec: ICommand<Std> = {
         try {
           [targetAddress, fetchedAbi] = await fetchAbi(
             contractAddress,
-            module.signer.provider!,
+            await module.getProvider(),
             etherscanAPI,
           );
         } catch (err) {
@@ -90,6 +99,13 @@ export const exec: ICommand<Std> = {
 
     const execAction = encodeAction(targetAddress, finalSignature, params);
 
+    if (value) {
+      if (!BigNumber.isBigNumber(value)) {
+        throw new ErrorException(`expected a valid value, but got ${value}`);
+      }
+      execAction.value = value.toString();
+    }
+
     return [execAction];
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
@@ -101,6 +117,21 @@ export const exec: ICommand<Std> = {
         });
       // Contract method
       case 1: {
+        // Check if it's a @token helper and provide ERC-20 functions
+        if (
+          nodeArgs[0].type === 'HelperFunctionExpression' &&
+          (nodeArgs[0] as HelperFunctionNode).name === 'token'
+        ) {
+          const abi = new Interface(erc20ABI);
+          const functions = Object.keys(abi.functions)
+            // Only consider functions that change state
+            .filter((fnName) => !abi.functions[fnName].constant)
+            .map((fnName) => {
+              return abi.functions[fnName].format();
+            });
+          return functions;
+        }
+
         const targetAddress = interpretNodeSync(nodeArgs[0], bindingsManager);
 
         if (!targetAddress || !utils.isAddress(targetAddress)) {

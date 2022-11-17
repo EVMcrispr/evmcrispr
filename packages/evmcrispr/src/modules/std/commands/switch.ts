@@ -27,7 +27,8 @@ export const _switch: ICommand<Std> = {
       minValue: 1,
     });
 
-    const provider = module.signer.provider;
+    const provider = await module.getProvider();
+
     if (!(provider instanceof providers.JsonRpcProvider)) {
       throw new ErrorException('JSON-RPC based providers supported only');
     }
@@ -51,6 +52,8 @@ export const _switch: ICommand<Std> = {
         throw new ErrorException(`chain "${networkNameOrId}" not found`);
       }
     }
+
+    await module.switchChainId(chainId);
 
     return [
       {

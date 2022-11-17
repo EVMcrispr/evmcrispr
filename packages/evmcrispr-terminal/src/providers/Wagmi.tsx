@@ -8,7 +8,7 @@ import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { ethers } from 'ethers';
 import '../walletconnect-compat';
 
-const CHAIN_WHITELIST = [1, 3, 4, 100, 137];
+const CHAIN_WHITELIST = [1, 3, 4, 5, 100, 137];
 const INFURA_ID = import.meta.env.VITE_INFURA_ID;
 
 const chains = [

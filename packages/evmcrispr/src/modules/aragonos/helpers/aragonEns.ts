@@ -37,7 +37,7 @@ export const aragonEns: HelperFunction<AragonOS> = async (
   const customENSResolver = module.getConfigBinding('ensResolver');
   const name = await _aragonEns(
     ensName,
-    module.signer.provider!,
+    await module.getProvider(),
     customENSResolver,
   );
 

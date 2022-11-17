@@ -1,10 +1,11 @@
-import type { BigNumber, Signer } from 'ethers';
+import type { BigNumber } from 'ethers';
 import { Contract, constants, utils } from 'ethers';
 
 import { erc20ABI } from '../abis';
 import { ErrorInvalid } from '../../../errors';
 import type { Action, TransactionAction } from '../../../types';
 import { encodeActCall, encodeCallScript } from './evmscripts';
+import type { AragonOS } from '../AragonOS';
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -51,7 +52,7 @@ export const forwarderABI = [
 ];
 
 export const batchForwarderActions = async (
-  signer: Signer,
+  module: AragonOS,
   forwarderActions: TransactionAction[],
   forwarders: string[],
   context?: string,
@@ -65,7 +66,7 @@ export const batchForwarderActions = async (
     const forwarder = new Contract(
       forwarderAddress,
       forwarderABI,
-      signer.provider,
+      await module.getProvider(),
     );
 
     if (!(await isForwarder(forwarder))) {
@@ -84,10 +85,10 @@ export const batchForwarderActions = async (
         const feeToken = new Contract(
           feeTokenAddress,
           erc20ABI,
-          signer.provider,
+          await module.getProvider(),
         );
         const allowance = (await feeToken.allowance(
-          await signer.getAddress(),
+          await module.getConnectedAccount(),
           forwarderAddress,
         )) as BigNumber;
 

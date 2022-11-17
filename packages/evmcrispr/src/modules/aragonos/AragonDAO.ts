@@ -161,8 +161,11 @@ export class AragonDAO implements IDataProvider {
     index: number,
     name?: string,
   ): Promise<AragonDAO> {
-    const connector = new Connector((await provider.getNetwork()).chainId);
-    const parsedApps = await connector.organizationApps(daoAddress, provider);
+    const connector = new Connector(
+      (await provider.getNetwork()).chainId,
+      provider,
+    );
+    const parsedApps = await connector.organizationApps(daoAddress);
     const appResourcesCache = await buildAppArtifactCache(
       parsedApps,
       ipfsResolver,

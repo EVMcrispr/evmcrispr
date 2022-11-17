@@ -22,17 +22,26 @@ const {
   },
 } = hre;
 
+const GOERLI_DAO_ADDRESS = '0xd8765273da3a7f7a4dc184e8a9f8a894e4dfb4c4';
+
 describe('AragonOS > Connector', () => {
   let connector: Connector;
+  let goerliConnector: Connector;
   let signer: Signer;
 
   before(async () => {
-    connector = new Connector(chainId || 4);
     signer = (await ethers.getSigners())[0];
+    const provider = signer.provider!;
+
+    connector = new Connector(chainId || 4, provider);
+    goerliConnector = new Connector(5, provider);
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
-    expectThrowAsync(() => new Connector(999), new ErrorException());
+    expectThrowAsync(
+      () => new Connector(999, signer.provider!),
+      new ErrorException(),
+    );
   });
 
   describe('repo()', () => {
@@ -65,22 +74,38 @@ describe('AragonOS > Connector', () => {
 
   describe('organizationApps()', () => {
     let daoApps: ParsedApp[];
+    let goerliDaoApps: ParsedApp[];
 
     before(async () => {
-      daoApps = await connector.organizationApps(DAO.kernel, signer.provider!);
+      daoApps = await connector.organizationApps(DAO.kernel);
+      goerliDaoApps = await goerliConnector.organizationApps(
+        GOERLI_DAO_ADDRESS,
+      );
     });
 
-    it('should find the apps of a valid dao', () => {
-      expect(daoApps.length).to.be.greaterThan(0);
+    describe("when fetching apps from a non-goerli's dao", () => {
+      it('should find the apps', () => {
+        expect(daoApps.length).to.be.greaterThan(0);
+      });
+
+      it('should return valid parsed apps', () => {
+        daoApps.forEach((app) => isValidParsedApp(app));
+      });
     });
 
-    it('should return valid apps', () => {
-      daoApps.forEach((app) => isValidParsedApp(app));
+    describe("when fetching apps from a goerli's dao", () => {
+      it('should find the apps', () => {
+        expect(goerliDaoApps.length).to.be.greaterThan(0);
+      });
+
+      it('shole return valid parsed apps', () => {
+        goerliDaoApps.forEach((app) => isValidParsedApp(app));
+      });
     });
 
     it('should fail when fetching the apps of a non-existent dao', async () => {
       await expectThrowAsync(
-        () => connector.organizationApps(EOA_ADDRESS, signer.provider!),
+        () => connector.organizationApps(EOA_ADDRESS),
         new ErrorNotFound('Organization apps not found'),
       );
     });

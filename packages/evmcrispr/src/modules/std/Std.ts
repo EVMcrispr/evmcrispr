@@ -1,11 +1,10 @@
-import type { Signer } from 'ethers';
-
 import type { BindingsManager } from '../../BindingsManager';
 
 import { Module } from '../../Module';
 import type { IPFSResolver } from '../../IPFSResolver';
 import { commands } from './commands';
 import { helpers } from './helpers';
+import type { EVMcrispr } from '../../EVMcrispr';
 
 export class Std extends Module {
   #modules: Module[];
@@ -13,7 +12,7 @@ export class Std extends Module {
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
-    signer: Signer,
+    evmcrispr: EVMcrispr,
     ipfsResolver: IPFSResolver,
     modules: Module[],
   ) {
@@ -23,7 +22,7 @@ export class Std extends Module {
       nonces,
       commands,
       helpers,
-      signer,
+      evmcrispr,
       ipfsResolver,
     );
 

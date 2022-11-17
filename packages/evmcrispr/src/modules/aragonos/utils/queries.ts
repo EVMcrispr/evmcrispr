@@ -3,6 +3,10 @@ export type GraphQLBody = {
   variables: Record<string, any>;
 };
 
+export type QueryConfig = {
+  isGoerliSubgraph: boolean;
+};
+
 export const REPO = (
   repoName: string,
   registryName: string,
@@ -34,21 +38,24 @@ export const REPO = (
   },
 });
 
-export const ORGANIZATION_APPS = (id: string): GraphQLBody => ({
+export const ORGANIZATION_APPS = (
+  id: string,
+  { isGoerliSubgraph: isGoerli = false }: Partial<QueryConfig> = {},
+): GraphQLBody => ({
   query: `
     query Organization($id: ID!) {
       organization(id: $id) {
         apps {
           address
           appId
-          repoName
           repo {
+            name
             registry {
               name
             }
           }
           roles {
-            roleHash
+            ${isGoerli ? 'hash' : 'roleHash'}
             manager
             grantees {
               granteeAddress
@@ -57,7 +64,7 @@ export const ORGANIZATION_APPS = (id: string): GraphQLBody => ({
           version {
             codeAddress
             contentUri
-            artifact
+            ${isGoerli ? '' : 'artifact'}
           }
         }
       }

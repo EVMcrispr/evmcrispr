@@ -1,5 +1,5 @@
-import type { Signer } from 'ethers';
-import { BigNumber, Contract, constants, utils } from 'ethers';
+import type { Signer, providers } from 'ethers';
+import { BigNumber, Contract, constants, ethers, utils } from 'ethers';
 
 import {
   CommandError,
@@ -11,6 +11,7 @@ import {
 import { timeUnits, toDecimals } from './utils';
 import type {
   Action,
+  Address,
   ArrayExpressionNode,
   AsExpressionNode,
   BinaryExpressionNode,
@@ -59,11 +60,16 @@ const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 export class EVMcrispr {
   readonly ast: Cas11AST;
   readonly bindingsManager: BindingsManager;
-  readonly signer: Signer;
 
   #std: Std;
   #modules: Module[];
   #nonces: Record<string, number>;
+  #account: Address | undefined;
+  #chainId: number | undefined;
+  #signer: Signer;
+
+  #logListeners: ((message: string, prevMessages: string[]) => void)[];
+  #prevMessages: string[];
 
   constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
@@ -72,15 +78,48 @@ export class EVMcrispr {
     this.#modules = [];
     this.#nonces = {};
     this.#setDefaultBindings();
+    this.#signer = signer;
+    this.#logListeners = [];
+    this.#prevMessages = [];
 
-    this.signer = signer;
     this.#std = new Std(
       this.bindingsManager,
       this.#nonces,
-      this.signer,
+      this,
       new IPFSResolver(),
       this.#modules,
     );
+  }
+
+  async getChainId(): Promise<number> {
+    return (
+      this.#chainId ??
+      this.#signer.provider!.getNetwork().then(({ chainId }: any) => chainId)
+    );
+  }
+
+  async getProvider(): Promise<providers.Provider> {
+    if (!this.#chainId) {
+      return this.#signer.provider!;
+    }
+    switch (this.#chainId) {
+      case 100:
+        return new ethers.providers.JsonRpcProvider(
+          'https://rpc.gnosischain.com',
+          this.#chainId,
+        );
+      default:
+        return ethers.getDefaultProvider(this.#chainId);
+    }
+  }
+
+  async getConnectedAccount(): Promise<Address> {
+    return this.#account ?? this.#signer.getAddress();
+  }
+
+  async switchChainId(chainId: number): Promise<providers.Provider> {
+    this.#chainId = chainId;
+    return this.getProvider();
   }
 
   getBinding<BSpace extends BindingsSpace>(
@@ -182,6 +221,20 @@ export class EVMcrispr {
     );
   };
 
+  registerLogListener(
+    listener: (message: string, prevMessages: string[]) => void,
+  ): EVMcrispr {
+    this.#logListeners.push(listener);
+    return this;
+  }
+
+  log(message: string): void {
+    this.#logListeners.forEach((listener) =>
+      listener(message, this.#prevMessages),
+    );
+    this.#prevMessages.push(message);
+  }
+
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
     return this.interpretNodes(n.elements);
   };
@@ -239,6 +292,9 @@ export class EVMcrispr {
         }
         return leftOperand.div(rightOperand);
       }
+      case '^': {
+        return leftOperand.pow(rightOperand);
+      }
     }
   };
 
@@ -280,7 +336,11 @@ export class EVMcrispr {
       EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
     }
 
-    const contract = new Contract(targetAddress, targetInterface, this.signer);
+    const contract = new Contract(
+      targetAddress,
+      targetInterface,
+      await this.getProvider(),
+    );
     let res;
 
     try {

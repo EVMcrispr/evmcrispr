@@ -31,7 +31,7 @@ const _token = async (
   module: Module,
   tokenSymbol: string,
 ): Promise<Address> => {
-  const chainId = await module.signer.getChainId();
+  const chainId = await module.getChainId();
   const tokenList = getTokenList(module);
   const {
     tokens,
@@ -80,7 +80,7 @@ export const tokenBalance: HelperFunction<Std> = async (
   const contract = new ethers.Contract(
     tokenAddr,
     ['function balanceOf(address owner) view returns (uint)'],
-    module.signer,
+    await module.getProvider(),
   );
 
   return (await contract.balanceOf(holder)).toString();

@@ -10,7 +10,7 @@ import {
   preparingExpression,
 } from '../../../test-helpers/cas11';
 
-describe('Std > helpers > @get(contractAddress, method)', () => {
+describe('Std > helpers > @get(contractAddress, method, params?)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
   const targetAddress = '0x44fA8E6f47987339850636F88629646662444217';
@@ -28,12 +28,21 @@ describe('Std > helpers > @get(contractAddress, method)', () => {
     expect(await interpret()).to.eq('Dai Stablecoin on xDai');
   });
 
+  it('should interpret it correctly', async () => {
+    const [interpret] = await preparingExpression(
+      `@get(${targetAddress}, balanceOf(address):(uint), ${targetAddress})`,
+      signer,
+    );
+
+    expect(await interpret()).not.to.be.eq('0');
+  });
+
   itChecksInvalidArgsLength(
     NodeType.HelperFunctionExpression,
     '@get',
     [targetAddress, 'name():(string)'],
     {
-      type: ComparisonType.Equal,
+      type: ComparisonType.Greater,
       minValue: 2,
     },
     lazySigner,

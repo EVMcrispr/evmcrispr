@@ -5,8 +5,10 @@
         {
           "address": "0x0d9216f8a50b16294bbc446f388bcf94dbb508b1",
           "appId": "0x0733919f45ce3305724ccf3354aac9d84f477baa23fbeabcaca5d97ff39acd54",
-          "repoName": "marketplace-hatch",
-          "repo": { "registry": { "name": "open.aragonpm.eth" } },
+          "repo": {
+            "name": "marketplace-hatch",
+            "registry": { "name": "open.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x78844962b347caf400e109846dc948d8df0fc5b2f795edb688517fc687580cd4",
@@ -45,7 +47,6 @@
         {
           "address": "0x18cab99a64979037e1ac7f85736c264031bf8ae1",
           "appId": "0xddbcfd564f642ab5627cf68b9b7d374fb4f8a36e941a75d89c87998cef03bd61",
-          "repoName": "evm-script-registry",
           "repo": null,
           "roles": [
             {
@@ -75,8 +76,10 @@
         {
           "address": "0x3484b97e8d69269bbaca86fb381d6bfc84141710",
           "appId": "0xd39db7b8003314a9e1506df5735424d7e24ff748dab30731a57d8d65b60521e4",
-          "repoName": "hatch-oracle",
-          "repo": { "registry": { "name": "open.aragonpm.eth" } },
+          "repo": {
+            "name": "hatch-oracle",
+            "registry": { "name": "open.aragonpm.eth" }
+          },
           "roles": [],
           "version": {
             "codeAddress": "0x981c2f35764b995aad35517d78cdbcc91bf2b61c",
@@ -87,7 +90,6 @@
         {
           "address": "0x3ca331baad1dd842e8dcbdfaa6ee8a348a5fb73d",
           "appId": "0xe3262375f45a6e2026b7e7b18c2b807434f2508fe1a2a3dfb493c7df8f4aad6a",
-          "repoName": "acl",
           "repo": null,
           "roles": [
             {
@@ -114,8 +116,10 @@
         {
           "address": "0x48d01d6617f1b951277a062bf400e6ac524c6974",
           "appId": "0x578759b4dfb8914aaf48664759c284c588fbba0525816f9585c00c2a497feca3",
-          "repoName": "migration-tools-beta",
-          "repo": { "registry": { "name": "open.aragonpm.eth" } },
+          "repo": {
+            "name": "migration-tools-beta",
+            "registry": { "name": "open.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0xb9b300d045ff55d46078203915e5d481ad644649cae9f607081135e4cd7dbb48",
@@ -136,8 +140,7 @@
         {
           "address": "0x4c69b18d3a3503008a77004d2ac3df866e5a193f",
           "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
-          "repoName": "agent",
-          "repo": { "registry": { "name": "aragonpm.eth" } },
+          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
           "roles": [
             {
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
@@ -176,8 +179,10 @@
         {
           "address": "0x74d6b243d7d225481b6c8857207eea9e3172c7ba",
           "appId": "0x836ff04da2bec0b03737840f75c97c87a712fb9176ab6538c2516987973cb472",
-          "repoName": "tollgate",
-          "repo": { "registry": { "name": "1hive.aragonpm.eth" } },
+          "repo": {
+            "name": "tollgate",
+            "registry": { "name": "1hive.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x1e0b7d474ea4782cf6997359ebef54005f75b0bd3f812c9cd9df211cb91b2f34",
@@ -207,8 +212,10 @@
         {
           "address": "0x8490ada1df352d9aeea575a5f616a25fe9e78c77",
           "appId": "0x90190d6e365ea9fa9659c74a0ba53d83fa6f751487422eedab8dadef8b36a8e6",
-          "repoName": "impact-hours-beta",
-          "repo": { "registry": { "name": "open.aragonpm.eth" } },
+          "repo": {
+            "name": "impact-hours-beta",
+            "registry": { "name": "open.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x1b5d95be4d8d4c03c65a27ace9b046261b15529c17e9139a065583706fc3128f",
@@ -229,8 +236,10 @@
         {
           "address": "0xa72dc82b4606ff219aa163857e9e631795f88ecf",
           "appId": "0x82d8d87cd48f4b245d5c8c1c98c5d527dc7b7e166f62471569fb8b1061900644",
-          "repoName": "dandelion-voting",
-          "repo": { "registry": { "name": "1hive.aragonpm.eth" } },
+          "repo": {
+            "name": "dandelion-voting",
+            "registry": { "name": "1hive.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x1c58dc9dd80ae1309a6c641bdaa4701a7beddc166e9c342d373fdfa142d85bc3",
@@ -287,8 +296,7 @@
         {
           "address": "0xa99793e2ce3c8061afe7711281939271a9a5a637",
           "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
-          "repoName": "agent",
-          "repo": { "registry": { "name": "aragonpm.eth" } },
+          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
           "roles": [
             {
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
@@ -330,8 +338,10 @@
         {
           "address": "0xb5495cbbdf437d59724bc4db18a28e88bb55fdf7",
           "appId": "0xbcfc4bd9ad0e5528cbed5ecc4b90604ad1b62fe117d3f7ddb313a9b1b2ded9cb",
-          "repoName": "redemptions",
-          "repo": { "registry": { "name": "1hive.aragonpm.eth" } },
+          "repo": {
+            "name": "redemptions",
+            "registry": { "name": "1hive.aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x23ab158aaf38f3699bf4266a91ca312794fa7ad6ee01e00dd03738daa058501e",
@@ -370,7 +380,6 @@
         {
           "address": "0xb56a8003a8d2efab7d2d4c10617d787e9e4b582c",
           "appId": "0x3b4bf6bf3ad5000ecf0f989d5befde585c6860fea3e574a4fab4c49d1c177d9c",
-          "repoName": "kernel",
           "repo": null,
           "roles": [
             {
@@ -394,8 +403,10 @@
         {
           "address": "0xd2fab1d412ebc47bb5313087889cf7ff9999614b",
           "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
-          "repoName": "token-manager",
-          "repo": { "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "token-manager",
+            "registry": { "name": "aragonpm.eth" }
+          },
           "roles": [
             {
               "roleHash": "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686",

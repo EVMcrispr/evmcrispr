@@ -1,4 +1,4 @@
-import type { Signer } from 'ethers';
+import type { providers } from 'ethers';
 
 import type {
   Address,
@@ -15,6 +15,7 @@ import { BindingsSpace } from './types';
 import type { BindingsManager } from './BindingsManager';
 import { ErrorException } from './errors';
 import type { IPFSResolver } from './IPFSResolver';
+import type { EVMcrispr } from './EVMcrispr';
 
 export abstract class Module {
   constructor(
@@ -23,7 +24,7 @@ export abstract class Module {
     readonly nonces: Record<string, number>,
     readonly commands: Commands<any>,
     readonly helpers: HelperFunctions<any>,
-    readonly signer: Signer,
+    readonly evmcrispr: EVMcrispr,
     readonly ipfsResolver: IPFSResolver,
     readonly alias?: string,
   ) {}
@@ -65,15 +66,34 @@ export abstract class Module {
     );
   }
 
-  getNonce(address: Address): number {
-    return this.nonces[address];
+  async getNonce(address: Address, chainId?: number): Promise<number> {
+    chainId = chainId ?? (await this.getChainId());
+    return this.nonces[`${chainId}:${address}`];
   }
 
-  incrementNonce(address: Address): number {
-    if (!this.nonces[address]) {
-      this.nonces[address] = 0;
+  async incrementNonce(address: Address, chainId?: number): Promise<number> {
+    chainId = chainId ?? (await this.getChainId());
+
+    if (!this.nonces[`${chainId}:${address}`]) {
+      this.nonces[`${chainId}:${address}`] = 0;
     }
 
-    return this.nonces[address]++;
+    return this.nonces[`${chainId}:${address}`]++;
+  }
+
+  async getProvider(): Promise<providers.Provider> {
+    return this.evmcrispr.getProvider();
+  }
+
+  async getChainId(): Promise<number> {
+    return this.evmcrispr.getChainId();
+  }
+
+  async switchChainId(chainId: number): Promise<providers.Provider> {
+    return this.evmcrispr.switchChainId(chainId);
+  }
+
+  async getConnectedAccount(): Promise<Address> {
+    return this.evmcrispr.getConnectedAccount();
   }
 }

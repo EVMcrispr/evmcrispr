@@ -113,7 +113,7 @@ export const install: ICommand<AragonOS> = {
       appName,
       registry,
       version ?? 'latest',
-      module.signer.provider!,
+      await module.getProvider(),
       module.getConfigBinding('ensResolver'),
     );
 

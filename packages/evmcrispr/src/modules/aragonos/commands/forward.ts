@@ -56,7 +56,7 @@ export const forward: ICommand<AragonOS> = {
     const context = await getOptValue(c, 'context', interpretNode);
 
     return batchForwarderActions(
-      module.signer,
+      module,
       blockActions as TransactionAction[],
       forwarderAppAddresses.reverse(),
       context,

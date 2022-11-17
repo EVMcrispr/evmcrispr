@@ -191,7 +191,7 @@ describe('Parsers - script', () => {
                               },
                               {
                                 type: 'NumberLiteral',
-                                value: 0,
+                                value: '0',
                                 loc: {
                                   start: { line: 8, col: 101 },
                                   end: { line: 8, col: 102 },
@@ -394,7 +394,7 @@ describe('Parsers - script', () => {
                                       },
                                       {
                                         type: 'NumberLiteral',
-                                        value: 15.45,
+                                        value: '15.45',
                                         power: 18,
                                         loc: {
                                           start: { line: 30, col: 47 },
@@ -444,7 +444,7 @@ describe('Parsers - script', () => {
                                               },
                                               {
                                                 type: 'NumberLiteral',
-                                                value: 4500.43,
+                                                value: '4500.43',
                                                 power: 18,
                                                 loc: {
                                                   start: {
@@ -500,7 +500,7 @@ describe('Parsers - script', () => {
                                               },
                                               {
                                                 type: 'NumberLiteral',
-                                                value: 1,
+                                                value: '1',
                                                 power: 18,
                                                 timeUnit: 'mo',
                                                 loc: {
