@@ -68,6 +68,9 @@ export class EVMcrispr {
   #chainId: number | undefined;
   #signer: Signer;
 
+  #logListeners: ((message: string, prevMessages: string[]) => void)[];
+  #prevMessages: string[];
+
   constructor(ast: Cas11AST, signer: Signer) {
     this.ast = ast;
 
@@ -76,6 +79,8 @@ export class EVMcrispr {
     this.#nonces = {};
     this.#setDefaultBindings();
     this.#signer = signer;
+    this.#logListeners = [];
+    this.#prevMessages = [];
 
     this.#std = new Std(
       this.bindingsManager,
@@ -115,13 +120,6 @@ export class EVMcrispr {
   async switchChainId(chainId: number): Promise<providers.Provider> {
     this.#chainId = chainId;
     return this.getProvider();
-  }
-
-  registerLogListener(
-    listener: (message: string, prevMessages: string[]) => void,
-  ): EVMcrispr {
-    this.#std.registerLogListener(listener);
-    return this;
   }
 
   getBinding<BSpace extends BindingsSpace>(
@@ -222,6 +220,20 @@ export class EVMcrispr {
       nodes.map((node) => this.interpretNode(node, options)),
     );
   };
+
+  registerLogListener(
+    listener: (message: string, prevMessages: string[]) => void,
+  ): EVMcrispr {
+    this.#logListeners.push(listener);
+    return this;
+  }
+
+  log(message: string): void {
+    this.#logListeners.forEach((listener) =>
+      listener(message, this.#prevMessages),
+    );
+    this.#prevMessages.push(message);
+  }
 
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
     return this.interpretNodes(n.elements);
