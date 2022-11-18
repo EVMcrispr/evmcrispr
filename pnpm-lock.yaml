@@ -115,6 +115,7 @@ importers:
       '@esbuild-plugins/node-globals-polyfill': ^0.1.1
       '@ethersproject/providers': ^5.6.5
       '@fontsource/ubuntu-mono': ^4.5.9
+      '@heroicons/react': ^2.0.13
       '@monaco-editor/react': ^4.3.1
       '@react-spring/web': ^9.4.2
       '@types/react': ^17.0.0
@@ -154,6 +155,7 @@ importers:
       '@esbuild-plugins/node-globals-polyfill': 0.1.1
       '@ethersproject/providers': 5.7.1
       '@fontsource/ubuntu-mono': 4.5.11
+      '@heroicons/react': 2.0.13_react@17.0.2
       '@monaco-editor/react': 4.4.6_m23risk2t2ktwbmyoufat5z4ue
       '@react-spring/web': 9.5.4_sfoxds7t5ydpegc3knd667wn6m
       '@udecode/zustood': 1.1.3_zbwgt7fshtbahq2a6h6lgg2zyy
@@ -3220,6 +3222,14 @@ packages:
 
   /@fontsource/ubuntu-mono/4.5.11:
     resolution: {integrity: sha512-IqqJKgp9Xc8tFeCIHPQuFbiKZC8tBU2hdIllwX2pryYfkl8/w4DuScFq9fPMfy1Mp4raFVcJALvOMOfRXkLp/w==}
+    dev: false
+
+  /@heroicons/react/2.0.13_react@17.0.2:
+    resolution: {integrity: sha512-iSN5XwmagrnirWlYEWNPdCDj9aRYVD/lnK3JlsC9/+fqGF80k8C7rl+1HCvBX0dBoagKqOFBs6fMhJJ1hOg1EQ==}
+    peerDependencies:
+      react: '>= 16'
+    dependencies:
+      react: 17.0.2
     dev: false
 
   /@humanwhocodes/config-array/0.5.0:

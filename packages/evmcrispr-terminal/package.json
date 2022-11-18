@@ -11,6 +11,7 @@
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
     "@ethersproject/providers": "^5.6.5",
     "@fontsource/ubuntu-mono": "^4.5.9",
+    "@heroicons/react": "^2.0.13",
     "@monaco-editor/react": "^4.3.1",
     "@react-spring/web": "^9.4.2",
     "@udecode/zustood": "^1.1.3",
