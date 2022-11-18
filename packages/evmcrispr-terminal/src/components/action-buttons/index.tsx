@@ -19,6 +19,7 @@ import {
 
 import LogModal from '../log-modal';
 import ErrorMsg from './error-msg';
+import ShareButton from '../share-button';
 
 // TODO: Migrate logic to evmcrispr
 const executeActions = async (
@@ -78,7 +79,9 @@ export default function ActionButtons({
     isOpen: isLogModalOpen,
     onOpen: onLogModalOpen,
     onClose: _onLogModalClose,
-  } = useDisclosure();
+  } = useDisclosure({
+    id: 'log',
+  });
 
   const { activeConnector } = useConnect();
 
@@ -185,6 +188,8 @@ export default function ActionButtons({
               </Button>
             </>
           ) : null}
+
+          <ShareButton script={script} />
 
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>

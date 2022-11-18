@@ -40,7 +40,9 @@ export default function Terminal() {
     isOpen: isWalletModalOpen,
     onOpen: onWalletModalOpen,
     onClose: onWalletModalClose,
-  } = useDisclosure();
+  } = useDisclosure({
+    id: 'wallet',
+  });
 
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =

@@ -1,23 +1,21 @@
-import { Button, useToast } from '@chakra-ui/react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, useDisclosure, useToast } from '@chakra-ui/react';
 
+import ShareModal from '../share-modal';
 import pinJSON from '../../api/pinata/pinJSON';
 
-type ShareButtonType = {
-  onOpen: () => void;
-  onClose: () => void;
-  script: string;
-  setLink: (param: string) => void;
-  setUploadStatus: (param: boolean) => void;
-};
+export default function ShareButton({ script }: { script: string }) {
+  const [link, setLink] = useState('');
+  const [isUploading, setUploadStatus] = useState(false);
+  const {
+    isOpen: isShareModalOpen,
+    onOpen: onShareModalOpen,
+    onClose: onShareModalClose,
+  } = useDisclosure({
+    id: 'share',
+  });
 
-export default function ShareButton({
-  onOpen,
-  onClose,
-  script,
-  setLink,
-  setUploadStatus,
-}: ShareButtonType) {
   const params = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -33,7 +31,7 @@ export default function ShareButton({
   async function handleShare() {
     try {
       setUploadStatus(true);
-      onOpen();
+      onShareModalOpen();
 
       const data = {
         text: script,
@@ -50,7 +48,7 @@ export default function ShareButton({
       return navigate(`/terminal/${IpfsHash}`, { replace: true });
     } catch (e: any) {
       setUploadStatus(false);
-      onClose();
+      onShareModalClose();
       toast({
         status: 'error',
         title: 'Error while trying to create sharable link',
@@ -63,8 +61,16 @@ export default function ShareButton({
   }
 
   return (
-    <Button onClick={handleShare} variant="blue">
-      Share
-    </Button>
+    <>
+      <Button onClick={handleShare} variant="blue">
+        Share
+      </Button>
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={onShareModalClose}
+        isLoading={isUploading}
+        url={link}
+      />
+    </>
   );
 }

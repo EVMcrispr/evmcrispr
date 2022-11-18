@@ -1,5 +1,5 @@
 import {
-  Center,
+  Box,
   Icon as ChakraIcon,
   HStack,
   Link,
@@ -11,38 +11,39 @@ import {
   ModalContent,
   ModalHeader,
   ModalOverlay,
-  Spinner,
   Text,
   useToast,
 } from '@chakra-ui/react';
-import { FaLink, FaTelegram, FaTwitter, FaWhatsapp } from 'react-icons/fa';
+import { LinkIcon } from '@heroicons/react/24/outline';
 import styled from '@emotion/styled';
 
 const getSocial = (url: string) => [
-  {
-    text: 'Share to Twitter',
-    Icon: () => (
-      <ChakraIcon as={FaTwitter} boxSize={8} color="brand.green.300" />
-    ),
-    link: () => `https://twitter.com/share?url=${url}`,
-  },
-  {
-    text: 'Share on Whatsapp',
-    Icon: () => (
-      <ChakraIcon as={FaWhatsapp} boxSize={8} color="brand.green.300" />
-    ),
-    link: () => `https://api.whatsapp.com/send/?text=${url}`,
-  },
-  {
-    text: 'Share on Telegram',
-    Icon: () => (
-      <ChakraIcon as={FaTelegram} boxSize={8} color="brand.green.300" />
-    ),
-    link: () => `https://t.me/share/url?url=${url}`,
-  },
+  // {
+  //   text: 'Share to Twitter',
+  //   Icon: () => (
+  //     <ChakraIcon as={FaTwitter} boxSize={8} color="brand.green.300" />
+  //   ),
+  //   link: () => `https://twitter.com/share?url=${url}`,
+  // },
+  // {
+  //   text: 'Share on Whatsapp',
+  //   Icon: () => (
+  //     <ChakraIcon as={FaWhatsapp} boxSize={8} color="brand.green.300" />
+  //   ),
+  //   link: () => `https://api.whatsapp.com/send/?text=${url}`,
+  // },
+  // {
+  //   text: 'Share on Telegram',
+  //   Icon: () => (
+  //     <ChakraIcon as={FaTelegram} boxSize={8} color="brand.green.300" />
+  //   ),
+  //   link: () => `https://t.me/share/url?url=${url}`,
+  // },
   {
     text: 'Copy link',
-    Icon: () => <ChakraIcon as={FaLink} boxSize={8} color="brand.green.300" />,
+    Icon: () => (
+      <ChakraIcon as={LinkIcon} boxSize={6} color="brand.green.300" />
+    ),
     link: () => url,
     isExternal: false,
     onClick: (toast: (params: Record<string, any>) => void) => {
@@ -80,16 +81,16 @@ const ShareLinkModal = ({
   const toast = useToast();
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader color="white">Share to...</ModalHeader>
+        <ModalHeader color="white">Share to</ModalHeader>
         <ModalCloseButton />
         <ModalBody paddingX={0} paddingBottom={0}>
           {isLoading ? (
-            <Center p={4}>
-              <Spinner size="xl" color="brand.green.300" />
-            </Center>
+            <Box px={6} pb={6}>
+              <Text fontSize={'lg'}>Creating link...</Text>
+            </Box>
           ) : (
             <List>
               {social.map(
