@@ -18,27 +18,6 @@ import { LinkIcon } from '@heroicons/react/24/outline';
 import styled from '@emotion/styled';
 
 const getSocial = (url: string) => [
-  // {
-  //   text: 'Share to Twitter',
-  //   Icon: () => (
-  //     <ChakraIcon as={FaTwitter} boxSize={8} color="brand.green.300" />
-  //   ),
-  //   link: () => `https://twitter.com/share?url=${url}`,
-  // },
-  // {
-  //   text: 'Share on Whatsapp',
-  //   Icon: () => (
-  //     <ChakraIcon as={FaWhatsapp} boxSize={8} color="brand.green.300" />
-  //   ),
-  //   link: () => `https://api.whatsapp.com/send/?text=${url}`,
-  // },
-  // {
-  //   text: 'Share on Telegram',
-  //   Icon: () => (
-  //     <ChakraIcon as={FaTelegram} boxSize={8} color="brand.green.300" />
-  //   ),
-  //   link: () => `https://t.me/share/url?url=${url}`,
-  // },
   {
     text: 'Copy link',
     Icon: () => (
