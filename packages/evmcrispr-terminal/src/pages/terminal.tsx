@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import useSWR from 'swr';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
@@ -27,6 +29,7 @@ import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
 import SelectWalletModal from '../components/wallet-modal';
+import fetchPin from '../api/pinata/fetchPin';
 
 const ipfsResolver = new IPFSResolver();
 
@@ -35,6 +38,7 @@ export default function Terminal() {
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
+  const params = useParams();
 
   const {
     isOpen: isWalletModalOpen,
@@ -52,6 +56,11 @@ export default function Terminal() {
   const { connectors, connect, isConnected, isConnecting } = useConnect();
   const provider = useProvider();
   const { disconnect } = useDisconnect();
+
+  const { data, error: fetchError } = useSWR(
+    ['https://gateway.pinata.cloud', params?.hashId],
+    (url, hashId) => fetchPin(url, hashId),
+  );
 
   const address = account?.address ?? '';
 
@@ -125,6 +134,13 @@ export default function Terminal() {
       terminalStoreActions.processScript();
     }
   }, []);
+
+  useEffect(() => {
+    if (data !== null && !fetchError && typeof data !== 'undefined') {
+      terminalStoreActions.script(data.text);
+      terminalStoreActions.processScript();
+    }
+  }, [data, fetchError]);
 
   function handleOnChangeEditor(str: string | undefined, ev: any) {
     terminalStoreActions.script(str ?? '');
