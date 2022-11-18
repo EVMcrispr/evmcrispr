@@ -5,7 +5,13 @@ import { Button, useDisclosure, useToast } from '@chakra-ui/react';
 import ShareModal from '../share-modal';
 import pinJSON from '../../api/pinata/pinJSON';
 
-export default function ShareButton({ script }: { script: string }) {
+export default function ShareButton({
+  script,
+  savedScript,
+}: {
+  script: string;
+  savedScript?: string;
+}) {
   const [link, setLink] = useState('');
   const [isUploading, setUploadStatus] = useState(false);
   const {
@@ -30,6 +36,11 @@ export default function ShareButton({ script }: { script: string }) {
 
   async function handleShare() {
     try {
+      if (savedScript === script) {
+        onShareModalOpen();
+        return;
+      }
+
       setUploadStatus(true);
       onShareModalOpen();
 

@@ -64,12 +64,14 @@ type ActionButtonsType = {
     isLoading: boolean;
     script: any;
   };
+  savedScript?: string;
 };
 
 export default function ActionButtons({
   address,
   terminalStoreActions,
   terminalStoreState,
+  savedScript,
 }: ActionButtonsType) {
   const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -189,7 +191,7 @@ export default function ActionButtons({
             </>
           ) : null}
 
-          <ShareButton script={script} />
+          <ShareButton script={script} savedScript={savedScript} />
 
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>

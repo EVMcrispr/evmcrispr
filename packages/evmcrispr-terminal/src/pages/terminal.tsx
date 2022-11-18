@@ -231,6 +231,7 @@ export default function Terminal() {
               isLoading,
               script,
             }}
+            savedScript={data?.text}
           />
         </FadeIn>
       </Container>
