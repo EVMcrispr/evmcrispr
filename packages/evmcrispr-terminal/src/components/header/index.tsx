@@ -6,7 +6,7 @@ import logo from '../../assets/logo.svg';
 
 const Header = () => {
   const location = useLocation();
-  const isTerminal = location.pathname === '/terminal';
+  const isTerminal = location.pathname.startsWith('/terminal');
 
   return (
     <>
@@ -19,7 +19,7 @@ const Header = () => {
         <Link to="/">
           <img src={logo} alt="Logo" width="262" />
         </Link>
-        {location.pathname === '/terminal' ? (
+        {isTerminal ? (
           <Text
             pl={2}
             color="white"
