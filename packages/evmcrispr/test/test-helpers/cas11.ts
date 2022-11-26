@@ -64,14 +64,14 @@ export const runCases = (
 
 export const runInterpreterCases = async (
   caseOrCases: InterpreterCase | InterpreterCase[],
-  signer: Signer,
+  getSigner: () => Promise<Signer>,
 ): Promise<void[]> =>
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
         const [res] = await new EVMcrispr(
           new Cas11AST([node]),
-          signer,
+          getSigner,
         ).interpret();
 
         expect(res, errorMsg).to.equal(expected);
@@ -112,7 +112,7 @@ export const createInterpreter = (
 ): EVMcrispr => {
   const ast = runParser(scriptParser, script) as Cas11AST;
 
-  return new EVMcrispr(ast, signer);
+  return new EVMcrispr(ast, async () => signer);
 };
 
 export const preparingExpression = async (
