@@ -33,3 +33,8 @@ export type Action = TransactionAction | ProviderAction;
 export function isProviderAction(action: any): action is ProviderAction {
   return action.method && action.params;
 }
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function isSwitchAction(action: any): boolean {
+  return action.method === 'wallet_switchEthereumChain';
+}

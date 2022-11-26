@@ -71,6 +71,8 @@ export class EVMcrispr {
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #prevMessages: string[];
 
+  #provider: providers.Provider | undefined;
+
   constructor(ast: Cas11AST, getSigner: () => Promise<Signer>) {
     this.ast = ast;
 
@@ -100,7 +102,14 @@ export class EVMcrispr {
     );
   }
 
+  setProvider(provider: providers.Provider | undefined): void {
+    this.#provider = provider;
+  }
+
   async getProvider(): Promise<providers.Provider> {
+    if (this.#provider) {
+      return this.#provider;
+    }
     const signer = await this.#getSigner();
     if (
       !this.#chainId ||
@@ -124,10 +133,14 @@ export class EVMcrispr {
     }
   }
 
-  async getConnectedAccount(): Promise<Address> {
-    return (
-      this.#account ?? this.#getSigner().then((signer) => signer.getAddress())
-    );
+  setConnectedAccount(account: string | undefined) {
+    this.#account = account;
+  }
+
+  async getConnectedAccount(retreiveInjected = false): Promise<Address> {
+    return !retreiveInjected && this.#account
+      ? this.#account
+      : this.#getSigner().then((signer) => signer.getAddress());
   }
 
   async switchChainId(chainId: number): Promise<providers.Provider> {

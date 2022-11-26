@@ -93,7 +93,7 @@ export abstract class Module {
     return this.evmcrispr.switchChainId(chainId);
   }
 
-  async getConnectedAccount(): Promise<Address> {
-    return this.evmcrispr.getConnectedAccount();
+  async getConnectedAccount(retreiveInjected?: boolean): Promise<Address> {
+    return this.evmcrispr.getConnectedAccount(retreiveInjected);
   }
 }
