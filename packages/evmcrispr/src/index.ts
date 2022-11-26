@@ -8,11 +8,6 @@ export {
   commands as stdCommands,
   helpers as stdHelpers,
 } from './modules/std';
-export {
-  ModuleConstructor as AragonOSConstructor,
-  commands as aragonosCommands,
-  helpers as aragonosHelpers,
-} from './modules/aragonos';
 
 export { BindingsManager } from './BindingsManager';
 

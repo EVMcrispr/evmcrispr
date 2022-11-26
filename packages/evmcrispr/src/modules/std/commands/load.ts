@@ -6,11 +6,6 @@ import type {
   ICommand,
 } from '../../../types';
 import { BindingsSpace, NodeType } from '../../../types';
-import { AragonOS } from '../../aragonos/AragonOS';
-import {
-  commands as aragonosCommands,
-  helpers as aragonosHelpers,
-} from '../../aragonos/';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 
@@ -56,21 +51,21 @@ export const load: ICommand<Std> = {
         throw new ErrorException(`alias already used for module ${m.name}`);
       }
     }
-
-    switch (moduleName) {
-      case 'aragonos':
-        module.modules.push(
-          new AragonOS(
-            module.bindingsManager,
-            module.nonces,
-            module.evmcrispr,
-            module.ipfsResolver,
-            moduleAlias,
-          ),
-        );
-        return;
-      default:
-        throw new ErrorException(`module ${moduleName} not found`);
+    try {
+      const { ModuleConstructor } = await import(
+        `../../${moduleName}/index.ts`
+      );
+      module.modules.push(
+        new ModuleConstructor(
+          module.bindingsManager,
+          module.nonces,
+          module.evmcrispr,
+          module.ipfsResolver,
+          moduleAlias,
+        ),
+      );
+    } catch (e) {
+      throw new ErrorException(`module ${moduleName} not found`);
     }
   },
   buildCompletionItemsForArg(argIndex, nodeArgs, _, caretPos) {
@@ -122,20 +117,13 @@ export const load: ICommand<Std> = {
     try {
       let commands: Commands, helpers: HelperFunctions;
 
-      // TODO: Replace with dynamic imports after moving aragonOS to its own package
-      switch (moduleName) {
-        /**
-         * Import the modules statically for the moment as
-         * Fleek complains about dynamic imports
-         */
-        case 'aragonos':
-          {
-            commands = aragonosCommands as Commands;
-            helpers = aragonosHelpers as HelperFunctions;
-          }
-          break;
-        default:
-          return;
+      try {
+        const { commands: moduleCommands, helpers: moduleHelpers } =
+          await import(`../../${moduleName}/index.ts`);
+        commands = moduleCommands as Commands;
+        helpers = moduleHelpers as HelperFunctions;
+      } catch (e) {
+        throw new ErrorException(`Module ${moduleName} not found.`);
       }
 
       // Cache module

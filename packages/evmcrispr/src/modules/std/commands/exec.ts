@@ -22,7 +22,7 @@ import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 import type { HelperFunctionNode } from '../../..';
-import { erc20ABI } from '../../aragonos/abis';
+import { erc20ABI } from '../../../../abis';
 
 const { ABI, ADDR } = BindingsSpace;
 
