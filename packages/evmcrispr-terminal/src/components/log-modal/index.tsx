@@ -10,6 +10,10 @@ import {
   Stack,
 } from '@chakra-ui/react';
 
+import ReactMarkdown from 'react-markdown';
+import ChakraUIRenderer from 'chakra-ui-markdown-renderer';
+import remarkGfm from 'remark-gfm';
+
 const status = (log: string) => {
   return log.startsWith(':success:')
     ? 'success'
@@ -51,11 +55,18 @@ export default function LogModal({
             {logs.map((log, i) => (
               <Alert key={i} status={status(log)}>
                 <AlertIcon />
-                {stripString(log)}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={ChakraUIRenderer()}
+                  linkTarget="_blank"
+                >
+                  {stripString(log)}
+                </ReactMarkdown>
               </Alert>
             ))}
           </Stack>
         </ModalBody>
+        linkTarget
       </ModalContent>
     </Modal>
   );
