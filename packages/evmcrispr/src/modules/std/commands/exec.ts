@@ -29,7 +29,7 @@ const { ABI, ADDR } = BindingsSpace;
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ['value']);
+    checkOpts(c, ['value', 'from']);
 
     const [targetNode, signatureNode, ...rest] = c.args;
 
@@ -40,6 +40,7 @@ export const exec: ICommand<Std> = {
     ]);
 
     const value = await getOptValue(c, 'value', interpretNode);
+    const from = await getOptValue(c, 'from', interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -47,6 +48,12 @@ export const exec: ICommand<Std> = {
     if (!utils.isAddress(contractAddress)) {
       throw new ErrorException(
         `expected a valid target address, but got ${contractAddress}`,
+      );
+    }
+
+    if (from && !utils.isAddress(from)) {
+      throw new ErrorException(
+        `expected a valid from address, but got ${from}`,
       );
     }
 
@@ -103,6 +110,10 @@ export const exec: ICommand<Std> = {
         throw new ErrorException(`expected a valid value, but got ${value}`);
       }
       execAction.value = value.toString();
+    }
+
+    if (from) {
+      execAction.from = from;
     }
 
     return [execAction];

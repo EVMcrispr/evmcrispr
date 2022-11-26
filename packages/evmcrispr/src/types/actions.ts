@@ -14,6 +14,11 @@ export interface TransactionAction {
    * The ether which needs to be sent along with the action (in wei).
    */
   value?: string | number;
+
+  /**
+   * The sender address. It can only be used in contexts where you can choose who is sending the transaction.
+   */
+  from?: string;
 }
 
 export interface ProviderAction {
