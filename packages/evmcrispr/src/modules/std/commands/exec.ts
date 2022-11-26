@@ -31,13 +31,12 @@ export const exec: ICommand<Std> = {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
     checkOpts(c, ['value']);
 
-    const targetNode = c.args.shift()!;
-    const signatureNode = c.args.shift()!;
+    const [targetNode, signatureNode, ...rest] = c.args;
 
     const [contractAddress, signature, params] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
       interpretNode(signatureNode, { treatAsLiteral: true }),
-      interpretNodes(c.args),
+      interpretNodes(rest),
     ]);
 
     const value = await getOptValue(c, 'value', interpretNode);

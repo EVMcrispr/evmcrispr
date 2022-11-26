@@ -12,12 +12,11 @@ export const get: HelperFunction<Std> = async (
 ) => {
   checkArgsLength(h, { type: ComparisonType.Greater, minValue: 2 });
 
-  const addressNode = h.args.shift()!;
-  const abiNode = h.args.shift()!;
+  const [addressNode, abiNode, ...rest] = h.args;
   const [address, abi, params] = await Promise.all([
     interpretNode(addressNode),
     interpretNode(abiNode, { treatAsLiteral: true }),
-    interpretNodes(h.args),
+    interpretNodes(rest),
   ]);
 
   if (!utils.isAddress(address)) {

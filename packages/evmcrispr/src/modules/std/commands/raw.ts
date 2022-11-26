@@ -13,9 +13,7 @@ export const raw: ICommand<Std> = {
   async run(_, c, { interpretNode }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
 
-    const targetNode = c.args.shift()!;
-    const dataNode = c.args.shift()!;
-    const valueNode = c.args.shift();
+    const [targetNode, dataNode, valueNode] = c.args;
 
     const [contractAddress, data, valueBN] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
