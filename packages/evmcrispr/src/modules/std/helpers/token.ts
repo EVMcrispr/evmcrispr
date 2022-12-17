@@ -1,6 +1,8 @@
 import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
+import { isAddress } from 'ethers/lib/utils';
+
 import { ErrorException } from '../../../errors';
 
 import type { Address, HelperFunction } from '../../../types';
@@ -27,10 +29,13 @@ const getTokenList = ({ bindingsManager }: Module): string => {
   return tokenList;
 };
 
-const _token = async (
+export const _token = async (
   module: Module,
-  tokenSymbol: string,
+  tokenSymbolOrAddress: string,
 ): Promise<Address> => {
+  if (isAddress(tokenSymbolOrAddress)) {
+    return tokenSymbolOrAddress;
+  }
   const chainId = await module.getChainId();
   const tokenList = getTokenList(module);
   const {
@@ -38,12 +43,13 @@ const _token = async (
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =
     await fetch(tokenList).then((r) => r.json());
   const tokenAddress = tokens.find(
-    (token) => token.symbol === tokenSymbol && token.chainId == chainId,
+    (token) =>
+      token.symbol === tokenSymbolOrAddress && token.chainId == chainId,
   )?.address;
 
   if (!tokenAddress) {
     throw new ErrorException(
-      `${tokenSymbol} not supported in ${tokenList} in chain ${chainId}.`,
+      `${tokenSymbolOrAddress} not supported in ${tokenList} in chain ${chainId}.`,
     );
   }
 
@@ -59,9 +65,9 @@ export const token: HelperFunction<Std> = async (
     type: ComparisonType.Equal,
     minValue: 1,
   });
-  const [tokenSymbol] = await interpretNodes(h.args);
+  const [tokenSymbolOrAddress] = await interpretNodes(h.args);
 
-  return _token(module, tokenSymbol);
+  return _token(module, tokenSymbolOrAddress);
 };
 
 export const tokenBalance: HelperFunction<Std> = async (
