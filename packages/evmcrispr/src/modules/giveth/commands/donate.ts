@@ -1,5 +1,4 @@
 import { BigNumber } from 'ethers';
-import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorException } from '../../../errors';
 
@@ -11,9 +10,9 @@ import { _token, _tokenAmount } from '../../std/helpers/token';
 import type { Giveth } from '../Giveth';
 import { _projectAddr } from '../helpers/projectAddr';
 
-const givethDonationRelayer = new Map([
-  [4, '0xb477A12254991fa5AADcE237402e8338B74Bed30'],
-  [100, '0xE4941fc4090a386B0a71762F58FdF638C85A21c1'],
+export const givethDonationRelayer = new Map([
+  [1, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
+  [100, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
 ]);
 
 export const donate: ICommand<Giveth> = {
@@ -22,19 +21,15 @@ export const donate: ICommand<Giveth> = {
 
     const [slug, amount, tokenSymbol] = await interpretNodes(c.args);
 
+    if (!BigNumber.isBigNumber(amount)) {
+      throw new ErrorException('amount is not a number');
+    }
+
     const [projAddr, projectId] = await _projectAddr(module, slug);
 
     const rawAmount = await _tokenAmount(module, tokenSymbol, amount);
 
     const tokenAddr = await _token(module, tokenSymbol);
-
-    if (!BigNumber.isBigNumber(amount)) {
-      throw new ErrorException('amount is not a number');
-    }
-
-    if (!isAddress(tokenAddr)) {
-      throw new ErrorException('token is not an address');
-    }
 
     const chainId = await module.getChainId();
 
