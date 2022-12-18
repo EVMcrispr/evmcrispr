@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
 import { isAddress } from 'ethers/lib/utils';
@@ -90,4 +90,38 @@ export const tokenBalance: HelperFunction<Std> = async (
   );
 
   return (await contract.balanceOf(holder)).toString();
+};
+
+export const _tokenToDecimals = async (
+  module: Module,
+  tokenSymbolOrAddress: string,
+  amount: BigNumber,
+) => {
+  const tokenAddr = await _token(module, tokenSymbolOrAddress);
+
+  const contract = new ethers.Contract(
+    tokenAddr,
+    ['function decimals() view returns (uint8)'],
+    await module.getProvider(),
+  );
+
+  const decimals = (await contract.decimals()).toString();
+  return amount.mul(BigNumber.from(10).pow(decimals)).toString();
+};
+
+export const tokenToDecimals: HelperFunction<Std> = async (
+  module,
+  h,
+  { interpretNodes },
+) => {
+  checkArgsLength(h, {
+    type: ComparisonType.Equal,
+    minValue: 2,
+  });
+  const [tokenSymbolOrAddress, amount] = await interpretNodes(h.args);
+
+  if (!BigNumber.isBigNumber(amount)) {
+    throw new ErrorException('amount is not a number');
+  }
+  return _tokenToDecimals(module, tokenSymbolOrAddress, amount);
 };
