@@ -28,6 +28,16 @@ describe('Std > helpers > @get(contractAddress, method, params?)', () => {
     expect(await interpret()).to.eq('Dai Stablecoin on xDai');
   });
 
+  it.skip('should interpret it correctly', async () => {
+    const sushiFarm = '0x44fA8E6f47987339850636F88629646662444217';
+    const [interpret] = await preparingExpression(
+      `@get(${sushiFarm},"poolInfo(uint256):(uint128,uint64,uint64):1",1)`,
+      signer,
+    );
+
+    expect(await interpret()).to.be.greaterThanOrEqual('1671364630');
+  });
+
   it('should interpret it correctly', async () => {
     const [interpret] = await preparingExpression(
       `@get(${targetAddress}, balanceOf(address):(uint), ${targetAddress})`,

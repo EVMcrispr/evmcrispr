@@ -25,12 +25,13 @@ export const get: HelperFunction<Std> = async (
     );
   }
 
-  const [body, returns] = abi.split(':');
+  const [body, returns, index] = abi.split(':');
   const contract = new Contract(
     address,
     [`function ${body} external view returns ${returns}`],
     await module.getProvider(),
   );
 
-  return contract[body](...params);
+  const result = await contract[body](...params);
+  return index ? result[index] : result;
 };
