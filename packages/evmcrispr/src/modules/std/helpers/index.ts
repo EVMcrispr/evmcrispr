@@ -5,7 +5,7 @@ import { get } from './get';
 import { id } from './id';
 import { ipfs } from './ipfs';
 import { me } from './me';
-import { token, tokenBalance } from './token';
+import { token, tokenBalance, tokenToDecimals } from './token';
 
 export const helpers: HelperFunctions<Std> = {
   date,
@@ -15,4 +15,5 @@ export const helpers: HelperFunctions<Std> = {
   me,
   token,
   ['token.balance']: tokenBalance,
+  ['token.toDecimals']: tokenToDecimals,
 };
