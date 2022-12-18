@@ -4,7 +4,7 @@ import { ErrorException } from '../../../errors';
 
 import type { ICommand } from '../../../types';
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
 
 import type { Tenderly } from '../Tenderly';
 
@@ -17,18 +17,18 @@ export const wait: ICommand<Tenderly> = {
 
     const [duration, period = BigNumber.from(1)] = await interpretNodes(c.args);
 
-    if (!BigNumber.isBigNumber(duration)) {
+    if (!isNumberish(duration)) {
       throw new ErrorException('duration must be a number');
     }
 
-    if (!BigNumber.isBigNumber(period)) {
+    if (!isNumberish(period)) {
       throw new ErrorException('period must be a number');
     }
 
     return [
       {
         method: 'evm_increaseBlocks',
-        params: [utils.hexValue(duration.div(period).sub(1))],
+        params: [utils.hexValue(BigNumber.from(duration).div(period).sub(1))],
       },
       {
         method: 'evm_increaseTime',

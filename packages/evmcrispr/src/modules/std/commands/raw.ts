@@ -1,4 +1,4 @@
-import { BigNumber, utils } from 'ethers';
+import { utils } from 'ethers';
 
 import { BindingsSpace } from '../../../types';
 import type { ICommand, TransactionAction } from '../../../types';
@@ -8,6 +8,7 @@ import {
   checkArgsLength,
   checkOpts,
   getOptValue,
+  isNumberish,
 } from '../../../utils';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
@@ -21,7 +22,7 @@ export const raw: ICommand<Std> = {
 
     const [targetNode, dataNode, valueNode] = c.args;
 
-    const [contractAddress, data, valueBN] = await Promise.all([
+    const [contractAddress, data, value] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
       interpretNode(dataNode, { treatAsLiteral: true }),
       valueNode ? interpretNode(valueNode) : undefined,
@@ -35,8 +36,8 @@ export const raw: ICommand<Std> = {
       );
     }
 
-    if (valueBN && !BigNumber.isBigNumber(valueBN)) {
-      throw new ErrorException(`expected a valid value, but got ${valueBN}`);
+    if (value && !isNumberish(value)) {
+      throw new ErrorException(`expected a valid value, but got ${value}`);
     }
 
     if (from && !utils.isAddress(from)) {
@@ -50,8 +51,8 @@ export const raw: ICommand<Std> = {
       data,
     };
 
-    if (valueBN) {
-      rawAction.value = valueBN.toString();
+    if (value) {
+      rawAction.value = value.toString();
     }
 
     if (from) {

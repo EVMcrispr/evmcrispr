@@ -5,7 +5,7 @@ import { ErrorException } from '../../../errors';
 import type { ICommand } from '../../../types';
 import { BindingsSpace } from '../../../types';
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
 
 import type { Tenderly } from '../Tenderly';
 
@@ -54,18 +54,17 @@ export const expect: ICommand<Tenderly> = {
       case '>=':
       case '<':
       case '<=':
-        if (
-          !BigNumber.isBigNumber(value) ||
-          !BigNumber.isBigNumber(expectedValue)
-        ) {
+        if (!isNumberish(value) || !isNumberish(expectedValue)) {
           throw new ErrorException(
             `Operator ${operator} must be used between two numbers`,
           );
         }
-        if (operator === '>') result = value.gt(expectedValue);
-        if (operator === '>=') result = value.gte(expectedValue);
-        if (operator === '<') result = value.lt(expectedValue);
-        if (operator === '<=') result = value.lte(expectedValue);
+        if (operator === '>') result = BigNumber.from(value).gt(expectedValue);
+        if (operator === '>=')
+          result = BigNumber.from(value).gte(expectedValue);
+        if (operator === '<') result = BigNumber.from(value).lt(expectedValue);
+        if (operator === '<=')
+          result = BigNumber.from(value).lte(expectedValue);
         break;
       default:
         throw new ErrorException(`Operator ${operator} not recognized`);

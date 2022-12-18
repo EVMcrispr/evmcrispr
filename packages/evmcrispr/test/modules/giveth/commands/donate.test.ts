@@ -6,7 +6,7 @@ import { givethDonationRelayer } from '../../../../src/modules/giveth/commands/d
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 
-describe('Giveth > commands > donate <slug> <amount> <tokenSymbol>', () => {
+describe('Giveth > commands > donate <slug> <amount> <token>', () => {
   let signer: Signer;
 
   before(async () => {
@@ -18,7 +18,7 @@ describe('Giveth > commands > donate <slug> <amount> <tokenSymbol>', () => {
       `
           load giveth
           set $token.tokenlist https://tokens.honeyswap.org
-          giveth:donate evmcrispr 1 HNY`,
+          giveth:donate evmcrispr @token.amount(HNY,1) @token(HNY)`,
       signer,
     );
 
