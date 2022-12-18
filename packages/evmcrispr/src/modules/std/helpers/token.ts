@@ -92,7 +92,7 @@ export const tokenBalance: HelperFunction<Std> = async (
   return (await contract.balanceOf(holder)).toString();
 };
 
-export const _tokenToDecimals = async (
+export const _tokenAmount = async (
   module: Module,
   tokenSymbolOrAddress: string,
   amount: BigNumber,
@@ -109,7 +109,7 @@ export const _tokenToDecimals = async (
   return amount.mul(BigNumber.from(10).pow(decimals)).toString();
 };
 
-export const tokenToDecimals: HelperFunction<Std> = async (
+export const tokenAmount: HelperFunction<Std> = async (
   module,
   h,
   { interpretNodes },
@@ -123,5 +123,5 @@ export const tokenToDecimals: HelperFunction<Std> = async (
   if (!BigNumber.isBigNumber(amount)) {
     throw new ErrorException('amount is not a number');
   }
-  return _tokenToDecimals(module, tokenSymbolOrAddress, amount);
+  return _tokenAmount(module, tokenSymbolOrAddress, amount);
 };
