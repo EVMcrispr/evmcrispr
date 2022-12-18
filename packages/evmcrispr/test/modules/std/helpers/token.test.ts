@@ -69,7 +69,7 @@ describe('Std > helpers > @token.balance(tokenSymbol, account)', () => {
   );
 });
 
-describe('Std > helpers > @token.toDecimals(tokenSymbol, amount)', () => {
+describe('Std > helpers > @token.amount(tokenSymbol, amount)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
@@ -79,7 +79,7 @@ describe('Std > helpers > @token.toDecimals(tokenSymbol, amount)', () => {
 
   it('should interpret it correctly', async () => {
     const [interpret] = await preparingExpression(
-      '@token.toDecimals(DAI, 1)',
+      '@token.amount(DAI, 1)',
       signer,
     );
 
@@ -88,7 +88,7 @@ describe('Std > helpers > @token.toDecimals(tokenSymbol, amount)', () => {
 
   itChecksInvalidArgsLength(
     NodeType.HelperFunctionExpression,
-    '@token.toDecimals',
+    '@token.amount',
     ['DAI', '1'],
     {
       type: ComparisonType.Equal,

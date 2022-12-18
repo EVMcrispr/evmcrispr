@@ -6,7 +6,7 @@ import { ErrorException } from '../../../errors';
 import type { ICommand } from '../../../types';
 
 import { ComparisonType, checkArgsLength, encodeAction } from '../../../utils';
-import { _token, _tokenToDecimals } from '../../std/helpers/token';
+import { _token, _tokenAmount } from '../../std/helpers/token';
 
 import type { Giveth } from '../Giveth';
 import { _projectAddr } from '../helpers/projectAddr';
@@ -24,7 +24,7 @@ export const donate: ICommand<Giveth> = {
 
     const [projAddr, projectId] = await _projectAddr(module, slug);
 
-    const rawAmount = await _tokenToDecimals(module, tokenSymbol, amount);
+    const rawAmount = await _tokenAmount(module, tokenSymbol, amount);
 
     const tokenAddr = await _token(module, tokenSymbol);
 
