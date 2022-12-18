@@ -1,10 +1,11 @@
-import { BigNumber, constants, utils } from 'ethers';
+import { constants, utils } from 'ethers';
 
 import {
   ComparisonType,
   buildNonceForAddress,
   calculateNewProxyAddress,
   checkArgsLength,
+  isNumberish,
 } from '../../../utils';
 import { ErrorException } from '../../../errors';
 import type { Address, ICommand } from '../../../types';
@@ -37,7 +38,7 @@ export const newToken: ICommand<AragonOS> = {
     const [name, symbol, controller, decimals = 18, transferable = true] =
       await interpretNodes(c.args);
 
-    if (!BigNumber.isBigNumber(decimals) && !Number.isInteger(decimals)) {
+    if (!isNumberish(decimals)) {
       throw new ErrorException(
         `invalid decimals. Expected an integer number, but got ${decimals.toString()}`,
       );

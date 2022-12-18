@@ -7,7 +7,7 @@ import { ErrorException } from '../../../errors';
 
 import type { Address, HelperFunction } from '../../../types';
 import { BindingsSpace } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
 import type { Module } from '../../../Module';
 import type { Std } from '../Std';
 
@@ -96,7 +96,7 @@ export const _tokenAmount = async (
   module: Module,
   tokenSymbolOrAddress: string,
   amount: BigNumber,
-) => {
+): Promise<string> => {
   const tokenAddr = await _token(module, tokenSymbolOrAddress);
 
   const contract = new ethers.Contract(
@@ -120,7 +120,7 @@ export const tokenAmount: HelperFunction<Std> = async (
   });
   const [tokenSymbolOrAddress, amount] = await interpretNodes(h.args);
 
-  if (!BigNumber.isBigNumber(amount)) {
+  if (!isNumberish(amount)) {
     throw new ErrorException('amount is not a number');
   }
   return _tokenAmount(module, tokenSymbolOrAddress, amount);

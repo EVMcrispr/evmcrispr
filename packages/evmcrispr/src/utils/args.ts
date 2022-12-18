@@ -1,3 +1,5 @@
+import { BigNumber } from 'ethers';
+
 import { ErrorException } from '../errors';
 import type {
   CallExpressionNode,
@@ -105,3 +107,7 @@ export const getOptValue = (
 
   return interpretNode(opt.value);
 };
+
+export function isNumberish(number: BigNumber | string): boolean {
+  return BigNumber.isBigNumber(number) || /^\d+$/.test(number);
+}

@@ -1,11 +1,15 @@
-import { BigNumber } from 'ethers';
+import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorException } from '../../../errors';
 
 import type { ICommand } from '../../../types';
 
-import { ComparisonType, checkArgsLength, encodeAction } from '../../../utils';
-import { _token, _tokenAmount } from '../../std/helpers/token';
+import {
+  ComparisonType,
+  checkArgsLength,
+  encodeAction,
+  isNumberish,
+} from '../../../utils';
 
 import type { Giveth } from '../Giveth';
 import { _projectAddr } from '../helpers/projectAddr';
@@ -19,17 +23,17 @@ export const donate: ICommand<Giveth> = {
   async run(module, c, { interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Equal, minValue: 3 });
 
-    const [slug, amount, tokenSymbol] = await interpretNodes(c.args);
+    const [slug, amount, tokenAddr] = await interpretNodes(c.args);
 
-    if (!BigNumber.isBigNumber(amount)) {
+    if (!isNumberish(amount)) {
       throw new ErrorException('amount is not a number');
     }
 
+    if (!isAddress(tokenAddr)) {
+      throw new ErrorException('token is not an address');
+    }
+
     const [projAddr, projectId] = await _projectAddr(module, slug);
-
-    const rawAmount = await _tokenAmount(module, tokenSymbol, amount);
-
-    const tokenAddr = await _token(module, tokenSymbol);
 
     const chainId = await module.getChainId();
 
@@ -40,12 +44,12 @@ export const donate: ICommand<Giveth> = {
     return [
       encodeAction(tokenAddr, 'approve(address,uint256)', [
         givethDonationRelayer.get(chainId)!,
-        rawAmount,
+        amount,
       ]),
       encodeAction(
         givethDonationRelayer.get(chainId)!,
         'sendDonation(address,address,uint256,uint256)',
-        [tokenAddr, projAddr, rawAmount, projectId],
+        [tokenAddr, projAddr, amount, projectId],
       ),
     ];
   },
