@@ -1,4 +1,4 @@
-import { BigNumber, utils } from 'ethers';
+import { utils } from 'ethers';
 
 import { Interface } from 'ethers/lib/utils';
 
@@ -16,31 +16,32 @@ import {
   getOptValue,
   insideNodeLine,
   interpretNodeSync,
+  isNumberish,
   tryAndCacheNotFound,
 } from '../../../utils';
 import { fetchAbi } from '../../../utils/abis';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 import type { HelperFunctionNode } from '../../..';
-import { erc20ABI } from '../../aragonos/abis';
+import { erc20ABI } from '../../../../abis';
 
 const { ABI, ADDR } = BindingsSpace;
 
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ['value']);
+    checkOpts(c, ['value', 'from']);
 
-    const targetNode = c.args.shift()!;
-    const signatureNode = c.args.shift()!;
+    const [targetNode, signatureNode, ...rest] = c.args;
 
     const [contractAddress, signature, params] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
       interpretNode(signatureNode, { treatAsLiteral: true }),
-      interpretNodes(c.args),
+      interpretNodes(rest),
     ]);
 
     const value = await getOptValue(c, 'value', interpretNode);
+    const from = await getOptValue(c, 'from', interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -48,6 +49,12 @@ export const exec: ICommand<Std> = {
     if (!utils.isAddress(contractAddress)) {
       throw new ErrorException(
         `expected a valid target address, but got ${contractAddress}`,
+      );
+    }
+
+    if (from && !utils.isAddress(from)) {
+      throw new ErrorException(
+        `expected a valid from address, but got ${from}`,
       );
     }
 
@@ -100,10 +107,14 @@ export const exec: ICommand<Std> = {
     const execAction = encodeAction(targetAddress, finalSignature, params);
 
     if (value) {
-      if (!BigNumber.isBigNumber(value)) {
+      if (!isNumberish(value)) {
         throw new ErrorException(`expected a valid value, but got ${value}`);
       }
       execAction.value = value.toString();
+    }
+
+    if (from) {
+      execAction.from = from;
     }
 
     return [execAction];

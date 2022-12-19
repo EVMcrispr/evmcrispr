@@ -12,12 +12,11 @@ export const get: HelperFunction<Std> = async (
 ) => {
   checkArgsLength(h, { type: ComparisonType.Greater, minValue: 2 });
 
-  const addressNode = h.args.shift()!;
-  const abiNode = h.args.shift()!;
+  const [addressNode, abiNode, ...rest] = h.args;
   const [address, abi, params] = await Promise.all([
     interpretNode(addressNode),
     interpretNode(abiNode, { treatAsLiteral: true }),
-    interpretNodes(h.args),
+    interpretNodes(rest),
   ]);
 
   if (!utils.isAddress(address)) {
@@ -26,12 +25,13 @@ export const get: HelperFunction<Std> = async (
     );
   }
 
-  const [body, returns] = abi.split(':');
+  const [body, returns, index] = abi.split(':');
   const contract = new Contract(
     address,
     [`function ${body} external view returns ${returns}`],
     await module.getProvider(),
   );
 
-  return contract[body](...params);
+  const result = await contract[body](...params);
+  return index ? result[index] : result;
 };

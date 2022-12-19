@@ -22,6 +22,9 @@ import QmQDyPpFCDqquSNQU1fHnmhURKBTpxdqsiuQYfX57mXmzC from './QmQDyPpFCDqquSNQU1
 import QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf from './QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf.json';
 import QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z from './QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z.json';
 import QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG from './QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG.json';
+import QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk from './QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk.json';
+import QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU from './QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU.json';
+import QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn from './QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn.json';
 
 export const artifacts = {
   QmYXRbeeit6mDGkKHHBrtfAVzVCcpfy7mRKh3q4CZwCBHg,
@@ -47,4 +50,7 @@ export const artifacts = {
   QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf,
   QmWfyidPaB8n722exwHMJuSXPd1nyqvZyQvwaKeh4jRr4z,
   QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG,
+  QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk,
+  QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU,
+  QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn,
 };

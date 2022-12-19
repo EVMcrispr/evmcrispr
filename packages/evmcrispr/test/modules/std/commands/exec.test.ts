@@ -17,7 +17,7 @@ import { findStdCommandNode } from '../../../test-helpers/std';
 
 const ETHERSCAN_API = process.env.ETHERSCAN_API;
 
-describe('Std > commands > exec <target> <fnSignature> [<...params>]', () => {
+describe('Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]', () => {
   let signer: Signer;
 
   before(async () => {
@@ -62,6 +62,47 @@ describe('Std > commands > exec <target> <fnSignature> [<...params>]', () => {
       {
         to: target,
         data: encodeActCall(fnSig, resolvedParams),
+        value: '1000000000000000000',
+      },
+    ];
+
+    expect(result).eql(expectedCallAction);
+  });
+
+  it('should return a correct exec action with from address', async () => {
+    const interpreter = createInterpreter(
+      `exec ${target} ${fnSig} ${params.join(' ')} --from ${target}`,
+      signer,
+    );
+
+    const result = await interpreter.interpret();
+
+    const expectedCallAction: Action[] = [
+      {
+        to: target,
+        data: encodeActCall(fnSig, resolvedParams),
+        from: target,
+      },
+    ];
+
+    expect(result).eql(expectedCallAction);
+  });
+
+  it('should return a correct exec action with value and from address', async () => {
+    const interpreter = createInterpreter(
+      `exec ${target} ${fnSig} ${params.join(
+        ' ',
+      )} --value 1e18 --from ${target}`,
+      signer,
+    );
+
+    const result = await interpreter.interpret();
+
+    const expectedCallAction: Action[] = [
+      {
+        to: target,
+        data: encodeActCall(fnSig, resolvedParams),
+        from: target,
         value: '1000000000000000000',
       },
     ];
@@ -202,6 +243,20 @@ describe('Std > commands > exec <target> <fnSignature> [<...params>]', () => {
     );
     const c = findStdCommandNode(interpreter.ast, 'exec')!;
     const error = new CommandError(c, `expected a valid value, but got tata`);
+
+    await expectThrowAsync(() => interpreter.interpret(), error);
+  });
+
+  it('should fail when providing invalid from address', async () => {
+    const interpreter = createInterpreter(
+      `exec ${target} ${fnSig} @me 1e18 --from tata`,
+      signer,
+    );
+    const c = findStdCommandNode(interpreter.ast, 'exec')!;
+    const error = new CommandError(
+      c,
+      `expected a valid from address, but got tata`,
+    );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

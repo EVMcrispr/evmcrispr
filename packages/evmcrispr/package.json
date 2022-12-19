@@ -1,7 +1,7 @@
 {
   "name": "@1hive/evmcrispr",
-  "version": "0.8.0",
-  "codename": "modular consigliere",
+  "version": "0.9.0",
+  "codename": "morphean simulation",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",

@@ -34,6 +34,7 @@ const DAO_ADDRESSES: string[] = [
   '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8', // TEC
   '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155', // 1hive,
   '0xb56a8003a8d2efab7d2d4c10617d787e9e4b582c', // TEC Hatch
+  '0xA1514067E6fE7919FB239aF5259FfF120902b4f9', // nrGIV
 ];
 const REPOS: [string, string, string[]][] = [
   ['token-manager', 'aragonpm.eth', ['1,0,2']],

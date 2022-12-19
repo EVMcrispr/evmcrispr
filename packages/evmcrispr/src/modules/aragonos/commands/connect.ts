@@ -13,7 +13,7 @@ import type {
   Nullable,
   TransactionAction,
 } from '../../../types';
-import { BindingsSpace, NodeType, isProviderAction } from '../../../types';
+import { BindingsSpace, NodeType, isSwitchAction } from '../../../types';
 import { AragonDAO, isAragonDAO } from '../AragonDAO';
 import type { AragonOS } from '../AragonOS';
 import {
@@ -247,7 +247,7 @@ export const connect: ICommand<AragonOS> = {
       blockInitializer: setDAOContext(module, dao),
     })) as Action[];
 
-    if (actions.find((a) => isProviderAction(a))) {
+    if (actions.find((a) => isSwitchAction(a))) {
       throw new ErrorException(
         `can't switch networks inside a connect command`,
       );

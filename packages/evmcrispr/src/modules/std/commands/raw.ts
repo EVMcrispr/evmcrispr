@@ -1,9 +1,15 @@
-import { BigNumber, utils } from 'ethers';
+import { utils } from 'ethers';
 
 import { BindingsSpace } from '../../../types';
-import type { ICommand } from '../../../types';
+import type { ICommand, TransactionAction } from '../../../types';
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import {
+  ComparisonType,
+  checkArgsLength,
+  checkOpts,
+  getOptValue,
+  isNumberish,
+} from '../../../utils';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
 
@@ -12,16 +18,17 @@ const { ADDR } = BindingsSpace;
 export const raw: ICommand<Std> = {
   async run(_, c, { interpretNode }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
+    checkOpts(c, ['from']);
 
-    const targetNode = c.args.shift()!;
-    const dataNode = c.args.shift()!;
-    const valueNode = c.args.shift();
+    const [targetNode, dataNode, valueNode] = c.args;
 
-    const [contractAddress, data, valueBN] = await Promise.all([
+    const [contractAddress, data, value] = await Promise.all([
       interpretNode(targetNode, { allowNotFoundError: true }),
       interpretNode(dataNode, { treatAsLiteral: true }),
       valueNode ? interpretNode(valueNode) : undefined,
     ]);
+
+    const from = await getOptValue(c, 'from', interpretNode);
 
     if (!utils.isAddress(contractAddress)) {
       throw new ErrorException(
@@ -29,20 +36,28 @@ export const raw: ICommand<Std> = {
       );
     }
 
-    if (valueBN && !BigNumber.isBigNumber(valueBN)) {
-      throw new ErrorException(`expected a valid value, but got ${valueBN}`);
+    if (value && !isNumberish(value)) {
+      throw new ErrorException(`expected a valid value, but got ${value}`);
     }
 
-    const rawAction = valueBN
-      ? {
-          to: contractAddress,
-          data,
-          value: valueBN.toString(),
-        }
-      : {
-          to: contractAddress,
-          data,
-        };
+    if (from && !utils.isAddress(from)) {
+      throw new ErrorException(
+        `expected a valid from address, but got ${from}`,
+      );
+    }
+
+    const rawAction: TransactionAction = {
+      to: contractAddress,
+      data,
+    };
+
+    if (value) {
+      rawAction.value = value.toString();
+    }
+
+    if (from) {
+      rawAction.from = from;
+    }
 
     return [rawAction];
   },

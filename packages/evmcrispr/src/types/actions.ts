@@ -14,6 +14,11 @@ export interface TransactionAction {
    * The ether which needs to be sent along with the action (in wei).
    */
   value?: string | number;
+
+  /**
+   * The sender address. It can only be used in contexts where you can choose who is sending the transaction.
+   */
+  from?: string;
 }
 
 export interface ProviderAction {
@@ -27,4 +32,9 @@ export type Action = TransactionAction | ProviderAction;
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function isProviderAction(action: any): action is ProviderAction {
   return action.method && action.params;
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function isSwitchAction(action: any): boolean {
+  return action.method === 'wallet_switchEthereumChain';
 }

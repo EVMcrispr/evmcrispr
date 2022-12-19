@@ -10,6 +10,7 @@ import { runInterpreterCases } from '../test-helpers/cas11';
 
 describe('Interpreter - primaries', async () => {
   let signer: Signer;
+  const getSigner = async () => signer;
 
   before(async () => {
     [signer] = await ethers.getSigners();
@@ -24,7 +25,7 @@ describe('Interpreter - primaries', async () => {
         '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
       ];
 
-      await runInterpreterCases(c, signer);
+      await runInterpreterCases(c, getSigner);
     });
 
     it('should interpret a boolean node correctly', async () => {
@@ -39,7 +40,7 @@ describe('Interpreter - primaries', async () => {
         [{ type: NodeType.BoolLiteral, value: true }, true],
       ];
 
-      await runInterpreterCases(cases, signer);
+      await runInterpreterCases(cases, getSigner);
     });
 
     it('should intepret a bytes node correctly', async () => {
@@ -54,7 +55,7 @@ describe('Interpreter - primaries', async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, signer);
+      await runInterpreterCases(cases, getSigner);
     });
 
     it('should intepret a numeric node correctly', async () => {
@@ -132,7 +133,7 @@ describe('Interpreter - primaries', async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, signer);
+      await runInterpreterCases(cases, getSigner);
     });
 
     it('should intepret a string node correctly', async () => {
@@ -146,7 +147,7 @@ describe('Interpreter - primaries', async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, signer);
+      await runInterpreterCases(cases, getSigner);
     });
   });
 
@@ -169,7 +170,7 @@ describe('Interpreter - primaries', async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, signer);
+      await runInterpreterCases(cases, getSigner);
     });
     it('should interpret a variable correctly');
     it('should fail when intepreting a non-existent variable');

@@ -21,39 +21,33 @@ import LogModal from '../log-modal';
 import ErrorMsg from './error-msg';
 import ShareButton from '../share-button';
 
-// TODO: Migrate logic to evmcrispr
-const executeActions = async (
-  actions: Action[],
+const executeAction = async (
+  action: Action,
   connector: Connector,
   options?: ForwardOptions,
-): Promise<providers.TransactionReceipt[]> => {
-  const txs = [];
-
+): Promise<providers.TransactionReceipt | void> => {
   if (!(connector instanceof InjectedConnector)) {
     throw new Error(
       `Provider action-returning commands are only supported by injected wallets (e.g. Metamask)`,
     );
   }
 
-  for (const action of actions) {
-    if (isProviderAction(action)) {
-      const [chainParam] = action.params;
-
-      await connector.switchChain(Number(chainParam.chainId));
-    } else {
-      const signer = await connector.getSigner();
-      txs.push(
-        await (
-          await signer.sendTransaction({
-            ...action,
-            gasPrice: options?.gasPrice,
-            gasLimit: options?.gasLimit,
-          })
-        ).wait(),
-      );
+  if (isProviderAction(action)) {
+    const [chainParam] = action.params;
+    const chain = await connector.switchChain(Number(chainParam.chainId));
+    if (chain.id !== Number(chainParam.chainId)) {
+      throw new Error('Incorrect Chain ID.');
     }
+  } else {
+    const signer = await connector.getSigner();
+    return (
+      await signer.sendTransaction({
+        ...action,
+        gasPrice: options?.gasPrice,
+        gasLimit: options?.gasLimit,
+      })
+    ).wait();
   }
-  return txs;
 };
 
 type ActionButtonsType = {
@@ -120,15 +114,15 @@ export default function ActionButtons({
         return;
       }
 
-      const actions = await new EVMcrispr(ast, signer)
+      await new EVMcrispr(ast, () => activeConnector.getSigner())
         .registerLogListener(logListener)
-        .interpret();
-
-      await executeActions(
-        actions,
-        activeConnector,
-        maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
-      );
+        .interpret(async (action) => {
+          await executeAction(
+            action,
+            activeConnector,
+            maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
+          );
+        });
 
       // TODO: adapt to cas11 changes
       // const chainId = (await signer.provider?.getNetwork())?.chainId;

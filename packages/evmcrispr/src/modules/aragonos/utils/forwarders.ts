@@ -1,11 +1,11 @@
 import type { BigNumber } from 'ethers';
 import { Contract, constants, utils } from 'ethers';
 
-import { erc20ABI } from '../abis';
+import { erc20ABI } from '../../../../abis';
 import { ErrorInvalid } from '../../../errors';
 import type { Action, TransactionAction } from '../../../types';
 import { encodeActCall, encodeCallScript } from './evmscripts';
-import type { AragonOS } from '../AragonOS';
+import type { Module } from '../../..';
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -52,7 +52,7 @@ export const forwarderABI = [
 ];
 
 export const batchForwarderActions = async (
-  module: AragonOS,
+  module: Module,
   forwarderActions: TransactionAction[],
   forwarders: string[],
   context?: string,

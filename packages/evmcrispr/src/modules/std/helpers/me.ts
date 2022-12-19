@@ -8,5 +8,5 @@ export const me: HelperFunction<Std> = async (module, h) => {
     minValue: 0,
   });
 
-  return module.getConnectedAccount();
+  return module.getConnectedAccount(true);
 };

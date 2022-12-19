@@ -66,19 +66,21 @@ export class EVMcrispr {
   #nonces: Record<string, number>;
   #account: Address | undefined;
   #chainId: number | undefined;
-  #signer: Signer;
+  #getSigner: () => Promise<Signer>;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #prevMessages: string[];
 
-  constructor(ast: Cas11AST, signer: Signer) {
+  #provider: providers.Provider | undefined;
+
+  constructor(ast: Cas11AST, getSigner: () => Promise<Signer>) {
     this.ast = ast;
 
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
     this.#setDefaultBindings();
-    this.#signer = signer;
+    this.#getSigner = getSigner;
     this.#logListeners = [];
     this.#prevMessages = [];
 
@@ -94,13 +96,31 @@ export class EVMcrispr {
   async getChainId(): Promise<number> {
     return (
       this.#chainId ??
-      this.#signer.provider!.getNetwork().then(({ chainId }: any) => chainId)
+      this.#getSigner()
+        .then((signer) => signer.provider!.getNetwork())
+        .then(({ chainId }: any) => chainId)
     );
   }
 
+  setProvider(provider: providers.Provider | undefined): void {
+    this.#provider = provider;
+  }
+
   async getProvider(): Promise<providers.Provider> {
-    if (!this.#chainId) {
-      return this.#signer.provider!;
+    if (this.#provider) {
+      return this.#provider;
+    }
+    const signer = await this.#getSigner();
+    if (
+      !this.#chainId ||
+      this.#chainId ===
+        Number(
+          await signer
+            .provider!.getNetwork()
+            .then(({ chainId }: any) => chainId),
+        )
+    ) {
+      return signer.provider!;
     }
     switch (this.#chainId) {
       case 100:
@@ -113,8 +133,14 @@ export class EVMcrispr {
     }
   }
 
-  async getConnectedAccount(): Promise<Address> {
-    return this.#account ?? this.#signer.getAddress();
+  setConnectedAccount(account: string | undefined) {
+    this.#account = account;
+  }
+
+  async getConnectedAccount(retreiveInjected = false): Promise<Address> {
+    return !retreiveInjected && this.#account
+      ? this.#account
+      : this.#getSigner().then((signer) => signer.getAddress());
   }
 
   async switchChainId(chainId: number): Promise<providers.Provider> {
@@ -143,8 +169,12 @@ export class EVMcrispr {
     return [this.#std, ...this.#modules];
   }
 
-  async interpret(): Promise<Action[]> {
-    const results = await this.interpretNodes(this.ast.body, true);
+  async interpret(
+    actionCallback?: (action: Action) => Promise<void>,
+  ): Promise<Action[]> {
+    const results = await this.interpretNodes(this.ast.body, true, {
+      actionCallback,
+    });
 
     return results.flat().filter((result) => typeof result !== 'undefined');
   }
@@ -300,15 +330,15 @@ export class EVMcrispr {
 
   #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
     n,
-    { blockInitializer, blockModule } = {},
+    opts = {},
   ) => {
-    this.bindingsManager.enterScope(blockModule);
+    this.bindingsManager.enterScope(opts.blockModule);
 
-    if (blockInitializer) {
-      await blockInitializer();
+    if (opts.blockInitializer) {
+      await opts.blockInitializer();
     }
 
-    const results = await this.interpretNodes(n.body, true);
+    const results = await this.interpretNodes(n.body, true, opts);
 
     this.bindingsManager.exitScope();
 
@@ -359,7 +389,10 @@ export class EVMcrispr {
     return res;
   };
 
-  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (c) => {
+  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
+    c,
+    { actionCallback } = {},
+  ) => {
     let module: Module | undefined = this.#std;
     const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
@@ -382,7 +415,14 @@ export class EVMcrispr {
       res = await module.interpretCommand(c, {
         interpretNode: this.interpretNode,
         interpretNodes: this.interpretNodes,
+        actionCallback,
       });
+
+      if (res && actionCallback) {
+        for (const action of res) {
+          await actionCallback(action);
+        }
+      }
     } catch (err) {
       // Avoid wrapping a node error insde another node error
       if (err instanceof NodeError) {

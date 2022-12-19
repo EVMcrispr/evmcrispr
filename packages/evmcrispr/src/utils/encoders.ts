@@ -57,7 +57,10 @@ export const encodeCalldata = (
           .hexlify(utils.toUtf8Bytes(paramValue))
           .padEnd(parseInt(type.match(/^bytes(\d*)$/)![1] || '0') * 2 + 2, '0');
       }
-      utils.defaultAbiCoder.encode([paramType], [paramValue]);
+      utils.defaultAbiCoder.encode(
+        [paramType.format(utils.FormatTypes.full)],
+        [paramValue],
+      );
       encodedParams.push(paramValue);
     } catch (err) {
       const err_ = err as Error;
