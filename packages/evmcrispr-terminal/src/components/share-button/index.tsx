@@ -79,6 +79,7 @@ export default function ShareButton({
         aria-label={'Share link'}
         variant={'outline'}
         onClick={handleShare}
+        size={'md'}
       />
       <ShareModal
         isOpen={isShareModalOpen}

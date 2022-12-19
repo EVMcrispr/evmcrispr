@@ -19,7 +19,7 @@ const sizes = {
     py: 3, // <-- py is short for paddingTop and paddingBottom
   }),
   md: defineStyle({
-    fontSize: 'md',
+    fontSize: 'xl',
     px: 6, // <-- these values are tokens from the design system
     py: 4, // <-- these values are tokens from the design system
   }),
@@ -27,6 +27,7 @@ const sizes = {
     fontSize: '2xl',
     px: 6,
     py: 3,
+    minWidth: 48,
   }),
 };
 
@@ -74,6 +75,40 @@ const outlineVariant = defineStyle({
   },
 });
 
+const overlayVariant = defineStyle((props) => {
+  const { colorScheme: c } = props;
+  return {
+    bgColor: `brand.${c}.300`,
+    color: 'brand.dark',
+    position: 'relative',
+    boxSizing: 'border-box',
+
+    _focus: {
+      boxShadow: 'none',
+    },
+
+    _hover: {
+      border: 'none',
+      boxShadow: 'none',
+      opacity: 0.7,
+    },
+
+    '&:before': {
+      boxSizing: 'border-box',
+      borderRight: '7px solid',
+      borderBottom: '7px solid',
+      borderColor: `brand.${c}.800`,
+      content: '""',
+      display: 'block',
+      height: '100%',
+      position: 'absolute',
+      width: '100%',
+      top: '7px',
+      left: '7px',
+    },
+  };
+});
+
 const buttonTheme = defineStyleConfig({
   baseStyle,
   sizes,
@@ -82,6 +117,7 @@ const buttonTheme = defineStyleConfig({
     blue: blueVariant,
     lime: limeVariant,
     warning: warningVariant,
+    overlay: overlayVariant,
   },
   defaultProps: {
     variant: 'solid',

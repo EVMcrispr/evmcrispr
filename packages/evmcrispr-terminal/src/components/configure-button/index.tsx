@@ -25,6 +25,7 @@ export default function ConfigureButton({
           icon={<Icon as={Cog8ToothIcon} />}
           aria-label={'Configure options'}
           variant={'outline'}
+          size={'md'}
         />
       </PopoverTrigger>
       <PopoverContent

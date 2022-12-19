@@ -11,6 +11,7 @@ const theme = {
       darkGray: 'rgba(41, 41, 41, 1)',
       green: {
         300: 'rgba(117, 242, 72, 1)', // lime green
+        800: 'rgba(37, 104, 12, 1)', // darker green
         900: '#041800',
       },
       warning: {
@@ -20,6 +21,10 @@ const theme = {
       blue: {
         600: '#16169d',
         900: '#02071c',
+      },
+      pink: {
+        300: 'rgba(242, 72, 184, 1)',
+        800: 'rgba(178, 36, 130, 1)',
       },
     },
   },

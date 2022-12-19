@@ -22,18 +22,17 @@ import logo from '../assets/logo.svg';
 
 const Header = () => {
   return (
-    <>
-      <Stack
-        direction={{ base: 'column', md: 'column' }}
-        as="header"
-        alignItems={{ base: 'center', md: 'center' }}
-        justify="center"
-      >
-        <RouterLink to="/">
-          <img src={logo} alt="Logo" width="262" />
-        </RouterLink>
-      </Stack>
-    </>
+    <Stack
+      direction={{ base: 'column', md: 'column' }}
+      as="header"
+      alignItems={{ base: 'center', md: 'center' }}
+      justify="center"
+      paddingTop={32}
+    >
+      <RouterLink to="/">
+        <img src={logo} alt="Logo" width="262" />
+      </RouterLink>
+    </Stack>
   );
 };
 

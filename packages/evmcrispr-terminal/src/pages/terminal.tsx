@@ -172,7 +172,7 @@ export default function Terminal() {
 
   return (
     <>
-      <Container maxWidth="8xl" my={16}>
+      <Container maxWidth="8xl" my={14}>
         <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
@@ -181,6 +181,7 @@ export default function Terminal() {
                 icon={<Icon as={SaveIcon} />}
                 aria-label={'Save terminal content'}
                 variant={'outline'}
+                size={'md'}
               />
               <ShareButton script={script} savedScript={data?.text} />
               <ConfigureButton

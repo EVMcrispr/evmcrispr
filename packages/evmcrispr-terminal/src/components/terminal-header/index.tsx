@@ -7,6 +7,7 @@ import {
   HStack,
   Image,
   Text,
+  VStack,
   useDisclosure,
 } from '@chakra-ui/react';
 
@@ -39,10 +40,11 @@ export default function TerminalHeader({
     terminalStoreActions.errors([]);
     disconnect();
   }
+  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   return (
     <>
-      <Flex justify={'space-between'}>
+      <Flex justify={'space-between'} mb={32} align={'flex-end'}>
         <HStack spacing={6} align={'flex-end'}>
           <Link to="/">
             <Image src={logo} alt="Logo" width={52} />
@@ -66,12 +68,30 @@ export default function TerminalHeader({
           </HStack>
         </HStack>
         {address ? (
-          <Button variant="link" color="white" onClick={onDisconnect} size="sm">
-            Disconnect
-          </Button>
+          <VStack align={'flex-end'}>
+            <Flex
+              border={'1px solid'}
+              borderColor={'brand.green.300'}
+              px={6}
+              align={'center'}
+            >
+              <Text color={'white'} fontSize={'2xl'}>
+                {addressShortened}
+              </Text>
+            </Flex>
+            <Button
+              variant="overlay"
+              colorScheme="pink"
+              onClick={onDisconnect}
+              size="sm"
+            >
+              Disconnect
+            </Button>
+          </VStack>
         ) : (
           <Button
-            variant="lime"
+            variant="overlay"
+            colorScheme={'green'}
             isLoading={isConnecting}
             loadingText={'Connecting…'}
             onClick={onWalletModalOpen}

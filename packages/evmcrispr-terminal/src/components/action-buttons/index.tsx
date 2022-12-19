@@ -72,7 +72,6 @@ export default function ActionButtons({
   const { activeConnector } = useConnect();
 
   const { errors, isLoading, script } = terminalStoreState;
-  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -139,8 +138,8 @@ export default function ActionButtons({
 
   return (
     <>
-      <HStack mt={3} align="flex-start">
-        <VStack alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
+      <HStack mt={3} justify="flex-end">
+        <VStack alignItems="flex-end" spacing={3} pr={{ base: 6, lg: 0 }}>
           {address ? (
             <>
               {url ? (
@@ -153,13 +152,15 @@ export default function ActionButtons({
               ) : null}
 
               <Button
-                variant="lime"
+                variant="overlay"
+                colorScheme={'green'}
                 onClick={onExecute}
                 disabled={isLoading}
                 isLoading={isLoading}
-                loadingText={`Forwarding from ${addressShortened}`}
+                loadingText={'Executing'}
+                size={'md'}
               >
-                Forward from {addressShortened}
+                Execute
               </Button>
             </>
           ) : null}
