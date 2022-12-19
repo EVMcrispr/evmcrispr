@@ -1,15 +1,19 @@
-import type { ComponentStyleConfig } from '@chakra-ui/react';
+import { modalAnatomy as parts } from '@chakra-ui/anatomy';
+import { createMultiStyleConfigHelpers } from '@chakra-ui/styled-system';
 
-const Modal: ComponentStyleConfig = {
-  // The styles all button have in common
-  parts: ['dialog'],
-  baseStyle: {
-    dialog: {
-      bg: 'black',
-      border: '3px solid',
-      borderColor: 'brand.green.300',
-    },
+const { definePartsStyle, defineMultiStyleConfig } =
+  createMultiStyleConfigHelpers(parts.keys);
+
+const baseStyle = definePartsStyle({
+  dialog: {
+    bg: 'black',
+    border: '3px solid',
+    borderColor: 'brand.green.300',
   },
-};
+});
 
-export default Modal;
+const modalTheme = defineMultiStyleConfig({
+  baseStyle,
+});
+
+export default modalTheme;

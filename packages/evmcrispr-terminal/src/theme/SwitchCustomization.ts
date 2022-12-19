@@ -1,19 +1,26 @@
-import type { ComponentMultiStyleConfig } from '@chakra-ui/react';
+import { switchAnatomy } from '@chakra-ui/anatomy';
+import { createMultiStyleConfigHelpers, defineStyle } from '@chakra-ui/react';
 
-const Switch: ComponentMultiStyleConfig = {
-  parts: ['track'],
-  baseStyle: {
-    track: {
-      _checked: {
-        background: 'brand.green.300',
-      },
-    },
-    thumb: {
-      _checked: {
-        background: 'brand.green.900',
-      },
+const { definePartsStyle, defineMultiStyleConfig } =
+  createMultiStyleConfigHelpers(switchAnatomy.keys);
+
+const baseStyleTrack = defineStyle({
+  _checked: {
+    bg: 'brand.green.300',
+  },
+});
+
+const baseStyle = definePartsStyle({
+  thumb: {
+    _checked: {
+      background: 'brand.green.900',
     },
   },
-};
+  track: baseStyleTrack,
+});
 
-export default Switch;
+const switchTheme = defineMultiStyleConfig({
+  baseStyle,
+});
+
+export default switchTheme;
