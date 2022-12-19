@@ -7,8 +7,9 @@ const theme = {
   useSystemColorMode: false,
   colors: {
     brand: {
+      dark: 'rgba(18, 18, 18, 1)',
       green: {
-        300: '#92ed5e',
+        300: 'rgba(117, 242, 72, 1)', // lime green
         900: '#041800',
       },
       warning: {

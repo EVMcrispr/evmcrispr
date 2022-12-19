@@ -30,13 +30,6 @@ const sizes = {
   }),
 };
 
-// Defining a custom variant
-const outlineVariant = defineStyle({
-  border: '2px solid',
-  borderColor: 'brand.green.300',
-  color: 'brand.green.300',
-});
-
 const blueVariant = defineStyle({
   color: 'brand.green.300',
   bgColor: 'brand.blue.600',
@@ -60,6 +53,24 @@ const warningVariant = defineStyle({
   _hover: {
     bgColor: 'brand.warning.50',
     color: 'brand.warning.400',
+  },
+});
+
+const outlineVariant = defineStyle({
+  color: 'brand.green.300',
+  border: '2px solid',
+  borderColor: 'brand.green.300',
+  bgColor: 'transparent',
+
+  _hover: {
+    opacity: 0.5,
+  },
+
+  _focus: {
+    bgColor: 'brand.green.300',
+    color: 'brand.dark',
+    border: 'none',
+    boxShadow: 'none',
   },
 });
 
