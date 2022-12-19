@@ -108,8 +108,10 @@ importers:
   packages/evmcrispr-terminal:
     specifiers:
       '@1hive/evmcrispr': 0.9.0
+      '@chakra-ui/anatomy': ^2.1.0
       '@chakra-ui/icons': ^2.0.14
       '@chakra-ui/react': ^2.4.4
+      '@chakra-ui/styled-system': ^2.5.0
       '@emotion/react': ^11.10.5
       '@emotion/styled': ^11.10.5
       '@esbuild-plugins/node-globals-polyfill': ^0.1.1
@@ -150,8 +152,10 @@ importers:
       zustand: ^4.1.1
     dependencies:
       '@1hive/evmcrispr': link:../evmcrispr
+      '@chakra-ui/anatomy': 2.1.0
       '@chakra-ui/icons': 2.0.14_react@18.2.0
       '@chakra-ui/react': 2.4.4_przcunyodmsiq2duiyjrphchze
+      '@chakra-ui/styled-system': 2.5.0
       '@emotion/react': 11.10.5_kzbn2opkn2327fwg5yzwzya5o4
       '@emotion/styled': 11.10.5_qvatmowesywn4ye42qoh247szu
       '@esbuild-plugins/node-globals-polyfill': 0.1.1
