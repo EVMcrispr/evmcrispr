@@ -3,20 +3,18 @@ import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
-import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
+import { useAccount, useConnect, useProvider } from 'wagmi';
 import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
-  Button,
   Container,
   HStack,
   Icon,
   IconButton,
   VStack,
   useBoolean,
-  useDisclosure,
 } from '@chakra-ui/react';
 
 import {
@@ -37,7 +35,6 @@ import { useDebounce } from '../hooks/useDebounce';
 import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
-import SelectWalletModal from '../components/wallet-modal';
 import ConfigureButton from '../components/configure-button';
 import ShareButton from '../components/share-button';
 import SaveIcon from '../components/save-icon';
@@ -56,22 +53,13 @@ export default function Terminal() {
   const footerRef = useSpringRef();
   const params = useParams();
 
-  const {
-    isOpen: isWalletModalOpen,
-    onOpen: onWalletModalOpen,
-    onClose: onWalletModalClose,
-  } = useDisclosure({
-    id: 'wallet',
-  });
-
   const monaco = useMonaco();
   const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
     useTerminalStore();
 
   const { data: account } = useAccount();
-  const { connectors, connect, isConnected, isConnecting } = useConnect();
+  const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
-  const { disconnect } = useDisconnect();
 
   const { data, error: fetchError } = useSWR(
     ['https://gateway.pinata.cloud', params?.hashId],
@@ -182,36 +170,12 @@ export default function Terminal() {
     editor.focus();
   }
 
-  async function onDisconnect() {
-    terminalStoreActions.errors([]);
-    disconnect();
-  }
-
   return (
     <>
       <Container maxWidth="8xl" my={16}>
-        <Header />
+        <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
-            {address ? (
-              <Button
-                variant="link"
-                color="white"
-                onClick={onDisconnect}
-                size="sm"
-              >
-                Disconnect
-              </Button>
-            ) : (
-              <Button
-                variant="lime"
-                isLoading={isConnecting}
-                loadingText={'Connecting…'}
-                onClick={onWalletModalOpen}
-              >
-                Connect
-              </Button>
-            )}
             <HStack spacing={1}>
               <IconButton
                 icon={<Icon as={SaveIcon} />}
@@ -267,10 +231,6 @@ export default function Terminal() {
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
-      <SelectWalletModal
-        isOpen={isWalletModalOpen}
-        onClose={onWalletModalClose}
-      />
     </>
   );
 }

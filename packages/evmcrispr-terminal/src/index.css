@@ -19,19 +19,19 @@ html,
 @keyframes typing {
   from {
     width: 0;
-    border-color: #fff
+    border-color: #fff;
   }
 
   to {
-    width: 480px
+    width: 16.5rem;
   }
 
   99% {
-    border-color: #fff
+    border-color: #fff;
   }
 
   100% {
-    border-color: transparent
+    border-color: transparent;
   }
 }
 
