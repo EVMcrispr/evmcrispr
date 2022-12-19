@@ -68,6 +68,10 @@ const outlineVariant = defineStyle({
     border: 'none',
     boxShadow: 'none',
   },
+
+  _focus: {
+    boxShadow: 'none',
+  },
 });
 
 const buttonTheme = defineStyleConfig({

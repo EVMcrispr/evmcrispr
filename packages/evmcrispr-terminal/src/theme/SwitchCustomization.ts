@@ -8,6 +8,7 @@ const baseStyleTrack = defineStyle({
   _checked: {
     bg: 'brand.green.300',
   },
+  borderRadius: 'none',
 });
 
 const baseStyle = definePartsStyle({

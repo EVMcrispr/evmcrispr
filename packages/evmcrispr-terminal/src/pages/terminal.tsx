@@ -8,7 +8,16 @@ import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Button, Container, VStack, useDisclosure } from '@chakra-ui/react';
+import {
+  Button,
+  Container,
+  HStack,
+  Icon,
+  IconButton,
+  VStack,
+  useBoolean,
+  useDisclosure,
+} from '@chakra-ui/react';
 
 import {
   conf,
@@ -29,12 +38,18 @@ import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
 import SelectWalletModal from '../components/wallet-modal';
+import ConfigureButton from '../components/configure-button';
+import ShareButton from '../components/share-button';
+import SaveIcon from '../components/save-icon';
+
 import fetchPin from '../api/pinata/fetchPin';
 
 const ipfsResolver = new IPFSResolver();
 
 export default function Terminal() {
   const [firstTry, setFirstTry] = useState(true);
+  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
+
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
@@ -195,6 +210,18 @@ export default function Terminal() {
                 Connect
               </Button>
             )}
+            <HStack spacing={1}>
+              <IconButton
+                icon={<Icon as={SaveIcon} />}
+                aria-label={'Save terminal content'}
+                variant={'outline'}
+              />
+              <ShareButton script={script} savedScript={data?.text} />
+              <ConfigureButton
+                setMaximizeGasLimit={setMaximizeGasLimit}
+                maximizeGasLimit={maximizeGasLimit}
+              />
+            </HStack>
           </VStack>
           <MonacoEditor
             height="50vh"
@@ -231,7 +258,7 @@ export default function Terminal() {
               isLoading,
               script,
             }}
-            savedScript={data?.text}
+            maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>
       </Container>
