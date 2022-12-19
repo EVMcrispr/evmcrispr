@@ -8,6 +8,7 @@ const theme = {
   colors: {
     brand: {
       dark: 'rgba(18, 18, 18, 1)',
+      darkGray: 'rgba(41, 41, 41, 1)',
       green: {
         300: 'rgba(117, 242, 72, 1)', // lime green
         900: '#041800',

@@ -41,6 +41,7 @@ import SelectWalletModal from '../components/wallet-modal';
 import ConfigureButton from '../components/configure-button';
 import ShareButton from '../components/share-button';
 import SaveIcon from '../components/save-icon';
+import Header from '../components/terminal-header';
 
 import fetchPin from '../api/pinata/fetchPin';
 
@@ -189,6 +190,7 @@ export default function Terminal() {
   return (
     <>
       <Container maxWidth="8xl" my={16}>
+        <Header />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
             {address ? (
