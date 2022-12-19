@@ -6,7 +6,6 @@ import { ChakraProvider, DarkMode, extendTheme } from '@chakra-ui/react';
 import theme from './theme';
 
 import Wagmi from './providers/Wagmi';
-import Header from './components/header';
 
 import Landing from './pages/landing';
 import Terminal from './pages/terminal';
@@ -19,13 +18,11 @@ const App = () => {
           <Wagmi>
             <HashRouter>
               <Routes>
-                <Route path="/" element={<Header />}>
-                  <Route index element={<Landing />} />
-                  <Route path="terminal" element={<Terminal />}>
-                    <Route path=":hashId" element={<Terminal />} />
-                  </Route>
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                <Route index element={<Landing />} />
+                <Route path="terminal" element={<Terminal />}>
+                  <Route path=":hashId" element={<Terminal />} />
                 </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </HashRouter>
           </Wagmi>
