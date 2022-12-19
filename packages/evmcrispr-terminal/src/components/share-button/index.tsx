@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, useDisclosure, useToast } from '@chakra-ui/react';
+import { Icon, IconButton, useDisclosure, useToast } from '@chakra-ui/react';
+import { ShareIcon } from '@heroicons/react/24/solid';
 
 import ShareModal from '../share-modal';
 import pinJSON from '../../api/pinata/pinJSON';
@@ -73,9 +74,12 @@ export default function ShareButton({
 
   return (
     <>
-      <Button onClick={handleShare} variant="blue">
-        Share
-      </Button>
+      <IconButton
+        icon={<Icon as={ShareIcon} />}
+        aria-label={'Share link'}
+        variant={'outline'}
+        onClick={handleShare}
+      />
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={onShareModalClose}

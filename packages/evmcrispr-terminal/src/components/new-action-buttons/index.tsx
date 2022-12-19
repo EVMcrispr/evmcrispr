@@ -1,9 +1,16 @@
 import { HStack, Icon, IconButton } from '@chakra-ui/react';
-import { Cog8ToothIcon, ShareIcon } from '@heroicons/react/24/solid';
+import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 
+import ShareButton from '../share-button';
 import SaveIcon from './SaveIcon';
 
-export default function NewActionButtons() {
+export default function NewActionButtons({
+  script,
+  savedScript,
+}: {
+  script: string;
+  savedScript?: string;
+}) {
   return (
     <HStack spacing={1}>
       <IconButton
@@ -11,11 +18,7 @@ export default function NewActionButtons() {
         aria-label={'Save terminal content'}
         variant={'outline'}
       />
-      <IconButton
-        icon={<Icon as={ShareIcon} />}
-        aria-label={'Share link'}
-        variant={'outline'}
-      />
+      <ShareButton script={script} savedScript={savedScript} />
       <IconButton
         icon={<Icon as={Cog8ToothIcon} />}
         aria-label={'Configure gas limit'}

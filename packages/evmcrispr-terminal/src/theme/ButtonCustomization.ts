@@ -63,10 +63,6 @@ const outlineVariant = defineStyle({
   bgColor: 'transparent',
 
   _hover: {
-    opacity: 0.5,
-  },
-
-  _focus: {
     bgColor: 'brand.green.300',
     color: 'brand.dark',
     border: 'none',

@@ -19,7 +19,6 @@ import {
 
 import LogModal from '../log-modal';
 import ErrorMsg from './error-msg';
-import ShareButton from '../share-button';
 
 const executeAction = async (
   action: Action,
@@ -65,7 +64,6 @@ export default function ActionButtons({
   address,
   terminalStoreActions,
   terminalStoreState,
-  savedScript,
 }: ActionButtonsType) {
   const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -184,8 +182,6 @@ export default function ActionButtons({
               </Button>
             </>
           ) : null}
-
-          <ShareButton script={script} savedScript={savedScript} />
 
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>
