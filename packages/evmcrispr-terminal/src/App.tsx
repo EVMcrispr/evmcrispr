@@ -3,7 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { ChakraProvider, DarkMode, extendTheme } from '@chakra-ui/react';
 
-import { theme } from './theme';
+import theme from './theme';
 
 import Wagmi from './providers/Wagmi';
 import Header from './components/header';

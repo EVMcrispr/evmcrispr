@@ -100,7 +100,7 @@ const Switch: ComponentMultiStyleConfig = {
   },
 };
 
-export const theme = {
+const theme = {
   initialColorMode: 'dark',
   useSystemColorMode: false,
   colors: {
@@ -132,3 +132,5 @@ export const theme = {
     outline: 'brand.green.900',
   },
 };
+
+export default theme;
