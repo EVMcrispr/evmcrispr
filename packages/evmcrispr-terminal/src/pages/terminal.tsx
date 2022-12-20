@@ -37,7 +37,7 @@ import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
 import ConfigureButton from '../components/configure-button';
 import ShareButton from '../components/share-button';
-import SaveIcon from '../components/save-icon';
+import SaveIcon from '../components/icons/save-icon';
 import Header from '../components/terminal-header';
 
 import fetchPin from '../api/pinata/fetchPin';
