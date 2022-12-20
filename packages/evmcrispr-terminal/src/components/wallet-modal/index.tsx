@@ -41,18 +41,19 @@ export default function SelectWalletModal({
   }, [isError, isConnected, onClose]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      isCentered
+      colorScheme={'yellow'}
+      size={'md'}
+    >
       <ModalOverlay />
-      <ModalContent w="300px">
-        <ModalHeader color="white">Select Wallet</ModalHeader>
-        <ModalCloseButton
-          _focus={{
-            color: 'white',
-            boxShadow: 'none',
-          }}
-        />
-        <ModalBody paddingBottom="1.5rem">
-          <VStack spacing={7}>
+      <ModalContent>
+        <ModalHeader>Select Wallet</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <VStack spacing={7} w={'300px'}>
             <Button
               disabled={connectingToMetamask}
               variant="icon"
@@ -60,6 +61,7 @@ export default function SelectWalletModal({
               size="lg"
               leftIcon={<MetamaskIcon />}
               isLoading={connectingToMetamask}
+              w={'100%'}
             >
               Metamask
             </Button>
@@ -70,6 +72,7 @@ export default function SelectWalletModal({
               }}
               size="lg"
               leftIcon={<WalletIcon />}
+              w={'100%'}
             >
               Wallet Connect
             </Button>
