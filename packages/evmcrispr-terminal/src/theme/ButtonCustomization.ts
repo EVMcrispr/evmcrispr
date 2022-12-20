@@ -109,6 +109,41 @@ const overlayVariant = defineStyle((props) => {
   };
 });
 
+const iconVariant = defineStyle({
+  bgColor: 'brand.darkGray',
+  color: 'white',
+  position: 'relative',
+  boxSizing: 'border-box',
+  border: '1px solid',
+  borderColor: 'brand.yellow.300',
+  fontSize: 'md',
+  fontWeight: 700,
+
+  _focus: {
+    boxShadow: 'none',
+  },
+
+  _hover: {
+    border: 'none',
+    boxShadow: 'none',
+    opacity: 0.7,
+  },
+
+  '&:before': {
+    boxSizing: 'border-box',
+    borderRight: '7px solid',
+    borderBottom: '7px solid',
+    borderColor: 'brand.gray',
+    content: '""',
+    display: 'block',
+    height: '100%',
+    position: 'absolute',
+    width: '100%',
+    top: '8px',
+    left: '8px',
+  },
+});
+
 const buttonTheme = defineStyleConfig({
   baseStyle,
   sizes,
@@ -118,6 +153,7 @@ const buttonTheme = defineStyleConfig({
     lime: limeVariant,
     warning: warningVariant,
     overlay: overlayVariant,
+    icon: iconVariant,
   },
   defaultProps: {
     variant: 'solid',

@@ -9,6 +9,7 @@ const theme = {
     brand: {
       dark: 'rgba(18, 18, 18, 1)',
       darkGray: 'rgba(41, 41, 41, 1)',
+      gray: 'rgba(82, 82, 82, 1)',
       green: {
         300: 'rgba(117, 242, 72, 1)', // lime green
         800: 'rgba(37, 104, 12, 1)', // darker green
@@ -25,6 +26,9 @@ const theme = {
       pink: {
         300: 'rgba(242, 72, 184, 1)',
         800: 'rgba(178, 36, 130, 1)',
+      },
+      yellow: {
+        300: 'rgba(228, 249, 109, 1)',
       },
     },
   },
