@@ -19,7 +19,7 @@ const baseStyle = definePartsStyle((props) => {
       color: `brand.${c}.300`,
     },
     dialog: {
-      bg: 'black',
+      bgColor: 'black',
       border: '2px solid',
       borderColor: `brand.${c}.300`,
       borderRadius: 'none',
@@ -75,17 +75,24 @@ const lgDialog = defineStyle({
 });
 
 const xlDialog = defineStyle({
+  maxW: 'unset',
   w: '4xl',
-  h: 20,
+  h: 'lg',
   fontSize: '2xl',
   lineHeight: 'base',
   '&:before': {
+    maxW: 'unset',
     w: '4xl',
-    h: 20,
+    h: 'lg',
+    top: '9px',
+    left: '9px',
   },
 });
 
-const xlBody = defineStyle({});
+const xlBody = defineStyle({
+  w: 'full',
+  h: 'full',
+});
 
 const lgBody = defineStyle({
   py: 8,

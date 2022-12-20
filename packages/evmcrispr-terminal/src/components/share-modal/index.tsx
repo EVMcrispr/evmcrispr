@@ -2,9 +2,7 @@ import {
   Box,
   Icon as ChakraIcon,
   HStack,
-  Link,
-  List,
-  ListItem,
+  IconButton,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -12,103 +10,62 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
-  useToast,
+  VStack,
 } from '@chakra-ui/react';
-import { LinkIcon } from '@heroicons/react/24/outline';
-import styled from '@emotion/styled';
-
-const getSocial = (url: string) => [
-  {
-    text: 'Copy link',
-    Icon: () => (
-      <ChakraIcon as={LinkIcon} boxSize={6} color="brand.green.300" />
-    ),
-    link: () => url,
-    isExternal: false,
-    onClick: (toast: (params: Record<string, any>) => void) => {
-      navigator.clipboard.writeText(url);
-      toast({
-        title: 'Link copied to clipboard.',
-        status: 'success',
-        duration: 9000,
-        isClosable: true,
-      });
-    },
-  },
-];
-
-const CustomListItem = styled(ListItem)`
-  &:hover > * {
-    & > * {
-      color: ${({ theme }) => theme.colors.gray['900']};
-    }
-  }
-`;
+import { ShareIcon, Square2StackIcon } from '@heroicons/react/24/solid';
 
 const ShareLinkModal = ({
   isOpen,
   onClose,
   url,
-  isLoading,
 }: {
   isOpen: boolean;
   onClose: () => void;
   url: string;
   isLoading: boolean;
 }) => {
-  const social = getSocial(url);
-  const toast = useToast();
-
+  function handleClick() {
+    return navigator.clipboard.writeText(url);
+  }
+  console.log({ url });
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      isCentered
+      colorScheme={'yellow'}
+      size={'xl'}
+    >
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader color="white">Share to</ModalHeader>
+        <ModalHeader>Share script</ModalHeader>
         <ModalCloseButton />
-        <ModalBody paddingX={0} paddingBottom={0}>
-          {isLoading ? (
-            <Box px={6} pb={6}>
-              <Text fontSize={'lg'}>Creating link...</Text>
-            </Box>
-          ) : (
-            <List>
-              {social.map(
-                (
-                  { text, Icon, link, isExternal = true, onClick = () => true },
-                  i,
-                ) => {
-                  return (
-                    <Link
-                      href={link()}
-                      isExternal={isExternal}
-                      onClick={() => onClick(toast)}
-                      _hover={{
-                        textDecoration: 'none',
-                      }}
-                      key={`share-link-${i}`}
-                    >
-                      <CustomListItem
-                        transitionProperty="all"
-                        transitionDuration="0.2"
-                        _hover={{
-                          backgroundColor: 'brand.green.300',
-                        }}
-                        paddingX={6}
-                        paddingY={3}
-                      >
-                        <HStack spacing={3}>
-                          <Icon />
-                          <Text color="white" fontSize="xl">
-                            {text}
-                          </Text>
-                        </HStack>
-                      </CustomListItem>
-                    </Link>
-                  );
-                },
-              )}
-            </List>
-          )}
+        <ModalBody>
+          <VStack>
+            <ChakraIcon as={ShareIcon} boxSize={24} color={'brand.green.300'} />
+            <Text color={'brand.yellow.300'} fontWeight={700}>
+              do you want to share this script?
+            </Text>
+            <HStack>
+              <Box
+                border={'1px solid'}
+                borderColor={'brand.green.300'}
+                w={'lg'}
+                bgColor={'gray'}
+              >
+                <Text color={'white'} maxWidth={'lg'} noOfLines={1}>
+                  {url}
+                </Text>
+              </Box>
+              <IconButton
+                icon={<ChakraIcon as={Square2StackIcon} />}
+                aria-label={'Copy link'}
+                onClick={handleClick}
+                variant={'outline'}
+                size={'md'}
+              />
+            </HStack>
+          </VStack>
         </ModalBody>
       </ModalContent>
     </Modal>

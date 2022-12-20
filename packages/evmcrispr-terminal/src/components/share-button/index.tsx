@@ -37,7 +37,11 @@ export default function ShareButton({
 
   async function handleShare() {
     try {
+      const root = params?.hashId ? getRootLocation() : window.location.href;
+
       if (savedScript === script) {
+        const url = root + '/' + params?.hashId;
+        setLink(url);
         onShareModalOpen();
         return;
       }
@@ -51,7 +55,6 @@ export default function ShareButton({
       };
 
       const { IpfsHash } = await pinJSON(data);
-      const root = params?.hashId ? getRootLocation() : window.location.href;
       const url = root + '/' + IpfsHash;
 
       setLink(url);
