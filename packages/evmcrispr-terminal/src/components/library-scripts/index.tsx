@@ -103,10 +103,11 @@ export default function LibraryScripts() {
       <Box
         position={'fixed'}
         zIndex={10000}
-        right={isOpen ? '448px' : 0}
+        right={isOpen ? { base: '318px', sm: '446px' } : 0}
         transition={isOpen ? 'right 450ms ease' : ''}
         transform={'rotate(-90deg)'}
         transformOrigin={'bottom right'}
+        top={{ base: '170px', md: '275px', '2xl': '150px' }}
       >
         <Button
           variant={'outline'}
@@ -130,9 +131,13 @@ export default function LibraryScripts() {
         placement="right"
         onClose={onClose}
         finalFocusRef={btnRef}
-        size={'sm'}
+        size={{ base: 'xs', sm: 'sm' }}
       >
-        <DrawerContent bgColor={'brand.gray.700'}>
+        <DrawerContent
+          bgColor={'brand.gray.700'}
+          borderLeft={'2px solid'}
+          borderColor={'brand.green.300'}
+        >
           <DrawerHeader>
             <HStack justify={'center'} align={'center'} spacing={4}>
               <Text color={'white'} fontSize={'4xl'}>

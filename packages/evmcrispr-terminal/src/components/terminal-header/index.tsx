@@ -79,7 +79,10 @@ export default function TerminalHeader({
           </HStack>
         </Stack>
         {address ? (
-          <VStack align={'flex-end'} alignSelf={'flex-end'}>
+          <VStack
+            align={{ base: 'flex-start', md: 'flex-end' }}
+            alignSelf={{ base: 'flex-start', md: 'flex-end' }}
+          >
             <Flex
               border={'1px solid'}
               borderColor={'brand.green.300'}
