@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import {
   Button,
   FormControl,
@@ -14,11 +16,14 @@ import {
   Text,
   VStack,
   useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
-import { useState } from 'react';
 
 import SaveIcon from '../icons/save-icon';
+
+import pinJSON from '../../api/pinata/pinJSON';
+import getRootLocation from '../../utils/location';
 
 function InputField({
   value,
@@ -47,38 +52,86 @@ function InputField({
   );
 }
 
+function saveLinkToLocalStorage(title: string, link: string) {
+  const scripts = localStorage.getItem('savedScripts');
+  const newScript = {
+    title,
+    date: new Date().toISOString(),
+    link,
+  };
+
+  if (scripts) {
+    const parsedScripts = JSON.parse(scripts);
+    const newScripts = [...parsedScripts, newScript];
+    localStorage.setItem('savedScripts', JSON.stringify(newScripts));
+  } else {
+    localStorage.setItem(
+      'savedScripts',
+      JSON.stringify([
+        {
+          title,
+          date: new Date().toISOString(),
+          link,
+        },
+      ]),
+    );
+  }
+}
+
 const SaveModal = ({
   isOpen,
   onClose,
-  link,
+  script,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  link?: string;
+  script: string;
 }) => {
   const [value, setValue] = useState<string>('');
-  const [isSuccessful, setStatus] = useState<boolean>(false);
+  const [status, setUploadStatus] = useState<
+    'success' | 'error' | 'idle' | 'loading'
+  >('idle');
 
-  function handleConfirm() {
+  const params = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  async function handleShare() {
     try {
-      setStatus(true);
-      localStorage.setItem(
-        'savedScripts',
-        JSON.stringify({
-          title: value,
-          date: new Date().toISOString(),
-          link,
-        }),
-      );
-    } catch (e) {
+      const root = params?.hashId ? getRootLocation() : window.location.href;
+      setUploadStatus('loading');
+
+      const data = {
+        text: script,
+        date: new Date().toISOString(),
+      };
+
+      const { IpfsHash } = await pinJSON(data);
+      const url = root + '/' + IpfsHash;
+
+      saveLinkToLocalStorage(value, url);
+      setUploadStatus('success');
+
+      return navigate(`/terminal/${IpfsHash}`, { replace: true });
+    } catch (e: any) {
+      setUploadStatus('error');
+      onClose();
+
+      toast({
+        status: 'error',
+        title: 'Error while trying to create sharable link',
+        description: e.message,
+        duration: 9000,
+        isClosable: true,
+      });
       console.log(e);
     }
   }
 
   function handleClose() {
-    setStatus(false);
     setValue('');
-    return onClose();
+    setUploadStatus('idle');
+    onClose();
   }
 
   return (
@@ -94,7 +147,7 @@ const SaveModal = ({
         <ModalHeader>Save Script</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          {isSuccessful ? (
+          {status === 'success' ? (
             <>
               <VStack>
                 <Icon
@@ -120,7 +173,9 @@ const SaveModal = ({
                   size={'md'}
                   variant={'overlay'}
                   colorScheme={'green'}
-                  onClick={handleConfirm}
+                  onClick={handleShare}
+                  isLoading={status === 'loading'}
+                  loadingText={'Saving script...'}
                 >
                   Confirm
                 </Button>
@@ -141,7 +196,10 @@ const SaveModal = ({
   );
 };
 
-export default function SaveScriptButton() {
+export default function SaveScriptButton(props: {
+  savedScript?: string;
+  script: string;
+}) {
   const {
     isOpen: isSaveModalOpen,
     onOpen: onSaveModalOpen,
@@ -158,8 +216,13 @@ export default function SaveScriptButton() {
         variant={'outline'}
         onClick={onSaveModalOpen}
         size={'md'}
+        disabled={props.savedScript === props.script}
       />
-      <SaveModal isOpen={isSaveModalOpen} onClose={onSaveModalClose} />
+      <SaveModal
+        isOpen={isSaveModalOpen}
+        onClose={onSaveModalClose}
+        {...props}
+      />
     </>
   );
 }

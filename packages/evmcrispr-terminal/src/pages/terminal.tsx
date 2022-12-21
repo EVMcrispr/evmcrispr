@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useProvider } from 'wagmi';
@@ -54,9 +54,12 @@ export default function Terminal() {
   const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
 
-  const { data, error: fetchError } = useSWR(
+  const { data, error: fetchError } = useSWRImmutable(
     ['https://gateway.pinata.cloud', params?.hashId],
     (url, hashId) => fetchPin(url, hashId),
+    {
+      shouldRetryOnError: false,
+    },
   );
 
   const address = account?.address ?? '';
@@ -170,8 +173,8 @@ export default function Terminal() {
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
             <HStack spacing={1}>
-              <SaveScriptButton />
-              <ShareScriptButton script={script} savedScript={data?.text} />
+              <SaveScriptButton script={script} savedScript={data?.text} />
+              <ShareScriptButton />
               <ConfigureButton
                 setMaximizeGasLimit={setMaximizeGasLimit}
                 maximizeGasLimit={maximizeGasLimit}
