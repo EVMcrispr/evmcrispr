@@ -6,6 +6,7 @@ import {
   Flex,
   HStack,
   Image,
+  Stack,
   Text,
   VStack,
   useDisclosure,
@@ -44,8 +45,18 @@ export default function TerminalHeader({
 
   return (
     <>
-      <Flex justify={'space-between'} mb={32} align={'flex-end'}>
-        <HStack spacing={6} align={'flex-end'}>
+      <Stack
+        justify={'space-between'}
+        mb={32}
+        align={{ base: 'unset', md: 'flex-end' }}
+        direction={{ base: 'column', md: 'row' }}
+        spacing={{ base: 6, md: 0 }}
+      >
+        <Stack
+          spacing={6}
+          align={{ base: 'flex-start', md: 'flex-end' }}
+          direction={{ base: 'column', md: 'row' }}
+        >
           <Link to="/">
             <Image src={logo} alt="Logo" width={52} />
           </Link>
@@ -66,9 +77,9 @@ export default function TerminalHeader({
               {`${codename ? ` "${codename}"` : null} v${version}`}
             </Text>
           </HStack>
-        </HStack>
+        </Stack>
         {address ? (
-          <VStack align={'flex-end'}>
+          <VStack align={'flex-end'} alignSelf={'flex-end'}>
             <Flex
               border={'1px solid'}
               borderColor={'brand.green.300'}
@@ -99,7 +110,7 @@ export default function TerminalHeader({
             Connect
           </Button>
         )}
-      </Flex>
+      </Stack>
       <SelectWalletModal
         isOpen={isWalletModalOpen}
         onClose={onWalletModalClose}
