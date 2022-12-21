@@ -8,14 +8,7 @@ import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import {
-  Container,
-  HStack,
-  Icon,
-  IconButton,
-  VStack,
-  useBoolean,
-} from '@chakra-ui/react';
+import { Container, HStack, VStack, useBoolean } from '@chakra-ui/react';
 
 import {
   conf,
@@ -36,9 +29,9 @@ import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
 import ConfigureButton from '../components/configure-button';
-import ShareButton from '../components/share-button';
-import SaveIcon from '../components/icons/save-icon';
+import ShareScriptButton from '../components/share-script';
 import Header from '../components/terminal-header';
+import SaveScriptButton from '../components/save-script';
 
 import fetchPin from '../api/pinata/fetchPin';
 
@@ -177,13 +170,8 @@ export default function Terminal() {
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
             <HStack spacing={1}>
-              <IconButton
-                icon={<Icon as={SaveIcon} />}
-                aria-label={'Save terminal content'}
-                variant={'outline'}
-                size={'md'}
-              />
-              <ShareButton script={script} savedScript={data?.text} />
+              <SaveScriptButton />
+              <ShareScriptButton script={script} savedScript={data?.text} />
               <ConfigureButton
                 setMaximizeGasLimit={setMaximizeGasLimit}
                 maximizeGasLimit={maximizeGasLimit}

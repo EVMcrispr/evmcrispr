@@ -66,11 +66,14 @@ const mdDialog = defineStyle({
 
 const lgDialog = defineStyle({
   w: '2xl',
+  maxW: 'unset',
   fontSize: '2xl',
   lineHeight: 'base',
   '&:before': {
     w: '2xl',
     h: 'full',
+    top: '13px',
+    left: '9px',
   },
 });
 
