@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   Button,
   FormControl,
@@ -23,7 +23,6 @@ import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import SaveIcon from '../icons/save-icon';
 
 import pinJSON from '../../api/pinata/pinJSON';
-import getRootLocation from '../../utils/location';
 
 function InputField({
   value,
@@ -52,12 +51,12 @@ function InputField({
   );
 }
 
-function saveLinkToLocalStorage(title: string, link: string) {
+function saveLinkToLocalStorage(title: string, hashId: string) {
   const scripts = localStorage.getItem('savedScripts');
   const newScript = {
     title,
-    date: new Date().toISOString(),
-    link,
+    date: new Date(),
+    hashId,
   };
 
   if (scripts) {
@@ -65,16 +64,7 @@ function saveLinkToLocalStorage(title: string, link: string) {
     const newScripts = [...parsedScripts, newScript];
     localStorage.setItem('savedScripts', JSON.stringify(newScripts));
   } else {
-    localStorage.setItem(
-      'savedScripts',
-      JSON.stringify([
-        {
-          title,
-          date: new Date().toISOString(),
-          link,
-        },
-      ]),
-    );
+    localStorage.setItem('savedScripts', JSON.stringify([newScript]));
   }
 }
 
@@ -92,13 +82,11 @@ const SaveModal = ({
     'success' | 'error' | 'idle' | 'loading'
   >('idle');
 
-  const params = useParams();
   const navigate = useNavigate();
   const toast = useToast();
 
   async function handleShare() {
     try {
-      const root = params?.hashId ? getRootLocation() : window.location.href;
       setUploadStatus('loading');
 
       const data = {
@@ -107,9 +95,8 @@ const SaveModal = ({
       };
 
       const { IpfsHash } = await pinJSON(data);
-      const url = root + '/' + IpfsHash;
 
-      saveLinkToLocalStorage(value, url);
+      saveLinkToLocalStorage(value, IpfsHash);
       setUploadStatus('success');
 
       return navigate(`/terminal/${IpfsHash}`, { replace: true });

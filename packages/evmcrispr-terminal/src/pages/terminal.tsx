@@ -32,6 +32,7 @@ import ConfigureButton from '../components/configure-button';
 import ShareScriptButton from '../components/share-script';
 import Header from '../components/terminal-header';
 import SaveScriptButton from '../components/save-script';
+import LibraryScripts from '../components/library-scripts';
 
 import fetchPin from '../api/pinata/fetchPin';
 
@@ -168,7 +169,8 @@ export default function Terminal() {
 
   return (
     <>
-      <Container maxWidth="8xl" my={14}>
+      <LibraryScripts />
+      <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
         <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>

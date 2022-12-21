@@ -68,6 +68,9 @@ const outlineVariant = defineStyle({
     color: 'brand.gray.700',
     border: 'none',
     boxShadow: 'none',
+    '& svg': {
+      color: 'brand.gray.700',
+    },
   },
 
   _focus: {
