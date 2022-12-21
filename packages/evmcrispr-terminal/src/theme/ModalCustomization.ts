@@ -52,14 +52,13 @@ const headerBase = defineStyle({
 });
 
 const mdDialog = defineStyle({
-  h: '2xs',
   fontSize: 'md',
   lineHeight: 'base',
 
   '&:before': {
-    h: '2xs',
+    h: 'full',
     w: 'full',
-    top: '9px',
+    top: '13px',
     left: '13px',
   },
 });
@@ -103,12 +102,18 @@ const lgBody = defineStyle({
 
 const mdBody = defineStyle({
   px: 10,
+  py: 12,
+});
+
+const smBody = defineStyle({
+  p: 6,
 });
 
 const sizes = {
   xl: definePartsStyle({ header: headerBase, dialog: xlDialog, body: xlBody }),
   lg: definePartsStyle({ header: headerBase, dialog: lgDialog, body: lgBody }),
   md: definePartsStyle({ header: headerBase, dialog: mdDialog, body: mdBody }),
+  sm: definePartsStyle({ header: headerBase, dialog: mdDialog, body: smBody }),
 };
 
 const modalTheme = defineMultiStyleConfig({
