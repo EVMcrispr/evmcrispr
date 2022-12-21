@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import {
   Button,
   FormControl,
@@ -21,8 +21,8 @@ import {
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 
 import SaveIcon from '../icons/save-icon';
-
 import pinJSON from '../../api/pinata/pinJSON';
+import { type Script } from '../library-scripts';
 
 function InputField({
   value,
@@ -72,10 +72,12 @@ const SaveModal = ({
   isOpen,
   onClose,
   script,
+  savedScript,
 }: {
   isOpen: boolean;
   onClose: () => void;
   script: string;
+  savedScript?: string;
 }) => {
   const [value, setValue] = useState<string>('');
   const [status, setUploadStatus] = useState<
@@ -84,10 +86,18 @@ const SaveModal = ({
 
   const navigate = useNavigate();
   const toast = useToast();
+  const params = useParams();
 
   async function handleShare() {
     try {
       setUploadStatus('loading');
+      const hashId = params?.hashId;
+
+      if (hashId && savedScript === script) {
+        saveLinkToLocalStorage(value, hashId);
+        setUploadStatus('success');
+        return;
+      }
 
       const data = {
         text: script,
@@ -183,6 +193,17 @@ const SaveModal = ({
   );
 };
 
+function isScriptSavedInLocalStorage(hashId?: string) {
+  if (!hashId) return false;
+
+  const scripts = localStorage.getItem('savedScripts');
+  const findScript = scripts
+    ? JSON.parse(scripts).find((s: Script) => s.hashId === hashId)
+    : null;
+
+  return !!findScript;
+}
+
 export default function SaveScriptButton(props: {
   savedScript?: string;
   script: string;
@@ -195,6 +216,11 @@ export default function SaveScriptButton(props: {
     id: 'save',
   });
 
+  const params = useParams();
+  const isSaveBtnDisabled =
+    props.savedScript === props.script &&
+    isScriptSavedInLocalStorage(params?.hashId);
+
   return (
     <>
       <IconButton
@@ -203,7 +229,7 @@ export default function SaveScriptButton(props: {
         variant={'outline'}
         onClick={onSaveModalOpen}
         size={'md'}
-        disabled={props.savedScript === props.script}
+        disabled={isSaveBtnDisabled}
       />
       <SaveModal
         isOpen={isSaveModalOpen}

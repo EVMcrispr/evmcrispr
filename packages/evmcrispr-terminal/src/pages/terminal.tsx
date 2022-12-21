@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import useSWRImmutable from 'swr/immutable';
+import useSWR from 'swr';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useProvider } from 'wagmi';
@@ -55,7 +55,7 @@ export default function Terminal() {
   const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
 
-  const { data, error: fetchError } = useSWRImmutable(
+  const { data, error: fetchError } = useSWR(
     ['https://gateway.pinata.cloud', params?.hashId],
     (url, hashId) => fetchPin(url, hashId),
     {

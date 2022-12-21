@@ -14,13 +14,25 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import { StarIcon, TrashIcon } from '@heroicons/react/24/solid';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
-type Script = {
+export type Script = {
   title: string;
   date: Date;
   hashId: string;
 };
+
+function getDate(date: Date) {
+  const parsedDate = new Date(date);
+
+  return {
+    month: parsedDate
+      .toLocaleString('default', { month: 'short' })
+      .split('.')[0],
+    day: parsedDate.getUTCDate(),
+    year: parsedDate.getUTCFullYear(),
+  };
+}
 
 function SavedScript({
   title,
@@ -28,24 +40,23 @@ function SavedScript({
   hashId,
   setScripts,
 }: Script & { setScripts: React.Dispatch<React.SetStateAction<Script[]>> }) {
-  const parsedDate = new Date(date);
-  const month = parsedDate
-    .toLocaleString('default', { month: 'short' })
-    .split('.')[0];
-  const day = parsedDate.getUTCDate();
-  const year = parsedDate.getUTCFullYear();
+  const navigate = useNavigate();
+  const params = useParams();
+  const { day, month, year } = getDate(date);
 
   function handleRemoveScript() {
     const savedScripts = localStorage.getItem('savedScripts');
-
     if (!savedScripts) return;
 
-    const parsedScripts = JSON.parse(savedScripts);
-    const filteredScripts = parsedScripts.filter(
+    const filteredScripts = JSON.parse(savedScripts).filter(
       (s: Script) => s.hashId !== hashId,
     );
     setScripts(filteredScripts);
     localStorage.setItem('savedScripts', JSON.stringify(filteredScripts));
+
+    return params?.hashId === hashId
+      ? navigate('/terminal', { replace: true })
+      : navigate(`/terminal/${params?.hashId}`, { replace: true });
   }
 
   return (
@@ -84,8 +95,8 @@ function getInitialScripts() {
 
 export default function LibraryScripts() {
   const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
-  const btnRef = useRef(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const btnRef = useRef(null);
 
   return (
     <>
@@ -108,7 +119,10 @@ export default function LibraryScripts() {
           size={'md'}
           color={'white'}
           ref={btnRef}
-          onClick={onOpen}
+          onClick={() => {
+            setScripts(getInitialScripts());
+            onOpen();
+          }}
         >
           Library
         </Button>
