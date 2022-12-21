@@ -1,3 +1,4 @@
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import React, { useRef, useState } from 'react';
 import {
   Box,
@@ -9,12 +10,15 @@ import {
   HStack,
   Icon,
   IconButton,
+  Input,
+  InputGroup,
+  InputRightElement,
   Text,
   VStack,
   useDisclosure,
 } from '@chakra-ui/react';
+import { Search2Icon } from '@chakra-ui/icons';
 import { StarIcon, TrashIcon } from '@heroicons/react/24/solid';
-import { Link, useNavigate, useParams } from 'react-router-dom';
 
 export type Script = {
   title: string;
@@ -93,10 +97,50 @@ function getInitialScripts() {
   return JSON.parse(savedScripts);
 }
 
+const Bookmark = (props: { top: string }) => (
+  <Box
+    h={12}
+    w={8}
+    boxSizing={'border-box'}
+    position={'relative'}
+    bgColor={'brand.green.300'}
+    _before={{
+      boxSizing: 'border-box',
+      borderBottom: '7px solid',
+      borderColor: 'brand.green.800',
+      content: '""',
+      display: 'block',
+      height: '100%',
+      position: 'absolute',
+      width: '70%',
+      top: '8px',
+      left: '6px',
+    }}
+    {...props}
+  />
+);
+
+function Markers() {
+  return (
+    <Box position={'relative'} right={8} h={0}>
+      <Bookmark top={'10vh'} />
+      <Bookmark top={'75vh'} />
+    </Box>
+  );
+}
+
 export default function LibraryScripts() {
   const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
+  const [filteredScripts, setFilteredScripts] = useState<Script[]>(scripts);
   const { isOpen, onClose, onToggle } = useDisclosure();
   const btnRef = useRef(null);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const filterScripts = scripts.filter(({ title }) =>
+      title.includes(e.target.value),
+    );
+    return setFilteredScripts(filterScripts);
+  }
 
   return (
     <>
@@ -120,6 +164,7 @@ export default function LibraryScripts() {
           ref={btnRef}
           onClick={() => {
             setScripts(getInitialScripts());
+            setFilteredScripts(getInitialScripts());
             onToggle();
           }}
         >
@@ -138,20 +183,54 @@ export default function LibraryScripts() {
           borderLeft={'2px solid'}
           borderColor={'brand.green.300'}
         >
-          <DrawerHeader>
-            <HStack justify={'center'} align={'center'} spacing={4}>
-              <Text color={'white'} fontSize={'4xl'}>
-                My Library
-              </Text>
-              <Icon as={StarIcon} color={'brand.yellow.300'} boxSize={10} />
-            </HStack>
+          <Markers />
+          <DrawerHeader py={6}>
+            <VStack spacing={4}>
+              <HStack justify={'center'} align={'center'} spacing={4}>
+                <Text color={'white'} fontSize={'4xl'}>
+                  My Library
+                </Text>
+                <Icon as={StarIcon} color={'brand.yellow.300'} boxSize={10} />
+              </HStack>
+              <InputGroup>
+                <Input
+                  border={'1px solid'}
+                  borderColor={'brand.green.300'}
+                  placeholder={'Search'}
+                  color={'white'}
+                  p={2.5}
+                  borderRadius={'none'}
+                  fontSize={'2xl'}
+                  _placeholder={{
+                    color: 'white',
+                  }}
+                  onChange={handleInputChange}
+                />
+                <InputRightElement>
+                  <IconButton
+                    icon={<Search2Icon />}
+                    aria-label={'Search scripts'}
+                    size={'sm'}
+                    variant={'solid'}
+                    colorScheme={'green'}
+                  />
+                </InputRightElement>
+              </InputGroup>
+            </VStack>
           </DrawerHeader>
 
           <DrawerBody px={2}>
             <VStack spacing={2}>
-              {scripts.length > 0 ? (
-                scripts.map((s) => (
-                  <SavedScript {...s} setScripts={setScripts} key={s.hashId} />
+              {filteredScripts.length > 0 ? (
+                filteredScripts.map((s) => (
+                  <SavedScript
+                    {...s}
+                    setScripts={(e) => {
+                      setScripts(e);
+                      setFilteredScripts(e);
+                    }}
+                    key={s.hashId}
+                  />
                 ))
               ) : (
                 <Text fontSize={'2xl'} color={'brand.yellow.300'}>

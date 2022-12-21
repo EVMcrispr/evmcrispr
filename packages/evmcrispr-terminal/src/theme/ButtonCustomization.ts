@@ -57,6 +57,24 @@ const warningVariant = defineStyle({
   },
 });
 
+const solidVariant = defineStyle((props) => {
+  const { colorScheme: c } = props;
+  return {
+    bgColor: `brand.${c}.300`,
+    color: 'brand.gray.700',
+
+    _focus: {
+      boxShadow: 'none',
+    },
+
+    _hover: {
+      bgColor: `brand.${c}.300 !important`,
+      boxShadow: 'none',
+      opacity: 0.7,
+    },
+  };
+});
+
 const outlineVariant = defineStyle({
   color: 'brand.green.300',
   border: '2px solid',
@@ -64,7 +82,7 @@ const outlineVariant = defineStyle({
   bgColor: 'brand.gray.700',
 
   _hover: {
-    bgColor: 'brand.green.300',
+    bgColor: 'brand.green.300 !important',
     color: 'brand.gray.700',
     border: 'none',
     boxShadow: 'none',
@@ -91,7 +109,7 @@ const overlayVariant = defineStyle((props) => {
     },
 
     _hover: {
-      border: 'none',
+      bgColor: `brand.${c}.300 !important`,
       boxShadow: 'none',
       opacity: 0.7,
     },
@@ -127,8 +145,8 @@ const iconVariant = defineStyle({
   },
 
   _hover: {
-    border: 'none',
     boxShadow: 'none',
+    bgColor: 'brand.gray.800 !important',
     opacity: 0.7,
   },
 
@@ -157,6 +175,7 @@ const buttonTheme = defineStyleConfig({
     warning: warningVariant,
     overlay: overlayVariant,
     icon: iconVariant,
+    solid: solidVariant,
   },
   defaultProps: {
     variant: 'solid',
