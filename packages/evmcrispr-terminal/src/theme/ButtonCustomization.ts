@@ -65,7 +65,7 @@ const outlineVariant = defineStyle({
 
   _hover: {
     bgColor: 'brand.green.300',
-    color: 'brand.dark',
+    color: 'brand.gray.700',
     border: 'none',
     boxShadow: 'none',
   },
@@ -79,7 +79,7 @@ const overlayVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
   return {
     bgColor: `brand.${c}.300`,
-    color: 'brand.dark',
+    color: 'brand.gray.700',
     position: 'relative',
     boxSizing: 'border-box',
 
@@ -110,7 +110,7 @@ const overlayVariant = defineStyle((props) => {
 });
 
 const iconVariant = defineStyle({
-  bgColor: 'brand.darkGray',
+  bgColor: 'brand.gray.800',
   color: 'white',
   position: 'relative',
   boxSizing: 'border-box',
@@ -133,7 +133,7 @@ const iconVariant = defineStyle({
     boxSizing: 'border-box',
     borderRight: '7px solid',
     borderBottom: '7px solid',
-    borderColor: 'brand.gray',
+    borderColor: 'brand.gray.300',
     content: '""',
     display: 'block',
     height: '100%',

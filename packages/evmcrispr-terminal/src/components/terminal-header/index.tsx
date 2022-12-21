@@ -49,7 +49,7 @@ export default function TerminalHeader({
           <Link to="/">
             <Image src={logo} alt="Logo" width={52} />
           </Link>
-          <HStack bgColor={'brand.darkGray'}>
+          <HStack bgColor={'brand.gray.800'}>
             <Box w={1.5} h={9} bgColor={'brand.green.300'} />
             <Text
               color="white"

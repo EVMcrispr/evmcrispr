@@ -29,7 +29,7 @@ export default function ConfigureButton({
         />
       </PopoverTrigger>
       <PopoverContent
-        bg={'brand.dark'}
+        bg={'brand.gray.700'}
         borderRadius={'none'}
         border={'2px solid'}
         borderColor={'brand.green.300'}

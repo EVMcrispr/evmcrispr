@@ -7,9 +7,12 @@ const theme = {
   useSystemColorMode: false,
   colors: {
     brand: {
-      dark: 'rgba(18, 18, 18, 1)',
-      darkGray: 'rgba(41, 41, 41, 1)',
-      gray: 'rgba(82, 82, 82, 1)',
+      gray: {
+        50: 'rgba(167, 167, 167, 1)',
+        300: 'rgba(82, 82, 82, 1)',
+        700: 'rgba(18, 18, 18, 1)',
+        800: 'rgba(41, 41, 41, 1)',
+      },
       green: {
         300: 'rgba(117, 242, 72, 1)', // lime green
         800: 'rgba(37, 104, 12, 1)', // darker green
@@ -17,7 +20,9 @@ const theme = {
       },
       warning: {
         50: '#ffe8df',
+        300: 'rgba(209, 94, 94, 1)',
         400: '#ed6f2c',
+        800: 'rgba(120, 29, 29, 1)',
       },
       blue: {
         600: '#16169d',
