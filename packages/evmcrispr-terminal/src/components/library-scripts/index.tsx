@@ -95,20 +95,18 @@ function getInitialScripts() {
 
 export default function LibraryScripts() {
   const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onClose, onToggle } = useDisclosure();
   const btnRef = useRef(null);
 
   return (
     <>
       <Box
-        position={'relative'}
-        zIndex={1000}
-        transition={isOpen ? 'transform 450ms ease' : ''}
-        transform={`${
-          isOpen
-            ? 'translateX(calc(100vw - calc(320px + 154px)))'
-            : 'translateX(calc(100vw - 154px))'
-        }`}
+        position={'fixed'}
+        zIndex={10000}
+        right={isOpen ? '448px' : 0}
+        transition={isOpen ? 'right 450ms ease' : ''}
+        transform={'rotate(-90deg)'}
+        transformOrigin={'bottom right'}
       >
         <Button
           variant={'outline'}
@@ -121,7 +119,7 @@ export default function LibraryScripts() {
           ref={btnRef}
           onClick={() => {
             setScripts(getInitialScripts());
-            onOpen();
+            onToggle();
           }}
         >
           Library
@@ -132,6 +130,7 @@ export default function LibraryScripts() {
         placement="right"
         onClose={onClose}
         finalFocusRef={btnRef}
+        size={'sm'}
       >
         <DrawerContent bgColor={'brand.gray.700'}>
           <DrawerHeader>

@@ -61,7 +61,7 @@ const outlineVariant = defineStyle({
   color: 'brand.green.300',
   border: '2px solid',
   borderColor: 'brand.green.300',
-  bgColor: 'transparent',
+  bgColor: 'brand.gray.700',
 
   _hover: {
     bgColor: 'brand.green.300',
