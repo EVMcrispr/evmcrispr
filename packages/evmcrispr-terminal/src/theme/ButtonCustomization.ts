@@ -84,7 +84,6 @@ const outlineVariant = defineStyle({
   _hover: {
     bgColor: 'brand.green.300 !important',
     color: 'brand.gray.700',
-    border: 'none',
     boxShadow: 'none',
     '& svg': {
       color: 'brand.gray.700',
@@ -98,20 +97,62 @@ const outlineVariant = defineStyle({
 
 const overlayVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
+  const clickedBtn = {
+    color: `brand.${c}.300`,
+    bgColor: 'black',
+    border: '1px solid',
+    borderColor: `brand.${c}.300`,
+    '&:before': {
+      borderColor: `brand.${c}.800 !important`,
+      borderRight: '2px solid',
+      borderBottom: '2px solid',
+      top: '3px',
+      left: '3px',
+    },
+  };
+
   return {
     bgColor: `brand.${c}.300`,
     color: 'brand.gray.700',
+    border: '1px solid',
+    borderColor: `brand.${c}.300`,
     position: 'relative',
     boxSizing: 'border-box',
 
-    _focus: {
-      boxShadow: 'none',
+    _disabled: {
+      bgColor: 'brand.gray.100',
+      borderColor: 'brand.gray.100',
+
+      '&:before': {
+        borderColor: 'brand.gray.500',
+      },
     },
 
     _hover: {
-      bgColor: `brand.${c}.300 !important`,
+      bgColor: 'black',
       boxShadow: 'none',
-      opacity: 0.7,
+      color: `brand.${c}.300`,
+      '&:before': {
+        borderColor: `brand.${c}.800 !important`,
+        borderRight: '3px solid',
+        borderBottom: '3px solid',
+        top: '4px',
+        left: '4px',
+      },
+
+      _disabled: {
+        color: 'brand.gray.700',
+        bgColor: 'brand.gray.100',
+      },
+    },
+
+    _active: clickedBtn,
+
+    _visited: clickedBtn,
+
+    _focus: {
+      boxShadow: 'none',
+      ...clickedBtn,
     },
 
     '&:before': {
@@ -124,8 +165,8 @@ const overlayVariant = defineStyle((props) => {
       height: '100%',
       position: 'absolute',
       width: '100%',
-      top: '7px',
-      left: '7px',
+      top: '8px',
+      left: '8px',
     },
   };
 });
