@@ -6,6 +6,7 @@ import {
   Flex,
   HStack,
   Image,
+  Show,
   Stack,
   Text,
   VStack,
@@ -17,6 +18,7 @@ import { useConnect, useDisconnect } from 'wagmi';
 
 import logo from '../../assets/logo.svg';
 import SelectWalletModal from '../wallet-modal';
+import TypeWriter from '../animations/typewriter';
 
 export default function TerminalHeader({
   terminalStoreActions,
@@ -48,46 +50,34 @@ export default function TerminalHeader({
     <>
       <Stack
         justify={'space-between'}
-        mb={32}
-        align={{ base: 'unset', md: 'flex-end' }}
-        direction={{ base: 'column', md: 'row' }}
+        height={12}
+        mb={12}
+        align={'flex-end'}
+        direction={'row'}
         spacing={{ base: 6, md: 0 }}
       >
-        <Stack
-          spacing={6}
-          align={{ base: 'flex-start', md: 'flex-end' }}
-          direction={{ base: 'column', md: 'row' }}
-        >
+        <Stack spacing={6} align={'flex-end'} direction={'row'}>
           <Link to="/">
             <Image src={logo} alt="Logo" width={52} />
           </Link>
           <HStack bgColor={'brand.gray.800'}>
             <Box w={1.5} h={9} bgColor={'brand.green.300'} />
-            <Text
-              color="white"
-              fontSize="sm"
-              border="none"
-              background="transparent"
-              overflow="hidden" // Ensures the content is not revealed until the animation
-              borderRight=".5em solid transparent" // The typwriter cursor
-              whiteSpace="nowrap" // / Keeps the content on a single line
-              letterSpacing=".12em" // Adjust as needed
-              width={'16.5rem'}
-              animation="typing 2.5s steps(40, end)"
-            >
-              {`${codename ? ` "${codename}"` : null} v${version}`}
-            </Text>
+            <Show above="md">
+              <TypeWriter
+                text={`${codename ? ` "${codename}"` : null} v${version}`}
+              />
+            </Show>
+            <Show below="md">
+              <TypeWriter text={`v${version}`} />
+            </Show>
           </HStack>
         </Stack>
         {address ? (
-          <VStack
-            align={{ base: 'flex-start', md: 'flex-end' }}
-            alignSelf={{ base: 'flex-start', md: 'flex-end' }}
-          >
+          <VStack align={'flex-end'} alignSelf={'flex-end'}>
             <Flex
               border={'1px solid'}
               borderColor={'brand.green.300'}
-              px={6}
+              px={3}
               align={'center'}
             >
               <Blockies seed={address.toLowerCase()} scale={3} />
@@ -107,6 +97,7 @@ export default function TerminalHeader({
         ) : (
           <Button
             variant="overlay"
+            size={['md', 'md', 'lg']}
             colorScheme={'green'}
             isLoading={isConnecting}
             loadingText={'Connecting…'}
