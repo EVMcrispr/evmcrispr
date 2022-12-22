@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   Button,
@@ -27,9 +27,11 @@ import { type Script } from '../library-scripts';
 function InputField({
   value,
   setValue,
+  initialFocusRef,
 }: {
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
+  initialFocusRef: React.RefObject<HTMLInputElement>;
 }) {
   const handleChange = (event: any) => setValue(event.target.value);
 
@@ -46,6 +48,7 @@ function InputField({
         _placeholder={{
           color: 'inherit',
         }}
+        ref={initialFocusRef}
       />
     </FormControl>
   );
@@ -83,6 +86,7 @@ const SaveModal = ({
   const [status, setUploadStatus] = useState<
     'success' | 'error' | 'idle' | 'loading'
   >('idle');
+  const initialRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -138,6 +142,7 @@ const SaveModal = ({
       isCentered
       colorScheme={'yellow'}
       size={'lg'}
+      initialFocusRef={initialRef}
     >
       <ModalOverlay />
       <ModalContent>
@@ -164,7 +169,11 @@ const SaveModal = ({
               <Text color={'brand.yellow.300'}>
                 Are you sure you want to save this script?
               </Text>
-              <InputField value={value} setValue={setValue} />
+              <InputField
+                value={value}
+                setValue={setValue}
+                initialFocusRef={initialRef}
+              />
               <HStack spacing={4}>
                 <Button
                   size={'md'}
@@ -173,6 +182,7 @@ const SaveModal = ({
                   onClick={handleShare}
                   isLoading={status === 'loading'}
                   loadingText={'Saving script...'}
+                  tabIndex={0}
                 >
                   Confirm
                 </Button>
@@ -181,6 +191,7 @@ const SaveModal = ({
                   variant={'overlay'}
                   colorScheme={'pink'}
                   onClick={onClose}
+                  tabIndex={1}
                 >
                   Cancel
                 </Button>

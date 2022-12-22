@@ -144,8 +144,10 @@ export default function ActionButtons({
             <>
               {url ? (
                 <Button
-                  variant="warning"
+                  variant="overlay"
                   onClick={() => window.open(url, '_blank')}
+                  colorScheme={'warning'}
+                  size={'md'}
                 >
                   Go to vote
                 </Button>
@@ -155,7 +157,6 @@ export default function ActionButtons({
                 variant="overlay"
                 colorScheme={'green'}
                 onClick={onExecute}
-                disabled={isLoading}
                 isLoading={isLoading}
                 loadingText={'Executing'}
                 size={'md'}
