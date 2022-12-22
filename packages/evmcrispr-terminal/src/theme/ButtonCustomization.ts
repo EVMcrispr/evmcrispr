@@ -185,23 +185,41 @@ const iconVariant = defineStyle({
     boxShadow: 'none',
   },
 
+  _disabled: {
+    bgColor: 'brand.gray.100',
+    border: '1px solid',
+    borderColor: 'black',
+  },
+
   _hover: {
     boxShadow: 'none',
     bgColor: 'brand.gray.800 !important',
-    opacity: 0.7,
+    '&:before': {
+      borderRight: '4px solid',
+      borderBottom: '3px solid',
+      borderColor: 'brand.gray.300',
+      top: '4px',
+      left: '5px',
+    },
+
+    _disabled: {
+      bgColor: 'brand.gray.100 !important',
+      border: '1px solid',
+      borderColor: 'black',
+    },
   },
 
   '&:before': {
     boxSizing: 'border-box',
     borderRight: '7px solid',
-    borderBottom: '7px solid',
+    borderBottom: '8px solid',
     borderColor: 'brand.gray.300',
     content: '""',
     display: 'block',
     height: '100%',
     position: 'absolute',
     width: '100%',
-    top: '8px',
+    top: '9px',
     left: '8px',
   },
 });
