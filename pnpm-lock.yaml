@@ -121,6 +121,7 @@ importers:
       '@monaco-editor/react': ^4.3.1
       '@react-spring/web': ^9.4.2
       '@types/react': ^18.0.26
+      '@types/react-blockies': ^1.4.1
       '@types/react-dom': ^18.0.9
       '@types/react-transition-group': ^4.4.4
       '@types/use-persisted-state': ^0.3.0
@@ -137,6 +138,7 @@ importers:
       monaco-editor: ^0.33.0
       process: ^0.11.10
       react: ^18.2.0
+      react-blockies: ^1.4.1
       react-dom: ^18.2.0
       react-is: ^16.8.0
       react-markdown: ^8.0.3
@@ -174,6 +176,7 @@ importers:
       monaco-editor: 0.33.0
       process: 0.11.10
       react: 18.2.0
+      react-blockies: 1.4.1_react@18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-is: 16.13.1
       react-markdown: 8.0.3_kzbn2opkn2327fwg5yzwzya5o4
@@ -188,6 +191,7 @@ importers:
       zustand: 4.1.1_react@18.2.0
     devDependencies:
       '@types/react': 18.0.26
+      '@types/react-blockies': 1.4.1
       '@types/react-dom': 18.0.9
       '@types/react-transition-group': 4.4.5
       '@types/use-persisted-state': 0.3.1
@@ -4612,6 +4616,12 @@ packages:
 
   /@types/prop-types/15.7.5:
     resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
+
+  /@types/react-blockies/1.4.1:
+    resolution: {integrity: sha512-aDX0g0hwzdodkGLSDNUQr6gXxwclGjnhS8jhsR8uQhAfe/7i3GZD/NDcSlQ2SiQiLhfRxX3NlY+nvBwf5Y0tTg==}
+    dependencies:
+      '@types/react': 18.0.26
+    dev: true
 
   /@types/react-dom/18.0.9:
     resolution: {integrity: sha512-qnVvHxASt/H7i+XG1U1xMiY5t+IHcPGUK7TDMDzom08xa7e86eCeKOiLZezwCKVxJn6NEiiy2ekgX8aQssjIKg==}
@@ -13477,6 +13487,15 @@ packages:
       iconv-lite: 0.4.24
       unpipe: 1.0.0
     dev: true
+
+  /react-blockies/1.4.1_react@18.2.0:
+    resolution: {integrity: sha512-4N015X5oPNnD3xQPsiqolOFzPZSSWyc5mJhJUZShUCHtiGUxVN+1qsWTcglkHMNySux9hUofaispqcw9QkWP5Q==}
+    peerDependencies:
+      react: '>=15.0.0'
+    dependencies:
+      prop-types: 15.8.1
+      react: 18.2.0
+    dev: false
 
   /react-clientside-effect/1.2.6_react@18.2.0:
     resolution: {integrity: sha512-XGGGRQAKY+q25Lz9a/4EPqom7WRjz3z9R2k4jhVKA/puQFH/5Nt27vFZYql4m4NVNdUvX8PS3O7r/Zzm7cjUlg==}

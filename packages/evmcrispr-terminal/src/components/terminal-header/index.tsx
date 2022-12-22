@@ -11,6 +11,7 @@ import {
   VStack,
   useDisclosure,
 } from '@chakra-ui/react';
+import Blockies from 'react-blockies';
 
 import { useConnect, useDisconnect } from 'wagmi';
 
@@ -89,7 +90,8 @@ export default function TerminalHeader({
               px={6}
               align={'center'}
             >
-              <Text color={'white'} fontSize={'2xl'}>
+              <Blockies seed={address.toLowerCase()} scale={3} />
+              <Text ml={3} color={'white'} fontSize={'2xl'}>
                 {addressShortened}
               </Text>
             </Flex>
