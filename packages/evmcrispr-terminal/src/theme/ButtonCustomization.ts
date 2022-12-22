@@ -75,24 +75,30 @@ const solidVariant = defineStyle((props) => {
   };
 });
 
-const outlineVariant = defineStyle({
-  color: 'brand.green.300',
-  border: '2px solid',
-  borderColor: 'brand.green.300',
-  bgColor: 'brand.gray.700',
-
-  _hover: {
+const outlineVariant = defineStyle(() => {
+  const activeStyle = {
     bgColor: 'brand.green.300 !important',
     color: 'brand.gray.700',
     boxShadow: 'none',
     '& svg': {
       color: 'brand.gray.700',
     },
-  },
+  };
 
-  _focus: {
-    boxShadow: 'none',
-  },
+  return {
+    color: 'brand.green.300',
+    border: '2px solid',
+    borderColor: 'brand.green.300',
+    bgColor: 'transparent',
+
+    _active: activeStyle,
+    _visited: activeStyle,
+    _focus: activeStyle,
+
+    _disabled: {
+      opacity: 0.3,
+    },
+  };
 });
 
 const overlayVariant = defineStyle((props) => {
