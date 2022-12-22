@@ -97,38 +97,6 @@ function getInitialScripts() {
   return JSON.parse(savedScripts);
 }
 
-const Bookmark = (props: { top: string }) => (
-  <Box
-    h={12}
-    w={8}
-    boxSizing={'border-box'}
-    position={'relative'}
-    bgColor={'brand.green.300'}
-    _before={{
-      boxSizing: 'border-box',
-      borderBottom: '7px solid',
-      borderColor: 'brand.green.800',
-      content: '""',
-      display: 'block',
-      height: '100%',
-      position: 'absolute',
-      width: '70%',
-      top: '8px',
-      left: '6px',
-    }}
-    {...props}
-  />
-);
-
-function Markers() {
-  return (
-    <Box position={'relative'} right={8} h={0}>
-      <Bookmark top={'10vh'} />
-      <Bookmark top={'75vh'} />
-    </Box>
-  );
-}
-
 export default function LibraryScripts() {
   const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
   const [filteredScripts, setFilteredScripts] = useState<Script[]>(scripts);
@@ -186,7 +154,6 @@ export default function LibraryScripts() {
           borderLeft={'2px solid'}
           borderColor={'brand.green.300'}
         >
-          <Markers />
           <DrawerHeader py={6}>
             <VStack spacing={4}>
               <HStack justify={'center'} align={'center'} spacing={4}>
