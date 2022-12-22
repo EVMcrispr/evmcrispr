@@ -11,7 +11,6 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
-  VStack,
   useDisclosure,
 } from '@chakra-ui/react';
 import { ShareIcon, Square2StackIcon } from '@heroicons/react/24/solid';
@@ -42,43 +41,41 @@ const ShareModal = ({
       onClose={onClose}
       isCentered
       colorScheme={'yellow'}
-      size={'xl'}
+      size={{ base: 'sm', md: 'md', lg: 'xl' }}
     >
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Share script</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <VStack>
-            <Icon as={ShareIcon} boxSize={24} color={'brand.green.300'} />
-            <Text color={'brand.yellow.300'} fontWeight={700}>
-              do you want to share this script?
-            </Text>
-            <Text color={'white'} fontSize={'4xl'}>
-              {scriptTitle}
-            </Text>
-            <HStack>
-              <Box
-                border={'1px solid'}
-                borderColor={'brand.green.300'}
-                w={'lg'}
-                bgColor={'gray'}
-                px={4}
-                py={0.5}
-              >
-                <Text color={'white'} maxWidth={'lg'} noOfLines={1}>
-                  {link}
-                </Text>
-              </Box>
-              <IconButton
-                icon={<Icon as={Square2StackIcon} />}
-                aria-label={'Copy link'}
-                onClick={handleClick}
-                variant={'outline'}
-                size={'md'}
-              />
-            </HStack>
-          </VStack>
+          <Icon as={ShareIcon} boxSize={24} color={'brand.green.300'} />
+          <Text color={'brand.yellow.300'} fontWeight={700}>
+            do you want to share this script?
+          </Text>
+          <Text color={'white'} fontSize={'4xl'}>
+            {scriptTitle}
+          </Text>
+          <HStack w={'full'} maxW={'lg'}>
+            <Box
+              border={'1px solid'}
+              borderColor={'brand.green.300'}
+              bgColor={'gray'}
+              px={4}
+              py={{ base: 1.5, lg: 0.5 }}
+              maxW={'calc(100% - 50px)'}
+            >
+              <Text color={'white'} noOfLines={1}>
+                {link}
+              </Text>
+            </Box>
+            <IconButton
+              icon={<Icon as={Square2StackIcon} />}
+              aria-label={'Copy link'}
+              onClick={handleClick}
+              variant={'outline'}
+              size={'md'}
+            />
+          </HStack>
         </ModalBody>
       </ModalContent>
     </Modal>

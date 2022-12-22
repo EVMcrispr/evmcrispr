@@ -153,7 +153,7 @@ export default function LibraryScripts() {
         transition={isOpen ? 'right 450ms ease' : ''}
         transform={'rotate(-90deg)'}
         transformOrigin={'bottom right'}
-        top={{ base: '170px', md: '275px', '2xl': '150px' }}
+        top={{ base: '20px', md: '275px', '2xl': '150px' }}
       >
         <Button
           variant={'outline'}
