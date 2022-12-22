@@ -132,7 +132,9 @@ function Markers() {
 export default function LibraryScripts() {
   const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
   const [filteredScripts, setFilteredScripts] = useState<Script[]>(scripts);
-  const { isOpen, onClose, onToggle } = useDisclosure();
+  const { isOpen, onClose, onToggle } = useDisclosure({
+    id: 'library',
+  });
   const btnRef = useRef(null);
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
@@ -163,8 +165,9 @@ export default function LibraryScripts() {
           color={'white'}
           ref={btnRef}
           onClick={() => {
-            setScripts(getInitialScripts());
-            setFilteredScripts(getInitialScripts());
+            const initialScripts = getInitialScripts();
+            setScripts(initialScripts);
+            setFilteredScripts(initialScripts);
             onToggle();
           }}
         >

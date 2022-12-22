@@ -1,7 +1,6 @@
 import { useParams } from 'react-router-dom';
 import {
   Box,
-  Icon as ChakraIcon,
   HStack,
   Icon,
   IconButton,
@@ -17,19 +16,24 @@ import {
 } from '@chakra-ui/react';
 import { ShareIcon, Square2StackIcon } from '@heroicons/react/24/solid';
 
-import getRootLocation from '../../utils/location';
+import { getRootLocation, getScriptSavedInLocalStorage } from '../../utils';
 
 const ShareModal = ({
   isOpen,
   onClose,
-  url,
+  hashId,
+  scriptTitle,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  url: string;
+  hashId?: string;
+  scriptTitle?: string;
 }) => {
+  const root = getRootLocation(hashId);
+  const link = root + '/' + hashId;
+
   function handleClick() {
-    return navigator.clipboard.writeText(url);
+    return navigator.clipboard.writeText(link);
   }
 
   return (
@@ -46,9 +50,12 @@ const ShareModal = ({
         <ModalCloseButton />
         <ModalBody>
           <VStack>
-            <ChakraIcon as={ShareIcon} boxSize={24} color={'brand.green.300'} />
+            <Icon as={ShareIcon} boxSize={24} color={'brand.green.300'} />
             <Text color={'brand.yellow.300'} fontWeight={700}>
               do you want to share this script?
+            </Text>
+            <Text color={'white'} fontSize={'4xl'}>
+              {scriptTitle}
             </Text>
             <HStack>
               <Box
@@ -60,11 +67,11 @@ const ShareModal = ({
                 py={0.5}
               >
                 <Text color={'white'} maxWidth={'lg'} noOfLines={1}>
-                  {url}
+                  {link}
                 </Text>
               </Box>
               <IconButton
-                icon={<ChakraIcon as={Square2StackIcon} />}
+                icon={<Icon as={Square2StackIcon} />}
                 aria-label={'Copy link'}
                 onClick={handleClick}
                 variant={'outline'}
@@ -88,11 +95,11 @@ export default function ShareButton() {
   });
 
   const params = useParams();
+  const hashId = params?.hashId;
 
-  const root = getRootLocation(params?.hashId);
-  const link = root + '/' + params?.hashId;
+  const scriptSaved = getScriptSavedInLocalStorage(hashId);
 
-  async function handleShare() {
+  function handleShare() {
     onShareModalOpen();
   }
 
@@ -104,12 +111,13 @@ export default function ShareButton() {
         variant={'outline'}
         onClick={handleShare}
         size={'md'}
-        disabled={!params?.hashId}
+        disabled={!hashId || !scriptSaved}
       />
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={onShareModalClose}
-        url={link}
+        hashId={hashId}
+        scriptTitle={scriptSaved?.title}
       />
     </>
   );

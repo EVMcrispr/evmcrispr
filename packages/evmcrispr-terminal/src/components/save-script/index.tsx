@@ -22,7 +22,8 @@ import { CheckCircleIcon } from '@heroicons/react/24/solid';
 
 import SaveIcon from '../icons/save-icon';
 import pinJSON from '../../api/pinata/pinJSON';
-import { type Script } from '../library-scripts';
+
+import { getScriptSavedInLocalStorage } from '../../utils';
 
 function InputField({
   value,
@@ -33,7 +34,9 @@ function InputField({
   setValue: React.Dispatch<React.SetStateAction<string>>;
   initialFocusRef: React.RefObject<HTMLInputElement>;
 }) {
-  const handleChange = (event: any) => setValue(event.target.value);
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    setValue(event.target.value);
+  }
 
   return (
     <FormControl isRequired w={'170px'}>
@@ -204,17 +207,6 @@ const SaveModal = ({
   );
 };
 
-function isScriptSavedInLocalStorage(hashId?: string) {
-  if (!hashId) return false;
-
-  const scripts = localStorage.getItem('savedScripts');
-  const findScript = scripts
-    ? JSON.parse(scripts).find((s: Script) => s.hashId === hashId)
-    : null;
-
-  return !!findScript;
-}
-
 export default function SaveScriptButton(props: {
   savedScript?: string;
   script: string;
@@ -228,9 +220,10 @@ export default function SaveScriptButton(props: {
   });
 
   const params = useParams();
-  const isSaveBtnDisabled =
+  const isSaveBtnDisabled = Boolean(
     props.savedScript === props.script &&
-    isScriptSavedInLocalStorage(params?.hashId);
+      getScriptSavedInLocalStorage(params?.hashId),
+  );
 
   return (
     <>
