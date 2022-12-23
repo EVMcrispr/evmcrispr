@@ -11,6 +11,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
+  Tooltip,
   useDisclosure,
 } from '@chakra-ui/react';
 import { ShareIcon, Square2StackIcon } from '@heroicons/react/24/solid';
@@ -102,14 +103,23 @@ export default function ShareButton() {
 
   return (
     <>
-      <IconButton
-        icon={<Icon as={ShareIcon} />}
-        aria-label={'Share link'}
-        variant={'outline'}
-        onClick={handleShare}
-        size={'md'}
-        disabled={!hashId || !scriptSaved}
-      />
+      <Tooltip
+        label={
+          !hashId || !scriptSaved
+            ? 'Script must be saved before it is shared'
+            : 'Share script'
+        }
+        placement="top"
+      >
+        <IconButton
+          icon={<Icon as={ShareIcon} />}
+          aria-label={'Share script'}
+          variant={'outline'}
+          onClick={handleShare}
+          size={'md'}
+          disabled={!hashId || !scriptSaved}
+        />
+      </Tooltip>
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={onShareModalClose}

@@ -1,4 +1,5 @@
 import {
+  Box,
   FormLabel,
   HStack,
   Icon,
@@ -8,6 +9,8 @@ import {
   PopoverContent,
   PopoverTrigger,
   Switch,
+  Text,
+  Tooltip,
 } from '@chakra-ui/react';
 import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 
@@ -20,25 +23,34 @@ export default function ConfigureButton({
 }) {
   return (
     <Popover placement={'bottom-end'}>
-      <PopoverTrigger>
-        <IconButton
-          icon={<Icon as={Cog8ToothIcon} />}
-          aria-label={'Configure options'}
-          variant={'outline'}
-          size={'md'}
-        />
-      </PopoverTrigger>
+      <Tooltip label="Script configuration" placement="top">
+        <Box>
+          <PopoverTrigger>
+            <IconButton
+              icon={<Icon as={Cog8ToothIcon} />}
+              aria-label={'Script configuration'}
+              variant={'outline'}
+              size={'md'}
+            />
+          </PopoverTrigger>
+        </Box>
+      </Tooltip>
       <PopoverContent
         bg={'brand.gray.700'}
         borderRadius={'none'}
         border={'2px solid'}
         borderColor={'brand.green.300'}
+        minWidth={'300px'}
+        height="100px"
       >
         <PopoverBody color={'white'}>
+          <Text fontSize={'xl'} color={'brand.green.300'}>
+            Script Configuration
+          </Text>
           <HStack>
             <FormLabel
               htmlFor="maximize-gas-limit"
-              fontSize={'2xl'}
+              fontSize={'xl'}
               lineHeight={'base'}
             >
               Maximize gas limit?

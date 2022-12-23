@@ -6,16 +6,13 @@ const { definePartsStyle, defineMultiStyleConfig } =
 
 const baseStyleTrack = defineStyle({
   _checked: {
-    bg: 'brand.gray.500',
+    bg: 'brand.green.300',
   },
-  bg: 'brand.yellow.100',
+  borderRadius: 'none',
 });
 
 const baseStyle = definePartsStyle({
   thumb: {
-    _checked: {
-      background: 'brand.green.300',
-    },
     background: 'black',
   },
   track: baseStyleTrack,

@@ -2,6 +2,7 @@ import Modal from './ModalCustomization';
 import Button from './ButtonCustomization';
 import Switch from './SwitchCustomization';
 import Alert from './AlertCustomization';
+import Tooltip from './TooltipCustomization';
 
 const theme = {
   initialColorMode: 'dark',
@@ -51,6 +52,7 @@ const theme = {
     Button,
     Switch,
     Alert,
+    Tooltip,
   },
   shadows: {
     outline: 'brand.green.900',

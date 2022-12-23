@@ -173,7 +173,7 @@ export default function Terminal() {
       <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
         <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
-          <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
+          <VStack mb={3} alignItems="flex-end" pr={0}>
             <HStack spacing={1}>
               <SaveScriptButton script={script} savedScript={data?.text} />
               <ShareScriptButton />

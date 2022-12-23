@@ -14,6 +14,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
+  Tooltip,
   VStack,
   useDisclosure,
   useToast,
@@ -227,14 +228,19 @@ export default function SaveScriptButton(props: {
 
   return (
     <>
-      <IconButton
-        icon={<Icon as={SaveIcon} />}
-        aria-label={'Save link'}
-        variant={'outline'}
-        onClick={onSaveModalOpen}
-        size={'md'}
-        disabled={isSaveBtnDisabled}
-      />
+      <Tooltip
+        label={isSaveBtnDisabled ? 'Script is already saved' : 'Save script'}
+        placement="top"
+      >
+        <IconButton
+          icon={<Icon as={SaveIcon} />}
+          aria-label={'Save script'}
+          variant={'outline'}
+          onClick={onSaveModalOpen}
+          size={'md'}
+          disabled={isSaveBtnDisabled}
+        />
+      </Tooltip>
       <SaveModal
         isOpen={isSaveModalOpen}
         onClose={onSaveModalClose}
