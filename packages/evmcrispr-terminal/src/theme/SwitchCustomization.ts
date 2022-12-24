@@ -6,7 +6,7 @@ const { definePartsStyle, defineMultiStyleConfig } =
 
 const baseStyleTrack = defineStyle({
   _checked: {
-    bg: 'brand.green.300',
+    bg: 'green.300',
   },
   borderRadius: 'none',
 });

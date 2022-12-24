@@ -84,9 +84,9 @@ export default function LibraryScripts() {
           size={['full', 'sm']}
         >
           <DrawerContent
-            bgColor={'brand.gray.700'}
+            bgColor={'gray.700'}
             borderLeft={'2px solid'}
-            borderColor={'brand.green.300'}
+            borderColor={'green.300'}
           >
             <Show above="sm">
               <LibraryButton onClick={onToggle} icon={FolderOpenIcon} />
@@ -102,7 +102,7 @@ export default function LibraryScripts() {
                 <InputGroup>
                   <Input
                     border={'1px solid'}
-                    borderColor={'brand.green.300'}
+                    borderColor={'green.300'}
                     placeholder={'Search'}
                     color={'white'}
                     p={2.5}
@@ -139,7 +139,7 @@ export default function LibraryScripts() {
                     />
                   ))
                 ) : (
-                  <Text fontSize={'2xl'} color={'brand.yellow.300'}>
+                  <Text fontSize={'2xl'} color={'yellow.300'}>
                     No scripts saved yet.
                   </Text>
                 )}

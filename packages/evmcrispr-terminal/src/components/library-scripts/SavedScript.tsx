@@ -32,14 +32,14 @@ export function SavedScript({
   return (
     <Box
       cursor={'pointer'}
-      bgColor={'brand.gray.800'}
+      bgColor={'gray.800'}
       p={5}
       position={'relative'}
       w={'full'}
       onClick={() => onItemClick(title)}
     >
       <VStack spacing={3} align={'flex-start'}>
-        <Text fontSize={'2xl'} color={'brand.yellow.300'}>
+        <Text fontSize={'2xl'} color={'yellow.300'}>
           {title}
         </Text>
         <Text color={'white'} fontSize={''}>

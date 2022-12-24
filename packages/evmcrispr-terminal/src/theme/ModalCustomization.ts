@@ -11,24 +11,24 @@ const baseStyle = definePartsStyle((props) => {
   const { colorScheme: c } = props;
   return {
     header: {
-      color: `brand.${c}.300`,
+      color: `${c}.300`,
       borderBottom: '2px solid',
-      borderColor: `brand.${c}.300`,
+      borderColor: `${c}.300`,
     },
     closeButton: {
-      color: `brand.${c}.300`,
+      color: `${c}.300`,
     },
     dialog: {
       bgColor: 'black',
       border: '2px solid',
-      borderColor: `brand.${c}.300`,
+      borderColor: `${c}.300`,
       borderRadius: 'none',
 
       '&:before': {
         boxSizing: 'border-box',
         borderRight: '10px solid',
         borderBottom: '10px solid',
-        borderColor: `brand.${c}.800`,
+        borderColor: `${c}.800`,
         content: '""',
         display: 'block',
         position: 'absolute',

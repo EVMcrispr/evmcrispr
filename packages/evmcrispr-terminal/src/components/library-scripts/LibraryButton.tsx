@@ -24,7 +24,7 @@ export const LibraryButton = ({
     <Button
       variant={'outline'}
       background="black"
-      leftIcon={<Icon as={icon} boxSize={6} color={'brand.green.300'} />}
+      leftIcon={<Icon as={icon} boxSize={6} color={'green.300'} />}
       size={'md'}
       color={'white'}
       onClick={onClick}

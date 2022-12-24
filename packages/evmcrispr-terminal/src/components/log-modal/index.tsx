@@ -48,10 +48,10 @@ export default function LogModal({
   const hasError = logs.find((log) => log.startsWith(':error:'));
   const hasSuccess = logs.find((log) => log.startsWith(':success:'));
   const statusColor = hasError
-    ? 'brand.warning.300'
+    ? 'warning.300'
     : hasSuccess
-    ? 'brand.green.300'
-    : 'brand.yellow.300';
+    ? 'green.300'
+    : 'yellow.300';
 
   return (
     <Modal
@@ -84,10 +84,10 @@ export default function LogModal({
                 const _status = status(log);
                 const _statusColor =
                   _status == 'error'
-                    ? 'brand.warning.300'
+                    ? 'orange.300'
                     : _status == 'success'
-                    ? 'brand.green.300'
-                    : 'brand.yellow.300';
+                    ? 'green.300'
+                    : 'yellow.300';
                 return (
                   <Alert key={i} status={_status} borderColor={_statusColor}>
                     <Icon

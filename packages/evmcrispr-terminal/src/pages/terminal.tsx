@@ -216,7 +216,7 @@ export default function Terminal() {
                 onChange={handleTitleChange}
                 variant={'unstyled'}
                 fontSize={'4xl'}
-                color={'brand.gray.50'}
+                color={'gray.50'}
                 _placeholder={{
                   color: 'inherit',
                 }}

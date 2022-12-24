@@ -7,7 +7,7 @@ const baseStyle = defineStyle({
     transition: 'all 0.5s',
   },
   _focus: {
-    boxShadow: '#92ed5e 0px 0px 0px 2px',
+    boxShadow: 'none',
   },
   fontWeight: 'normal',
 });
@@ -31,45 +31,32 @@ const sizes = {
   }),
 };
 
-const blueVariant = defineStyle({
-  color: 'brand.green.300',
-  bgColor: 'brand.blue.600',
-  _hover: {
-    bgColor: 'gray.900',
-  },
-});
-
 const limeVariant = defineStyle({
   color: 'gray.900',
-  bgColor: 'brand.green.300',
+  bgColor: 'green.300',
   _hover: {
     bgColor: 'gray.900',
-    color: 'brand.green.300',
+    color: 'green.300',
   },
 });
 
 const warningVariant = defineStyle({
-  color: 'brand.warning.50',
-  bgColor: 'brand.warning.400',
+  color: 'orange.50',
+  bgColor: 'orange.400',
   _hover: {
-    bgColor: 'brand.warning.50',
-    color: 'brand.warning.400',
+    bgColor: 'orange.50',
+    color: 'orange.400',
   },
 });
 
 const solidVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
   return {
-    bgColor: `brand.${c}.300`,
-    color: 'brand.gray.700',
-
-    _focus: {
-      boxShadow: 'none',
-    },
+    bgColor: `${c}.300`,
+    color: 'gray.700',
 
     _hover: {
-      bgColor: `brand.${c}.300 !important`,
-      boxShadow: 'none',
+      bgColor: `${c}.300 !important`,
       opacity: 0.7,
     },
   };
@@ -77,18 +64,17 @@ const solidVariant = defineStyle((props) => {
 
 const outlineVariant = defineStyle(() => {
   const activeStyle = {
-    bgColor: 'brand.green.300 !important',
-    color: 'brand.gray.700',
-    boxShadow: 'none',
+    bgColor: 'green.300 !important',
+    color: 'gray.700',
     '& svg': {
-      color: 'brand.gray.700',
+      color: 'gray.700',
     },
   };
 
   return {
-    color: 'brand.green.300',
+    color: 'green.300',
     border: '2px solid',
-    borderColor: 'brand.green.300',
+    borderColor: 'green.300',
     bgColor: 'transparent',
 
     _active: activeStyle,
@@ -103,113 +89,118 @@ const outlineVariant = defineStyle(() => {
 
 const overlayVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
-  const clickedBtn = {
-    color: `brand.${c}.300`,
-    bgColor: 'black',
-    border: '1px solid',
-    borderColor: `brand.${c}.300`,
-    '&::before': {
-      borderColor: `brand.${c}.800 !important`,
-      borderRight: '2px solid',
-      borderBottom: '2px solid',
-      top: '3px',
-      left: '3px',
-    },
-  };
 
   return {
-    bgColor: `brand.${c}.300`,
-    color: 'brand.gray.700',
+    bgColor: `transparent`,
+    color: 'gray.700',
     border: '1px solid',
-    borderColor: `brand.${c}.300`,
+    borderColor: `${c}.300`,
     position: 'relative',
     boxSizing: 'border-box',
-
-    _disabled: {
-      bgColor: 'brand.gray.100',
-      borderColor: 'brand.gray.100',
-
-      _before: {
-        borderColor: 'brand.gray.500',
-      },
-    },
-
-    _hover: {
-      bgColor: 'black',
-      boxShadow: 'none',
-      color: `brand.${c}.300`,
-      _before: {
-        borderColor: `brand.${c}.800 !important`,
-        borderRight: '3px solid',
-        borderBottom: '3px solid',
-        top: '4px',
-        left: '4px',
-      },
-
-      _disabled: {
-        color: 'brand.gray.700',
-        bgColor: 'brand.gray.100',
-      },
-    },
-
-    _active: clickedBtn,
-
-    _visited: clickedBtn,
-
-    _focus: {
-      boxShadow: 'none',
-      ...clickedBtn,
-    },
+    top: '-2px',
+    left: '-2px',
+    transition: 'all 0.2s',
+    zIndex: '2',
 
     _before: {
       boxSizing: 'border-box',
-      borderRight: '7px solid',
-      borderBottom: '7px solid',
-      borderColor: `brand.${c}.800`,
+      bgColor: `${c}.300`,
+      border: '1px solid',
+      borderColor: `${c}.300`,
+      content: '""',
+      position: 'absolute',
+      height: 'calc(100% + 6px)',
+      width: 'calc(100% + 6px)',
+
+      top: '-3px',
+      left: '-3px',
+      zIndex: '-1',
+    },
+
+    _after: {
       content: '""',
       display: 'block',
-      height: '100%',
+      boxSizing: 'border-box',
+      background: `${c}.800`,
+      border: '3px solid green.800',
+      height: 'calc(100% + 6px)',
+      width: 'calc(100% + 6px)',
       position: 'absolute',
-      width: '100%',
-      top: '8px',
-      left: '8px',
+      top: '3px',
+      left: '3px',
+      right: 0,
+      zIndex: '-2',
+      transition: 'all 0.2s',
+    },
+
+    _hover: {
+      color: `${c}.300`,
+
+      _before: {
+        bgColor: 'black',
+      },
+
+      _disabled: {
+        color: 'gray.700',
+        bgColor: 'gray.100',
+      },
+    },
+
+    _active: {
+      transform: 'translate(6px, 6px)',
+
+      _after: {
+        transform: 'translate(-3px, -3px)',
+      },
+    },
+
+    _disabled: {
+      bgColor: 'gray.100',
+      borderColor: 'gray.100',
+
+      _before: {
+        borderColor: 'gray.500',
+      },
     },
   };
 });
 
+const blueVariant = defineStyle({
+  color: 'green.300',
+  bgColor: 'blue.600',
+  _hover: {
+    bgColor: 'gray.900',
+  },
+});
+
 const iconVariant = defineStyle({
-  bgColor: 'brand.gray.800',
+  bgColor: 'gray.800',
   color: 'white',
   position: 'relative',
   boxSizing: 'border-box',
   border: '1px solid',
-  borderColor: 'brand.yellow.300',
+  borderColor: 'yellow.300',
   fontSize: 'md',
   fontWeight: 700,
 
-  _focus: {
-    boxShadow: 'none',
-  },
-
   _disabled: {
-    bgColor: 'brand.gray.100',
+    bgColor: 'gray.100',
     border: '1px solid',
     borderColor: 'black',
   },
 
   _hover: {
-    boxShadow: 'none',
-    bgColor: 'brand.gray.800 !important',
+    bgColor: 'gray.800 !important',
     _before: {
       borderRight: '4px solid',
       borderBottom: '3px solid',
-      borderColor: 'brand.gray.300',
+      borderColor: 'gray.300',
       top: '4px',
       left: '5px',
     },
 
     _disabled: {
-      bgColor: 'brand.gray.100 !important',
+      bgColor: 'gray.100 !important',
       border: '1px solid',
       borderColor: 'black',
     },
@@ -219,7 +210,7 @@ const iconVariant = defineStyle({
     boxSizing: 'border-box',
     borderRight: '7px solid',
     borderBottom: '8px solid',
-    borderColor: 'brand.gray.300',
+    borderColor: 'gray.300',
     content: '""',
     display: 'block',
     height: '100%',

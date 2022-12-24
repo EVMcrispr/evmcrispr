@@ -55,13 +55,13 @@ const Landing = () => {
         <FadeIn componentRef={typeRef}>
           <Box pt={16} pb={8} px={6}>
             <Text color="white" textAlign="center" fontSize="2xl">
-              <Text as="strong" color="brand.green.300">
+              <Text as="strong" color="green.300">
                 EVMcrispr
               </Text>{' '}
               is a powerful tool that combines a domain-specific language with a
               Javascript library to interact with Aragon DAOs. With it, you can
               bundle{' '}
-              <Text as="strong" color="brand.green.300">
+              <Text as="strong" color="green.300">
                 many DAO operations into just one script
               </Text>
               , generating a singular transaction, usually a vote. These
@@ -80,7 +80,7 @@ const Landing = () => {
             >
               <Link
                 isExternal
-                href="https://docs.evmcrispr.blossom.software/"
+                href="https://docs.evmcrispr.com/"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -103,7 +103,7 @@ const Landing = () => {
             textAlign="center"
             as="h1"
             size="lg"
-            color="brand.green.300"
+            color="green.300"
           >
             Who&apos;s using EVMcrispr?
           </Heading>
