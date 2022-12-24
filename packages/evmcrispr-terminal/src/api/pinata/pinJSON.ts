@@ -26,7 +26,6 @@ const pinJSON = async (data: Record<string, any>): Promise<Res> => {
 
     return response.json();
   } catch (e) {
-    console.log(e);
     throw new Error('Bad response from server');
   }
 };

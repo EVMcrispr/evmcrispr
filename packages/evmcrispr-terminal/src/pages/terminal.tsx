@@ -1,14 +1,22 @@
+import type { ChangeEventHandler } from 'react';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
-import { useAccount, useConnect, useDisconnect, useProvider } from 'wagmi';
+import { useAccount, useConnect, useProvider } from 'wagmi';
 import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Button, Container, VStack, useDisclosure } from '@chakra-ui/react';
+import {
+  Container,
+  Flex,
+  HStack,
+  Input,
+  Spacer,
+  VStack,
+  useBoolean,
+} from '@chakra-ui/react';
 
 import {
   conf,
@@ -28,39 +36,44 @@ import { useDebounce } from '../hooks/useDebounce';
 import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
 import ActionButtons from '../components/action-buttons';
-import SelectWalletModal from '../components/wallet-modal';
-import fetchPin from '../api/pinata/fetchPin';
+import ConfigureButton from '../components/configure-button';
+import ShareScriptButton from '../components/share-script';
+import Header from '../components/terminal-header';
+import SaveScriptButton from '../components/save-script';
+import LibraryScripts from '../components/library-scripts';
+import { useStoredScript } from '../hooks/useStoredScript';
 
 const ipfsResolver = new IPFSResolver();
 
 export default function Terminal() {
   const [firstTry, setFirstTry] = useState(true);
+  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
+
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
   const params = useParams();
 
-  const {
-    isOpen: isWalletModalOpen,
-    onOpen: onWalletModalOpen,
-    onClose: onWalletModalClose,
-  } = useDisclosure({
-    id: 'wallet',
-  });
-
   const monaco = useMonaco();
-  const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
-    useTerminalStore();
+  const {
+    bindingsCache,
+    errors,
+    isLoading,
+    title,
+    script,
+    ast,
+    currentModuleNames,
+  } = useTerminalStore();
 
   const { data: account } = useAccount();
-  const { connectors, connect, isConnected, isConnecting } = useConnect();
+  const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
-  const { disconnect } = useDisconnect();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const { data, error: fetchError } = useSWR(
-    ['https://gateway.pinata.cloud', params?.hashId],
-    (url, hashId) => fetchPin(url, hashId),
-  );
+  const { title: storedTitle, script: storedScript } = useStoredScript(
+    params?.scriptId,
+  ) || { title, script };
 
   const address = account?.address ?? '';
 
@@ -136,14 +149,27 @@ export default function Terminal() {
   }, []);
 
   useEffect(() => {
-    if (data !== null && !fetchError && typeof data !== 'undefined') {
-      terminalStoreActions.script(data.text);
+    if (storedScript !== undefined) {
+      terminalStoreActions.title(storedTitle);
+      terminalStoreActions.script(storedScript);
       terminalStoreActions.processScript();
     }
-  }, [data, fetchError]);
+  }, [storedTitle, storedScript]);
 
+  // We hide the scriptId when the title or the script change so they don't match anymore with the url
+  const hideScriptId = () => {
+    if (location.pathname !== '/terminal') {
+      navigate('/terminal');
+    }
+  };
+
+  const handleTitleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
+    terminalStoreActions.title(event.target.value);
+    hideScriptId();
+  };
   function handleOnChangeEditor(str: string | undefined, ev: any) {
     terminalStoreActions.script(str ?? '');
+
     const change = ev.changes[0];
     const startLineNumber = change.range.startLineNumber;
     const newLine = change.text
@@ -153,6 +179,9 @@ export default function Terminal() {
         1
       : startLineNumber;
     terminalStoreActions.updateCurrentLine(newLine);
+    if (str !== storedScript) {
+      hideScriptId();
+    }
   }
 
   function handleBeforeMountEditor(monaco: Monaco) {
@@ -166,35 +195,37 @@ export default function Terminal() {
     editor.focus();
   }
 
-  async function onDisconnect() {
-    terminalStoreActions.errors([]);
-    disconnect();
-  }
-
   return (
     <>
-      <Container maxWidth="8xl" my={16}>
+      <LibraryScripts />
+      <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
+        <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
-          <VStack mb={3} alignItems="flex-end" pr={{ base: 6, lg: 0 }}>
-            {address ? (
-              <Button
-                variant="link"
-                color="white"
-                onClick={onDisconnect}
-                size="sm"
-              >
-                Disconnect
-              </Button>
-            ) : (
-              <Button
-                variant="lime"
-                isLoading={isConnecting}
-                loadingText={'Connecting…'}
-                onClick={onWalletModalOpen}
-              >
-                Connect
-              </Button>
-            )}
+          <VStack mb={3} alignItems="flex-end" pr={0}>
+            <Flex width={'100%'}>
+              <Input
+                type="text"
+                placeholder={'Add title'}
+                value={title}
+                onChange={handleTitleChange}
+                variant={'unstyled'}
+                fontSize={'4xl'}
+                color={'brand.gray.50'}
+                _placeholder={{
+                  color: 'inherit',
+                }}
+                spellCheck="false"
+              />
+              <Spacer />
+              <HStack spacing={1}>
+                <SaveScriptButton title={title} script={script} />
+                <ShareScriptButton script={script} title={title} />
+                <ConfigureButton
+                  setMaximizeGasLimit={setMaximizeGasLimit}
+                  maximizeGasLimit={maximizeGasLimit}
+                />
+              </HStack>
+            </Flex>
           </VStack>
           <MonacoEditor
             height="50vh"
@@ -231,17 +262,13 @@ export default function Terminal() {
               isLoading,
               script,
             }}
-            savedScript={data?.text}
+            maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>
       </Container>
       <FadeIn componentRef={footerRef}>
         <Footer />
       </FadeIn>
-      <SelectWalletModal
-        isOpen={isWalletModalOpen}
-        onClose={onWalletModalClose}
-      />
     </>
   );
 }

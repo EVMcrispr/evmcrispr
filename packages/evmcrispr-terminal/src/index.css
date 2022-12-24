@@ -12,27 +12,6 @@ html,
   /* remove this line to see div.app is no more 100% height */
   background: black;
   color: white;
-  padding: 117px 0;
-}
-
-/* The typing effect */
-@keyframes typing {
-  from {
-    width: 0;
-    border-color: #fff
-  }
-
-  to {
-    width: 480px
-  }
-
-  99% {
-    border-color: #fff
-  }
-
-  100% {
-    border-color: transparent
-  }
 }
 
 .box {

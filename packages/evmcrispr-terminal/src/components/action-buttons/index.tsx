@@ -7,19 +7,10 @@ import type { Action, ForwardOptions } from '@1hive/evmcrispr';
 import type { Connector } from 'wagmi';
 import type { providers } from 'ethers';
 
-import {
-  Button,
-  FormLabel,
-  HStack,
-  Switch,
-  VStack,
-  useBoolean,
-  useDisclosure,
-} from '@chakra-ui/react';
+import { Button, HStack, VStack, useDisclosure } from '@chakra-ui/react';
 
 import LogModal from '../log-modal';
 import ErrorMsg from './error-msg';
-import ShareButton from '../share-button';
 
 const executeAction = async (
   action: Action,
@@ -58,16 +49,15 @@ type ActionButtonsType = {
     isLoading: boolean;
     script: any;
   };
-  savedScript?: string;
+  maximizeGasLimit: boolean;
 };
 
 export default function ActionButtons({
   address,
   terminalStoreActions,
   terminalStoreState,
-  savedScript,
+  maximizeGasLimit,
 }: ActionButtonsType) {
-  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [url] = useState('');
 
@@ -82,7 +72,6 @@ export default function ActionButtons({
   const { activeConnector } = useConnect();
 
   const { errors, isLoading, script } = terminalStoreState;
-  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -149,43 +138,33 @@ export default function ActionButtons({
 
   return (
     <>
-      <HStack mt={3} align="flex-start">
-        <HStack width="100%">
-          <FormLabel htmlFor="maximize-gas-limit">
-            Maximize gas limit?
-          </FormLabel>
-          <Switch
-            id="maximize-gas-limit"
-            size="sm"
-            checked={maximizeGasLimit}
-            onChange={setMaximizeGasLimit.toggle}
-          />
-        </HStack>
-        <VStack alignItems="flex-end" gap={3} pr={{ base: 6, lg: 0 }}>
+      <HStack mt={3} justify="flex-end">
+        <VStack alignItems="flex-end" spacing={3} pr={{ base: 6, lg: 0 }}>
           {address ? (
             <>
               {url ? (
                 <Button
-                  variant="warning"
+                  variant="overlay"
                   onClick={() => window.open(url, '_blank')}
+                  colorScheme={'warning'}
+                  size={'md'}
                 >
                   Go to vote
                 </Button>
               ) : null}
 
               <Button
-                variant="lime"
+                variant="overlay"
+                colorScheme={'green'}
                 onClick={onExecute}
-                disabled={isLoading}
                 isLoading={isLoading}
-                loadingText={`Forwarding from ${addressShortened}`}
+                loadingText={'Executing'}
+                size={'md'}
               >
-                Forward from {addressShortened}
+                Execute
               </Button>
             </>
           ) : null}
-
-          <ShareButton script={script} savedScript={savedScript} />
 
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>

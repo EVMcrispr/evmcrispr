@@ -12,13 +12,29 @@ import {
 } from '@chakra-ui/react';
 
 import Card from '../components/card';
+import FadeIn from '../components/animations/fade-in';
+import Footer from '../components/footer';
 
 import Brett from '../assets/brett.png';
 import Michael from '../assets/michael.png';
 import Griff from '../assets/griff.png';
+import logo from '../assets/logo.svg';
 
-import FadeIn from '../components/animations/fade-in';
-import Footer from '../components/footer';
+const Header = () => {
+  return (
+    <Stack
+      direction={{ base: 'column', md: 'column' }}
+      as="header"
+      alignItems={{ base: 'center', md: 'center' }}
+      justify="center"
+      paddingTop={32}
+    >
+      <RouterLink to="/">
+        <img src={logo} alt="Logo" width="262" />
+      </RouterLink>
+    </Stack>
+  );
+};
 
 const Landing = () => {
   const [showCardContent, setCardContent] = useState(false);
@@ -34,6 +50,7 @@ const Landing = () => {
 
   return (
     <>
+      <Header />
       <Box as="main" maxWidth="956px" margin="0 auto">
         <FadeIn componentRef={typeRef}>
           <Box pt={16} pb={8} px={6}>
