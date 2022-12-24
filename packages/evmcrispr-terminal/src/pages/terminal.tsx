@@ -156,6 +156,12 @@ export default function Terminal() {
     }
   }, [storedTitle, storedScript]);
 
+  useEffect(() => {
+    document.title = title
+      ? `${title} - EVMcrispr Terminal`
+      : 'EVMcrispr Terminal';
+  }, [title]);
+
   // We hide the scriptId when the title or the script change so they don't match anymore with the url
   const hideScriptId = () => {
     if (location.pathname !== '/terminal') {
@@ -205,7 +211,7 @@ export default function Terminal() {
             <Flex width={'100%'}>
               <Input
                 type="text"
-                placeholder={'Add title'}
+                placeholder={'Untitled script'}
                 value={title}
                 onChange={handleTitleChange}
                 variant={'unstyled'}
