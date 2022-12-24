@@ -11,13 +11,13 @@ const baseStyle = definePartsStyle((props) => {
       border: '1px solid',
     },
     description: {
-      fontWeight: 'semibold',
       px: 2.5,
-      py: 5,
       display: 'flex',
       w: 'full',
       alignItems: 'center',
-      justifyContent: 'center',
+      mt: '8px',
+      color: 'white',
+      fontSize: 'md',
     },
   };
 });

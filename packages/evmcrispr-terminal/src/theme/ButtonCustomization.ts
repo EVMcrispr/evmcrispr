@@ -108,7 +108,7 @@ const overlayVariant = defineStyle((props) => {
     bgColor: 'black',
     border: '1px solid',
     borderColor: `brand.${c}.300`,
-    '&:before': {
+    '&::before': {
       borderColor: `brand.${c}.800 !important`,
       borderRight: '2px solid',
       borderBottom: '2px solid',
@@ -129,7 +129,7 @@ const overlayVariant = defineStyle((props) => {
       bgColor: 'brand.gray.100',
       borderColor: 'brand.gray.100',
 
-      '&:before': {
+      _before: {
         borderColor: 'brand.gray.500',
       },
     },
@@ -138,7 +138,7 @@ const overlayVariant = defineStyle((props) => {
       bgColor: 'black',
       boxShadow: 'none',
       color: `brand.${c}.300`,
-      '&:before': {
+      _before: {
         borderColor: `brand.${c}.800 !important`,
         borderRight: '3px solid',
         borderBottom: '3px solid',
@@ -161,7 +161,7 @@ const overlayVariant = defineStyle((props) => {
       ...clickedBtn,
     },
 
-    '&:before': {
+    _before: {
       boxSizing: 'border-box',
       borderRight: '7px solid',
       borderBottom: '7px solid',
@@ -200,7 +200,7 @@ const iconVariant = defineStyle({
   _hover: {
     boxShadow: 'none',
     bgColor: 'brand.gray.800 !important',
-    '&:before': {
+    _before: {
       borderRight: '4px solid',
       borderBottom: '3px solid',
       borderColor: 'brand.gray.300',
@@ -215,7 +215,7 @@ const iconVariant = defineStyle({
     },
   },
 
-  '&:before': {
+  _before: {
     boxSizing: 'border-box',
     borderRight: '7px solid',
     borderBottom: '8px solid',

@@ -59,7 +59,6 @@ export default function ActionButtons({
   maximizeGasLimit,
 }: ActionButtonsType) {
   const [logs, setLogs] = useState<string[]>([]);
-  const [url] = useState('');
 
   const {
     isOpen: isLogModalOpen,
@@ -112,10 +111,6 @@ export default function ActionButtons({
             maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
           );
         });
-
-      // TODO: adapt to cas11 changes
-      // const chainId = (await signer.provider?.getNetwork())?.chainId;
-      // setUrl(`https://${client(chainId)}/#/${connectedDAO.kernel.address}/${}`);
     } catch (err: any) {
       const e = err as Error;
       console.error(e);
@@ -141,31 +136,17 @@ export default function ActionButtons({
       <HStack mt={3} justify="flex-end">
         <VStack alignItems="flex-end" spacing={3} pr={{ base: 6, lg: 0 }}>
           {address ? (
-            <>
-              {url ? (
-                <Button
-                  variant="overlay"
-                  onClick={() => window.open(url, '_blank')}
-                  colorScheme={'warning'}
-                  size={'md'}
-                >
-                  Go to vote
-                </Button>
-              ) : null}
-
-              <Button
-                variant="overlay"
-                colorScheme={'green'}
-                onClick={onExecute}
-                isLoading={isLoading}
-                loadingText={'Executing'}
-                size={'md'}
-              >
-                Execute
-              </Button>
-            </>
+            <Button
+              variant="overlay"
+              colorScheme={'green'}
+              onClick={onExecute}
+              isLoading={isLoading}
+              loadingText={'Executing'}
+              size={'md'}
+            >
+              Execute
+            </Button>
           ) : null}
-
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>
       </HStack>
