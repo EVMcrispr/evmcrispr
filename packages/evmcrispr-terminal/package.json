@@ -19,6 +19,7 @@
     "@udecode/zustood": "^1.1.3",
     "buffer": "^6.0.3",
     "chakra-ui-markdown-renderer": "^4.1.0",
+    "cids": "^1.1.9",
     "ethers": "^5.4.7",
     "events": "^3.3.0",
     "framer-motion": "^7.10.2",

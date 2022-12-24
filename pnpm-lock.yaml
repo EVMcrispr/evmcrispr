@@ -129,6 +129,7 @@ importers:
       '@vitejs/plugin-react': ^1.3.0
       buffer: ^6.0.3
       chakra-ui-markdown-renderer: ^4.1.0
+      cids: ^1.1.9
       eslint-plugin-react-hooks: ^4.5.0
       eslint-plugin-testing-library: ^5.3.1
       ethers: ^5.4.7
@@ -169,6 +170,7 @@ importers:
       '@udecode/zustood': 1.1.3_bkryeu6ugzmw7tq33zvqhlnwda
       buffer: 6.0.3
       chakra-ui-markdown-renderer: 4.1.0_leszj33p5d2ebii5iavu2khuly
+      cids: 1.1.9
       ethers: 5.7.1
       events: 3.3.0
       framer-motion: 7.10.2_biqbaboplfbrettd7655fr4n2y
@@ -3705,6 +3707,10 @@ packages:
       - supports-color
     dev: true
 
+  /@multiformats/base-x/4.0.1:
+    resolution: {integrity: sha512-eMk0b9ReBbV23xXU693TAIrLyeO5iTgBZGSJfpqriG8UkYvr/hC9u9pyMlAakDNHWmbhMZCDs6KQO0jzKD8OTw==}
+    dev: false
+
   /@noble/hashes/1.1.2:
     resolution: {integrity: sha512-KYRCASVTv6aeUi1tsF8/vpyR7zpfs3FUzy2Jqm+MU+LmUKhQ0y2FpfwqkCcxSg2ua4GALJd8k2R76WxwZGbQpA==}
     dev: true
@@ -6887,6 +6893,17 @@ packages:
       multihashes: 0.4.21
     dev: true
     optional: true
+
+  /cids/1.1.9:
+    resolution: {integrity: sha512-l11hWRfugIcbGuTZwAM5PwpjPPjyb6UZOGwlHSnOBV5o07XhQ4gNpBN67FbODvpjyHtd+0Xs6KNvUcGBiDRsdg==}
+    engines: {node: '>=4.0.0', npm: '>=3.0.0'}
+    deprecated: This module has been superseded by the multiformats module
+    dependencies:
+      multibase: 4.0.6
+      multicodec: 3.2.1
+      multihashes: 4.0.3
+      uint8arrays: 3.1.1
+    dev: false
 
   /cipher-base/1.0.4:
     resolution: {integrity: sha512-Kkht5ye6ZGmwv40uUDZztayT2ThLQGfnj/T71N/XzeZeo3nf8foyW7zGTsPYkEya3m5f3cAypH+qe7YOrM1U2Q==}
@@ -12376,6 +12393,14 @@ packages:
     dev: true
     optional: true
 
+  /multibase/4.0.6:
+    resolution: {integrity: sha512-x23pDe5+svdLz/k5JPGCVdfn7Q5mZVMBETiC+ORfO+sor9Sgs0smJzAjfTbM5tckeCqnaUuMYoz+k3RXMmJClQ==}
+    engines: {node: '>=12.0.0', npm: '>=6.0.0'}
+    deprecated: This module has been superseded by the multiformats module
+    dependencies:
+      '@multiformats/base-x': 4.0.1
+    dev: false
+
   /multicodec/0.5.7:
     resolution: {integrity: sha512-PscoRxm3f+88fAtELwUnZxGDkduE2HD9Q6GHUOywQLjOGT/HAdhjLDYNZ1e7VR0s0TP0EwZ16LNUTFpoBGivOA==}
     deprecated: This module has been superseded by the multiformats module
@@ -12393,9 +12418,16 @@ packages:
     dev: true
     optional: true
 
+  /multicodec/3.2.1:
+    resolution: {integrity: sha512-+expTPftro8VAW8kfvcuNNNBgb9gPeNYV9dn+z1kJRWF2vih+/S79f2RVeIwmrJBUJ6NT9IUPWnZDQvegEh5pw==}
+    deprecated: This module has been superseded by the multiformats module
+    dependencies:
+      uint8arrays: 3.1.1
+      varint: 6.0.0
+    dev: false
+
   /multiformats/9.9.0:
     resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
-    dev: true
 
   /multihashes/0.4.21:
     resolution: {integrity: sha512-uVSvmeCWf36pU2nB4/1kzYZjsXD9vofZKpgudqkceYY5g2aZZXJ5r9lxuzoRLl1OAp28XljXsEJ/X/85ZsKmKw==}
@@ -12405,6 +12437,15 @@ packages:
       varint: 5.0.2
     dev: true
     optional: true
+
+  /multihashes/4.0.3:
+    resolution: {integrity: sha512-0AhMH7Iu95XjDLxIeuCOOE4t9+vQZsACyKZ9Fxw2pcsRmlX4iCn1mby0hS0bb+nQOVpdQYWPpnyusw4da5RPhA==}
+    engines: {node: '>=12.0.0', npm: '>=6.0.0'}
+    dependencies:
+      multibase: 4.0.6
+      uint8arrays: 3.1.1
+      varint: 5.0.2
+    dev: false
 
   /mute-stream/0.0.8:
     resolution: {integrity: sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==}
@@ -15487,7 +15528,6 @@ packages:
     resolution: {integrity: sha512-+QJa8QRnbdXVpHYjLoTpJIdCTiw9Ir62nocClWuXIq2JIh4Uta0cQsTSpFL678p2CN8B+XSApwcU+pQEqVpKWg==}
     dependencies:
       multiformats: 9.9.0
-    dev: true
 
   /ultron/1.1.1:
     resolution: {integrity: sha512-UIEXBNeYmKptWH6z8ZnqTeS8fV74zG0/eRU9VGkpzz+LIJNs8W/zM/L+7ctCkRrgbNnnR0xxw4bKOr0cW0N0Og==}
@@ -15822,12 +15862,9 @@ packages:
 
   /varint/5.0.2:
     resolution: {integrity: sha512-lKxKYG6H03yCZUpAGOPOsMcGxd1RHCu1iKvEHYDPmTyq2HueGhD73ssNBqqQWfvYs04G9iUFRvmAVLW20Jw6ow==}
-    dev: true
-    optional: true
 
   /varint/6.0.0:
     resolution: {integrity: sha512-cXEIW6cfr15lFv563k4GuVuW/fiwjknytD37jIOLSdSWuOI6WnO/oKwmP2FQTU2l01LP8/M5TSAJpzUaGe3uWg==}
-    dev: true
 
   /vary/1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}

@@ -23,32 +23,43 @@ import { useNavigate } from 'react-router';
 
 import { SavedScript } from './SavedScript';
 import { LibraryButton } from './LibraryButton';
-import type { Script } from '../../types';
+import type { StoredScript } from '../../types';
+import { removeScriptFromLocalStorage, slug } from '../../utils';
 
-function getInitialScripts() {
+function getScriptList() {
   const savedScripts = localStorage.getItem('savedScripts');
   if (!savedScripts) return [];
-  return JSON.parse(savedScripts);
+  return Object.values(JSON.parse(savedScripts)).reverse() as StoredScript[];
 }
 
 export default function LibraryScripts() {
-  const [scripts, setScripts] = useState<Script[]>(getInitialScripts());
-  const [filteredScripts, setFilteredScripts] = useState<Script[]>(scripts);
+  const [scripts, setScripts] = useState<StoredScript[]>(getScriptList());
+  const [filteredScripts, setFilteredScripts] =
+    useState<StoredScript[]>(scripts);
   const { isOpen, onClose, onToggle } = useDisclosure({
     id: 'library',
   });
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    const filterScripts = scripts.filter(({ title }) =>
-      title.includes(e.target.value),
+  function filterScripts(scripts: StoredScript[], query: string): void {
+    const filteredScripts = scripts.filter(({ title }) =>
+      slug(title).includes(slug(query)),
     );
-    return setFilteredScripts(filterScripts);
+    setQuery(query);
+    setFilteredScripts(filteredScripts);
   }
 
-  const handleItemClick = (hashId: string) => {
+  const handleItemClick = (title: string) => {
     onToggle();
-    navigate(`/terminal/${hashId}`);
+    navigate(`/terminal/${slug(title)}`);
+  };
+
+  const handleItemRemove = (title: string) => {
+    removeScriptFromLocalStorage(title);
+    const initialScripts = getScriptList();
+    setScripts(initialScripts);
+    filterScripts(initialScripts, query);
   };
 
   return (
@@ -59,9 +70,9 @@ export default function LibraryScripts() {
             right={0}
             icon={FolderIcon}
             onClick={() => {
-              const initialScripts = getInitialScripts();
+              const initialScripts = getScriptList();
               setScripts(initialScripts);
-              setFilteredScripts(initialScripts);
+              filterScripts(initialScripts, query);
               onToggle();
             }}
           />
@@ -100,7 +111,8 @@ export default function LibraryScripts() {
                     _placeholder={{
                       color: 'white',
                     }}
-                    onChange={handleInputChange}
+                    value={query}
+                    onChange={(e) => filterScripts(scripts, e.target.value)}
                   />
                   <InputRightElement>
                     <IconButton
@@ -122,11 +134,8 @@ export default function LibraryScripts() {
                     <SavedScript
                       script={s}
                       onItemClick={handleItemClick}
-                      setScripts={(e: any) => {
-                        setScripts(e);
-                        setFilteredScripts(e);
-                      }}
-                      key={s.hashId}
+                      onItemRemove={handleItemRemove}
+                      key={s.title}
                     />
                   ))
                 ) : (

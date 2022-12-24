@@ -47,6 +47,7 @@ const scriptPlaceholder = `# Available commands:
 
 export type TerminalStoreState = {
   bindingsCache: BindingsManager;
+  title: string;
   script: string;
   errors: string[];
   isLoading: boolean;
@@ -59,6 +60,7 @@ export type TerminalStoreState = {
 
 const initialState: TerminalStoreState = {
   bindingsCache: new BindingsManager([DEFAULT_MODULE_BINDING]),
+  title: '',
   script: scriptPlaceholder,
   errors: [],
   isLoading: false,
@@ -75,6 +77,7 @@ const terminalStore = createStore('terminal-store')(initialState, {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     partialize: (state) => ({
+      title: state.title,
       script: state.script,
     }),
   },

@@ -1,6 +1,6 @@
+import type { ChangeEventHandler } from 'react';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useProvider } from 'wagmi';
@@ -8,7 +8,15 @@ import type { Monaco } from '@monaco-editor/react';
 
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
-import { Container, HStack, VStack, useBoolean } from '@chakra-ui/react';
+import {
+  Container,
+  Flex,
+  HStack,
+  Input,
+  Spacer,
+  VStack,
+  useBoolean,
+} from '@chakra-ui/react';
 
 import {
   conf,
@@ -33,8 +41,7 @@ import ShareScriptButton from '../components/share-script';
 import Header from '../components/terminal-header';
 import SaveScriptButton from '../components/save-script';
 import LibraryScripts from '../components/library-scripts';
-
-import fetchPin from '../api/pinata/fetchPin';
+import { useStoredScript } from '../hooks/useStoredScript';
 
 const ipfsResolver = new IPFSResolver();
 
@@ -48,20 +55,25 @@ export default function Terminal() {
   const params = useParams();
 
   const monaco = useMonaco();
-  const { bindingsCache, errors, isLoading, script, ast, currentModuleNames } =
-    useTerminalStore();
+  const {
+    bindingsCache,
+    errors,
+    isLoading,
+    title,
+    script,
+    ast,
+    currentModuleNames,
+  } = useTerminalStore();
 
   const { data: account } = useAccount();
   const { connectors, connect, isConnected } = useConnect();
   const provider = useProvider();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const { data, error: fetchError } = useSWR(
-    ['https://gateway.pinata.cloud', params?.hashId],
-    (url, hashId) => fetchPin(url, hashId),
-    {
-      shouldRetryOnError: false,
-    },
-  );
+  const { title: storedTitle, script: storedScript } = useStoredScript(
+    params?.scriptId,
+  ) || { title, script };
 
   const address = account?.address ?? '';
 
@@ -137,14 +149,27 @@ export default function Terminal() {
   }, []);
 
   useEffect(() => {
-    if (data !== null && !fetchError && typeof data !== 'undefined') {
-      terminalStoreActions.script(data.text);
+    if (storedScript !== undefined) {
+      terminalStoreActions.title(storedTitle);
+      terminalStoreActions.script(storedScript);
       terminalStoreActions.processScript();
     }
-  }, [data, fetchError]);
+  }, [storedTitle, storedScript]);
 
+  // We hide the scriptId when the title or the script change so they don't match anymore with the url
+  const hideScriptId = () => {
+    if (location.pathname !== '/terminal') {
+      navigate('/terminal');
+    }
+  };
+
+  const handleTitleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
+    terminalStoreActions.title(event.target.value);
+    hideScriptId();
+  };
   function handleOnChangeEditor(str: string | undefined, ev: any) {
     terminalStoreActions.script(str ?? '');
+
     const change = ev.changes[0];
     const startLineNumber = change.range.startLineNumber;
     const newLine = change.text
@@ -154,6 +179,9 @@ export default function Terminal() {
         1
       : startLineNumber;
     terminalStoreActions.updateCurrentLine(newLine);
+    if (str !== storedScript) {
+      hideScriptId();
+    }
   }
 
   function handleBeforeMountEditor(monaco: Monaco) {
@@ -174,14 +202,30 @@ export default function Terminal() {
         <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
-            <HStack spacing={1}>
-              <SaveScriptButton script={script} savedScript={data?.text} />
-              <ShareScriptButton />
-              <ConfigureButton
-                setMaximizeGasLimit={setMaximizeGasLimit}
-                maximizeGasLimit={maximizeGasLimit}
+            <Flex width={'100%'}>
+              <Input
+                type="text"
+                placeholder={'Add title'}
+                value={title}
+                onChange={handleTitleChange}
+                variant={'unstyled'}
+                fontSize={'4xl'}
+                color={'brand.gray.50'}
+                _placeholder={{
+                  color: 'inherit',
+                }}
+                spellCheck="false"
               />
-            </HStack>
+              <Spacer />
+              <HStack spacing={1}>
+                <SaveScriptButton title={title} script={script} />
+                <ShareScriptButton script={script} title={title} />
+                <ConfigureButton
+                  setMaximizeGasLimit={setMaximizeGasLimit}
+                  maximizeGasLimit={maximizeGasLimit}
+                />
+              </HStack>
+            </Flex>
           </VStack>
           <MonacoEditor
             height="50vh"

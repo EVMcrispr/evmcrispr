@@ -1,8 +1,7 @@
 import { Box, Icon, IconButton, Text, VStack } from '@chakra-ui/react';
 import { TrashIcon } from '@heroicons/react/24/solid';
-import { useNavigate, useParams } from 'react-router';
 
-import type { Script } from '../../types';
+import type { StoredScript } from '../../types';
 
 function getDate(date: Date) {
   const parsedDate = new Date(date);
@@ -17,35 +16,18 @@ function getDate(date: Date) {
 }
 
 type SavedScriptProps = {
-  script: Script;
-  setScripts: React.Dispatch<React.SetStateAction<Script[]>>;
-  onItemClick(hashId: string): void;
+  script: StoredScript;
+  onItemClick(title: string): void;
+  onItemRemove(title: string): void;
 };
 
 export function SavedScript({
   script,
-  setScripts,
+  onItemRemove,
   onItemClick,
 }: SavedScriptProps) {
-  const { date, hashId, title } = script;
-  const navigate = useNavigate();
-  const params = useParams();
+  const { date, title } = script;
   const { day, month, year } = getDate(date);
-
-  function handleRemoveScript() {
-    const savedScripts = localStorage.getItem('savedScripts');
-    if (!savedScripts) return;
-
-    const filteredScripts = JSON.parse(savedScripts).filter(
-      (s: Script) => s.hashId !== hashId,
-    );
-    setScripts(filteredScripts);
-    localStorage.setItem('savedScripts', JSON.stringify(filteredScripts));
-
-    return params?.hashId === hashId
-      ? navigate('/terminal', { replace: true })
-      : navigate(`/terminal/${params?.hashId}`, { replace: true });
-  }
 
   return (
     <Box
@@ -54,7 +36,7 @@ export function SavedScript({
       p={5}
       position={'relative'}
       w={'full'}
-      onClick={() => onItemClick(hashId)}
+      onClick={() => onItemClick(title)}
     >
       <VStack spacing={3} align={'flex-start'}>
         <Text fontSize={'2xl'} color={'brand.yellow.300'}>
@@ -73,7 +55,10 @@ export function SavedScript({
         right={'10px'}
         bottom={'10px'}
         size={'xs'}
-        onClick={handleRemoveScript}
+        onClick={(e) => {
+          e.stopPropagation();
+          onItemRemove(title);
+        }}
       />
     </Box>
   );

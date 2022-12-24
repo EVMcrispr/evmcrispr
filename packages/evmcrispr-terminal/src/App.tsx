@@ -20,7 +20,7 @@ const App = () => {
               <Routes>
                 <Route index element={<Landing />} />
                 <Route path="terminal" element={<Terminal />}>
-                  <Route path=":hashId" element={<Terminal />} />
+                  <Route path=":scriptId" element={<Terminal />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

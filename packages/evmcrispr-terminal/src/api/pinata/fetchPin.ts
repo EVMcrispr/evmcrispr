@@ -1,15 +1,11 @@
 import 'isomorphic-fetch';
-
-type Pin = {
-  text: string;
-  date: string;
-};
+import type { BareScript } from '../../types';
 
 const fetchPin = async (
   pinataUrl: string,
   hashId?: string,
-): Promise<Pin | null> => {
-  if (!hashId) return null;
+): Promise<BareScript | undefined> => {
+  if (!hashId) return undefined;
 
   const url = pinataUrl + '/ipfs/' + hashId;
 
@@ -22,7 +18,6 @@ const fetchPin = async (
 
     return response.json();
   } catch (e) {
-    console.log(e);
     throw new Error('Bad response from server');
   }
 };
