@@ -84,7 +84,7 @@ export default function LibraryScripts() {
           size={['full', 'sm']}
         >
           <DrawerContent
-            bgColor={'gray.700'}
+            bgColor={'gray.900'}
             borderLeft={'2px solid'}
             borderColor={'green.300'}
           >
@@ -110,6 +110,14 @@ export default function LibraryScripts() {
                     fontSize={'2xl'}
                     _placeholder={{
                       color: 'white',
+                      opacity: 1,
+                    }}
+                    _hover={{
+                      borderColor: 'green.300',
+                    }}
+                    _focusVisible={{
+                      borderColor: 'green.300',
+                      boxShadow: 'none',
                     }}
                     value={query}
                     onChange={(e) => filterScripts(scripts, e.target.value)}

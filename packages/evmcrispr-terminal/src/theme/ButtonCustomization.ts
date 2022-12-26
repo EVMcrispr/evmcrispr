@@ -1,10 +1,11 @@
 import { defineStyle, defineStyleConfig } from '@chakra-ui/styled-system';
+import { merge } from '@chakra-ui/merge-utils';
 
 const baseStyle = defineStyle({
   borderRadius: 'none', // <-- border radius is same for all variants and sizes
   textDecoration: 'none',
   _hover: {
-    transition: 'all 0.5s',
+    transition: 'all 0.2s',
   },
   _focus: {
     boxShadow: 'none',
@@ -53,36 +54,11 @@ const solidVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
   return {
     bgColor: `${c}.300`,
-    color: 'gray.700',
+    color: 'gray.900',
 
     _hover: {
       bgColor: `${c}.300 !important`,
       opacity: 0.7,
-    },
-  };
-});
-
-const outlineVariant = defineStyle(() => {
-  const activeStyle = {
-    bgColor: 'green.300 !important',
-    color: 'gray.700',
-    '& svg': {
-      color: 'gray.700',
-    },
-  };
-
-  return {
-    color: 'green.300',
-    border: '2px solid',
-    borderColor: 'green.300',
-    bgColor: 'transparent',
-
-    _active: activeStyle,
-    _visited: activeStyle,
-    _focus: activeStyle,
-
-    _disabled: {
-      opacity: 0.3,
     },
   };
 });
@@ -92,7 +68,7 @@ const overlayVariant = defineStyle((props) => {
 
   return {
     bgColor: `transparent`,
-    color: 'gray.700',
+    color: 'gray.900',
     border: '1px solid',
     borderColor: `${c}.300`,
     position: 'relative',
@@ -109,11 +85,11 @@ const overlayVariant = defineStyle((props) => {
       borderColor: `${c}.300`,
       content: '""',
       position: 'absolute',
-      height: 'calc(100% + 6px)',
-      width: 'calc(100% + 6px)',
+      height: 'calc(100% + 4px)',
+      width: 'calc(100% + 4px)',
 
-      top: '-3px',
-      left: '-3px',
+      top: '-2px',
+      left: '-2px',
       zIndex: '-1',
     },
 
@@ -122,12 +98,12 @@ const overlayVariant = defineStyle((props) => {
       display: 'block',
       boxSizing: 'border-box',
       background: `${c}.800`,
-      border: '3px solid green.800',
-      height: 'calc(100% + 6px)',
-      width: 'calc(100% + 6px)',
+      border: `3px solid ${c}.800`,
+      height: 'calc(100% + 4px)',
+      width: 'calc(100% + 4px)',
       position: 'absolute',
-      top: '3px',
-      left: '3px',
+      top: '2px',
+      left: '2px',
       right: 0,
       zIndex: '-2',
       transition: 'all 0.2s',
@@ -139,86 +115,98 @@ const overlayVariant = defineStyle((props) => {
       _before: {
         bgColor: 'black',
       },
-
-      _disabled: {
-        color: 'gray.700',
-        bgColor: 'gray.100',
-      },
     },
 
     _active: {
-      transform: 'translate(6px, 6px)',
+      transform: 'translate(4px, 4px)',
 
       _after: {
-        transform: 'translate(-3px, -3px)',
+        transform: 'translate(-4px, -4px)',
       },
     },
 
     _disabled: {
-      bgColor: 'gray.100',
-      borderColor: 'gray.100',
-
+      color: 'gray.200',
       _before: {
-        borderColor: 'gray.500',
+        borderColor: 'gray.200',
+      },
+      _hover: {
+        color: 'gray.200',
+        _before: {
+          bgColor: 'black',
+          borderColor: 'gray.200',
+        },
+      },
+      _active: {
+        transform: 'none',
+        _after: {
+          transform: 'none',
+        },
+      },
+      _after: {
+        background: `gray.700`,
       },
     },
   };
 });
 
-const blueVariant = defineStyle({
-  color: 'green.300',
-  bgColor: 'blue.600',
-  _hover: {
-    bgColor: 'gray.900',
-  },
+const blueVariant = defineStyle((props) => {
+  props.colorScheme = 'blue';
+  return merge(overlayVariant(props), {
+    color: 'green.300',
+    _before: {
+      bgColor: 'blue.600',
+      borderColor: 'blue.600',
+    },
+    _after: {
+      bgColor: 'blue.300',
+      borderColor: 'blue.300',
+    },
+    _hover: {
+      color: 'green.300',
+      _before: {
+        bgColor: 'gray.900',
+        borderColor: 'gray.900',
+      },
+    },
+  });
 });
 
-const iconVariant = defineStyle({
-  bgColor: 'gray.800',
-  color: 'white',
-  position: 'relative',
-  boxSizing: 'border-box',
-  border: '1px solid',
-  borderColor: 'yellow.300',
-  fontSize: 'md',
-  fontWeight: 700,
+const outlineVariant = defineStyle((props) => {
+  const { colorScheme: c } = props;
+  return {
+    color: `${c}.300`,
+    borderWidth: '2px',
+    borderColor: `${c}.300`,
+    bgColor: 'gray.900',
+    '&:not(:hover) .chakra-button__icon': {
+      color: `${c}.300`,
+    },
+    _hover: {
+      color: 'gray.900',
+      bgColor: `${c}.300`,
+    },
+    _active: {
+      color: 'gray.900',
+      bgColor: `${c}.300`,
+    },
+  };
+});
 
-  _disabled: {
-    bgColor: 'gray.100',
-    border: '1px solid',
-    borderColor: 'black',
-  },
-
-  _hover: {
-    bgColor: 'gray.800 !important',
+const outlineOverlayVariant = defineStyle((props) => {
+  return merge(overlayVariant(props), {
+    color: 'green.300',
     _before: {
-      borderRight: '4px solid',
-      borderBottom: '3px solid',
-      borderColor: 'gray.300',
-      top: '4px',
-      left: '5px',
+      borderColor: 'green.300',
+      bgColor: 'gray.900',
     },
-
-    _disabled: {
-      bgColor: 'gray.100 !important',
-      border: '1px solid',
-      borderColor: 'black',
+    _hover: {
+      color: 'gray.900',
+      _before: {
+        backgroundColor: 'green.300',
+      },
     },
-  },
-
-  _before: {
-    boxSizing: 'border-box',
-    borderRight: '7px solid',
-    borderBottom: '8px solid',
-    borderColor: 'gray.300',
-    content: '""',
-    display: 'block',
-    height: '100%',
-    position: 'absolute',
-    width: '100%',
-    top: '9px',
-    left: '8px',
-  },
+  });
 });
 
 const buttonTheme = defineStyleConfig({
@@ -226,11 +214,11 @@ const buttonTheme = defineStyleConfig({
   sizes,
   variants: {
     outline: outlineVariant,
+    'outline-overlay': outlineOverlayVariant,
     blue: blueVariant,
     lime: limeVariant,
     warning: warningVariant,
     overlay: overlayVariant,
-    icon: iconVariant,
     solid: solidVariant,
   },
   defaultProps: {

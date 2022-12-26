@@ -7,6 +7,7 @@ import {
   Center,
   Heading,
   Link,
+  Spacer,
   Stack,
   Text,
 } from '@chakra-ui/react';
@@ -88,8 +89,9 @@ const Landing = () => {
                   Learn How to Use
                 </Button>
               </Link>
+              <Spacer />
               <Link as={RouterLink} to="/terminal">
-                <Button variant="blue" size="lg">
+                <Button variant="blue" colorScheme="blue" size="lg">
                   Open Terminal
                 </Button>
               </Link>

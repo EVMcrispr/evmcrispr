@@ -1,4 +1,4 @@
-import { Box, Icon, IconButton, Text, VStack } from '@chakra-ui/react';
+import { Box, Icon, IconButton, Text, Tooltip, VStack } from '@chakra-ui/react';
 import { TrashIcon } from '@heroicons/react/24/solid';
 
 import type { StoredScript } from '../../types';
@@ -47,19 +47,22 @@ export function SavedScript({
           {day}, {year}
         </Text>
       </VStack>
-      <IconButton
-        aria-label="Remove saved script"
-        icon={<Icon as={TrashIcon} />}
-        variant={'outline'}
-        position={'absolute'}
-        right={'10px'}
-        bottom={'10px'}
-        size={'xs'}
-        onClick={(e) => {
-          e.stopPropagation();
-          onItemRemove(title);
-        }}
-      />
+      <Tooltip label="Remove saved script" variant={'warning'}>
+        <IconButton
+          aria-label="Remove saved script"
+          icon={<Icon as={TrashIcon} />}
+          variant={'outline'}
+          colorScheme={'pink'}
+          position={'absolute'}
+          right={'10px'}
+          bottom={'10px'}
+          size={'xs'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onItemRemove(title);
+          }}
+        />
+      </Tooltip>
     </Box>
   );
 }

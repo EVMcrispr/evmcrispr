@@ -115,7 +115,7 @@ export default function SaveScriptButton(props: {
         <IconButton
           icon={<Icon as={SaveIcon} />}
           aria-label={'Save script'}
-          variant={'outline'}
+          variant={'outline-overlay'}
           onClick={onSaveButtonClick}
           size={'md'}
           disabled={!props.title}
