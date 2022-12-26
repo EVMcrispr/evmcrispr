@@ -1,0 +1,401 @@
+{
+  "data": {
+    "organization": {
+      "apps": [
+        {
+          "address": "0x1b75b2adc4fcea2dc946701cdc3abd4fdfa412da",
+          "appId": "0xbf8491150dafc5dcaee5b861414dca922de09ccffa344964ae167212e8c673ae",
+          "repo": { "name": "finance", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0x30597dd103acfaef0649675953d9cb22faadab7e9d9ed57acc1c429d04b80777",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0x563165d3eae48bcb0a092543ca070d989169c98357e9a1b324ec5da44bab75fd",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0x5de467a460382d13defdc02aacddc9c7d6605d6d4e0b8bd2f70732cae8ea17bc",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0x3e8c034e8958689799bb486626f3804d815cce97",
+            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x2fa20fa7fc404d35748497c0f28f8fb2f8731336",
+          "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
+          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x1b75b2adc4fcea2dc946701cdc3abd4fdfa412da"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xb421f7ad7646747f3051c50c0b8e2377839296cd4973e27f63821d73e390338f",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xcebf517aa4440d1d125e0355aae64401211d0848a23c02cc5d29a14822580ba4",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xa6ad366bfd2f43615bbec56f50cf606036fc11fe",
+            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2",
+          "appId": "0x9fa3927f639745e587912d4b0fea7ef9013bf93fb907d29faeab57417ba6e1d4",
+          "repo": { "name": "voting", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x3efac97efa6f237e67b4f8c616a194fd0583d99a"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xd4856cd82cb507b2691bcc3f02d8939671a800c0",
+            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x3efac97efa6f237e67b4f8c616a194fd0583d99a",
+          "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
+          "repo": {
+            "name": "token-manager",
+            "registry": { "name": "aragonpm.eth" }
+          },
+          "roles": [
+            {
+              "roleHash": "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x5651fb1116da6ff7d2ff79af18d8b4439d2ab59f"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xe97b137254058bd94f28d2f3eb79e2d34074ffb488d042e3bc958e0a57d2fa22",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0x714c925ede405687752c4ad32078137c4f179538",
+            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x515963c7174aa61febc1107e7c3f35856ddaacdc",
+          "appId": "0xc908326a9f60d6f7e4deb3b57aeb69ab4f4bab797e52d0c79035775322280b30",
+          "repo": {
+            "name": "transactions",
+            "registry": { "name": "aragonpm.eth" }
+          },
+          "roles": [
+            {
+              "roleHash": "0x139065b6093ba395ab03ec0d5533040c1e639dcdcc68a426a0bb26abcaf98aa9",
+              "manager": "0xffffffffffffffffffffffffffffffffffffffff",
+              "grantees": [
+                {
+                  "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xd326ee6c49ed41c12025cf0b2bd4108b9f4cef42",
+            "contentUri": "ipfs:QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x66bf6264c376cf635bab4294f0317161a447199e",
+          "appId": "0xbf8491150dafc5dcaee5b861414dca922de09ccffa344964ae167212e8c673ae",
+          "repo": { "name": "finance", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0x30597dd103acfaef0649675953d9cb22faadab7e9d9ed57acc1c429d04b80777",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0x563165d3eae48bcb0a092543ca070d989169c98357e9a1b324ec5da44bab75fd",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0x5de467a460382d13defdc02aacddc9c7d6605d6d4e0b8bd2f70732cae8ea17bc",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0x3e8c034e8958689799bb486626f3804d815cce97",
+            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+          "appId": "0x9fa3927f639745e587912d4b0fea7ef9013bf93fb907d29faeab57417ba6e1d4",
+          "repo": { "name": "voting", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0xad15e7261800b4bb73f1b69d3864565ffb1fd00cb93cf14fe48da8f1f2149f39",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xda3972983e62bdf826c4b807c4c9c2b8a941e1f83dfa76d53d6aeac11e1be650",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x3efac97efa6f237e67b4f8c616a194fd0583d99a"
+                },
+                {
+                  "granteeAddress": "0xffffffffffffffffffffffffffffffffffffffff"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xd4856cd82cb507b2691bcc3f02d8939671a800c0",
+            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x80446f514aaec7cfb7eb791830a672c5ef047943",
+          "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
+          "repo": {
+            "name": "token-manager",
+            "registry": { "name": "aragonpm.eth" }
+          },
+          "roles": [
+            {
+              "roleHash": "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0x714c925ede405687752c4ad32078137c4f179538",
+            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0x89f0da1886f3f1539819d3b546baa06c72f40425",
+          "appId": "0xddbcfd564f642ab5627cf68b9b7d374fb4f8a36e941a75d89c87998cef03bd61",
+          "repo": null,
+          "roles": [
+            {
+              "roleHash": "0xc4e90f38eea8c4212a009ca7b8947943ba4d4a58d19b683417f65291d1cd9ed2",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                },
+                {
+                  "granteeAddress": "0xeac7fbf38a6e1b7e38bd11cea16850cded67817e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xf7a450ef335e1892cb42c8ca72e7242359d7711924b75db5717410da3f614aa3",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": null
+        },
+        {
+          "address": "0xa1514067e6fe7919fb239af5259fff120902b4f9",
+          "appId": "0x3b4bf6bf3ad5000ecf0f989d5befde585c6860fea3e574a4fab4c49d1c177d9c",
+          "repo": null,
+          "roles": [
+            {
+              "roleHash": "0xb6d92708f3d4817afc106147d969e229ced5c46e65e0a5002a0d391287762bd0",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x5651fb1116da6ff7d2ff79af18d8b4439d2ab59f"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                },
+                {
+                  "granteeAddress": "0xeac7fbf38a6e1b7e38bd11cea16850cded67817e"
+                }
+              ]
+            }
+          ],
+          "version": null
+        },
+        {
+          "address": "0xe70494225312c6b1167c15134dab66730f36708d",
+          "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
+          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
+          "roles": [
+            {
+              "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x1b75b2adc4fcea2dc946701cdc3abd4fdfa412da"
+                },
+                {
+                  "granteeAddress": "0x66bf6264c376cf635bab4294f0317161a447199e"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xb421f7ad7646747f3051c50c0b8e2377839296cd4973e27f63821d73e390338f",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xcebf517aa4440d1d125e0355aae64401211d0848a23c02cc5d29a14822580ba4",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xa6ad366bfd2f43615bbec56f50cf606036fc11fe",
+            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG",
+            "artifact": null
+          }
+        },
+        {
+          "address": "0xeb4dfbc02334fec5d0e8ead5f40f534647d3761b",
+          "appId": "0xe3262375f45a6e2026b7e7b18c2b807434f2508fe1a2a3dfb493c7df8f4aad6a",
+          "repo": null,
+          "roles": [
+            {
+              "roleHash": "0x0b719b33c83b8e5d300c521cb8b54ae9bd933996a14bef8c2f4e0285d2d2400a",
+              "manager": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
+              "grantees": [
+                {
+                  "granteeAddress": "0x4037f97fcc94287257e50bd14c7da9cb4df18250"
+                },
+                {
+                  "granteeAddress": "0x5651fb1116da6ff7d2ff79af18d8b4439d2ab59f"
+                },
+                {
+                  "granteeAddress": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e"
+                },
+                {
+                  "granteeAddress": "0xeac7fbf38a6e1b7e38bd11cea16850cded67817e"
+                }
+              ]
+            }
+          ],
+          "version": null
+        }
+      ]
+    }
+  }
+}

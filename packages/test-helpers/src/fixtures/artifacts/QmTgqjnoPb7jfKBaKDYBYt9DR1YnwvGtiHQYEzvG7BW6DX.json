@@ -1,0 +1,1424 @@
+{
+  "functions": [
+    {
+      "roles": [],
+      "notice": "",
+      "abi": {
+        "type": "function",
+        "name": "initialize",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_stakeToken",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_requestToken",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_stableToken",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_stableTokenOracle",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_fundsManager",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_decay",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_maxRatio",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_weight",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_minThresholdStakePercentage",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "initialize(address,address,address,address,address,uint256,uint256,uint256,uint256)"
+    },
+    {
+      "roles": ["PAUSE_CONTRACT_ROLE"],
+      "notice": "Pause / unpause the contract preventing / allowing general interaction",
+      "abi": {
+        "type": "function",
+        "name": "pauseContract",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_pauseEnabled",
+            "type": "bool",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bool",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "pauseContract(bool)"
+    },
+    {
+      "roles": ["UPDATE_SETTINGS_ROLE"],
+      "notice": "Update the stable token oracle settings",
+      "abi": {
+        "type": "function",
+        "name": "setStableTokenOracleSettings",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_stableTokenOracle",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          },
+          {
+            "name": "_stableToken",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "setStableTokenOracleSettings(address,address)"
+    },
+    {
+      "roles": ["UPDATE_SETTINGS_ROLE"],
+      "notice": "Update the funds manager",
+      "abi": {
+        "type": "function",
+        "name": "setFundsManager",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_fundsManager",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "setFundsManager(address)"
+    },
+    {
+      "roles": ["UPDATE_SETTINGS_ROLE"],
+      "notice": "Update the conviction voting parameters",
+      "abi": {
+        "type": "function",
+        "name": "setConvictionCalculationSettings",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_decay",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_maxRatio",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_weight",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_minThresholdStakePercentage",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "setConvictionCalculationSettings(uint256,uint256,uint256,uint256)"
+    },
+    {
+      "roles": ["CREATE_PROPOSALS_ROLE"],
+      "notice": "Create signaling proposal `_title`",
+      "abi": {
+        "type": "function",
+        "name": "addSignalingProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_title",
+            "type": "string",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "string",
+            "_isParamType": true
+          },
+          {
+            "name": "_link",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "addSignalingProposal(string,bytes)"
+    },
+    {
+      "roles": ["CREATE_PROPOSALS_ROLE"],
+      "notice": "Create proposal `_title` for `@tokenAmount((self.requestToken(): address), _requestedAmount)` to `_beneficiary`",
+      "abi": {
+        "type": "function",
+        "name": "addProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_title",
+            "type": "string",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "string",
+            "_isParamType": true
+          },
+          {
+            "name": "_link",
+            "type": "bytes",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bytes",
+            "_isParamType": true
+          },
+          {
+            "name": "_requestedAmount",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_stableRequestAmount",
+            "type": "bool",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "bool",
+            "_isParamType": true
+          },
+          {
+            "name": "_beneficiary",
+            "type": "address",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "address",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "addProposal(string,bytes,uint256,bool,address)"
+    },
+    {
+      "roles": [],
+      "notice": "Stake `@tokenAmount((self.stakeToken(): address), _amount)` on proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "stakeToProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_amount",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "stakeToProposal(uint256,uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Stake all my `(self.stakeToken(): address).symbol(): string` tokens on proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "stakeAllToProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "stakeAllToProposal(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Withdraw `@tokenAmount((self.stakeToken(): address), _amount)` previously staked on proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "withdrawFromProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          },
+          {
+            "name": "_amount",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "withdrawFromProposal(uint256,uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Withdraw all `(self.stakeToken(): address).symbol(): string` tokens previously staked on proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "withdrawAllFromProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "withdrawAllFromProposal(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Withdraw all callers stake from inactive proposals",
+      "abi": {
+        "type": "function",
+        "name": "withdrawFromInactiveProposals",
+        "constant": false,
+        "inputs": [],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "withdrawFromInactiveProposals()"
+    },
+    {
+      "roles": [],
+      "notice": "Execute proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "executeProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "executeProposal(uint256)"
+    },
+    {
+      "roles": [],
+      "notice": "Cancel proposal #`_proposalId`",
+      "abi": {
+        "type": "function",
+        "name": "cancelProposal",
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_proposalId",
+            "type": "uint256",
+            "indexed": null,
+            "components": null,
+            "arrayLength": null,
+            "arrayChildren": null,
+            "baseType": "uint256",
+            "_isParamType": true
+          }
+        ],
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "gas": null,
+        "_isFragment": true
+      },
+      "sig": "cancelProposal(uint256)"
+    }
+  ],
+  "deprecatedFunctions": {},
+  "roles": [
+    {
+      "name": "Update settings",
+      "id": "UPDATE_SETTINGS_ROLE",
+      "params": [],
+      "bytes": "0x9d4f140430c9045e12b5a104aa9e641c09b980a26ab8e12a32a2f3d155229ae3"
+    },
+    {
+      "name": "Create proposals",
+      "id": "CREATE_PROPOSALS_ROLE",
+      "params": ["Sender"],
+      "bytes": "0xbf05b9322505d747ab5880dfb677dc4864381e9fc3a25ccfa184a3a53d02f4b2"
+    },
+    {
+      "name": "Cancel proposals",
+      "id": "CANCEL_PROPOSALS_ROLE",
+      "params": [],
+      "bytes": "0x82c52f79cad6ac09c16c165c562b50c5e655a09a19bb99b2d182ab3caff020f2"
+    },
+    {
+      "name": "Challenge votes",
+      "id": "CHALLENGE_ROLE",
+      "params": [],
+      "bytes": "0xef025787d7cd1a96d9014b8dc7b44899b8c1350859fb9e1e05f5a546dd65158d"
+    },
+    {
+      "name": "Pause contract",
+      "id": "PAUSE_CONTRACT_ROLE",
+      "params": [],
+      "bytes": "0x0e3a87ad3cd0c04dcd1e538226de2b467c72316c162f937f5b6f791361662462"
+    },
+    {
+      "name": "Set agreement",
+      "id": "SET_AGREEMENT_ROLE",
+      "params": [],
+      "bytes": "0x8dad640ab1b088990c972676ada708447affc660890ec9fc9a5483241c49f036"
+    }
+  ],
+  "dependencies": [],
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [{ "name": "_interfaceId", "type": "bytes4" }],
+      "name": "supportsInterface",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "stableTokenOracle",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "hasInitialized",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "proposalCounter",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "fundsManager",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "executeProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "D",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "ABSTAIN_PROPOSAL_ID",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "stakeAllToProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_agreement", "type": "address" }],
+      "name": "setAgreement",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_script", "type": "bytes" }],
+      "name": "getEVMScriptExecutor",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getRecoveryVault",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "MAX_STAKED_PROPOSALS",
+      "outputs": [{ "name": "", "type": "uint64" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_stableTokenOracle", "type": "address" },
+        { "name": "_stableToken", "type": "address" }
+      ],
+      "name": "setStableTokenOracleSettings",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_from", "type": "address" },
+        { "name": "_to", "type": "address" },
+        { "name": "_amount", "type": "uint256" }
+      ],
+      "name": "onTransfer",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_hookId", "type": "uint256" },
+        { "name": "_token", "type": "address" }
+      ],
+      "name": "onRegisterAsHook",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "requestToken",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_title", "type": "string" },
+        { "name": "_link", "type": "bytes" },
+        { "name": "_requestedAmount", "type": "uint256" },
+        { "name": "_stableRequestAmount", "type": "bool" },
+        { "name": "_beneficiary", "type": "address" }
+      ],
+      "name": "addProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "UPDATE_SETTINGS_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "withdrawAllFromProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "stakeToken",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "decay",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_requestedAmount", "type": "uint256" }],
+      "name": "calculateThreshold",
+      "outputs": [{ "name": "_threshold", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_stakeToken", "type": "address" },
+        { "name": "_requestToken", "type": "address" },
+        { "name": "_stableToken", "type": "address" },
+        { "name": "_stableTokenOracle", "type": "address" },
+        { "name": "_fundsManager", "type": "address" },
+        { "name": "_decay", "type": "uint256" },
+        { "name": "_maxRatio", "type": "uint256" },
+        { "name": "_weight", "type": "uint256" },
+        { "name": "_minThresholdStakePercentage", "type": "uint256" }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_proposalId", "type": "uint256" },
+        { "name": "_amount", "type": "uint256" }
+      ],
+      "name": "withdrawFromProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "canChallenge",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voter", "type": "address" }],
+      "name": "getVoterStakedProposals",
+      "outputs": [{ "name": "", "type": "uint256[]" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "maxRatio",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "canClose",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionAllowed",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "token", "type": "address" }],
+      "name": "allowRecoverability",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_disputableActionId", "type": "uint256" },
+        { "name": "_challengeId", "type": "uint256" },
+        { "name": "_challenger", "type": "address" }
+      ],
+      "name": "onDisputableActionChallenged",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "appId",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "totalStaked",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "contractPaused",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getInitializationBlock",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CHALLENGE_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_fundsManager", "type": "address" }],
+      "name": "setFundsManager",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_token", "type": "address" }],
+      "name": "transferToVault",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "withdrawFromInactiveProposals",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_sender", "type": "address" },
+        { "name": "_role", "type": "bytes32" },
+        { "name": "_params", "type": "uint256[]" }
+      ],
+      "name": "canPerform",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "weight",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getEVMScriptRegistry",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "stableToken",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "getTokenManager",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionVoided",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getAgreement",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_hookId", "type": "uint256" },
+        { "name": "_token", "type": "address" }
+      ],
+      "name": "onRevokeAsHook",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_decay", "type": "uint256" },
+        { "name": "_maxRatio", "type": "uint256" },
+        { "name": "_weight", "type": "uint256" },
+        { "name": "_minThresholdStakePercentage", "type": "uint256" }
+      ],
+      "name": "setConvictionCalculationSettings",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "getProposal",
+      "outputs": [
+        { "name": "requestedAmount", "type": "uint256" },
+        { "name": "stableRequestAmount", "type": "bool" },
+        { "name": "beneficiary", "type": "address" },
+        { "name": "stakedTokens", "type": "uint256" },
+        { "name": "convictionLast", "type": "uint256" },
+        { "name": "blockLast", "type": "uint64" },
+        { "name": "agreementActionId", "type": "uint256" },
+        { "name": "proposalStatus", "type": "uint8" },
+        { "name": "submitter", "type": "address" },
+        { "name": "threshold", "type": "uint256" }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_title", "type": "string" },
+        { "name": "_link", "type": "bytes" }
+      ],
+      "name": "addSignalingProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "SET_AGREEMENT_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "kernel",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_holder", "type": "address" },
+        { "name": "_spender", "type": "address" },
+        { "name": "_amount", "type": "uint256" }
+      ],
+      "name": "onApprove",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_timePassed", "type": "uint64" },
+        { "name": "_lastConv", "type": "uint256" },
+        { "name": "_oldAmount", "type": "uint256" }
+      ],
+      "name": "calculateConviction",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "minThresholdStakePercentage",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "PAUSE_CONTRACT_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "ONE_HUNDRED_PERCENT",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_voter", "type": "address" }],
+      "name": "getTotalVoterStake",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isPetrified",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_proposalId", "type": "uint256" }],
+      "name": "cancelProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_proposalId", "type": "uint256" },
+        { "name": "_voter", "type": "address" }
+      ],
+      "name": "getProposalVoterStake",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_pauseEnabled", "type": "bool" }],
+      "name": "pauseContract",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CREATE_PROPOSALS_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "CANCEL_PROPOSALS_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_disputableActionId", "type": "uint256" }],
+      "name": "onDisputableActionRejected",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_proposalId", "type": "uint256" },
+        { "name": "_amount", "type": "uint256" }
+      ],
+      "name": "stakeToProposal",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": false, "name": "pauseEnabled", "type": "bool" }],
+      "name": "ContractPaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "stableTokenOracle", "type": "address" },
+        { "indexed": false, "name": "stableToken", "type": "address" }
+      ],
+      "name": "OracleSettingsChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "fundsManager", "type": "address" }
+      ],
+      "name": "FundsManagerChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "decay", "type": "uint256" },
+        { "indexed": false, "name": "maxRatio", "type": "uint256" },
+        { "indexed": false, "name": "weight", "type": "uint256" },
+        {
+          "indexed": false,
+          "name": "minThresholdStakePercentage",
+          "type": "uint256"
+        }
+      ],
+      "name": "ConvictionSettingsChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "entity", "type": "address" },
+        { "indexed": true, "name": "id", "type": "uint256" },
+        { "indexed": true, "name": "actionId", "type": "uint256" },
+        { "indexed": false, "name": "title", "type": "string" },
+        { "indexed": false, "name": "link", "type": "bytes" },
+        { "indexed": false, "name": "amount", "type": "uint256" },
+        { "indexed": false, "name": "stable", "type": "bool" },
+        { "indexed": false, "name": "beneficiary", "type": "address" }
+      ],
+      "name": "ProposalAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "entity", "type": "address" },
+        { "indexed": true, "name": "id", "type": "uint256" },
+        { "indexed": false, "name": "amount", "type": "uint256" },
+        { "indexed": false, "name": "tokensStaked", "type": "uint256" },
+        { "indexed": false, "name": "totalTokensStaked", "type": "uint256" },
+        { "indexed": false, "name": "conviction", "type": "uint256" }
+      ],
+      "name": "StakeAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "entity", "type": "address" },
+        { "indexed": true, "name": "id", "type": "uint256" },
+        { "indexed": false, "name": "amount", "type": "uint256" },
+        { "indexed": false, "name": "tokensStaked", "type": "uint256" },
+        { "indexed": false, "name": "totalTokensStaked", "type": "uint256" },
+        { "indexed": false, "name": "conviction", "type": "uint256" }
+      ],
+      "name": "StakeWithdrawn",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "id", "type": "uint256" },
+        { "indexed": false, "name": "conviction", "type": "uint256" }
+      ],
+      "name": "ProposalExecuted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "proposalId", "type": "uint256" },
+        { "indexed": true, "name": "challengeId", "type": "uint256" }
+      ],
+      "name": "ProposalPaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "proposalId", "type": "uint256" }],
+      "name": "ProposalResumed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "proposalId", "type": "uint256" }],
+      "name": "ProposalCancelled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "proposalId", "type": "uint256" }],
+      "name": "ProposalRejected",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "executor", "type": "address" },
+        { "indexed": false, "name": "script", "type": "bytes" },
+        { "indexed": false, "name": "input", "type": "bytes" },
+        { "indexed": false, "name": "returnData", "type": "bytes" }
+      ],
+      "name": "ScriptResult",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "vault", "type": "address" },
+        { "indexed": true, "name": "token", "type": "address" },
+        { "indexed": false, "name": "amount", "type": "uint256" }
+      ],
+      "name": "RecoverToVault",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [{ "indexed": true, "name": "agreement", "type": "address" }],
+      "name": "AgreementSet",
+      "type": "event"
+    }
+  ],
+  "flattenedCode": "./code.sol",
+  "appName": "disputable-conviction-voting.open.aragonpm.eth",
+  "appId": "0xca60629a22f03bcad7738fee1a6f0c5863eb89463621b40566a6799b82cbe184"
+}

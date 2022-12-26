@@ -202,6 +202,14 @@ importers:
       eslint-plugin-testing-library: 5.7.0
       vite: 2.9.15
 
+  packages/test-helpers:
+    specifiers:
+      '@1hive/evmcrispr': workspace:0.9.0
+      msw: ^0.47.3
+    devDependencies:
+      '@1hive/evmcrispr': link:../evmcrispr
+      msw: 0.47.4
+
 packages:
 
   /@ampproject/remapping/2.2.0:
