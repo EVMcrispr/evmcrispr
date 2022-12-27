@@ -94,8 +94,8 @@ const theme = {
     },
   },
   fonts: {
-    heading: 'Ubuntu Mono, monospace, sans-serif',
-    body: 'Ubuntu Mono, monospace, sans-serif',
+    heading: '"Pixel Operator Mono", monospace',
+    body: '"Pixel Operator Mono", monospace',
   },
   components: {
     Modal,
