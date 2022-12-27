@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/lodash.clonedeep": "^4.5.7",
+    "eslint-config-evmcrispr": "workspace:^0.0.1",
     "is-ipfs": "^6.0.2",
     "msw": "^0.47.3",
     "node-fetch": "^3.2.4",
@@ -32,11 +33,11 @@
   ],
   "scripts": {
     "build": "tsup",
+    "lint": "eslint",
     "chain": "hardhat node",
     "create-fixtures": "hardhat run scripts/create-fixtures.ts",
     "create-docs": "typedoc",
     "preinstall": "npx only-allow pnpm",
-    "lint": "eslint",
     "test": "hardhat test",
     "test:coverage": "nyc --reporter=lcov pnpm test"
   }

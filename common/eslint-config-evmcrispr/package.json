@@ -1,0 +1,26 @@
+{
+  "name": "eslint-config-evmcrispr",
+  "private": true,
+  "version": "0.0.1",
+  "main": "index.js",
+  "description": "Test helpers for the EVMcrispr library",
+  "author": "Blossom Labs",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-import-resolver-typescript": "^2.7.1",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.5.0",
+    "prettier": "^2.6.2",
+    "typescript": "4.7.4"
+  },
+  "peerDependencies": {
+    "eslint": "^7.32.0",
+    "typescript": "4.7.4"
+  }
+}
