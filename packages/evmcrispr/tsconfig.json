@@ -1,9 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "tsconfig-evmcrispr/base.json",
   "compilerOptions": {
-    "lib": ["es2019", "es2017", "dom"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "target": "es2021"
+    "lib": ["es2019", "es2017", "dom"]
   }
 }

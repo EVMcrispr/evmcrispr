@@ -1,12 +1,11 @@
+import { utils } from 'ethers';
 import type { DefaultBodyType, PathParams, RequestHandler } from 'msw';
 import { graphql, rest } from 'msw';
 import { setupServer } from 'msw/node';
 
-import { utils } from 'ethers';
-
 import { artifacts } from './fixtures/artifacts';
-import { etherscan } from './fixtures/etherscan';
 import { blockscout } from './fixtures/blockscout';
+import { etherscan } from './fixtures/etherscan';
 import { DAOs, REPOs } from './fixtures/subgraph-data';
 import tokenListFixture from './fixtures/tokenlist/uniswap.json';
 import { addressesEqual } from './helpers';
@@ -57,6 +56,7 @@ const handlers: RequestHandler[] = [
     `${IPFS_GATEWAY}:cid/:resource`,
     (req, res, ctx) => {
       const { cid, resource } = req.params;
+      console.log(`FETCHING RESOURCE ${cid}/${resource}`);
 
       try {
         if (resource === 'artifact.json') {

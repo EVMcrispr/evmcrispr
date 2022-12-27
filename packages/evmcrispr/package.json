@@ -17,7 +17,8 @@
     "msw": "^0.47.3",
     "node-fetch": "^3.2.4",
     "nyc": "^15.1.0",
-    "ora": "^5.4.0"
+    "ora": "^5.4.0",
+    "tsconfig-evmcrispr": "workspace:*"
   },
   "dependencies": {
     "arcsecond": "^4.1.0",
