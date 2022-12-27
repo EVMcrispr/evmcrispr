@@ -16,9 +16,10 @@ importers:
       bundlewatch: ^0.3.3
       chai: ^4.3.6
       coveralls: ^3.1.1
-      dotenv: ^16.0.1
       dotenv-cli: ^6.0.0
       eslint: ^7.32.0
+      eslint-config-turbo: ^0.0.7
+      eslint-plugin-turbo: ^0.0.7
       ethereum-waffle: ^3.4.4
       ethers: ^5.6.6
       hardhat: ^2.9.5
@@ -42,9 +43,10 @@ importers:
       bundlewatch: 0.3.3
       chai: 4.3.6
       coveralls: 3.1.1
-      dotenv: 16.0.3
       dotenv-cli: 6.0.0
       eslint: 7.32.0
+      eslint-config-turbo: 0.0.7_eslint@7.32.0
+      eslint-plugin-turbo: 0.0.7_eslint@7.32.0
       ethereum-waffle: 3.4.4_typescript@4.7.4
       ethers: 5.7.1
       hardhat: 2.12.4_6oasmw356qmm23djlsjgkwvrtm
@@ -131,10 +133,12 @@ importers:
       eslint-config-evmcrispr: workspace:^0.0.1
       hardhat: ^2.9.5
       msw: ^0.47.3
+      tsconfig-evmcrispr: workspace:*
     devDependencies:
       eslint-config-evmcrispr: link:../eslint-config-evmcrispr
       hardhat: 2.12.4
       msw: 0.47.4
+      tsconfig-evmcrispr: link:../tsconfig
 
   packages/evmcrispr:
     specifiers:
@@ -150,6 +154,7 @@ importers:
       node-fetch: ^3.2.4
       nyc: ^15.1.0
       ora: ^5.4.0
+      tsconfig-evmcrispr: workspace:*
     dependencies:
       arcsecond: 4.1.0
       isomorphic-fetch: 3.0.0
@@ -164,6 +169,7 @@ importers:
       node-fetch: 3.2.10
       nyc: 15.1.0
       ora: 5.4.1
+      tsconfig-evmcrispr: link:../../common/tsconfig
 
   packages/evmcrispr-terminal:
     specifiers:
@@ -7323,6 +7329,15 @@ packages:
       eslint: 7.32.0
     dev: true
 
+  /eslint-config-turbo/0.0.7_eslint@7.32.0:
+    resolution: {integrity: sha512-WbrGlyfs94rOXrhombi1wjIAYGdV2iosgJRndOZtmDQeq5GLTzYmBUCJQZWtLBEBUPCj96RxZ2OL7Cn+xv/Azg==}
+    peerDependencies:
+      eslint: '>6.6.0'
+    dependencies:
+      eslint: 7.32.0
+      eslint-plugin-turbo: 0.0.7_eslint@7.32.0
+    dev: true
+
   /eslint-import-resolver-node/0.3.6:
     resolution: {integrity: sha512-0En0w03NRVMn9Uiyn8YRPDKvWjxCWkslUEhGNTdGx15RvPJYQ+lbOlqrlNI2vEAs4pDYK4f/HN2TbDmk5TP0iw==}
     dependencies:
@@ -7493,6 +7508,14 @@ packages:
     transitivePeerDependencies:
       - supports-color
       - typescript
+    dev: true
+
+  /eslint-plugin-turbo/0.0.7_eslint@7.32.0:
+    resolution: {integrity: sha512-iajOH8eD4jha3duztGVBD1BEmvNrQBaA/y3HFHf91vMDRYRwH7BpHSDFtxydDpk5ghlhRxG299SFxz7D6z4MBQ==}
+    peerDependencies:
+      eslint: '>6.6.0'
+    dependencies:
+      eslint: 7.32.0
     dev: true
 
   /eslint-scope/5.1.1:
