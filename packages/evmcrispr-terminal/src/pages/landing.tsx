@@ -15,6 +15,7 @@ import {
 import Card from '../components/card';
 import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
+import { AllSponsors, AragonSponsor } from '../components/footer/Sponsors';
 
 import Brett from '../assets/brett.png';
 import Michael from '../assets/michael.png';
@@ -148,6 +149,8 @@ const Landing = () => {
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>
+        <AragonSponsor />
+        <AllSponsors />
         <Footer />
       </FadeIn>
     </>

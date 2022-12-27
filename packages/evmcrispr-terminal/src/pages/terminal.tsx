@@ -9,6 +9,7 @@ import type { Monaco } from '@monaco-editor/react';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
+  Box,
   Container,
   Flex,
   HStack,
@@ -276,7 +277,9 @@ export default function Terminal() {
         </FadeIn>
       </Container>
       <FadeIn componentRef={footerRef}>
-        <Footer />
+        <Box marginTop={'200px'}>
+          <Footer />
+        </Box>
       </FadeIn>
     </>
   );
