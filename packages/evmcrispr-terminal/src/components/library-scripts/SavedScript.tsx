@@ -1,4 +1,12 @@
-import { Box, Icon, IconButton, Text, Tooltip, VStack } from '@chakra-ui/react';
+import {
+  Box,
+  Heading,
+  Icon,
+  IconButton,
+  Text,
+  Tooltip,
+  VStack,
+} from '@chakra-ui/react';
 import { TrashIcon } from '@heroicons/react/24/solid';
 
 import type { StoredScript } from '../../types';
@@ -39,9 +47,9 @@ export function SavedScript({
       onClick={() => onItemClick(title)}
     >
       <VStack spacing={3} align={'flex-start'}>
-        <Text fontSize={'2xl'} color={'yellow.300'}>
+        <Heading fontSize={'2xl'} color={'yellow.300'}>
           {title}
-        </Text>
+        </Heading>
         <Text color={'white'} fontSize={''}>
           Created <span style={{ textTransform: 'capitalize' }}>{month} </span>
           {day}, {year}

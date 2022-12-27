@@ -101,10 +101,12 @@ const Card = ({
           <Text fontSize="15px" color="green.300" fontWeight="bold">
             {name}
           </Text>
-          <Text fontSize="15px" fontWeight="bold">
+          <Text variant="clearer" fontSize="15px" fontWeight="bold">
             {info}
           </Text>
-          <Text fontSize="13px">{description}</Text>
+          <Text variant="clearer" fontSize="13px">
+            {description}
+          </Text>
         </Center>
       </Box>
       <Box

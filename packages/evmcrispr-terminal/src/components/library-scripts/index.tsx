@@ -7,6 +7,7 @@ import {
   DrawerContent,
   DrawerHeader,
   HStack,
+  Heading,
   IconButton,
   Input,
   InputGroup,
@@ -95,9 +96,9 @@ export default function LibraryScripts() {
             <DrawerHeader py={6}>
               <VStack spacing={4}>
                 <HStack justify={'center'} align={'center'} spacing={4}>
-                  <Text color={'white'} fontSize={'4xl'}>
+                  <Heading color={'white'} fontSize={'4xl'}>
                     Library
-                  </Text>
+                  </Heading>
                 </HStack>
                 <InputGroup>
                   <Input
