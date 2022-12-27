@@ -96,6 +96,7 @@ const theme = {
   fonts: {
     heading: '"Pixel Operator Mono", monospace',
     body: '"Pixel Operator Mono", monospace',
+    mono: '"Pixel Operator Mono", monospace',
   },
   components: {
     Modal,

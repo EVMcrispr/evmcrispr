@@ -17,6 +17,9 @@ const Fonts = () => (
         font-display: swap;
         src: url('./fonts/PixelOperatorMono-Bold.ttf') format('truetype');
       }
+      body {
+        font-family: "Pixel Operator Mono", monospace;
+      }
       `}
   />
 );
