@@ -1,3 +1,4 @@
+import { DAO } from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
@@ -6,7 +7,6 @@ import { ethers } from 'hardhat';
 import { commaListItems } from '../../../../src/utils';
 import { CommandError } from '../../../../src/errors';
 
-import { DAO } from '../../../fixtures';
 import {
   createTestAction,
   createTestScriptEncodedAction,

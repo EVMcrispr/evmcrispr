@@ -1,3 +1,4 @@
+import { DAO, DAO2 } from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { Contract } from 'ethers';
@@ -9,8 +10,6 @@ import {
   buildNonceForAddress,
   calculateNewProxyAddress,
 } from '../../../../src/utils';
-import { DAO } from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,

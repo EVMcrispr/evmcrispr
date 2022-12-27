@@ -2,13 +2,14 @@
   "name": "evmcrispr-monorepo",
   "private": true,
   "scripts": {
-    "build": "preconstruct build",
+    "build": "turbo run build",
+    "dev": "dotenv -- turbo run dev --filter=./packages/evmcrispr",
+    "lint": "turbo run lint",
+    "test": "dotenv -- turbo run test --filter=./packages/*",
     "build:terminal": "pnpm --filter \"./packages/evmcrispr-terminal\" build",
     "changeset:release": "pnpm build && changeset publish",
     "changeset:version": "changeset version && pnpm install --lockfile-only",
-    "dev": "preconstruct dev",
     "docs:evmcrispr": "pnpm --filter \"./packages/evmcrispr\" create-docs",
-    "lint": "eslint --cache",
     "lint:fix": "pnpm lint --fix",
     "lint:format": "prettier --write",
     "lint:evmcrispr:types": "pnpm --filter \"./packages/evmcrispr\" lint:types",
@@ -30,28 +31,14 @@
     "url": "https://github.com/1Hive/EVMcrispr/issues"
   },
   "homepage": "https://github.com/1Hive/EVMcrispr#readme",
-  "lint-staged": {
-    "*.{js,ts,tsx}": [
-      "pnpm lint:fix"
-    ],
-    "*.{json,md,mdx,yml}": [
-      "pnpm lint:format"
-    ]
-  },
-  "preconstruct": {
-    "packages": [
-      "packages/evmcrispr"
-    ]
-  },
   "devDependencies": {
+    "@1hive/evmcrispr-test-common": "workspace:^0.0.1",
     "@babel/core": "^7.17.10",
-    "@babel/preset-env": "^7.17.10",
     "@babel/preset-react": "^7.16.7",
     "@babel/preset-typescript": "^7.16.7",
     "@changesets/cli": "^2.22.0",
-    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "@preconstruct/cli": "^2.1.5",
     "@types/chai": "^4.3.1",
     "@types/eslint": "^8.4.2",
     "@types/mocha": "^8.2.3",
@@ -63,6 +50,7 @@
     "chai": "^4.3.6",
     "coveralls": "^3.1.1",
     "dotenv": "^16.0.1",
+    "dotenv-cli": "^6.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^2.7.1",
@@ -73,11 +61,11 @@
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.6",
     "hardhat": "^2.9.5",
-    "husky": "^7.0.4",
-    "lint-staged": "^12.4.1",
     "pnpm": "^7.0.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
+    "tsup": "^6.5.0",
+    "turbo": "^1.6.3",
     "typedoc": "^0.22.15",
     "typescript": "~4.7.4"
   }

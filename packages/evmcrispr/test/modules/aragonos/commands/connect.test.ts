@@ -1,3 +1,13 @@
+import {
+  APP,
+  COMPLETE_FORWARDER_PATH,
+  DAO,
+  DAO2,
+  DAO3,
+  FEE_AMOUNT,
+  FEE_FORWARDER,
+  FEE_TOKEN_ADDRESS,
+} from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { constants, utils } from 'ethers';
@@ -16,16 +26,6 @@ import {
 } from '../../../../src/utils';
 import { CommandError } from '../../../../src/errors';
 
-import {
-  APP,
-  COMPLETE_FORWARDER_PATH,
-  DAO,
-  FEE_AMOUNT,
-  FEE_FORWARDER,
-  FEE_TOKEN_ADDRESS,
-} from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
-import { DAO as DAO3 } from '../../../fixtures/mock-dao-3';
 import {
   createTestAction,
   createTestPreTxAction,

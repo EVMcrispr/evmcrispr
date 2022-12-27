@@ -4,8 +4,9 @@
   "codename": "morphean simulation",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
-  "main": "dist/1hive-evmcrispr.cjs.js",
-  "module": "dist/1hive-evmcrispr.esm.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "author": "Blossom Labs",
   "sideEffects": false,
   "devDependencies": {
@@ -30,11 +31,12 @@
     "dist"
   ],
   "scripts": {
+    "build": "tsup",
     "chain": "hardhat node",
     "create-fixtures": "hardhat run scripts/create-fixtures.ts",
     "create-docs": "typedoc",
     "preinstall": "npx only-allow pnpm",
-    "lint:types": "tsc --noEmit",
+    "lint": "eslint",
     "test": "hardhat test",
     "test:coverage": "nyc --reporter=lcov pnpm test"
   }

@@ -1,0 +1,20 @@
+{
+  "name": "@1hive/evmcrispr-test-common",
+  "private": true,
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "description": "Test helpers for the EVMcrispr library",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./hardhat-config": "./hardhat-config.ts"
+  },
+  "author": "Blossom Labs",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "hardhat": "^2.9.5",
+    "msw": "^0.47.3"
+  }
+}

@@ -1,10 +1,10 @@
+import { DAO } from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../../src/errors';
-import { DAO } from '../../../fixtures';
 import { createTestScriptEncodedAction } from '../../../test-helpers/actions';
 import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,

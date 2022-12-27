@@ -1,3 +1,4 @@
+import { DAO, DAO2 } from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
@@ -10,8 +11,6 @@ import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 
 import { CommandError } from '../../../../src/errors';
 
-import { DAO } from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
 import { createTestAction } from '../../../test-helpers/actions';
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,

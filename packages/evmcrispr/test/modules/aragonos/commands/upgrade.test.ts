@@ -1,3 +1,4 @@
+import { DAO, DAO2, DAO3 } from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
@@ -7,9 +8,6 @@ import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
 import { getRepoContract } from '../../../../src/modules/aragonos/utils';
 
 import { CommandError } from '../../../../src/errors';
-import { DAO } from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
-import { DAO as DAO3 } from '../../../fixtures/mock-dao-3';
 import { createTestAction } from '../../../test-helpers/actions';
 import {
   _aragonEns,
