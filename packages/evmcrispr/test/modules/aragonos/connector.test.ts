@@ -7,8 +7,8 @@ import { multihash } from 'is-ipfs';
 
 import { ErrorException, ErrorNotFound } from '../../../src/errors';
 import { Connector } from '../../../src/modules/aragonos/Connector';
-import { parseContentUri } from '../../../src/modules/aragonos/utils';
 import type { ParsedApp } from '../../../src/modules/aragonos/types';
+import { parseContentUri } from '../../../src/modules/aragonos/utils';
 
 import {
   expectThrowAsync,

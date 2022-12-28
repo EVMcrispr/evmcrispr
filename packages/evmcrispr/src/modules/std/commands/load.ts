@@ -1,4 +1,4 @@
-import { ComparisonType, checkArgsLength, insideNode } from '../../../utils';
+import { ErrorException } from '../../../errors';
 import type {
   AsExpressionNode,
   Commands,
@@ -6,11 +6,17 @@ import type {
   ICommand,
 } from '../../../types';
 import { BindingsSpace, NodeType } from '../../../types';
+import { ComparisonType, checkArgsLength, insideNode } from '../../../utils';
 import type { Std } from '../Std';
-import { ErrorException } from '../../../errors';
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
+
+function buildModulePackageName(name: string): string {
+  const name_ = name.toLowerCase();
+
+  return `@1hive/evmcrispr-${name_}-module`;
+}
 
 export const load: ICommand<Std> = {
   async run(module, c, { interpretNode }) {
@@ -53,7 +59,7 @@ export const load: ICommand<Std> = {
     }
     try {
       const { ModuleConstructor } = await import(
-        `../../${moduleName}/index.ts`
+        buildModulePackageName(moduleName)
       );
       module.modules.push(
         new ModuleConstructor(
@@ -119,7 +125,7 @@ export const load: ICommand<Std> = {
 
       try {
         const { commands: moduleCommands, helpers: moduleHelpers } =
-          await import(`../../${moduleName}/index.ts`);
+          await import(buildModulePackageName(moduleName));
         commands = moduleCommands as Commands;
         helpers = moduleHelpers as HelperFunctions;
       } catch (e) {

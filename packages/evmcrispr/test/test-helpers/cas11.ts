@@ -3,10 +3,14 @@ import { withData } from 'arcsecond';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 
-import { inspect } from 'util';
 import type { ErrorException } from '../../src';
 import { Cas11AST } from '../../src';
 import { EVMcrispr } from '../../src/EVMcrispr';
+import {
+  CommandError,
+  ExpressionError,
+  HelperFunctionError,
+} from '../../src/errors';
 import { scriptParser } from '../../src/parsers/script';
 import { createParserState } from '../../src/parsers/utils';
 import type {
@@ -21,12 +25,8 @@ import { BindingsSpace, NodeType } from '../../src/types';
 import type { Comparison } from '../../src/utils';
 import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/utils';
 import { buildParserError } from '../../src/utils/parsers';
-import {
-  CommandError,
-  ExpressionError,
-  HelperFunctionError,
-} from '../../src/errors';
 import { expectThrowAsync } from './expects';
+import { inspect } from 'util';
 
 const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;

@@ -15,6 +15,8 @@
   "author": "Blossom Labs",
   "license": "GPL-3.0",
   "devDependencies": {
+    "@1hive/evmcrispr": "workspace:^0.9.0",
+    "arcsecond": "^4.1.0",
     "eslint-config-evmcrispr": "workspace:^0.0.1",
     "hardhat": "^2.9.5",
     "msw": "^0.47.3",

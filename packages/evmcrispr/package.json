@@ -4,7 +4,7 @@
   "codename": "morphean simulation",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "author": "Blossom Labs",
@@ -14,7 +14,6 @@
     "@types/lodash.clonedeep": "^4.5.7",
     "eslint-config-evmcrispr": "workspace:^0.0.1",
     "is-ipfs": "^6.0.2",
-    "msw": "^0.47.3",
     "node-fetch": "^3.2.4",
     "nyc": "^15.1.0",
     "ora": "^5.4.0",
@@ -27,6 +26,8 @@
     "lodash.clonedeep": "^4.5.0"
   },
   "peerDependencies": {
+    "@1hive/evmcrispr-aragonos-module": "workspace:^0.9.0",
+    "@1hive/evmcrispr-giveth-module": "workspace:^0.9.0",
     "ethers": "^5.6.4"
   },
   "files": [

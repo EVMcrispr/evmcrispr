@@ -1,5 +1,5 @@
-export { ErrorException, ErrorInvalid, ErrorNotFound } from './errors';
-export type { ErrorOptions } from './errors';
+export * from './abis';
+export * from './errors';
 export * from './types';
 
 export { Module } from './Module';
@@ -15,6 +15,7 @@ export { Cas11AST } from './Cas11AST';
 export { EVMcrispr } from './EVMcrispr';
 export * from './IPFSResolver';
 
-export * from './utils/ast';
+export * from './utils';
 
+export { createParserState } from './parsers/utils';
 export { scriptParser, parseScript } from './parsers/script';

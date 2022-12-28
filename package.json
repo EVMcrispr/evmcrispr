@@ -2,7 +2,7 @@
   "name": "evmcrispr-monorepo",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --filter=!./packages/evmcrispr-terminal",
     "dev": "dotenv -- turbo run dev --filter=./packages/evmcrispr",
     "lint": "turbo run lint",
     "test": "dotenv -- turbo run test --filter=!./packages/evmcrispr-terminal --filter=./packages/*",
@@ -18,8 +18,7 @@
     "start:terminal": "pnpm --filter \"./packages/evmcrispr-terminal\" dev",
     "test:evmcrispr": "pnpm --filter \"./packages/evmcrispr\" test",
     "test:coverage": "pnpm --filter \"./packages/evmcrispr\" test:coverage",
-    "test:size": "pnpm build && pnpm size",
-    "postinstall": "pnpm install --ignore-scripts && husky install .config/husky && pnpm dev"
+    "test:size": "pnpm build && pnpm size"
   },
   "repository": {
     "type": "git",
@@ -32,6 +31,9 @@
   },
   "homepage": "https://github.com/1Hive/EVMcrispr#readme",
   "devDependencies": {
+    "@1hive/evmcrispr": "workspace:^0.9.0",
+    "@1hive/evmcrispr-aragonos-module": "workspace:^0.9.0",
+    "@1hive/evmcrispr-giveth-module": "workspace:^0.9.0",
     "@1hive/evmcrispr-test-common": "workspace:^0.0.1",
     "@changesets/cli": "^2.22.0",
     "@nomiclabs/hardhat-ethers": "^2.2.1",

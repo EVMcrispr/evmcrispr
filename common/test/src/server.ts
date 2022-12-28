@@ -8,12 +8,17 @@ import { blockscout } from './fixtures/blockscout';
 import { etherscan } from './fixtures/etherscan';
 import { DAOs, REPOs } from './fixtures/subgraph-data';
 import tokenListFixture from './fixtures/tokenlist/uniswap.json';
-import { addressesEqual } from './helpers';
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 
 // TODO: allow to input custom ipfs gateway instead of hard-coding it
 const IPFS_GATEWAY = 'https://ipfs.blossom.software/ipfs/';
+
+function addressesEqual(first: string, second: string): boolean {
+  first = first && first.toLowerCase();
+  second = second && second.toLowerCase();
+  return first === second;
+}
 
 const handlers: RequestHandler[] = [
   graphql.query<Record<string, any>, { repoName: string }>(
@@ -56,7 +61,6 @@ const handlers: RequestHandler[] = [
     `${IPFS_GATEWAY}:cid/:resource`,
     (req, res, ctx) => {
       const { cid, resource } = req.params;
-      console.log(`FETCHING RESOURCE ${cid}/${resource}`);
 
       try {
         if (resource === 'artifact.json') {

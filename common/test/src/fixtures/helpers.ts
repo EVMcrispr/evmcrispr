@@ -1,6 +1,6 @@
-import { ethers } from 'hardhat';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { utils } from 'ethers';
+import { ethers } from 'hardhat';
 
 import { DAO } from '.';
 import type { Permission } from '../../../../packages/evmcrispr/src/modules/aragonos/types';

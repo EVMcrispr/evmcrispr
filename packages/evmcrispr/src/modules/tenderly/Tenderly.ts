@@ -1,10 +1,10 @@
 import type { BindingsManager } from '../../BindingsManager';
 
-import { Module } from '../../Module';
+import type { EVMcrispr } from '../../EVMcrispr';
 import type { IPFSResolver } from '../../IPFSResolver';
+import { Module } from '../../Module';
 import { commands } from './commands';
 import { helpers } from './helpers';
-import type { EVMcrispr } from '../../EVMcrispr';
 
 export class Tenderly extends Module {
   constructor(

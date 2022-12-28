@@ -2,8 +2,8 @@ import { BigNumber } from 'ethers';
 
 import { ErrorException } from '../../../errors';
 
-import type { ICommand } from '../../../types';
 import { BindingsSpace } from '../../../types';
+import type { ICommand } from '../../../types';
 
 import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
 

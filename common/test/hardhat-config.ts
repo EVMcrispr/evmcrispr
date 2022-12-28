@@ -36,13 +36,14 @@ const config: HardhatUserConfig = {
     timeout: 0,
     rootHooks: {
       beforeAll: () => {
-        console.log('running server');
         server.listen({
           onUnhandledRequest: (req) => {
             if (req.url.origin === 'http://localhost:8545/') {
               return 'bypass';
             }
 
+            // Display warning when running on node.js environment
+            console.warn(`WARNING: Unhandled request: ${req.url}`);
             return 'warn';
           },
         });

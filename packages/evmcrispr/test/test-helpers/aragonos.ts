@@ -4,7 +4,16 @@ import type { Address } from '../../src';
 
 import type { EVMcrispr } from '../../src/EVMcrispr';
 
+import { CommandError } from '../../src/errors';
 import type { AragonOS } from '../../src/modules/aragonos/AragonOS';
+import type {
+  FullPermission,
+  Permission,
+} from '../../src/modules/aragonos/types';
+import {
+  getAragonEnsResolver,
+  resolveName,
+} from '../../src/modules/aragonos/utils';
 import { NodeType } from '../../src/types';
 import type {
   AST,
@@ -12,17 +21,8 @@ import type {
   CommandExpressionNode,
 } from '../../src/types';
 import { listItems } from '../../src/utils';
-import { CommandError } from '../../src/errors';
 import { createInterpreter, itChecksNonDefinedIdentifier } from './cas11';
 import { expectThrowAsync } from './expects';
-import {
-  getAragonEnsResolver,
-  resolveName,
-} from '../../src/modules/aragonos/utils';
-import type {
-  FullPermission,
-  Permission,
-} from '../../src/modules/aragonos/types';
 
 export const _aragonEns = async (
   ensName: string,

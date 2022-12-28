@@ -12,6 +12,7 @@ export function getConfig(options: GetConfig = {}): Options {
     bundle: true,
     clean: true,
     dts: true,
+    sourcemap: true,
     format: ['esm', 'cjs'],
     silent: true,
     splitting: true,

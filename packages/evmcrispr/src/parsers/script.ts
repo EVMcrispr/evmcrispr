@@ -1,11 +1,11 @@
 import { coroutine, setData } from 'arcsecond';
 import type { Parser } from 'arcsecond';
 
+import { Cas11AST } from '../Cas11AST';
+import { ErrorException } from '../errors';
 import type { CommandExpressionNode, NodeParserState } from '../types';
 import { commandExpressionParser } from './command';
 import { createParserState, linesParser } from './utils';
-import { ErrorException } from '../errors';
-import { Cas11AST } from '../Cas11AST';
 
 export const scriptParser: Parser<Cas11AST, string, NodeParserState> =
   coroutine(function* () {
