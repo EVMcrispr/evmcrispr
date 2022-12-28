@@ -1,9 +1,9 @@
+import type { Permission } from '@1hive/evmcrispr-aragonos-module';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { utils } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { DAO } from '.';
-import type { Permission } from '../../../../packages/evmcrispr/src/modules/aragonos/types';
 import { KERNEL_TRANSACTION_COUNT } from './mock-dao';
 
 export const resolvePermission = (permission: Permission): Permission => {

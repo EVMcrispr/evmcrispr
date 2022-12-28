@@ -1,3 +1,5 @@
+import type { Case } from '@1hive/evmcrispr-test-common';
+import { runCases, runErrorCase } from '@1hive/evmcrispr-test-common';
 import type { Err } from 'arcsecond';
 import { withData } from 'arcsecond';
 import { expect } from 'chai';
@@ -8,8 +10,6 @@ import {
 } from '../../src/parsers/array';
 import { createParserState } from '../../src/parsers/utils';
 import type { ArrayExpressionNode, NodeParserState } from '../../src/types';
-import type { Case } from '../test-helpers/cas11';
-import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 describe('Parsers - array', () => {
   it('should parse an array correctly', () => {

@@ -1,6 +1,10 @@
 import type { Signer, providers } from 'ethers';
 import { BigNumber, Contract, constants, ethers, utils } from 'ethers';
 
+import { BindingsManager } from './BindingsManager';
+import type { Cas11AST } from './Cas11AST';
+import { IPFSResolver } from './IPFSResolver';
+import type { Module } from './Module';
 import {
   CommandError,
   ErrorException,
@@ -8,7 +12,8 @@ import {
   HelperFunctionError,
   NodeError,
 } from './errors';
-import { timeUnits, toDecimals } from './utils';
+import { Std } from './modules/std/Std';
+import { BindingsSpace, NodeType } from './types';
 import type {
   Action,
   Address,
@@ -25,13 +30,8 @@ import type {
   RelativeBinding,
   VariableIdentifierNode,
 } from './types';
-import { BindingsSpace, NodeType } from './types';
-import type { Module } from './Module';
-import { Std } from './modules/std/Std';
-import { BindingsManager } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
-import type { Cas11AST } from './Cas11AST';
-import { IPFSResolver } from './IPFSResolver';
+import { timeUnits, toDecimals } from './utils';
 
 const {
   AddressLiteral,
@@ -133,7 +133,7 @@ export class EVMcrispr {
     }
   }
 
-  setConnectedAccount(account: string | undefined) {
+  setConnectedAccount(account: string | undefined): void {
     this.#account = account;
   }
 

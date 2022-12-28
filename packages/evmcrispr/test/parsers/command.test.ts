@@ -1,10 +1,11 @@
+import type { Case } from '@1hive/evmcrispr-test-common';
+import { runCases, runErrorCase } from '@1hive/evmcrispr-test-common';
+
 import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,
   commandOptParser,
 } from '../../src/parsers/command';
-import type { Case } from '../test-helpers/cas11';
-import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 describe('Parsers - command expression', () => {
   it('should parse a command correctly', () => {

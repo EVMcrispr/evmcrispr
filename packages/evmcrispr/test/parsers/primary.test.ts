@@ -1,3 +1,9 @@
+import type { Case } from '@1hive/evmcrispr-test-common';
+import {
+  runCases,
+  runErrorCase,
+  runParser,
+} from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 
 import {
@@ -25,9 +31,6 @@ import type {
   VariableIdentifierNode,
 } from '../../src/types';
 import { NodeType } from '../../src/types';
-
-import type { Case } from '../test-helpers/cas11';
-import { runCases, runErrorCase, runParser } from '../test-helpers/cas11';
 
 const buildLocation = (value: string): Location => ({
   start: {

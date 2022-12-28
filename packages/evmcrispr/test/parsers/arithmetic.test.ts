@@ -1,6 +1,7 @@
+import type { Case } from '@1hive/evmcrispr-test-common';
+import { runCases } from '@1hive/evmcrispr-test-common';
+
 import { arithmeticParser } from '../../src/parsers/arithmetic';
-import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
 
 describe('Parsers - arithmetic', () => {
   it('should parse an arithmetic operation correctly', () => {

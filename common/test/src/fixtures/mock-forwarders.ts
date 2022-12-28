@@ -1,4 +1,4 @@
-import { toDecimals } from '../../../../packages/evmcrispr/src/utils';
+import { toDecimals } from '@1hive/evmcrispr';
 
 export const FORWARDER = 'token-manager';
 export const FEE_FORWARDER = 'tollgate.1hive';

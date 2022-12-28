@@ -1,7 +1,7 @@
-import { scriptParser } from '../../src';
+import type { Case } from '@1hive/evmcrispr-test-common';
+import { runCases } from '@1hive/evmcrispr-test-common';
 
-import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
+import { scriptParser } from '../../src';
 
 describe('Parsers - comment', () => {
   it('should parse a comment correctly', () => {

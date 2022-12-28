@@ -1,3 +1,5 @@
+import type { InterpreterCase } from '@1hive/evmcrispr-test-common';
+import { runInterpreterCases } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
 import { constants } from 'ethers';
 import { ethers } from 'hardhat';
@@ -5,8 +7,6 @@ import { ethers } from 'hardhat';
 import type { NumericLiteralNode } from '../../src/types';
 import { NodeType } from '../../src/types';
 import { timeUnits, toDecimals } from '../../src/utils';
-import type { InterpreterCase } from '../test-helpers/cas11';
-import { runInterpreterCases } from '../test-helpers/cas11';
 
 describe('Interpreter - primaries', async () => {
   let signer: Signer;

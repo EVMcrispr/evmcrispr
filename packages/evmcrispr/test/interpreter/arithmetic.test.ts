@@ -1,3 +1,8 @@
+import {
+  createInterpreter,
+  expectThrowAsync,
+  preparingExpression,
+} from '@1hive/evmcrispr-test-common';
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { BigNumber } from 'ethers';
@@ -6,9 +11,6 @@ import { ethers } from 'hardhat';
 import { ExpressionError } from '../../src/errors';
 
 import { toDecimals } from '../../src/utils';
-
-import { createInterpreter, preparingExpression } from '../test-helpers/cas11';
-import { expectThrowAsync } from '../test-helpers/expects';
 
 describe('Interpreter - arithmetics', () => {
   const name = 'ArithmeticExpressionError';

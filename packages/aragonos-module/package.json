@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "arcsecond": "^4.1.0",
+    "is-ipfs": "^6.0.2",
     "isomorphic-fetch": "^3.0.0",
     "lodash.clonedeep": "^4.5.0"
   },

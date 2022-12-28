@@ -1,13 +1,6 @@
-import type {
-  Entity,
-  Permission,
-} from '../../../../packages/evmcrispr/src/modules/aragonos';
+import type { Entity, Permission } from '@1hive/evmcrispr-aragonos-module';
 
-import {
-  and,
-  oracle,
-  timestamp,
-} from '../../../../packages/evmcrispr/src/modules/aragonos';
+import { and, oracle, timestamp } from '@1hive/evmcrispr-aragonos-module';
 
 export const GRANT_PERMISSIONS: Permission[] = [
   ['0xc125218F4Df091eE40624784caF7F47B9738086f', 'token-manager', 'MINT_ROLE'],

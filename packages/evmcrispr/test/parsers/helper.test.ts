@@ -1,8 +1,9 @@
+import { runCases, runErrorCase } from '@1hive/evmcrispr-test-common';
+
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
 } from '../../src/parsers/helper';
-import { runCases, runErrorCase } from '../test-helpers/cas11';
 
 export const helperParserDescribe = (): Mocha.Suite =>
   describe('Parsers - helper function', () => {

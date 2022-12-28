@@ -1,6 +1,7 @@
+import type { Case } from '@1hive/evmcrispr-test-common';
+import { runCases } from '@1hive/evmcrispr-test-common';
+
 import { callExpressionParser } from '../../src/parsers/call';
-import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
 
 export const callParserDescribe = (): Mocha.Suite =>
   describe('Parsers - call expression', () => {

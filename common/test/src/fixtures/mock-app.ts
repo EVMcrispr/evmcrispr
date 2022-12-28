@@ -1,7 +1,7 @@
+import { toDecimals } from '@1hive/evmcrispr';
 import { utils } from 'ethers';
 
 import { DAO } from '.';
-import { toDecimals } from '../../../../packages/evmcrispr/src/utils';
 
 export const APP = {
   appName: 'token-manager.aragonpm.eth',
