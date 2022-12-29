@@ -12,7 +12,7 @@ import {
   HelperFunctionError,
   NodeError,
 } from './errors';
-import { Std } from './modules/std/Std';
+import { Std } from './std/Std';
 import { BindingsSpace, NodeType } from './types';
 import type {
   Action,

@@ -265,6 +265,14 @@ importers:
       eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
       tsconfig-evmcrispr: link:../../common/tsconfig
 
+  packages/tenderly-module:
+    specifiers:
+      eslint-config-evmcrispr: workspace:^0.0.1
+      tsconfig-evmcrispr: workspace:*
+    devDependencies:
+      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
+      tsconfig-evmcrispr: link:../../common/tsconfig
+
 packages:
 
   /@ampproject/remapping/2.2.0:
