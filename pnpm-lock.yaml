@@ -138,6 +138,7 @@ importers:
 
   modules/aragonos:
     specifiers:
+      '@1hive/evmcrispr': workspace:^0.9.0
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
       arcsecond: ^4.1.0
@@ -150,20 +151,26 @@ importers:
       isomorphic-fetch: 3.0.0
       lodash.clonedeep: 4.5.0
     devDependencies:
+      '@1hive/evmcrispr': link:../../core/evmcrispr
       '@types/isomorphic-fetch': 0.0.36
       '@types/lodash.clonedeep': 4.5.7
 
   modules/giveth:
     specifiers:
+      '@1hive/evmcrispr': workspace:^0.9.0
       '@types/isomorphic-fetch': ^0.0.36
       isomorphic-fetch: ^3.0.0
     dependencies:
       isomorphic-fetch: 3.0.0
     devDependencies:
+      '@1hive/evmcrispr': link:../../core/evmcrispr
       '@types/isomorphic-fetch': 0.0.36
 
   modules/tenderly:
-    specifiers: {}
+    specifiers:
+      '@1hive/evmcrispr': workspace:^0.9.0
+    devDependencies:
+      '@1hive/evmcrispr': link:../../core/evmcrispr
 
   packages/evmcrispr-terminal:
     specifiers:

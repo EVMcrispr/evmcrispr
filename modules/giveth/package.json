@@ -10,6 +10,7 @@
     "dist"
   ],
   "devDependencies": {
+    "@1hive/evmcrispr": "workspace:^0.9.0",
     "@types/isomorphic-fetch": "^0.0.36"
   },
   "peerDependencies": {
