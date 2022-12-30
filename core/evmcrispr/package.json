@@ -33,7 +33,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "lint": "eslint",
+    "lint": "tsc --noEmit && eslint",
     "chain": "hardhat node",
     "create-fixtures": "hardhat run scripts/create-fixtures.ts",
     "create-docs": "typedoc",

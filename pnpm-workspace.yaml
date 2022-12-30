@@ -1,3 +1,5 @@
 packages:
-  - 'packages/*'
   - 'common/*'
+  - 'core/*'
+  - 'modules/*'
+  - 'packages/*'

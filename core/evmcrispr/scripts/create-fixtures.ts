@@ -1,7 +1,6 @@
 import ora from 'ora';
 
-import fs from 'fs';
-
+import { IPFSResolver } from '../src/IPFSResolver';
 import {
   fetchAppArtifact,
   parseContentUri,
@@ -14,7 +13,7 @@ import {
   generateMockDAOFile,
   generateSubgraphDataIndexFile,
 } from './helpers/fixtures';
-import { IPFSResolver } from '../src/IPFSResolver';
+import fs from 'fs';
 
 // // Rinkeby
 // const CHAIN_ID = 4;

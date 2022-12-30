@@ -28,7 +28,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "tsup",
-    "lint": "eslint",
+    "lint": "tsc --noEmit && eslint",
     "test": "hardhat test"
   }
 }

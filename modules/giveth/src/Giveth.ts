@@ -3,7 +3,6 @@ import type {
   EVMcrispr,
   IPFSResolver,
 } from '@1hive/evmcrispr';
-
 import { Module } from '@1hive/evmcrispr';
 
 import { commands } from './commands';

@@ -5,8 +5,7 @@
   "main": "src/index.ts",
   "description": "Test helpers for the EVMcrispr library",
   "scripts": {
-    "lint": "eslint",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "tsc --noEmit && eslint"
   },
   "exports": {
     ".": "./src/index.ts",

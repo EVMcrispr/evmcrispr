@@ -7,6 +7,7 @@ importers:
       '@1hive/evmcrispr': workspace:^0.9.0
       '@1hive/evmcrispr-aragonos-module': workspace:^0.9.0
       '@1hive/evmcrispr-giveth-module': workspace:^0.9.0
+      '@1hive/evmcrispr-tenderly-module': workspace:^0.9.0
       '@1hive/evmcrispr-test-common': workspace:^0.0.1
       '@changesets/cli': ^2.22.0
       '@nomiclabs/hardhat-ethers': ^2.2.1
@@ -34,9 +35,10 @@ importers:
       typedoc: ^0.22.15
       typescript: ~4.7.4
     devDependencies:
-      '@1hive/evmcrispr': link:packages/evmcrispr
-      '@1hive/evmcrispr-aragonos-module': link:packages/aragonos-module
-      '@1hive/evmcrispr-giveth-module': link:packages/giveth-module
+      '@1hive/evmcrispr': link:core/evmcrispr
+      '@1hive/evmcrispr-aragonos-module': link:modules/aragonos
+      '@1hive/evmcrispr-giveth-module': link:modules/giveth
+      '@1hive/evmcrispr-tenderly-module': link:modules/tenderly
       '@1hive/evmcrispr-test-common': link:common/test
       '@changesets/cli': 2.25.0
       '@nomiclabs/hardhat-ethers': 2.2.1_dizrypm62situ6yog3ehzepefi
@@ -99,7 +101,7 @@ importers:
       msw: ^0.47.3
       tsconfig-evmcrispr: workspace:*
     devDependencies:
-      '@1hive/evmcrispr': link:../../packages/evmcrispr
+      '@1hive/evmcrispr': link:../../core/evmcrispr
       arcsecond: 4.1.0
       eslint-config-evmcrispr: link:../eslint-config-evmcrispr
       hardhat: 2.12.4
@@ -109,28 +111,7 @@ importers:
   common/tsconfig:
     specifiers: {}
 
-  packages/aragonos-module:
-    specifiers:
-      '@types/isomorphic-fetch': ^0.0.36
-      '@types/lodash.clonedeep': ^4.5.7
-      arcsecond: ^4.1.0
-      eslint-config-evmcrispr: workspace:^0.0.1
-      is-ipfs: ^6.0.2
-      isomorphic-fetch: ^3.0.0
-      lodash.clonedeep: ^4.5.0
-      tsconfig-evmcrispr: workspace:*
-    dependencies:
-      arcsecond: 4.1.0
-      is-ipfs: 6.0.2
-      isomorphic-fetch: 3.0.0
-      lodash.clonedeep: 4.5.0
-    devDependencies:
-      '@types/isomorphic-fetch': 0.0.36
-      '@types/lodash.clonedeep': 4.5.7
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
-
-  packages/evmcrispr:
+  core/evmcrispr:
     specifiers:
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
@@ -153,6 +134,48 @@ importers:
       eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
       nyc: 15.1.0
       ora: 5.4.1
+      tsconfig-evmcrispr: link:../../common/tsconfig
+
+  modules/aragonos:
+    specifiers:
+      '@types/isomorphic-fetch': ^0.0.36
+      '@types/lodash.clonedeep': ^4.5.7
+      arcsecond: ^4.1.0
+      eslint-config-evmcrispr: workspace:^0.0.1
+      is-ipfs: ^6.0.2
+      isomorphic-fetch: ^3.0.0
+      lodash.clonedeep: ^4.5.0
+      tsconfig-evmcrispr: workspace:*
+    dependencies:
+      arcsecond: 4.1.0
+      is-ipfs: 6.0.2
+      isomorphic-fetch: 3.0.0
+      lodash.clonedeep: 4.5.0
+    devDependencies:
+      '@types/isomorphic-fetch': 0.0.36
+      '@types/lodash.clonedeep': 4.5.7
+      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
+      tsconfig-evmcrispr: link:../../common/tsconfig
+
+  modules/giveth:
+    specifiers:
+      '@types/isomorphic-fetch': ^0.0.36
+      eslint-config-evmcrispr: workspace:^0.0.1
+      isomorphic-fetch: ^3.0.0
+      tsconfig-evmcrispr: workspace:*
+    dependencies:
+      isomorphic-fetch: 3.0.0
+    devDependencies:
+      '@types/isomorphic-fetch': 0.0.36
+      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
+      tsconfig-evmcrispr: link:../../common/tsconfig
+
+  modules/tenderly:
+    specifiers:
+      eslint-config-evmcrispr: workspace:^0.0.1
+      tsconfig-evmcrispr: workspace:*
+    devDependencies:
+      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
       tsconfig-evmcrispr: link:../../common/tsconfig
 
   packages/evmcrispr-terminal:
@@ -204,7 +227,7 @@ importers:
       web-vitals: ^1.0.1
       zustand: ^4.1.1
     dependencies:
-      '@1hive/evmcrispr': link:../evmcrispr
+      '@1hive/evmcrispr': link:../../core/evmcrispr
       '@chakra-ui/anatomy': 2.1.0
       '@chakra-ui/icons': 2.0.14_react@18.2.0
       '@chakra-ui/react': 2.4.4_przcunyodmsiq2duiyjrphchze
@@ -251,27 +274,6 @@ importers:
       eslint-plugin-react-hooks: 4.6.0
       eslint-plugin-testing-library: 5.7.0
       vite: 2.9.15
-
-  packages/giveth-module:
-    specifiers:
-      '@types/isomorphic-fetch': ^0.0.36
-      eslint-config-evmcrispr: workspace:^0.0.1
-      isomorphic-fetch: ^3.0.0
-      tsconfig-evmcrispr: workspace:*
-    dependencies:
-      isomorphic-fetch: 3.0.0
-    devDependencies:
-      '@types/isomorphic-fetch': 0.0.36
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
-
-  packages/tenderly-module:
-    specifiers:
-      eslint-config-evmcrispr: workspace:^0.0.1
-      tsconfig-evmcrispr: workspace:*
-    devDependencies:
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
 
 packages:
 
@@ -4475,7 +4477,7 @@ packages:
   /axios/0.24.0:
     resolution: {integrity: sha512-Q6cWsys88HoPgAaFAVUb0WpPk0O8iTeisR9IMqy9G8AbO4NlpVknrnQS03zzF9PGAWgO3cgletO3VjV/P7VztA==}
     dependencies:
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.2_debug@4.3.4
     transitivePeerDependencies:
       - debug
     dev: true
@@ -8483,6 +8485,19 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
+    dev: false
+
+  /follow-redirects/1.15.2_debug@4.3.4:
+    resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+    dependencies:
+      debug: 4.3.4
+    dev: true
 
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -13492,7 +13507,7 @@ packages:
     dependencies:
       command-exists: 1.2.9
       commander: 3.0.2
-      follow-redirects: 1.15.2
+      follow-redirects: 1.15.2_debug@4.3.4
       fs-extra: 0.30.0
       js-sha3: 0.8.0
       memorystream: 0.3.1
