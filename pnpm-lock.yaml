@@ -22,6 +22,7 @@ importers:
       coveralls: ^3.1.1
       dotenv-cli: ^6.0.0
       eslint: ^7.32.0
+      eslint-config-evmcrispr: workspace:^0.0.1
       eslint-config-turbo: ^0.0.7
       eslint-plugin-turbo: ^0.0.7
       ethereum-waffle: ^3.4.4
@@ -30,6 +31,7 @@ importers:
       pnpm: ^7.0.1
       prettier: ^2.6.2
       ts-node: ^10.7.0
+      tsconfig-evmcrispr: workspace:*
       tsup: ^6.5.0
       turbo: ^1.6.3
       typedoc: ^0.22.15
@@ -53,6 +55,7 @@ importers:
       coveralls: 3.1.1
       dotenv-cli: 6.0.0
       eslint: 7.32.0
+      eslint-config-evmcrispr: link:common/eslint-config-evmcrispr
       eslint-config-turbo: 0.0.7_eslint@7.32.0
       eslint-plugin-turbo: 0.0.7_eslint@7.32.0
       ethereum-waffle: 3.4.4_typescript@4.7.4
@@ -61,6 +64,7 @@ importers:
       pnpm: 7.14.0
       prettier: 2.7.1
       ts-node: 10.9.1_fzm5qe273vszdnq5coqmdn2kqi
+      tsconfig-evmcrispr: link:common/tsconfig
       tsup: 6.5.0_6oasmw356qmm23djlsjgkwvrtm
       turbo: 1.6.3
       typedoc: 0.22.18_typescript@4.7.4
@@ -118,12 +122,10 @@ importers:
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
       arcsecond: ^4.1.0
-      eslint-config-evmcrispr: workspace:^0.0.1
       isomorphic-fetch: ^3.0.0
       jsymbol: ^0.3.5
       lodash.clonedeep: ^4.5.0
       nyc: ^15.1.0
-      tsconfig-evmcrispr: workspace:*
     dependencies:
       arcsecond: 4.1.0
       isomorphic-fetch: 3.0.0
@@ -132,20 +134,16 @@ importers:
     devDependencies:
       '@types/isomorphic-fetch': 0.0.36
       '@types/lodash.clonedeep': 4.5.7
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
       nyc: 15.1.0
-      tsconfig-evmcrispr: link:../../common/tsconfig
 
   modules/aragonos:
     specifiers:
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
       arcsecond: ^4.1.0
-      eslint-config-evmcrispr: workspace:^0.0.1
       is-ipfs: ^6.0.2
       isomorphic-fetch: ^3.0.0
       lodash.clonedeep: ^4.5.0
-      tsconfig-evmcrispr: workspace:*
     dependencies:
       arcsecond: 4.1.0
       is-ipfs: 6.0.2
@@ -154,29 +152,18 @@ importers:
     devDependencies:
       '@types/isomorphic-fetch': 0.0.36
       '@types/lodash.clonedeep': 4.5.7
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
 
   modules/giveth:
     specifiers:
       '@types/isomorphic-fetch': ^0.0.36
-      eslint-config-evmcrispr: workspace:^0.0.1
       isomorphic-fetch: ^3.0.0
-      tsconfig-evmcrispr: workspace:*
     dependencies:
       isomorphic-fetch: 3.0.0
     devDependencies:
       '@types/isomorphic-fetch': 0.0.36
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
 
   modules/tenderly:
-    specifiers:
-      eslint-config-evmcrispr: workspace:^0.0.1
-      tsconfig-evmcrispr: workspace:*
-    devDependencies:
-      eslint-config-evmcrispr: link:../../common/eslint-config-evmcrispr
-      tsconfig-evmcrispr: link:../../common/tsconfig
+    specifiers: {}
 
   packages/evmcrispr-terminal:
     specifiers:
@@ -4482,7 +4469,7 @@ packages:
   /axios/0.24.0:
     resolution: {integrity: sha512-Q6cWsys88HoPgAaFAVUb0WpPk0O8iTeisR9IMqy9G8AbO4NlpVknrnQS03zzF9PGAWgO3cgletO3VjV/P7VztA==}
     dependencies:
-      follow-redirects: 1.15.2_debug@4.3.4
+      follow-redirects: 1.15.2
     transitivePeerDependencies:
       - debug
     dev: true
@@ -8510,19 +8497,6 @@ packages:
     peerDependenciesMeta:
       debug:
         optional: true
-    dev: false
-
-  /follow-redirects/1.15.2_debug@4.3.4:
-    resolution: {integrity: sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-    dependencies:
-      debug: 4.3.4
-    dev: true
 
   /for-each/0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -13573,7 +13547,7 @@ packages:
     dependencies:
       command-exists: 1.2.9
       commander: 3.0.2
-      follow-redirects: 1.15.2_debug@4.3.4
+      follow-redirects: 1.15.2
       fs-extra: 0.30.0
       js-sha3: 0.8.0
       memorystream: 0.3.1

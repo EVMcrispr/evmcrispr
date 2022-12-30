@@ -12,9 +12,7 @@
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/lodash.clonedeep": "^4.5.7",
-    "eslint-config-evmcrispr": "workspace:^0.0.1",
-    "nyc": "^15.1.0",
-    "tsconfig-evmcrispr": "workspace:*"
+    "nyc": "^15.1.0"
   },
   "dependencies": {
     "arcsecond": "^4.1.0",
@@ -25,6 +23,7 @@
   "peerDependencies": {
     "@1hive/evmcrispr-aragonos-module": "workspace:^0.9.0",
     "@1hive/evmcrispr-giveth-module": "workspace:^0.9.0",
+    "@1hive/evmcrispr-tenderly-module": "workspace:^0.9.0",
     "ethers": "^5.6.4"
   },
   "files": [
