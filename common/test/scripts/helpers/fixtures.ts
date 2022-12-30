@@ -1,10 +1,11 @@
-import { subgraphUrlFromChainId } from '../../src/modules/aragonos/Connector';
+import { subgraphUrlFromChainId } from '@1hive/evmcrispr-aragonos-module/src/Connector';
 import {
   ORGANIZATION_APPS,
   REPO,
   getSystemApp,
   parseRegistry,
-} from '../../src/modules/aragonos/utils';
+} from '@1hive/evmcrispr-aragonos-module/src/utils';
+
 import fs from 'fs';
 
 export const basePath = (relativePath: string): string =>

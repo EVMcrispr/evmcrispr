@@ -1,10 +1,10 @@
-import ora from 'ora';
-
-import { IPFSResolver } from '../src/IPFSResolver';
+import { IPFSResolver } from '@1hive/evmcrispr';
 import {
   fetchAppArtifact,
   parseContentUri,
-} from '../src/modules/aragonos/utils';
+} from '@1hive/evmcrispr-aragonos-module/src/utils';
+import ora from 'ora';
+
 import {
   basePath,
   fetchOrganizationApps,

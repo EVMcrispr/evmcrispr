@@ -1,3 +1,4 @@
 {
-  "name": "tsconfig-evmcrispr"
+  "name": "tsconfig-evmcrispr",
+  "private": true
 }

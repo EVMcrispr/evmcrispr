@@ -19,6 +19,7 @@
     "eslint-config-evmcrispr": "workspace:^0.0.1",
     "hardhat": "^2.9.5",
     "msw": "^0.47.3",
+    "ora": "^6.1.2",
     "tsconfig-evmcrispr": "workspace:*"
   }
 }

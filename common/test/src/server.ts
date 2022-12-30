@@ -62,6 +62,7 @@ const handlers: RequestHandler[] = [
     (req, res, ctx) => {
       const { cid, resource } = req.params;
 
+      console.log(`PAULO: fetching resource ${cid}/${resource}`);
       try {
         if (resource === 'artifact.json') {
           const artifact = artifacts[cid as keyof typeof artifacts];

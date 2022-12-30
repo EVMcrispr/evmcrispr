@@ -14,7 +14,6 @@
     "@types/lodash.clonedeep": "^4.5.7",
     "eslint-config-evmcrispr": "workspace:^0.0.1",
     "nyc": "^15.1.0",
-    "ora": "^5.4.0",
     "tsconfig-evmcrispr": "workspace:*"
   },
   "dependencies": {
