@@ -9,11 +9,13 @@ import Wagmi from './providers/Wagmi';
 
 import Landing from './pages/landing';
 import Terminal from './pages/terminal';
+import Fonts from './theme/Fonts';
 
 const App = () => {
   return (
     <div className="App">
       <ChakraProvider theme={extendTheme(theme)}>
+        <Fonts />
         <DarkMode>
           <Wagmi>
             <HashRouter>

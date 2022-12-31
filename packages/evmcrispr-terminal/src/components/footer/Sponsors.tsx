@@ -20,7 +20,7 @@ export const AragonSponsor = () => {
       py={20}
       background="repeating-linear-gradient(45deg,#000,#000 20px,#111 20px,#111 40px)"
       borderY="2px solid"
-      borderColor="brand.green.300"
+      borderColor="green.300"
     >
       <Stack
         direction={{ base: 'column', md: 'row' }}
@@ -34,7 +34,7 @@ export const AragonSponsor = () => {
         justify="center"
         px={{ base: 10, lg: 0 }}
       >
-        <Text color="brand.green.300" size="md">
+        <Text color="green.300" size="md">
           Sponsored by
         </Text>
         <Link isExternal href="https://aragon.org/">
@@ -72,7 +72,7 @@ export const AllSponsors = () => {
   return (
     <Center bgColor="rgba(24, 24, 24, 1)" p={14} as="section">
       <VStack spacing={12}>
-        <Heading as="h2" color="brand.green.300" size="md" textAlign="center">
+        <Heading as="h2" color="green.300" size="md" textAlign="center">
           <strong>EVMcrispr</strong> would have not been possible without the
           support of:
         </Heading>

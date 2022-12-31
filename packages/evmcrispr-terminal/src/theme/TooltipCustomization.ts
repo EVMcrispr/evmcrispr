@@ -3,7 +3,7 @@ import { defineStyle, defineStyleConfig } from '@chakra-ui/react';
 const warningVariant = defineStyle(() => {
   return {
     color: 'white',
-    background: 'brand.warning.800',
+    background: 'orange.800',
   };
 });
 
@@ -13,7 +13,7 @@ const variants = {
 };
 
 const baseStyle = {
-  background: 'brand.green.300',
+  background: 'green.300',
   borderRadius: 'none',
 };
 

@@ -29,22 +29,22 @@ export default function ConfigureButton({
             <IconButton
               icon={<Icon as={Cog8ToothIcon} />}
               aria-label={'Script configuration'}
-              variant={'outline'}
+              variant={'outline-overlay'}
               size={'md'}
             />
           </PopoverTrigger>
         </Box>
       </Tooltip>
       <PopoverContent
-        bg={'brand.gray.700'}
+        bg={'gray.900'}
         borderRadius={'none'}
         border={'2px solid'}
-        borderColor={'brand.green.300'}
+        borderColor={'green.300'}
         minWidth={'300px'}
         height="100px"
       >
         <PopoverBody color={'white'}>
-          <Text fontSize={'xl'} color={'brand.green.300'}>
+          <Text fontSize={'xl'} color={'green.300'}>
             Script Configuration
           </Text>
           <HStack>

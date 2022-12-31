@@ -60,8 +60,8 @@ export default function TerminalHeader({
           <Link to="/">
             <Image src={logo} alt="Logo" width={52} />
           </Link>
-          <HStack bgColor={'brand.gray.800'}>
-            <Box w={1.5} h={9} bgColor={'brand.green.300'} />
+          <HStack bgColor={'gray.800'}>
+            <Box w={1.5} h={9} bgColor={'green.300'} />
             <Show above="md">
               <TypeWriter
                 text={`${codename ? ` "${codename}"` : null} v${version}`}
@@ -76,7 +76,7 @@ export default function TerminalHeader({
           <VStack align={'flex-end'} alignSelf={'flex-end'}>
             <Flex
               border={'1px solid'}
-              borderColor={'brand.green.300'}
+              borderColor={'green.300'}
               px={3}
               align={'center'}
             >

@@ -9,6 +9,7 @@ import type { Monaco } from '@monaco-editor/react';
 import MonacoEditor, { useMonaco } from '@monaco-editor/react';
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
+  Box,
   Container,
   Flex,
   HStack,
@@ -216,16 +217,19 @@ export default function Terminal() {
                 onChange={handleTitleChange}
                 variant={'unstyled'}
                 fontSize={'4xl'}
-                color={'brand.gray.50'}
+                color={'gray.300'}
                 _placeholder={{
                   color: 'inherit',
+                  opacity: 1,
                 }}
                 spellCheck="false"
               />
               <Spacer />
               <HStack spacing={1}>
                 <SaveScriptButton title={title} script={script} />
+                <Spacer />
                 <ShareScriptButton script={script} title={title} />
+                <Spacer />
                 <ConfigureButton
                   setMaximizeGasLimit={setMaximizeGasLimit}
                   maximizeGasLimit={maximizeGasLimit}
@@ -234,7 +238,7 @@ export default function Terminal() {
             </Flex>
           </VStack>
           <MonacoEditor
-            height="50vh"
+            height="65vh"
             theme="theme"
             language="evmcl"
             value={script}
@@ -273,7 +277,9 @@ export default function Terminal() {
         </FadeIn>
       </Container>
       <FadeIn componentRef={footerRef}>
-        <Footer />
+        <Box marginTop={'200px'}>
+          <Footer />
+        </Box>
       </FadeIn>
     </>
   );

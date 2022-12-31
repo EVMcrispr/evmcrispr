@@ -7,6 +7,7 @@ import {
   DrawerContent,
   DrawerHeader,
   HStack,
+  Heading,
   IconButton,
   Input,
   InputGroup,
@@ -84,9 +85,9 @@ export default function LibraryScripts() {
           size={['full', 'sm']}
         >
           <DrawerContent
-            bgColor={'brand.gray.700'}
+            bgColor={'gray.900'}
             borderLeft={'2px solid'}
-            borderColor={'brand.green.300'}
+            borderColor={'green.300'}
           >
             <Show above="sm">
               <LibraryButton onClick={onToggle} icon={FolderOpenIcon} />
@@ -95,14 +96,14 @@ export default function LibraryScripts() {
             <DrawerHeader py={6}>
               <VStack spacing={4}>
                 <HStack justify={'center'} align={'center'} spacing={4}>
-                  <Text color={'white'} fontSize={'4xl'}>
+                  <Heading color={'white'} fontSize={'4xl'}>
                     Library
-                  </Text>
+                  </Heading>
                 </HStack>
                 <InputGroup>
                   <Input
                     border={'1px solid'}
-                    borderColor={'brand.green.300'}
+                    borderColor={'green.300'}
                     placeholder={'Search'}
                     color={'white'}
                     p={2.5}
@@ -110,6 +111,14 @@ export default function LibraryScripts() {
                     fontSize={'2xl'}
                     _placeholder={{
                       color: 'white',
+                      opacity: 1,
+                    }}
+                    _hover={{
+                      borderColor: 'green.300',
+                    }}
+                    _focusVisible={{
+                      borderColor: 'green.300',
+                      boxShadow: 'none',
                     }}
                     value={query}
                     onChange={(e) => filterScripts(scripts, e.target.value)}
@@ -139,7 +148,7 @@ export default function LibraryScripts() {
                     />
                   ))
                 ) : (
-                  <Text fontSize={'2xl'} color={'brand.yellow.300'}>
+                  <Text fontSize={'2xl'} color={'yellow.300'}>
                     No scripts saved yet.
                   </Text>
                 )}

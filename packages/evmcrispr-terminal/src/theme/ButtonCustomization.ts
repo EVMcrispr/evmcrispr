@@ -1,13 +1,14 @@
 import { defineStyle, defineStyleConfig } from '@chakra-ui/styled-system';
+import { merge } from '@chakra-ui/merge-utils';
 
 const baseStyle = defineStyle({
   borderRadius: 'none', // <-- border radius is same for all variants and sizes
   textDecoration: 'none',
   _hover: {
-    transition: 'all 0.5s',
+    transition: 'all 0.2s',
   },
   _focus: {
-    boxShadow: '#92ed5e 0px 0px 0px 2px',
+    boxShadow: 'none',
   },
   fontWeight: 'normal',
 });
@@ -31,203 +32,181 @@ const sizes = {
   }),
 };
 
-const blueVariant = defineStyle({
-  color: 'brand.green.300',
-  bgColor: 'brand.blue.600',
-  _hover: {
-    bgColor: 'gray.900',
-  },
-});
-
 const limeVariant = defineStyle({
   color: 'gray.900',
-  bgColor: 'brand.green.300',
+  bgColor: 'green.300',
   _hover: {
     bgColor: 'gray.900',
-    color: 'brand.green.300',
+    color: 'green.300',
   },
 });
 
 const warningVariant = defineStyle({
-  color: 'brand.warning.50',
-  bgColor: 'brand.warning.400',
+  color: 'orange.50',
+  bgColor: 'orange.400',
   _hover: {
-    bgColor: 'brand.warning.50',
-    color: 'brand.warning.400',
+    bgColor: 'orange.50',
+    color: 'orange.400',
   },
 });
 
 const solidVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
   return {
-    bgColor: `brand.${c}.300`,
-    color: 'brand.gray.700',
-
-    _focus: {
-      boxShadow: 'none',
-    },
+    bgColor: `${c}.300`,
+    color: 'gray.900',
 
     _hover: {
-      bgColor: `brand.${c}.300 !important`,
-      boxShadow: 'none',
+      bgColor: `${c}.300 !important`,
       opacity: 0.7,
-    },
-  };
-});
-
-const outlineVariant = defineStyle(() => {
-  const activeStyle = {
-    bgColor: 'brand.green.300 !important',
-    color: 'brand.gray.700',
-    boxShadow: 'none',
-    '& svg': {
-      color: 'brand.gray.700',
-    },
-  };
-
-  return {
-    color: 'brand.green.300',
-    border: '2px solid',
-    borderColor: 'brand.green.300',
-    bgColor: 'transparent',
-
-    _active: activeStyle,
-    _visited: activeStyle,
-    _focus: activeStyle,
-
-    _disabled: {
-      opacity: 0.3,
     },
   };
 });
 
 const overlayVariant = defineStyle((props) => {
   const { colorScheme: c } = props;
-  const clickedBtn = {
-    color: `brand.${c}.300`,
-    bgColor: 'black',
-    border: '1px solid',
-    borderColor: `brand.${c}.300`,
-    '&::before': {
-      borderColor: `brand.${c}.800 !important`,
-      borderRight: '2px solid',
-      borderBottom: '2px solid',
-      top: '3px',
-      left: '3px',
-    },
-  };
 
   return {
-    bgColor: `brand.${c}.300`,
-    color: 'brand.gray.700',
+    bgColor: `transparent`,
+    color: 'gray.900',
     border: '1px solid',
-    borderColor: `brand.${c}.300`,
+    borderColor: `${c}.300`,
     position: 'relative',
     boxSizing: 'border-box',
-
-    _disabled: {
-      bgColor: 'brand.gray.100',
-      borderColor: 'brand.gray.100',
-
-      _before: {
-        borderColor: 'brand.gray.500',
-      },
-    },
-
-    _hover: {
-      bgColor: 'black',
-      boxShadow: 'none',
-      color: `brand.${c}.300`,
-      _before: {
-        borderColor: `brand.${c}.800 !important`,
-        borderRight: '3px solid',
-        borderBottom: '3px solid',
-        top: '4px',
-        left: '4px',
-      },
-
-      _disabled: {
-        color: 'brand.gray.700',
-        bgColor: 'brand.gray.100',
-      },
-    },
-
-    _active: clickedBtn,
-
-    _visited: clickedBtn,
-
-    _focus: {
-      boxShadow: 'none',
-      ...clickedBtn,
-    },
+    top: '-2px',
+    left: '-2px',
+    transition: 'all 0.2s',
+    zIndex: '2',
 
     _before: {
       boxSizing: 'border-box',
-      borderRight: '7px solid',
-      borderBottom: '7px solid',
-      borderColor: `brand.${c}.800`,
+      bgColor: `${c}.300`,
+      border: '1px solid',
+      borderColor: `${c}.300`,
+      content: '""',
+      position: 'absolute',
+      height: 'calc(100% + 4px)',
+      width: 'calc(100% + 4px)',
+
+      top: '-2px',
+      left: '-2px',
+      zIndex: '-1',
+    },
+
+    _after: {
       content: '""',
       display: 'block',
-      height: '100%',
+      boxSizing: 'border-box',
+      background: `${c}.800`,
+      border: `3px solid ${c}.800`,
+      height: 'calc(100% + 4px)',
+      width: 'calc(100% + 4px)',
       position: 'absolute',
-      width: '100%',
-      top: '8px',
-      left: '8px',
+      top: '2px',
+      left: '2px',
+      right: 0,
+      zIndex: '-2',
+      transition: 'all 0.2s',
+    },
+
+    _hover: {
+      color: `${c}.300`,
+
+      _before: {
+        bgColor: 'black',
+      },
+    },
+
+    _active: {
+      transform: 'translate(4px, 4px)',
+
+      _after: {
+        transform: 'translate(-4px, -4px)',
+      },
+    },
+
+    _disabled: {
+      color: 'gray.200',
+      _before: {
+        borderColor: 'gray.200',
+      },
+      _hover: {
+        color: 'gray.200',
+        _before: {
+          bgColor: 'black',
+          borderColor: 'gray.200',
+        },
+      },
+      _active: {
+        transform: 'none',
+        _after: {
+          transform: 'none',
+        },
+      },
+      _after: {
+        background: `gray.700`,
+      },
     },
   };
 });
 
-const iconVariant = defineStyle({
-  bgColor: 'brand.gray.800',
-  color: 'white',
-  position: 'relative',
-  boxSizing: 'border-box',
-  border: '1px solid',
-  borderColor: 'brand.yellow.300',
-  fontSize: 'md',
-  fontWeight: 700,
-
-  _focus: {
-    boxShadow: 'none',
-  },
-
-  _disabled: {
-    bgColor: 'brand.gray.100',
-    border: '1px solid',
-    borderColor: 'black',
-  },
-
-  _hover: {
-    boxShadow: 'none',
-    bgColor: 'brand.gray.800 !important',
+const blueVariant = defineStyle((props) => {
+  props.colorScheme = 'blue';
+  return merge(overlayVariant(props), {
+    color: 'green.300',
     _before: {
-      borderRight: '4px solid',
-      borderBottom: '3px solid',
-      borderColor: 'brand.gray.300',
-      top: '4px',
-      left: '5px',
+      bgColor: 'blue.600',
+      borderColor: 'blue.600',
     },
-
-    _disabled: {
-      bgColor: 'brand.gray.100 !important',
-      border: '1px solid',
-      borderColor: 'black',
+    _after: {
+      bgColor: 'blue.300',
+      borderColor: 'blue.300',
     },
-  },
+    _hover: {
+      color: 'green.300',
+      _before: {
+        bgColor: 'gray.900',
+        borderColor: 'gray.900',
+      },
+    },
+  });
+});
 
-  _before: {
-    boxSizing: 'border-box',
-    borderRight: '7px solid',
-    borderBottom: '8px solid',
-    borderColor: 'brand.gray.300',
-    content: '""',
-    display: 'block',
-    height: '100%',
-    position: 'absolute',
-    width: '100%',
-    top: '9px',
-    left: '8px',
-  },
+const outlineVariant = defineStyle((props) => {
+  const { colorScheme: c } = props;
+  return {
+    color: `${c}.300`,
+    borderWidth: '2px',
+    borderColor: `${c}.300`,
+    bgColor: 'gray.900',
+    '&:not(:hover) .chakra-button__icon': {
+      color: `${c}.300`,
+    },
+    _hover: {
+      color: 'gray.900',
+      bgColor: `${c}.300`,
+    },
+    _active: {
+      color: 'gray.900',
+      bgColor: `${c}.300`,
+    },
+  };
+});
+
+const outlineOverlayVariant = defineStyle((props) => {
+  return merge(overlayVariant(props), {
+    color: 'green.300',
+    _before: {
+      borderColor: 'green.300',
+      bgColor: 'gray.900',
+    },
+    _hover: {
+      color: 'gray.900',
+      _before: {
+        backgroundColor: 'green.300',
+      },
+    },
+  });
 });
 
 const buttonTheme = defineStyleConfig({
@@ -235,11 +214,11 @@ const buttonTheme = defineStyleConfig({
   sizes,
   variants: {
     outline: outlineVariant,
+    'outline-overlay': outlineOverlayVariant,
     blue: blueVariant,
     lime: limeVariant,
     warning: warningVariant,
     overlay: overlayVariant,
-    icon: iconVariant,
     solid: solidVariant,
   },
   defaultProps: {

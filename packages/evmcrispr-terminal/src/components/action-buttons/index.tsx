@@ -134,7 +134,12 @@ export default function ActionButtons({
   return (
     <>
       <HStack mt={3} justify="flex-end">
-        <VStack alignItems="flex-end" spacing={3} pr={{ base: 6, lg: 0 }}>
+        <VStack
+          alignItems="flex-end"
+          spacing={3}
+          height="60px"
+          pr={{ base: 6, lg: 0 }}
+        >
           {address ? (
             <Button
               variant="overlay"

@@ -7,6 +7,7 @@ import {
   Center,
   Heading,
   Link,
+  Spacer,
   Stack,
   Text,
 } from '@chakra-ui/react';
@@ -14,6 +15,7 @@ import {
 import Card from '../components/card';
 import FadeIn from '../components/animations/fade-in';
 import Footer from '../components/footer';
+import { AllSponsors, AragonSponsor } from '../components/footer/Sponsors';
 
 import Brett from '../assets/brett.png';
 import Michael from '../assets/michael.png';
@@ -54,14 +56,19 @@ const Landing = () => {
       <Box as="main" maxWidth="956px" margin="0 auto">
         <FadeIn componentRef={typeRef}>
           <Box pt={16} pb={8} px={6}>
-            <Text color="white" textAlign="center" fontSize="2xl">
-              <Text as="strong" color="brand.green.300">
+            <Text
+              variant="clearer"
+              color="white"
+              textAlign="center"
+              fontSize="2xl"
+            >
+              <Text as="strong" variant="clearer" color="green.300">
                 EVMcrispr
               </Text>{' '}
               is a powerful tool that combines a domain-specific language with a
               Javascript library to interact with Aragon DAOs. With it, you can
               bundle{' '}
-              <Text as="strong" color="brand.green.300">
+              <Text as="strong" variant="clearer" color="green.300">
                 many DAO operations into just one script
               </Text>
               , generating a singular transaction, usually a vote. These
@@ -80,7 +87,7 @@ const Landing = () => {
             >
               <Link
                 isExternal
-                href="https://docs.evmcrispr.blossom.software/"
+                href="https://docs.evmcrispr.com/"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -88,8 +95,9 @@ const Landing = () => {
                   Learn How to Use
                 </Button>
               </Link>
+              <Spacer />
               <Link as={RouterLink} to="/terminal">
-                <Button variant="blue" size="lg">
+                <Button variant="blue" colorScheme="blue" size="lg">
                   Open Terminal
                 </Button>
               </Link>
@@ -103,7 +111,7 @@ const Landing = () => {
             textAlign="center"
             as="h1"
             size="lg"
-            color="brand.green.300"
+            color="green.300"
           >
             Who&apos;s using EVMcrispr?
           </Heading>
@@ -146,6 +154,8 @@ const Landing = () => {
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>
+        <AragonSponsor />
+        <AllSponsors />
         <Footer />
       </FadeIn>
     </>

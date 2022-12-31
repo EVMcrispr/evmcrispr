@@ -1,16 +1,13 @@
 import { Center, Link, Text, VStack } from '@chakra-ui/react';
 
-import { AllSponsors, AragonSponsor } from './Sponsors';
 import Blossom from '../../assets/blossom.svg';
 
 const Footer = () => {
   return (
     <>
-      <AragonSponsor />
-      <AllSponsors />
-      <Center py={24}>
-        <VStack spacing={8}>
-          <Text color="brand.green.300">powered by Blossom</Text>
+      <Center py={10}>
+        <VStack spacing={5}>
+          <Text color="green.300">powered by Blossom</Text>
           <Link
             href="https://github.com/blossomlabs"
             target="_blank"

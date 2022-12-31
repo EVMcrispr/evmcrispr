@@ -82,7 +82,7 @@ const Card = ({
         padding={6}
         textAlign="center"
         border="4px solid"
-        borderColor="brand.green.300"
+        borderColor="green.300"
         backgroundColor="black"
         zIndex="10"
         position="relative"
@@ -98,13 +98,15 @@ const Card = ({
           <Box height="160">
             <img src={image} alt={name} style={{ height }} />
           </Box>
-          <Text fontSize="15px" color="brand.green.300" fontWeight="bold">
+          <Text fontSize="15px" color="green.300" fontWeight="bold">
             {name}
           </Text>
-          <Text fontSize="15px" fontWeight="bold">
+          <Text variant="clearer" fontSize="15px" fontWeight="bold">
             {info}
           </Text>
-          <Text fontSize="13px">{description}</Text>
+          <Text variant="clearer" fontSize="13px">
+            {description}
+          </Text>
         </Center>
       </Box>
       <Box
@@ -112,7 +114,7 @@ const Card = ({
         inset="0"
         transform="translate(25px, 25px)"
         border="4px solid"
-        borderColor="brand.green.300"
+        borderColor="green.300"
       >
         <Pixels />
       </Box>

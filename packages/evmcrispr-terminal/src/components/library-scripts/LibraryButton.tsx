@@ -14,7 +14,7 @@ export const LibraryButton = ({
 }: LibraryButtonProps) => (
   <Box
     position={'fixed'}
-    zIndex={10000}
+    zIndex={3}
     transform={'rotate(-90deg)'}
     transformOrigin={'bottom right'}
     top={'20vh'}
@@ -23,10 +23,10 @@ export const LibraryButton = ({
   >
     <Button
       variant={'outline'}
-      background="black"
-      leftIcon={<Icon as={icon} boxSize={6} color={'brand.green.300'} />}
+      color="white"
+      colorScheme="green"
+      leftIcon={<Icon as={icon} boxSize={6} />}
       size={'md'}
-      color={'white'}
       onClick={onClick}
     >
       Library

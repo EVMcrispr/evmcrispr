@@ -52,8 +52,8 @@ const SaveModal = ({ isOpen, onClose, title, script }: SaveModalProps) => {
         <ModalCloseButton />
         <ModalBody>
           <VStack>
-            <Icon as={SaveIcon} boxSize={16} color={'brand.yellow.300'} />
-            <Text align={'center'} color={'brand.yellow.300'}>
+            <Icon as={SaveIcon} boxSize={16} color={'yellow.300'} />
+            <Text align={'center'} color={'yellow.300'}>
               File &quot;{title}&quot; already exists. Do you want to override
               it?
             </Text>
@@ -115,7 +115,7 @@ export default function SaveScriptButton(props: {
         <IconButton
           icon={<Icon as={SaveIcon} />}
           aria-label={'Save script'}
-          variant={'outline'}
+          variant={'outline-overlay'}
           onClick={onSaveButtonClick}
           size={'md'}
           disabled={!props.title}

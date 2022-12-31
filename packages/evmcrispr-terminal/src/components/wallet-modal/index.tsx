@@ -56,7 +56,7 @@ export default function SelectWalletModal({
           <VStack spacing={7} w={'300px'}>
             <Button
               disabled={connectingToMetamask}
-              variant="icon"
+              variant="outline-overlay"
               onClick={() => connect(connectors[0])}
               size="lg"
               leftIcon={<MetamaskIcon />}
@@ -66,7 +66,7 @@ export default function SelectWalletModal({
               Metamask
             </Button>
             <Button
-              variant="icon"
+              variant="outline-overlay"
               onClick={() => {
                 connect(connectors[1]);
               }}

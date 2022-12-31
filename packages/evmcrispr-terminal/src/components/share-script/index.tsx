@@ -52,7 +52,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
         <IconButton
           icon={<Icon as={ShareIcon} />}
           aria-label={'Share script'}
-          variant={'outline'}
+          variant={'outline-overlay'}
           onClick={handleShare}
           size={'md'}
           isLoading={isLoading}
