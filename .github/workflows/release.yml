@@ -8,31 +8,36 @@ on:
 
 jobs:
   release:
-    name: Release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        node-version: [16.x]
-        pnpm-version: [7.x]
-        os: [ubuntu-latest]
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out code
+        uses: actions/checkout@v3
         with:
-          # This makes Actions fetch all Git history so that Changesets can generate changelogs with the correct commits
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - uses: pnpm/action-setup@v2.2.1
+      - uses: pnpm/action-setup@v2.0.1
         with:
-          version: ${{ matrix.pnpm-version }}
+          version: 6.32.2
 
-      - name: Set up Node ${{ matrix.node-version }}
+      - name: Setup Node.js environment
         uses: actions/setup-node@v3
         with:
+          node-version: 16
           cache: 'pnpm'
-          node-version: ${{ matrix.node-version }}
 
-      - name: Install Dependencies
-        run: pnpm i
+      - name: Cache pnpm modules
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

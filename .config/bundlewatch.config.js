@@ -1,13 +1,15 @@
 module.exports = {
   files: [
     {
-      path: 'packages/evmcrispr/dist/*.cjs.prod.js',
+      path: 'core/evmcrispr/dist/*.js',
+      path: 'modules/**/dist/*.js',
     },
     {
-      path: 'packages/evmcrispr/dist/*.esm.js',
+      path: 'core/evmcrispr/dist/*.mjs',
+      path: 'modules/**/dist/*.mjs',
     },
   ],
   ci: {
-    trackBranches: ['main'],
+    trackBranches: ['next', 'master'],
   },
 };

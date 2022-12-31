@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "main": "index.js",
-  "description": "Test helpers for the EVMcrispr library",
+  "description": "ESLint config for the EVMcrispr library",
   "author": "Blossom Labs",
   "license": "GPL-3.0",
   "devDependencies": {
