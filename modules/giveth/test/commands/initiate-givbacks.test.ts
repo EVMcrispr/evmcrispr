@@ -1,14 +1,12 @@
-import { createInterpreter } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
+import { WALLETS, createInterpreter } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 describe('Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]', () => {
   let signer: Signer;
   const defaultRelayerAddr = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   const testInitiateGivbacks =

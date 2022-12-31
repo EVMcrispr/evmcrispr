@@ -7,7 +7,8 @@ import { artifacts } from './fixtures/artifacts';
 import { blockscout } from './fixtures/blockscout';
 import { etherscan } from './fixtures/etherscan';
 import { DAOs, REPOs } from './fixtures/subgraph-data';
-import tokenListFixture from './fixtures/tokenlist/uniswap.json';
+import honeyswapTokenList from './fixtures/tokenlist/honeyswap.json';
+import uniswapTokenList from './fixtures/tokenlist/uniswap.json';
 
 const PINATA_AUTH = `Bearer test_pinata_jwt`;
 
@@ -20,7 +21,7 @@ function addressesEqual(first: string, second: string): boolean {
   return first === second;
 }
 
-const handlers: RequestHandler[] = [
+const DEFAULT_HANDLERS: RequestHandler[] = [
   graphql.query<Record<string, any>, { repoName: string }>(
     'Repos',
     (req, res, ctx) => {
@@ -61,7 +62,6 @@ const handlers: RequestHandler[] = [
     `${IPFS_GATEWAY}:cid/:resource`,
     (req, res, ctx) => {
       const { cid, resource } = req.params;
-
       try {
         if (resource === 'artifact.json') {
           const artifact = artifacts[cid as keyof typeof artifacts];
@@ -142,7 +142,10 @@ const handlers: RequestHandler[] = [
     },
   ),
   rest.get('https://tokens.uniswap.org/', (_, res, ctx) => {
-    return res(ctx.status(200), ctx.json(tokenListFixture));
+    return res(ctx.status(200), ctx.json(uniswapTokenList));
+  }),
+  rest.get('https://tokens.honeyswap.org/', (_, res, ctx) => {
+    return res(ctx.status(200), ctx.json(honeyswapTokenList));
   }),
   rest.post<
     {
@@ -183,4 +186,7 @@ const handlers: RequestHandler[] = [
   }),
 ];
 
-export const server = setupServer(...handlers);
+export const setUpServer = (
+  customHandlers: Parameters<typeof setupServer> = [],
+): ReturnType<typeof setupServer> =>
+  setupServer(...DEFAULT_HANDLERS, ...customHandlers);

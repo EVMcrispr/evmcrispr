@@ -1,20 +1,29 @@
-import { server } from './src/server';
+import type { setupServer } from 'msw/lib/node';
+
+import { setUpServer as setUpServer_ } from './src/server';
+
 const URL_WHITELIST = ['http://localhost:8545/', 'http://localhost:8545'];
 
-beforeAll(() =>
-  server.listen({
-    onUnhandledRequest: (req) => {
-      if (URL_WHITELIST.includes(req.url.origin)) {
-        return 'bypass';
-      }
+export function runServer(
+  customHandlers: Parameters<typeof setupServer> = [],
+): void {
+  const server = setUpServer_(customHandlers);
 
-      // Display warning when running on node.js environment
-      console.warn(`WARNING: Unhandled request: ${req.url}`);
-      return 'warn';
-    },
-  }),
-);
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        if (URL_WHITELIST.includes(req.url.origin)) {
+          return 'bypass';
+        }
 
-beforeEach(() => server.resetHandlers());
+        // Display warning when running on node.js environment
+        console.warn(`WARNING: Unhandled request: ${req.url}`);
+        return 'warn';
+      },
+    });
+  });
 
-afterAll(() => server.close());
+  beforeEach(() => server.resetHandlers());
+
+  afterAll(() => server.close());
+}

@@ -1,15 +1,13 @@
-import { createInterpreter } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
+import { WALLETS, createInterpreter } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { GIVETH_DONATION_RELAYER } from '../../src/utils';
 
 describe('Giveth > commands > donate <slug> <amount> <token>', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should return a correct donate action', async () => {

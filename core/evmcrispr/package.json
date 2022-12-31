@@ -34,7 +34,8 @@
     "build": "tsup",
     "lint": "tsc --noEmit && eslint",
     "create-docs": "typedoc",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "nyc --reporter=lcov pnpm test"
   }
 }

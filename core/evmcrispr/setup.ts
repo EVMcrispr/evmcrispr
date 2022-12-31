@@ -1,1 +1,3 @@
-import '@1hive/evmcrispr-test-common/server-setup';
+import { runServer } from '@1hive/evmcrispr-test-common/server-setup';
+
+runServer();

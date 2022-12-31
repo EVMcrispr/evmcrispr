@@ -1,19 +1,18 @@
 import { ComparisonType, NodeType } from '@1hive/evmcrispr';
 import {
+  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
 
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 describe('Giveth > helpers > @projectAddr(slug)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('return the hashed value', async () => {

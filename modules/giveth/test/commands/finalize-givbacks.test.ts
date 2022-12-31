@@ -1,16 +1,14 @@
 import { IPFS_GATEWAY } from '@1hive/evmcrispr';
-import { createInterpreter } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
+import { WALLETS, createInterpreter } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { DEFAULT_GIVBACKS_RELAYER } from '../../src/utils';
 
 describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   const testInitiateGivbacks =

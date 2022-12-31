@@ -5,3 +5,5 @@ export const GIVETH_DONATION_RELAYER = new Map([
   [1, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
   [100, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
 ]);
+
+console.log('asd');
