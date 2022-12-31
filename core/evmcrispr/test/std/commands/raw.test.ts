@@ -1,10 +1,9 @@
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../src/errors';
 import type { Action } from '../../../src/types';
@@ -21,8 +20,8 @@ describe('Std > commands > raw <target> <data> [value] [--from <sender>]', () =>
   const parsedValue = '1000000000000000000';
   const from = '0x8790B75CF2bd36A2502a3e48A24338D8288f2F15';
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async () => {
+    [signer] = WALLETS;
   });
 
   it('should return a correct raw action', async () => {

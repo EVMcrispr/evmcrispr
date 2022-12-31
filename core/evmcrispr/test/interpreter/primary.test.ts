@@ -1,8 +1,7 @@
 import type { InterpreterCase } from '@1hive/evmcrispr-test-common';
-import { runInterpreterCases } from '@1hive/evmcrispr-test-common';
+import { WALLETS, runInterpreterCases } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
 import { constants } from 'ethers';
-import { ethers } from 'hardhat';
 
 import type { NumericLiteralNode } from '../../src/types';
 import { NodeType } from '../../src/types';
@@ -12,9 +11,10 @@ describe('Interpreter - primaries', async () => {
   let signer: Signer;
   const getSigner = async () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async () => {
+    [signer] = WALLETS;
   });
+
   describe('when interpreting a literal node', () => {
     it('should interpret address node correctly', async () => {
       const c: InterpreterCase = [

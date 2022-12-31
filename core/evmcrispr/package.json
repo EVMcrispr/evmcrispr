@@ -30,13 +30,11 @@
     "dist"
   ],
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "tsup",
     "lint": "tsc --noEmit && eslint",
-    "chain": "hardhat node",
-    "create-fixtures": "hardhat run scripts/create-fixtures.ts",
     "create-docs": "typedoc",
-    "preinstall": "npx only-allow pnpm",
-    "test": "hardhat test",
+    "test": "vitest",
     "test:coverage": "nyc --reporter=lcov pnpm test"
   }
 }

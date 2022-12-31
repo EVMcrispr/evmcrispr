@@ -1,5 +1,4 @@
 import { DAO, DAO2, DAO3 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 
 import type { Cas11AST } from '../src/Cas11AST';
 import { parseScript } from '../src/parsers/script';

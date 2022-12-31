@@ -1,12 +1,11 @@
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { HelperFunctionError } from '../../../src/errors';
 import type {
@@ -16,7 +15,7 @@ import type {
 import { NodeType } from '../../../src/types';
 import { ComparisonType } from '../../../src/utils';
 
-const PINATA_JWT = process.env.VITE_PINATA_JWT;
+const PINATA_JWT = 'test_pinata_jwt';
 
 const JWT_VAR_NAME = 'ipfs.jwt';
 
@@ -29,8 +28,8 @@ describe('Std > helpers > @ipfs(text)', () => {
   const lazySigner = () => signer;
   const ipfsData = 'This should be pinned in IPFS';
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should upload text to IPFS and return hash', async () => {

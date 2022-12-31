@@ -1,3 +1,4 @@
+import type { Parser } from 'arcsecond';
 import {
   between,
   char,
@@ -58,10 +59,11 @@ const asExpressionParser: NodeParser<AsExpressionNode> =
       }),
     }),
   );
-export const argumentExpressionParser: EnclosingNodeParser<
-  ArgumentExpressionNode
-> = (enclosingParsers = []) =>
-  recursiveParser(() =>
+
+export function argumentExpressionParser(
+  enclosingParsers: Parser<string, string, any>[] = [],
+): NodeParser<ArgumentExpressionNode> {
+  return recursiveParser(() =>
     choice([
       arithmeticParser,
       callExpressionParser,
@@ -76,6 +78,7 @@ export const argumentExpressionParser: EnclosingNodeParser<
       }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
     }),
   );
+}
 
 export const expressionParser: EnclosingNodeParser<
   CommandArgExpressionNode | string | null

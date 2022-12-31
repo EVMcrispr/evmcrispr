@@ -26,16 +26,19 @@ import {
 } from './utils';
 
 export const HELPER_PARSER_ERROR = 'HelperParserError';
-const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
-  enclosingLookaheadParser([
-    char('('),
-    comma,
-    char(']'),
-    callOperatorParser,
-    char(')'),
-  ]),
-).errorMap((err) =>
-  buildParserError(err, HELPER_PARSER_ERROR, 'Expecting a helper name'),
+
+const helperNameParser = recursiveParser(() =>
+  takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
+    enclosingLookaheadParser([
+      char('('),
+      comma,
+      char(']'),
+      callOperatorParser,
+      char(')'),
+    ]),
+  ).errorMap((err) =>
+    buildParserError(err, HELPER_PARSER_ERROR, 'Expecting a helper name'),
+  ),
 );
 
 export const helperFunctionParser: NodeParser<HelperFunctionNode> =

@@ -1,10 +1,9 @@
 import {
+  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { NodeType } from '../../../src/types';
 import { ComparisonType } from '../../../src/utils';
@@ -20,8 +19,8 @@ describe('Std > helpers > @date(date, offset?)', () => {
     return preparingExpression(helper, signer);
   };
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should interpret it correctly', async () => {

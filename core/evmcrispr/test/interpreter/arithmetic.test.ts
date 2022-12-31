@@ -1,23 +1,21 @@
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { BigNumber } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { ExpressionError } from '../../src/errors';
-
 import { toDecimals } from '../../src/utils';
 
 describe('Interpreter - arithmetics', () => {
   const name = 'ArithmeticExpressionError';
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should return the correct result of an arithmetic operation', async () => {

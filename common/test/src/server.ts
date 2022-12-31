@@ -9,7 +9,7 @@ import { etherscan } from './fixtures/etherscan';
 import { DAOs, REPOs } from './fixtures/subgraph-data';
 import tokenListFixture from './fixtures/tokenlist/uniswap.json';
 
-const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
+const PINATA_AUTH = `Bearer test_pinata_jwt`;
 
 // TODO: allow to input custom ipfs gateway instead of hard-coding it
 const IPFS_GATEWAY = 'https://ipfs.blossom.software/ipfs/';
@@ -62,7 +62,6 @@ const handlers: RequestHandler[] = [
     (req, res, ctx) => {
       const { cid, resource } = req.params;
 
-      console.log(`PAULO: fetching resource ${cid}/${resource}`);
       try {
         if (resource === 'artifact.json') {
           const artifact = artifacts[cid as keyof typeof artifacts];

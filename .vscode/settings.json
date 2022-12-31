@@ -11,10 +11,5 @@
   "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "packages/hardhat/node_modules",
   "solidity.enabledAsYouTypeCompilationErrorCheck": true,
-  "solidity.validationDelay": 1500,
-  "mochaExplorer.env": {
-    "HARDHAT_CONFIG": "hardhat.config.ts",
-    "HARDHAT_COMPILE": "true"
-  },
-  "mochaExplorer.require": ["ts-node/register/transpile-only"]
+  "solidity.validationDelay": 1500
 }

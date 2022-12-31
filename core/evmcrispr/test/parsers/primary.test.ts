@@ -4,7 +4,6 @@ import {
   runErrorCase,
   runParser,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 
 import {
   ADDRESS_PARSER_ERROR,

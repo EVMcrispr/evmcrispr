@@ -5,7 +5,8 @@
     "build": "turbo run build --filter=!./packages/evmcrispr-terminal",
     "dev": "dotenv -- turbo run dev --filter=./core/evmcrispr",
     "lint": "turbo run lint",
-    "test": "dotenv -- turbo run test --filter=!./packages/evmcrispr-terminal",
+    "mock-server": "turbo run @1hive/evmcrispr-test-common#mock-server",
+    "test": "pnpm run mock-server && dotenv -- turbo run test --filter=!./packages/evmcrispr-terminal --filter=@1hive/evmcrispr",
     "build:terminal": "pnpm --filter \"./packages/evmcrispr-terminal\" build",
     "changeset:release": "pnpm build && changeset publish",
     "changeset:version": "changeset version && pnpm install --lockfile-only",
@@ -37,16 +38,10 @@
     "@1hive/evmcrispr-tenderly-module": "workspace:^0.9.0",
     "@1hive/evmcrispr-test-common": "workspace:^0.0.1",
     "@changesets/cli": "^2.22.0",
-    "@nomiclabs/hardhat-ethers": "^2.2.1",
-    "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "@types/chai": "^4.3.1",
     "@types/eslint": "^8.4.2",
-    "@types/mocha": "^8.2.3",
     "@types/node": "^14.18.16",
     "@types/prettier": "^2.6.0",
     "bundlewatch": "^0.3.3",
-    "chai": "^4.3.6",
-    "coveralls": "^3.1.1",
     "dotenv-cli": "^6.0.0",
     "eslint": "^7.32.0",
     "eslint-config-evmcrispr": "workspace:^0.0.1",
@@ -54,7 +49,6 @@
     "eslint-plugin-turbo": "^0.0.7",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.6",
-    "hardhat": "^2.9.5",
     "pnpm": "^7.0.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
@@ -62,6 +56,7 @@
     "tsup": "^6.5.0",
     "turbo": "^1.6.3",
     "typedoc": "^0.22.15",
-    "typescript": "~4.7.4"
+    "typescript": "~4.7.4",
+    "vitest": "^0.26.2"
   }
 }

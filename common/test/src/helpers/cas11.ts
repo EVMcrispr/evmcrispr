@@ -24,8 +24,8 @@ import {
 } from '@1hive/evmcrispr';
 import type { Err, Parser } from 'arcsecond';
 import { withData } from 'arcsecond';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
+import { expect, it } from 'vitest';
 
 import { expectThrowAsync } from './expects';
 import { inspect } from 'util';
@@ -76,7 +76,7 @@ export const runInterpreterCases = async (
           getSigner,
         ).interpret();
 
-        expect(res, errorMsg).to.equal(expected);
+        expect(res, errorMsg).to.deep.equal(expected);
       },
     ),
   );
@@ -203,7 +203,7 @@ export const itChecksInvalidArgsLength = (
   c: Comparison,
   lazySigner: () => Signer,
   module?: string,
-): Mocha.Test => {
+): void => {
   const { type, minValue, maxValue } = c;
   return it('should fail when receiving an invalid number of arguments', async () => {
     /**
@@ -287,7 +287,7 @@ export const itChecksNonDefinedIdentifier = (
   commandName: string,
   argIndex: number,
   isAragonOS = false,
-): Mocha.Test => {
+): void => {
   return it(itName, async () => {
     const nonDefinedIdentifier = 'non-defined-address';
     const interpreter = createInterpreter(nonDefinedIdentifier);

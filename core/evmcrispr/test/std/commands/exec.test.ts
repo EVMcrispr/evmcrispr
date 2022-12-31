@@ -1,12 +1,11 @@
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
   itChecksNonDefinedIdentifier,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../src/errors';
 import type { Action } from '../../../src/types';
@@ -19,8 +18,8 @@ const ETHERSCAN_API = process.env.ETHERSCAN_API;
 describe('Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async () => {
+    [signer] = WALLETS;
   });
 
   const target = '0x44fA8E6f47987339850636F88629646662444217'; // DAI

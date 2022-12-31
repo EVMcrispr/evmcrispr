@@ -5,11 +5,12 @@
   "main": "src/index.ts",
   "description": "Test helpers for the EVMcrispr library",
   "scripts": {
-    "lint": "tsc --noEmit && eslint"
+    "lint": "tsc --noEmit && eslint",
+    "create-fixtures": "ts-node scripts/create-fixtures.ts"
   },
   "exports": {
     ".": "./src/index.ts",
-    "./hardhat-config": "./hardhat-config.ts"
+    "./server-setup": "./server-setup.ts"
   },
   "author": "Blossom Labs",
   "license": "GPL-3.0",
@@ -17,7 +18,6 @@
     "@1hive/evmcrispr": "workspace:^0.9.0",
     "arcsecond": "^4.1.0",
     "eslint-config-evmcrispr": "workspace:^0.0.1",
-    "hardhat": "^2.9.5",
     "msw": "^0.47.3",
     "ora": "^6.1.2",
     "tsconfig-evmcrispr": "workspace:*"

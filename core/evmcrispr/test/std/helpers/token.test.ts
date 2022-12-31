@@ -1,20 +1,19 @@
 import {
+  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { NodeType } from '../../../src/types';
 import { ComparisonType } from '../../../src/utils';
 
-describe('Std > helpers > @token(tokenSymbol)', () => {
+describe.only('Std > helpers > @token(tokenSymbol)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should interpret it correctly', async () => {
@@ -41,8 +40,8 @@ describe('Std > helpers > @token.balance(tokenSymbol, account)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should interpret it correctly', async () => {
@@ -72,8 +71,8 @@ describe('Std > helpers > @token.amount(tokenSymbol, amount)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(() => {
+    [signer] = WALLETS;
   });
 
   it('should interpret it correctly', async () => {

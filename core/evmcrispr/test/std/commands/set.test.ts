@@ -1,10 +1,9 @@
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../src/errors';
 import { BindingsSpace } from '../../../src/types';
@@ -15,8 +14,8 @@ import { findStdCommandNode } from '../utils';
 describe('Std > commands > set <varName> <varValue>', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async () => {
+    [signer] = WALLETS;
   });
 
   it('should set an user variable correctly', async () => {
@@ -24,7 +23,7 @@ describe('Std > commands > set <varName> <varValue>', () => {
 
     await interpreter.interpret();
 
-    expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.equal(
+    expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.deep.equal(
       toDecimals(1, 18),
     );
   });

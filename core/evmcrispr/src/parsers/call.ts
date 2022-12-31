@@ -16,19 +16,19 @@ import type {
 } from '../types';
 import { NodeType } from '../types';
 
+import { buildParserError } from '../utils/parsers';
+import { argumentsParser } from './expression';
+import { helperFunctionParser } from './helper';
 import {
   addressParser,
   probableIdentifierParser,
   variableIdentifierParser,
 } from './primaries';
-import { argumentsParser } from './expression';
-import { helperFunctionParser } from './helper';
 import {
   callOperatorParser,
   createNodeLocation,
   currentContexDataParser,
 } from './utils';
-import { buildParserError } from '../utils/parsers';
 
 const chainedCallExpressionParser = (
   target: CallExpressionNode,
@@ -68,12 +68,14 @@ const chainedCallExpressionParser = (
 
 const enclosingParsers = [callOperatorParser];
 
-const callableExpressions = choice([
-  addressParser(enclosingParsers),
-  variableIdentifierParser(enclosingParsers),
-  helperFunctionParser,
-  probableIdentifierParser(enclosingParsers),
-]);
+const callableExpressionsParser = recursiveParser(() =>
+  choice([
+    addressParser(enclosingParsers),
+    variableIdentifierParser(enclosingParsers),
+    helperFunctionParser,
+    probableIdentifierParser(enclosingParsers),
+  ]),
+);
 
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
@@ -81,7 +83,7 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
       const initialContext =
         (yield currentContexDataParser) as unknown as LocationData;
       const target =
-        (yield callableExpressions) as unknown as CallExpressionNode['target'];
+        (yield callableExpressionsParser) as unknown as CallExpressionNode['target'];
 
       yield callOperatorParser;
 

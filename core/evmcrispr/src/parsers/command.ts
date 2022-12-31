@@ -12,6 +12,7 @@ import {
 } from 'arcsecond';
 
 import type {
+  ArgumentExpressionNode,
   CommandArgExpressionNode,
   CommandExpressionNode,
   CommandOptNode,
@@ -19,10 +20,19 @@ import type {
   NodeParser,
 } from '../types';
 import { NodeType } from '../types';
-import { buildParserError } from '../utils/parsers';
+import { buildParserError, getIncorrectReceivedValue } from '../utils/parsers';
+import { arithmeticParser } from './arithmetic';
+import { arrayExpressionParser } from './array';
+import { callExpressionParser } from './call';
 import { commentParser } from './comment';
 
-import { argumentExpressionParser, expressionParser } from './expression';
+import { expressionParser } from './expression';
+import { helperFunctionParser } from './helper';
+import {
+  primaryParser,
+  probableIdentifierParser,
+  variableIdentifierParser,
+} from './primaries';
 import {
   addNewError,
   camelAndKebabCase,
@@ -63,6 +73,26 @@ const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
 
     return commandName;
   });
+
+function argumentExpressionParser(
+  enclosingParsers = [],
+): NodeParser<ArgumentExpressionNode> {
+  return recursiveParser(() =>
+    choice([
+      arithmeticParser,
+      callExpressionParser,
+      helperFunctionParser,
+      arrayExpressionParser,
+      primaryParser(enclosingParsers),
+      variableIdentifierParser(enclosingParsers),
+      probableIdentifierParser(enclosingParsers),
+    ]).errorMap(({ data, error, index }) => {
+      return `ExpressionParserError(${data.line},${
+        index - data.offset
+      }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
+    }),
+  );
+}
 
 export const commandOptParser: NodeParser<CommandOptNode> =
   locate<CommandOptNode>(

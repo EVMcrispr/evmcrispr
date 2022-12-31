@@ -1,6 +1,5 @@
 import type { ErrorException } from '@1hive/evmcrispr';
 import { ErrorInvalid } from '@1hive/evmcrispr';
-import { expect } from 'chai';
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 

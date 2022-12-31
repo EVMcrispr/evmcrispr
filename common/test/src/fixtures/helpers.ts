@@ -1,7 +1,6 @@
 import type { Permission } from '@1hive/evmcrispr-aragonos-module';
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
+import type { Signer } from 'ethers';
+import { Wallet, utils } from 'ethers';
 
 import { DAO } from '.';
 import { KERNEL_TRANSACTION_COUNT } from './mock-dao';
@@ -23,14 +22,16 @@ export const getSignatureSelector = (signature: string): string => {
   return signature.split('(')[0];
 };
 
-export const getSigner = async (): Promise<SignerWithAddress> => {
-  const signer = (await ethers.getSigners())[0];
+export const getSigner = async (): Promise<Signer> => {
+  const wallet = Wallet.fromMnemonic(
+    'test test test test test test test test test test test junk',
+  );
 
-  signer.provider!.getTransactionCount = (): Promise<number> => {
+  wallet.provider!.getTransactionCount = (): Promise<number> => {
     return new Promise((resolve) => {
       resolve(KERNEL_TRANSACTION_COUNT);
     });
   };
 
-  return signer;
+  return wallet;
 };

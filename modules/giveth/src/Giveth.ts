@@ -7,7 +7,6 @@ import { Module } from '@1hive/evmcrispr';
 
 import { commands } from './commands';
 import { helpers } from './helpers';
-
 export class Giveth extends Module {
   constructor(
     bindingsManager: BindingsManager,

@@ -17,6 +17,6 @@
     "preinstall": "npx only-allow pnpm",
     "build": "tsup",
     "lint": "tsc --noEmit && eslint",
-    "test": "hardhat test"
+    "test": "test"
   }
 }

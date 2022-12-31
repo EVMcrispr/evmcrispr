@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "types": ["vitest/globals"],
     "downlevelIteration": true,
     "esModuleInterop": true,
     "isolatedModules": true,

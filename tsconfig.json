@@ -1,16 +1,3 @@
 {
-  "compilerOptions": {
-    "downlevelIteration": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "noImplicitAny": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true
-  },
-  "exclude": ["node_modules", "**/dist/**"]
+  "extends": "tsconfig-evmcrispr/base.json"
 }

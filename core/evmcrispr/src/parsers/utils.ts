@@ -174,7 +174,7 @@ export const linesParser = <T = Node>(
 export const openingCharParser = (
   c: string,
 ): Parser<[string, string | null], string, any> =>
-  sequenceOf([char(c), optionalWhitespace]);
+  recursiveParser(() => sequenceOf([char(c), optionalWhitespace]));
 
 export const closingCharParser = (
   c: string,

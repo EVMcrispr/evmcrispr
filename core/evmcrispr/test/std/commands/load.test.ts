@@ -1,11 +1,10 @@
 import { ModuleConstructor as AragonOS } from '@1hive/evmcrispr-aragonos-module';
 import {
+  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../src/errors';
 import type { CommandExpressionNode } from '../../../src/types';
@@ -14,8 +13,8 @@ import { findStdCommandNode } from '../utils';
 describe('Std > commands > load <name> [as <alias>]', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async () => {
+    [signer] = WALLETS;
   });
 
   it('should load a module correctly', async () => {
