@@ -6,7 +6,6 @@ import {
   Button,
   Center,
   Heading,
-  Link,
   Spacer,
   Stack,
   Text,
@@ -85,22 +84,15 @@ const Landing = () => {
               direction={{ base: 'column', md: 'row' }}
               alignItems="center"
             >
-              <Link
-                isExternal
-                href="https://docs.evmcrispr.com/"
+                <Button variant="blue" size="lg" as="a" href="https://docs.evmcrispr.com/"
                 target="_blank"
-                rel="noreferrer"
-              >
-                <Button variant="blue" size="lg">
+                rel="noreferrer">
                   Learn How to Use
                 </Button>
-              </Link>
               <Spacer />
-              <Link as={RouterLink} to="/terminal">
-                <Button variant="blue" colorScheme="blue" size="lg">
+                <Button variant="blue" colorScheme="blue" size="lg" as={RouterLink} to='/terminal'>
                   Open Terminal
                 </Button>
-              </Link>
             </Stack>
           </Center>
         </FadeIn>

@@ -1,6 +1,6 @@
 import type { ChangeEventHandler } from 'react';
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ScrollRestoration, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useProvider } from 'wagmi';
@@ -204,6 +204,7 @@ export default function Terminal() {
 
   return (
     <>
+      <ScrollRestoration />
       <LibraryScripts />
       <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
         <Header address={address} terminalStoreActions={terminalStoreActions} />

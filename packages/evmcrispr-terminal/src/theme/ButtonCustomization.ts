@@ -168,6 +168,10 @@ const blueVariant = defineStyle((props) => {
         bgColor: 'gray.900',
         borderColor: 'gray.900',
       },
+      _after: {
+        bgColor: 'green.600',
+        borderColor: 'green.600'
+      }
     },
   });
 });
