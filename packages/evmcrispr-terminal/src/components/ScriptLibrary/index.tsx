@@ -33,7 +33,7 @@ function getScriptList() {
   return Object.values(JSON.parse(savedScripts)).reverse() as StoredScript[];
 }
 
-export default function LibraryScripts() {
+export default function ScriptLibrary() {
   const [scripts, setScripts] = useState<StoredScript[]>(getScriptList());
   const [filteredScripts, setFilteredScripts] =
     useState<StoredScript[]>(scripts);

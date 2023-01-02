@@ -4,7 +4,7 @@ import { ShareIcon } from '@heroicons/react/24/solid';
 
 import { useEffect, useState } from 'react';
 
-import pinJSON from '../../api/pinata/pinJSON';
+import pinJSON from '../../api/pinata/pin-json';
 
 type ShareButtonProps = {
   script: string;

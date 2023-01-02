@@ -1,6 +1,11 @@
 import type { ChangeEventHandler } from 'react';
 import { useEffect, useState } from 'react';
-import { ScrollRestoration, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  ScrollRestoration,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 import { useAccount, useConnect, useProvider } from 'wagmi';
@@ -34,14 +39,14 @@ import {
 } from '../hooks/use-terminal-store';
 import { useDebounce } from '../hooks/useDebounce';
 
-import FadeIn from '../components/animations/fade-in';
-import Footer from '../components/footer';
-import ActionButtons from '../components/action-buttons';
-import ConfigureButton from '../components/configure-button';
-import ShareScriptButton from '../components/share-script';
-import Header from '../components/terminal-header';
-import SaveScriptButton from '../components/save-script';
-import LibraryScripts from '../components/library-scripts';
+import FadeIn from '../components/animations/FadeIn';
+import Footer from '../components/Footer';
+import ActionButtons from '../components/ActionButtons';
+import ConfigureButton from '../components/ConfigureButton';
+import ShareScriptButton from '../components/ShareButton';
+import Header from '../components/TerminalHeader';
+import SaveScriptButton from '../components/SaveScript';
+import ScriptLibrary from '../components/ScriptLibrary';
 import { useStoredScript } from '../hooks/useStoredScript';
 
 const ipfsResolver = new IPFSResolver();
@@ -205,7 +210,7 @@ export default function Terminal() {
   return (
     <>
       <ScrollRestoration />
-      <LibraryScripts />
+      <ScriptLibrary />
       <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
         <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>

@@ -12,8 +12,8 @@ import {
 import { useConnect } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 
-import MetamaskIcon from '../icons/metamask-icon';
-import WalletIcon from '../icons/wallet-icon';
+import MetamaskIcon from '../icons/MetamaskIcon';
+import WalletIcon from '../icons/WalletIcon';
 
 export default function SelectWalletModal({
   isOpen,

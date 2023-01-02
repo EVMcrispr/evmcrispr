@@ -9,8 +9,8 @@ import type { providers } from 'ethers';
 
 import { Button, HStack, VStack, useDisclosure } from '@chakra-ui/react';
 
-import LogModal from '../log-modal';
-import ErrorMsg from './error-msg';
+import LogModal from '../LogModal';
+import ErrorMsg from './ErrorMsg';
 
 const executeAction = async (
   action: Action,

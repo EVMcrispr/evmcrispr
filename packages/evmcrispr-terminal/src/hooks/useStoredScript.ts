@@ -1,7 +1,7 @@
 import CID from 'cids';
 import { useEffect, useState } from 'react';
 
-import fetchPin from '../api/pinata/fetchPin';
+import fetchPin from '../api/pinata/fetch-pin';
 import type { BareScript } from '../types';
 import { getScriptSavedInLocalStorage } from '../utils';
 

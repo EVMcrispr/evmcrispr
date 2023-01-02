@@ -17,8 +17,8 @@ import Blockies from 'react-blockies';
 import { useConnect, useDisconnect } from 'wagmi';
 
 import logo from '../../assets/logo.svg';
-import SelectWalletModal from '../wallet-modal';
-import TypeWriter from '../animations/typewriter';
+import SelectWalletModal from '../SelectWalletModal';
+import TypeWriter from '../animations/TypeWriter';
 
 export default function TerminalHeader({
   terminalStoreActions,

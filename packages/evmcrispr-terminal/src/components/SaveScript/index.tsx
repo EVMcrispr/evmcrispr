@@ -16,7 +16,7 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 
-import SaveIcon from '../icons/save-icon';
+import SaveIcon from '../icons/SaveIcon';
 import {
   getScriptSavedInLocalStorage,
   saveScriptToLocalStorage,

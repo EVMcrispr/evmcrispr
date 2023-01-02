@@ -11,10 +11,10 @@ import {
   Text,
 } from '@chakra-ui/react';
 
-import Card from '../components/card';
-import FadeIn from '../components/animations/fade-in';
-import Footer from '../components/footer';
-import { AllSponsors, AragonSponsor } from '../components/footer/Sponsors';
+import Card from '../components/Card';
+import FadeIn from '../components/animations/FadeIn';
+import Footer from '../components/Footer';
+import { AllSponsors, AragonSponsor } from '../components/Footer/Sponsors';
 
 import Brett from '../assets/brett.png';
 import Michael from '../assets/michael.png';
@@ -84,15 +84,26 @@ const Landing = () => {
               direction={{ base: 'column', md: 'row' }}
               alignItems="center"
             >
-                <Button variant="blue" size="lg" as="a" href="https://docs.evmcrispr.com/"
+              <Button
+                variant="blue"
+                size="lg"
+                as="a"
+                href="https://docs.evmcrispr.com/"
                 target="_blank"
-                rel="noreferrer">
-                  Learn How to Use
-                </Button>
+                rel="noreferrer"
+              >
+                Learn How to Use
+              </Button>
               <Spacer />
-                <Button variant="blue" colorScheme="blue" size="lg" as={RouterLink} to='/terminal'>
-                  Open Terminal
-                </Button>
+              <Button
+                variant="blue"
+                colorScheme="blue"
+                size="lg"
+                as={RouterLink}
+                to="/terminal"
+              >
+                Open Terminal
+              </Button>
             </Stack>
           </Center>
         </FadeIn>

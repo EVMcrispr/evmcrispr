@@ -1,7 +1,7 @@
 import { Box, Center, Text } from '@chakra-ui/react';
 import styled from '@emotion/styled';
 
-import Trail from '../animations/trail';
+import Trail from '../animations/Trail';
 
 const CardWrapper = styled(Box)`
   & > div span:nth-child(1) {
