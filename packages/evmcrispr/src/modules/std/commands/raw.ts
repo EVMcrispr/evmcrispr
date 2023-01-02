@@ -8,10 +8,10 @@ import {
   checkArgsLength,
   checkOpts,
   getOptValue,
-  isNumberish,
 } from '../../../utils';
 import type { Std } from '../Std';
 import { ErrorException } from '../../../errors';
+import { isBigDecimalish } from '../../../BigDecimal';
 
 const { ADDR } = BindingsSpace;
 
@@ -36,7 +36,7 @@ export const raw: ICommand<Std> = {
       );
     }
 
-    if (value && !isNumberish(value)) {
+    if (value && !isBigDecimalish(value)) {
       throw new ErrorException(`expected a valid value, but got ${value}`);
     }
 

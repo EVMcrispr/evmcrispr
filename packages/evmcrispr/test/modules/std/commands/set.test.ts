@@ -21,7 +21,7 @@ describe('Std > commands > set <varName> <varValue>', () => {
 
     await interpreter.interpret();
 
-    expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.equal(
+    expect(interpreter.getBinding('$var', BindingsSpace.USER)).to.be.deep.equal(
       toDecimals(1, 18),
     );
   });

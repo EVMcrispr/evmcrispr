@@ -1,10 +1,11 @@
-import { BigNumber, utils } from 'ethers';
+import { utils } from 'ethers';
 
 import { ErrorException } from '../../../errors';
+import { BigDecimal, isBigDecimalish } from '../../../BigDecimal';
 
 import type { ICommand } from '../../../types';
 
-import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 
 import type { Tenderly } from '../Tenderly';
 
@@ -15,24 +16,26 @@ export const wait: ICommand<Tenderly> = {
       minValue: 1,
     });
 
-    const [duration, period = BigNumber.from(1)] = await interpretNodes(c.args);
+    const [duration, period = BigDecimal.from(1)] = await interpretNodes(
+      c.args,
+    );
 
-    if (!isNumberish(duration)) {
+    if (!isBigDecimalish(duration)) {
       throw new ErrorException('duration must be a number');
     }
 
-    if (!isNumberish(period)) {
+    if (!isBigDecimalish(period)) {
       throw new ErrorException('period must be a number');
     }
 
     return [
       {
         method: 'evm_increaseBlocks',
-        params: [utils.hexValue(BigNumber.from(duration).div(period).sub(1))],
+        params: [utils.hexValue(BigDecimal.from(duration).div(period).sub(1))],
       },
       {
         method: 'evm_increaseTime',
-        params: [utils.hexValue(duration)],
+        params: [utils.hexValue(BigDecimal.from(duration))],
       },
     ];
   },

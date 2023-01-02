@@ -5,7 +5,6 @@ import {
   buildNonceForAddress,
   calculateNewProxyAddress,
   checkArgsLength,
-  isNumberish,
 } from '../../../utils';
 import { ErrorException } from '../../../errors';
 import type { Address, ICommand } from '../../../types';
@@ -18,6 +17,7 @@ import {
   getDaoAddrFromIdentifier,
   isLabeledAppIdentifier,
 } from '../utils';
+import { isBigDecimalish } from '../../../BigDecimal';
 
 export const newToken: ICommand<AragonOS> = {
   async run(module, c, { interpretNodes }) {
@@ -38,7 +38,7 @@ export const newToken: ICommand<AragonOS> = {
     const [name, symbol, controller, decimals = 18, transferable = true] =
       await interpretNodes(c.args);
 
-    if (!isNumberish(decimals)) {
+    if (!isBigDecimalish(decimals)) {
       throw new ErrorException(
         `invalid decimals. Expected an integer number, but got ${decimals.toString()}`,
       );

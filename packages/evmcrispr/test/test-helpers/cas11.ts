@@ -74,7 +74,7 @@ export const runInterpreterCases = async (
           getSigner,
         ).interpret();
 
-        expect(res, errorMsg).to.equal(expected);
+        expect(res, errorMsg).to.deep.eq(expected);
       },
     ),
   );

@@ -80,9 +80,11 @@ importers:
 
   packages/evmcrispr:
     specifiers:
+      '@types/big.js': ^6.1.6
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
       arcsecond: ^4.1.0
+      big.js: ^6.2.1
       is-ipfs: ^6.0.2
       isomorphic-fetch: ^3.0.0
       jsymbol: ^0.3.5
@@ -93,10 +95,12 @@ importers:
       ora: ^5.4.0
     dependencies:
       arcsecond: 4.1.0
+      big.js: 6.2.1
       isomorphic-fetch: 3.0.0
       jsymbol: 0.3.5
       lodash.clonedeep: 4.5.0
     devDependencies:
+      '@types/big.js': 6.1.6
       '@types/isomorphic-fetch': 0.0.36
       '@types/lodash.clonedeep': 4.5.7
       is-ipfs: 6.0.2_node-fetch@3.2.10
@@ -4449,6 +4453,10 @@ packages:
     resolution: {integrity: sha512-M2P4Ng26QbAeITiH7w1d7OxtldgfAe0wobpyJzVK/XOb0cUGKU2R4pfAhqcJBXAe2ife5ZOhSv4wk7p+ffURtg==}
     dev: true
 
+  /@types/big.js/6.1.6:
+    resolution: {integrity: sha512-0r9J+Zz9rYm2hOTwiMAVkm3XFQ4u5uTK37xrQMhc9bysn/sf/okzovWMYYIBMFTn/yrEZ11pusgLEaoarTlQbA==}
+    dev: true
+
   /@types/bn.js/4.11.6:
     resolution: {integrity: sha512-pqr857jrp2kPuO9uRjZ3PwnJTjoQy+fcdxvBTvHm6dkmEL9q+hDD/2j/0ELOBPtPnS8LjCX0gI9nbl8lVkadpg==}
     dependencies:
@@ -6284,6 +6292,10 @@ packages:
   /big-integer/1.6.51:
     resolution: {integrity: sha512-GPEid2Y9QU1Exl1rpO9B2IPJGHPSupF5GnVIP0blYvNOMer2bTvSWs1jGOUg04hTmu67nmLsQ9TBo1puaotBHg==}
     engines: {node: '>=0.6'}
+    dev: false
+
+  /big.js/6.2.1:
+    resolution: {integrity: sha512-bCtHMwL9LeDIozFn+oNhhFoq+yQ3BNdnsLSASUxLciOb1vgvpHsIO1dsENiGMgbb4SkP5TrzWzRiLddn8ahVOQ==}
     dev: false
 
   /bigint-buffer/1.1.5:

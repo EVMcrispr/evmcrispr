@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "strict": true,
     "moduleResolution": "node",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "experimentalDecorators": true
   },
   "exclude": ["node_modules", "**/dist/**"]
 }

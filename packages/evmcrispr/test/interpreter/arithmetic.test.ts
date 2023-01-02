@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { ExpressionError } from '../../src/errors';
+import { BigDecimal } from '../../src/BigDecimal';
 
 import { toDecimals } from '../../src/utils';
 
@@ -23,10 +23,10 @@ describe('Interpreter - arithmetics', () => {
       '(120 - 5e22 * 2 ^ 2 + 500e33)',
       signer,
     );
-    const res = await interpret();
+    const res: BigDecimal = await interpret();
 
     expect(res).to.eql(
-      BigNumber.from(120).sub(toDecimals(20, 22)).add(toDecimals(500, 33)),
+      BigDecimal.from(120).sub(toDecimals(20, 22)).add(toDecimals(500, 33)),
     );
   });
 
@@ -35,9 +35,36 @@ describe('Interpreter - arithmetics', () => {
       '((121e18 / 4) * (9 - 2) ^ 2 - 55e18)',
       signer,
     );
-    const res = await interpret();
+    const res: BigDecimal = await interpret();
 
-    expect(res).to.eql(toDecimals('1427.25', 18));
+    expect(res).to.deep.eq(toDecimals('1427.25', 18));
+  });
+
+  it('should return the correct result of an arithmetic operation containing decimals', async () => {
+    const [interpret] = await preparingExpression(
+      '((121 / 4) * (9 - 2) ^ 2 - 55)',
+      signer,
+    );
+    const res: BigDecimal = await interpret();
+
+    expect(res.toString()).to.eql('1427.25');
+  });
+
+  it('should return the floor amount when passed to hexadecimal to be used in ethers', async () => {
+    const [interpret] = await preparingExpression('(0.9+0.9)', signer);
+    const res: BigDecimal = await interpret();
+
+    expect(BigDecimal.from(res.toHexString()).toString()).to.eql('1');
+  });
+
+  it('should return the correct result of an arithmetic operation containing a decimal exponent', async () => {
+    const [interpret] = await preparingExpression(
+      '(10000000 * (1 / 2) ^ (5 / 1000000))',
+      signer,
+    );
+    const res: BigDecimal = await interpret();
+
+    expect(res.toHexString()).to.eql(ethers.utils.hexlify(9999965));
   });
 
   it('should fail when one of the operands is not a number', async () => {

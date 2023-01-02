@@ -1,15 +1,11 @@
 import { isAddress } from 'ethers/lib/utils';
 
 import { ErrorException } from '../../../errors';
+import { isBigDecimalish } from '../../../BigDecimal';
 
 import type { ICommand } from '../../../types';
 
-import {
-  ComparisonType,
-  checkArgsLength,
-  encodeAction,
-  isNumberish,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength, encodeAction } from '../../../utils';
 
 import type { Giveth } from '../Giveth';
 import { _projectAddr } from '../helpers/projectAddr';
@@ -25,7 +21,7 @@ export const donate: ICommand<Giveth> = {
 
     const [slug, amount, tokenAddr] = await interpretNodes(c.args);
 
-    if (!isNumberish(amount)) {
+    if (!isBigDecimalish(amount)) {
       throw new ErrorException('amount is not a number');
     }
 

@@ -1,11 +1,10 @@
-import { BigNumber } from 'ethers';
-
 import { ErrorException } from '../../../errors';
+import { BigDecimal, isBigDecimalish } from '../../../BigDecimal';
 
 import type { ICommand } from '../../../types';
 import { BindingsSpace } from '../../../types';
 
-import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 
 import type { Tenderly } from '../Tenderly';
 
@@ -54,17 +53,17 @@ export const expect: ICommand<Tenderly> = {
       case '>=':
       case '<':
       case '<=':
-        if (!isNumberish(value) || !isNumberish(expectedValue)) {
+        if (!isBigDecimalish(value) || !isBigDecimalish(expectedValue)) {
           throw new ErrorException(
             `Operator ${operator} must be used between two numbers`,
           );
         }
-        if (operator === '>') result = BigNumber.from(value).gt(expectedValue);
+        if (operator === '>') result = BigDecimal.from(value).gt(expectedValue);
         if (operator === '>=')
-          result = BigNumber.from(value).gte(expectedValue);
-        if (operator === '<') result = BigNumber.from(value).lt(expectedValue);
+          result = BigDecimal.from(value).gte(expectedValue);
+        if (operator === '<') result = BigDecimal.from(value).lt(expectedValue);
         if (operator === '<=')
-          result = BigNumber.from(value).lte(expectedValue);
+          result = BigDecimal.from(value).lte(expectedValue);
         break;
       default:
         throw new ErrorException(`Operator ${operator} not recognized`);

@@ -9,6 +9,7 @@
   "author": "Blossom Labs",
   "sideEffects": false,
   "devDependencies": {
+    "@types/big.js": "^6.1.6",
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/lodash.clonedeep": "^4.5.7",
     "is-ipfs": "^6.0.2",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "arcsecond": "^4.1.0",
+    "big.js": "^6.2.1",
     "isomorphic-fetch": "^3.0.0",
     "jsymbol": "^0.3.5",
     "lodash.clonedeep": "^4.5.0"

@@ -1,5 +1,8 @@
 import type { providers } from 'ethers';
-import { BigNumber, Wallet, utils } from 'ethers';
+import { Wallet, utils } from 'ethers';
+
+import type { BigDecimalish } from '../BigDecimal';
+import { BigDecimal } from '../BigDecimal';
 
 import type { Address } from '../types';
 
@@ -33,14 +36,10 @@ export function calculateNewProxyAddress(
 }
 
 export const toDecimals = (
-  amount: number | string,
+  amount: BigDecimalish,
   decimals = 18,
-): BigNumber => {
-  const [integer, decimal] = String(amount).split('.');
-  return BigNumber.from(
-    (integer != '0' ? integer : '') + (decimal || '').padEnd(decimals, '0') ||
-      '0',
-  );
+): BigDecimal => {
+  return BigDecimal.from(`${amount}e${decimals}`);
 };
 
 export function addressesEqual(first: Address, second: Address): boolean {

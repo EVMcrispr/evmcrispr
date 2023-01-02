@@ -1,5 +1,5 @@
 import type { Signer, providers } from 'ethers';
-import { BigNumber, Contract, constants, ethers, utils } from 'ethers';
+import { Contract, constants, ethers, utils } from 'ethers';
 
 import {
   CommandError,
@@ -32,6 +32,7 @@ import { BindingsManager } from './BindingsManager';
 import type { NodeInterpreter, NodesInterpreter } from './types/modules';
 import type { Cas11AST } from './Cas11AST';
 import { IPFSResolver } from './IPFSResolver';
+import { BigDecimal } from './BigDecimal';
 
 const {
   AddressLiteral,
@@ -289,10 +290,10 @@ export class EVMcrispr {
       n.right,
     ]);
 
-    let leftOperand: BigNumber, rightOperand: BigNumber;
+    let leftOperand: BigDecimal, rightOperand: BigDecimal;
 
     try {
-      leftOperand = BigNumber.from(leftOperand_);
+      leftOperand = BigDecimal.from(leftOperand_);
     } catch (err) {
       EVMcrispr.panic(
         n,
@@ -301,7 +302,7 @@ export class EVMcrispr {
     }
 
     try {
-      rightOperand = BigNumber.from(rightOperand_);
+      rightOperand = BigDecimal.from(rightOperand_);
     } catch (err) {
       EVMcrispr.panic(
         n,
@@ -323,7 +324,10 @@ export class EVMcrispr {
         return leftOperand.div(rightOperand);
       }
       case '^': {
-        return leftOperand.pow(rightOperand);
+        if (rightOperand.toString().includes('.')) {
+          return Math.pow(leftOperand.toNumber(), rightOperand.toNumber());
+        }
+        return leftOperand.pow(rightOperand.toNumber());
       }
     }
   };

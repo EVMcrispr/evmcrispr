@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import fetch from 'isomorphic-fetch';
 
 import { isAddress } from 'ethers/lib/utils';
@@ -7,9 +7,11 @@ import { ErrorException } from '../../../errors';
 
 import type { Address, HelperFunction } from '../../../types';
 import { BindingsSpace } from '../../../types';
-import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
+import { ComparisonType, checkArgsLength, toDecimals } from '../../../utils';
 import type { Module } from '../../../Module';
 import type { Std } from '../Std';
+import type { BigDecimalish } from '../../../BigDecimal';
+import { isBigDecimalish } from '../../../BigDecimal';
 
 const ENV_TOKENLIST = '$token.tokenlist';
 const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
@@ -95,7 +97,7 @@ export const tokenBalance: HelperFunction<Std> = async (
 export const _tokenAmount = async (
   module: Module,
   tokenSymbolOrAddress: string,
-  amount: BigNumber,
+  amount: BigDecimalish,
 ): Promise<string> => {
   const tokenAddr = await _token(module, tokenSymbolOrAddress);
 
@@ -105,8 +107,8 @@ export const _tokenAmount = async (
     await module.getProvider(),
   );
 
-  const decimals = (await contract.decimals()).toString();
-  return amount.mul(BigNumber.from(10).pow(decimals)).toString();
+  const decimals: number = await contract.decimals();
+  return toDecimals(amount, decimals).toString();
 };
 
 export const tokenAmount: HelperFunction<Std> = async (
@@ -120,7 +122,7 @@ export const tokenAmount: HelperFunction<Std> = async (
   });
   const [tokenSymbolOrAddress, amount] = await interpretNodes(h.args);
 
-  if (!isNumberish(amount)) {
+  if (!isBigDecimalish(amount)) {
     throw new ErrorException('amount is not a number');
   }
   return _tokenAmount(module, tokenSymbolOrAddress, amount);
