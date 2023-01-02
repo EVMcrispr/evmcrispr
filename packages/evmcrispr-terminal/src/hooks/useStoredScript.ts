@@ -15,7 +15,7 @@ function isCID(s: string | undefined) {
   }
 }
 
-export function useStoredScript(
+export function useScriptFromId(
   scriptId: string | undefined,
 ): BareScript | undefined {
   const [script, setScript] = useState<BareScript>();

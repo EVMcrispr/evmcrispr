@@ -25,13 +25,7 @@ import { useNavigate } from 'react-router';
 import { SavedScript } from './SavedScript';
 import { LibraryButton } from './LibraryButton';
 import type { StoredScript } from '../../types';
-import { removeScriptFromLocalStorage, slug } from '../../utils';
-
-function getScriptList() {
-  const savedScripts = localStorage.getItem('savedScripts');
-  if (!savedScripts) return [];
-  return Object.values(JSON.parse(savedScripts)).reverse() as StoredScript[];
-}
+import { getScriptList, removeScriptFromLocalStorage, slug } from '../../utils';
 
 export default function ScriptLibrary() {
   const [scripts, setScripts] = useState<StoredScript[]>(getScriptList());

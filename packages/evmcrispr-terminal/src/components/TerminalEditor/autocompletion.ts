@@ -23,9 +23,9 @@ import { utils } from 'ethers';
 import type { IRange } from 'monaco-editor';
 import { languages } from 'monaco-editor';
 
-import { DEFAULT_MODULE_BINDING } from '../utils';
+import { DEFAULT_MODULE_BINDING } from '../../utils';
 
-import { shortenAddress } from '../utils/web3';
+import { shortenAddress } from '../../utils/web3';
 
 const { Field, Property, Variable } = languages.CompletionItemKind;
 type CompletionItem = languages.CompletionItem;

@@ -2,7 +2,7 @@ import type { BindingsManager } from '@1hive/evmcrispr';
 import { BindingsSpace } from '@1hive/evmcrispr';
 import type { languages } from 'monaco-editor';
 
-import { DEFAULT_MODULE_BINDING } from '../utils';
+import { DEFAULT_MODULE_BINDING } from '../../utils';
 
 const DEFAULT_COMMAND_KEYWORDS = Object.keys(
   DEFAULT_MODULE_BINDING.value.commands,

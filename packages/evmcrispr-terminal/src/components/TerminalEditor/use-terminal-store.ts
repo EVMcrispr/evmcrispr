@@ -9,8 +9,8 @@ import { BindingsManager, NodeType, parseScript } from '@1hive/evmcrispr';
 import { createStore } from '@udecode/zustood';
 import type { providers } from 'ethers';
 
-import { runEagerExecutions } from '../editor/autocompletion';
-import { DEFAULT_MODULE_BINDING } from '../utils';
+import { runEagerExecutions } from './autocompletion';
+import { DEFAULT_MODULE_BINDING } from '../../utils';
 
 const scriptPlaceholder = `# Available commands:
 # Standard commands:

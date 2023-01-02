@@ -7,6 +7,12 @@ export function slug(title: string) {
     .replace(/[^\w-]+/g, '');
 }
 
+export function getScriptList() {
+  const savedScripts = localStorage.getItem('savedScripts');
+  if (!savedScripts) return [];
+  return Object.values(JSON.parse(savedScripts)).reverse() as StoredScript[];
+}
+
 export function getScriptSavedInLocalStorage(
   title?: string,
 ): StoredScript | undefined {

@@ -43,22 +43,21 @@ const executeAction = async (
 
 type ActionButtonsType = {
   address: string;
-  terminalStoreActions: Record<string, any>;
-  terminalStoreState: {
-    errors?: string[];
-    isLoading: boolean;
-    script: any;
-  };
   maximizeGasLimit: boolean;
 };
 
+import {
+  terminalStoreActions,
+  useTerminalStore,
+} from '../TerminalEditor/use-terminal-store';
+
 export default function ActionButtons({
   address,
-  terminalStoreActions,
-  terminalStoreState,
   maximizeGasLimit,
 }: ActionButtonsType) {
   const [logs, setLogs] = useState<string[]>([]);
+
+  const { errors, isLoading, script } = useTerminalStore();
 
   const {
     isOpen: isLogModalOpen,
@@ -69,8 +68,6 @@ export default function ActionButtons({
   });
 
   const { activeConnector } = useConnect();
-
-  const { errors, isLoading, script } = terminalStoreState;
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {

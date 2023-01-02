@@ -1,5 +1,5 @@
 import type { ChangeEventHandler } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ScrollRestoration,
   useLocation,
@@ -7,11 +7,10 @@ import {
   useParams,
 } from 'react-router-dom';
 
-import { IPFSResolver } from '@1hive/evmcrispr';
-import { useAccount, useConnect, useProvider } from 'wagmi';
-import type { Monaco } from '@monaco-editor/react';
+import _debounce from 'lodash.debounce';
 
-import MonacoEditor, { useMonaco } from '@monaco-editor/react';
+import { useAccount, useConnect } from 'wagmi';
+
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
   Box,
@@ -25,19 +24,9 @@ import {
 } from '@chakra-ui/react';
 
 import {
-  conf,
-  contribution,
-  createLanguage,
-  getModulesKeywords,
-} from '../editor/evmcl';
-import { createProvideCompletionItemsFn } from '../editor/autocompletion';
-import { theme } from '../editor/theme';
-
-import {
   terminalStoreActions,
   useTerminalStore,
-} from '../hooks/use-terminal-store';
-import { useDebounce } from '../hooks/useDebounce';
+} from '../components/TerminalEditor/use-terminal-store';
 
 import FadeIn from '../components/animations/FadeIn';
 import Footer from '../components/Footer';
@@ -47,9 +36,9 @@ import ShareScriptButton from '../components/ShareButton';
 import Header from '../components/TerminalHeader';
 import SaveScriptButton from '../components/SaveScript';
 import ScriptLibrary from '../components/ScriptLibrary';
-import { useStoredScript } from '../hooks/useStoredScript';
-
-const ipfsResolver = new IPFSResolver();
+import TerminalEditor from '../components/TerminalEditor';
+import { useScriptFromId } from '../hooks/useStoredScript';
+import { getScriptSavedInLocalStorage } from '../utils';
 
 export default function Terminal() {
   const [firstTry, setFirstTry] = useState(true);
@@ -58,34 +47,33 @@ export default function Terminal() {
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
-  const params = useParams();
-
-  const monaco = useMonaco();
-  const {
-    bindingsCache,
-    errors,
-    isLoading,
-    title,
-    script,
-    ast,
-    currentModuleNames,
-  } = useTerminalStore();
 
   const { data: account } = useAccount();
   const { connectors, connect, isConnected } = useConnect();
-  const provider = useProvider();
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
 
-  const { title: storedTitle, script: storedScript } = useStoredScript(
-    params?.scriptId,
-  ) || { title, script };
+  const { title: titleFromId, script: scriptFromId } =
+    useScriptFromId(params?.scriptId) || {};
+
+  const { title: titleFromSession, script: scriptFromSession } =
+    useTerminalStore();
 
   const address = account?.address ?? '';
 
-  const debouncedScript = useDebounce(script, 200);
-
   useChain([terminalRef, buttonsRef, footerRef]);
+
+  // Set up a script if we have one in the URL
+  useEffect(() => {
+    const encodedScript = new URLSearchParams(
+      window.location.hash.split('?')[1],
+    ).get('script');
+    if (encodedScript) {
+      terminalStoreActions.script(encodedScript);
+      terminalStoreActions.processScript();
+    }
+  }, []);
 
   /**
    * Try to connect as soon as page mounts
@@ -101,111 +89,32 @@ export default function Terminal() {
   }, [firstTry, connect, connectors, isConnected]);
 
   useEffect(() => {
-    terminalStoreActions.processScript();
-  }, [debouncedScript]);
-
-  useEffect(() => {
-    if (!monaco) {
-      return;
+    if (titleFromId !== undefined) {
+      terminalStoreActions.title(titleFromId);
     }
-    const { commandKeywords, helperKeywords } = getModulesKeywords(
-      currentModuleNames,
-      bindingsCache,
-    );
-
-    const tokensProvider = monaco.languages.setMonarchTokensProvider(
-      'evmcl',
-      createLanguage(commandKeywords, helperKeywords),
-    );
-
-    return () => {
-      tokensProvider.dispose();
-    };
-  }, [monaco, currentModuleNames, bindingsCache]);
-
-  useEffect(() => {
-    if (!monaco || !provider) {
-      return;
-    }
-    const completionProvider = monaco.languages.registerCompletionItemProvider(
-      'evmcl',
-      {
-        provideCompletionItems: createProvideCompletionItemsFn(
-          bindingsCache,
-          { provider, ipfsResolver },
-          ast,
-        ),
-      },
-    );
-
-    return () => {
-      completionProvider.dispose();
-    };
-  }, [bindingsCache, monaco, provider, ast]);
-
-  // Set up a script if we have one in the URL
-  useEffect(() => {
-    const encodedScript = new URLSearchParams(
-      window.location.hash.split('?')[1],
-    ).get('script');
-    if (encodedScript) {
-      terminalStoreActions.script(encodedScript);
+    if (scriptFromId !== undefined) {
+      terminalStoreActions.script(scriptFromId);
       terminalStoreActions.processScript();
     }
-  }, []);
+  }, [titleFromId]);
 
   useEffect(() => {
-    if (storedScript !== undefined) {
-      terminalStoreActions.title(storedTitle);
-      terminalStoreActions.script(storedScript);
+    if (scriptFromId !== undefined) {
+      terminalStoreActions.script(scriptFromId);
       terminalStoreActions.processScript();
     }
-  }, [storedTitle, storedScript]);
-
-  useEffect(() => {
-    document.title = title
-      ? `${title} - EVMcrispr Terminal`
-      : 'EVMcrispr Terminal';
-  }, [title]);
+  }, [scriptFromId]);
 
   // We hide the scriptId when the title or the script change so they don't match anymore with the url
-  const hideScriptId = () => {
+  useEffect(() => {
     if (location.pathname !== '/terminal') {
-      navigate('/terminal');
+      const { title: _title, script: _script } =
+        getScriptSavedInLocalStorage(params.scriptId) ?? {};
+      if (titleFromSession !== _title || scriptFromSession !== _script) {
+        navigate('/terminal');
+      }
     }
-  };
-
-  const handleTitleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    terminalStoreActions.title(event.target.value);
-    hideScriptId();
-  };
-  function handleOnChangeEditor(str: string | undefined, ev: any) {
-    terminalStoreActions.script(str ?? '');
-
-    const change = ev.changes[0];
-    const startLineNumber = change.range.startLineNumber;
-    const newLine = change.text
-      ? change.text.split('\n').length +
-        startLineNumber -
-        // Substract current line
-        1
-      : startLineNumber;
-    terminalStoreActions.updateCurrentLine(newLine);
-    if (str !== storedScript) {
-      hideScriptId();
-    }
-  }
-
-  function handleBeforeMountEditor(monaco: Monaco) {
-    monaco.editor.defineTheme('theme', theme);
-    monaco.languages.register(contribution);
-    monaco.languages.setLanguageConfiguration('evmcl', conf);
-  }
-
-  function handleOnMountEditor(editor: any) {
-    editor.setPosition({ lineNumber: 10000, column: 0 });
-    editor.focus();
-  }
+  }, [titleFromSession, scriptFromSession]);
 
   return (
     <>
@@ -216,25 +125,18 @@ export default function Terminal() {
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
             <Flex width={'100%'}>
-              <Input
-                type="text"
-                placeholder={'Untitled script'}
-                value={title}
-                onChange={handleTitleChange}
-                variant={'unstyled'}
-                fontSize={'4xl'}
-                color={'gray.300'}
-                _placeholder={{
-                  color: 'inherit',
-                  opacity: 1,
-                }}
-                spellCheck="false"
-              />
+              <TitleInput />
               <Spacer />
               <HStack spacing={1}>
-                <SaveScriptButton title={title} script={script} />
+                <SaveScriptButton
+                  title={titleFromSession}
+                  script={scriptFromSession}
+                />
                 <Spacer />
-                <ShareScriptButton script={script} title={title} />
+                <ShareScriptButton
+                  title={titleFromSession}
+                  script={scriptFromSession}
+                />
                 <Spacer />
                 <ConfigureButton
                   setMaximizeGasLimit={setMaximizeGasLimit}
@@ -243,41 +145,11 @@ export default function Terminal() {
               </HStack>
             </Flex>
           </VStack>
-          <MonacoEditor
-            height="65vh"
-            theme="theme"
-            language="evmcl"
-            value={script}
-            onChange={handleOnChangeEditor}
-            beforeMount={handleBeforeMountEditor}
-            onMount={handleOnMountEditor}
-            options={{
-              fontSize: 22,
-              fontFamily: 'Ubuntu Mono',
-              detectIndentation: false,
-              quickSuggestionsDelay: 100,
-              tabSize: 2,
-              language: 'evmcl',
-              minimap: {
-                enabled: false,
-              },
-              scrollbar: {
-                useShadows: false,
-                verticalScrollbarSize: 7,
-                vertical: 'hidden',
-              },
-            }}
-          />
+          <TerminalEditor />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
           <ActionButtons
             address={address}
-            terminalStoreActions={terminalStoreActions}
-            terminalStoreState={{
-              errors,
-              isLoading,
-              script,
-            }}
             maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>
@@ -288,5 +160,53 @@ export default function Terminal() {
         </Box>
       </FadeIn>
     </>
+  );
+}
+
+function TitleInput() {
+  // Set the default value, without enforcing its state.
+  const handleRef = useRef<HTMLInputElement | null>(null);
+  const { title } = useTerminalStore();
+  useEffect(() => {
+    if (handleRef.current) {
+      handleRef.current.value = title;
+    }
+  }, [handleRef, title]);
+
+  const [documentTitle, setDocumentTitle] = useState(title);
+
+  useEffect(() => {
+    document.title = documentTitle
+      ? `${documentTitle} - EVMcrispr Terminal`
+      : 'EVMcrispr Terminal';
+  }, [documentTitle]);
+
+  const debounce = useCallback(
+    // Delay saving state until user activity stops
+    _debounce((_inputString: string) => {
+      terminalStoreActions.title(_inputString);
+    }, 200), // Delay (ms)
+    [title],
+  );
+
+  const handleTitleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
+    setDocumentTitle(event.target.value);
+    debounce(event.target.value);
+  };
+  return (
+    <Input
+      ref={handleRef}
+      type="text"
+      placeholder={'Untitled script'}
+      onChange={handleTitleChange}
+      variant={'unstyled'}
+      fontSize={'4xl'}
+      color={'gray.300'}
+      _placeholder={{
+        color: 'inherit',
+        opacity: 1,
+      }}
+      spellCheck="false"
+    />
   );
 }

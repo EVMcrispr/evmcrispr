@@ -19,9 +19,9 @@ import { useConnect, useDisconnect } from 'wagmi';
 import logo from '../../assets/logo.svg';
 import SelectWalletModal from '../SelectWalletModal';
 import TypeWriter from '../animations/TypeWriter';
+import { terminalStoreActions } from '../TerminalEditor/use-terminal-store';
 
 export default function TerminalHeader({
-  terminalStoreActions,
   address,
 }: {
   terminalStoreActions: {
