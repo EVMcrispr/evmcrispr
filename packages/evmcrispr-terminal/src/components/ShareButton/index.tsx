@@ -4,6 +4,8 @@ import { ShareIcon } from '@heroicons/react/24/solid';
 
 import { useEffect, useState } from 'react';
 
+import useToast from '../../hooks/useToast';
+
 import pinJSON from '../../api/pinata/pin-json';
 
 type ShareButtonProps = {
@@ -15,6 +17,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [isLoading, setLoading] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     setUrl('');
@@ -27,12 +30,24 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
     };
 
     setLoading(true);
-    const { IpfsHash: hash } = await pinJSON(data);
-
-    setUrl(`${window.location.origin}/terminal/${hash}`);
-    navigator.clipboard.writeText(`${window.location.origin}/terminal/${hash}`);
-    setLoading(false);
-    return navigate(`/terminal/${hash}`, { replace: true });
+    try {
+      const { IpfsHash: hash } = await pinJSON(data);
+      const _url = `${window.location.origin}/#/terminal/${hash}`;
+      setUrl(_url);
+      navigator.clipboard.writeText(_url);
+      toast({
+        description: 'The link is copied to the clipboard',
+        status: 'success',
+      });
+      setLoading(false);
+      navigate(`/terminal/${hash}`, { replace: true });
+    } catch (e) {
+      toast({
+        description: 'The script could not be saved to IPFS',
+        status: 'error',
+      });
+      setLoading(false);
+    }
   }
 
   return (

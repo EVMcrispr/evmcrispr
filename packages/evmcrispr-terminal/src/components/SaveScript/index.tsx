@@ -21,19 +21,21 @@ import {
   getScriptSavedInLocalStorage,
   saveScriptToLocalStorage,
 } from '../../utils';
+import useToast from '../../hooks/useToast';
 
 type SaveModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  saveFn: () => void;
   title: string;
   script: string;
 };
 
-const SaveModal = ({ isOpen, onClose, title, script }: SaveModalProps) => {
+const SaveModal = ({ isOpen, onClose, title, saveFn }: SaveModalProps) => {
   const initialRef = useRef<HTMLInputElement>(null);
 
   async function handleSave() {
-    saveScriptToLocalStorage(title, script);
+    saveFn();
     onClose();
   }
 
@@ -97,11 +99,21 @@ export default function SaveScriptButton(props: {
     id: 'save',
   });
 
+  const toast = useToast();
+
+  const save = () => {
+    saveScriptToLocalStorage(props.title, props.script);
+    toast({
+      description: 'Script saved on browser correctly',
+      status: 'success',
+    });
+  };
+
   const onSaveButtonClick = () => {
     if (getScriptSavedInLocalStorage(props.title)) {
       onSaveModalOpen();
     } else {
-      saveScriptToLocalStorage(props.title, props.script);
+      save();
     }
   };
 
@@ -124,6 +136,7 @@ export default function SaveScriptButton(props: {
       <SaveModal
         isOpen={isSaveModalOpen}
         onClose={onSaveModalClose}
+        saveFn={save}
         {...props}
       />
     </>

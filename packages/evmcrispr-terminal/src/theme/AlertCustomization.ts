@@ -6,16 +6,30 @@ const { definePartsStyle, defineMultiStyleConfig } =
 
 const baseStyle = definePartsStyle((props) => {
   return {
+    icon: {
+      color: 'white',
+    },
     container: {
-      bgColor: props.status === 'info' ? 'transparent' : 'var(--alert-bg)',
+      fontFamily: 'Ubuntu Mono, monospace',
+      bgColor:
+        props.status === 'error'
+          ? 'pink.700'
+          : props.status === 'success'
+          ? 'green.800'
+          : props.status === 'info'
+          ? 'blue.500'
+          : 'orange.700',
       border: '1px solid',
+      borderColor: 'white',
+    },
+    title: {
+      color: 'white',
     },
     description: {
       px: 2.5,
       display: 'flex',
       w: 'full',
       alignItems: 'center',
-      mt: '8px',
       color: 'white',
       fontSize: 'md',
     },
