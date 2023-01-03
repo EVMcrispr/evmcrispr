@@ -13,7 +13,19 @@ const pinJSON = async (data: Record<string, any>): Promise<Res> => {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        pinataOptions: {
+          cidVersion: 0,
+        },
+        pinataMetadata: {
+          name: `EVMcrispr - ${data.title}`,
+          keyvalues: {
+            type: 'evmcripsr/json',
+            version: '0.9',
+          },
+        },
+        pinataContent: data,
+      }),
       headers: {
         Authorization: `Bearer ${PINATA_JWT}`,
         'Content-Type': 'application/json',
