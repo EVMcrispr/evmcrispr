@@ -45,41 +45,21 @@ export default function LogModal({
   closeModal: () => void;
   logs: string[];
 }) {
-  const hasError = logs.find((log) => log.startsWith(':error:'));
-  const hasSuccess = logs.find((log) => log.startsWith(':success:'));
-  const statusColor = hasError
-    ? 'warning.300'
-    : hasSuccess
-    ? 'green.300'
-    : 'yellow.300';
-
   return (
     <Modal
       size="xl"
       isOpen={isOpen}
       onClose={closeModal}
       isCentered
-      colorScheme={hasError ? 'warning' : hasSuccess ? 'green' : 'yellow'}
+      colorScheme={'yellow'}
     >
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Logs</ModalHeader>
         <ModalCloseButton />
-        <ModalBody overflow="scroll">
+        <ModalBody overflow="auto">
           <VStack spacing={10} w={'full'} height="100%">
-            <Icon
-              as={
-                hasError
-                  ? XCircleIcon
-                  : hasSuccess
-                  ? CheckCircleIcon
-                  : InformationCircleIcon
-              }
-              color={statusColor}
-              boxSize={20}
-              mt={10}
-            />
-            <VStack spacing={2} w={'full'} pb="20px">
+            <VStack spacing={2} w={'full'} py="30px">
               {logs.map((log, i) => {
                 const _status = status(log);
                 const _statusColor =

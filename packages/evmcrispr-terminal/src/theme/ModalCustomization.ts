@@ -18,21 +18,16 @@ const baseStyle = definePartsStyle((props) => {
     closeButton: {
       color: `${c}.300`,
     },
+    dialogContainer: {
+      '& > section': {
+        boxShadow: `6px 6px var(--chakra-colors-${c}-800)`,
+      },
+    },
     dialog: {
       bgColor: 'black',
       border: '2px solid',
       borderColor: `${c}.300`,
       borderRadius: 'none',
-
-      '&:before': {
-        boxSizing: 'border-box',
-        borderRight: '10px solid',
-        borderBottom: '10px solid',
-        borderColor: `${c}.800`,
-        content: '""',
-        display: 'block',
-        position: 'absolute',
-      },
     },
     body: {
       w: 'full',
@@ -55,13 +50,6 @@ const headerBase = defineStyle({
 const mdDialog = defineStyle({
   fontSize: 'md',
   lineHeight: 'base',
-
-  '&:before': {
-    h: 'full',
-    w: 'full',
-    top: '13px',
-    left: '13px',
-  },
 });
 
 const lgDialog = defineStyle({
@@ -69,12 +57,6 @@ const lgDialog = defineStyle({
   maxW: 'unset',
   fontSize: '2xl',
   lineHeight: 'base',
-  '&:before': {
-    w: '2xl',
-    h: 'full',
-    top: '13px',
-    left: '9px',
-  },
 });
 
 const xlDialog = defineStyle({
@@ -83,13 +65,6 @@ const xlDialog = defineStyle({
   h: 'lg',
   fontSize: '2xl',
   lineHeight: 'base',
-  '&:before': {
-    maxW: 'unset',
-    w: '4xl',
-    h: 'lg',
-    top: '9px',
-    left: '9px',
-  },
 });
 
 const xlBody = defineStyle({

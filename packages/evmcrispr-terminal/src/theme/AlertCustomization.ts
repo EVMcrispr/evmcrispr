@@ -10,16 +10,21 @@ const baseStyle = definePartsStyle((props) => {
       color: 'white',
     },
     container: {
-      fontFamily: 'Ubuntu Mono, monospace',
+      '& p': {
+        marginBottom: '0px',
+        fontFamily: '"Ubuntu Mono", monospace',
+      },
+      fontFamily: '"Ubuntu Mono", monospace',
+      paddingY: '14px',
       bgColor:
         props.status === 'error'
           ? 'pink.700'
           : props.status === 'success'
           ? 'green.800'
           : props.status === 'info'
-          ? 'blue.500'
+          ? 'grey.500'
           : 'orange.700',
-      border: '1px solid',
+      border: '0',
       borderColor: 'white',
     },
     title: {
@@ -38,6 +43,13 @@ const baseStyle = definePartsStyle((props) => {
 
 const alertTheme = defineMultiStyleConfig({
   baseStyle,
+  variants: {
+    solid: {
+      container: {
+        border: '1px solid',
+      },
+    },
+  },
 });
 
 export default alertTheme;
