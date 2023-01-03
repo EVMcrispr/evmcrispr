@@ -1,7 +1,7 @@
 {
   "name": "@1hive/evmcrispr",
-  "version": "0.9.0",
-  "codename": "morphean simulation",
+  "version": "0.10.0",
+  "codename": "collective wisdom",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "main": "dist/1hive-evmcrispr.cjs.js",
