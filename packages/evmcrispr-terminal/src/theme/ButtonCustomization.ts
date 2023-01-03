@@ -128,6 +128,7 @@ const overlayVariant = defineStyle((props) => {
     _disabled: {
       color: 'gray.200',
       _before: {
+        bgColor: 'black',
         borderColor: 'gray.200',
       },
       _hover: {
@@ -170,8 +171,8 @@ const blueVariant = defineStyle((props) => {
       },
       _after: {
         bgColor: 'green.600',
-        borderColor: 'green.600'
-      }
+        borderColor: 'green.600',
+      },
     },
   });
 });
