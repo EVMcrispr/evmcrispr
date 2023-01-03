@@ -102,6 +102,7 @@ export default function Terminal() {
   }, [scriptFromId]);
 
   // We hide the scriptId when the title or the script change so they don't match anymore with the url
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (location.pathname !== '/terminal') {
       const { title: _title, script: _script } =
@@ -110,13 +111,7 @@ export default function Terminal() {
         navigate('/terminal');
       }
     }
-  }, [
-    titleFromSession,
-    scriptFromSession,
-    location.pathname,
-    navigate,
-    params.scriptId,
-  ]);
+  }, [titleFromSession, scriptFromSession]);
 
   return (
     <>
