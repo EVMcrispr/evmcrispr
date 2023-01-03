@@ -92,10 +92,6 @@ export default function Terminal() {
     if (titleFromId !== undefined) {
       terminalStoreActions.title(titleFromId);
     }
-    if (scriptFromId !== undefined) {
-      terminalStoreActions.script(scriptFromId);
-      terminalStoreActions.processScript();
-    }
   }, [titleFromId]);
 
   useEffect(() => {
@@ -114,7 +110,13 @@ export default function Terminal() {
         navigate('/terminal');
       }
     }
-  }, [titleFromSession, scriptFromSession]);
+  }, [
+    titleFromSession,
+    scriptFromSession,
+    location.pathname,
+    navigate,
+    params.scriptId,
+  ]);
 
   return (
     <>
@@ -181,6 +183,7 @@ function TitleInput() {
       : 'EVMcrispr Terminal';
   }, [documentTitle]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounce = useCallback(
     // Delay saving state until user activity stops
     _debounce((_inputString: string) => {
@@ -197,6 +200,7 @@ function TitleInput() {
     <Input
       ref={handleRef}
       type="text"
+      borderRadius="0"
       placeholder={'Untitled script'}
       onChange={handleTitleChange}
       variant={'unstyled'}

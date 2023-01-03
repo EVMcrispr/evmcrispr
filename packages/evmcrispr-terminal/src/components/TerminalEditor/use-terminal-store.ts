@@ -12,30 +12,17 @@ import type { providers } from 'ethers';
 import { runEagerExecutions } from './autocompletion';
 import { DEFAULT_MODULE_BINDING } from '../../utils';
 
-const scriptPlaceholder = `# Available commands:
-# Standard commands:
-# exec <contractAddress> <methodNameOrSignature> [...params]
+const scriptPlaceholder = `## Basic commands:
+
+# exec <contractAddress> <methodNameOrSignature> [...params] [--value <value>]
 # load <module> [as <alias>]
 # set $<varName> <value>
 # switch <chainId>
-# AragonOS commands
-# act <agent> <targetAddr> <methodSignature> [...params]
-# connect <dao> [...path] [--context https://yoursite.com] (
-#   <...commands>
-# )
-# forward <...path> (
-#  <...commands>
-# )
-# grant <entity> <app> <role> [permissionManager] [--oracle <entity>]
-# install <repo> [...initParams] [--version <version>]
-# new-dao <daoName>
-# new-token <name> <symbol> <controllerAddress> [decimals = 18] [transferable = true]
-# revoke <entity> <app> <role>
-# upgrade <appRepoName> [version = latest]
 
-# Example (unwrap wxDAI):
+
+## Example (unwrap wxDAI):
+
 # load aragonos as ar
-# 
 # ar:connect 1hive token-manager voting (
 #   install agent:new
 #   grant voting agent:new TRANSFER_ROLE voting

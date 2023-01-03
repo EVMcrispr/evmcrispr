@@ -18,6 +18,7 @@ export default function TypeWriter({ text }: { text: string }) {
     <Text
       color="white"
       fontSize="sm"
+      variant="clearer"
       border="none"
       background="transparent"
       overflow="hidden" // Ensures the content is not revealed until the animation
