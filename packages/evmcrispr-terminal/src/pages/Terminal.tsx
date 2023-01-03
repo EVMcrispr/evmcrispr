@@ -66,11 +66,14 @@ export default function Terminal() {
 
   // Set up a script if we have one in the URL
   useEffect(() => {
-    const encodedScript = new URLSearchParams(
+    const encodedParams = new URLSearchParams(
       window.location.hash.split('?')[1],
-    ).get('script');
-    if (encodedScript) {
-      terminalStoreActions.script(encodedScript);
+    );
+    const encodedTitle = encodedParams.get('title');
+    const encodedScript = encodedParams.get('script');
+    if (encodedTitle || encodedScript) {
+      terminalStoreActions.title(encodedTitle ?? '');
+      terminalStoreActions.script(encodedScript ?? '');
       terminalStoreActions.processScript();
     }
   }, []);
