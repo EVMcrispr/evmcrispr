@@ -176,6 +176,10 @@ function TitleInput() {
   const [documentTitle, setDocumentTitle] = useState(title);
 
   useEffect(() => {
+    setDocumentTitle(title);
+  }, [title]);
+
+  useEffect(() => {
     document.title = documentTitle
       ? `${documentTitle} - EVMcrispr Terminal`
       : 'EVMcrispr Terminal';
