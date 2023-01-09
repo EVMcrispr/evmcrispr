@@ -80,8 +80,8 @@ const setApp = (
   dao.appArtifactCache.set(app.codeAddress, artifact);
   dao.appCache.set(app.name, app);
 
-  bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI);
-  bindingsManager.setBinding(app.address, app.abiInterface, ABI);
+  bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI, false, undefined, true);
+  bindingsManager.setBinding(app.address, app.abiInterface, ABI, false, undefined, true);
 
   if (!bindingsManager.hasBinding(app.name, ADDR)) {
     bindingsManager.setBinding(app.name, app.address, ADDR);
