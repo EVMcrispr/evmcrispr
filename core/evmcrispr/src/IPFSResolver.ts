@@ -1,3 +1,5 @@
+import fetch from 'isomorphic-fetch';
+
 import { ErrorConnection, ErrorUnexpectedResult } from './errors';
 
 export const IPFS_GATEWAY = 'https://ipfs.blossom.software/ipfs/'; // "https://gateway.pinata.cloud/ipfs/";

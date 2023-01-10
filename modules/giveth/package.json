@@ -10,6 +10,10 @@
     "dist"
   ],
   "devDependencies": {
+    "@1hive/evmcrispr": "workspace:0.9.0",
+    "eslint-config-evmcrispr": "workspace:*",
+    "@1hive/evmcrispr-test-common": "workspace:*",
+    "tsconfig-evmcrispr": "workspace:*",
     "@types/isomorphic-fetch": "^0.0.36",
     "vitest": "^0.26.2"
   },
@@ -17,11 +21,15 @@
     "@1hive/evmcrispr": "workspace:0.9.0"
   },
   "scripts": {
+    "dotenv": "dotenv -e ../../.env --",
     "preinstall": "npx only-allow pnpm",
     "build": "tsup",
+    "clean": "hardhat clean",
     "lint": "tsc --noEmit && eslint",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "pnpm run dotenv vitest run",
+    "test:coverage": "pnpm run dotenv vitest run --coverage",
+    "test:ui": "pnpm run dotenv vitest --ui",
+    "test:watch": "pnpm run dotenv vitest"
   },
   "dependencies": {
     "isomorphic-fetch": "^3.0.0"

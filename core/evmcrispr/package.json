@@ -30,12 +30,15 @@
     "dist"
   ],
   "scripts": {
+    "dotenv": "dotenv -e ../../.env --",
     "preinstall": "npx only-allow pnpm",
     "build": "tsup",
+    "clean": "hardhat clean",
     "lint": "tsc --noEmit && eslint",
     "create-docs": "typedoc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "nyc --reporter=lcov pnpm test"
+    "test": "pnpm run dotenv vitest run",
+    "test:coverage": "pnpm run dotenv vitest run --coverage",
+    "test:ui": "pnpm run dotenv vitest --ui",
+    "test:watch": "pnpm run dotenv vitest"
   }
 }

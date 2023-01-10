@@ -1,6 +1,5 @@
 import { ModuleConstructor as AragonOS } from '@1hive/evmcrispr-aragonos-module';
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
@@ -13,8 +12,8 @@ import { findStdCommandNode } from '../utils';
 describe('Std > commands > load <name> [as <alias>]', () => {
   let signer: Signer;
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should load a module correctly', async () => {

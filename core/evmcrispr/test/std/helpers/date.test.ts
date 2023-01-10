@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
@@ -19,8 +18,8 @@ describe('Std > helpers > @date(date, offset?)', () => {
     return preparingExpression(helper, signer);
   };
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should interpret it correctly', async () => {

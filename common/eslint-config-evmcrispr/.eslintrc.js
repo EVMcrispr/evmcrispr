@@ -10,7 +10,7 @@ module.exports = {
     },
     allowImportExportEverywhere: true,
   },
-  plugins: ['@typescript-eslint', 'import'],
+  plugins: ['@typescript-eslint', 'import', 'turbo'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -19,6 +19,7 @@ module.exports = {
     'plugin:import/typescript',
     'plugin:prettier/recommended',
     'prettier',
+    'turbo',
   ],
   rules: {
     'import/order': [
@@ -49,6 +50,7 @@ module.exports = {
         },
       },
     ],
+    'turbo/no-undeclared-env-vars': 'warn',
   },
   ignorePatterns: ['node_modules', 'dist', 'CHANGELOG.md'],
   settings: {

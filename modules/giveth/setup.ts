@@ -1,4 +1,4 @@
-import { runServer } from '@1hive/evmcrispr-test-common/server-setup';
+import { runSetup } from '@1hive/evmcrispr-test-common/setups/file';
 import { graphql } from 'msw';
 
 type Project = {
@@ -34,4 +34,7 @@ const givethGraphqlHandlers = [
   ),
 ];
 
-runServer(givethGraphqlHandlers);
+runSetup({
+  customServerHandlers: givethGraphqlHandlers,
+  chainManagerPort: 8002,
+});

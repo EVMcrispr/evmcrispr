@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
   itChecksInvalidArgsLength,
@@ -28,8 +27,8 @@ describe('Std > helpers > @ipfs(text)', () => {
   const lazySigner = () => signer;
   const ipfsData = 'This should be pinned in IPFS';
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should upload text to IPFS and return hash', async () => {

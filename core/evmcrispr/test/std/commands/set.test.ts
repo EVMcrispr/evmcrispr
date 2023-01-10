@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
@@ -14,8 +13,8 @@ import { findStdCommandNode } from '../utils';
 describe('Std > commands > set <varName> <varValue>', () => {
   let signer: Signer;
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should set an user variable correctly', async () => {

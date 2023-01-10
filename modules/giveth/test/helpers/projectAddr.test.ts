@@ -1,6 +1,5 @@
 import { ComparisonType, NodeType } from '@1hive/evmcrispr';
 import {
-  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
@@ -11,8 +10,8 @@ describe('Giveth > helpers > @projectAddr(slug)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('return the hashed value', async () => {

@@ -7,9 +7,7 @@ import {
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
 import type { AragonOS } from '../../src/AragonOS';
 import { encodeActCall } from '../../src/utils';
@@ -19,7 +17,7 @@ import {
   findAragonOSCommandNode,
 } from '../utils';
 
-describe('AragonOS > commands > install <repo> [initParams]', () => {
+describe.concurrent('AragonOS > commands > install <repo> [initParams]', () => {
   const {
     appId,
     appIdentifier,
@@ -36,8 +34,8 @@ describe('AragonOS > commands > install <repo> [initParams]', () => {
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       signer,

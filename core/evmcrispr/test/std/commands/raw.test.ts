@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
@@ -20,8 +19,8 @@ describe('Std > commands > raw <target> <data> [value] [--from <sender>]', () =>
   const parsedValue = '1000000000000000000';
   const from = '0x8790B75CF2bd36A2502a3e48A24338D8288f2F15';
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should return a correct raw action', async () => {

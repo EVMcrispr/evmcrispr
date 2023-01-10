@@ -15,12 +15,18 @@
         "test/**/*.tsx"
       ],
       "outputs": [],
-      "env": ["ARCHIVE_NODE_ENDPOINT", "VITE_PINATA_JWT"]
+      "env": ["ARCHIVE_NODE_ENDPOINT", "FORK_BLOCK_NUMBER", "FORK_CHAIN_ID"]
+    },
+    "test:watch": {
+      "cache": false
     },
     "lint": {
       "outputs": []
     },
     "dev": {
+      "cache": false
+    },
+    "clean": {
       "cache": false
     }
   }

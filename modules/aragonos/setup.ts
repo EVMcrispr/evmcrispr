@@ -1,3 +1,3 @@
 import { runSetup } from '@1hive/evmcrispr-test-common/setups/file';
 
-runSetup({ chainManagerPort: 8000 });
+runSetup({ chainManagerPort: 8001 });

@@ -1,4 +1,4 @@
-import { WALLETS, createInterpreter } from '@1hive/evmcrispr-test-common';
+import { createInterpreter } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
 
 import { GIVETH_DONATION_RELAYER } from '../../src/utils';
@@ -6,8 +6,8 @@ import { GIVETH_DONATION_RELAYER } from '../../src/utils';
 describe('Giveth > commands > donate <slug> <amount> <token>', () => {
   let signer: Signer;
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should return a correct donate action', async () => {

@@ -10,7 +10,11 @@
     "dist"
   ],
   "devDependencies": {
-    "@types/isomorphic-fetch": "^0.0.36",
+    "@1hive/evmcrispr": "workspace:0.9.0",
+    "eslint-config-evmcrispr": "workspace:*",
+    "@1hive/evmcrispr-test-common": "workspace:*",
+    "tsconfig-evmcrispr": "workspace:*",
+    "@types/isomorphi8-fetch": "^0.0.36",
     "@types/lodash.clonedeep": "^4.5.7"
   },
   "peerDependencies": {
@@ -24,9 +28,14 @@
     "lodash.clonedeep": "^4.5.0"
   },
   "scripts": {
+    "dotenv": "dotenv -e ../../.env --",
     "preinstall": "npx only-allow pnpm",
     "build": "tsup",
+    "clean": "hardhat clean",
     "lint": "tsc --noEmit && eslint",
-    "test": "hardhat test"
+    "test": "pnpm dotenv vitest run",
+    "test:coverage": "pnpm dotenv vitest run --coverage",
+    "test:ui": "pnpm dotenv vitest --ui",
+    "test:watch": "pnpm dotenv vitest"
   }
 }

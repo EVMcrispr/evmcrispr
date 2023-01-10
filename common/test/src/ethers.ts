@@ -1,4 +1,10 @@
+import 'isomorphic-fetch';
 import { Wallet, providers } from 'ethers';
+
+import { buildChainEndpoint } from './chain-manager/helpers';
+
+// eslint-disable-next-line turbo/no-undeclared-env-vars
+const WORKER_ID = parseInt(process.env.VITEST_POOL_ID ?? '1');
 
 const PRIVATE_KEYS = [
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -13,7 +19,24 @@ const PRIVATE_KEYS = [
   '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6',
 ];
 
-export const WALLETS = PRIVATE_KEYS.map(
-  (pk) =>
-    new Wallet(pk, new providers.JsonRpcProvider('http://localhost:8545/')),
-);
+export async function getProvider(
+  chainManagerPort: number,
+): Promise<providers.JsonRpcProvider> {
+  const chainManagerEndpoint = buildChainEndpoint(chainManagerPort);
+  const response = await fetch(
+    `${chainManagerEndpoint}/chain?index=${WORKER_ID}`,
+  );
+  const data = await response.json();
+
+  if (response.status !== 200) {
+    throw new Error(`Error when trying to get provider: ${data.message}`);
+  }
+
+  return new providers.JsonRpcProvider(data.endpoint);
+}
+
+export async function getWallets(chainManagerPort: number): Promise<Wallet[]> {
+  const provider = await getProvider(chainManagerPort);
+
+  return PRIVATE_KEYS.map((pk) => new Wallet(pk, provider));
+}

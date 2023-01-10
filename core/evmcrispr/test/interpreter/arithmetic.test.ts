@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
   preparingExpression,
@@ -14,8 +13,8 @@ describe('Interpreter - arithmetics', () => {
   const name = 'ArithmeticExpressionError';
   let signer: Signer;
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should return the correct result of an arithmetic operation', async () => {

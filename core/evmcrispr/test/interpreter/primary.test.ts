@@ -1,5 +1,5 @@
 import type { InterpreterCase } from '@1hive/evmcrispr-test-common';
-import { WALLETS, runInterpreterCases } from '@1hive/evmcrispr-test-common';
+import { runInterpreterCases } from '@1hive/evmcrispr-test-common';
 import type { Signer } from 'ethers';
 import { constants } from 'ethers';
 
@@ -11,8 +11,8 @@ describe('Interpreter - primaries', async () => {
   let signer: Signer;
   const getSigner = async () => signer;
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   describe('when interpreting a literal node', () => {

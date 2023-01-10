@@ -1,7 +1,3 @@
 {
-  "extends": ["turbo", "evmcrispr"],
-  "plugins": ["turbo"],
-  "rules": {
-    "turbo/no-undeclared-env-vars": "error"
-  }
+  "extends": ["evmcrispr"]
 }

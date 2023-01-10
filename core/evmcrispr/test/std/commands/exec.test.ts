@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   createInterpreter,
   expectThrowAsync,
   itChecksNonDefinedIdentifier,
@@ -18,8 +17,8 @@ const ETHERSCAN_API = process.env.ETHERSCAN_API;
 describe('Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]', () => {
   let signer: Signer;
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   const target = '0x44fA8E6f47987339850636F88629646662444217'; // DAI

@@ -1,18 +1,16 @@
 import type { TransactionAction } from '@1hive/evmcrispr';
 import { BindingsSpace, addressesEqual } from '@1hive/evmcrispr';
 import { createInterpreter } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { defaultAbiCoder } from 'ethers/lib/utils';
-import { ethers } from 'hardhat';
 
 import type { AragonOS } from '../../src/AragonOS';
 
 describe('AragonOS > commands > new-dao <daoName>', () => {
   let signer: Signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should create a new dao correctly', async () => {

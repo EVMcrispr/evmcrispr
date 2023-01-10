@@ -1,7 +1,6 @@
 {
   "name": "@1hive/evmcrispr-test-common",
   "private": true,
-  "version": "0.0.1",
   "main": "src/index.ts",
   "description": "Test helpers for the EVMcrispr library",
   "scripts": {
@@ -10,16 +9,24 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./server-setup": "./server-setup.ts"
+    "./setups/file": "./setups/file.ts",
+    "./setups/global": "./setups/global.ts",
+    "./hardhat.config": "./hardhat.config.ts",
+    "./vite.config": "./vite.config.ts"
   },
   "author": "Blossom Labs",
   "license": "GPL-3.0",
   "devDependencies": {
     "@1hive/evmcrispr": "workspace:^0.9.0",
+    "@types/express": "^4.17.15",
     "arcsecond": "^4.1.0",
-    "eslint-config-evmcrispr": "workspace:^0.0.1",
+    "eslint-config-evmcrispr": "workspace:*",
+    "tsconfig-evmcrispr": "workspace:*",
+    "express": "^4.18.2",
+    "is-port-reachable": "^4.0.0",
+    "isomorphic-fetch": "^3.0.0",
     "msw": "^0.47.3",
     "ora": "^6.1.2",
-    "tsconfig-evmcrispr": "workspace:*"
+    "winston": "^3.8.2"
   }
 }

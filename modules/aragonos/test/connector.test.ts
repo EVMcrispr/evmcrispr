@@ -4,10 +4,8 @@ import {
   EOA_ADDRESS,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { utils } from 'ethers';
-import hre, { ethers } from 'hardhat';
 import { multihash } from 'is-ipfs';
 
 import { Connector } from '../src/Connector';
@@ -15,35 +13,30 @@ import type { ParsedApp } from '../src/types';
 import { parseContentUri } from '../src/utils';
 import { isValidArtifact, isValidParsedApp } from './utils';
 
-const {
-  network: {
-    config: { chainId },
-  },
-} = hre;
-
 const GOERLI_DAO_ADDRESS = '0xd8765273da3a7f7a4dc184e8a9f8a894e4dfb4c4';
 
-describe('AragonOS > Connector', () => {
+describe.concurrent('AragonOS > Connector', () => {
   let connector: Connector;
   let goerliConnector: Connector;
   let signer: Signer;
 
-  before(async () => {
-    signer = (await ethers.getSigners())[0];
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
+    const chainId = await signer.getChainId();
     const provider = signer.provider!;
 
-    connector = new Connector(chainId || 4, provider);
+    connector = new Connector(chainId, provider);
     goerliConnector = new Connector(5, provider);
   });
 
   it('should fail when creating a connector with an unknown chain id', () => {
     expectThrowAsync(
       () => new Connector(999, signer.provider!),
-      new ErrorException(),
+      new ErrorException('No subgraph found for chain id 999'),
     );
   });
 
-  describe('repo()', () => {
+  describe.concurrent('repo()', () => {
     it('should find a valid repo', async () => {
       const { codeAddress, contentUri, artifact } = await connector.repo(
         'token-manager',
@@ -71,11 +64,11 @@ describe('AragonOS > Connector', () => {
     });
   });
 
-  describe('organizationApps()', () => {
+  describe.concurrent('organizationApps()', () => {
     let daoApps: ParsedApp[];
     let goerliDaoApps: ParsedApp[];
 
-    before(async () => {
+    beforeAll(async () => {
       daoApps = await connector.organizationApps(DAO.kernel);
       goerliDaoApps = await goerliConnector.organizationApps(
         GOERLI_DAO_ADDRESS,
@@ -92,12 +85,12 @@ describe('AragonOS > Connector', () => {
       });
     });
 
-    describe("when fetching apps from a goerli's dao", () => {
+    describe.concurrent("when fetching apps from a goerli's dao", () => {
       it('should find the apps', () => {
         expect(goerliDaoApps.length).to.be.greaterThan(0);
       });
 
-      it('shole return valid parsed apps', () => {
+      it('should return valid parsed apps', () => {
         goerliDaoApps.forEach((app) => isValidParsedApp(app));
       });
     });

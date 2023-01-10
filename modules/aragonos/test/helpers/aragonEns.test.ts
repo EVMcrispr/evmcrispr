@@ -3,16 +3,14 @@ import {
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
 
-describe('AragonOS > helpers > @aragonEns()', () => {
+describe.concurrent('AragonOS > helpers > @aragonEns()', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should interpret it correctly', async () => {

@@ -1,5 +1,4 @@
 import { expectHash } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import { isAddress } from 'ethers/lib/utils';
 import { multihash } from 'is-ipfs';
 

@@ -15,8 +15,6 @@ export class Giveth extends Module {
     ipfsResolver: IPFSResolver,
     alias?: string,
   ) {
-    console.log('HERE');
-
     super(
       'giveth',
       bindingsManager,

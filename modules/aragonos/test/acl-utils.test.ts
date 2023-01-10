@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import type { Params } from '../src/types';
 import {
   and,
@@ -35,7 +33,7 @@ function checkArg(arg: any, argId: string) {
   expect(onlyParam(arg.ret(0)).slice(0, 6)).eql(`0x${argId}07`);
 }
 
-describe('AragonOS > ACL utils', () => {
+describe.concurrent('AragonOS > ACL utils', () => {
   it('encodes arguments properly', () => {
     expect(onlyParam(arg(0).eq(6)).startsWith('0x00')).to.be.true;
     expect(onlyParam(arg(88).eq(6)).startsWith('0x58')).to.be.true;

@@ -12,10 +12,8 @@ import {
   createInterpreter,
   expectThrowAsync,
 } from '@1hive/evmcrispr-test-common';
-import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { Contract } from 'ethers';
-import { ethers } from 'hardhat';
 
 import type { AragonOS } from '../../src/AragonOS';
 
@@ -31,8 +29,8 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    [signer] = await ethers.getSigners();
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       signer,
@@ -191,39 +189,45 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     expect(addressesEqual(await token.controller(), params[2])).to.be.true;
   });
 
-  it('should fail when executing it using a conterfactual app outside a "connect" command', async () => {
-    const interpreter = createInterpreter(
-      `
+  it.concurrent(
+    'should fail when executing it using a conterfactual app outside a "connect" command',
+    async () => {
+      const interpreter = createInterpreter(
+        `
       load aragonos as ar
 
       ar:new-token "a new token" ANT token-manager.open:counter-factual-tm
     `,
-      signer,
-    );
-    const c = interpreter.ast.body[1];
-    const error = new CommandError(
-      c,
-      'invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm',
-    );
+        signer,
+      );
+      const c = interpreter.ast.body[1];
+      const error = new CommandError(
+        c,
+        'invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm',
+      );
 
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
+      await expectThrowAsync(() => interpreter.interpret(), error);
+    },
+  );
 
-  it('should fail when passing an invalid token decimals value', async () => {
-    const invalidDecimals = 'invalidDecimals';
-    const interpreter = createAragonScriptInterpreter([
-      `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
-    const error = new CommandError(
-      c,
-      `invalid decimals. Expected an integer number, but got ${invalidDecimals}`,
-    );
+  it.concurrent(
+    'should fail when passing an invalid token decimals value',
+    async () => {
+      const invalidDecimals = 'invalidDecimals';
+      const interpreter = createAragonScriptInterpreter([
+        `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
+      const error = new CommandError(
+        c,
+        `invalid decimals. Expected an integer number, but got ${invalidDecimals}`,
+      );
 
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
+      await expectThrowAsync(() => interpreter.interpret(), error);
+    },
+  );
 
-  it('should fail when passing an invalid controller', async () => {
+  it.concurrent('should fail when passing an invalid controller', async () => {
     const invalidController = 'asd:123-asd&45';
     const interpreter = createAragonScriptInterpreter([
       `new-token "a new token" ANT ${invalidController}`,
@@ -237,17 +241,20 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when passing an invalid transferable flag', async () => {
-    const invalidTransferable = 'an-invalid-value';
-    const interpreter = createAragonScriptInterpreter([
-      `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
-    const error = new CommandError(
-      c,
-      `invalid transferable flag. Expected a boolean, but got ${invalidTransferable}`,
-    );
+  it.concurrent(
+    'should fail when passing an invalid transferable flag',
+    async () => {
+      const invalidTransferable = 'an-invalid-value';
+      const interpreter = createAragonScriptInterpreter([
+        `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
+      ]);
+      const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
+      const error = new CommandError(
+        c,
+        `invalid transferable flag. Expected a boolean, but got ${invalidTransferable}`,
+      );
 
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
+      await expectThrowAsync(() => interpreter.interpret(), error);
+    },
+  );
 });

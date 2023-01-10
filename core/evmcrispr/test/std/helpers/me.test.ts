@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
@@ -12,8 +11,8 @@ describe('Std > helpers > @me', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should return the current connected account', async () => {

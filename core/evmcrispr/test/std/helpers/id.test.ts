@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
@@ -13,8 +12,8 @@ describe('Std > helpers > @id(value)', () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
-  beforeAll(async () => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('return the hashed value', async () => {

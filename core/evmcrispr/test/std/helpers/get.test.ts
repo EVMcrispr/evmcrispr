@@ -1,5 +1,4 @@
 import {
-  WALLETS,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from '@1hive/evmcrispr-test-common';
@@ -13,8 +12,8 @@ describe('Std > helpers > @get(contractAddress, method, params?)', () => {
   const lazySigner = () => signer;
   const targetAddress = '0x44fA8E6f47987339850636F88629646662444217';
 
-  beforeAll(() => {
-    [signer] = WALLETS;
+  beforeAll(async (ctx) => {
+    [signer] = await ctx.file!.utils.getWallets();
   });
 
   it('should get a single value from a non-param-receiving function correctly', async () => {

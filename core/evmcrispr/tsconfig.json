@@ -2,6 +2,5 @@
   "extends": "tsconfig-evmcrispr/base.json",
   "compilerOptions": {
     "lib": ["es2019", "es2017", "dom"]
-  },
-  "include": ["src/**/*.ts"]
+  }
 }
