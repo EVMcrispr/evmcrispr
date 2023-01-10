@@ -1,0 +1,225 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - comment > should parse a inline comment correctly 1`] = `
+Cas11AST {
+  "body": [
+    {
+      "args": [
+        {
+          "left": {
+            "loc": {
+              "end": {
+                "col": 19,
+                "line": 2,
+              },
+              "start": {
+                "col": 11,
+                "line": 2,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "aragonos",
+          },
+          "loc": {
+            "end": {
+              "col": 25,
+              "line": 2,
+            },
+            "start": {
+              "col": 11,
+              "line": 2,
+            },
+          },
+          "right": {
+            "loc": {
+              "end": {
+                "col": 25,
+                "line": 2,
+              },
+              "start": {
+                "col": 23,
+                "line": 2,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "ar",
+          },
+          "type": "AsExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 25,
+          "line": 2,
+        },
+        "start": {
+          "col": 6,
+          "line": 2,
+        },
+      },
+      "name": "load",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 15,
+              "line": 3,
+            },
+            "start": {
+              "col": 10,
+              "line": 3,
+            },
+          },
+          "type": "VariableIdentifier",
+          "value": "$var1",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 20,
+              "line": 3,
+            },
+            "start": {
+              "col": 16,
+              "line": 3,
+            },
+          },
+          "power": 18,
+          "type": "NumberLiteral",
+          "value": "1",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 20,
+          "line": 3,
+        },
+        "start": {
+          "col": 6,
+          "line": 3,
+        },
+      },
+      "name": "set",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+  ],
+  "type": "Program",
+}
+`;
+
+exports[`Parsers - comment > should parse a normal comment correctly 1`] = `
+Cas11AST {
+  "body": [
+    {
+      "args": [
+        {
+          "left": {
+            "loc": {
+              "end": {
+                "col": 17,
+                "line": 3,
+              },
+              "start": {
+                "col": 9,
+                "line": 3,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "aragonos",
+          },
+          "loc": {
+            "end": {
+              "col": 23,
+              "line": 3,
+            },
+            "start": {
+              "col": 9,
+              "line": 3,
+            },
+          },
+          "right": {
+            "loc": {
+              "end": {
+                "col": 23,
+                "line": 3,
+              },
+              "start": {
+                "col": 21,
+                "line": 3,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "ar",
+          },
+          "type": "AsExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 23,
+          "line": 3,
+        },
+        "start": {
+          "col": 4,
+          "line": 3,
+        },
+      },
+      "name": "load",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 13,
+              "line": 6,
+            },
+            "start": {
+              "col": 8,
+              "line": 6,
+            },
+          },
+          "type": "VariableIdentifier",
+          "value": "$var1",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 18,
+              "line": 6,
+            },
+            "start": {
+              "col": 14,
+              "line": 6,
+            },
+          },
+          "power": 18,
+          "type": "NumberLiteral",
+          "value": "1",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 18,
+          "line": 6,
+        },
+        "start": {
+          "col": 4,
+          "line": 6,
+        },
+      },
+      "name": "set",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+  ],
+  "type": "Program",
+}
+`;

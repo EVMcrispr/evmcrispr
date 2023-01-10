@@ -1,0 +1,557 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - primaries > when parsing literal values > should fail when parsing an invalid string 1`] = `"StringParserError(1:12): Expecting a quoted string, got end of input."`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing address values > should fail when parsing an invalid one 1`] = `"AddressParserError(1:0): Expecting an address, got '0xasd...'"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing address values > should parse them correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 42,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "AddressLiteral",
+  "value": "0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing boolean values > should fail when parsing an invalid value 1`] = `"BooleanParserError(1:0): Expecting \\"true\\" or \\"false\\", got 'fals...'"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing boolean values > should parse "true" value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 4,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "BoolLiteral",
+  "value": true,
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing boolean values > should parse "value" value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 5,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "BoolLiteral",
+  "value": false,
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing hexadecimal values > should fail when parsing an invalid value 1`] = `"HexadecimalParserError(1:3): Expecting a hexadecimal value, got 'sdadq...'"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing hexadecimal values > should parse a long value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 202,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "BytesLiteral",
+  "value": "0x0e80f0b30000000000000000000000008e6cd950ad6ba651f6dd608dc70e5886b1aa6b240000000000000000000000002f00df4f995451e0df337b91744006eb8892bfb10000000000000000000000000000000000000000000000004563918244f40000",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing hexadecimal values > should parse a value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 15,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "BytesLiteral",
+  "value": "0xa3432da4567be",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should fail when parsing an incomplete decimal 1`] = `"NumberParserError(1:4): Invalid decimal. Expecting digits"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should fail when parsing an incomplete exponent 1`] = `"NumberParserError(1:6): Invalid exponent. Expecting digits"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should fail when parsing an invalid time unit 1`] = `"NumberParserError(1:10): Invalid time unit. Expected \\"s\\", \\"m\\", \\"h\\", \\"d\\", \\"w\\", \\"mo\\" or \\"y\\", got '34...'"`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a exponent value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 7,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "power": 18,
+  "type": "NumberLiteral",
+  "value": "9200",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a integer value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 2,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "NumberLiteral",
+  "value": "15",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with a decimal and exponent correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 6,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "power": 14,
+  "type": "NumberLiteral",
+  "value": "0.5",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with a decimal correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 7,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "NumberLiteral",
+  "value": "4500.32",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with a decimal, exponent and temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 12,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "power": 18,
+  "timeUnit": "mo",
+  "type": "NumberLiteral",
+  "value": "20.3245",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with a minutely temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 2,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "m",
+  "type": "NumberLiteral",
+  "value": "5",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with a secondly temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 3,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "s",
+  "type": "NumberLiteral",
+  "value": "50",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with an daily temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 4,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "d",
+  "type": "NumberLiteral",
+  "value": "365",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with an hourly temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 3,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "h",
+  "type": "NumberLiteral",
+  "value": "35",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with an monthly temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 5,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "mo",
+  "type": "NumberLiteral",
+  "value": "6.5",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with an weekly temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 3,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "w",
+  "type": "NumberLiteral",
+  "value": "72",
+}
+`;
+
+exports[`Parsers - primaries > when parsing literal values > when parsing numeric values > should parse a value with an yearly temporal unit correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 4,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "timeUnit": "y",
+  "type": "NumberLiteral",
+  "value": "2.5",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > fail when parsing an invalid identifier 1`] = `"IdentifierParserError(1:3): Expecting an identifier, got '([[))...'"`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a  value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 3,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "new",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a camel case value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 9,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "aNewAgent",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a date-like value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 10,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "2015-20-09",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a dots and numbers value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 12,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "agent.open.0",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a kebab case  value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 11,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "create-flow",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a kebab case with colon value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 28,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "superfluid-app.other-open:20",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a kebab case with dot value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 15,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "my-ens-name.eth",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a long kebab case value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 27,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "create-super-flow-xtreme-aa",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a no-params-signature-like value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 18,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "noParamSignature()",
+}
+`;
+
+exports[`Parsers - primaries > when parsing probable identifiers > should parse a signature-like value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 28,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ProbableIdentifier",
+  "value": "aSIgnature(with,some,params)",
+}
+`;
+
+exports[`Parsers - primaries > when parsing variable identifiers > should fail when parsing invalid variables 1`] = `"VariableParserError(1:5): Expecting a variable, got '()...'"`;
+
+exports[`Parsers - primaries > when parsing variable identifiers > when parsing variable values > should parse a  value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 9,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "VariableIdentifier",
+  "value": "$variable",
+}
+`;
+
+exports[`Parsers - primaries > when parsing variable identifiers > when parsing variable values > should parse a camel case value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 19,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "VariableIdentifier",
+  "value": "$aCamelCaseVariable",
+}
+`;
+
+exports[`Parsers - primaries > when parsing variable identifiers > when parsing variable values > should parse a snake case value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 22,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "VariableIdentifier",
+  "value": "$a-snake-case-variable",
+}
+`;
+
+exports[`Parsers - primaries > when parsing variable identifiers > when parsing variable values > should parse a snake case with colon and number value correctly 1`] = `
+{
+  "loc": {
+    "end": {
+      "col": 21,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "VariableIdentifier",
+  "value": "$token-manager.open:0",
+}
+`;

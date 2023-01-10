@@ -1,0 +1,895 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - script > should parse an script correctly 1`] = `
+Cas11AST {
+  "body": [
+    {
+      "args": [
+        {
+          "left": {
+            "loc": {
+              "end": {
+                "col": 19,
+                "line": 2,
+              },
+              "start": {
+                "col": 11,
+                "line": 2,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "aragonos",
+          },
+          "loc": {
+            "end": {
+              "col": 25,
+              "line": 2,
+            },
+            "start": {
+              "col": 11,
+              "line": 2,
+            },
+          },
+          "right": {
+            "loc": {
+              "end": {
+                "col": 25,
+                "line": 2,
+              },
+              "start": {
+                "col": 23,
+                "line": 2,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "ar",
+          },
+          "type": "AsExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 25,
+          "line": 2,
+        },
+        "start": {
+          "col": 6,
+          "line": 2,
+        },
+      },
+      "name": "load",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+    {
+      "args": [
+        {
+          "left": {
+            "loc": {
+              "end": {
+                "col": 21,
+                "line": 3,
+              },
+              "start": {
+                "col": 11,
+                "line": 3,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "superfluid",
+          },
+          "loc": {
+            "end": {
+              "col": 27,
+              "line": 3,
+            },
+            "start": {
+              "col": 11,
+              "line": 3,
+            },
+          },
+          "right": {
+            "loc": {
+              "end": {
+                "col": 27,
+                "line": 3,
+              },
+              "start": {
+                "col": 25,
+                "line": 3,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "sf",
+          },
+          "type": "AsExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 27,
+          "line": 3,
+        },
+        "start": {
+          "col": 6,
+          "line": 3,
+        },
+      },
+      "name": "load",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 27,
+              "line": 6,
+            },
+            "start": {
+              "col": 17,
+              "line": 6,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "my-dao-ens",
+        },
+        {
+          "body": [
+            {
+              "args": [
+                {
+                  "loc": {
+                    "end": {
+                      "col": 29,
+                      "line": 7,
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 7,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "token-manager",
+                },
+                {
+                  "loc": {
+                    "end": {
+                      "col": 36,
+                      "line": 7,
+                    },
+                    "start": {
+                      "col": 30,
+                      "line": 7,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "voting",
+                },
+                {
+                  "body": [
+                    {
+                      "args": [
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 51,
+                              "line": 8,
+                            },
+                            "start": {
+                              "col": 18,
+                              "line": 8,
+                            },
+                          },
+                          "type": "ProbableIdentifier",
+                          "value": "wrapper-hooked-token-manager.open",
+                        },
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 94,
+                              "line": 8,
+                            },
+                            "start": {
+                              "col": 52,
+                              "line": 8,
+                            },
+                          },
+                          "type": "AddressLiteral",
+                          "value": "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
+                        },
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 100,
+                              "line": 8,
+                            },
+                            "start": {
+                              "col": 95,
+                              "line": 8,
+                            },
+                          },
+                          "type": "BoolLiteral",
+                          "value": false,
+                        },
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 102,
+                              "line": 8,
+                            },
+                            "start": {
+                              "col": 101,
+                              "line": 8,
+                            },
+                          },
+                          "type": "NumberLiteral",
+                          "value": "0",
+                        },
+                      ],
+                      "loc": {
+                        "end": {
+                          "col": 102,
+                          "line": 8,
+                        },
+                        "start": {
+                          "col": 10,
+                          "line": 8,
+                        },
+                      },
+                      "name": "install",
+                      "opts": [],
+                      "type": "CommandExpression",
+                    },
+                  ],
+                  "loc": {
+                    "end": {
+                      "col": 9,
+                      "line": 11,
+                    },
+                    "start": {
+                      "col": 42,
+                      "line": 7,
+                    },
+                  },
+                  "type": "BlockExpression",
+                },
+              ],
+              "loc": {
+                "end": {
+                  "col": 9,
+                  "line": 11,
+                },
+                "start": {
+                  "col": 8,
+                  "line": 7,
+                },
+              },
+              "name": "forward",
+              "opts": [],
+              "type": "CommandExpression",
+            },
+            {
+              "args": [
+                {
+                  "loc": {
+                    "end": {
+                      "col": 29,
+                      "line": 16,
+                    },
+                    "start": {
+                      "col": 16,
+                      "line": 16,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "token-manager",
+                },
+                {
+                  "loc": {
+                    "end": {
+                      "col": 36,
+                      "line": 16,
+                    },
+                    "start": {
+                      "col": 30,
+                      "line": 16,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "voting",
+                },
+                {
+                  "loc": {
+                    "end": {
+                      "col": 42,
+                      "line": 16,
+                    },
+                    "start": {
+                      "col": 37,
+                      "line": 16,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "agent",
+                },
+                {
+                  "body": [
+                    {
+                      "args": [
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 20,
+                              "line": 18,
+                            },
+                            "start": {
+                              "col": 14,
+                              "line": 18,
+                            },
+                          },
+                          "type": "VariableIdentifier",
+                          "value": "$agent",
+                        },
+                        {
+                          "args": [],
+                          "loc": {
+                            "end": {
+                              "col": 37,
+                              "line": 18,
+                            },
+                            "start": {
+                              "col": 21,
+                              "line": 18,
+                            },
+                          },
+                          "method": "vault",
+                          "target": {
+                            "loc": {
+                              "end": {
+                                "col": 28,
+                                "line": 18,
+                              },
+                              "start": {
+                                "col": 21,
+                                "line": 18,
+                              },
+                            },
+                            "type": "ProbableIdentifier",
+                            "value": "finance",
+                          },
+                          "type": "CallExpression",
+                        },
+                      ],
+                      "loc": {
+                        "end": {
+                          "col": 37,
+                          "line": 18,
+                        },
+                        "start": {
+                          "col": 10,
+                          "line": 18,
+                        },
+                      },
+                      "name": "set",
+                      "opts": [],
+                      "type": "CommandExpression",
+                    },
+                    {
+                      "args": [
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 46,
+                              "line": 20,
+                            },
+                            "start": {
+                              "col": 18,
+                              "line": 20,
+                            },
+                          },
+                          "type": "ProbableIdentifier",
+                          "value": "wrappable-token-manager.open",
+                        },
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 69,
+                              "line": 20,
+                            },
+                            "start": {
+                              "col": 47,
+                              "line": 20,
+                            },
+                          },
+                          "type": "ProbableIdentifier",
+                          "value": "disputable-voting.open",
+                        },
+                        {
+                          "loc": {
+                            "end": {
+                              "col": 75,
+                              "line": 20,
+                            },
+                            "start": {
+                              "col": 70,
+                              "line": 20,
+                            },
+                          },
+                          "type": "ProbableIdentifier",
+                          "value": "agent",
+                        },
+                        {
+                          "body": [
+                            {
+                              "args": [
+                                {
+                                  "loc": {
+                                    "end": {
+                                      "col": 21,
+                                      "line": 21,
+                                    },
+                                    "start": {
+                                      "col": 16,
+                                      "line": 21,
+                                    },
+                                  },
+                                  "type": "VariableIdentifier",
+                                  "value": "$daix",
+                                },
+                                {
+                                  "args": [
+                                    {
+                                      "loc": {
+                                        "end": {
+                                          "col": 36,
+                                          "line": 21,
+                                        },
+                                        "start": {
+                                          "col": 29,
+                                          "line": 21,
+                                        },
+                                      },
+                                      "type": "StringLiteral",
+                                      "value": "fDAIx",
+                                    },
+                                  ],
+                                  "loc": {
+                                    "end": {
+                                      "col": 37,
+                                      "line": 21,
+                                    },
+                                    "start": {
+                                      "col": 22,
+                                      "line": 21,
+                                    },
+                                  },
+                                  "name": "token",
+                                  "type": "HelperFunctionExpression",
+                                },
+                              ],
+                              "loc": {
+                                "end": {
+                                  "col": 37,
+                                  "line": 21,
+                                },
+                                "start": {
+                                  "col": 12,
+                                  "line": 21,
+                                },
+                              },
+                              "name": "set",
+                              "opts": [],
+                              "type": "CommandExpression",
+                            },
+                            {
+                              "args": [
+                                {
+                                  "loc": {
+                                    "end": {
+                                      "col": 28,
+                                      "line": 30,
+                                    },
+                                    "start": {
+                                      "col": 21,
+                                      "line": 30,
+                                    },
+                                  },
+                                  "type": "ProbableIdentifier",
+                                  "value": "approve",
+                                },
+                                {
+                                  "args": [
+                                    {
+                                      "loc": {
+                                        "end": {
+                                          "col": 41,
+                                          "line": 30,
+                                        },
+                                        "start": {
+                                          "col": 36,
+                                          "line": 30,
+                                        },
+                                      },
+                                      "type": "StringLiteral",
+                                      "value": "DAI",
+                                    },
+                                  ],
+                                  "loc": {
+                                    "end": {
+                                      "col": 42,
+                                      "line": 30,
+                                    },
+                                    "start": {
+                                      "col": 29,
+                                      "line": 30,
+                                    },
+                                  },
+                                  "name": "token",
+                                  "type": "HelperFunctionExpression",
+                                },
+                                {
+                                  "args": [],
+                                  "loc": {
+                                    "end": {
+                                      "col": 46,
+                                      "line": 30,
+                                    },
+                                    "start": {
+                                      "col": 43,
+                                      "line": 30,
+                                    },
+                                  },
+                                  "name": "me",
+                                  "type": "HelperFunctionExpression",
+                                },
+                                {
+                                  "loc": {
+                                    "end": {
+                                      "col": 55,
+                                      "line": 30,
+                                    },
+                                    "start": {
+                                      "col": 47,
+                                      "line": 30,
+                                    },
+                                  },
+                                  "power": 18,
+                                  "type": "NumberLiteral",
+                                  "value": "15.45",
+                                },
+                              ],
+                              "loc": {
+                                "end": {
+                                  "col": 55,
+                                  "line": 30,
+                                },
+                                "start": {
+                                  "col": 12,
+                                  "line": 30,
+                                },
+                              },
+                              "module": "sf",
+                              "name": "token",
+                              "opts": [],
+                              "type": "CommandExpression",
+                            },
+                            {
+                              "args": [
+                                {
+                                  "body": [
+                                    {
+                                      "args": [
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 27,
+                                              "line": 34,
+                                            },
+                                            "start": {
+                                              "col": 20,
+                                              "line": 34,
+                                            },
+                                          },
+                                          "type": "ProbableIdentifier",
+                                          "value": "upgrade",
+                                        },
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 33,
+                                              "line": 34,
+                                            },
+                                            "start": {
+                                              "col": 28,
+                                              "line": 34,
+                                            },
+                                          },
+                                          "type": "VariableIdentifier",
+                                          "value": "$daix",
+                                        },
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 44,
+                                              "line": 34,
+                                            },
+                                            "start": {
+                                              "col": 34,
+                                              "line": 34,
+                                            },
+                                          },
+                                          "power": 18,
+                                          "type": "NumberLiteral",
+                                          "value": "4500.43",
+                                        },
+                                      ],
+                                      "loc": {
+                                        "end": {
+                                          "col": 44,
+                                          "line": 34,
+                                        },
+                                        "start": {
+                                          "col": 14,
+                                          "line": 34,
+                                        },
+                                      },
+                                      "name": "token",
+                                      "opts": [],
+                                      "type": "CommandExpression",
+                                    },
+                                    {
+                                      "args": [
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 25,
+                                              "line": 35,
+                                            },
+                                            "start": {
+                                              "col": 19,
+                                              "line": 35,
+                                            },
+                                          },
+                                          "type": "ProbableIdentifier",
+                                          "value": "create",
+                                        },
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 31,
+                                              "line": 35,
+                                            },
+                                            "start": {
+                                              "col": 26,
+                                              "line": 35,
+                                            },
+                                          },
+                                          "type": "VariableIdentifier",
+                                          "value": "$daix",
+                                        },
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 38,
+                                              "line": 35,
+                                            },
+                                            "start": {
+                                              "col": 32,
+                                              "line": 35,
+                                            },
+                                          },
+                                          "type": "VariableIdentifier",
+                                          "value": "$agent",
+                                        },
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 45,
+                                              "line": 35,
+                                            },
+                                            "start": {
+                                              "col": 39,
+                                              "line": 35,
+                                            },
+                                          },
+                                          "power": 18,
+                                          "timeUnit": "mo",
+                                          "type": "NumberLiteral",
+                                          "value": "1",
+                                        },
+                                      ],
+                                      "loc": {
+                                        "end": {
+                                          "col": 45,
+                                          "line": 35,
+                                        },
+                                        "start": {
+                                          "col": 14,
+                                          "line": 35,
+                                        },
+                                      },
+                                      "name": "flow",
+                                      "opts": [],
+                                      "type": "CommandExpression",
+                                    },
+                                    {
+                                      "args": [
+                                        {
+                                          "loc": {
+                                            "end": {
+                                              "col": 29,
+                                              "line": 36,
+                                            },
+                                            "start": {
+                                              "col": 20,
+                                              "line": 36,
+                                            },
+                                          },
+                                          "type": "ProbableIdentifier",
+                                          "value": "downgrade",
+                                        },
+                                        {
+                                          "args": [
+                                            {
+                                              "loc": {
+                                                "end": {
+                                                  "col": 44,
+                                                  "line": 36,
+                                                },
+                                                "start": {
+                                                  "col": 37,
+                                                  "line": 36,
+                                                },
+                                              },
+                                              "type": "StringLiteral",
+                                              "value": "USDCx",
+                                            },
+                                          ],
+                                          "loc": {
+                                            "end": {
+                                              "col": 45,
+                                              "line": 36,
+                                            },
+                                            "start": {
+                                              "col": 30,
+                                              "line": 36,
+                                            },
+                                          },
+                                          "name": "token",
+                                          "type": "HelperFunctionExpression",
+                                        },
+                                      ],
+                                      "loc": {
+                                        "end": {
+                                          "col": 45,
+                                          "line": 36,
+                                        },
+                                        "start": {
+                                          "col": 14,
+                                          "line": 36,
+                                        },
+                                      },
+                                      "name": "token",
+                                      "opts": [],
+                                      "type": "CommandExpression",
+                                    },
+                                  ],
+                                  "loc": {
+                                    "end": {
+                                      "col": 13,
+                                      "line": 37,
+                                    },
+                                    "start": {
+                                      "col": 25,
+                                      "line": 33,
+                                    },
+                                  },
+                                  "type": "BlockExpression",
+                                },
+                              ],
+                              "loc": {
+                                "end": {
+                                  "col": 13,
+                                  "line": 37,
+                                },
+                                "start": {
+                                  "col": 12,
+                                  "line": 33,
+                                },
+                              },
+                              "module": "sf",
+                              "name": "batchcall",
+                              "opts": [],
+                              "type": "CommandExpression",
+                            },
+                          ],
+                          "loc": {
+                            "end": {
+                              "col": 11,
+                              "line": 40,
+                            },
+                            "start": {
+                              "col": 76,
+                              "line": 20,
+                            },
+                          },
+                          "type": "BlockExpression",
+                        },
+                      ],
+                      "loc": {
+                        "end": {
+                          "col": 11,
+                          "line": 40,
+                        },
+                        "start": {
+                          "col": 10,
+                          "line": 20,
+                        },
+                      },
+                      "name": "forward",
+                      "opts": [],
+                      "type": "CommandExpression",
+                    },
+                  ],
+                  "loc": {
+                    "end": {
+                      "col": 9,
+                      "line": 43,
+                    },
+                    "start": {
+                      "col": 43,
+                      "line": 16,
+                    },
+                  },
+                  "type": "BlockExpression",
+                },
+              ],
+              "loc": {
+                "end": {
+                  "col": 9,
+                  "line": 43,
+                },
+                "start": {
+                  "col": 8,
+                  "line": 16,
+                },
+              },
+              "name": "forward",
+              "opts": [],
+              "type": "CommandExpression",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 27,
+              "line": 46,
+            },
+            "start": {
+              "col": 28,
+              "line": 6,
+            },
+          },
+          "type": "BlockExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 27,
+          "line": 46,
+        },
+        "start": {
+          "col": 6,
+          "line": 6,
+        },
+      },
+      "module": "ar",
+      "name": "connect",
+      "opts": [],
+      "type": "CommandExpression",
+    },
+  ],
+  "type": "Program",
+}
+`;

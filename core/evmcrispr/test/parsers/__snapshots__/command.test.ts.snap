@@ -1,0 +1,1311 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - command expression > should fail when parsing an incomplete command name 1`] = `"CommandParserError(1:10): Expecting a valid command name, got ':...'"`;
+
+exports[`Parsers - command expression > should fail when parsing an invalid command name 1`] = `"CommandParserError(1:14): Expecting a valid command name, got '234...'"`;
+
+exports[`Parsers - command expression > should fail when parsing an invalid module name 1`] = `"CommandParserError(1:4): Expecting a valid command name, got '2345:...'"`;
+
+exports[`Parsers - command expression > should fail when parsing an invalid opt name 1`] = `"CommandParserError(1:5): Expecting a valid option name, got '$ asd...'"`;
+
+exports[`Parsers - command expression > should parse a command followed by block experssions correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 21,
+          "line": 1,
+        },
+        "start": {
+          "col": 8,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "token-manager",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 28,
+          "line": 1,
+        },
+        "start": {
+          "col": 22,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "voting",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 34,
+          "line": 1,
+        },
+        "start": {
+          "col": 29,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "agent",
+    },
+    {
+      "body": [
+        {
+          "args": [
+            {
+              "loc": {
+                "end": {
+                  "col": 16,
+                  "line": 2,
+                },
+                "start": {
+                  "col": 10,
+                  "line": 2,
+                },
+              },
+              "type": "VariableIdentifier",
+              "value": "$agent",
+            },
+            {
+              "args": [],
+              "loc": {
+                "end": {
+                  "col": 34,
+                  "line": 2,
+                },
+                "start": {
+                  "col": 17,
+                  "line": 2,
+                },
+              },
+              "method": "vault",
+              "target": {
+                "loc": {
+                  "end": {
+                    "col": 25,
+                    "line": 2,
+                  },
+                  "start": {
+                    "col": 17,
+                    "line": 2,
+                  },
+                },
+                "type": "VariableIdentifier",
+                "value": "$finance",
+              },
+              "type": "CallExpression",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 34,
+              "line": 2,
+            },
+            "start": {
+              "col": 6,
+              "line": 2,
+            },
+          },
+          "name": "set",
+          "opts": [],
+          "type": "CommandExpression",
+        },
+        {
+          "args": [
+            {
+              "loc": {
+                "end": {
+                  "col": 42,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 14,
+                  "line": 3,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "wrappable-token-manager.open",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 65,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 43,
+                  "line": 3,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "disputable-voting.open",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 71,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 66,
+                  "line": 3,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "agent",
+            },
+            {
+              "body": [
+                {
+                  "args": [
+                    {
+                      "body": [
+                        {
+                          "args": [
+                            {
+                              "loc": {
+                                "end": {
+                                  "col": 21,
+                                  "line": 5,
+                                },
+                                "start": {
+                                  "col": 15,
+                                  "line": 5,
+                                },
+                              },
+                              "type": "ProbableIdentifier",
+                              "value": "create",
+                            },
+                            {
+                              "args": [
+                                {
+                                  "loc": {
+                                    "end": {
+                                      "col": 34,
+                                      "line": 5,
+                                    },
+                                    "start": {
+                                      "col": 29,
+                                      "line": 5,
+                                    },
+                                  },
+                                  "type": "ProbableIdentifier",
+                                  "value": "fDAIx",
+                                },
+                              ],
+                              "loc": {
+                                "end": {
+                                  "col": 35,
+                                  "line": 5,
+                                },
+                                "start": {
+                                  "col": 22,
+                                  "line": 5,
+                                },
+                              },
+                              "name": "token",
+                              "type": "HelperFunctionExpression",
+                            },
+                            {
+                              "loc": {
+                                "end": {
+                                  "col": 42,
+                                  "line": 5,
+                                },
+                                "start": {
+                                  "col": 36,
+                                  "line": 5,
+                                },
+                              },
+                              "type": "VariableIdentifier",
+                              "value": "$agent",
+                            },
+                            {
+                              "loc": {
+                                "end": {
+                                  "col": 49,
+                                  "line": 5,
+                                },
+                                "start": {
+                                  "col": 43,
+                                  "line": 5,
+                                },
+                              },
+                              "power": 18,
+                              "timeUnit": "mo",
+                              "type": "NumberLiteral",
+                              "value": "1",
+                            },
+                          ],
+                          "loc": {
+                            "end": {
+                              "col": 49,
+                              "line": 5,
+                            },
+                            "start": {
+                              "col": 10,
+                              "line": 5,
+                            },
+                          },
+                          "name": "flow",
+                          "opts": [],
+                          "type": "CommandExpression",
+                        },
+                      ],
+                      "loc": {
+                        "end": {
+                          "col": 9,
+                          "line": 6,
+                        },
+                        "start": {
+                          "col": 21,
+                          "line": 4,
+                        },
+                      },
+                      "type": "BlockExpression",
+                    },
+                  ],
+                  "loc": {
+                    "end": {
+                      "col": 9,
+                      "line": 6,
+                    },
+                    "start": {
+                      "col": 8,
+                      "line": 4,
+                    },
+                  },
+                  "module": "sf",
+                  "name": "batchcall",
+                  "opts": [],
+                  "type": "CommandExpression",
+                },
+              ],
+              "loc": {
+                "end": {
+                  "col": 7,
+                  "line": 7,
+                },
+                "start": {
+                  "col": 72,
+                  "line": 3,
+                },
+              },
+              "type": "BlockExpression",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 7,
+              "line": 7,
+            },
+            "start": {
+              "col": 6,
+              "line": 3,
+            },
+          },
+          "name": "forward",
+          "opts": [],
+          "type": "CommandExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 5,
+          "line": 8,
+        },
+        "start": {
+          "col": 35,
+          "line": 1,
+        },
+      },
+      "type": "BlockExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 5,
+      "line": 8,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "forward",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command load correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 15,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "superfluid",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 15,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "load",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command set correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 17,
+          "line": 1,
+        },
+        "start": {
+          "col": 4,
+          "line": 1,
+        },
+      },
+      "type": "VariableIdentifier",
+      "value": "$new-variable",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 30,
+          "line": 1,
+        },
+        "start": {
+          "col": 18,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "a variable",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 30,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "set",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command switch correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 13,
+          "line": 1,
+        },
+        "start": {
+          "col": 7,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "gnosis",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 13,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "switch",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with as expression correctly 1`] = `
+{
+  "args": [
+    {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 13,
+            "line": 1,
+          },
+          "start": {
+            "col": 5,
+            "line": 1,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "aragonos",
+      },
+      "loc": {
+        "end": {
+          "col": 19,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "right": {
+        "loc": {
+          "end": {
+            "col": 19,
+            "line": 1,
+          },
+          "start": {
+            "col": 17,
+            "line": 1,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "ar",
+      },
+      "type": "AsExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 19,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "load",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with helper function and call expression correctly 1`] = `
+{
+  "args": [
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 38,
+              "line": 1,
+            },
+            "start": {
+              "col": 17,
+              "line": 1,
+            },
+          },
+          "type": "StringLiteral",
+          "value": "upload this to ipfs",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 39,
+          "line": 1,
+        },
+        "start": {
+          "col": 11,
+          "line": 1,
+        },
+      },
+      "name": "ipfs",
+      "type": "HelperFunctionExpression",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 66,
+              "line": 1,
+            },
+            "start": {
+              "col": 58,
+              "line": 1,
+            },
+          },
+          "type": "StringLiteral",
+          "value": "param1",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 73,
+              "line": 1,
+            },
+            "start": {
+              "col": 68,
+              "line": 1,
+            },
+          },
+          "type": "BoolLiteral",
+          "value": false,
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 88,
+              "line": 1,
+            },
+            "start": {
+              "col": 75,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "an-identifier",
+        },
+        {
+          "args": [],
+          "loc": {
+            "end": {
+              "col": 93,
+              "line": 1,
+            },
+            "start": {
+              "col": 90,
+              "line": 1,
+            },
+          },
+          "name": "me",
+          "type": "HelperFunctionExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 94,
+          "line": 1,
+        },
+        "start": {
+          "col": 40,
+          "line": 1,
+        },
+      },
+      "method": "getData",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 48,
+            "line": 1,
+          },
+          "start": {
+            "col": 40,
+            "line": 1,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "contract",
+      },
+      "type": "CallExpression",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 117,
+          "line": 1,
+        },
+        "start": {
+          "col": 95,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "anotherIdentifier.open",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 117,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "my-command",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with in-between optional args correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 47,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "type": "AddressLiteral",
+      "value": "0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 77,
+          "line": 1,
+        },
+        "start": {
+          "col": 73,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "type": "NumberLiteral",
+      "value": "1",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 127,
+              "line": 1,
+            },
+            "start": {
+              "col": 124,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "DAI",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 134,
+              "line": 1,
+            },
+            "start": {
+              "col": 129,
+              "line": 1,
+            },
+          },
+          "type": "StringLiteral",
+          "value": "see",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 135,
+          "line": 1,
+        },
+        "start": {
+          "col": 117,
+          "line": 1,
+        },
+      },
+      "name": "token",
+      "type": "HelperFunctionExpression",
+    },
+    {
+      "body": [
+        {
+          "args": [
+            {
+              "args": [],
+              "loc": {
+                "end": {
+                  "col": 24,
+                  "line": 2,
+                },
+                "start": {
+                  "col": 21,
+                  "line": 2,
+                },
+              },
+              "name": "me",
+              "type": "HelperFunctionExpression",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 44,
+                  "line": 2,
+                },
+                "start": {
+                  "col": 39,
+                  "line": 2,
+                },
+              },
+              "power": 16,
+              "type": "NumberLiteral",
+              "value": "25",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 44,
+              "line": 2,
+            },
+            "start": {
+              "col": 6,
+              "line": 2,
+            },
+          },
+          "name": "inside-command",
+          "opts": [
+            {
+              "loc": {
+                "end": {
+                  "col": 38,
+                  "line": 2,
+                },
+                "start": {
+                  "col": 25,
+                  "line": 2,
+                },
+              },
+              "name": "t",
+              "type": "CommandOpt",
+              "value": {
+                "loc": {
+                  "end": {
+                    "col": 38,
+                    "line": 2,
+                  },
+                  "start": {
+                    "col": 29,
+                    "line": 2,
+                  },
+                },
+                "type": "StringLiteral",
+                "value": "testing",
+              },
+            },
+          ],
+          "type": "CommandExpression",
+        },
+        {
+          "args": [
+            {
+              "loc": {
+                "end": {
+                  "col": 32,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 17,
+                  "line": 3,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "token-manager:0",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 50,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 33,
+                  "line": 3,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "superfluid.open:3",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 65,
+              "line": 3,
+            },
+            "start": {
+              "col": 6,
+              "line": 3,
+            },
+          },
+          "name": "another-ne",
+          "opts": [
+            {
+              "loc": {
+                "end": {
+                  "col": 65,
+                  "line": 3,
+                },
+                "start": {
+                  "col": 51,
+                  "line": 3,
+                },
+              },
+              "name": "default",
+              "type": "CommandOpt",
+              "value": {
+                "loc": {
+                  "end": {
+                    "col": 65,
+                    "line": 3,
+                  },
+                  "start": {
+                    "col": 61,
+                    "line": 3,
+                  },
+                },
+                "type": "BoolLiteral",
+                "value": true,
+              },
+            },
+          ],
+          "type": "CommandExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 5,
+          "line": 4,
+        },
+        "start": {
+          "col": 136,
+          "line": 1,
+        },
+      },
+      "type": "BlockExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 21,
+      "line": 4,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "exec",
+  "opts": [
+    {
+      "loc": {
+        "end": {
+          "col": 72,
+          "line": 1,
+        },
+        "start": {
+          "col": 48,
+          "line": 1,
+        },
+      },
+      "name": "inBetween",
+      "type": "CommandOpt",
+      "value": {
+        "args": [],
+        "loc": {
+          "end": {
+            "col": 72,
+            "line": 1,
+          },
+          "start": {
+            "col": 60,
+            "line": 1,
+          },
+        },
+        "method": "getInfo",
+        "target": {
+          "loc": {
+            "end": {
+              "col": 61,
+              "line": 1,
+            },
+            "start": {
+              "col": 60,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "a",
+        },
+        "type": "CallExpression",
+      },
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 116,
+          "line": 1,
+        },
+        "start": {
+          "col": 78,
+          "line": 1,
+        },
+      },
+      "name": "another-one",
+      "type": "CommandOpt",
+      "value": {
+        "args": [
+          {
+            "loc": {
+              "end": {
+                "col": 110,
+                "line": 1,
+              },
+              "start": {
+                "col": 107,
+                "line": 1,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "GIV",
+          },
+          {
+            "args": [],
+            "loc": {
+              "end": {
+                "col": 115,
+                "line": 1,
+              },
+              "start": {
+                "col": 112,
+                "line": 1,
+              },
+            },
+            "name": "me",
+            "type": "HelperFunctionExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 116,
+            "line": 1,
+          },
+          "start": {
+            "col": 92,
+            "line": 1,
+          },
+        },
+        "name": "token.balance",
+        "type": "HelperFunctionExpression",
+      },
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 21,
+          "line": 4,
+        },
+        "start": {
+          "col": 6,
+          "line": 4,
+        },
+      },
+      "name": "lastOne",
+      "type": "CommandOpt",
+      "value": {
+        "loc": {
+          "end": {
+            "col": 21,
+            "line": 4,
+          },
+          "start": {
+            "col": 16,
+            "line": 4,
+          },
+        },
+        "type": "BoolLiteral",
+        "value": false,
+      },
+    },
+  ],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with in-between trailing whitespaces correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 43,
+          "line": 1,
+        },
+        "start": {
+          "col": 15,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "wrapper-hooked-token-manager",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 86,
+          "line": 1,
+        },
+        "start": {
+          "col": 44,
+          "line": 1,
+        },
+      },
+      "type": "AddressLiteral",
+      "value": "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 92,
+          "line": 1,
+        },
+        "start": {
+          "col": 87,
+          "line": 1,
+        },
+      },
+      "type": "BoolLiteral",
+      "value": false,
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 94,
+          "line": 1,
+        },
+        "start": {
+          "col": 93,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "0",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 94,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "install",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with left trailing whitespaces correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 39,
+          "line": 1,
+        },
+        "start": {
+          "col": 11,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "wrapper-hooked-token-manager",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 82,
+          "line": 1,
+        },
+        "start": {
+          "col": 40,
+          "line": 1,
+        },
+      },
+      "type": "AddressLiteral",
+      "value": "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 88,
+          "line": 1,
+        },
+        "start": {
+          "col": 83,
+          "line": 1,
+        },
+      },
+      "type": "BoolLiteral",
+      "value": false,
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 90,
+          "line": 1,
+        },
+        "start": {
+          "col": 89,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "0",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 90,
+      "line": 1,
+    },
+    "start": {
+      "col": 3,
+      "line": 1,
+    },
+  },
+  "name": "install",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command with optional args correctly 1`] = `"CommandParserError(1:0): Expecting a valid command name, got ''exam...'"`;
+
+exports[`Parsers - command expression > should parse a command with right trailing whitespaces correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 36,
+          "line": 1,
+        },
+        "start": {
+          "col": 8,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "wrapper-hooked-token-manager",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 79,
+          "line": 1,
+        },
+        "start": {
+          "col": 37,
+          "line": 1,
+        },
+      },
+      "type": "AddressLiteral",
+      "value": "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 85,
+          "line": 1,
+        },
+        "start": {
+          "col": 80,
+          "line": 1,
+        },
+      },
+      "type": "BoolLiteral",
+      "value": false,
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 87,
+          "line": 1,
+        },
+        "start": {
+          "col": 86,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "0",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 87,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "install",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Parsers - command expression > should parse a command without args correctly 1`] = `
+{
+  "args": [],
+  "loc": {
+    "end": {
+      "col": 18,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "module": "mod",
+  "name": "no-arg-command",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;

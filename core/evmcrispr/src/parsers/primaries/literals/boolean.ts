@@ -9,7 +9,7 @@ import {
   locate,
 } from '../../utils';
 
-export const BOOLEAN_PARSER_ERROR = 'BooleanParserError';
+const BOOLEAN_PARSER_ERROR = 'BooleanParserError';
 
 export const booleanParser: EnclosingNodeParser<BooleanLiteralNode> = (
   enclosingParsers = [],

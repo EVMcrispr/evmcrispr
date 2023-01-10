@@ -1,0 +1,834 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - arithmetic > should parse an arithmetic operation  correctly 1`] = `
+{
+  "left": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 2,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "9",
+    },
+    "loc": {
+      "end": {
+        "col": 6,
+        "line": 1,
+      },
+      "start": {
+        "col": 1,
+        "line": 1,
+      },
+    },
+    "operator": "+",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 6,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "5",
+    },
+    "type": "BinaryExpression",
+  },
+  "loc": {
+    "end": {
+      "col": 22,
+      "line": 1,
+    },
+    "start": {
+      "col": 1,
+      "line": 1,
+    },
+  },
+  "operator": "-",
+  "right": {
+    "left": {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 10,
+            "line": 1,
+          },
+          "start": {
+            "col": 9,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "loc": {
+        "end": {
+          "col": 14,
+          "line": 1,
+        },
+        "start": {
+          "col": 9,
+          "line": 1,
+        },
+      },
+      "operator": "*",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 14,
+            "line": 1,
+          },
+          "start": {
+            "col": 13,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "type": "BinaryExpression",
+    },
+    "loc": {
+      "end": {
+        "col": 22,
+        "line": 1,
+      },
+      "start": {
+        "col": 9,
+        "line": 1,
+      },
+    },
+    "operator": "/",
+    "right": {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 18,
+            "line": 1,
+          },
+          "start": {
+            "col": 17,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "3",
+      },
+      "loc": {
+        "end": {
+          "col": 22,
+          "line": 1,
+        },
+        "start": {
+          "col": 17,
+          "line": 1,
+        },
+      },
+      "operator": "^",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 22,
+            "line": 1,
+          },
+          "start": {
+            "col": 21,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "2",
+      },
+      "type": "BinaryExpression",
+    },
+    "type": "BinaryExpression",
+  },
+  "type": "BinaryExpression",
+}
+`;
+
+exports[`Parsers - arithmetic > should parse an arithmetic operation containing helper functions and call expressions correctly 1`] = `
+{
+  "left": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 9,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "type": "NumberLiteral",
+      "value": "90.45",
+    },
+    "loc": {
+      "end": {
+        "col": 82,
+        "line": 1,
+      },
+      "start": {
+        "col": 1,
+        "line": 1,
+      },
+    },
+    "operator": "+",
+    "right": {
+      "left": {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 20,
+              "line": 1,
+            },
+            "start": {
+              "col": 13,
+              "line": 1,
+            },
+          },
+          "power": 18,
+          "type": "NumberLiteral",
+          "value": "5000",
+        },
+        "loc": {
+          "end": {
+            "col": 48,
+            "line": 1,
+          },
+          "start": {
+            "col": 13,
+            "line": 1,
+          },
+        },
+        "operator": "-",
+        "right": {
+          "args": [
+            {
+              "loc": {
+                "end": {
+                  "col": 42,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 39,
+                  "line": 1,
+                },
+              },
+              "type": "ProbableIdentifier",
+              "value": "DAI",
+            },
+            {
+              "args": [],
+              "loc": {
+                "end": {
+                  "col": 47,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 44,
+                  "line": 1,
+                },
+              },
+              "name": "me",
+              "type": "HelperFunctionExpression",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 48,
+              "line": 1,
+            },
+            "start": {
+              "col": 23,
+              "line": 1,
+            },
+          },
+          "name": "token.balance",
+          "type": "HelperFunctionExpression",
+        },
+        "type": "BinaryExpression",
+      },
+      "loc": {
+        "end": {
+          "col": 82,
+          "line": 1,
+        },
+        "start": {
+          "col": 12,
+          "line": 1,
+        },
+      },
+      "operator": "*",
+      "right": {
+        "left": {
+          "args": [],
+          "loc": {
+            "end": {
+              "col": 78,
+              "line": 1,
+            },
+            "start": {
+              "col": 53,
+              "line": 1,
+            },
+          },
+          "method": "getAmount",
+          "target": {
+            "loc": {
+              "end": {
+                "col": 65,
+                "line": 1,
+              },
+              "start": {
+                "col": 53,
+                "line": 1,
+              },
+            },
+            "type": "ProbableIdentifier",
+            "value": "someContract",
+          },
+          "type": "CallExpression",
+        },
+        "loc": {
+          "end": {
+            "col": 82,
+            "line": 1,
+          },
+          "start": {
+            "col": 53,
+            "line": 1,
+          },
+        },
+        "operator": "/",
+        "right": {
+          "loc": {
+            "end": {
+              "col": 82,
+              "line": 1,
+            },
+            "start": {
+              "col": 81,
+              "line": 1,
+            },
+          },
+          "type": "NumberLiteral",
+          "value": "3",
+        },
+        "type": "BinaryExpression",
+      },
+      "type": "BinaryExpression",
+    },
+    "type": "BinaryExpression",
+  },
+  "loc": {
+    "end": {
+      "col": 104,
+      "line": 1,
+    },
+    "start": {
+      "col": 1,
+      "line": 1,
+    },
+  },
+  "operator": "+",
+  "right": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 100,
+          "line": 1,
+        },
+        "start": {
+          "col": 86,
+          "line": 1,
+        },
+      },
+      "type": "VariableIdentifier",
+      "value": "$some-Variable",
+    },
+    "loc": {
+      "end": {
+        "col": 104,
+        "line": 1,
+      },
+      "start": {
+        "col": 86,
+        "line": 1,
+      },
+    },
+    "operator": "^",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 104,
+          "line": 1,
+        },
+        "start": {
+          "col": 103,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "2",
+    },
+    "type": "BinaryExpression",
+  },
+  "type": "BinaryExpression",
+}
+`;
+
+exports[`Parsers - arithmetic > should parse an arithmetic operation containing priority parenthenses correctly 1`] = `
+{
+  "left": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 2,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "9",
+    },
+    "loc": {
+      "end": {
+        "col": 5,
+        "line": 1,
+      },
+      "start": {
+        "col": 1,
+        "line": 1,
+      },
+    },
+    "operator": "^",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 5,
+          "line": 1,
+        },
+        "start": {
+          "col": 3,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "33",
+    },
+    "type": "BinaryExpression",
+  },
+  "loc": {
+    "end": {
+      "col": 24,
+      "line": 1,
+    },
+    "start": {
+      "col": 1,
+      "line": 1,
+    },
+  },
+  "operator": "+",
+  "right": {
+    "left": {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 10,
+            "line": 1,
+          },
+          "start": {
+            "col": 9,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "5",
+      },
+      "loc": {
+        "end": {
+          "col": 14,
+          "line": 1,
+        },
+        "start": {
+          "col": 9,
+          "line": 1,
+        },
+      },
+      "operator": "-",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 14,
+            "line": 1,
+          },
+          "start": {
+            "col": 13,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "type": "BinaryExpression",
+    },
+    "loc": {
+      "end": {
+        "col": 24,
+        "line": 1,
+      },
+      "start": {
+        "col": 8,
+        "line": 1,
+      },
+    },
+    "operator": "*",
+    "right": {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 20,
+            "line": 1,
+          },
+          "start": {
+            "col": 19,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "loc": {
+        "end": {
+          "col": 24,
+          "line": 1,
+        },
+        "start": {
+          "col": 19,
+          "line": 1,
+        },
+      },
+      "operator": "/",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 24,
+            "line": 1,
+          },
+          "start": {
+            "col": 23,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "3",
+      },
+      "type": "BinaryExpression",
+    },
+    "type": "BinaryExpression",
+  },
+  "type": "BinaryExpression",
+}
+`;
+
+exports[`Parsers - arithmetic > should parse an arithmetic operation with in-between trailing spaces correctly 1`] = `
+{
+  "left": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 2,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "9",
+    },
+    "loc": {
+      "end": {
+        "col": 9,
+        "line": 1,
+      },
+      "start": {
+        "col": 1,
+        "line": 1,
+      },
+    },
+    "operator": "+",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 9,
+          "line": 1,
+        },
+        "start": {
+          "col": 8,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "5",
+    },
+    "type": "BinaryExpression",
+  },
+  "loc": {
+    "end": {
+      "col": 36,
+      "line": 1,
+    },
+    "start": {
+      "col": 1,
+      "line": 1,
+    },
+  },
+  "operator": "-",
+  "right": {
+    "left": {
+      "left": {
+        "loc": {
+          "end": {
+            "col": 16,
+            "line": 1,
+          },
+          "start": {
+            "col": 15,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "loc": {
+        "end": {
+          "col": 27,
+          "line": 1,
+        },
+        "start": {
+          "col": 15,
+          "line": 1,
+        },
+      },
+      "operator": "*",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 27,
+            "line": 1,
+          },
+          "start": {
+            "col": 26,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "4",
+      },
+      "type": "BinaryExpression",
+    },
+    "loc": {
+      "end": {
+        "col": 36,
+        "line": 1,
+      },
+      "start": {
+        "col": 15,
+        "line": 1,
+      },
+    },
+    "operator": "/",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 36,
+          "line": 1,
+        },
+        "start": {
+          "col": 35,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "3",
+    },
+    "type": "BinaryExpression",
+  },
+  "type": "BinaryExpression",
+}
+`;
+
+exports[`Parsers - arithmetic > should parse an arithmetic operation with trailing spaces at both ends correctly 1`] = `
+{
+  "left": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 5,
+          "line": 1,
+        },
+        "start": {
+          "col": 4,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "9",
+    },
+    "loc": {
+      "end": {
+        "col": 9,
+        "line": 1,
+      },
+      "start": {
+        "col": 4,
+        "line": 1,
+      },
+    },
+    "operator": "+",
+    "right": {
+      "loc": {
+        "end": {
+          "col": 9,
+          "line": 1,
+        },
+        "start": {
+          "col": 8,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "5",
+    },
+    "type": "BinaryExpression",
+  },
+  "loc": {
+    "end": {
+      "col": 27,
+      "line": 1,
+    },
+    "start": {
+      "col": 4,
+      "line": 1,
+    },
+  },
+  "operator": "-",
+  "right": {
+    "left": {
+      "loc": {
+        "end": {
+          "col": 13,
+          "line": 1,
+        },
+        "start": {
+          "col": 12,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "4",
+    },
+    "loc": {
+      "end": {
+        "col": 27,
+        "line": 1,
+      },
+      "start": {
+        "col": 12,
+        "line": 1,
+      },
+    },
+    "operator": "*",
+    "right": {
+      "left": {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 18,
+              "line": 1,
+            },
+            "start": {
+              "col": 17,
+              "line": 1,
+            },
+          },
+          "type": "NumberLiteral",
+          "value": "4",
+        },
+        "loc": {
+          "end": {
+            "col": 22,
+            "line": 1,
+          },
+          "start": {
+            "col": 17,
+            "line": 1,
+          },
+        },
+        "operator": "/",
+        "right": {
+          "loc": {
+            "end": {
+              "col": 22,
+              "line": 1,
+            },
+            "start": {
+              "col": 21,
+              "line": 1,
+            },
+          },
+          "type": "NumberLiteral",
+          "value": "3",
+        },
+        "type": "BinaryExpression",
+      },
+      "loc": {
+        "end": {
+          "col": 27,
+          "line": 1,
+        },
+        "start": {
+          "col": 16,
+          "line": 1,
+        },
+      },
+      "operator": "^",
+      "right": {
+        "loc": {
+          "end": {
+            "col": 27,
+            "line": 1,
+          },
+          "start": {
+            "col": 26,
+            "line": 1,
+          },
+        },
+        "type": "NumberLiteral",
+        "value": "3",
+      },
+      "type": "BinaryExpression",
+    },
+    "type": "BinaryExpression",
+  },
+  "type": "BinaryExpression",
+}
+`;

@@ -1,0 +1,349 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - array > should fail when parsing an array with empty elements 1`] = `"ArrayParserError(1:9): Expecting a valid expression, got ','"`;
+
+exports[`Parsers - array > should fail when parsing an array with multiple primary values between commas 1`] = `"ArrayParserError(1:12): Expecting character ']', got 'v'"`;
+
+exports[`Parsers - array > should fail when parsing an array without closing brackets 1`] = `"ArrayParserError(1:16): Expecting character ']', but got end of input."`;
+
+exports[`Parsers - array > should parse an array  correctly 1`] = `
+{
+  "elements": [
+    {
+      "loc": {
+        "end": {
+          "col": 3,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "12",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 15,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "a string",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 16,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ArrayExpression",
+}
+`;
+
+exports[`Parsers - array > should parse an array with nested arrays correctly 1`] = `
+{
+  "elements": [
+    {
+      "loc": {
+        "end": {
+          "col": 8,
+          "line": 1,
+        },
+        "start": {
+          "col": 1,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "timeUnit": "y",
+      "type": "NumberLiteral",
+      "value": "145",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 20,
+              "line": 1,
+            },
+            "start": {
+              "col": 17,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "DAI",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 21,
+          "line": 1,
+        },
+        "start": {
+          "col": 10,
+          "line": 1,
+        },
+      },
+      "name": "token",
+      "type": "HelperFunctionExpression",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 28,
+          "line": 1,
+        },
+        "start": {
+          "col": 23,
+          "line": 1,
+        },
+      },
+      "type": "BoolLiteral",
+      "value": false,
+    },
+    {
+      "elements": [
+        {
+          "loc": {
+            "end": {
+              "col": 41,
+              "line": 1,
+            },
+            "start": {
+              "col": 31,
+              "line": 1,
+            },
+          },
+          "type": "StringLiteral",
+          "value": "a string",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 55,
+              "line": 1,
+            },
+            "start": {
+              "col": 43,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "anIdentifier",
+        },
+        {
+          "elements": [
+            {
+              "loc": {
+                "end": {
+                  "col": 59,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 58,
+                  "line": 1,
+                },
+              },
+              "type": "NumberLiteral",
+              "value": "1",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 62,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 61,
+                  "line": 1,
+                },
+              },
+              "type": "NumberLiteral",
+              "value": "2",
+            },
+            {
+              "elements": [
+                {
+                  "loc": {
+                    "end": {
+                      "col": 89,
+                      "line": 1,
+                    },
+                    "start": {
+                      "col": 65,
+                      "line": 1,
+                    },
+                  },
+                  "type": "ProbableIdentifier",
+                  "value": "aDeepDeepIdentifier.open",
+                },
+              ],
+              "loc": {
+                "end": {
+                  "col": 90,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 64,
+                  "line": 1,
+                },
+              },
+              "type": "ArrayExpression",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 91,
+              "line": 1,
+            },
+            "start": {
+              "col": 57,
+              "line": 1,
+            },
+          },
+          "type": "ArrayExpression",
+        },
+        {
+          "loc": {
+            "end": {
+              "col": 103,
+              "line": 1,
+            },
+            "start": {
+              "col": 94,
+              "line": 1,
+            },
+          },
+          "type": "VariableIdentifier",
+          "value": "$variable",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 104,
+          "line": 1,
+        },
+        "start": {
+          "col": 30,
+          "line": 1,
+        },
+      },
+      "type": "ArrayExpression",
+    },
+    {
+      "args": [],
+      "loc": {
+        "end": {
+          "col": 120,
+          "line": 1,
+        },
+        "start": {
+          "col": 106,
+          "line": 1,
+        },
+      },
+      "method": "host",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 112,
+            "line": 1,
+          },
+          "start": {
+            "col": 106,
+            "line": 1,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$fDAIx",
+      },
+      "type": "CallExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 121,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ArrayExpression",
+}
+`;
+
+exports[`Parsers - array > should parse an array with spaces at both ends correctly 1`] = `
+{
+  "elements": [
+    {
+      "loc": {
+        "end": {
+          "col": 6,
+          "line": 1,
+        },
+        "start": {
+          "col": 5,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "1",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 23,
+          "line": 1,
+        },
+        "start": {
+          "col": 8,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "a text string",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 29,
+          "line": 1,
+        },
+        "start": {
+          "col": 28,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "3",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 34,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "type": "ArrayExpression",
+}
+`;

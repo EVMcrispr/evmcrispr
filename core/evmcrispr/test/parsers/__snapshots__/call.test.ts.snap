@@ -1,0 +1,489 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - call expression > should parse a call expression containing nested call expression correctly 1`] = `
+{
+  "args": [
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 37,
+              "line": 1,
+            },
+            "start": {
+              "col": 31,
+              "line": 1,
+            },
+          },
+          "type": "StringLiteral",
+          "value": "DAIx",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 38,
+          "line": 1,
+        },
+        "start": {
+          "col": 24,
+          "line": 1,
+        },
+      },
+      "name": "token",
+      "type": "HelperFunctionExpression",
+    },
+    {
+      "args": [
+        {
+          "elements": [
+            {
+              "loc": {
+                "end": {
+                  "col": 58,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 57,
+                  "line": 1,
+                },
+              },
+              "type": "NumberLiteral",
+              "value": "1",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 60,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 59,
+                  "line": 1,
+                },
+              },
+              "type": "NumberLiteral",
+              "value": "2",
+            },
+            {
+              "loc": {
+                "end": {
+                  "col": 62,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 61,
+                  "line": 1,
+                },
+              },
+              "type": "NumberLiteral",
+              "value": "3",
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 63,
+              "line": 1,
+            },
+            "start": {
+              "col": 56,
+              "line": 1,
+            },
+          },
+          "type": "ArrayExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 64,
+          "line": 1,
+        },
+        "start": {
+          "col": 40,
+          "line": 1,
+        },
+      },
+      "method": "vault",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 48,
+            "line": 1,
+          },
+          "start": {
+            "col": 40,
+            "line": 1,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$finance",
+      },
+      "type": "CallExpression",
+    },
+    {
+      "args": [],
+      "loc": {
+        "end": {
+          "col": 85,
+          "line": 1,
+        },
+        "start": {
+          "col": 66,
+          "line": 1,
+        },
+      },
+      "method": "method",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 75,
+            "line": 1,
+          },
+          "start": {
+            "col": 66,
+            "line": 1,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$contract",
+      },
+      "type": "CallExpression",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 93,
+          "line": 1,
+        },
+        "start": {
+          "col": 87,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "timeUnit": "m",
+      "type": "NumberLiteral",
+      "value": "10",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 123,
+          "line": 1,
+        },
+        "start": {
+          "col": 95,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "this is a nice description",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 124,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "method": "createFlow",
+  "target": {
+    "loc": {
+      "end": {
+        "col": 11,
+        "line": 1,
+      },
+      "start": {
+        "col": 0,
+        "line": 1,
+      },
+    },
+    "type": "VariableIdentifier",
+    "value": "$superfluid",
+  },
+  "type": "CallExpression",
+}
+`;
+
+exports[`Parsers - call expression > should parse a call expression made from a helper function correctly 1`] = `
+{
+  "args": [
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 32,
+              "line": 1,
+            },
+            "start": {
+              "col": 29,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "DAI",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 33,
+          "line": 1,
+        },
+        "start": {
+          "col": 22,
+          "line": 1,
+        },
+      },
+      "name": "token",
+      "type": "HelperFunctionExpression",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 42,
+          "line": 1,
+        },
+        "start": {
+          "col": 35,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "type": "NumberLiteral",
+      "value": "1800",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 43,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "method": "upgrade",
+  "target": {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 11,
+            "line": 1,
+          },
+          "start": {
+            "col": 7,
+            "line": 1,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "DAIx",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 12,
+        "line": 1,
+      },
+      "start": {
+        "col": 0,
+        "line": 1,
+      },
+    },
+    "name": "token",
+    "type": "HelperFunctionExpression",
+  },
+  "type": "CallExpression",
+}
+`;
+
+exports[`Parsers - call expression > should parse a call expression made from a literal address correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 54,
+          "line": 1,
+        },
+        "start": {
+          "col": 53,
+          "line": 1,
+        },
+      },
+      "type": "NumberLiteral",
+      "value": "0",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 67,
+              "line": 1,
+            },
+            "start": {
+              "col": 63,
+              "line": 1,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "WETH",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 68,
+          "line": 1,
+        },
+        "start": {
+          "col": 56,
+          "line": 1,
+        },
+      },
+      "name": "token",
+      "type": "HelperFunctionExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 69,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "method": "getEntry",
+  "target": {
+    "loc": {
+      "end": {
+        "col": 42,
+        "line": 1,
+      },
+      "start": {
+        "col": 0,
+        "line": 1,
+      },
+    },
+    "type": "AddressLiteral",
+    "value": "0x14FA5C16Af56190239B997485656F5c8b4f86c4b",
+  },
+  "type": "CallExpression",
+}
+`;
+
+exports[`Parsers - call expression > should parse a call expression with following chained call expressions correctly 1`] = `
+{
+  "args": [],
+  "loc": {
+    "end": {
+      "col": 66,
+      "line": 1,
+    },
+    "start": {
+      "col": 57,
+      "line": 1,
+    },
+  },
+  "method": "another",
+  "target": {
+    "args": [
+      {
+        "args": [],
+        "loc": {
+          "end": {
+            "col": 43,
+            "line": 1,
+          },
+          "start": {
+            "col": 40,
+            "line": 1,
+          },
+        },
+        "name": "me",
+        "type": "HelperFunctionExpression",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 54,
+            "line": 1,
+          },
+          "start": {
+            "col": 45,
+            "line": 1,
+          },
+        },
+        "power": 18,
+        "type": "NumberLiteral",
+        "value": "560.25",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 55,
+        "line": 1,
+      },
+      "start": {
+        "col": 32,
+        "line": 1,
+      },
+    },
+    "method": "approve",
+    "target": {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 29,
+              "line": 1,
+            },
+            "start": {
+              "col": 28,
+              "line": 1,
+            },
+          },
+          "type": "NumberLiteral",
+          "value": "1",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 30,
+          "line": 1,
+        },
+        "start": {
+          "col": 0,
+          "line": 1,
+        },
+      },
+      "method": "getToken",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 17,
+            "line": 1,
+          },
+          "start": {
+            "col": 0,
+            "line": 1,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$registryContract",
+      },
+      "type": "CallExpression",
+    },
+    "type": "CallExpression",
+  },
+  "type": "CallExpression",
+}
+`;

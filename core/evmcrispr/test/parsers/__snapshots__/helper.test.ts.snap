@@ -1,0 +1,230 @@
+// Vitest Snapshot v1
+
+exports[`Parsers - helper functions > should fail when parsing a helper with an invalid name 1`] = `"HelperParserError(1:4): Expecting a helper name, got '&$6...'"`;
+
+exports[`Parsers - helper functions > should fail when parsing a helper with empty arguments 1`] = `"HelperParserError(1:20): Expecting a valid expression, got ','"`;
+
+exports[`Parsers - helper functions > should fail when parsing a helper with no closing parenthesis 1`] = `"HelperParserError(1:17): Expecting character ')', but got end of input."`;
+
+exports[`Parsers - helper functions > should fail when parsing a helper with no opening parenthesis 1`] = `"HelperParserError(1:10): Expecting a helper name, got '1, 1e...'"`;
+
+exports[`Parsers - helper functions > should parse helper  correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 11,
+          "line": 1,
+        },
+        "start": {
+          "col": 7,
+          "line": 1,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "WETH",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 12,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "token",
+  "type": "HelperFunctionExpression",
+}
+`;
+
+exports[`Parsers - helper functions > should parse helper with call expression correctly 1`] = `
+{
+  "args": [
+    {
+      "args": [],
+      "loc": {
+        "end": {
+          "col": 38,
+          "line": 1,
+        },
+        "start": {
+          "col": 16,
+          "line": 1,
+        },
+      },
+      "method": "symbol",
+      "target": {
+        "loc": {
+          "end": {
+            "col": 28,
+            "line": 1,
+          },
+          "start": {
+            "col": 16,
+            "line": 1,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "anotherToken",
+      },
+      "type": "CallExpression",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 64,
+          "line": 1,
+        },
+        "start": {
+          "col": 40,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "this is a string param",
+    },
+    {
+      "loc": {
+        "end": {
+          "col": 71,
+          "line": 1,
+        },
+        "start": {
+          "col": 66,
+          "line": 1,
+        },
+      },
+      "power": 18,
+      "type": "NumberLiteral",
+      "value": "10",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 72,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "helperFunction",
+  "type": "HelperFunctionExpression",
+}
+`;
+
+exports[`Parsers - helper functions > should parse helper with nested helpers correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 12,
+          "line": 1,
+        },
+        "start": {
+          "col": 7,
+          "line": 1,
+        },
+      },
+      "type": "StringLiteral",
+      "value": "DAI",
+    },
+    {
+      "args": [
+        {
+          "loc": {
+            "end": {
+              "col": 22,
+              "line": 1,
+            },
+            "start": {
+              "col": 20,
+              "line": 1,
+            },
+          },
+          "type": "NumberLiteral",
+          "value": "34",
+        },
+        {
+          "args": [
+            {
+              "loc": {
+                "end": {
+                  "col": 41,
+                  "line": 1,
+                },
+                "start": {
+                  "col": 37,
+                  "line": 1,
+                },
+              },
+              "type": "BoolLiteral",
+              "value": true,
+            },
+          ],
+          "loc": {
+            "end": {
+              "col": 42,
+              "line": 1,
+            },
+            "start": {
+              "col": 24,
+              "line": 1,
+            },
+          },
+          "name": "innerHelper",
+          "type": "HelperFunctionExpression",
+        },
+      ],
+      "loc": {
+        "end": {
+          "col": 43,
+          "line": 1,
+        },
+        "start": {
+          "col": 14,
+          "line": 1,
+        },
+      },
+      "name": "calc",
+      "type": "HelperFunctionExpression",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 44,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "token",
+  "type": "HelperFunctionExpression",
+}
+`;
+
+exports[`Parsers - helper functions > should parse helper with no arguments correctly 1`] = `
+{
+  "args": [],
+  "loc": {
+    "end": {
+      "col": 4,
+      "line": 1,
+    },
+    "start": {
+      "col": 0,
+      "line": 1,
+    },
+  },
+  "name": "now",
+  "type": "HelperFunctionExpression",
+}
+`;

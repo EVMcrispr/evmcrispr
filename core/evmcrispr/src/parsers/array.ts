@@ -14,7 +14,7 @@ import {
   openingCharParser,
 } from './utils';
 
-export const ARRAY_PARSER_ERROR = 'ArrayParserError';
+const ARRAY_PARSER_ERROR = 'ArrayParserError';
 
 export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
   recursiveParser(() =>

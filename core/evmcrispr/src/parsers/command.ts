@@ -138,7 +138,7 @@ const commandArgsParser = coroutine(function* () {
   return commandArgOrOpt;
 });
 
-export const COMMAND_PARSER_ERROR = 'CommandParserError';
+const COMMAND_PARSER_ERROR = 'CommandParserError';
 
 export const endOfCommandParser = choice([endLine, lookAhead(endOfInput)]);
 

@@ -1,16 +1,15 @@
 import type {
   BlockExpressionNode,
+  Cas11AST,
   CommandExpressionNode,
   Comparison,
   ErrorException,
   HelperFunctionNode,
-  Node,
   NodeParser,
   NodeParserState,
 } from '@1hive/evmcrispr';
 import {
   BindingsSpace,
-  Cas11AST,
   CommandError,
   ComparisonType,
   EVMcrispr,
@@ -18,7 +17,6 @@ import {
   HelperFunctionError,
   NodeType,
   buildArgsLengthErrorMsg,
-  buildParserError,
   createParserState,
   scriptParser,
 } from '@1hive/evmcrispr';
@@ -33,17 +31,21 @@ import { inspect } from 'util';
 const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;
 
-export type Case = [string, any, string?];
+export type Case<V = any, E = any> = {
+  message?: string;
+  value: V;
+  expected?: E;
+  title: string;
+};
 
-export type InterpreterCase = [Node, any, string?];
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const deepConsoleLog = (thing: any): void =>
   console.log(inspect(thing, false, null, true));
 
-export const runParser = (
+export function runParser(
   parser: Parser<any, string, any>,
   value: string,
-): any => {
+): any {
   const res = withData<any, string, NodeParserState>(parser)(
     createParserState(),
   ).run(value);
@@ -53,61 +55,19 @@ export const runParser = (
   }
 
   return res.result;
-};
+}
 
-export const runCases = (
-  caseOrCases: Case | Case[],
-  parser: Parser<any, string, any>,
-): void =>
-  (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).forEach(
-    ([value, expected, errorMsg]) =>
-      expect(runParser(parser, value), errorMsg).eql(expected),
-  );
-
-export const runInterpreterCases = async (
-  caseOrCases: InterpreterCase | InterpreterCase[],
-  getSigner: () => Promise<Signer>,
-): Promise<void[]> =>
-  Promise.all(
-    (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
-      async ([node, expected, errorMsg]) => {
-        const [res] = await new EVMcrispr(
-          new Cas11AST([node]),
-          getSigner,
-        ).interpret();
-
-        expect(res, errorMsg).to.deep.equal(expected);
-      },
-    ),
-  );
-
-export const runErrorCase = (
-  parser: NodeParser,
-  text: string,
-  errType: string,
-  errMsg?: string,
-): void => {
+export function runParserError(parser: NodeParser, text: string): string {
   const parserState = createParserState();
   const res = withData<any, string, NodeParserState>(parser)(parserState).run(
     text,
   );
 
   expect(res.isError, 'error not thrown').to.be.true;
-  expect(
-    (res as Err<string, NodeParserState>).error,
-    'error message mismatch',
-  ).to.equals(
-    buildParserError(
-      {
-        index: res.index,
-        error: (res as Err<string, NodeParserState>).error,
-        data: parserState,
-      } as Err<string, any>,
-      errType,
-      errMsg,
-    ),
-  );
-};
+
+  return (res as Err<string, NodeParserState>).error;
+}
+
 export const createInterpreter = (
   script: string,
   signer: Signer,
@@ -189,12 +149,6 @@ const createCommandNode = (name: string): CommandExpressionNode => ({
   args: [],
   opts: [],
 });
-
-// const createHelperNode = (name: string): HelperFunctionNode => ({
-//   type: HelperFunctionExpression,
-//   name: name,
-//   args: [],
-// });
 
 export const itChecksInvalidArgsLength = (
   expressionType: NodeType,

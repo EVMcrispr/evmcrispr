@@ -9,7 +9,7 @@ import {
   locate,
 } from '../../utils';
 
-export const STRING_PARSER_ERROR = 'StringParserError';
+const STRING_PARSER_ERROR = 'StringParserError';
 
 export const stringParser: EnclosingNodeParser<StringLiteralNode> = (
   enclosingParsers = [],

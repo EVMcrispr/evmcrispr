@@ -1,0 +1,1510 @@
+// Vitest Snapshot v1
+
+exports[`Cas11AST > when fetching a command at a specific line > should fetch it correctly 1`] = `
+{
+  "args": [
+    {
+      "loc": {
+        "end": {
+          "col": 25,
+          "line": 9,
+        },
+        "start": {
+          "col": 16,
+          "line": 9,
+        },
+      },
+      "type": "ProbableIdentifier",
+      "value": "vault:new",
+    },
+  ],
+  "loc": {
+    "end": {
+      "col": 25,
+      "line": 9,
+    },
+    "start": {
+      "col": 8,
+      "line": 9,
+    },
+  },
+  "name": "install",
+  "opts": [],
+  "type": "CommandExpression",
+}
+`;
+
+exports[`Cas11AST > when fetching commands until a specific line > should fetch them correctly 1`] = `
+[
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 17,
+              "line": 2,
+            },
+            "start": {
+              "col": 9,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "aragonos",
+        },
+        "loc": {
+          "end": {
+            "col": 23,
+            "line": 2,
+          },
+          "start": {
+            "col": 9,
+            "line": 2,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 23,
+              "line": 2,
+            },
+            "start": {
+              "col": 21,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "ar",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 23,
+        "line": 2,
+      },
+      "start": {
+        "col": 4,
+        "line": 2,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 15,
+              "line": 3,
+            },
+            "start": {
+              "col": 9,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giveth",
+        },
+        "loc": {
+          "end": {
+            "col": 22,
+            "line": 3,
+          },
+          "start": {
+            "col": 9,
+            "line": 3,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 22,
+              "line": 3,
+            },
+            "start": {
+              "col": 19,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giv",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 22,
+        "line": 3,
+      },
+      "start": {
+        "col": 4,
+        "line": 3,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 57,
+            "line": 5,
+          },
+          "start": {
+            "col": 15,
+            "line": 5,
+          },
+        },
+        "type": "AddressLiteral",
+        "value": "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
+      },
+      {
+        "body": [
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 23,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 10,
+                    "line": 6,
+                  },
+                },
+                "type": "VariableIdentifier",
+                "value": "$dao1Variable",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 29,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 24,
+                    "line": 6,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "agent",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 29,
+                "line": 6,
+              },
+              "start": {
+                "col": 6,
+                "line": 6,
+              },
+            },
+            "name": "set",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 56,
+                    "line": 7,
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7,
+                  },
+                },
+                "type": "AddressLiteral",
+                "value": "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
+              },
+              {
+                "body": [
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 12,
+                            "line": 8,
+                          },
+                        },
+                        "type": "VariableIdentifier",
+                        "value": "$dao2Variable",
+                      },
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 31,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 26,
+                            "line": 8,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 31,
+                        "line": 8,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 8,
+                      },
+                    },
+                    "name": "set",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 9,
+                          },
+                          "start": {
+                            "col": 16,
+                            "line": 9,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault:new",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 25,
+                        "line": 9,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 9,
+                      },
+                    },
+                    "name": "install",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                ],
+                "loc": {
+                  "end": {
+                    "col": 7,
+                    "line": 10,
+                  },
+                  "start": {
+                    "col": 57,
+                    "line": 7,
+                  },
+                },
+                "type": "BlockExpression",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 7,
+                "line": 10,
+              },
+              "start": {
+                "col": 6,
+                "line": 7,
+              },
+            },
+            "name": "connect",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 5,
+            "line": 11,
+          },
+          "start": {
+            "col": 58,
+            "line": 5,
+          },
+        },
+        "type": "BlockExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 5,
+        "line": 11,
+      },
+      "start": {
+        "col": 4,
+        "line": 5,
+      },
+    },
+    "module": "ar",
+    "name": "connect",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+]
+`;
+
+exports[`Cas11AST > when fetching commands until a specific line > when given a set of global scope command names > should fetch them correctly 1`] = `
+[
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 17,
+              "line": 2,
+            },
+            "start": {
+              "col": 9,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "aragonos",
+        },
+        "loc": {
+          "end": {
+            "col": 23,
+            "line": 2,
+          },
+          "start": {
+            "col": 9,
+            "line": 2,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 23,
+              "line": 2,
+            },
+            "start": {
+              "col": 21,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "ar",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 23,
+        "line": 2,
+      },
+      "start": {
+        "col": 4,
+        "line": 2,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 15,
+              "line": 3,
+            },
+            "start": {
+              "col": 9,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giveth",
+        },
+        "loc": {
+          "end": {
+            "col": 22,
+            "line": 3,
+          },
+          "start": {
+            "col": 9,
+            "line": 3,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 22,
+              "line": 3,
+            },
+            "start": {
+              "col": 19,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giv",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 22,
+        "line": 3,
+      },
+      "start": {
+        "col": 4,
+        "line": 3,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 57,
+            "line": 5,
+          },
+          "start": {
+            "col": 15,
+            "line": 5,
+          },
+        },
+        "type": "AddressLiteral",
+        "value": "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
+      },
+      {
+        "body": [
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 23,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 10,
+                    "line": 6,
+                  },
+                },
+                "type": "VariableIdentifier",
+                "value": "$dao1Variable",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 29,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 24,
+                    "line": 6,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "agent",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 29,
+                "line": 6,
+              },
+              "start": {
+                "col": 6,
+                "line": 6,
+              },
+            },
+            "name": "set",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 56,
+                    "line": 7,
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7,
+                  },
+                },
+                "type": "AddressLiteral",
+                "value": "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
+              },
+              {
+                "body": [
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 12,
+                            "line": 8,
+                          },
+                        },
+                        "type": "VariableIdentifier",
+                        "value": "$dao2Variable",
+                      },
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 31,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 26,
+                            "line": 8,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 31,
+                        "line": 8,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 8,
+                      },
+                    },
+                    "name": "set",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 9,
+                          },
+                          "start": {
+                            "col": 16,
+                            "line": 9,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault:new",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 25,
+                        "line": 9,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 9,
+                      },
+                    },
+                    "name": "install",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                ],
+                "loc": {
+                  "end": {
+                    "col": 7,
+                    "line": 10,
+                  },
+                  "start": {
+                    "col": 57,
+                    "line": 7,
+                  },
+                },
+                "type": "BlockExpression",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 7,
+                "line": 10,
+              },
+              "start": {
+                "col": 6,
+                "line": 7,
+              },
+            },
+            "name": "connect",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 5,
+            "line": 11,
+          },
+          "start": {
+            "col": 58,
+            "line": 5,
+          },
+        },
+        "type": "BlockExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 5,
+        "line": 11,
+      },
+      "start": {
+        "col": 4,
+        "line": 5,
+      },
+    },
+    "module": "ar",
+    "name": "connect",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 23,
+            "line": 6,
+          },
+          "start": {
+            "col": 10,
+            "line": 6,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$dao1Variable",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 29,
+            "line": 6,
+          },
+          "start": {
+            "col": 24,
+            "line": 6,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "agent",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 29,
+        "line": 6,
+      },
+      "start": {
+        "col": 6,
+        "line": 6,
+      },
+    },
+    "name": "set",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 56,
+            "line": 7,
+          },
+          "start": {
+            "col": 14,
+            "line": 7,
+          },
+        },
+        "type": "AddressLiteral",
+        "value": "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
+      },
+      {
+        "body": [
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 25,
+                    "line": 8,
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 8,
+                  },
+                },
+                "type": "VariableIdentifier",
+                "value": "$dao2Variable",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 31,
+                    "line": 8,
+                  },
+                  "start": {
+                    "col": 26,
+                    "line": 8,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "vault",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 31,
+                "line": 8,
+              },
+              "start": {
+                "col": 8,
+                "line": 8,
+              },
+            },
+            "name": "set",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 25,
+                    "line": 9,
+                  },
+                  "start": {
+                    "col": 16,
+                    "line": 9,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "vault:new",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 25,
+                "line": 9,
+              },
+              "start": {
+                "col": 8,
+                "line": 9,
+              },
+            },
+            "name": "install",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 7,
+            "line": 10,
+          },
+          "start": {
+            "col": 57,
+            "line": 7,
+          },
+        },
+        "type": "BlockExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 7,
+        "line": 10,
+      },
+      "start": {
+        "col": 6,
+        "line": 7,
+      },
+    },
+    "name": "connect",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 25,
+            "line": 8,
+          },
+          "start": {
+            "col": 12,
+            "line": 8,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$dao2Variable",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 31,
+            "line": 8,
+          },
+          "start": {
+            "col": 26,
+            "line": 8,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "vault",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 31,
+        "line": 8,
+      },
+      "start": {
+        "col": 8,
+        "line": 8,
+      },
+    },
+    "name": "set",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 25,
+            "line": 9,
+          },
+          "start": {
+            "col": 16,
+            "line": 9,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "vault:new",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 25,
+        "line": 9,
+      },
+      "start": {
+        "col": 8,
+        "line": 9,
+      },
+    },
+    "name": "install",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+]
+`;
+
+exports[`Cas11AST > when fetching commands until a specific line > when given a set of global scope command names > should fetch them correctly when giving a line higher than the maximum script line 1`] = `
+[
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 17,
+              "line": 2,
+            },
+            "start": {
+              "col": 9,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "aragonos",
+        },
+        "loc": {
+          "end": {
+            "col": 23,
+            "line": 2,
+          },
+          "start": {
+            "col": 9,
+            "line": 2,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 23,
+              "line": 2,
+            },
+            "start": {
+              "col": 21,
+              "line": 2,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "ar",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 23,
+        "line": 2,
+      },
+      "start": {
+        "col": 4,
+        "line": 2,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "left": {
+          "loc": {
+            "end": {
+              "col": 15,
+              "line": 3,
+            },
+            "start": {
+              "col": 9,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giveth",
+        },
+        "loc": {
+          "end": {
+            "col": 22,
+            "line": 3,
+          },
+          "start": {
+            "col": 9,
+            "line": 3,
+          },
+        },
+        "right": {
+          "loc": {
+            "end": {
+              "col": 22,
+              "line": 3,
+            },
+            "start": {
+              "col": 19,
+              "line": 3,
+            },
+          },
+          "type": "ProbableIdentifier",
+          "value": "giv",
+        },
+        "type": "AsExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 22,
+        "line": 3,
+      },
+      "start": {
+        "col": 4,
+        "line": 3,
+      },
+    },
+    "name": "load",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 57,
+            "line": 5,
+          },
+          "start": {
+            "col": 15,
+            "line": 5,
+          },
+        },
+        "type": "AddressLiteral",
+        "value": "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
+      },
+      {
+        "body": [
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 23,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 10,
+                    "line": 6,
+                  },
+                },
+                "type": "VariableIdentifier",
+                "value": "$dao1Variable",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 29,
+                    "line": 6,
+                  },
+                  "start": {
+                    "col": 24,
+                    "line": 6,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "agent",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 29,
+                "line": 6,
+              },
+              "start": {
+                "col": 6,
+                "line": 6,
+              },
+            },
+            "name": "set",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 56,
+                    "line": 7,
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7,
+                  },
+                },
+                "type": "AddressLiteral",
+                "value": "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
+              },
+              {
+                "body": [
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 12,
+                            "line": 8,
+                          },
+                        },
+                        "type": "VariableIdentifier",
+                        "value": "$dao2Variable",
+                      },
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 31,
+                            "line": 8,
+                          },
+                          "start": {
+                            "col": 26,
+                            "line": 8,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 31,
+                        "line": 8,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 8,
+                      },
+                    },
+                    "name": "set",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                  {
+                    "args": [
+                      {
+                        "loc": {
+                          "end": {
+                            "col": 25,
+                            "line": 9,
+                          },
+                          "start": {
+                            "col": 16,
+                            "line": 9,
+                          },
+                        },
+                        "type": "ProbableIdentifier",
+                        "value": "vault:new",
+                      },
+                    ],
+                    "loc": {
+                      "end": {
+                        "col": 25,
+                        "line": 9,
+                      },
+                      "start": {
+                        "col": 8,
+                        "line": 9,
+                      },
+                    },
+                    "name": "install",
+                    "opts": [],
+                    "type": "CommandExpression",
+                  },
+                ],
+                "loc": {
+                  "end": {
+                    "col": 7,
+                    "line": 10,
+                  },
+                  "start": {
+                    "col": 57,
+                    "line": 7,
+                  },
+                },
+                "type": "BlockExpression",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 7,
+                "line": 10,
+              },
+              "start": {
+                "col": 6,
+                "line": 7,
+              },
+            },
+            "name": "connect",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 5,
+            "line": 11,
+          },
+          "start": {
+            "col": 58,
+            "line": 5,
+          },
+        },
+        "type": "BlockExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 5,
+        "line": 11,
+      },
+      "start": {
+        "col": 4,
+        "line": 5,
+      },
+    },
+    "module": "ar",
+    "name": "connect",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 23,
+            "line": 6,
+          },
+          "start": {
+            "col": 10,
+            "line": 6,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$dao1Variable",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 29,
+            "line": 6,
+          },
+          "start": {
+            "col": 24,
+            "line": 6,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "agent",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 29,
+        "line": 6,
+      },
+      "start": {
+        "col": 6,
+        "line": 6,
+      },
+    },
+    "name": "set",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 25,
+            "line": 8,
+          },
+          "start": {
+            "col": 12,
+            "line": 8,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$dao2Variable",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 31,
+            "line": 8,
+          },
+          "start": {
+            "col": 26,
+            "line": 8,
+          },
+        },
+        "type": "ProbableIdentifier",
+        "value": "vault",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 31,
+        "line": 8,
+      },
+      "start": {
+        "col": 8,
+        "line": 8,
+      },
+    },
+    "name": "set",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "body": [
+          {
+            "args": [
+              {
+                "loc": {
+                  "end": {
+                    "col": 19,
+                    "line": 14,
+                  },
+                  "start": {
+                    "col": 13,
+                    "line": 14,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "voting",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 33,
+                    "line": 14,
+                  },
+                  "start": {
+                    "col": 20,
+                    "line": 14,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "token-manager",
+              },
+              {
+                "loc": {
+                  "end": {
+                    "col": 43,
+                    "line": 14,
+                  },
+                  "start": {
+                    "col": 34,
+                    "line": 14,
+                  },
+                },
+                "type": "ProbableIdentifier",
+                "value": "MINT_ROLE",
+              },
+            ],
+            "loc": {
+              "end": {
+                "col": 43,
+                "line": 14,
+              },
+              "start": {
+                "col": 6,
+                "line": 14,
+              },
+            },
+            "name": "revoke",
+            "opts": [],
+            "type": "CommandExpression",
+          },
+        ],
+        "loc": {
+          "end": {
+            "col": 5,
+            "line": 15,
+          },
+          "start": {
+            "col": 31,
+            "line": 13,
+          },
+        },
+        "type": "BlockExpression",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 5,
+        "line": 15,
+      },
+      "start": {
+        "col": 4,
+        "line": 13,
+      },
+    },
+    "module": "ar",
+    "name": "connect",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+  {
+    "args": [
+      {
+        "loc": {
+          "end": {
+            "col": 28,
+            "line": 17,
+          },
+          "start": {
+            "col": 8,
+            "line": 17,
+          },
+        },
+        "type": "VariableIdentifier",
+        "value": "$globalScopeVariable",
+      },
+      {
+        "loc": {
+          "end": {
+            "col": 35,
+            "line": 17,
+          },
+          "start": {
+            "col": 29,
+            "line": 17,
+          },
+        },
+        "type": "StringLiteral",
+        "value": "test",
+      },
+    ],
+    "loc": {
+      "end": {
+        "col": 35,
+        "line": 17,
+      },
+      "start": {
+        "col": 4,
+        "line": 17,
+      },
+    },
+    "name": "set",
+    "opts": [],
+    "type": "CommandExpression",
+  },
+]
+`;

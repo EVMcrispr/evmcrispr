@@ -9,7 +9,7 @@ import {
   locate,
 } from '../../utils';
 
-export const HEXADECIMAL_PARSER_ERROR = 'HexadecimalParserError';
+const HEXADECIMAL_PARSER_ERROR = 'HexadecimalParserError';
 
 export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
   enclosingParsers = [],

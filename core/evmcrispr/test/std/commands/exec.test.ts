@@ -206,13 +206,13 @@ describe('Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it(
+  it.todo(
     "should fail when providing a method's name whose contract ABI isn't found",
   );
 
-  it("should fail when providing an ABI duplicated method's name");
+  it.todo("should fail when providing an ABI duplicated method's name");
 
-  it(
+  it.todo(
     "should fail when providing a method's name of a contract which isn't verified",
   );
 

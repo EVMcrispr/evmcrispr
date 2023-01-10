@@ -9,7 +9,7 @@ import {
   locate,
 } from '../../utils';
 
-export const ADDRESS_PARSER_ERROR = 'AddressParserError';
+const ADDRESS_PARSER_ERROR = 'AddressParserError';
 
 export const addressParser: EnclosingNodeParser<AddressLiteralNode> = (
   enclosingParsers = [],

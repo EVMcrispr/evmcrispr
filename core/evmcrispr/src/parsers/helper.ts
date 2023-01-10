@@ -25,7 +25,7 @@ import {
   openingCharParser,
 } from './utils';
 
-export const HELPER_PARSER_ERROR = 'HelperParserError';
+const HELPER_PARSER_ERROR = 'HelperParserError';
 
 const helperNameParser = recursiveParser(() =>
   takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(

@@ -19,9 +19,9 @@ import { NodeType } from '../../types';
 import { buildParserError } from '../../utils/parsers';
 import { createNodeLocation, enclosingLookaheadParser, locate } from '../utils';
 
-export const VARIABLE_PARSER_ERROR = 'VariableParserError';
+const VARIABLE_PARSER_ERROR = 'VariableParserError';
 
-export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
+const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
 
 export const variableIdentifierParser: EnclosingNodeParser<
   VariableIdentifierNode
