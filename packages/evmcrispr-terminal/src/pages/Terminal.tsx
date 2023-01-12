@@ -38,7 +38,6 @@ import SaveScriptButton from '../components/SaveScript';
 import ScriptLibrary from '../components/ScriptLibrary';
 import TerminalEditor from '../components/TerminalEditor';
 import { useScriptFromId } from '../hooks/useStoredScript';
-import { getScriptSavedInLocalStorage } from '../utils';
 
 export default function Terminal() {
   const [firstTry, setFirstTry] = useState(true);
@@ -104,17 +103,11 @@ export default function Terminal() {
     }
   }, [scriptFromId]);
 
-  // We hide the scriptId when the title or the script change so they don't match anymore with the url
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (location.pathname !== '/terminal') {
-      const { title: _title, script: _script } =
-        getScriptSavedInLocalStorage(params.scriptId) ?? {};
-      if (titleFromSession !== _title || scriptFromSession !== _script) {
-        navigate('/terminal');
-      }
+  function removeIPFSFromUrl() {
+    if (location.pathname !== '/terminal' && !!params.scriptId) {
+      navigate('/terminal');
     }
-  }, [titleFromSession, scriptFromSession]);
+  }
 
   return (
     <>
@@ -125,7 +118,7 @@ export default function Terminal() {
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
             <Flex width={'100%'}>
-              <TitleInput />
+              <TitleInput removeIPFSFromUrl={removeIPFSFromUrl} />
               <Spacer />
               <HStack spacing={1}>
                 <SaveScriptButton
@@ -145,7 +138,7 @@ export default function Terminal() {
               </HStack>
             </Flex>
           </VStack>
-          <TerminalEditor />
+          <TerminalEditor removeIPFSFromUrl={removeIPFSFromUrl} />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
           <ActionButtons
@@ -163,7 +156,7 @@ export default function Terminal() {
   );
 }
 
-function TitleInput() {
+function TitleInput({ removeIPFSFromUrl }: { removeIPFSFromUrl: () => void }) {
   // Set the default value, without enforcing its state.
   const handleRef = useRef<HTMLInputElement | null>(null);
   const { title } = useTerminalStore();
@@ -190,6 +183,7 @@ function TitleInput() {
     // Delay saving state until user activity stops
     _debounce((_inputString: string) => {
       terminalStoreActions.title(_inputString);
+      removeIPFSFromUrl();
     }, 200), // Delay (ms)
     [title],
   );
