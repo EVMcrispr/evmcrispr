@@ -1,5 +1,12 @@
 # @1hive/evmcrispr
 
+## 0.10.3
+
+### Patch Changes
+
+- 7153e0e: Fix exec and act commands to allow the use of tuples in the function signatures.
+- 49867e9: This patch includes a fix to the `aragon:install` command, which had a bug that prevented installing many instances of the same app.
+
 ## 0.8.1
 
 ### Patch Changes
