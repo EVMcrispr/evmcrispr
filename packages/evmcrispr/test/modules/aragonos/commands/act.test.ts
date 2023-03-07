@@ -31,13 +31,13 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
 
   it('should return a correct act action', async () => {
     const interpreter = createAragonScriptInterpreter([
-      `act agent:1 agent:2 "deposit(uint256,uint256[][])" 1 [[2,3],[4,5]]`,
+      `act agent:1 agent:2 "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]`,
     ]);
 
     const actActions = await interpreter.interpret();
 
     const fnABI = new utils.Interface([
-      'function deposit(uint256,uint256[][])',
+      'function deposit((uint256,int256),uint256[][])',
     ]);
 
     const expectedActActions = [
@@ -46,7 +46,7 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
           {
             to: DAO['agent:2'],
             data: fnABI.encodeFunctionData('deposit', [
-              1,
+              [1, -2],
               [
                 [2, 3],
                 [4, 5],
