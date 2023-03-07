@@ -3,7 +3,9 @@ import { BigNumber, Wallet, utils } from 'ethers';
 
 import type { Address } from '../types';
 
-export const SIGNATURE_REGEX = /\w+\(((\w+(\[\d*\])*)+(,\w+(\[\d*\])*)*)?\)/;
+// JS regex do not support balancing groups, so we do not check parentheses are balanced
+export const SIGNATURE_REGEX =
+  /^\w+\(((\(?\w+(\[\d*\])*\)?)+(,\(?\w+(\[\d*\])*\)?)*)?\)$/;
 
 export async function buildNonceForAddress(
   address: Address,
