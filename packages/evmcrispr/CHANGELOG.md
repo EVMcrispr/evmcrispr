@@ -1,5 +1,11 @@
 # @1hive/evmcrispr
 
+## 0.10.4
+
+### Patch Changes
+
+- a738ad1: Add @namehash helper to std module
+
 ## 0.10.3
 
 ### Patch Changes
