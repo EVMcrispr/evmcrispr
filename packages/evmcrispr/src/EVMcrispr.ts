@@ -128,6 +128,11 @@ export class EVMcrispr {
           'https://rpc.gnosischain.com',
           this.#chainId,
         );
+      case 1101:
+        return new ethers.providers.JsonRpcProvider(
+          'https://zkevm-rpc.com',
+          this.#chainId,
+        );
       default:
         return ethers.getDefaultProvider(this.#chainId);
     }

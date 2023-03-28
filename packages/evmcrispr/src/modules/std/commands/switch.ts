@@ -18,6 +18,7 @@ const nameToChainId = {
   polygonMumbai: 80001,
   arbitrum: 42161,
   arbitrumRinkeby: 421611,
+  zkevm: 1101,
 };
 
 export const _switch: ICommand<Std> = {

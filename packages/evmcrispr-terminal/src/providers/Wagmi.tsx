@@ -8,7 +8,7 @@ import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { ethers } from 'ethers';
 import '../walletconnect-compat';
 
-const CHAIN_WHITELIST = [1, 3, 4, 5, 100, 137];
+const CHAIN_WHITELIST = [1, 3, 4, 5, 100, 137, 1101];
 const INFURA_ID = import.meta.env.VITE_INFURA_ID;
 
 const chains = [
@@ -26,6 +26,22 @@ const chains = [
       etherscan: {
         name: 'Blockscout',
         url: 'https://blockscout.com',
+      },
+    },
+  },
+  {
+    id: 1101,
+    name: 'Polygon zkEVM',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: { default: 'https://zkevm-rpc.com' },
+    blockExplorers: {
+      default: {
+        name: 'PolygonScan (zkEVM)',
+        url: 'https://zkevm.polygonscan.com/',
+      },
+      etherscan: {
+        name: 'PolygonScan (zkEVM)',
+        url: 'https://zkevm.polygonscan.com/',
       },
     },
   },
@@ -53,9 +69,12 @@ const getProvider = ({
   chainId?: number;
   connector?: Connector;
 }) => {
+  console.log('chainId', chainId);
   if (chainId && CHAIN_WHITELIST.includes(chainId)) {
     if (chainId == 100) {
       return new JsonRpcProvider('https://rpc.gnosischain.com', chainId);
+    } else if (chainId == 1101) {
+      return new JsonRpcProvider('https://zkevm-rpc.com', chainId);
     } else {
       return new InfuraProvider(chainId, INFURA_ID);
     }
