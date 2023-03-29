@@ -3,10 +3,10 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
+import { defaultRelayerAddr } from '../../../../src/modules/giveth/addresses';
 
 describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]', () => {
   let signer: Signer;
-  const defaultRelayerAddr = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
 
   before(async () => {
     [signer] = await ethers.getSigners();

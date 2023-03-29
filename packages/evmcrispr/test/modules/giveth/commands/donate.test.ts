@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { givethDonationRelayer } from '../../../../src/modules/giveth/commands/donate';
+import { givethDonationRelayer } from '../../../../src/modules/giveth/addresses';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 
