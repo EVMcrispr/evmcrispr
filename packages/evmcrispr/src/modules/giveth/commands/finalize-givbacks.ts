@@ -7,10 +7,9 @@ import {
   encodeAction,
   getOptValue,
 } from '../../../utils';
+import { defaultRelayerAddr } from '../addresses';
 
 import type { Giveth } from '../Giveth';
-
-const defaultRelayerAddr = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
 
 export const finalizeGivbacks: ICommand<Giveth> = {
   async run(_, c, { interpretNode, interpretNodes }) {

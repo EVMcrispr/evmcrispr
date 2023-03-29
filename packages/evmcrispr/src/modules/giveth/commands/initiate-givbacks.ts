@@ -10,13 +10,9 @@ import {
   getOptValue,
 } from '../../../utils';
 import { batchForwarderActions } from '../../aragonos/utils';
+import { agent, defaultRelayerAddr, tokenManager, voting } from '../addresses';
 
 import type { Giveth } from '../Giveth';
-
-const defaultRelayerAddr = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
-const tokenManager = '0x3efac97efa6f237e67b4f8c616a194fd0583d99a';
-const voting = '0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2';
-const agent = '0x2fa20fa7fc404d35748497c0f28f8fb2f8731336';
 
 export const initiateGivbacks: ICommand<Giveth> = {
   async run(module, c, { interpretNode, interpretNodes }) {

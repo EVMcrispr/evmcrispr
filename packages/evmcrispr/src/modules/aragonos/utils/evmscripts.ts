@@ -29,6 +29,67 @@ export function encodeActCall(signature: string, params: any[] = []): string {
   return `${sigBytes}${paramBytes.slice(2)}`;
 }
 
+interface Segment {
+  segment: CallScriptAction;
+  scriptLeft: string;
+}
+
+function decodeSegment(script: string): Segment {
+  // Get address
+  const to = `0x${script.substring(0, 40)}`;
+  script = script.substring(40);
+
+  // Get data
+  const dataLength = parseInt(`0x${script.substring(0, 8)}`, 16) * 2;
+  script = script.substring(8);
+  const data = `0x${script.substring(0, dataLength)}`;
+
+  // Return rest of script for processing
+  script = script.substring(dataLength);
+
+  return {
+    segment: {
+      to,
+      data,
+    },
+    scriptLeft: script,
+  };
+}
+
+/**
+ * Checks whether a EVMScript bytes string is a call script.
+ */
+export function isCallScript(script: string): boolean {
+  // Get script identifier (0x prefix + bytes4)
+  const scriptId = script.substring(0, 10);
+  return scriptId === CALLSCRIPT_ID;
+}
+
+/**
+ * Decode a call script bytes string into its actions.
+ *
+ * Will return an array containing objects with:
+ *
+ *  - `to`: to address
+ *  - `data`: call data
+ *
+ */
+export function decodeCallScript(script: string): CallScriptAction[] {
+  if (!isCallScript(script)) {
+    throw new Error(`Not a call script: ${script}`);
+  }
+
+  let scriptData = script.substring(10);
+  const segments = [];
+
+  while (scriptData.length > 0) {
+    const { segment, scriptLeft } = decodeSegment(scriptData);
+    segments.push(segment);
+    scriptData = scriptLeft;
+  }
+  return segments;
+}
+
 /**
  * Encode a call script
  *

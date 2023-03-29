@@ -10,14 +10,10 @@ import {
   encodeAction,
   isNumberish,
 } from '../../../utils';
+import { givethDonationRelayer } from '../addresses';
 
 import type { Giveth } from '../Giveth';
 import { _projectAddr } from '../helpers/projectAddr';
-
-export const givethDonationRelayer = new Map([
-  [1, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
-  [100, '0x01A5529F4b03059470785D7Bfbf25B180bE6f796'],
-]);
 
 export const donate: ICommand<Giveth> = {
   async run(module, c, { interpretNodes }) {
