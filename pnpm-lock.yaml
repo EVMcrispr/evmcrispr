@@ -80,6 +80,7 @@ importers:
 
   packages/evmcrispr:
     specifiers:
+      '@ensdomains/content-hash': ^2.5.7
       '@types/isomorphic-fetch': ^0.0.36
       '@types/lodash.clonedeep': ^4.5.7
       arcsecond: ^4.1.0
@@ -92,6 +93,7 @@ importers:
       nyc: ^15.1.0
       ora: ^5.4.0
     dependencies:
+      '@ensdomains/content-hash': 2.5.7
       arcsecond: 4.1.0
       isomorphic-fetch: 3.0.0
       jsymbol: 0.3.5
@@ -3049,6 +3051,15 @@ packages:
     resolution: {integrity: sha512-AHPmaAx+RYfZz0eYu6Gviiagpmiyw98ySSlQvCUhVGDRtDFe4DBS0x1bSjdF3gqUDYOczB+yYvBTtEylYSdRhg==}
     dev: false
 
+  /@ensdomains/content-hash/2.5.7:
+    resolution: {integrity: sha512-WNdGKCeubMIAfyPYTMlKeX6cgXKIEo42OcWPOLBiclzJwMibkVqpaGgWKVH9dniJq7bLXLa2tQ0k/F1pt6gUxA==}
+    dependencies:
+      cids: 1.1.9
+      js-base64: 3.7.5
+      multicodec: 3.2.1
+      multihashes: 2.0.0
+    dev: false
+
   /@ensdomains/ens/0.4.5:
     resolution: {integrity: sha512-JSvpj1iNMFjK6K+uVl4unqMoa9rf5jopb8cya5UGBWz23Nw8hSNT7efgUx4BTlAPAgpNlEioUfeTyQ6J9ZvTVw==}
     deprecated: Please use @ensdomains/ens-contracts
@@ -5175,7 +5186,6 @@ packages:
   /@zxing/text-encoding/0.9.0:
     resolution: {integrity: sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==}
     requiresBuild: true
-    dev: true
     optional: true
 
   /JSONStream/1.3.5:
@@ -10848,6 +10858,10 @@ packages:
       supports-color: 7.2.0
     dev: true
 
+  /js-base64/3.7.5:
+    resolution: {integrity: sha512-3MEt5DTINKqfScXKfJFrRbxkrnk2AxPWGBL/ycjz4dK8iqiSJ06UxD8jh8xuh6p10TX4t2+7FsBYVxxQbMg+qA==}
+    dev: false
+
   /js-levenshtein/1.1.6:
     resolution: {integrity: sha512-X2BB11YZtrRqY4EnQcLX5Rh373zbK4alC1FW7D7MBhL2gtcC17cTnr6DmfHZeS0s2rTHjUTMMHfG7gO8SSdw+g==}
     engines: {node: '>=0.10.0'}
@@ -12410,6 +12424,16 @@ packages:
     dev: true
     optional: true
 
+  /multibase/2.0.0:
+    resolution: {integrity: sha512-xIrqUVsinSlFjqj+OtEgCJ6MRl5hXjHMBPWsUt1ZGSRMx8rzm+7hCLE4wDeSA3COomlUC9zHCoUlvWjvAMtfDg==}
+    engines: {node: '>=10.0.0', npm: '>=6.0.0'}
+    deprecated: This module has been superseded by the multiformats module
+    dependencies:
+      base-x: 3.0.9
+      buffer: 5.7.1
+      web-encoding: 1.1.5
+    dev: false
+
   /multibase/4.0.6:
     resolution: {integrity: sha512-x23pDe5+svdLz/k5JPGCVdfn7Q5mZVMBETiC+ORfO+sor9Sgs0smJzAjfTbM5tckeCqnaUuMYoz+k3RXMmJClQ==}
     engines: {node: '>=12.0.0', npm: '>=6.0.0'}
@@ -12454,6 +12478,16 @@ packages:
       varint: 5.0.2
     dev: true
     optional: true
+
+  /multihashes/2.0.0:
+    resolution: {integrity: sha512-Mp94Y+7h3oWQx8JickVghlWR6VhRPDnlv/KZEUyNP0ISSkNEe3kQkWoyIGt1B45D6cTLoulg+MP6bugVewx32Q==}
+    engines: {node: '>=10.0.0', npm: '>=6.0.0'}
+    dependencies:
+      buffer: 5.7.1
+      multibase: 2.0.0
+      varint: 5.0.2
+      web-encoding: 1.1.5
+    dev: false
 
   /multihashes/4.0.3:
     resolution: {integrity: sha512-0AhMH7Iu95XjDLxIeuCOOE4t9+vQZsACyKZ9Fxw2pcsRmlX4iCn1mby0hS0bb+nQOVpdQYWPpnyusw4da5RPhA==}
@@ -15975,7 +16009,6 @@ packages:
       util: 0.12.4
     optionalDependencies:
       '@zxing/text-encoding': 0.9.0
-    dev: true
 
   /web-streams-polyfill/3.2.1:
     resolution: {integrity: sha512-e0MO3wdXWKrLbL0DgGnUV7WHVuw9OUvL4hjgnPkIeEvESk74gAITi5G606JtZPp39cd8HA9VQzCIvA49LpPN5Q==}

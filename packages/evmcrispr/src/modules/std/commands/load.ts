@@ -79,7 +79,7 @@ export const load: ICommand<Std> = {
         ) {
           return [];
         }
-        return ['aragonos', 'tenderly', 'giveth'];
+        return ['aragonos', 'tenderly', 'giveth', 'ens'];
       }
       default:
         return [];
