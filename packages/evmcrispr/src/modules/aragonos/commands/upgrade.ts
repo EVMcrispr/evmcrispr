@@ -1,11 +1,7 @@
 import { constants, utils } from 'ethers';
 import { isAddress } from 'ethers/lib/utils';
 
-import {
-  ComparisonType,
-  addressesEqual,
-  checkArgsLength,
-} from '../../../utils';
+import { ComparisonType, checkArgsLength } from '../../../utils';
 import type { ICommand } from '../../../types';
 import type { AragonOS } from '../AragonOS';
 import { _aragonEns } from '../helpers/aragonEns';
@@ -81,10 +77,6 @@ export const upgrade: ICommand<AragonOS> = {
       throw new ErrorException(
         'second upgrade parameter must be a semantic version, an address, or nothing',
       );
-    }
-
-    if (addressesEqual(currentAppAddress, newAppAddress)) {
-      throw new ErrorException(`trying to upgrade app to its current version`);
     }
 
     return [

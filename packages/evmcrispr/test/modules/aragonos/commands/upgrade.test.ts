@@ -163,17 +163,4 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
-
-  it('should fail when upgrading an app to the same version', async () => {
-    const interpreter = createAragonScriptInterpreter([
-      'upgrade disputable-conviction-voting.open 1.0.0',
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
-    const error = new CommandError(
-      c,
-      `trying to upgrade app to its current version`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
 });
