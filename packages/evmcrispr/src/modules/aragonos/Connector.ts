@@ -15,6 +15,8 @@ export function subgraphUrlFromChainId(chainId: number): string | never {
       return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby';
     case 5:
       return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli';
+    case 10:
+      return 'https://api.thegraph.com/subgraphs/name/blossomlabs/aragon-optimism';
     case 100:
       return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai';
     case 137:

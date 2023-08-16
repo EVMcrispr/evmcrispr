@@ -34,6 +34,9 @@ async function getAbiEntries(
       }.etherscan.io/api`;
       break;
     }
+    case 10:
+      baseUrl = 'https://api-optimistic.etherscan.io/api';
+      break;
     case 100:
       baseUrl = 'https://blockscout.com/xdai/mainnet/api';
       break;
