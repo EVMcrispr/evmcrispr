@@ -59,7 +59,11 @@ export const verifyGivbacks: ICommand<Giveth> = {
       decodedVoteScript.length !== 1 ||
       decodedVoteScript[0].to !== agent.toLowerCase()
     ) {
-      throw new Error('Vote script does not match script in ' + hash);
+      throw new Error(
+        'Vote script does not match script in ' +
+          hash +
+          '. Main call is not to the agent.',
+      );
     }
 
     const decodedAgentScript = decodeCallScript(
@@ -73,31 +77,47 @@ export const verifyGivbacks: ICommand<Giveth> = {
     if (
       decodedAgentScript.some((call) => call.to !== relayerAddr.toLowerCase())
     ) {
-      throw new Error('Vote script does not match script in ' + hash);
+      throw new Error(
+        'Vote script does not match script in ' +
+          hash +
+          '. Some calls are not to the relayer.',
+      );
     }
 
-    const decodedRelayerCalls = decodedAgentScript.map((call) =>
-      relayer.interface.decodeFunctionData('addBatches', call.data),
+    if (decodedAgentScript.length !== 1) {
+      throw new Error(
+        'Vote script does not match script in ' +
+          hash +
+          '. There are more than one calls to the relayer.',
+      );
+    }
+
+    const decodedRelayerCall = relayer.interface.decodeFunctionData(
+      'addBatches',
+      decodedAgentScript[0].data,
     );
 
-    // if one of the decoded calls is not the expected batch, throw
-    if (
-      decodedRelayerCalls.some((call) => utils.toUtf8String(call[1]) !== hash)
-    ) {
-      throw new Error('Vote script does not match script in ' + hash);
+    // if the decoded call has not the expected ipfs hash, throw
+    if (utils.toUtf8String(decodedRelayerCall[1]) !== hash) {
+      throw new Error(
+        'Vote script does not match script in ' +
+          hash +
+          '. The IPFS hash do not correspond to the one in the script.',
+      );
     }
 
-    // if one of the decoded calls is not the expected batch, throw
+    // if the decoded call has not the expected batches, throw
     if (
-      decodedRelayerCalls.some((call) =>
-        call[0].some((batch: string) => !batches.includes(batch)),
+      decodedRelayerCall[0].length !== batches.length ||
+      !decodedRelayerCall[0].every(
+        (batch: string, i: number) => batch === batches[i],
       )
     ) {
-      throw new Error('Vote script does not match script in ' + hash);
-    }
-
-    if (decodedRelayerCalls.length !== batches.length) {
-      throw new Error('Vote script does not match script in ' + hash);
+      throw new Error(
+        'Vote script does not match script in ' +
+          hash +
+          '. Some calls are not to the expected batch, vis.',
+      );
     }
 
     module.evmcrispr.log('Vote script matches script in ' + hash);
