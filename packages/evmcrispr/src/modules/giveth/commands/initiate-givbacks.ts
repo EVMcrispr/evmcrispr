@@ -10,7 +10,12 @@ import {
   getOptValue,
 } from '../../../utils';
 import { batchForwarderActions } from '../../aragonos/utils';
-import { agent, defaultRelayerAddr, tokenManager, voting } from '../addresses';
+import {
+  agentMap,
+  defaultRelayerMap,
+  tokenManagerMap,
+  votingMap,
+} from '../addresses';
 
 import type { Giveth } from '../Giveth';
 
@@ -20,6 +25,16 @@ export const initiateGivbacks: ICommand<Giveth> = {
     checkOpts(c, ['relayer']);
 
     const [hash] = await interpretNodes(c.args);
+
+    const chainId = await module.getChainId();
+    const tokenManager = tokenManagerMap.get(chainId);
+    const voting = votingMap.get(chainId);
+    const agent = agentMap.get(chainId);
+    const defaultRelayerAddr = defaultRelayerMap.get(chainId);
+    if (!tokenManager || !voting || !agent || !defaultRelayerAddr) {
+      throw new Error(`Givbacks can't be sent for ${chainId} chain`);
+    }
+
     const relayerAddr =
       (await getOptValue(c, 'relayer', interpretNode)) || defaultRelayerAddr;
 

@@ -7,16 +7,25 @@ import {
   encodeAction,
   getOptValue,
 } from '../../../utils';
-import { defaultRelayerAddr } from '../addresses';
+import { defaultRelayerMap } from '../addresses';
 
 import type { Giveth } from '../Giveth';
 
 export const finalizeGivbacks: ICommand<Giveth> = {
-  async run(_, c, { interpretNode, interpretNodes }) {
+  async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
     checkOpts(c, ['relayer']);
 
     const [hash] = await interpretNodes(c.args);
+
+    const defaultRelayerAddr = defaultRelayerMap.get(await module.getChainId());
+
+    if (!defaultRelayerAddr) {
+      throw new Error(
+        `No default relayer for chain ${await module.getChainId()}`,
+      );
+    }
+
     const relayerAddr =
       (await getOptValue(c, 'relayer', interpretNode)) || defaultRelayerAddr;
 

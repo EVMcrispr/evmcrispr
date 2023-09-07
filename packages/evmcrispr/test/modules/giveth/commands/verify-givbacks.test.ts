@@ -3,13 +3,15 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { CommandError } from '../../../../src/errors';
-import { defaultRelayerAddr } from '../../../../src/modules/giveth/addresses';
+import { defaultRelayerMap } from '../../../../src/modules/giveth/addresses';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
 import { expectThrowAsync } from '../../../test-helpers/expects';
 import { findGivethCommandNode } from '../../../test-helpers/giveth';
 
-describe.only('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]', () => {
+const defaultRelayerAddr = defaultRelayerMap.get(100)!;
+
+describe('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]', () => {
   let signer: Signer;
 
   before(async () => {

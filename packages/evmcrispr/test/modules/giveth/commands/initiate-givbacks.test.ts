@@ -3,7 +3,9 @@ import type { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { createInterpreter } from '../../../test-helpers/cas11';
-import { defaultRelayerAddr } from '../../../../src/modules/giveth/addresses';
+import { defaultRelayerMap } from '../../../../src/modules/giveth/addresses';
+
+const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
 describe('Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]', () => {
   let signer: Signer;

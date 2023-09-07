@@ -10,7 +10,7 @@ import {
   encodeAction,
   getOptValue,
 } from '../../../utils';
-import { agent, defaultRelayerAddr, voting } from '../addresses';
+import { agentMap, defaultRelayerMap, votingMap } from '../addresses';
 
 import type { Giveth } from '../Giveth';
 
@@ -20,6 +20,15 @@ export const verifyGivbacks: ICommand<Giveth> = {
     checkOpts(c, ['relayer']);
 
     const [hash, voteId] = await interpretNodes(c.args);
+
+    const chainId = await module.getChainId();
+    const voting = votingMap.get(chainId);
+    const agent = agentMap.get(chainId);
+    const defaultRelayerAddr = defaultRelayerMap.get(chainId);
+    if (!voting || !agent || !defaultRelayerAddr) {
+      throw new Error(`Givbacks can't be sent for ${chainId} chain`);
+    }
+
     const relayerAddr =
       (await getOptValue(c, 'relayer', interpretNode)) || defaultRelayerAddr;
 
