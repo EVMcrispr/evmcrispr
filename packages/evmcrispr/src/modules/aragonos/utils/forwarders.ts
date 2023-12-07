@@ -56,6 +56,7 @@ export const batchForwarderActions = async (
   forwarderActions: TransactionAction[],
   forwarders: string[],
   context?: string,
+  checkForwarder = true,
 ): Promise<Action[]> => {
   let script: string;
   let value: string | number = 0;
@@ -69,7 +70,7 @@ export const batchForwarderActions = async (
       await module.getProvider(),
     );
 
-    if (!(await isForwarder(forwarder))) {
+    if (checkForwarder && !(await isForwarder(forwarder))) {
       throw new ErrorInvalid(`app ${forwarder.address} is not a forwarder`);
     }
 

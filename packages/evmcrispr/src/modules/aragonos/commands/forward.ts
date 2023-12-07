@@ -21,7 +21,7 @@ export const forward: ICommand<AragonOS> = {
       type: ComparisonType.Greater,
       minValue: 2,
     });
-    checkOpts(c, ['context']);
+    checkOpts(c, ['context', 'check-forwarder']);
 
     const blockCommandsNode = c.args.pop()!;
 
@@ -54,12 +54,19 @@ export const forward: ICommand<AragonOS> = {
     }
 
     const context = await getOptValue(c, 'context', interpretNode);
+    const checkForwarder = await getOptValue(
+      c,
+      'check-forwarder',
+      interpretNode,
+    );
+    console.log(checkForwarder, 'checkForwarder');
 
     return batchForwarderActions(
       module,
       blockActions as TransactionAction[],
       forwarderAppAddresses.reverse(),
       context,
+      checkForwarder,
     );
   },
   buildCompletionItemsForArg(_, __, bindingsManager) {
