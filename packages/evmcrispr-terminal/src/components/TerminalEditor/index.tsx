@@ -18,7 +18,11 @@ import { theme } from './theme';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import { useDebounce } from '../../hooks/useDebounce';
 
-export default function TerminalEditor() {
+export default function TerminalEditor({
+  removeIPFSFromUrl,
+}: {
+  removeIPFSFromUrl: () => void;
+}) {
   const monaco = useMonaco();
 
   const ipfsResolver = new IPFSResolver();
@@ -41,6 +45,7 @@ export default function TerminalEditor() {
         1
       : startLineNumber;
     terminalStoreActions.updateCurrentLine(newLine);
+    removeIPFSFromUrl();
   }
 
   useEffect(() => {
