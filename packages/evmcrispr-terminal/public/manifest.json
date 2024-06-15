@@ -1,10 +1,11 @@
 {
-  "short_name": "EVMcrispr terminal",
-  "name": "Rewrite DAOs' DNA",
+  "short_name": "EVMcrispr",
+  "name": "EVMcrispr Terminal",
+  "description": "Rewrite DAOs' DNA",
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "32x32",
+      "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
