@@ -2,6 +2,7 @@ import {
   Alert,
   AlertDescription,
   Icon,
+  Link,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -84,8 +85,18 @@ export default function LogModal({
                     <AlertDescription>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
-                        components={ChakraUIRenderer()}
-                        linkTarget="_blank"
+                        components={ChakraUIRenderer({
+                          a: ({ href, children, ...props }) => (
+                            <Link
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              {...props}
+                            >
+                              {children}
+                            </Link>
+                          ),
+                        })}
                       >
                         {stripString(log)}
                       </ReactMarkdown>

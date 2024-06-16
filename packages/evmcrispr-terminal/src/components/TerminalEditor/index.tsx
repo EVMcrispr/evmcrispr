@@ -3,7 +3,7 @@ import type { Monaco } from '@monaco-editor/react';
 
 import { useEffect } from 'react';
 
-import { useProvider } from 'wagmi';
+import { useWalletClient } from 'wagmi';
 
 import { IPFSResolver } from '@1hive/evmcrispr';
 
@@ -17,6 +17,7 @@ import { createProvideCompletionItemsFn } from './autocompletion';
 import { theme } from './theme';
 import { terminalStoreActions, useTerminalStore } from './use-terminal-store';
 import { useDebounce } from '../../hooks/useDebounce';
+import { clientToSigner } from '../../utils/ethers';
 
 export default function TerminalEditor() {
   const monaco = useMonaco();
@@ -25,7 +26,8 @@ export default function TerminalEditor() {
 
   const { bindingsCache, script, ast, currentModuleNames } = useTerminalStore();
 
-  const provider = useProvider();
+  const { data: client } = useWalletClient();
+  const provider = client ? clientToSigner(client).provider : undefined;
 
   const debouncedScript = useDebounce(script, 200);
 

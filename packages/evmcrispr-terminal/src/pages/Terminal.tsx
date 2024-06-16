@@ -9,7 +9,7 @@ import {
 
 import _debounce from 'lodash.debounce';
 
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 
 import { useChain, useSpringRef } from '@react-spring/web';
 import {
@@ -41,15 +41,13 @@ import { useScriptFromId } from '../hooks/useStoredScript';
 import { getScriptSavedInLocalStorage } from '../utils';
 
 export default function Terminal() {
-  const [firstTry, setFirstTry] = useState(true);
   const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
 
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
   const footerRef = useSpringRef();
 
-  const { data: account } = useAccount();
-  const { connectors, connect, isConnected } = useConnect();
+  const { address } = useAccount();
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
@@ -59,8 +57,6 @@ export default function Terminal() {
 
   const { title: titleFromSession, script: scriptFromSession } =
     useTerminalStore();
-
-  const address = account?.address ?? '';
 
   useChain([terminalRef, buttonsRef, footerRef]);
 
@@ -77,19 +73,6 @@ export default function Terminal() {
       terminalStoreActions.processScript();
     }
   }, []);
-
-  /**
-   * Try to connect as soon as page mounts
-   * to have access to a provider to use on
-   * auto-completion
-   */
-  useEffect(() => {
-    if (!firstTry || isConnected) {
-      return;
-    }
-    connect(connectors[0]);
-    setFirstTry(false);
-  }, [firstTry, connect, connectors, isConnected]);
 
   useEffect(() => {
     if (titleFromId !== undefined) {
@@ -121,7 +104,10 @@ export default function Terminal() {
       <ScrollRestoration />
       <ScriptLibrary />
       <Container maxWidth={{ base: '7xl', '2xl': '8xl' }} my={14}>
-        <Header address={address} terminalStoreActions={terminalStoreActions} />
+        <Header
+          address={address || ''}
+          terminalStoreActions={terminalStoreActions}
+        />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
             <Flex width={'100%'}>
@@ -149,7 +135,7 @@ export default function Terminal() {
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
           <ActionButtons
-            address={address}
+            address={address || ''}
             maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>

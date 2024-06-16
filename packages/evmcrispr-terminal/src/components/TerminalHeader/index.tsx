@@ -29,7 +29,7 @@ export default function TerminalHeader({
   };
   address: string;
 }) {
-  const { isConnecting } = useConnect();
+  const { isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
 
   const {

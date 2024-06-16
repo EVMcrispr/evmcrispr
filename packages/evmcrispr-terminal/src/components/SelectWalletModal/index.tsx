@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   Button,
   Modal,
@@ -10,7 +9,6 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { useConnect } from 'wagmi';
-import { InjectedConnector } from 'wagmi/connectors/injected';
 
 import MetamaskIcon from '../icons/MetamaskIcon';
 import WalletIcon from '../icons/WalletIcon';
@@ -22,23 +20,7 @@ export default function SelectWalletModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const {
-    connectors,
-    connect,
-    isConnecting,
-    isError,
-    isConnected,
-    pendingConnector,
-  } = useConnect();
-
-  const connectingToMetamask =
-    pendingConnector instanceof InjectedConnector && isConnecting;
-
-  useEffect(() => {
-    if (isError || isConnected) {
-      onClose();
-    }
-  }, [isError, isConnected, onClose]);
+  const { connectors, isPending, connect } = useConnect();
 
   return (
     <Modal
@@ -55,20 +37,27 @@ export default function SelectWalletModal({
         <ModalBody>
           <VStack spacing={7} w={'300px'}>
             <Button
-              disabled={connectingToMetamask}
+              isLoading={isPending}
+              disabled={isPending}
               variant="outline-overlay"
-              onClick={() => connect(connectors[0])}
+              onClick={() => {
+                connect(
+                  { connector: connectors[0] },
+                  { onSuccess: () => onClose(), onError: () => onClose() },
+                );
+              }}
               size="lg"
               leftIcon={<MetamaskIcon />}
-              isLoading={connectingToMetamask}
               w={'100%'}
             >
               Metamask
             </Button>
             <Button
+              disabled={isPending}
               variant="outline-overlay"
               onClick={() => {
-                connect(connectors[1]);
+                connect({ connector: connectors[1] });
+                onClose();
               }}
               size="lg"
               leftIcon={<WalletIcon />}
@@ -76,25 +65,6 @@ export default function SelectWalletModal({
             >
               Wallet Connect
             </Button>
-            {/* <Button
-              variant="outline"
-              onClick={() => {
-                connect(connectors[2]);
-                onClose();
-              }}
-              w="100%"
-            >
-              <HStack w="100%" justifyContent="center">
-                <Image
-                  src="/wallets/frame.svg"
-                  alt="Frame Logo"
-                  width={25}
-                  height={25}
-                  borderRadius="3px"
-                />
-                <Text>Frame</Text>
-              </HStack>
-            </Button> */}
           </VStack>
         </ModalBody>
       </ModalContent>

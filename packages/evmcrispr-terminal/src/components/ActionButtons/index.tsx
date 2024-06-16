@@ -1,55 +1,23 @@
 import { useState } from 'react';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
-import { useConnect } from 'wagmi';
-import { InjectedConnector } from 'wagmi/connectors/injected';
-
-import type { Action, ForwardOptions } from '@1hive/evmcrispr';
-import type { Connector } from 'wagmi';
-import type { providers } from 'ethers';
-
+import { useWalletClient } from 'wagmi';
 import { Button, HStack, VStack, useDisclosure } from '@chakra-ui/react';
 
 import LogModal from '../LogModal';
 import ErrorMsg from './ErrorMsg';
 
-const executeAction = async (
-  action: Action,
-  connector: Connector,
-  options?: ForwardOptions,
-): Promise<providers.TransactionReceipt | void> => {
-  if (!(connector instanceof InjectedConnector)) {
-    throw new Error(
-      `Provider action-returning commands are only supported by injected wallets (e.g. Metamask)`,
-    );
-  }
-
-  if (isProviderAction(action)) {
-    const [chainParam] = action.params;
-    const chain = await connector.switchChain(Number(chainParam.chainId));
-    if (chain.id !== Number(chainParam.chainId)) {
-      throw new Error('Incorrect Chain ID.');
-    }
-  } else {
-    const signer = await connector.getSigner();
-    return (
-      await signer.sendTransaction({
-        ...action,
-        gasPrice: options?.gasPrice,
-        gasLimit: options?.gasLimit,
-      })
-    ).wait();
-  }
-};
-
-type ActionButtonsType = {
-  address: string;
-  maximizeGasLimit: boolean;
-};
+import { config } from '../../wagmi';
 
 import {
   terminalStoreActions,
   useTerminalStore,
 } from '../TerminalEditor/use-terminal-store';
+import { clientToSigner } from '../../utils/ethers';
+
+type ActionButtonsType = {
+  address: string;
+  maximizeGasLimit: boolean;
+};
 
 export default function ActionButtons({
   address,
@@ -67,7 +35,7 @@ export default function ActionButtons({
     id: 'log',
   });
 
-  const { activeConnector } = useConnect();
+  const { data: client } = useWalletClient();
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -87,9 +55,7 @@ export default function ActionButtons({
     terminalStoreActions.isLoading(true);
 
     try {
-      const signer = await activeConnector?.getSigner();
-      if (!activeConnector || signer === undefined || signer === null)
-        throw new Error('Account not connected');
+      if (client === undefined) throw new Error('Account not connected');
 
       const { ast, errors } = parseScript(script);
 
@@ -99,14 +65,23 @@ export default function ActionButtons({
         return;
       }
 
-      await new EVMcrispr(ast, () => activeConnector.getSigner())
+      await new EVMcrispr(ast, async () => clientToSigner(client!))
         .registerLogListener(logListener)
         .interpret(async (action) => {
-          await executeAction(
-            action,
-            activeConnector,
-            maximizeGasLimit ? { gasLimit: 10_000_000 } : {},
-          );
+          if (isProviderAction(action)) {
+            const [chainParam] = action.params;
+            await client.switchChain({ id: Number(chainParam.chainId) });
+          } else {
+            const chainId = await client.getChainId();
+            await client.sendTransaction({
+              chain: config.chains.find((chain) => chain.id === chainId),
+              to: action.to as `0x${string}`,
+              from: action.from as `0x${string}`,
+              data: action.data as `0x${string}`,
+              value: BigInt(action.value || 0),
+              gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
+            });
+          }
         });
     } catch (err: any) {
       const e = err as Error;

@@ -30,3 +30,7 @@ html,
   background: #75f248;
   clip-path: polygon(0 60.00px, 30px 30px, 60.00px 0, calc(100% - 60.00px) 0, calc(100% - 30px) 30px, 100% 60.00px, 100% calc(100% - 60.00px), calc(100% - 30px) calc(100% - 30px), calc(100% - 60.00px) 100%, 60.00px 100%, 30px calc(100% - 30px), 0 calc(100% - 60.00px), 0 60.00px, 2px calc(60.00px + 0.83px), 2px calc(100% - 60.00px - 0.83px), calc(30px + 1.41px) calc(100% - 30px - 1.41px), calc(60.00px + 0.83px) calc(100% - 2px), calc(100% - 60.00px - 0.83px) calc(100% - 2px), calc(100% - 30px - 1.41px) calc(100% - 30px - 1.41px), calc(100% - 2px) calc(100% - 60.00px - 0.83px), calc(100% - 2px) calc(60.00px + 0.83px), calc(100% - 30px - 1.41px) calc(30px + 1.41px), calc(100% - 60.00px - 0.83px) 2px, calc(60.00px + 0.83px) 2px, calc(30px + 1.41px) calc(30px + 1.41px), 2px calc(60.00px + 0.83px));
 }
+
+:root {
+  --wcm-z-index: 20000 !important;
+}

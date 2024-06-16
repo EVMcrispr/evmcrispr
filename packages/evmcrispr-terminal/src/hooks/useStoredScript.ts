@@ -1,4 +1,4 @@
-import CID from 'cids';
+import { CID } from 'multiformats';
 import { useEffect, useState } from 'react';
 
 import fetchPin from '../api/pinata/fetch-pin';
@@ -6,13 +6,7 @@ import type { BareScript } from '../types';
 import { getScriptSavedInLocalStorage } from '../utils';
 
 function isCID(s: string | undefined) {
-  if (!s) return false;
-  try {
-    new CID(s);
-    return true;
-  } catch (e) {
-    return false;
-  }
+  return !!CID.asCID(s);
 }
 
 export function useScriptFromId(
