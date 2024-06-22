@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi';
-import { injected, safe, walletConnect } from 'wagmi/connectors';
+import { injected, walletConnect } from 'wagmi/connectors';
+
 import {
   arbitrum,
   gnosis,
@@ -10,6 +11,10 @@ import {
   polygonZkEvm,
   sepolia,
 } from 'wagmi/chains';
+
+import { safe } from './overrides/safe';
+
+const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
 export const config = createConfig({
   chains: [
@@ -24,13 +29,15 @@ export const config = createConfig({
   ],
   connectors: [
     injected(),
-    walletConnect({
-      projectId:
-        import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ||
-        '6618ed719d2018be97a319ea889e730d',
+    WALLETCONNECT_PROJECT_ID &&
+      walletConnect({
+        projectId: WALLETCONNECT_PROJECT_ID,
+      }),
+    safe({
+      allowedDomains: [/app.safe.global$/],
+      shimDisconnect: true,
     }),
-    safe(),
-  ],
+  ].filter(Boolean),
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http(),

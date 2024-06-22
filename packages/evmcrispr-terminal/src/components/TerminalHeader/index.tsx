@@ -13,8 +13,7 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import Blockies from 'react-blockies';
-
-import { useConnect, useDisconnect } from 'wagmi';
+import { useDisconnect } from 'wagmi';
 
 import logo from '../../assets/logo.svg';
 import SelectWalletModal from '../SelectWalletModal';
@@ -23,13 +22,14 @@ import { terminalStoreActions } from '../TerminalEditor/use-terminal-store';
 
 export default function TerminalHeader({
   address,
+  isSafe,
 }: {
   terminalStoreActions: {
     errors: (param: string[]) => void;
   };
   address: string;
+  isSafe: boolean;
 }) {
-  const { isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
 
   const {
@@ -85,22 +85,22 @@ export default function TerminalHeader({
                 {addressShortened}
               </Text>
             </Flex>
-            <Button
-              variant="overlay"
-              colorScheme="pink"
-              onClick={onDisconnect}
-              size="sm"
-            >
-              Disconnect
-            </Button>
+            {!isSafe && (
+              <Button
+                variant="overlay"
+                colorScheme="pink"
+                onClick={onDisconnect}
+                size="sm"
+              >
+                Disconnect
+              </Button>
+            )}
           </VStack>
         ) : (
           <Button
             variant="overlay"
             size={['md', 'md', 'lg']}
             colorScheme={'green'}
-            isLoading={isConnecting}
-            loadingText={'Connecting…'}
             onClick={onWalletModalOpen}
           >
             Connect

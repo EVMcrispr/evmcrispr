@@ -21,6 +21,9 @@ export default function SelectWalletModal({
   onClose: () => void;
 }) {
   const { connectors, isPending, connect } = useConnect();
+  const walletConnectConnector = connectors.find(
+    (c) => c.id === 'walletConnect',
+  );
 
   return (
     <Modal
@@ -52,19 +55,21 @@ export default function SelectWalletModal({
             >
               Metamask
             </Button>
-            <Button
-              disabled={isPending}
-              variant="outline-overlay"
-              onClick={() => {
-                connect({ connector: connectors[1] });
-                onClose();
-              }}
-              size="lg"
-              leftIcon={<WalletIcon />}
-              w={'100%'}
-            >
-              Wallet Connect
-            </Button>
+            {walletConnectConnector && (
+              <Button
+                disabled={isPending}
+                variant="outline-overlay"
+                onClick={() => {
+                  connect({ connector: walletConnectConnector });
+                  onClose();
+                }}
+                size="lg"
+                leftIcon={<WalletIcon />}
+                w={'100%'}
+              >
+                Wallet Connect
+              </Button>
+            )}
           </VStack>
         </ModalBody>
       </ModalContent>
