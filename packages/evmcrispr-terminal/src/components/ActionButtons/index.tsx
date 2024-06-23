@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import type { TransactionAction } from '@1hive/evmcrispr';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
 import { useWalletClient } from 'wagmi';
-import { Button, HStack, VStack, useDisclosure } from '@chakra-ui/react';
+import { HStack, VStack, useDisclosure } from '@chakra-ui/react';
 
 import LogModal from '../LogModal';
 import ErrorMsg from './ErrorMsg';
@@ -13,6 +14,8 @@ import {
   useTerminalStore,
 } from '../TerminalEditor/use-terminal-store';
 import { clientToSigner } from '../../utils/ethers';
+import { useSafeConnection } from '../../hooks/useSafeConnection';
+import { ExecuteButton } from './ExecuteButton';
 
 type ActionButtonsType = {
   address: string;
@@ -36,6 +39,7 @@ export default function ActionButtons({
   });
 
   const { data: client } = useWalletClient();
+  const { isSafe, sdk } = useSafeConnection();
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -50,7 +54,7 @@ export default function ActionButtons({
     setLogs([]);
   }
 
-  async function onExecute() {
+  async function onExecute(inBatch: boolean) {
     terminalStoreActions.errors([]);
     terminalStoreActions.isLoading(true);
 
@@ -65,12 +69,19 @@ export default function ActionButtons({
         return;
       }
 
+      const batched: TransactionAction[] = [];
+
       await new EVMcrispr(ast, async () => clientToSigner(client!))
         .registerLogListener(logListener)
         .interpret(async (action) => {
           if (isProviderAction(action)) {
+            if (inBatch) {
+              throw new Error('Batching not supported for provider actions');
+            }
             const [chainParam] = action.params;
             await client.switchChain({ id: Number(chainParam.chainId) });
+          } else if (inBatch) {
+            batched.push(action);
           } else {
             const chainId = await client.getChainId();
             await client.sendTransaction({
@@ -83,6 +94,16 @@ export default function ActionButtons({
             });
           }
         });
+
+      if (batched.length) {
+        await sdk?.txs.send({
+          txs: batched.map((action) => ({
+            to: action.to,
+            data: action.data,
+            value: String(action.value || '0'),
+          })),
+        });
+      }
     } catch (err: any) {
       const e = err as Error;
       console.error(e);
@@ -113,16 +134,11 @@ export default function ActionButtons({
           pr={{ base: 6, lg: 0 }}
         >
           {address ? (
-            <Button
-              variant="overlay"
-              colorScheme={'green'}
-              onClick={onExecute}
+            <ExecuteButton
               isLoading={isLoading}
-              loadingText={'Executing'}
-              size={'md'}
-            >
-              Execute
-            </Button>
+              onExecute={onExecute}
+              allowBatch={isSafe}
+            />
           ) : null}
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>

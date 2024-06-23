@@ -4,6 +4,7 @@ import Switch from './SwitchCustomization';
 import Alert from './AlertCustomization';
 import Tooltip from './TooltipCustomization';
 import Text from './TextCustomization';
+import Menu from './MenuCustomization';
 
 const theme = {
   initialColorMode: 'dark',
@@ -106,6 +107,7 @@ const theme = {
     Alert,
     Tooltip,
     Text,
+    Menu,
   },
   shadows: {
     outline: 'green.900',
