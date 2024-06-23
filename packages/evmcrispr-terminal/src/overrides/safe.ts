@@ -3,6 +3,7 @@
 
 import type { SafeAppProvider } from '@safe-global/safe-apps-provider';
 import type { Opts } from '@safe-global/safe-apps-sdk';
+// @ts-ignore
 import type { type Connector } from '@wagmi/core';
 import { ProviderNotFoundError, createConnector } from '@wagmi/core';
 import type { Evaluate } from '@wagmi/core/internal';
@@ -92,12 +93,16 @@ export function safe(parameters: SafeParameters = {}) {
         const { default: SafeAppsSDK } = await import(
           '@safe-global/safe-apps-sdk'
         );
+        // @ts-ignore
         let SDK: typeof SafeAppsSDK.default;
         if (
           typeof SafeAppsSDK !== 'function' &&
+          // @ts-ignore
           typeof SafeAppsSDK.default === 'function'
         )
+          // @ts-ignore
           SDK = SafeAppsSDK.default;
+        // @ts-ignore
         else SDK = SafeAppsSDK as unknown as typeof SafeAppsSDK.default;
         const sdk = new SDK(parameters);
 
@@ -110,11 +115,13 @@ export function safe(parameters: SafeParameters = {}) {
         const { SafeAppProvider } = await import(
           '@safe-global/safe-apps-provider/dist'
         );
+        // @ts-ignore
         provider_ = new SafeAppProvider(safe, sdk);
       }
       return provider_;
     },
     async getChainId() {
+      // @ts-ignore
       const provider = await this.getProvider();
       if (!provider) throw new ProviderNotFoundError();
       return Number(provider.chainId);

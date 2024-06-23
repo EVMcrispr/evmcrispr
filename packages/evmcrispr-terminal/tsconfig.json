@@ -12,6 +12,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true
   },
-  "include": ["src", "**/*.tsx"],
+  "include": ["src", "**/*.tsx", "src/overrides"],
+  "exclude": ["node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
