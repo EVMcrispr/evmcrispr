@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { TransactionAction } from '@1hive/evmcrispr';
 import { EVMcrispr, isProviderAction, parseScript } from '@1hive/evmcrispr';
-import { useWalletClient } from 'wagmi';
+import type { Connector } from 'wagmi';
+import { useConnect, useWalletClient } from 'wagmi';
 import { HStack, VStack, useDisclosure } from '@chakra-ui/react';
+import type SafeAppProvider from '@safe-global/safe-apps-sdk';
 
 import LogModal from '../LogModal';
 import ErrorMsg from './ErrorMsg';
@@ -14,7 +16,6 @@ import {
   useTerminalStore,
 } from '../TerminalEditor/use-terminal-store';
 import { clientToSigner } from '../../utils/ethers';
-import { useSafeConnection } from '../../hooks/useSafeConnection';
 import { ExecuteButton } from './ExecuteButton';
 
 type ActionButtonsType = {
@@ -39,7 +40,8 @@ export default function ActionButtons({
   });
 
   const { data: client } = useWalletClient();
-  const { isSafe, sdk } = useSafeConnection();
+  const { connectors } = useConnect();
+  const safeConnector = connectors.find((c: Connector) => c.id === 'safe');
 
   function logListener(message: string, prevMessages: string[]) {
     if (!isLogModalOpen) {
@@ -96,7 +98,11 @@ export default function ActionButtons({
         });
 
       if (batched.length) {
-        await sdk?.txs.send({
+        const sdk = await safeConnector
+          ?.getProvider()
+          .then((provider) => (provider as any).sdk);
+        if (!sdk) throw new Error('Safe SDK not available');
+        await (sdk as SafeAppProvider).txs.send({
           txs: batched.map((action) => ({
             to: action.to,
             data: action.data,
@@ -137,7 +143,7 @@ export default function ActionButtons({
             <ExecuteButton
               isLoading={isLoading}
               onExecute={onExecute}
-              allowBatch={isSafe}
+              allowBatch={!!safeConnector}
             />
           ) : null}
           {errors ? <ErrorMsg errors={errors} /> : null}

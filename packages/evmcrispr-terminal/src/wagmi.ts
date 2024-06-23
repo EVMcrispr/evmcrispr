@@ -15,6 +15,7 @@ import {
 import { safe } from './overrides/safe';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+const isIframe = window.self !== window.top;
 
 export const config = createConfig({
   chains: [
@@ -28,15 +29,16 @@ export const config = createConfig({
     arbitrum,
   ],
   connectors: [
-    injected(),
-    WALLETCONNECT_PROJECT_ID &&
+    !isIframe && injected(),
+    !isIframe &&
+      WALLETCONNECT_PROJECT_ID &&
       walletConnect({
         projectId: WALLETCONNECT_PROJECT_ID,
       }),
-    safe({
-      allowedDomains: [/app.safe.global$/],
-      shimDisconnect: true,
-    }),
+    isIframe &&
+      safe({
+        allowedDomains: [/app.safe.global$/],
+      }),
   ].filter(Boolean),
   transports: {
     [mainnet.id]: http(),

@@ -38,11 +38,12 @@ import SaveScriptButton from '../components/SaveScript';
 import ScriptLibrary from '../components/ScriptLibrary';
 import TerminalEditor from '../components/TerminalEditor';
 import { useScriptFromId } from '../hooks/useStoredScript';
-import { useSafeConnection } from '../hooks/useSafeConnection';
 import { getScriptSavedInLocalStorage } from '../utils';
+import { useSafeAutoConnect } from '../hooks/useSafeAutoConnect';
 
 export default function Terminal() {
   const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
+  useSafeAutoConnect();
 
   const terminalRef = useSpringRef();
   const buttonsRef = useSpringRef();
@@ -52,7 +53,6 @@ export default function Terminal() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
-  const { isSafe } = useSafeConnection();
 
   const { title: titleFromId, script: scriptFromId } =
     useScriptFromId(params?.scriptId) || {};
@@ -109,7 +109,6 @@ export default function Terminal() {
         <Header
           address={address || ''}
           terminalStoreActions={terminalStoreActions}
-          isSafe={isSafe}
         />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
