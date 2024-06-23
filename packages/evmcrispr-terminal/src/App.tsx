@@ -6,7 +6,6 @@ import {
   createHashRouter,
   createRoutesFromElements,
 } from 'react-router-dom';
-import { SafeProvider } from '@safe-global/safe-apps-react-sdk';
 import { ChakraProvider, DarkMode, extendTheme } from '@chakra-ui/react';
 
 import theme from './theme';
@@ -33,11 +32,9 @@ const App = () => {
       <ChakraProvider theme={extendTheme(theme)}>
         <Fonts />
         <DarkMode>
-          <SafeProvider>
-            <Wagmi>
-              <RouterProvider router={router} />
-            </Wagmi>
-          </SafeProvider>
+          <Wagmi>
+            <RouterProvider router={router} />
+          </Wagmi>
         </DarkMode>
       </ChakraProvider>
     </div>

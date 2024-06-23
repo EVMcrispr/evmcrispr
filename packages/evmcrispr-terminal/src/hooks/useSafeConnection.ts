@@ -1,24 +1,19 @@
 import { useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
-import { useSafeAppsSDK } from '@safe-global/safe-apps-react-sdk';
+import type { Connector } from 'wagmi';
 
 export function useSafeConnection() {
-  const { address, connector: activeConnector } = useAccount();
-  const { safe, connected: isSafe } = useSafeAppsSDK();
+  const { connector: activeConnector } = useAccount();
   const { connectors, connectAsync } = useConnect();
-
+  const isSafe = activeConnector?.id === 'safe';
   useEffect(() => {
-    if (
-      isSafe &&
-      address !== safe.safeAddress &&
-      activeConnector?.id !== 'safe'
-    ) {
-      const safeConnector = connectors.find((c) => c.id === 'safe');
-      if (safeConnector) {
-        connectAsync({ connector: safeConnector });
-      }
+    const safeConnector = connectors.find((c: Connector) => c.id === 'safe');
+    if (safeConnector && !isSafe && window.parent !== window) {
+      connectAsync({ connector: safeConnector }).catch(() => {
+        console.log('error connecting to safe');
+      });
     }
-  }, [isSafe, connectors, address]);
+  }, [connectors, connectAsync, activeConnector, isSafe]);
 
   return { isSafe };
 }
