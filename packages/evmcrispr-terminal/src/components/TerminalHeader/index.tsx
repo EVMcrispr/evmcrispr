@@ -12,7 +12,7 @@ import {
   VStack,
   useDisclosure,
 } from '@chakra-ui/react';
-import Blockies from 'react-blockies';
+import makeBlockie from 'ethereum-blockies-base64';
 import type { Connector } from 'wagmi';
 import { useConnect, useDisconnect } from 'wagmi';
 
@@ -81,7 +81,7 @@ export default function TerminalHeader({
               px={3}
               align={'center'}
             >
-              <Blockies seed={address.toLowerCase()} scale={3} />
+              <Image src={makeBlockie(address.toLowerCase())} boxSize={6} />
               <Text ml={3} color={'white'} fontSize={'2xl'}>
                 {addressShortened}
               </Text>

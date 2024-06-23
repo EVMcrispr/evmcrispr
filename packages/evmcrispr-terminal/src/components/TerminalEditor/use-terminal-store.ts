@@ -6,7 +6,7 @@ import type {
   Position,
 } from '@1hive/evmcrispr';
 import { BindingsManager, NodeType, parseScript } from '@1hive/evmcrispr';
-import { createStore } from '@udecode/zustood';
+import { createStore } from 'zustand-x';
 import type { providers } from 'ethers';
 
 import { runEagerExecutions } from './autocompletion';
