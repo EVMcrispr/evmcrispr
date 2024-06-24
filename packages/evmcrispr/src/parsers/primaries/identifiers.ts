@@ -72,8 +72,8 @@ export const probableIdentifierParser: EnclosingNodeParser<
 > = (enclosingParsers = []) =>
   recursiveParser(() =>
     locate<ProbableIdentifierNode>(
-      coroutine(function* () {
-        const parts = (yield many1(
+      coroutine(run => {
+        const parts: string[] = run(many1(
           choice([
             sequenceOf_([
               char('('),
@@ -87,9 +87,9 @@ export const probableIdentifierParser: EnclosingNodeParser<
             ]),
             identifierRegexParser,
           ]),
-        )) as unknown as string[];
+        ));
 
-        yield enclosingLookaheadParser(enclosingParsers);
+        run(enclosingLookaheadParser(enclosingParsers));
 
         return [parts.filter((v) => !!v).join('')];
       }).errorMap((err) =>

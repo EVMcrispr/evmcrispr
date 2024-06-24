@@ -94,15 +94,15 @@ const isLastParameter = possibly(
   lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),
 );
 
-const commandArgsParser = coroutine(function* () {
+const commandArgsParser = coroutine(run => {
   let commandArgOrOpt: CommandArgExpressionNode;
 
-  if (yield possibly(lookAhead(optOperatorParser))) {
+  if (run(possibly(lookAhead(optOperatorParser)))) {
     commandArgOrOpt =
-      (yield commandOptParser) as unknown as CommandArgExpressionNode;
+      run(commandOptParser) as unknown as CommandArgExpressionNode;
   } else {
     commandArgOrOpt =
-      (yield expressionParser()) as unknown as CommandArgExpressionNode;
+      run(expressionParser()) as unknown as CommandArgExpressionNode;
   }
 
   return commandArgOrOpt;
@@ -117,9 +117,9 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
     sequenceOf([
       optionalWhitespace,
       locate<CommandExpressionNode>(
-        coroutine(function* () {
-          const commandName =
-            (yield commandNameParser) as unknown as CommandName;
+        coroutine(run => {
+          const commandName: CommandName =
+            run(commandNameParser);
 
           const { name, module } = commandName;
 
@@ -129,14 +129,14 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           )[] = [];
 
           if (
-            yield possibly(
+            run(possibly(
               lookAhead(
                 sequenceOf([
                   optionalWhitespace,
                   choice([endOfLine, endOfInput]),
                 ]),
               ),
-            )
+            ))
           ) {
             return [module, name, [], []];
           }
@@ -146,24 +146,24 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
              * Check if there's a comment ahead but don't consume it
              * to avoid having an incorrect loc property
              */
-            if (yield possibly(lookAhead(commentParser))) {
+            if (run(possibly(lookAhead(commentParser)))) {
               break;
             }
 
-            yield whitespace;
+            run(whitespace);
 
-            const res = (yield either(commandArgsParser)) as unknown as {
+            const res: {
               isError: boolean;
               value: any;
-            };
+            } = run(either(commandArgsParser));
 
             if (res.isError) {
-              yield addNewError(res.value);
-              yield everyCharUntil(choice([whitespace, endOfLine]));
+              run(addNewError(res.value));
+              run(everyCharUntil(choice([whitespace, endOfLine])));
             } else {
               commandArgsAndOpts.push(res.value);
             }
-          } while (!(yield isLastParameter));
+          } while (!run(isLastParameter));
 
           const args = commandArgsAndOpts.filter(
             (cArg) => cArg.type !== NodeType.CommandOpt,

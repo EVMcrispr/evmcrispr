@@ -23,13 +23,13 @@ const BLOCK_PARSER_ERROR = 'BlockParserError';
 export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
     locate<BlockExpressionNode>(
-      coroutine(function* () {
-        const [initialState, initialIndex] = (yield getData.mapFromData(
+      coroutine(run => {
+        const [initialState, initialIndex]: [NodeParserState, number] = run(getData.mapFromData(
           ({ data, index }) => [data, index],
-        )) as unknown as [NodeParserState, number];
-        yield sequenceOf([openingCharParser('('), endLine]);
+        ));
+        run(sequenceOf([openingCharParser('('), endLine]));
 
-        const scopedCommands = (yield linesParser(
+        const scopedCommands: CommandExpressionNode[] = run(linesParser(
           commandExpressionParser,
           closingCharParser(')'),
           {
@@ -38,7 +38,7 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
             initialState,
             initialIndex,
           },
-        )) as unknown as CommandExpressionNode[];
+        ));
 
         return [scopedCommands];
       }).errorMap((err) => buildParserError(err, BLOCK_PARSER_ERROR)),

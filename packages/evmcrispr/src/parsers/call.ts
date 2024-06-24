@@ -34,17 +34,17 @@ const chainedCallExpressionParser = (
   target: CallExpressionNode,
 ): Parser<CallExpressionNode, string, NodeParserState> =>
   recursiveParser(() =>
-    coroutine(function* () {
-      const initialContext =
-        (yield currentContexDataParser) as unknown as LocationData;
+    coroutine(run => {
+      const initialContext: LocationData =
+        run(currentContexDataParser);
 
-      const method = (yield letters) as unknown as CallExpressionNode['method'];
+      const method: CallExpressionNode['method'] = run(letters);
 
-      const args =
-        (yield argumentsParser) as unknown as CallExpressionNode['args'];
+      const args: CallExpressionNode['args'] =
+        run(argumentsParser);
 
-      const finalContext =
-        (yield currentContexDataParser) as unknown as LocationData;
+      const finalContext: LocationData =
+        run(currentContexDataParser);
 
       const n: CallExpressionNode = {
         type: NodeType.CallExpression,
@@ -55,10 +55,10 @@ const chainedCallExpressionParser = (
       };
 
       // Check for further chained call expressions
-      if (yield possibly(callOperatorParser)) {
-        const chainedNode = (yield chainedCallExpressionParser(
+      if (run(possibly(callOperatorParser))) {
+        const chainedNode: CallExpressionNode = run(chainedCallExpressionParser(
           n,
-        )) as unknown as CallExpressionNode;
+        ));
         return chainedNode;
       }
 
@@ -77,24 +77,24 @@ const callableExpressions = choice([
 
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
-    coroutine(function* () {
-      const initialContext =
-        (yield currentContexDataParser) as unknown as LocationData;
-      const target =
-        (yield callableExpressions) as unknown as CallExpressionNode['target'];
+    coroutine(run => {
+      const initialContext: LocationData =
+        run(currentContexDataParser);
+      const target: CallExpressionNode['target'] =
+        run(callableExpressions);
 
-      yield callOperatorParser;
+      run(callOperatorParser);
 
       const methodRegex = /^[a-zA-Z_{1}][a-zA-Z0-9_]+/;
-      const method = (yield regex(
+      const method: CallExpressionNode['method'] = run(regex(
         methodRegex,
-      )) as unknown as CallExpressionNode['method'];
-      const args = (yield argumentsParser.errorMap((err) =>
+      ));
+      const args: CallExpressionNode['args'] = run(argumentsParser.errorMap((err) =>
         buildParserError(err, ''),
-      )) as unknown as CallExpressionNode['args'];
+      ));
 
-      const finalContext =
-        (yield currentContexDataParser) as unknown as LocationData;
+      const finalContext: LocationData =
+        run(currentContexDataParser);
 
       const n: CallExpressionNode = {
         type: NodeType.CallExpression,
@@ -105,10 +105,10 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
       };
 
       // Check for chained call expressions
-      if (yield possibly(callOperatorParser)) {
-        const chainedCallNode = (yield chainedCallExpressionParser(
+      if (run(possibly(callOperatorParser))) {
+        const chainedCallNode: CallExpressionNode = run(chainedCallExpressionParser(
           n,
-        )) as unknown as CallExpressionNode;
+        ));
 
         return chainedCallNode;
       }

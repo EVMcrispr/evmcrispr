@@ -8,13 +8,13 @@ import { ErrorException } from '../errors';
 import { Cas11AST } from '../Cas11AST';
 
 export const scriptParser: Parser<Cas11AST, string, NodeParserState> =
-  coroutine(function* () {
-    yield setData<any, string, NodeParserState>(createParserState());
+  coroutine(run => {
+    run(setData<any, string, NodeParserState>(createParserState()));
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const lines = yield linesParser(commandExpressionParser);
-    return new Cas11AST(lines as unknown as CommandExpressionNode[]);
+    const lines: CommandExpressionNode[] = run(linesParser(commandExpressionParser));
+    return new Cas11AST(lines);
   });
 
 export const parseScript = (

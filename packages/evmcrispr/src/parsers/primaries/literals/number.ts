@@ -25,19 +25,19 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
   enclosingParsers = [],
 ) =>
   locate<NumericLiteralNode>(
-    coroutine(function* () {
+    coroutine(run => {
       let value: string;
 
-      const integers = yield digits;
+      const integers = run(digits);
 
-      if (yield possibly(char('.'))) {
-        const decimals = yield digits.errorMap((err) =>
+      if (run(possibly(char('.')))) {
+        const decimals = run(digits.errorMap((err) =>
           buildParserError(
             err,
             NUMBER_PARSER_ERROR,
             'Invalid decimal. Expecting digits',
           ),
-        );
+        ));
 
         value = `${integers}.${decimals}`;
       } else {
@@ -45,27 +45,25 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
       }
 
       let power: string | undefined;
-      if (yield possibly(char('e'))) {
-        power = (yield digits.errorMap((err) =>
+      if (run(possibly(char('e')))) {
+        power = run(digits.errorMap((err) =>
           buildParserError(
             err,
             'NumberParserError',
             'Invalid exponent. Expecting digits',
           ),
-        )) as unknown as string | undefined;
+        ));
       }
 
-      const timeUnit = (yield possibly(timeUnitsParser)) as unknown as
-        | string
-        | undefined;
+      const timeUnit: string | null = run(possibly(timeUnitsParser));
 
-      yield enclosingLookaheadParser(enclosingParsers).errorMap((err) =>
+      run(enclosingLookaheadParser(enclosingParsers).errorMap((err) =>
         buildParserError(
           err,
           'NumberParserError',
           `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
         ),
-      );
+      ));
 
       return [value, power ? parseInt(power) : undefined, timeUnit];
     }),

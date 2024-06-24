@@ -41,20 +41,20 @@ const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
 export const helperFunctionParser: NodeParser<HelperFunctionNode> =
   recursiveParser(() =>
     locate<HelperFunctionNode>(
-      coroutine(function* () {
-        yield char('@');
+      coroutine(run => {
+        run(char('@'));
 
-        const name = (yield helperNameParser) as unknown as string;
+        const name: string | undefined = run(helperNameParser);
 
-        let args = null;
+        let args: ArgumentExpressionNode[] = [];
 
-        if (yield possibly(lookAhead(openingCharParser('(')))) {
-          args = (yield argumentsParser.errorMap((err) =>
+        if (run(possibly(lookAhead(openingCharParser('('))))) {
+          args = run(argumentsParser.errorMap((err) =>
             buildParserError(err, HELPER_PARSER_ERROR),
-          )) as unknown as ArgumentExpressionNode[];
+          ));
         }
 
-        return [name, args === null ? [] : args];
+        return [name, args];
       }),
       ({ data, index, result: [initialContext, [name, args]] }) => ({
         type: NodeType.HelperFunctionExpression,

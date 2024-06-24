@@ -9,23 +9,23 @@
   "author": "Blossom Labs",
   "sideEffects": false,
   "devDependencies": {
-    "@types/isomorphic-fetch": "^0.0.36",
-    "@types/lodash.clonedeep": "^4.5.7",
-    "is-ipfs": "^6.0.2",
+    "@types/isomorphic-fetch": "^0.0.39",
+    "@types/lodash.clonedeep": "^4.5.9",
     "msw": "^2.3.1",
-    "node-fetch": "^3.2.4",
-    "nyc": "^15.1.0",
-    "ora": "^5.4.0"
+    "node-fetch": "^3.3.2",
+    "nyc": "^17.0.0",
+    "ora": "^5.4.0",
+    "is-ipfs": "^6.0.2"
   },
   "dependencies": {
-    "@ensdomains/content-hash": "^2.5.7",
-    "arcsecond": "^4.1.0",
+    "@ensdomains/content-hash": "^3.0.0",
+    "arcsecond": "^5.0.0",
     "isomorphic-fetch": "^3.0.0",
     "jsymbol": "^0.3.5",
     "lodash.clonedeep": "^4.5.0"
   },
   "peerDependencies": {
-    "ethers": "^5.6.4"
+    "ethers": "^5.7.2"
   },
   "files": [
     "dist"

@@ -118,40 +118,40 @@ export const linesParser = <T = Node>(
   },
 ): NodeParser<T[]> =>
   recursiveParser(() =>
-    coroutine(function* () {
+    coroutine(run => {
       const lines = [];
       let res: { isError: boolean; value: any };
       const parsers = endingParser
         ? [endingParser, defaultEndingParser]
         : [defaultEndingParser];
-      let endOfParse = (yield possibly(choice(parsers))) as unknown;
+      let endOfParse = run(possibly(choice(parsers)));
 
       while (!endOfParse) {
-        res = (yield either(
+        res = run(either(
           choice([lineParser, emptyLine, commentParser.map(() => null)]),
-        )) as unknown as { isError: boolean; value: any };
+        ));
 
         if (res.isError) {
-          yield addNewError(res.value);
-          yield everyCharUntil(
+          run(addNewError(res.value));
+          run(everyCharUntil(
             choice(
               endingParser
                 ? [endingParser, endOfLine, endOfInput]
                 : [endOfLine, endOfInput],
             ),
-          );
-          if (yield possibly(lookAhead(endOfLine))) {
-            yield endLine;
+          ));
+          if (run(possibly(lookAhead(endOfLine)))) {
+            run(endLine);
           }
         } else if (res.value !== null) {
           lines.push(res.value);
         }
 
-        endOfParse = (yield possibly(choice(parsers))) as unknown;
+        endOfParse = (run(possibly(choice(parsers))));
       }
 
       if (endingParser && endOfParse === 'DEFAULT_END_OF_INPUT') {
-        yield addNewError(
+        run(addNewError(
           buildParserError(
             {
               data: initialState,
@@ -164,7 +164,7 @@ export const linesParser = <T = Node>(
               endingChar ? `"${endingChar}"` : 'character'
             }, but got end of input`,
           ),
-        );
+        ));
       }
 
       return lines as T[];

@@ -141,11 +141,11 @@ const buildArithmeticExpressionNode = (
 
 export const arithmeticParser: NodeParser<BinaryExpressionNode> =
   recursiveParser(() =>
-    coroutine(function* () {
-      yield openingCharParser('(');
+    coroutine(run => {
+      run(openingCharParser('('));
 
-      const exp = (yield expression) as unknown as BinaryExpressionNode;
-      yield closingCharParser(')');
+      const exp: BinaryExpressionNode = run(expression);
+      run(closingCharParser(')'));
 
       return exp;
     }),
