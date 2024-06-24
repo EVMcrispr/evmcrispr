@@ -157,9 +157,9 @@ describe('Interpreter - primaries', async () => {
         [
           {
             type: NodeType.ProbableIdentifier,
-            value: 'token-manager.open#3',
+            value: 'token-manager.open:3',
           },
-          'token-manager.open#3',
+          'token-manager.open:3',
         ],
         [
           {

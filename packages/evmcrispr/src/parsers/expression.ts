@@ -78,7 +78,7 @@ export const argumentExpressionParser: EnclosingNodeParser<
   );
 
 export const expressionParser: EnclosingNodeParser<
-  CommandArgExpressionNode | string | null
+  CommandArgExpressionNode
 > = (enclosingParsers = []) =>
   recursiveParser(() =>
     choice([

@@ -98,11 +98,9 @@ const commandArgsParser = coroutine(run => {
   let commandArgOrOpt: CommandArgExpressionNode;
 
   if (run(possibly(lookAhead(optOperatorParser)))) {
-    commandArgOrOpt =
-      run(commandOptParser) as unknown as CommandArgExpressionNode;
+    commandArgOrOpt = run(commandOptParser);
   } else {
-    commandArgOrOpt =
-      run(expressionParser()) as unknown as CommandArgExpressionNode;
+    commandArgOrOpt = run(expressionParser());
   }
 
   return commandArgOrOpt;
