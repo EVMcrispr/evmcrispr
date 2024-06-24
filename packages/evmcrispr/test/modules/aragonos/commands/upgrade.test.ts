@@ -139,7 +139,7 @@ describe('AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]'
   });
 
   it('should fail when upgrading a non-existent app', async () => {
-    const apmRepo = 'superfluid.open';
+    const apmRepo = 'transactions.open';
     const interpreter = createAragonScriptInterpreter([`upgrade ${apmRepo}`]);
     const c = findAragonOSCommandNode(interpreter.ast, 'upgrade')!;
     const error = new CommandError(

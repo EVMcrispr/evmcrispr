@@ -39,10 +39,9 @@ const config: HardhatUserConfig = {
       beforeAll: () => {
         server.listen({
           onUnhandledRequest: (req) => {
-            if (req.url.origin === 'http://localhost:8545/') {
+            if (new URL(req.url).origin === 'http://localhost:8545') {
               return 'bypass';
             }
-
             return 'warn';
           },
         });
@@ -54,10 +53,18 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      chains: {
+        100: {
+          hardforkHistory: {
+            london: 34630000,
+          },
+        },
+      },
       chainId: 100,
+      hardfork: 'london',
       forking: {
         url: ARCHIVE_NODE_ENDPOINT,
-        blockNumber: 29509000,
+        blockNumber: 34630239,
       },
     },
   },

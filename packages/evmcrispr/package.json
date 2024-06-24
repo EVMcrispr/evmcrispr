@@ -12,7 +12,7 @@
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/lodash.clonedeep": "^4.5.7",
     "is-ipfs": "^6.0.2",
-    "msw": "^0.47.3",
+    "msw": "^2.3.1",
     "node-fetch": "^3.2.4",
     "nyc": "^15.1.0",
     "ora": "^5.4.0"
