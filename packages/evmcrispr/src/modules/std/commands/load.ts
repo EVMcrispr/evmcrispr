@@ -4,6 +4,7 @@ import type {
   Commands,
   HelperFunctions,
   ICommand,
+  IModuleConstructor,
 } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
 import type { Std } from "../Std";
@@ -11,6 +12,26 @@ import { ErrorException } from "../../../errors";
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
+
+async function getModule(moduleName: string): Promise<{
+  commands: Commands;
+  helpers: HelperFunctions;
+  ModuleConstructor: IModuleConstructor;
+}> {
+  switch (moduleName) {
+    case "aragonos":
+      // @ts-ignore-next-line
+      return await import("../../aragonos");
+    case "tenderly":
+      return await import("../../tenderly");
+    case "giveth":
+      return await import("../../giveth");
+    case "ens":
+      return await import("../../ens");
+    default:
+      throw new ErrorException(`Module ${moduleName} not found.`);
+  }
+}
 
 export const load: ICommand<Std> = {
   async run(module, c, { interpretNode }) {
@@ -52,9 +73,7 @@ export const load: ICommand<Std> = {
       }
     }
     try {
-      const { ModuleConstructor } = await import(
-        `../../${moduleName}/index.ts`
-      );
+      const { ModuleConstructor } = await getModule(moduleName);
       module.modules.push(
         new ModuleConstructor(
           module.bindingsManager,
@@ -115,16 +134,7 @@ export const load: ICommand<Std> = {
     }
 
     try {
-      let commands: Commands, helpers: HelperFunctions;
-
-      try {
-        const { commands: moduleCommands, helpers: moduleHelpers } =
-          await import(`../../${moduleName}/index.ts`);
-        commands = moduleCommands as Commands;
-        helpers = moduleHelpers as HelperFunctions;
-      } catch (e) {
-        throw new ErrorException(`Module ${moduleName} not found.`);
-      }
+      const { commands, helpers } = await getModule(moduleName);
 
       // Cache module
       cache.setBinding(moduleName, { commands, helpers }, MODULE);

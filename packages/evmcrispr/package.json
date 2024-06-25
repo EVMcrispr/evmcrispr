@@ -50,6 +50,7 @@
     "type-check": "tsc --noEmit",
     "test": "hardhat test",
     "test:coverage": "nyc --reporter=lcov bun run test",
-    "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap --out-dir dist"
+    "build": "tsup src/index.ts",
+    "dev": "tsup src/index.ts --watch"
   }
 }
