@@ -1,27 +1,27 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { Contract } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { Contract } from "ethers";
+import { ethers } from "hardhat";
 
-import { CommandError } from '../../../../src/errors';
+import { CommandError } from "../../../../src/errors";
 import {
   addressesEqual,
   buildNonceForAddress,
   calculateNewProxyAddress,
-} from '../../../../src/utils';
-import { DAO } from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
+} from "../../../../src/utils";
+import { DAO } from "../../../fixtures";
+import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from '../../../test-helpers/aragonos';
-import { createInterpreter } from '../../../test-helpers/cas11';
-import { expectThrowAsync } from '../../../test-helpers/expects';
-import type { TransactionAction } from '../../../../src/types';
-import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
-import { BindingsSpace } from '../../../../src/types';
+} from "../../../test-helpers/aragonos";
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
+import type { TransactionAction } from "../../../../src/types";
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import { BindingsSpace } from "../../../../src/types";
 
-describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]', () => {
+describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]", () => {
   let signer: Signer;
 
   let createAragonScriptInterpreter: ReturnType<
@@ -37,18 +37,18 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     );
   });
 
-  it('should return a correct new token action', async () => {
-    const params = ['my-token', 'MT', 'token-manager.open:counter-factual-tm'];
+  it("should return a correct new token action", async () => {
+    const params = ["my-token", "MT", "token-manager.open:counter-factual-tm"];
 
     const interpreter = await createAragonScriptInterpreter([
-      `new-token ${params.join(' ')}`,
+      `new-token ${params.join(" ")}`,
       `set $token token:MT`,
       `set $controller token-manager.open:counter-factual-tm`,
     ]);
 
     const newTokenActions = await interpreter.interpret();
 
-    const aragonos = interpreter.getModule('aragonos') as AragonOS;
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const tx1 = await signer.sendTransaction(
       newTokenActions[0] as TransactionAction,
     );
@@ -73,7 +73,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const token = new Contract(
       tokenAddr,
-      ['function controller() view returns (address)'],
+      ["function controller() view returns (address)"],
       signer,
     );
 
@@ -81,10 +81,10 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       .true;
   });
 
-  it('should return a correct new token action given a different DAO', async () => {
+  it("should return a correct new token action given a different DAO", async () => {
     const params = [
-      'my-token',
-      'MT',
+      "my-token",
+      "MT",
       `_${DAO.kernel}:token-manager.open:counter-factual-tm`,
     ];
 
@@ -94,7 +94,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
-            new-token ${params.join(' ')}
+            new-token ${params.join(" ")}
             set $token token:MT
             set $controller _${DAO.kernel}:token-manager.open:counter-factual-tm
           )
@@ -105,7 +105,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const newTokenActions = await interpreter.interpret();
 
-    const aragonos = interpreter.getModule('aragonos') as AragonOS;
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const tx1 = await signer.sendTransaction(
       newTokenActions[0] as TransactionAction,
     );
@@ -130,7 +130,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const token = new Contract(
       tokenAddr,
-      ['function controller() view returns (address)'],
+      ["function controller() view returns (address)"],
       signer,
     );
     const addr = calculateNewProxyAddress(
@@ -143,17 +143,17 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       .true;
   });
 
-  it('should return a correct new token action when it is not connected to a DAO', async () => {
+  it("should return a correct new token action when it is not connected to a DAO", async () => {
     const params = [
-      'my-token',
-      'MT',
+      "my-token",
+      "MT",
       `0xf762d8c9ea241a72a0b322a28e96155a03566acd`,
     ];
 
     const interpreter = createInterpreter(
       `
         load aragonos as ar
-        ar:new-token ${params.join(' ')}
+        ar:new-token ${params.join(" ")}
         set $token token:MT
       `,
       signer,
@@ -161,7 +161,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const newTokenActions = await interpreter.interpret();
 
-    const aragonos = interpreter.getModule('aragonos') as AragonOS;
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const tx1 = await signer.sendTransaction(
       newTokenActions[0] as TransactionAction,
     );
@@ -181,7 +181,7 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const token = new Contract(
       tokenAddr,
-      ['function controller() view returns (address)'],
+      ["function controller() view returns (address)"],
       signer,
     );
 
@@ -200,18 +200,18 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     const c = interpreter.ast.body[1];
     const error = new CommandError(
       c,
-      'invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm',
+      "invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm",
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when passing an invalid token decimals value', async () => {
-    const invalidDecimals = 'invalidDecimals';
+  it("should fail when passing an invalid token decimals value", async () => {
+    const invalidDecimals = "invalidDecimals";
     const interpreter = createAragonScriptInterpreter([
       `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
       `invalid decimals. Expected an integer number, but got ${invalidDecimals}`,
@@ -220,12 +220,12 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when passing an invalid controller', async () => {
-    const invalidController = 'asd:123-asd&45';
+  it("should fail when passing an invalid controller", async () => {
+    const invalidController = "asd:123-asd&45";
     const interpreter = createAragonScriptInterpreter([
       `new-token "a new token" ANT ${invalidController}`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
       `invalid controller. Expected an address or an app identifier, but got ${invalidController}`,
@@ -234,12 +234,12 @@ describe('AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when passing an invalid transferable flag', async () => {
-    const invalidTransferable = 'an-invalid-value';
+  it("should fail when passing an invalid transferable flag", async () => {
+    const invalidTransferable = "an-invalid-value";
     const interpreter = createAragonScriptInterpreter([
       `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'new-token')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
       `invalid transferable flag. Expected a boolean, but got ${invalidTransferable}`,

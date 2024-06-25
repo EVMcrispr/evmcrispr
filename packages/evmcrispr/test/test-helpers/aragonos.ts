@@ -1,34 +1,34 @@
-import type { Signer } from 'ethers';
+import type { Signer } from "ethers";
 
-import type { Address } from '../../src';
+import type { Address } from "../../src";
 
-import type { EVMcrispr } from '../../src/EVMcrispr';
+import type { EVMcrispr } from "../../src/EVMcrispr";
 
-import type { AragonOS } from '../../src/modules/aragonos/AragonOS';
-import { NodeType } from '../../src/types';
+import type { AragonOS } from "../../src/modules/aragonos/AragonOS";
+import { NodeType } from "../../src/types";
 import type {
   AST,
   BlockExpressionNode,
   CommandExpressionNode,
-} from '../../src/types';
-import { listItems } from '../../src/utils';
-import { CommandError } from '../../src/errors';
-import { createInterpreter, itChecksNonDefinedIdentifier } from './cas11';
-import { expectThrowAsync } from './expects';
+} from "../../src/types";
+import { listItems } from "../../src/utils";
+import { CommandError } from "../../src/errors";
+import { createInterpreter, itChecksNonDefinedIdentifier } from "./cas11";
+import { expectThrowAsync } from "./expects";
 import {
   getAragonEnsResolver,
   resolveName,
-} from '../../src/modules/aragonos/utils';
+} from "../../src/modules/aragonos/utils";
 import type {
   FullPermission,
   Permission,
-} from '../../src/modules/aragonos/types';
+} from "../../src/modules/aragonos/types";
 
 export const _aragonEns = async (
   ensName: string,
   module: AragonOS,
 ): Promise<string | null> => {
-  const ensResolver = module.getConfigBinding('ensResolver');
+  const ensResolver = module.getConfigBinding("ensResolver");
 
   const name = await resolveName(
     ensName,
@@ -46,7 +46,7 @@ export const createAragonScriptInterpreter =
       `
   load aragonos as ar
   ar:connect ${daoAddress} (
-    ${commands.join('\n')}
+    ${commands.join("\n")}
   )
 `,
       signer,
@@ -62,7 +62,7 @@ export const findAragonOSCommandNode = (
   let connectNode = ast.body.find(
     (n) =>
       n.type === NodeType.CommandExpression &&
-      (n as CommandExpressionNode).name === 'connect',
+      (n as CommandExpressionNode).name === "connect",
   ) as CommandExpressionNode;
 
   if (nestingLevel) {
@@ -72,12 +72,12 @@ export const findAragonOSCommandNode = (
         (arg) => arg.type === NodeType.BlockExpression,
       ) as BlockExpressionNode;
 
-      connectNode = blockNode.body.find((c) => c.name === 'connect')!;
+      connectNode = blockNode.body.find((c) => c.name === "connect")!;
       i++;
     }
   }
 
-  if (commandName === 'connect') {
+  if (commandName === "connect") {
     return connectNode;
   }
 
@@ -96,11 +96,11 @@ export const itChecksBadPermission = (
   ) => EVMcrispr,
   checkPermissionManager = false,
 ): void => {
-  const permissionErrorText = 'invalid permission provided';
-  const permission: Permission = ['kernel', 'acl', 'CREATE_PERMISSIONS_ROLE'];
+  const permissionErrorText = "invalid permission provided";
+  const permission: Permission = ["kernel", "acl", "CREATE_PERMISSIONS_ROLE"];
 
   itChecksNonDefinedIdentifier(
-    'should fail when receiving a non-defined grantee identifier',
+    "should fail when receiving a non-defined grantee identifier",
     (nonDefinedIdentifier) =>
       createPermissionActionInterpreter([
         nonDefinedIdentifier,
@@ -113,7 +113,7 @@ export const itChecksBadPermission = (
   );
 
   itChecksNonDefinedIdentifier(
-    'should fail when receiving a non-defined app identifier',
+    "should fail when receiving a non-defined app identifier",
     (nonDefinedIdentifier) =>
       createPermissionActionInterpreter([
         permission[0],
@@ -125,8 +125,8 @@ export const itChecksBadPermission = (
     true,
   );
 
-  it('should fail when receiving an invalid grantee address', async () => {
-    const invalidGrantee = 'false';
+  it("should fail when receiving an invalid grantee address", async () => {
+    const invalidGrantee = "false";
     const interpreter = createPermissionActionInterpreter([
       invalidGrantee,
       permission[1],
@@ -143,8 +143,8 @@ export const itChecksBadPermission = (
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when receiving an invalid app address', async () => {
-    const invalidApp = 'false';
+  it("should fail when receiving an invalid app address", async () => {
+    const invalidApp = "false";
     const interpreter = createPermissionActionInterpreter([
       permission[0],
       invalidApp,
@@ -161,8 +161,8 @@ export const itChecksBadPermission = (
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when receiving a non-existent role', async () => {
-    const nonExistentRole = 'NON_EXISTENT_ROLE';
+  it("should fail when receiving a non-existent role", async () => {
+    const nonExistentRole = "NON_EXISTENT_ROLE";
     const interpreter = createPermissionActionInterpreter([
       permission[0],
       permission[1],
@@ -177,9 +177,9 @@ export const itChecksBadPermission = (
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when receiving an invalid hash role', async () => {
+  it("should fail when receiving an invalid hash role", async () => {
     const invalidHashRole =
-      '0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366';
+      "0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366";
     const interpreter = createPermissionActionInterpreter([
       permission[0],
       permission[1],
@@ -197,20 +197,20 @@ export const itChecksBadPermission = (
   });
 
   if (checkPermissionManager) {
-    it('should fail when not receiving permission manager', async () => {
+    it("should fail when not receiving permission manager", async () => {
       const interpreter = createPermissionActionInterpreter([
         permission[0],
         permission[1],
         permission[2],
       ]);
       const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
-      const error = new CommandError(c, 'required permission manager missing');
+      const error = new CommandError(c, "required permission manager missing");
 
       await expectThrowAsync(() => interpreter.interpret(), error);
     });
 
     itChecksNonDefinedIdentifier(
-      'should fail when receiving a non-existent permission manager identifier',
+      "should fail when receiving a non-existent permission manager identifier",
       (nonDefinedIdentifier) =>
         createPermissionActionInterpreter([
           ...permission,
@@ -221,8 +221,8 @@ export const itChecksBadPermission = (
       true,
     );
 
-    it('should fail when receiving an invalid permission manager address', async () => {
-      const invalidManager = 'false';
+    it("should fail when receiving an invalid permission manager address", async () => {
+      const invalidManager = "false";
       const interpreter = createPermissionActionInterpreter([
         ...permission,
         invalidManager,

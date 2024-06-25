@@ -1,10 +1,10 @@
-import type { Address } from '../../../types';
+import type { Address } from "../../../types";
 import type {
   App,
   AppArtifact,
   AppIdentifier,
   LabeledAppIdentifier,
-} from './app';
+} from "./app";
 
 /** @internal */
 export type AppArtifactCache = Map<Address, AppArtifact>;

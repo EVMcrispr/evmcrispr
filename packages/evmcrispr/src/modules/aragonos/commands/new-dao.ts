@@ -1,21 +1,21 @@
-import { Contract, utils } from 'ethers';
+import { Contract, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 import {
   ComparisonType,
   buildNonceForAddress,
   calculateNewProxyAddress,
   checkArgsLength,
-} from '../../../utils';
-import type { Action, ICommand } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import type { AragonOS } from '../AragonOS';
-import { _aragonEns } from '../helpers/aragonEns';
+} from "../../../utils";
+import type { Action, ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import type { AragonOS } from "../AragonOS";
+import { _aragonEns } from "../helpers/aragonEns";
 import {
   ARAGON_REGISTRARS,
   DAO_FACTORIES,
   getAragonRegistrarContract,
-} from '../utils';
+} from "../utils";
 
 const registerAragonId = async (
   module: AragonOS,
@@ -37,8 +37,8 @@ const registerAragonId = async (
   return [
     {
       to: ARAGON_REGISTRARS.get(chainId)!,
-      data: aragonRegistrar.interface.encodeFunctionData('register', [
-        utils.solidityKeccak256(['string'], [name]),
+      data: aragonRegistrar.interface.encodeFunctionData("register", [
+        utils.solidityKeccak256(["string"], [name]),
         owner,
       ]),
     },
@@ -54,19 +54,19 @@ export const newDAO: ICommand<AragonOS> = {
     const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
 
     const bareTemplate = new utils.Interface([
-      'function newInstance() public returns (address)',
+      "function newInstance() public returns (address)",
     ]);
 
     const bareTemplateRepoAddr = (await _aragonEns(
       `bare-template.aragonpm.eth`,
       provider,
-      module.getConfigBinding('ensResolver'),
+      module.getConfigBinding("ensResolver"),
     ))!;
 
     const bareTemplateRepo = new Contract(
       bareTemplateRepoAddr,
       [
-        'function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)',
+        "function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)",
       ],
       provider,
     );
@@ -76,7 +76,7 @@ export const newDAO: ICommand<AragonOS> = {
 
     const daoFactory = DAO_FACTORIES.get(await module.getChainId());
     if (!daoFactory) {
-      throw new ErrorException('network not supported');
+      throw new ErrorException("network not supported");
     }
     const nonce = await buildNonceForAddress(
       daoFactory,
@@ -102,7 +102,7 @@ export const newDAO: ICommand<AragonOS> = {
     return [
       {
         to: bareTemplateAddr!,
-        data: bareTemplate.encodeFunctionData('newInstance', []),
+        data: bareTemplate.encodeFunctionData("newInstance", []),
       },
       ...registerAragonIdActions,
     ];

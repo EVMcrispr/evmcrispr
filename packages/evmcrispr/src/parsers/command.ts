@@ -9,7 +9,7 @@ import {
   recursiveParser,
   regex,
   sequenceOf,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   CommandArgExpressionNode,
@@ -17,12 +17,12 @@ import type {
   CommandOptNode,
   Node,
   NodeParser,
-} from '../types';
-import { NodeType } from '../types';
-import { buildParserError } from '../utils/parsers';
-import { commentParser } from './comment';
+} from "../types";
+import { NodeType } from "../types";
+import { buildParserError } from "../utils/parsers";
+import { commentParser } from "./comment";
 
-import { argumentExpressionParser, expressionParser } from './expression';
+import { argumentExpressionParser, expressionParser } from "./expression";
 import {
   addNewError,
   camelAndKebabCase,
@@ -34,7 +34,7 @@ import {
   optOperatorParser,
   optionalWhitespace,
   whitespace,
-} from './utils';
+} from "./utils";
 
 type CommandName = {
   module?: string;
@@ -49,13 +49,12 @@ const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
     buildParserError(
       err,
       COMMAND_PARSER_ERROR,
-      'Expecting a valid command name',
+      "Expecting a valid command name",
     ),
   )
   .map((value): CommandName => {
     const res = COMMAND_NAME_REGEX.exec(value);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-    const { module, command } = res?.groups!;
+    const { module, command } = res?.groups || {};
 
     const commandName: CommandName = { name: command };
 
@@ -72,7 +71,7 @@ export const commandOptParser: NodeParser<CommandOptNode> =
         buildParserError(
           err,
           COMMAND_PARSER_ERROR,
-          'Expecting a valid option name',
+          "Expecting a valid option name",
         ),
       ),
       whitespace,
@@ -80,8 +79,8 @@ export const commandOptParser: NodeParser<CommandOptNode> =
     ]),
     ({ data, index, result: [initialContext, [, name, , value]] }) => ({
       type: NodeType.CommandOpt,
-      name: name as CommandOptNode['name'],
-      value: value as CommandOptNode['value'],
+      name: name as CommandOptNode["name"],
+      value: value as CommandOptNode["value"],
       loc: createNodeLocation(initialContext, {
         line: data.line,
         index,
@@ -94,7 +93,7 @@ const isLastParameter = possibly(
   lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),
 );
 
-const commandArgsParser = coroutine(run => {
+const commandArgsParser = coroutine((run) => {
   let commandArgOrOpt: CommandArgExpressionNode;
 
   if (run(possibly(lookAhead(optOperatorParser)))) {
@@ -106,7 +105,7 @@ const commandArgsParser = coroutine(run => {
   return commandArgOrOpt;
 });
 
-export const COMMAND_PARSER_ERROR = 'CommandParserError';
+export const COMMAND_PARSER_ERROR = "CommandParserError";
 
 export const endOfCommandParser = choice([endLine, lookAhead(endOfInput)]);
 
@@ -115,9 +114,8 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
     sequenceOf([
       optionalWhitespace,
       locate<CommandExpressionNode>(
-        coroutine(run => {
-          const commandName: CommandName =
-            run(commandNameParser);
+        coroutine((run) => {
+          const commandName: CommandName = run(commandNameParser);
 
           const { name, module } = commandName;
 
@@ -127,14 +125,16 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           )[] = [];
 
           if (
-            run(possibly(
-              lookAhead(
-                sequenceOf([
-                  optionalWhitespace,
-                  choice([endOfLine, endOfInput]),
-                ]),
+            run(
+              possibly(
+                lookAhead(
+                  sequenceOf([
+                    optionalWhitespace,
+                    choice([endOfLine, endOfInput]),
+                  ]),
+                ),
               ),
-            ))
+            )
           ) {
             return [module, name, [], []];
           }

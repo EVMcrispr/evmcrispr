@@ -1,15 +1,15 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { NodeType } from '../../../../src/types';
-import { ComparisonType } from '../../../../src/utils';
+import { NodeType } from "../../../../src/types";
+import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from '../../../test-helpers/cas11';
+} from "../../../test-helpers/cas11";
 
-describe('Giveth > helpers > @projectAddr(slug)', () => {
+describe("Giveth > helpers > @projectAddr(slug)", () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
@@ -17,27 +17,27 @@ describe('Giveth > helpers > @projectAddr(slug)', () => {
     [signer] = await ethers.getSigners();
   });
 
-  it('return the hashed value', async () => {
+  it("return the hashed value", async () => {
     const [interpret] = await preparingExpression(
       `@projectAddr(evmcrispr)`,
       signer,
-      'giveth',
+      "giveth",
     );
 
     expect(await interpret()).to.equals(
-      '0xeafFF6dB1965886348657E79195EB6f1A84657eB',
+      "0xeafFF6dB1965886348657E79195EB6f1A84657eB",
     );
   });
 
   itChecksInvalidArgsLength(
     NodeType.HelperFunctionExpression,
-    '@projectAddr',
-    ['evmcrispr'],
+    "@projectAddr",
+    ["evmcrispr"],
     {
       type: ComparisonType.Equal,
       minValue: 1,
     },
     lazySigner,
-    'giveth',
+    "giveth",
   );
 });

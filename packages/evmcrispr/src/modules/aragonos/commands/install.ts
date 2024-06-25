@@ -1,7 +1,7 @@
-import type { providers } from 'ethers';
-import { utils } from 'ethers';
+import type { providers } from "ethers";
+import { utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 import {
   ComparisonType,
   checkArgsLength,
@@ -12,11 +12,11 @@ import {
   inSameLineThanNode,
   interpretNodeSync,
   tryAndCacheNotFound,
-} from '../../../utils';
-import type { Address, ICommand, Nullable } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import type { AragonOS } from '../AragonOS';
-import { _aragonEns } from '../helpers/aragonEns';
+} from "../../../utils";
+import type { Address, ICommand, Nullable } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import type { AragonOS } from "../AragonOS";
+import { _aragonEns } from "../helpers/aragonEns";
 import {
   SEMANTIC_VERSION_REGEX,
   buildAppArtifact,
@@ -27,18 +27,18 @@ import {
   getRepoContract,
   isLabeledAppIdentifier,
   parseLabeledAppIdentifier,
-} from '../utils';
-import { DAO_OPT_NAME, getDAOByOption } from '../utils/commands';
-import type { App, AppArtifact } from '../types';
-import type { AragonDAO } from '../AragonDAO';
-import type { BindingsManager } from '../../../BindingsManager';
+} from "../utils";
+import { DAO_OPT_NAME, getDAOByOption } from "../utils/commands";
+import type { App, AppArtifact } from "../types";
+import type { AragonDAO } from "../AragonDAO";
+import type { BindingsManager } from "../../../BindingsManager";
 
 const { ABI, ADDR, OTHER } = BindingsSpace;
 
 const fetchRepoData = async (
   appName: string,
   appRegistry: string,
-  appVersion = 'latest',
+  appVersion = "latest",
   provider: providers.Provider,
   customEnsResolver?: string,
 ): Promise<{ codeAddress: Address; contentUri: string }> => {
@@ -54,7 +54,7 @@ const fetchRepoData = async (
   const repo = getRepoContract(repoAddr, provider);
   let codeAddress, rawContentUri;
 
-  if (appVersion && appVersion !== 'latest') {
+  if (appVersion && appVersion !== "latest") {
     if (!SEMANTIC_VERSION_REGEX.test(appVersion)) {
       throw new ErrorException(
         `invalid --version option. Expected a semantic version, but got ${appVersion}`,
@@ -62,7 +62,7 @@ const fetchRepoData = async (
     }
 
     [, codeAddress, rawContentUri] = await repo.getBySemanticVersion(
-      appVersion.split('.'),
+      appVersion.split("."),
     );
   } else {
     [, codeAddress, rawContentUri] = await repo.getLatest();
@@ -80,8 +80,22 @@ const setApp = (
   dao.appArtifactCache.set(app.codeAddress, artifact);
   dao.appCache.set(app.name, app);
 
-  bindingsManager.setBinding(app.codeAddress, app.abiInterface, ABI, false, undefined, true);
-  bindingsManager.setBinding(app.address, app.abiInterface, ABI, false, undefined, true);
+  bindingsManager.setBinding(
+    app.codeAddress,
+    app.abiInterface,
+    ABI,
+    false,
+    undefined,
+    true,
+  );
+  bindingsManager.setBinding(
+    app.address,
+    app.abiInterface,
+    ABI,
+    false,
+    undefined,
+    true,
+  );
 
   if (!bindingsManager.hasBinding(app.name, ADDR)) {
     bindingsManager.setBinding(app.name, app.address, ADDR);
@@ -94,7 +108,7 @@ export const install: ICommand<AragonOS> = {
       type: ComparisonType.Greater,
       minValue: 1,
     });
-    checkOpts(c, [DAO_OPT_NAME, 'version']);
+    checkOpts(c, [DAO_OPT_NAME, "version"]);
 
     const dao = await getDAOByOption(c, module.bindingsManager, interpretNode);
 
@@ -102,7 +116,7 @@ export const install: ICommand<AragonOS> = {
     const identifier = await interpretNode(identifierNode, {
       treatAsLiteral: true,
     });
-    const version = await getOptValue(c, 'version', interpretNode);
+    const version = await getOptValue(c, "version", interpretNode);
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
     if (dao.appCache.has(identifier)) {
@@ -112,9 +126,9 @@ export const install: ICommand<AragonOS> = {
     const { codeAddress, contentUri } = await fetchRepoData(
       appName,
       registry,
-      version ?? 'latest',
+      version ?? "latest",
       await module.getProvider(),
-      module.getConfigBinding('ensResolver'),
+      module.getConfigBinding("ensResolver"),
     );
 
     const daos = getDAOs(module.bindingsManager);
@@ -137,7 +151,7 @@ export const install: ICommand<AragonOS> = {
     const kernel = dao.kernel;
     const initParams = await interpretNodes(paramNodes);
 
-    const fnFragment = abiInterface.getFunction('initialize');
+    const fnFragment = abiInterface.getFunction("initialize");
     const encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
 
     const appId = utils.namehash(`${appName}.${registry}`);
@@ -168,7 +182,7 @@ export const install: ICommand<AragonOS> = {
       {
         to: kernel.address,
         data: kernel.abiInterface.encodeFunctionData(
-          'newAppInstance(bytes32,address,bytes,bool)',
+          "newAppInstance(bytes32,address,bytes,bool)",
           [appId, codeAddress, encodedInitializeFunction, false],
         ),
       },
@@ -217,7 +231,7 @@ export const install: ICommand<AragonOS> = {
 
     if (!codeAddress) {
       const repoData = await tryAndCacheNotFound(
-        () => fetchRepoData(appName, appRegistry, 'latest', provider),
+        () => fetchRepoData(appName, appRegistry, "latest", provider),
         `${appName}.${appRegistry}`,
         ADDR,
         cache,
@@ -263,12 +277,12 @@ export const install: ICommand<AragonOS> = {
     }
 
     return (eagerBindingsManager) => {
-      const daoOpt = c.opts.find((opt) => opt.name === 'dao');
+      const daoOpt = c.opts.find((opt) => opt.name === "dao");
       const daoOptValue = daoOpt
         ? interpretNodeSync(daoOpt, eagerBindingsManager)
         : undefined;
       const dao = eagerBindingsManager.getBindingValue(
-        daoOptValue ?? 'currentDAO',
+        daoOptValue ?? "currentDAO",
         BindingsSpace.DATA_PROVIDER,
       ) as AragonDAO | undefined;
 
@@ -280,7 +294,7 @@ export const install: ICommand<AragonOS> = {
         abiInterface: artifact.abiInterface,
         address: proxyAddress!,
         codeAddress: codeAddress!,
-        contentUri: '',
+        contentUri: "",
         name: labeledAppIdentifier,
         permissions: buildAppPermissions(artifact.roles, []),
         registryName: appRegistry,

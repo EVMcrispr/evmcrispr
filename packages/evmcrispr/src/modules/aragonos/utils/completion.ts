@@ -1,18 +1,18 @@
-import type { BindingsManager } from '../../../BindingsManager';
-import type { DataProviderBinding } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import type { AragonDAO } from '../AragonDAO';
-import type { AppIdentifier } from '../types';
+import type { BindingsManager } from "../../../BindingsManager";
+import type { DataProviderBinding } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import type { AragonDAO } from "../AragonDAO";
+import type { AppIdentifier } from "../types";
 import {
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
-} from './identifiers';
+} from "./identifiers";
 
 export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
   const daos: AragonDAO[] = [];
 
   let currentDAOBinding = bindingsManager.getBinding(
-    'currentDAO',
+    "currentDAO",
     BindingsSpace.DATA_PROVIDER,
   ) as DataProviderBinding<AragonDAO> | undefined;
 
@@ -63,7 +63,7 @@ export const getAppRoles = (
   }
 
   const appRoles = Object.values(appAbiInterface.functions)
-    .filter((fnFragment) => fnFragment.name.includes('_ROLE'))
+    .filter((fnFragment) => fnFragment.name.includes("_ROLE"))
     .map((fnFragment) => fnFragment.name);
 
   return appRoles;

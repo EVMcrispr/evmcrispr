@@ -90,7 +90,7 @@ await evmcl`
 2. Import the `evmcl` template:
 
    ```js
-   import { evmcl } from '@1hive/evmcrispr';
+   import { evmcl } from "@1hive/evmcrispr";
    ```
 
 3. Fill the evmcl template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:

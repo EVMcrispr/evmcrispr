@@ -1,63 +1,63 @@
-import type { Err } from 'arcsecond';
-import { withData } from 'arcsecond';
-import { expect } from 'chai';
+import type { Err } from "arcsecond";
+import { withData } from "arcsecond";
+import { expect } from "chai";
 
 import {
   ARRAY_PARSER_ERROR,
   arrayExpressionParser,
-} from '../../src/parsers/array';
-import { createParserState } from '../../src/parsers/utils';
-import type { ArrayExpressionNode, NodeParserState } from '../../src/types';
-import type { Case } from '../test-helpers/cas11';
-import { runCases, runErrorCase } from '../test-helpers/cas11';
+} from "../../src/parsers/array";
+import { createParserState } from "../../src/parsers/utils";
+import type { ArrayExpressionNode, NodeParserState } from "../../src/types";
+import type { Case } from "../test-helpers/cas11";
+import { runCases, runErrorCase } from "../test-helpers/cas11";
 
-describe('Parsers - array', () => {
-  it('should parse an array correctly', () => {
+describe("Parsers - array", () => {
+  it("should parse an array correctly", () => {
     const cases: Case[] = [
       [
         '[    1, "a text string",    3    ]',
         {
-          type: 'ArrayExpression',
+          type: "ArrayExpression",
           elements: [
             {
-              type: 'NumberLiteral',
-              value: '1',
+              type: "NumberLiteral",
+              value: "1",
               loc: { start: { line: 1, col: 5 }, end: { line: 1, col: 6 } },
             },
             {
-              type: 'StringLiteral',
-              value: 'a text string',
+              type: "StringLiteral",
+              value: "a text string",
               loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 23 } },
             },
             {
-              type: 'NumberLiteral',
-              value: '3',
+              type: "NumberLiteral",
+              value: "3",
               loc: { start: { line: 1, col: 28 }, end: { line: 1, col: 29 } },
             },
           ],
           loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 34 } },
         },
-        'Invalid array match',
+        "Invalid array match",
       ],
       [
         '[145e18y, @token(DAI), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], $fDAIx::host()]',
         {
-          type: 'ArrayExpression',
+          type: "ArrayExpression",
           elements: [
             {
-              type: 'NumberLiteral',
-              value: '145',
+              type: "NumberLiteral",
+              value: "145",
               power: 18,
-              timeUnit: 'y',
+              timeUnit: "y",
               loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 8 } },
             },
             {
-              type: 'HelperFunctionExpression',
-              name: 'token',
+              type: "HelperFunctionExpression",
+              name: "token",
               args: [
                 {
-                  type: 'ProbableIdentifier',
-                  value: 'DAI',
+                  type: "ProbableIdentifier",
+                  value: "DAI",
                   loc: {
                     start: { line: 1, col: 17 },
                     end: { line: 1, col: 20 },
@@ -67,54 +67,54 @@ describe('Parsers - array', () => {
               loc: { start: { line: 1, col: 10 }, end: { line: 1, col: 21 } },
             },
             {
-              type: 'BoolLiteral',
+              type: "BoolLiteral",
               value: false,
               loc: { start: { line: 1, col: 23 }, end: { line: 1, col: 28 } },
             },
             {
-              type: 'ArrayExpression',
+              type: "ArrayExpression",
               elements: [
                 {
-                  type: 'StringLiteral',
-                  value: 'a string',
+                  type: "StringLiteral",
+                  value: "a string",
                   loc: {
                     start: { line: 1, col: 31 },
                     end: { line: 1, col: 41 },
                   },
                 },
                 {
-                  type: 'ProbableIdentifier',
-                  value: 'anIdentifier',
+                  type: "ProbableIdentifier",
+                  value: "anIdentifier",
                   loc: {
                     start: { line: 1, col: 43 },
                     end: { line: 1, col: 55 },
                   },
                 },
                 {
-                  type: 'ArrayExpression',
+                  type: "ArrayExpression",
                   elements: [
                     {
-                      type: 'NumberLiteral',
-                      value: '1',
+                      type: "NumberLiteral",
+                      value: "1",
                       loc: {
                         start: { line: 1, col: 58 },
                         end: { line: 1, col: 59 },
                       },
                     },
                     {
-                      type: 'NumberLiteral',
-                      value: '2',
+                      type: "NumberLiteral",
+                      value: "2",
                       loc: {
                         start: { line: 1, col: 61 },
                         end: { line: 1, col: 62 },
                       },
                     },
                     {
-                      type: 'ArrayExpression',
+                      type: "ArrayExpression",
                       elements: [
                         {
-                          type: 'ProbableIdentifier',
-                          value: 'aDeepDeepIdentifier.open',
+                          type: "ProbableIdentifier",
+                          value: "aDeepDeepIdentifier.open",
                           loc: {
                             start: { line: 1, col: 65 },
                             end: { line: 1, col: 89 },
@@ -133,8 +133,8 @@ describe('Parsers - array', () => {
                   },
                 },
                 {
-                  type: 'VariableIdentifier',
-                  value: '$variable',
+                  type: "VariableIdentifier",
+                  value: "$variable",
                   loc: {
                     start: { line: 1, col: 94 },
                     end: { line: 1, col: 103 },
@@ -147,16 +147,16 @@ describe('Parsers - array', () => {
               },
             },
             {
-              type: 'CallExpression',
+              type: "CallExpression",
               target: {
-                type: 'VariableIdentifier',
-                value: '$fDAIx',
+                type: "VariableIdentifier",
+                value: "$fDAIx",
                 loc: {
                   start: { line: 1, col: 106 },
                   end: { line: 1, col: 112 },
                 },
               },
-              method: 'host',
+              method: "host",
               args: [],
               loc: {
                 start: { line: 1, col: 106 },
@@ -166,32 +166,32 @@ describe('Parsers - array', () => {
           ],
           loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 121 } },
         },
-        'Invalid nested array match',
+        "Invalid nested array match",
       ],
     ];
 
     runCases(cases, arrayExpressionParser);
   });
 
-  it('should fail when parsing an array with multiple primary values between commas', () => {
+  it("should fail when parsing an array with multiple primary values between commas", () => {
     runErrorCase(
       arrayExpressionParser,
-      '[1,multiple values between commas, false]',
+      "[1,multiple values between commas, false]",
       ARRAY_PARSER_ERROR,
       `Expecting character ']'`,
     );
   });
 
-  it('should fail when parsing an array with empty elements', () => {
+  it("should fail when parsing an array with empty elements", () => {
     runErrorCase(
       arrayExpressionParser,
-      '[12e14w, ,,]',
+      "[12e14w, ,,]",
       ARRAY_PARSER_ERROR,
-      'Expecting a valid expression',
+      "Expecting a valid expression",
     );
   });
 
-  it('should fail when parsing an array without closing bracket', () => {
+  it("should fail when parsing an array without closing bracket", () => {
     const res = withData<ArrayExpressionNode, string, NodeParserState>(
       arrayExpressionParser,
     )(createParserState()).run('[12e14w, "asdas"');

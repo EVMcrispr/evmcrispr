@@ -1,10 +1,33 @@
-# EVMcrispr 🧬
+# `Turborepo` Vite starter
 
-EVMcripsr is a library that can be used to wrap many actions in one vote of an AragonOS DAO, lowering gas costs and dramatically improving the DAO management experience. Between the available actions, you can find installing new Aragon apps, granting or revoking permissions, calling app functions such as minting tokens, withdrawing funds, etc. It works with both AragonOS v4 and v5, supporting complex app forwarding paths.
+This is an official starter Turborepo.
 
-## Packages
+## Using this example
 
-This monorepo contains the following packages:
+Run the following command:
 
-- [**EVMcrispr**](packages/evmcrispr): The core TS library itself.
-- [**Terminal**](packages/evmcrispr-terminal): A web app tool that's meant as a gateway to build evmcrispr scripts in easier and faster way.
+```sh
+npx create-turbo@latest -e with-vite
+```
+
+## What's inside?
+
+This Turborepo includes the following packages and apps:
+
+### Apps and Packages
+
+- `docs`: a vanilla [vite](https://vitejs.dev) ts app
+- `web`: another vanilla [vite](https://vitejs.dev) ts app
+- `@repo/ui`: a stub component & utility library shared by both `web` and `docs` applications
+- `@repo/eslint-config`: shared `eslint` configurations
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+
+Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
+
+### Utilities
+
+This Turborepo has some additional tools already setup for you:
+
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting

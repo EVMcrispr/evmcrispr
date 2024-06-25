@@ -14,66 +14,44 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [16.x]
-        pnpm-version: [7.19.x]
+        node-version: [18.x]
+        bun-version: [1.x]
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.1
+      - uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: ${{ matrix.pnpm-version }}
+          bun-version: latest
       - name: Set up Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          cache: 'pnpm'
           node-version: ${{ matrix.node-version }}
-      - name: Cache pnpm
-        uses: actions/cache@v3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: pnpm-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        id: cache-node-modules
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/**/dist
-          key: modules-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: pnpm i
+        run: bun i
 
       - name: Get changed files from evmcrispr
         id: changed-files
-        uses: tj-actions/changed-files@v20
+        uses: tj-actions/changed-files@v44
         with:
-          files: 'packages/evmcrispr/src/**'
-
-      - name: Link Dependencies
-        if: steps.cache-node-modules.outputs.cache-hit == 'true'
-        run: pnpm dev
-
-      - name: Lint code
-        run: pnpm lint
-
-      - name: Check evmcrispr types
-        run: pnpm lint:evmcrispr:types
+          files: "packages/evmcrispr/{src,test}/**"
 
       - name: Build
-        run: pnpm build
+        run: bun run build
 
-      - name: Check size
-        run: pnpm size
-        env:
-          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
-          CI_BRANCH_BASE: master
+      - name: Lint code
+        run: bun lint
+
+      - name: Check evmcrispr types
+        run: bun type-check
 
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'
-        run: pnpm test:coverage
+        run: |
+          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> packages/evmcrispr/.env
+          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> packages/evmcrispr/.env
+          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> packages/evmcrispr/.env
+          bun test:coverage
         env:
           ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
           VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
@@ -85,5 +63,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
-          base-path: 'packages/evmcrispr'
-          path-to-lcov: 'packages/evmcrispr/coverage/lcov.info'
+          base-path: "packages/evmcrispr"
+          path-to-lcov: "packages/evmcrispr/coverage/lcov.info"

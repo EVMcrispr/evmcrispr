@@ -1,19 +1,19 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
-import type { Action, ICommand, TransactionAction } from '../../../types';
-import { isProviderAction } from '../../../types';
+import { ErrorException } from "../../../errors";
+import type { Action, ICommand, TransactionAction } from "../../../types";
+import { isProviderAction } from "../../../types";
 
-import { batchForwarderActions } from '../utils/forwarders';
+import { batchForwarderActions } from "../utils/forwarders";
 import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
   commaListItems,
   getOptValue,
-} from '../../../utils';
-import type { AragonOS } from '../AragonOS';
-import { getDAOAppIdentifiers } from '../utils';
+} from "../../../utils";
+import type { AragonOS } from "../AragonOS";
+import { getDAOAppIdentifiers } from "../utils";
 
 export const forward: ICommand<AragonOS> = {
   async run(module, c, { interpretNode, interpretNodes }) {
@@ -21,7 +21,7 @@ export const forward: ICommand<AragonOS> = {
       type: ComparisonType.Greater,
       minValue: 2,
     });
-    checkOpts(c, ['context', 'check-forwarder']);
+    checkOpts(c, ["context", "check-forwarder"]);
 
     const blockCommandsNode = c.args.pop()!;
 
@@ -53,13 +53,13 @@ export const forward: ICommand<AragonOS> = {
       );
     }
 
-    const context = await getOptValue(c, 'context', interpretNode);
+    const context = await getOptValue(c, "context", interpretNode);
     const checkForwarder = await getOptValue(
       c,
-      'check-forwarder',
+      "check-forwarder",
       interpretNode,
     );
-    console.log(checkForwarder, 'checkForwarder');
+    console.log(checkForwarder, "checkForwarder");
 
     return batchForwarderActions(
       module,

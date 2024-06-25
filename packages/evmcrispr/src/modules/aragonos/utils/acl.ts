@@ -1,24 +1,24 @@
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { Address } from '../../../types';
-import type { Params } from '../types/permission';
+import type { Address } from "../../../types";
+import type { Params } from "../types/permission";
 
 /**
  * An address used for permission operations that denotes any type of Ethereum account.
  */
-export const ANY_ENTITY: Address = '0x' + 'f'.repeat(40);
+export const ANY_ENTITY: Address = "0x" + "f".repeat(40);
 
 /**
  * An address used for permission operations that denotes no Ethereum account.
  */
-export const NO_ENTITY: Address = '0x' + '0'.repeat(40);
+export const NO_ENTITY: Address = "0x" + "0".repeat(40);
 
 /**
  * An address used for permission operations that denotes that the permission has been burnt.
  */
-export const BURN_ENTITY: Address = '0x' + '0'.repeat(39) + '1';
+export const BURN_ENTITY: Address = "0x" + "0".repeat(39) + "1";
 
 const Op = {
   NONE: 0,
@@ -71,7 +71,7 @@ const timestamp = _arg(SpecialArgId.TIMESTAMP);
 
 function oracle(oracle: string | (() => string)): Params {
   return () => {
-    const _oracle = typeof oracle === 'string' ? oracle : oracle();
+    const _oracle = typeof oracle === "string" ? oracle : oracle();
     return [_encodeParam(SpecialArgId.ORACLE, Op.EQ, _oracle)];
   };
 }
@@ -156,7 +156,7 @@ function _encodeParam(argId: number, op: number, value: any): string {
   const _value = utils
     .hexlify(BigNumber.from(value))
     .slice(2)
-    .padStart(60, '0'); // 60 as params are uint240
+    .padStart(60, "0"); // 60 as params are uint240
   return `0x${_argId}${_op}${_value}`;
 }
 
@@ -220,9 +220,9 @@ function _encodeIfElse(
   successParam: number,
   failureParam: number,
 ) {
-  const _condition = utils.hexlify(condition).slice(2).padStart(8, '0');
-  const _successParam = utils.hexlify(successParam).slice(2).padStart(8, '0');
-  const _failureParam = utils.hexlify(failureParam).slice(2).padStart(44, '0');
+  const _condition = utils.hexlify(condition).slice(2).padStart(8, "0");
+  const _successParam = utils.hexlify(successParam).slice(2).padStart(8, "0");
+  const _failureParam = utils.hexlify(failureParam).slice(2).padStart(44, "0");
   return `0x${_failureParam}${_successParam}${_condition}`;
 }
 

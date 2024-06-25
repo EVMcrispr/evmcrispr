@@ -1,6 +1,6 @@
-import type { Address } from '../../../types';
-import type { AddressSet } from '../AddressSet';
-import type { AppIdentifier, LabeledAppIdentifier } from './app';
+import type { Address } from "../../../types";
+import type { AddressSet } from "../AddressSet";
+import type { AppIdentifier, LabeledAppIdentifier } from "./app";
 
 /**
  * An array which follows the format `[<Grantee>, <App>, <Role>, <Manager>]`

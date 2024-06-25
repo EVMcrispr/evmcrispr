@@ -1,4 +1,4 @@
-declare module '@ensdomains/content-hash' {
+declare module "@ensdomains/content-hash" {
   export function decode(contentHash: string): string;
   export function fromIpfs(ipfsHash: string): string;
   export function fromSkylink(skylink: string): string;

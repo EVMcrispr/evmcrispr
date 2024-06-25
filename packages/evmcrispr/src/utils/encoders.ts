@@ -1,8 +1,8 @@
-import { utils } from 'ethers';
-import type { Interface } from 'ethers/lib/utils';
+import { utils } from "ethers";
+import type { Interface } from "ethers/lib/utils";
 
-import { ErrorInvalid } from '../errors';
-import type { Address, TransactionAction } from '../types';
+import { ErrorInvalid } from "../errors";
+import type { Address, TransactionAction } from "../types";
 
 export const encodeAction = (
   target: Address,
@@ -15,7 +15,7 @@ export const encodeAction = (
     if (signature instanceof utils.Interface) {
       fnABI = signature;
     } else {
-      const fullSignature = signature.startsWith('function')
+      const fullSignature = signature.startsWith("function")
         ? signature
         : `function ${signature}`;
       fnABI = new utils.Interface([fullSignature]);
@@ -49,13 +49,13 @@ export const encodeCalldata = (
       let paramValue = params[i];
 
       if (
-        type.includes('byte') &&
-        typeof paramValue === 'string' &&
-        !paramValue.startsWith('0x')
+        type.includes("byte") &&
+        typeof paramValue === "string" &&
+        !paramValue.startsWith("0x")
       ) {
         paramValue = utils
           .hexlify(utils.toUtf8Bytes(paramValue))
-          .padEnd(parseInt(type.match(/^bytes(\d*)$/)![1] || '0') * 2 + 2, '0');
+          .padEnd(parseInt(type.match(/^bytes(\d*)$/)![1] || "0") * 2 + 2, "0");
       }
       utils.defaultAbiCoder.encode(
         [paramType.format(utils.FormatTypes.full)],
@@ -66,15 +66,15 @@ export const encodeCalldata = (
       const err_ = err as Error;
       errors.push(
         `-param ${name ?? i} of type ${type}: ${
-          err_.message.split(' (')[0] ?? err_.message
-        }. Got ${params[i] ?? 'none'}`,
+          err_.message.split(" (")[0] ?? err_.message
+        }. Got ${params[i] ?? "none"}`,
       );
     }
   });
 
   if (errors.length) {
     throw new ErrorInvalid(
-      `error when encoding ${methodName} call:\n${errors.join('\n')}`,
+      `error when encoding ${methodName} call:\n${errors.join("\n")}`,
     );
   }
 

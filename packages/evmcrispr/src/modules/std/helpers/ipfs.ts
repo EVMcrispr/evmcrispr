@@ -1,11 +1,11 @@
-import fetch from 'isomorphic-fetch';
+import fetch from "isomorphic-fetch";
 
-import { ErrorException } from '../../../errors';
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import { ErrorException } from "../../../errors";
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
-const IPFS_VAR_NAME = 'ipfs.jwt';
+const IPFS_VAR_NAME = "ipfs.jwt";
 
 export const ipfs: HelperFunction<Std> = async (
   module,
@@ -30,22 +30,22 @@ export const ipfs: HelperFunction<Std> = async (
       cidVersion: 0,
     },
     pinataMetadata: {
-      name: 'evmcrispr-file',
+      name: "evmcrispr-file",
     },
     pinataContent: text,
   });
 
   const config = {
-    method: 'post',
+    method: "post",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${jwt}`,
     },
     body: data,
   };
 
   const res = await fetch(
-    'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+    "https://api.pinata.cloud/pinning/pinJSONToIPFS",
     config,
   );
 

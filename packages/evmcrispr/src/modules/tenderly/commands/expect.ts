@@ -1,30 +1,30 @@
-import { BigNumber } from 'ethers';
+import { BigNumber } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { ICommand } from '../../../types';
-import { BindingsSpace } from '../../../types';
+import type { ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
 
-import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
+import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
 
-import type { Tenderly } from '../Tenderly';
+import type { Tenderly } from "../Tenderly";
 
 const { USER } = BindingsSpace;
 
 function oppositeOp(operator: string): string {
   switch (operator) {
-    case '==':
-      return '!=';
-    case '!=':
-      return '==';
-    case '>':
-      return '<=';
-    case '>=':
-      return '<';
-    case '<':
-      return '>=';
-    case '<=':
-      return '>';
+    case "==":
+      return "!=";
+    case "!=":
+      return "==";
+    case ">":
+      return "<=";
+    case ">=":
+      return "<";
+    case "<":
+      return ">=";
+    case "<=":
+      return ">";
     default:
       throw new ErrorException(`Operator ${operator} not recognized`);
   }
@@ -44,26 +44,26 @@ export const expect: ICommand<Tenderly> = {
     let result;
 
     switch (operator) {
-      case '==':
+      case "==":
         result = value == expectedValue;
         break;
-      case '!=':
+      case "!=":
         result = value != expectedValue;
         break;
-      case '>':
-      case '>=':
-      case '<':
-      case '<=':
+      case ">":
+      case ">=":
+      case "<":
+      case "<=":
         if (!isNumberish(value) || !isNumberish(expectedValue)) {
           throw new ErrorException(
             `Operator ${operator} must be used between two numbers`,
           );
         }
-        if (operator === '>') result = BigNumber.from(value).gt(expectedValue);
-        if (operator === '>=')
+        if (operator === ">") result = BigNumber.from(value).gt(expectedValue);
+        if (operator === ">=")
           result = BigNumber.from(value).gte(expectedValue);
-        if (operator === '<') result = BigNumber.from(value).lt(expectedValue);
-        if (operator === '<=')
+        if (operator === "<") result = BigNumber.from(value).lt(expectedValue);
+        if (operator === "<=")
           result = BigNumber.from(value).lte(expectedValue);
         break;
       default:
@@ -71,17 +71,17 @@ export const expect: ICommand<Tenderly> = {
     }
 
     module.evmcrispr.log(
-      `${result ? ':success: Success' : ':error: Assertion error'}: expected ${
+      `${result ? ":success: Success" : ":error: Assertion error"}: expected ${
         valueNode.value ?? value
       } ${operator} ${expectedValueNode.value ?? expectedValue}${
         !result
           ? `, but ${value} ${oppositeOp(operator)} ${expectedValue}.`
-          : ''
+          : ""
       }`,
     );
 
     if (!result) {
-      throw new ErrorException('An assertion failed.');
+      throw new ErrorException("An assertion failed.");
     }
     return [];
   },
@@ -93,7 +93,7 @@ export const expect: ICommand<Tenderly> = {
       case 0:
         return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
       case 1:
-        return ['==', '!=', '<', '<=', '>', '>='];
+        return ["==", "!=", "<", "<=", ">", ">="];
       case 2: {
         return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
       }

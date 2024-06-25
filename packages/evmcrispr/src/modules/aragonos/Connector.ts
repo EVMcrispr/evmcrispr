@@ -1,26 +1,26 @@
-import fetch from 'isomorphic-fetch';
-import type { providers } from 'ethers';
+import fetch from "isomorphic-fetch";
+import type { providers } from "ethers";
 
-import { ErrorException, ErrorNotFound } from '../../errors';
-import type { GraphQLBody, QueryConfig } from './utils';
-import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from './utils';
-import type { ParsedApp, Repo } from './types';
-import type { Address } from '../../types';
+import { ErrorException, ErrorNotFound } from "../../errors";
+import type { GraphQLBody, QueryConfig } from "./utils";
+import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from "./utils";
+import type { ParsedApp, Repo } from "./types";
+import type { Address } from "../../types";
 
 export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {
     case 1:
-      return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet';
+      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet";
     case 4:
-      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby';
+      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby";
     case 5:
-      return 'https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli';
+      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli";
     case 10:
-      return 'https://api.thegraph.com/subgraphs/name/blossomlabs/aragon-optimism';
+      return "https://api.thegraph.com/subgraphs/name/blossomlabs/aragon-optimism";
     case 100:
-      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai';
+      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai";
     case 137:
-      return 'https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon';
+      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon";
     default:
       throw new ErrorException(`No subgraph found for chain id ${chainId}`);
   }
@@ -67,8 +67,8 @@ export class Connector {
   ): Promise<T> {
     const rawResponse = await fetch(this.#subgraphUrl, {
       body: JSON.stringify(body),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
     });
 
     const { data, errors } = (await rawResponse.json()) as QueryResult;
@@ -99,7 +99,7 @@ export class Connector {
           throw new ErrorNotFound(
             `Repo ${repoName}.${registryName} not found`,
             {
-              name: 'ErrorRepoNotFound',
+              name: "ErrorRepoNotFound",
             },
           );
         }

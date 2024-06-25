@@ -1,11 +1,11 @@
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import { BindingsSpace, NodeType } from '../../../types';
-import type { Action, ICommand } from '../../../types';
+import { BindingsSpace, NodeType } from "../../../types";
+import type { Action, ICommand } from "../../../types";
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
+import { ComparisonType, checkArgsLength } from "../../../utils";
 
-import type { Std } from '../Std';
+import type { Std } from "../Std";
 
 const { USER } = BindingsSpace;
 const { VariableIdentifier } = NodeType;
@@ -23,7 +23,7 @@ export const _for: ICommand<Std> = {
       throw new ErrorException(`expected a variable identifier`);
     }
 
-    if (connectorNode.value !== 'of') {
+    if (connectorNode.value !== "of") {
       throw new ErrorException(`expected of`);
     }
 
@@ -31,14 +31,14 @@ export const _for: ICommand<Std> = {
       !blockExpressionNode ||
       blockExpressionNode.type !== NodeType.BlockExpression
     ) {
-      throw new ErrorException('last argument should be a set of commands');
+      throw new ErrorException("last argument should be a set of commands");
     }
 
     const varName = varNode.value;
     const array = await interpretNode(arrayNode);
     const actions = [];
 
-    module.bindingsManager.enterScope('for');
+    module.bindingsManager.enterScope("for");
     for (const varValue of array) {
       module.bindingsManager.setBinding(
         varName,
@@ -63,10 +63,10 @@ export const _for: ICommand<Std> = {
     if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
       const varName = varNameNode.value;
 
-      cache.setBinding(varName, 'array-element', USER, false, undefined, true);
+      cache.setBinding(varName, "array-element", USER, false, undefined, true);
 
       return (eagerBindingsManager) =>
-        eagerBindingsManager.setBinding(varName, 'array-element', USER);
+        eagerBindingsManager.setBinding(varName, "array-element", USER);
     }
   },
   buildCompletionItemsForArg(argIndex, _, cache) {
@@ -74,7 +74,7 @@ export const _for: ICommand<Std> = {
       case 0:
         return [];
       case 1:
-        return ['of'];
+        return ["of"];
       case 2: {
         return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
       }

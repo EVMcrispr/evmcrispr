@@ -1,19 +1,19 @@
-import { isAddress } from 'ethers/lib/utils';
+import { isAddress } from "ethers/lib/utils";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { ICommand } from '../../../types';
+import type { ICommand } from "../../../types";
 
 import {
   ComparisonType,
   checkArgsLength,
   encodeAction,
   isNumberish,
-} from '../../../utils';
-import { givethDonationRelayer } from '../addresses';
+} from "../../../utils";
+import { givethDonationRelayer } from "../addresses";
 
-import type { Giveth } from '../Giveth';
-import { _projectAddr } from '../helpers/projectAddr';
+import type { Giveth } from "../Giveth";
+import { _projectAddr } from "../helpers/projectAddr";
 
 export const donate: ICommand<Giveth> = {
   async run(module, c, { interpretNodes }) {
@@ -22,11 +22,11 @@ export const donate: ICommand<Giveth> = {
     const [slug, amount, tokenAddr] = await interpretNodes(c.args);
 
     if (!isNumberish(amount)) {
-      throw new ErrorException('amount is not a number');
+      throw new ErrorException("amount is not a number");
     }
 
     if (!isAddress(tokenAddr)) {
-      throw new ErrorException('token is not an address');
+      throw new ErrorException("token is not an address");
     }
 
     const [projAddr, projectId] = await _projectAddr(module, slug);
@@ -34,17 +34,17 @@ export const donate: ICommand<Giveth> = {
     const chainId = await module.getChainId();
 
     if (!givethDonationRelayer.has(chainId)) {
-      throw new ErrorException('network not supported by giveth');
+      throw new ErrorException("network not supported by giveth");
     }
 
     return [
-      encodeAction(tokenAddr, 'approve(address,uint256)', [
+      encodeAction(tokenAddr, "approve(address,uint256)", [
         givethDonationRelayer.get(chainId)!,
         amount,
       ]),
       encodeAction(
         givethDonationRelayer.get(chainId)!,
-        'sendDonation(address,address,uint256,uint256)',
+        "sendDonation(address,address,uint256,uint256)",
         [tokenAddr, projAddr, amount, projectId],
       ),
     ];

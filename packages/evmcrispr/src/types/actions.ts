@@ -36,5 +36,5 @@ export function isProviderAction(action: any): action is ProviderAction {
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function isSwitchAction(action: any): boolean {
-  return action.method === 'wallet_switchEthereumChain';
+  return action.method === "wallet_switchEthereumChain";
 }

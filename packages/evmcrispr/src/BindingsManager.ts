@@ -1,8 +1,8 @@
-import { SymbolTable } from 'jsymbol';
+import { SymbolTable } from "jsymbol";
 
-import { ErrorException } from './errors';
-import type { Binding, OtherBinding, RelativeBinding } from './types';
-import { BindingsSpace } from './types';
+import { ErrorException } from "./errors";
+import type { Binding, OtherBinding, RelativeBinding } from "./types";
+import { BindingsSpace } from "./types";
 
 type AllBindingsOpts = Partial<{
   onlyLocal: boolean;
@@ -15,7 +15,7 @@ const defaultOpts: AllBindingsOpts = {
   spaceFilters: [],
 };
 
-const SCOPE_MODULE_IDENTIFIER = 'scopeModule';
+const SCOPE_MODULE_IDENTIFIER = "scopeModule";
 
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
@@ -32,7 +32,7 @@ export class BindingsManager {
       scopeModule ??
       // Use parent's scope module when none was provided
       this.getBindingValue(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER) ??
-      'std';
+      "std";
 
     this.#bindings.enterScope();
 
@@ -52,7 +52,7 @@ export class BindingsManager {
   getBindingValue<BSpace extends BindingsSpace>(
     name: string,
     space: BSpace,
-  ): RelativeBinding<BSpace>['value'] | undefined {
+  ): RelativeBinding<BSpace>["value"] | undefined {
     return this.#getBinding(name, space)?.value;
   }
 
@@ -97,11 +97,11 @@ export class BindingsManager {
 
   getAllBindingIdentifiers(
     opts: AllBindingsOpts = defaultOpts,
-  ): Binding['identifier'][] {
+  ): Binding["identifier"][] {
     return this.getAllBindings(opts).map((b) => b.identifier);
   }
 
-  getAllBindingValues(opts: AllBindingsOpts = defaultOpts): Binding['value'][] {
+  getAllBindingValues(opts: AllBindingsOpts = defaultOpts): Binding["value"][] {
     return this.getAllBindings(opts).map((b) => b.value);
   }
 
@@ -117,7 +117,7 @@ export class BindingsManager {
   setBinding<BSpace extends BindingsSpace>(
     name: string,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    value: RelativeBinding<BSpace>['value'],
+    value: RelativeBinding<BSpace>["value"],
     memSpace: BSpace,
     isGlobal = false,
     parent?: RelativeBinding<BSpace>,
@@ -173,7 +173,7 @@ export class BindingsManager {
       }
 
       throw new ErrorException(
-        `${isGlobal ? 'global' : ''} binding ${
+        `${isGlobal ? "global" : ""} binding ${
           binding.identifier
         } already exists on current scope of ${binding.type} memory space`,
       );

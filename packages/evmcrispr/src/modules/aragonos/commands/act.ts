@@ -1,9 +1,9 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { AbiBinding, ICommand } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import { batchForwarderActions } from '../utils/forwarders';
-import { ErrorException } from '../../../errors';
+import type { AbiBinding, ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import { batchForwarderActions } from "../utils/forwarders";
+import { ErrorException } from "../../../errors";
 import {
   ComparisonType,
   SIGNATURE_REGEX,
@@ -15,9 +15,9 @@ import {
   insideNodeLine,
   interpretNodeSync,
   tryAndCacheNotFound,
-} from '../../../utils';
-import type { AragonOS } from '../AragonOS';
-import { getDAOAppIdentifiers } from '../utils';
+} from "../../../utils";
+import type { AragonOS } from "../AragonOS";
+import { getDAOAppIdentifiers } from "../utils";
 
 const { ABI, ADDR } = BindingsSpace;
 export const act: ICommand<AragonOS> = {
@@ -64,7 +64,7 @@ export const act: ICommand<AragonOS> = {
       case 0: {
         // Return every app on every DAO that includes 'agent'
         return getDAOAppIdentifiers(bindingsManager).filter((appIdentifier) =>
-          appIdentifier.includes('agent'),
+          appIdentifier.includes("agent"),
         );
       }
       case 1: {
@@ -140,7 +140,7 @@ export const act: ICommand<AragonOS> = {
           resolvedTargetAddress,
           provider,
           // TODO: use etherscan API to fetch the abis
-          '',
+          "",
         ),
       resolvedTargetAddress,
       ABI,

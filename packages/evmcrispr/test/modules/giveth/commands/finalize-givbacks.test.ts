@@ -1,13 +1,13 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
-import { defaultRelayerMap } from '../../../../src/modules/giveth/addresses';
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
-describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]', () => {
+describe("Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]", () => {
   let signer: Signer;
 
   before(async () => {
@@ -17,7 +17,7 @@ describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
   const testInitiateGivbacks =
     (relayerAddr: string = defaultRelayerAddr) =>
     async () => {
-      const ipfsHash = 'QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr';
+      const ipfsHash = "QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr";
 
       const interpreter = createInterpreter(
         relayerAddr === defaultRelayerAddr
@@ -31,7 +31,7 @@ describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
       );
 
       const batches = await fetch(
-        'https://ipfs.blossom.software/ipfs/' + ipfsHash,
+        "https://ipfs.blossom.software/ipfs/" + ipfsHash,
       ).then((data) => data.json());
 
       const interpreter2 = createInterpreter(
@@ -40,9 +40,9 @@ describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
             (batch: any) =>
               `exec ${relayerAddr} executeBatch(uint256,address[],uint256[]) ${
                 batch.nonce
-              } [${batch.recipients.join(',')}] [${batch.amounts.join(',')}]`,
+              } [${batch.recipients.join(",")}] [${batch.amounts.join(",")}]`,
           )
-          .join('\n'),
+          .join("\n"),
         signer,
       );
 
@@ -53,11 +53,11 @@ describe('Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
     };
 
   it(
-    'should return a correct initiate-givbacks action',
+    "should return a correct initiate-givbacks action",
     testInitiateGivbacks(),
   );
   it(
-    'should return a correct initiate-givbacks action when another relayer is passed',
-    testInitiateGivbacks('0xCa60c66a8C3449047c213295eCd82C80B1529a10'),
+    "should return a correct initiate-givbacks action when another relayer is passed",
+    testInitiateGivbacks("0xCa60c66a8C3449047c213295eCd82C80B1529a10"),
   );
 });

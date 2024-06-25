@@ -1,10 +1,12 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@repo/typescript-config/base.json",
+  "include": ["."],
+  "exclude": ["node_modules"],
   "compilerOptions": {
-    "allowJs": false,
-    "lib": ["es2019", "es2017", "dom"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "target": "es2021"
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
+    "types": ["node", "mocha"],
+    "resolveJsonModule": true
   }
 }

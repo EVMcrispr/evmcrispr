@@ -1,6 +1,6 @@
-import { Contract } from 'ethers';
+import { Contract } from "ethers";
 
-import type { ICommand } from '../../../types';
+import type { ICommand } from "../../../types";
 
 import {
   ComparisonType,
@@ -8,21 +8,21 @@ import {
   checkOpts,
   encodeAction,
   getOptValue,
-} from '../../../utils';
-import { batchForwarderActions } from '../../aragonos/utils';
+} from "../../../utils";
+import { batchForwarderActions } from "../../aragonos/utils";
 import {
   agentMap,
   defaultRelayerMap,
   tokenManagerMap,
   votingMap,
-} from '../addresses';
+} from "../addresses";
 
-import type { Giveth } from '../Giveth';
+import type { Giveth } from "../Giveth";
 
 export const initiateGivbacks: ICommand<Giveth> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
-    checkOpts(c, ['relayer']);
+    checkOpts(c, ["relayer"]);
 
     const [hash] = await interpretNodes(c.args);
 
@@ -36,16 +36,16 @@ export const initiateGivbacks: ICommand<Giveth> = {
     }
 
     const relayerAddr =
-      (await getOptValue(c, 'relayer', interpretNode)) || defaultRelayerAddr;
+      (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
 
-    const data = await fetch('https://ipfs.blossom.software/ipfs/' + hash).then(
+    const data = await fetch("https://ipfs.blossom.software/ipfs/" + hash).then(
       (data) => data.json(),
     );
 
     const relayer = new Contract(
       relayerAddr,
       [
-        'function hashBatch(uint256 _nonce, address[] calldata recipients, uint256[] calldata amounts) public view returns (bytes32)',
+        "function hashBatch(uint256 _nonce, address[] calldata recipients, uint256[] calldata amounts) public view returns (bytes32)",
       ],
       await module.getProvider(),
     );
@@ -59,7 +59,7 @@ export const initiateGivbacks: ICommand<Giveth> = {
     const actions = await batchForwarderActions(
       module,
       [
-        encodeAction(relayerAddr, 'addBatches(bytes32[],bytes)', [
+        encodeAction(relayerAddr, "addBatches(bytes32[],bytes)", [
           batches,
           hash,
         ]),

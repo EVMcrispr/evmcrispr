@@ -1,4 +1,4 @@
-import type { providers } from 'ethers';
+import type { providers } from "ethers";
 
 import type {
   Address,
@@ -9,13 +9,13 @@ import type {
   HelperFunctionNode,
   HelperFunctions,
   NodesInterpreters,
-} from './types';
-import { BindingsSpace } from './types';
+} from "./types";
+import { BindingsSpace } from "./types";
 
-import type { BindingsManager } from './BindingsManager';
-import { ErrorException } from './errors';
-import type { IPFSResolver } from './IPFSResolver';
-import type { EVMcrispr } from './EVMcrispr';
+import type { BindingsManager } from "./BindingsManager";
+import { ErrorException } from "./errors";
+import type { IPFSResolver } from "./IPFSResolver";
+import type { EVMcrispr } from "./EVMcrispr";
 
 export abstract class Module {
   constructor(

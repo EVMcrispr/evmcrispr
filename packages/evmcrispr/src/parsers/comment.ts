@@ -4,11 +4,11 @@ import {
   endOfInput,
   everythingUntil,
   sequenceOf,
-} from 'arcsecond';
+} from "arcsecond";
 
-import { endLine, optionalWhitespace } from './utils';
+import { endLine, optionalWhitespace } from "./utils";
 
-const commentInitializerChar = char('#');
+const commentInitializerChar = char("#");
 
 export const commentParser = sequenceOf([
   optionalWhitespace,

@@ -1,9 +1,9 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { Interface } from 'ethers/lib/utils';
+import { Interface } from "ethers/lib/utils";
 
-import { BindingsSpace } from '../../../types';
-import type { AbiBinding, Address, ICommand } from '../../../types';
+import { BindingsSpace } from "../../../types";
+import type { AbiBinding, Address, ICommand } from "../../../types";
 
 import {
   ComparisonType,
@@ -18,19 +18,19 @@ import {
   interpretNodeSync,
   isNumberish,
   tryAndCacheNotFound,
-} from '../../../utils';
-import { fetchAbi } from '../../../utils/abis';
-import type { Std } from '../Std';
-import { ErrorException } from '../../../errors';
-import type { HelperFunctionNode } from '../../..';
-import { erc20ABI } from '../../../../abis';
+} from "../../../utils";
+import { fetchAbi } from "../../../utils/abis";
+import type { Std } from "../Std";
+import { ErrorException } from "../../../errors";
+import type { HelperFunctionNode } from "../../..";
+import { erc20ABI } from "../../../../abis";
 
 const { ABI, ADDR } = BindingsSpace;
 
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ['value', 'from']);
+    checkOpts(c, ["value", "from"]);
 
     const [targetNode, signatureNode, ...rest] = c.args;
 
@@ -40,8 +40,8 @@ export const exec: ICommand<Std> = {
       interpretNodes(rest),
     ]);
 
-    const value = await getOptValue(c, 'value', interpretNode);
-    const from = await getOptValue(c, 'from', interpretNode);
+    const value = await getOptValue(c, "value", interpretNode);
+    const from = await getOptValue(c, "from", interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -65,9 +65,9 @@ export const exec: ICommand<Std> = {
       ) as utils.Interface;
 
       if (abi) {
-        finalSignature = abi.getFunction(signature).format('minimal');
+        finalSignature = abi.getFunction(signature).format("minimal");
       } else {
-        const etherscanAPI = module.getConfigBinding('etherscanAPI');
+        const etherscanAPI = module.getConfigBinding("etherscanAPI");
         let fetchedAbi: utils.Interface;
         try {
           [targetAddress, fetchedAbi] = await fetchAbi(
@@ -89,7 +89,7 @@ export const exec: ICommand<Std> = {
         }
 
         try {
-          finalSignature = fetchedAbi.getFunction(signature).format('minimal');
+          finalSignature = fetchedAbi.getFunction(signature).format("minimal");
         } catch (err) {
           const err_ = err as Error;
           throw new ErrorException(
@@ -130,8 +130,8 @@ export const exec: ICommand<Std> = {
       case 1: {
         // Check if it's a @token helper and provide ERC-20 functions
         if (
-          nodeArgs[0].type === 'HelperFunctionExpression' &&
-          (nodeArgs[0] as HelperFunctionNode).name === 'token'
+          nodeArgs[0].type === "HelperFunctionExpression" &&
+          (nodeArgs[0] as HelperFunctionNode).name === "token"
         ) {
           const abi = new Interface(erc20ABI);
           const functions = Object.keys(abi.functions)
@@ -212,7 +212,7 @@ export const exec: ICommand<Std> = {
           resolvedTargetAddress,
           provider,
           // TODO: use etherscan API to fetch the abis
-          '',
+          "",
         ),
       resolvedTargetAddress,
       ABI,

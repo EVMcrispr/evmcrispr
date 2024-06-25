@@ -1,14 +1,14 @@
-import type { Err, Parser } from 'arcsecond';
-import { withData } from 'arcsecond';
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
+import type { Err, Parser } from "arcsecond";
+import { withData } from "arcsecond";
+import { expect } from "chai";
+import type { Signer } from "ethers";
 
-import { inspect } from 'util';
-import type { ErrorException } from '../../src';
-import { Cas11AST } from '../../src';
-import { EVMcrispr } from '../../src/EVMcrispr';
-import { scriptParser } from '../../src/parsers/script';
-import { createParserState } from '../../src/parsers/utils';
+import { inspect } from "util";
+import type { ErrorException } from "../../src";
+import { Cas11AST } from "../../src";
+import { EVMcrispr } from "../../src/EVMcrispr";
+import { scriptParser } from "../../src/parsers/script";
+import { createParserState } from "../../src/parsers/utils";
 import type {
   BlockExpressionNode,
   CommandExpressionNode,
@@ -16,17 +16,17 @@ import type {
   Node,
   NodeParser,
   NodeParserState,
-} from '../../src/types';
-import { BindingsSpace, NodeType } from '../../src/types';
-import type { Comparison } from '../../src/utils';
-import { ComparisonType, buildArgsLengthErrorMsg } from '../../src/utils';
-import { buildParserError } from '../../src/utils/parsers';
+} from "../../src/types";
+import { BindingsSpace, NodeType } from "../../src/types";
+import type { Comparison } from "../../src/utils";
+import { ComparisonType, buildArgsLengthErrorMsg } from "../../src/utils";
+import { buildParserError } from "../../src/utils/parsers";
 import {
   CommandError,
   ExpressionError,
   HelperFunctionError,
-} from '../../src/errors';
-import { expectThrowAsync } from './expects';
+} from "../../src/errors";
+import { expectThrowAsync } from "./expects";
 
 const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;
@@ -90,10 +90,10 @@ export const runErrorCase = (
     text,
   );
 
-  expect(res.isError, 'error not thrown').to.be.true;
+  expect(res.isError, "error not thrown").to.be.true;
   expect(
     (res as Err<string, NodeParserState>).error,
-    'error message mismatch',
+    "error message mismatch",
   ).to.equals(
     buildParserError(
       {
@@ -123,58 +123,58 @@ export const preparingExpression = async (
 ): Promise<[Awaited<any>, HelperFunctionNode]> => {
   const i = createInterpreter(
     `
-  ${module ? `load ${module}` : ''}
+  ${module ? `load ${module}` : ""}
 
-  ${configSetters.join('\n')}
+  ${configSetters.join("\n")}
   set $res ${expression}
   `,
     signer,
   );
 
   const setCommand = i.ast.body.find(
-    (n) => (n as CommandExpressionNode).name === 'set',
+    (n) => (n as CommandExpressionNode).name === "set",
   )! as CommandExpressionNode;
   const n = setCommand.args[1] as HelperFunctionNode;
 
   return [
     async () => {
       await i.interpret();
-      return i.getBinding('$res', BindingsSpace.USER);
+      return i.getBinding("$res", BindingsSpace.USER);
     },
     n,
   ];
 };
 
-const plural = (length: number): string => (length > 1 ? 's' : '');
+const plural = (length: number): string => (length > 1 ? "s" : "");
 
 const updateExpressionArgs = (
-  op: 'add' | 'remove',
+  op: "add" | "remove",
   argumentlessExpression: string,
   args: string[],
   { minValue, type }: Comparison,
 ): string => {
   switch (op) {
-    case 'add':
+    case "add":
       return `${argumentlessExpression}(${[...args, `'extra argument'`].join(
-        ',',
+        ",",
       )})`;
-    case 'remove':
+    case "remove":
       return `${argumentlessExpression}(${args
         .slice(
           0,
           Math.max(0, type === Between ? minValue - 1 : args.length - 1),
         )
-        .join(',')})`;
+        .join(",")})`;
     default:
-      throw new Error('Unsupported update expression operation');
+      throw new Error("Unsupported update expression operation");
   }
 };
 
 const getCallee = (argumentlessExpression: string): string => {
-  if (argumentlessExpression.startsWith('@')) {
+  if (argumentlessExpression.startsWith("@")) {
     return argumentlessExpression.slice(1);
-  } else if (argumentlessExpression.includes('::')) {
-    return argumentlessExpression.split('::')[1];
+  } else if (argumentlessExpression.includes("::")) {
+    return argumentlessExpression.split("::")[1];
   } else {
     return argumentlessExpression;
   }
@@ -183,7 +183,7 @@ const getCallee = (argumentlessExpression: string): string => {
 const createCommandNode = (name: string): CommandExpressionNode => ({
   type: CommandExpression,
   name: name,
-  module: '',
+  module: "",
   args: [],
   opts: [],
 });
@@ -203,7 +203,7 @@ export const itChecksInvalidArgsLength = (
   module?: string,
 ): Mocha.Test => {
   const { type, minValue, maxValue } = c;
-  return it('should fail when receiving an invalid number of arguments', async () => {
+  return it("should fail when receiving an invalid number of arguments", async () => {
     /**
      * When calling the 'it' outter fn none of the 'before' statements have been executed
      * so the signer hasn't been defined yet. To solve this, we pass a callback returning
@@ -219,7 +219,7 @@ export const itChecksInvalidArgsLength = (
 
       msg = buildArgsLengthErrorMsg(args.length + 1, c);
       const [interpret, h] = await preparingExpression(
-        updateExpressionArgs('add', argumentlessExpression, args, c),
+        updateExpressionArgs("add", argumentlessExpression, args, c),
         signer,
         module,
       );
@@ -239,7 +239,7 @@ export const itChecksInvalidArgsLength = (
       if (minValue > 0) {
         msg = buildArgsLengthErrorMsg(minValue - 1, c);
         const [interpret, h] = await preparingExpression(
-          updateExpressionArgs('remove', argumentlessExpression, args, c),
+          updateExpressionArgs("remove", argumentlessExpression, args, c),
           signer,
           module,
         );
@@ -259,7 +259,7 @@ export const itChecksInvalidArgsLength = (
     } else if (type === Greater) {
       msg = buildArgsLengthErrorMsg(args.length - 1, c);
       const [interpret, h] = await preparingExpression(
-        updateExpressionArgs('remove', argumentlessExpression, args, c),
+        updateExpressionArgs("remove", argumentlessExpression, args, c),
         signer,
         module,
       );
@@ -287,24 +287,24 @@ export const itChecksNonDefinedIdentifier = (
   isAragonOS = false,
 ): Mocha.Test => {
   return it(itName, async () => {
-    const nonDefinedIdentifier = 'non-defined-address';
+    const nonDefinedIdentifier = "non-defined-address";
     const interpreter = createInterpreter(nonDefinedIdentifier);
     let body = interpreter.ast.body;
     if (isAragonOS) {
-      const connect = body.find((c) => c.name === 'connect')!;
+      const connect = body.find((c) => c.name === "connect")!;
       body = (connect.args[connect.args.length - 1] as BlockExpressionNode)
         .body;
     }
     const c = body.find((n) => n.name === commandName);
 
     if (!c) {
-      throw new Error('Command not found');
+      throw new Error("Command not found");
     }
 
     const error = new ExpressionError(
       c.args[argIndex],
       `identifier "${nonDefinedIdentifier}" not found`,
-      { name: 'IdentifierError' },
+      { name: "IdentifierError" },
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

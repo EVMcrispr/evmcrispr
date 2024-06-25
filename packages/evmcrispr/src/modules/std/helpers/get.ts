@@ -1,9 +1,9 @@
-import { Contract, utils } from 'ethers';
+import { Contract, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import { ErrorException } from "../../../errors";
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
 export const get: HelperFunction<Std> = async (
   module,
@@ -25,7 +25,7 @@ export const get: HelperFunction<Std> = async (
     );
   }
 
-  const [body, returns, index] = abi.split(':');
+  const [body, returns, index] = abi.split(":");
   const contract = new Contract(
     address,
     [`function ${body} external view returns ${returns}`],

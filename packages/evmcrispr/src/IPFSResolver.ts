@@ -1,6 +1,6 @@
-import { ErrorConnection, ErrorUnexpectedResult } from './errors';
+import { ErrorConnection, ErrorUnexpectedResult } from "./errors";
 
-export const IPFS_GATEWAY = 'https://ipfs.blossom.software/ipfs/'; // "https://gateway.pinata.cloud/ipfs/";
+export const IPFS_GATEWAY = "https://ipfs.blossom.software/ipfs/"; // "https://gateway.pinata.cloud/ipfs/";
 
 export class IPFSResolver {
   async json(
@@ -37,9 +37,9 @@ export class IPFSResolver {
   async url(cid: string, path?: string, ipfsGateway?: string): Promise<string> {
     const url = this.#buildIpfsTemplate(ipfsGateway).replace(/\{cid\}/, cid);
     if (!path) {
-      return url.replace(/\{path\}/, '');
+      return url.replace(/\{path\}/, "");
     }
-    if (!path.startsWith('/')) {
+    if (!path.startsWith("/")) {
       path = `/${path}`;
     }
     return url.replace(/\{path\}/, path);
@@ -49,10 +49,10 @@ export class IPFSResolver {
   #buildIpfsTemplate(ipfsGateway: string = IPFS_GATEWAY): string {
     let ipfsUrlTemplate = ipfsGateway;
 
-    if (ipfsGateway.charAt(ipfsGateway.length - 1) !== '/') {
-      ipfsUrlTemplate += '/';
+    if (ipfsGateway.charAt(ipfsGateway.length - 1) !== "/") {
+      ipfsUrlTemplate += "/";
     }
 
-    return (ipfsUrlTemplate += '{cid}{path}');
+    return (ipfsUrlTemplate += "{cid}{path}");
   }
 }

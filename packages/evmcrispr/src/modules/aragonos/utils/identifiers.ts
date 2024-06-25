@@ -1,13 +1,13 @@
-import { isAddress } from 'ethers/lib/utils';
+import { isAddress } from "ethers/lib/utils";
 
-import { ErrorInvalid } from '../../../errors';
-import type { App, AppIdentifier, LabeledAppIdentifier } from '../types';
-import { BindingsSpace } from '../../../types';
-import type { BindingsManager } from '../../../BindingsManager';
+import { ErrorInvalid } from "../../../errors";
+import type { App, AppIdentifier, LabeledAppIdentifier } from "../types";
+import { BindingsSpace } from "../../../types";
+import type { BindingsManager } from "../../../BindingsManager";
 
-const DEFAULT_REGISTRY = 'aragonpm.eth';
+const DEFAULT_REGISTRY = "aragonpm.eth";
 
-export const INITIAL_APP_INDEX = ':0';
+export const INITIAL_APP_INDEX = ":0";
 
 // eslint-disable-next-line
 export const appIdentifierRegex =
@@ -22,15 +22,15 @@ export const parseRegistry = (registryEnsName: string): string => {
   // We denote the default aragonpm registry with an empty string
   // Assume registry is the default one if no ens name is provided.
   if (!registryEnsName) {
-    return '';
+    return "";
   }
-  const ensParts = registryEnsName.split('.');
+  const ensParts = registryEnsName.split(".");
 
   if (ensParts.length === 3) {
     return `.${ensParts[0]}`;
   }
 
-  return '';
+  return "";
 };
 
 export const isAppIdentifier = (identifier: string): boolean => {
@@ -64,7 +64,7 @@ export const parseLabeledAppIdentifier = (
     throw new ErrorInvalid(
       `invalid labeled identifier ${labeledAppIdentifier}`,
       {
-        name: 'ErrorInvalidIdentifier',
+        name: "ErrorInvalidIdentifier",
       },
     );
   }
@@ -107,7 +107,7 @@ export const resolveIdentifier = (
   }
 
   throw new ErrorInvalid(`Invalid identifier ${identifier}`, {
-    name: 'ErrorInvalidIdentifier',
+    name: "ErrorInvalidIdentifier",
   });
 };
 
@@ -128,8 +128,8 @@ export const buildAppIdentifier = (
 export const parsePrefixedDAOIdentifier = (
   identifier: string,
 ): [string | undefined, string] => {
-  if (identifier.startsWith('_')) {
-    const elements = identifier.split(':');
+  if (identifier.startsWith("_")) {
+    const elements = identifier.split(":");
     return [elements[0].substring(1), elements[1]];
   }
 
@@ -140,7 +140,7 @@ export function getDaoAddrFromIdentifier(
   identifier: string,
   bindingsManager: BindingsManager,
 ): string | undefined | null {
-  if (identifier.startsWith('_')) {
+  if (identifier.startsWith("_")) {
     const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
     if (isAddress(daoPrefix!)) {
       return daoPrefix;

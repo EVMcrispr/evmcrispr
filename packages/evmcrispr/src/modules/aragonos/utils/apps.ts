@@ -1,16 +1,16 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { Address } from '../../../types';
-import { AddressSet } from '../AddressSet';
+import type { Address } from "../../../types";
+import { AddressSet } from "../AddressSet";
 import type {
   App,
   AppArtifact,
   AppArtifactCache,
   ParsedApp,
   PermissionMap,
-} from '../types';
+} from "../types";
 
-import { parseAppArtifactName } from './parsers';
+import { parseAppArtifactName } from "./parsers";
 
 export const buildAppPermissions = (
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -19,7 +19,7 @@ export const buildAppPermissions = (
 ): PermissionMap => {
   const appPermissions = artifactRoles.reduce(
     (roleMap: PermissionMap, role: any) => {
-      roleMap.set(role.bytes, { manager: '', grantees: new AddressSet() });
+      roleMap.set(role.bytes, { manager: "", grantees: new AddressSet() });
       return roleMap;
     },
     new Map(),
@@ -84,7 +84,7 @@ export const buildArtifactFromABI = (
   abiInterface: utils.Interface,
 ): AppArtifact => {
   const roleNames = Object.values(abiInterface.functions)
-    .filter((fnFragment) => fnFragment.name.endsWith('_ROLE'))
+    .filter((fnFragment) => fnFragment.name.endsWith("_ROLE"))
     .map((fnFragment) => fnFragment.name);
 
   return {

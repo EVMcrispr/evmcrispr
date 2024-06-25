@@ -1,6 +1,6 @@
-import type { Parser } from 'arcsecond';
+import type { Parser } from "arcsecond";
 
-import type { Node } from './ast';
+import type { Node } from "./ast";
 
 export type LocationData = { line: number; index: number; offset: number };
 

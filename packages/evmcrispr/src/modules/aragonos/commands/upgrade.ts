@@ -1,17 +1,17 @@
-import { constants, utils } from 'ethers';
-import { isAddress } from 'ethers/lib/utils';
+import { constants, utils } from "ethers";
+import { isAddress } from "ethers/lib/utils";
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { ICommand } from '../../../types';
-import type { AragonOS } from '../AragonOS';
-import { _aragonEns } from '../helpers/aragonEns';
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { ICommand } from "../../../types";
+import type { AragonOS } from "../AragonOS";
+import { _aragonEns } from "../helpers/aragonEns";
 import {
   SEMANTIC_VERSION_REGEX,
   getDAOAppIdentifiers,
   getRepoContract,
-} from '../utils';
-import { daoPrefixedIdentifierParser, getDAO } from '../utils/commands';
-import { ErrorException } from '../../../errors';
+} from "../utils";
+import { daoPrefixedIdentifierParser, getDAO } from "../utils/commands";
+import { ErrorException } from "../../../errors";
 
 export const upgrade: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
@@ -23,7 +23,7 @@ export const upgrade: ICommand<AragonOS> = {
 
     const dao = getDAO(module.bindingsManager, c.args[0]);
 
-    const kernel = dao.getAppContract('kernel', await module.getProvider())!;
+    const kernel = dao.getAppContract("kernel", await module.getProvider())!;
 
     const args = await Promise.all([
       interpretNode(c.args[0], { treatAsLiteral: true }),
@@ -37,13 +37,13 @@ export const upgrade: ICommand<AragonOS> = {
     let apmRepo = !parserRes.isError ? parserRes.result[1] : rawApmRepo;
 
     if (
-      !apmRepo.endsWith('aragonpm.eth') &&
-      !apmRepo.endsWith('open.aragonpm.eth')
+      !apmRepo.endsWith("aragonpm.eth") &&
+      !apmRepo.endsWith("open.aragonpm.eth")
     ) {
       apmRepo = `${apmRepo}.aragonpm.eth`;
     }
 
-    const KERNEL_APP_BASE_NAMESPACE = utils.id('base');
+    const KERNEL_APP_BASE_NAMESPACE = utils.id("base");
     const appId = utils.namehash(apmRepo);
 
     const currentAppAddress = await kernel.getApp(
@@ -58,7 +58,7 @@ export const upgrade: ICommand<AragonOS> = {
     const repoAddr = await _aragonEns(
       apmRepo,
       await module.getProvider(),
-      module.getConfigBinding('ensResolver'),
+      module.getConfigBinding("ensResolver"),
     );
 
     if (!repoAddr) {
@@ -71,11 +71,11 @@ export const upgrade: ICommand<AragonOS> = {
       [, newAppAddress] = await repo.getLatest();
     } else if (SEMANTIC_VERSION_REGEX.test(newAppAddress)) {
       [, newAppAddress] = await repo.getBySemanticVersion(
-        newAppAddress.split('.'),
+        newAppAddress.split("."),
       );
     } else if (!isAddress(newAppAddress)) {
       throw new ErrorException(
-        'second upgrade parameter must be a semantic version, an address, or nothing',
+        "second upgrade parameter must be a semantic version, an address, or nothing",
       );
     }
 
@@ -83,7 +83,7 @@ export const upgrade: ICommand<AragonOS> = {
       {
         to: kernel.address,
         data: kernel.interface.encodeFunctionData(
-          'setApp(bytes32,bytes32,address)',
+          "setApp(bytes32,bytes32,address)",
           [KERNEL_APP_BASE_NAMESPACE, appId, newAppAddress],
         ),
       },

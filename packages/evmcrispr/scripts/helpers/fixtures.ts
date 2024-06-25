@@ -1,17 +1,17 @@
-import fs from 'fs';
-import { subgraphUrlFromChainId } from '../../src/modules/aragonos/Connector';
+import fs from "fs";
+import { subgraphUrlFromChainId } from "../../src/modules/aragonos/Connector";
 import {
   ORGANIZATION_APPS,
   REPO,
   getSystemApp,
   parseRegistry,
-} from '../../src/modules/aragonos/utils';
+} from "../../src/modules/aragonos/utils";
 
 export const basePath = (relativePath: string): string =>
   `test/fixtures/${relativePath}`;
 
-export const SUBGRAPH_DIRECTORY = 'subgraph-data';
-export const ARTIFACTS_DIRECTORY = 'artifacts';
+export const SUBGRAPH_DIRECTORY = "subgraph-data";
+export const ARTIFACTS_DIRECTORY = "artifacts";
 
 export const fetchOrganizationApps = (
   daoAddress: string,
@@ -23,14 +23,14 @@ export const fetchOrganizationApps = (
     throw new Error(`Chain id ${chainId} invalid.`);
   }
   return fetch(subgraphUrl!, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(ORGANIZATION_APPS(daoAddress.toLowerCase())),
   }).then((res) => res.json());
 };
 
 export const fetchRepo = (
   name: string,
-  registry = 'aragonpm.eth',
+  registry = "aragonpm.eth",
   versions: string[] = [],
   chainId: number,
 ): Promise<any> => {
@@ -41,7 +41,7 @@ export const fetchRepo = (
   }
 
   return fetch(subgraphUrl!, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(REPO(name, registry, versions)),
   }).then((res) => res.json());
 };
@@ -59,26 +59,26 @@ export const generateMockDAOFile = (daoApps: any[], index: number): void => {
     }
 
     return str;
-  }, '{');
+  }, "{");
 
   const file = `// WARNING: this file is generated automatically\n\nexport const DAO = ${daoObjString}\n\n// Needed to build the MockEVMcrispr cache\nexport const KERNEL_TRANSACTION_COUNT = ${
     Object.keys(daoApps).length
   };\n`;
 
   fs.writeFileSync(
-    basePath(`mock-dao${index ? `-${index + 1}` : ''}.ts`),
+    basePath(`mock-dao${index ? `-${index + 1}` : ""}.ts`),
     file,
   );
 };
 
 export const generateArtifactsIndexFile = (contentUris: string[]): void => {
-  let file = '// WARNING: this file is generated automatically\n';
+  let file = "// WARNING: this file is generated automatically\n";
   contentUris.forEach((contentUri) => {
     file += `import ${contentUri} from './${contentUri}.json'\n`;
   });
 
-  file += '\n';
-  file += 'export const artifacts = {\n';
+  file += "\n";
+  file += "export const artifacts = {\n";
   contentUris.forEach((contentUri) => {
     file += `${contentUri},\n`;
   });
@@ -91,7 +91,7 @@ export const generateSubgraphDataIndexFile = (
   daoAddresses: string[],
   repoNames: string[],
 ): void => {
-  let file = '// WARNING: this file is generated automatically\n';
+  let file = "// WARNING: this file is generated automatically\n";
 
   daoAddresses.forEach((daoAddress, i) => {
     file += `import dao${i} from './${daoAddress}.json';\n`;
@@ -100,22 +100,22 @@ export const generateSubgraphDataIndexFile = (
     file += `import app${i} from './${repoName}.json';\n`;
   });
 
-  file += '\n';
-  file += 'export const DAOs = {\n';
+  file += "\n";
+  file += "export const DAOs = {\n";
   daoAddresses.forEach((daoAddress, i) => {
     file += `'${daoAddress}': dao${i},\n`;
   });
-  file += '};\n';
+  file += "};\n";
 
-  file += '\n';
+  file += "\n";
 
-  file += 'export const REPOs = {\n';
+  file += "export const REPOs = {\n";
 
   repoNames.forEach((repoName, i) => {
     file += `['${repoName}']: app${i},\n`;
   });
 
-  file += '}\n';
+  file += "}\n";
 
   fs.writeFileSync(basePath(`${SUBGRAPH_DIRECTORY}/index.ts`), file);
 };

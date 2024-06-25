@@ -1,19 +1,19 @@
-import type { BigNumberish, providers } from 'ethers';
-import { BigNumber, Contract, utils } from 'ethers';
+import type { BigNumberish, providers } from "ethers";
+import { BigNumber, Contract, utils } from "ethers";
 
 /**
  * Standarized storage slot determined by bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
  * and defined on EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967#logic-contract-address)
  */
 const EIP1967_STORAGE_SLOT = utils.hexlify(
-  BigNumber.from(utils.id('eip1967.proxy.implementation')).sub(1),
+  BigNumber.from(utils.id("eip1967.proxy.implementation")).sub(1),
 );
 
 const EIP1967_BEACON_STORAGE_SLOT = utils.hexlify(
-  BigNumber.from(utils.id('eip1967.proxy.beacon')).sub(1),
+  BigNumber.from(utils.id("eip1967.proxy.beacon")).sub(1),
 );
 
-const EIP1822_PROXIABLE = utils.id('PROXIABLE');
+const EIP1822_PROXIABLE = utils.id("PROXIABLE");
 
 const getAddressFromStorageSlot = async (
   contractAddress: string,
@@ -37,7 +37,7 @@ export async function fetchImplementationAddress(
     EIP1967_STORAGE_SLOT,
     provider,
   );
-  if (implementationAddress && implementationAddress !== '0x') {
+  if (implementationAddress && implementationAddress !== "0x") {
     return (
       (await fetchImplementationAddress(implementationAddress, provider)) ||
       implementationAddress
@@ -50,7 +50,7 @@ export async function fetchImplementationAddress(
     EIP1822_PROXIABLE,
     provider,
   );
-  if (implementationAddress && implementationAddress !== '0x') {
+  if (implementationAddress && implementationAddress !== "0x") {
     return (
       (await fetchImplementationAddress(implementationAddress, provider)) ||
       implementationAddress
@@ -61,8 +61,8 @@ export async function fetchImplementationAddress(
     const proxyContract = new Contract(
       address,
       [
-        'function implementation() public view returns (address)',
-        'function childImplementation() external view returns (address)',
+        "function implementation() public view returns (address)",
+        "function childImplementation() external view returns (address)",
       ],
       provider,
     );
@@ -74,12 +74,12 @@ export async function fetchImplementationAddress(
       EIP1967_BEACON_STORAGE_SLOT,
       provider,
     );
-    if (beaconAddress !== '0x') {
+    if (beaconAddress !== "0x") {
       const proxyContract = new Contract(
         beaconAddress,
         [
-          'function implementation() public view returns (address)',
-          'function childImplementation() external view returns (address)',
+          "function implementation() public view returns (address)",
+          "function childImplementation() external view returns (address)",
         ],
         provider,
       );

@@ -1,4 +1,4 @@
-import { constants, utils } from 'ethers';
+import { constants, utils } from "ethers";
 
 import {
   ComparisonType,
@@ -6,18 +6,18 @@ import {
   calculateNewProxyAddress,
   checkArgsLength,
   isNumberish,
-} from '../../../utils';
-import { ErrorException } from '../../../errors';
-import type { Address, ICommand } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import type { AragonOS } from '../AragonOS';
+} from "../../../utils";
+import { ErrorException } from "../../../errors";
+import type { Address, ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import type { AragonOS } from "../AragonOS";
 import {
   CONTROLLED_INTERFACE,
   MINIME_TOKEN_FACTORIES,
   MINIME_TOKEN_FACTORY_INTERFACE,
   getDaoAddrFromIdentifier,
   isLabeledAppIdentifier,
-} from '../utils';
+} from "../utils";
 
 export const newToken: ICommand<AragonOS> = {
   async run(module, c, { interpretNodes }) {
@@ -74,9 +74,9 @@ export const newToken: ICommand<AragonOS> = {
     }
 
     if (
-      typeof transferable !== 'boolean' &&
-      transferable !== 'true' &&
-      transferable !== 'false'
+      typeof transferable !== "boolean" &&
+      transferable !== "true" &&
+      transferable !== "false"
     ) {
       throw new ErrorException(
         `invalid transferable flag. Expected a boolean, but got ${transferable}`,
@@ -107,13 +107,13 @@ export const newToken: ICommand<AragonOS> = {
       {
         to: factoryAddr,
         data: MINIME_TOKEN_FACTORY_INTERFACE.encodeFunctionData(
-          'createCloneToken',
+          "createCloneToken",
           [constants.AddressZero, 0, name, decimals, symbol, transferable],
         ),
       },
       {
         to: newTokenAddress,
-        data: CONTROLLED_INTERFACE.encodeFunctionData('changeController', [
+        data: CONTROLLED_INTERFACE.encodeFunctionData("changeController", [
           controllerAddress,
         ]),
       },

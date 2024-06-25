@@ -4,18 +4,31 @@
   "codename": "collective wisdom",
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
-  "main": "dist/1hive-evmcrispr.cjs.js",
-  "module": "dist/1hive-evmcrispr.esm.js",
   "author": "Blossom Labs",
   "sideEffects": false,
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@repo/prettier-config": "*",
+    "@types/mocha": "^10.0.7",
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/lodash.clonedeep": "^4.5.9",
+    "chai": "^4.3.6",
     "msw": "^2.3.1",
     "node-fetch": "^3.3.2",
     "nyc": "^17.0.0",
     "ora": "^5.4.0",
-    "is-ipfs": "^6.0.2"
+    "is-ipfs": "^6.0.2",
+    "hardhat": "^2.22.5",
+    "typescript": "^5.5.2",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^6.0.0"
   },
   "dependencies": {
     "@ensdomains/content-hash": "^3.0.0",
@@ -33,10 +46,10 @@
   "scripts": {
     "chain": "hardhat node",
     "create-fixtures": "hardhat run scripts/create-fixtures.ts",
-    "create-docs": "typedoc",
-    "preinstall": "npx only-allow pnpm",
-    "lint:types": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit",
     "test": "hardhat test",
-    "test:coverage": "nyc --reporter=lcov pnpm test"
+    "test:coverage": "nyc --reporter=lcov bun run test",
+    "build": "tsup src/index.ts --format cjs,esm --dts --sourcemap --out-dir dist"
   }
 }

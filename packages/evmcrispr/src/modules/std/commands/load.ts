@@ -1,13 +1,13 @@
-import { ComparisonType, checkArgsLength, insideNode } from '../../../utils';
+import { ComparisonType, checkArgsLength, insideNode } from "../../../utils";
 import type {
   AsExpressionNode,
   Commands,
   HelperFunctions,
   ICommand,
-} from '../../../types';
-import { BindingsSpace, NodeType } from '../../../types';
-import type { Std } from '../Std';
-import { ErrorException } from '../../../errors';
+} from "../../../types";
+import { BindingsSpace, NodeType } from "../../../types";
+import type { Std } from "../Std";
+import { ErrorException } from "../../../errors";
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
@@ -24,7 +24,7 @@ export const load: ICommand<Std> = {
     const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
     if (type !== AsExpression && type !== StringLiteral && !isIdentifier) {
-      throw new ErrorException('invalid argument. Expected a string');
+      throw new ErrorException("invalid argument. Expected a string");
     }
 
     let moduleName: string,
@@ -79,7 +79,7 @@ export const load: ICommand<Std> = {
         ) {
           return [];
         }
-        return ['aragonos', 'tenderly', 'giveth', 'ens'];
+        return ["aragonos", "tenderly", "giveth", "ens"];
       }
       default:
         return [];
@@ -92,7 +92,7 @@ export const load: ICommand<Std> = {
 
     const moduleNameArg = args[0];
     let moduleName: string,
-      moduleAlias = '';
+      moduleAlias = "";
 
     if (moduleNameArg.type === AsExpression) {
       const asNode = moduleNameArg as AsExpressionNode;

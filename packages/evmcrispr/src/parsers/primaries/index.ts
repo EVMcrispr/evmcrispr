@@ -1,6 +1,6 @@
-import { choice, recursiveParser } from 'arcsecond';
+import { choice, recursiveParser } from "arcsecond";
 
-import type { EnclosingNodeParser, PrimaryExpressionNode } from '../../types';
+import type { EnclosingNodeParser, PrimaryExpressionNode } from "../../types";
 
 import {
   addressParser,
@@ -8,7 +8,7 @@ import {
   hexadecimalParser,
   numberParser,
   stringParser,
-} from './literals';
+} from "./literals";
 
 export const primaryParser: EnclosingNodeParser<PrimaryExpressionNode> = (
   enclosingParsers = [],
@@ -23,6 +23,6 @@ export const primaryParser: EnclosingNodeParser<PrimaryExpressionNode> = (
     ]),
   );
 
-export * from './identifiers';
+export * from "./identifiers";
 
-export * from './literals';
+export * from "./literals";

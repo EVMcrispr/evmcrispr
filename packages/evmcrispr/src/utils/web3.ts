@@ -1,7 +1,7 @@
-import type { providers } from 'ethers';
-import { BigNumber, Wallet, utils } from 'ethers';
+import type { providers } from "ethers";
+import { BigNumber, Wallet, utils } from "ethers";
 
-import type { Address } from '../types';
+import type { Address } from "../types";
 
 // JS regex do not support balancing groups, so we do not check parentheses are balanced
 export const SIGNATURE_REGEX =
@@ -38,10 +38,10 @@ export const toDecimals = (
   amount: number | string,
   decimals = 18,
 ): BigNumber => {
-  const [integer, decimal] = String(amount).split('.');
+  const [integer, decimal] = String(amount).split(".");
   return BigNumber.from(
-    (integer != '0' ? integer : '') + (decimal || '').padEnd(decimals, '0') ||
-      '0',
+    (integer != "0" ? integer : "") + (decimal || "").padEnd(decimals, "0") ||
+      "0",
   );
 };
 

@@ -1,5 +1,5 @@
-import { Tenderly } from './Tenderly';
+import { Tenderly } from "./Tenderly";
 
-export { commands } from './commands';
-export { helpers } from './helpers';
+export { commands } from "./commands";
+export { helpers } from "./helpers";
 export const ModuleConstructor = Tenderly;

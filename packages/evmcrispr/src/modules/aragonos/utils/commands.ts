@@ -1,23 +1,23 @@
-import type { Parser } from 'arcsecond';
-import { char, possibly, regex, sequenceOf } from 'arcsecond';
-import { utils } from 'ethers';
+import type { Parser } from "arcsecond";
+import { char, possibly, regex, sequenceOf } from "arcsecond";
+import { utils } from "ethers";
 
-import { BindingsSpace, NodeType } from '../../../types';
+import { BindingsSpace, NodeType } from "../../../types";
 import type {
   CommandExpressionNode,
   Node,
   NodeInterpreter,
-} from '../../../types';
-import type { AragonDAO } from '../AragonDAO';
-import type { CompletePermission } from '../types';
-import { optionalLabeledAppIdentifierRegex } from './identifiers';
-import { getOptValue, listItems } from '../../../utils';
-import { ErrorException } from '../../../errors';
-import type { BindingsManager } from '../../../BindingsManager';
+} from "../../../types";
+import type { AragonDAO } from "../AragonDAO";
+import type { CompletePermission } from "../types";
+import { optionalLabeledAppIdentifierRegex } from "./identifiers";
+import { getOptValue, listItems } from "../../../utils";
+import { ErrorException } from "../../../errors";
+import type { BindingsManager } from "../../../BindingsManager";
 
 const { DATA_PROVIDER } = BindingsSpace;
 
-export const DAO_OPT_NAME = 'dao';
+export const DAO_OPT_NAME = "dao";
 
 export const daoPrefixedIdentifierParser: Parser<
   [string | undefined, string],
@@ -25,7 +25,7 @@ export const daoPrefixedIdentifierParser: Parser<
   any
 > = sequenceOf([
   possibly(
-    sequenceOf([char('_'), regex(/^((?!-)[a-zA-Z0-9-]+(?<!-))/), char(':')]),
+    sequenceOf([char("_"), regex(/^((?!-)[a-zA-Z0-9-]+(?<!-))/), char(":")]),
   ),
   regex(optionalLabeledAppIdentifierRegex),
 ]).map(([prefix, appIdentifier]) => [
@@ -37,7 +37,7 @@ export const getDAO = (
   bindingsManager: BindingsManager,
   appNode: Node,
 ): AragonDAO => {
-  let dao = bindingsManager.getBindingValue('currentDAO', DATA_PROVIDER) as
+  let dao = bindingsManager.getBindingValue("currentDAO", DATA_PROVIDER) as
     | AragonDAO
     | undefined;
 
@@ -70,13 +70,13 @@ export const getDAOByOption = async (
   bindingsManager: BindingsManager,
   interpretNode: NodeInterpreter,
 ): Promise<AragonDAO> => {
-  let daoIdentifier = await getOptValue(c, 'dao', interpretNode);
+  let daoIdentifier = await getOptValue(c, "dao", interpretNode);
 
   let dao: AragonDAO | undefined;
 
   if (!daoIdentifier) {
     dao = bindingsManager.getBindingValue(
-      'currentDAO',
+      "currentDAO",
       DATA_PROVIDER,
     ) as AragonDAO;
     if (!dao) {
@@ -113,7 +113,7 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
     errors.push(`Invalid app. Expected an address, but got ${appAddress}`);
   }
 
-  if (role.startsWith('0x')) {
+  if (role.startsWith("0x")) {
     if (role.length !== 66) {
       errors.push(`Invalid role. Expected a valid hash, but got ${role}`);
     }
@@ -126,7 +126,7 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
   }
 
   if (errors.length) {
-    throw new ErrorException(listItems('invalid permission provided', errors));
+    throw new ErrorException(listItems("invalid permission provided", errors));
   }
 
   return true;

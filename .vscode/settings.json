@@ -1,13 +1,12 @@
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "always"
   },
   "eslint.options": {
     "extensions": [".js", ".ts", ".tsx"]
   },
   "eslint.validate": ["javascript", "typescript", "typescriptreact"],
-  "eslint.packageManager": "pnpm",
   "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "packages/hardhat/node_modules",
   "solidity.enabledAsYouTypeCompilationErrorCheck": true,

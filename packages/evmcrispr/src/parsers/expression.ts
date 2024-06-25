@@ -5,7 +5,7 @@ import {
   recursiveParser,
   sequenceOf,
   str,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   ArgumentExpressionNode,
@@ -13,21 +13,21 @@ import type {
   CommandArgExpressionNode,
   EnclosingNodeParser,
   NodeParser,
-} from '../types';
-import { NodeType } from '../types';
-import { getIncorrectReceivedValue } from '../utils/parsers';
-import { arithmeticParser } from './arithmetic';
-import { arrayExpressionParser } from './array';
-import { blockExpressionParser } from './block';
+} from "../types";
+import { NodeType } from "../types";
+import { getIncorrectReceivedValue } from "../utils/parsers";
+import { arithmeticParser } from "./arithmetic";
+import { arrayExpressionParser } from "./array";
+import { blockExpressionParser } from "./block";
 
-import { callExpressionParser } from './call';
-import { helperFunctionParser } from './helper';
+import { callExpressionParser } from "./call";
+import { helperFunctionParser } from "./helper";
 import {
   primaryParser,
   probableIdentifierParser,
   stringParser,
   variableIdentifierParser,
-} from './primaries';
+} from "./primaries";
 import {
   closingCharParser,
   comma,
@@ -36,21 +36,21 @@ import {
   locate,
   openingCharParser,
   whitespace,
-} from './utils';
+} from "./utils";
 
 const asExpressionParser: NodeParser<AsExpressionNode> =
   locate<AsExpressionNode>(
     sequenceOf([
       choice([stringParser(), probableIdentifierParser()]),
       whitespace,
-      str('as'),
+      str("as"),
       whitespace,
       choice([stringParser(), probableIdentifierParser()]),
     ]),
     ({ data, index, result: [initialContext, [left, , , , right]] }) => ({
       type: NodeType.AsExpression,
-      left: left as AsExpressionNode['left'],
-      right: right as AsExpressionNode['right'],
+      left: left as AsExpressionNode["left"],
+      right: right as AsExpressionNode["right"],
       loc: createNodeLocation(initialContext, {
         line: data.line,
         index,
@@ -77,9 +77,9 @@ export const argumentExpressionParser: EnclosingNodeParser<
     }),
   );
 
-export const expressionParser: EnclosingNodeParser<
-  CommandArgExpressionNode
-> = (enclosingParsers = []) =>
+export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
+  enclosingParsers = [],
+) =>
   recursiveParser(() =>
     choice([
       arithmeticParser,
@@ -104,9 +104,9 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
       [string, string | null],
       ArgumentExpressionNode[],
       [string | null, string]
-    >(openingCharParser('('))(closingCharParser(')'))(
+    >(openingCharParser("("))(closingCharParser(")"))(
       commaSeparated<ArgumentExpressionNode>(
-        argumentExpressionParser([comma, char(')')]),
+        argumentExpressionParser([comma, char(")")]),
       ),
     ),
   );

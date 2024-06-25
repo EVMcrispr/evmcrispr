@@ -1,9 +1,9 @@
-import { scriptParser } from '../../src/parsers/script';
-import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
+import { scriptParser } from "../../src/parsers/script";
+import type { Case } from "../test-helpers/cas11";
+import { runCases } from "../test-helpers/cas11";
 
-describe('Parsers - script', () => {
-  it('should parse an script correctly', () => {
+describe("Parsers - script", () => {
+  it("should parse an script correctly", () => {
     const script = `
       load aragonos as ar
       load superfluid as sf\r\n
@@ -57,25 +57,25 @@ describe('Parsers - script', () => {
     const c: Case = [
       script,
       {
-        type: 'Program',
+        type: "Program",
         body: [
           {
-            type: 'CommandExpression',
-            name: 'load',
+            type: "CommandExpression",
+            name: "load",
             args: [
               {
-                type: 'AsExpression',
+                type: "AsExpression",
                 left: {
-                  type: 'ProbableIdentifier',
-                  value: 'aragonos',
+                  type: "ProbableIdentifier",
+                  value: "aragonos",
                   loc: {
                     start: { line: 2, col: 11 },
                     end: { line: 2, col: 19 },
                   },
                 },
                 right: {
-                  type: 'ProbableIdentifier',
-                  value: 'ar',
+                  type: "ProbableIdentifier",
+                  value: "ar",
                   loc: {
                     start: { line: 2, col: 23 },
                     end: { line: 2, col: 25 },
@@ -91,22 +91,22 @@ describe('Parsers - script', () => {
             loc: { start: { line: 2, col: 6 }, end: { line: 2, col: 25 } },
           },
           {
-            type: 'CommandExpression',
-            name: 'load',
+            type: "CommandExpression",
+            name: "load",
             args: [
               {
-                type: 'AsExpression',
+                type: "AsExpression",
                 left: {
-                  type: 'ProbableIdentifier',
-                  value: 'superfluid',
+                  type: "ProbableIdentifier",
+                  value: "superfluid",
                   loc: {
                     start: { line: 3, col: 11 },
                     end: { line: 3, col: 21 },
                   },
                 },
                 right: {
-                  type: 'ProbableIdentifier',
-                  value: 'sf',
+                  type: "ProbableIdentifier",
+                  value: "sf",
                   loc: {
                     start: { line: 3, col: 25 },
                     end: { line: 3, col: 27 },
@@ -122,67 +122,67 @@ describe('Parsers - script', () => {
             loc: { start: { line: 3, col: 6 }, end: { line: 3, col: 27 } },
           },
           {
-            type: 'CommandExpression',
-            module: 'ar',
-            name: 'connect',
+            type: "CommandExpression",
+            module: "ar",
+            name: "connect",
             args: [
               {
-                type: 'ProbableIdentifier',
-                value: 'my-dao-ens',
+                type: "ProbableIdentifier",
+                value: "my-dao-ens",
                 loc: {
                   start: { line: 6, col: 17 },
                   end: { line: 6, col: 27 },
                 },
               },
               {
-                type: 'BlockExpression',
+                type: "BlockExpression",
                 body: [
                   {
-                    type: 'CommandExpression',
-                    name: 'forward',
+                    type: "CommandExpression",
+                    name: "forward",
                     args: [
                       {
-                        type: 'ProbableIdentifier',
-                        value: 'token-manager',
+                        type: "ProbableIdentifier",
+                        value: "token-manager",
                         loc: {
                           start: { line: 7, col: 16 },
                           end: { line: 7, col: 29 },
                         },
                       },
                       {
-                        type: 'ProbableIdentifier',
-                        value: 'voting',
+                        type: "ProbableIdentifier",
+                        value: "voting",
                         loc: {
                           start: { line: 7, col: 30 },
                           end: { line: 7, col: 36 },
                         },
                       },
                       {
-                        type: 'BlockExpression',
+                        type: "BlockExpression",
                         body: [
                           {
-                            type: 'CommandExpression',
-                            name: 'install',
+                            type: "CommandExpression",
+                            name: "install",
                             args: [
                               {
-                                type: 'ProbableIdentifier',
-                                value: 'wrapper-hooked-token-manager.open',
+                                type: "ProbableIdentifier",
+                                value: "wrapper-hooked-token-manager.open",
                                 loc: {
                                   start: { line: 8, col: 18 },
                                   end: { line: 8, col: 51 },
                                 },
                               },
                               {
-                                type: 'AddressLiteral',
+                                type: "AddressLiteral",
                                 value:
-                                  '0x83E57888cd55C3ea1cfbf0114C963564d81e318d',
+                                  "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
                                 loc: {
                                   start: { line: 8, col: 52 },
                                   end: { line: 8, col: 94 },
                                 },
                               },
                               {
-                                type: 'BoolLiteral',
+                                type: "BoolLiteral",
                                 value: false,
                                 loc: {
                                   start: { line: 8, col: 95 },
@@ -190,8 +190,8 @@ describe('Parsers - script', () => {
                                 },
                               },
                               {
-                                type: 'NumberLiteral',
-                                value: '0',
+                                type: "NumberLiteral",
+                                value: "0",
                                 loc: {
                                   start: { line: 8, col: 101 },
                                   end: { line: 8, col: 102 },
@@ -218,59 +218,59 @@ describe('Parsers - script', () => {
                     },
                   },
                   {
-                    type: 'CommandExpression',
-                    name: 'forward',
+                    type: "CommandExpression",
+                    name: "forward",
                     args: [
                       {
-                        type: 'ProbableIdentifier',
-                        value: 'token-manager',
+                        type: "ProbableIdentifier",
+                        value: "token-manager",
                         loc: {
                           start: { line: 16, col: 16 },
                           end: { line: 16, col: 29 },
                         },
                       },
                       {
-                        type: 'ProbableIdentifier',
-                        value: 'voting',
+                        type: "ProbableIdentifier",
+                        value: "voting",
                         loc: {
                           start: { line: 16, col: 30 },
                           end: { line: 16, col: 36 },
                         },
                       },
                       {
-                        type: 'ProbableIdentifier',
-                        value: 'agent',
+                        type: "ProbableIdentifier",
+                        value: "agent",
                         loc: {
                           start: { line: 16, col: 37 },
                           end: { line: 16, col: 42 },
                         },
                       },
                       {
-                        type: 'BlockExpression',
+                        type: "BlockExpression",
                         body: [
                           {
-                            type: 'CommandExpression',
-                            name: 'set',
+                            type: "CommandExpression",
+                            name: "set",
                             args: [
                               {
-                                type: 'VariableIdentifier',
-                                value: '$agent',
+                                type: "VariableIdentifier",
+                                value: "$agent",
                                 loc: {
                                   start: { line: 18, col: 14 },
                                   end: { line: 18, col: 20 },
                                 },
                               },
                               {
-                                type: 'CallExpression',
+                                type: "CallExpression",
                                 target: {
-                                  type: 'ProbableIdentifier',
-                                  value: 'finance',
+                                  type: "ProbableIdentifier",
+                                  value: "finance",
                                   loc: {
                                     start: { line: 18, col: 21 },
                                     end: { line: 18, col: 28 },
                                   },
                                 },
-                                method: 'vault',
+                                method: "vault",
                                 args: [],
                                 loc: {
                                   start: { line: 18, col: 21 },
@@ -285,55 +285,55 @@ describe('Parsers - script', () => {
                             },
                           },
                           {
-                            type: 'CommandExpression',
-                            name: 'forward',
+                            type: "CommandExpression",
+                            name: "forward",
                             args: [
                               {
-                                type: 'ProbableIdentifier',
-                                value: 'wrappable-token-manager.open',
+                                type: "ProbableIdentifier",
+                                value: "wrappable-token-manager.open",
                                 loc: {
                                   start: { line: 20, col: 18 },
                                   end: { line: 20, col: 46 },
                                 },
                               },
                               {
-                                type: 'ProbableIdentifier',
-                                value: 'disputable-voting.open',
+                                type: "ProbableIdentifier",
+                                value: "disputable-voting.open",
                                 loc: {
                                   start: { line: 20, col: 47 },
                                   end: { line: 20, col: 69 },
                                 },
                               },
                               {
-                                type: 'ProbableIdentifier',
-                                value: 'agent',
+                                type: "ProbableIdentifier",
+                                value: "agent",
                                 loc: {
                                   start: { line: 20, col: 70 },
                                   end: { line: 20, col: 75 },
                                 },
                               },
                               {
-                                type: 'BlockExpression',
+                                type: "BlockExpression",
                                 body: [
                                   {
-                                    type: 'CommandExpression',
-                                    name: 'set',
+                                    type: "CommandExpression",
+                                    name: "set",
                                     args: [
                                       {
-                                        type: 'VariableIdentifier',
-                                        value: '$daix',
+                                        type: "VariableIdentifier",
+                                        value: "$daix",
                                         loc: {
                                           start: { line: 21, col: 16 },
                                           end: { line: 21, col: 21 },
                                         },
                                       },
                                       {
-                                        type: 'HelperFunctionExpression',
-                                        name: 'token',
+                                        type: "HelperFunctionExpression",
+                                        name: "token",
                                         args: [
                                           {
-                                            type: 'StringLiteral',
-                                            value: 'fDAIx',
+                                            type: "StringLiteral",
+                                            value: "fDAIx",
                                             loc: {
                                               start: { line: 21, col: 29 },
                                               end: { line: 21, col: 36 },
@@ -353,25 +353,25 @@ describe('Parsers - script', () => {
                                     },
                                   },
                                   {
-                                    type: 'CommandExpression',
-                                    module: 'sf',
-                                    name: 'token',
+                                    type: "CommandExpression",
+                                    module: "sf",
+                                    name: "token",
                                     args: [
                                       {
-                                        type: 'ProbableIdentifier',
-                                        value: 'approve',
+                                        type: "ProbableIdentifier",
+                                        value: "approve",
                                         loc: {
                                           start: { line: 30, col: 21 },
                                           end: { line: 30, col: 28 },
                                         },
                                       },
                                       {
-                                        type: 'HelperFunctionExpression',
-                                        name: 'token',
+                                        type: "HelperFunctionExpression",
+                                        name: "token",
                                         args: [
                                           {
-                                            type: 'StringLiteral',
-                                            value: 'DAI',
+                                            type: "StringLiteral",
+                                            value: "DAI",
                                             loc: {
                                               start: { line: 30, col: 36 },
                                               end: { line: 30, col: 41 },
@@ -384,8 +384,8 @@ describe('Parsers - script', () => {
                                         },
                                       },
                                       {
-                                        type: 'HelperFunctionExpression',
-                                        name: 'me',
+                                        type: "HelperFunctionExpression",
+                                        name: "me",
                                         args: [],
                                         loc: {
                                           start: { line: 30, col: 43 },
@@ -393,8 +393,8 @@ describe('Parsers - script', () => {
                                         },
                                       },
                                       {
-                                        type: 'NumberLiteral',
-                                        value: '15.45',
+                                        type: "NumberLiteral",
+                                        value: "15.45",
                                         power: 18,
                                         loc: {
                                           start: { line: 30, col: 47 },
@@ -409,20 +409,20 @@ describe('Parsers - script', () => {
                                     },
                                   },
                                   {
-                                    type: 'CommandExpression',
-                                    module: 'sf',
-                                    name: 'batchcall',
+                                    type: "CommandExpression",
+                                    module: "sf",
+                                    name: "batchcall",
                                     args: [
                                       {
-                                        type: 'BlockExpression',
+                                        type: "BlockExpression",
                                         body: [
                                           {
-                                            type: 'CommandExpression',
-                                            name: 'token',
+                                            type: "CommandExpression",
+                                            name: "token",
                                             args: [
                                               {
-                                                type: 'ProbableIdentifier',
-                                                value: 'upgrade',
+                                                type: "ProbableIdentifier",
+                                                value: "upgrade",
                                                 loc: {
                                                   start: {
                                                     line: 34,
@@ -432,8 +432,8 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'VariableIdentifier',
-                                                value: '$daix',
+                                                type: "VariableIdentifier",
+                                                value: "$daix",
                                                 loc: {
                                                   start: {
                                                     line: 34,
@@ -443,8 +443,8 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'NumberLiteral',
-                                                value: '4500.43',
+                                                type: "NumberLiteral",
+                                                value: "4500.43",
                                                 power: 18,
                                                 loc: {
                                                   start: {
@@ -462,12 +462,12 @@ describe('Parsers - script', () => {
                                             },
                                           },
                                           {
-                                            type: 'CommandExpression',
-                                            name: 'flow',
+                                            type: "CommandExpression",
+                                            name: "flow",
                                             args: [
                                               {
-                                                type: 'ProbableIdentifier',
-                                                value: 'create',
+                                                type: "ProbableIdentifier",
+                                                value: "create",
                                                 loc: {
                                                   start: {
                                                     line: 35,
@@ -477,8 +477,8 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'VariableIdentifier',
-                                                value: '$daix',
+                                                type: "VariableIdentifier",
+                                                value: "$daix",
                                                 loc: {
                                                   start: {
                                                     line: 35,
@@ -488,8 +488,8 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'VariableIdentifier',
-                                                value: '$agent',
+                                                type: "VariableIdentifier",
+                                                value: "$agent",
                                                 loc: {
                                                   start: {
                                                     line: 35,
@@ -499,10 +499,10 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'NumberLiteral',
-                                                value: '1',
+                                                type: "NumberLiteral",
+                                                value: "1",
                                                 power: 18,
-                                                timeUnit: 'mo',
+                                                timeUnit: "mo",
                                                 loc: {
                                                   start: {
                                                     line: 35,
@@ -519,12 +519,12 @@ describe('Parsers - script', () => {
                                             },
                                           },
                                           {
-                                            type: 'CommandExpression',
-                                            name: 'token',
+                                            type: "CommandExpression",
+                                            name: "token",
                                             args: [
                                               {
-                                                type: 'ProbableIdentifier',
-                                                value: 'downgrade',
+                                                type: "ProbableIdentifier",
+                                                value: "downgrade",
                                                 loc: {
                                                   start: {
                                                     line: 36,
@@ -534,12 +534,12 @@ describe('Parsers - script', () => {
                                                 },
                                               },
                                               {
-                                                type: 'HelperFunctionExpression',
-                                                name: 'token',
+                                                type: "HelperFunctionExpression",
+                                                name: "token",
                                                 args: [
                                                   {
-                                                    type: 'StringLiteral',
-                                                    value: 'USDCx',
+                                                    type: "StringLiteral",
+                                                    value: "USDCx",
                                                     loc: {
                                                       start: {
                                                         line: 36,

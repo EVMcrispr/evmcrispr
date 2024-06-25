@@ -1,10 +1,10 @@
-import type { BindingsManager } from '../../BindingsManager';
+import type { BindingsManager } from "../../BindingsManager";
 
-import { Module } from '../../Module';
-import type { IPFSResolver } from '../../IPFSResolver';
-import { commands } from './commands';
-import { helpers } from './helpers';
-import type { EVMcrispr } from '../../EVMcrispr';
+import { Module } from "../../Module";
+import type { IPFSResolver } from "../../IPFSResolver";
+import { commands } from "./commands";
+import { helpers } from "./helpers";
+import type { EVMcrispr } from "../../EVMcrispr";
 
 export class Ens extends Module {
   constructor(
@@ -15,7 +15,7 @@ export class Ens extends Module {
     alias?: string,
   ) {
     super(
-      'ens',
+      "ens",
       bindingsManager,
       nonces,
       commands,

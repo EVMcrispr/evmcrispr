@@ -1,8 +1,8 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
 export const id: HelperFunction<Std> = async (
   _,

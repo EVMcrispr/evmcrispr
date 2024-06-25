@@ -1,12 +1,12 @@
-import { ErrorException } from '../../../errors';
-import { BindingsSpace, NodeType } from '../../../types';
-import type { ICommand } from '../../../types';
+import { ErrorException } from "../../../errors";
+import { BindingsSpace, NodeType } from "../../../types";
+import type { ICommand } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
   inSameLineThanNode,
-} from '../../../utils';
-import type { Std } from '../Std';
+} from "../../../utils";
+import type { Std } from "../Std";
 
 const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;

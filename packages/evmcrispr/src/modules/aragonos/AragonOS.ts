@@ -1,18 +1,18 @@
-import type { BindingsManager } from '../../BindingsManager';
-import { ErrorNotFound } from '../../errors';
-import type { IPFSResolver } from '../../IPFSResolver';
-import { BindingsSpace } from '../../types';
-import type { Address } from '../../types';
+import type { BindingsManager } from "../../BindingsManager";
+import { ErrorNotFound } from "../../errors";
+import type { IPFSResolver } from "../../IPFSResolver";
+import { BindingsSpace } from "../../types";
+import type { Address } from "../../types";
 import {
   addressesEqual,
   buildNonceForAddress,
   calculateNewProxyAddress,
-} from '../../utils';
-import { Module } from '../../Module';
-import type { AragonDAO } from './AragonDAO';
-import { commands } from './commands';
-import { helpers } from './helpers';
-import type { EVMcrispr } from '../../EVMcrispr';
+} from "../../utils";
+import { Module } from "../../Module";
+import type { AragonDAO } from "./AragonDAO";
+import { commands } from "./commands";
+import { helpers } from "./helpers";
+import type { EVMcrispr } from "../../EVMcrispr";
 
 export class AragonOS extends Module {
   #connectedDAOs: AragonDAO[];
@@ -25,7 +25,7 @@ export class AragonOS extends Module {
     alias?: string,
   ) {
     super(
-      'aragonos',
+      "aragonos",
       bindingsManager,
       nonces,
       commands,
@@ -44,7 +44,7 @@ export class AragonOS extends Module {
 
   get currentDAO(): AragonDAO | undefined {
     return this.bindingsManager.getBindingValue(
-      'currentDAO',
+      "currentDAO",
       BindingsSpace.DATA_PROVIDER,
     ) as AragonDAO | undefined;
   }
@@ -55,7 +55,7 @@ export class AragonOS extends Module {
     }
 
     this.bindingsManager.setBinding(
-      'currentDAO',
+      "currentDAO",
       dao,
       BindingsSpace.DATA_PROVIDER,
     );
@@ -77,7 +77,7 @@ export class AragonOS extends Module {
       throw new ErrorNotFound(`couldn't found DAO ${daoAddress}`);
     }
 
-    const kernel = connectedDAO.resolveApp('kernel')!;
+    const kernel = connectedDAO.resolveApp("kernel")!;
     const nonce = await buildNonceForAddress(
       kernel.address,
       await this.incrementNonce(kernel.address),

@@ -55,7 +55,7 @@ export const ORGANIZATION_APPS = (
             }
           }
           roles {
-            ${isGoerli ? 'hash' : 'roleHash'}
+            ${isGoerli ? "hash" : "roleHash"}
             manager
             grantees {
               granteeAddress
@@ -64,7 +64,7 @@ export const ORGANIZATION_APPS = (
           version {
             codeAddress
             contentUri
-            ${isGoerli ? '' : 'artifact'}
+            ${isGoerli ? "" : "artifact"}
           }
         }
       }

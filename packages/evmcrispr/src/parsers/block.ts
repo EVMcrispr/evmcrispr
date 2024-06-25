@@ -1,14 +1,14 @@
-import { coroutine, getData, recursiveParser, sequenceOf } from 'arcsecond';
+import { coroutine, getData, recursiveParser, sequenceOf } from "arcsecond";
 
 import type {
   BlockExpressionNode,
   CommandExpressionNode,
   NodeParser,
   NodeParserState,
-} from '../types';
-import { NodeType } from '../types';
-import { buildParserError } from '../utils/parsers';
-import { commandExpressionParser } from './command';
+} from "../types";
+import { NodeType } from "../types";
+import { buildParserError } from "../utils/parsers";
+import { commandExpressionParser } from "./command";
 import {
   closingCharParser,
   createNodeLocation,
@@ -16,29 +16,27 @@ import {
   linesParser,
   locate,
   openingCharParser,
-} from './utils';
+} from "./utils";
 
-const BLOCK_PARSER_ERROR = 'BlockParserError';
+const BLOCK_PARSER_ERROR = "BlockParserError";
 
 export const blockExpressionParser: NodeParser<BlockExpressionNode> =
   recursiveParser(() =>
     locate<BlockExpressionNode>(
-      coroutine(run => {
-        const [initialState, initialIndex]: [NodeParserState, number] = run(getData.mapFromData(
-          ({ data, index }) => [data, index],
-        ));
-        run(sequenceOf([openingCharParser('('), endLine]));
+      coroutine((run) => {
+        const [initialState, initialIndex]: [NodeParserState, number] = run(
+          getData.mapFromData(({ data, index }) => [data, index]),
+        );
+        run(sequenceOf([openingCharParser("("), endLine]));
 
-        const scopedCommands: CommandExpressionNode[] = run(linesParser(
-          commandExpressionParser,
-          closingCharParser(')'),
-          {
-            endingChar: ')',
+        const scopedCommands: CommandExpressionNode[] = run(
+          linesParser(commandExpressionParser, closingCharParser(")"), {
+            endingChar: ")",
             parserErrorType: BLOCK_PARSER_ERROR,
             initialState,
             initialIndex,
-          },
-        ));
+          }),
+        );
 
         return [scopedCommands];
       }).errorMap((err) => buildParserError(err, BLOCK_PARSER_ERROR)),
@@ -48,7 +46,7 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
         result: [initialContext, [scopedCommands]],
       }) => ({
         type: NodeType.BlockExpression,
-        body: scopedCommands as BlockExpressionNode['body'],
+        body: scopedCommands as BlockExpressionNode["body"],
         loc: createNodeLocation(initialContext, { index, line, offset }),
       }),
     ),

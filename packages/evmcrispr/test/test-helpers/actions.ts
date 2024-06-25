@@ -1,15 +1,15 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { Action, Address, TransactionAction } from '../../src/types';
+import type { Action, Address, TransactionAction } from "../../src/types";
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
   getAppForwarderType,
-} from './forwarders';
+} from "./forwarders";
 import {
   encodeActCall,
   encodeCallScript,
-} from '../../src/modules/aragonos/utils';
+} from "../../src/modules/aragonos/utils";
 
 export const createTestPreTxAction = (
   operation: string,
@@ -17,10 +17,10 @@ export const createTestPreTxAction = (
   parameters: any[],
 ): Action => {
   switch (operation) {
-    case 'approve':
+    case "approve":
       return {
         to,
-        data: encodeActCall('approve(address,uint256)', parameters),
+        data: encodeActCall("approve(address,uint256)", parameters),
       };
     default:
       throw new Error(`Pretransaction operation ${operation} not found.`);
@@ -40,30 +40,30 @@ export const createTestCallAction = (
 
 export const createTestAction = (
   operation:
-    | 'changeController'
-    | 'createCloneToken'
-    | 'createPermission'
-    | 'grantPermission'
-    | 'grantPermissionP'
-    | 'newInstance'
-    | 'newAppInstance'
-    | 'revokePermission'
-    | 'removePermissionManager'
-    | 'setApp',
+    | "changeController"
+    | "createCloneToken"
+    | "createPermission"
+    | "grantPermission"
+    | "grantPermissionP"
+    | "newInstance"
+    | "newAppInstance"
+    | "revokePermission"
+    | "removePermissionManager"
+    | "setApp",
   to: Address,
   parameters?: any[],
 ): TransactionAction => {
   const multiFnsInterface = new utils.Interface([
-    'function changeController(address)',
-    'function createCloneToken(address,uint256,string,uint8,string,bool)',
-    'function createPermission(address,address,bytes32,address)',
-    'function grantPermission(address,address,bytes32)',
-    'function grantPermissionP(address,address,bytes32,uint256[])',
-    'function newInstance()',
-    'function newAppInstance(bytes32,address,bytes,bool)',
-    'function revokePermission(address,address,bytes32)',
-    'function removePermissionManager(address,bytes32)',
-    'function setApp(bytes32,bytes32,address)',
+    "function changeController(address)",
+    "function createCloneToken(address,uint256,string,uint8,string,bool)",
+    "function createPermission(address,address,bytes32,address)",
+    "function grantPermission(address,address,bytes32)",
+    "function grantPermissionP(address,address,bytes32,uint256[])",
+    "function newInstance()",
+    "function newAppInstance(bytes32,address,bytes,bool)",
+    "function revokePermission(address,address,bytes32)",
+    "function removePermissionManager(address,bytes32)",
+    "function setApp(bytes32,bytes32,address)",
   ]);
 
   return {
@@ -92,18 +92,18 @@ export const createTestScriptEncodedAction = (
         forwarderActions = [
           {
             to: forwarderAddress,
-            data: encodeActCall('forward(bytes)', [script]),
+            data: encodeActCall("forward(bytes)", [script]),
           },
         ];
         break;
       case CONTEXT_FORWARDER_TYPE:
         if (!context) {
-          throw new Error('Context not provided.');
+          throw new Error("Context not provided.");
         }
         forwarderActions = [
           {
             to: forwarderAddress,
-            data: encodeActCall('forward(bytes,bytes)', [
+            data: encodeActCall("forward(bytes,bytes)", [
               script,
               utils.hexlify(utils.toUtf8Bytes(context)),
             ]),

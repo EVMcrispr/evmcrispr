@@ -1,7 +1,7 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { BindingsSpace } from '../../../types';
-import type { ICommand, TransactionAction } from '../../../types';
+import { BindingsSpace } from "../../../types";
+import type { ICommand, TransactionAction } from "../../../types";
 
 import {
   ComparisonType,
@@ -9,16 +9,16 @@ import {
   checkOpts,
   getOptValue,
   isNumberish,
-} from '../../../utils';
-import type { Std } from '../Std';
-import { ErrorException } from '../../../errors';
+} from "../../../utils";
+import type { Std } from "../Std";
+import { ErrorException } from "../../../errors";
 
 const { ADDR } = BindingsSpace;
 
 export const raw: ICommand<Std> = {
   async run(_, c, { interpretNode }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ['from']);
+    checkOpts(c, ["from"]);
 
     const [targetNode, dataNode, valueNode] = c.args;
 
@@ -28,7 +28,7 @@ export const raw: ICommand<Std> = {
       valueNode ? interpretNode(valueNode) : undefined,
     ]);
 
-    const from = await getOptValue(c, 'from', interpretNode);
+    const from = await getOptValue(c, "from", interpretNode);
 
     if (!utils.isAddress(contractAddress)) {
       throw new ErrorException(

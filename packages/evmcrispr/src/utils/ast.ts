@@ -1,6 +1,6 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { BindingsManager } from '../BindingsManager';
+import type { BindingsManager } from "../BindingsManager";
 import type {
   Address,
   AddressLiteralNode,
@@ -10,8 +10,8 @@ import type {
   ProbableIdentifierNode,
   StringLiteralNode,
   VariableIdentifierNode,
-} from '../types';
-import { BindingsSpace, NodeType } from '../types';
+} from "../types";
+import { BindingsSpace, NodeType } from "../types";
 
 const {
   AddressLiteral,
@@ -64,7 +64,7 @@ export const beforeOrEqualNode = (
 
   return (
     pos.line === loc.start.line &&
-    pos.col <= loc[strictBefore ? 'start' : 'end'].col
+    pos.col <= loc[strictBefore ? "start" : "end"].col
   );
 };
 

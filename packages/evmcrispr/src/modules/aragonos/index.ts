@@ -1,7 +1,7 @@
-import type { IModuleConstructor } from '../../types';
-import { AragonOS } from './AragonOS';
-export { AragonDAO } from './AragonDAO';
-export { Connector } from './Connector';
+import type { IModuleConstructor } from "../../types";
+import { AragonOS } from "./AragonOS";
+export { AragonDAO } from "./AragonDAO";
+export { Connector } from "./Connector";
 
 export type {
   App,
@@ -18,7 +18,7 @@ export type {
   Repo,
   Role,
   RoleHash,
-} from './types';
+} from "./types";
 
 export {
   arg,
@@ -31,9 +31,9 @@ export {
   xor,
   iif,
   paramValue,
-} from './utils/acl';
-export { encodeActCall, encodeCallScript } from './utils/evmscripts';
+} from "./utils/acl";
+export { encodeActCall, encodeCallScript } from "./utils/evmscripts";
 
 export const ModuleConstructor: IModuleConstructor = AragonOS;
-export { commands } from './commands';
-export { helpers } from './helpers';
+export { commands } from "./commands";
+export { helpers } from "./helpers";

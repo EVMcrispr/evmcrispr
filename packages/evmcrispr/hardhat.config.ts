@@ -1,26 +1,25 @@
-import 'dotenv/config';
-import '@nomiclabs/hardhat-ethers';
-import '@nomiclabs/hardhat-waffle';
+import "dotenv/config";
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
+import type { HardhatUserConfig } from "hardhat/types";
 
-import type { HardhatUserConfig } from 'hardhat/config';
-
-import { server } from './test/fixtures/server';
+import { server } from "./test/fixtures/server";
 
 const ARCHIVE_NODE_ENDPOINT = process.env.ARCHIVE_NODE_ENDPOINT;
 
 if (!ARCHIVE_NODE_ENDPOINT) {
-  throw new Error('Archive node not provided.');
+  throw new Error("Archive node not provided.");
 }
 
 const config: HardhatUserConfig = {
-  defaultNetwork: 'hardhat',
+  defaultNetwork: "hardhat",
   solidity: {
     compilers: [
       {
-        version: '0.4.24',
+        version: "0.4.24",
       },
       {
-        version: '0.7.6',
+        version: "0.7.6",
         settings: {
           optimizer: {
             enabled: true,
@@ -38,11 +37,11 @@ const config: HardhatUserConfig = {
     rootHooks: {
       beforeAll: () => {
         server.listen({
-          onUnhandledRequest: (req) => {
-            if (new URL(req.url).origin === 'http://localhost:8545') {
-              return 'bypass';
+          onUnhandledRequest: (req: Request) => {
+            if (new URL(req.url).origin === "http://localhost:8545") {
+              return "bypass";
             }
-            return 'warn';
+            return "warn";
           },
         });
       },
@@ -61,7 +60,7 @@ const config: HardhatUserConfig = {
         },
       },
       chainId: 100,
-      hardfork: 'london',
+      hardfork: "london",
       forking: {
         url: ARCHIVE_NODE_ENDPOINT,
         blockNumber: 34630239,

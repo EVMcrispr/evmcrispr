@@ -1,24 +1,24 @@
-import type { BigNumber, providers } from 'ethers';
-import hre, { ethers } from 'hardhat';
+import type { BigNumber, providers } from "ethers";
+import hre, { ethers } from "hardhat";
 
 export const duration: any = {
   seconds: function (val: string | BigNumber) {
     return ethers.BigNumber.from(val);
   },
   minutes: function (val: string | BigNumber) {
-    return ethers.BigNumber.from(val).mul(this.seconds('60'));
+    return ethers.BigNumber.from(val).mul(this.seconds("60"));
   },
   hours: function (val: string | BigNumber) {
-    return ethers.BigNumber.from(val).mul(this.minutes('60'));
+    return ethers.BigNumber.from(val).mul(this.minutes("60"));
   },
   days: function (val: string | BigNumber) {
-    return ethers.BigNumber.from(val).mul(this.hours('24'));
+    return ethers.BigNumber.from(val).mul(this.hours("24"));
   },
   weeks: function (val: string | BigNumber) {
-    return ethers.BigNumber.from(val).mul(this.days('7'));
+    return ethers.BigNumber.from(val).mul(this.days("7"));
   },
   years: function (val: string | BigNumber) {
-    return ethers.BigNumber.from(val).mul(this.days('365'));
+    return ethers.BigNumber.from(val).mul(this.days("365"));
   },
 };
 
@@ -26,7 +26,7 @@ export const setBalance = async (
   account: string,
   balance: string,
 ): Promise<void> => {
-  await hre.network.provider.send('hardhat_setBalance', [account, balance]);
+  await hre.network.provider.send("hardhat_setBalance", [account, balance]);
 };
 
 export const impersonateAddress = async (
@@ -34,7 +34,7 @@ export const impersonateAddress = async (
   setInitialBalance = true,
 ): Promise<providers.JsonRpcSigner> => {
   await hre.network.provider.request({
-    method: 'hardhat_impersonateAccount',
+    method: "hardhat_impersonateAccount",
     params: [address],
   });
 
@@ -57,14 +57,14 @@ export const impersonateAddress = async (
 
 export const takeSnapshot = async (): Promise<string> => {
   return (await hre.network.provider.request({
-    method: 'evm_snapshot',
+    method: "evm_snapshot",
     params: [],
   })) as Promise<string>;
 };
 
 export const restoreSnapshot = async (id: string): Promise<void> => {
   await hre.network.provider.request({
-    method: 'evm_revert',
+    method: "evm_revert",
     params: [id],
   });
 };
@@ -78,11 +78,11 @@ export const increase = async (duration: string | BigNumber): Promise<void> => {
     throw Error(`Cannot increase time by a negative amount (${duration})`);
 
   await hre.network.provider.request({
-    method: 'evm_increaseTime',
+    method: "evm_increaseTime",
     params: [duration.toNumber()],
   });
 
   await hre.network.provider.request({
-    method: 'evm_mine',
+    method: "evm_mine",
   });
 };

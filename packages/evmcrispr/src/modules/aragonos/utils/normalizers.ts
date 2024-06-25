@@ -1,12 +1,12 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { ErrorInvalid } from '../../../errors';
+import { ErrorInvalid } from "../../../errors";
 
 export const normalizeRole = (role: string): string => {
-  if (role.startsWith('0x')) {
+  if (role.startsWith("0x")) {
     if (role.length !== 66) {
-      throw new ErrorInvalid('Invalid role provided', {
-        name: 'ErrorInvalidRole',
+      throw new ErrorInvalid("Invalid role provided", {
+        name: "ErrorInvalidRole",
       });
     }
     return role;

@@ -1,20 +1,20 @@
-import { arithmeticParser } from '../../src/parsers/arithmetic';
-import type { Case } from '../test-helpers/cas11';
-import { runCases } from '../test-helpers/cas11';
+import { arithmeticParser } from "../../src/parsers/arithmetic";
+import type { Case } from "../test-helpers/cas11";
+import { runCases } from "../test-helpers/cas11";
 
-describe('Parsers - arithmetic', () => {
-  it('should parse an arithmetic operation correctly', () => {
+describe("Parsers - arithmetic", () => {
+  it("should parse an arithmetic operation correctly", () => {
     const c: Case = [
-      '(9 + 5 - 4 * 4 / 3 ^ 2)',
+      "(9 + 5 - 4 * 4 / 3 ^ 2)",
       {
-        type: 'BinaryExpression',
-        operator: '-',
+        type: "BinaryExpression",
+        operator: "-",
         left: {
-          type: 'BinaryExpression',
-          operator: '+',
+          type: "BinaryExpression",
+          operator: "+",
           left: {
-            type: 'NumberLiteral',
-            value: '9',
+            type: "NumberLiteral",
+            value: "9",
             loc: {
               start: {
                 line: 1,
@@ -27,8 +27,8 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'NumberLiteral',
-            value: '5',
+            type: "NumberLiteral",
+            value: "5",
             loc: {
               start: {
                 line: 1,
@@ -52,14 +52,14 @@ describe('Parsers - arithmetic', () => {
           },
         },
         right: {
-          type: 'BinaryExpression',
-          operator: '/',
+          type: "BinaryExpression",
+          operator: "/",
           left: {
-            type: 'BinaryExpression',
-            operator: '*',
+            type: "BinaryExpression",
+            operator: "*",
             left: {
-              type: 'NumberLiteral',
-              value: '4',
+              type: "NumberLiteral",
+              value: "4",
               loc: {
                 start: {
                   line: 1,
@@ -72,8 +72,8 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '4',
+              type: "NumberLiteral",
+              value: "4",
               loc: {
                 start: {
                   line: 1,
@@ -97,11 +97,11 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'BinaryExpression',
-            operator: '^',
+            type: "BinaryExpression",
+            operator: "^",
             left: {
-              type: 'NumberLiteral',
-              value: '3',
+              type: "NumberLiteral",
+              value: "3",
               loc: {
                 start: {
                   line: 1,
@@ -114,8 +114,8 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '2',
+              type: "NumberLiteral",
+              value: "2",
               loc: {
                 start: {
                   line: 1,
@@ -165,19 +165,19 @@ describe('Parsers - arithmetic', () => {
     runCases(c, arithmeticParser);
   });
 
-  it('should parse an arithmetic operation with trailing spaces correctly', () => {
+  it("should parse an arithmetic operation with trailing spaces correctly", () => {
     const cases: Case[] = [
       [
-        '(   9 + 5 - 4 * (4 / 3) ^ 3    )',
+        "(   9 + 5 - 4 * (4 / 3) ^ 3    )",
         {
-          type: 'BinaryExpression',
-          operator: '-',
+          type: "BinaryExpression",
+          operator: "-",
           left: {
-            type: 'BinaryExpression',
-            operator: '+',
+            type: "BinaryExpression",
+            operator: "+",
             left: {
-              type: 'NumberLiteral',
-              value: '9',
+              type: "NumberLiteral",
+              value: "9",
               loc: {
                 start: {
                   line: 1,
@@ -190,8 +190,8 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '5',
+              type: "NumberLiteral",
+              value: "5",
               loc: {
                 start: {
                   line: 1,
@@ -215,11 +215,11 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'BinaryExpression',
-            operator: '*',
+            type: "BinaryExpression",
+            operator: "*",
             left: {
-              type: 'NumberLiteral',
-              value: '4',
+              type: "NumberLiteral",
+              value: "4",
               loc: {
                 start: {
                   line: 1,
@@ -232,14 +232,14 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'BinaryExpression',
-              operator: '^',
+              type: "BinaryExpression",
+              operator: "^",
               left: {
-                type: 'BinaryExpression',
-                operator: '/',
+                type: "BinaryExpression",
+                operator: "/",
                 left: {
-                  type: 'NumberLiteral',
-                  value: '4',
+                  type: "NumberLiteral",
+                  value: "4",
                   loc: {
                     start: {
                       line: 1,
@@ -252,8 +252,8 @@ describe('Parsers - arithmetic', () => {
                   },
                 },
                 right: {
-                  type: 'NumberLiteral',
-                  value: '3',
+                  type: "NumberLiteral",
+                  value: "3",
                   loc: {
                     start: {
                       line: 1,
@@ -277,8 +277,8 @@ describe('Parsers - arithmetic', () => {
                 },
               },
               right: {
-                type: 'NumberLiteral',
-                value: '3',
+                type: "NumberLiteral",
+                value: "3",
                 loc: {
                   start: {
                     line: 1,
@@ -323,45 +323,45 @@ describe('Parsers - arithmetic', () => {
             },
           },
         },
-        'inner left and right trailing spaces mismatch',
+        "inner left and right trailing spaces mismatch",
       ],
       [
-        '(9 +    5    - 4    *     4   /    3)',
+        "(9 +    5    - 4    *     4   /    3)",
         {
-          type: 'BinaryExpression',
-          operator: '-',
+          type: "BinaryExpression",
+          operator: "-",
           left: {
-            type: 'BinaryExpression',
-            operator: '+',
+            type: "BinaryExpression",
+            operator: "+",
             left: {
-              type: 'NumberLiteral',
-              value: '9',
+              type: "NumberLiteral",
+              value: "9",
               loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 2 } },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '5',
+              type: "NumberLiteral",
+              value: "5",
               loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 9 } },
             },
             loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 9 } },
           },
           right: {
-            type: 'BinaryExpression',
-            operator: '/',
+            type: "BinaryExpression",
+            operator: "/",
             left: {
-              type: 'BinaryExpression',
-              operator: '*',
+              type: "BinaryExpression",
+              operator: "*",
               left: {
-                type: 'NumberLiteral',
-                value: '4',
+                type: "NumberLiteral",
+                value: "4",
                 loc: {
                   start: { line: 1, col: 15 },
                   end: { line: 1, col: 16 },
                 },
               },
               right: {
-                type: 'NumberLiteral',
-                value: '4',
+                type: "NumberLiteral",
+                value: "4",
                 loc: {
                   start: { line: 1, col: 26 },
                   end: { line: 1, col: 27 },
@@ -370,33 +370,33 @@ describe('Parsers - arithmetic', () => {
               loc: { start: { line: 1, col: 15 }, end: { line: 1, col: 27 } },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '3',
+              type: "NumberLiteral",
+              value: "3",
               loc: { start: { line: 1, col: 35 }, end: { line: 1, col: 36 } },
             },
             loc: { start: { line: 1, col: 15 }, end: { line: 1, col: 36 } },
           },
           loc: { start: { line: 1, col: 1 }, end: { line: 1, col: 36 } },
         },
-        'in-between trailing spaces mismatch ',
+        "in-between trailing spaces mismatch ",
       ],
     ];
 
     runCases(cases, arithmeticParser);
   });
 
-  it('should parse an arithmetic operation containing priority parentheses correctly', () => {
+  it("should parse an arithmetic operation containing priority parentheses correctly", () => {
     const c: Case = [
-      '(9^33 + (5 - 4) * (4 / 3))',
+      "(9^33 + (5 - 4) * (4 / 3))",
       {
-        type: 'BinaryExpression',
-        operator: '+',
+        type: "BinaryExpression",
+        operator: "+",
         left: {
-          type: 'BinaryExpression',
-          operator: '^',
+          type: "BinaryExpression",
+          operator: "^",
           left: {
-            type: 'NumberLiteral',
-            value: '9',
+            type: "NumberLiteral",
+            value: "9",
             loc: {
               start: {
                 line: 1,
@@ -409,8 +409,8 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'NumberLiteral',
-            value: '33',
+            type: "NumberLiteral",
+            value: "33",
             loc: {
               start: {
                 line: 1,
@@ -434,14 +434,14 @@ describe('Parsers - arithmetic', () => {
           },
         },
         right: {
-          type: 'BinaryExpression',
-          operator: '*',
+          type: "BinaryExpression",
+          operator: "*",
           left: {
-            type: 'BinaryExpression',
-            operator: '-',
+            type: "BinaryExpression",
+            operator: "-",
             left: {
-              type: 'NumberLiteral',
-              value: '5',
+              type: "NumberLiteral",
+              value: "5",
               loc: {
                 start: {
                   line: 1,
@@ -454,8 +454,8 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '4',
+              type: "NumberLiteral",
+              value: "4",
               loc: {
                 start: {
                   line: 1,
@@ -479,11 +479,11 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'BinaryExpression',
-            operator: '/',
+            type: "BinaryExpression",
+            operator: "/",
             left: {
-              type: 'NumberLiteral',
-              value: '4',
+              type: "NumberLiteral",
+              value: "4",
               loc: {
                 start: {
                   line: 1,
@@ -496,8 +496,8 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'NumberLiteral',
-              value: '3',
+              type: "NumberLiteral",
+              value: "3",
               loc: {
                 start: {
                   line: 1,
@@ -547,18 +547,18 @@ describe('Parsers - arithmetic', () => {
     runCases(c, arithmeticParser);
   });
 
-  it('should parse an arithmetic operation containing variable helpers and call expressions correctly', () => {
+  it("should parse an arithmetic operation containing variable helpers and call expressions correctly", () => {
     const c: Case = [
-      '(90.45e18 + (5000e18 - @token.balance( DAI, @me)) * (someContract::getAmount() / 3) + $some-Variable ^ 2)',
+      "(90.45e18 + (5000e18 - @token.balance( DAI, @me)) * (someContract::getAmount() / 3) + $some-Variable ^ 2)",
       {
-        type: 'BinaryExpression',
-        operator: '+',
+        type: "BinaryExpression",
+        operator: "+",
         left: {
-          type: 'BinaryExpression',
-          operator: '+',
+          type: "BinaryExpression",
+          operator: "+",
           left: {
-            type: 'NumberLiteral',
-            value: '90.45',
+            type: "NumberLiteral",
+            value: "90.45",
             power: 18,
             loc: {
               start: {
@@ -572,14 +572,14 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'BinaryExpression',
-            operator: '*',
+            type: "BinaryExpression",
+            operator: "*",
             left: {
-              type: 'BinaryExpression',
-              operator: '-',
+              type: "BinaryExpression",
+              operator: "-",
               left: {
-                type: 'NumberLiteral',
-                value: '5000',
+                type: "NumberLiteral",
+                value: "5000",
                 power: 18,
                 loc: {
                   start: {
@@ -593,12 +593,12 @@ describe('Parsers - arithmetic', () => {
                 },
               },
               right: {
-                type: 'HelperFunctionExpression',
-                name: 'token.balance',
+                type: "HelperFunctionExpression",
+                name: "token.balance",
                 args: [
                   {
-                    type: 'ProbableIdentifier',
-                    value: 'DAI',
+                    type: "ProbableIdentifier",
+                    value: "DAI",
                     loc: {
                       start: {
                         line: 1,
@@ -611,8 +611,8 @@ describe('Parsers - arithmetic', () => {
                     },
                   },
                   {
-                    type: 'HelperFunctionExpression',
-                    name: 'me',
+                    type: "HelperFunctionExpression",
+                    name: "me",
                     args: [],
                     loc: {
                       start: {
@@ -649,13 +649,13 @@ describe('Parsers - arithmetic', () => {
               },
             },
             right: {
-              type: 'BinaryExpression',
-              operator: '/',
+              type: "BinaryExpression",
+              operator: "/",
               left: {
-                type: 'CallExpression',
+                type: "CallExpression",
                 target: {
-                  type: 'ProbableIdentifier',
-                  value: 'someContract',
+                  type: "ProbableIdentifier",
+                  value: "someContract",
                   loc: {
                     start: {
                       line: 1,
@@ -667,7 +667,7 @@ describe('Parsers - arithmetic', () => {
                     },
                   },
                 },
-                method: 'getAmount',
+                method: "getAmount",
                 args: [],
                 loc: {
                   start: {
@@ -681,8 +681,8 @@ describe('Parsers - arithmetic', () => {
                 },
               },
               right: {
-                type: 'NumberLiteral',
-                value: '3',
+                type: "NumberLiteral",
+                value: "3",
                 loc: {
                   start: {
                     line: 1,
@@ -728,11 +728,11 @@ describe('Parsers - arithmetic', () => {
           },
         },
         right: {
-          type: 'BinaryExpression',
-          operator: '^',
+          type: "BinaryExpression",
+          operator: "^",
           left: {
-            type: 'VariableIdentifier',
-            value: '$some-Variable',
+            type: "VariableIdentifier",
+            value: "$some-Variable",
             loc: {
               start: {
                 line: 1,
@@ -745,8 +745,8 @@ describe('Parsers - arithmetic', () => {
             },
           },
           right: {
-            type: 'NumberLiteral',
-            value: '2',
+            type: "NumberLiteral",
+            value: "2",
             loc: {
               start: {
                 line: 1,

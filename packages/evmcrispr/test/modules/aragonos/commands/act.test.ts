@@ -1,19 +1,19 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { utils } from "ethers";
+import { ethers } from "hardhat";
 
-import { CommandError } from '../../../../src/errors';
-import { DAO } from '../../../fixtures';
-import { createTestScriptEncodedAction } from '../../../test-helpers/actions';
+import { CommandError } from "../../../../src/errors";
+import { DAO } from "../../../fixtures";
+import { createTestScriptEncodedAction } from "../../../test-helpers/actions";
 import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,
   findAragonOSCommandNode,
-} from '../../../test-helpers/aragonos';
-import { itChecksNonDefinedIdentifier } from '../../../test-helpers/cas11';
-import { expectThrowAsync } from '../../../test-helpers/expects';
+} from "../../../test-helpers/aragonos";
+import { itChecksNonDefinedIdentifier } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 
-describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]', () => {
+describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
   let signer: Signer;
 
   let createAragonScriptInterpreter: ReturnType<
@@ -29,7 +29,7 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     );
   });
 
-  it('should return a correct act action', async () => {
+  it("should return a correct act action", async () => {
     const interpreter = createAragonScriptInterpreter([
       `act agent:1 agent:2 "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]`,
     ]);
@@ -37,15 +37,15 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     const actActions = await interpreter.interpret();
 
     const fnABI = new utils.Interface([
-      'function deposit((uint256,int256),uint256[][])',
+      "function deposit((uint256,int256),uint256[][])",
     ]);
 
     const expectedActActions = [
       createTestScriptEncodedAction(
         [
           {
-            to: DAO['agent:2'],
-            data: fnABI.encodeFunctionData('deposit', [
+            to: DAO["agent:2"],
+            data: fnABI.encodeFunctionData("deposit", [
               [1, -2],
               [
                 [2, 3],
@@ -54,7 +54,7 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
             ]),
           },
         ],
-        ['agent:1'],
+        ["agent:1"],
         DAO,
       ),
     ];
@@ -62,18 +62,18 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     expect(actActions).to.be.eql(expectedActActions);
   });
 
-  it('should return a correct act action when having to implicitly convert any string parameter to bytes when expecting one', async () => {
-    const targetAddress = '0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7';
+  it("should return a correct act action when having to implicitly convert any string parameter to bytes when expecting one", async () => {
+    const targetAddress = "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7";
     const params = [
-      ['0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667'],
-      'QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2',
+      ["0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667"],
+      "QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2",
     ];
     const interpreter = createAragonScriptInterpreter([
       `act agent ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
         params[1]
       }`,
     ]);
-    const fnABI = new utils.Interface(['function addBatches(bytes32[],bytes)']);
+    const fnABI = new utils.Interface(["function addBatches(bytes32[],bytes)"]);
 
     const actActions = await interpreter.interpret();
 
@@ -82,17 +82,17 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
         [
           {
             to: targetAddress,
-            data: fnABI.encodeFunctionData('addBatches', [
+            data: fnABI.encodeFunctionData("addBatches", [
               params[0],
               utils.hexlify(
                 utils.toUtf8Bytes(
-                  'QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2',
+                  "QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2",
                 ),
               ),
             ]),
           },
         ],
-        ['agent'],
+        ["agent"],
         DAO,
       ),
     ];
@@ -100,33 +100,33 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
   });
 
   itChecksNonDefinedIdentifier(
-    'should fail when receiving a non-defined agent identifier',
+    "should fail when receiving a non-defined agent identifier",
     (nonDefinedIdentifier) =>
       createAragonScriptInterpreter([
         `act ${nonDefinedIdentifier} vault "deposit()"`,
       ]),
-    'act',
+    "act",
     0,
     true,
   );
 
   itChecksNonDefinedIdentifier(
-    'should fail when receiving a non-defined target identifier',
+    "should fail when receiving a non-defined target identifier",
     (nonDefinedIdentifier) =>
       createAragonScriptInterpreter([
         `act agent ${nonDefinedIdentifier} "deposit()"`,
       ]),
-    'act',
+    "act",
     1,
     true,
   );
 
-  it('should fail when receiving an invalid agent address', async () => {
-    const invalidAgentAddress = 'false';
+  it("should fail when receiving an invalid agent address", async () => {
+    const invalidAgentAddress = "false";
     const interpreter = createAragonScriptInterpreter([
       `act ${invalidAgentAddress} agent "deposit()"`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
       c,
       `expected a valid agent address, but got ${invalidAgentAddress}`,
@@ -135,12 +135,12 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when receiving an invalid target address', async () => {
-    const invalidTargetAddress = '2.22e18';
+  it("should fail when receiving an invalid target address", async () => {
+    const invalidTargetAddress = "2.22e18";
     const interpreter = createAragonScriptInterpreter([
       `act agent ${invalidTargetAddress} "deposit()"`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
       c,
       `expected a valid target address, but got 2220000000000000000`,
@@ -149,13 +149,13 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when receiving an invalid signature', async () => {
+  it("should fail when receiving an invalid signature", async () => {
     const cases = [
-      ['mint', 'no parenthesis'],
-      ['mint(', 'left parenthesis'],
-      ['mint)', 'right parenthesis'],
-      ['mint(uint,)', 'right comma'],
-      ['mint(,uint)', 'left comma'],
+      ["mint", "no parenthesis"],
+      ["mint(", "left parenthesis"],
+      ["mint)", "right parenthesis"],
+      ["mint(uint,)", "right comma"],
+      ["mint(,uint)", "left comma"],
     ];
 
     await Promise.all(
@@ -163,7 +163,7 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
         const interpreter = createAragonScriptInterpreter([
           `act agent agent:2 "${invalidSignature}"`,
         ]);
-        const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         const error = new CommandError(
           c,
           `expected a valid signature, but got ${invalidSignature}`,
@@ -178,18 +178,18 @@ describe('AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     );
   });
 
-  it('should fail when receiving invalid function params', async () => {
+  it("should fail when receiving invalid function params", async () => {
     const paramsErrors = [
-      '-param 0 of type address: invalid address. Got 1000000000000000000',
-      '-param 1 of type uint256: invalid BigNumber value. Got none',
+      "-param 0 of type address: invalid address. Got 1000000000000000000",
+      "-param 1 of type uint256: invalid BigNumber value. Got none",
     ];
     const interpreter = createAragonScriptInterpreter([
       `act agent agent:2 "deposit(address,uint256)" 1e18`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'act')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
       c,
-      `error when encoding deposit call:\n${paramsErrors.join('\n')}`,
+      `error when encoding deposit call:\n${paramsErrors.join("\n")}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

@@ -1,23 +1,23 @@
-import type { DefaultBodyType, PathParams } from 'msw';
-import { HttpResponse, graphql, http } from 'msw';
-import { setupServer } from 'msw/node';
+import type { DefaultBodyType, PathParams } from "msw";
+import { HttpResponse, graphql, http } from "msw";
+import { setupServer } from "msw/node";
 
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { artifacts } from './artifacts/';
-import { etherscan } from './etherscan';
-import { blockscout } from './blockscout';
-import { DAOs, REPOs } from './subgraph-data';
-import tokenListFixture from './tokenlist/uniswap.json';
-import { IPFS_GATEWAY } from '../../src/IPFSResolver';
-import { addressesEqual } from '../../src/utils';
+import { artifacts } from "./artifacts/";
+import { etherscan } from "./etherscan";
+import { blockscout } from "./blockscout";
+import { DAOs, REPOs } from "./subgraph-data";
+import tokenListFixture from "./tokenlist/uniswap.json";
+import { IPFS_GATEWAY } from "../../src/IPFSResolver";
+import { addressesEqual } from "../../src/utils";
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 // const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API;
 
 const handlers = [
   graphql.query<Record<string, any>, { repoName: string }>(
-    'Repos',
+    "Repos",
     ({ variables }) => {
       const selectedRepo = REPOs[
         variables.repoName as keyof typeof REPOs
@@ -31,7 +31,7 @@ const handlers = [
     },
   ),
   graphql.query<Record<string, any>, { id: string }>(
-    'Organization',
+    "Organization",
     ({ variables }) => {
       const id = variables.id;
 
@@ -56,7 +56,7 @@ const handlers = [
       const { cid, resource } = params;
 
       try {
-        if (resource === 'artifact.json') {
+        if (resource === "artifact.json") {
           const artifact = artifacts[cid as keyof typeof artifacts];
 
           if (!artifact) {
@@ -75,12 +75,12 @@ const handlers = [
     DefaultBodyType,
     { status: string; message: string; result: string }
   >(`https://api-rinkeby.etherscan.io/api`, ({ request }) => {
-    const address = new URL(request.url).searchParams.get('address');
+    const address = new URL(request.url).searchParams.get("address");
     if (!address || !utils.isAddress(address)) {
       return HttpResponse.json({
-        status: '0',
-        message: 'NOTOK',
-        result: 'Invalid Address format',
+        status: "0",
+        message: "NOTOK",
+        result: "Invalid Address format",
       });
     }
 
@@ -88,9 +88,9 @@ const handlers = [
 
     if (!data) {
       return HttpResponse.json({
-        status: '0',
-        message: 'NOTOK',
-        result: 'Contract source code not verified',
+        status: "0",
+        message: "NOTOK",
+        result: "Contract source code not verified",
       });
     }
 
@@ -101,13 +101,13 @@ const handlers = [
     { address: string },
     { status: string; message: string; result: string }
   >(`https://blockscout.com/xdai/mainnet/api`, ({ request }) => {
-    const address = new URL(request.url).searchParams.get('address');
+    const address = new URL(request.url).searchParams.get("address");
 
     if (!address || !utils.isAddress(address)) {
       return HttpResponse.json({
-        status: '0',
-        message: 'NOTOK',
-        result: 'Invalid Address format',
+        status: "0",
+        message: "NOTOK",
+        result: "Invalid Address format",
       });
     }
 
@@ -115,16 +115,16 @@ const handlers = [
 
     if (!data) {
       return HttpResponse.json({
-        status: '0',
-        message: 'NOTOK',
-        result: 'Contract source code not verified',
+        status: "0",
+        message: "NOTOK",
+        result: "Contract source code not verified",
       });
     }
 
     return HttpResponse.json(data);
   }),
   http.get<PathParams<string>, DefaultBodyType, DefaultBodyType>(
-    'https://tokens.uniswap.org/',
+    "https://tokens.uniswap.org/",
     () => {
       return HttpResponse.json(tokenListFixture);
     },
@@ -133,14 +133,14 @@ const handlers = [
     PathParams<string>,
     { pinataContent: string },
     { IpfsHash: string } | { error: { reason: string; details: string } }
-  >('https://api.pinata.cloud/pinning/pinJSONToIPFS', async ({ request }) => {
-    const auth = request.headers.get('authorization');
+  >("https://api.pinata.cloud/pinning/pinJSONToIPFS", async ({ request }) => {
+    const auth = request.headers.get("authorization");
 
     if (!auth || auth !== PINATA_AUTH) {
       return HttpResponse.json({
         error: {
-          reason: 'INVALID_CREDENTIALS',
-          details: 'Invalid/expired credentials',
+          reason: "INVALID_CREDENTIALS",
+          details: "Invalid/expired credentials",
         },
       });
     }
@@ -150,12 +150,12 @@ const handlers = [
     };
 
     const contentToCid = {
-      'This should be pinned in IPFS':
-        'QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns',
+      "This should be pinned in IPFS":
+        "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
     };
 
     return HttpResponse.json({
-      IpfsHash: contentToCid[content] ?? '',
+      IpfsHash: contentToCid[content] ?? "",
     });
   }),
 ];

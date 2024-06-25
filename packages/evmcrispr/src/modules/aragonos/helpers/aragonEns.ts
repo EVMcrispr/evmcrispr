@@ -1,10 +1,10 @@
-import type { ethers } from 'ethers';
+import type { ethers } from "ethers";
 
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { AragonOS } from '../AragonOS';
-import type { HelperFunction, Nullable } from '../../../types';
-import { getAragonEnsResolver, resolveName } from '../utils';
-import { ErrorException } from '../../../errors';
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { AragonOS } from "../AragonOS";
+import type { HelperFunction, Nullable } from "../../../types";
+import { getAragonEnsResolver, resolveName } from "../utils";
+import { ErrorException } from "../../../errors";
 
 export const _aragonEns = async (
   ensName: string,
@@ -34,7 +34,7 @@ export const aragonEns: HelperFunction<AragonOS> = async (
 
   const [ensName] = await interpretNodes(h.args);
 
-  const customENSResolver = module.getConfigBinding('ensResolver');
+  const customENSResolver = module.getConfigBinding("ensResolver");
   const name = await _aragonEns(
     ensName,
     await module.getProvider(),

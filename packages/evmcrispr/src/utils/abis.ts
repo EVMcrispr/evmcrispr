@@ -1,18 +1,18 @@
-import type { providers } from 'ethers';
-import { utils } from 'ethers';
+import type { providers } from "ethers";
+import { utils } from "ethers";
 
-import { ErrorConnection, ErrorException } from '../errors';
-import type { Address } from '../types';
-import { fetchImplementationAddress } from './proxies';
+import { ErrorConnection, ErrorException } from "../errors";
+import type { Address } from "../types";
+import { fetchImplementationAddress } from "./proxies";
 
 function getEtherscanNetworkName(chainId: number): string {
   switch (chainId) {
     case 1:
-      return '';
+      return "";
     case 4:
-      return 'rinkeby';
+      return "rinkeby";
     case 5:
-      return 'goerli';
+      return "goerli";
     default:
       throw new ErrorException(`No network name found for chain id ${chainId}`);
   }
@@ -30,21 +30,21 @@ async function getAbiEntries(
     case 5: {
       const networkName = getEtherscanNetworkName(chainId);
       baseUrl = `https://api${
-        networkName ? `-${networkName}` : ''
+        networkName ? `-${networkName}` : ""
       }.etherscan.io/api`;
       break;
     }
     case 10:
-      baseUrl = 'https://api-optimistic.etherscan.io/api';
+      baseUrl = "https://api-optimistic.etherscan.io/api";
       break;
     case 100:
-      baseUrl = 'https://blockscout.com/xdai/mainnet/api';
+      baseUrl = "https://blockscout.com/xdai/mainnet/api";
       break;
     default:
-      throw new ErrorException('network not supported in Etherscan.');
+      throw new ErrorException("network not supported in Etherscan.");
   }
 
-  const apiKeySegment = chainId !== 100 ? `&apikey=${etherscanAPI}` : '';
+  const apiKeySegment = chainId !== 100 ? `&apikey=${etherscanAPI}` : "";
 
   const response = (await fetch(
     `${baseUrl}?module=contract&action=getabi&address=${address}${apiKeySegment}`,
@@ -56,7 +56,7 @@ async function getAbiEntries(
     result: string;
   };
 
-  if (response.status == '0') {
+  if (response.status == "0") {
     throw new ErrorConnection(response.result);
   }
 
@@ -77,9 +77,7 @@ export const fetchAbi = async (
   const fetchedAbi = await getAbiEntries(
     etherscanAPI,
     targetAddress,
-    (
-      await provider.getNetwork()
-    ).chainId,
+    (await provider.getNetwork()).chainId,
   );
 
   return [targetAddress, fetchedAbi];

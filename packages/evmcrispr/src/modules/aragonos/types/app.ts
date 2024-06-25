@@ -1,7 +1,7 @@
-import type { utils } from 'ethers';
+import type { utils } from "ethers";
 
-import type { Address } from '../../../types';
-import type { PermissionMap } from './permission';
+import type { Address } from "../../../types";
+import type { PermissionMap } from "./permission";
 
 /**
  * An object that contains app data.

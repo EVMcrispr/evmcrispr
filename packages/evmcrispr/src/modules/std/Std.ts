@@ -1,10 +1,10 @@
-import type { BindingsManager } from '../../BindingsManager';
+import type { BindingsManager } from "../../BindingsManager";
 
-import { Module } from '../../Module';
-import type { IPFSResolver } from '../../IPFSResolver';
-import { commands } from './commands';
-import { helpers } from './helpers';
-import type { EVMcrispr } from '../../EVMcrispr';
+import { Module } from "../../Module";
+import type { IPFSResolver } from "../../IPFSResolver";
+import { commands } from "./commands";
+import { helpers } from "./helpers";
+import type { EVMcrispr } from "../../EVMcrispr";
 
 export class Std extends Module {
   #modules: Module[];
@@ -17,7 +17,7 @@ export class Std extends Module {
     modules: Module[],
   ) {
     super(
-      'std',
+      "std",
       bindingsManager,
       nonces,
       commands,

@@ -1,5 +1,5 @@
-import type { BindingsManager } from '../BindingsManager';
-import type { BindingsSpace } from '../types';
+import type { BindingsManager } from "../BindingsManager";
+import type { BindingsSpace } from "../types";
 
 const TIMER_MILLISECONDS = 8500;
 

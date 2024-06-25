@@ -1,4 +1,4 @@
-import type { Address } from '../../types';
+import type { Address } from "../../types";
 
 export class AddressMap<T> extends Map<Address, T> {
   constructor() {

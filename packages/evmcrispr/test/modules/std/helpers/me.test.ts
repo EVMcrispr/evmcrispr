@@ -1,15 +1,15 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { NodeType } from '../../../../src/types';
-import { ComparisonType } from '../../../../src/utils';
+import { NodeType } from "../../../../src/types";
+import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from '../../../test-helpers/cas11';
+} from "../../../test-helpers/cas11";
 
-describe('Std > helpers > @me', () => {
+describe("Std > helpers > @me", () => {
   let signer: Signer;
   const lazySigner = () => signer;
 
@@ -17,7 +17,7 @@ describe('Std > helpers > @me', () => {
     [signer] = await ethers.getSigners();
   });
 
-  it('should return the current connected account', async () => {
+  it("should return the current connected account", async () => {
     const [interpret] = await preparingExpression(`@me`, signer);
 
     expect(await interpret()).to.equals(await signer.getAddress());
@@ -25,7 +25,7 @@ describe('Std > helpers > @me', () => {
 
   itChecksInvalidArgsLength(
     NodeType.HelperFunctionExpression,
-    '@me',
+    "@me",
     [],
     { type: ComparisonType.Equal, minValue: 0 },
     lazySigner,

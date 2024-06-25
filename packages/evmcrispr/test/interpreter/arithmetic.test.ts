@@ -1,26 +1,26 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { BigNumber } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { BigNumber } from "ethers";
+import { ethers } from "hardhat";
 
-import { ExpressionError } from '../../src/errors';
+import { ExpressionError } from "../../src/errors";
 
-import { toDecimals } from '../../src/utils';
+import { toDecimals } from "../../src/utils";
 
-import { createInterpreter, preparingExpression } from '../test-helpers/cas11';
-import { expectThrowAsync } from '../test-helpers/expects';
+import { createInterpreter, preparingExpression } from "../test-helpers/cas11";
+import { expectThrowAsync } from "../test-helpers/expects";
 
-describe('Interpreter - arithmetics', () => {
-  const name = 'ArithmeticExpressionError';
+describe("Interpreter - arithmetics", () => {
+  const name = "ArithmeticExpressionError";
   let signer: Signer;
 
   before(async () => {
     [signer] = await ethers.getSigners();
   });
 
-  it('should return the correct result of an arithmetic operation', async () => {
+  it("should return the correct result of an arithmetic operation", async () => {
     const [interpret] = await preparingExpression(
-      '(120 - 5e22 * 2 ^ 2 + 500e33)',
+      "(120 - 5e22 * 2 ^ 2 + 500e33)",
       signer,
     );
     const res = await interpret();
@@ -30,18 +30,18 @@ describe('Interpreter - arithmetics', () => {
     );
   });
 
-  it('should return the correct result of an arithmetic operation containing priority parenthesis', async () => {
+  it("should return the correct result of an arithmetic operation containing priority parenthesis", async () => {
     const [interpret] = await preparingExpression(
-      '((121e18 / 4) * (9 - 2) ^ 2 - 55e18)',
+      "((121e18 / 4) * (9 - 2) ^ 2 - 55e18)",
       signer,
     );
     const res = await interpret();
 
-    expect(res).to.eql(toDecimals('1427.25', 18));
+    expect(res).to.eql(toDecimals("1427.25", 18));
   });
 
-  it('should fail when one of the operands is not a number', async () => {
-    const invalidValue = 'a string';
+  it("should fail when one of the operands is not a number", async () => {
+    const invalidValue = "a string";
     const leftOperandInterpreter = createInterpreter(
       `
     set $var1 "${invalidValue}"
@@ -75,18 +75,18 @@ describe('Interpreter - arithmetics', () => {
     await expectThrowAsync(
       () => leftOperandInterpreter.interpret(),
       leftOperandErr,
-      'invalid left operand error',
+      "invalid left operand error",
     );
 
     await expectThrowAsync(
       () => rightOperandInterpreter.interpret(),
       rightOperandErr,
-      'invalid right operand error',
+      "invalid right operand error",
     );
   });
 
-  it('should fail when trying to perform a division by zero', async () => {
-    const [interpret, n] = await preparingExpression('(4 / 0)', signer);
+  it("should fail when trying to perform a division by zero", async () => {
+    const [interpret, n] = await preparingExpression("(4 / 0)", signer);
     const err = new ExpressionError(
       n,
       `invalid operation. Can't divide by zero`,

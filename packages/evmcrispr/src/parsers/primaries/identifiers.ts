@@ -1,4 +1,4 @@
-import type { Parser } from 'arcsecond';
+import type { Parser } from "arcsecond";
 import {
   char,
   choice,
@@ -8,20 +8,20 @@ import {
   recursiveParser,
   regex,
   sequenceOf,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   EnclosingNodeParser,
   ProbableIdentifierNode,
   VariableIdentifierNode,
-} from '../../types';
-import { NodeType } from '../../types';
-import { buildParserError } from '../../utils/parsers';
-import { createNodeLocation, enclosingLookaheadParser, locate } from '../utils';
+} from "../../types";
+import { NodeType } from "../../types";
+import { buildParserError } from "../../utils/parsers";
+import { createNodeLocation, enclosingLookaheadParser, locate } from "../utils";
 
-export const VARIABLE_PARSER_ERROR = 'VariableParserError';
+export const VARIABLE_PARSER_ERROR = "VariableParserError";
 
-export const PROBABLE_IDENTIFIER_PARSER_ERROR = 'IdentifierParserError';
+export const PROBABLE_IDENTIFIER_PARSER_ERROR = "IdentifierParserError";
 
 export const variableIdentifierParser: EnclosingNodeParser<
   VariableIdentifierNode
@@ -32,11 +32,11 @@ export const variableIdentifierParser: EnclosingNodeParser<
         regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
         enclosingLookaheadParser(enclosingParsers),
       ]).errorMap((err) =>
-        buildParserError(err, VARIABLE_PARSER_ERROR, 'Expecting a variable'),
+        buildParserError(err, VARIABLE_PARSER_ERROR, "Expecting a variable"),
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.VariableIdentifier,
-        value: value as VariableIdentifierNode['value'],
+        value: value as VariableIdentifierNode["value"],
         loc: createNodeLocation(initialContext, {
           line: data.line,
           index,
@@ -54,17 +54,17 @@ const encloseIdentifierRegexParser = regex(
 );
 
 const sequenceOf_ = (parsers: Parser<any, string, any>[]) =>
-  sequenceOf(parsers).map((values) => values.join(''));
+  sequenceOf(parsers).map((values) => values.join(""));
 
 export const enclosedIdentifierParser: Parser<any, string, any> =
   recursiveParser(() =>
     many1(
       choice([
-        sequenceOf_([char('('), possibly(enclosedIdentifierParser), char(')')]),
-        sequenceOf_([char('['), possibly(enclosedIdentifierParser), char(']')]),
+        sequenceOf_([char("("), possibly(enclosedIdentifierParser), char(")")]),
+        sequenceOf_([char("["), possibly(enclosedIdentifierParser), char("]")]),
         encloseIdentifierRegexParser,
       ]),
-    ).map((values) => values.filter((v) => !!v).join('')),
+    ).map((values) => values.filter((v) => !!v).join("")),
   );
 
 export const probableIdentifierParser: EnclosingNodeParser<
@@ -72,36 +72,38 @@ export const probableIdentifierParser: EnclosingNodeParser<
 > = (enclosingParsers = []) =>
   recursiveParser(() =>
     locate<ProbableIdentifierNode>(
-      coroutine(run => {
-        const parts: string[] = run(many1(
-          choice([
-            sequenceOf_([
-              char('('),
-              possibly(enclosedIdentifierParser),
-              char(')'),
+      coroutine((run) => {
+        const parts: string[] = run(
+          many1(
+            choice([
+              sequenceOf_([
+                char("("),
+                possibly(enclosedIdentifierParser),
+                char(")"),
+              ]),
+              sequenceOf_([
+                char("["),
+                possibly(enclosedIdentifierParser),
+                char("]"),
+              ]),
+              identifierRegexParser,
             ]),
-            sequenceOf_([
-              char('['),
-              possibly(enclosedIdentifierParser),
-              char(']'),
-            ]),
-            identifierRegexParser,
-          ]),
-        ));
+          ),
+        );
 
         run(enclosingLookaheadParser(enclosingParsers));
 
-        return [parts.filter((v) => !!v).join('')];
+        return [parts.filter((v) => !!v).join("")];
       }).errorMap((err) =>
         buildParserError(
           err,
           PROBABLE_IDENTIFIER_PARSER_ERROR,
-          'Expecting an identifier',
+          "Expecting an identifier",
         ),
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.ProbableIdentifier,
-        value: value as ProbableIdentifierNode['value'],
+        value: value as ProbableIdentifierNode["value"],
         loc: createNodeLocation(initialContext, {
           line: data.line,
           index,

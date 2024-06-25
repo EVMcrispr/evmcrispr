@@ -1,8 +1,8 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
 export const namehash: HelperFunction<Std> = async (
   _,
@@ -20,7 +20,7 @@ export const namehash: HelperFunction<Std> = async (
     return utils.namehash(name);
   } catch (e) {
     throw new Error(
-      'Invalid ENS name. Please check the value you are passing to @namehash',
+      "Invalid ENS name. Please check the value you are passing to @namehash",
     );
   }
 };

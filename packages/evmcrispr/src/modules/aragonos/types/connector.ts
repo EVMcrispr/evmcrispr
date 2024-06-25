@@ -1,5 +1,5 @@
-import type { Address } from '../../../types';
-import type { AragonArtifact } from './app';
+import type { Address } from "../../../types";
+import type { AragonArtifact } from "./app";
 
 /**
  * An intermediate app object that contains raw properties

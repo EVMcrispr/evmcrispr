@@ -1,4 +1,4 @@
-import type { Ok, Parser } from 'arcsecond';
+import type { Ok, Parser } from "arcsecond";
 import {
   between,
   char,
@@ -18,7 +18,7 @@ import {
   str,
   takeLeft,
   tapParser,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   Location,
@@ -26,9 +26,9 @@ import type {
   Node,
   NodeParser,
   NodeParserState,
-} from '../types';
-import { buildParserError } from '../utils/parsers';
-import { commentParser } from './comment';
+} from "../types";
+import { buildParserError } from "../utils/parsers";
+import { commentParser } from "./comment";
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
@@ -52,20 +52,20 @@ export const createNodeLocation = (
   };
 };
 
-export const callOperatorParser = str('::');
+export const callOperatorParser = str("::");
 
-export const optOperatorParser = str('--');
+export const optOperatorParser = str("--");
 
 // Overwrite arcsecond's parser as it ignores newline character
 export const whitespace = regex(/^ +/).errorMap((err) =>
-  buildParserError(err, 'ParserError', 'Expecting whitespace'),
+  buildParserError(err, "ParserError", "Expecting whitespace"),
 );
 
 export const optionalWhitespace = possibly(whitespace);
 
 export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
-export const comma = char(',');
+export const comma = char(",");
 export const endOfLine = regex(/^\r?\n/);
 
 export const baseEnclosingCharParsers = [endOfLine, endOfInput, whitespace];
@@ -90,16 +90,16 @@ export const surroundedBy = (
 
 export const commaSeparated: <T = Node>(
   parser: NodeParser<T>,
-) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(',')));
+) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(",")));
 
 const defaultEndingParser = possibly(
   sequenceOf([optionalWhitespace, endOfInput]).map(
-    () => 'DEFAULT_END_OF_INPUT',
+    () => "DEFAULT_END_OF_INPUT",
   ),
 );
 export const linesParser = <T = Node>(
   lineParser: NodeParser<T>,
-  endingParser: Parser<any, string, any>,
+  endingParser?: Parser<any, string, any>,
   {
     endingChar,
     parserErrorType,
@@ -111,14 +111,14 @@ export const linesParser = <T = Node>(
     initialState: NodeParserState;
     initialIndex: number;
   } = {
-    endingChar: '',
-    parserErrorType: 'ParserError',
+    endingChar: "",
+    parserErrorType: "ParserError",
     initialState: { errors: [], line: 0, offset: 0 },
     initialIndex: 0,
   },
 ): NodeParser<T[]> =>
   recursiveParser(() =>
-    coroutine(run => {
+    coroutine((run) => {
       const lines = [];
       let res: { isError: boolean; value: any };
       const parsers = endingParser
@@ -127,19 +127,23 @@ export const linesParser = <T = Node>(
       let endOfParse = run(possibly(choice(parsers)));
 
       while (!endOfParse) {
-        res = run(either(
-          choice([lineParser, emptyLine, commentParser.map(() => null)]),
-        ));
+        res = run(
+          either(
+            choice([lineParser, emptyLine, commentParser.map(() => null)]),
+          ),
+        );
 
         if (res.isError) {
           run(addNewError(res.value));
-          run(everyCharUntil(
-            choice(
-              endingParser
-                ? [endingParser, endOfLine, endOfInput]
-                : [endOfLine, endOfInput],
+          run(
+            everyCharUntil(
+              choice(
+                endingParser
+                  ? [endingParser, endOfLine, endOfInput]
+                  : [endOfLine, endOfInput],
+              ),
             ),
-          ));
+          );
           if (run(possibly(lookAhead(endOfLine)))) {
             run(endLine);
           }
@@ -147,24 +151,26 @@ export const linesParser = <T = Node>(
           lines.push(res.value);
         }
 
-        endOfParse = (run(possibly(choice(parsers))));
+        endOfParse = run(possibly(choice(parsers)));
       }
 
-      if (endingParser && endOfParse === 'DEFAULT_END_OF_INPUT') {
-        run(addNewError(
-          buildParserError(
-            {
-              data: initialState,
-              index: initialIndex,
-              error: '',
-              isError: true,
-            },
-            parserErrorType,
-            `Expecting closing ${
-              endingChar ? `"${endingChar}"` : 'character'
-            }, but got end of input`,
+      if (endingParser && endOfParse === "DEFAULT_END_OF_INPUT") {
+        run(
+          addNewError(
+            buildParserError(
+              {
+                data: initialState,
+                index: initialIndex,
+                error: "",
+                isError: true,
+              },
+              parserErrorType,
+              `Expecting closing ${
+                endingChar ? `"${endingChar}"` : "character"
+              }, but got end of input`,
+            ),
           ),
-        ));
+        );
       }
 
       return lines as T[];
@@ -222,7 +228,7 @@ export const endLine = sequenceOf([
 export const emptyLine = sequenceOf([optionalWhitespace, endLine])
   .map(() => null)
   .errorMap((err) =>
-    buildParserError(err, 'LineParserError', 'Expecting empty line'),
+    buildParserError(err, "LineParserError", "Expecting empty line"),
   );
 
 export const locate = <N extends Node = Node>(

@@ -1,27 +1,27 @@
 export enum ASTType {
-  Program = 'Program',
+  Program = "Program",
 }
 
 export enum NodeType {
-  AddressLiteral = 'AddressLiteral',
-  BoolLiteral = 'BoolLiteral',
-  BytesLiteral = 'BytesLiteral',
-  NumberLiteral = 'NumberLiteral',
-  StringLiteral = 'StringLiteral',
+  AddressLiteral = "AddressLiteral",
+  BoolLiteral = "BoolLiteral",
+  BytesLiteral = "BytesLiteral",
+  NumberLiteral = "NumberLiteral",
+  StringLiteral = "StringLiteral",
 
-  AsExpression = 'AsExpression',
-  ArrayExpression = 'ArrayExpression',
-  BinaryExpression = 'BinaryExpression',
-  BlockExpression = 'BlockExpression',
-  CallExpression = 'CallExpression',
-  CommandExpression = 'CommandExpression',
-  HelperFunctionExpression = 'HelperFunctionExpression',
-  UnaryExpression = 'UnaryExpression',
+  AsExpression = "AsExpression",
+  ArrayExpression = "ArrayExpression",
+  BinaryExpression = "BinaryExpression",
+  BlockExpression = "BlockExpression",
+  CallExpression = "CallExpression",
+  CommandExpression = "CommandExpression",
+  HelperFunctionExpression = "HelperFunctionExpression",
+  UnaryExpression = "UnaryExpression",
 
-  ProbableIdentifier = 'ProbableIdentifier',
-  VariableIdentifier = 'VariableIdentifier',
+  ProbableIdentifier = "ProbableIdentifier",
+  VariableIdentifier = "VariableIdentifier",
 
-  CommandOpt = 'CommandOpt',
+  CommandOpt = "CommandOpt",
 }
 
 export type LiteralExpression =
@@ -135,7 +135,7 @@ export type OperableExpressionNode =
 
 export interface BinaryExpressionNode extends Node {
   type: NodeType.BinaryExpression;
-  operator: '+' | '-' | '*' | '/' | '^';
+  operator: "+" | "-" | "*" | "/" | "^";
   left: OperableExpressionNode;
   right: OperableExpressionNode;
 }

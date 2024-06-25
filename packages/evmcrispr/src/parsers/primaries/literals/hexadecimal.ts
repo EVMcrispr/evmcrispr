@@ -1,15 +1,15 @@
-import { regex, sequenceOf } from 'arcsecond';
+import { regex, sequenceOf } from "arcsecond";
 
-import type { BytesLiteralNode, EnclosingNodeParser } from '../../../types';
-import { NodeType } from '../../../types';
-import { buildParserError } from '../../../utils/parsers';
+import type { BytesLiteralNode, EnclosingNodeParser } from "../../../types";
+import { NodeType } from "../../../types";
+import { buildParserError } from "../../../utils/parsers";
 import {
   createNodeLocation,
   enclosingLookaheadParser,
   locate,
-} from '../../utils';
+} from "../../utils";
 
-export const HEXADECIMAL_PARSER_ERROR = 'HexadecimalParserError';
+export const HEXADECIMAL_PARSER_ERROR = "HexadecimalParserError";
 
 export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
   enclosingParsers = [],
@@ -22,12 +22,12 @@ export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
       buildParserError(
         err,
         HEXADECIMAL_PARSER_ERROR,
-        'Expecting a hexadecimal value',
+        "Expecting a hexadecimal value",
       ),
     ),
     ({ data, index, result: [initialContext, [value]] }) => ({
       type: NodeType.BytesLiteral,
-      value: value as BytesLiteralNode['value'],
+      value: value as BytesLiteralNode["value"],
       loc: createNodeLocation(initialContext, {
         line: data.line,
         index,

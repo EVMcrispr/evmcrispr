@@ -1,11 +1,11 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import type { CallScriptAction } from '../types';
+import type { CallScriptAction } from "../types";
 
-const CALLSCRIPT_ID = '0x00000001';
+const CALLSCRIPT_ID = "0x00000001";
 
 export function createExecutorId(id: number): string {
-  return `0x${String(id).padStart(8, '0')}`;
+  return `0x${String(id).padStart(8, "0")}`;
 }
 
 export const EMPTY_CALLS_SCRIPT = createExecutorId(1);
@@ -17,14 +17,14 @@ export const EMPTY_CALLS_SCRIPT = createExecutorId(1);
  */
 export function encodeActCall(signature: string, params: any[] = []): string {
   const sigBytes = utils.hexDataSlice(utils.id(signature), 0, 4);
-  const types = signature.replace(')', '').split('(')[1];
+  const types = signature.replace(")", "").split("(")[1];
 
   // No params, return signature directly
-  if (types === '') {
+  if (types === "") {
     return sigBytes;
   }
 
-  const paramBytes = new utils.AbiCoder().encode(types.split(','), params);
+  const paramBytes = new utils.AbiCoder().encode(types.split(","), params);
 
   return `${sigBytes}${paramBytes.slice(2)}`;
 }
@@ -112,9 +112,9 @@ export function decodeCallScript(script: string): CallScriptAction[] {
  */
 export function encodeCallScript(actions: CallScriptAction[]): string {
   return actions.reduce((script: string, { to, data }) => {
-    const address = utils.defaultAbiCoder.encode(['address'], [to]);
+    const address = utils.defaultAbiCoder.encode(["address"], [to]);
     const dataLength = utils.defaultAbiCoder.encode(
-      ['uint256'],
+      ["uint256"],
       [(data.length - 2) / 2],
     );
 

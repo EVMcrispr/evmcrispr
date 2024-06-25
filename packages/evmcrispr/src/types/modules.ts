@@ -1,17 +1,17 @@
-import type { providers } from 'ethers';
+import type { providers } from "ethers";
 
-import type { Action } from './actions';
+import type { Action } from "./actions";
 import type {
   CommandExpressionNode,
   HelperFunctionNode,
   Node,
   Position,
-} from './ast';
-import type { BindingsManager } from '../BindingsManager';
-import type { IPFSResolver } from '../IPFSResolver';
-import type { Module } from '../Module';
-import type { LazyBindings } from './bindings';
-import type { EVMcrispr } from '..';
+} from "./ast";
+import type { BindingsManager } from "../BindingsManager";
+import type { IPFSResolver } from "../IPFSResolver";
+import type { Module } from "../Module";
+import type { LazyBindings } from "./bindings";
+import type { EVMcrispr } from "..";
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;
@@ -67,7 +67,7 @@ export interface ICommand<M extends Module = Module> {
 export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
 
 export interface ModuleExports<T extends Module = Module> {
-  ModuleConstructor: Module['constructor'];
+  ModuleConstructor: Module["constructor"];
   commands: Commands<T>;
   helpers: HelperFunctions<T>;
 }

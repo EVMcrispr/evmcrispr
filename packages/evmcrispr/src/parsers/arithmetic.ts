@@ -1,4 +1,4 @@
-import type { Parser } from 'arcsecond';
+import type { Parser } from "arcsecond";
 import {
   between,
   char,
@@ -8,23 +8,23 @@ import {
   optionalWhitespace,
   recursiveParser,
   sequenceOf,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   BinaryExpressionNode,
   NodeParser,
   NodeParserState,
-} from '../types';
-import { NodeType } from '../types';
-import { callExpressionParser } from './call';
-import { helperFunctionParser } from './helper';
-import { numberParser, variableIdentifierParser } from './primaries';
+} from "../types";
+import { NodeType } from "../types";
+import { callExpressionParser } from "./call";
+import { helperFunctionParser } from "./helper";
+import { numberParser, variableIdentifierParser } from "./primaries";
 import {
   closingCharParser,
   createNodeLocation,
   locate,
   openingCharParser,
-} from './utils';
+} from "./utils";
 
 // Taken from arcsecond's recipe cookbook (https://github.com/francisrstokes/arcsecond/blob/master/Cookbook.md#parse-expressions-while-respecting-operator-associativity-and-precedence)
 
@@ -32,18 +32,18 @@ const whitespaceSurrounded = (parser: Parser<any, string, NodeParserState>) =>
   between(optionalWhitespace)(optionalWhitespace)(parser);
 
 const betweenParentheses = (parser: Parser<any, string, NodeParserState>) =>
-  between(whitespaceSurrounded(char('(')))(whitespaceSurrounded(char(')')))(
+  between(whitespaceSurrounded(char("(")))(whitespaceSurrounded(char(")")))(
     parser,
   );
 
-const plus = char('+');
-const minus = char('-');
-const times = char('*');
-const divide = char('/');
-const exp = char('^');
+const plus = char("+");
+const minus = char("-");
+const times = char("*");
+const divide = char("/");
+const exp = char("^");
 
 type RawExpression = [
-  BinaryExpressionNode['operator'],
+  BinaryExpressionNode["operator"],
   BinaryExpressionNode | RawExpression,
   BinaryExpressionNode | RawExpression,
 ];
@@ -70,11 +70,11 @@ const binaryExpression =
           (acc, curr): BinaryExpressionNode => {
             let n: BinaryExpressionNode;
             if (Array.isArray(curr)) {
-              const right = curr[1] as BinaryExpressionNode['right'];
+              const right = curr[1] as BinaryExpressionNode["right"];
               n = {
                 type: NodeType.BinaryExpression,
-                operator: curr[0] as BinaryExpressionNode['operator'],
-                left: acc as BinaryExpressionNode['left'],
+                operator: curr[0] as BinaryExpressionNode["operator"],
+                left: acc as BinaryExpressionNode["left"],
                 right: right,
                 loc: createNodeLocation(initialContext, {
                   index: right.loc?.end.col ?? index,
@@ -97,8 +97,8 @@ const binaryExpression =
 const operableExpressions = choice([
   callExpressionParser,
   helperFunctionParser,
-  variableIdentifierParser([plus, minus, times, divide, exp, char(')')]),
-  numberParser([plus, minus, times, divide, exp, char(')')]),
+  variableIdentifierParser([plus, minus, times, divide, exp, char(")")]),
+  numberParser([plus, minus, times, divide, exp, char(")")]),
 ]);
 
 // Each precedence group consists of a set of equal precedence terms,
@@ -119,33 +119,33 @@ const multiplicationOrDivision = binaryExpression(choice([times, divide]))(
 );
 const exponentiation = binaryExpression(exp)(baseOrPow);
 
-const buildArithmeticExpressionNode = (
-  rawTreeExpression: RawExpression,
-): BinaryExpressionNode => {
-  const [operator, leftOperand, rightOperand] = rawTreeExpression;
+// const buildArithmeticExpressionNode = (
+//   rawTreeExpression: RawExpression,
+// ): BinaryExpressionNode => {
+//   const [operator, leftOperand, rightOperand] = rawTreeExpression;
 
-  const n: BinaryExpressionNode = {
-    type: NodeType.BinaryExpression,
-    operator: operator as BinaryExpressionNode['operator'],
-    left: Array.isArray(leftOperand)
-      ? buildArithmeticExpressionNode(leftOperand)
-      : leftOperand,
-    right: Array.isArray(rightOperand)
-      ? // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        buildArithmeticExpressionNode(rightOperand)
-      : rightOperand,
-  };
+//   const n: BinaryExpressionNode = {
+//     type: NodeType.BinaryExpression,
+//     operator: operator as BinaryExpressionNode["operator"],
+//     left: Array.isArray(leftOperand)
+//       ? buildArithmeticExpressionNode(leftOperand)
+//       : leftOperand,
+//     right: Array.isArray(rightOperand)
+//       ?
+//         buildArithmeticExpressionNode(rightOperand)
+//       : rightOperand,
+//   };
 
-  return n;
-};
+//   return n;
+// };
 
 export const arithmeticParser: NodeParser<BinaryExpressionNode> =
   recursiveParser(() =>
-    coroutine(run => {
-      run(openingCharParser('('));
+    coroutine((run) => {
+      run(openingCharParser("("));
 
       const exp: BinaryExpressionNode = run(expression);
-      run(closingCharParser(')'));
+      run(closingCharParser(")"));
 
       return exp;
     }),

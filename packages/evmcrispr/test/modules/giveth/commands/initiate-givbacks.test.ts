@@ -1,13 +1,13 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
-import { defaultRelayerMap } from '../../../../src/modules/giveth/addresses';
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
-describe('Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]', () => {
+describe("Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]", () => {
   let signer: Signer;
 
   before(async () => {
@@ -17,7 +17,7 @@ describe('Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]
   const testInitiateGivbacks =
     (relayerAddr: string = defaultRelayerAddr) =>
     async () => {
-      const ipfsHash = 'QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1';
+      const ipfsHash = "QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1";
 
       const interpreter = createInterpreter(
         relayerAddr === defaultRelayerAddr
@@ -46,11 +46,11 @@ describe('Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]
     };
 
   it(
-    'should return a correct initiate-givbacks action',
+    "should return a correct initiate-givbacks action",
     testInitiateGivbacks(),
   );
   it(
-    'should return a correct initiate-givbacks action when another relayer is passed',
-    testInitiateGivbacks('0xCa60c66a8C3449047c213295eCd82C80B1529a10'),
+    "should return a correct initiate-givbacks action when another relayer is passed",
+    testInitiateGivbacks("0xCa60c66a8C3449047c213295eCd82C80B1529a10"),
   );
 });

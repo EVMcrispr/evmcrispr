@@ -1,7 +1,7 @@
-import { ErrorInvalid } from '../../../errors';
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import { ErrorInvalid } from "../../../errors";
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
 const iso8601Regex =
   /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/;
@@ -16,13 +16,13 @@ export const date: HelperFunction<Std> = async (_, h, { interpretNodes }) => {
   });
 
   const [date, offset] = await interpretNodes(h.args);
-  if (date != 'now' && !iso8601Regex.test(date)) {
-    throw new ErrorInvalid('Invalid date provided.');
+  if (date != "now" && !iso8601Regex.test(date)) {
+    throw new ErrorInvalid("Invalid date provided.");
   }
   if (offset && !offsetRegex.test(offset)) {
-    throw new ErrorInvalid('Invalid offset provided.');
+    throw new ErrorInvalid("Invalid offset provided.");
   }
-  const _date = date == 'now' ? Date.now() : new Date(date);
+  const _date = date == "now" ? Date.now() : new Date(date);
   const [
     ,
     years = 0,

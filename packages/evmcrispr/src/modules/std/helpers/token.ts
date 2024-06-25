@@ -1,18 +1,18 @@
-import { BigNumber, ethers } from 'ethers';
-import fetch from 'isomorphic-fetch';
+import { BigNumber, ethers } from "ethers";
+import fetch from "isomorphic-fetch";
 
-import { isAddress } from 'ethers/lib/utils';
+import { isAddress } from "ethers/lib/utils";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { Address, HelperFunction } from '../../../types';
-import { BindingsSpace } from '../../../types';
-import { ComparisonType, checkArgsLength, isNumberish } from '../../../utils';
-import type { Module } from '../../../Module';
-import type { Std } from '../Std';
+import type { Address, HelperFunction } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
+import type { Module } from "../../../Module";
+import type { Std } from "../Std";
 
-const ENV_TOKENLIST = '$token.tokenlist';
-const DEFAULT_TOKEN_LIST = 'https://tokens.uniswap.org/';
+const ENV_TOKENLIST = "$token.tokenlist";
+const DEFAULT_TOKEN_LIST = "https://tokens.uniswap.org/";
 
 const getTokenList = ({ bindingsManager }: Module): string => {
   const tokenList = String(
@@ -21,7 +21,7 @@ const getTokenList = ({ bindingsManager }: Module): string => {
   );
 
   // Always check user data inputs:
-  if (!tokenList.startsWith('https://')) {
+  if (!tokenList.startsWith("https://")) {
     throw new ErrorException(
       `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
     );
@@ -85,7 +85,7 @@ export const tokenBalance: HelperFunction<Std> = async (
   const tokenAddr = await _token(module, tokenSymbol);
   const contract = new ethers.Contract(
     tokenAddr,
-    ['function balanceOf(address owner) view returns (uint)'],
+    ["function balanceOf(address owner) view returns (uint)"],
     await module.getProvider(),
   );
 
@@ -101,7 +101,7 @@ export const _tokenAmount = async (
 
   const contract = new ethers.Contract(
     tokenAddr,
-    ['function decimals() view returns (uint8)'],
+    ["function decimals() view returns (uint8)"],
     await module.getProvider(),
   );
 
@@ -121,7 +121,7 @@ export const tokenAmount: HelperFunction<Std> = async (
   const [tokenSymbolOrAddress, amount] = await interpretNodes(h.args);
 
   if (!isNumberish(amount)) {
-    throw new ErrorException('amount is not a number');
+    throw new ErrorException("amount is not a number");
   }
   return _tokenAmount(module, tokenSymbolOrAddress, amount);
 };

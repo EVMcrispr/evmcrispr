@@ -1,8 +1,8 @@
-import type { providers } from 'ethers';
-import { Contract, utils } from 'ethers';
-import cloneDeep from 'lodash.clonedeep';
+import type { providers } from "ethers";
+import { Contract, utils } from "ethers";
+import cloneDeep from "lodash.clonedeep";
 
-import type { Address, IDataProvider } from '../../types';
+import type { Address, IDataProvider } from "../../types";
 import type {
   App,
   AppArtifactCache,
@@ -12,9 +12,9 @@ import type {
   ParsedApp,
   PermissionMap,
   Role,
-} from './types';
-import type { IPFSResolver } from '../../IPFSResolver';
-import { calculateNewProxyAddress } from '../../utils';
+} from "./types";
+import type { IPFSResolver } from "../../IPFSResolver";
+import { calculateNewProxyAddress } from "../../utils";
 import {
   INITIAL_APP_INDEX,
   buildApp,
@@ -23,11 +23,11 @@ import {
   fetchAppArtifact,
   normalizeRole,
   resolveIdentifier,
-} from './utils';
-import { AddressMap } from './AddressMap';
-import { Connector } from './Connector';
+} from "./utils";
+import { AddressMap } from "./AddressMap";
+import { Connector } from "./Connector";
 
-export const DATA_PROVIDER_TYPE = 'ARAGONOS_DAO';
+export const DATA_PROVIDER_TYPE = "ARAGONOS_DAO";
 
 export const isAragonDAO = (
   dataProvider: IDataProvider,
@@ -82,7 +82,7 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
   const appCache: AppCache = new Map();
   const appCounter = new Map();
 
-  const kernel = apps.find((app) => app.name.toLowerCase() === 'kernel')!;
+  const kernel = apps.find((app) => app.name.toLowerCase() === "kernel")!;
   const sortedParsedApps = [kernel];
 
   const addressToApp = apps.reduce((accumulator, app) => {

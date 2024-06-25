@@ -3,8 +3,8 @@ import type {
   BlockExpressionNode,
   CommandExpressionNode,
   Node,
-} from './types';
-import { ASTType, NodeType } from './types';
+} from "./types";
+import { ASTType, NodeType } from "./types";
 
 const isLineWithinBlock = ({ type, loc }: Node, line: number) =>
   !!(

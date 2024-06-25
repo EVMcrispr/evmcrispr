@@ -1,18 +1,18 @@
-import type { providers } from 'ethers';
-import { Contract } from 'ethers';
+import type { providers } from "ethers";
+import { Contract } from "ethers";
 
-import type { Address } from '../../../types';
-import type { ParsedApp, Repo } from '../types';
-import { getSystemApp, isSystemApp } from './interfaces';
+import type { Address } from "../../../types";
+import type { ParsedApp, Repo } from "../types";
+import { getSystemApp, isSystemApp } from "./interfaces";
 
 export const parseAppArtifactName = (name: string): string => {
   if (!name) {
-    return '';
+    return "";
   }
   // Split by the first '.' occurrence only.
   const parsedName = name.split(/\.(.+)/);
 
-  return parsedName.length > 1 ? parsedName[1] : '';
+  return parsedName.length > 1 ? parsedName[1] : "";
 };
 
 const fetchImplementationAddress = (
@@ -21,7 +21,7 @@ const fetchImplementationAddress = (
 ): Promise<Address> => {
   const app = new Contract(
     appAddress,
-    ['function implementation() public view returns (address)'],
+    ["function implementation() public view returns (address)"],
     provider,
   );
 
@@ -58,7 +58,7 @@ export const parseApp = async (
     registryName: registry?.name,
     roles: (roles as any[]).map((role) => ({
       ...role,
-      roleHash: role['hash'] ?? role['roleHash'],
+      roleHash: role["hash"] ?? role["roleHash"],
     })),
   };
 };

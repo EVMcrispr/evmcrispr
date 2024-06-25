@@ -1,28 +1,28 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { utils } from "ethers";
+import { ethers } from "hardhat";
 
-import { commaListItems } from '../../../../src/utils';
-import { CommandError } from '../../../../src/errors';
+import { commaListItems } from "../../../../src/utils";
+import { CommandError } from "../../../../src/errors";
 
-import { DAO } from '../../../fixtures';
+import { DAO } from "../../../fixtures";
 import {
   createTestAction,
   createTestScriptEncodedAction,
-} from '../../../test-helpers/actions';
+} from "../../../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from '../../../test-helpers/aragonos';
+} from "../../../test-helpers/aragonos";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
-} from '../../../test-helpers/cas11';
-import { expectThrowAsync } from '../../../test-helpers/expects';
-import { ANY_ENTITY } from '../../../../src/modules/aragonos/utils';
+} from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
+import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils";
 
-describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
+describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   let signer: Signer;
 
   let createAragonScriptInterpreter: ReturnType<
@@ -38,7 +38,7 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
     );
   });
 
-  it('should return a correct forward action', async () => {
+  it("should return a correct forward action", async () => {
     const interpreter = createAragonScriptInterpreter([
       `
       forward disputable-voting.open (
@@ -53,25 +53,25 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
     const expectedActions = [
       createTestScriptEncodedAction(
         [
-          createTestAction('createPermission', DAO.acl, [
-            DAO['disputable-voting.open'],
-            DAO['disputable-conviction-voting.open'],
-            utils.id('PAUSE_CONTRACT_ROLE'),
-            DAO['disputable-voting.open'],
+          createTestAction("createPermission", DAO.acl, [
+            DAO["disputable-voting.open"],
+            DAO["disputable-conviction-voting.open"],
+            utils.id("PAUSE_CONTRACT_ROLE"),
+            DAO["disputable-voting.open"],
           ]),
-          createTestAction('revokePermission', DAO.acl, [
+          createTestAction("revokePermission", DAO.acl, [
             ANY_ENTITY,
-            DAO['disputable-conviction-voting.open'],
-            utils.id('CREATE_PROPOSALS_ROLE'),
+            DAO["disputable-conviction-voting.open"],
+            utils.id("CREATE_PROPOSALS_ROLE"),
           ]),
-          createTestAction('removePermissionManager', DAO.acl, [
-            DAO['disputable-conviction-voting.open'],
-            utils.id('CREATE_PROPOSALS_ROLE'),
+          createTestAction("removePermissionManager", DAO.acl, [
+            DAO["disputable-conviction-voting.open"],
+            utils.id("CREATE_PROPOSALS_ROLE"),
           ]),
         ],
-        ['disputable-voting.open'],
+        ["disputable-voting.open"],
         DAO,
-        'test',
+        "test",
       ),
     ];
 
@@ -79,7 +79,7 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
   });
 
   itChecksNonDefinedIdentifier(
-    'should fail when receiving non-defined forwarder identifiers',
+    "should fail when receiving non-defined forwarder identifiers",
     (nonDefinedIdentifier) =>
       createInterpreter(
         `
@@ -93,22 +93,22 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
       `,
         signer,
       ),
-    'forward',
+    "forward",
     0,
     true,
   );
 
-  it('should fail when forwarding actions through invalid forwarder addresses', async () => {
+  it("should fail when forwarding actions through invalid forwarder addresses", async () => {
     const invalidAddresses = [
-      'false',
-      '0xab123cd1231255ab45323de234223422a12312321abaceff',
+      "false",
+      "0xab123cd1231255ab45323de234223422a12312321abaceff",
     ];
     const interpreter = createAragonScriptInterpreter([
-      `forward ${invalidAddresses.join(' ')} (
+      `forward ${invalidAddresses.join(" ")} (
       grant tollgate.open finance CREATE_PAYMENTS_ROLE
     )`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'forward')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
     const error = new CommandError(
       c,
       `${commaListItems(invalidAddresses)} are not valid forwarder address`,
@@ -116,13 +116,13 @@ describe('AragonOS > commands > forward <...path> <commandsBlock>', () => {
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when forwarding actions through non-forwarder entities', async () => {
+  it("should fail when forwarding actions through non-forwarder entities", async () => {
     const interpreter = createAragonScriptInterpreter([
       `forward acl (
     grant disputable-voting.open disputable-conviction-voting.open PAUSE_CONTRACT_ROLE disputable-voting.open
   )`,
     ]);
-    const c = findAragonOSCommandNode(interpreter.ast, 'forward')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
     const error = new CommandError(c, `app ${DAO.acl} is not a forwarder`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);

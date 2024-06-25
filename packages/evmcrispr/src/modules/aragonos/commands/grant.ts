@@ -1,26 +1,26 @@
-import { constants, utils } from 'ethers';
+import { constants, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
-import { BindingsSpace } from '../../../types';
-import type { Action, ICommand, InterpretOptions } from '../../../types';
+import { ErrorException } from "../../../errors";
+import { BindingsSpace } from "../../../types";
+import type { Action, ICommand, InterpretOptions } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
   getOptValue,
   interpretNodeSync,
-} from '../../../utils';
-import type { AragonOS } from '../AragonOS';
-import { getDAO, isPermission } from '../utils/commands';
+} from "../../../utils";
+import type { AragonOS } from "../AragonOS";
+import { getDAO, isPermission } from "../utils/commands";
 import {
   getAppRoles,
   getDAOAppIdentifiers,
   normalizeRole,
   oracle,
-} from '../utils';
-import type { CompletePermission, Params } from '../types';
-import type { AragonDAO } from '../AragonDAO';
-import { AddressSet } from '../AddressSet';
+} from "../utils";
+import type { CompletePermission, Params } from "../types";
+import type { AragonDAO } from "../AragonDAO";
+import { AddressSet } from "../AddressSet";
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -36,7 +36,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
   const { permissions: appPermissions, name } = app;
   const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp('acl')!;
+    dao!.resolveApp("acl")!;
   const actions: Action[] = [];
 
   if (!appPermissions.has(roleHash)) {
@@ -48,7 +48,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
   // If the permission already existed and no parameters are needed, just grant to a new entity and exit
   if (
-    appPermission.manager !== '' &&
+    appPermission.manager !== "" &&
     appPermission.manager !== constants.AddressZero &&
     params.length == 0
   ) {
@@ -63,7 +63,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     return [
       {
         to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData('grantPermission', [
+        data: aclAbiInterface.encodeFunctionData("grantPermission", [
           granteeAddress,
           appAddress,
           roleHash,
@@ -74,11 +74,11 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
   // If the permission does not exist previously, create it
   if (
-    appPermission.manager === '' ||
+    appPermission.manager === "" ||
     appPermission.manager === constants.AddressZero
   ) {
     if (!permissionManager) {
-      throw new ErrorException('required permission manager missing');
+      throw new ErrorException("required permission manager missing");
     }
 
     if (!utils.isAddress(permissionManager)) {
@@ -93,7 +93,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
     actions.push({
       to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData('createPermission', [
+      data: aclAbiInterface.encodeFunctionData("createPermission", [
         granteeAddress,
         appAddress,
         roleHash,
@@ -113,7 +113,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
     actions.push({
       to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData('grantPermissionP', [
+      data: aclAbiInterface.encodeFunctionData("grantPermissionP", [
         granteeAddress,
         appAddress,
         roleHash,
@@ -132,7 +132,7 @@ export const grant: ICommand<AragonOS> = {
       minValue: 3,
       maxValue: 4,
     });
-    checkOpts(c, ['oracle']);
+    checkOpts(c, ["oracle"]);
 
     const dao = getDAO(bindingsManager, c.args[1]);
 
@@ -150,7 +150,7 @@ export const grant: ICommand<AragonOS> = {
         return interpretNode(arg, opts);
       }),
     );
-    const oracleOpt = await getOptValue(c, 'oracle', interpretNode);
+    const oracleOpt = await getOptValue(c, "oracle", interpretNode);
 
     if (oracleOpt && !utils.isAddress(oracleOpt)) {
       throw new ErrorException(
@@ -167,7 +167,7 @@ export const grant: ICommand<AragonOS> = {
     const permission: any[] = [grantee, app, role, permissionManager, params];
 
     if (!isPermission(permission)) {
-      throw new ErrorException('Invalid permission');
+      throw new ErrorException("Invalid permission");
     }
 
     return _grant(dao, permission);

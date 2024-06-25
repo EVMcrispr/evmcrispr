@@ -1,42 +1,42 @@
-import { utils } from 'ethers';
+import { utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 import type {
   Action,
   AddressBinding,
   ICommand,
   InterpretOptions,
   NoNullableBinding,
-} from '../../../types';
-import { BindingsSpace } from '../../../types';
+} from "../../../types";
+import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
   addressesEqual,
   checkArgsLength,
   interpretNodeSync,
-} from '../../../utils';
-import type { AragonOS } from '../AragonOS';
-import { getDAO, isPermission } from '../utils/commands';
+} from "../../../utils";
+import type { AragonOS } from "../AragonOS";
+import { getDAO, isPermission } from "../utils/commands";
 import {
   formatAppIdentifier,
   getAppRoles,
   getDAOs,
   normalizeRole,
-} from '../utils';
-import { AddressSet } from '../AddressSet';
-import type { AragonDAO } from '../AragonDAO';
+} from "../utils";
+import { AddressSet } from "../AddressSet";
+import type { AragonDAO } from "../AragonDAO";
 
 const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);
 
   if (!isPermission(permission)) {
-    throw new ErrorException('Invalid permission');
+    throw new ErrorException("Invalid permission");
   }
 
   const [, , , removeManager] = resolvedArgs;
 
   const removeManagerType = typeof removeManager;
-  if (removeManagerType !== 'undefined' && removeManagerType !== 'boolean') {
+  if (removeManagerType !== "undefined" && removeManagerType !== "boolean") {
     throw new ErrorException(
       `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
     );
@@ -53,7 +53,7 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
   const { permissions: appPermissions, name } = app;
   const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp('acl')!;
+    dao!.resolveApp("acl")!;
 
   if (!appPermissions.has(roleHash)) {
     throw new ErrorException(`given permission doesn't exists on app ${name}`);
@@ -72,7 +72,7 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
   actions.push({
     to: aclAddress,
-    data: aclAbiInterface.encodeFunctionData('revokePermission', [
+    data: aclAbiInterface.encodeFunctionData("revokePermission", [
       granteeAddress,
       appAddress,
       roleHash,
@@ -83,7 +83,7 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
     delete appPermission.manager;
     actions.push({
       to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData('removePermissionManager', [
+      data: aclAbiInterface.encodeFunctionData("removePermissionManager", [
         appAddress,
         roleHash,
       ]),
@@ -210,7 +210,7 @@ export const revoke: ICommand<AragonOS> = {
         const dao = getDAO(bindingsManager, appNode);
         const hasManager = dao.hasPermissionManager(appAddress, roleHash);
 
-        return hasManager ? ['true'] : [];
+        return hasManager ? ["true"] : [];
       }
       default:
         return [];

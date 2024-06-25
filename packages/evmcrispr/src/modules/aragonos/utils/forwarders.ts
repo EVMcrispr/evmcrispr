@@ -1,11 +1,11 @@
-import type { BigNumber } from 'ethers';
-import { Contract, constants, utils } from 'ethers';
+import type { BigNumber } from "ethers";
+import { Contract, constants, utils } from "ethers";
 
-import { erc20ABI } from '../../../../abis';
-import { ErrorInvalid } from '../../../errors';
-import type { Action, TransactionAction } from '../../../types';
-import { encodeActCall, encodeCallScript } from './evmscripts';
-import type { Module } from '../../..';
+import { erc20ABI } from "../../../../abis";
+import { ErrorInvalid } from "../../../errors";
+import type { Action, TransactionAction } from "../../../types";
+import { encodeActCall, encodeCallScript } from "./evmscripts";
+import type { Module } from "../../..";
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -44,11 +44,11 @@ export const getForwarderType = async (
 };
 
 export const forwarderABI = [
-  'function forward(bytes evmCallScript) public',
-  'function isForwarder() external pure returns (bool)',
-  'function canForward(address sender, bytes evmCallScript) public view returns (bool)',
-  'function forwardFee() external view returns (address, uint256)',
-  'function forwarderType() external pure returns (uint8)',
+  "function forward(bytes evmCallScript) public",
+  "function isForwarder() external pure returns (bool)",
+  "function canForward(address sender, bytes evmCallScript) public view returns (bool)",
+  "function forwardFee() external view returns (address, uint256)",
+  "function forwarderType() external pure returns (uint8)",
 ];
 
 export const batchForwarderActions = async (
@@ -96,7 +96,7 @@ export const batchForwarderActions = async (
         if (allowance.gt(0) && allowance.lt(feeAmount)) {
           actions.push({
             to: feeTokenAddress,
-            data: feeToken.interface.encodeFunctionData('approve', [
+            data: feeToken.interface.encodeFunctionData("approve", [
               forwarderAddress,
               0,
             ]),
@@ -105,7 +105,7 @@ export const batchForwarderActions = async (
         if (allowance.eq(0)) {
           actions.push({
             to: feeTokenAddress,
-            data: feeToken.interface.encodeFunctionData('approve', [
+            data: feeToken.interface.encodeFunctionData("approve", [
               forwarderAddress,
               feeAmount,
             ]),
@@ -121,7 +121,7 @@ export const batchForwarderActions = async (
       forwarderActions = [
         {
           to: forwarderAddress,
-          data: encodeActCall('forward(bytes,bytes)', [
+          data: encodeActCall("forward(bytes,bytes)", [
             script,
             utils.hexlify(utils.toUtf8Bytes(context)),
           ]),
@@ -131,7 +131,7 @@ export const batchForwarderActions = async (
       forwarderActions = [
         {
           to: forwarderAddress,
-          data: encodeActCall('forward(bytes)', [script]),
+          data: encodeActCall("forward(bytes)", [script]),
         },
       ];
     }

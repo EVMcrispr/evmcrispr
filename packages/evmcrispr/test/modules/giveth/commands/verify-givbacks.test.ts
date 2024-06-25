@@ -1,17 +1,17 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { CommandError } from '../../../../src/errors';
-import { defaultRelayerMap } from '../../../../src/modules/giveth/addresses';
+import { CommandError } from "../../../../src/errors";
+import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
-import { expectThrowAsync } from '../../../test-helpers/expects';
-import { findGivethCommandNode } from '../../../test-helpers/giveth';
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
+import { findGivethCommandNode } from "../../../test-helpers/giveth";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
-describe('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]', () => {
+describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]", () => {
   let signer: Signer;
 
   before(async () => {
@@ -21,7 +21,7 @@ describe('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
   const testVerifyGivbacks =
     (
       relayerAddr: string = defaultRelayerAddr,
-      ipfsHash = 'QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr',
+      ipfsHash = "QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr",
       voteId = 49,
     ) =>
     async () => {
@@ -51,17 +51,17 @@ describe('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
       expect(result).eql(result2);
     };
 
-  it('should return a correct verify-givbacks action', testVerifyGivbacks());
+  it("should return a correct verify-givbacks action", testVerifyGivbacks());
   it(
-    'should return a correct verify-givbacks action with multiple batches',
+    "should return a correct verify-givbacks action with multiple batches",
     testVerifyGivbacks(
       defaultRelayerAddr,
-      'QmUz2rm8wDV5ZWNjwehWLEoUoviXwGapgYokmfqEuy4nW9',
+      "QmUz2rm8wDV5ZWNjwehWLEoUoviXwGapgYokmfqEuy4nW9",
       131,
     ),
   );
-  it('should fail when hash do not match the vote', async () => {
-    const ipfsHash = 'QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1';
+  it("should fail when hash do not match the vote", async () => {
+    const ipfsHash = "QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1";
     const voteId = 49;
     const interpreter = createInterpreter(
       `load giveth
@@ -69,7 +69,7 @@ describe('Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
       signer,
     );
 
-    const c = findGivethCommandNode(interpreter.ast, 'verify-givbacks')!;
+    const c = findGivethCommandNode(interpreter.ast, "verify-givbacks")!;
     const error = new CommandError(
       c,
       `Vote script does not match script in ${ipfsHash}. The IPFS hash do not correspond to the one in the script.`,

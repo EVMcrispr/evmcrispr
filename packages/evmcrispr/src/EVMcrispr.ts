@@ -1,5 +1,5 @@
-import type { Signer, providers } from 'ethers';
-import { BigNumber, Contract, constants, ethers, utils } from 'ethers';
+import type { Signer, providers } from "ethers";
+import { BigNumber, Contract, constants, ethers, utils } from "ethers";
 
 import {
   CommandError,
@@ -7,8 +7,8 @@ import {
   ExpressionError,
   HelperFunctionError,
   NodeError,
-} from './errors';
-import { timeUnits, toDecimals } from './utils';
+} from "./errors";
+import { timeUnits, toDecimals } from "./utils";
 import type {
   Action,
   Address,
@@ -24,14 +24,14 @@ import type {
   ProbableIdentifierNode,
   RelativeBinding,
   VariableIdentifierNode,
-} from './types';
-import { BindingsSpace, NodeType } from './types';
-import type { Module } from './Module';
-import { Std } from './modules/std/Std';
-import { BindingsManager } from './BindingsManager';
-import type { NodeInterpreter, NodesInterpreter } from './types/modules';
-import type { Cas11AST } from './Cas11AST';
-import { IPFSResolver } from './IPFSResolver';
+} from "./types";
+import { BindingsSpace, NodeType } from "./types";
+import type { Module } from "./Module";
+import { Std } from "./modules/std/Std";
+import { BindingsManager } from "./BindingsManager";
+import type { NodeInterpreter, NodesInterpreter } from "./types/modules";
+import type { Cas11AST } from "./Cas11AST";
+import { IPFSResolver } from "./IPFSResolver";
 
 const {
   AddressLiteral,
@@ -125,12 +125,12 @@ export class EVMcrispr {
     switch (this.#chainId) {
       case 100:
         return new ethers.providers.JsonRpcProvider(
-          'https://rpc.gnosischain.com',
+          "https://rpc.gnosischain.com",
           this.#chainId,
         );
       case 1101:
         return new ethers.providers.JsonRpcProvider(
-          'https://zkevm-rpc.com',
+          "https://zkevm-rpc.com",
           this.#chainId,
         );
       default:
@@ -156,7 +156,7 @@ export class EVMcrispr {
   getBinding<BSpace extends BindingsSpace>(
     name: string,
     memSpace: BSpace,
-  ): RelativeBinding<BSpace>['value'] | undefined {
+  ): RelativeBinding<BSpace>["value"] | undefined {
     return this.bindingsManager.getBindingValue(name, memSpace);
   }
 
@@ -181,7 +181,7 @@ export class EVMcrispr {
       actionCallback,
     });
 
-    return results.flat().filter((result) => typeof result !== 'undefined');
+    return results.flat().filter((result) => typeof result !== "undefined");
   }
 
   interpretNode: NodeInterpreter = (n, options) => {
@@ -315,19 +315,19 @@ export class EVMcrispr {
     }
 
     switch (n.operator) {
-      case '+':
+      case "+":
         return leftOperand.add(rightOperand);
-      case '-':
+      case "-":
         return leftOperand.sub(rightOperand);
-      case '*':
+      case "*":
         return leftOperand.mul(rightOperand);
-      case '/': {
+      case "/": {
         if (rightOperand.eq(0)) {
           EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
         }
         return leftOperand.div(rightOperand);
       }
-      case '^': {
+      case "^": {
         return leftOperand.pow(rightOperand);
       }
     }
@@ -401,7 +401,7 @@ export class EVMcrispr {
     let module: Module | undefined = this.#std;
     const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
-    if (moduleName && moduleName !== 'std') {
+    if (moduleName && moduleName !== "std") {
       module = this.#modules.find((m) => m.contextualName === moduleName);
 
       if (!module) {
@@ -449,14 +449,14 @@ export class EVMcrispr {
     );
 
     if (!filteredModules.length) {
-      EVMcrispr.panic(h, 'helper not found on any module');
+      EVMcrispr.panic(h, "helper not found on any module");
     }
 
     // TODO: Prefix helpers with module name/alias to avoid collisions
     else if (filteredModules.length > 1) {
       EVMcrispr.panic(
         h,
-        `name collisions found on modules ${filteredModules.join(', ')}`,
+        `name collisions found on modules ${filteredModules.join(", ")}`,
       );
     }
 
@@ -492,10 +492,10 @@ export class EVMcrispr {
         return n.value;
       case NodeType.NumberLiteral:
         return toDecimals(n.value, n.power ?? 0).mul(
-          timeUnits[n.timeUnit ?? 's'],
+          timeUnits[n.timeUnit ?? "s"],
         );
       default:
-        EVMcrispr.panic(n, 'unknown literal expression node');
+        EVMcrispr.panic(n, "unknown literal expression node");
     }
   };
 
@@ -533,24 +533,24 @@ export class EVMcrispr {
     };
 
   #setDefaultBindings(): void {
-    this.bindingsManager.setBinding('XDAI', constants.AddressZero, ADDR, true);
-    this.bindingsManager.setBinding('ETH', constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding("XDAI", constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding("ETH", constants.AddressZero, ADDR, true);
   }
 
   static panic(n: Node, msg: string): never {
     switch (n.type) {
       case BinaryExpression:
         throw new ExpressionError(n, msg, {
-          name: 'ArithmeticExpressionError',
+          name: "ArithmeticExpressionError",
         });
       case CommandExpression:
         throw new CommandError(n as CommandExpressionNode, msg);
       case HelperFunctionExpression:
         throw new HelperFunctionError(n as HelperFunctionNode, msg);
       case ProbableIdentifier:
-        throw new ExpressionError(n, msg, { name: 'IdentifierError' });
+        throw new ExpressionError(n, msg, { name: "IdentifierError" });
       case VariableIdentifier:
-        throw new ExpressionError(n, msg, { name: 'VariableIdentifierError' });
+        throw new ExpressionError(n, msg, { name: "VariableIdentifierError" });
       default:
         throw new ErrorException(msg);
     }

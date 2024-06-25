@@ -1,4 +1,4 @@
-import type { utils } from 'ethers';
+import type { utils } from "ethers";
 
 /**
  * A string that contains an Ethereum address.

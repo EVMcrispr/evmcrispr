@@ -1,24 +1,24 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { defaultAbiCoder } from 'ethers/lib/utils';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { defaultAbiCoder } from "ethers/lib/utils";
+import { ethers } from "hardhat";
 
-import { BindingsSpace } from '../../../../src/types';
-import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
-import type { TransactionAction } from '../../../../src/types';
-import { addressesEqual } from '../../../../src/utils';
+import { BindingsSpace } from "../../../../src/types";
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { TransactionAction } from "../../../../src/types";
+import { addressesEqual } from "../../../../src/utils";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
+import { createInterpreter } from "../../../test-helpers/cas11";
 
-describe('AragonOS > commands > new-dao <daoName>', () => {
+describe("AragonOS > commands > new-dao <daoName>", () => {
   let signer: Signer;
 
   before(async () => {
     [signer] = await ethers.getSigners();
   });
 
-  it('should create a new dao correctly', async () => {
-    const daoName = 'my-evmcrispr-dao';
+  it("should create a new dao correctly", async () => {
+    const daoName = "my-evmcrispr-dao";
     const interpreter = createInterpreter(
       `
       load aragonos as ar
@@ -34,7 +34,7 @@ describe('AragonOS > commands > new-dao <daoName>', () => {
       newDAOActions[0] as TransactionAction,
     );
 
-    const aragonos = interpreter.getModule('aragonos') as AragonOS;
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
 
     const receipt = await tx.wait();
 
@@ -42,7 +42,7 @@ describe('AragonOS > commands > new-dao <daoName>', () => {
 
     expect(lastLog).to.not.be.undefined;
 
-    const newDAOAddress = defaultAbiCoder.decode(['address'], lastLog!.data)[0];
+    const newDAOAddress = defaultAbiCoder.decode(["address"], lastLog!.data)[0];
 
     expect(
       addressesEqual(
@@ -52,7 +52,7 @@ describe('AragonOS > commands > new-dao <daoName>', () => {
         )!,
         newDAOAddress,
       ),
-      'new DAO binding mismatch',
+      "new DAO binding mismatch",
     ).to.be.true;
   });
 });

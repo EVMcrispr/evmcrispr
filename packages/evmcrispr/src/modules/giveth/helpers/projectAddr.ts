@@ -1,19 +1,19 @@
-import fetch from 'isomorphic-fetch';
+import fetch from "isomorphic-fetch";
 
-import type { Giveth } from '../Giveth';
-import type { HelperFunction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Module } from '../../..';
+import type { Giveth } from "../Giveth";
+import type { HelperFunction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Module } from "../../..";
 
 export const _projectAddr = async (
   module: Module,
   slug: string,
 ): Promise<[string, number]> => {
   const chainId = await module.getChainId();
-  const result = await fetch('https://mainnet.serve.giveth.io/graphql', {
-    method: 'POST',
+  const result = await fetch("https://mainnet.serve.giveth.io/graphql", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       query: `

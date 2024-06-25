@@ -1,4 +1,4 @@
-import type { Parser } from 'arcsecond';
+import type { Parser } from "arcsecond";
 import {
   choice,
   coroutine,
@@ -6,45 +6,42 @@ import {
   possibly,
   recursiveParser,
   regex,
-} from 'arcsecond';
+} from "arcsecond";
 
 import type {
   CallExpressionNode,
   LocationData,
   NodeParser,
   NodeParserState,
-} from '../types';
-import { NodeType } from '../types';
+} from "../types";
+import { NodeType } from "../types";
 
 import {
   addressParser,
   probableIdentifierParser,
   variableIdentifierParser,
-} from './primaries';
-import { argumentsParser } from './expression';
-import { helperFunctionParser } from './helper';
+} from "./primaries";
+import { argumentsParser } from "./expression";
+import { helperFunctionParser } from "./helper";
 import {
   callOperatorParser,
   createNodeLocation,
   currentContexDataParser,
-} from './utils';
-import { buildParserError } from '../utils/parsers';
+} from "./utils";
+import { buildParserError } from "../utils/parsers";
 
 const chainedCallExpressionParser = (
   target: CallExpressionNode,
 ): Parser<CallExpressionNode, string, NodeParserState> =>
   recursiveParser(() =>
-    coroutine(run => {
-      const initialContext: LocationData =
-        run(currentContexDataParser);
+    coroutine((run) => {
+      const initialContext: LocationData = run(currentContexDataParser);
 
-      const method: CallExpressionNode['method'] = run(letters);
+      const method: CallExpressionNode["method"] = run(letters);
 
-      const args: CallExpressionNode['args'] =
-        run(argumentsParser);
+      const args: CallExpressionNode["args"] = run(argumentsParser);
 
-      const finalContext: LocationData =
-        run(currentContexDataParser);
+      const finalContext: LocationData = run(currentContexDataParser);
 
       const n: CallExpressionNode = {
         type: NodeType.CallExpression,
@@ -56,9 +53,9 @@ const chainedCallExpressionParser = (
 
       // Check for further chained call expressions
       if (run(possibly(callOperatorParser))) {
-        const chainedNode: CallExpressionNode = run(chainedCallExpressionParser(
-          n,
-        ));
+        const chainedNode: CallExpressionNode = run(
+          chainedCallExpressionParser(n),
+        );
         return chainedNode;
       }
 
@@ -77,24 +74,19 @@ const callableExpressions = choice([
 
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>
-    coroutine(run => {
-      const initialContext: LocationData =
-        run(currentContexDataParser);
-      const target: CallExpressionNode['target'] =
-        run(callableExpressions);
+    coroutine((run) => {
+      const initialContext: LocationData = run(currentContexDataParser);
+      const target: CallExpressionNode["target"] = run(callableExpressions);
 
       run(callOperatorParser);
 
       const methodRegex = /^[a-zA-Z_{1}][a-zA-Z0-9_]+/;
-      const method: CallExpressionNode['method'] = run(regex(
-        methodRegex,
-      ));
-      const args: CallExpressionNode['args'] = run(argumentsParser.errorMap((err) =>
-        buildParserError(err, ''),
-      ));
+      const method: CallExpressionNode["method"] = run(regex(methodRegex));
+      const args: CallExpressionNode["args"] = run(
+        argumentsParser.errorMap((err) => buildParserError(err, "")),
+      );
 
-      const finalContext: LocationData =
-        run(currentContexDataParser);
+      const finalContext: LocationData = run(currentContexDataParser);
 
       const n: CallExpressionNode = {
         type: NodeType.CallExpression,
@@ -106,9 +98,9 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
 
       // Check for chained call expressions
       if (run(possibly(callOperatorParser))) {
-        const chainedCallNode: CallExpressionNode = run(chainedCallExpressionParser(
-          n,
-        ));
+        const chainedCallNode: CallExpressionNode = run(
+          chainedCallExpressionParser(n),
+        );
 
         return chainedCallNode;
       }

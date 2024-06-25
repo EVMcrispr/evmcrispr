@@ -1,11 +1,11 @@
-import ora from 'ora';
+import ora from "ora";
 
-import fs from 'fs';
+import fs from "fs";
 
 import {
   fetchAppArtifact,
   parseContentUri,
-} from '../src/modules/aragonos/utils';
+} from "../src/modules/aragonos/utils";
 import {
   basePath,
   fetchOrganizationApps,
@@ -13,8 +13,8 @@ import {
   generateArtifactsIndexFile,
   generateMockDAOFile,
   generateSubgraphDataIndexFile,
-} from './helpers/fixtures';
-import { IPFSResolver } from '../src/IPFSResolver';
+} from "./helpers/fixtures";
+import { IPFSResolver } from "../src/IPFSResolver";
 
 // // Rinkeby
 // const CHAIN_ID = 4;
@@ -31,13 +31,13 @@ import { IPFSResolver } from '../src/IPFSResolver';
 // Gnosis Chain
 const CHAIN_ID = 100;
 const DAO_ADDRESSES: string[] = [
-  '0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8', // TEC
-  '0x8ccbeab14b5ac4a431fffc39f4bec4089020a155', // 1hive,
-  '0xb56a8003a8d2efab7d2d4c10617d787e9e4b582c', // TEC Hatch
-  '0xA1514067E6fE7919FB239aF5259FfF120902b4f9', // nrGIV
+  "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8", // TEC
+  "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155", // 1hive,
+  "0xb56a8003a8d2efab7d2d4c10617d787e9e4b582c", // TEC Hatch
+  "0xA1514067E6fE7919FB239aF5259FfF120902b4f9", // nrGIV
 ];
 const REPOS: [string, string, string[]][] = [
-  ['token-manager', 'aragonpm.eth', ['1,0,2']],
+  ["token-manager", "aragonpm.eth", ["1,0,2"]],
 ];
 
 let spinner = ora();
@@ -91,7 +91,7 @@ const createDAOAppsFixture = async (): Promise<string[]> => {
 };
 
 const createReposFixture = async (): Promise<string[]> => {
-  spinner = spinner.start('Create app repo fixture');
+  spinner = spinner.start("Create app repo fixture");
 
   const contentUris = new Set<string>();
   const reposResponse = await Promise.all(
@@ -136,12 +136,12 @@ const createReposFixture = async (): Promise<string[]> => {
 };
 
 const main = async () => {
-  if (!fs.existsSync(basePath('artifacts'))) {
-    fs.mkdirSync(basePath('artifacts'));
+  if (!fs.existsSync(basePath("artifacts"))) {
+    fs.mkdirSync(basePath("artifacts"));
   }
 
-  if (!fs.existsSync(basePath('subgraph-data'))) {
-    fs.mkdirSync(basePath('subgraph-data'));
+  if (!fs.existsSync(basePath("subgraph-data"))) {
+    fs.mkdirSync(basePath("subgraph-data"));
   }
 
   const missingAppCids = await createDAOAppsFixture();
@@ -153,7 +153,7 @@ const main = async () => {
     REPOS.map(([repoName]) => repoName),
   );
 
-  spinner = spinner.start('Fetch missing artifacts');
+  spinner = spinner.start("Fetch missing artifacts");
   const contentUris = new Set<string>([...missingAppCids, ...missingRepoCids]);
   const iterableContentUris = [...contentUris];
 
@@ -165,7 +165,7 @@ const main = async () => {
 
   spinner.succeed();
 
-  spinner = spinner.start('Create artifact files');
+  spinner = spinner.start("Create artifact files");
   // Write artifacts to json files
   iterableContentUris.forEach((contentUri, index) => {
     const artifact = artifacts[index];

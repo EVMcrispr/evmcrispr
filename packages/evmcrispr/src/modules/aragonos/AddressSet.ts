@@ -1,4 +1,4 @@
-import type { Address } from '../../types';
+import type { Address } from "../../types";
 
 export class AddressSet extends Set<Address> {
   constructor(iterable?: Iterable<Address> | null | undefined) {

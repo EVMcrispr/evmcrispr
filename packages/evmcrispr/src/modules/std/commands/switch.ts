@@ -1,9 +1,9 @@
-import { providers } from 'ethers';
+import { providers } from "ethers";
 
-import { ErrorException } from '../../../errors';
-import type { ICommand, ProviderAction } from '../../../types';
-import { ComparisonType, checkArgsLength } from '../../../utils';
-import type { Std } from '../Std';
+import { ErrorException } from "../../../errors";
+import type { ICommand, ProviderAction } from "../../../types";
+import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Std } from "../Std";
 
 const nameToChainId = {
   mainnet: 1,
@@ -31,7 +31,7 @@ export const _switch: ICommand<Std> = {
     const provider = await module.getProvider();
 
     if (!(provider instanceof providers.JsonRpcProvider)) {
-      throw new ErrorException('JSON-RPC based providers supported only');
+      throw new ErrorException("JSON-RPC based providers supported only");
     }
 
     const [networkNameOrId] = await interpretNodes(c.args);
@@ -40,7 +40,7 @@ export const _switch: ICommand<Std> = {
     chainId = Number(networkNameOrId.toString());
 
     if (!Number.isInteger(chainId)) {
-      if (typeof networkNameOrId !== 'string') {
+      if (typeof networkNameOrId !== "string") {
         throw new ErrorException(
           `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
         );
@@ -58,7 +58,7 @@ export const _switch: ICommand<Std> = {
 
     return [
       {
-        method: 'wallet_switchEthereumChain',
+        method: "wallet_switchEthereumChain",
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       },
     ];

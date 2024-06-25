@@ -1,19 +1,19 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { ethers } from "hardhat";
 
-import { givethDonationRelayer } from '../../../../src/modules/giveth/addresses';
+import { givethDonationRelayer } from "../../../../src/modules/giveth/addresses";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
+import { createInterpreter } from "../../../test-helpers/cas11";
 
-describe('Giveth > commands > donate <slug> <amount> <token>', () => {
+describe("Giveth > commands > donate <slug> <amount> <token>", () => {
   let signer: Signer;
 
   before(async () => {
     [signer] = await ethers.getSigners();
   });
 
-  it('should return a correct donate action', async () => {
+  it("should return a correct donate action", async () => {
     const interpreter = createInterpreter(
       `
           load giveth

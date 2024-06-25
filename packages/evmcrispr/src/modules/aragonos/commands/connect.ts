@@ -1,7 +1,7 @@
-import type { providers } from 'ethers';
-import { utils } from 'ethers';
+import type { providers } from "ethers";
+import { utils } from "ethers";
 
-import { ErrorException, ErrorNotFound } from '../../../errors';
+import { ErrorException, ErrorNotFound } from "../../../errors";
 import type {
   AbiBinding,
   Action,
@@ -12,10 +12,10 @@ import type {
   ICommand,
   Nullable,
   TransactionAction,
-} from '../../../types';
-import { BindingsSpace, NodeType, isSwitchAction } from '../../../types';
-import { AragonDAO, isAragonDAO } from '../AragonDAO';
-import type { AragonOS } from '../AragonOS';
+} from "../../../types";
+import { BindingsSpace, NodeType, isSwitchAction } from "../../../types";
+import { AragonDAO, isAragonDAO } from "../AragonDAO";
+import type { AragonOS } from "../AragonOS";
 import {
   ANY_ENTITY,
   BURN_ENTITY,
@@ -24,7 +24,7 @@ import {
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
   getDAOAppIdentifiers,
-} from '../utils';
+} from "../utils";
 import {
   ComparisonType,
   addressesEqual,
@@ -35,12 +35,12 @@ import {
   interpretNodeSync,
   isAddressNodishType,
   tryAndCacheNotFound,
-} from '../../../utils';
-import { batchForwarderActions } from '../utils/forwarders';
-import { _aragonEns } from '../helpers/aragonEns';
-import type { App, AppIdentifier } from '../types';
-import type { BindingsManager } from '../../../BindingsManager';
-import type { IPFSResolver } from '../../../IPFSResolver';
+} from "../../../utils";
+import { batchForwarderActions } from "../utils/forwarders";
+import { _aragonEns } from "../helpers/aragonEns";
+import type { App, AppIdentifier } from "../types";
+import type { BindingsManager } from "../../../BindingsManager";
+import type { IPFSResolver } from "../../../IPFSResolver";
 
 const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
 
@@ -99,7 +99,7 @@ const buildDAOBindings = (
     },
     {
       type: DATA_PROVIDER,
-      identifier: 'currentDAO',
+      identifier: "currentDAO",
       value: dao,
       parent: upperDAOBinding ?? undefined,
     },
@@ -154,7 +154,7 @@ const createDAO = async (
   }
 
   const currentDao = bindingsManager.getBindingValue(
-    'currentDAO',
+    "currentDAO",
     BindingsSpace.DATA_PROVIDER,
   ) as AragonDAO | undefined;
 
@@ -184,14 +184,14 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
     const bindingsManager = aragonos.bindingsManager;
 
-    bindingsManager.setBinding('ANY_ENTITY', ANY_ENTITY, ADDR);
-    bindingsManager.setBinding('NO_ENTITY', NO_ENTITY, ADDR);
-    bindingsManager.setBinding('BURN_ENTITY', BURN_ENTITY, ADDR);
+    bindingsManager.setBinding("ANY_ENTITY", ANY_ENTITY, ADDR);
+    bindingsManager.setBinding("NO_ENTITY", NO_ENTITY, ADDR);
+    bindingsManager.setBinding("BURN_ENTITY", BURN_ENTITY, ADDR);
 
     aragonos.currentDAO = dao;
 
     const upperDAOBinding = bindingsManager.getBinding(
-      'currentDAO',
+      "currentDAO",
       BindingsSpace.DATA_PROVIDER,
     );
     const daoBindings = buildDAOBindings(
@@ -217,7 +217,7 @@ export const connect: ICommand<AragonOS> = {
       type: ComparisonType.Greater,
       minValue: 2,
     });
-    checkOpts(c, ['context']);
+    checkOpts(c, ["context"]);
 
     const [daoNameNode, ...rest] = c.args;
     const blockExpressionNode = rest.pop();
@@ -228,7 +228,7 @@ export const connect: ICommand<AragonOS> = {
       !blockExpressionNode ||
       blockExpressionNode.type !== NodeType.BlockExpression
     ) {
-      throw new ErrorException('last argument should be a set of commands');
+      throw new ErrorException("last argument should be a set of commands");
     }
 
     const daoAddressOrName = await interpretNode(daoNameNode);
@@ -237,7 +237,7 @@ export const connect: ICommand<AragonOS> = {
       module.bindingsManager,
       await module.getProvider(),
       module.ipfsResolver,
-      module.getConfigBinding('ensResolver'),
+      module.getConfigBinding("ensResolver"),
     );
 
     module.connectedDAOs.push(dao);
@@ -275,12 +275,12 @@ export const connect: ICommand<AragonOS> = {
     if (invalidApps.length) {
       throw new ErrorException(
         `invalid forwarder addresses found for the following: ${invalidApps.join(
-          ', ',
+          ", ",
         )}`,
       );
     }
 
-    const context = await getOptValue(c, 'context', interpretNode);
+    const context = await getOptValue(c, "context", interpretNode);
 
     return batchForwarderActions(
       module,
@@ -322,7 +322,7 @@ export const connect: ICommand<AragonOS> = {
       const clonedDAO = cachedDAO.clone();
       return (eagerBindingsManager) => {
         const upperDAOBinding = eagerBindingsManager.getBinding(
-          'currentDAO',
+          "currentDAO",
           DATA_PROVIDER,
         );
 
@@ -372,11 +372,11 @@ export const connect: ICommand<AragonOS> = {
 
     return (eagerBindingsManager) => {
       const upperDAOBinding = eagerBindingsManager.getBinding(
-        'currentDAO',
+        "currentDAO",
         BindingsSpace.DATA_PROVIDER,
       );
       const currentDAOBinding = daoBindings.find(
-        (b) => b.identifier === 'currentDAO',
+        (b) => b.identifier === "currentDAO",
       )!;
 
       currentDAOBinding.parent = upperDAOBinding;

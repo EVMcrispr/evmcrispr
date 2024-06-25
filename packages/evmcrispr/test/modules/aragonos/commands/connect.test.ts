@@ -1,11 +1,11 @@
-import { expect } from 'chai';
-import type { Signer } from 'ethers';
-import { constants, utils } from 'ethers';
-import { ethers } from 'hardhat';
+import { expect } from "chai";
+import type { Signer } from "ethers";
+import { constants, utils } from "ethers";
+import { ethers } from "hardhat";
 
-import type { AragonOS } from '../../../../src/modules/aragonos/AragonOS';
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 
-import { MINIME_TOKEN_FACTORIES } from '../../../../src/modules/aragonos/utils';
+import { MINIME_TOKEN_FACTORIES } from "../../../../src/modules/aragonos/utils";
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
@@ -13,8 +13,8 @@ import {
   calculateNewProxyAddress,
   encodeCalldata,
   toDecimals,
-} from '../../../../src/utils';
-import { CommandError } from '../../../../src/errors';
+} from "../../../../src/utils";
+import { CommandError } from "../../../../src/errors";
 
 import {
   APP,
@@ -23,25 +23,25 @@ import {
   FEE_AMOUNT,
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
-} from '../../../fixtures';
-import { DAO as DAO2 } from '../../../fixtures/mock-dao-2';
-import { DAO as DAO3 } from '../../../fixtures/mock-dao-3';
+} from "../../../fixtures";
+import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
 import {
   createTestAction,
   createTestPreTxAction,
   createTestScriptEncodedAction,
-} from '../../../test-helpers/actions';
+} from "../../../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from '../../../test-helpers/aragonos';
+} from "../../../test-helpers/aragonos";
 
-import { createInterpreter } from '../../../test-helpers/cas11';
-import { expectThrowAsync } from '../../../test-helpers/expects';
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 
 const DAOs = [DAO, DAO2, DAO3];
 
-describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]', () => {
+describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]", () => {
   let signer: Signer;
 
   let createAragonScriptInterpreter: ReturnType<
@@ -57,12 +57,12 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     );
   });
 
-  it('should return the correct actions when defining a complete forwarding path compose of a fee, normal and context forwarder', async () => {
+  it("should return the correct actions when defining a complete forwarding path compose of a fee, normal and context forwarder", async () => {
     const interpreter = createInterpreter(
       `
         load aragonos as ar
 
-        ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(' ')} (
+        ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(" ")} (
           grant @me agent TRANSFER_ROLE
           grant dandelion-voting.1hive token-manager ISSUE_ROLE dandelion-voting.1hive
           revoke dandelion-voting.1hive tollgate.1hive CHANGE_AMOUNT_ROLE true
@@ -86,43 +86,43 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     );
 
     const expectedForwardingActions = [
-      createTestPreTxAction('approve', FEE_TOKEN_ADDRESS, [
+      createTestPreTxAction("approve", FEE_TOKEN_ADDRESS, [
         DAO3[FEE_FORWARDER],
         FEE_AMOUNT,
       ]),
       createTestScriptEncodedAction(
         [
-          createTestAction('grantPermission', DAO3.acl, [
+          createTestAction("grantPermission", DAO3.acl, [
             me,
             DAO3.agent,
-            utils.id('TRANSFER_ROLE'),
+            utils.id("TRANSFER_ROLE"),
           ]),
-          createTestAction('grantPermission', DAO3.acl, [
-            DAO3['dandelion-voting.1hive'],
-            DAO3['token-manager'],
-            utils.id('ISSUE_ROLE'),
+          createTestAction("grantPermission", DAO3.acl, [
+            DAO3["dandelion-voting.1hive"],
+            DAO3["token-manager"],
+            utils.id("ISSUE_ROLE"),
           ]),
-          createTestAction('revokePermission', DAO3.acl, [
-            DAO3['dandelion-voting.1hive'],
-            DAO3['tollgate.1hive'],
-            utils.id('CHANGE_AMOUNT_ROLE'),
+          createTestAction("revokePermission", DAO3.acl, [
+            DAO3["dandelion-voting.1hive"],
+            DAO3["tollgate.1hive"],
+            utils.id("CHANGE_AMOUNT_ROLE"),
           ]),
-          createTestAction('removePermissionManager', DAO3.acl, [
-            DAO3['tollgate.1hive'],
-            utils.id('CHANGE_AMOUNT_ROLE'),
+          createTestAction("removePermissionManager", DAO3.acl, [
+            DAO3["tollgate.1hive"],
+            utils.id("CHANGE_AMOUNT_ROLE"),
           ]),
           createTestAction(
-            'createCloneToken',
+            "createCloneToken",
             MINIME_TOKEN_FACTORIES.get(chainId)!,
-            [constants.AddressZero, 0, 'Other Token', 18, 'OT', true],
+            [constants.AddressZero, 0, "Other Token", 18, "OT", true],
           ),
-          createTestAction('changeController', newTokenAddress, [
+          createTestAction("changeController", newTokenAddress, [
             calculateNewProxyAddress(
               DAO3.kernel,
               await buildNonceForAddress(DAO3.kernel, 0, signer.provider!),
             ),
           ]),
-          createTestAction('newAppInstance', DAO3.kernel, [
+          createTestAction("newAppInstance", DAO3.kernel, [
             appId,
             codeAddress,
             encodeCalldata(
@@ -134,17 +134,17 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           createTestScriptEncodedAction(
             [
               {
-                to: DAO3['agent:1'],
+                to: DAO3["agent:1"],
                 data: new utils.Interface([
-                  'function transfer(address,address,uint256)',
-                ]).encodeFunctionData('transfer', [
-                  '0x44fA8E6f47987339850636F88629646662444217',
+                  "function transfer(address,address,uint256)",
+                ]).encodeFunctionData("transfer", [
+                  "0x44fA8E6f47987339850636F88629646662444217",
                   me,
-                  toDecimals('10.50'),
+                  toDecimals("10.50"),
                 ]),
               },
             ],
-            ['agent'],
+            ["agent"],
             DAO3,
           ),
         ],
@@ -156,14 +156,14 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     expect(forwardingAction).to.eqls(expectedForwardingActions);
   });
 
-  it('should set connected DAO variable', async () => {
+  it("should set connected DAO variable", async () => {
     const interpreter = createAragonScriptInterpreter();
     await interpreter.interpret();
-    const aragonos = interpreter.getModule('aragonos') as AragonOS;
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO.kernel);
 
     expect(dao).to.not.be.null;
-    expect(dao!.nestingIndex, 'DAO nested index mismatch').to.equals(1);
+    expect(dao!.nestingIndex, "DAO nested index mismatch").to.equals(1);
     Object.entries(DAO).forEach(([appIdentifier, appAddress]) => {
       expect(
         dao!.resolveApp(appIdentifier)!.address,
@@ -172,8 +172,8 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     });
   });
 
-  describe('when having nested connect commands', () => {
-    it('should set all the connected DAOs properly', async () => {
+  describe("when having nested connect commands", () => {
+    it("should set all the connected DAOs properly", async () => {
       const interpreter = createInterpreter(
         `
           load aragonos as ar
@@ -192,10 +192,10 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
       await interpreter.interpret();
 
-      const aragonos = interpreter.getModule('aragonos') as AragonOS;
+      const aragonos = interpreter.getModule("aragonos") as AragonOS;
       const daos = aragonos.connectedDAOs;
 
-      expect(daos, 'connected DAOs length mismatch').to.be.lengthOf(3);
+      expect(daos, "connected DAOs length mismatch").to.be.lengthOf(3);
 
       let i = 0;
       for (const dao of daos) {
@@ -212,7 +212,7 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       }
     });
 
-    it('should return the correct actions when using app identifiers from different DAOs', async () => {
+    it("should return the correct actions when using app identifiers from different DAOs", async () => {
       const interpreter = createInterpreter(
         `
           load aragonos as ar
@@ -233,22 +233,22 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       const nestedActions = await interpreter.interpret();
 
       const expectedNestedActions = [
-        createTestAction('grantPermission', DAO.acl, [
-          DAO2['disputable-voting.open'],
+        createTestAction("grantPermission", DAO.acl, [
+          DAO2["disputable-voting.open"],
           DAO.agent,
-          utils.id('TRANSFER_ROLE'),
+          utils.id("TRANSFER_ROLE"),
         ]),
-        createTestAction('grantPermission', DAO2.acl, [
-          DAO['disputable-voting.open'],
-          DAO2['acl'],
-          utils.id('CREATE_PERMISSIONS_ROLE'),
+        createTestAction("grantPermission", DAO2.acl, [
+          DAO["disputable-voting.open"],
+          DAO2["acl"],
+          utils.id("CREATE_PERMISSIONS_ROLE"),
         ]),
       ];
 
       expect(nestedActions).to.eql(expectedNestedActions);
     });
 
-    it('should fail when trying to connect to an already connected DAO', async () => {
+    it("should fail when trying to connect to an already connected DAO", async () => {
       const interpreter = createInterpreter(
         `
       load aragonos as ar
@@ -264,7 +264,7 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
       const connectNode = findAragonOSCommandNode(
         interpreter.ast,
-        'connect',
+        "connect",
         1,
       )!;
       const error = new CommandError(
@@ -275,7 +275,7 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     });
   });
 
-  it('should fail when forwarding a set of actions through a context forwarder without defining a context', async () => {
+  it("should fail when forwarding a set of actions through a context forwarder without defining a context", async () => {
     const interpreter = createInterpreter(
       `
       load aragonos as ar
@@ -286,13 +286,13 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     `,
       signer,
     );
-    const c = findAragonOSCommandNode(interpreter.ast, 'connect')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
     const error = new CommandError(c, `context option missing`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it('should fail when not passing a commands block', async () => {
+  it("should fail when not passing a commands block", async () => {
     const interpreter = createInterpreter(
       `
     load aragonos as ar
@@ -300,7 +300,7 @@ describe('AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
   `,
       signer,
     );
-    const c = findAragonOSCommandNode(interpreter.ast, 'connect')!;
+    const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
     const error = new CommandError(
       c,
       buildArgsLengthErrorMsg(1, {

@@ -1,19 +1,18 @@
-import { coroutine, setData } from 'arcsecond';
-import type { Parser } from 'arcsecond';
+import { coroutine, setData } from "arcsecond";
+import type { Parser } from "arcsecond";
 
-import type { CommandExpressionNode, NodeParserState } from '../types';
-import { commandExpressionParser } from './command';
-import { createParserState, linesParser } from './utils';
-import { ErrorException } from '../errors';
-import { Cas11AST } from '../Cas11AST';
+import type { CommandExpressionNode, NodeParserState } from "../types";
+import { commandExpressionParser } from "./command";
+import { createParserState, linesParser } from "./utils";
+import { ErrorException } from "../errors";
+import { Cas11AST } from "../Cas11AST";
 
 export const scriptParser: Parser<Cas11AST, string, NodeParserState> =
-  coroutine(run => {
+  coroutine((run) => {
     run(setData<any, string, NodeParserState>(createParserState()));
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const lines: CommandExpressionNode[] = run(linesParser(commandExpressionParser));
+    const lines: CommandExpressionNode[] = run(
+      linesParser(commandExpressionParser),
+    );
     return new Cas11AST(lines);
   });
 

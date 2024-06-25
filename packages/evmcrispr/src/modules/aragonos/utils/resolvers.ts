@@ -1,22 +1,22 @@
-import type { providers } from 'ethers';
-import { Contract, ethers, utils } from 'ethers';
+import type { providers } from "ethers";
+import { Contract, ethers, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { Address } from '../../../types';
+import type { Address } from "../../../types";
 
 export function getAragonEnsResolver(chainId: number): string | never {
   switch (chainId) {
     case 1:
-      return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+      return "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
     case 4:
-      return '0x98Df287B6C145399Aaa709692c8D308357bC085D';
+      return "0x98Df287B6C145399Aaa709692c8D308357bC085D";
     case 5:
-      return '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+      return "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
     case 10:
-      return '0x6f2CA655f58d5fb94A08460aC19A552EB19909FD';
+      return "0x6f2CA655f58d5fb94A08460aC19A552EB19909FD";
     case 100:
-      return '0xaafca6b0c89521752e559650206d7c925fd0e530';
+      return "0xaafca6b0c89521752e559650206d7c925fd0e530";
     default:
       throw new ErrorException(
         `No Aragon ENS resolver found for chain id ${chainId}`,
@@ -35,13 +35,13 @@ export async function resolveName(
   const namehash = utils.namehash(name);
   const resolver = await new Contract(
     ensResolver,
-    ['function resolver(bytes32 node) external view returns (address)'],
+    ["function resolver(bytes32 node) external view returns (address)"],
     provider,
   ).resolver(namehash);
   if (resolver === ethers.constants.AddressZero) return null;
   const daoAddress = await new Contract(
     resolver,
-    ['function addr(bytes32 node) external view returns (address ret)'],
+    ["function addr(bytes32 node) external view returns (address ret)"],
     provider,
   ).addr(namehash);
   return daoAddress === ethers.constants.AddressZero ? null : daoAddress;

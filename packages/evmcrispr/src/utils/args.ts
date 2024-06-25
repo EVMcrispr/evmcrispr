@@ -1,18 +1,18 @@
-import { BigNumber } from 'ethers';
+import { BigNumber } from "ethers";
 
-import { ErrorException } from '../errors';
+import { ErrorException } from "../errors";
 import type {
   CallExpressionNode,
   CommandExpressionNode,
   HelperFunctionNode,
   NodeInterpreter,
-} from '../types';
-import { commaListItems } from './formatters';
+} from "../types";
+import { commaListItems } from "./formatters";
 
 export enum ComparisonType {
-  Between = 'Between',
-  Equal = 'Equal',
-  Greater = 'Greater',
+  Between = "Between",
+  Equal = "Equal",
+  Greater = "Greater",
 }
 
 type CallableExpressionNode =
@@ -46,7 +46,7 @@ export const buildArgsLengthErrorMsg = (
   length: number,
   { type: comparisonType, minValue, maxValue }: Comparison,
 ): string => {
-  let comparisonText = '';
+  let comparisonText = "";
 
   switch (comparisonType) {
     case Between:
@@ -61,7 +61,7 @@ export const buildArgsLengthErrorMsg = (
   }
 
   return `invalid number of arguments. Expected ${comparisonText} argument${
-    minValue > 1 || maxValue ? 's' : ''
+    minValue > 1 || maxValue ? "s" : ""
   }, but got ${length}.`;
 };
 

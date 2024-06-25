@@ -1,23 +1,23 @@
-import { BigNumber, providers, utils } from 'ethers';
+import { BigNumber, providers, utils } from "ethers";
 
-import { ErrorException } from '../../../errors';
+import { ErrorException } from "../../../errors";
 
-import type { Action, ICommand } from '../../../types';
+import type { Action, ICommand } from "../../../types";
 import {
   BindingsSpace,
   NodeType,
   isProviderAction,
   isSwitchAction,
-} from '../../../types';
+} from "../../../types";
 
 import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
   getOptValue,
-} from '../../../utils';
+} from "../../../utils";
 
-import type { Tenderly } from '../Tenderly';
+import type { Tenderly } from "../Tenderly";
 
 export const fork: ICommand<Tenderly> = {
   async run(module, c, { interpretNode }) {
@@ -25,32 +25,32 @@ export const fork: ICommand<Tenderly> = {
       type: ComparisonType.Equal,
       minValue: 1,
     });
-    checkOpts(c, ['block-number', 'from']);
+    checkOpts(c, ["block-number", "from"]);
 
     // set up your access-key, if you don't have one or you want to generate new one follow next link
     // https://dashboard.tenderly.co/account/authorization
     const tenderly = module.bindingsManager.getBindingValue(
-      '$tenderly',
+      "$tenderly",
       BindingsSpace.USER,
     );
     const [tenderlyUser, tenderlyProject, tenderlyAccessKey] =
-      tenderly?.split('/') || [];
+      tenderly?.split("/") || [];
 
     if (!tenderlyAccessKey) {
       throw new ErrorException(
-        'No $tenderly variable definied or not definied properly',
+        "No $tenderly variable definied or not definied properly",
       );
     }
 
     const [blockExpressionNode] = c.args;
-    const blockNumber = await getOptValue(c, 'block-number', interpretNode);
-    const from = await getOptValue(c, 'from', interpretNode);
+    const blockNumber = await getOptValue(c, "block-number", interpretNode);
+    const from = await getOptValue(c, "from", interpretNode);
 
     if (
       !blockExpressionNode ||
       blockExpressionNode.type !== NodeType.BlockExpression
     ) {
-      throw new ErrorException('last argument should be a set of commands');
+      throw new ErrorException("last argument should be a set of commands");
     }
 
     const TENDERLY_FORK_API = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/fork`;
@@ -61,9 +61,9 @@ export const fork: ICommand<Tenderly> = {
     };
 
     const opts = {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'X-Access-Key': tenderlyAccessKey as string,
+        "X-Access-Key": tenderlyAccessKey as string,
       },
       body: JSON.stringify(body),
     };
@@ -86,7 +86,7 @@ export const fork: ICommand<Tenderly> = {
       if (isProviderAction(action)) {
         await provider.send(action.method, action.params);
       } else {
-        const tx = await provider.send('eth_sendTransaction', [
+        const tx = await provider.send("eth_sendTransaction", [
           {
             from: await module.getConnectedAccount(),
             ...action,
