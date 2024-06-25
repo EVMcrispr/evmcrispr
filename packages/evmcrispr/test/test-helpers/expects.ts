@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { utils } from "ethers";
-import { multihash } from "is-ipfs";
+import { cid } from "is-ipfs";
 
 import type { ErrorException } from "../../src/errors";
 import { ErrorInvalid } from "../../src/errors";
@@ -130,8 +130,7 @@ export const isValidParsedApp = (app: ParsedApp): void => {
   expect(isAddress(codeAddress), "Invalid app code address").to.be.true;
 
   if (contentUri) {
-    expect(multihash(parseContentUri(contentUri)), "Invalid contentUri").to.be
-      .true;
+    expect(cid(parseContentUri(contentUri)), "Invalid contentUri").to.be.true;
   }
 
   expect(name, "App name missing").to.not.be.empty;

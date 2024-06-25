@@ -1,5 +1,4 @@
-/* eslint-disable-next-line import/no-unresolved */
-import { CID } from "multiformats";
+import { cid } from "is-ipfs";
 import { useEffect, useState } from "react";
 
 import fetchPin from "../api/pinata/fetch-pin";
@@ -7,7 +6,7 @@ import type { BareScript } from "../types";
 import { getScriptSavedInLocalStorage } from "../utils";
 
 function isCID(s: string | undefined) {
-  return !!CID.asCID(s);
+  return s && !!cid(s);
 }
 
 export function useScriptFromId(

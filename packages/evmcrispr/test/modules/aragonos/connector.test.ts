@@ -2,7 +2,7 @@ import { expect } from "chai";
 import type { Signer } from "ethers";
 import { utils } from "ethers";
 import hre, { ethers } from "hardhat";
-import { multihash } from "is-ipfs";
+import { cid } from "is-ipfs";
 
 import { ErrorException, ErrorNotFound } from "../../../src/errors";
 import { Connector } from "../../../src/modules/aragonos/Connector";
@@ -54,8 +54,8 @@ describe("AragonOS > Connector", () => {
       expect(utils.isAddress(codeAddress), "Invalid  repo code address").to.be
         .true;
 
-      expect(multihash(parseContentUri(contentUri)), "Invalid repo contentUri")
-        .to.be.true;
+      expect(cid(parseContentUri(contentUri)), "Invalid repo contentUri").to.be
+        .true;
 
       if (artifact) {
         isValidArtifact(artifact);
