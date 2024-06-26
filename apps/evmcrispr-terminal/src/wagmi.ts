@@ -38,6 +38,7 @@ export const config = createConfig({
     isIframe &&
       safe({
         allowedDomains: [/app.safe.global$/],
+        unstable_getInfoTimeout: 500,
       }),
   ].filter(Boolean),
   transports: {
