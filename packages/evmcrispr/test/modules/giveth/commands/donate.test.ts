@@ -1,16 +1,17 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { givethDonationRelayer } from "../../../../src/modules/giveth/addresses";
 
 import { createInterpreter } from "../../../test-helpers/cas11";
 
 describe("Giveth > commands > donate <slug> <amount> <token>", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should return a correct donate action", async () => {
@@ -19,7 +20,7 @@ describe("Giveth > commands > donate <slug> <amount> <token>", () => {
           load giveth
           set $token.tokenlist https://tokens.honeyswap.org
           giveth:donate evmcrispr @token.amount(HNY,1) @token(HNY)`,
-      signer,
+      client,
     );
 
     const interpreter2 = createInterpreter(
@@ -30,7 +31,7 @@ describe("Giveth > commands > donate <slug> <amount> <token>", () => {
         exec ${givethDonationRelayer.get(
           100,
         )} sendDonation(address,address,uint256,uint256) @token(HNY) 0xeafFF6dB1965886348657E79195EB6f1A84657eB 1e18 1350`,
-      signer,
+      client,
     );
 
     const result = await interpreter.interpret();

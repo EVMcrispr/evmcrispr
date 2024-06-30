@@ -18,10 +18,11 @@ import {
   hasCommandsBlock,
   parseScript,
 } from "@1hive/evmcrispr";
-import type { providers } from "ethers";
-import { utils } from "ethers";
 import type { IRange } from "monaco-editor";
 import { languages } from "monaco-editor";
+
+import type { PublicClient } from "viem";
+import { isAddress } from "viem";
 
 import { DEFAULT_MODULE_BINDING } from "../../utils";
 
@@ -139,12 +140,14 @@ const buildVarCompletionItems = (
       // Don't return the current declared variable as a suggestion
     } else if (currentArgIndex === 1) {
       const currentVarName = currentCommandNode.args[0].value;
-      varNames = varNames.filter((varName) => varName !== currentVarName);
+      varNames = varNames.filter(
+        (varName: string) => varName !== currentVarName,
+      );
     }
   }
 
   return varNames.map(
-    (name): CompletionItem => ({
+    (name: string): CompletionItem => ({
       label: name,
       insertText: name,
       kind: Variable,
@@ -177,10 +180,8 @@ const buildCurrentArgCompletionItems = (
         eagerBindingsManager,
         currentPos,
       )
-      .map<languages.CompletionItem>((identifier) => ({
-        label: utils.isAddress(identifier)
-          ? shortenAddress(identifier)
-          : identifier,
+      .map((identifier: string) => ({
+        label: isAddress(identifier) ? shortenAddress(identifier) : identifier,
         insertText: identifier,
         range,
         sortText: "1",
@@ -321,10 +322,10 @@ const removePossibleFollowingBlock = (
 
 export const createProvideCompletionItemsFn: (
   bindingsCache: BindingsManager,
-  fetchers: { ipfsResolver: IPFSResolver; provider: providers.Provider },
+  fetchers: { ipfsResolver: IPFSResolver; client: PublicClient },
   ast?: Cas11AST,
 ) => languages.CompletionItemProvider["provideCompletionItems"] =
-  (bindingsCache, { ipfsResolver, provider }, ast) =>
+  (bindingsCache, { ipfsResolver, client }, ast) =>
   async (model, currPos) => {
     const currentLineContent = model.getLineContent(currPos.lineNumber);
     const { startColumn, endColumn } = model.getWordUntilPosition(currPos);
@@ -389,7 +390,7 @@ export const createProvideCompletionItemsFn: (
        * Filter out any command with a commands block that doesn't
        * contain the current caret
        */
-      .filter((c) => {
+      .filter((c: any) => {
         const itHasCommandsBlock = hasCommandsBlock(c);
         const loc = c.loc;
         const currentLine = calibratedCurrPos.line;
@@ -414,7 +415,7 @@ export const createProvideCompletionItemsFn: (
       commandNodes,
       eagerBindingsManager,
       bindingsCache,
-      { provider, ipfsResolver },
+      { client, ipfsResolver },
       calibratedCurrPos,
     );
 
@@ -423,7 +424,7 @@ export const createProvideCompletionItemsFn: (
       commandNodes.filter((c) => ["set", "std:set"].includes(c.name)),
       eagerBindingsManager,
       bindingsCache,
-      { ipfsResolver, provider },
+      { ipfsResolver, client },
       calibratedCurrPos,
     );
 
@@ -437,7 +438,7 @@ export const createProvideCompletionItemsFn: (
         : filteredCommandNodes,
       eagerBindingsManager,
       bindingsCache,
-      { provider, ipfsResolver },
+      { client, ipfsResolver },
       calibratedCurrPos,
     );
 
@@ -487,7 +488,7 @@ export const createProvideCompletionItemsFn: (
         .getAllBindingIdentifiers({
           spaceFilters: [BindingsSpace.ADDR],
         })
-        .map<languages.CompletionItem>((identifier) => ({
+        .map((identifier: string) => ({
           insertText: identifier,
           label: identifier,
           kind: languages.CompletionItemKind.Field,

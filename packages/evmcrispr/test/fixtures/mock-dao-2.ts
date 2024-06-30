@@ -1,6 +1,8 @@
 // WARNING: this file is generated automatically
 
-export const DAO = {
+import type { Address } from "viem";
+
+export const DAO: Record<string, Address> = {
   ["disputable-conviction-voting.open"]:
     "0x0b21081c6f8b1990f53fc76279cc41ba22d7afe2",
   ["evm-script-registry"]: "0x0d33a5ca7149d24628efd43564f577ced33dd34b",

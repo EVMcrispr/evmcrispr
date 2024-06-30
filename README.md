@@ -1,4 +1,4 @@
-# `Turborepo` Vite starter
+# EVMcrispr
 
 This is an official starter Turborepo.
 

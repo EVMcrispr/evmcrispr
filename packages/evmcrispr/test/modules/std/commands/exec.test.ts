@@ -1,27 +1,28 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { toHex } from "viem";
 
 import type { Action } from "../../../../src/types";
-import { encodeActCall } from "../../../../src/modules/aragonos/utils";
 import { CommandError } from "../../../../src/errors";
 
-import { toDecimals } from "../../../../src/utils";
+import { encodeAction, toDecimals } from "../../../../src/utils";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
 } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 const ETHERSCAN_API = process.env.ETHERSCAN_API;
 
 describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
@@ -35,16 +36,13 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should return a correct exec action", async () => {
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} ${params.join(" ")}`,
-      signer,
+      client,
     );
 
     const result = await interpreter.interpret();
 
     const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data: encodeActCall(fnSig, resolvedParams),
-      },
+      encodeAction(target, fnSig, resolvedParams),
     ];
 
     expect(result).eql(expectedCallAction);
@@ -53,17 +51,15 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should return a correct exec action with value", async () => {
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} ${params.join(" ")} --value 1e18`,
-      signer,
+      client,
     );
 
     const result = await interpreter.interpret();
 
     const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data: encodeActCall(fnSig, resolvedParams),
-        value: "1000000000000000000",
-      },
+      encodeAction(target, fnSig, resolvedParams, {
+        value: 1000000000000000000n,
+      }),
     ];
 
     expect(result).eql(expectedCallAction);
@@ -72,17 +68,13 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should return a correct exec action with from address", async () => {
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} ${params.join(" ")} --from ${target}`,
-      signer,
+      client,
     );
 
     const result = await interpreter.interpret();
 
     const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data: encodeActCall(fnSig, resolvedParams),
-        from: target,
-      },
+      encodeAction(target, fnSig, resolvedParams, { from: target }),
     ];
 
     expect(result).eql(expectedCallAction);
@@ -93,18 +85,16 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
       `exec ${target} ${fnSig} ${params.join(
         " ",
       )} --value 1e18 --from ${target}`,
-      signer,
+      client,
     );
 
     const result = await interpreter.interpret();
 
     const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data: encodeActCall(fnSig, resolvedParams),
+      encodeAction(target, fnSig, resolvedParams, {
+        value: 1000000000000000000n,
         from: target,
-        value: "1000000000000000000",
-      },
+      }),
     ];
 
     expect(result).eql(expectedCallAction);
@@ -120,22 +110,16 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
       `exec ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
         params[1]
       }`,
-      signer,
+      client,
     );
-    const fnABI = new utils.Interface(["function addBatches(bytes32[],bytes)"]);
 
     const actActions = await interpreter.interpret();
 
     const expectedActActions: Action[] = [
-      {
-        to: targetAddress,
-        data: fnABI.encodeFunctionData("addBatches", [
-          params[0],
-          utils.hexlify(
-            utils.toUtf8Bytes("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
-          ),
-        ]),
-      },
+      encodeAction(targetAddress, "addBatches(bytes32[],bytes)", [
+        params[0],
+        toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
+      ]),
     ];
     expect(actActions).to.be.eql(expectedActActions);
   });
@@ -146,19 +130,17 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
         set $std:etherscanAPI  ${ETHERSCAN_API}
         exec ${target} transfer @me 1500e18
         `,
-      signer,
+      client,
     );
 
     const callActions = await interpreter.interpret();
 
     const expectedCallActions: Action[] = [
-      {
-        to: "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9",
-        data: encodeActCall("transfer(address,uint256)", [
-          await signer.getAddress(),
-          toDecimals(1500),
-        ]),
-      },
+      encodeAction(
+        "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9",
+        "transfer(address,uint256)",
+        [TEST_ACCOUNT_ADDRESS, toDecimals(1500)],
+      ),
     ];
 
     expect(callActions).to.eql(expectedCallActions);
@@ -171,7 +153,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
         `
         exec ${nonDefinedIdentifier} "${fnSig}" 1e18
       `,
-        signer,
+        client,
       ),
     "exec",
     0,
@@ -181,7 +163,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     const invalidTargetAddress = "false";
     const interpreter = createInterpreter(
       `exec ${invalidTargetAddress} ${fnSig} 1e18`,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(
@@ -198,13 +180,10 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
       `
         set $std:etherscanAPI ${ETHERSCAN_API}
         exec ${target} ${invalidSignature} 1e18`,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
-    const error = new CommandError(
-      c,
-      `error when getting function from ABI - no matching function (argument="signature", value="invalid(uint256,)", code=INVALID_ARGUMENT, version=abi/5.7.0)`,
-    );
+    const error = new CommandError(c, `invalid signature "invalid(uint256,)"`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
@@ -221,11 +200,11 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
 
   it("should fail when providing invalid call params", async () => {
     const paramErrors = [
-      "-param 0 of type address: invalid address. Got false",
+      `-param 0 of type address: Address "false" is invalid.\n\n- Address must be a hex value of 20 bytes. Got false`,
     ];
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} false 1e18`,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(
@@ -239,7 +218,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should fail when providing invalid value parameter", async () => {
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} @me 1e18 --value tata`,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(c, `expected a valid value, but got tata`);
@@ -250,7 +229,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should fail when providing invalid from address", async () => {
     const interpreter = createInterpreter(
       `exec ${target} ${fnSig} @me 1e18 --from tata`,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(

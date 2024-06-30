@@ -1,3 +1,5 @@
+import type { Address } from "viem";
+
 /**
  * An object that represents an action in the DAO (e.g. installing a new app, minting tokens, etc).
  */
@@ -5,20 +7,20 @@ export interface TransactionAction {
   /**
    * The recipient address.
    */
-  to: string;
+  to: Address;
   /**
    * The encoded action. It can be conceived of as contract function calls.
    */
-  data: string;
+  data: `0x${string}`;
   /**
    * The ether which needs to be sent along with the action (in wei).
    */
-  value?: string | number;
+  value?: bigint;
 
   /**
    * The sender address. It can only be used in contexts where you can choose who is sending the transaction.
    */
-  from?: string;
+  from?: Address;
 }
 
 export interface ProviderAction {

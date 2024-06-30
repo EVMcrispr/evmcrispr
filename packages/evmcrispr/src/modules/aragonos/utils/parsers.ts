@@ -1,5 +1,5 @@
-import type { providers } from "ethers";
-import { Contract } from "ethers";
+import type { PublicClient } from "viem";
+import { parseAbiItem } from "viem";
 
 import type { Address } from "../../../types";
 import type { ParsedApp, Repo } from "../types";
@@ -17,21 +17,21 @@ export const parseAppArtifactName = (name: string): string => {
 
 const fetchImplementationAddress = (
   appAddress: Address,
-  provider: providers.Provider,
+  client: PublicClient,
 ): Promise<Address> => {
-  const app = new Contract(
-    appAddress,
-    ["function implementation() public view returns (address)"],
-    provider,
-  );
-
-  return app.implementation();
+  return client.readContract({
+    address: appAddress,
+    abi: [
+      parseAbiItem("function implementation() public view returns (address)"),
+    ],
+    functionName: "implementation",
+  });
 };
 
 export const parseApp = async (
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   app: any,
-  provider: providers.Provider,
+  client: PublicClient,
 ): Promise<ParsedApp> => {
   const { address, appId, roles, version } = app;
   const { name: repoName, registry } = app.repo || {};
@@ -52,7 +52,7 @@ export const parseApp = async (
     appId,
     artifact,
     codeAddress:
-      codeAddress ?? (await fetchImplementationAddress(address, provider)),
+      codeAddress ?? (await fetchImplementationAddress(address, client)),
     contentUri,
     name,
     registryName: registry?.name,

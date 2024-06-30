@@ -1,6 +1,5 @@
 import "dotenv/config";
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-toolbox-viem";
 import type { HardhatUserConfig } from "hardhat/types";
 
 import { server } from "./test/fixtures/server";

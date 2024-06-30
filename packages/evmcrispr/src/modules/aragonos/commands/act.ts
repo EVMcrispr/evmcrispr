@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { isAddress } from "viem";
 
 import type { AbiBinding, ICommand } from "../../../types";
 import { BindingsSpace } from "../../../types";
@@ -12,6 +12,7 @@ import {
   checkArgsLength,
   encodeAction,
   fetchAbi,
+  getFunctionFragment,
   insideNodeLine,
   interpretNodeSync,
   tryAndCacheNotFound,
@@ -38,12 +39,12 @@ export const act: ICommand<AragonOS> = {
         }),
       );
 
-    if (!utils.isAddress(agentAddress)) {
+    if (!isAddress(agentAddress)) {
       throw new ErrorException(
         `expected a valid agent address, but got ${agentAddress}`,
       );
     }
-    if (!utils.isAddress(targetAddress)) {
+    if (!isAddress(targetAddress)) {
       throw new ErrorException(
         `expected a valid target address, but got ${targetAddress}`,
       );
@@ -75,7 +76,7 @@ export const act: ICommand<AragonOS> = {
       case 2: {
         const targetAddress = interpretNodeSync(nodeArgs[1], bindingsManager);
 
-        if (!targetAddress || !utils.isAddress(targetAddress)) {
+        if (!targetAddress || !isAddress(targetAddress)) {
           return [];
         }
 
@@ -85,14 +86,16 @@ export const act: ICommand<AragonOS> = {
           return [];
         }
 
-        const nonConstantFns = Object.keys(abi.functions)
+        const functions = abi
           // Only consider functions that change state
-          .filter((fnName) => !abi.functions[fnName].constant)
-          .map((fnName) => {
-            return abi.functions[fnName].format();
-          });
-
-        return nonConstantFns;
+          .filter(
+            (item) =>
+              item.type === "function" &&
+              (item.stateMutability === "nonpayable" ||
+                item.stateMutability === "payable"),
+          )
+          .map(getFunctionFragment);
+        return functions;
       }
       default: {
         if (argIndex >= 2) {
@@ -105,7 +108,7 @@ export const act: ICommand<AragonOS> = {
       }
     }
   },
-  async runEagerExecution(c, cache, { provider }, caretPos) {
+  async runEagerExecution(c, cache, { client }, caretPos) {
     if (
       !insideNodeLine(c, caretPos) ||
       c.args.length < 2 ||
@@ -116,7 +119,7 @@ export const act: ICommand<AragonOS> = {
 
     const resolvedTargetAddress = interpretNodeSync(c.args[1], cache);
 
-    if (!resolvedTargetAddress || !utils.isAddress(resolvedTargetAddress)) {
+    if (!resolvedTargetAddress || !isAddress(resolvedTargetAddress)) {
       return;
     }
 
@@ -138,7 +141,7 @@ export const act: ICommand<AragonOS> = {
       () =>
         fetchAbi(
           resolvedTargetAddress,
-          provider,
+          client,
           // TODO: use etherscan API to fetch the abis
           "",
         ),

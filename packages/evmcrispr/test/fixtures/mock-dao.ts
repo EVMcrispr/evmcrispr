@@ -1,6 +1,8 @@
 // WARNING: this file is generated automatically
 
-export const DAO = {
+import type { Address } from "viem";
+
+export const DAO: Record<string, Address> = {
   ["agent"]: "0x01d9c9ca040e90feb47c7513d9a3574f6e1317bd",
   ["wrappable-hooked-token-manager.open"]:
     "0x080c696b7bd6d830bf5092fe7dfcb72b42bdd8b7",

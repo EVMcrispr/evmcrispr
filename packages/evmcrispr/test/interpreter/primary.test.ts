@@ -1,6 +1,7 @@
-import type { Signer } from "ethers";
-import { constants } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { zeroAddress } from "viem";
 
 import type { NumericLiteralNode } from "../../src/types";
 import { NodeType } from "../../src/types";
@@ -9,11 +10,11 @@ import type { InterpreterCase } from "../test-helpers/cas11";
 import { runInterpreterCases } from "../test-helpers/cas11";
 
 describe("Interpreter - primaries", async () => {
-  let signer: Signer;
-  const getSigner = async () => signer;
+  let client: PublicClient;
+  const getClient = async () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
   describe("when interpreting a literal node", () => {
     it("should interpret address node correctly", async () => {
@@ -25,7 +26,7 @@ describe("Interpreter - primaries", async () => {
         "0x83E57888cd55C3ea1cfbf0114C963564d81e318d",
       ];
 
-      await runInterpreterCases(c, getSigner);
+      await runInterpreterCases(c, getClient);
     });
 
     it("should interpret a boolean node correctly", async () => {
@@ -40,7 +41,7 @@ describe("Interpreter - primaries", async () => {
         [{ type: NodeType.BoolLiteral, value: true }, true],
       ];
 
-      await runInterpreterCases(cases, getSigner);
+      await runInterpreterCases(cases, getClient);
     });
 
     it("should intepret a bytes node correctly", async () => {
@@ -55,7 +56,7 @@ describe("Interpreter - primaries", async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, getSigner);
+      await runInterpreterCases(cases, getClient);
     });
 
     it("should intepret a numeric node correctly", async () => {
@@ -93,47 +94,47 @@ describe("Interpreter - primaries", async () => {
         ],
         [
           node(1200.12, 18, "mo"),
-          toDecimals(1200.12, 18).mul(timeUnits["mo"]),
+          toDecimals(1200.12, 18) * BigInt(timeUnits["mo"]),
           "Invalid decimal number raised to a power followed by time unit match",
         ],
         [
           node(30, undefined, "s"),
-          toDecimals(30, 0).mul(timeUnits["s"]),
+          toDecimals(30, 0) * BigInt(timeUnits["s"]),
           "Invalid number followed by second time unit match",
         ],
         [
           node(5, undefined, "m"),
-          toDecimals(5, 0).mul(timeUnits["m"]),
+          toDecimals(5, 0) * BigInt(timeUnits["m"]),
           "Invalid number followed by minute time unit match",
         ],
         [
           node(35, undefined, "h"),
-          toDecimals(35, 0).mul(timeUnits["h"]),
+          toDecimals(35, 0) * BigInt(timeUnits["h"]),
           "Invalid number followed by hour time unit match",
         ],
         [
           node(463, undefined, "d"),
-          toDecimals(463, 0).mul(timeUnits["d"]),
+          toDecimals(463, 0) * BigInt(timeUnits["d"]),
           "Invalid number followed by day time unit match",
         ],
         [
           node(96, undefined, "w"),
-          toDecimals(96, 0).mul(timeUnits["w"]),
+          toDecimals(96, 0) * BigInt(timeUnits["w"]),
           "Invalid number followed by week time unit match",
         ],
         [
           node(9, undefined, "mo"),
-          toDecimals(9, 0).mul(timeUnits["mo"]),
+          toDecimals(9, 0) * BigInt(timeUnits["mo"]),
           "Invalid number followed by month time unit match",
         ],
         [
           node(4.67, undefined, "y"),
-          toDecimals(4.67, 0).mul(timeUnits["y"]),
+          toDecimals(4.67, 0) * BigInt(timeUnits["y"]),
           "Invalid number followed by year time unit match",
         ],
       ];
 
-      await runInterpreterCases(cases, getSigner);
+      await runInterpreterCases(cases, getClient);
     });
 
     it("should intepret a string node correctly", async () => {
@@ -147,7 +148,7 @@ describe("Interpreter - primaries", async () => {
         ],
       ];
 
-      await runInterpreterCases(cases, getSigner);
+      await runInterpreterCases(cases, getClient);
     });
   });
 
@@ -166,11 +167,11 @@ describe("Interpreter - primaries", async () => {
             type: NodeType.ProbableIdentifier,
             value: "ETH",
           },
-          constants.AddressZero,
+          zeroAddress,
         ],
       ];
 
-      await runInterpreterCases(cases, getSigner);
+      await runInterpreterCases(cases, getClient);
     });
     it("should interpret a variable correctly");
     it("should fail when intepreting a non-existent variable");

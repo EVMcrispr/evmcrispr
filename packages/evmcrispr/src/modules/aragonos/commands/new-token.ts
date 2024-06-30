@@ -1,23 +1,21 @@
-import { constants, utils } from "ethers";
+import { getContractAddress, isAddress, zeroAddress } from "viem";
 
 import {
   ComparisonType,
-  buildNonceForAddress,
-  calculateNewProxyAddress,
   checkArgsLength,
+  encodeAction,
   isNumberish,
 } from "../../../utils";
+import {
+  MINIME_TOKEN_FACTORIES,
+  buildNonceForAddress,
+  getDaoAddrFromIdentifier,
+  isLabeledAppIdentifier,
+} from "../utils";
 import { ErrorException } from "../../../errors";
 import type { Address, ICommand } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import type { AragonOS } from "../AragonOS";
-import {
-  CONTROLLED_INTERFACE,
-  MINIME_TOKEN_FACTORIES,
-  MINIME_TOKEN_FACTORY_INTERFACE,
-  getDaoAddrFromIdentifier,
-  isLabeledAppIdentifier,
-} from "../utils";
 
 export const newToken: ICommand<AragonOS> = {
   async run(module, c, { interpretNodes }) {
@@ -51,7 +49,7 @@ export const newToken: ICommand<AragonOS> = {
       BindingsSpace.ADDR,
     );
 
-    if (utils.isAddress(controller)) {
+    if (isAddress(controller)) {
       controllerAddress = controller;
     } else if (identifierBinding) {
       controllerAddress = identifierBinding;
@@ -93,9 +91,12 @@ export const newToken: ICommand<AragonOS> = {
     const nonce = await buildNonceForAddress(
       factoryAddr,
       await module.incrementNonce(factoryAddr),
-      await module.getProvider(),
+      await module.getClient(),
     );
-    const newTokenAddress = calculateNewProxyAddress(factoryAddr, nonce);
+    const newTokenAddress = getContractAddress({
+      from: factoryAddr,
+      nonce,
+    });
 
     module.bindingsManager.setBinding(
       `token:${symbol}`,
@@ -104,19 +105,14 @@ export const newToken: ICommand<AragonOS> = {
     );
 
     return [
-      {
-        to: factoryAddr,
-        data: MINIME_TOKEN_FACTORY_INTERFACE.encodeFunctionData(
-          "createCloneToken",
-          [constants.AddressZero, 0, name, decimals, symbol, transferable],
-        ),
-      },
-      {
-        to: newTokenAddress,
-        data: CONTROLLED_INTERFACE.encodeFunctionData("changeController", [
-          controllerAddress,
-        ]),
-      },
+      encodeAction(
+        factoryAddr,
+        "createCloneToken(address,uint,string,uint8,string,bool)",
+        [zeroAddress, 0, name, decimals, symbol, transferable],
+      ),
+      encodeAction(newTokenAddress, "changeController(address)", [
+        controllerAddress,
+      ]),
     ];
   },
   buildCompletionItemsForArg() {

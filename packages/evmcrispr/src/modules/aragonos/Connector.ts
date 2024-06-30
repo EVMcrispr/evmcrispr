@@ -1,5 +1,6 @@
 import fetch from "isomorphic-fetch";
-import type { providers } from "ethers";
+
+import type { PublicClient } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../errors";
 import type { GraphQLBody, QueryConfig } from "./utils";
@@ -10,17 +11,13 @@ import type { Address } from "../../types";
 export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {
     case 1:
-      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-mainnet";
-    case 4:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-rinkeby";
+      return "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/BjzJNAmbkpTN3422j5rh3Gv7aejkDfRH1QLyoJC3qTMZ";
     case 5:
       return "https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli";
     case 10:
-      return "https://api.thegraph.com/subgraphs/name/blossomlabs/aragon-optimism";
+      return "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/GHtDCXqSdwYPgXSigMA21yRpAWDwiAxqsfYsEw7NLMPk";
     case 100:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-xdai";
-    case 137:
-      return "https://api.thegraph.com/subgraphs/name/1hive/aragon-polygon";
+      return "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/4xcBUyAqw61JTtP4SwvTw8f7RgRA6A1bxENatnK9cF33";
     default:
       throw new ErrorException(`No subgraph found for chain id ${chainId}`);
   }
@@ -37,7 +34,7 @@ type QueryResult = {
  */
 export class Connector {
   #subgraphUrl: string;
-  #provider: providers.Provider;
+  #client: PublicClient;
 
   /**
    * Create a new Connector instance.
@@ -46,7 +43,7 @@ export class Connector {
    */
   constructor(
     chainId: number,
-    provider: providers.Provider,
+    client: PublicClient,
     options: { subgraphUrl?: string } = {},
   ) {
     const subgraphUrl = options.subgraphUrl || subgraphUrlFromChainId(chainId);
@@ -58,7 +55,7 @@ export class Connector {
     }
 
     this.#subgraphUrl = subgraphUrl;
-    this.#provider = provider;
+    this.#client = client;
   }
 
   protected async querySubgraph<T>(
@@ -115,7 +112,7 @@ export class Connector {
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
-    const chainId = (await this.#provider.getNetwork()).chainId;
+    const chainId = await this.#client.getChainId();
     const queryConfig: QueryConfig = { isGoerliSubgraph: chainId === 5 };
 
     return this.querySubgraph<ParsedApp[]>(
@@ -127,9 +124,7 @@ export class Connector {
           throw new ErrorNotFound(`Organization apps not found`);
         }
 
-        return Promise.all(
-          apps.map((app: any) => parseApp(app, this.#provider)),
-        );
+        return Promise.all(apps.map((app: any) => parseApp(app, this.#client)));
       },
     );
   }

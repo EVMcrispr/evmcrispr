@@ -1,4 +1,4 @@
-import { constants, utils } from "ethers";
+import { isAddress, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 import { BindingsSpace } from "../../../types";
@@ -7,6 +7,7 @@ import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
+  encodeAction,
   getOptValue,
   interpretNodeSync,
 } from "../../../utils";
@@ -35,8 +36,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   }
 
   const { permissions: appPermissions, name } = app;
-  const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp("acl")!;
+  const { address: aclAddress } = dao!.resolveApp("acl")!;
   const actions: Action[] = [];
 
   if (!appPermissions.has(roleHash)) {
@@ -48,8 +48,8 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
   // If the permission already existed and no parameters are needed, just grant to a new entity and exit
   if (
-    appPermission.manager !== "" &&
-    appPermission.manager !== constants.AddressZero &&
+    appPermission.manager &&
+    appPermission.manager !== zeroAddress &&
     params.length == 0
   ) {
     if (appPermission.grantees.has(granteeAddress)) {
@@ -61,27 +61,21 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     appPermission.grantees.add(granteeAddress);
 
     return [
-      {
-        to: aclAddress,
-        data: aclAbiInterface.encodeFunctionData("grantPermission", [
-          granteeAddress,
-          appAddress,
-          roleHash,
-        ]),
-      },
+      encodeAction(aclAddress, "grantPermission(address,address,bytes32)", [
+        granteeAddress,
+        appAddress,
+        roleHash,
+      ]),
     ];
   }
 
   // If the permission does not exist previously, create it
-  if (
-    appPermission.manager === "" ||
-    appPermission.manager === constants.AddressZero
-  ) {
+  if (!appPermission.manager || appPermission.manager === zeroAddress) {
     if (!permissionManager) {
       throw new ErrorException("required permission manager missing");
     }
 
-    if (!utils.isAddress(permissionManager)) {
+    if (!isAddress(permissionManager)) {
       throw new ErrorException(
         `invalid permission manager. Expected an address, but got ${permissionManager}`,
       );
@@ -91,15 +85,13 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
       grantees: new AddressSet([granteeAddress]),
     });
 
-    actions.push({
-      to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData("createPermission", [
-        granteeAddress,
-        appAddress,
-        roleHash,
-        permissionManager,
-      ]),
-    });
+    actions.push(
+      encodeAction(
+        aclAddress,
+        "createPermission(address,address,bytes32,address)",
+        [granteeAddress, appAddress, roleHash, permissionManager],
+      ),
+    );
   }
 
   // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
@@ -111,15 +103,13 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     }
     appPermission.grantees.add(granteeAddress);
 
-    actions.push({
-      to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData("grantPermissionP", [
-        granteeAddress,
-        appAddress,
-        roleHash,
-        params,
-      ]),
-    });
+    actions.push(
+      encodeAction(
+        aclAddress,
+        "grantPermissionP(address,address,bytes32,uint256[])",
+        [granteeAddress, appAddress, roleHash, params],
+      ),
+    );
   }
 
   return actions;
@@ -152,7 +142,7 @@ export const grant: ICommand<AragonOS> = {
     );
     const oracleOpt = await getOptValue(c, "oracle", interpretNode);
 
-    if (oracleOpt && !utils.isAddress(oracleOpt)) {
+    if (oracleOpt && !isAddress(oracleOpt)) {
       throw new ErrorException(
         `invalid --oracle option. Expected an address, but got ${oracleOpt}`,
       );
@@ -186,7 +176,12 @@ export const grant: ICommand<AragonOS> = {
         const dao = getDAO(bindingsManager, appNode);
         const appAddress = interpretNodeSync(appNode, bindingsManager);
 
-        if (!grantee || !appAddress || !utils.isAddress(appAddress)) {
+        if (
+          !grantee ||
+          !isAddress(grantee) ||
+          !appAddress ||
+          !isAddress(appAddress)
+        ) {
           return [];
         }
 

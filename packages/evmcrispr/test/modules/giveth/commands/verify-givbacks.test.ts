@@ -1,21 +1,21 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import type { PublicClient } from "viem";
+import { viem } from "hardhat";
 
 import { CommandError } from "../../../../src/errors";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
 
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
-import { findGivethCommandNode } from "../../../test-helpers/giveth";
+import { findGivethCommandNode } from "../test-helpers";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
 describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   const testVerifyGivbacks =
@@ -33,7 +33,7 @@ describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
           : `
           load giveth
           giveth:verify-givbacks ${ipfsHash} ${voteId} --relayer ${relayerAddr}`,
-        signer,
+        client,
       );
 
       const interpreter2 = createInterpreter(
@@ -42,7 +42,7 @@ describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
         aragonos:connect 0xA1514067E6fE7919FB239aF5259FfF120902b4f9 (
           exec voting:1 vote(uint256,bool) ${voteId} true
         )`,
-        signer,
+        client,
       );
 
       const result = await interpreter.interpret();
@@ -66,7 +66,7 @@ describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
     const interpreter = createInterpreter(
       `load giveth
         giveth:verify-givbacks ${ipfsHash} ${voteId}`,
-      signer,
+      client,
     );
 
     const c = findGivethCommandNode(interpreter.ast, "verify-givbacks")!;

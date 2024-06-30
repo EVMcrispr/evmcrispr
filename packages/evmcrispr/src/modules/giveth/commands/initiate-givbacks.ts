@@ -1,4 +1,4 @@
-import { Contract } from "ethers";
+import { parseAbiItem } from "viem";
 
 import type { ICommand } from "../../../types";
 
@@ -42,17 +42,20 @@ export const initiateGivbacks: ICommand<Giveth> = {
       (data) => data.json(),
     );
 
-    const relayer = new Contract(
-      relayerAddr,
-      [
-        "function hashBatch(uint256 _nonce, address[] calldata recipients, uint256[] calldata amounts) public view returns (bytes32)",
-      ],
-      await module.getProvider(),
-    );
+    const client = await module.getClient();
 
     const batches = await Promise.all(
       data.map((batch: any) =>
-        relayer.hashBatch(batch.nonce, batch.recipients, batch.amounts),
+        client.readContract({
+          address: relayerAddr,
+          abi: [
+            parseAbiItem(
+              "function hashBatch(uint256 _nonce, address[] calldata recipients, uint256[] calldata amounts) public view returns (bytes32)",
+            ),
+          ],
+          functionName: "hashBatch",
+          args: [batch.nonce, batch.recipients, batch.amounts],
+        }),
       ),
     );
 

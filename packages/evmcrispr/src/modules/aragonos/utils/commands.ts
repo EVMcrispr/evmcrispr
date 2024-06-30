@@ -1,6 +1,7 @@
 import type { Parser } from "arcsecond";
 import { char, possibly, regex, sequenceOf } from "arcsecond";
-import { utils } from "ethers";
+
+import { isAddress } from "viem";
 
 import { BindingsSpace, NodeType } from "../../../types";
 import type {
@@ -103,13 +104,13 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
   const errors: string[] = [];
   const [granteeAddress, appAddress, role, managerAddress] = p;
 
-  if (!utils.isAddress(granteeAddress)) {
+  if (!isAddress(granteeAddress)) {
     errors.push(
       `Invalid grantee. Expected an address, but got ${granteeAddress}`,
     );
   }
 
-  if (!utils.isAddress(appAddress)) {
+  if (!isAddress(appAddress)) {
     errors.push(`Invalid app. Expected an address, but got ${appAddress}`);
   }
 
@@ -119,7 +120,7 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
     }
   }
 
-  if (managerAddress && !utils.isAddress(managerAddress)) {
+  if (managerAddress && !isAddress(managerAddress)) {
     errors.push(
       `Invalid permission manager. Expected an address, but got ${managerAddress}`,
     );

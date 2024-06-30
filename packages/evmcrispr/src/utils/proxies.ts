@@ -1,45 +1,46 @@
-import type { BigNumberish, providers } from "ethers";
-import { BigNumber, Contract, utils } from "ethers";
+import type { Address, PublicClient } from "viem";
+import { keccak256, parseAbi, toHex, trim } from "viem";
 
 /**
  * Standarized storage slot determined by bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
  * and defined on EIP-1967 (https://eips.ethereum.org/EIPS/eip-1967#logic-contract-address)
  */
-const EIP1967_STORAGE_SLOT = utils.hexlify(
-  BigNumber.from(utils.id("eip1967.proxy.implementation")).sub(1),
+const EIP1967_STORAGE_SLOT = toHex(
+  BigInt(keccak256(toHex("eip1967.proxy.implementation"))) - 1n,
 );
 
-const EIP1967_BEACON_STORAGE_SLOT = utils.hexlify(
-  BigNumber.from(utils.id("eip1967.proxy.beacon")).sub(1),
+const EIP1967_BEACON_STORAGE_SLOT = toHex(
+  BigInt(keccak256(toHex("eip1967.proxy.beacon"))) - 1n,
 );
 
-const EIP1822_PROXIABLE = utils.id("PROXIABLE");
+const EIP1822_PROXIABLE = keccak256(toHex("PROXIABLE"));
 
 const getAddressFromStorageSlot = async (
-  contractAddress: string,
-  storageSlot: BigNumberish,
-  provider: providers.Provider,
-) => {
-  const rawImplementationAddress = await provider.getStorageAt(
-    contractAddress,
-    storageSlot,
-  );
-  return utils.hexStripZeros(rawImplementationAddress);
+  contractAddress: Address,
+  storageSlot: `0x${string}`,
+  client: PublicClient,
+): Promise<Address | undefined> => {
+  const rawImplementationAddress: `0x${string}` | undefined =
+    await client.getStorageAt({
+      address: contractAddress,
+      slot: storageSlot,
+    });
+  return rawImplementationAddress ? trim(rawImplementationAddress) : undefined;
 };
 
 export async function fetchImplementationAddress(
-  address: string,
-  provider: providers.Provider,
-): Promise<string> {
-  let implementationAddress;
+  address: Address,
+  client: PublicClient,
+): Promise<Address | undefined> {
+  let implementationAddress: Address | undefined;
   implementationAddress = await getAddressFromStorageSlot(
     address,
     EIP1967_STORAGE_SLOT,
-    provider,
+    client,
   );
-  if (implementationAddress && implementationAddress !== "0x") {
+  if (implementationAddress && implementationAddress !== "0x00") {
     return (
-      (await fetchImplementationAddress(implementationAddress, provider)) ||
+      (await fetchImplementationAddress(implementationAddress, client)) ||
       implementationAddress
     );
   }
@@ -48,48 +49,49 @@ export async function fetchImplementationAddress(
   implementationAddress = await getAddressFromStorageSlot(
     address,
     EIP1822_PROXIABLE,
-    provider,
+    client,
   );
-  if (implementationAddress && implementationAddress !== "0x") {
+  if (implementationAddress && implementationAddress !== "0x00") {
     return (
-      (await fetchImplementationAddress(implementationAddress, provider)) ||
+      (await fetchImplementationAddress(implementationAddress, client)) ||
       implementationAddress
     );
   }
 
+  const abi = parseAbi([
+    "function implementation() public view returns (address)",
+    "function childImplementation() external view returns (address)",
+  ]);
+
   try {
-    const proxyContract = new Contract(
+    implementationAddress = await client.readContract({
       address,
-      [
-        "function implementation() public view returns (address)",
-        "function childImplementation() external view returns (address)",
-      ],
-      provider,
-    );
-    implementationAddress = await proxyContract.implementation();
+      abi,
+      functionName: "implementation",
+    });
   } catch (e) {
-    implementationAddress = null;
+    implementationAddress = undefined;
     const beaconAddress = await getAddressFromStorageSlot(
       address,
       EIP1967_BEACON_STORAGE_SLOT,
-      provider,
+      client,
     );
-    if (beaconAddress !== "0x") {
-      const proxyContract = new Contract(
-        beaconAddress,
-        [
-          "function implementation() public view returns (address)",
-          "function childImplementation() external view returns (address)",
-        ],
-        provider,
-      );
+    if (beaconAddress && beaconAddress !== "0x00") {
       try {
-        implementationAddress = await proxyContract.implementation();
+        implementationAddress = await client.readContract({
+          address: beaconAddress,
+          abi,
+          functionName: "implementation",
+        });
       } catch (err) {
-        implementationAddress = await proxyContract.childImplementation();
+        implementationAddress = await client.readContract({
+          address: beaconAddress,
+          abi,
+          functionName: "childImplementation",
+        });
       }
       implementationAddress =
-        (await fetchImplementationAddress(implementationAddress, provider)) ||
+        (await fetchImplementationAddress(implementationAddress, client)) ||
         implementationAddress;
       // TODO: Missing Special cases:
       // if (

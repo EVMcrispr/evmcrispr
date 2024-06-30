@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { keccak256, toHex } from "viem";
 
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
@@ -16,5 +16,5 @@ export const id: HelperFunction<Std> = async (
 
   const [text] = await interpretNodes(h.args);
 
-  return utils.id(text);
+  return keccak256(toHex(text));
 };

@@ -1,5 +1,3 @@
-import { providers } from "ethers";
-
 import { ErrorException } from "../../../errors";
 import type { ICommand, ProviderAction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
@@ -28,11 +26,11 @@ export const _switch: ICommand<Std> = {
       minValue: 1,
     });
 
-    const provider = await module.getProvider();
-
-    if (!(provider instanceof providers.JsonRpcProvider)) {
-      throw new ErrorException("JSON-RPC based providers supported only");
-    }
+    // TODO: Consider if we need this check
+    // const provider = await module.getClient();
+    // if (!(provider instanceof providers.JsonRpcProvider)) {
+    //   throw new ErrorException("JSON-RPC based providers supported only");
+    // }
 
     const [networkNameOrId] = await interpretNodes(c.args);
 

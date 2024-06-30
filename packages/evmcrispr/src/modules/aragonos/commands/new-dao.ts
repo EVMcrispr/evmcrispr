@@ -1,31 +1,22 @@
-import { Contract, utils } from "ethers";
+import { encodePacked, getContractAddress, keccak256, parseAbi } from "viem";
 
 import { ErrorException } from "../../../errors";
-import {
-  ComparisonType,
-  buildNonceForAddress,
-  calculateNewProxyAddress,
-  checkArgsLength,
-} from "../../../utils";
-import type { Action, ICommand } from "../../../types";
-import { BindingsSpace } from "../../../types";
-import type { AragonOS } from "../AragonOS";
-import { _aragonEns } from "../helpers/aragonEns";
+import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
 import {
   ARAGON_REGISTRARS,
   DAO_FACTORIES,
-  getAragonRegistrarContract,
+  buildNonceForAddress,
 } from "../utils";
+import type { Action, Address, ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
+import type { AragonOS } from "../AragonOS";
+import { _aragonEns } from "../helpers/aragonEns";
 
 const registerAragonId = async (
   module: AragonOS,
   name: string,
   owner: string,
 ): Promise<Action[]> => {
-  const aragonRegistrar = await getAragonRegistrarContract(
-    await module.getProvider(),
-  );
-
   const chainId = await module.getChainId();
 
   if (!ARAGON_REGISTRARS.has(chainId)) {
@@ -35,13 +26,11 @@ const registerAragonId = async (
   }
 
   return [
-    {
-      to: ARAGON_REGISTRARS.get(chainId)!,
-      data: aragonRegistrar.interface.encodeFunctionData("register", [
-        utils.solidityKeccak256(["string"], [name]),
-        owner,
-      ]),
-    },
+    encodeAction(
+      ARAGON_REGISTRARS.get(chainId)!,
+      "register(bytes32 _subnode, address _owner)",
+      [keccak256(encodePacked(["string"], [name])), owner],
+    ),
   ];
 };
 
@@ -49,30 +38,27 @@ export const newDAO: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
     checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
 
-    const provider = await module.getProvider();
+    const provider = await module.getClient();
 
     const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
 
-    const bareTemplate = new utils.Interface([
-      "function newInstance() public returns (address)",
-    ]);
-
-    const bareTemplateRepoAddr = (await _aragonEns(
+    const bareTemplateRepoAddr: Address = (await _aragonEns(
       `bare-template.aragonpm.eth`,
       provider,
       module.getConfigBinding("ensResolver"),
     ))!;
 
-    const bareTemplateRepo = new Contract(
-      bareTemplateRepoAddr,
-      [
-        "function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)",
-      ],
-      provider,
-    );
+    const client = await module.getClient();
 
-    const bareTemplateAddr = (await bareTemplateRepo.getLatest())
-      .contractAddress;
+    const bareTemplateAddr = (
+      await client.readContract({
+        abi: parseAbi([
+          "function getLatest() public view returns (uint16[3] semanticVersion, address contractAddress, bytes contentURI)",
+        ]),
+        address: bareTemplateRepoAddr,
+        functionName: "getLatest",
+      })
+    )[1];
 
     const daoFactory = DAO_FACTORIES.get(await module.getChainId());
     if (!daoFactory) {
@@ -83,7 +69,7 @@ export const newDAO: ICommand<AragonOS> = {
       await module.incrementNonce(daoFactory),
       provider,
     );
-    const newDaoAddress = calculateNewProxyAddress(daoFactory, nonce);
+    const newDaoAddress = getContractAddress({ from: daoFactory, nonce });
 
     module.bindingsManager.setBinding(
       `_${daoName}`,
@@ -100,10 +86,7 @@ export const newDAO: ICommand<AragonOS> = {
     );
 
     return [
-      {
-        to: bareTemplateAddr!,
-        data: bareTemplate.encodeFunctionData("newInstance", []),
-      },
+      encodeAction(bareTemplateAddr!, "newInstance()", []),
       ...registerAragonIdActions,
     ];
   },

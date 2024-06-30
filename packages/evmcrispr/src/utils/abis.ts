@@ -1,39 +1,23 @@
-import type { providers } from "ethers";
-import { utils } from "ethers";
+import type { PublicClient } from "viem";
 
 import { ErrorConnection, ErrorException } from "../errors";
-import type { Address } from "../types";
+import type { Abi, Address } from "../types";
 import { fetchImplementationAddress } from "./proxies";
-
-function getEtherscanNetworkName(chainId: number): string {
-  switch (chainId) {
-    case 1:
-      return "";
-    case 4:
-      return "rinkeby";
-    case 5:
-      return "goerli";
-    default:
-      throw new ErrorException(`No network name found for chain id ${chainId}`);
-  }
-}
 
 async function getAbiEntries(
   etherscanAPI: string,
   address: string,
   chainId: number,
-): Promise<utils.Interface> {
+): Promise<Abi> {
   let baseUrl: string;
+  // TODO: Do not rely on etherscan and use https://github.com/cdump/evmole
   switch (chainId) {
     case 1:
-    case 4:
-    case 5: {
-      const networkName = getEtherscanNetworkName(chainId);
-      baseUrl = `https://api${
-        networkName ? `-${networkName}` : ""
-      }.etherscan.io/api`;
+      baseUrl = "https://api.etherscan.io/api";
       break;
-    }
+    case 5:
+      baseUrl = "https://api-goerli.etherscan.io/api";
+      break;
     case 10:
       baseUrl = "https://api-optimistic.etherscan.io/api";
       break;
@@ -60,25 +44,26 @@ async function getAbiEntries(
     throw new ErrorConnection(response.result);
   }
 
-  return new utils.Interface(response.result);
+  return JSON.parse(response.result);
 }
 
 export const fetchAbi = async (
   contractAddress: Address,
-  provider: providers.Provider,
+  client: PublicClient,
   etherscanAPI: string,
-): Promise<[Address, utils.Interface]> => {
+): Promise<[Address, Abi]> => {
   const implementationAddress = await fetchImplementationAddress(
     contractAddress,
-    provider,
+    client,
   );
   const targetAddress = implementationAddress ?? contractAddress;
+  const chainId = await client?.getChainId();
 
-  const fetchedAbi = await getAbiEntries(
-    etherscanAPI,
-    targetAddress,
-    (await provider.getNetwork()).chainId,
-  );
+  if (!chainId) {
+    throw new ErrorException("Chain id is not supported");
+  }
+
+  const fetchedAbi = await getAbiEntries(etherscanAPI, targetAddress, chainId);
 
   return [targetAddress, fetchedAbi];
 };

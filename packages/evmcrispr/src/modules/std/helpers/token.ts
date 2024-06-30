@@ -1,13 +1,17 @@
-import { BigNumber, ethers } from "ethers";
 import fetch from "isomorphic-fetch";
 
-import { isAddress } from "ethers/lib/utils";
+import { isAddress, parseAbiItem } from "viem";
 
 import { ErrorException } from "../../../errors";
 
 import type { Address, HelperFunction } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
+import {
+  ComparisonType,
+  checkArgsLength,
+  isNumberish,
+  toDecimals,
+} from "../../../utils";
 import type { Module } from "../../../Module";
 import type { Std } from "../Std";
 
@@ -47,7 +51,7 @@ export const _token = async (
       token.symbol === tokenSymbolOrAddress && token.chainId == chainId,
   )?.address;
 
-  if (!tokenAddress) {
+  if (!tokenAddress || !isAddress(tokenAddress)) {
     throw new ErrorException(
       `${tokenSymbolOrAddress} not supported in ${tokenList} in chain ${chainId}.`,
     );
@@ -83,30 +87,34 @@ export const tokenBalance: HelperFunction<Std> = async (
   const [tokenSymbol, holder] = await interpretNodes(h.args);
 
   const tokenAddr = await _token(module, tokenSymbol);
-  const contract = new ethers.Contract(
-    tokenAddr,
-    ["function balanceOf(address owner) view returns (uint)"],
-    await module.getProvider(),
-  );
+  const client = await module.getClient();
 
-  return (await contract.balanceOf(holder)).toString();
+  const balance = await client.readContract({
+    address: tokenAddr,
+    abi: [
+      parseAbiItem("function balanceOf(address owner) view returns (uint)"),
+    ],
+    functionName: "balanceOf",
+    args: [holder],
+  });
+
+  return balance.toString();
 };
 
 export const _tokenAmount = async (
   module: Module,
   tokenSymbolOrAddress: string,
-  amount: BigNumber,
+  amount: string,
 ): Promise<string> => {
   const tokenAddr = await _token(module, tokenSymbolOrAddress);
 
-  const contract = new ethers.Contract(
-    tokenAddr,
-    ["function decimals() view returns (uint8)"],
-    await module.getProvider(),
-  );
-
-  const decimals = (await contract.decimals()).toString();
-  return amount.mul(BigNumber.from(10).pow(decimals)).toString();
+  const client = await module.getClient();
+  const decimals = await client.readContract({
+    address: tokenAddr,
+    abi: [parseAbiItem("function decimals() view returns (uint8)")],
+    functionName: "decimals",
+  });
+  return toDecimals(amount, decimals).toString();
 };
 
 export const tokenAmount: HelperFunction<Std> = async (

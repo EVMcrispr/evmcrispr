@@ -1,4 +1,10 @@
-import { utils } from "ethers";
+import type { Address } from "viem";
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  parseAbiItem,
+  parseAbiParameters,
+} from "viem";
 
 import type { CallScriptAction } from "../types";
 
@@ -16,17 +22,11 @@ export const EMPTY_CALLS_SCRIPT = createExecutorId(1);
  * @param {any[]} params
  */
 export function encodeActCall(signature: string, params: any[] = []): string {
-  const sigBytes = utils.hexDataSlice(utils.id(signature), 0, 4);
-  const types = signature.replace(")", "").split("(")[1];
-
-  // No params, return signature directly
-  if (types === "") {
-    return sigBytes;
-  }
-
-  const paramBytes = new utils.AbiCoder().encode(types.split(","), params);
-
-  return `${sigBytes}${paramBytes.slice(2)}`;
+  return encodeFunctionData({
+    abi: [parseAbiItem(`function ${signature}`)],
+    functionName: signature.split("(")[0],
+    args: params,
+  });
 }
 
 interface Segment {
@@ -36,13 +36,13 @@ interface Segment {
 
 function decodeSegment(script: string): Segment {
   // Get address
-  const to = `0x${script.substring(0, 40)}`;
+  const to: Address = `0x${script.substring(0, 40)}`;
   script = script.substring(40);
 
   // Get data
   const dataLength = parseInt(`0x${script.substring(0, 8)}`, 16) * 2;
   script = script.substring(8);
-  const data = `0x${script.substring(0, dataLength)}`;
+  const data: `0x${string}` = `0x${script.substring(0, dataLength)}`;
 
   // Return rest of script for processing
   script = script.substring(dataLength);
@@ -112,11 +112,13 @@ export function decodeCallScript(script: string): CallScriptAction[] {
  */
 export function encodeCallScript(actions: CallScriptAction[]): string {
   return actions.reduce((script: string, { to, data }) => {
-    const address = utils.defaultAbiCoder.encode(["address"], [to]);
-    const dataLength = utils.defaultAbiCoder.encode(
-      ["uint256"],
-      [(data.length - 2) / 2],
+    const address: Address = encodeAbiParameters(
+      parseAbiParameters(["address"]),
+      [to as `0x${string}`],
     );
+    const dataLength = encodeAbiParameters(parseAbiParameters(["uint256"]), [
+      BigInt((data.length - 2) / 2),
+    ]);
 
     return script + address.slice(26) + dataLength.slice(58) + data.slice(2);
   }, CALLSCRIPT_ID);

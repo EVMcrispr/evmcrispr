@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import type {
   CommandExpressionNode,
@@ -25,18 +26,18 @@ describe("Std > helpers > @ipfs(text)", () => {
     throw new Error("PINATA_JWT not defined in environment variables.");
   }
 
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
   const ipfsData = "This should be pinned in IPFS";
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should upload text to IPFS and return hash", async () => {
     const [interpret] = await preparingExpression(
       `@ipfs('${ipfsData}')`,
-      signer,
+      client,
       undefined,
       [`set $std:${JWT_VAR_NAME} ${PINATA_JWT}`],
     );
@@ -51,7 +52,7 @@ describe("Std > helpers > @ipfs(text)", () => {
       `
         set $res @ipfs('some text')
       `,
-      signer,
+      client,
     );
     const h = (interpreter.ast.body[0] as CommandExpressionNode)
       .args[1] as HelperFunctionNode;
@@ -69,7 +70,7 @@ describe("Std > helpers > @ipfs(text)", () => {
         set $std:ipfs.jwt "an invalid JWT"
         set $res @ipfs("someText")
       `,
-      signer,
+      client,
     );
     const h = (interpreter.ast.body[1] as CommandExpressionNode)
       .args[1] as HelperFunctionNode;
@@ -86,6 +87,6 @@ describe("Std > helpers > @ipfs(text)", () => {
     "@ipfs",
     [`'${ipfsData}'`],
     { type: ComparisonType.Equal, minValue: 1 },
-    lazySigner,
+    lazyClient,
   );
 });

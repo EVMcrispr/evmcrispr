@@ -1,8 +1,7 @@
-import { utils } from "ethers";
+import { isAddress } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
 import type {
-  Address,
   AddressLiteralNode,
   Node,
   NodeWithArguments,
@@ -119,10 +118,11 @@ export const getDeepestNodeWithArgs = (
   };
 };
 
+// TODO: This function is only used in the `exec` command, so it should be simplified or removed
 export const interpretNodeSync = (
   n: Node,
   bindingsManager: BindingsManager,
-): Address | undefined => {
+): string | undefined => {
   switch (n.type) {
     case AddressLiteral:
     case BoolLiteral:
@@ -130,7 +130,7 @@ export const interpretNodeSync = (
     case StringLiteral:
       return n.value;
     case NumberLiteral:
-      return utils.isAddress(n.value) ? n.value : undefined;
+      return isAddress(n.value) ? n.value : undefined;
     case ProbableIdentifier:
       return (
         bindingsManager.getBindingValue(n.value, BindingsSpace.ADDR) ?? n.value

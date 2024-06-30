@@ -22,7 +22,7 @@ export const date: HelperFunction<Std> = async (_, h, { interpretNodes }) => {
   if (offset && !offsetRegex.test(offset)) {
     throw new ErrorInvalid("Invalid offset provided.");
   }
-  const _date = date == "now" ? Date.now() : new Date(date);
+  const _date = date == "now" ? Date.now() : new Date(date.toString());
   const [
     ,
     years = 0,

@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { keccak256, toHex } from "viem";
 
 import type { Action } from "../../../../src/types";
 import { oracle } from "../../../../src/modules/aragonos/utils";
@@ -12,27 +13,28 @@ import { CommandError } from "../../../../src/errors";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { createTestAction } from "../../../test-helpers/actions";
+import { createTestAction } from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
   itChecksBadPermission,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -46,15 +48,17 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
 
     const expectedGranteeActions = [
       createTestAction("grantPermission", DAO.acl, [
-        await signer.getAddress(),
+        TEST_ACCOUNT_ADDRESS,
         DAO.agent,
-        utils.id("TRANSFER_ROLE"),
+        keccak256(toHex("TRANSFER_ROLE")),
       ]),
     ];
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO.kernel);
     const app = dao?.resolveApp("agent");
-    const grantees = app?.permissions?.get(utils.id("TRANSFER_ROLE"))?.grantees;
+    const grantees = app?.permissions?.get(
+      keccak256(toHex("TRANSFER_ROLE")),
+    )?.grantees;
 
     expect(granteeActions, "Returned actions mismatch").to.eqls(
       expectedGranteeActions,
@@ -62,7 +66,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
     expect(
       grantees,
       "Grantee wasn't found on DAO app's permissions",
-    ).to.include(await signer.getAddress());
+    ).to.include(TEST_ACCOUNT_ADDRESS);
   });
 
   it("should return a correct create permission action", async () => {
@@ -72,19 +76,21 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
 
     const createPermissionAction = await interpreter.interpret();
 
-    const expectedPermissionManager = await signer.getAddress();
+    const expectedPermissionManager = TEST_ACCOUNT_ADDRESS;
     const expectedCreatePermissionActions = [
       createTestAction("createPermission", DAO.acl, [
         DAO["disputable-voting.open"],
         DAO["wrappable-hooked-token-manager.open"],
-        utils.id("WRAP_TOKEN_ROLE"),
+        keccak256(toHex("WRAP_TOKEN_ROLE")),
         expectedPermissionManager,
       ]),
     ];
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO.kernel);
     const app = dao?.resolveApp("wrappable-hooked-token-manager.open");
-    const permission = app?.permissions?.get(utils.id("WRAP_TOKEN_ROLE"));
+    const permission = app?.permissions?.get(
+      keccak256(toHex("WRAP_TOKEN_ROLE")),
+    );
 
     expect(createPermissionAction, "Returned actions mismatch").to.eql(
       expectedCreatePermissionActions,
@@ -110,13 +116,13 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
       createTestAction("createPermission", DAO.acl, [
         DAO["disputable-voting.open"],
         DAO["wrappable-hooked-token-manager.open"],
-        utils.id("WRAP_TOKEN_ROLE"),
+        keccak256(toHex("WRAP_TOKEN_ROLE")),
         DAO["disputable-voting.open"],
       ]),
       createTestAction("grantPermissionP", DAO.acl, [
         DAO["disputable-voting.open"],
         DAO["wrappable-hooked-token-manager.open"],
-        utils.id("WRAP_TOKEN_ROLE"),
+        keccak256(toHex("WRAP_TOKEN_ROLE")),
         oracle(DAO["wrappable-hooked-token-manager.open"])(),
       ]),
     ];
@@ -135,7 +141,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
           )
         )
       `,
-      signer,
+      client,
     );
 
     const grantActions = await interpreter.interpret();
@@ -144,7 +150,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
       createTestAction("grantPermission", DAO.acl, [
         DAO2["disputable-voting.open"],
         DAO["disputable-voting.open"],
-        utils.id("CREATE_VOTES_ROLE"),
+        keccak256(toHex("CREATE_VOTES_ROLE")),
       ]),
     ];
 
@@ -167,7 +173,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
           )
         )
       `,
-      signer,
+      client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "grant", 1)!;
     const error = new CommandError(
@@ -212,7 +218,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
 
     ar:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE
   `,
-      signer,
+      client,
     );
     const c = interpreter.ast.body[1];
     const error = new CommandError(

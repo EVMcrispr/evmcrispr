@@ -1,4 +1,4 @@
-import { BigNumber, utils } from "ethers";
+import { concat, toHex, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 
@@ -8,17 +8,17 @@ import type { Params } from "../types/permission";
 /**
  * An address used for permission operations that denotes any type of Ethereum account.
  */
-export const ANY_ENTITY: Address = "0x" + "f".repeat(40);
+export const ANY_ENTITY: Address = `0xffffffffffffffffffffffffffffffffffffffff`;
 
 /**
  * An address used for permission operations that denotes no Ethereum account.
  */
-export const NO_ENTITY: Address = "0x" + "0".repeat(40);
+export const NO_ENTITY: Address = zeroAddress;
 
 /**
  * An address used for permission operations that denotes that the permission has been burnt.
  */
-export const BURN_ENTITY: Address = "0x" + "0".repeat(39) + "1";
+export const BURN_ENTITY: Address = `0x0000000000000000000000000000000000000001`;
 
 const Op = {
   NONE: 0,
@@ -69,7 +69,7 @@ const timestamp = _arg(SpecialArgId.TIMESTAMP);
 
 // ACL oracle
 
-function oracle(oracle: string | (() => string)): Params {
+function oracle(oracle: `0x${string}` | (() => `0x${string}`)): Params {
   return () => {
     const _oracle = typeof oracle === "string" ? oracle : oracle();
     return [_encodeParam(SpecialArgId.ORACLE, Op.EQ, _oracle)];
@@ -80,7 +80,7 @@ function oracle(oracle: string | (() => string)): Params {
 
 const logic = {
   not: (param: number): Params =>
-    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.NOT, String(param)),
+    _encodeParams(SpecialArgId.LOGIC_OP, LogicOp.NOT, param),
   and: (param1: number, param2: number): Params =>
     _encodeParams(
       SpecialArgId.LOGIC_OP,
@@ -117,7 +117,7 @@ const paramValue = _arg(SpecialArgId.PARAM_VALUE);
 
 // Parameter logic composition
 
-function encodeParams(param: Params): string[] {
+function encodeParams(param: Params): `0x${string}`[] {
   return param(0);
 }
 
@@ -150,17 +150,22 @@ function _arg(id: number) {
   };
 }
 
-function _encodeParam(argId: number, op: number, value: any): string {
-  const _argId = utils.hexlify(argId).slice(2);
-  const _op = utils.hexlify(op).slice(2);
-  const _value = utils
-    .hexlify(BigNumber.from(value))
-    .slice(2)
-    .padStart(60, "0"); // 60 as params are uint240
-  return `0x${_argId}${_op}${_value}`;
+function _encodeParam(
+  argId: number,
+  op: number,
+  value: number | `0x${string}`,
+): `0x${string}` {
+  const _argId = toHex(argId, { size: 1 });
+  const _op = toHex(op, { size: 1 });
+  const _value = typeof value === "string" ? value : toHex(value, { size: 30 });
+  return concat([_argId, _op, _value]);
 }
 
-function _encodeParams(argId: number, op: number, value: any): Params {
+function _encodeParams(
+  argId: number,
+  op: number,
+  value: number | `0x${string}`,
+): Params {
   return () => [_encodeParam(argId, op, value)];
 }
 
@@ -211,7 +216,7 @@ function _ternaryLogicOp(
   };
 }
 
-function _encodeOperator(param1: number, param2: number): string {
+function _encodeOperator(param1: number, param2: number): `0x${string}` {
   return _encodeIfElse(param1, param2, 0);
 }
 
@@ -219,11 +224,11 @@ function _encodeIfElse(
   condition: number,
   successParam: number,
   failureParam: number,
-) {
-  const _condition = utils.hexlify(condition).slice(2).padStart(8, "0");
-  const _successParam = utils.hexlify(successParam).slice(2).padStart(8, "0");
-  const _failureParam = utils.hexlify(failureParam).slice(2).padStart(44, "0");
-  return `0x${_failureParam}${_successParam}${_condition}`;
+): `0x${string}` {
+  const _condition = toHex(condition, { size: 4 });
+  const _successParam = toHex(successParam, { size: 4 });
+  const _failureParam = toHex(failureParam, { size: 22 });
+  return concat([_failureParam, _successParam, _condition]);
 }
 
 export {

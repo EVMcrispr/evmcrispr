@@ -1,14 +1,9 @@
-import { toDecimals } from "../../src/utils";
+import { toDecimals } from "../../../../src/utils";
 
 export const FORWARDER = "token-manager";
 export const FEE_FORWARDER = "tollgate.1hive";
-// export const CONTEXT_FORWARDER = 'dandelion-voting.1hive';
 
-export const COMPLETE_FORWARDER_PATH = [
-  FEE_FORWARDER,
-  FORWARDER,
-  // CONTEXT_FORWARDER,
-];
+export const COMPLETE_FORWARDER_PATH = [FEE_FORWARDER, FORWARDER];
 
 export const CONTEXT = "Example Context: https://evmcrispr.blossom.software/";
 

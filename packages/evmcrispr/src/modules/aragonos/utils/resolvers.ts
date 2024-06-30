@@ -1,11 +1,11 @@
-import type { providers } from "ethers";
-import { Contract, ethers, utils } from "ethers";
+import type { PublicClient } from "viem";
+import { namehash, parseAbi, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 
 import type { Address } from "../../../types";
 
-export function getAragonEnsResolver(chainId: number): string | never {
+export function getAragonEnsResolver(chainId: number): Address | never {
   switch (chainId) {
     case 1:
       return "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
@@ -27,22 +27,29 @@ export function getAragonEnsResolver(chainId: number): string | never {
 export async function resolveName(
   name: string,
   ensResolver: Address,
-  provider: providers.Provider,
+  client: PublicClient,
 ): Promise<Address | null> {
   if (!/(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+eth/.test(name)) {
     throw new ErrorException(`ENS not valid: ${name}`);
   }
-  const namehash = utils.namehash(name);
-  const resolver = await new Contract(
-    ensResolver,
-    ["function resolver(bytes32 node) external view returns (address)"],
-    provider,
-  ).resolver(namehash);
-  if (resolver === ethers.constants.AddressZero) return null;
-  const daoAddress = await new Contract(
-    resolver,
-    ["function addr(bytes32 node) external view returns (address ret)"],
-    provider,
-  ).addr(namehash);
-  return daoAddress === ethers.constants.AddressZero ? null : daoAddress;
+  const _namehash = namehash(name);
+
+  const resolver = await client.readContract({
+    address: ensResolver,
+    abi: parseAbi([
+      "function resolver(bytes32 node) external view returns (address)",
+    ]),
+    functionName: "resolver",
+    args: [_namehash],
+  });
+  if (resolver === zeroAddress) return null;
+  const daoAddress = await client.readContract({
+    address: resolver,
+    abi: parseAbi([
+      "function addr(bytes32 node) external view returns (address ret)",
+    ]),
+    functionName: "addr",
+    args: [_namehash],
+  });
+  return daoAddress === zeroAddress ? null : daoAddress;
 }

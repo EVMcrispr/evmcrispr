@@ -1,4 +1,4 @@
-import { isAddress } from "ethers/lib/utils";
+import { isAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 

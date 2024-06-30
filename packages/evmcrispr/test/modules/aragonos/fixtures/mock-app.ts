@@ -1,9 +1,27 @@
-import { utils } from "ethers";
+import type { Address } from "viem";
+import { namehash, toHex } from "viem";
 
-import { DAO } from ".";
-import { toDecimals } from "../../src/utils";
+import { DAO } from "../../../fixtures";
+import { toDecimals } from "../../../../src/utils";
 
-export const APP = {
+type App = {
+  appName: string;
+  codeAddress: Address;
+  initializeSignature: string;
+  initializeParams: any[];
+  initializeUnresolvedParams: any[];
+  callSignature: string;
+  callSignatureParams: any[];
+  callSignatureUnresolvedParams: any[];
+  actTarget: Address;
+  actSignature: string;
+  actSignatureParams: any[];
+  actSignatureUnresolvedParams: any[];
+  get appIdentifier(): keyof typeof DAO;
+  get appId(): string;
+};
+
+export const APP: App = {
   appName: "token-manager.aragonpm.eth",
   codeAddress: "0x714c925ede405687752c4ad32078137c4f179538",
   initializeSignature: "initialize(address,bool,uint256)",
@@ -25,8 +43,8 @@ export const APP = {
       [String(0.15e8), 4838400],
     ],
     false,
-    utils.hexlify(utils.toUtf8Bytes("hello")),
-    utils.formatBytes32String("hello"),
+    toHex("hello"),
+    toHex("hello", { size: 32 }),
   ],
   actSignatureUnresolvedParams: [
     ["vault"],
@@ -42,6 +60,6 @@ export const APP = {
     return this.appName.split(".")[0] as keyof typeof DAO;
   },
   get appId(): string {
-    return utils.namehash(this.appName);
+    return namehash(this.appName);
   },
 };

@@ -12,10 +12,10 @@ import type { AppIdentifier, LabeledAppIdentifier } from "./app";
  * - **Manager**: Entity that will act as the permission manager.
  */
 export type CompletePermission = [
-  Entity,
-  Entity,
+  Address,
+  Address,
   string,
-  string?,
+  Address?,
   ReturnType<Params>?,
 ];
 
@@ -43,7 +43,7 @@ export type RoleHash = string;
  * - iff(param1).then(param2).else(param3)
  * - paramValue[opId](value)
  */
-export type Params = (index?: number) => string[];
+export type Params = (index?: number) => `0x${string}`[];
 
 /**
  * An array which follows the format `[<Grantee>, <App>, <Role>]`.
@@ -52,9 +52,9 @@ export type Params = (index?: number) => string[];
  * - **App**: App entity that holds the allowed permission.
  * - **Role**: The permission's name.
  */
-export type Permission = [Entity, Entity, string];
+export type Permission = [Address, Address, string];
 
-export type FullPermission = [...Permission, string?];
+export type FullPermission = [...Permission, Address?];
 
 /**
  * An object that contains an app's permission data.

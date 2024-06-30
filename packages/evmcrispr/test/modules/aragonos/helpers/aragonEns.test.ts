@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -10,22 +11,22 @@ import {
 } from "../../../test-helpers/cas11";
 
 describe("AragonOS > helpers > @aragonEns()", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
     const [repoRes] = await preparingExpression(
       "@aragonEns(hooked-token-manager-no-controller.open.aragonpm.eth)",
-      signer,
+      client,
       "aragonos",
     );
     const [daoRes] = await preparingExpression(
       `@aragonEns(test.aragonid.eth)`,
-      signer,
+      client,
       "aragonos",
     );
 
@@ -42,7 +43,7 @@ describe("AragonOS > helpers > @aragonEns()", () => {
     "@aragonEns",
     ["mydao.aragonid.eth", "0x98Df287B6C145399Aaa709692c8D308357bC085D"],
     { type: ComparisonType.Between, minValue: 1, maxValue: 2 },
-    lazySigner,
+    lazyClient,
     "aragonos",
   );
 });

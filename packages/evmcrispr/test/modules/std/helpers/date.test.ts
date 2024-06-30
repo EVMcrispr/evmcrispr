@@ -1,6 +1,7 @@
+import { viem } from "hardhat";
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -13,15 +14,15 @@ const toTimestamp = (date?: string): number =>
   (date ? new Date(date) : new Date()).valueOf() / 1000;
 
 describe("Std > helpers > @date(date, offset?)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   const runHelper = async (helper: string) => {
-    return preparingExpression(helper, signer);
+    return preparingExpression(helper, client);
   };
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
@@ -164,6 +165,6 @@ describe("Std > helpers > @date(date, offset?)", () => {
       minValue: 1,
       maxValue: 2,
     },
-    lazySigner,
+    lazyClient,
   );
 });

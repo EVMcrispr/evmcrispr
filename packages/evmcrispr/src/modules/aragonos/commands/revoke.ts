@@ -1,8 +1,9 @@
-import { utils } from "ethers";
+import { isAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 import type {
   Action,
+  Address,
   AddressBinding,
   ICommand,
   InterpretOptions,
@@ -13,6 +14,7 @@ import {
   ComparisonType,
   addressesEqual,
   checkArgsLength,
+  encodeAction,
   interpretNodeSync,
 } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
@@ -52,15 +54,14 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   }
 
   const { permissions: appPermissions, name } = app;
-  const { address: aclAddress, abiInterface: aclAbiInterface } =
-    dao!.resolveApp("acl")!;
+  const { address: aclAddress } = dao!.resolveApp("acl")!;
 
   if (!appPermissions.has(roleHash)) {
     throw new ErrorException(`given permission doesn't exists on app ${name}`);
   }
 
   const appPermission = appPermissions.get(roleHash)!;
-  if (!appPermission.grantees.has(granteeAddress.toLowerCase())) {
+  if (!appPermission.grantees.has(granteeAddress.toLowerCase() as Address)) {
     throw new ErrorException(
       `grantee ${granteeAddress} doesn't have the given permission`,
     );
@@ -70,24 +71,22 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
   const actions: Action[] = [];
 
-  actions.push({
-    to: aclAddress,
-    data: aclAbiInterface.encodeFunctionData("revokePermission", [
+  actions.push(
+    encodeAction(aclAddress, "revokePermission(address,address,bytes32)", [
       granteeAddress,
       appAddress,
       roleHash,
     ]),
-  });
+  );
 
   if (removeManager) {
     delete appPermission.manager;
-    actions.push({
-      to: aclAddress,
-      data: aclAbiInterface.encodeFunctionData("removePermissionManager", [
+    actions.push(
+      encodeAction(aclAddress, "removePermissionManager(address,bytes32)", [
         appAddress,
         roleHash,
       ]),
-    });
+    );
   }
 
   return actions;
@@ -151,8 +150,9 @@ export const revoke: ICommand<AragonOS> = {
          * identifier, if exists
          */
         return [...granteeAddresses].map((granteeAddress) => {
-          const granteeIdentifier = identifierBindings.find(({ value }) =>
-            addressesEqual(value, granteeAddress),
+          const granteeIdentifier = identifierBindings.find(
+            ({ value }) =>
+              isAddress(value) && addressesEqual(value, granteeAddress),
           )?.identifier;
 
           return granteeIdentifier ?? granteeAddress;
@@ -163,7 +163,7 @@ export const revoke: ICommand<AragonOS> = {
           dao.getPermissions(),
         );
 
-        if (!revokeeAddress || !utils.isAddress(revokeeAddress)) {
+        if (!revokeeAddress || !isAddress(revokeeAddress)) {
           return [];
         }
 
@@ -189,9 +189,9 @@ export const revoke: ICommand<AragonOS> = {
 
         if (
           !revokeeAddress ||
-          !utils.isAddress(revokeeAddress) ||
+          !isAddress(revokeeAddress) ||
           !appAddress ||
-          !utils.isAddress(appAddress)
+          !isAddress(appAddress)
         ) {
           return [];
         }
@@ -201,7 +201,7 @@ export const revoke: ICommand<AragonOS> = {
         );
       }
       case 3: {
-        if (!role || !appAddress || !utils.isAddress(appAddress)) {
+        if (!role || !appAddress || !isAddress(appAddress)) {
           return [];
         }
 

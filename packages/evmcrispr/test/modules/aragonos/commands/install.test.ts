@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import type { Action } from "../../../../src/types";
 import { encodeActCall } from "../../../../src/modules/aragonos/utils";
@@ -8,13 +9,14 @@ import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import { CommandError } from "../../../../src/errors";
 import { addressesEqual } from "../../../../src/utils";
 
-import { APP, DAO } from "../../../fixtures";
+import { DAO } from "../../../fixtures";
+import { APP } from "../fixtures/mock-app";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { createTestAction } from "../../../test-helpers/actions";
+import { createTestAction } from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
@@ -29,17 +31,17 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   } = APP;
   const newAppIdentifier = `${appIdentifier}:new-app`;
 
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -118,7 +120,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
           )
         )
       `,
-      signer,
+      client,
     );
 
     const installActions = await interpreter.interpret();
@@ -145,7 +147,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
 
     ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}
   `,
-      signer,
+      client,
     );
     const c = interpreter.ast.body[1];
     const error = new CommandError(
@@ -220,8 +222,9 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
 
   it("should fail when passing invalid initialize params", async () => {
     const paramsErrors = [
-      "-param _token of type address: invalid address. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a",
-      "-param _maxAccountTokens of type uint256: invalid BigNumber value. Got false",
+      '-param _token of type address: Address "0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a',
+      '-param _transferable of type bool: Invalid boolean value: "1000000000000000000". Got 1000000000000000000',
+      "-param _maxAccountTokens of type uint256: Invalid BigInt value. Got false",
     ];
     const interpreter = createAragonScriptInterpreter([
       `install ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,

@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
 
-import { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { PublicClient } from "viem";
+
 import type { CommandExpressionNode } from "../../../../src/types";
 
 import { CommandError } from "../../../../src/errors";
@@ -10,17 +10,18 @@ import { CommandError } from "../../../../src/errors";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
+import { Ens } from "../../../../src/modules/ens/Ens";
 
 describe("Std > commands > load <name> [as <alias>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should load a module correctly", async () => {
-    const moduleName = "aragonos";
-    const interpreter = createInterpreter(`load ${moduleName}`, signer);
+    const moduleName = "ens";
+    const interpreter = createInterpreter(`load ${moduleName}`, client);
 
     await interpreter.interpret();
 
@@ -30,22 +31,22 @@ describe("Std > commands > load <name> [as <alias>]", () => {
     expect(modules.length, "total modules length mismatch").to.be.equal(2);
     expect(module, "module doesn't exists").to.exist;
     expect(module?.name, "module name mismatch").to.equals(moduleName);
-    expect(module, "module class mismatch").instanceOf(AragonOS);
+    expect(module, "module class mismatch").instanceOf(Ens);
   });
 
   it("should set an alias for a module correctly", async () => {
-    const interpreter = createInterpreter("load aragonos as ar", signer);
+    const interpreter = createInterpreter("load ens as e", client);
 
     await interpreter.interpret();
 
-    const module = interpreter.getModule("aragonos");
+    const module = interpreter.getModule("ens");
 
-    expect(module?.alias).to.be.equal("ar");
+    expect(module?.alias).to.be.equal("e");
   });
 
   it("should fail when trying to load a non-existent module", async () => {
     const moduleName = "nonExistent";
-    const interpreter = createInterpreter(`load ${moduleName}`, signer);
+    const interpreter = createInterpreter(`load ${moduleName}`, client);
     const c = findStdCommandNode(interpreter.ast, "load")!;
     const error = new CommandError(c, `module ${moduleName} not found`);
 
@@ -53,13 +54,13 @@ describe("Std > commands > load <name> [as <alias>]", () => {
   });
 
   it("should fail when trying to load a previously loaded module", async () => {
-    const moduleName = "aragonos";
+    const moduleName = "ens";
     const interpreter = createInterpreter(
       `
     load ${moduleName}
     load ${moduleName}
   `,
-      signer,
+      client,
     );
     const c = interpreter.ast.body[1] as CommandExpressionNode;
     const error = new CommandError(c, `module ${moduleName} already loaded`);

@@ -1,4 +1,4 @@
-import { Contract } from "ethers";
+import { parseAbi } from "viem";
 
 import type { ICommand } from "../../../types";
 
@@ -21,14 +21,16 @@ export const renew: ICommand<Ens> = {
       throw Error("This command only works on mainnet");
     }
 
-    const contract = new Contract(
-      bulkRenewal,
-      [
+    const client = await module.getClient();
+
+    const value = await client.readContract({
+      address: bulkRenewal,
+      abi: parseAbi([
         "function rentPrice(string[] calldata names, uint duration) external view returns(uint total)",
-      ],
-      await module.getProvider(),
-    );
-    const value = await contract.rentPrice(domains, duration);
+      ]),
+      functionName: "rentPrice",
+      args: [domains, duration],
+    });
 
     return [
       {

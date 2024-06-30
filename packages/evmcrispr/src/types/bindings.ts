@@ -1,9 +1,9 @@
-import type { utils } from "ethers";
 import type { AstSymbol } from "jsymbol";
 
 import type { BindingsManager } from "../BindingsManager";
 
 import type { Commands, HelperFunctions, IDataProvider } from "./modules";
+import type { Abi, Address } from "../types";
 
 export enum BindingsSpace {
   USER = "USER",
@@ -35,11 +35,11 @@ export type ModuleData = {
   helpers: HelperFunctions<any>;
 };
 
-export interface AddressBinding extends IBinding<string> {
+export interface AddressBinding extends IBinding<Address> {
   type: BindingsSpace.ADDR;
 }
 
-export interface AbiBinding extends IBinding<utils.Interface> {
+export interface AbiBinding extends IBinding<Abi> {
   type: BindingsSpace.ABI;
 }
 

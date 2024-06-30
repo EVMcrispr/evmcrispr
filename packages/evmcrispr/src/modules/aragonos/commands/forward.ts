@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { isAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 import type { Action, ICommand, TransactionAction } from "../../../types";
@@ -32,7 +32,7 @@ export const forward: ICommand<AragonOS> = {
     const invalidForwarderApps: any[] = [];
 
     forwarderAppAddresses.forEach((a) =>
-      !utils.isAddress(a) ? invalidForwarderApps.push(a) : undefined,
+      !isAddress(a) ? invalidForwarderApps.push(a) : undefined,
     );
 
     if (invalidForwarderApps.length) {
@@ -59,7 +59,6 @@ export const forward: ICommand<AragonOS> = {
       "check-forwarder",
       interpretNode,
     );
-    console.log(checkForwarder, "checkForwarder");
 
     return batchForwarderActions(
       module,

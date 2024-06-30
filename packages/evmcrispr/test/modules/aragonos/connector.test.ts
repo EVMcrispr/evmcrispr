@@ -1,8 +1,9 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import hre, { ethers } from "hardhat";
+import hre, { viem } from "hardhat";
 import { cid } from "is-ipfs";
+
+import type { PublicClient } from "viem";
+import { isAddress } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../../src/errors";
 import { Connector } from "../../../src/modules/aragonos/Connector";
@@ -10,11 +11,8 @@ import { parseContentUri } from "../../../src/modules/aragonos/utils";
 import type { ParsedApp } from "../../../src/modules/aragonos/types";
 
 import { DAO, EOA_ADDRESS } from "../../fixtures";
-import {
-  expectThrowAsync,
-  isValidArtifact,
-  isValidParsedApp,
-} from "../../test-helpers/expects";
+import { expectThrowAsync } from "../../test-helpers/expects";
+import { isValidArtifact, isValidParsedApp } from "./test-helpers/expects";
 
 const {
   network: {
@@ -27,21 +25,17 @@ const GOERLI_DAO_ADDRESS = "0xd8765273da3a7f7a4dc184e8a9f8a894e4dfb4c4";
 describe("AragonOS > Connector", () => {
   let connector: Connector;
   let goerliConnector: Connector;
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    signer = (await ethers.getSigners())[0];
-    const provider = signer.provider!;
+    client = await viem.getPublicClient();
 
-    connector = new Connector(chainId || 4, provider);
-    goerliConnector = new Connector(5, provider);
+    connector = new Connector(chainId || 4, client);
+    goerliConnector = new Connector(5, client);
   });
 
   it("should fail when creating a connector with an unknown chain id", () => {
-    expectThrowAsync(
-      () => new Connector(999, signer.provider!),
-      new ErrorException(),
-    );
+    expectThrowAsync(() => new Connector(999, client), new ErrorException());
   });
 
   describe("repo()", () => {
@@ -51,8 +45,7 @@ describe("AragonOS > Connector", () => {
         "aragonpm.eth",
       );
 
-      expect(utils.isAddress(codeAddress), "Invalid  repo code address").to.be
-        .true;
+      expect(isAddress(codeAddress), "Invalid  repo code address").to.be.true;
 
       expect(cid(parseContentUri(contentUri)), "Invalid repo contentUri").to.be
         .true;

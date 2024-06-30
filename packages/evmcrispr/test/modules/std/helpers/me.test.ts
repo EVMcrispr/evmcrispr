@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -8,19 +9,20 @@ import {
   itChecksInvalidArgsLength,
   preparingExpression,
 } from "../../../test-helpers/cas11";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 describe("Std > helpers > @me", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should return the current connected account", async () => {
-    const [interpret] = await preparingExpression(`@me`, signer);
+    const [interpret] = await preparingExpression(`@me`, client);
 
-    expect(await interpret()).to.equals(await signer.getAddress());
+    expect(await interpret()).to.equals(TEST_ACCOUNT_ADDRESS);
   });
 
   itChecksInvalidArgsLength(
@@ -28,6 +30,6 @@ describe("Std > helpers > @me", () => {
     "@me",
     [],
     { type: ComparisonType.Equal, minValue: 0 },
-    lazySigner,
+    lazyClient,
   );
 });

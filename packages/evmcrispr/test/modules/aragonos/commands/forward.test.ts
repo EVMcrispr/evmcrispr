@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { keccak256, toHex } from "viem";
 
 import { commaListItems } from "../../../../src/utils";
 import { CommandError } from "../../../../src/errors";
@@ -10,11 +11,11 @@ import { DAO } from "../../../fixtures";
 import {
   createTestAction,
   createTestScriptEncodedAction,
-} from "../../../test-helpers/actions";
+} from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
@@ -23,17 +24,17 @@ import { expectThrowAsync } from "../../../test-helpers/expects";
 import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils";
 
 describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -56,17 +57,17 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
           createTestAction("createPermission", DAO.acl, [
             DAO["disputable-voting.open"],
             DAO["disputable-conviction-voting.open"],
-            utils.id("PAUSE_CONTRACT_ROLE"),
+            keccak256(toHex("PAUSE_CONTRACT_ROLE")),
             DAO["disputable-voting.open"],
           ]),
           createTestAction("revokePermission", DAO.acl, [
             ANY_ENTITY,
             DAO["disputable-conviction-voting.open"],
-            utils.id("CREATE_PROPOSALS_ROLE"),
+            keccak256(toHex("CREATE_PROPOSALS_ROLE")),
           ]),
           createTestAction("removePermissionManager", DAO.acl, [
             DAO["disputable-conviction-voting.open"],
-            utils.id("CREATE_PROPOSALS_ROLE"),
+            keccak256(toHex("CREATE_PROPOSALS_ROLE")),
           ]),
         ],
         ["disputable-voting.open"],
@@ -91,7 +92,7 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
           )
         )
       `,
-        signer,
+        client,
       ),
     "forward",
     0,

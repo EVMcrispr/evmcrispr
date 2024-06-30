@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { defaultAbiCoder } from "ethers/lib/utils";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient, WalletClient } from "viem";
+import { decodeAbiParameters, parseAbiParameters } from "viem";
 
 import { BindingsSpace } from "../../../../src/types";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
@@ -11,10 +12,12 @@ import { addressesEqual } from "../../../../src/utils";
 import { createInterpreter } from "../../../test-helpers/cas11";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
-  let signer: Signer;
+  let client: PublicClient;
+  let walletClient: WalletClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
+    [walletClient] = await viem.getWalletClients();
   });
 
   it("should create a new dao correctly", async () => {
@@ -25,24 +28,30 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
 
       ar:new-dao ${daoName}
     `,
-      signer,
+      client,
     );
 
     const newDAOActions = await interpreter.interpret();
 
-    const tx = await signer.sendTransaction(
-      newDAOActions[0] as TransactionAction,
-    );
+    const txHash = await walletClient.sendTransaction({
+      ...(newDAOActions[0] as TransactionAction),
+      // Used to avoid typescript errors
+      chain: undefined,
+      account: walletClient.account!,
+    });
 
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
 
-    const receipt = await tx.wait();
+    const receipt = await client.waitForTransactionReceipt({ hash: txHash });
 
     const lastLog = receipt.logs.pop();
 
     expect(lastLog).to.not.be.undefined;
 
-    const newDAOAddress = defaultAbiCoder.decode(["address"], lastLog!.data)[0];
+    const newDAOAddress = decodeAbiParameters(
+      parseAbiParameters("address"),
+      lastLog!.data,
+    )[0];
 
     expect(
       addressesEqual(

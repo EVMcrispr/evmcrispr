@@ -1,9 +1,7 @@
-import { utils } from "ethers";
-
-import { Interface } from "ethers/lib/utils";
+import { getAbiItem, isAddress } from "viem";
 
 import { BindingsSpace } from "../../../types";
-import type { AbiBinding, Address, ICommand } from "../../../types";
+import type { Abi, AbiBinding, Address, ICommand } from "../../../types";
 
 import {
   ComparisonType,
@@ -13,6 +11,7 @@ import {
   checkArgsLength,
   checkOpts,
   encodeAction,
+  getFunctionFragment,
   getOptValue,
   insideNodeLine,
   interpretNodeSync,
@@ -46,33 +45,41 @@ export const exec: ICommand<Std> = {
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
 
-    if (!utils.isAddress(contractAddress)) {
+    if (!isAddress(contractAddress)) {
       throw new ErrorException(
         `expected a valid target address, but got ${contractAddress}`,
       );
     }
 
-    if (from && !utils.isAddress(from)) {
+    if (from && !isAddress(from)) {
       throw new ErrorException(
         `expected a valid from address, but got ${from}`,
       );
     }
 
     if (!SIGNATURE_REGEX.test(signature)) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(signature)) {
+        throw new ErrorException(`invalid signature "${signature}"`);
+      }
       const abi = module.bindingsManager.getBindingValue(
         contractAddress,
         ABI,
-      ) as utils.Interface;
+      ) as Abi | undefined;
 
       if (abi) {
-        finalSignature = abi.getFunction(signature).format("minimal");
+        const func = getAbiItem({
+          abi,
+          name: signature,
+        });
+
+        finalSignature = getFunctionFragment(func);
       } else {
         const etherscanAPI = module.getConfigBinding("etherscanAPI");
-        let fetchedAbi: utils.Interface;
+        let fetchedAbi: Abi;
         try {
           [targetAddress, fetchedAbi] = await fetchAbi(
             contractAddress,
-            await module.getProvider(),
+            await module.getClient(),
             etherscanAPI,
           );
         } catch (err) {
@@ -89,7 +96,12 @@ export const exec: ICommand<Std> = {
         }
 
         try {
-          finalSignature = fetchedAbi.getFunction(signature).format("minimal");
+          finalSignature = getFunctionFragment(
+            getAbiItem({
+              abi: fetchedAbi,
+              name: signature,
+            }),
+          );
         } catch (err) {
           const err_ = err as Error;
           throw new ErrorException(
@@ -110,7 +122,7 @@ export const exec: ICommand<Std> = {
       if (!isNumberish(value)) {
         throw new ErrorException(`expected a valid value, but got ${value}`);
       }
-      execAction.value = value.toString();
+      execAction.value = BigInt(value);
     }
 
     if (from) {
@@ -129,40 +141,34 @@ export const exec: ICommand<Std> = {
       // Contract method
       case 1: {
         // Check if it's a @token helper and provide ERC-20 functions
-        if (
+        const abi =
           nodeArgs[0].type === "HelperFunctionExpression" &&
           (nodeArgs[0] as HelperFunctionNode).name === "token"
-        ) {
-          const abi = new Interface(erc20ABI);
-          const functions = Object.keys(abi.functions)
-            // Only consider functions that change state
-            .filter((fnName) => !abi.functions[fnName].constant)
-            .map((fnName) => {
-              return abi.functions[fnName].format();
-            });
-          return functions;
-        }
-
-        const targetAddress = interpretNodeSync(nodeArgs[0], bindingsManager);
-
-        if (!targetAddress || !utils.isAddress(targetAddress)) {
-          return [];
-        }
-
-        const abi = bindingsManager.getBindingValue(targetAddress, ABI);
-
-        if (!abi) {
-          return [];
-        }
-
-        const nonConstantFns = Object.keys(abi.functions)
+            ? erc20ABI
+            : (function () {
+                const targetAddress = interpretNodeSync(
+                  nodeArgs[0],
+                  bindingsManager,
+                );
+                if (!targetAddress || !isAddress(targetAddress)) {
+                  return [];
+                }
+                const abi = bindingsManager.getBindingValue(targetAddress, ABI);
+                if (!abi) {
+                  return [];
+                }
+                return abi;
+              })();
+        const functions = abi
           // Only consider functions that change state
-          .filter((fnName) => !abi.functions[fnName].constant)
-          .map((fnName) => {
-            return abi.functions[fnName].format();
-          });
-
-        return nonConstantFns;
+          .filter(
+            (item) =>
+              item.type === "function" &&
+              (item.stateMutability === "nonpayable" ||
+                item.stateMutability === "payable"),
+          )
+          .map(getFunctionFragment);
+        return functions;
       }
       default: {
         if (argIndex >= 2) {
@@ -174,7 +180,7 @@ export const exec: ICommand<Std> = {
       }
     }
   },
-  async runEagerExecution(c, cache, { provider }, caretPos) {
+  async runEagerExecution(c, cache, { client }, caretPos) {
     if (
       !insideNodeLine(c, caretPos) ||
       !c.args.length ||
@@ -185,7 +191,7 @@ export const exec: ICommand<Std> = {
 
     const resolvedTargetAddress = interpretNodeSync(c.args[0], cache);
 
-    if (!resolvedTargetAddress || !utils.isAddress(resolvedTargetAddress)) {
+    if (!resolvedTargetAddress || !isAddress(resolvedTargetAddress)) {
       return;
     }
 
@@ -210,7 +216,7 @@ export const exec: ICommand<Std> = {
       () =>
         fetchAbi(
           resolvedTargetAddress,
-          provider,
+          client,
           // TODO: use etherscan API to fetch the abis
           "",
         ),

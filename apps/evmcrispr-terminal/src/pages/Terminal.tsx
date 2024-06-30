@@ -106,10 +106,7 @@ export default function Terminal() {
       <ScrollRestoration />
       <ScriptLibrary />
       <Container maxWidth={{ base: "7xl", "2xl": "8xl" }} my={14}>
-        <Header
-          address={address || ""}
-          terminalStoreActions={terminalStoreActions}
-        />
+        <Header address={address} terminalStoreActions={terminalStoreActions} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
             <Flex width={"100%"}>
@@ -137,7 +134,7 @@ export default function Terminal() {
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
           <ActionButtons
-            address={address || ""}
+            address={address}
             maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>

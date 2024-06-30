@@ -1,6 +1,7 @@
+import { viem } from "hardhat";
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -9,20 +10,22 @@ import {
   itChecksInvalidArgsLength,
   preparingExpression,
 } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
+import { HelperFunctionError } from "../../../../src/errors";
 
 describe("Std > helpers > @get(contractAddress, method, params?)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const clientSigner = () => client;
   const targetAddress = "0x44fA8E6f47987339850636F88629646662444217";
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
     const [interpret] = await preparingExpression(
       `@get(${targetAddress}, name():(string))`,
-      signer,
+      client,
     );
 
     expect(await interpret()).to.eq("Dai Stablecoin on xDai");
@@ -32,19 +35,33 @@ describe("Std > helpers > @get(contractAddress, method, params?)", () => {
     const sushiFarm = "0x44fA8E6f47987339850636F88629646662444217";
     const [interpret] = await preparingExpression(
       `@get(${sushiFarm},"poolInfo(uint256):(uint128,uint64,uint64):1",1)`,
-      signer,
+      client,
     );
 
-    expect(await interpret()).to.be.greaterThanOrEqual("1671364630");
+    expect((await interpret()) >= 1671364630n).to.be.true;
   });
 
   it("should interpret it correctly", async () => {
     const [interpret] = await preparingExpression(
       `@get(${targetAddress}, balanceOf(address):(uint), ${targetAddress})`,
-      signer,
+      client,
     );
 
     expect(await interpret()).not.to.be.eq("0");
+  });
+
+  it("should fail if the method is not a valid function signature", async () => {
+    const [interpret, h] = await preparingExpression(
+      `@get(${targetAddress}, not_a_valid_function_signature)`,
+      client,
+    );
+
+    const error = new HelperFunctionError(
+      h,
+      `expected a valid function signature, but got "not_a_valid_function_signature"`,
+    );
+
+    await expectThrowAsync(async () => interpret(), error);
   });
 
   itChecksInvalidArgsLength(
@@ -55,6 +72,6 @@ describe("Std > helpers > @get(contractAddress, method, params?)", () => {
       type: ComparisonType.Greater,
       minValue: 2,
     },
-    lazySigner,
+    clientSigner,
   );
 });

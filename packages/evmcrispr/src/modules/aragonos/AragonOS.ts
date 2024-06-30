@@ -1,13 +1,12 @@
+import { getContractAddress } from "viem";
+
 import type { BindingsManager } from "../../BindingsManager";
 import { ErrorNotFound } from "../../errors";
 import type { IPFSResolver } from "../../IPFSResolver";
 import { BindingsSpace } from "../../types";
 import type { Address } from "../../types";
-import {
-  addressesEqual,
-  buildNonceForAddress,
-  calculateNewProxyAddress,
-} from "../../utils";
+import { addressesEqual } from "../../utils";
+import { buildNonceForAddress } from "./utils";
 import { Module } from "../../Module";
 import type { AragonDAO } from "./AragonDAO";
 import { commands } from "./commands";
@@ -70,7 +69,7 @@ export class AragonOS extends Module {
   async registerNextProxyAddress(
     identifier: string,
     daoAddress: Address,
-  ): Promise<string> {
+  ): Promise<Address> {
     const connectedDAO = this.getConnectedDAO(daoAddress);
 
     if (!connectedDAO) {
@@ -81,10 +80,10 @@ export class AragonOS extends Module {
     const nonce = await buildNonceForAddress(
       kernel.address,
       await this.incrementNonce(kernel.address),
-      await this.getProvider(),
+      await this.getClient(),
     );
 
-    const addr = calculateNewProxyAddress(kernel.address, nonce);
+    const addr = getContractAddress({ from: kernel.address, nonce });
     this.bindingsManager.setBinding(identifier, addr, BindingsSpace.ADDR);
     return addr;
   }

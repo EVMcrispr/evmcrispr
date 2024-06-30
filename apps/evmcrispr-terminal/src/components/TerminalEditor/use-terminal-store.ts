@@ -7,7 +7,8 @@ import type {
 } from "@1hive/evmcrispr";
 import { BindingsManager, NodeType, parseScript } from "@1hive/evmcrispr";
 import { createStore } from "zustand-x";
-import type { providers } from "ethers";
+
+import type { PublicClient } from "viem";
 
 import { runEagerExecutions } from "./autocompletion";
 import { DEFAULT_MODULE_BINDING } from "../../utils";
@@ -89,7 +90,7 @@ const terminalStore = createStore("terminal-store")(initialState, {
       });
       const fetchers = {} as {
         ipfsResolver: IPFSResolver;
-        provider: providers.Provider;
+        client: PublicClient;
       };
       const pos = {} as Position;
       const oldModules = get.currentModuleNames();
@@ -152,7 +153,9 @@ const terminalStore = createStore("terminal-store")(initialState, {
       ]);
 
       set.ast(ast);
-      set.updateCurrentModules(commandNodes.filter((c) => c.name === "load"));
+      set.updateCurrentModules(
+        commandNodes.filter((c: CommandExpressionNode) => c.name === "load"),
+      );
     },
     updateCurrentLine(currentLine: number) {
       set.lastLine(get.currentLine());

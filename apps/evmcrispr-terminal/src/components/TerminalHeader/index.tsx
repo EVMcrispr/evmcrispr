@@ -24,10 +24,11 @@ import { terminalStoreActions } from "../TerminalEditor/use-terminal-store";
 export default function TerminalHeader({
   address,
 }: {
+  // TODO: It looks like it should not be here
   terminalStoreActions: {
     errors: (param: string[]) => void;
   };
-  address: string;
+  address: `0x${string}` | undefined;
 }) {
   const { disconnect } = useDisconnect();
   const { connect, connectors } = useConnect();
@@ -45,7 +46,8 @@ export default function TerminalHeader({
     terminalStoreActions.errors([]);
     disconnect();
   }
-  const addressShortened = `${address.slice(0, 6)}..${address.slice(-4)}`;
+  const addressShortened =
+    address && `${address.slice(0, 6)}..${address.slice(-4)}`;
 
   return (
     <>

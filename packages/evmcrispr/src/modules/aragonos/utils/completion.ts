@@ -1,3 +1,5 @@
+import type { AbiFunction } from "viem";
+
 import type { BindingsManager } from "../../../BindingsManager";
 import type { DataProviderBinding } from "../../../types";
 import { BindingsSpace } from "../../../types";
@@ -54,17 +56,18 @@ export const getAppRoles = (
   const appCodeAddress = daos
     .find((dao) => dao.resolveApp(appAddressOrIdentifier))
     ?.resolveApp(appAddressOrIdentifier)?.codeAddress;
-  const appAbiInterface = appCodeAddress
+  const appAbi = appCodeAddress
     ? bindingsManager.getBindingValue(appCodeAddress, BindingsSpace.ABI)
     : undefined;
 
-  if (!appAbiInterface || !appCodeAddress) {
+  if (!appAbi || !appCodeAddress) {
     return [];
   }
 
-  const appRoles = Object.values(appAbiInterface.functions)
-    .filter((fnFragment) => fnFragment.name.includes("_ROLE"))
-    .map((fnFragment) => fnFragment.name);
+  // TODO: This code is repeated somewhere else
+  const appRoles = appAbi
+    .filter((item) => item.type === "function" && item.name.includes("_ROLE"))
+    .map((item) => (item as AbiFunction).name);
 
   return appRoles;
 };

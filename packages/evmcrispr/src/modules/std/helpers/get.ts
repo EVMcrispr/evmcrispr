@@ -1,8 +1,12 @@
-import { Contract, utils } from "ethers";
+import { isAddress, parseAbiItem } from "viem";
 
 import { ErrorException } from "../../../errors";
 import type { HelperFunction } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import {
+  ComparisonType,
+  SIGNATURE_REGEX,
+  checkArgsLength,
+} from "../../../utils";
 import type { Std } from "../Std";
 
 export const get: HelperFunction<Std> = async (
@@ -19,19 +23,27 @@ export const get: HelperFunction<Std> = async (
     interpretNodes(rest),
   ]);
 
-  if (!utils.isAddress(address)) {
+  if (!isAddress(address)) {
     throw new ErrorException(
       `expected a valid target address, but got "${address}"`,
     );
   }
 
   const [body, returns, index] = abi.split(":");
-  const contract = new Contract(
-    address,
-    [`function ${body} external view returns ${returns}`],
-    await module.getProvider(),
-  );
 
-  const result = await contract[body](...params);
+  if (!SIGNATURE_REGEX.test(body)) {
+    throw new ErrorException(
+      `expected a valid function signature, but got "${abi}"`,
+    );
+  }
+
+  const client = await module.getClient();
+  const result = await client.readContract({
+    address,
+    abi: [parseAbiItem(`function ${body} external view returns ${returns}`)],
+    functionName: body.split("(")[0],
+    args: params,
+  });
+
   return index ? result[index] : result;
 };

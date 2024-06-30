@@ -1,6 +1,8 @@
 // WARNING: this file is generated automatically
 
-export const DAO = {
+import type { Address } from "viem";
+
+export const DAO: Record<string, Address> = {
   ["marketplace-hatch.open"]: "0x0d9216f8a50b16294bbc446f388bcf94dbb508b1",
   ["evm-script-registry"]: "0x18cab99a64979037e1ac7f85736c264031bf8ae1",
   ["hatch-oracle.open"]: "0x3484b97e8d69269bbaca86fb381d6bfc84141710",

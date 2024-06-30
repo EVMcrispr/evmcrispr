@@ -1,30 +1,32 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { toHex } from "viem";
 
 import { CommandError } from "../../../../src/errors";
 import { DAO } from "../../../fixtures";
-import { createTestScriptEncodedAction } from "../../../test-helpers/actions";
+import { createTestScriptEncodedAction } from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,
   findAragonOSCommandNode,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import { itChecksNonDefinedIdentifier } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
+import { encodeAction } from "../../../../src/utils";
 
 describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof _createAragonScriptInterpreter
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = _createAragonScriptInterpreter(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -36,23 +38,20 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
 
     const actActions = await interpreter.interpret();
 
-    const fnABI = new utils.Interface([
-      "function deposit((uint256,int256),uint256[][])",
-    ]);
-
     const expectedActActions = [
       createTestScriptEncodedAction(
         [
-          {
-            to: DAO["agent:2"],
-            data: fnABI.encodeFunctionData("deposit", [
+          encodeAction(
+            DAO["agent:2"],
+            "function deposit((uint256,int256),uint256[][])",
+            [
               [1, -2],
               [
                 [2, 3],
                 [4, 5],
               ],
-            ]),
-          },
+            ],
+          ),
         ],
         ["agent:1"],
         DAO,
@@ -73,24 +72,16 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
         params[1]
       }`,
     ]);
-    const fnABI = new utils.Interface(["function addBatches(bytes32[],bytes)"]);
 
     const actActions = await interpreter.interpret();
 
     const expectedActActions = [
       createTestScriptEncodedAction(
         [
-          {
-            to: targetAddress,
-            data: fnABI.encodeFunctionData("addBatches", [
-              params[0],
-              utils.hexlify(
-                utils.toUtf8Bytes(
-                  "QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2",
-                ),
-              ),
-            ]),
-          },
+          encodeAction(targetAddress, "function addBatches(bytes32[],bytes)", [
+            params[0],
+            toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
+          ]),
         ],
         ["agent"],
         DAO,
@@ -180,8 +171,8 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
 
   it("should fail when receiving invalid function params", async () => {
     const paramsErrors = [
-      "-param 0 of type address: invalid address. Got 1000000000000000000",
-      "-param 1 of type uint256: invalid BigNumber value. Got none",
+      '-param 0 of type address: Address "1000000000000000000" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 1000000000000000000',
+      "-param 1 of type uint256: Invalid BigInt value. Got none",
     ];
     const interpreter = createAragonScriptInterpreter([
       `act agent agent:2 "deposit(address,uint256)" 1e18`,

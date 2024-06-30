@@ -1,4 +1,4 @@
-import type { providers } from "ethers";
+import type { PublicClient } from "viem";
 
 import type {
   Address,
@@ -81,15 +81,15 @@ export abstract class Module {
     return this.nonces[`${chainId}:${address}`]++;
   }
 
-  async getProvider(): Promise<providers.Provider> {
-    return this.evmcrispr.getProvider();
+  async getClient(): Promise<PublicClient> {
+    return this.evmcrispr.getClient();
   }
 
   async getChainId(): Promise<number> {
     return this.evmcrispr.getChainId();
   }
 
-  async switchChainId(chainId: number): Promise<providers.Provider> {
+  async switchChainId(chainId: number): Promise<PublicClient> {
     return this.evmcrispr.switchChainId(chainId);
   }
 

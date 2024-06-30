@@ -1,9 +1,6 @@
-import type { providers } from "ethers";
-import { Contract, utils } from "ethers";
+import type { Address } from "viem";
 
-import { ErrorException } from "../../../errors";
-
-export const MINIME_TOKEN_FACTORIES = new Map([
+export const MINIME_TOKEN_FACTORIES = new Map<number, Address>([
   [1, "0xA29EF584c389c67178aE9152aC9C543f9156E2B3"],
   [4, "0xad991658443c56b3dE2D7d7f5d8C68F339aEef29"],
   [10, "0xb5314953f96e12cab6BdB9eaa79922e657783142"],
@@ -11,15 +8,7 @@ export const MINIME_TOKEN_FACTORIES = new Map([
   [137, "0xcFed1594A5b1B612dC8199962461ceC148F14E68"],
 ]);
 
-export const MINIME_TOKEN_FACTORY_INTERFACE = new utils.Interface([
-  "function createCloneToken(address,uint,string,uint8,string,bool) external returns (address)",
-]);
-
-export const CONTROLLED_INTERFACE = new utils.Interface([
-  "function changeController(address) external",
-]);
-
-export const ARAGON_REGISTRARS = new Map([
+export const ARAGON_REGISTRARS = new Map<number, Address>([
   [1, "0x546aa2eae2514494eeadb7bbb35243348983c59d"],
   [4, "0x3665e7bfd4d3254ae7796779800f5b603c43c60d"],
   [10, "0x44ADB013bE98F04d9E525d033E2D85Ce5E195D8F"],
@@ -27,25 +16,7 @@ export const ARAGON_REGISTRARS = new Map([
   [137, "0x7b9cd2d5eCFE44C8b64E01B93973491BBDAe879B"],
 ]);
 
-export const getAragonRegistrarContract = async (
-  provider: providers.Provider,
-): Promise<Contract> => {
-  const chainId = (await provider.getNetwork()).chainId;
-
-  if (!ARAGON_REGISTRARS.has(chainId)) {
-    throw new ErrorException(
-      `aragon registrars on chain ${chainId} not supported`,
-    );
-  }
-
-  return new Contract(
-    ARAGON_REGISTRARS.get(chainId)!,
-    ["function register(bytes32 _subnode, address _owner) external"],
-    provider,
-  );
-};
-
-export const DAO_FACTORIES = new Map([
+export const DAO_FACTORIES = new Map<number, Address>([
   [1, "0x7378ad1ba8f3c8e64bbb2a04473edd35846360f1"],
   [4, "0xad4d106b43b480faa3ef7f98464ffc27fc1faa96"],
   [10, "0x0a42106615233D0E6F9811d0cBb7ddC83170Fe5E"],

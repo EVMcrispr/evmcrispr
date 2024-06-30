@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
@@ -8,10 +9,10 @@ import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
 describe("Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   const testInitiateGivbacks =
@@ -27,7 +28,7 @@ describe("Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
           : `
           load giveth
           giveth:finalize-givbacks ${ipfsHash} --relayer ${relayerAddr}`,
-        signer,
+        client,
       );
 
       const batches = await fetch(
@@ -43,7 +44,7 @@ describe("Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
               } [${batch.recipients.join(",")}] [${batch.amounts.join(",")}]`,
           )
           .join("\n"),
-        signer,
+        client,
       );
 
       const result = await interpreter.interpret();

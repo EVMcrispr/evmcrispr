@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { keccak256, toHex } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -12,20 +13,20 @@ import {
 } from "../../../test-helpers/cas11";
 
 describe("Std > helpers > @id(value)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("return the hashed value", async () => {
     const [interpret] = await preparingExpression(
       `@id('an example test')`,
-      signer,
+      client,
     );
 
-    expect(await interpret()).to.equals(utils.id("an example test"));
+    expect(await interpret()).to.equals(keccak256(toHex("an example test")));
   });
 
   itChecksInvalidArgsLength(
@@ -36,6 +37,6 @@ describe("Std > helpers > @id(value)", () => {
       type: ComparisonType.Equal,
       minValue: 1,
     },
-    lazySigner,
+    lazyClient,
   );
 });

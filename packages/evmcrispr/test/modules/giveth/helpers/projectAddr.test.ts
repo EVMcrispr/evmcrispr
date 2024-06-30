@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import type { PublicClient } from "viem";
+import { viem } from "hardhat";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -10,17 +10,17 @@ import {
 } from "../../../test-helpers/cas11";
 
 describe("Giveth > helpers > @projectAddr(slug)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("return the hashed value", async () => {
     const [interpret] = await preparingExpression(
       `@projectAddr(evmcrispr)`,
-      signer,
+      client,
       "giveth",
     );
 
@@ -37,7 +37,7 @@ describe("Giveth > helpers > @projectAddr(slug)", () => {
       type: ComparisonType.Equal,
       minValue: 1,
     },
-    lazySigner,
+    lazyClient,
     "giveth",
   );
 });

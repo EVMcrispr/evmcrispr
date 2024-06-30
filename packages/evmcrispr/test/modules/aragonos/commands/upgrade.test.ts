@@ -1,36 +1,37 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { getContract, keccak256, namehash, toHex } from "viem";
 
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
-import { getRepoContract } from "../../../../src/modules/aragonos/utils";
+import { REPO_ABI } from "../../../../src/modules/aragonos/utils";
 
 import { CommandError } from "../../../../src/errors";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
-import { createTestAction } from "../../../test-helpers/actions";
+import { createTestAction } from "../test-helpers/actions";
 import {
   _aragonEns,
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO2.kernel,
     );
   });
@@ -46,12 +47,12 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
       "disputable-conviction-voting.open.aragonpm.eth",
       interpreter.getModule("aragonos") as AragonOS,
     );
-    const repo = getRepoContract(repoAddress!, signer);
-    const [, latestImplementationAddress] = await repo.getLatest();
+    const repo = getContract({ address: repoAddress!, abi: REPO_ABI, client });
+    const [, latestImplementationAddress] = await repo.read.getLatest();
     const expectedUpgradeActions = [
       createTestAction("setApp", DAO2.kernel, [
-        utils.id("base"),
-        utils.namehash("disputable-conviction-voting.open.aragonpm.eth"),
+        keccak256(toHex("base")),
+        namehash("disputable-conviction-voting.open.aragonpm.eth"),
         latestImplementationAddress,
       ]),
     ];
@@ -70,16 +71,14 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
       "disputable-conviction-voting.open.aragonpm.eth",
       interpreter.getModule("aragonos") as AragonOS,
     );
-    const repo = getRepoContract(repoAddress!, signer);
-    const [, newAppImplementation] = await repo.getBySemanticVersion([
-      "2",
-      "0",
-      "0",
-    ]);
+    const repo = getContract({ address: repoAddress!, abi: REPO_ABI, client });
+    const [, newAppImplementation] = await repo.read.getBySemanticVersion([
+      [2, 0, 0],
+    ] as [readonly [number, number, number]]);
     const expectedUpgradeActions = [
       createTestAction("setApp", DAO2.kernel, [
-        utils.id("base"),
-        utils.namehash("disputable-conviction-voting.open.aragonpm.eth"),
+        keccak256(toHex("base")),
+        namehash("disputable-conviction-voting.open.aragonpm.eth"),
         newAppImplementation,
       ]),
     ];
@@ -99,7 +98,7 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
           )
         )
       `,
-      signer,
+      client,
     );
 
     const upgradeActions = await interpreter.interpret();
@@ -108,12 +107,12 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
       "disputable-conviction-voting.open.aragonpm.eth",
       interpreter.getModule("aragonos") as AragonOS,
     );
-    const repo = getRepoContract(repoAddress!, signer);
-    const [, latestImplementationAddress] = await repo.getLatest();
+    const repo = getContract({ address: repoAddress!, abi: REPO_ABI, client });
+    const [, latestImplementationAddress] = await repo.read.getLatest();
     const expectedUpgradeActions = [
       createTestAction("setApp", DAO2.kernel, [
-        utils.id("base"),
-        utils.namehash("disputable-conviction-voting.open.aragonpm.eth"),
+        keccak256(toHex("base")),
+        namehash("disputable-conviction-voting.open.aragonpm.eth"),
         latestImplementationAddress,
       ]),
     ];
@@ -128,7 +127,7 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
 
     ar:upgrade voting
   `,
-      signer,
+      client,
     );
     const c = interpreter.ast.body[1];
     const error = new CommandError(

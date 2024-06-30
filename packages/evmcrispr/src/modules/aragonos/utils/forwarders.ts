@@ -1,11 +1,12 @@
-import type { BigNumber } from "ethers";
-import { Contract, constants, utils } from "ethers";
+import type { PublicClient } from "viem";
+import { parseAbi, toHex, zeroAddress } from "viem";
 
 import { erc20ABI } from "../../../../abis";
 import { ErrorInvalid } from "../../../errors";
 import type { Action, TransactionAction } from "../../../types";
-import { encodeActCall, encodeCallScript } from "./evmscripts";
-import type { Module } from "../../..";
+import { encodeCallScript } from "./evmscripts";
+import type { Address, Module } from "../../..";
+import { encodeAction } from "../../../utils";
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -13,31 +14,48 @@ export const FORWARDER_TYPES = {
   WITH_CONTEXT: 2,
 };
 
-export const isForwarder = async (forwarder: Contract): Promise<boolean> => {
+export const isForwarder = async (
+  address: Address,
+  client: PublicClient,
+): Promise<boolean> => {
   try {
-    return await forwarder.isForwarder();
+    return await client.readContract({
+      address,
+      abi: parseAbi(forwarderABI),
+      functionName: "isForwarder",
+    });
   } catch (err) {
     return false;
   }
 };
 
 export const getForwarderFee = async (
-  forwarder: Contract,
-): Promise<[string, BigNumber] | undefined> => {
+  address: Address,
+  client: PublicClient,
+): Promise<readonly [Address, bigint] | undefined> => {
   // If it fails we assume app is not a payable forwarder
   try {
-    return await forwarder.forwardFee();
+    return await client.readContract({
+      address,
+      abi: parseAbi(forwarderABI),
+      functionName: "forwardFee",
+    });
   } catch (err) {
     return;
   }
 };
 
 export const getForwarderType = async (
-  forwarder: Contract,
+  address: Address,
+  client: PublicClient,
 ): Promise<number> => {
   // If it fails then we assume app implements an aragonos older version forwarder
   try {
-    return await forwarder.forwarderType();
+    return await client.readContract({
+      address,
+      abi: parseAbi(forwarderABI),
+      functionName: "forwarderType",
+    });
   } catch (err) {
     return FORWARDER_TYPES.NO_CONTEXT;
   }
@@ -49,90 +67,79 @@ export const forwarderABI = [
   "function canForward(address sender, bytes evmCallScript) public view returns (bool)",
   "function forwardFee() external view returns (address, uint256)",
   "function forwarderType() external pure returns (uint8)",
-];
+] as const;
 
 export const batchForwarderActions = async (
   module: Module,
   forwarderActions: TransactionAction[],
-  forwarders: string[],
+  forwarders: Address[],
   context?: string,
   checkForwarder = true,
 ): Promise<Action[]> => {
   let script: string;
-  let value: string | number = 0;
+  let value: bigint = 0n;
   const actions: Action[] = [];
+
+  const client = await module.getClient();
 
   for (const forwarderAddress of forwarders) {
     script = encodeCallScript(forwarderActions);
-    const forwarder = new Contract(
-      forwarderAddress,
-      forwarderABI,
-      await module.getProvider(),
-    );
 
-    if (checkForwarder && !(await isForwarder(forwarder))) {
-      throw new ErrorInvalid(`app ${forwarder.address} is not a forwarder`);
+    if (checkForwarder && !(await isForwarder(forwarderAddress, client))) {
+      throw new ErrorInvalid(`app ${forwarderAddress} is not a forwarder`);
     }
 
-    const fee = await getForwarderFee(forwarder);
+    const fee = await getForwarderFee(forwarderAddress, client);
 
     if (fee) {
       const [feeTokenAddress, feeAmount] = fee;
 
       // Check if fees are in ETH
-      if (feeTokenAddress === constants.AddressZero) {
-        value = feeAmount.toNumber();
+      if (feeTokenAddress === zeroAddress) {
+        value = feeAmount;
       } else {
-        const feeToken = new Contract(
-          feeTokenAddress,
-          erc20ABI,
-          await module.getProvider(),
-        );
-        const allowance = (await feeToken.allowance(
-          await module.getConnectedAccount(),
-          forwarderAddress,
-        )) as BigNumber;
+        const allowance = await client.readContract({
+          address: feeTokenAddress,
+          abi: erc20ABI,
+          functionName: "allowance",
+          args: [await module.getConnectedAccount(), forwarderAddress],
+        });
 
-        if (allowance.gt(0) && allowance.lt(feeAmount)) {
-          actions.push({
-            to: feeTokenAddress,
-            data: feeToken.interface.encodeFunctionData("approve", [
+        if (allowance > 0n && allowance < feeAmount) {
+          actions.push(
+            encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
               0,
             ]),
-          });
+          );
         }
-        if (allowance.eq(0)) {
-          actions.push({
-            to: feeTokenAddress,
-            data: feeToken.interface.encodeFunctionData("approve", [
+        if (allowance === 0n) {
+          actions.push(
+            encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
               feeAmount,
             ]),
-          });
+          );
         }
       }
     }
 
-    if ((await getForwarderType(forwarder)) === FORWARDER_TYPES.WITH_CONTEXT) {
+    if (
+      (await getForwarderType(forwarderAddress, client)) ===
+      FORWARDER_TYPES.WITH_CONTEXT
+    ) {
       if (!context) {
         throw new ErrorInvalid(`context option missing`);
       }
       forwarderActions = [
-        {
-          to: forwarderAddress,
-          data: encodeActCall("forward(bytes,bytes)", [
-            script,
-            utils.hexlify(utils.toUtf8Bytes(context)),
-          ]),
-        },
+        encodeAction(forwarderAddress, "forward(bytes,bytes)", [
+          script,
+          toHex(context),
+        ]),
       ];
     } else {
       forwarderActions = [
-        {
-          to: forwarderAddress,
-          data: encodeActCall("forward(bytes)", [script]),
-        },
+        encodeAction(forwarderAddress, "forward(bytes)", [script]),
       ];
     }
   }

@@ -1,5 +1,5 @@
-import type { Signer, providers } from "ethers";
-import { BigNumber, Contract, constants, ethers, utils } from "ethers";
+import type { Abi, Address, PublicClient } from "viem";
+import { isAddress, zeroAddress } from "viem";
 
 import {
   CommandError,
@@ -11,7 +11,6 @@ import {
 import { timeUnits, toDecimals } from "./utils";
 import type {
   Action,
-  Address,
   ArrayExpressionNode,
   AsExpressionNode,
   BinaryExpressionNode,
@@ -66,21 +65,27 @@ export class EVMcrispr {
   #nonces: Record<string, number>;
   #account: Address | undefined;
   #chainId: number | undefined;
-  #getSigner: () => Promise<Signer>;
+  #getClient: () => Promise<PublicClient>;
+  #getAccount: () => Promise<Address | undefined>;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #prevMessages: string[];
 
-  #provider: providers.Provider | undefined;
+  #client: PublicClient | undefined;
 
-  constructor(ast: Cas11AST, getSigner: () => Promise<Signer>) {
+  constructor(
+    ast: Cas11AST,
+    getClient: () => Promise<PublicClient>,
+    getAccount: () => Promise<Address | undefined>,
+  ) {
     this.ast = ast;
 
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
     this.#setDefaultBindings();
-    this.#getSigner = getSigner;
+    this.#getClient = getClient;
+    this.#getAccount = getAccount;
     this.#logListeners = [];
     this.#prevMessages = [];
 
@@ -94,63 +99,47 @@ export class EVMcrispr {
   }
 
   async getChainId(): Promise<number> {
-    return (
-      this.#chainId ??
-      this.#getSigner()
-        .then((signer) => signer.provider!.getNetwork())
-        .then(({ chainId }: any) => chainId)
-    );
+    const chainId = await (this.#chainId ??
+      this.#getClient().then((client) => client.getChainId()));
+    if (!chainId) {
+      throw Error("No chain id found");
+    }
+    return chainId;
   }
 
-  setProvider(provider: providers.Provider | undefined): void {
-    this.#provider = provider;
+  setClient(client: PublicClient | undefined): void {
+    this.#client = client;
   }
 
-  async getProvider(): Promise<providers.Provider> {
-    if (this.#provider) {
-      return this.#provider;
+  /* TODO: In ethers v5 this function returned the user injected provider
+     or a default one depending on if evmcrispr's chainid and injected provider
+     chain id were the same or not. We should see if that's needed or not.
+  */
+  async getClient(): Promise<PublicClient> {
+    if (this.#client) {
+      return this.#client;
     }
-    const signer = await this.#getSigner();
-    if (
-      !this.#chainId ||
-      this.#chainId ===
-        Number(
-          await signer
-            .provider!.getNetwork()
-            .then(({ chainId }: any) => chainId),
-        )
-    ) {
-      return signer.provider!;
-    }
-    switch (this.#chainId) {
-      case 100:
-        return new ethers.providers.JsonRpcProvider(
-          "https://rpc.gnosischain.com",
-          this.#chainId,
-        );
-      case 1101:
-        return new ethers.providers.JsonRpcProvider(
-          "https://zkevm-rpc.com",
-          this.#chainId,
-        );
-      default:
-        return ethers.getDefaultProvider(this.#chainId);
-    }
+    return this.#getClient();
   }
 
-  setConnectedAccount(account: string | undefined) {
+  setConnectedAccount(account: Address | undefined) {
     this.#account = account;
   }
 
   async getConnectedAccount(retreiveInjected = false): Promise<Address> {
-    return !retreiveInjected && this.#account
-      ? this.#account
-      : this.#getSigner().then((signer) => signer.getAddress());
+    const connected =
+      !retreiveInjected && this.#account
+        ? this.#account
+        : await this.#getAccount();
+    if (!connected) {
+      throw Error("No connected account found");
+    }
+    return connected;
   }
 
-  async switchChainId(chainId: number): Promise<providers.Provider> {
+  async switchChainId(chainId: number): Promise<PublicClient> {
     this.#chainId = chainId;
-    return this.getProvider();
+    return this.getClient();
   }
 
   getBinding<BSpace extends BindingsSpace>(
@@ -294,10 +283,10 @@ export class EVMcrispr {
       n.right,
     ]);
 
-    let leftOperand: BigNumber, rightOperand: BigNumber;
+    let leftOperand: bigint, rightOperand: bigint;
 
     try {
-      leftOperand = BigNumber.from(leftOperand_);
+      leftOperand = BigInt(leftOperand_);
     } catch (err) {
       EVMcrispr.panic(
         n,
@@ -306,7 +295,7 @@ export class EVMcrispr {
     }
 
     try {
-      rightOperand = BigNumber.from(rightOperand_);
+      rightOperand = BigInt(rightOperand_);
     } catch (err) {
       EVMcrispr.panic(
         n,
@@ -316,19 +305,19 @@ export class EVMcrispr {
 
     switch (n.operator) {
       case "+":
-        return leftOperand.add(rightOperand);
+        return leftOperand + rightOperand;
       case "-":
-        return leftOperand.sub(rightOperand);
+        return leftOperand - rightOperand;
       case "*":
-        return leftOperand.mul(rightOperand);
+        return leftOperand * rightOperand;
       case "/": {
-        if (rightOperand.eq(0)) {
+        if (rightOperand === 0n) {
           EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
         }
-        return leftOperand.div(rightOperand);
+        return leftOperand / rightOperand;
       }
       case "^": {
-        return leftOperand.pow(rightOperand);
+        return leftOperand ** rightOperand;
       }
     }
   };
@@ -356,33 +345,33 @@ export class EVMcrispr {
       ...n.args,
     ]);
 
-    if (!utils.isAddress(targetAddress)) {
+    if (!isAddress(targetAddress)) {
       EVMcrispr.panic(
         n,
         `invalid target. Expected an address, but got ${targetAddress}`,
       );
     }
 
-    const targetInterface = this.bindingsManager.getBindingValue(
+    const targetAbi = this.bindingsManager.getBindingValue(
       targetAddress,
       ABI,
-    ) as utils.Interface | undefined;
-    if (!targetInterface) {
+    ) as Abi | undefined;
+    if (!targetAbi) {
       EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
     }
 
-    const contract = new Contract(
-      targetAddress,
-      targetInterface,
-      await this.getProvider(),
-    );
-    let res;
-
     try {
-      res = await contract[n.method](...args);
+      const res = await this.#getClient().then(async (client) =>
+        client.readContract({
+          abi: targetAbi,
+          functionName: n.method,
+          args: args,
+          address: targetAddress,
+        }),
+      );
+      return res;
     } catch (err) {
       const err_ = err as Error;
-
       EVMcrispr.panic(
         n,
         `error occured whe calling ${n.target.value ?? targetAddress}: ${
@@ -390,8 +379,6 @@ export class EVMcrispr {
         }`,
       );
     }
-
-    return res;
   };
 
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
@@ -491,8 +478,9 @@ export class EVMcrispr {
       case NodeType.StringLiteral:
         return n.value;
       case NodeType.NumberLiteral:
-        return toDecimals(n.value, n.power ?? 0).mul(
-          timeUnits[n.timeUnit ?? "s"],
+        return (
+          toDecimals(n.value, n.power ?? 0) *
+          BigInt(timeUnits[n.timeUnit ?? "s"])
         );
       default:
         EVMcrispr.panic(n, "unknown literal expression node");
@@ -533,8 +521,8 @@ export class EVMcrispr {
     };
 
   #setDefaultBindings(): void {
-    this.bindingsManager.setBinding("XDAI", constants.AddressZero, ADDR, true);
-    this.bindingsManager.setBinding("ETH", constants.AddressZero, ADDR, true);
+    this.bindingsManager.setBinding("XDAI", zeroAddress, ADDR, true);
+    this.bindingsManager.setBinding("ETH", zeroAddress, ADDR, true);
   }
 
   static panic(n: Node, msg: string): never {

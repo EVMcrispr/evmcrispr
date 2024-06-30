@@ -2,25 +2,31 @@ import { useState } from "react";
 import type { Action, TransactionAction } from "@1hive/evmcrispr";
 import { EVMcrispr, isProviderAction, parseScript } from "@1hive/evmcrispr";
 import type { Connector } from "wagmi";
-import { useConnect, useWalletClient } from "wagmi";
-import type { Account, Chain, Transport, WalletClient } from "viem";
+import { useConnect, usePublicClient, useWalletClient } from "wagmi";
+import type {
+  Account,
+  Chain,
+  PublicClient,
+  Transport,
+  WalletClient,
+} from "viem";
+import { createPublicClient } from "viem";
 import { HStack, VStack, useDisclosure } from "@chakra-ui/react";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 
 import LogModal from "../LogModal";
 import ErrorMsg from "./ErrorMsg";
 
-import { config } from "../../wagmi";
+import { config, transports } from "../../wagmi";
 
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../TerminalEditor/use-terminal-store";
-import { clientToSigner } from "../../utils/ethers";
 import { ExecuteButton } from "./ExecuteButton";
 
 type ActionButtonsType = {
-  address: string;
+  address: `0x${string}` | undefined;
   maximizeGasLimit: boolean;
 };
 
@@ -40,7 +46,8 @@ export default function ActionButtons({
     id: "log",
   });
 
-  const { data: client, refetch } = useWalletClient();
+  let publicClient: PublicClient | undefined = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   const { connectors } = useConnect();
   const safeConnector = connectors.find((c: Connector) => c.id === "safe");
 
@@ -57,22 +64,38 @@ export default function ActionButtons({
     setLogs([]);
   }
 
+  function getChainAndTransport(chainId: number) {
+    const chain: Chain | undefined = config.chains.find(
+      (chain) => Number(chain.id) === chainId,
+    );
+    if (!chain) {
+      throw new Error("Chain not supported");
+    }
+    function isValidChainId(
+      chainId: number,
+    ): chainId is keyof typeof transports {
+      return chainId in transports;
+    }
+    if (!isValidChainId(chainId)) {
+      throw new Error("Transport not supported");
+    }
+    const transport = transports[chainId];
+    return { chain, transport };
+  }
+
   const executeAction = async (
     action: Action,
-    client: WalletClient<Transport, Chain, Account>,
+    walletClient: WalletClient<Transport, Chain, Account>,
     maximizeGasLimit: boolean,
   ) => {
     if (isProviderAction(action)) {
-      const [chainParam] = action.params;
-      await client.switchChain({ id: Number(chainParam.chainId) });
-      const { data: refetchedClient } = await refetch();
-      if (!refetchedClient) {
-        throw new Error("Failed to refetch client after chain switch");
-      }
-      return refetchedClient;
+      const chainId = Number(action.params[0].chainId);
+      await walletClient.switchChain({ id: chainId });
+      const { chain, transport } = getChainAndTransport(chainId);
+      publicClient = createPublicClient({ chain, transport });
     } else {
-      const chainId = await client.getChainId();
-      await client.sendTransaction({
+      const chainId = await walletClient.getChainId();
+      await walletClient.sendTransaction({
         chain: config.chains.find((chain) => chain.id === chainId),
         to: action.to as `0x${string}`,
         from: action.from as `0x${string}`,
@@ -80,7 +103,6 @@ export default function ActionButtons({
         value: BigInt(action.value || 0),
         gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
       });
-      return client;
     }
   };
 
@@ -89,7 +111,8 @@ export default function ActionButtons({
     terminalStoreActions.isLoading(true);
 
     try {
-      if (client === undefined) throw new Error("Account not connected");
+      if (!address || publicClient === undefined || walletClient === undefined)
+        throw new Error("Account not connected");
 
       const { ast, errors } = parseScript(script);
 
@@ -100,20 +123,21 @@ export default function ActionButtons({
       }
 
       const batched: TransactionAction[] = [];
-      const getSigner = async () => {
-        const { data: client } = await refetch();
-        return clientToSigner(client!);
-      };
-      await new EVMcrispr(ast, getSigner)
+
+      await new EVMcrispr(
+        ast,
+        async () => publicClient!,
+        async () => address,
+      )
         .registerLogListener(logListener)
-        .interpret(async (action) => {
+        .interpret(async (action: Action) => {
           if (inBatch) {
             if (isProviderAction(action)) {
               throw new Error("Batching not supported for provider actions");
             }
             batched.push(action);
           } else {
-            await executeAction(action, client, maximizeGasLimit);
+            await executeAction(action, walletClient, maximizeGasLimit);
           }
         });
 

@@ -1,6 +1,7 @@
-import { utils } from "ethers";
+import type { AbiFunction } from "viem";
+import { keccak256, toHex } from "viem";
 
-import type { Address } from "../../../types";
+import type { Abi, Address } from "../../../types";
 import { AddressSet } from "../AddressSet";
 import type {
   App,
@@ -19,7 +20,10 @@ export const buildAppPermissions = (
 ): PermissionMap => {
   const appPermissions = artifactRoles.reduce(
     (roleMap: PermissionMap, role: any) => {
-      roleMap.set(role.bytes, { manager: "", grantees: new AddressSet() });
+      roleMap.set(role.bytes, {
+        manager: undefined,
+        grantees: new AddressSet(),
+      });
       return roleMap;
     },
     new Map(),
@@ -51,13 +55,13 @@ export const buildApp = (
     return null;
   }
   const {
-    abiInterface,
+    abi,
     appName,
     roles: artifactRoles,
   } = appResourcesCache.get(codeAddress)!;
 
   return {
-    abiInterface,
+    abi,
     address,
     codeAddress,
     contentUri,
@@ -73,7 +77,7 @@ export const buildApp = (
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const buildAppArtifact = (artifact: any): AppArtifact => ({
   appName: artifact.appName as string,
-  abiInterface: new utils.Interface(artifact.abi),
+  abi: artifact.abi,
   roles: artifact.roles,
   functions: artifact.functions,
 });
@@ -81,17 +85,16 @@ export const buildAppArtifact = (artifact: any): AppArtifact => ({
 export const buildArtifactFromABI = (
   appName: string,
   appRegistry: string,
-  abiInterface: utils.Interface,
+  abi: Abi,
 ): AppArtifact => {
-  const roleNames = Object.values(abiInterface.functions)
-    .filter((fnFragment) => fnFragment.name.endsWith("_ROLE"))
-    .map((fnFragment) => fnFragment.name);
-
+  const roleNames = abi
+    .filter((item) => item.type === "function" && item.name.endsWith("_ROLE"))
+    .map((item) => (item as AbiFunction).name);
   return {
     appName: `${appName}.${appRegistry}`,
-    abiInterface,
+    abi,
     roles: roleNames.map((name) => ({
-      bytes: utils.id(name),
+      bytes: keccak256(toHex(name)),
       id: name,
       name,
       params: [],

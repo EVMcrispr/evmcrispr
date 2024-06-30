@@ -1,46 +1,45 @@
-import type { Signer } from "ethers";
+import type { PublicClient } from "viem";
 
-import type { Address } from "../../src";
+import type { Address } from "../../../../src";
 
-import type { EVMcrispr } from "../../src/EVMcrispr";
+import type { EVMcrispr } from "../../../../src/EVMcrispr";
 
-import type { AragonOS } from "../../src/modules/aragonos/AragonOS";
-import { NodeType } from "../../src/types";
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import { NodeType } from "../../../../src/types";
 import type {
   AST,
   BlockExpressionNode,
   CommandExpressionNode,
-} from "../../src/types";
-import { listItems } from "../../src/utils";
-import { CommandError } from "../../src/errors";
-import { createInterpreter, itChecksNonDefinedIdentifier } from "./cas11";
-import { expectThrowAsync } from "./expects";
+} from "../../../../src/types";
+import { listItems } from "../../../../src/utils";
+import { CommandError } from "../../../../src/errors";
+import {
+  createInterpreter,
+  itChecksNonDefinedIdentifier,
+} from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import {
   getAragonEnsResolver,
   resolveName,
-} from "../../src/modules/aragonos/utils";
-import type {
-  FullPermission,
-  Permission,
-} from "../../src/modules/aragonos/types";
+} from "../../../../src/modules/aragonos/utils";
 
 export const _aragonEns = async (
   ensName: string,
   module: AragonOS,
-): Promise<string | null> => {
+): Promise<Address | null> => {
   const ensResolver = module.getConfigBinding("ensResolver");
 
   const name = await resolveName(
     ensName,
     ensResolver || getAragonEnsResolver(await module.getChainId()),
-    await module.getProvider(),
+    await module.getClient(),
   );
 
   return name;
 };
 
 export const createAragonScriptInterpreter =
-  (signer: Signer, daoAddress: Address) =>
+  (client: PublicClient, daoAddress: Address) =>
   (commands: string[] = []): EVMcrispr => {
     return createInterpreter(
       `
@@ -49,7 +48,7 @@ export const createAragonScriptInterpreter =
     ${commands.join("\n")}
   )
 `,
-      signer,
+      client,
     );
   };
 
@@ -92,12 +91,12 @@ export const findAragonOSCommandNode = (
 export const itChecksBadPermission = (
   commandName: string,
   createPermissionActionInterpreter: (
-    badPermission: FullPermission,
+    badPermission: [string, string, string, string?],
   ) => EVMcrispr,
   checkPermissionManager = false,
 ): void => {
   const permissionErrorText = "invalid permission provided";
-  const permission: Permission = ["kernel", "acl", "CREATE_PERMISSIONS_ROLE"];
+  const permission = ["kernel", "acl", "CREATE_PERMISSIONS_ROLE"];
 
   itChecksNonDefinedIdentifier(
     "should fail when receiving a non-defined grantee identifier",
@@ -213,7 +212,9 @@ export const itChecksBadPermission = (
       "should fail when receiving a non-existent permission manager identifier",
       (nonDefinedIdentifier) =>
         createPermissionActionInterpreter([
-          ...permission,
+          permission[0],
+          permission[1],
+          permission[2],
           nonDefinedIdentifier,
         ]),
       commandName,
@@ -224,7 +225,9 @@ export const itChecksBadPermission = (
     it("should fail when receiving an invalid permission manager address", async () => {
       const invalidManager = "false";
       const interpreter = createPermissionActionInterpreter([
-        ...permission,
+        permission[0],
+        permission[1],
+        permission[2],
         invalidManager,
       ]);
       const c = findAragonOSCommandNode(interpreter.ast, commandName)!;

@@ -9,8 +9,7 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@repo/prettier-config": "*",
@@ -31,14 +30,14 @@
     "tsup": "^6.0.0"
   },
   "dependencies": {
-    "@ensdomains/content-hash": "^3.0.0",
+    "@ensdomains/content-hash": "^2.0.0",
     "arcsecond": "^5.0.0",
     "isomorphic-fetch": "^3.0.0",
     "jsymbol": "^0.3.5",
     "lodash.clonedeep": "^4.5.0"
   },
   "peerDependencies": {
-    "ethers": "^5.7.2"
+    "viem": "^2.16.2"
   },
   "files": [
     "dist"

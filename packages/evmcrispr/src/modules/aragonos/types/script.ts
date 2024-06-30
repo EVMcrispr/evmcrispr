@@ -1,3 +1,5 @@
+import type { Address } from "viem";
+
 /**
  * A call script.
  */
@@ -5,9 +7,9 @@ export interface CallScriptAction {
   /**
    * The action's target.
    */
-  to: string;
+  to: Address;
   /**
    * The action's calldata.
    */
-  data: string;
+  data: `0x${string}`;
 }

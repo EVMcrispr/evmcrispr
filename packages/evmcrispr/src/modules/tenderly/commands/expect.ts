@@ -1,5 +1,3 @@
-import { BigNumber } from "ethers";
-
 import { ErrorException } from "../../../errors";
 
 import type { ICommand } from "../../../types";
@@ -59,12 +57,10 @@ export const expect: ICommand<Tenderly> = {
             `Operator ${operator} must be used between two numbers`,
           );
         }
-        if (operator === ">") result = BigNumber.from(value).gt(expectedValue);
-        if (operator === ">=")
-          result = BigNumber.from(value).gte(expectedValue);
-        if (operator === "<") result = BigNumber.from(value).lt(expectedValue);
-        if (operator === "<=")
-          result = BigNumber.from(value).lte(expectedValue);
+        if (operator === ">") result = BigInt(value) > BigInt(expectedValue);
+        if (operator === ">=") result = BigInt(value) >= BigInt(expectedValue);
+        if (operator === "<") result = BigInt(value) < BigInt(expectedValue);
+        if (operator === "<=") result = BigInt(value) <= BigInt(expectedValue);
         break;
       default:
         throw new ErrorException(`Operator ${operator} not recognized`);

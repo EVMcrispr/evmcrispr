@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { isAddress } from "viem";
 
 import { BindingsSpace } from "../../../types";
 import type { ICommand, TransactionAction } from "../../../types";
@@ -30,7 +30,7 @@ export const raw: ICommand<Std> = {
 
     const from = await getOptValue(c, "from", interpretNode);
 
-    if (!utils.isAddress(contractAddress)) {
+    if (!isAddress(contractAddress)) {
       throw new ErrorException(
         `expected a valid target address, but got ${contractAddress}`,
       );
@@ -40,7 +40,7 @@ export const raw: ICommand<Std> = {
       throw new ErrorException(`expected a valid value, but got ${value}`);
     }
 
-    if (from && !utils.isAddress(from)) {
+    if (from && !isAddress(from)) {
       throw new ErrorException(
         `expected a valid from address, but got ${from}`,
       );
@@ -52,7 +52,7 @@ export const raw: ICommand<Std> = {
     };
 
     if (value) {
-      rawAction.value = value.toString();
+      rawAction.value = BigInt(value);
     }
 
     if (from) {

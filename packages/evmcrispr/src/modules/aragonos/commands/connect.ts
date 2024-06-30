@@ -1,5 +1,5 @@
-import type { providers } from "ethers";
-import { utils } from "ethers";
+import type { PublicClient } from "viem";
+import { isAddress } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../../errors";
 import type {
@@ -79,7 +79,7 @@ const buildAppBindings = (
   const appAbiBinding: AbiBinding = {
     type: ABI,
     identifier: app.address,
-    value: app.abiInterface,
+    value: app.abi,
   };
 
   return [...appAddressBindings, appAbiBinding];
@@ -120,7 +120,7 @@ const buildDAOBindings = (
       appBindings.push({
         type: ABI,
         identifier: app.codeAddress,
-        value: app.abiInterface,
+        value: app.abi,
       });
     }
     daoBindings.push(...appBindings);
@@ -132,17 +132,17 @@ const buildDAOBindings = (
 const createDAO = async (
   daoAddressOrName: Address | string,
   bindingsManager: BindingsManager,
-  provider: providers.Provider,
+  client: PublicClient,
   ipfsResolver: IPFSResolver,
-  ensResolver?: Nullable<string>,
+  ensResolver?: Nullable<Address>,
 ): Promise<AragonDAO> => {
   let daoAddress: Address;
 
-  if (utils.isAddress(daoAddressOrName)) {
+  if (isAddress(daoAddressOrName)) {
     daoAddress = daoAddressOrName;
   } else {
     const daoENSName = `${daoAddressOrName}.aragonid.eth`;
-    const res = await _aragonEns(daoENSName, provider!, ensResolver);
+    const res = await _aragonEns(daoENSName, client, ensResolver);
 
     if (!res) {
       throw new ErrorNotFound(
@@ -167,13 +167,11 @@ const createDAO = async (
   // Allow us to keep track of connected DAOs inside nested 'connect' commands
   const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
-  const daoName = !utils.isAddress(daoAddressOrName)
-    ? daoAddressOrName
-    : undefined;
+  const daoName = !isAddress(daoAddressOrName) ? daoAddressOrName : undefined;
 
   return AragonDAO.create(
     daoAddress,
-    provider,
+    client,
     ipfsResolver,
     nextNestingIndex,
     daoName,
@@ -235,7 +233,7 @@ export const connect: ICommand<AragonOS> = {
     const dao = await createDAO(
       daoAddressOrName,
       module.bindingsManager,
-      await module.getProvider(),
+      await module.getClient(),
       module.ipfsResolver,
       module.getConfigBinding("ensResolver"),
     );
@@ -257,7 +255,7 @@ export const connect: ICommand<AragonOS> = {
     const forwarderAppAddresses: Address[] = [];
 
     forwarderApps.forEach((appOrAddress: string) => {
-      const appAddress = utils.isAddress(appOrAddress)
+      const appAddress = isAddress(appOrAddress)
         ? appOrAddress
         : dao.resolveApp(appOrAddress)?.address;
 
@@ -267,7 +265,7 @@ export const connect: ICommand<AragonOS> = {
         );
       }
 
-      !utils.isAddress(appAddress)
+      !isAddress(appAddress)
         ? invalidApps.push(appOrAddress)
         : forwarderAppAddresses.push(appAddress);
     });
@@ -292,7 +290,7 @@ export const connect: ICommand<AragonOS> = {
   async runEagerExecution(
     c,
     cache,
-    { ipfsResolver, provider },
+    { ipfsResolver, client },
     caretPos,
     closestCommandToCaret,
   ) {
@@ -309,7 +307,7 @@ export const connect: ICommand<AragonOS> = {
     const daoAddress = interpretNodeSync(daoNode, cache);
 
     const daoNameOrAddress =
-      daoAddress && utils.isAddress(daoAddress) ? daoAddress : daoNode.value;
+      daoAddress && isAddress(daoAddress) ? daoAddress : daoNode.value;
 
     const cachedDAOBinding = cache.getBinding(daoNameOrAddress, DATA_PROVIDER);
 
@@ -339,14 +337,19 @@ export const connect: ICommand<AragonOS> = {
     }
 
     const dao = await tryAndCacheNotFound(
-      () =>
-        createDAO(
+      () => {
+        const ensResolver = cache.getBindingValue(`aragonos:ensResolver`, USER);
+        if (ensResolver !== null && ensResolver && !isAddress(ensResolver)) {
+          throw new Error("");
+        }
+        return createDAO(
           daoNameOrAddress,
           cache,
-          provider,
+          client,
           ipfsResolver,
-          cache.getBindingValue(`aragonos:ensResolver`, USER),
-        ),
+          ensResolver as Nullable<Address> | undefined, // TODO: Fix BindingsManager to not return null for non-existent bindings
+        );
+      },
       daoNameOrAddress,
       DATA_PROVIDER,
       cache,

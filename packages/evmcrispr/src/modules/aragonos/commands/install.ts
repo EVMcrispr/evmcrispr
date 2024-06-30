@@ -1,14 +1,14 @@
-import type { providers } from "ethers";
-import { utils } from "ethers";
+import type { PublicClient } from "viem";
+import { getAbiItem, hexToString, namehash, toHex } from "viem";
 
 import { ErrorException } from "../../../errors";
 import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
+  encodeAction,
   encodeCalldata,
   getOptValue,
-  getRandomAddress,
   inSameLineThanNode,
   interpretNodeSync,
   tryAndCacheNotFound,
@@ -18,13 +18,13 @@ import { BindingsSpace } from "../../../types";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
+  REPO_ABI,
   SEMANTIC_VERSION_REGEX,
   buildAppArtifact,
   buildAppPermissions,
   buildArtifactFromABI,
   fetchAppArtifact,
   getDAOs,
-  getRepoContract,
   isLabeledAppIdentifier,
   parseLabeledAppIdentifier,
 } from "../utils";
@@ -39,11 +39,11 @@ const fetchRepoData = async (
   appName: string,
   appRegistry: string,
   appVersion = "latest",
-  provider: providers.Provider,
-  customEnsResolver?: string,
+  client: PublicClient,
+  customEnsResolver?: Address,
 ): Promise<{ codeAddress: Address; contentUri: string }> => {
   const repoENSName = `${appName}.${appRegistry}`;
-  const repoAddr = await _aragonEns(repoENSName, provider, customEnsResolver);
+  const repoAddr = await _aragonEns(repoENSName, client, customEnsResolver);
 
   if (!repoAddr) {
     throw new ErrorException(
@@ -51,7 +51,7 @@ const fetchRepoData = async (
     );
   }
 
-  const repo = getRepoContract(repoAddr, provider);
+  const repo = REPO_ABI;
   let codeAddress, rawContentUri;
 
   if (appVersion && appVersion !== "latest") {
@@ -61,14 +61,21 @@ const fetchRepoData = async (
       );
     }
 
-    [, codeAddress, rawContentUri] = await repo.getBySemanticVersion(
-      appVersion.split("."),
-    );
+    [, codeAddress, rawContentUri] = await client.readContract({
+      address: repoAddr,
+      abi: repo,
+      functionName: "getBySemanticVersion",
+      args: [appVersion.split(".").map(Number) as [number, number, number]],
+    });
   } else {
-    [, codeAddress, rawContentUri] = await repo.getLatest();
+    [, codeAddress, rawContentUri] = await client.readContract({
+      address: repoAddr,
+      abi: repo,
+      functionName: "getLatest",
+    });
   }
 
-  return { codeAddress, contentUri: utils.toUtf8String(rawContentUri) };
+  return { codeAddress, contentUri: hexToString(rawContentUri) };
 };
 
 const setApp = (
@@ -82,20 +89,13 @@ const setApp = (
 
   bindingsManager.setBinding(
     app.codeAddress,
-    app.abiInterface,
+    app.abi,
     ABI,
     false,
     undefined,
     true,
   );
-  bindingsManager.setBinding(
-    app.address,
-    app.abiInterface,
-    ABI,
-    false,
-    undefined,
-    true,
-  );
+  bindingsManager.setBinding(app.address, app.abi, ABI, false, undefined, true);
 
   if (!bindingsManager.hasBinding(app.name, ADDR)) {
     bindingsManager.setBinding(app.name, app.address, ADDR);
@@ -127,7 +127,7 @@ export const install: ICommand<AragonOS> = {
       appName,
       registry,
       version ?? "latest",
-      await module.getProvider(),
+      await module.getClient(),
       module.getConfigBinding("ensResolver"),
     );
 
@@ -147,14 +147,24 @@ export const install: ICommand<AragonOS> = {
       artifact = selectedDAOArtifacts[0];
     }
 
-    const { abiInterface, roles } = artifact;
+    const { abi, roles } = artifact;
     const kernel = dao.kernel;
     const initParams = await interpretNodes(paramNodes);
 
-    const fnFragment = abiInterface.getFunction("initialize");
+    const fnFragment = getAbiItem({
+      name: "initialize",
+      abi,
+    });
+
+    if (!fnFragment || fnFragment.type !== "function") {
+      throw new ErrorException(
+        `initialize function not found in ${identifier}`,
+      );
+    }
+
     const encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
 
-    const appId = utils.namehash(`${appName}.${registry}`);
+    const appId = namehash(`${appName}.${registry}`);
     if (!module.bindingsManager.getBindingValue(identifier, ADDR)) {
       await module.registerNextProxyAddress(identifier, kernel.address);
     }
@@ -166,7 +176,7 @@ export const install: ICommand<AragonOS> = {
     setApp(
       dao,
       {
-        abiInterface,
+        abi,
         address: proxyContractAddress,
         codeAddress,
         contentUri,
@@ -179,13 +189,11 @@ export const install: ICommand<AragonOS> = {
     );
 
     return [
-      {
-        to: kernel.address,
-        data: kernel.abiInterface.encodeFunctionData(
-          "newAppInstance(bytes32,address,bytes,bool)",
-          [appId, codeAddress, encodedInitializeFunction, false],
-        ),
-      },
+      encodeAction(
+        kernel.address,
+        "newAppInstance(bytes32,address,bytes,bool)",
+        [appId, codeAddress, encodedInitializeFunction, false],
+      ),
     ];
   },
   buildCompletionItemsForArg(argIndex, _, bindingsManager) {
@@ -206,7 +214,7 @@ export const install: ICommand<AragonOS> = {
       }
     }
   },
-  async runEagerExecution(c, cache, { provider, ipfsResolver }, caretPos) {
+  async runEagerExecution(c, cache, { client, ipfsResolver }, caretPos) {
     if (inSameLineThanNode(c, caretPos)) {
       return;
     }
@@ -224,14 +232,18 @@ export const install: ICommand<AragonOS> = {
       proxyAddress: Nullable<Address> | undefined,
       codeAddress: Nullable<Address> | undefined;
 
-    proxyAddress = cache.getBindingValue(labeledAppIdentifier, OTHER);
+    proxyAddress = cache.getBindingValue(labeledAppIdentifier, OTHER) as
+      | Address
+      | undefined;
     if (proxyAddress) {
-      codeAddress = cache.getBindingValue(proxyAddress, OTHER);
+      codeAddress = cache.getBindingValue(proxyAddress, OTHER) as
+        | Address
+        | undefined;
     }
 
     if (!codeAddress) {
       const repoData = await tryAndCacheNotFound(
-        () => fetchRepoData(appName, appRegistry, "latest", provider),
+        () => fetchRepoData(appName, appRegistry, "latest", client),
         `${appName}.${appRegistry}`,
         ADDR,
         cache,
@@ -243,9 +255,9 @@ export const install: ICommand<AragonOS> = {
 
       codeAddress = repoData.codeAddress;
       // Check if there's already an ABI for this implementation
-      const abiInterface = cache.getBindingValue(codeAddress, ABI);
+      const abi = cache.getBindingValue(codeAddress, ABI);
 
-      if (!abiInterface) {
+      if (!abi) {
         const rawArtifact = await tryAndCacheNotFound(
           () => fetchAppArtifact(ipfsResolver, repoData.contentUri),
           codeAddress,
@@ -258,9 +270,12 @@ export const install: ICommand<AragonOS> = {
         }
 
         artifact = buildAppArtifact(rawArtifact);
-        proxyAddress = getRandomAddress();
+        // Create a random address for the proxy since it's executed in eager mode
+        // This is to avoid conflicts with the proxy address that might be set by
+        // the user
+        proxyAddress = toHex(crypto.getRandomValues(new Uint8Array(20)));
         // Cache fetched ABI
-        cache.setBinding(codeAddress, artifact.abiInterface, ABI);
+        cache.setBinding(codeAddress, artifact.abi, ABI);
 
         /**
          * Cache both mock proxy address and code address so we can
@@ -269,11 +284,11 @@ export const install: ICommand<AragonOS> = {
         cache.setBinding(labeledAppIdentifier, proxyAddress, OTHER);
         cache.setBinding(proxyAddress, codeAddress, OTHER);
       } else {
-        artifact = buildArtifactFromABI(appName, appRegistry, abiInterface);
+        artifact = buildArtifactFromABI(appName, appRegistry, abi);
       }
     } else {
-      const abiInterface = cache.getBindingValue(codeAddress, ABI)!;
-      artifact = buildArtifactFromABI(appName, appRegistry, abiInterface);
+      const abi = cache.getBindingValue(codeAddress, ABI)!;
+      artifact = buildArtifactFromABI(appName, appRegistry, abi);
     }
 
     return (eagerBindingsManager) => {
@@ -291,7 +306,7 @@ export const install: ICommand<AragonOS> = {
       }
 
       const app: App = {
-        abiInterface: artifact.abiInterface,
+        abi: artifact.abi,
         address: proxyAddress!,
         codeAddress: codeAddress!,
         contentUri: "",

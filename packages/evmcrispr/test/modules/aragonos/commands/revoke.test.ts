@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { keccak256, toHex } from "viem";
 
 import type { EVMcrispr } from "../../../../src/EVMcrispr";
 
@@ -12,28 +13,29 @@ import { toDecimals } from "../../../../src/utils";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { createTestAction } from "../../../test-helpers/actions";
+import { createTestAction } from "../test-helpers/actions";
 
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
   itChecksBadPermission,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -45,7 +47,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
 
     const revokePermissionActions = await interpeter.interpret();
 
-    const role = utils.id("CREATE_PERMISSIONS_ROLE");
+    const role = keccak256(toHex("CREATE_PERMISSIONS_ROLE"));
     const expectedRevokePermissionActions = [
       createTestAction("revokePermission", DAO.acl, [
         DAO["disputable-voting.open"],
@@ -76,7 +78,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
 
     const revokePermissionActions = await interpreter.interpret();
 
-    const role = utils.id(rawRole);
+    const role = keccak256(toHex(rawRole));
     const expectedRevokePermissionActions = [
       createTestAction("revokePermission", DAO.acl, [
         DAO["disputable-voting.open"],
@@ -115,7 +117,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
         )
       )
     `,
-      signer,
+      client,
     );
 
     const revokeActions = await interpreter.interpret();
@@ -124,7 +126,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
       createTestAction("revokePermission", DAO.acl, [
         DAO["disputable-voting.open"],
         DAO.acl,
-        utils.id("CREATE_PERMISSIONS_ROLE"),
+        keccak256(toHex("CREATE_PERMISSIONS_ROLE")),
       ]),
     ];
 
@@ -147,7 +149,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
           )
         )
       `,
-      signer,
+      client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "revoke", 1)!;
 
@@ -164,7 +166,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
       `
       load aragonos as ar
       ar:revoke voting token-manager MINT_ROLE`,
-      signer,
+      client,
     );
     const c = interpreter.ast.body[1];
     const error = new CommandError(
@@ -193,7 +195,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
   it("should fail when revoking a permission from a non-app entity", async () => {
     let interpreter: EVMcrispr;
     let c: CommandExpressionNode;
-    const nonAppAddress = await signer.getAddress();
+    const nonAppAddress = TEST_ACCOUNT_ADDRESS;
 
     interpreter = createAragonScriptInterpreter([
       `revoke disputable-voting.open ${nonAppAddress} A_ROLE`,

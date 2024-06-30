@@ -1,17 +1,13 @@
 # EVMcrispr
 
 [![](https://img.shields.io/npm/v/@1hive/evmcrispr.svg?logo=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
-[![Coverage Status](https://img.shields.io/coveralls/github/1Hive/evmcrispr?logo=coveralls&branch=master)](https://coveralls.io/github/1Hive/evmcrispr?branch=master) [![Typedocs](https://github.com/1hive/evmcrispr/actions/workflows/docs.yml/badge.svg)](https://1hive.github.io/evmcrispr/)
+[![Coverage Status](https://img.shields.io/coveralls/github/1Hive/evmcrispr?logo=coveralls&branch=master)](https://coveralls.io/github/1Hive/evmcrispr?branch=master)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
 
 A TypeScript library for Aragon-based DAOs that allows you to encode a series of actions into an EVM script that can be sent to [forwarder apps](https://hack.aragon.org/docs/forwarding-intro).
 
 Actions can be thought of as events performed by some entity inside a DAO such as installing apps, granting or revoking permissions, minting tokens, withdrawing funds, etc.
-
-## API Documentation
-
-Check out these [docs](https://1hive.github.io/evmcrispr/) for an in-depth explanation of the API.
 
 ## How does it work?
 
@@ -140,4 +136,4 @@ Below you can find some script examples that use EVMcrispr:
 
 We welcome community contributions!
 
-Please check out our open [Issues](https://github.com/1Hive/evmcrispr/issues) to get started.
+Please check out our open [Issues](https://github.com/EVMcrispr/evmcrispr/issues) to get started.

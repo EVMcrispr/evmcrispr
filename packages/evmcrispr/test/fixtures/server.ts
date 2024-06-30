@@ -1,8 +1,8 @@
 import type { DefaultBodyType, PathParams } from "msw";
 import { HttpResponse, graphql, http } from "msw";
 import { setupServer } from "msw/node";
-
-import { utils } from "ethers";
+import type { Address } from "viem";
+import { isAddress } from "viem";
 
 import { artifacts } from "./artifacts/";
 import { etherscan } from "./etherscan";
@@ -39,7 +39,7 @@ const handlers = [
       const dao =
         DAOs[
           daoAddresses.find((addr) =>
-            addressesEqual(addr, id),
+            addressesEqual(addr as Address, id as Address),
           ) as keyof typeof DAOs
         ];
 
@@ -76,7 +76,7 @@ const handlers = [
     { status: string; message: string; result: string }
   >(`https://api-rinkeby.etherscan.io/api`, ({ request }) => {
     const address = new URL(request.url).searchParams.get("address");
-    if (!address || !utils.isAddress(address)) {
+    if (!address || !isAddress(address)) {
       return HttpResponse.json({
         status: "0",
         message: "NOTOK",
@@ -103,7 +103,7 @@ const handlers = [
   >(`https://blockscout.com/xdai/mainnet/api`, ({ request }) => {
     const address = new URL(request.url).searchParams.get("address");
 
-    if (!address || !utils.isAddress(address)) {
+    if (!address || !isAddress(address)) {
       return HttpResponse.json({
         status: "0",
         message: "NOTOK",

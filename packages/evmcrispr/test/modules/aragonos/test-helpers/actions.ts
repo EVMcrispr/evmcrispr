@@ -1,15 +1,13 @@
-import { utils } from "ethers";
+import { isAddress, parseAbi, toHex } from "viem";
 
-import type { Action, Address, TransactionAction } from "../../src/types";
+import type { Action, Address, TransactionAction } from "../../../../src/types";
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
   getAppForwarderType,
 } from "./forwarders";
-import {
-  encodeActCall,
-  encodeCallScript,
-} from "../../src/modules/aragonos/utils";
+import { encodeCallScript } from "../../../../src/modules/aragonos/utils";
+import { encodeAction } from "../../../../src/utils";
 
 export const createTestPreTxAction = (
   operation: string,
@@ -18,24 +16,10 @@ export const createTestPreTxAction = (
 ): Action => {
   switch (operation) {
     case "approve":
-      return {
-        to,
-        data: encodeActCall("approve(address,uint256)", parameters),
-      };
+      return encodeAction(to, "approve(address,uint256)", parameters);
     default:
       throw new Error(`Pretransaction operation ${operation} not found.`);
   }
-};
-
-export const createTestCallAction = (
-  appAddress: Address,
-  functionSignature: string,
-  parameters: any[],
-): Action => {
-  return {
-    to: appAddress,
-    data: encodeActCall(functionSignature, parameters),
-  };
 };
 
 export const createTestAction = (
@@ -53,7 +37,7 @@ export const createTestAction = (
   to: Address,
   parameters?: any[],
 ): TransactionAction => {
-  const multiFnsInterface = new utils.Interface([
+  const abi = parseAbi([
     "function changeController(address)",
     "function createCloneToken(address,uint256,string,uint8,string,bool)",
     "function createPermission(address,address,bytes32,address)",
@@ -66,16 +50,13 @@ export const createTestAction = (
     "function setApp(bytes32,bytes32,address)",
   ]);
 
-  return {
-    to,
-    data: multiFnsInterface.encodeFunctionData(operation, parameters),
-  };
+  return encodeAction(to, operation, parameters || [], { abi });
 };
 
 export const createTestScriptEncodedAction = (
   forwarderActions: TransactionAction[],
   path: string[],
-  dao: Record<string, string>,
+  dao: Record<string, Address>,
   context?: string,
 ): TransactionAction => {
   let script: string;
@@ -83,17 +64,12 @@ export const createTestScriptEncodedAction = (
   for (const forwarder of forwardingPath) {
     script = encodeCallScript(forwarderActions);
     const forwarderType = getAppForwarderType(forwarder);
-    const forwarderAddress = utils.isAddress(forwarder)
-      ? forwarder
-      : dao[forwarder];
+    const forwarderAddress = isAddress(forwarder) ? forwarder : dao[forwarder];
 
     switch (forwarderType) {
       case FORWARDER_TYPE:
         forwarderActions = [
-          {
-            to: forwarderAddress,
-            data: encodeActCall("forward(bytes)", [script]),
-          },
+          encodeAction(forwarderAddress, "forward(bytes)", [script]),
         ];
         break;
       case CONTEXT_FORWARDER_TYPE:
@@ -101,13 +77,10 @@ export const createTestScriptEncodedAction = (
           throw new Error("Context not provided.");
         }
         forwarderActions = [
-          {
-            to: forwarderAddress,
-            data: encodeActCall("forward(bytes,bytes)", [
-              script,
-              utils.hexlify(utils.toUtf8Bytes(context)),
-            ]),
-          },
+          encodeAction(forwarderAddress, "forward(bytes,bytes)", [
+            script,
+            toHex(context),
+          ]),
         ];
         break;
       default:

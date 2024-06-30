@@ -1,10 +1,10 @@
-import { BigNumber, utils } from "ethers";
+import { toHex } from "viem";
 
 import { ErrorException } from "../../../errors";
 
 import type { ICommand } from "../../../types";
 
-import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
+import { ComparisonType, checkArgsLength } from "../../../utils";
 
 import type { Tenderly } from "../Tenderly";
 
@@ -15,24 +15,24 @@ export const wait: ICommand<Tenderly> = {
       minValue: 1,
     });
 
-    const [duration, period = BigNumber.from(1)] = await interpretNodes(c.args);
+    const [duration, period = 1n] = await interpretNodes(c.args);
 
-    if (!isNumberish(duration)) {
+    if (typeof duration !== "bigint") {
       throw new ErrorException("duration must be a number");
     }
 
-    if (!isNumberish(period)) {
+    if (typeof period !== "bigint") {
       throw new ErrorException("period must be a number");
     }
 
     return [
       {
         method: "evm_increaseBlocks",
-        params: [utils.hexValue(BigNumber.from(duration).div(period).sub(1))],
+        params: [toHex(duration / period - 1n)],
       },
       {
         method: "evm_increaseTime",
-        params: [utils.hexValue(duration)],
+        params: [toHex(duration)],
       },
     ];
   },

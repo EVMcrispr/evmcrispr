@@ -1,7 +1,14 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { constants, utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import {
+  getContractAddress,
+  keccak256,
+  parseAbiItem,
+  toHex,
+  zeroAddress,
+} from "viem";
 
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 
@@ -9,50 +16,52 @@ import { MINIME_TOKEN_FACTORIES } from "../../../../src/modules/aragonos/utils";
 import {
   ComparisonType,
   buildArgsLengthErrorMsg,
-  buildNonceForAddress,
-  calculateNewProxyAddress,
+  encodeAction,
   encodeCalldata,
   toDecimals,
 } from "../../../../src/utils";
+
+import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";
 import { CommandError } from "../../../../src/errors";
 
 import {
-  APP,
   COMPLETE_FORWARDER_PATH,
-  DAO,
   FEE_AMOUNT,
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
-} from "../../../fixtures";
+} from "../fixtures/mock-forwarders";
+import { APP } from "../fixtures/mock-app";
+import { DAO } from "../../../fixtures/mock-dao";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
 import {
   createTestAction,
   createTestPreTxAction,
   createTestScriptEncodedAction,
-} from "../../../test-helpers/actions";
+} from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
-} from "../../../test-helpers/aragonos";
+} from "../test-helpers/aragonos";
 
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 const DAOs = [DAO, DAO2, DAO3];
 
 describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
     typeof createAragonScriptInterpreter_
   >;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
-      signer,
+      client,
       DAO.kernel,
     );
   });
@@ -71,19 +80,19 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           act agent agent:1 "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
         )
       `,
-      signer,
+      client,
     );
 
     const forwardingAction = await interpreter.interpret();
 
-    const me = await signer.getAddress();
-    const chainId = await signer.getChainId();
+    const me = TEST_ACCOUNT_ADDRESS;
+    const chainId = await client.getChainId();
     const { appId, codeAddress, initializeSignature } = APP;
     const tokenFactoryAddress = MINIME_TOKEN_FACTORIES.get(chainId)!;
-    const newTokenAddress = calculateNewProxyAddress(
-      tokenFactoryAddress,
-      await buildNonceForAddress(tokenFactoryAddress, 0, signer.provider!),
-    );
+    const newTokenAddress = getContractAddress({
+      from: tokenFactoryAddress,
+      nonce: await buildNonceForAddress(tokenFactoryAddress, 0, client!),
+    });
 
     const expectedForwardingActions = [
       createTestPreTxAction("approve", FEE_TOKEN_ADDRESS, [
@@ -95,54 +104,54 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           createTestAction("grantPermission", DAO3.acl, [
             me,
             DAO3.agent,
-            utils.id("TRANSFER_ROLE"),
+            keccak256(toHex("TRANSFER_ROLE")),
           ]),
           createTestAction("grantPermission", DAO3.acl, [
             DAO3["dandelion-voting.1hive"],
             DAO3["token-manager"],
-            utils.id("ISSUE_ROLE"),
+            keccak256(toHex("ISSUE_ROLE")),
           ]),
           createTestAction("revokePermission", DAO3.acl, [
             DAO3["dandelion-voting.1hive"],
             DAO3["tollgate.1hive"],
-            utils.id("CHANGE_AMOUNT_ROLE"),
+            keccak256(toHex("CHANGE_AMOUNT_ROLE")),
           ]),
           createTestAction("removePermissionManager", DAO3.acl, [
             DAO3["tollgate.1hive"],
-            utils.id("CHANGE_AMOUNT_ROLE"),
+            keccak256(toHex("CHANGE_AMOUNT_ROLE")),
           ]),
           createTestAction(
             "createCloneToken",
             MINIME_TOKEN_FACTORIES.get(chainId)!,
-            [constants.AddressZero, 0, "Other Token", 18, "OT", true],
+            [zeroAddress, 0, "Other Token", 18, "OT", true],
           ),
           createTestAction("changeController", newTokenAddress, [
-            calculateNewProxyAddress(
-              DAO3.kernel,
-              await buildNonceForAddress(DAO3.kernel, 0, signer.provider!),
-            ),
+            getContractAddress({
+              from: DAO3.kernel,
+              nonce: await buildNonceForAddress(DAO3.kernel, 0, client!),
+            }),
           ]),
           createTestAction("newAppInstance", DAO3.kernel, [
             appId,
             codeAddress,
-            encodeCalldata(
-              new utils.Interface([`function ${initializeSignature}`]),
-              [newTokenAddress, true, 0],
-            ),
+            encodeCalldata(parseAbiItem([`function ` + initializeSignature]), [
+              newTokenAddress,
+              true,
+              0,
+            ]),
             false,
           ]),
           createTestScriptEncodedAction(
             [
-              {
-                to: DAO3["agent:1"],
-                data: new utils.Interface([
-                  "function transfer(address,address,uint256)",
-                ]).encodeFunctionData("transfer", [
+              encodeAction(
+                DAO3["agent:1"],
+                "transfer(address,address,uint256)",
+                [
                   "0x44fA8E6f47987339850636F88629646662444217",
                   me,
                   toDecimals("10.50"),
-                ]),
-              },
+                ],
+              ),
             ],
             ["agent"],
             DAO3,
@@ -187,7 +196,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
             )
           )
         `,
-        signer,
+        client,
       );
 
       await interpreter.interpret();
@@ -227,7 +236,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
             
           )
         `,
-        signer,
+        client,
       );
 
       const nestedActions = await interpreter.interpret();
@@ -236,12 +245,12 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
         createTestAction("grantPermission", DAO.acl, [
           DAO2["disputable-voting.open"],
           DAO.agent,
-          utils.id("TRANSFER_ROLE"),
+          keccak256(toHex("TRANSFER_ROLE")),
         ]),
         createTestAction("grantPermission", DAO2.acl, [
           DAO["disputable-voting.open"],
           DAO2["acl"],
-          utils.id("CREATE_PERMISSIONS_ROLE"),
+          keccak256(toHex("CREATE_PERMISSIONS_ROLE")),
         ]),
       ];
 
@@ -259,7 +268,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
         )
       )
       `,
-        signer,
+        client,
       );
 
       const connectNode = findAragonOSCommandNode(
@@ -284,7 +293,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
         grant kernel acl CREATE_PERMISSIONS_ROLE
       )
     `,
-      signer,
+      client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
     const error = new CommandError(c, `context option missing`);
@@ -298,7 +307,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     load aragonos as ar
     ar:connect ${DAO.kernel}
   `,
-      signer,
+      client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
     const error = new CommandError(

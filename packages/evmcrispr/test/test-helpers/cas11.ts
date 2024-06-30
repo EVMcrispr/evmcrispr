@@ -1,7 +1,8 @@
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";
-import type { Signer } from "ethers";
+
+import type { PublicClient } from "viem";
 
 import { inspect } from "util";
 import type { ErrorException } from "../../src";
@@ -27,6 +28,7 @@ import {
   HelperFunctionError,
 } from "../../src/errors";
 import { expectThrowAsync } from "./expects";
+import { TEST_ACCOUNT_ADDRESS } from "./constants";
 
 const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;
@@ -64,14 +66,15 @@ export const runCases = (
 
 export const runInterpreterCases = async (
   caseOrCases: InterpreterCase | InterpreterCase[],
-  getSigner: () => Promise<Signer>,
+  getClient: () => Promise<PublicClient>,
 ): Promise<void[]> =>
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
         const [res] = await new EVMcrispr(
           new Cas11AST([node]),
-          getSigner,
+          getClient,
+          async () => TEST_ACCOUNT_ADDRESS,
         ).interpret();
 
         expect(res, errorMsg).to.equal(expected);
@@ -108,16 +111,20 @@ export const runErrorCase = (
 };
 export const createInterpreter = (
   script: string,
-  signer: Signer,
+  client: PublicClient,
 ): EVMcrispr => {
   const ast = runParser(scriptParser, script) as Cas11AST;
 
-  return new EVMcrispr(ast, async () => signer);
+  return new EVMcrispr(
+    ast,
+    async () => client,
+    async () => TEST_ACCOUNT_ADDRESS,
+  );
 };
 
 export const preparingExpression = async (
   expression: string,
-  signer: Signer,
+  client: PublicClient,
   module?: string,
   configSetters: string[] = [],
 ): Promise<[Awaited<any>, HelperFunctionNode]> => {
@@ -128,7 +135,7 @@ export const preparingExpression = async (
   ${configSetters.join("\n")}
   set $res ${expression}
   `,
-    signer,
+    client,
   );
 
   const setCommand = i.ast.body.find(
@@ -199,7 +206,7 @@ export const itChecksInvalidArgsLength = (
   argumentlessExpression: string,
   args: string[],
   c: Comparison,
-  lazySigner: () => Signer,
+  lazyClient: () => PublicClient,
   module?: string,
 ): Mocha.Test => {
   const { type, minValue, maxValue } = c;
@@ -209,7 +216,7 @@ export const itChecksInvalidArgsLength = (
      * so the signer hasn't been defined yet. To solve this, we pass a callback returning
      * the signer
      */
-    const signer = lazySigner();
+    const client = lazyClient();
     const callee = getCallee(argumentlessExpression);
     let error: ErrorException;
     let msg: string;
@@ -220,7 +227,7 @@ export const itChecksInvalidArgsLength = (
       msg = buildArgsLengthErrorMsg(args.length + 1, c);
       const [interpret, h] = await preparingExpression(
         updateExpressionArgs("add", argumentlessExpression, args, c),
-        signer,
+        client,
         module,
       );
       error =
@@ -240,7 +247,7 @@ export const itChecksInvalidArgsLength = (
         msg = buildArgsLengthErrorMsg(minValue - 1, c);
         const [interpret, h] = await preparingExpression(
           updateExpressionArgs("remove", argumentlessExpression, args, c),
-          signer,
+          client,
           module,
         );
         error =
@@ -260,7 +267,7 @@ export const itChecksInvalidArgsLength = (
       msg = buildArgsLengthErrorMsg(args.length - 1, c);
       const [interpret, h] = await preparingExpression(
         updateExpressionArgs("remove", argumentlessExpression, args, c),
-        signer,
+        client,
         module,
       );
       error =

@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { keccak256, toHex } from "viem";
 
 import { ErrorInvalid } from "../../../errors";
 
@@ -12,5 +12,5 @@ export const normalizeRole = (role: string): string => {
     return role;
   }
 
-  return utils.id(role);
+  return keccak256(toHex(role));
 };

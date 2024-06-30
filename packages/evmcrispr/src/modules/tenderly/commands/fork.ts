@@ -1,4 +1,5 @@
-import { BigNumber, providers, utils } from "ethers";
+import { createPublicClient, createWalletClient, http, toHex } from "viem";
+import { mainnet } from "viem/chains";
 
 import { ErrorException } from "../../../errors";
 
@@ -74,27 +75,42 @@ export const fork: ICommand<Tenderly> = {
 
     const forkRPC = `https://rpc.tenderly.co/fork/${forkId}`;
 
-    const provider = new providers.JsonRpcProvider(forkRPC);
+    const publicClient = createPublicClient({
+      chain: mainnet, // It is not used by Tenderly, but it is required to be passed
+      transport: http(forkRPC),
+    });
+    const walletClient = createWalletClient({
+      chain: mainnet,
+      transport: http(forkRPC),
+    });
 
     module.evmcrispr.setConnectedAccount(from);
-    module.evmcrispr.setProvider(provider);
+    module.evmcrispr.setClient(publicClient);
 
     const simulateAction = async (action: Action) => {
       if (isSwitchAction(action)) {
         throw new ErrorException(`can't switch networks inside a fork command`);
       }
       if (isProviderAction(action)) {
-        await provider.send(action.method, action.params);
+        walletClient.request({
+          method: action.method as any,
+          params: action.params as any,
+        });
       } else {
-        const tx = await provider.send("eth_sendTransaction", [
-          {
-            from: await module.getConnectedAccount(),
-            ...action,
-            value: utils.hexValue(BigNumber.from(action.value || 0)),
-          },
-        ]);
-        const receipt = await provider.waitForTransaction(tx);
-        if (receipt.status == 0) {
+        const tx = await walletClient.request({
+          method: "eth_sendTransaction",
+          params: [
+            {
+              from: await module.getConnectedAccount(),
+              ...action,
+              value: toHex(action.value || 0n),
+            },
+          ],
+        });
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: tx,
+        });
+        if (receipt.status === "reverted") {
           module.evmcrispr.log(
             `:error: A transaction failed: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/fork/${forkId}).`,
           );
@@ -108,7 +124,7 @@ export const fork: ICommand<Tenderly> = {
       actionCallback: simulateAction,
     });
 
-    module.evmcrispr.setProvider(undefined);
+    module.evmcrispr.setClient(undefined);
     module.evmcrispr.setConnectedAccount(undefined);
 
     module.evmcrispr.log(

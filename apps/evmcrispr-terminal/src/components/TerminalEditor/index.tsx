@@ -3,7 +3,7 @@ import type { Monaco } from "@monaco-editor/react";
 
 import { useEffect } from "react";
 
-import { useWalletClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 
 import { IPFSResolver } from "@1hive/evmcrispr";
 
@@ -17,7 +17,6 @@ import { createProvideCompletionItemsFn } from "./autocompletion";
 import { theme } from "./theme";
 import { terminalStoreActions, useTerminalStore } from "./use-terminal-store";
 import { useDebounce } from "../../hooks/useDebounce";
-import { clientToSigner } from "../../utils/ethers";
 
 export default function TerminalEditor() {
   const monaco = useMonaco();
@@ -26,8 +25,7 @@ export default function TerminalEditor() {
 
   const { bindingsCache, script, ast, currentModuleNames } = useTerminalStore();
 
-  const { data: client } = useWalletClient();
-  const provider = client ? clientToSigner(client).provider : undefined;
+  const publicClient = usePublicClient();
 
   const debouncedScript = useDebounce(script, 200);
 
@@ -69,7 +67,7 @@ export default function TerminalEditor() {
   }, [monaco, currentModuleNames, bindingsCache]);
 
   useEffect(() => {
-    if (!monaco || !provider) {
+    if (!monaco || !publicClient) {
       return;
     }
     const completionProvider = monaco.languages.registerCompletionItemProvider(
@@ -77,7 +75,7 @@ export default function TerminalEditor() {
       {
         provideCompletionItems: createProvideCompletionItemsFn(
           bindingsCache,
-          { provider, ipfsResolver },
+          { client: publicClient, ipfsResolver },
           ast,
         ),
       },
@@ -86,7 +84,7 @@ export default function TerminalEditor() {
     return () => {
       completionProvider.dispose();
     };
-  }, [bindingsCache, monaco, provider, ast]);
+  }, [bindingsCache, monaco, publicClient, ast]);
 
   function handleBeforeMountEditor(monaco: Monaco) {
     monaco.editor.defineTheme("theme", theme);

@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { BigNumber } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { ExpressionError } from "../../src/errors";
 
@@ -12,28 +12,27 @@ import { expectThrowAsync } from "../test-helpers/expects";
 
 describe("Interpreter - arithmetics", () => {
   const name = "ArithmeticExpressionError";
-  let signer: Signer;
+
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should return the correct result of an arithmetic operation", async () => {
     const [interpret] = await preparingExpression(
       "(120 - 5e22 * 2 ^ 2 + 500e33)",
-      signer,
+      client,
     );
     const res = await interpret();
 
-    expect(res).to.eql(
-      BigNumber.from(120).sub(toDecimals(20, 22)).add(toDecimals(500, 33)),
-    );
+    expect(res).to.eql(120n - toDecimals(5, 22) * 4n + toDecimals(500, 33));
   });
 
   it("should return the correct result of an arithmetic operation containing priority parenthesis", async () => {
     const [interpret] = await preparingExpression(
       "((121e18 / 4) * (9 - 2) ^ 2 - 55e18)",
-      signer,
+      client,
     );
     const res = await interpret();
 
@@ -48,7 +47,7 @@ describe("Interpreter - arithmetics", () => {
 
     set $res ($var1 * 2)
   `,
-      signer,
+      client,
     );
     const leftOperandNode = leftOperandInterpreter.ast.body[1].args[1];
     const leftOperandErr = new ExpressionError(
@@ -63,7 +62,7 @@ describe("Interpreter - arithmetics", () => {
 
     set $res (2 * $var1)
   `,
-      signer,
+      client,
     );
     const rightOperandNode = rightOperandInterpreter.ast.body[1].args[1];
     const rightOperandErr = new ExpressionError(
@@ -86,7 +85,7 @@ describe("Interpreter - arithmetics", () => {
   });
 
   it("should fail when trying to perform a division by zero", async () => {
-    const [interpret, n] = await preparingExpression("(4 / 0)", signer);
+    const [interpret, n] = await preparingExpression("(4 / 0)", client);
     const err = new ExpressionError(
       n,
       `invalid operation. Can't divide by zero`,

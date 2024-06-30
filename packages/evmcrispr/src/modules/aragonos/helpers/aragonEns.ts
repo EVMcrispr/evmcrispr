@@ -1,22 +1,19 @@
-import type { ethers } from "ethers";
+import type { PublicClient } from "viem";
 
 import { ComparisonType, checkArgsLength } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
-import type { HelperFunction, Nullable } from "../../../types";
+import type { Address, HelperFunction, Nullable } from "../../../types";
 import { getAragonEnsResolver, resolveName } from "../utils";
 import { ErrorException } from "../../../errors";
 
 export const _aragonEns = async (
   ensName: string,
-  provider: ethers.providers.Provider,
-  customENSResolver?: Nullable<string>,
-): Promise<string | null> => {
-  const name = await resolveName(
-    ensName,
-    customENSResolver ||
-      getAragonEnsResolver((await provider.getNetwork()).chainId),
-    provider,
-  );
+  client: PublicClient,
+  customENSResolver?: Nullable<Address>,
+): Promise<`0x${string}` | null> => {
+  const ensResolver =
+    customENSResolver || getAragonEnsResolver(await client.getChainId());
+  const name = await resolveName(ensName, ensResolver, client);
 
   return name;
 };
@@ -37,7 +34,7 @@ export const aragonEns: HelperFunction<AragonOS> = async (
   const customENSResolver = module.getConfigBinding("ensResolver");
   const name = await _aragonEns(
     ensName,
-    await module.getProvider(),
+    await module.getClient(),
     customENSResolver,
   );
 

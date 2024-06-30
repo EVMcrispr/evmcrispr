@@ -1,6 +1,6 @@
-import type { utils } from "ethers";
+import type { AbiEvent, AbiFunction } from "viem";
 
-import type { Address } from "../../../types";
+import type { Abi, Address } from "../../../types";
 import type { PermissionMap } from "./permission";
 
 /**
@@ -10,7 +10,7 @@ export interface App {
   /**
    * The app's contract ABI [Interface](https://docs.ethers.io/v5/api/utils/abi/interface/).
    */
-  abiInterface: utils.Interface;
+  abi: Abi;
   /**
    * The app's address.
    */
@@ -92,7 +92,7 @@ export interface AragonAppJson {
 
 export interface AragonArtifact extends AragonAppJson {
   roles: AragonArtifactRole[];
-  abi: (utils.EventFragment | utils.FunctionFragment)[];
+  abi: (AbiEvent | AbiFunction)[];
   /**
    * All publicly accessible functions
    * Includes metadata needed for radspec and transaction pathing
@@ -123,7 +123,7 @@ export interface AragonArtifactRole {
 
 /** @internal */
 export interface AppArtifact {
-  abiInterface: utils.Interface;
+  abi: Abi;
   appName: string;
   roles: AragonArtifactRole[];
   functions: { sig: string }[];
@@ -142,7 +142,7 @@ export type AppIdentifier = string;
 
 /** @internal */
 export interface ArtifactData {
-  abiInterface: utils.Interface;
+  abi: Abi;
   roles: any[];
 }
 

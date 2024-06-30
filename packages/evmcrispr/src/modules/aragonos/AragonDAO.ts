@@ -1,6 +1,7 @@
-import type { providers } from "ethers";
-import { Contract, utils } from "ethers";
 import cloneDeep from "lodash.clonedeep";
+
+import type { PublicClient } from "viem";
+import { getContractAddress, isAddress } from "viem";
 
 import type { Address, IDataProvider } from "../../types";
 import type {
@@ -14,7 +15,6 @@ import type {
   Role,
 } from "./types";
 import type { IPFSResolver } from "../../IPFSResolver";
-import { calculateNewProxyAddress } from "../../utils";
 import {
   INITIAL_APP_INDEX,
   buildApp,
@@ -92,10 +92,13 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
 
   // Sort apps by creation time
   for (let i = 1; i <= addressToApp.size; i++) {
-    const address = calculateNewProxyAddress(kernel.address, utils.hexlify(i));
+    const address = getContractAddress({
+      from: kernel.address,
+      nonce: BigInt(i),
+    });
 
-    if (addressToApp.has(address)) {
-      sortedParsedApps.push(addressToApp.get(address));
+    if (addressToApp.has(address.toLowerCase())) {
+      sortedParsedApps.push(addressToApp.get(address.toLowerCase()));
     }
   }
 
@@ -156,15 +159,12 @@ export class AragonDAO implements IDataProvider {
 
   static async create(
     daoAddress: Address,
-    provider: providers.Provider,
+    client: PublicClient,
     ipfsResolver: IPFSResolver,
     index: number,
     name?: string,
   ): Promise<AragonDAO> {
-    const connector = new Connector(
-      (await provider.getNetwork()).chainId,
-      provider,
-    );
+    const connector = new Connector(await client.getChainId(), client);
     const parsedApps = await connector.organizationApps(daoAddress);
     const appResourcesCache = await buildAppArtifactCache(
       parsedApps,
@@ -182,21 +182,8 @@ export class AragonDAO implements IDataProvider {
     return new AragonDAO(appCache, appResourcesCache, index, name);
   }
 
-  getAppContract(
-    entity: Entity,
-    provider: providers.Provider,
-  ): Contract | undefined {
-    const app = this.resolveApp(entity);
-
-    if (!app) {
-      return;
-    }
-
-    return new Contract(app.address, app.abiInterface, provider);
-  }
-
   resolveApp(entity: Entity): App | undefined {
-    if (utils.isAddress(entity)) {
+    if (isAddress(entity)) {
       const app = [...this.appCache.entries()].find(
         ([, app]) => app.address === entity,
       );

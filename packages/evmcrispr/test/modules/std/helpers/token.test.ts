@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
@@ -11,15 +12,15 @@ import {
 } from "../../../test-helpers/cas11";
 
 describe("Std > helpers > @token(tokenSymbol)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
-    const [interpret] = await preparingExpression("@token(DAI)", signer);
+    const [interpret] = await preparingExpression("@token(DAI)", client);
 
     expect(await interpret()).to.equals(
       "0x44fA8E6f47987339850636F88629646662444217",
@@ -34,22 +35,22 @@ describe("Std > helpers > @token(tokenSymbol)", () => {
       type: ComparisonType.Equal,
       minValue: 1,
     },
-    lazySigner,
+    lazyClient,
   );
 });
 
 describe("Std > helpers > @token.balance(tokenSymbol, account)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
     const [interpret] = await preparingExpression(
       "@token.balance(DAI,@token(DAI))",
-      signer,
+      client,
     );
 
     expect(await interpret()).to.be.eq(
@@ -65,22 +66,22 @@ describe("Std > helpers > @token.balance(tokenSymbol, account)", () => {
       type: ComparisonType.Equal,
       minValue: 2,
     },
-    lazySigner,
+    lazyClient,
   );
 });
 
 describe("Std > helpers > @token.amount(tokenSymbol, amount)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
     const [interpret] = await preparingExpression(
       "@token.amount(DAI, 1)",
-      signer,
+      client,
     );
 
     expect(await interpret()).to.equals(String(1e18));
@@ -94,6 +95,6 @@ describe("Std > helpers > @token.amount(tokenSymbol, amount)", () => {
       type: ComparisonType.Equal,
       minValue: 2,
     },
-    lazySigner,
+    lazyClient,
   );
 });

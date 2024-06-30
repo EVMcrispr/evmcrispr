@@ -1,4 +1,4 @@
-import type { providers } from "ethers";
+import type { PublicClient } from "viem";
 
 import type { Action } from "./actions";
 import type {
@@ -59,7 +59,7 @@ export interface ICommand<M extends Module = Module> {
   runEagerExecution(
     c: CommandExpressionNode,
     cache: BindingsManager,
-    fetchers: { ipfsResolver: IPFSResolver; provider: providers.Provider },
+    fetchers: { ipfsResolver: IPFSResolver; client: PublicClient },
     caretPos: Position,
     closestCommandToCaret: boolean,
   ): Promise<LazyBindings | void>;

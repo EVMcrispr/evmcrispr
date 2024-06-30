@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { utils } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
+import { namehash } from "viem";
 
 import { HelperFunctionError } from "../../../../src/errors";
 
@@ -15,26 +16,26 @@ import {
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 describe("Std > helpers > @namehash(ens)", () => {
-  let signer: Signer;
-  const lazySigner = () => signer;
+  let client: PublicClient;
+  const lazyClient = () => client;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("return the ENS node value", async () => {
     const [interpret] = await preparingExpression(
       `@namehash(evmcrispr.eth)`,
-      signer,
+      client,
     );
 
-    expect(await interpret()).to.equals(utils.namehash("evmcrispr.eth"));
+    expect(await interpret()).to.equals(namehash("evmcrispr.eth"));
   });
 
   it("fails if the value is not an ENS domain", async () => {
     const [interpret, h] = await preparingExpression(
       `@namehash('not an ens domain')`,
-      signer,
+      client,
     );
 
     const error = new HelperFunctionError(
@@ -53,6 +54,6 @@ describe("Std > helpers > @namehash(ens)", () => {
       type: ComparisonType.Equal,
       minValue: 1,
     },
-    lazySigner,
+    lazyClient,
   );
 });

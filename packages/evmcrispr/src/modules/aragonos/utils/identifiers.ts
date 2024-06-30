@@ -1,4 +1,5 @@
-import { isAddress } from "ethers/lib/utils";
+import type { Address } from "viem";
+import { isAddress } from "viem";
 
 import { ErrorInvalid } from "../../../errors";
 import type { App, AppIdentifier, LabeledAppIdentifier } from "../types";
@@ -139,7 +140,7 @@ export const parsePrefixedDAOIdentifier = (
 export function getDaoAddrFromIdentifier(
   identifier: string,
   bindingsManager: BindingsManager,
-): string | undefined | null {
+): Address | undefined | null {
   if (identifier.startsWith("_")) {
     const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
     if (isAddress(daoPrefix!)) {

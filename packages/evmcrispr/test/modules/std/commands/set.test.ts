@@ -1,6 +1,7 @@
 import { expect } from "chai";
-import type { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { viem } from "hardhat";
+
+import type { PublicClient } from "viem";
 
 import { BindingsSpace } from "../../../../src/types";
 import { CommandError } from "../../../../src/errors";
@@ -10,14 +11,14 @@ import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
 
 describe("Std > commands > set <varName> <varValue>", () => {
-  let signer: Signer;
+  let client: PublicClient;
 
   before(async () => {
-    [signer] = await ethers.getSigners();
+    client = await viem.getPublicClient();
   });
 
   it("should set an user variable correctly", async () => {
-    const interpreter = createInterpreter("set $var 1e18", signer);
+    const interpreter = createInterpreter("set $var 1e18", client);
 
     await interpreter.interpret();
 
@@ -31,7 +32,7 @@ describe("Std > commands > set <varName> <varValue>", () => {
       `
    set var1 12e18
   `,
-      signer,
+      client,
     );
     const c = findStdCommandNode(interpreter.ast, "set")!;
     const error = new CommandError(c, "expected a variable identifier");
@@ -45,7 +46,7 @@ describe("Std > commands > set <varName> <varValue>", () => {
         set $var1 12e18
         set $var1 "new"
       `,
-      signer,
+      client,
     );
 
     await interpreter.interpret();

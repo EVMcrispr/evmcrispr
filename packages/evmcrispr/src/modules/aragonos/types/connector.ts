@@ -21,7 +21,7 @@ export interface ParsedApp {
   /**
    * The app's base contract address.
    */
-  codeAddress: string;
+  codeAddress: Address;
   /**
    * The IPFS content identifier the app's data is located on.
    */
