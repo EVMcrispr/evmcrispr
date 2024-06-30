@@ -72,7 +72,7 @@ export class Connector {
 
     if (errors?.length) {
       throw new ErrorException(
-        `An error happened while querying subgraph: ${errors[0]}`,
+        `An error happened while querying subgraph: ${JSON.stringify(errors[0])}`,
       );
     }
 

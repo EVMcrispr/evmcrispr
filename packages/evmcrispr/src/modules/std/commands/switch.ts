@@ -1,23 +1,17 @@
+import * as chains from "viem/chains";
+
 import { ErrorException } from "../../../errors";
 import type { ICommand, ProviderAction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
 import type { Std } from "../Std";
 
-const nameToChainId = {
-  mainnet: 1,
-  ropsten: 3,
-  rinkeby: 4,
-  goerli: 5,
-  kovan: 42,
-  optimism: 10,
-  optimismKovan: 69,
-  gnosis: 100,
-  polygon: 137,
-  polygonMumbai: 80001,
-  arbitrum: 42161,
-  arbitrumRinkeby: 421611,
-  zkevm: 1101,
-};
+const nameToChainId = Object.entries(chains).reduce(
+  (acc, [name, { id }]) => {
+    acc[name] = id;
+    return acc;
+  },
+  {} as Record<string, number>,
+);
 
 export const _switch: ICommand<Std> = {
   async run(module, c, { interpretNodes }): Promise<ProviderAction[]> {
@@ -43,10 +37,7 @@ export const _switch: ICommand<Std> = {
           `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
         );
       }
-      chainId =
-        nameToChainId[
-          networkNameOrId?.toLowerCase() as keyof typeof nameToChainId
-        ];
+      chainId = nameToChainId[networkNameOrId as keyof typeof nameToChainId];
       if (!chainId) {
         throw new ErrorException(`chain "${networkNameOrId}" not found`);
       }
@@ -64,10 +55,7 @@ export const _switch: ICommand<Std> = {
   buildCompletionItemsForArg(argIndex) {
     switch (argIndex) {
       case 0:
-        return [
-          ...Object.keys(nameToChainId),
-          ...Object.values(nameToChainId).map((chainId) => chainId.toString()),
-        ];
+        return [...Object.keys(nameToChainId)];
       default:
         return [];
     }

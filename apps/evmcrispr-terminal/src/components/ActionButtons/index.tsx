@@ -90,8 +90,15 @@ export default function ActionButtons({
   ) => {
     if (isProviderAction(action)) {
       const chainId = Number(action.params[0].chainId);
-      await walletClient.switchChain({ id: chainId });
       const { chain, transport } = getChainAndTransport(chainId);
+      try {
+        await walletClient.switchChain({ id: chainId });
+      } catch (e: unknown) {
+        if ((e as Error).name === "UserRejectedRequestError") {
+          throw new Error(`Switch to ${chain.name} chain rejected by user`);
+        }
+        await walletClient.addChain({ chain });
+      }
       publicClient = createPublicClient({ chain, transport });
     } else {
       const chainId = await walletClient.getChainId();

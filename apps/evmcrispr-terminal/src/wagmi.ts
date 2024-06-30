@@ -1,17 +1,8 @@
 import { createConfig, http } from "wagmi";
 import { injected, walletConnect } from "wagmi/connectors";
 
-import {
-  arbitrum,
-  base,
-  gnosis,
-  goerli,
-  mainnet,
-  optimism,
-  polygon,
-  polygonZkEvm,
-  sepolia,
-} from "wagmi/chains";
+import * as _chains from "wagmi/chains";
+import type { Chain, Transport } from "viem";
 
 import { safe } from "./overrides/safe";
 
@@ -20,55 +11,42 @@ const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;
 
 const isIframe = window.self !== window.top;
 
-export const transports = ALCHEMY_API_KEY
-  ? {
-      [mainnet.id]: http(
-        `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [sepolia.id]: http(
-        `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [goerli.id]: http(),
-      [gnosis.id]: http(),
-      [polygon.id]: http(
-        `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [polygonZkEvm.id]: http(
-        `https://polygonzkevm-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [optimism.id]: http(
-        `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [arbitrum.id]: http(
-        `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-      [base.id]: http(
-        `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-      ),
-    }
-  : {
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
-      [goerli.id]: http(),
-      [gnosis.id]: http(),
-      [polygon.id]: http(),
-      [polygonZkEvm.id]: http(),
-      [optimism.id]: http(),
-      [arbitrum.id]: http(),
-      [base.id]: http(),
-    };
+const alchemyTransports = ALCHEMY_API_KEY && {
+  [_chains.mainnet.id]:
+    `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.sepolia.id]:
+    `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.polygon.id]:
+    `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.polygonAmoy.id]:
+    `https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.polygonZkEvm.id]:
+    `https://polygonzkevm-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.polygonZkEvmCardona.id]:
+    `https://polygonzkevm-cardona.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.optimism.id]:
+    `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.optimismSepolia.id]:
+    `https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.arbitrum.id]:
+    `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.arbitrumSepolia.id]:
+    `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.base.id]: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.baseSepolia.id]:
+    `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+};
+const chains = Object.values(_chains) as unknown as [Chain, ...Chain[]];
+export const transports = chains.reduce(
+  (acc, { id }) => {
+    acc[id] = alchemyTransports?.[id] ? http(alchemyTransports[id]) : http();
+    return acc;
+  },
+  {} as Record<number, Transport>,
+);
 
 export const config = createConfig({
-  chains: [
-    mainnet,
-    sepolia,
-    goerli,
-    gnosis,
-    polygon,
-    polygonZkEvm,
-    optimism,
-    arbitrum,
-  ],
+  chains,
   connectors: [
     !isIframe && injected(),
     !isIframe &&
