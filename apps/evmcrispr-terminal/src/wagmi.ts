@@ -11,31 +11,25 @@ const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;
 
 const isIframe = window.self !== window.top;
 
+function alchemyUrl(alchemyChain: string) {
+  return `https://${alchemyChain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+}
+
 const alchemyTransports = ALCHEMY_API_KEY && {
-  [_chains.mainnet.id]:
-    `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.sepolia.id]:
-    `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.polygon.id]:
-    `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.polygonAmoy.id]:
-    `https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.polygonZkEvm.id]:
-    `https://polygonzkevm-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.polygonZkEvmCardona.id]:
-    `https://polygonzkevm-cardona.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.optimism.id]:
-    `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.optimismSepolia.id]:
-    `https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.arbitrum.id]:
-    `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.arbitrumSepolia.id]:
-    `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.base.id]: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-  [_chains.baseSepolia.id]:
-    `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  [_chains.mainnet.id]: alchemyUrl(`eth-mainnet`),
+  [_chains.sepolia.id]: alchemyUrl(`eth-sepolia`),
+  [_chains.polygon.id]: alchemyUrl(`polygon-mainnet`),
+  [_chains.polygonAmoy.id]: alchemyUrl(`polygon-amoy`),
+  [_chains.polygonZkEvm.id]: alchemyUrl(`polygonzkevm-mainnet`),
+  [_chains.polygonZkEvmCardona.id]: alchemyUrl(`polygonzkevm-cardona`),
+  [_chains.optimism.id]: alchemyUrl(`opt-mainnet`),
+  [_chains.optimismSepolia.id]: alchemyUrl(`opt-sepolia`),
+  [_chains.arbitrum.id]: alchemyUrl(`arb-mainnet`),
+  [_chains.arbitrumSepolia.id]: alchemyUrl(`arb-sepolia`),
+  [_chains.base.id]: alchemyUrl(`base-mainnet`),
+  [_chains.baseSepolia.id]: alchemyUrl(`base-sepolia`),
 };
+
 const chains = Object.values(_chains) as unknown as [Chain, ...Chain[]];
 export const transports = chains.reduce(
   (acc, { id }) => {
