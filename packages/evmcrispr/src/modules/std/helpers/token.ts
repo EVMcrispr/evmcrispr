@@ -14,14 +14,17 @@ import {
 } from "../../../utils";
 import type { Module } from "../../../Module";
 import type { Std } from "../Std";
+import type { BindingsManager } from "../../../BindingsManager";
 
 const ENV_TOKENLIST = "$token.tokenlist";
-const DEFAULT_TOKEN_LIST = "https://tokens.uniswap.org/";
 
-const getTokenList = ({ bindingsManager }: Module): string => {
+const getTokenList = async (
+  bindingsManager: BindingsManager,
+  chainId: number,
+): Promise<string> => {
   const tokenList = String(
     bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      DEFAULT_TOKEN_LIST,
+      `https://tokens.functions.on-fleek.app/v0/${chainId}`,
   );
 
   // Always check user data inputs:
@@ -41,7 +44,7 @@ export const _token = async (
     return tokenSymbolOrAddress;
   }
   const chainId = await module.getChainId();
-  const tokenList = getTokenList(module);
+  const tokenList = await getTokenList(module.bindingsManager, chainId);
   const {
     tokens,
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =
