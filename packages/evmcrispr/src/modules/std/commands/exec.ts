@@ -1,3 +1,4 @@
+import type { AbiFunction } from "viem";
 import { getAbiItem, isAddress } from "viem";
 
 import { BindingsSpace } from "../../../types";
@@ -145,7 +146,7 @@ export const exec: ICommand<Std> = {
           nodeArgs[0].type === "HelperFunctionExpression" &&
           (nodeArgs[0] as HelperFunctionNode).name === "token"
             ? erc20ABI
-            : (function () {
+            : (() => {
                 const targetAddress = interpretNodeSync(
                   nodeArgs[0],
                   bindingsManager,
@@ -162,12 +163,15 @@ export const exec: ICommand<Std> = {
         const functions = abi
           // Only consider functions that change state
           .filter(
-            (item) =>
+            (item): item is AbiFunction =>
               item.type === "function" &&
               (item.stateMutability === "nonpayable" ||
                 item.stateMutability === "payable"),
           )
-          .map(getFunctionFragment);
+          .map(
+            (func: AbiFunction) =>
+              `${func.name}(${func.inputs.map((input) => input.type).join(",")})`,
+          );
         return functions;
       }
       default: {

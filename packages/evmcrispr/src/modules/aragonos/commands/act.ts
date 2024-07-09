@@ -1,3 +1,4 @@
+import type { AbiFunction } from "viem";
 import { isAddress } from "viem";
 
 import type { AbiBinding, ICommand } from "../../../types";
@@ -12,7 +13,6 @@ import {
   checkArgsLength,
   encodeAction,
   fetchAbi,
-  getFunctionFragment,
   insideNodeLine,
   interpretNodeSync,
   tryAndCacheNotFound,
@@ -85,16 +85,18 @@ export const act: ICommand<AragonOS> = {
         if (!abi) {
           return [];
         }
-
         const functions = abi
           // Only consider functions that change state
           .filter(
-            (item) =>
+            (item): item is AbiFunction =>
               item.type === "function" &&
               (item.stateMutability === "nonpayable" ||
                 item.stateMutability === "payable"),
           )
-          .map(getFunctionFragment);
+          .map(
+            (func: AbiFunction) =>
+              `${func.name}(${func.inputs.map((input) => input.type).join(",")})`,
+          );
         return functions;
       }
       default: {
