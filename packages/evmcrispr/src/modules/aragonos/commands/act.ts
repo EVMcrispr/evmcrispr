@@ -140,13 +140,7 @@ export const act: ICommand<AragonOS> = {
     }
 
     const result = await tryAndCacheNotFound(
-      () =>
-        fetchAbi(
-          resolvedTargetAddress,
-          client,
-          // TODO: use etherscan API to fetch the abis
-          "",
-        ),
+      () => fetchAbi(resolvedTargetAddress, client),
       resolvedTargetAddress,
       ABI,
       cache,

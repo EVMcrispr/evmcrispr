@@ -75,13 +75,11 @@ export const exec: ICommand<Std> = {
 
         finalSignature = getFunctionFragment(func);
       } else {
-        const etherscanAPI = module.getConfigBinding("etherscanAPI");
         let fetchedAbi: Abi;
         try {
           [targetAddress, fetchedAbi] = await fetchAbi(
             contractAddress,
             await module.getClient(),
-            etherscanAPI,
           );
         } catch (err) {
           const err_ = err as Error;
@@ -217,13 +215,7 @@ export const exec: ICommand<Std> = {
     }
 
     const result = await tryAndCacheNotFound(
-      () =>
-        fetchAbi(
-          resolvedTargetAddress,
-          client,
-          // TODO: use etherscan API to fetch the abis
-          "",
-        ),
+      () => fetchAbi(resolvedTargetAddress, client),
       resolvedTargetAddress,
       ABI,
       cache,

@@ -16,8 +16,6 @@ import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
-const ETHERSCAN_API = process.env.ETHERSCAN_API;
-
 describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]", () => {
   let client: PublicClient;
 
@@ -127,7 +125,6 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
   it("should return exec action when receiving just the method's name", async () => {
     const interpreter = createInterpreter(
       `
-        set $std:etherscanAPI  ${ETHERSCAN_API}
         exec ${target} transfer @me 1500e18
         `,
       client,
@@ -178,7 +175,6 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     const invalidSignature = "invalid(uint256,)";
     const interpreter = createInterpreter(
       `
-        set $std:etherscanAPI ${ETHERSCAN_API}
         exec ${target} ${invalidSignature} 1e18`,
       client,
     );
