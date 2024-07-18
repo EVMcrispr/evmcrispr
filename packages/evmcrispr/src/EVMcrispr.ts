@@ -513,7 +513,7 @@ export class EVMcrispr {
     async (n) => {
       const binding = this.bindingsManager.getBindingValue(n.value, USER);
 
-      if (binding) {
+      if (binding !== undefined) {
         return binding;
       }
 
