@@ -10,13 +10,15 @@ export const _projectAddr = async (
   slug: string,
 ): Promise<[string, number]> => {
   const chainId = await module.getChainId();
-  const result = await fetch("https://mainnet.serve.giveth.io/graphql", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `
+  const result = await fetch(
+    "https://cors-proxy.functions.on-fleek.app/v0/https://mainnet.serve.giveth.io/graphql",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
         query GetLearnWithJasonEpisodes($slug: String!) {
           projectBySlug(slug: $slug) {
             id
@@ -27,11 +29,12 @@ export const _projectAddr = async (
           }
         }
         `,
-      variables: {
-        slug,
-      },
-    }),
-  })
+        variables: {
+          slug,
+        },
+      }),
+    },
+  )
     .then((res) => res.json())
     .then((res) => [
       res.data.projectBySlug.addresses.find((x: any) => x.networkId === chainId)
