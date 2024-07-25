@@ -92,7 +92,7 @@ export const fork: ICommand<Tenderly> = {
         throw new ErrorException(`can't switch networks inside a fork command`);
       }
       if (isProviderAction(action)) {
-        walletClient.request({
+        await walletClient.request({
           method: action.method as any,
           params: action.params as any,
         });
@@ -101,8 +101,8 @@ export const fork: ICommand<Tenderly> = {
           method: "eth_sendTransaction",
           params: [
             {
-              from: await module.getConnectedAccount(),
               ...action,
+              from: action.from || (await module.getConnectedAccount()),
               value: toHex(action.value || 0n),
             },
           ],
