@@ -34,6 +34,10 @@ export const wait: ICommand<Tenderly> = {
         method: "evm_increaseTime",
         params: [toHex(duration)],
       },
+      {
+        method: "evm_increaseBlocks",
+        params: [toHex(1n)],
+      },
     ];
   },
   async runEagerExecution() {
