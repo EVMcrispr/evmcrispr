@@ -4,8 +4,8 @@ import { ErrorException } from "../../../errors";
 import type { HelperFunction } from "../../../types";
 import {
   ComparisonType,
-  SIGNATURE_REGEX,
   checkArgsLength,
+  isFunctionSignature,
 } from "../../../utils";
 import type { Std } from "../Std";
 
@@ -31,7 +31,7 @@ export const get: HelperFunction<Std> = async (
 
   const [body, returns, index] = abi.split(":");
 
-  if (!SIGNATURE_REGEX.test(body)) {
+  if (!isFunctionSignature(body)) {
     throw new ErrorException(
       `expected a valid function signature, but got "${abi}"`,
     );

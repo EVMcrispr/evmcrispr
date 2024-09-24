@@ -6,7 +6,6 @@ import type { Abi, AbiBinding, Address, ICommand } from "../../../types";
 
 import {
   ComparisonType,
-  SIGNATURE_REGEX,
   addressesEqual,
   beforeOrEqualNode,
   checkArgsLength,
@@ -16,6 +15,7 @@ import {
   getOptValue,
   insideNodeLine,
   interpretNodeSync,
+  isFunctionSignature,
   isNumberish,
   tryAndCacheNotFound,
 } from "../../../utils";
@@ -58,7 +58,7 @@ export const exec: ICommand<Std> = {
       );
     }
 
-    if (!SIGNATURE_REGEX.test(signature)) {
+    if (!isFunctionSignature(signature)) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(signature)) {
         throw new ErrorException(`invalid signature "${signature}"`);
       }

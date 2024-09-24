@@ -7,7 +7,6 @@ import { batchForwarderActions } from "../utils/forwarders";
 import { ErrorException } from "../../../errors";
 import {
   ComparisonType,
-  SIGNATURE_REGEX,
   addressesEqual,
   beforeOrEqualNode,
   checkArgsLength,
@@ -15,6 +14,7 @@ import {
   fetchAbi,
   insideNodeLine,
   interpretNodeSync,
+  isFunctionSignature,
   tryAndCacheNotFound,
 } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
@@ -50,7 +50,7 @@ export const act: ICommand<AragonOS> = {
       );
     }
 
-    if (!SIGNATURE_REGEX.test(signature)) {
+    if (!isFunctionSignature(signature)) {
       throw new ErrorException(
         `expected a valid signature, but got ${signature}`,
       );

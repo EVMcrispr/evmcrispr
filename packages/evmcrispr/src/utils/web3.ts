@@ -1,11 +1,16 @@
 import type { AbiItem } from "viem";
-import { isAddressEqual } from "viem";
+import { isAddressEqual, parseAbiItem } from "viem";
 
 import type { Address } from "../types";
 
-// JS regex do not support balancing groups, so we do not check parentheses are balanced
-export const SIGNATURE_REGEX =
-  /^\w+\(((\(?\w+(\[\d*\])*\)?)+(,\(?\w+(\[\d*\])*\)?)*)?\)$/;
+export const isFunctionSignature = (signature: string) => {
+  try {
+    parseAbiItem(`function ${signature} external`);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
 
 export const toDecimals = (amount: number | string, decimals = 18): bigint => {
   const [integer, decimal] = String(amount).split(".");
