@@ -47,6 +47,7 @@ export const config = createConfig({
       WALLETCONNECT_PROJECT_ID &&
       walletConnect({
         projectId: WALLETCONNECT_PROJECT_ID,
+        showQrModal: false,
       }),
     isIframe &&
       safe({
