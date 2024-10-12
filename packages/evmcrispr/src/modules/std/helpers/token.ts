@@ -1,6 +1,6 @@
 import fetch from "isomorphic-fetch";
 
-import { isAddress, parseAbiItem } from "viem";
+import { getAddress, isAddress, parseAbiItem } from "viem";
 
 import { ErrorException } from "../../../errors";
 
@@ -60,7 +60,7 @@ export const _token = async (
     );
   }
 
-  return tokenAddress;
+  return getAddress(tokenAddress);
 };
 
 export const token: HelperFunction<Std> = async (

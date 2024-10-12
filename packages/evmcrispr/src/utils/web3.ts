@@ -6,6 +6,10 @@ import type { Address } from "../types";
 export const isFunctionSignature = (signature: string) => {
   try {
     parseAbiItem(`function ${signature} external`);
+    if (signature.includes(",)")) {
+      // Viem does not catch fn(a,) as invalid
+      return false;
+    }
     return true;
   } catch (error) {
     return false;

@@ -147,6 +147,9 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
       ["mint)", "right parenthesis"],
       ["mint(uint,)", "right comma"],
       ["mint(,uint)", "left comma"],
+      ["mint(uint,uint,())", "empty tuple"],
+      ["mint(uint,uint,(uint,))", "right comma in tuple"],
+      ["mint(uint,uint,(,uint))", "left comma in tuple"],
     ];
 
     await Promise.all(
