@@ -23,7 +23,7 @@ export default function WalletConnectCode({
     <>
       <QRCodeSVG
         value={wcUri}
-        size={300}
+        size={400}
         bgColor="black"
         fgColor={green[300]}
         marginSize={8}

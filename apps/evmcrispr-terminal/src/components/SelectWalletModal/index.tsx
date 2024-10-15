@@ -119,7 +119,10 @@ function WalletList({
         <WalletButton
           name="WalletConnect"
           leftIcon={<WalletIcon />}
-          onClick={() => setSelectedWallet("walletConnect")}
+          onClick={() => {
+            setSelectedWallet("walletConnect");
+            walletConnectConnector.connect();
+          }}
         />
       )}
       <WalletButton
