@@ -8,11 +8,15 @@ import { safe } from "./overrides/safe";
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;
-
+const DRPC_API_KEY = import.meta.env.VITE_DRPC_API_KEY;
 const isIframe = window.self !== window.top;
 
 function alchemyUrl(alchemyChain: string) {
   return `https://${alchemyChain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+}
+
+function drpcUrl(drpcChain: string) {
+  return `https://lb.drpc.org/ogrpc?network=${drpcChain}&dkey=${DRPC_API_KEY}`;
 }
 
 const alchemyTransports = ALCHEMY_API_KEY && {
@@ -30,10 +34,29 @@ const alchemyTransports = ALCHEMY_API_KEY && {
   [_chains.baseSepolia.id]: alchemyUrl(`base-sepolia`),
 };
 
+const dRPCTransports = DRPC_API_KEY && {
+  [_chains.mainnet.id]: drpcUrl(`ethereum`),
+  [_chains.sepolia.id]: drpcUrl(`sepolia`),
+  [_chains.polygon.id]: drpcUrl(`polygon`),
+  [_chains.polygonAmoy.id]: drpcUrl(`polygon-amoy`),
+  [_chains.polygonZkEvm.id]: drpcUrl(`polygon-zkevm`),
+  [_chains.polygonZkEvmCardona.id]: drpcUrl(`polygon-zkevm-cardona`),
+  [_chains.optimism.id]: drpcUrl(`optimism`),
+  [_chains.optimismSepolia.id]: drpcUrl(`optimism-sepolia`),
+  [_chains.arbitrum.id]: drpcUrl(`arbitrum`),
+  [_chains.arbitrumSepolia.id]: drpcUrl(`arbitrum-sepolia`),
+  [_chains.base.id]: drpcUrl(`base`),
+  [_chains.baseSepolia.id]: drpcUrl(`base-sepolia`),
+};
+
 const chains = Object.values(_chains) as unknown as [Chain, ...Chain[]];
 export const transports = chains.reduce(
   (acc, { id }) => {
-    acc[id] = alchemyTransports?.[id] ? http(alchemyTransports[id]) : http();
+    acc[id] = alchemyTransports?.[id]
+      ? http(alchemyTransports[id])
+      : dRPCTransports?.[id]
+        ? http(dRPCTransports[id])
+        : http();
     return acc;
   },
   {} as Record<number, Transport>,
