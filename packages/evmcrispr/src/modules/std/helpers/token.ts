@@ -24,7 +24,7 @@ const getTokenList = async (
 ): Promise<string> => {
   const tokenList = String(
     bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      `https://tokens.functions.on-fleek.app/v0/${chainId}`,
+      `https://tokenlist.evmcrispr.com/v0/${chainId}`,
   );
 
   // Always check user data inputs:

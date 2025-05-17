@@ -11,7 +11,7 @@ export const _projectAddr = async (
 ): Promise<[string, number]> => {
   const chainId = await module.getChainId();
   const result = await fetch(
-    "https://cors-proxy.functions.on-fleek.app/v0/https://mainnet.serve.giveth.io/graphql",
+    "https://corsproxy.evmcrispr.com/v0/https://mainnet.serve.giveth.io/graphql",
     {
       method: "POST",
       headers: {
@@ -19,12 +19,14 @@ export const _projectAddr = async (
       },
       body: JSON.stringify({
         query: `
-        query GetLearnWithJasonEpisodes($slug: String!) {
-          projectBySlug(slug: $slug) {
-            id
-            addresses {
-              address
-              networkId
+        query GetProjectAddresses($slug: String!) {
+          projectsBySlugs(slugs: [$slug]) {
+            projects {
+              id
+              addresses {
+                address
+                networkId
+              }
             }
           }
         }
@@ -37,10 +39,17 @@ export const _projectAddr = async (
   )
     .then((res) => res.json())
     .then((res) => [
-      res.data.projectBySlug.addresses.find((x: any) => x.networkId === chainId)
-        ?.address,
-      Number(res.data.projectBySlug.id),
+      res.data.projectsBySlugs.projects[0]?.addresses.find(
+        (x: any) => x.networkId === chainId,
+      )?.address,
+      Number(res.data.projectsBySlugs.projects[0]?.id),
     ]);
+  if (isNaN(result[1])) {
+    throw new Error("Project not found");
+  }
+  if (result[0] === undefined) {
+    throw new Error("Project doesn't have an address on this chain");
+  }
   return result as [string, number];
 };
 

@@ -6,7 +6,7 @@ import { fetchImplementationAddress } from "./proxies";
 
 async function getAbiEntries(address: string, chainId: number): Promise<Abi> {
   return await fetch(
-    `https://abi.functions.on-fleek.app/v0/${chainId}/${address}`,
+    `https://abifetcher.evmcrispr.com/v0/${chainId}/${address}`,
   )
     .then((res) => res.json())
     .catch((err) => {
