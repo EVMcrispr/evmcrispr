@@ -30,7 +30,7 @@ export default function TerminalEditor() {
   const debouncedScript = useDebounce(script, 200);
 
   function handleOnChangeEditor(str: string | undefined, ev: any) {
-    terminalStoreActions.script(str ?? "");
+    terminalStoreActions("script", str ?? "");
 
     const change = ev.changes[0];
     const startLineNumber = change.range.startLineNumber;
@@ -40,11 +40,11 @@ export default function TerminalEditor() {
         // Substract current line
         1
       : startLineNumber;
-    terminalStoreActions.updateCurrentLine(newLine);
+    terminalStoreActions("updateCurrentLine", newLine);
   }
 
   useEffect(() => {
-    terminalStoreActions.processScript();
+    terminalStoreActions("processScript");
   }, [debouncedScript]);
 
   useEffect(() => {

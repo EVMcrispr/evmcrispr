@@ -114,8 +114,8 @@ export default function ActionButtons({
   };
 
   async function onExecute(inBatch: boolean) {
-    terminalStoreActions.errors([]);
-    terminalStoreActions.isLoading(true);
+    terminalStoreActions("errors", []);
+    terminalStoreActions("isLoading", true);
 
     try {
       if (!address || publicClient === undefined || walletClient === undefined)
@@ -124,8 +124,8 @@ export default function ActionButtons({
       const { ast, errors } = parseScript(script);
 
       if (errors.length) {
-        terminalStoreActions.isLoading(false);
-        terminalStoreActions.errors(errors);
+        terminalStoreActions("isLoading", false);
+        terminalStoreActions("errors", errors);
         return;
       }
 
@@ -168,16 +168,16 @@ export default function ActionButtons({
         e.message.startsWith("transaction failed") &&
         /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
       ) {
-        terminalStoreActions.errors([
+        terminalStoreActions("errors", [
           `Transaction failed, watch in block explorer ${
             e.message.split('"')[1]
           }`,
         ]);
       } else {
-        terminalStoreActions.errors([e.message]);
+        terminalStoreActions("errors", [e.message]);
       }
     } finally {
-      terminalStoreActions.isLoading(false);
+      terminalStoreActions("isLoading", false);
     }
   }
 

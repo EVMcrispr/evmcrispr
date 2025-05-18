@@ -16,28 +16,28 @@
     "@types/mocha": "^10.0.7",
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/lodash.clonedeep": "^4.5.9",
-    "chai": "^4.3.6",
-    "msw": "^2.3.1",
+    "chai": "^5.2.0",
+    "msw": "^2.8.3",
     "node-fetch": "^3.3.2",
-    "nyc": "^17.0.0",
-    "ora": "^5.4.0",
-    "is-ipfs": "^6.0.2",
-    "hardhat": "^2.22.5",
-    "typescript": "^5.5.2",
-    "dotenv": "^16.4.5",
+    "nyc": "^17.1.0",
+    "ora": "^8.2.0",
+    "is-ipfs": "^8.0.4",
+    "hardhat": "^2.24.0",
+    "typescript": "^5.8.3",
+    "dotenv": "^16.5.0",
     "eslint": "^8.57.0",
     "ts-node": "^10.9.2",
-    "tsup": "^6.0.0"
+    "tsup": "^8.5.0"
   },
   "dependencies": {
-    "@ensdomains/content-hash": "^2.0.0",
+    "@ensdomains/content-hash": "^3.0.0",
     "arcsecond": "^5.0.0",
     "isomorphic-fetch": "^3.0.0",
     "jsymbol": "^0.3.5",
     "lodash.clonedeep": "^4.5.0"
   },
   "peerDependencies": {
-    "viem": "^2.16.2"
+    "viem": "^2.29.4"
   },
   "files": [
     "dist"

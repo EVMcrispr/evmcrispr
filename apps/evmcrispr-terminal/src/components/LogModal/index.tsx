@@ -12,7 +12,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import ChakraUIRenderer from "chakra-ui-markdown-renderer";
 import remarkGfm from "remark-gfm";
 import {
@@ -85,18 +85,20 @@ export default function LogModal({
                     <AlertDescription>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
-                        components={ChakraUIRenderer({
-                          a: ({ href, children, ...props }) => (
-                            <Link
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              {...props}
-                            >
-                              {children}
-                            </Link>
-                          ),
-                        })}
+                        components={
+                          ChakraUIRenderer({
+                            a: ({ href, children, ...props }) => (
+                              <Link
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                {...props}
+                              >
+                                {children}
+                              </Link>
+                            ),
+                          }) as Components
+                        }
                       >
                         {stripString(log)}
                       </ReactMarkdown>

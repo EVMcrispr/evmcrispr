@@ -25,9 +25,6 @@ export default function TerminalHeader({
   address,
 }: {
   // TODO: It looks like it should not be here
-  terminalStoreActions: {
-    errors: (param: string[]) => void;
-  };
   address: `0x${string}` | undefined;
 }) {
   const { disconnect } = useDisconnect();
@@ -43,7 +40,7 @@ export default function TerminalHeader({
   });
 
   async function onDisconnect() {
-    terminalStoreActions.errors([]);
+    terminalStoreActions("errors", []);
     disconnect();
   }
   const addressShortened =

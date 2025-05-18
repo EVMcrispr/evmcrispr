@@ -70,22 +70,22 @@ export default function Terminal() {
     const encodedTitle = encodedParams.get("title");
     const encodedScript = encodedParams.get("script");
     if (encodedTitle || encodedScript) {
-      terminalStoreActions.title(encodedTitle ?? "");
-      terminalStoreActions.script(encodedScript ?? "");
-      terminalStoreActions.processScript();
+      terminalStoreActions("title", encodedTitle ?? "");
+      terminalStoreActions("script", encodedScript ?? "");
+      terminalStoreActions("processScript");
     }
   }, []);
 
   useEffect(() => {
     if (titleFromId !== undefined) {
-      terminalStoreActions.title(titleFromId);
+      terminalStoreActions("title", titleFromId);
     }
   }, [titleFromId]);
 
   useEffect(() => {
     if (scriptFromId !== undefined) {
-      terminalStoreActions.script(scriptFromId);
-      terminalStoreActions.processScript();
+      terminalStoreActions("script", scriptFromId);
+      terminalStoreActions("processScript");
     }
   }, [scriptFromId]);
 
@@ -106,7 +106,7 @@ export default function Terminal() {
       <ScrollRestoration />
       <ScriptLibrary />
       <Container maxWidth={{ base: "7xl", "2xl": "8xl" }} my={14}>
-        <Header address={address} terminalStoreActions={terminalStoreActions} />
+        <Header address={address} />
         <FadeIn componentRef={terminalRef}>
           <VStack mb={3} alignItems="flex-end" pr={0}>
             <Flex width={"100%"}>
@@ -174,7 +174,7 @@ function TitleInput() {
   const debounce = useCallback(
     // Delay saving state until user activity stops
     _debounce((_inputString: string) => {
-      terminalStoreActions.title(_inputString);
+      terminalStoreActions("title", _inputString);
     }, 200), // Delay (ms)
     [title],
   );

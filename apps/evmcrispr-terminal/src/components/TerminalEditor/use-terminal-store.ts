@@ -59,7 +59,8 @@ const initialState: TerminalStoreState = {
   ast: undefined,
 };
 
-const terminalStore = createStore("terminal-store")(initialState, {
+const terminalStore = createStore<TerminalStoreState>(initialState, {
+  name: "terminal-store",
   persist: {
     enabled: true,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -71,9 +72,9 @@ const terminalStore = createStore("terminal-store")(initialState, {
   },
   devtools: { enabled: process.env.NODE_ENV === "development" },
 })
-  .extendActions((set, get) => ({
+  .extendActions(({ set, get }) => ({
     updateCurrentModules: async (loadCommandNodes: CommandExpressionNode[]) => {
-      const bindingsCache = get.bindingsCache();
+      const bindingsCache = get("bindingsCache");
       // Get name and alias of load nodes
       const newModuleNames = loadCommandNodes.map((c) => {
         const nameNode = c.args[0];
@@ -93,7 +94,7 @@ const terminalStore = createStore("terminal-store")(initialState, {
         client: PublicClient;
       };
       const pos = {} as Position;
-      const oldModules = get.currentModuleNames();
+      const oldModules = get("currentModuleNames");
 
       /**
        * Check for differences between new and old modules
@@ -108,7 +109,7 @@ const terminalStore = createStore("terminal-store")(initialState, {
           pos,
         );
 
-        set.currentModuleNames(newModuleNames);
+        set("currentModuleNames", newModuleNames);
       } else {
         for (const { name, alias } of newModuleNames) {
           if (!oldModules.find((m) => m.alias === alias && m.name === name)) {
@@ -119,18 +120,18 @@ const terminalStore = createStore("terminal-store")(initialState, {
               fetchers,
               pos,
             );
-            set.currentModuleNames(newModuleNames);
+            set("currentModuleNames", newModuleNames);
             return;
           }
         }
       }
     },
   }))
-  .extendActions((set, get) => ({
+  .extendActions(({ set, get }) => ({
     processScript: () => {
-      const currentLine = get.currentLine();
-      const lastLine = get.lastLine();
-      const script = get.script();
+      const currentLine = get("currentLine");
+      const lastLine = get("lastLine");
+      const script = get("script");
 
       /**
        * Compute the AST of large scripts can get expensive.
@@ -152,17 +153,17 @@ const terminalStore = createStore("terminal-store")(initialState, {
         "set",
       ]);
 
-      set.ast(ast);
-      set.updateCurrentModules(
+      set("ast", ast);
+      set(
+        "updateCurrentModules",
         commandNodes.filter((c: CommandExpressionNode) => c.name === "load"),
       );
     },
     updateCurrentLine(currentLine: number) {
-      set.lastLine(get.currentLine());
-      set.currentLine(currentLine);
+      set("lastLine", get("currentLine"));
+      set("currentLine", currentLine);
     },
   }));
 
 export const useTerminalStore = terminalStore.useStore;
-export const terminalStoreSelectors = terminalStore.use;
 export const terminalStoreActions = terminalStore.set;

@@ -1,10 +1,10 @@
-import type { As as ChakraAs, ComponentDefaultProps } from "@chakra-ui/react";
+import type { ComponentDefaultProps } from "@chakra-ui/react";
 import { Box, Button, Icon } from "@chakra-ui/react";
-import type { MouseEventHandler } from "react";
+import type { ElementType, MouseEventHandler } from "react";
 
 type LibraryButtonProps = {
   onClick: MouseEventHandler<HTMLButtonElement>;
-  icon: ChakraAs;
+  icon: ElementType;
 } & ComponentDefaultProps;
 
 export const LibraryButton = ({

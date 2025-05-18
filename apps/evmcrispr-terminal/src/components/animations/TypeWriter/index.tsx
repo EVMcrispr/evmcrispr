@@ -1,4 +1,5 @@
-import { Text, keyframes } from "@chakra-ui/react";
+import { Text } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 
 const typing = keyframes`
 from { width: 0 }
