@@ -97,7 +97,10 @@ export default function ActionButtons({
         if ((e as Error).name === "UserRejectedRequestError") {
           throw new Error(`Switch to ${chain.name} chain rejected by user`);
         }
-        await walletClient.addChain({ chain });
+        if ((e as Error).name === "SwitchChainError") {
+          await walletClient.addChain({ chain });
+        }
+        throw e;
       }
       publicClient = createPublicClient({ chain, transport });
     } else {
