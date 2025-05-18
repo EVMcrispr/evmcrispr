@@ -13,26 +13,13 @@ import {
 export function ExecuteButton({
   isLoading,
   onExecute,
-  allowBatch,
 }: {
   isLoading: boolean;
   onExecute: (inBatch: boolean) => void;
-  allowBatch: boolean;
 }) {
-  const [isBatch, setIsBatch] = useBoolean(allowBatch);
+  const [isBatch, setIsBatch] = useBoolean(true);
 
-  return !allowBatch ? (
-    <Button
-      variant="overlay"
-      colorScheme={"green"}
-      onClick={() => onExecute(isBatch)}
-      isLoading={isLoading}
-      loadingText={"Executing"}
-      size={"md"}
-    >
-      Execute
-    </Button>
-  ) : (
+  return (
     <HStack spacing={0}>
       <Button
         variant="overlay"

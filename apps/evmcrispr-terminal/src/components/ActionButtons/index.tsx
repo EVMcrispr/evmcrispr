@@ -83,6 +83,25 @@ export default function ActionButtons({
     return { chain, transport };
   }
 
+  const switchOrAddChain = async (
+    walletClient: WalletClient,
+    chainId: number,
+  ) => {
+    const { chain, transport } = getChainAndTransport(chainId);
+    try {
+      await walletClient.switchChain({ id: chainId });
+    } catch (e: unknown) {
+      if ((e as Error).name === "UserRejectedRequestError") {
+        throw new Error(`Switch to ${chain.name} chain rejected by user`);
+      }
+      if ((e as Error).name === "SwitchChainError") {
+        await walletClient.addChain({ chain });
+      }
+      throw e;
+    }
+    publicClient = createPublicClient({ chain, transport });
+  };
+
   const executeAction = async (
     action: Action,
     walletClient: WalletClient<Transport, Chain, Account>,
@@ -90,31 +109,77 @@ export default function ActionButtons({
   ) => {
     if (isProviderAction(action)) {
       const chainId = Number(action.params[0].chainId);
-      const { chain, transport } = getChainAndTransport(chainId);
-      try {
-        await walletClient.switchChain({ id: chainId });
-      } catch (e: unknown) {
-        if ((e as Error).name === "UserRejectedRequestError") {
-          throw new Error(`Switch to ${chain.name} chain rejected by user`);
-        }
-        if ((e as Error).name === "SwitchChainError") {
-          await walletClient.addChain({ chain });
-        }
-        throw e;
-      }
-      publicClient = createPublicClient({ chain, transport });
+      await switchOrAddChain(walletClient, chainId);
     } else {
       const chainId = await walletClient.getChainId();
-      await walletClient.sendTransaction({
+      const tx = await walletClient.sendTransaction({
         chain: config.chains.find((chain) => chain.id === chainId),
-        to: action.to as `0x${string}`,
-        from: action.from as `0x${string}`,
-        data: action.data as `0x${string}`,
-        value: BigInt(action.value || 0),
+        to: action.to,
+        from: action.from,
+        data: action.data,
+        value: action.value,
         gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
       });
+      await publicClient?.waitForTransactionReceipt({ hash: tx });
     }
   };
+
+  async function executeBatchedActions(
+    actions: TransactionAction[],
+    walletClient: WalletClient<Transport, Chain, Account>,
+    maximizeGasLimit: boolean,
+  ) {
+    const groupedActions: TransactionAction[][] = [];
+    actions.forEach((action) => {
+      if (groupedActions.length == 0) {
+        groupedActions.push([action]);
+      } else {
+        const lastGroup = groupedActions[groupedActions.length - 1];
+        if (lastGroup[0].chainId === action.chainId) {
+          lastGroup.push(action);
+        } else {
+          groupedActions.push([action]);
+        }
+      }
+    });
+    for (const group of groupedActions) {
+      if (group[0].chainId !== undefined) {
+        await switchOrAddChain(walletClient, group[0].chainId);
+      }
+      const { id } = await walletClient.sendCalls({
+        chain: config.chains.find((chain) => chain.id === group[0].chainId),
+        forceAtomic: true,
+        calls: group.map((action) => ({
+          to: action.to,
+          data: action.data,
+          value: BigInt(action.value || "0"),
+          gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
+        })),
+      });
+      const { status } = await walletClient.waitForCallsStatus({
+        id,
+      });
+      if (status !== "success") {
+        throw new Error(
+          `Transaction batch failed failed on ${config.chains.find((chain) => chain.id === group[0].chainId)?.name || "unknown chain"}`,
+        );
+      }
+    }
+  }
+
+  async function executeSafeBatchedActions(actions: TransactionAction[]) {
+    const sdk = await safeConnector
+      ?.getProvider()
+      .then((provider) => (provider as any).sdk);
+    if (!sdk) throw new Error("Safe SDK not available");
+    await (sdk as SafeAppProvider).txs.send({
+      txs: actions.map((action) => ({
+        to: action.to,
+        data: action.data,
+        value: String(action.value || "0"),
+      })),
+    });
+  }
 
   async function onExecute(inBatch: boolean) {
     terminalStoreActions("errors", []);
@@ -133,6 +198,7 @@ export default function ActionButtons({
       }
 
       const batched: TransactionAction[] = [];
+      let chainId = Number(await walletClient.getChainId());
 
       await new EVMcrispr(
         ast,
@@ -143,26 +209,21 @@ export default function ActionButtons({
         .interpret(async (action: Action) => {
           if (inBatch) {
             if (isProviderAction(action)) {
-              throw new Error("Batching not supported for provider actions");
+              chainId = Number(action.params[0].chainId);
+            } else {
+              batched.push({ chainId, ...action });
             }
-            batched.push(action);
           } else {
             await executeAction(action, walletClient, maximizeGasLimit);
           }
         });
 
       if (batched.length) {
-        const sdk = await safeConnector
-          ?.getProvider()
-          .then((provider) => (provider as any).sdk);
-        if (!sdk) throw new Error("Safe SDK not available");
-        await (sdk as SafeAppProvider).txs.send({
-          txs: batched.map((action) => ({
-            to: action.to,
-            data: action.data,
-            value: String(action.value || "0"),
-          })),
-        });
+        if (safeConnector) {
+          await executeSafeBatchedActions(batched);
+        } else {
+          await executeBatchedActions(batched, walletClient, maximizeGasLimit);
+        }
       }
     } catch (err: any) {
       const e = err as Error;
@@ -172,9 +233,7 @@ export default function ActionButtons({
         /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
       ) {
         terminalStoreActions("errors", [
-          `Transaction failed, watch in block explorer ${
-            e.message.split('"')[1]
-          }`,
+          `Transaction failed, watch in block explorer ${e.message.split('"')[1]}`,
         ]);
       } else {
         terminalStoreActions("errors", [e.message]);
@@ -194,11 +253,7 @@ export default function ActionButtons({
           pr={{ base: 6, lg: 0 }}
         >
           {address ? (
-            <ExecuteButton
-              isLoading={isLoading}
-              onExecute={onExecute}
-              allowBatch={!!safeConnector}
-            />
+            <ExecuteButton isLoading={isLoading} onExecute={onExecute} />
           ) : null}
           {errors ? <ErrorMsg errors={errors} /> : null}
         </VStack>

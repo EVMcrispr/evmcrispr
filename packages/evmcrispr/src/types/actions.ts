@@ -21,6 +21,10 @@ export interface TransactionAction {
    * The sender address. It can only be used in contexts where you can choose who is sending the transaction.
    */
   from?: Address;
+  /**
+   * The chain ID for the transaction.
+   */
+  chainId?: number;
 }
 
 export interface ProviderAction {
