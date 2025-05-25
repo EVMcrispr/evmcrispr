@@ -1,51 +1,17 @@
-import {
-  Center,
-  Heading,
-  Image,
-  Link,
-  Stack,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Center, Heading, Image, Stack, Text, VStack } from "@chakra-ui/react";
 
+import aragon from "../../assets/aragon.svg";
 import giveth from "../../assets/giveth.svg";
 import OneHive from "../../assets/1hive.svg";
 import curve from "../../assets/curve.svg";
 import nftx from "../../assets/nftx.svg";
-import aragon from "../../assets/aragon.svg";
-
-export const AragonSponsor = () => {
-  return (
-    <Center
-      py={20}
-      background="repeating-linear-gradient(45deg,#000,#000 20px,#111 20px,#111 40px)"
-      borderY="2px solid"
-      borderColor="green.300"
-    >
-      <Stack
-        direction={{ base: "column", md: "row" }}
-        spacing={8}
-        border="2px solid"
-        borderColor="transparent"
-        py={20}
-        className="box"
-        minWidth={{ base: "70%", md: "55%" }}
-        align="center"
-        justify="center"
-        px={{ base: 10, lg: 0 }}
-      >
-        <Text color="green.300" size="md">
-          Sponsored by
-        </Text>
-        <Link isExternal href="https://aragon.org/">
-          <img src={aragon} alt="Aragon" />
-        </Link>
-      </Stack>
-    </Center>
-  );
-};
 
 const sponsors = [
+  {
+    link: "https://aragon.org/",
+    src: aragon,
+    name: "Aragon",
+  },
   {
     link: "https://1hive.org/",
     src: OneHive,

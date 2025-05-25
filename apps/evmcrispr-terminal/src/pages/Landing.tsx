@@ -14,7 +14,7 @@ import {
 import Card from "../components/Card";
 import FadeIn from "../components/animations/FadeIn";
 import Footer from "../components/Footer";
-import { AllSponsors, AragonSponsor } from "../components/Footer/Sponsors";
+import { AllSponsors } from "../components/Footer/Sponsors";
 
 import Brett from "../assets/brett.png";
 import Michael from "../assets/michael.png";
@@ -64,16 +64,13 @@ const Landing = () => {
               <Text as="strong" variant="clearer" color="green.300">
                 EVMcrispr
               </Text>{" "}
-              is a powerful tool that combines a domain-specific language with a
-              Javascript library to interact with Aragon DAOs. With it, you can
-              bundle{" "}
+              is a powerful tool utilising a domain-specific language for
+              batching interactions with EVM chains. Leveraging new Ethereum
+              capabilities introduced by EIP-7702, it allows you to{" "}
               <Text as="strong" variant="clearer" color="green.300">
-                many DAO operations into just one script
-              </Text>
-              , generating a singular transaction, usually a vote. These
-              commands include installing or upgrading apps, changing their
-              permissions, executing actions or interacting with external
-              contracts.
+                bundle many operations into a single, atomic transaction
+              </Text>{" "}
+              submitted directly from your wallet.
             </Text>
           </Box>
         </FadeIn>
@@ -157,7 +154,6 @@ const Landing = () => {
         </FadeIn>
       </Box>
       <FadeIn componentRef={footerRef}>
-        <AragonSponsor />
         <AllSponsors />
         <Footer />
       </FadeIn>
