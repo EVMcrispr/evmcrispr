@@ -130,6 +130,13 @@ export function useTransactionExecutor(
         .getProvider()
         .then((provider: any) => provider.sdk as SafeAppProvider);
       if (!sdk) throw new Error("Safe SDK not available");
+
+      const chainId = await safeConnector.getChainId();
+
+      if (actions.find((action) => action.chainId !== chainId)) {
+        throw new Error("Safe does not support switching chains");
+      }
+
       await sdk.txs.send({
         txs: actions.map((action) => ({
           to: action.to,
