@@ -12,6 +12,7 @@ import {
   checkArgsLength,
   encodeAction,
   fetchAbi,
+  getFunctionFragment,
   insideNodeLine,
   interpretNodeSync,
   isFunctionSignature,
@@ -93,9 +94,10 @@ export const act: ICommand<AragonOS> = {
               (item.stateMutability === "nonpayable" ||
                 item.stateMutability === "payable"),
           )
-          .map(
-            (func: AbiFunction) =>
-              `${func.name}(${func.inputs.map((input) => input.type).join(",")})`,
+          .map((func: AbiFunction) =>
+            getFunctionFragment(func)
+              .replace("function ", "")
+              .replace(/ returns \(.*\)/, ""),
           );
         return functions;
       }

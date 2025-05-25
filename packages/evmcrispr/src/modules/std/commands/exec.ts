@@ -166,9 +166,10 @@ export const exec: ICommand<Std> = {
               (item.stateMutability === "nonpayable" ||
                 item.stateMutability === "payable"),
           )
-          .map(
-            (func: AbiFunction) =>
-              `${func.name}(${func.inputs.map((input) => input.type).join(",")})`,
+          .map((func: AbiFunction) =>
+            getFunctionFragment(func)
+              .replace("function ", "")
+              .replace(/ returns \(.*\)/, ""),
           );
         return functions;
       }
