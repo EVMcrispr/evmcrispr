@@ -66,7 +66,7 @@ const Landing = () => {
               </Text>{" "}
               is a powerful tool utilising a domain-specific language for
               batching interactions with EVM chains. Leveraging new Ethereum
-              capabilities introduced by EIP-7702, it allows you to{" "}
+              capabilities introduced by the Pectra upgrade, it allows you to{" "}
               <Text as="strong" variant="clearer" color="green.300">
                 bundle many operations into a single, atomic transaction
               </Text>{" "}
