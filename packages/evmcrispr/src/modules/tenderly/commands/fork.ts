@@ -54,34 +54,84 @@ export const fork: ICommand<Tenderly> = {
       throw new ErrorException("last argument should be a set of commands");
     }
 
-    const TENDERLY_FORK_API = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/fork`;
+    const chainId = await module.getChainId();
 
-    const body = {
-      network_id: String(await module.getChainId()),
-      block_number: blockNumber ? Number(blockNumber.toString()) : undefined,
+    // Create Virtual TestNet - using simplified structure matching fork API
+    const TENDERLY_VNET_API = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/vnets`;
+
+    // Use minimal required fields based on Tenderly API
+    // Try a simplified structure that matches Virtual TestNet creation
+    const vnetBody: any = {
+      slug: `evmcrispr-${Date.now()}`,
+      display_name: `EVMcrispr Virtual TestNet`,
+      fork_config: {
+        network_id: chainId,
+        block_number: blockNumber
+          ? blockNumber.toString().startsWith("0x")
+            ? blockNumber.toString()
+            : `0x${Number(blockNumber).toString(16)}`
+          : "latest",
+      },
+      virtual_network_config: {
+        chain_config: {
+          chain_id: chainId,
+        },
+      },
+      rpc_config: {
+        rpc_name: "evmcrispr-fork",
+        persistence_config: {
+          methods: [
+            {
+              method: "tenderly_simulateTransaction",
+            },
+          ],
+        },
+      },
+      sync_state_config: {
+        enabled: false,
+      },
+      explorer_page_config: {
+        enabled: false,
+        verification_visibility: "bytecode",
+      },
     };
 
-    const opts = {
+    // Add block_number to fork_config if provided
+    if (blockNumber) {
+      vnetBody.fork_config.block_number = Number(blockNumber.toString());
+    }
+
+    const vnetOpts = {
       method: "POST",
       headers: {
         "X-Access-Key": tenderlyAccessKey as string,
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(vnetBody),
     };
 
-    const forkId = await fetch(TENDERLY_FORK_API, opts)
-      .then((res) => res.json())
-      .then((data: any) => data.simulation_fork.id);
+    const vnetResponse = await fetch(TENDERLY_VNET_API, vnetOpts).then((res) =>
+      res.json(),
+    );
 
-    const forkRPC = `https://rpc.tenderly.co/fork/${forkId}`;
+    if (!vnetResponse.id) {
+      throw new ErrorException(
+        `Failed to create Virtual TestNet: ${JSON.stringify(vnetResponse)}`,
+      );
+    }
+
+    const vnetId = vnetResponse.id;
+    // Get RPC URL from response
+    const vnetRPC = vnetResponse.rpcs?.[0]?.url || vnetResponse.admin_rpc_url;
 
     const publicClient = createPublicClient({
       chain: mainnet, // It is not used by Tenderly, but it is required to be passed
-      transport: http(forkRPC),
+      transport: http(vnetRPC),
     });
     const walletClient = createWalletClient({
       chain: mainnet,
-      transport: http(forkRPC),
+      transport: http(vnetRPC),
     });
 
     module.evmcrispr.setConnectedAccount(from);
@@ -89,7 +139,9 @@ export const fork: ICommand<Tenderly> = {
 
     const simulateAction = async (action: Action) => {
       if (isSwitchAction(action)) {
-        throw new ErrorException(`can't switch networks inside a fork command`);
+        throw new ErrorException(
+          `can't switch networks inside a Virtual TestNet command`,
+        );
       }
       if (isProviderAction(action)) {
         await walletClient.request({
@@ -112,7 +164,7 @@ export const fork: ICommand<Tenderly> = {
         });
         if (receipt.status === "reverted") {
           module.evmcrispr.log(
-            `:error: A transaction failed: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/fork/${forkId}).`,
+            `:error: A transaction failed: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
           );
           throw new ErrorException(`Transaction failed.`);
         }
@@ -128,7 +180,7 @@ export const fork: ICommand<Tenderly> = {
     module.evmcrispr.setConnectedAccount(undefined);
 
     module.evmcrispr.log(
-      `:success: All transactions succeeded: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/fork/${forkId}).`,
+      `:success: All transactions succeeded: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
     );
 
     return [];
