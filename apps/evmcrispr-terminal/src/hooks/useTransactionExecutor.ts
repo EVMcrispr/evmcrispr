@@ -1,12 +1,19 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Action, TransactionAction } from "@1hive/evmcrispr";
 import { EVMcrispr, isProviderAction, parseScript } from "@1hive/evmcrispr";
 import { usePublicClient, useWalletClient } from "wagmi";
-import type { Account, Chain, Transport, WalletClient } from "viem";
+import type {
+  Account,
+  Chain,
+  PublicClient,
+  Transport,
+  WalletClient,
+} from "viem";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 
 import { config } from "../wagmi";
 import { terminalStoreActions } from "../components/TerminalEditor/use-terminal-store";
+import { observeTransaction } from "../utils/transaction-observer";
 
 async function switchOrAddChain(
   walletClient: WalletClient<Transport, Chain, Account>,
@@ -52,28 +59,93 @@ export function useTransactionExecutor(
       action: Action,
       currentWalletClient: WalletClient<Transport, Chain, Account>,
       currentMaximizeGasLimit: boolean,
+      connectedAddress: `0x${string}`,
+      currentPublicClient: PublicClient,
+      onStatusUpdate: (message: string) => void,
+      abortSignal?: AbortSignal,
     ) => {
       if (isProviderAction(action)) {
         const chainId = Number(action.params[0].chainId);
         await switchOrAddChain(currentWalletClient, chainId);
       } else {
-        if (!publicClient)
-          throw new Error(
-            "Public client not available for waiting for transaction receipt.",
-          );
-        const chainId = await currentWalletClient.getChainId();
-        const tx = await currentWalletClient.sendTransaction({
-          chain: config.chains.find((chain) => chain.id === chainId),
-          to: action.to,
-          from: action.from,
-          data: action.data,
-          value: action.value,
-          gasLimit: currentMaximizeGasLimit ? 10_000_000n : undefined,
-        });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
+        // Check if this is our transaction or someone else's
+        const actionFrom = action.from?.toLowerCase();
+        const isOurTransaction =
+          !actionFrom || actionFrom === connectedAddress.toLowerCase();
+
+        if (isOurTransaction) {
+          // Execute the transaction ourselves
+          const chainId = await currentWalletClient.getChainId();
+          const tx = await currentWalletClient.sendTransaction({
+            chain: config.chains.find((chain) => chain.id === chainId),
+            to: action.to,
+            from: action.from,
+            data: action.data,
+            value: action.value,
+            gasLimit: currentMaximizeGasLimit ? 10_000_000n : undefined,
+          });
+          await currentPublicClient.waitForTransactionReceipt({ hash: tx });
+        } else {
+          // Wait for transaction from another signer
+          if (!action.to) {
+            throw new Error(
+              "Cannot observe contract deployment transactions from other signers",
+            );
+          }
+          await observeTransaction({
+            to: action.to,
+            data: action.data,
+            from: action.from!,
+            publicClient: currentPublicClient,
+            onStatusUpdate,
+            signal: abortSignal,
+          });
+        }
       }
     },
-    [publicClient],
+    [],
+  );
+
+  /**
+   * Groups actions by signer (our transactions vs other signers' transactions)
+   * and by chainId for proper batching with multi-signer support.
+   */
+  type ActionGroup =
+    | { type: "execute"; actions: TransactionAction[] }
+    | { type: "observe"; action: TransactionAction };
+
+  const groupActionsBySigner = useCallback(
+    (
+      actions: TransactionAction[],
+      connectedAddress: `0x${string}`,
+    ): ActionGroup[] => {
+      const groups: ActionGroup[] = [];
+
+      for (const action of actions) {
+        const actionFrom = action.from?.toLowerCase();
+        const isOurTransaction =
+          !actionFrom || actionFrom === connectedAddress.toLowerCase();
+
+        if (isOurTransaction) {
+          // Check if we can add to the last group (same type and chainId)
+          const lastGroup = groups[groups.length - 1];
+          if (
+            lastGroup?.type === "execute" &&
+            lastGroup.actions[0].chainId === action.chainId
+          ) {
+            lastGroup.actions.push(action);
+          } else {
+            groups.push({ type: "execute", actions: [action] });
+          }
+        } else {
+          // Other signer's transaction - must be observed individually
+          groups.push({ type: "observe", action });
+        }
+      }
+
+      return groups;
+    },
+    [],
   );
 
   const executeBatchedActions = useCallback(
@@ -99,11 +171,20 @@ export function useTransactionExecutor(
         if (group[0].chainId !== undefined) {
           await switchOrAddChain(currentWalletClient, group[0].chainId);
         }
+        // Filter out contract deployments (no 'to' address) as they cannot be batched
+        const callableActions = group.filter(
+          (action) => action.to !== undefined,
+        );
+        if (callableActions.length === 0) {
+          throw new Error(
+            "Contract deployments cannot be executed in batch mode",
+          );
+        }
         const { id } = await currentWalletClient.sendCalls({
           chain: config.chains.find((chain) => chain.id === group[0].chainId),
           forceAtomic: true,
-          calls: group.map((action) => ({
-            to: action.to,
+          calls: callableActions.map((action) => ({
+            to: action.to!,
             data: action.data,
             value: BigInt(action.value || "0"),
             gasLimit: currentMaximizeGasLimit ? 10_000_000n : undefined,
@@ -118,6 +199,56 @@ export function useTransactionExecutor(
       }
     },
     [],
+  );
+
+  /**
+   * Execute batched actions with multi-signer support.
+   * Our transactions are batched together, other signers' transactions are observed.
+   */
+  const executeBatchedActionsWithMultiSigner = useCallback(
+    async (
+      actions: TransactionAction[],
+      currentWalletClient: WalletClient<Transport, Chain, Account>,
+      currentMaximizeGasLimit: boolean,
+      connectedAddress: `0x${string}`,
+      currentPublicClient: PublicClient,
+      onStatusUpdate: (message: string) => void,
+      abortSignal?: AbortSignal,
+    ) => {
+      const groups = groupActionsBySigner(actions, connectedAddress);
+
+      for (const group of groups) {
+        if (abortSignal?.aborted) {
+          throw new Error("Observation cancelled");
+        }
+
+        if (group.type === "execute") {
+          // Execute our batch of transactions
+          await executeBatchedActions(
+            group.actions,
+            currentWalletClient,
+            currentMaximizeGasLimit,
+          );
+        } else {
+          // Observe other signer's transaction
+          const action = group.action;
+          if (!action.to) {
+            throw new Error(
+              "Cannot observe contract deployment transactions from other signers",
+            );
+          }
+          await observeTransaction({
+            to: action.to,
+            data: action.data,
+            from: action.from!,
+            publicClient: currentPublicClient,
+            onStatusUpdate,
+            signal: abortSignal,
+          });
+        }
+      }
+    },
+    [groupActionsBySigner, executeBatchedActions],
   );
 
   const executeSafeBatchedActions = useCallback(
@@ -148,11 +279,22 @@ export function useTransactionExecutor(
     [safeConnector],
   );
 
+  // AbortController for cancelling transaction observations
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelExecution = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const executeScript = useCallback(
     async (inBatch: boolean) => {
       terminalStoreActions("errors", []);
       terminalStoreActions("isLoading", true);
       setLogs([]);
+
+      // Create a new AbortController for this execution
+      abortControllerRef.current = new AbortController();
+      const abortSignal = abortControllerRef.current.signal;
 
       try {
         if (!address || !publicClient || !walletClient) {
@@ -183,36 +325,66 @@ export function useTransactionExecutor(
                 batched.push({ chainId: currentChainId, ...action });
               }
             } else {
-              await executeAction(action, walletClient, maximizeGasLimit);
+              await executeAction(
+                action,
+                walletClient,
+                maximizeGasLimit,
+                address,
+                publicClient,
+                logListener,
+                abortSignal,
+              );
             }
           });
 
         if (batched.length) {
+          // Check if there are any transactions from other signers
+          const hasOtherSigners = batched.some((action) => {
+            const actionFrom = action.from?.toLowerCase();
+            return actionFrom && actionFrom !== address.toLowerCase();
+          });
+
           if (safeConnector) {
+            if (hasOtherSigners) {
+              throw new Error(
+                "Safe batch mode does not support multi-signer coordination. " +
+                  "Use non-batch mode to wait for other signers' transactions.",
+              );
+            }
             await executeSafeBatchedActions(batched);
           } else {
-            await executeBatchedActions(
+            await executeBatchedActionsWithMultiSigner(
               batched,
               walletClient,
               maximizeGasLimit,
+              address,
+              publicClient,
+              logListener,
+              abortSignal,
             );
           }
         }
       } catch (err: any) {
         const e = err as Error;
-        console.error(e);
-        if (
-          e.message.startsWith("transaction failed") &&
-          /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
-        ) {
-          terminalStoreActions("errors", [
-            `Transaction failed, watch in block explorer ${e.message.split('"')[1]}`,
-          ]);
+        // Don't log cancellation as an error
+        if (e.message === "Observation cancelled") {
+          terminalStoreActions("errors", ["Script execution cancelled"]);
         } else {
-          terminalStoreActions("errors", [e.message]);
+          console.error(e);
+          if (
+            e.message.startsWith("transaction failed") &&
+            /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
+          ) {
+            terminalStoreActions("errors", [
+              `Transaction failed, watch in block explorer ${e.message.split('"')[1]}`,
+            ]);
+          } else {
+            terminalStoreActions("errors", [e.message]);
+          }
         }
       } finally {
         terminalStoreActions("isLoading", false);
+        abortControllerRef.current = null;
       }
     },
     [
@@ -223,7 +395,7 @@ export function useTransactionExecutor(
       maximizeGasLimit,
       logListener,
       executeAction,
-      executeBatchedActions,
+      executeBatchedActionsWithMultiSigner,
       executeSafeBatchedActions,
       safeConnector,
     ],
@@ -231,6 +403,7 @@ export function useTransactionExecutor(
 
   return {
     executeScript,
+    cancelExecution,
     logs,
   };
 }

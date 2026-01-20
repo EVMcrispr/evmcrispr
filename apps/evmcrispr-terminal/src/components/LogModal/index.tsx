@@ -17,16 +17,21 @@ import ChakraUIRenderer from "chakra-ui-markdown-renderer";
 import remarkGfm from "remark-gfm";
 import {
   CheckCircleIcon,
+  ClockIcon,
   InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
 
-const status = (log: string) => {
+type LogStatus = "success" | "error" | "warning" | "info";
+
+const status = (log: string): LogStatus => {
   return log.startsWith(":success:")
     ? "success"
     : log.startsWith(":error:")
       ? "error"
-      : "info";
+      : log.startsWith(":waiting:")
+        ? "warning"
+        : "info";
 };
 
 const stripString = (log: string): string => {
@@ -34,7 +39,9 @@ const stripString = (log: string): string => {
     ? log.slice(":success:".length)
     : log.startsWith(":error:")
       ? log.slice(":error:".length)
-      : log;
+      : log.startsWith(":waiting:")
+        ? log.slice(":waiting:".length)
+        : log;
 };
 
 export default function LogModal({
@@ -68,20 +75,20 @@ export default function LogModal({
                     ? "orange.300"
                     : _status == "success"
                       ? "green.300"
-                      : "yellow.300";
+                      : _status == "warning"
+                        ? "blue.300"
+                        : "yellow.300";
+                const _icon =
+                  _status == "error"
+                    ? XCircleIcon
+                    : _status == "success"
+                      ? CheckCircleIcon
+                      : _status == "warning"
+                        ? ClockIcon
+                        : InformationCircleIcon;
                 return (
                   <Alert key={i} status={_status} borderColor={_statusColor}>
-                    <Icon
-                      as={
-                        _status == "error"
-                          ? XCircleIcon
-                          : _status == "success"
-                            ? CheckCircleIcon
-                            : InformationCircleIcon
-                      }
-                      boxSize={6}
-                      color={_statusColor}
-                    />
+                    <Icon as={_icon} boxSize={6} color={_statusColor} />
                     <AlertDescription>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
