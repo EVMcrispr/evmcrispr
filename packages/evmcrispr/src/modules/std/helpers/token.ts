@@ -1,6 +1,6 @@
 import fetch from "isomorphic-fetch";
 
-import { getAddress, isAddress, parseAbiItem } from "viem";
+import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 
@@ -43,6 +43,12 @@ export const _token = async (
   if (isAddress(tokenSymbolOrAddress)) {
     return tokenSymbolOrAddress;
   }
+
+  // Handle native ETH token symbol
+  if (tokenSymbolOrAddress.toUpperCase() === "ETH") {
+    return zeroAddress;
+  }
+
   const chainId = await module.getChainId();
   const tokenList = await getTokenList(module.bindingsManager, chainId);
   const {
@@ -91,6 +97,12 @@ export const tokenBalance: HelperFunction<Std> = async (
 
   const tokenAddr = await _token(module, tokenSymbol);
   const client = await module.getClient();
+
+  // Handle native ETH balance (zero address)
+  if (tokenAddr === zeroAddress) {
+    const balance = await client.getBalance({ address: holder });
+    return balance.toString();
+  }
 
   const balance = await client.readContract({
     address: tokenAddr,
