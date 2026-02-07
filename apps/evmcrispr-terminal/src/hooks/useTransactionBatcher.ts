@@ -1,4 +1,4 @@
-import type { TransactionAction } from "@1hive/evmcrispr";
+import type { TransactionAction } from "@evmcrispr/core";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback } from "react";
 import type {

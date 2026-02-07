@@ -4,8 +4,8 @@ import type {
   EvmlAST,
   IPFSResolver,
   Position,
-} from "@1hive/evmcrispr";
-import { BindingsManager, NodeType, parseScript } from "@1hive/evmcrispr";
+} from "@evmcrispr/core";
+import { BindingsManager, NodeType, parseScript } from "@evmcrispr/core";
 import type { PublicClient } from "viem";
 import { createStore } from "zustand-x";
 

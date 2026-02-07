@@ -1,4 +1,4 @@
-import { codename, version } from "@1hive/evmcrispr/package.json";
+import { codename, version } from "@evmcrispr/core/package.json";
 import { Button } from "@repo/ui";
 import makeBlockie from "ethereum-blockies-base64";
 import { useState } from "react";

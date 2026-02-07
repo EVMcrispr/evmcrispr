@@ -1,4 +1,4 @@
-# @1hive/evmcrispr
+# @evmcrispr/core
 
 ## 0.10.4
 

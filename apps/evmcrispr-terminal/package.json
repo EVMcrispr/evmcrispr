@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@1hive/evmcrispr": "*",
+    "@evmcrispr/core": "*",
     "@repo/ui": "*",
     "@fontsource/ubuntu-mono": "^5.2.8",
     "@heroicons/react": "^2.2.0",

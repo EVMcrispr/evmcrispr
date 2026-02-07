@@ -1,5 +1,5 @@
-import type { Action, TransactionAction } from "@1hive/evmcrispr";
-import { EVMcrispr, isProviderAction, parseScript } from "@1hive/evmcrispr";
+import type { Action, TransactionAction } from "@evmcrispr/core";
+import { EVMcrispr, isProviderAction, parseScript } from "@evmcrispr/core";
 import { useCallback, useRef } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";

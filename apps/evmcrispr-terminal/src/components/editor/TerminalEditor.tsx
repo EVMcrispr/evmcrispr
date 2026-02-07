@@ -1,4 +1,4 @@
-import { IPFSResolver } from "@1hive/evmcrispr";
+import { IPFSResolver } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import { useEffect } from "react";

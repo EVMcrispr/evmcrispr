@@ -1,5 +1,5 @@
-import type { BindingsManager } from "@1hive/evmcrispr";
-import { BindingsSpace } from "@1hive/evmcrispr";
+import type { BindingsManager } from "@evmcrispr/core";
+import { BindingsSpace } from "@evmcrispr/core";
 import type { languages } from "monaco-editor";
 
 import { DEFAULT_MODULE_BINDING } from "../../utils";

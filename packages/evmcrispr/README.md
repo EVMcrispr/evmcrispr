@@ -1,6 +1,6 @@
 # EVMcrispr
 
-[![](https://img.shields.io/npm/v/@1hive/evmcrispr.svg?logo=npm)](https://www.npmjs.com/package/@1hive/evmcrispr)
+[![](https://img.shields.io/npm/v/@evmcrispr/core.svg?logo=npm)](https://www.npmjs.com/package/@evmcrispr/core)
 [![Coverage Status](https://img.shields.io/coveralls/github/1Hive/evmcrispr?logo=coveralls&branch=master)](https://coveralls.io/github/1Hive/evmcrispr?branch=master)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
@@ -80,13 +80,13 @@ await evml`
 1. Add the following dependencies to your project:
 
    ```sh
-   yarn add @1hive/evmcrispr ethers
+   yarn add @evmcrispr/core ethers
    ```
 
 2. Import the `evml` template:
 
    ```js
-   import { evml } from "@1hive/evmcrispr";
+   import { evml } from "@evmcrispr/core";
    ```
 
 3. Fill the evml template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:

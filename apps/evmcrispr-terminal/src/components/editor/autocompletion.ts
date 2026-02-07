@@ -8,7 +8,7 @@ import type {
   ModuleData,
   NoNullableBinding,
   Position,
-} from "@1hive/evmcrispr";
+} from "@evmcrispr/core";
 import {
   BindingsManager,
   BindingsSpace,
@@ -17,7 +17,7 @@ import {
   hasCommandsBlock,
   NodeType,
   parseScript,
-} from "@1hive/evmcrispr";
+} from "@evmcrispr/core";
 import type { IRange } from "monaco-editor";
 import { languages } from "monaco-editor";
 

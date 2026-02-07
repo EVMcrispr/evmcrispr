@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@1hive/evmcrispr": path.resolve(__dirname, "../../packages/evmcrispr"),
+      "@evmcrispr/core": path.resolve(__dirname, "../../packages/evmcrispr"),
     },
   },
   define: {
