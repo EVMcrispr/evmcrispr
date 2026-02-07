@@ -10,8 +10,8 @@ import { createStore } from "zustand-x";
 
 import type { PublicClient } from "viem";
 
-import { runEagerExecutions } from "./autocompletion";
-import { DEFAULT_MODULE_BINDING } from "../../utils";
+import { runEagerExecutions } from "../components/editor/autocompletion";
+import { DEFAULT_MODULE_BINDING } from "../utils";
 
 const scriptPlaceholder = `## Basic commands:
 

@@ -2,7 +2,7 @@ import { TrashIcon } from "@heroicons/react/24/solid";
 
 import { IconButton, Tooltip } from "@repo/ui";
 
-import type { StoredScript } from "../../types";
+import type { StoredScript } from "../../types/index";
 
 function getDate(date: Date) {
   const parsedDate = new Date(date);

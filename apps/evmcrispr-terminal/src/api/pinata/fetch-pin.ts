@@ -1,4 +1,4 @@
-import type { BareScript } from "../../types";
+import type { BareScript } from "../../types/index";
 
 const fetchPin = async (
   pinataUrl: string,

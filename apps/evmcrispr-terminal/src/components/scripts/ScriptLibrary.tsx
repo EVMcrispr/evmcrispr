@@ -7,7 +7,7 @@ import { Drawer, IconButton, Input } from "@repo/ui";
 
 import { SavedScript } from "./SavedScript";
 import { LibraryButton } from "./LibraryButton";
-import type { StoredScript } from "../../types";
+import type { StoredScript } from "../../types/index";
 import { getScriptList, removeScriptFromLocalStorage, slug } from "../../utils";
 
 export default function ScriptLibrary() {

@@ -1,4 +1,4 @@
-import type { StoredScript } from "../types";
+import type { StoredScript } from "../types/index";
 
 export function slug(title: string) {
   return title

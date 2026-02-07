@@ -15,7 +15,10 @@ import {
 } from "./evmcl";
 import { createProvideCompletionItemsFn } from "./autocompletion";
 import { theme } from "./theme";
-import { terminalStoreActions, useTerminalStore } from "./use-terminal-store";
+import {
+  terminalStoreActions,
+  useTerminalStore,
+} from "../../stores/terminal-store";
 import { useDebounce } from "../../hooks/useDebounce";
 
 export default function TerminalEditor() {

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Button, Input } from "@repo/ui";
 
-import { useTerminalStore } from "../../components/TerminalEditor/use-terminal-store";
+import { useTerminalStore } from "../../stores/terminal-store";
 
 export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
   const [safeAddress, setSafeAddress] = useState("");

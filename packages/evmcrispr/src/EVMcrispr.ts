@@ -1,5 +1,6 @@
-import type { Abi, Address, PublicClient } from "viem";
-import { isAddress, zeroAddress } from "viem";
+import type { Abi, Address, Chain, PublicClient } from "viem";
+import { createPublicClient, http, isAddress, zeroAddress } from "viem";
+import * as viemChains from "viem/chains";
 
 import {
   CommandError,
@@ -139,6 +140,22 @@ export class EVMcrispr {
 
   async switchChainId(chainId: number): Promise<PublicClient> {
     this.#chainId = chainId;
+
+    // Create a new public client for the target chain so that
+    // subsequent RPC calls (e.g. @token.balance) query the correct network.
+    const chain = Object.values(viemChains).find(
+      (c) => (c as Chain).id === chainId,
+    ) as Chain | undefined;
+    if (chain) {
+      this.#client = createPublicClient({
+        chain,
+        transport: http(),
+      }) as PublicClient;
+    } else {
+      // Unknown chain – clear the cached client so #getClient is called
+      this.#client = undefined;
+    }
+
     return this.getClient();
   }
 

@@ -1,10 +1,9 @@
 import { useAccount } from "wagmi";
-import { useEffect, useState } from "react";
 
-import LogModal from "../LogModal";
+import LogModal from "./LogModal";
 import ErrorMsg from "./ErrorMsg";
 
-import { useTerminalStore } from "../TerminalEditor/use-terminal-store";
+import { useTerminalStore } from "../../stores/terminal-store";
 import { ExecuteButton } from "./ExecuteButton";
 import { useTransactionExecutor } from "../../hooks/useTransactionExecutor";
 
@@ -23,20 +22,13 @@ export default function ActionButtons({
   const isSafe = activeConnector?.id === "safe";
   const safeConnectorInstance = isSafe ? activeConnector : undefined;
 
-  const { executeScript, logs } = useTransactionExecutor(
-    address,
-    maximizeGasLimit,
-    script,
-    safeConnectorInstance,
-  );
-
-  const [isLogModalOpen, setLogModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (logs && logs.length > 0) {
-      setLogModalOpen(true);
-    }
-  }, [logs]);
+  const { executeScript, logs, isLogModalOpen, closeLogModal } =
+    useTransactionExecutor(
+      address,
+      maximizeGasLimit,
+      script,
+      safeConnectorInstance,
+    );
 
   const handleExecute = (inBatch: boolean) => {
     executeScript(inBatch);
@@ -53,7 +45,7 @@ export default function ActionButtons({
       <LogModal
         isOpen={isLogModalOpen}
         logs={logs}
-        closeModal={() => setLogModalOpen(false)}
+        closeModal={closeLogModal}
       />
     </>
   );

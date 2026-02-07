@@ -2,7 +2,7 @@ import { cid } from "is-ipfs";
 import { useEffect, useState } from "react";
 
 import fetchPin from "../api/pinata/fetch-pin";
-import type { BareScript } from "../types";
+import type { BareScript } from "../types/index";
 import { getScriptSavedInLocalStorage } from "../utils";
 
 function isCID(s: string | undefined) {

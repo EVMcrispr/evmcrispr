@@ -8,9 +8,9 @@ import { useState } from "react";
 import { Button } from "@repo/ui";
 
 import logo from "../../assets/logo.svg";
-import SelectWalletModal from "../SelectWalletModal";
+import SelectWalletModal from "../wallet/SelectWalletModal";
 import TypeWriter from "../animations/TypeWriter";
-import { terminalStoreActions } from "../TerminalEditor/use-terminal-store";
+import { terminalStoreActions } from "../../stores/terminal-store";
 
 export default function TerminalHeader({
   address,
