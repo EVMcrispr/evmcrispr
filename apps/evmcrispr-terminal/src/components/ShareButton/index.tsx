@@ -3,8 +3,7 @@ import { ShareIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Tooltip } from "@/components/retroui/Tooltip";
-import { IconButton } from "@/components/retroui/IconButton";
+import { IconButton, Tooltip } from "@repo/ui";
 
 import pinJSON from "../../api/pinata/pin-json";
 
@@ -31,12 +30,12 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
     setLoading(true);
     try {
       const { IpfsHash: hash } = await pinJSON(data);
-      const _url = `${window.location.origin}/#/terminal/${hash}`;
+      const _url = `${window.location.origin}/#/${hash}`;
       setUrl(_url);
       navigator.clipboard.writeText(_url);
       toast.success("The link is copied to the clipboard");
       setLoading(false);
-      navigate(`/terminal/${hash}`, { replace: true });
+      navigate(`/${hash}`, { replace: true });
     } catch (e) {
       toast.error("The script could not be saved to IPFS");
       setLoading(false);

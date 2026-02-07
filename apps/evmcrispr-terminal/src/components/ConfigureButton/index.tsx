@@ -1,9 +1,6 @@
 import { Cog8ToothIcon } from "@heroicons/react/24/solid";
 
-import { Popover } from "@/components/retroui/Popover";
-import { Tooltip } from "@/components/retroui/Tooltip";
-import { IconButton } from "@/components/retroui/IconButton";
-import { Switch } from "@/components/retroui/Switch";
+import { IconButton, Popover, Switch, Tooltip } from "@repo/ui";
 
 export default function ConfigureButton({
   maximizeGasLimit,

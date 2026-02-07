@@ -7,26 +7,23 @@ import {
   createRoutesFromElements,
 } from "react-router-dom";
 
-import { Tooltip } from "@/components/retroui/Tooltip";
-import { Toaster } from "@/components/retroui/Sonner";
+import { Toaster, Tooltip } from "@repo/ui";
 
 import Wagmi from "./providers/Wagmi";
 
-import Landing from "./pages/Landing";
 import Terminal from "./pages/Terminal";
 
+const router = createHashRouter(
+  createRoutesFromElements(
+    <>
+      <Route index element={<Terminal />} />
+      <Route path=":scriptId" element={<Terminal />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </>,
+  ),
+);
+
 const App = () => {
-  const router = createHashRouter(
-    createRoutesFromElements(
-      <>
-        <Route index element={<Landing />} />
-        <Route path="terminal" element={<Terminal />}>
-          <Route path=":scriptId" element={<Terminal />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </>,
-    ),
-  );
   return (
     <div className="App dark">
       <Tooltip.Provider>

@@ -1,7 +1,7 @@
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
 
-import { Button } from "@/components/retroui/Button";
+import { Button } from "@repo/ui";
 
 export default function WalletButton({
   name,

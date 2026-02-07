@@ -1,0 +1,33 @@
+---
+import aragon from "../assets/aragon.svg";
+import oneHive from "../assets/1hive.svg";
+import giveth from "../assets/giveth.svg";
+import nftx from "../assets/nftx.svg";
+import curve from "../assets/curve.svg";
+
+const sponsors = [
+  { link: "https://aragon.org/", src: aragon, name: "Aragon" },
+  { link: "https://1hive.org/", src: oneHive, name: "1hive" },
+  { link: "https://giveth.io", src: giveth, name: "Giveth" },
+  { link: "https://nftx.io/", src: nftx, name: "NFTX" },
+  { link: "https://curve.fi/", src: curve, name: "Curve" },
+];
+---
+
+<section class="flex justify-center bg-[rgba(24,24,24,1)] p-14 fade-in fade-in-delay-5">
+  <div class="flex flex-col items-center gap-12">
+    <h2 class="text-evm-green-300 text-xl font-bold text-center font-head">
+      <strong>EVMcrispr</strong> would have not been possible without the support of:
+    </h2>
+    <div class="flex flex-col md:flex-row justify-between items-center w-full lg:w-[956px]">
+      {sponsors.map(({ src, link, name }) => (
+        <a href={link} target="_blank" rel="noreferrer">
+          <div class="flex flex-col items-center gap-10 mb-[45px]">
+            <img src={src.src} alt={name} class="w-3/4 md:w-full" />
+            <span class="text-white font-head">{name}</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

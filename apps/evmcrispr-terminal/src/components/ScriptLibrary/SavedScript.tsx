@@ -1,7 +1,6 @@
 import { TrashIcon } from "@heroicons/react/24/solid";
 
-import { Tooltip } from "@/components/retroui/Tooltip";
-import { IconButton } from "@/components/retroui/IconButton";
+import { IconButton, Tooltip } from "@repo/ui";
 
 import type { StoredScript } from "../../types";
 

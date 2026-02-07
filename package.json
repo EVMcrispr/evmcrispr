@@ -11,7 +11,8 @@
     "test": "turbo test",
     "test:coverage": "turbo run test:coverage",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "dev:terminal": "turbo run dev --filter=evmcrispr-terminal"
+    "dev:terminal": "turbo run dev --filter=evmcrispr-terminal",
+    "dev:website": "turbo run dev --filter=evmcrispr-website"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.6",

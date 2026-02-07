@@ -1,0 +1,174 @@
+/* ── Pixel Operator Mono font ────────────────────────────────── */
+@font-face {
+  font-family: "Pixel Operator Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/PixelOperatorMono.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Pixel Operator Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/PixelOperatorMono-Bold.ttf") format("truetype");
+}
+
+/* ── Tailwind v4 @theme ──────────────────────────────────────── */
+@theme {
+  --font-head: "Pixel Operator Mono", monospace;
+  --font-sans: "Ubuntu Mono", monospace;
+  --font-mono: "Pixel Operator Mono", monospace;
+  --font-clearer: "Ubuntu Mono", monospace;
+
+  --radius: 0px;
+
+  /* RetroUI-style flat shadows */
+  --shadow-xs: 1px 1px 0 0 var(--shadow-color);
+  --shadow-sm: 2px 2px 0 0 var(--shadow-color);
+  --shadow: 3px 3px 0 0 var(--shadow-color);
+  --shadow-md: 4px 4px 0 0 var(--shadow-color);
+  --shadow-lg: 6px 6px 0 0 var(--shadow-color);
+  --shadow-xl: 10px 10px 0 1px var(--shadow-color);
+  --shadow-2xl: 16px 16px 0 1px var(--shadow-color);
+
+  /* Semantic colors mapped from CSS vars */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--primary);
+  --color-border-secondary: var(--secondary);
+  --color-ring: var(--ring);
+
+  /* EVMcrispr custom palette */
+  --color-evm-green-50: #EDFDE7;
+  --color-evm-green-100: #CDFABC;
+  --color-evm-green-200: #ACF791;
+  --color-evm-green-300: #8CF467;
+  --color-evm-green-400: #6CF13C;
+  --color-evm-green-500: #4BEE11;
+  --color-evm-green-600: #3CBE0E;
+  --color-evm-green-700: #2D8F0A;
+  --color-evm-green-800: #1E5F07;
+  --color-evm-green-900: #0F3003;
+
+  --color-evm-blue-50: #E9E9FC;
+  --color-evm-blue-100: #C0C0F6;
+  --color-evm-blue-200: #9898F1;
+  --color-evm-blue-300: #7070EB;
+  --color-evm-blue-400: #4848E5;
+  --color-evm-blue-500: #1F1FE0;
+  --color-evm-blue-600: #1919B3;
+  --color-evm-blue-700: #131386;
+  --color-evm-blue-800: #0D0D59;
+  --color-evm-blue-900: #06062D;
+
+  --color-evm-yellow-50: #FAFEE7;
+  --color-evm-yellow-100: #F2FCBA;
+  --color-evm-yellow-200: #EAFA8E;
+  --color-evm-yellow-300: #E2F962;
+  --color-evm-yellow-400: #DAF736;
+  --color-evm-yellow-500: #D2F50A;
+  --color-evm-yellow-600: #A8C408;
+  --color-evm-yellow-700: #7E9306;
+  --color-evm-yellow-800: #546204;
+  --color-evm-yellow-900: #2A3102;
+
+  --color-evm-pink-50: #FDE7F6;
+  --color-evm-pink-100: #FABCE5;
+  --color-evm-pink-200: #F791D5;
+  --color-evm-pink-300: #F467C4;
+  --color-evm-pink-400: #F13CB3;
+  --color-evm-pink-500: #EE11A3;
+  --color-evm-pink-600: #BE0E82;
+  --color-evm-pink-700: #8F0A62;
+  --color-evm-pink-800: #5F0741;
+  --color-evm-pink-900: #300321;
+
+  --color-evm-gray-50: #F2F2F2;
+  --color-evm-gray-100: #DBDBDB;
+  --color-evm-gray-200: #C4C4C4;
+  --color-evm-gray-300: #ADADAD;
+  --color-evm-gray-400: #969696;
+  --color-evm-gray-500: #808080;
+  --color-evm-gray-600: #666666;
+  --color-evm-gray-700: #4D4D4D;
+  --color-evm-gray-800: #292929;
+  --color-evm-gray-900: #121212;
+
+  --color-evm-red-50: #FFE6E9;
+  --color-evm-red-100: #FEB8C1;
+  --color-evm-red-200: #FE8B99;
+  --color-evm-red-300: #FD5D71;
+  --color-evm-red-400: #FD3049;
+  --color-evm-red-500: #FD0221;
+  --color-evm-red-600: #CA021A;
+  --color-evm-red-700: #980114;
+  --color-evm-red-800: #65010D;
+  --color-evm-red-900: #330007;
+
+  --color-evm-orange-50: #FDEFE8;
+  --color-evm-orange-100: #F9D2BD;
+  --color-evm-orange-200: #F6B593;
+  --color-evm-orange-300: #F29869;
+  --color-evm-orange-400: #EF7C3E;
+  --color-evm-orange-500: #EB5F14;
+  --color-evm-orange-600: #BC4C10;
+  --color-evm-orange-700: #8D390C;
+  --color-evm-orange-800: #5E2608;
+  --color-evm-orange-900: #2F1304;
+
+  /* Fade-in animation for shared use */
+  --animate-fade-in: fade-in 0.4s ease-out both;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* ── Dark theme (always active for EVMcrispr) ────────────────── */
+:root {
+  --radius: 0px;
+  --background: #000000;
+  --foreground: #f5f5f5;
+  --card: #292929;
+  --card-foreground: #f5f5f5;
+  --primary: var(--color-evm-green-300);
+  --primary-hover: var(--color-evm-green-500);
+  --primary-foreground: #121212;
+  --secondary: var(--color-evm-blue-600);
+  --secondary-foreground: var(--color-evm-green-300);
+  --muted: #4D4D4D;
+  --muted-foreground: #ADADAD;
+  --accent: #8CF467;
+  --accent-foreground: #121212;
+  --destructive: var(--color-evm-pink-300);
+  --destructive-foreground: #ffffff;
+  --ring: #8CF467;
+  --shadow-color: rgba(140, 244, 103, 0.5);
+  --shadow-color-secondary: rgba(72, 72, 229, 0.5);
+  --wcm-z-index: 20000 !important;
+}
+
+/* ── Base styles ─────────────────────────────────────────────── */
+body,
+html {
+  height: 100%;
+  background: black;
+  margin: 0;
+  padding: 0;
+  font-family: "Pixel Operator Mono", monospace;
+}

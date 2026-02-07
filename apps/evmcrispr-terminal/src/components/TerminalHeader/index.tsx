@@ -5,7 +5,7 @@ import type { Connector } from "wagmi";
 import { useConnect, useDisconnect } from "wagmi";
 import { useState } from "react";
 
-import { Button } from "@/components/retroui/Button";
+import { Button } from "@repo/ui";
 
 import logo from "../../assets/logo.svg";
 import SelectWalletModal from "../SelectWalletModal";

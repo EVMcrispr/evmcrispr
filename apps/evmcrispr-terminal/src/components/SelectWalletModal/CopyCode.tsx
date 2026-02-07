@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "@/components/retroui/Button";
+import { Button } from "@repo/ui";
 
 export default function CopyCode({ code }: { code: string }) {
   const [hasCopied, setHasCopied] = useState(false);

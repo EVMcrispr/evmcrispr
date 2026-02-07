@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "@/components/retroui/Button";
-import { Input } from "@/components/retroui/Input";
+import { Button, Input } from "@repo/ui";
 
 import { useTerminalStore } from "../../components/TerminalEditor/use-terminal-store";
 

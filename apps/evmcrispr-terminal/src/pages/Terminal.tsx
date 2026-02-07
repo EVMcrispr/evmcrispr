@@ -11,14 +11,11 @@ import _debounce from "lodash.debounce";
 
 import { useAccount } from "wagmi";
 
-import { useChain, useSpringRef } from "@react-spring/web";
-
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../components/TerminalEditor/use-terminal-store";
 
-import FadeIn from "../components/animations/FadeIn";
 import Footer from "../components/Footer";
 import ActionButtons from "../components/ActionButtons";
 import ConfigureButton from "../components/ConfigureButton";
@@ -35,10 +32,6 @@ export default function Terminal() {
   const [maximizeGasLimit, setMaximizeGasLimit] = useState(false);
   useSafeAutoConnect();
 
-  const terminalRef = useSpringRef();
-  const buttonsRef = useSpringRef();
-  const footerRef = useSpringRef();
-
   const { address } = useAccount();
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,8 +42,6 @@ export default function Terminal() {
 
   const { title: titleFromSession, script: scriptFromSession } =
     useTerminalStore();
-
-  useChain([terminalRef, buttonsRef, footerRef]);
 
   // Set up a script if we have one in the URL
   useEffect(() => {
@@ -82,11 +73,11 @@ export default function Terminal() {
   // We hide the scriptId when the title or the script change so they don't match anymore with the url
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (location.pathname !== "/terminal") {
+    if (location.pathname !== "/") {
       const { title: _title, script: _script } =
         getScriptSavedInLocalStorage(params.scriptId) ?? {};
       if (titleFromSession !== _title || scriptFromSession !== _script) {
-        navigate("/terminal");
+        navigate("/");
       }
     }
   }, [titleFromSession, scriptFromSession]);
@@ -102,7 +93,7 @@ export default function Terminal() {
       <ScriptLibrary />
       <div className="mx-auto max-w-7xl 2xl:max-w-[90rem] my-14 px-4">
         <Header address={address} />
-        <FadeIn componentRef={terminalRef}>
+        <div className="animate-fade-in">
           <div className="flex flex-col items-end mb-3">
             <div className="flex w-full">
               <TitleInput />
@@ -124,19 +115,20 @@ export default function Terminal() {
             </div>
           </div>
           <TerminalEditor />
-        </FadeIn>
-        <FadeIn componentRef={buttonsRef}>
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <ActionButtons
             address={address}
             maximizeGasLimit={maximizeGasLimit}
           />
-        </FadeIn>
-      </div>
-      <FadeIn componentRef={footerRef}>
-        <div className="mt-[200px]">
-          <Footer />
         </div>
-      </FadeIn>
+      </div>
+      <div
+        className="animate-fade-in mt-[200px]"
+        style={{ animationDelay: "0.2s" }}
+      >
+        <Footer />
+      </div>
     </>
   );
 }

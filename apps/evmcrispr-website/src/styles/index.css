@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@import "@repo/ui/styles/theme.css";
+
+@source "../../../../packages/ui/src";
+
+#root {
+  height: 100%;
+  background: black;
+}
+
+/* ── Staggered fade-in animations ────────────────────────────── */
+.fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.fade-in-delay-1 { animation-delay: 0.1s; }
+.fade-in-delay-2 { animation-delay: 0.3s; }
+.fade-in-delay-3 { animation-delay: 0.5s; }
+.fade-in-delay-4 { animation-delay: 0.7s; }
+.fade-in-delay-5 { animation-delay: 0.9s; }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Card reveal animation ───────────────────────────────────── */
+.card-reveal {
+  animation: card-reveal 0.5s ease-out both;
+}
+
+.card-reveal-delay-1 { animation-delay: 0.8s; }
+.card-reveal-delay-2 { animation-delay: 1.0s; }
+.card-reveal-delay-3 { animation-delay: 1.2s; }
+
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}

@@ -7,8 +7,7 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/solid";
 
-import { Alert } from "@/components/retroui/Alert";
-import { Dialog } from "@/components/retroui/Dialog";
+import { Alert, Dialog } from "@repo/ui";
 
 type LogStatus = "success" | "error" | "warning" | "info";
 

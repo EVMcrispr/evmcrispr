@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AlertCircle } from "lucide-react";
 
-import { Alert } from "@/components/retroui/Alert";
-import { Button } from "@/components/retroui/Button";
+import { Alert, Button } from "@repo/ui";
 
 const COLLAPSE_THRESHOLD = 30;
 

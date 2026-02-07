@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
 
-import { Dialog } from "@/components/retroui/Dialog";
+import { Dialog } from "@repo/ui";
 
 import WalletButton from "./WalletButton";
 import WalletConnectCode from "./WalletConnectCode";

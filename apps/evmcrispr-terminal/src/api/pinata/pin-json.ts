@@ -1,5 +1,3 @@
-import "isomorphic-fetch";
-
 type Res = {
   IpfsHash: string;
   PinSize: number;

@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Dialog } from "@/components/retroui/Dialog";
-import { Tooltip } from "@/components/retroui/Tooltip";
-import { Button } from "@/components/retroui/Button";
-import { IconButton } from "@/components/retroui/IconButton";
+import { Button, Dialog, IconButton, Tooltip } from "@repo/ui";
 
 import SaveIcon from "../icons/SaveIcon";
 import {

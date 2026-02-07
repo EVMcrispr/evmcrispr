@@ -3,9 +3,7 @@ import { Search } from "lucide-react";
 import { FolderIcon, FolderOpenIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router";
 
-import { Drawer } from "@/components/retroui/Drawer";
-import { Input } from "@/components/retroui/Input";
-import { IconButton } from "@/components/retroui/IconButton";
+import { Drawer, IconButton, Input } from "@repo/ui";
 
 import { SavedScript } from "./SavedScript";
 import { LibraryButton } from "./LibraryButton";
@@ -30,7 +28,7 @@ export default function ScriptLibrary() {
 
   const handleItemClick = (title: string) => {
     setIsOpen(false);
-    navigate(`/terminal/${slug(title)}`);
+    navigate(`/${slug(title)}`);
   };
 
   const handleItemRemove = (title: string) => {

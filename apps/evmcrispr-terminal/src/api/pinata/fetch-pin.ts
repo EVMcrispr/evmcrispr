@@ -1,4 +1,3 @@
-import "isomorphic-fetch";
 import type { BareScript } from "../../types";
 
 const fetchPin = async (

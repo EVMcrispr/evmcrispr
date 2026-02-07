@@ -1,7 +1,6 @@
 import type { ElementType, MouseEventHandler } from "react";
 
-import { Button } from "@/components/retroui/Button";
-import { cn } from "@/lib/utils";
+import { Button, cn } from "@repo/ui";
 
 type LibraryButtonProps = {
   onClick: MouseEventHandler<HTMLButtonElement>;

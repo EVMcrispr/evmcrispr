@@ -1,0 +1,89 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Card from "../components/Card.astro";
+import Sponsors from "../components/Sponsors.astro";
+import Footer from "../components/Footer.astro";
+
+import { buttonVariants } from "@repo/ui";
+
+import brett from "../assets/brett.png";
+import michael from "../assets/michael.png";
+import griff from "../assets/griff.png";
+
+const TERMINAL_URL = import.meta.env.PUBLIC_TERMINAL_URL || "/terminal/";
+---
+
+<Layout title="EVMcrispr">
+  <Header />
+
+  <main class="max-w-[956px] mx-auto">
+    <!-- Description -->
+    <div class="pt-16 pb-8 px-6 fade-in fade-in-delay-1">
+      <p class="font-clearer text-white text-center text-2xl">
+        <strong class="font-clearer text-evm-green-300">EVMcrispr</strong> is a
+        powerful tool utilising a domain-specific language for batching
+        interactions with EVM chains. Leveraging new Ethereum capabilities
+        introduced by the Pectra upgrade, it allows you to{" "}
+        <strong class="font-clearer text-evm-green-300">
+          bundle many operations into a single, atomic transaction
+        </strong>{" "}
+        submitted directly from your wallet.
+      </p>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex justify-center fade-in fade-in-delay-2">
+      <div class="flex flex-col md:flex-row items-center gap-4">
+        <a
+          href="https://docs.evmcrispr.com/"
+          target="_blank"
+          rel="noreferrer"
+          class={buttonVariants({ variant: "secondary", size: "2xl" })}
+        >
+          Learn How to Use
+        </a>
+        <a
+          href={TERMINAL_URL}
+          class={buttonVariants({ variant: "secondary", size: "2xl" })}
+        >
+          Open Terminal
+        </a>
+      </div>
+    </div>
+
+    <!-- Testimonials heading -->
+    <h1 class="pt-16 text-center text-2xl font-bold text-evm-green-300 font-head fade-in fade-in-delay-3">
+      Who's using EVMcrispr?
+    </h1>
+
+    <!-- Testimonial cards -->
+    <div class="flex flex-col lg:flex-row justify-center items-center pt-8 mb-28 w-full gap-16 pr-4 md:pr-0">
+      <Card
+        image={brett}
+        height={150}
+        name="Brett Sun"
+        info="Former Aragon CTO"
+        description={`"EVMCrispr is the tool every aragonOS DAO has been waiting for. It presents a step change in DAO operations that enables everyone to invoke complex proposals—not just those brave enough to write complex transaction-generating code."`}
+        animationClass="card-reveal card-reveal-delay-1"
+      />
+      <Card
+        image={michael}
+        name="Michael Egorov"
+        info="Founder of Curve"
+        description={`"We had an important upgrade of CurveDAO (based on Aragon) which had to be very well tested given that the DAO controls parameters of a platform which holds more than $20B USD worth of assets. EVMcrispr helped to get this upgrade done safely."`}
+        animationClass="card-reveal card-reveal-delay-2"
+      />
+      <Card
+        image={griff}
+        name="Griff Green"
+        info="Co-founder of Giveth, Commons Stack & DAppNode"
+        description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
+        animationClass="card-reveal card-reveal-delay-3"
+      />
+    </div>
+  </main>
+
+  <Sponsors />
+  <Footer />
+</Layout>
