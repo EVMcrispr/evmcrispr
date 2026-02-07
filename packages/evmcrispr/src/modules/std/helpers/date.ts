@@ -16,13 +16,13 @@ export const date: HelperFunction<Std> = async (_, h, { interpretNodes }) => {
   });
 
   const [date, offset] = await interpretNodes(h.args);
-  if (date != "now" && !iso8601Regex.test(date)) {
+  if (date !== "now" && !iso8601Regex.test(date)) {
     throw new ErrorInvalid("Invalid date provided.");
   }
   if (offset && !offsetRegex.test(offset)) {
     throw new ErrorInvalid("Invalid offset provided.");
   }
-  const _date = date == "now" ? Date.now() : new Date(date.toString());
+  const _date = date === "now" ? Date.now() : new Date(date.toString());
   const [
     ,
     years = 0,

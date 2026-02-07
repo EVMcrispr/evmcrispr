@@ -1,16 +1,15 @@
-import { Link } from "react-router";
 import { codename, version } from "@1hive/evmcrispr/package.json";
+import { Button } from "@repo/ui";
 import makeBlockie from "ethereum-blockies-base64";
+import { useState } from "react";
+import { Link } from "react-router";
 import type { Connector } from "wagmi";
 import { useConnect, useDisconnect } from "wagmi";
-import { useState } from "react";
-
-import { Button } from "@repo/ui";
 
 import logo from "../../assets/logo.svg";
-import SelectWalletModal from "../wallet/SelectWalletModal";
-import TypeWriter from "../animations/TypeWriter";
 import { terminalStoreActions } from "../../stores/terminal-store";
+import TypeWriter from "../animations/TypeWriter";
+import SelectWalletModal from "../wallet/SelectWalletModal";
 
 export default function TerminalHeader({
   address,

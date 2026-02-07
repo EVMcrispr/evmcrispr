@@ -1,7 +1,6 @@
 import { regex, sequenceOf } from "arcsecond";
-
-import { NodeType } from "../../../types";
 import type { AddressLiteralNode, EnclosingNodeParser } from "../../../types";
+import { NodeType } from "../../../types";
 import { buildParserError } from "../../../utils/parsers";
 import {
   createNodeLocation,

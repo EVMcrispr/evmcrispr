@@ -7,19 +7,19 @@
     "changeset:version": "changeset version && bun install --lockfile-only",
     "dev": "bun run --filter '*' dev",
     "type-check": "bun run --filter '*' type-check",
-    "lint": "bun run --filter '*' lint",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "test": "bun run --filter '*' test",
     "test:coverage": "bun run --filter '*' test:coverage",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "dev:terminal": "bun run --cwd apps/evmcrispr-terminal dev",
     "dev:website": "bun run --cwd apps/evmcrispr-website dev"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
     "@changesets/cli": "^2.29.8",
-    "eslint": "^10.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.8.1"
+    "lint-staged": "^16.2.7"
   },
   "name": "evmcrispr-monorepo",
   "packageManager": "bun@1.2.13",

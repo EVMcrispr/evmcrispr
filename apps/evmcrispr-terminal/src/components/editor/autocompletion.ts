@@ -12,10 +12,10 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
-  NodeType,
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
+  NodeType,
   parseScript,
 } from "@1hive/evmcrispr";
 import type { IRange } from "monaco-editor";
@@ -255,7 +255,7 @@ export const runEagerExecutions = async (
 
         return eagerFn;
         // eslint-disable-next-line no-empty
-      } catch (err) {
+      } catch (_err) {
         return;
       }
     });
@@ -276,7 +276,7 @@ export const runEagerExecutions = async (
       try {
         resolveLazyBinding(eagerBindingsManager);
         // eslint-disable-next-line no-empty
-      } catch (err) {}
+      } catch (_err) {}
     });
 };
 

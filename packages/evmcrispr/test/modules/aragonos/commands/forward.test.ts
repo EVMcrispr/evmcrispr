@@ -3,11 +3,15 @@ import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-
-import { commaListItems } from "../../../../src/utils";
 import { CommandError } from "../../../../src/errors";
-
+import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils";
+import { commaListItems } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
+import {
+  createInterpreter,
+  itChecksNonDefinedIdentifier,
+} from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import {
   createTestAction,
   createTestScriptEncodedAction,
@@ -16,12 +20,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../test-helpers/aragonos";
-import {
-  createInterpreter,
-  itChecksNonDefinedIdentifier,
-} from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
-import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils";
 
 describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   let client: PublicClient;

@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import { Button } from "@repo/ui";
+import { useState } from "react";
 
 export default function CopyCode({ code }: { code: string }) {
   const [hasCopied, setHasCopied] = useState(false);

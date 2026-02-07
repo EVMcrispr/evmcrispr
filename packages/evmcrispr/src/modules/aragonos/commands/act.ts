@@ -1,14 +1,12 @@
 import type { AbiFunction } from "viem";
 import { isAddress } from "viem";
-
+import { ErrorException } from "../../../errors";
 import type { AbiBinding, ICommand } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import { batchForwarderActions } from "../utils/forwarders";
-import { ErrorException } from "../../../errors";
 import {
-  ComparisonType,
   addressesEqual,
   beforeOrEqualNode,
+  ComparisonType,
   checkArgsLength,
   encodeAction,
   fetchAbi,
@@ -20,6 +18,7 @@ import {
 } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { getDAOAppIdentifiers } from "../utils";
+import { batchForwarderActions } from "../utils/forwarders";
 
 const { ABI, ADDR } = BindingsSpace;
 export const act: ICommand<AragonOS> = {

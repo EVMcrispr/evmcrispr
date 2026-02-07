@@ -6,9 +6,8 @@ import type {
   Position,
 } from "@1hive/evmcrispr";
 import { BindingsManager, NodeType, parseScript } from "@1hive/evmcrispr";
-import { createStore } from "zustand-x";
-
 import type { PublicClient } from "viem";
+import { createStore } from "zustand-x";
 
 import { runEagerExecutions } from "../components/editor/autocompletion";
 import { DEFAULT_MODULE_BINDING } from "../utils";

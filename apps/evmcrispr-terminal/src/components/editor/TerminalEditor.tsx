@@ -1,25 +1,21 @@
-import MonacoEditor, { useMonaco } from "@monaco-editor/react";
-import type { Monaco } from "@monaco-editor/react";
-
-import { useEffect } from "react";
-
-import { usePublicClient } from "wagmi";
-
 import { IPFSResolver } from "@1hive/evmcrispr";
-
+import type { Monaco } from "@monaco-editor/react";
+import MonacoEditor, { useMonaco } from "@monaco-editor/react";
+import { useEffect } from "react";
+import { usePublicClient } from "wagmi";
+import { useDebounce } from "../../hooks/useDebounce";
+import {
+  terminalStoreActions,
+  useTerminalStore,
+} from "../../stores/terminal-store";
+import { createProvideCompletionItemsFn } from "./autocompletion";
 import {
   conf,
   contribution,
   createLanguage,
   getModulesKeywords,
 } from "./evmcl";
-import { createProvideCompletionItemsFn } from "./autocompletion";
 import { theme } from "./theme";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../../stores/terminal-store";
-import { useDebounce } from "../../hooks/useDebounce";
 
 export default function TerminalEditor() {
   const monaco = useMonaco();

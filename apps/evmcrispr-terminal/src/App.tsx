@@ -1,17 +1,15 @@
 import "@fontsource/ubuntu-mono";
+
+import { Toaster, Tooltip } from "@repo/ui";
 import {
+  createHashRouter,
+  createRoutesFromElements,
   Navigate,
   Route,
   RouterProvider,
-  createHashRouter,
-  createRoutesFromElements,
 } from "react-router";
-
-import { Toaster, Tooltip } from "@repo/ui";
-
-import Wagmi from "./providers/Wagmi";
-
 import Terminal from "./pages/Terminal";
+import Wagmi from "./providers/Wagmi";
 
 const router = createHashRouter(
   createRoutesFromElements(

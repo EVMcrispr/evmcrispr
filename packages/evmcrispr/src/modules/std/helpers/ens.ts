@@ -1,12 +1,10 @@
 import { createPublicClient, http } from "viem";
 
 import { mainnet } from "viem/chains";
-
+import { HelperFunctionError } from "../../../errors";
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
 import type { Std } from "../Std";
-
-import { HelperFunctionError } from "../../../errors";
 
 const mainnetClient = createPublicClient({
   chain: mainnet,

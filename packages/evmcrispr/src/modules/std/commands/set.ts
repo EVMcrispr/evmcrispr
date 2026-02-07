@@ -1,6 +1,6 @@
 import { ErrorException } from "../../../errors";
-import { BindingsSpace, NodeType } from "../../../types";
 import type { ICommand } from "../../../types";
+import { BindingsSpace, NodeType } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,

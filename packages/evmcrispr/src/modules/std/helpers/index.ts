@@ -5,13 +5,13 @@ import { date } from "./date";
 import { ens } from "./ens";
 import { get } from "./get";
 import { id } from "./id";
-import { namehash } from "./namehash";
 import { ipfs } from "./ipfs";
 import { me } from "./me";
+import { namehash } from "./namehash";
 import { token, tokenAmount, tokenBalance } from "./token";
 
 export const helpers: HelperFunctions<Std> = {
-  ["abi.encodeCall"]: abiEncodeCall,
+  "abi.encodeCall": abiEncodeCall,
   date,
   ens,
   get,
@@ -20,6 +20,6 @@ export const helpers: HelperFunctions<Std> = {
   ipfs,
   me,
   token,
-  ["token.balance"]: tokenBalance,
-  ["token.amount"]: tokenAmount,
+  "token.balance": tokenBalance,
+  "token.amount": tokenAmount,
 };

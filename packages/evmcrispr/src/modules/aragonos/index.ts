@@ -1,5 +1,6 @@
 import type { IModuleConstructor } from "../../types";
 import { AragonOS } from "./AragonOS";
+
 export { AragonDAO } from "./AragonDAO";
 export { Connector } from "./Connector";
 
@@ -11,8 +12,8 @@ export type {
   CompletePermission,
   Entity,
   LabeledAppIdentifier,
-  ParsedApp,
   Params,
+  ParsedApp,
   Permission,
   PermissionMap,
   Repo,
@@ -21,16 +22,16 @@ export type {
 } from "./types";
 
 export {
+  and,
   arg,
   blockNumber,
-  timestamp,
-  oracle,
-  not,
-  and,
-  or,
-  xor,
   iif,
+  not,
+  or,
+  oracle,
   paramValue,
+  timestamp,
+  xor,
 } from "./utils/acl";
 export { encodeActCall, encodeCallScript } from "./utils/evmscripts";
 

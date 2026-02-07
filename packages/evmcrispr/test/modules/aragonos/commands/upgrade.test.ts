@@ -3,22 +3,20 @@ import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 import { getContract, keccak256, namehash, toHex } from "viem";
-
+import { CommandError } from "../../../../src/errors";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import { REPO_ABI } from "../../../../src/modules/aragonos/utils";
-
-import { CommandError } from "../../../../src/errors";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
 import {
   _aragonEns,
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../test-helpers/aragonos";
-import { createInterpreter } from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
 
 describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]", () => {
   let client: PublicClient;

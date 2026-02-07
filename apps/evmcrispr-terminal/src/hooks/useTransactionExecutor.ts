@@ -1,8 +1,8 @@
-import { useCallback, useRef } from "react";
 import type { Action, TransactionAction } from "@1hive/evmcrispr";
 import { EVMcrispr, isProviderAction, parseScript } from "@1hive/evmcrispr";
-import { usePublicClient, useWalletClient } from "wagmi";
+import { useCallback, useRef } from "react";
 import type { PublicClient } from "viem";
+import { usePublicClient, useWalletClient } from "wagmi";
 
 import { config } from "../config/wagmi";
 import { terminalStoreActions } from "../stores/terminal-store";

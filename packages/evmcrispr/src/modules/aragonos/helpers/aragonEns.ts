@@ -1,10 +1,9 @@
 import type { PublicClient } from "viem";
-
+import { ErrorException } from "../../../errors";
+import type { Address, HelperFunction, Nullable } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
-import type { Address, HelperFunction, Nullable } from "../../../types";
 import { getAragonEnsResolver, resolveName } from "../utils";
-import { ErrorException } from "../../../errors";
 
 export const _aragonEns = async (
   ensName: string,

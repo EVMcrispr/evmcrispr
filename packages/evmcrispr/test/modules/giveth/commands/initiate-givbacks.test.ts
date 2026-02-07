@@ -2,9 +2,8 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
-import { createInterpreter } from "../../../test-helpers/cas11";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
+import { createInterpreter } from "../../../test-helpers/cas11";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 

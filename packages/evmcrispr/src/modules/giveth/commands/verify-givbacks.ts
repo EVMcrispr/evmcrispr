@@ -1,8 +1,5 @@
 import { decodeFunctionData, getAbiItem, hexToString, parseAbi } from "viem";
-
-import { decodeCallScript } from "../../aragonos/utils";
 import type { ICommand } from "../../../types";
-
 import {
   ComparisonType,
   checkArgsLength,
@@ -10,6 +7,7 @@ import {
   encodeAction,
   getOptValue,
 } from "../../../utils";
+import { decodeCallScript } from "../../aragonos/utils";
 import { agentMap, defaultRelayerMap, votingMap } from "../addresses";
 
 import type { Giveth } from "../Giveth";
@@ -42,7 +40,7 @@ export const verifyGivbacks: ICommand<Giveth> = {
       "function addBatches(bytes32[],bytes) public",
     ]);
 
-    const data = await fetch("https://ipfs.blossom.software/ipfs/" + hash).then(
+    const data = await fetch(`https://ipfs.blossom.software/ipfs/${hash}`).then(
       (data) => data.json(),
     );
 
@@ -135,7 +133,7 @@ export const verifyGivbacks: ICommand<Giveth> = {
       );
     }
 
-    module.evmcrispr.log("Vote script matches script in " + hash);
+    module.evmcrispr.log(`Vote script matches script in ${hash}`);
 
     return [encodeAction(voting, "vote(uint256,bool)", [voteId, true])];
   },

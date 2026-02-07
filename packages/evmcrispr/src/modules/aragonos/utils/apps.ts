@@ -67,10 +67,9 @@ export const buildApp = (
     contentUri,
     name,
     permissions: buildAppPermissions(artifactRoles, roles),
-    registryName:
-      registryName && registryName.length
-        ? registryName
-        : parseAppArtifactName(appName),
+    registryName: registryName?.length
+      ? registryName
+      : parseAppArtifactName(appName),
   };
 };
 

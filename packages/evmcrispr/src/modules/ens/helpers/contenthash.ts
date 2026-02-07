@@ -1,8 +1,7 @@
 import { encode } from "@ensdomains/content-hash";
-
-import type { Ens } from "../Ens";
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Ens } from "../Ens";
 
 export const contenthash: HelperFunction<Ens> = async (
   _,
@@ -22,5 +21,5 @@ export const contenthash: HelperFunction<Ens> = async (
   if (!hash) {
     throw new Error("The hash format should be <codec>:<hash>");
   }
-  return "0x" + encode(codec + "-ns", hash);
+  return `0x${encode(`${codec}-ns`, hash)}`;
 };

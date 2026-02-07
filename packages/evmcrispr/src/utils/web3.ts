@@ -11,7 +11,7 @@ export const isFunctionSignature = (signature: string) => {
       return false;
     }
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 };

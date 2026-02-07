@@ -1,6 +1,6 @@
-import artifactKernel from "../system-artifacts/Kernel.json";
 import artifactACL from "../system-artifacts/ACL.json";
 import artifactEVMScriptRegistry from "../system-artifacts/EVMScriptRegistry.json";
+import artifactKernel from "../system-artifacts/Kernel.json";
 
 // acl.aragonpm.eth
 const ACL_APP_ID =

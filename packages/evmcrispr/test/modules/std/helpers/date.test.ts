@@ -1,5 +1,5 @@
-import { viem } from "hardhat";
 import { expect } from "chai";
+import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 

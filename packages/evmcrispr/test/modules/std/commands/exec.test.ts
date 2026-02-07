@@ -3,18 +3,17 @@ import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 import { toHex } from "viem";
-
-import type { Action } from "../../../../src/types";
 import { CommandError } from "../../../../src/errors";
+import type { Action } from "../../../../src/types";
 
 import { encodeAction, toDecimals } from "../../../../src/utils";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
 } from "../../../test-helpers/cas11";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
-import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]", () => {
   let client: PublicClient;

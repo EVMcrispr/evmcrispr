@@ -1,16 +1,16 @@
 import { encodePacked, getContractAddress, keccak256, parseAbi } from "viem";
 
 import { ErrorException } from "../../../errors";
-import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
-import {
-  ARAGON_REGISTRARS,
-  DAO_FACTORIES,
-  buildNonceForAddress,
-} from "../utils";
 import type { Action, Address, ICommand } from "../../../types";
 import { BindingsSpace } from "../../../types";
+import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
+import {
+  ARAGON_REGISTRARS,
+  buildNonceForAddress,
+  DAO_FACTORIES,
+} from "../utils";
 
 const registerAragonId = async (
   module: AragonOS,

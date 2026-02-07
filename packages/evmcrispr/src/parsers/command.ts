@@ -31,8 +31,8 @@ import {
   endLine,
   endOfLine,
   locate,
-  optOperatorParser,
   optionalWhitespace,
+  optOperatorParser,
   whitespace,
 } from "./utils";
 

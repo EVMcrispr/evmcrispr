@@ -1,16 +1,15 @@
 import type { DefaultBodyType, PathParams } from "msw";
-import { HttpResponse, graphql, http } from "msw";
+import { graphql, HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import type { Address } from "viem";
 import { isAddress } from "viem";
-
-import { artifacts } from "./artifacts/";
-import { etherscan } from "./etherscan";
-import { blockscout } from "./blockscout";
-import { DAOs, REPOs } from "./subgraph-data";
-import tokenListFixture from "./tokenlist/uniswap.json";
 import { IPFS_GATEWAY } from "../../src/IPFSResolver";
 import { addressesEqual } from "../../src/utils";
+import { artifacts } from "./artifacts/";
+import { blockscout } from "./blockscout";
+import { etherscan } from "./etherscan";
+import { DAOs, REPOs } from "./subgraph-data";
+import tokenListFixture from "./tokenlist/uniswap.json";
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 // const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API;

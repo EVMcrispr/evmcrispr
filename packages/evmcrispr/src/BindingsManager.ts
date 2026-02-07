@@ -164,7 +164,7 @@ export class BindingsManager {
       } else {
         this.#bindings.add(binding);
       }
-    } catch (err) {
+    } catch (_err) {
       if (overwrite) {
         const b = this.#bindings.localLookup(binding.identifier, binding.type)!;
         b[0]!.value = binding.value;
@@ -186,7 +186,7 @@ export class BindingsManager {
   ): RelativeBinding<BSpace> | undefined {
     const binding = this.#bindings.lookup(identifier, type);
 
-    return binding && binding.length
+    return binding?.length
       ? (binding[0] as RelativeBinding<BSpace>)
       : undefined;
   }

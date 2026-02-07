@@ -1,15 +1,14 @@
 import { useCallback, useState } from "react";
 import { ScrollRestoration } from "react-router";
-
-import Footer from "../components/layout/Footer";
-import Header from "../components/layout/Header";
-import ActionButtons from "../components/execution/ActionButtons";
-import ConfigureButton from "../components/execution/ConfigureButton";
-import SaveScriptButton from "../components/scripts/SaveScriptButton";
-import ShareScriptButton from "../components/scripts/ShareScriptButton";
-import ScriptLibrary from "../components/scripts/ScriptLibrary";
 import TerminalEditor from "../components/editor/TerminalEditor";
 import TitleInput from "../components/editor/TitleInput";
+import ActionButtons from "../components/execution/ActionButtons";
+import ConfigureButton from "../components/execution/ConfigureButton";
+import Footer from "../components/layout/Footer";
+import Header from "../components/layout/Header";
+import SaveScriptButton from "../components/scripts/SaveScriptButton";
+import ScriptLibrary from "../components/scripts/ScriptLibrary";
+import ShareScriptButton from "../components/scripts/ShareScriptButton";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useWalletConnection } from "../hooks/useWalletConnection";
 

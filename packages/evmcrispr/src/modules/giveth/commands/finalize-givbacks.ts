@@ -30,7 +30,7 @@ export const finalizeGivbacks: ICommand<Giveth> = {
       (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
 
     const batches = await fetch(
-      "https://ipfs.blossom.software/ipfs/" + hash,
+      `https://ipfs.blossom.software/ipfs/${hash}`,
     ).then((data) => data.json());
     return batches.map((batch: any) =>
       encodeAction(relayerAddr, "executeBatch(uint256,address[],uint256[])", [

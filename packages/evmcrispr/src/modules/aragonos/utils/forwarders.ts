@@ -1,11 +1,10 @@
 import type { PublicClient } from "viem";
 import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
-
+import type { Address, Module } from "../../..";
 import { ErrorInvalid } from "../../../errors";
 import type { Action, TransactionAction } from "../../../types";
-import { encodeCallScript } from "./evmscripts";
-import type { Address, Module } from "../../..";
 import { encodeAction } from "../../../utils";
+import { encodeCallScript } from "./evmscripts";
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,
@@ -23,7 +22,7 @@ export const isForwarder = async (
       abi: parseAbi(forwarderABI),
       functionName: "isForwarder",
     });
-  } catch (err) {
+  } catch (_err) {
     return false;
   }
 };
@@ -39,7 +38,7 @@ export const getForwarderFee = async (
       abi: parseAbi(forwarderABI),
       functionName: "forwardFee",
     });
-  } catch (err) {
+  } catch (_err) {
     return;
   }
 };
@@ -55,7 +54,7 @@ export const getForwarderType = async (
       abi: parseAbi(forwarderABI),
       functionName: "forwarderType",
     });
-  } catch (err) {
+  } catch (_err) {
     return FORWARDER_TYPES.NO_CONTEXT;
   }
 };

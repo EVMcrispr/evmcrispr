@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { Alert, Button } from "@repo/ui";
 
 import { AlertCircle } from "lucide-react";
-
-import { Alert, Button } from "@repo/ui";
+import { useEffect, useRef, useState } from "react";
 
 const COLLAPSE_THRESHOLD = 30;
 

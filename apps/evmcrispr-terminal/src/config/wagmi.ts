@@ -1,8 +1,8 @@
+import type { Chain, Transport } from "viem";
 import { createConfig, http } from "wagmi";
-import { injected, safe, walletConnect } from "wagmi/connectors";
 
 import * as _chains from "wagmi/chains";
-import type { Chain, Transport } from "viem";
+import { injected, safe, walletConnect } from "wagmi/connectors";
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;

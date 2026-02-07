@@ -2,9 +2,8 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
-import { BindingsSpace } from "../../../../src/types";
 import { CommandError } from "../../../../src/errors";
+import { BindingsSpace } from "../../../../src/types";
 import { toDecimals } from "../../../../src/utils";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";

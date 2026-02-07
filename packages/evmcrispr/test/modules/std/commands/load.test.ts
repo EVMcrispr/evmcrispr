@@ -2,15 +2,12 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
-import type { CommandExpressionNode } from "../../../../src/types";
-
 import { CommandError } from "../../../../src/errors";
-
+import { Ens } from "../../../../src/modules/ens/Ens";
+import type { CommandExpressionNode } from "../../../../src/types";
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
-import { Ens } from "../../../../src/modules/ens/Ens";
 
 describe("Std > commands > load <name> [as <alias>]", () => {
   let client: PublicClient;

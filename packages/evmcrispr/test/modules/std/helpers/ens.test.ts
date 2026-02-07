@@ -2,16 +2,14 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
+import { HelperFunctionError } from "../../../../src/errors";
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
-
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
 } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
-import { HelperFunctionError } from "../../../../src/errors";
 
 describe("Std > helpers > @ens(name)", () => {
   let client: PublicClient;

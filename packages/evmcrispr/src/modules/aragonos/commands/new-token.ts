@@ -1,21 +1,20 @@
 import { getContractAddress, isAddress, zeroAddress } from "viem";
-
+import { ErrorException } from "../../../errors";
+import type { Address, ICommand } from "../../../types";
+import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
   encodeAction,
   isNumberish,
 } from "../../../utils";
+import type { AragonOS } from "../AragonOS";
 import {
-  MINIME_TOKEN_FACTORIES,
   buildNonceForAddress,
   getDaoAddrFromIdentifier,
   isLabeledAppIdentifier,
+  MINIME_TOKEN_FACTORIES,
 } from "../utils";
-import { ErrorException } from "../../../errors";
-import type { Address, ICommand } from "../../../types";
-import { BindingsSpace } from "../../../types";
-import type { AragonOS } from "../AragonOS";
 
 export const newToken: ICommand<AragonOS> = {
   async run(module, c, { interpretNodes }) {

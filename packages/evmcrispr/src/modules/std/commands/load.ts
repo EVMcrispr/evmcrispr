@@ -1,4 +1,4 @@
-import { ComparisonType, checkArgsLength, insideNode } from "../../../utils";
+import { ErrorException } from "../../../errors";
 import type {
   AsExpressionNode,
   Commands,
@@ -7,8 +7,8 @@ import type {
   IModuleConstructor,
 } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
+import { ComparisonType, checkArgsLength, insideNode } from "../../../utils";
 import type { Std } from "../Std";
-import { ErrorException } from "../../../errors";
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
@@ -48,8 +48,7 @@ export const load: ICommand<Std> = {
       throw new ErrorException("invalid argument. Expected a string");
     }
 
-    let moduleName: string,
-      moduleAlias: string | undefined = undefined;
+    let moduleName: string, moduleAlias: string | undefined;
 
     if (argNode.type === AsExpression) {
       [moduleName, moduleAlias] = await interpretNode(argNode, {
@@ -83,7 +82,7 @@ export const load: ICommand<Std> = {
           moduleAlias,
         ),
       );
-    } catch (e) {
+    } catch (_e) {
       throw new ErrorException(`module ${moduleName} not found`);
     }
   },
@@ -151,7 +150,7 @@ export const load: ICommand<Std> = {
           MODULE,
         );
       };
-    } catch (err) {
+    } catch (_err) {
       return;
     }
   },

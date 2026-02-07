@@ -1,7 +1,8 @@
 import type { Abi, Address, Chain, PublicClient } from "viem";
 import { createPublicClient, http, isAddress, zeroAddress } from "viem";
 import * as viemChains from "viem/chains";
-
+import { BindingsManager } from "./BindingsManager";
+import type { Cas11AST } from "./Cas11AST";
 import {
   CommandError,
   ErrorException,
@@ -9,7 +10,9 @@ import {
   HelperFunctionError,
   NodeError,
 } from "./errors";
-import { timeUnits, toDecimals } from "./utils";
+import { IPFSResolver } from "./IPFSResolver";
+import type { Module } from "./Module";
+import { Std } from "./modules/std/Std";
 import type {
   Action,
   ArrayExpressionNode,
@@ -26,12 +29,8 @@ import type {
   VariableIdentifierNode,
 } from "./types";
 import { BindingsSpace, NodeType } from "./types";
-import type { Module } from "./Module";
-import { Std } from "./modules/std/Std";
-import { BindingsManager } from "./BindingsManager";
 import type { NodeInterpreter, NodesInterpreter } from "./types/modules";
-import type { Cas11AST } from "./Cas11AST";
-import { IPFSResolver } from "./IPFSResolver";
+import { timeUnits, toDecimals } from "./utils";
 
 const {
   AddressLiteral,
@@ -304,7 +303,7 @@ export class EVMcrispr {
 
     try {
       leftOperand = BigInt(leftOperand_);
-    } catch (err) {
+    } catch (_err) {
       EVMcrispr.panic(
         n,
         `invalid left operand. Expected a number but got "${leftOperand_}"`,
@@ -313,7 +312,7 @@ export class EVMcrispr {
 
     try {
       rightOperand = BigInt(rightOperand_);
-    } catch (err) {
+    } catch (_err) {
       EVMcrispr.panic(
         n,
         `invalid right operand. Expected a number but got "${rightOperand_}"`,

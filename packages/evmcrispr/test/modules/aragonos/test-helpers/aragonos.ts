@@ -3,25 +3,24 @@ import type { PublicClient } from "viem";
 import type { Address } from "../../../../src";
 
 import type { EVMcrispr } from "../../../../src/EVMcrispr";
-
+import { CommandError } from "../../../../src/errors";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
-import { NodeType } from "../../../../src/types";
+import {
+  getAragonEnsResolver,
+  resolveName,
+} from "../../../../src/modules/aragonos/utils";
 import type {
   AST,
   BlockExpressionNode,
   CommandExpressionNode,
 } from "../../../../src/types";
+import { NodeType } from "../../../../src/types";
 import { listItems } from "../../../../src/utils";
-import { CommandError } from "../../../../src/errors";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
 } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";
-import {
-  getAragonEnsResolver,
-  resolveName,
-} from "../../../../src/modules/aragonos/utils";
 
 export const _aragonEns = async (
   ensName: string,

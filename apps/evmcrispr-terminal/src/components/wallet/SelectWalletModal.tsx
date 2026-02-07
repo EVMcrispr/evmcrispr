@@ -1,15 +1,13 @@
+import { Dialog } from "@repo/ui";
 import { useState } from "react";
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
-
-import { Dialog } from "@repo/ui";
-
+import MetamaskIcon from "../icons/MetamaskIcon";
+import SafeIcon from "../icons/SafeIcon";
+import WalletIcon from "../icons/WalletIcon";
+import SafeConnect from "./SafeConnect";
 import WalletButton from "./WalletButton";
 import WalletConnectCode from "./WalletConnectCode";
-import SafeConnect from "./SafeConnect";
-import MetamaskIcon from "../icons/MetamaskIcon";
-import WalletIcon from "../icons/WalletIcon";
-import SafeIcon from "../icons/SafeIcon";
 
 export default function SelectWalletModal({
   isOpen,

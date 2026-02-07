@@ -19,7 +19,7 @@ export const tryAndCacheNotFound = async <T>(
   resourceName: string,
   bindingSpace: BindingsSpace,
   cache: BindingsManager,
-): Promise<T | void> => {
+): Promise<T | undefined> => {
   if (cache.getBindingValue(resourceName, bindingSpace) === null) {
     return;
   }
@@ -27,7 +27,7 @@ export const tryAndCacheNotFound = async <T>(
   try {
     const result = await setTimer(fetchResourceFn);
     return result;
-  } catch (err) {
+  } catch (_err) {
     if (!cache.hasBinding(resourceName, bindingSpace)) {
       cache.setBinding(resourceName, null, bindingSpace);
     }

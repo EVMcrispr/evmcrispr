@@ -1,3 +1,4 @@
+import type { Abi, AbiFunction } from "viem";
 import {
   encodeAbiParameters,
   encodeFunctionData,
@@ -5,8 +6,6 @@ import {
   parseAbiItem,
   toHex,
 } from "viem";
-
-import type { Abi, AbiFunction } from "viem";
 
 import { ErrorInvalid } from "../errors";
 import type { Address, TransactionAction } from "../types";
@@ -34,7 +33,7 @@ export const encodeAction = (
         : `function ${signature}`;
       fnABI = parseAbiItem(fullSignature) as AbiFunction;
     }
-  } catch (err) {
+  } catch (_err) {
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 

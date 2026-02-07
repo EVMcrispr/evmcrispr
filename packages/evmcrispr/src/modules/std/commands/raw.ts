@@ -1,8 +1,7 @@
 import { isAddress } from "viem";
-
-import { BindingsSpace } from "../../../types";
+import { ErrorException } from "../../../errors";
 import type { ICommand, TransactionAction } from "../../../types";
-
+import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
@@ -11,7 +10,6 @@ import {
   isNumberish,
 } from "../../../utils";
 import type { Std } from "../Std";
-import { ErrorException } from "../../../errors";
 
 const { ADDR } = BindingsSpace;
 

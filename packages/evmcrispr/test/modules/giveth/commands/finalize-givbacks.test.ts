@@ -2,9 +2,8 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
-import { createInterpreter } from "../../../test-helpers/cas11";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
+import { createInterpreter } from "../../../test-helpers/cas11";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
@@ -32,7 +31,7 @@ describe("Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]
       );
 
       const batches = await fetch(
-        "https://ipfs.blossom.software/ipfs/" + ipfsHash,
+        `https://ipfs.blossom.software/ipfs/${ipfsHash}`,
       ).then((data) => data.json());
 
       const interpreter2 = createInterpreter(

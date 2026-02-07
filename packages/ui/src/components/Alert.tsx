@@ -1,5 +1,5 @@
-import { type HtmlHTMLAttributes } from "react";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
+import type { HtmlHTMLAttributes } from "react";
 
 import { cn } from "../utils";
 

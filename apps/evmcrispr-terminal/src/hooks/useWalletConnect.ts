@@ -21,7 +21,7 @@ export function useWalletConnect({
     return () => {
       walletConnectConnector?.emitter.off("message", handleMessage);
     };
-  }, [walletConnectConnector]);
+  }, [walletConnectConnector, handleMessage]);
 
   useEffect(() => {
     walletConnectConnector?.emitter.on("connect", onConnect);

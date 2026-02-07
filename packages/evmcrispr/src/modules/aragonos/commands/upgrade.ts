@@ -6,18 +6,17 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
-
-import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
+import { ErrorException } from "../../..";
 import type { ICommand } from "../../../types";
+import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
+  getDAOAppIdentifiers,
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
-  getDAOAppIdentifiers,
 } from "../utils";
 import { daoPrefixedIdentifierParser, getDAO } from "../utils/commands";
-import { ErrorException } from "../../..";
 
 export const upgrade: ICommand<AragonOS> = {
   async run(module, c, { interpretNode }) {
@@ -89,7 +88,7 @@ export const upgrade: ICommand<AragonOS> = {
         address: repoAddr,
         abi: REPO_ABI,
         functionName: "getBySemanticVersion",
-        args: [newAppAddress.split(".").map((s: string) => parseInt(s))],
+        args: [newAppAddress.split(".").map((s: string) => parseInt(s, 10))],
       });
     } else if (!isAddress(newAppAddress)) {
       throw new ErrorException(

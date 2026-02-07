@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import type { PublicClient } from "viem";
 import { viem } from "hardhat";
+import type { PublicClient } from "viem";
 
 import { CommandError } from "../../../../src/errors";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";

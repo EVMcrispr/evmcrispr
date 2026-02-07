@@ -2,16 +2,16 @@ import { expect } from "chai";
 
 import {
   ADDRESS_PARSER_ERROR,
-  BOOLEAN_PARSER_ERROR,
-  PROBABLE_IDENTIFIER_PARSER_ERROR,
-  STRING_PARSER_ERROR,
-  VARIABLE_PARSER_ERROR,
   addressParser,
+  BOOLEAN_PARSER_ERROR,
   booleanParser,
   hexadecimalParser,
   numberParser,
+  PROBABLE_IDENTIFIER_PARSER_ERROR,
   probableIdentifierParser,
+  STRING_PARSER_ERROR,
   stringParser,
+  VARIABLE_PARSER_ERROR,
   variableIdentifierParser,
 } from "../../src/parsers/primaries";
 import { HEXADECIMAL_PARSER_ERROR } from "../../src/parsers/primaries/literals/hexadecimal";
@@ -136,7 +136,7 @@ describe("Parsers - primary", () => {
             value: String(value),
             loc: buildLocation(
               value.toString() +
-                (power ? power?.toString() + "e" : "") +
+                (power ? `${power?.toString()}e` : "") +
                 (timeUnit ?? ""),
             ),
           };

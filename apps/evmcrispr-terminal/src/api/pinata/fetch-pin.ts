@@ -6,7 +6,7 @@ const fetchPin = async (
 ): Promise<BareScript | undefined> => {
   if (!hashId) return undefined;
 
-  const url = pinataUrl + "/ipfs/" + hashId;
+  const url = `${pinataUrl}/ipfs/${hashId}`;
 
   try {
     const response = await fetch(url);
@@ -16,7 +16,7 @@ const fetchPin = async (
     }
 
     return response.json();
-  } catch (e) {
+  } catch (_e) {
     throw new Error("Bad response from server");
   }
 };

@@ -1,13 +1,11 @@
+import { Button, Dialog, IconButton, Tooltip } from "@repo/ui";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { Button, Dialog, IconButton, Tooltip } from "@repo/ui";
-
-import SaveIcon from "../icons/SaveIcon";
 import {
   getScriptSavedInLocalStorage,
   saveScriptToLocalStorage,
 } from "../../utils";
+import SaveIcon from "../icons/SaveIcon";
 
 type SaveModalProps = {
   isOpen: boolean;

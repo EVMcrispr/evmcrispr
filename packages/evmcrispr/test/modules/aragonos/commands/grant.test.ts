@@ -3,25 +3,22 @@ import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-
-import type { Action } from "../../../../src/types";
-import { oracle } from "../../../../src/modules/aragonos/utils";
-
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
-
 import { CommandError } from "../../../../src/errors";
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import { oracle } from "../../../../src/modules/aragonos/utils";
+import type { Action } from "../../../../src/types";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
   itChecksBadPermission,
 } from "../test-helpers/aragonos";
-import { createInterpreter } from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
-import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]", () => {
   let client: PublicClient;

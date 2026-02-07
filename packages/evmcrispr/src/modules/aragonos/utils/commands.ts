@@ -2,19 +2,18 @@ import type { Parser } from "arcsecond";
 import { char, possibly, regex, sequenceOf } from "arcsecond";
 
 import { isAddress } from "viem";
-
-import { BindingsSpace, NodeType } from "../../../types";
+import type { BindingsManager } from "../../../BindingsManager";
+import { ErrorException } from "../../../errors";
 import type {
   CommandExpressionNode,
   Node,
   NodeInterpreter,
 } from "../../../types";
+import { BindingsSpace, NodeType } from "../../../types";
+import { getOptValue, listItems } from "../../../utils";
 import type { AragonDAO } from "../AragonDAO";
 import type { CompletePermission } from "../types";
 import { optionalLabeledAppIdentifierRegex } from "./identifiers";
-import { getOptValue, listItems } from "../../../utils";
-import { ErrorException } from "../../../errors";
-import type { BindingsManager } from "../../../BindingsManager";
 
 const { DATA_PROVIDER } = BindingsSpace;
 

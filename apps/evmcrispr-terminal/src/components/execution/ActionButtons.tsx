@@ -1,11 +1,9 @@
 import { useAccount } from "wagmi";
-
-import LogModal from "./LogModal";
-import ErrorMsg from "./ErrorMsg";
-
-import { useTerminalStore } from "../../stores/terminal-store";
-import { ExecuteButton } from "./ExecuteButton";
 import { useTransactionExecutor } from "../../hooks/useTransactionExecutor";
+import { useTerminalStore } from "../../stores/terminal-store";
+import ErrorMsg from "./ErrorMsg";
+import { ExecuteButton } from "./ExecuteButton";
+import LogModal from "./LogModal";
 
 type ActionButtonsType = {
   address: `0x${string}` | undefined;

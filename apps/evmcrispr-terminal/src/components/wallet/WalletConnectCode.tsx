@@ -1,8 +1,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import type { Connector } from "wagmi";
-
-import CopyCode from "./CopyCode";
 import { useWalletConnect } from "../../hooks/useWalletConnect";
+import CopyCode from "./CopyCode";
 
 const GREEN_300 = "#8CF467";
 

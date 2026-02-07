@@ -11,22 +11,22 @@ import type {
 } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
-  ComparisonType,
   addressesEqual,
+  ComparisonType,
   checkArgsLength,
   encodeAction,
   interpretNodeSync,
 } from "../../../utils";
+import { AddressSet } from "../AddressSet";
+import type { AragonDAO } from "../AragonDAO";
 import type { AragonOS } from "../AragonOS";
-import { getDAO, isPermission } from "../utils/commands";
 import {
   formatAppIdentifier,
   getAppRoles,
   getDAOs,
   normalizeRole,
 } from "../utils";
-import { AddressSet } from "../AddressSet";
-import type { AragonDAO } from "../AragonDAO";
+import { getDAO, isPermission } from "../utils/commands";
 
 const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);

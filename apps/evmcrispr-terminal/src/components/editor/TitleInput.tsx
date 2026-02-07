@@ -1,11 +1,10 @@
 import type { ChangeEventHandler } from "react";
 import { useEffect, useRef, useState } from "react";
-
+import { useDebounce } from "../../hooks/useDebounce";
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
-import { useDebounce } from "../../hooks/useDebounce";
 
 export default function TitleInput() {
   // Set the default value, without enforcing its state.
@@ -15,7 +14,7 @@ export default function TitleInput() {
     if (handleRef.current) {
       handleRef.current.value = title;
     }
-  }, [handleRef, title]);
+  }, [title]);
 
   const [documentTitle, setDocumentTitle] = useState(title);
 

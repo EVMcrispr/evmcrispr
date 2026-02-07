@@ -7,8 +7,8 @@ import { isAddress } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../../src/errors";
 import { Connector } from "../../../src/modules/aragonos/Connector";
-import { parseContentUri } from "../../../src/modules/aragonos/utils";
 import type { ParsedApp } from "../../../src/modules/aragonos/types";
+import { parseContentUri } from "../../../src/modules/aragonos/utils";
 
 import { DAO, EOA_ADDRESS } from "../../fixtures";
 import { expectThrowAsync } from "../../test-helpers/expects";

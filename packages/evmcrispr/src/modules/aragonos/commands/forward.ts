@@ -3,8 +3,6 @@ import { isAddress } from "viem";
 import { ErrorException } from "../../../errors";
 import type { Action, ICommand, TransactionAction } from "../../../types";
 import { isProviderAction } from "../../../types";
-
-import { batchForwarderActions } from "../utils/forwarders";
 import {
   ComparisonType,
   checkArgsLength,
@@ -14,6 +12,7 @@ import {
 } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { getDAOAppIdentifiers } from "../utils";
+import { batchForwarderActions } from "../utils/forwarders";
 
 export const forward: ICommand<AragonOS> = {
   async run(module, c, { interpretNode, interpretNodes }) {

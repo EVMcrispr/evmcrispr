@@ -1,5 +1,8 @@
 import type { PublicClient } from "viem";
-
+import type { EVMcrispr } from "..";
+import type { BindingsManager } from "../BindingsManager";
+import type { IPFSResolver } from "../IPFSResolver";
+import type { Module } from "../Module";
 import type { Action } from "./actions";
 import type {
   CommandExpressionNode,
@@ -7,11 +10,7 @@ import type {
   Node,
   Position,
 } from "./ast";
-import type { BindingsManager } from "../BindingsManager";
-import type { IPFSResolver } from "../IPFSResolver";
-import type { Module } from "../Module";
 import type { LazyBindings } from "./bindings";
-import type { EVMcrispr } from "..";
 
 export interface InterpretOptions {
   allowNotFoundError: boolean;

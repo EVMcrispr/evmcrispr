@@ -1,13 +1,12 @@
 import { isAddress, parseAbi, toHex } from "viem";
-
+import { encodeCallScript } from "../../../../src/modules/aragonos/utils";
 import type { Action, Address, TransactionAction } from "../../../../src/types";
+import { encodeAction } from "../../../../src/utils";
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,
   getAppForwarderType,
 } from "./forwarders";
-import { encodeCallScript } from "../../../../src/modules/aragonos/utils";
-import { encodeAction } from "../../../../src/utils";
 
 export const createTestPreTxAction = (
   operation: string,

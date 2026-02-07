@@ -38,7 +38,7 @@ export const initiateGivbacks: ICommand<Giveth> = {
     const relayerAddr =
       (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
 
-    const data = await fetch("https://ipfs.blossom.software/ipfs/" + hash).then(
+    const data = await fetch(`https://ipfs.blossom.software/ipfs/${hash}`).then(
       (data) => data.json(),
     );
 

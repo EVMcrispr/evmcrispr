@@ -5,8 +5,8 @@ import {
   terminalStoreActions,
   useTerminalStore,
 } from "../stores/terminal-store";
-import { useScriptFromId } from "./useStoredScript";
 import { getScriptSavedInLocalStorage } from "../utils";
+import { useScriptFromId } from "./useStoredScript";
 
 /**
  * Encapsulates all URL-param parsing, script-from-ID loading,
@@ -62,7 +62,13 @@ export function useTerminalScript() {
         navigate("/");
       }
     }
-  }, [titleFromSession, scriptFromSession]);
+  }, [
+    titleFromSession,
+    scriptFromSession,
+    location.pathname,
+    navigate,
+    params.scriptId,
+  ]);
 
   return { titleFromSession, scriptFromSession };
 }

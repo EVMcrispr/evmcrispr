@@ -3,10 +3,10 @@ import fetch from "isomorphic-fetch";
 import type { PublicClient } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../errors";
-import type { GraphQLBody, QueryConfig } from "./utils";
-import { ORGANIZATION_APPS, REPO, parseApp, parseRepo } from "./utils";
-import type { ParsedApp, Repo } from "./types";
 import type { Address } from "../../types";
+import type { ParsedApp, Repo } from "./types";
+import type { GraphQLBody, QueryConfig } from "./utils";
+import { ORGANIZATION_APPS, parseApp, parseRepo, REPO } from "./utils";
 
 export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {

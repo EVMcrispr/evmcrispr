@@ -1,7 +1,9 @@
 import type { PublicClient } from "viem";
 import { getAbiItem, hexToString, namehash, toHex } from "viem";
-
+import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";
+import type { Address, ICommand, Nullable } from "../../../types";
+import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
@@ -13,13 +15,11 @@ import {
   interpretNodeSync,
   tryAndCacheNotFound,
 } from "../../../utils";
-import type { Address, ICommand, Nullable } from "../../../types";
-import { BindingsSpace } from "../../../types";
+import type { AragonDAO } from "../AragonDAO";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
+import type { App, AppArtifact } from "../types";
 import {
-  REPO_ABI,
-  SEMANTIC_VERSION_REGEX,
   buildAppArtifact,
   buildAppPermissions,
   buildArtifactFromABI,
@@ -27,11 +27,10 @@ import {
   getDAOs,
   isLabeledAppIdentifier,
   parseLabeledAppIdentifier,
+  REPO_ABI,
+  SEMANTIC_VERSION_REGEX,
 } from "../utils";
 import { DAO_OPT_NAME, getDAOByOption } from "../utils/commands";
-import type { App, AppArtifact } from "../types";
-import type { AragonDAO } from "../AragonDAO";
-import type { BindingsManager } from "../../../BindingsManager";
 
 const { ABI, ADDR, OTHER } = BindingsSpace;
 

@@ -1,10 +1,9 @@
 import type { Address } from "viem";
 import { isAddress } from "viem";
-
-import { ErrorInvalid } from "../../../errors";
-import type { App, AppIdentifier, LabeledAppIdentifier } from "../types";
-import { BindingsSpace } from "../../../types";
 import type { BindingsManager } from "../../../BindingsManager";
+import { ErrorInvalid } from "../../../errors";
+import { BindingsSpace } from "../../../types";
+import type { App, AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
 

@@ -1,9 +1,8 @@
-import { useNavigate } from "react-router";
 import { ShareIcon } from "@heroicons/react/24/solid";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-
 import { IconButton, Tooltip } from "@repo/ui";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 import pinJSON from "../../api/pinata/pin-json";
 
@@ -19,7 +18,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
 
   useEffect(() => {
     setUrl("");
-  }, [script]);
+  }, []);
 
   async function handleShare() {
     const data = {
@@ -36,7 +35,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
       toast.success("The link is copied to the clipboard");
       setLoading(false);
       navigate(`/${hash}`, { replace: true });
-    } catch (e) {
+    } catch (_e) {
       toast.error("The script could not be saved to IPFS");
       setLoading(false);
     }

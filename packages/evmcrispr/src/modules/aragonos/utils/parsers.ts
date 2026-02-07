@@ -58,7 +58,7 @@ export const parseApp = async (
     registryName: registry?.name,
     roles: (roles as any[]).map((role) => ({
       ...role,
-      roleHash: role["hash"] ?? role["roleHash"],
+      roleHash: role.hash ?? role.roleHash,
     })),
   };
 };

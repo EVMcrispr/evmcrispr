@@ -94,42 +94,42 @@ describe("Interpreter - primaries", async () => {
         ],
         [
           node(1200.12, 18, "mo"),
-          toDecimals(1200.12, 18) * BigInt(timeUnits["mo"]),
+          toDecimals(1200.12, 18) * BigInt(timeUnits.mo),
           "Invalid decimal number raised to a power followed by time unit match",
         ],
         [
           node(30, undefined, "s"),
-          toDecimals(30, 0) * BigInt(timeUnits["s"]),
+          toDecimals(30, 0) * BigInt(timeUnits.s),
           "Invalid number followed by second time unit match",
         ],
         [
           node(5, undefined, "m"),
-          toDecimals(5, 0) * BigInt(timeUnits["m"]),
+          toDecimals(5, 0) * BigInt(timeUnits.m),
           "Invalid number followed by minute time unit match",
         ],
         [
           node(35, undefined, "h"),
-          toDecimals(35, 0) * BigInt(timeUnits["h"]),
+          toDecimals(35, 0) * BigInt(timeUnits.h),
           "Invalid number followed by hour time unit match",
         ],
         [
           node(463, undefined, "d"),
-          toDecimals(463, 0) * BigInt(timeUnits["d"]),
+          toDecimals(463, 0) * BigInt(timeUnits.d),
           "Invalid number followed by day time unit match",
         ],
         [
           node(96, undefined, "w"),
-          toDecimals(96, 0) * BigInt(timeUnits["w"]),
+          toDecimals(96, 0) * BigInt(timeUnits.w),
           "Invalid number followed by week time unit match",
         ],
         [
           node(9, undefined, "mo"),
-          toDecimals(9, 0) * BigInt(timeUnits["mo"]),
+          toDecimals(9, 0) * BigInt(timeUnits.mo),
           "Invalid number followed by month time unit match",
         ],
         [
           node(4.67, undefined, "y"),
-          toDecimals(4.67, 0) * BigInt(timeUnits["y"]),
+          toDecimals(4.67, 0) * BigInt(timeUnits.y),
           "Invalid number followed by year time unit match",
         ],
       ];

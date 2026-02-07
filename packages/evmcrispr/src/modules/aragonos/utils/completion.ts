@@ -18,7 +18,7 @@ export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
     BindingsSpace.DATA_PROVIDER,
   ) as DataProviderBinding<AragonDAO> | undefined;
 
-  while (currentDAOBinding && currentDAOBinding.value) {
+  while (currentDAOBinding?.value) {
     daos.push(currentDAOBinding.value);
     currentDAOBinding = currentDAOBinding.parent as
       | DataProviderBinding<AragonDAO>

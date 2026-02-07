@@ -6,9 +6,9 @@ import { ErrorException } from "../../../errors";
 import type { Action, ICommand } from "../../../types";
 import {
   BindingsSpace,
-  NodeType,
   isProviderAction,
   isSwitchAction,
+  NodeType,
 } from "../../../types";
 
 import {

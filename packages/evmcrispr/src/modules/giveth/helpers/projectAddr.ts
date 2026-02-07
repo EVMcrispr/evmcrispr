@@ -1,9 +1,8 @@
 import fetch from "isomorphic-fetch";
-
-import type { Giveth } from "../Giveth";
+import type { Module } from "../../..";
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
-import type { Module } from "../../..";
+import type { Giveth } from "../Giveth";
 
 export const _projectAddr = async (
   module: Module,
@@ -44,7 +43,7 @@ export const _projectAddr = async (
       )?.address,
       Number(res.data.projectsBySlugs.projects[0]?.id),
     ]);
-  if (isNaN(result[1])) {
+  if (Number.isNaN(result[1])) {
     throw new Error("Project not found");
   }
   if (result[0] === undefined) {

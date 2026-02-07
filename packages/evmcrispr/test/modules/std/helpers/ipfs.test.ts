@@ -2,14 +2,13 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
+import { HelperFunctionError } from "../../../../src/errors";
 import type {
   CommandExpressionNode,
   HelperFunctionNode,
 } from "../../../../src/types";
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
-import { HelperFunctionError } from "../../../../src/errors";
 import {
   createInterpreter,
   itChecksInvalidArgsLength,

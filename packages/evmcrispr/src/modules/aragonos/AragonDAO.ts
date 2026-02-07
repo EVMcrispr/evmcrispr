@@ -2,8 +2,10 @@ import cloneDeep from "lodash.clonedeep";
 
 import type { PublicClient } from "viem";
 import { getContractAddress, isAddress } from "viem";
-
+import type { IPFSResolver } from "../../IPFSResolver";
 import type { Address, IDataProvider } from "../../types";
+import { AddressMap } from "./AddressMap";
+import { Connector } from "./Connector";
 import type {
   App,
   AppArtifactCache,
@@ -14,18 +16,15 @@ import type {
   PermissionMap,
   Role,
 } from "./types";
-import type { IPFSResolver } from "../../IPFSResolver";
 import {
-  INITIAL_APP_INDEX,
   buildApp,
   buildAppArtifact,
   buildAppIdentifier,
   fetchAppArtifact,
+  INITIAL_APP_INDEX,
   normalizeRole,
   resolveIdentifier,
 } from "./utils";
-import { AddressMap } from "./AddressMap";
-import { Connector } from "./Connector";
 
 export const DATA_PROVIDER_TYPE = "ARAGONOS_DAO";
 

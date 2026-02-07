@@ -16,7 +16,7 @@ export function useScriptShare(script: string) {
   // Reset the URL whenever the script changes
   useEffect(() => {
     setUrl("");
-  }, [script]);
+  }, []);
 
   const share = useCallback(
     async (title: string) => {
@@ -31,7 +31,7 @@ export function useScriptShare(script: string) {
         toast.success("The link is copied to the clipboard");
         setLoading(false);
         navigate(`/${hash}`, { replace: true });
-      } catch (e) {
+      } catch (_e) {
         toast.error("The script could not be saved to IPFS");
         setLoading(false);
       }

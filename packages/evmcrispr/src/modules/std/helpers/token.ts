@@ -1,9 +1,9 @@
 import fetch from "isomorphic-fetch";
 
 import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
-
+import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";
-
+import type { Module } from "../../../Module";
 import type { Address, HelperFunction } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
@@ -12,9 +12,7 @@ import {
   isNumberish,
   toDecimals,
 } from "../../../utils";
-import type { Module } from "../../../Module";
 import type { Std } from "../Std";
-import type { BindingsManager } from "../../../BindingsManager";
 
 const ENV_TOKENLIST = "$token.tokenlist";
 
@@ -57,7 +55,7 @@ export const _token = async (
     await fetch(tokenList).then((r) => r.json());
   const tokenAddress = tokens.find(
     (token) =>
-      token.symbol === tokenSymbolOrAddress && token.chainId == chainId,
+      token.symbol === tokenSymbolOrAddress && token.chainId === chainId,
   )?.address;
 
   if (!tokenAddress || !isAddress(tokenAddress)) {

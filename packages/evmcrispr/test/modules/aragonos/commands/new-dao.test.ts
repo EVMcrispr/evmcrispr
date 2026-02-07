@@ -3,10 +3,9 @@ import { viem } from "hardhat";
 
 import type { PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, parseAbiParameters } from "viem";
-
-import { BindingsSpace } from "../../../../src/types";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import type { TransactionAction } from "../../../../src/types";
+import { BindingsSpace } from "../../../../src/types";
 import { addressesEqual } from "../../../../src/utils";
 
 import { createInterpreter } from "../../../test-helpers/cas11";

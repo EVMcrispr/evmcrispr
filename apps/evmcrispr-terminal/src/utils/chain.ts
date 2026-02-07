@@ -8,7 +8,7 @@ export async function switchOrAddChain(
 ) {
   try {
     await walletClient.switchChain({ id: chainId });
-  } catch (e: any) {
+  } catch (_e: any) {
     const newChain = config.chains.find((c) => c.id === chainId);
     if (newChain) {
       try {

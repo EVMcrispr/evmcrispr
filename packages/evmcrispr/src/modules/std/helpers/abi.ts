@@ -1,6 +1,6 @@
-import { parseAbiItem } from "viem";
 import type { AbiFunction } from "viem";
-
+import { parseAbiItem } from "viem";
+import { HelperFunctionError } from "../../../errors";
 import type { HelperFunction } from "../../../types";
 import {
   ComparisonType,
@@ -8,7 +8,6 @@ import {
   encodeCalldata,
 } from "../../../utils";
 import type { Std } from "../Std";
-import { HelperFunctionError } from "../../../errors";
 
 export const abiEncodeCall: HelperFunction<Std> = async (
   _,
@@ -28,7 +27,7 @@ export const abiEncodeCall: HelperFunction<Std> = async (
       ? signature
       : `function ${signature}`;
     fnABI = parseAbiItem(fullSignature) as AbiFunction;
-  } catch (err) {
+  } catch (_err) {
     throw new HelperFunctionError(
       h,
       `invalid function signature: "${signature}"`,

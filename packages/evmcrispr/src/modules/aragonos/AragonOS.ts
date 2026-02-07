@@ -1,17 +1,17 @@
 import { getContractAddress } from "viem";
 
 import type { BindingsManager } from "../../BindingsManager";
+import type { EVMcrispr } from "../../EVMcrispr";
 import { ErrorNotFound } from "../../errors";
 import type { IPFSResolver } from "../../IPFSResolver";
-import { BindingsSpace } from "../../types";
-import type { Address } from "../../types";
-import { addressesEqual } from "../../utils";
-import { buildNonceForAddress } from "./utils";
 import { Module } from "../../Module";
+import type { Address } from "../../types";
+import { BindingsSpace } from "../../types";
+import { addressesEqual } from "../../utils";
 import type { AragonDAO } from "./AragonDAO";
 import { commands } from "./commands";
 import { helpers } from "./helpers";
-import type { EVMcrispr } from "../../EVMcrispr";
+import { buildNonceForAddress } from "./utils";
 
 export class AragonOS extends Module {
   #connectedDAOs: AragonDAO[];

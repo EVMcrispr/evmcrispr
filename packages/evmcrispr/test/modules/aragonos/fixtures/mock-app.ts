@@ -1,8 +1,7 @@
 import type { Address } from "viem";
 import { namehash, toHex } from "viem";
-
-import { DAO } from "../../../fixtures";
 import { toDecimals } from "../../../../src/utils";
+import { DAO } from "../../../fixtures";
 
 type App = {
   appName: string;

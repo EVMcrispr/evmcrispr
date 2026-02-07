@@ -2,9 +2,8 @@ import { expect } from "chai";
 import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
-
-import type { Action } from "../../../../src/types";
 import { CommandError } from "../../../../src/errors";
+import type { Action } from "../../../../src/types";
 
 import { createInterpreter } from "../../../test-helpers/cas11";
 import { expectThrowAsync } from "../../../test-helpers/expects";

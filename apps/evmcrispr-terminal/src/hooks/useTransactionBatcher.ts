@@ -1,5 +1,6 @@
-import { useCallback } from "react";
 import type { TransactionAction } from "@1hive/evmcrispr";
+import type SafeAppProvider from "@safe-global/safe-apps-sdk";
+import { useCallback } from "react";
 import type {
   Account,
   Chain,
@@ -7,7 +8,6 @@ import type {
   Transport,
   WalletClient,
 } from "viem";
-import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 
 import { config } from "../config/wagmi";
 import { switchOrAddChain } from "../utils/chain";
@@ -64,7 +64,7 @@ export function useTransactionBatcher(safeConnector?: any) {
     ) => {
       const groupedActions: TransactionAction[][] = [];
       actions.forEach((action) => {
-        if (groupedActions.length == 0) {
+        if (groupedActions.length === 0) {
           groupedActions.push([action]);
         } else {
           const lastGroup = groupedActions[groupedActions.length - 1];

@@ -1,5 +1,8 @@
 import type { PublicClient } from "viem";
-
+import type { BindingsManager } from "./BindingsManager";
+import type { EVMcrispr } from "./EVMcrispr";
+import { ErrorException } from "./errors";
+import type { IPFSResolver } from "./IPFSResolver";
 import type {
   Address,
   CommandExpressionNode,
@@ -11,11 +14,6 @@ import type {
   NodesInterpreters,
 } from "./types";
 import { BindingsSpace } from "./types";
-
-import type { BindingsManager } from "./BindingsManager";
-import { ErrorException } from "./errors";
-import type { IPFSResolver } from "./IPFSResolver";
-import type { EVMcrispr } from "./EVMcrispr";
 
 export abstract class Module {
   constructor(

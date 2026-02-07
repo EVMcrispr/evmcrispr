@@ -1,9 +1,8 @@
 import type { AstSymbol } from "jsymbol";
 
 import type { BindingsManager } from "../BindingsManager";
-
-import type { Commands, HelperFunctions, IDataProvider } from "./modules";
 import type { Abi, Address } from "../types";
+import type { Commands, HelperFunctions, IDataProvider } from "./modules";
 
 export enum BindingsSpace {
   USER = "USER",
@@ -55,9 +54,8 @@ export interface AliasBinding extends IBinding<string> {
   type: BindingsSpace.ALIAS;
 }
 
-export interface DataProviderBinding<
-  T extends IDataProvider = IDataProvider,
-> extends IBinding<T> {
+export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
+  extends IBinding<T> {
   type: BindingsSpace.DATA_PROVIDER;
 }
 

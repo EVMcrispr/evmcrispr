@@ -1,13 +1,12 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
   CheckCircleIcon,
   ClockIcon,
   InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-
 import { Alert, Dialog } from "@repo/ui";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type LogStatus = "success" | "error" | "warning" | "info";
 

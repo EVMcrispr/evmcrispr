@@ -19,7 +19,7 @@ import {
 
 function onlyParam(param: Params): string {
   const _param = param(0);
-  if (_param.length != 1) {
+  if (_param.length !== 1) {
     throw new Error("Params should only be one.");
   }
   return _param[0];

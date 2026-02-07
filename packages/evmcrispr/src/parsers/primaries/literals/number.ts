@@ -71,7 +71,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         ),
       );
 
-      return [value, power ? parseInt(power) : undefined, timeUnit];
+      return [value, power ? parseInt(power, 10) : undefined, timeUnit];
     }),
     ({ data, index, result: [initialContext, [value, power, timeUnit]] }) => {
       return {

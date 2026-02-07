@@ -1,13 +1,16 @@
+import { inspect } from "node:util";
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";
-
 import type { PublicClient } from "viem";
-
-import { inspect } from "util";
 import type { ErrorException } from "../../src";
 import { Cas11AST } from "../../src";
 import { EVMcrispr } from "../../src/EVMcrispr";
+import {
+  CommandError,
+  ExpressionError,
+  HelperFunctionError,
+} from "../../src/errors";
 import { scriptParser } from "../../src/parsers/script";
 import { createParserState } from "../../src/parsers/utils";
 import type {
@@ -20,15 +23,10 @@ import type {
 } from "../../src/types";
 import { BindingsSpace, NodeType } from "../../src/types";
 import type { Comparison } from "../../src/utils";
-import { ComparisonType, buildArgsLengthErrorMsg } from "../../src/utils";
+import { buildArgsLengthErrorMsg, ComparisonType } from "../../src/utils";
 import { buildParserError } from "../../src/utils/parsers";
-import {
-  CommandError,
-  ExpressionError,
-  HelperFunctionError,
-} from "../../src/errors";
-import { expectThrowAsync } from "./expects";
 import { TEST_ACCOUNT_ADDRESS } from "./constants";
+import { expectThrowAsync } from "./expects";
 
 const { CommandExpression } = NodeType;
 const { Between, Equal, Greater } = ComparisonType;

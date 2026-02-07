@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import { Button, Input } from "@repo/ui";
+import { useState } from "react";
 
 import { useTerminalStore } from "../../stores/terminal-store";
 

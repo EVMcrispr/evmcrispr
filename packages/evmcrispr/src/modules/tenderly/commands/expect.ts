@@ -43,10 +43,10 @@ export const expect: ICommand<Tenderly> = {
 
     switch (operator) {
       case "==":
-        result = value == expectedValue;
+        result = value === expectedValue;
         break;
       case "!=":
-        result = value != expectedValue;
+        result = value !== expectedValue;
         break;
       case ">":
       case ">=":

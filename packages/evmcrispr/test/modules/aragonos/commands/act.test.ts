@@ -5,15 +5,15 @@ import type { PublicClient } from "viem";
 import { toHex } from "viem";
 
 import { CommandError } from "../../../../src/errors";
+import { encodeAction } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
+import { itChecksNonDefinedIdentifier } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestScriptEncodedAction } from "../test-helpers/actions";
 import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,
   findAragonOSCommandNode,
 } from "../test-helpers/aragonos";
-import { itChecksNonDefinedIdentifier } from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
-import { encodeAction } from "../../../../src/utils";
 
 describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
   let client: PublicClient;

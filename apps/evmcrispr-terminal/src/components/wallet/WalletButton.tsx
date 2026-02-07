@@ -1,7 +1,6 @@
+import { Button } from "@repo/ui";
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
-
-import { Button } from "@repo/ui";
 
 export default function WalletButton({
   name,

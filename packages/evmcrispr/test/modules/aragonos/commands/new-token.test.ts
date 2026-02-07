@@ -5,19 +5,19 @@ import type { PublicClient, WalletClient } from "viem";
 import { getContract, getContractAddress, parseAbi } from "viem";
 
 import { CommandError } from "../../../../src/errors";
-import { addressesEqual } from "../../../../src/utils";
+import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";
+import type { Address, TransactionAction } from "../../../../src/types";
+import { BindingsSpace } from "../../../../src/types";
+import { addressesEqual } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { expectThrowAsync } from "../../../test-helpers/expects";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../test-helpers/aragonos";
-import { createInterpreter } from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
-import type { Address, TransactionAction } from "../../../../src/types";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
-import { BindingsSpace } from "../../../../src/types";
 
 describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]", () => {
   let client: PublicClient;

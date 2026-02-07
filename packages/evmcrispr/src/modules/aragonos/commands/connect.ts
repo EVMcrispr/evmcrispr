@@ -1,7 +1,8 @@
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";
-
+import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException, ErrorNotFound } from "../../../errors";
+import type { IPFSResolver } from "../../../IPFSResolver";
 import type {
   AbiBinding,
   Action,
@@ -13,22 +14,11 @@ import type {
   Nullable,
   TransactionAction,
 } from "../../../types";
-import { BindingsSpace, NodeType, isSwitchAction } from "../../../types";
-import { AragonDAO, isAragonDAO } from "../AragonDAO";
-import type { AragonOS } from "../AragonOS";
+import { BindingsSpace, isSwitchAction, NodeType } from "../../../types";
 import {
-  ANY_ENTITY,
-  BURN_ENTITY,
-  INITIAL_APP_INDEX,
-  NO_ENTITY,
-  createDaoPrefixedIdentifier,
-  formatAppIdentifier,
-  getDAOAppIdentifiers,
-} from "../utils";
-import {
-  ComparisonType,
   addressesEqual,
   beforeOrEqualNode,
+  ComparisonType,
   checkArgsLength,
   checkOpts,
   getOptValue,
@@ -36,11 +26,20 @@ import {
   isAddressNodishType,
   tryAndCacheNotFound,
 } from "../../../utils";
-import { batchForwarderActions } from "../utils/forwarders";
+import { AragonDAO, isAragonDAO } from "../AragonDAO";
+import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import type { App, AppIdentifier } from "../types";
-import type { BindingsManager } from "../../../BindingsManager";
-import type { IPFSResolver } from "../../../IPFSResolver";
+import {
+  ANY_ENTITY,
+  BURN_ENTITY,
+  createDaoPrefixedIdentifier,
+  formatAppIdentifier,
+  getDAOAppIdentifiers,
+  INITIAL_APP_INDEX,
+  NO_ENTITY,
+} from "../utils";
+import { batchForwarderActions } from "../utils/forwarders";
 
 const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
 

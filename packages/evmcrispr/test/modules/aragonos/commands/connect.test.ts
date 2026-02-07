@@ -9,31 +9,31 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
-
+import { CommandError } from "../../../../src/errors";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
-
 import { MINIME_TOKEN_FACTORIES } from "../../../../src/modules/aragonos/utils";
+
+import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";
 import {
-  ComparisonType,
   buildArgsLengthErrorMsg,
+  ComparisonType,
   encodeAction,
   encodeCalldata,
   toDecimals,
 } from "../../../../src/utils";
-
-import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";
-import { CommandError } from "../../../../src/errors";
-
+import { DAO } from "../../../fixtures/mock-dao";
+import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
+import { createInterpreter } from "../../../test-helpers/cas11";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+import { expectThrowAsync } from "../../../test-helpers/expects";
+import { APP } from "../fixtures/mock-app";
 import {
   COMPLETE_FORWARDER_PATH,
   FEE_AMOUNT,
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
 } from "../fixtures/mock-forwarders";
-import { APP } from "../fixtures/mock-app";
-import { DAO } from "../../../fixtures/mock-dao";
-import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
 import {
   createTestAction,
   createTestPreTxAction,
@@ -43,10 +43,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../test-helpers/aragonos";
-
-import { createInterpreter } from "../../../test-helpers/cas11";
-import { expectThrowAsync } from "../../../test-helpers/expects";
-import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 
 const DAOs = [DAO, DAO2, DAO3];
 
@@ -134,6 +130,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
           createTestAction("newAppInstance", DAO3.kernel, [
             appId,
             codeAddress,
+            // biome-ignore lint/style/useTemplate: template literal breaks viem's type inference for parseAbiItem
             encodeCalldata(parseAbiItem([`function ` + initializeSignature]), [
               newTokenAddress,
               true,
@@ -249,7 +246,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
         ]),
         createTestAction("grantPermission", DAO2.acl, [
           DAO["disputable-voting.open"],
-          DAO2["acl"],
+          DAO2.acl,
           keccak256(toHex("CREATE_PERMISSIONS_ROLE")),
         ]),
       ];

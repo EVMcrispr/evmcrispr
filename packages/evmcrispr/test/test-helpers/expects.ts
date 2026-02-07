@@ -26,7 +26,7 @@ export const expectThrowAsync = async (
 
   expect(error, `Exception not thrown`).not.to.be.null;
 
-  if (message && message.length) {
+  if (message?.length) {
     expect(error!.message, customTestMessage).to.equal(message);
   }
 

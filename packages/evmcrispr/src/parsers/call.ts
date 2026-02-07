@@ -15,20 +15,19 @@ import type {
   NodeParserState,
 } from "../types";
 import { NodeType } from "../types";
-
+import { buildParserError } from "../utils/parsers";
+import { argumentsParser } from "./expression";
+import { helperFunctionParser } from "./helper";
 import {
   addressParser,
   probableIdentifierParser,
   variableIdentifierParser,
 } from "./primaries";
-import { argumentsParser } from "./expression";
-import { helperFunctionParser } from "./helper";
 import {
   callOperatorParser,
   createNodeLocation,
   currentContexDataParser,
 } from "./utils";
-import { buildParserError } from "../utils/parsers";
 
 const chainedCallExpressionParser = (
   target: CallExpressionNode,

@@ -1,8 +1,8 @@
 import { isAddress, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
-import { BindingsSpace } from "../../../types";
 import type { Action, ICommand, InterpretOptions } from "../../../types";
+import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
@@ -11,17 +11,17 @@ import {
   getOptValue,
   interpretNodeSync,
 } from "../../../utils";
+import { AddressSet } from "../AddressSet";
+import type { AragonDAO } from "../AragonDAO";
 import type { AragonOS } from "../AragonOS";
-import { getDAO, isPermission } from "../utils/commands";
+import type { CompletePermission, Params } from "../types";
 import {
   getAppRoles,
   getDAOAppIdentifiers,
   normalizeRole,
   oracle,
 } from "../utils";
-import type { CompletePermission, Params } from "../types";
-import type { AragonDAO } from "../AragonDAO";
-import { AddressSet } from "../AddressSet";
+import { getDAO, isPermission } from "../utils/commands";
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -50,7 +50,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   if (
     appPermission.manager &&
     appPermission.manager !== zeroAddress &&
-    params.length == 0
+    params.length === 0
   ) {
     if (appPermission.grantees.has(granteeAddress)) {
       // TODO: get app identifier. Maybe set it on cache

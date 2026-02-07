@@ -1,16 +1,15 @@
 "use client";
 
 import * as ReactDialog from "@radix-ui/react-dialog";
-
-import { type VariantProps, cva } from "class-variance-authority";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { cva, type VariantProps } from "class-variance-authority";
+import { X } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
+  forwardRef,
   type HTMLAttributes,
   type ReactNode,
-  forwardRef,
 } from "react";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { X } from "lucide-react";
 
 import { cn } from "../utils";
 

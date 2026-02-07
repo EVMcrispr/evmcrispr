@@ -1,12 +1,10 @@
 {
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "biomejs.biome",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "always"
+    "source.fixAll.biome": "always",
+    "source.organizeImports.biome": "always"
   },
-  "eslint.options": {
-    "extensions": [".js", ".ts", ".tsx"]
-  },
-  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
   "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "packages/hardhat/node_modules",
   "solidity.enabledAsYouTypeCompilationErrorCheck": true,
