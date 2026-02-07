@@ -1,6 +1,6 @@
 import { scriptParser } from "../../src/parsers/script";
-import type { Case } from "../test-helpers/cas11";
-import { runCases } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases } from "../test-helpers/evml";
 
 describe("Parsers - script", () => {
   it("should parse an script correctly", () => {

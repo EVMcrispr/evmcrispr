@@ -1,7 +1,7 @@
 import { scriptParser } from "../../src";
 
-import type { Case } from "../test-helpers/cas11";
-import { runCases } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases } from "../test-helpers/evml";
 
 describe("Parsers - comment", () => {
   it("should parse a comment correctly", () => {

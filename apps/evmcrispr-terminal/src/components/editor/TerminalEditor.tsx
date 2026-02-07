@@ -9,12 +9,7 @@ import {
   useTerminalStore,
 } from "../../stores/terminal-store";
 import { createProvideCompletionItemsFn } from "./autocompletion";
-import {
-  conf,
-  contribution,
-  createLanguage,
-  getModulesKeywords,
-} from "./evmcl";
+import { conf, contribution, createLanguage, getModulesKeywords } from "./evml";
 import { theme } from "./theme";
 
 export default function TerminalEditor() {
@@ -56,7 +51,7 @@ export default function TerminalEditor() {
     );
 
     const tokensProvider = monaco.languages.setMonarchTokensProvider(
-      "evmcl",
+      "evml",
       createLanguage(commandKeywords, helperKeywords),
     );
 
@@ -70,7 +65,7 @@ export default function TerminalEditor() {
       return;
     }
     const completionProvider = monaco.languages.registerCompletionItemProvider(
-      "evmcl",
+      "evml",
       {
         provideCompletionItems: createProvideCompletionItemsFn(
           bindingsCache,
@@ -88,7 +83,7 @@ export default function TerminalEditor() {
   function handleBeforeMountEditor(monaco: Monaco) {
     monaco.editor.defineTheme("theme", theme);
     monaco.languages.register(contribution);
-    monaco.languages.setLanguageConfiguration("evmcl", conf);
+    monaco.languages.setLanguageConfiguration("evml", conf);
   }
 
   function handleOnMountEditor(editor: any) {
@@ -99,7 +94,7 @@ export default function TerminalEditor() {
     <MonacoEditor
       height="65vh"
       theme="theme"
-      language="evmcl"
+      language="evml"
       value={script}
       onChange={handleOnChangeEditor}
       beforeMount={handleBeforeMountEditor}
@@ -110,7 +105,7 @@ export default function TerminalEditor() {
         detectIndentation: false,
         quickSuggestionsDelay: 100,
         tabSize: 2,
-        language: "evmcl",
+        language: "evml",
         minimap: {
           enabled: false,
         },

@@ -1,6 +1,6 @@
 export { BindingsManager } from "./BindingsManager";
-export { Cas11AST } from "./Cas11AST";
 export { EVMcrispr } from "./EVMcrispr";
+export { EvmlAST } from "./EvmlAST";
 export type { ErrorOptions } from "./errors";
 export { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
 export { IPFS_GATEWAY, IPFSResolver } from "./IPFSResolver";

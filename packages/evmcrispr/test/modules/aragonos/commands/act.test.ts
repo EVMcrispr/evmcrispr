@@ -7,7 +7,7 @@ import { toHex } from "viem";
 import { CommandError } from "../../../../src/errors";
 import { encodeAction } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
-import { itChecksNonDefinedIdentifier } from "../../../test-helpers/cas11";
+import { itChecksNonDefinedIdentifier } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestScriptEncodedAction } from "../test-helpers/actions";
 import {

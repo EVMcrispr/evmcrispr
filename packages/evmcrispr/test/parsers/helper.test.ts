@@ -2,7 +2,7 @@ import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
 } from "../../src/parsers/helper";
-import { runCases, runErrorCase } from "../test-helpers/cas11";
+import { runCases, runErrorCase } from "../test-helpers/evml";
 
 export const helperParserDescribe = (): Mocha.Suite =>
   describe("Parsers - helper function", () => {

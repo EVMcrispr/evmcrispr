@@ -8,7 +8,7 @@ import type { TransactionAction } from "../../../../src/types";
 import { BindingsSpace } from "../../../../src/types";
 import { addressesEqual } from "../../../../src/utils";
 
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
   let client: PublicClient;

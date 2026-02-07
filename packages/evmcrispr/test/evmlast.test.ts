@@ -1,11 +1,11 @@
 import { expect } from "chai";
 
-import type { Cas11AST } from "../src/Cas11AST";
+import type { EvmlAST } from "../src/EvmlAST";
 import { parseScript } from "../src/parsers/script";
 
 import { DAO, DAO2, DAO3 } from "./fixtures";
 
-describe("Cas11AST", () => {
+describe("EvmlAST", () => {
   const script = `
     load aragonos as ar
     load giveth as giv
@@ -24,7 +24,7 @@ describe("Cas11AST", () => {
 
     set $globalScopeVariable "test"
   `;
-  let ast: Cas11AST;
+  let ast: EvmlAST;
 
   beforeEach(() => {
     ast = parseScript(script).ast;

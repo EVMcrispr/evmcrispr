@@ -36,7 +36,7 @@
 - 7f60b3e: - General changes to commands:
   - New eager run mode that fetches and return asynchronous and synchronous relevant data for building auto-completion suggestions.
   - New method that returns contextual suggestions for a given argument position. This suggestions take into account previous commands, previous filled arguments and other info to produce the list of suggestion items to auto-complete the position.
-  - Expose new `Cas11AST` class that contains multiple methods to manipulate the parsed tree.
+  - Expose new `EvmlAST` class that contains multiple methods to manipulate the parsed tree.
   - Expose new methods to retrieve bindings from `BindingsManager`.
 
 ## 0.7.1
@@ -55,9 +55,9 @@
 
 ### Minor Changes
 
-- 05b03b6: This version comprises a complete refactoring, restructuring and abstraction of the library and the formalization of the evmcl language (now call cas11) by applying computer programming theory concepts.
+- 05b03b6: This version comprises a complete refactoring, restructuring and abstraction of the library and the formalization of the evml language by applying computer programming theory concepts.
 
-  The functionality (commands and helpers) has been move to separated modules and the library is now a set of composable parsers that scan the cas11 scripts producing an AST (Abstract Syntax Tree) structure which is later processed by an interpreter (the evmcrispr).
+  The functionality (commands and helpers) has been move to separated modules and the library is now a set of composable parsers that scan the evml scripts producing an AST (Abstract Syntax Tree) structure which is later processed by an interpreter (the evmcrispr).
 
   ## New features
 

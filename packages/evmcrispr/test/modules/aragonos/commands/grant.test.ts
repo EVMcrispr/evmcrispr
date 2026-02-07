@@ -10,8 +10,8 @@ import type { Action } from "../../../../src/types";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { createInterpreter } from "../../../test-helpers/cas11";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
 import {

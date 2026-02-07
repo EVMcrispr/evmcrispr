@@ -1,6 +1,6 @@
 import { arithmeticParser } from "../../src/parsers/arithmetic";
-import type { Case } from "../test-helpers/cas11";
-import { runCases } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases } from "../test-helpers/evml";
 
 describe("Parsers - arithmetic", () => {
   it("should parse an arithmetic operation correctly", () => {

@@ -1,23 +1,24 @@
 import type { Parser } from "arcsecond";
 import { coroutine, setData } from "arcsecond";
-import { Cas11AST } from "../Cas11AST";
+import { EvmlAST } from "../EvmlAST";
 import { ErrorException } from "../errors";
 import type { CommandExpressionNode, NodeParserState } from "../types";
 import { commandExpressionParser } from "./command";
 import { createParserState, linesParser } from "./utils";
 
-export const scriptParser: Parser<Cas11AST, string, NodeParserState> =
-  coroutine((run) => {
+export const scriptParser: Parser<EvmlAST, string, NodeParserState> = coroutine(
+  (run) => {
     run(setData<any, string, NodeParserState>(createParserState()));
     const lines: CommandExpressionNode[] = run(
       linesParser(commandExpressionParser),
     );
-    return new Cas11AST(lines);
-  });
+    return new EvmlAST(lines);
+  },
+);
 
 export const parseScript = (
   script: string,
-): { ast: Cas11AST; errors: string[] } => {
+): { ast: EvmlAST; errors: string[] } => {
   const res = scriptParser.run(script);
 
   if (res.isError) {

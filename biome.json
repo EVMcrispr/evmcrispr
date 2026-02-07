@@ -9,7 +9,7 @@
       "!**/coverage",
       "!**/generated",
       "!**/*.astro",
-      "!**/editor/evmcl.ts"
+      "!**/editor/evml.ts"
     ]
   },
   "formatter": {

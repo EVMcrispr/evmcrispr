@@ -98,7 +98,7 @@ export const createLanguage: (
   helpers: string[],
 ) => languages.IMonarchLanguage = (commands, helpers) => ({
   defaultToken: "",
-  tokenPostfix: ".evmcl",
+  tokenPostfix: ".evml",
 
   brackets: [
     { open: "{", close: "}", token: "delimiter.curly" },
@@ -185,7 +185,7 @@ export const createLanguage: (
 });
 
 export const contribution = {
-  id: "evmcl",
-  extensions: [".evmcl"],
+  id: "evml",
+  extensions: [".evml"],
   aliases: [],
 };

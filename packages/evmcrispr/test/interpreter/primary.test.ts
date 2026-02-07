@@ -6,8 +6,8 @@ import { zeroAddress } from "viem";
 import type { NumericLiteralNode } from "../../src/types";
 import { NodeType } from "../../src/types";
 import { timeUnits, toDecimals } from "../../src/utils";
-import type { InterpreterCase } from "../test-helpers/cas11";
-import { runInterpreterCases } from "../test-helpers/cas11";
+import type { InterpreterCase } from "../test-helpers/evml";
+import { runInterpreterCases } from "../test-helpers/evml";
 
 describe("Interpreter - primaries", async () => {
   let client: PublicClient;

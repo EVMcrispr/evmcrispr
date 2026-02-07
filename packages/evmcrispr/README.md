@@ -31,10 +31,10 @@ await evmcrispr.forward(
 );
 ```
 
-The same EVMscript can be encoded using the `evmcl` template:
+The same EVMscript can be encoded using the `evml` template:
 
 ```js
-await evmcl`
+await evml`
   connect ${dao} ${forwarder1} ${forwarder2}
   install ${app} ${param1} ${param2}
   grant ${entity1} ${app1} ${role1} ${permissionManager}
@@ -63,7 +63,7 @@ act <agent> <targetAddr> <methodSignature> [...params]
 Below you can find a full example:
 
 ```js
-await evmcl`
+await evml`
   connect ${dao} token-manager:1 voting
   install wrapped-hooked-token-manager.open:membership-tm ${token} false 0
   install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
@@ -83,16 +83,16 @@ await evmcl`
    yarn add @1hive/evmcrispr ethers
    ```
 
-2. Import the `evmcl` template:
+2. Import the `evml` template:
 
    ```js
-   import { evmcl } from "@1hive/evmcrispr";
+   import { evml } from "@1hive/evmcrispr";
    ```
 
-3. Fill the evmcl template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
+3. Fill the evml template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
 
    ```js
-   const evm = evmcl`
+   const evm = evml`
     connect 1hive disputable-voting.open
     set $token.tokenlist https://tokens.honeyswap.org/
     act agent @token(HNY) transfer(address,uint256) @me 100e18
@@ -100,7 +100,7 @@ await evmcl`
    `;
    ```
 
-4. Use the EVMcrispr's `encode` or `forward` functions to pass an array of actions, or an evmcl script.
+4. Use the EVMcrispr's `encode` or `forward` functions to pass an array of actions, or an evml script.
 
    ```js
    const { actions, forward } = await evm.encode(signer);

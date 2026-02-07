@@ -13,7 +13,7 @@ import {
   createInterpreter,
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 const PINATA_JWT = process.env.VITE_PINATA_JWT;

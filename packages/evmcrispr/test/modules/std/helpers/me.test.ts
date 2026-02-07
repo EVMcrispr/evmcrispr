@@ -5,11 +5,11 @@ import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
-import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+} from "../../../test-helpers/evml";
 
 describe("Std > helpers > @me", () => {
   let client: PublicClient;

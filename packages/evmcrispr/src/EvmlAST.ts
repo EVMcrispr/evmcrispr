@@ -14,7 +14,7 @@ const isLineWithinBlock = ({ type, loc }: Node, line: number) =>
     line <= loc.end.line
   );
 
-export class Cas11AST implements AST {
+export class EvmlAST implements AST {
   type: ASTType = ASTType.Program;
   body: CommandExpressionNode[];
 

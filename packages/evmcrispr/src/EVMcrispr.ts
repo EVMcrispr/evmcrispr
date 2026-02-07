@@ -2,7 +2,7 @@ import type { Abi, Address, Chain, PublicClient } from "viem";
 import { createPublicClient, http, isAddress, zeroAddress } from "viem";
 import * as viemChains from "viem/chains";
 import { BindingsManager } from "./BindingsManager";
-import type { Cas11AST } from "./Cas11AST";
+import type { EvmlAST } from "./EvmlAST";
 import {
   CommandError,
   ErrorException,
@@ -57,7 +57,7 @@ const {
 const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 
 export class EVMcrispr {
-  readonly ast: Cas11AST;
+  readonly ast: EvmlAST;
   readonly bindingsManager: BindingsManager;
 
   #std: Std;
@@ -74,7 +74,7 @@ export class EVMcrispr {
   #client: PublicClient | undefined;
 
   constructor(
-    ast: Cas11AST,
+    ast: EvmlAST,
     getClient: () => Promise<PublicClient>,
     getAccount: () => Promise<Address | undefined>,
   ) {

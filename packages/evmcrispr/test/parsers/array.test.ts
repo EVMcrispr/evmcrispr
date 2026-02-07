@@ -8,8 +8,8 @@ import {
 } from "../../src/parsers/array";
 import { createParserState } from "../../src/parsers/utils";
 import type { ArrayExpressionNode, NodeParserState } from "../../src/types";
-import type { Case } from "../test-helpers/cas11";
-import { runCases, runErrorCase } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases, runErrorCase } from "../test-helpers/evml";
 
 describe("Parsers - array", () => {
   it("should parse an array correctly", () => {

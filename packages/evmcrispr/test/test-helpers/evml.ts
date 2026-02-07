@@ -4,7 +4,7 @@ import { withData } from "arcsecond";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
 import type { ErrorException } from "../../src";
-import { Cas11AST } from "../../src";
+import { EvmlAST } from "../../src";
 import { EVMcrispr } from "../../src/EVMcrispr";
 import {
   CommandError,
@@ -70,7 +70,7 @@ export const runInterpreterCases = async (
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
         const [res] = await new EVMcrispr(
-          new Cas11AST([node]),
+          new EvmlAST([node]),
           getClient,
           async () => TEST_ACCOUNT_ADDRESS,
         ).interpret();
@@ -111,7 +111,7 @@ export const createInterpreter = (
   script: string,
   client: PublicClient,
 ): EVMcrispr => {
-  const ast = runParser(scriptParser, script) as Cas11AST;
+  const ast = runParser(scriptParser, script) as EvmlAST;
 
   return new EVMcrispr(
     ast,

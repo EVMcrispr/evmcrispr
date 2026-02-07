@@ -5,7 +5,7 @@ import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
 import type { Action } from "../../../../src/types";
 
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
 

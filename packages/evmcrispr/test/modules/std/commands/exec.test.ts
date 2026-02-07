@@ -7,11 +7,11 @@ import { CommandError } from "../../../../src/errors";
 import type { Action } from "../../../../src/types";
 
 import { encodeAction, toDecimals } from "../../../../src/utils";
+import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
-} from "../../../test-helpers/cas11";
-import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+} from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
 

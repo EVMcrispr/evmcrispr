@@ -10,7 +10,7 @@ import { addressesEqual } from "../../../../src/utils";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { APP } from "../fixtures/mock-app";
 import { createTestAction } from "../test-helpers/actions";

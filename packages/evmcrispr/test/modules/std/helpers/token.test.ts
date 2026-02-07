@@ -9,7 +9,7 @@ import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 
 describe("Std > helpers > @token(tokenSymbol)", () => {
   let client: PublicClient;

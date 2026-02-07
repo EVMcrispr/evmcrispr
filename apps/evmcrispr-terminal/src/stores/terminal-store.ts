@@ -1,7 +1,7 @@
 import type {
   AsExpressionNode,
-  Cas11AST,
   CommandExpressionNode,
+  EvmlAST,
   IPFSResolver,
   Position,
 } from "@1hive/evmcrispr";
@@ -42,7 +42,7 @@ export type TerminalStoreState = {
   lastLine: number;
   currentLine: number;
   currentCommandNodes: CommandExpressionNode[];
-  ast: Cas11AST | undefined;
+  ast: EvmlAST | undefined;
 };
 
 const initialState: TerminalStoreState = {

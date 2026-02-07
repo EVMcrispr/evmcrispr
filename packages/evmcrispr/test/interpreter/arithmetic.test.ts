@@ -7,7 +7,7 @@ import { ExpressionError } from "../../src/errors";
 
 import { toDecimals } from "../../src/utils";
 
-import { createInterpreter, preparingExpression } from "../test-helpers/cas11";
+import { createInterpreter, preparingExpression } from "../test-helpers/evml";
 import { expectThrowAsync } from "../test-helpers/expects";
 
 describe("Interpreter - arithmetics", () => {

@@ -19,7 +19,7 @@ import { listItems } from "../../../../src/utils";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 export const _aragonEns = async (

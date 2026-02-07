@@ -5,7 +5,7 @@ import type { PublicClient } from "viem";
 
 import { givethDonationRelayer } from "../../../../src/modules/giveth/addresses";
 
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 
 describe("Giveth > commands > donate <slug> <amount> <token>", () => {
   let client: PublicClient;

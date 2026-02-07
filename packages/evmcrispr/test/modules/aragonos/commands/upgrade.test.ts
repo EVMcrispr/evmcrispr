@@ -9,7 +9,7 @@ import { REPO_ABI } from "../../../../src/modules/aragonos/utils";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
 import {

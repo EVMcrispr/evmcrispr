@@ -12,7 +12,7 @@ import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 describe("Std > helpers > @namehash(ens)", () => {

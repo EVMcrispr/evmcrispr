@@ -1,6 +1,6 @@
 import type {
-  Cas11AST,
   CommandExpressionNode,
+  EvmlAST,
   ICommand,
   IPFSResolver,
   LazyBindings,
@@ -323,7 +323,7 @@ const removePossibleFollowingBlock = (
 export const createProvideCompletionItemsFn: (
   bindingsCache: BindingsManager,
   fetchers: { ipfsResolver: IPFSResolver; client: PublicClient },
-  ast?: Cas11AST,
+  ast?: EvmlAST,
 ) => languages.CompletionItemProvider["provideCompletionItems"] =
   (bindingsCache, { ipfsResolver, client }, ast) =>
   async (model, currPos) => {

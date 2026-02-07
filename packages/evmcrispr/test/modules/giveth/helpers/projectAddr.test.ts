@@ -7,7 +7,7 @@ import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 
 describe("Giveth > helpers > @projectAddr(slug)", () => {
   let client: PublicClient;

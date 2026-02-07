@@ -8,7 +8,7 @@ import { ComparisonType } from "../../../../src/utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 
 const toTimestamp = (date?: string): number =>
   (date ? new Date(date) : new Date()).valueOf() / 1000;

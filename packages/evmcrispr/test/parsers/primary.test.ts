@@ -26,8 +26,8 @@ import type {
 } from "../../src/types";
 import { NodeType } from "../../src/types";
 
-import type { Case } from "../test-helpers/cas11";
-import { runCases, runErrorCase, runParser } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases, runErrorCase, runParser } from "../test-helpers/evml";
 
 const buildLocation = (value: string): Location => ({
   start: {

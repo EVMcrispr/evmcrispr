@@ -3,8 +3,8 @@ import {
   commandExpressionParser,
   commandOptParser,
 } from "../../src/parsers/command";
-import type { Case } from "../test-helpers/cas11";
-import { runCases, runErrorCase } from "../test-helpers/cas11";
+import type { Case } from "../test-helpers/evml";
+import { runCases, runErrorCase } from "../test-helpers/evml";
 
 describe("Parsers - command expression", () => {
   it("should parse a command correctly", () => {

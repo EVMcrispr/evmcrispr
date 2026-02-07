@@ -10,7 +10,7 @@ import { DAO } from "../../../fixtures";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
-} from "../../../test-helpers/cas11";
+} from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import {
   createTestAction,

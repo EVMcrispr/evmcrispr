@@ -3,7 +3,7 @@ import { viem } from "hardhat";
 
 import type { PublicClient } from "viem";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
-import { createInterpreter } from "../../../test-helpers/cas11";
+import { createInterpreter } from "../../../test-helpers/evml";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
