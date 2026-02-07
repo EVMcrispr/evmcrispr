@@ -19,7 +19,6 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
     "@repo/prettier-config": "*",
     "@types/mocha": "^10.0.7",
     "@types/isomorphic-fetch": "^0.0.39",

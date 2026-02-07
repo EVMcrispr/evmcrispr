@@ -1,8 +1,10 @@
 {
-  "extends": "@repo/typescript-config/vite.json",
+  "extends": "../../tsconfig.json",
   "include": ["src"],
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

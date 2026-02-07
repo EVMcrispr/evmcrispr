@@ -1,9 +1,8 @@
 {
-  "extends": "@repo/typescript-config/base.json",
+  "extends": "../../tsconfig.json",
+  "include": ["src"],
   "compilerOptions": {
-    "jsx": "react-jsx",
     "outDir": "dist",
     "rootDir": "src"
-  },
-  "include": ["src"]
+  }
 }
