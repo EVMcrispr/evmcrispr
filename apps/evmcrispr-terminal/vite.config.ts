@@ -16,6 +16,15 @@ export default defineConfig({
     global: "globalThis",
   },
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    exclude: ["@metamask/sdk"],
+  },
+  build: {
+    rollupOptions: {
+      // Externalize @metamask/sdk's unresolvable transitive browser deps
+      external: ["eventemitter2", "cross-fetch", "socket.io-client"],
+    },
+  },
   server: {
     port: 3000,
     headers: {

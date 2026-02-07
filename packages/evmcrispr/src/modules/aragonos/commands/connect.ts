@@ -265,9 +265,11 @@ export const connect: ICommand<AragonOS> = {
         );
       }
 
-      !isAddress(appAddress)
-        ? invalidApps.push(appOrAddress)
-        : forwarderAppAddresses.push(appAddress);
+      if (!isAddress(appAddress)) {
+        invalidApps.push(appOrAddress);
+      } else {
+        forwarderAppAddresses.push(appAddress);
+      }
     });
 
     if (invalidApps.length) {

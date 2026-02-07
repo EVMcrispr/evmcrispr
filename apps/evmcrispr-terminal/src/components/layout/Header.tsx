@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { codename, version } from "@1hive/evmcrispr/package.json";
 import makeBlockie from "ethereum-blockies-base64";
 import type { Connector } from "wagmi";

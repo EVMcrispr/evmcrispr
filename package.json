@@ -2,25 +2,24 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "build": "turbo build",
+    "build": "bun run --cwd packages/evmcrispr build && bun run --filter './apps/*' build",
     "changeset:release": "bun run build && changeset publish",
     "changeset:version": "changeset version && bun install --lockfile-only",
-    "dev": "turbo dev",
-    "type-check": "turbo run type-check",
-    "lint": "turbo lint",
-    "test": "turbo test",
-    "test:coverage": "turbo run test:coverage",
+    "dev": "bun run --filter '*' dev",
+    "type-check": "bun run --filter '*' type-check",
+    "lint": "bun run --filter '*' lint",
+    "test": "bun run --filter '*' test",
+    "test:coverage": "bun run --filter '*' test:coverage",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "dev:terminal": "turbo run dev --filter=evmcrispr-terminal",
-    "dev:website": "turbo run dev --filter=evmcrispr-website"
+    "dev:terminal": "bun run --cwd apps/evmcrispr-terminal dev",
+    "dev:website": "bun run --cwd apps/evmcrispr-website dev"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.6",
-    "eslint": "^8.57.0",
+    "@changesets/cli": "^2.29.8",
+    "eslint": "^10.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.0.0",
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.3"
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1"
   },
   "name": "evmcrispr-monorepo",
   "packageManager": "bun@1.2.13",

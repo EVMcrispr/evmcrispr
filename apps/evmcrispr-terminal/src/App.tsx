@@ -5,7 +5,7 @@ import {
   RouterProvider,
   createHashRouter,
   createRoutesFromElements,
-} from "react-router-dom";
+} from "react-router";
 
 import { Toaster, Tooltip } from "@repo/ui";
 

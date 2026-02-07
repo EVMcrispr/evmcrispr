@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router";
 
 import {
   terminalStoreActions,
@@ -53,7 +53,7 @@ export function useTerminalScript() {
   }, [scriptFromId]);
 
   // Navigate away from scriptId when the user edits the title or script
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (location.pathname !== "/") {
       const { title: _title, script: _script } =

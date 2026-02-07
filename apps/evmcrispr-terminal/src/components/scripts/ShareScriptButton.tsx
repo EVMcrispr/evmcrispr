@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ShareIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

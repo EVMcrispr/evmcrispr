@@ -5,9 +5,17 @@
   "license": "GPL-3.0",
   "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "author": "Blossom Labs",
+  "type": "module",
   "sideEffects": false,
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@repo/eslint-config": "*",
@@ -16,18 +24,17 @@
     "@types/mocha": "^10.0.7",
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/lodash.clonedeep": "^4.5.9",
-    "chai": "^5.2.0",
-    "msw": "^2.8.3",
+    "chai": "^5.3.3",
+    "msw": "^2.12.9",
     "node-fetch": "^3.3.2",
     "nyc": "^17.1.0",
-    "ora": "^8.2.0",
+    "ora": "^9.3.0",
     "is-ipfs": "^8.0.4",
-    "hardhat": "^2.24.0",
-    "typescript": "^5.8.3",
-    "dotenv": "^16.5.0",
-    "eslint": "^8.57.0",
-    "ts-node": "^10.9.2",
-    "tsup": "^8.5.0"
+    "hardhat": "^2.28.4",
+    "typescript": "^5.9.3",
+    "dotenv": "^17.2.4",
+    "eslint": "^10.0.0",
+    "ts-node": "^10.9.2"
   },
   "dependencies": {
     "@ensdomains/content-hash": "^3.0.0",
@@ -49,7 +56,7 @@
     "type-check": "tsc --noEmit",
     "test": "hardhat test",
     "test:coverage": "nyc --reporter=lcov bun run test",
-    "build": "tsup src/index.ts",
-    "dev": "tsup src/index.ts --watch"
+    "build": "rm -rf dist && bun build ./src/index.ts --outdir ./dist --format esm --sourcemap=linked --packages external && tsc -p tsconfig.build.json",
+    "dev": "bun build ./src/index.ts --outdir ./dist --format esm --sourcemap=linked --packages external --watch"
   }
 }
