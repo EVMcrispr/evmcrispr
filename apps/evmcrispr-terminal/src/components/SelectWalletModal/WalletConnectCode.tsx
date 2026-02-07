@@ -1,10 +1,10 @@
-import { useTheme } from "@chakra-ui/react";
 import { QRCodeSVG } from "qrcode.react";
-
 import type { Connector } from "wagmi";
 
 import CopyCode from "./CopyCode";
 import { useWalletConnect } from "../../hooks/useWalletConnect";
+
+const GREEN_300 = "#8CF467";
 
 export default function WalletConnectCode({
   walletConnectConnector,
@@ -13,7 +13,6 @@ export default function WalletConnectCode({
   walletConnectConnector: Connector;
   onConnect: () => void;
 }) {
-  const { green } = useTheme().colors;
   const { wcUri } = useWalletConnect({
     walletConnectConnector,
     onConnect,
@@ -25,7 +24,7 @@ export default function WalletConnectCode({
         value={wcUri}
         size={400}
         bgColor="black"
-        fgColor={green[300]}
+        fgColor={GREEN_300}
         marginSize={8}
         level="H"
         imageSettings={{

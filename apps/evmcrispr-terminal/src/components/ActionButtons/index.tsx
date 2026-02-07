@@ -1,6 +1,5 @@
 import { useAccount } from "wagmi";
-import { VStack, useDisclosure } from "@chakra-ui/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import LogModal from "../LogModal";
 import ErrorMsg from "./ErrorMsg";
@@ -31,17 +30,13 @@ export default function ActionButtons({
     safeConnectorInstance,
   );
 
-  const {
-    isOpen: isLogModalOpen,
-    onOpen: onLogModalOpen,
-    onClose: onLogModalClose,
-  } = useDisclosure();
+  const [isLogModalOpen, setLogModalOpen] = useState(false);
 
   useEffect(() => {
     if (logs && logs.length > 0) {
-      onLogModalOpen();
+      setLogModalOpen(true);
     }
-  }, [logs, onLogModalOpen]);
+  }, [logs]);
 
   const handleExecute = (inBatch: boolean) => {
     executeScript(inBatch);
@@ -49,23 +44,16 @@ export default function ActionButtons({
 
   return (
     <>
-      <VStack
-        mt={3}
-        alignItems="flex-end"
-        spacing={3}
-        height="60px"
-        pr={{ base: 6, lg: 0 }}
-        width="100%"
-      >
+      <div className="flex flex-col items-end gap-3 mt-3 h-[60px] pr-6 lg:pr-0 w-full">
         {address ? (
           <ExecuteButton isLoading={isLoading} onExecute={handleExecute} />
         ) : null}
         {errors && errors.length > 0 ? <ErrorMsg errors={errors} /> : null}
-      </VStack>
+      </div>
       <LogModal
         isOpen={isLogModalOpen}
         logs={logs}
-        closeModal={onLogModalClose}
+        closeModal={() => setLogModalOpen(false)}
       />
     </>
   );

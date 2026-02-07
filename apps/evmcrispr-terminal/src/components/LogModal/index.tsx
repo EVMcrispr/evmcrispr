@@ -1,19 +1,4 @@
-import {
-  Alert,
-  AlertDescription,
-  Icon,
-  Link,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  VStack,
-} from "@chakra-ui/react";
-
-import ReactMarkdown, { type Components } from "react-markdown";
-import ChakraUIRenderer from "chakra-ui-markdown-renderer";
+import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   CheckCircleIcon,
@@ -21,6 +6,9 @@ import {
   InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
+
+import { Alert } from "@/components/retroui/Alert";
+import { Dialog } from "@/components/retroui/Dialog";
 
 type LogStatus = "success" | "error" | "warning" | "info";
 
@@ -44,6 +32,20 @@ const stripString = (log: string): string => {
         : log;
 };
 
+const statusColorClass: Record<LogStatus, string> = {
+  error: "text-evm-orange-300",
+  success: "text-evm-green-300",
+  warning: "text-evm-blue-300",
+  info: "text-evm-yellow-300",
+};
+
+const statusIcon: Record<LogStatus, typeof XCircleIcon> = {
+  error: XCircleIcon,
+  success: CheckCircleIcon,
+  warning: ClockIcon,
+  info: InformationCircleIcon,
+};
+
 export default function LogModal({
   isOpen,
   closeModal,
@@ -54,69 +56,53 @@ export default function LogModal({
   logs: string[];
 }) {
   return (
-    <Modal
-      size="xl"
-      isOpen={isOpen}
-      onClose={closeModal}
-      isCentered
-      colorScheme={"yellow"}
-    >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Logs</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody overflow="auto">
-          <VStack spacing={10} w={"full"} height="100%">
-            <VStack spacing={2} w={"full"} py="30px">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+      <Dialog.Content
+        size="xl"
+        className="border-evm-yellow-300 [--shadow-color:rgba(226,249,98,0.5)]"
+      >
+        <Dialog.Header className="bg-black text-evm-yellow-300 border-evm-yellow-300">
+          Logs
+        </Dialog.Header>
+        <div className="overflow-auto w-full h-full min-h-[400px]">
+          <div className="flex flex-col gap-10 w-full py-8 px-4">
+            <div className="flex flex-col gap-2 w-full">
               {logs.map((log, i) => {
                 const _status = status(log);
-                const _statusColor =
-                  _status == "error"
-                    ? "orange.300"
-                    : _status == "success"
-                      ? "green.300"
-                      : _status == "warning"
-                        ? "blue.300"
-                        : "yellow.300";
-                const _icon =
-                  _status == "error"
-                    ? XCircleIcon
-                    : _status == "success"
-                      ? CheckCircleIcon
-                      : _status == "warning"
-                        ? ClockIcon
-                        : InformationCircleIcon;
+                const colorClass = statusColorClass[_status];
+                const IconComp = statusIcon[_status];
                 return (
-                  <Alert key={i} status={_status} borderColor={_statusColor}>
-                    <Icon as={_icon} boxSize={6} color={_statusColor} />
-                    <AlertDescription>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={
-                          ChakraUIRenderer({
+                  <Alert key={i} status={_status} variant="solid">
+                    <div className="flex items-start gap-2">
+                      <IconComp className={`w-6 h-6 shrink-0 ${colorClass}`} />
+                      <Alert.Description className="prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
                             a: ({ href, children, ...props }) => (
-                              <Link
+                              <a
                                 href={href}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                className="text-evm-green-300 underline"
                                 {...props}
                               >
                                 {children}
-                              </Link>
+                              </a>
                             ),
-                          }) as Components
-                        }
-                      >
-                        {stripString(log)}
-                      </ReactMarkdown>
-                    </AlertDescription>
+                          }}
+                        >
+                          {stripString(log)}
+                        </ReactMarkdown>
+                      </Alert.Description>
+                    </div>
                   </Alert>
                 );
               })}
-            </VStack>
-          </VStack>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+            </div>
+          </div>
+        </div>
+      </Dialog.Content>
+    </Dialog>
   );
 }

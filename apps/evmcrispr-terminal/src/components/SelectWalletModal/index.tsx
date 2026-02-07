@@ -1,15 +1,8 @@
 import { useState } from "react";
-import {
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  VStack,
-} from "@chakra-ui/react";
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
+
+import { Dialog } from "@/components/retroui/Dialog";
 
 import WalletButton from "./WalletButton";
 import WalletConnectCode from "./WalletConnectCode";
@@ -71,20 +64,19 @@ export default function SelectWalletModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleModalClose}
-      isCentered
-      colorScheme="yellow"
-      size={"md"}
-    >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>{getModalTitle()}</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>{renderModalContent()}</ModalBody>
-      </ModalContent>
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog.Content
+        size="md"
+        className="border-evm-yellow-300 [--shadow-color:rgba(226,249,98,0.5)]"
+      >
+        <Dialog.Header className="bg-black text-evm-yellow-300 border-evm-yellow-300">
+          {getModalTitle()}
+        </Dialog.Header>
+        <div className="w-full flex justify-center items-center flex-col px-10 py-12">
+          {renderModalContent()}
+        </div>
+      </Dialog.Content>
+    </Dialog>
   );
 }
 
@@ -103,7 +95,7 @@ function WalletList({
   );
 
   return (
-    <VStack spacing={7} w={"300px"}>
+    <div className="flex flex-col gap-7 w-[300px]">
       <WalletButton
         name="Metamask"
         connector={connectors[0]}
@@ -130,6 +122,6 @@ function WalletList({
         leftIcon={<SafeIcon />}
         onClick={() => setSelectedWallet("safe")}
       />
-    </VStack>
+    </div>
   );
 }

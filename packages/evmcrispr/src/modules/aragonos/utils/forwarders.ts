@@ -1,7 +1,6 @@
 import type { PublicClient } from "viem";
-import { parseAbi, toHex, zeroAddress } from "viem";
+import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
 
-import { erc20ABI } from "../../../../abis";
 import { ErrorInvalid } from "../../../errors";
 import type { Action, TransactionAction } from "../../../types";
 import { encodeCallScript } from "./evmscripts";
@@ -100,7 +99,7 @@ export const batchForwarderActions = async (
       } else {
         const allowance = await client.readContract({
           address: feeTokenAddress,
-          abi: erc20ABI,
+          abi: erc20Abi,
           functionName: "allowance",
           args: [await module.getConnectedAccount(), forwarderAddress],
         });

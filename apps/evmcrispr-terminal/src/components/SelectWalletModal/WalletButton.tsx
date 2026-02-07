@@ -1,6 +1,7 @@
-import { Button } from "@chakra-ui/react";
 import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
+
+import { Button } from "@/components/retroui/Button";
 
 export default function WalletButton({
   name,
@@ -15,15 +16,16 @@ export default function WalletButton({
   const { isPending } = useConnect();
   return (
     <Button
-      isLoading={isPending}
       disabled={isPending}
       onClick={onClick}
-      variant="outline-overlay"
+      variant="outline"
       size="lg"
-      leftIcon={leftIcon}
-      w={"100%"}
+      className="w-full gap-2"
     >
-      {name}
+      <span className="w-6 h-6 shrink-0 flex items-center justify-center">
+        {leftIcon}
+      </span>
+      {isPending ? "Connecting..." : name}
     </Button>
   );
 }

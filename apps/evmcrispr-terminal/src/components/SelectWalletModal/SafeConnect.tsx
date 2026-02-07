@@ -1,5 +1,7 @@
-import { Button, HStack, Input, Text } from "@chakra-ui/react";
 import { useState } from "react";
+
+import { Button } from "@/components/retroui/Button";
+import { Input } from "@/components/retroui/Input";
 
 import { useTerminalStore } from "../../components/TerminalEditor/use-terminal-store";
 
@@ -26,23 +28,6 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
   return (
     <>
       <Input
-        border={"1px solid"}
-        borderColor={"green.300"}
-        color={"white"}
-        p={2.5}
-        borderRadius={"none"}
-        fontSize={"xl"}
-        _placeholder={{
-          color: "white",
-          opacity: 1,
-        }}
-        _hover={{
-          borderColor: "green.300",
-        }}
-        _focusVisible={{
-          borderColor: "green.300",
-          boxShadow: "none",
-        }}
         autoFocus
         placeholder="Enter your Safe Address"
         value={safeAddress}
@@ -50,12 +35,12 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
           setSafeAddress(e.target.value);
           setAttemptedConnect(false);
         }}
+        className="text-xl"
       />
-      <HStack justify={"center"} mt={4} mb={2}>
+      <div className="flex justify-center mt-4 mb-2">
         <Button
-          variant="overlay"
+          variant="default"
           size="sm"
-          colorScheme="green"
           onClick={() => {
             setAttemptedConnect(true);
             if (isValidSafeAddress) {
@@ -66,11 +51,9 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
         >
           Connect Safe
         </Button>
-      </HStack>
+      </div>
       {error && (
-        <Text textAlign={"center"} color="red">
-          {error}
-        </Text>
+        <p className="text-center text-evm-red-400 font-head">{error}</p>
       )}
     </>
   );

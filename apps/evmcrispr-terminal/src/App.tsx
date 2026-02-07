@@ -6,14 +6,14 @@ import {
   createHashRouter,
   createRoutesFromElements,
 } from "react-router-dom";
-import { ChakraProvider, DarkMode, extendTheme } from "@chakra-ui/react";
 
-import theme from "./theme";
+import { Tooltip } from "@/components/retroui/Tooltip";
+import { Toaster } from "@/components/retroui/Sonner";
+
 import Wagmi from "./providers/Wagmi";
 
 import Landing from "./pages/Landing";
 import Terminal from "./pages/Terminal";
-import Fonts from "./theme/Fonts";
 
 const App = () => {
   const router = createHashRouter(
@@ -28,15 +28,13 @@ const App = () => {
     ),
   );
   return (
-    <div className="App">
-      <ChakraProvider theme={extendTheme(theme)}>
-        <Fonts />
-        <DarkMode>
-          <Wagmi>
-            <RouterProvider router={router} />
-          </Wagmi>
-        </DarkMode>
-      </ChakraProvider>
+    <div className="App dark">
+      <Tooltip.Provider>
+        <Wagmi>
+          <RouterProvider router={router} />
+        </Wagmi>
+      </Tooltip.Provider>
+      <Toaster />
     </div>
   );
 };

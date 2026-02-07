@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 import path from "path";
 
@@ -7,13 +8,14 @@ import path from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@": path.resolve(__dirname, "./src"),
       "@1hive/evmcrispr": path.resolve(__dirname, "../../packages/evmcrispr"),
     },
   },
   define: {
     global: "globalThis",
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
     headers: {

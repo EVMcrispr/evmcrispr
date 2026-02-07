@@ -12,16 +12,6 @@ import _debounce from "lodash.debounce";
 import { useAccount } from "wagmi";
 
 import { useChain, useSpringRef } from "@react-spring/web";
-import {
-  Box,
-  Container,
-  Flex,
-  HStack,
-  Input,
-  Spacer,
-  VStack,
-  useBoolean,
-} from "@chakra-ui/react";
 
 import {
   terminalStoreActions,
@@ -42,7 +32,7 @@ import { getScriptSavedInLocalStorage } from "../utils";
 import { useSafeAutoConnect } from "../hooks/useSafeAutoConnect";
 
 export default function Terminal() {
-  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
+  const [maximizeGasLimit, setMaximizeGasLimit] = useState(false);
   useSafeAutoConnect();
 
   const terminalRef = useSpringRef();
@@ -101,35 +91,38 @@ export default function Terminal() {
     }
   }, [titleFromSession, scriptFromSession]);
 
+  const toggleMaximizeGasLimit = useCallback(
+    () => setMaximizeGasLimit((v) => !v),
+    [],
+  );
+
   return (
     <>
       <ScrollRestoration />
       <ScriptLibrary />
-      <Container maxWidth={{ base: "7xl", "2xl": "8xl" }} my={14}>
+      <div className="mx-auto max-w-7xl 2xl:max-w-[90rem] my-14 px-4">
         <Header address={address} />
         <FadeIn componentRef={terminalRef}>
-          <VStack mb={3} alignItems="flex-end" pr={0}>
-            <Flex width={"100%"}>
+          <div className="flex flex-col items-end mb-3">
+            <div className="flex w-full">
               <TitleInput />
-              <Spacer />
-              <HStack spacing={1}>
+              <div className="flex-1" />
+              <div className="flex items-center gap-1">
                 <SaveScriptButton
                   title={titleFromSession}
                   script={scriptFromSession}
                 />
-                <Spacer />
                 <ShareScriptButton
                   title={titleFromSession}
                   script={scriptFromSession}
                 />
-                <Spacer />
                 <ConfigureButton
-                  setMaximizeGasLimit={setMaximizeGasLimit}
+                  setMaximizeGasLimit={{ toggle: toggleMaximizeGasLimit }}
                   maximizeGasLimit={maximizeGasLimit}
                 />
-              </HStack>
-            </Flex>
-          </VStack>
+              </div>
+            </div>
+          </div>
           <TerminalEditor />
         </FadeIn>
         <FadeIn componentRef={buttonsRef}>
@@ -138,11 +131,11 @@ export default function Terminal() {
             maximizeGasLimit={maximizeGasLimit}
           />
         </FadeIn>
-      </Container>
+      </div>
       <FadeIn componentRef={footerRef}>
-        <Box marginTop={"200px"}>
+        <div className="mt-[200px]">
           <Footer />
-        </Box>
+        </div>
       </FadeIn>
     </>
   );
@@ -184,20 +177,13 @@ function TitleInput() {
     debounce(event.target.value);
   };
   return (
-    <Input
+    <input
       ref={handleRef}
       type="text"
-      borderRadius="0"
-      placeholder={"Untitled script"}
+      placeholder="Untitled script"
       onChange={handleTitleChange}
-      variant={"unstyled"}
-      fontSize={"4xl"}
-      color={"gray.300"}
-      _placeholder={{
-        color: "inherit",
-        opacity: 1,
-      }}
       spellCheck="false"
+      className="bg-transparent border-none outline-none text-4xl text-evm-gray-300 placeholder:text-evm-gray-300 placeholder:opacity-100 font-head w-full"
     />
   );
 }

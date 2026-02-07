@@ -1,10 +1,8 @@
-import { createIcon } from "@chakra-ui/icons";
+import type { SVGProps } from "react";
 
-const MetamaskIcon = createIcon({
-  displayName: "MetamaskIcon",
-  viewBox: "0 0 397 355",
-  path: (
-    <g fill="none" fillRule="evenodd">
+export default function MetamaskIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 397 355" fill="none" fillRule="evenodd" {...props}>
       <path
         fill="#cdbdb2"
         d="m113.623 326.195 52.004 13.81v-18.059l4.246-4.25h29.717v36.12h-31.84l-39.269-16.997z"
@@ -85,8 +83,6 @@ const MetamaskIcon = createIcon({
         fill="#8e5a30"
         d="M374.708.062 393.81 58.49l-10.613 63.74 7.43 4.249-10.614 9.56 8.49 7.437-11.674 10.623 7.43 6.374-16.982 21.247-79.599-24.434c-38.915-31.161-58.019-47.096-57.311-47.804.707-.709 48.82-37.182 144.34-109.42z"
       />
-    </g>
-  ),
-});
-
-export default MetamaskIcon;
+    </svg>
+  );
+}

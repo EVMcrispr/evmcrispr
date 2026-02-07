@@ -1,35 +1,28 @@
-import type { ComponentDefaultProps } from "@chakra-ui/react";
-import { Box, Button, Icon } from "@chakra-ui/react";
 import type { ElementType, MouseEventHandler } from "react";
+
+import { Button } from "@/components/retroui/Button";
+import { cn } from "@/lib/utils";
 
 type LibraryButtonProps = {
   onClick: MouseEventHandler<HTMLButtonElement>;
   icon: ElementType;
-} & ComponentDefaultProps;
+  className?: string;
+};
 
 export const LibraryButton = ({
   onClick,
-  icon,
-  ...props
+  icon: Icon,
+  className,
 }: LibraryButtonProps) => (
-  <Box
-    position={"fixed"}
-    zIndex={3}
-    transform={"rotate(-90deg)"}
-    transformOrigin={"bottom right"}
-    top={"20vh"}
-    right={{ base: "318px", sm: "446px" }}
-    {...props}
-  >
+  <div className={cn("-rotate-90 origin-bottom-right top-[20vh]", className)}>
     <Button
-      variant={"outline"}
-      color="white"
-      colorScheme="green"
-      leftIcon={<Icon as={icon} boxSize={6} />}
-      size={"md"}
+      variant="outline"
+      size="md"
       onClick={onClick}
+      className="gap-2 shadow-none hover:shadow-none hover:translate-y-0 active:translate-y-0 active:translate-x-0"
     >
+      <Icon className="w-6 h-6 text-evm-green-300" />
       Library
     </Button>
-  </Box>
+  </div>
 );

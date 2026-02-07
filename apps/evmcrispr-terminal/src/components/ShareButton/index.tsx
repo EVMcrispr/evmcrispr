@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Icon, IconButton, Tooltip } from "@chakra-ui/react";
 import { ShareIcon } from "@heroicons/react/24/solid";
-
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-import useToast from "../../hooks/useToast";
+import { Tooltip } from "@/components/retroui/Tooltip";
+import { IconButton } from "@/components/retroui/IconButton";
 
 import pinJSON from "../../api/pinata/pin-json";
 
@@ -17,7 +17,6 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [isLoading, setLoading] = useState(false);
-  const toast = useToast();
 
   useEffect(() => {
     setUrl("");
@@ -35,45 +34,41 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
       const _url = `${window.location.origin}/#/terminal/${hash}`;
       setUrl(_url);
       navigator.clipboard.writeText(_url);
-      toast({
-        description: "The link is copied to the clipboard",
-        status: "success",
-      });
+      toast.success("The link is copied to the clipboard");
       setLoading(false);
       navigate(`/terminal/${hash}`, { replace: true });
     } catch (e) {
-      toast({
-        description: "The script could not be saved to IPFS",
-        status: "error",
-      });
+      toast.error("The script could not be saved to IPFS");
       setLoading(false);
     }
   }
 
+  const tooltipLabel = title
+    ? url
+      ? "Link copied to clipboard!"
+      : "Generate link"
+    : "The script needs a title first";
+
   return (
-    <>
-      <Tooltip
-        label={
-          title
-            ? url
-              ? "Link copied to clipboard!"
-              : "Generate link"
-            : "The script needs a title first"
-        }
-        variant={title ? "" : "warning"}
-        closeOnClick={false}
-        placement="top"
-      >
+    <Tooltip>
+      <Tooltip.Trigger asChild>
         <IconButton
-          icon={<Icon as={ShareIcon} />}
-          aria-label={"Share script"}
-          variant={"outline-overlay"}
+          aria-label="Share script"
+          variant="outline"
           onClick={handleShare}
-          size={"md"}
-          isLoading={isLoading}
-          disabled={!!url || !title}
-        />
-      </Tooltip>
-    </>
+          size="md"
+          disabled={!!url || !title || isLoading}
+        >
+          {isLoading ? (
+            <span className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
+          ) : (
+            <ShareIcon className="w-5 h-5" />
+          )}
+        </IconButton>
+      </Tooltip.Trigger>
+      <Tooltip.Content variant={title ? "default" : "warning"} side="top">
+        {tooltipLabel}
+      </Tooltip.Content>
+    </Tooltip>
   );
 }

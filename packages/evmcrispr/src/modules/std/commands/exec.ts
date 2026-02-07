@@ -1,5 +1,5 @@
 import type { AbiFunction } from "viem";
-import { getAbiItem, isAddress } from "viem";
+import { erc20Abi, getAbiItem, isAddress } from "viem";
 
 import { BindingsSpace } from "../../../types";
 import type { Abi, AbiBinding, Address, ICommand } from "../../../types";
@@ -23,8 +23,6 @@ import { fetchAbi } from "../../../utils/abis";
 import type { Std } from "../Std";
 import { ErrorException } from "../../../errors";
 import type { HelperFunctionNode } from "../../..";
-import { erc20ABI } from "../../../../abis";
-
 const { ABI, ADDR } = BindingsSpace;
 
 export const exec: ICommand<Std> = {
@@ -143,7 +141,7 @@ export const exec: ICommand<Std> = {
         const abi =
           nodeArgs[0].type === "HelperFunctionExpression" &&
           (nodeArgs[0] as HelperFunctionNode).name === "token"
-            ? erc20ABI
+            ? erc20Abi
             : (() => {
                 const targetAddress = interpretNodeSync(
                   nodeArgs[0],

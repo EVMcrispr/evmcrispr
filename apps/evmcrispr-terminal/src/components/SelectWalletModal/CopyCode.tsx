@@ -1,18 +1,21 @@
-import { Button, Flex, useClipboard } from "@chakra-ui/react";
+import { useState } from "react";
+
+import { Button } from "@/components/retroui/Button";
 
 export default function CopyCode({ code }: { code: string }) {
-  const { onCopy, hasCopied } = useClipboard(code);
+  const [hasCopied, setHasCopied] = useState(false);
+
+  const onCopy = () => {
+    navigator.clipboard.writeText(code);
+    setHasCopied(true);
+    setTimeout(() => setHasCopied(false), 2000);
+  };
 
   return (
-    <Flex mb={2}>
-      <Button
-        colorScheme="green"
-        variant="outline-overlay"
-        size="sm"
-        onClick={onCopy}
-      >
+    <div className="flex mb-2">
+      <Button variant="outline" size="sm" onClick={onCopy}>
         {hasCopied ? "Copied!" : "Copy"}
       </Button>
-    </Flex>
+    </div>
   );
 }

@@ -1,23 +1,19 @@
-import { Center, Link, Text, VStack } from "@chakra-ui/react";
-
 import Blossom from "../../assets/blossom.svg";
 
 const Footer = () => {
   return (
-    <>
-      <Center py={10}>
-        <VStack spacing={5}>
-          <Text color="green.300">powered by Blossom</Text>
-          <Link
-            href="https://github.com/blossomlabs"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <img src={Blossom} alt="Blossom" height="48px" />
-          </Link>
-        </VStack>
-      </Center>
-    </>
+    <div className="flex justify-center py-10">
+      <div className="flex flex-col items-center gap-5">
+        <span className="text-evm-green-300 font-head">powered by Blossom</span>
+        <a
+          href="https://github.com/blossomlabs"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img src={Blossom} alt="Blossom" className="h-12" />
+        </a>
+      </div>
+    </div>
   );
 };
 

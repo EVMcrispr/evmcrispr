@@ -1,5 +1,3 @@
-import { Center, Heading, Image, Stack, Text, VStack } from "@chakra-ui/react";
-
 import aragon from "../../assets/aragon.svg";
 import giveth from "../../assets/giveth.svg";
 import OneHive from "../../assets/1hive.svg";
@@ -36,18 +34,13 @@ const sponsors = [
 
 export const AllSponsors = () => {
   return (
-    <Center bgColor="rgba(24, 24, 24, 1)" p={14} as="section">
-      <VStack spacing={12}>
-        <Heading as="h2" color="green.300" size="md" textAlign="center">
+    <section className="flex justify-center bg-[rgba(24,24,24,1)] p-14">
+      <div className="flex flex-col items-center gap-12">
+        <h2 className="text-evm-green-300 text-xl font-bold text-center font-head">
           <strong>EVMcrispr</strong> would have not been possible without the
           support of:
-        </Heading>
-        <Stack
-          direction={{ base: "column", md: "row" }}
-          justify="space-between"
-          align="center"
-          width={{ base: "100%", lg: "956px" }}
-        >
+        </h2>
+        <div className="flex flex-col md:flex-row justify-between items-center w-full lg:w-[956px]">
           {sponsors.map(({ src, link, name }, i) => (
             <a
               href={link}
@@ -55,18 +48,14 @@ export const AllSponsors = () => {
               rel="noreferrer"
               key={`sponsors-link-${i}`}
             >
-              <VStack spacing={10} marginBottom={45}>
-                <Image
-                  src={src}
-                  alt={name}
-                  boxSize={{ base: "75%", md: "100%" }}
-                />
-                <Text color="white">{name}</Text>
-              </VStack>
+              <div className="flex flex-col items-center gap-10 mb-[45px]">
+                <img src={src} alt={name} className="w-3/4 md:w-full" />
+                <span className="text-white font-head">{name}</span>
+              </div>
             </a>
           ))}
-        </Stack>
-      </VStack>
-    </Center>
+        </div>
+      </div>
+    </section>
   );
 };

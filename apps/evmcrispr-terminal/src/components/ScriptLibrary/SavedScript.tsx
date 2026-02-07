@@ -1,13 +1,7 @@
-import {
-  Box,
-  Heading,
-  Icon,
-  IconButton,
-  Text,
-  Tooltip,
-  VStack,
-} from "@chakra-ui/react";
 import { TrashIcon } from "@heroicons/react/24/solid";
+
+import { Tooltip } from "@/components/retroui/Tooltip";
+import { IconButton } from "@/components/retroui/IconButton";
 
 import type { StoredScript } from "../../types";
 
@@ -38,39 +32,38 @@ export function SavedScript({
   const { day, month, year } = getDate(date);
 
   return (
-    <Box
-      cursor={"pointer"}
-      bgColor={"gray.800"}
-      p={5}
-      position={"relative"}
-      w={"full"}
+    <div
+      className="cursor-pointer bg-evm-gray-800 p-5 relative w-full hover:bg-evm-gray-700 transition-colors"
       onClick={() => onItemClick(title)}
     >
-      <VStack spacing={3} align={"flex-start"}>
-        <Heading fontSize={"2xl"} color={"yellow.300"}>
+      <div className="flex flex-col gap-3 items-start">
+        <h3 className="text-2xl text-evm-yellow-300 font-head font-bold">
           {title}
-        </Heading>
-        <Text color={"white"} fontSize={""}>
-          Created <span style={{ textTransform: "capitalize" }}>{month} </span>
+        </h3>
+        <span className="text-white font-head">
+          Created <span className="capitalize">{month} </span>
           {day}, {year}
-        </Text>
-      </VStack>
-      <Tooltip label="Remove saved script" variant={"warning"}>
-        <IconButton
-          aria-label="Remove saved script"
-          icon={<Icon as={TrashIcon} />}
-          variant={"outline"}
-          colorScheme={"pink"}
-          position={"absolute"}
-          right={"10px"}
-          bottom={"10px"}
-          size={"xs"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onItemRemove(title);
-          }}
-        />
+        </span>
+      </div>
+      <Tooltip>
+        <Tooltip.Trigger asChild>
+          <IconButton
+            aria-label="Remove saved script"
+            variant="outline"
+            className="absolute right-2.5 bottom-2.5 border-evm-pink-300 text-evm-pink-300 hover:bg-evm-pink-300 hover:text-evm-gray-900 shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onItemRemove(title);
+            }}
+          >
+            <TrashIcon className="w-4 h-4" />
+          </IconButton>
+        </Tooltip.Trigger>
+        <Tooltip.Content variant="warning" side="top">
+          Remove saved script
+        </Tooltip.Content>
       </Tooltip>
-    </Box>
+    </div>
   );
 }

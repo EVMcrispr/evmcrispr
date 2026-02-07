@@ -1,15 +1,8 @@
 import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useChain, useSpringRef } from "@react-spring/web";
-import {
-  Box,
-  Button,
-  Center,
-  Heading,
-  Spacer,
-  Stack,
-  Text,
-} from "@chakra-ui/react";
+
+import { Button } from "@/components/retroui/Button";
 
 import Card from "../components/Card";
 import FadeIn from "../components/animations/FadeIn";
@@ -23,17 +16,11 @@ import logo from "../assets/logo.svg";
 
 const Header = () => {
   return (
-    <Stack
-      direction={{ base: "column", md: "column" }}
-      as="header"
-      alignItems={{ base: "center", md: "center" }}
-      justify="center"
-      paddingTop={32}
-    >
+    <header className="flex flex-col items-center justify-center pt-32">
       <RouterLink to="/">
         <img src={logo} alt="Logo" width="262" />
       </RouterLink>
-    </Stack>
+    </header>
   );
 };
 
@@ -52,82 +39,51 @@ const Landing = () => {
   return (
     <>
       <Header />
-      <Box as="main" maxWidth="956px" margin="0 auto">
+      <main className="max-w-[956px] mx-auto">
         <FadeIn componentRef={typeRef}>
-          <Box pt={16} pb={8} px={6}>
-            <Text
-              variant="clearer"
-              color="white"
-              textAlign="center"
-              fontSize="2xl"
-            >
-              <Text as="strong" variant="clearer" color="green.300">
+          <div className="pt-16 pb-8 px-6">
+            <p className="font-clearer text-white text-center text-2xl">
+              <strong className="font-clearer text-evm-green-300">
                 EVMcrispr
-              </Text>{" "}
+              </strong>{" "}
               is a powerful tool utilising a domain-specific language for
               batching interactions with EVM chains. Leveraging new Ethereum
               capabilities introduced by the Pectra upgrade, it allows you to{" "}
-              <Text as="strong" variant="clearer" color="green.300">
+              <strong className="font-clearer text-evm-green-300">
                 bundle many operations into a single, atomic transaction
-              </Text>{" "}
+              </strong>{" "}
               submitted directly from your wallet.
-            </Text>
-          </Box>
+            </p>
+          </div>
         </FadeIn>
 
         <FadeIn componentRef={buttonsRef}>
-          <Center>
-            <Stack
-              direction={{ base: "column", md: "row" }}
-              alignItems="center"
-            >
-              <Button
-                variant="blue"
-                size="lg"
-                as="a"
-                href="https://docs.evmcrispr.com/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Learn How to Use
+          <div className="flex justify-center">
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <Button variant="secondary" size="2xl" asChild>
+                <a
+                  href="https://docs.evmcrispr.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Learn How to Use
+                </a>
               </Button>
-              <Spacer />
-              <Button
-                variant="blue"
-                colorScheme="blue"
-                size="lg"
-                as={RouterLink}
-                to="/terminal"
-              >
-                Open Terminal
+              <Button variant="secondary" size="2xl" asChild>
+                <RouterLink to="/terminal">Open Terminal</RouterLink>
               </Button>
-            </Stack>
-          </Center>
+            </div>
+          </div>
         </FadeIn>
 
         <FadeIn componentRef={peepsRef}>
-          <Heading
-            pt={16}
-            textAlign="center"
-            as="h1"
-            size="lg"
-            color="green.300"
-          >
+          <h1 className="pt-16 text-center text-2xl font-bold text-evm-green-300 font-head">
             Who&apos;s using EVMcrispr?
-          </Heading>
+          </h1>
         </FadeIn>
 
         <FadeIn componentRef={cardRef} onRest={handleCardContent}>
-          <Stack
-            direction={{ base: "column", lg: "row" }}
-            justify="center"
-            align="center"
-            pt={8}
-            mb={28}
-            width="100%"
-            gap={16}
-            pr={{ base: 4, md: 0 }}
-          >
+          <div className="flex flex-col lg:flex-row justify-center items-center pt-8 mb-28 w-full gap-16 pr-4 md:pr-0">
             <Card
               showContent={showCardContent}
               image={Brett}
@@ -150,9 +106,9 @@ const Landing = () => {
               info="Co-founder of Giveth, Commons Stack & DAppNode"
               description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
             />
-          </Stack>
+          </div>
         </FadeIn>
-      </Box>
+      </main>
       <FadeIn componentRef={footerRef}>
         <AllSponsors />
         <Footer />

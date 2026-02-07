@@ -1,26 +1,11 @@
 import { useState } from "react";
-import {
-  Box,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  HStack,
-  Heading,
-  IconButton,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Show,
-  Text,
-  VStack,
-  useDisclosure,
-} from "@chakra-ui/react";
-import { Search2Icon } from "@chakra-ui/icons";
+import { Search } from "lucide-react";
 import { FolderIcon, FolderOpenIcon } from "@heroicons/react/24/solid";
-
 import { useNavigate } from "react-router";
+
+import { Drawer } from "@/components/retroui/Drawer";
+import { Input } from "@/components/retroui/Input";
+import { IconButton } from "@/components/retroui/IconButton";
 
 import { SavedScript } from "./SavedScript";
 import { LibraryButton } from "./LibraryButton";
@@ -31,9 +16,7 @@ export default function ScriptLibrary() {
   const [scripts, setScripts] = useState<StoredScript[]>(getScriptList());
   const [filteredScripts, setFilteredScripts] =
     useState<StoredScript[]>(scripts);
-  const { isOpen, onClose, onToggle } = useDisclosure({
-    id: "library",
-  });
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
@@ -46,7 +29,7 @@ export default function ScriptLibrary() {
   }
 
   const handleItemClick = (title: string) => {
-    onToggle();
+    setIsOpen(false);
     navigate(`/terminal/${slug(title)}`);
   };
 
@@ -59,79 +42,68 @@ export default function ScriptLibrary() {
 
   return (
     <>
-      <Box position={"relative"}>
-        {!isOpen ? (
+      <div className="relative">
+        <div
+          className={`hidden sm:block transition-opacity duration-200 ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto delay-300"}`}
+        >
           <LibraryButton
-            right={0}
+            className="fixed z-51 right-0"
             icon={FolderIcon}
             onClick={() => {
               const initialScripts = getScriptList();
               setScripts(initialScripts);
               filterScripts(initialScripts, query);
-              onToggle();
+              setIsOpen(true);
             }}
           />
-        ) : null}
+        </div>
         <Drawer
-          isOpen={isOpen}
-          placement="right"
-          onClose={onClose}
-          size={["full", "sm"]}
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          direction="right"
+          modal={true}
         >
-          <DrawerContent
-            bgColor={"gray.900"}
-            borderLeft={"2px solid"}
-            borderColor={"green.300"}
-          >
-            <Show above="sm">
-              <LibraryButton onClick={onToggle} icon={FolderOpenIcon} />
-            </Show>
-            <DrawerCloseButton color={"white"} />
-            <DrawerHeader py={6}>
-              <VStack spacing={4}>
-                <HStack justify={"center"} align={"center"} spacing={4}>
-                  <Heading color={"white"} fontSize={"4xl"}>
+          <Drawer.Content className="bg-evm-gray-900 border-l-2 border-evm-green-300 overflow-visible">
+            <div className="hidden sm:block">
+              <LibraryButton
+                className="absolute right-[calc(100%+2px)] top-[calc(20vh-2px)]"
+                icon={FolderOpenIcon}
+                onClick={() => setIsOpen(false)}
+              />
+            </div>
+            <Drawer.Close className="absolute top-3 right-3 text-white cursor-pointer">
+              <span className="text-3xl">&times;</span>
+            </Drawer.Close>
+            <div className="py-6 px-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-center items-center gap-4">
+                  <h2 className="text-white text-4xl font-head font-bold">
                     Library
-                  </Heading>
-                </HStack>
-                <InputGroup>
+                  </h2>
+                </div>
+                <div className="relative">
                   <Input
-                    border={"1px solid"}
-                    borderColor={"green.300"}
-                    placeholder={"Search"}
-                    color={"white"}
-                    p={2.5}
-                    borderRadius={"none"}
-                    fontSize={"2xl"}
-                    _placeholder={{
-                      color: "white",
-                      opacity: 1,
-                    }}
-                    _hover={{
-                      borderColor: "green.300",
-                    }}
-                    _focusVisible={{
-                      borderColor: "green.300",
-                      boxShadow: "none",
-                    }}
+                    placeholder="Search"
+                    className="text-lg pr-10 border"
                     value={query}
                     onChange={(e) => filterScripts(scripts, e.target.value)}
                   />
-                  <InputRightElement>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
                     <IconButton
-                      icon={<Search2Icon />}
-                      aria-label={"Search scripts"}
-                      size={"sm"}
-                      variant={"solid"}
-                      colorScheme={"green"}
-                    />
-                  </InputRightElement>
-                </InputGroup>
-              </VStack>
-            </DrawerHeader>
+                      aria-label="Search scripts"
+                      size="sm"
+                      variant="primary"
+                      className="shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
+                    >
+                      <Search className="w-4 h-4" />
+                    </IconButton>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <DrawerBody px={2}>
-              <VStack spacing={2}>
+            <div className="overflow-y-auto px-2 flex-1">
+              <div className="flex flex-col gap-2">
                 {filteredScripts.length > 0 ? (
                   filteredScripts.map((s) => (
                     <SavedScript
@@ -142,15 +114,15 @@ export default function ScriptLibrary() {
                     />
                   ))
                 ) : (
-                  <Text fontSize={"2xl"} color={"yellow.300"}>
+                  <p className="text-2xl text-evm-yellow-300 font-head">
                     No scripts saved yet.
-                  </Text>
+                  </p>
                 )}
-              </VStack>
-            </DrawerBody>
-          </DrawerContent>
+              </div>
+            </div>
+          </Drawer.Content>
         </Drawer>
-      </Box>
+      </div>
     </>
   );
 }

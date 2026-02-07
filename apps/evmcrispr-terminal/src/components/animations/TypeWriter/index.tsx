@@ -1,34 +1,24 @@
-import { Text } from "@chakra-ui/react";
-import { keyframes } from "@emotion/react";
-
-const typing = keyframes`
-from { width: 0 }
-to { width: 100% }
-`;
-
-/* The typewriter cursor effect */
-const blinkCaret = keyframes`
-from { border-color: #fff; }
-to { border-color: transparent; }
-99% { border-color: #fff; }
-`;
-
 export default function TypeWriter({ text }: { text: string }) {
   const duration = text.length / 10;
   return (
-    <Text
-      color="white"
-      fontSize="sm"
-      variant="clearer"
-      border="none"
-      background="transparent"
-      overflow="hidden" // Ensures the content is not revealed until the animation
-      borderRight=".5em solid transparent" // The typwriter cursor
-      whiteSpace="nowrap" // / Keeps the content on a single line
-      letterSpacing=".12em" // Adjust as needed
-      animation={`${typing} ${duration}s steps(40, end), ${blinkCaret} ${duration}s step-end 1`}
+    <span
+      className="text-white text-sm font-clearer bg-transparent overflow-hidden border-r-[0.5em] border-r-transparent whitespace-nowrap tracking-[0.12em] inline-block"
+      style={{
+        animation: `typing ${duration}s steps(40, end), blinkCaret ${duration}s step-end 1`,
+      }}
     >
+      <style>{`
+        @keyframes typing {
+          from { width: 0 }
+          to { width: 100% }
+        }
+        @keyframes blinkCaret {
+          from { border-color: #fff }
+          to { border-color: transparent }
+          99% { border-color: #fff }
+        }
+      `}</style>
       {text}
-    </Text>
+    </span>
   );
 }

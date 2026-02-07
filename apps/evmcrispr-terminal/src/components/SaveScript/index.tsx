@@ -1,27 +1,16 @@
-import { useRef } from "react";
-import {
-  Button,
-  HStack,
-  Icon,
-  IconButton,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  Tooltip,
-  VStack,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { Dialog } from "@/components/retroui/Dialog";
+import { Tooltip } from "@/components/retroui/Tooltip";
+import { Button } from "@/components/retroui/Button";
+import { IconButton } from "@/components/retroui/IconButton";
 
 import SaveIcon from "../icons/SaveIcon";
 import {
   getScriptSavedInLocalStorage,
   saveScriptToLocalStorage,
 } from "../../utils";
-import useToast from "../../hooks/useToast";
 
 type SaveModalProps = {
   isOpen: boolean;
@@ -32,58 +21,36 @@ type SaveModalProps = {
 };
 
 const SaveModal = ({ isOpen, onClose, title, saveFn }: SaveModalProps) => {
-  const initialRef = useRef<HTMLInputElement>(null);
-
   async function handleSave() {
     saveFn();
     onClose();
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      isCentered
-      colorScheme={"yellow"}
-      size={"lg"}
-      initialFocusRef={initialRef}
-    >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Save Script</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-          <VStack>
-            <Icon as={SaveIcon} boxSize={16} color={"yellow.300"} />
-            <Text align={"center"} color={"yellow.300"}>
-              File &quot;{title}&quot; already exists. Do you want to override
-              it?
-            </Text>
-            <HStack spacing={4}>
-              <Button
-                size={"md"}
-                variant={"overlay"}
-                colorScheme={"green"}
-                onClick={handleSave}
-                loadingText={"Saving script..."}
-                tabIndex={0}
-              >
-                Confirm
-              </Button>
-              <Button
-                size={"md"}
-                variant={"overlay"}
-                colorScheme={"pink"}
-                onClick={onClose}
-                tabIndex={1}
-              >
-                Cancel
-              </Button>
-            </HStack>
-          </VStack>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content size="md">
+        <Dialog.Header>Save Script</Dialog.Header>
+        <div className="flex flex-col items-center py-8 px-10 gap-4">
+          <SaveIcon className="w-16 h-16 text-evm-yellow-300" />
+          <p className="text-center text-evm-yellow-300 font-head">
+            File &quot;{title}&quot; already exists. Do you want to override it?
+          </p>
+          <div className="flex gap-4">
+            <Button variant="default" size="md" onClick={handleSave}>
+              Confirm
+            </Button>
+            <Button
+              variant="default"
+              size="md"
+              className="bg-evm-pink-400 text-evm-gray-900 border-evm-pink-400 hover:bg-evm-pink-300"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Dialog.Content>
+    </Dialog>
   );
 };
 
@@ -91,27 +58,16 @@ export default function SaveScriptButton(props: {
   script: string;
   title: string;
 }) {
-  const {
-    isOpen: isSaveModalOpen,
-    onOpen: onSaveModalOpen,
-    onClose: onSaveModalClose,
-  } = useDisclosure({
-    id: "save",
-  });
-
-  const toast = useToast();
+  const [isSaveModalOpen, setSaveModalOpen] = useState(false);
 
   const save = () => {
     saveScriptToLocalStorage(props.title, props.script);
-    toast({
-      description: "Script saved on browser correctly",
-      status: "success",
-    });
+    toast.success("Script saved on browser correctly");
   };
 
   const onSaveButtonClick = () => {
     if (getScriptSavedInLocalStorage(props.title)) {
-      onSaveModalOpen();
+      setSaveModalOpen(true);
     } else {
       save();
     }
@@ -119,23 +75,28 @@ export default function SaveScriptButton(props: {
 
   return (
     <>
-      <Tooltip
-        label={props.title ? "Save script" : "The script needs a title first"}
-        variant={props.title ? "" : "warning"}
-        placement="top"
-      >
-        <IconButton
-          icon={<Icon as={SaveIcon} />}
-          aria-label={"Save script"}
-          variant={"outline-overlay"}
-          onClick={onSaveButtonClick}
-          size={"md"}
-          disabled={!props.title}
-        />
+      <Tooltip>
+        <Tooltip.Trigger asChild>
+          <IconButton
+            aria-label="Save script"
+            variant="outline"
+            onClick={onSaveButtonClick}
+            size="md"
+            disabled={!props.title}
+          >
+            <SaveIcon className="w-5 h-5" />
+          </IconButton>
+        </Tooltip.Trigger>
+        <Tooltip.Content
+          variant={props.title ? "default" : "warning"}
+          side="top"
+        >
+          {props.title ? "Save script" : "The script needs a title first"}
+        </Tooltip.Content>
       </Tooltip>
       <SaveModal
         isOpen={isSaveModalOpen}
-        onClose={onSaveModalClose}
+        onClose={() => setSaveModalOpen(false)}
         saveFn={save}
         {...props}
       />

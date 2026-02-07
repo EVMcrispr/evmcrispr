@@ -1,12 +1,9 @@
-import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  Box,
-  Button,
-  Collapse,
-} from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
+
+import { AlertCircle } from "lucide-react";
+
+import { Alert } from "@/components/retroui/Alert";
+import { Button } from "@/components/retroui/Button";
 
 const COLLAPSE_THRESHOLD = 30;
 
@@ -24,36 +21,37 @@ export default function ErrorMsg({ errors }: { errors: string[] }) {
   }, [errors]);
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      justifyContent="left"
-      maxWidth="100%"
-      wordBreak="break-all"
-    >
+    <div className="flex flex-col justify-start max-w-full break-all">
       {errors.map((e, index) => (
         <Alert key={index} status="error">
-          <Box display="flex" alignItems="flex-start">
-            <AlertIcon />
-            <AlertDescription>
-              <Collapse startingHeight={COLLAPSE_THRESHOLD} in={showCollapse}>
-                <div ref={contentRef}>{e}</div>
-              </Collapse>
-            </AlertDescription>
-          </Box>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 shrink-0 text-white" />
+            <Alert.Description>
+              <div
+                ref={contentRef}
+                className={showCollapse ? "" : "overflow-hidden"}
+                style={
+                  showCollapse
+                    ? undefined
+                    : { maxHeight: `${COLLAPSE_THRESHOLD}px` }
+                }
+              >
+                {e}
+              </div>
+            </Alert.Description>
+          </div>
         </Alert>
       ))}
       {showExpandBtn && (
         <Button
-          width="30"
-          alignSelf="flex-end"
+          className="self-end mt-4"
           size="sm"
+          variant="default"
           onClick={() => setShowCollapse((show) => !show)}
-          mt="1rem"
         >
           Show {showCollapse ? "Less" : "More"}
         </Button>
       )}
-    </Box>
+    </div>
   );
 }
