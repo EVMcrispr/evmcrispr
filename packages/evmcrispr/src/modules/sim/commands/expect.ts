@@ -5,7 +5,7 @@ import { BindingsSpace } from "../../../types";
 
 import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
 
-import type { Tenderly } from "../Tenderly";
+import type { Sim } from "../Sim";
 
 const { USER } = BindingsSpace;
 
@@ -28,7 +28,7 @@ function oppositeOp(operator: string): string {
   }
 }
 
-export const expect: ICommand<Tenderly> = {
+export const expect: ICommand<Sim> = {
   async run(module, c, { interpretNodes }) {
     checkArgsLength(c, {
       type: ComparisonType.Equal,

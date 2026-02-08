@@ -22,8 +22,8 @@ async function getModule(moduleName: string): Promise<{
     case "aragonos":
       // @ts-ignore-next-line
       return await import("../../aragonos");
-    case "tenderly":
-      return await import("../../tenderly");
+    case "sim":
+      return await import("../../sim");
     case "giveth":
       return await import("../../giveth");
     case "ens":
@@ -97,7 +97,7 @@ export const load: ICommand<Std> = {
         ) {
           return [];
         }
-        return ["aragonos", "tenderly", "giveth", "ens"];
+        return ["aragonos", "sim", "giveth", "ens"];
       }
       default:
         return [];

@@ -6,9 +6,9 @@ import type { ICommand } from "../../../types";
 
 import { ComparisonType, checkArgsLength } from "../../../utils";
 
-import type { Tenderly } from "../Tenderly";
+import type { Sim } from "../Sim";
 
-export const wait: ICommand<Tenderly> = {
+export const wait: ICommand<Sim> = {
   async run(_, c, { interpretNodes }) {
     checkArgsLength(c, {
       type: ComparisonType.Greater,

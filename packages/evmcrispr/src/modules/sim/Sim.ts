@@ -5,7 +5,7 @@ import { Module } from "../../Module";
 import { commands } from "./commands";
 import { helpers } from "./helpers";
 
-export class Tenderly extends Module {
+export class Sim extends Module {
   constructor(
     bindingsManager: BindingsManager,
     nonces: Record<string, number>,
@@ -14,7 +14,7 @@ export class Tenderly extends Module {
     alias?: string,
   ) {
     super(
-      "tenderly",
+      "sim",
       bindingsManager,
       nonces,
       commands,
