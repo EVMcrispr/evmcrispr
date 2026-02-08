@@ -14,10 +14,22 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
-  plugins: [react(), tailwindcss()],
-  optimizeDeps: {
-    exclude: ["@metamask/sdk"],
-  },
+  plugins: [
+    // Stub out @metamask/sdk – wagmi dynamically imports it inside a
+    // try/catch for the MetaMask connector, but we don't use that connector
+    // and the package isn't installed.
+    {
+      name: "stub-metamask-sdk",
+      resolveId(id) {
+        if (id === "@metamask/sdk") return "\0metamask-sdk-stub";
+      },
+      load(id) {
+        if (id === "\0metamask-sdk-stub") return "export default {};";
+      },
+    },
+    react(),
+    tailwindcss(),
+  ],
   build: {
     rollupOptions: {
       // Externalize @metamask/sdk's unresolvable transitive browser deps
