@@ -2,7 +2,7 @@ import { isAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
 import type { Action, ICommand, TransactionAction } from "../../../types";
-import { isProviderAction } from "../../../types";
+import { isTransactionAction } from "../../../types";
 import {
   ComparisonType,
   checkArgsLength,
@@ -46,9 +46,9 @@ export const forward: ICommand<AragonOS> = {
       blockModule: module.contextualName,
     })) as Action[];
 
-    if (blockActions.find((a) => isProviderAction(a))) {
+    if (blockActions.find((a) => !isTransactionAction(a))) {
       throw new ErrorException(
-        `can't switch networks inside a connect command`,
+        `can't use non-transaction actions inside a forward command`,
       );
     }
 

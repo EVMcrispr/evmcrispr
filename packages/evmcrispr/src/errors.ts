@@ -135,3 +135,17 @@ export class ExpressionError extends NodeError {
     super(name, n, message, { code, name });
   }
 }
+
+/**
+ * Thrown to cleanly halt script execution (e.g. by the `halt` command).
+ * Not an error — signals an intentional early stop.
+ * @category Error
+ */
+export class HaltExecution extends ErrorException {
+  constructor(
+    message?: string,
+    { code = "HaltExecution", name = "HaltExecution" }: ErrorOptions = {},
+  ) {
+    super(message ?? "Script execution halted.", { code, name });
+  }
+}

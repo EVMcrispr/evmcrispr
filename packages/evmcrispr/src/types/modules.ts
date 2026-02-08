@@ -17,7 +17,7 @@ export interface InterpretOptions {
   treatAsLiteral: boolean;
   blockModule: string;
   blockInitializer?(): Promise<void>;
-  actionCallback?(action: Action): Promise<void>;
+  actionCallback?(action: Action): Promise<unknown>;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
@@ -32,7 +32,7 @@ export type NodesInterpreter = (
 export type NodesInterpreters = {
   interpretNode: NodeInterpreter;
   interpretNodes: NodesInterpreter;
-  actionCallback?(action: Action): Promise<void>;
+  actionCallback?(action: Action): Promise<unknown>;
 };
 
 export type CommandFunction<T extends Module> = (

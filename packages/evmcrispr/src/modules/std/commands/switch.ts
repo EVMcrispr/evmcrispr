@@ -1,7 +1,7 @@
 import * as chains from "viem/chains";
 
 import { ErrorException } from "../../../errors";
-import type { ICommand, ProviderAction } from "../../../types";
+import type { ICommand, WalletAction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
 import type { Std } from "../Std";
 
@@ -14,7 +14,7 @@ const nameToChainId = Object.entries(chains).reduce(
 );
 
 export const _switch: ICommand<Std> = {
-  async run(module, c, { interpretNodes }): Promise<ProviderAction[]> {
+  async run(module, c, { interpretNodes }): Promise<WalletAction[]> {
     checkArgsLength(c, {
       type: ComparisonType.Equal,
       minValue: 1,
@@ -47,6 +47,7 @@ export const _switch: ICommand<Std> = {
 
     return [
       {
+        type: "wallet",
         method: "wallet_switchEthereumChain",
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       },

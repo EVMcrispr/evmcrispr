@@ -12,6 +12,7 @@ import {
   CommandError,
   ErrorException,
   ExpressionError,
+  HaltExecution,
   HelperFunctionError,
   NodeError,
 } from "./errors";
@@ -116,7 +117,7 @@ export class EVMcrispr {
 
   async interpret(
     script: string,
-    actionCallback?: (action: Action) => Promise<void>,
+    actionCallback?: (action: Action) => Promise<unknown>,
   ): Promise<Action[]> {
     const { ast, errors } = parseScript(script);
 
@@ -497,7 +498,7 @@ export class EVMcrispr {
       }
     } catch (err) {
       // Avoid wrapping a node error insde another node error
-      if (err instanceof NodeError) {
+      if (err instanceof NodeError || err instanceof HaltExecution) {
         throw err;
       }
 

@@ -1,5 +1,5 @@
-import type { Action, TransactionAction } from "@evmcrispr/core";
-import { EVMcrispr, isProviderAction } from "@evmcrispr/core";
+import type { Action } from "@evmcrispr/core";
+import { EVMcrispr, HaltExecution, isTransactionAction } from "@evmcrispr/core";
 import { useCallback, useRef } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
@@ -23,7 +23,7 @@ export function useTransactionExecutor(
   const { logs, logListener, clearLogs, isLogModalOpen, closeLogModal } =
     useExecutionLogs();
 
-  const { executeBatchedActionsWithMultiSigner, executeSafeBatchedActions } =
+  const { executeBatchedActions, executeSafeBatchedActions } =
     useTransactionBatcher(safeConnector);
 
   const executeAction = useCallback(
@@ -36,10 +36,7 @@ export function useTransactionExecutor(
     ) => {
       if (!walletClient) throw new Error("Wallet client not available");
 
-      if (isProviderAction(action)) {
-        const chainId = Number(action.params[0].chainId);
-        await switchOrAddChain(walletClient, chainId);
-      } else {
+      if (isTransactionAction(action)) {
         const actionFrom = action.from?.toLowerCase();
         const isOurTransaction =
           !actionFrom || actionFrom === connectedAddress.toLowerCase();
@@ -54,7 +51,9 @@ export function useTransactionExecutor(
             value: action.value,
             gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
           });
-          await currentPublicClient.waitForTransactionReceipt({ hash: tx });
+          return await currentPublicClient.waitForTransactionReceipt({
+            hash: tx,
+          });
         } else {
           if (!action.to) {
             throw new Error(
@@ -70,9 +69,62 @@ export function useTransactionExecutor(
             signal: abortSignal,
           });
         }
+      } else {
+        switch (action.type) {
+          case "batched": {
+            if (safeConnector) {
+              await executeSafeBatchedActions(action.actions);
+            } else {
+              await executeBatchedActions(
+                action.actions,
+                walletClient,
+                maximizeGasLimit,
+              );
+            }
+            break;
+          }
+
+          case "wallet": {
+            if (action.method === "wallet_switchEthereumChain") {
+              const chainId = Number(action.params[0].chainId);
+              await switchOrAddChain(walletClient, chainId);
+            } else {
+              return await walletClient.request({
+                method: action.method as any,
+                params: action.params as any,
+              });
+            }
+            break;
+          }
+
+          case "rpc": {
+            return await currentPublicClient.request({
+              method: action.method as any,
+              params: action.params as any,
+            });
+          }
+
+          case "terminal": {
+            if (action.command === "halt") {
+              throw new HaltExecution();
+            }
+            onStatusUpdate(
+              `Terminal action: ${action.command} ${JSON.stringify(
+                action.args,
+              )}`,
+            );
+            break;
+          }
+        }
       }
     },
-    [walletClient, maximizeGasLimit],
+    [
+      walletClient,
+      maximizeGasLimit,
+      safeConnector,
+      executeBatchedActions,
+      executeSafeBatchedActions,
+    ],
   );
 
   // AbortController for cancelling transaction observations
@@ -82,106 +134,66 @@ export function useTransactionExecutor(
     abortControllerRef.current?.abort();
   }, []);
 
-  const executeScript = useCallback(
-    async (inBatch: boolean) => {
-      terminalStoreActions("errors", []);
-      terminalStoreActions("isLoading", true);
-      clearLogs();
+  const executeScript = useCallback(async () => {
+    terminalStoreActions("errors", []);
+    terminalStoreActions("isLoading", true);
+    clearLogs();
 
-      abortControllerRef.current = new AbortController();
-      const abortSignal = abortControllerRef.current.signal;
+    abortControllerRef.current = new AbortController();
+    const abortSignal = abortControllerRef.current.signal;
 
-      try {
-        if (!address || !publicClient || !walletClient) {
-          throw new Error("Account not connected or clients not available");
-        }
-
-        const batched: TransactionAction[] = [];
-        let currentChainId = await walletClient.getChainId();
-
-        const evm = new EVMcrispr(publicClient, address);
-        evm.registerLogListener(logListener);
-
-        await evm.interpret(script, async (action: Action) => {
-          if (inBatch) {
-            if (isProviderAction(action)) {
-              currentChainId = Number(action.params[0].chainId);
-            } else {
-              batched.push({ chainId: currentChainId, ...action });
-            }
-          } else {
-            await executeAction(
-              action,
-              address,
-              publicClient,
-              logListener,
-              abortSignal,
-            );
-          }
-        });
-
-        if (batched.length) {
-          const hasOtherSigners = batched.some((action) => {
-            const actionFrom = action.from?.toLowerCase();
-            return actionFrom && actionFrom !== address.toLowerCase();
-          });
-
-          if (safeConnector) {
-            if (hasOtherSigners) {
-              throw new Error(
-                "Safe batch mode does not support multi-signer coordination. " +
-                  "Use non-batch mode to wait for other signers' transactions.",
-              );
-            }
-            await executeSafeBatchedActions(batched);
-          } else {
-            await executeBatchedActionsWithMultiSigner(
-              batched,
-              walletClient,
-              maximizeGasLimit,
-              address,
-              publicClient,
-              logListener,
-              abortSignal,
-            );
-          }
-        }
-      } catch (err: any) {
-        const e = err as Error;
-        if (e.message === "Observation cancelled") {
-          terminalStoreActions("errors", ["Script execution cancelled"]);
-        } else {
-          console.error(e);
-          if (
-            e.message.startsWith("transaction failed") &&
-            /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
-          ) {
-            terminalStoreActions("errors", [
-              `Transaction failed, watch in block explorer ${e.message.split('"')[1]}`,
-            ]);
-          } else {
-            terminalStoreActions("errors", [e.message]);
-          }
-        }
-      } finally {
-        terminalStoreActions("isLoading", false);
-        abortControllerRef.current = null;
+    try {
+      if (!address || !publicClient || !walletClient) {
+        throw new Error("Account not connected or clients not available");
       }
-    },
-    [
-      address,
-      publicClient,
-      walletClient,
-      script,
-      maximizeGasLimit,
-      logListener,
-      clearLogs,
-      executeAction,
-      executeBatchedActionsWithMultiSigner,
-      executeSafeBatchedActions,
-      safeConnector,
-    ],
-  );
+
+      const evm = new EVMcrispr(publicClient, address);
+      evm.registerLogListener(logListener);
+
+      await evm.interpret(script, async (action: Action) => {
+        return await executeAction(
+          action,
+          address,
+          publicClient,
+          logListener,
+          abortSignal,
+        );
+      });
+    } catch (err: any) {
+      const e = err as Error;
+      if (err instanceof HaltExecution) {
+        console.log("HaltExecution");
+        // Clean halt — not an error
+      } else if (e.message === "Observation cancelled") {
+        terminalStoreActions("errors", ["Script execution cancelled"]);
+      } else {
+        console.error(e);
+        if (
+          e.message.startsWith("transaction failed") &&
+          /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
+        ) {
+          terminalStoreActions("errors", [
+            `Transaction failed, watch in block explorer ${
+              e.message.split('"')[1]
+            }`,
+          ]);
+        } else {
+          terminalStoreActions("errors", [e.message]);
+        }
+      }
+    } finally {
+      terminalStoreActions("isLoading", false);
+      abortControllerRef.current = null;
+    }
+  }, [
+    address,
+    publicClient,
+    walletClient,
+    script,
+    logListener,
+    clearLogs,
+    executeAction,
+  ]);
 
   return {
     executeScript,

@@ -6,8 +6,9 @@ import { ErrorException } from "../../../errors";
 import type { Action, ICommand } from "../../../types";
 import {
   BindingsSpace,
-  isProviderAction,
-  isSwitchAction,
+  isRpcAction,
+  isTransactionAction,
+  isWalletAction,
   NodeType,
 } from "../../../types";
 
@@ -138,17 +139,17 @@ export const fork: ICommand<Tenderly> = {
     module.evmcrispr.setClient(publicClient);
 
     const simulateAction = async (action: Action) => {
-      if (isSwitchAction(action)) {
+      if (isWalletAction(action)) {
         throw new ErrorException(
           `can't switch networks inside a Virtual TestNet command`,
         );
       }
-      if (isProviderAction(action)) {
+      if (isRpcAction(action)) {
         await walletClient.request({
           method: action.method as any,
           params: action.params as any,
         });
-      } else {
+      } else if (isTransactionAction(action)) {
         const tx = await walletClient.request({
           method: "eth_sendTransaction",
           params: [

@@ -14,7 +14,7 @@ import type {
   Nullable,
   TransactionAction,
 } from "../../../types";
-import { BindingsSpace, isSwitchAction, NodeType } from "../../../types";
+import { BindingsSpace, isTransactionAction, NodeType } from "../../../types";
 import {
   addressesEqual,
   beforeOrEqualNode,
@@ -244,9 +244,9 @@ export const connect: ICommand<AragonOS> = {
       blockInitializer: setDAOContext(module, dao),
     })) as Action[];
 
-    if (actions.find((a) => isSwitchAction(a))) {
+    if (actions.find((a) => !isTransactionAction(a))) {
       throw new ErrorException(
-        `can't switch networks inside a connect command`,
+        `can't use non-transaction actions inside a connect command`,
       );
     }
 

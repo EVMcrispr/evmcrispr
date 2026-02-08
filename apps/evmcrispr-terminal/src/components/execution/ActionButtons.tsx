@@ -28,8 +28,8 @@ export default function ActionButtons({
       safeConnectorInstance,
     );
 
-  const handleExecute = (inBatch: boolean) => {
-    executeScript(inBatch);
+  const handleExecute = () => {
+    executeScript();
   };
 
   return (

@@ -3,7 +3,12 @@ export { DEFAULT_MODULE_BINDING } from "./defaults";
 export { EVMcrispr } from "./EVMcrispr";
 export { EvmlAST } from "./EvmlAST";
 export type { ErrorOptions } from "./errors";
-export { ErrorException, ErrorInvalid, ErrorNotFound } from "./errors";
+export {
+  ErrorException,
+  ErrorInvalid,
+  ErrorNotFound,
+  HaltExecution,
+} from "./errors";
 export { IPFS_GATEWAY, IPFSResolver } from "./IPFSResolver";
 export { Module } from "./Module";
 export {
@@ -24,6 +29,7 @@ export type {
   ArrayExpressionNode,
   AST,
   AsExpressionNode,
+  BatchedAction,
   BinaryExpressionNode,
   Binding,
   BlockExpressionNode,
@@ -71,19 +77,24 @@ export type {
   Position,
   PrimaryExpressionNode,
   ProbableIdentifierNode,
-  ProviderAction,
   RelativeBinding,
   RelativeNullableBinding,
+  RpcAction,
   StringLiteralNode,
+  TerminalAction,
   TransactionAction,
   UserBinding,
   VariableIdentifierNode,
+  WalletAction,
 } from "./types";
 export {
   ASTType,
   BindingsSpace,
-  isProviderAction,
-  isSwitchAction,
+  isBatchedAction,
+  isRpcAction,
+  isTerminalAction,
+  isTransactionAction,
+  isWalletAction,
   NodeType,
 } from "./types";
 export {

@@ -27,14 +27,17 @@ export const wait: ICommand<Tenderly> = {
 
     return [
       {
+        type: "rpc",
         method: "evm_increaseBlocks",
         params: [toHex(duration / period - 1n)],
       },
       {
+        type: "rpc",
         method: "evm_increaseTime",
         params: [toHex(duration)],
       },
       {
+        type: "rpc",
         method: "evm_increaseBlocks",
         params: [toHex(1n)],
       },

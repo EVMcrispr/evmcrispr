@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 
 /**
- * An object that represents an action in the DAO (e.g. installing a new app, minting tokens, etc).
+ * An on-chain transaction action (e.g. contract call, token transfer, deployment).
  */
 export interface TransactionAction {
   /**
@@ -16,7 +16,6 @@ export interface TransactionAction {
    * The ether which needs to be sent along with the action (in wei).
    */
   value?: bigint;
-
   /**
    * The sender address. It can only be used in contexts where you can choose who is sending the transaction.
    */
@@ -27,20 +26,78 @@ export interface TransactionAction {
   chainId?: number;
 }
 
-export interface ProviderAction {
+/**
+ * An atomic batch of transaction actions. All actions must share the same chain and sender.
+ * Executed via sendCalls (EOA) or Multisend (Safe).
+ */
+export interface BatchedAction {
+  type: "batched";
+  /**
+   * The chain ID shared by all actions in the batch.
+   */
+  chainId: number;
+  /**
+   * The sender address shared by all actions in the batch.
+   */
+  from: Address;
+  /**
+   * The transaction actions to execute atomically.
+   */
+  actions: TransactionAction[];
+}
+
+/**
+ * A request to the wallet provider (e.g. switch chain, sign message).
+ */
+export interface WalletAction {
+  type: "wallet";
   method: string;
   params: any[];
 }
 
-export type Action = TransactionAction | ProviderAction;
-
-// TODO: find a better way to check for action types
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function isProviderAction(action: any): action is ProviderAction {
-  return action.method && action.params;
+/**
+ * A request to the RPC node (e.g. evm_mine, evm_increaseTime).
+ */
+export interface RpcAction {
+  type: "rpc";
+  method: string;
+  params: any[];
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function isSwitchAction(action: any): boolean {
-  return action.method === "wallet_switchEthereumChain";
+/**
+ * A client-side terminal action (e.g. real-time wait, display message).
+ */
+export interface TerminalAction {
+  type: "terminal";
+  command: string;
+  args: Record<string, unknown>;
+}
+
+export type Action =
+  | TransactionAction
+  | BatchedAction
+  | WalletAction
+  | RpcAction
+  | TerminalAction;
+
+export function isTransactionAction(
+  action: Action,
+): action is TransactionAction {
+  return !("type" in action);
+}
+
+export function isBatchedAction(action: Action): action is BatchedAction {
+  return "type" in action && action.type === "batched";
+}
+
+export function isWalletAction(action: Action): action is WalletAction {
+  return "type" in action && action.type === "wallet";
+}
+
+export function isRpcAction(action: Action): action is RpcAction {
+  return "type" in action && action.type === "rpc";
+}
+
+export function isTerminalAction(action: Action): action is TerminalAction {
+  return "type" in action && action.type === "terminal";
 }
