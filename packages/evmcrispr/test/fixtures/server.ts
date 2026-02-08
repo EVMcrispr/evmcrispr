@@ -17,7 +17,7 @@ const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 // Use http.post instead of graphql.query because MSW's graphql handlers
 // don't work reliably with Bun's native fetch implementation.
 // Use a regex to match all subgraph URLs across different chains.
-const subgraphUrlPattern =
+const _subgraphUrlPattern =
   /^https:\/\/(gateway-arbitrum\.network\.thegraph\.com|api\.thegraph\.com)\//;
 
 const handleSubgraphRequest = async ({

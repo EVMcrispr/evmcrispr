@@ -22,6 +22,7 @@ export enum NodeType {
   VariableIdentifier = "VariableIdentifier",
 
   CommandOpt = "CommandOpt",
+  EventCapture = "EventCapture",
 }
 
 export type LiteralExpression =
@@ -102,12 +103,36 @@ export interface HelperFunctionNode extends Node {
   args: ArgumentExpressionNode[];
 }
 
+export interface EventCaptureBinding {
+  /** Index path into event args, e.g. [1, 0, 1] from :1:0:1. Empty means [0]. */
+  indexPath: number[];
+  /** Named field accessor, e.g. "amount" from .amount */
+  fieldName?: string;
+  /** Variable name to store the value in (without $) */
+  variable: string;
+}
+
+export interface EventCaptureNode extends Node {
+  type: NodeType.EventCapture;
+  /** Optional contract address filter node ($var or address literal) */
+  contractFilter?: Node;
+  /** Event name, e.g. "Withdrawn" */
+  eventName: string;
+  /** Inline event param types, e.g. ["uint","address"] from Withdrawn(uint,address) */
+  eventParams?: string[];
+  /** Which occurrence of the event to capture (from #N syntax, 0-based) */
+  occurrence?: number;
+  /** Bindings to capture from the event args */
+  captures: EventCaptureBinding[];
+}
+
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
   module?: string;
   name: string;
   args: Node[];
   opts: CommandOptNode[];
+  eventCaptures?: EventCaptureNode[];
 }
 
 export interface CommandOptNode extends Node {

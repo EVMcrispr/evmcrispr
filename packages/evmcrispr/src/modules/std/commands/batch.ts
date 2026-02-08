@@ -7,10 +7,11 @@ import type {
 } from "../../../types";
 import { isTransactionAction, NodeType } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";
+import { resolveEventCaptures } from "../../../utils/events";
 import type { Std } from "../Std";
 
 export const batch: ICommand<Std> = {
-  async run(module, c, { interpretNode }) {
+  async run(module, c, { interpretNode, actionCallback }) {
     checkArgsLength(c, {
       type: ComparisonType.Equal,
       minValue: 1,
@@ -25,6 +26,9 @@ export const batch: ICommand<Std> = {
       throw new ErrorException("batch expects a block of commands");
     }
 
+    // actionCallback is intentionally NOT forwarded here: nested commands
+    // must only collect actions, not execute them. Event captures (-> ...)
+    // are resolved on the batch itself once the combined transaction lands.
     const blockActions = (await interpretNode(blockExpressionNode, {
       blockModule: module.contextualName,
     })) as Action[];
@@ -50,6 +54,27 @@ export const batch: ICommand<Std> = {
       from,
       actions: txActions,
     };
+
+    // Handle event captures: dispatch action, decode receipt logs, store variables
+    if (c.eventCaptures && c.eventCaptures.length > 0) {
+      if (!actionCallback) {
+        throw new ErrorException(
+          "event capture requires an execution context with transaction access",
+        );
+      }
+
+      const receipt = await actionCallback(batched);
+
+      await resolveEventCaptures(
+        receipt as { logs: any[] },
+        undefined, // batch has no single contract ABI; inline signatures are used
+        c.eventCaptures,
+        module.bindingsManager,
+        interpretNode,
+      );
+
+      return []; // action already dispatched
+    }
 
     return [batched];
   },

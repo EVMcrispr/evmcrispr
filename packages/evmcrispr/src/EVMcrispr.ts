@@ -7,7 +7,6 @@ import {
   getKeywords as getKeywordsImpl,
 } from "./completions";
 import { DEFAULT_MODULE_BINDING } from "./defaults";
-import type { EvmlAST } from "./EvmlAST";
 import {
   CommandError,
   ErrorException,
@@ -83,9 +82,6 @@ export class EVMcrispr {
   #moduleCache: BindingsManager;
   #ipfsResolver: IPFSResolver;
 
-  // Used during interpret() — set transiently
-  #ast: EvmlAST | undefined;
-
   constructor(client?: PublicClient, account?: Address) {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
@@ -126,7 +122,6 @@ export class EVMcrispr {
     }
 
     // Reset per-execution state
-    this.#ast = ast;
     this.bindingsManager.setBindings(DEFAULT_MODULE_BINDING);
     this.#modules = [];
     this.#nonces = {};
@@ -137,8 +132,6 @@ export class EVMcrispr {
     const results = await this.interpretNodes(ast.body, true, {
       actionCallback,
     });
-
-    this.#ast = undefined;
 
     return results.flat().filter((result) => typeof result !== "undefined");
   }

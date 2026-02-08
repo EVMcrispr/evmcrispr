@@ -75,7 +75,7 @@ export function useTransactionExecutor(
             if (safeConnector) {
               await executeSafeBatchedActions(action.actions);
             } else {
-              await executeBatchedActions(
+              return await executeBatchedActions(
                 action.actions,
                 walletClient,
                 maximizeGasLimit,

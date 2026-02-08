@@ -1,6 +1,6 @@
 import { isAddress } from "viem";
 import { ErrorException } from "../../../errors";
-import type { ICommand, TransactionAction } from "../../../types";
+import type { Abi, ICommand, TransactionAction } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
   ComparisonType,
@@ -9,12 +9,13 @@ import {
   getOptValue,
   isNumberish,
 } from "../../../utils";
+import { resolveEventCaptures } from "../../../utils/events";
 import type { Std } from "../Std";
 
-const { ADDR } = BindingsSpace;
+const { ABI, ADDR } = BindingsSpace;
 
 export const raw: ICommand<Std> = {
-  async run(_, c, { interpretNode }) {
+  async run(module, c, { interpretNode, actionCallback }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
     checkOpts(c, ["from"]);
 
@@ -55,6 +56,33 @@ export const raw: ICommand<Std> = {
 
     if (from) {
       rawAction.from = from;
+    }
+
+    // Handle event captures: dispatch action, decode receipt logs, store variables
+    if (c.eventCaptures && c.eventCaptures.length > 0) {
+      if (!actionCallback) {
+        throw new ErrorException(
+          "event capture requires an execution context with transaction access",
+        );
+      }
+
+      const receipt = await actionCallback(rawAction);
+
+      // Look up the contract ABI for name-only event captures
+      const contractAbi = module.bindingsManager.getBindingValue(
+        contractAddress,
+        ABI,
+      ) as Abi | undefined;
+
+      await resolveEventCaptures(
+        receipt as { logs: any[] },
+        contractAbi,
+        c.eventCaptures,
+        module.bindingsManager,
+        interpretNode,
+      );
+
+      return []; // action already dispatched
     }
 
     return [rawAction];

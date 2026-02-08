@@ -11,10 +11,10 @@ describe("Parsers - comment", () => {
         # a comment here
         load aragonos as ar
 
-        #another one here
+        # another one here
         set $var1 1e18
 
-        #one at the end
+        # one at the end
       `,
       {
         type: "Program",
@@ -86,7 +86,7 @@ describe("Parsers - comment", () => {
     const c: Case = [
       `
           load aragonos as ar # this is an inline comment
-          set $var1 1e18 #another one
+          set $var1 1e18 # another one
         `,
       {
         type: "Program",
@@ -146,6 +146,47 @@ describe("Parsers - comment", () => {
             ],
             opts: [],
             loc: { start: { line: 3, col: 10 }, end: { line: 3, col: 24 } },
+          },
+        ],
+      },
+    ];
+
+    runCases(c, scriptParser);
+  });
+
+  it("should parse a standalone # (end of line) as a comment", () => {
+    const c: Case = [
+      `
+        #
+        set $var1 1e18
+      `,
+      {
+        type: "Program",
+        body: [
+          {
+            type: "CommandExpression",
+            name: "set",
+            args: [
+              {
+                type: "VariableIdentifier",
+                value: "$var1",
+                loc: {
+                  start: { line: 3, col: 12 },
+                  end: { line: 3, col: 17 },
+                },
+              },
+              {
+                type: "NumberLiteral",
+                value: "1",
+                power: 18,
+                loc: {
+                  start: { line: 3, col: 18 },
+                  end: { line: 3, col: 22 },
+                },
+              },
+            ],
+            opts: [],
+            loc: { start: { line: 3, col: 8 }, end: { line: 3, col: 22 } },
           },
         ],
       },

@@ -45,6 +45,8 @@ export type {
   CompletionItemKind,
   DataProviderBinding,
   EnclosingNodeParser,
+  EventCaptureBinding,
+  EventCaptureNode,
   HelperFunction,
   HelperFunctionNode,
   HelperFunctions,

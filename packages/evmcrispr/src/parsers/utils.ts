@@ -245,10 +245,15 @@ export const locate = <N extends Node = Node>(
 // Comment parser is defined here (instead of comment.ts) to avoid
 // a circular dependency: comment.ts needs optionalWhitespace/endLine
 // from utils.ts, and utils.ts needs commentParser in linesParser.
-const commentInitializerChar = char("#");
+// Comments require "# " (hash + space) or "#" at end of line/input,
+// so that bare "#" can be used in event capture occurrence syntax (e.g. Event#1).
+const commentInitializerSeq = sequenceOf([
+  char("#"),
+  choice([char(" "), lookAhead(endOfLine), lookAhead(endOfInput)]),
+]);
 
 export const commentParser = sequenceOf([
   optionalWhitespace,
-  commentInitializerChar,
+  commentInitializerSeq,
   everythingUntil(choice([endOfInput, endLine])),
 ]);

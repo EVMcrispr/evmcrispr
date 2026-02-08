@@ -2,13 +2,22 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
-import type { PublicClient } from "viem";
+import type { PublicClient, WalletClient } from "viem";
 import { toHex } from "viem";
+import { gnosis } from "viem/chains";
+import { EVMcrispr } from "../../../../src/EVMcrispr";
 import { CommandError } from "../../../../src/errors";
 import type { Action } from "../../../../src/types";
-
+import {
+  BindingsSpace,
+  isBatchedAction,
+  isTransactionAction,
+} from "../../../../src/types";
 import { encodeAction, toDecimals } from "../../../../src/utils";
-import { getPublicClient } from "../../../test-helpers/client.js";
+import {
+  getPublicClient,
+  getWalletClients,
+} from "../../../test-helpers/client.js";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import {
   createInterpreter,
@@ -231,5 +240,95 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
+  });
+
+  describe("event capture", () => {
+    let walletClient: WalletClient;
+
+    beforeAll(() => {
+      walletClient = getWalletClients()[0];
+    });
+
+    it("should capture event value and use it in a subsequent transaction", async () => {
+      const script = `
+        set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
+        exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint):1 $amount
+        exec $wxdai withdraw(uint) $amount
+      `;
+
+      const account = walletClient.account!;
+      const evm = new EVMcrispr(client, account.address);
+
+      const actionCallback = async (action: Action) => {
+        if (isTransactionAction(action)) {
+          const hash = await walletClient.sendTransaction({
+            account: walletClient.account!,
+            chain: gnosis,
+            to: action.to,
+            data: action.data,
+            value: action.value,
+          });
+          return await client.waitForTransactionReceipt({ hash });
+        }
+        throw new Error(`Unexpected action type`);
+      };
+
+      await evm.interpret(script, actionCallback);
+
+      // If we got here without error, the event was captured and the
+      // withdraw succeeded using the captured $amount value.
+      // Verify the variable was set correctly.
+      const amount = evm.getBinding("$amount", BindingsSpace.USER);
+      expect(amount).to.equal("1000000000000000");
+    });
+
+    it("should capture event value from a batch command", async () => {
+      const script = `
+set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
+batch (
+  exec $wxdai deposit() --value 0.001e18
+  exec $wxdai withdraw(uint) 0.001e18
+) -> Deposit(address indexed,uint):1 $amount
+      `;
+
+      const account = walletClient.account!;
+      const evm = new EVMcrispr(client, account.address);
+
+      const actionCallback = async (action: Action) => {
+        if (isTransactionAction(action)) {
+          const hash = await walletClient.sendTransaction({
+            account: walletClient.account!,
+            chain: gnosis,
+            to: action.to,
+            data: action.data,
+            value: action.value,
+          });
+          return await client.waitForTransactionReceipt({ hash });
+        }
+        if (isBatchedAction(action)) {
+          // Execute each action in the batch and aggregate logs
+          const allLogs: any[] = [];
+          for (const txAction of action.actions) {
+            const hash = await walletClient.sendTransaction({
+              account: walletClient.account!,
+              chain: gnosis,
+              to: txAction.to,
+              data: txAction.data,
+              value: txAction.value,
+            });
+            const receipt = await client.waitForTransactionReceipt({ hash });
+            allLogs.push(...receipt.logs);
+          }
+          return { logs: allLogs };
+        }
+        throw new Error(`Unexpected action type`);
+      };
+
+      await evm.interpret(script, actionCallback);
+
+      // Verify the $amount was captured from the Deposit event
+      const amount = evm.getBinding("$amount", BindingsSpace.USER);
+      expect(amount).to.equal("1000000000000000");
+    });
   });
 });

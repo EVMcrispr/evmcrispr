@@ -44,12 +44,26 @@ export function useTransactionBatcher(safeConnector?: any) {
         })),
       });
 
-      const { status } = await currentWalletClient.waitForCallsStatus({ id });
-      if (status !== "success") {
+      const result = await currentWalletClient.waitForCallsStatus({ id });
+      if (result.status !== "success") {
         throw new Error(
           `Transaction batch failed on ${config.chains.find((c) => c.id === chainId)?.name || "unknown chain"}`,
         );
       }
+
+      // Aggregate logs from all receipts for event capture support.
+      if (result.receipts && result.receipts.length > 0) {
+        const allLogs = result.receipts.flatMap((r) => r.logs);
+        return { logs: allLogs };
+      }
+
+      // Wallet executed the batch but didn't return receipts (EIP-5792
+      // receipts are optional). Without logs, event captures cannot be
+      // resolved, so fail explicitly rather than letting downstream code
+      // silently receive undefined.
+      throw new Error(
+        "Wallet did not return transaction receipts for the batch — event capture requires receipt logs",
+      );
     },
     [],
   );
