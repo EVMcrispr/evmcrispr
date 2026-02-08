@@ -4,17 +4,15 @@ import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-
-import type { EVMcrispr } from "../../../../src/EVMcrispr";
 import { CommandError } from "../../../../src/errors";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import type { CommandExpressionNode } from "../../../../src/types";
 import { toDecimals } from "../../../../src/utils";
-
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
+import type { TestInterpreter } from "../../../test-helpers/evml";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
@@ -193,7 +191,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
   });
 
   it("should fail when revoking a permission from a non-app entity", async () => {
-    let interpreter: EVMcrispr;
+    let interpreter: TestInterpreter;
     let c: CommandExpressionNode;
     const nonAppAddress = TEST_ACCOUNT_ADDRESS;
 

@@ -1,4 +1,5 @@
 export { BindingsManager } from "./BindingsManager";
+export { DEFAULT_MODULE_BINDING } from "./defaults";
 export { EVMcrispr } from "./EVMcrispr";
 export { EvmlAST } from "./EvmlAST";
 export type { ErrorOptions } from "./errors";
@@ -34,6 +35,8 @@ export type {
   CommandFunction,
   CommandOptNode,
   Commands,
+  CompletionItem,
+  CompletionItemKind,
   DataProviderBinding,
   EnclosingNodeParser,
   HelperFunction,

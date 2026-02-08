@@ -4,17 +4,17 @@ import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
-import type { ErrorException } from "../../src";
-import { EvmlAST } from "../../src";
+import type { ErrorException, EvmlAST } from "../../src";
 import { EVMcrispr } from "../../src/EVMcrispr";
 import {
   CommandError,
   ExpressionError,
   HelperFunctionError,
 } from "../../src/errors";
-import { scriptParser } from "../../src/parsers/script";
+import { parseScript } from "../../src/parsers/script";
 import { createParserState } from "../../src/parsers/utils";
 import type {
+  Action,
   BlockExpressionNode,
   CommandExpressionNode,
   HelperFunctionNode,
@@ -35,6 +35,24 @@ const { Between, Equal, Greater } = ComparisonType;
 export type Case = [string, any, string?];
 
 export type InterpreterCase = [Node, any, string?];
+
+/**
+ * Wrapper returned by `createInterpreter` that provides the old test-facing
+ * interface (`.ast`, `.interpret()`, `.getBinding()`, etc.) on top of the
+ * new `EVMcrispr` API which accepts script strings.
+ */
+export interface TestInterpreter {
+  ast: EvmlAST;
+  script: string;
+  evm: EVMcrispr;
+  interpret(): Promise<Action[]>;
+  getBinding: EVMcrispr["getBinding"];
+  getModule: EVMcrispr["getModule"];
+  getAllModules: EVMcrispr["getAllModules"];
+  registerLogListener: EVMcrispr["registerLogListener"];
+  bindingsManager: EVMcrispr["bindingsManager"];
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const deepConsoleLog = (thing: any): void =>
   console.log(inspect(thing, false, null, true));
@@ -70,12 +88,9 @@ export const runInterpreterCases = async (
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
-        const [res] = await new EVMcrispr(
-          new EvmlAST([node]),
-          getClient,
-          async () => TEST_ACCOUNT_ADDRESS,
-        ).interpret();
-
+        const client = await getClient();
+        const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
+        const res = await evm.interpretNode(node);
         expect(res, errorMsg).to.equal(expected);
       },
     ),
@@ -108,17 +123,25 @@ export const runErrorCase = (
     ),
   );
 };
+
 export const createInterpreter = (
   script: string,
   client: PublicClient,
-): EVMcrispr => {
-  const ast = runParser(scriptParser, script) as EvmlAST;
+): TestInterpreter => {
+  const { ast } = parseScript(script);
+  const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
 
-  return new EVMcrispr(
+  return {
     ast,
-    async () => client,
-    async () => TEST_ACCOUNT_ADDRESS,
-  );
+    script,
+    evm,
+    interpret: () => evm.interpret(script),
+    getBinding: evm.getBinding.bind(evm),
+    getModule: evm.getModule.bind(evm),
+    getAllModules: evm.getAllModules.bind(evm),
+    registerLogListener: evm.registerLogListener.bind(evm),
+    bindingsManager: evm.bindingsManager,
+  };
 };
 
 export const preparingExpression = async (
@@ -127,15 +150,14 @@ export const preparingExpression = async (
   module?: string,
   configSetters: string[] = [],
 ): Promise<[Awaited<any>, HelperFunctionNode]> => {
-  const i = createInterpreter(
-    `
+  const script = `
   ${module ? `load ${module}` : ""}
 
   ${configSetters.join("\n")}
   set $res ${expression}
-  `,
-    client,
-  );
+  `;
+
+  const i = createInterpreter(script, client);
 
   const setCommand = i.ast.body.find(
     (n) => (n as CommandExpressionNode).name === "set",
@@ -287,14 +309,14 @@ export const itChecksInvalidArgsLength = (
 
 export const itChecksNonDefinedIdentifier = (
   itName: string,
-  createInterpreter: (nonDefinedIdentifier: string) => EVMcrispr,
+  createTestInterpreter: (nonDefinedIdentifier: string) => TestInterpreter,
   commandName: string,
   argIndex: number,
   isAragonOS = false,
 ): void => {
   it(itName, async () => {
     const nonDefinedIdentifier = "non-defined-address";
-    const interpreter = createInterpreter(nonDefinedIdentifier);
+    const interpreter = createTestInterpreter(nonDefinedIdentifier);
     let body = interpreter.ast.body;
     if (isAragonOS) {
       const connect = body.find((c) => c.name === "connect")!;

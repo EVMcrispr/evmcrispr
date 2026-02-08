@@ -2,6 +2,11 @@ import type { Abi, Address, Chain, PublicClient } from "viem";
 import { createPublicClient, http, isAddress, zeroAddress } from "viem";
 import * as viemChains from "viem/chains";
 import { BindingsManager } from "./BindingsManager";
+import {
+  getCompletions as getCompletionsImpl,
+  getKeywords as getKeywordsImpl,
+} from "./completions";
+import { DEFAULT_MODULE_BINDING } from "./defaults";
 import type { EvmlAST } from "./EvmlAST";
 import {
   CommandError,
@@ -13,6 +18,7 @@ import {
 import { IPFSResolver } from "./IPFSResolver";
 import type { Module } from "./Module";
 import { Std } from "./modules/std/Std";
+import { parseScript } from "./parsers/script";
 import type {
   Action,
   ArrayExpressionNode,
@@ -21,9 +27,11 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
+  CompletionItem,
   HelperFunctionNode,
   LiteralExpressionNode,
   Node,
+  Position,
   ProbableIdentifierNode,
   RelativeBinding,
   VariableIdentifierNode,
@@ -57,50 +65,108 @@ const {
 const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 
 export class EVMcrispr {
-  readonly ast: EvmlAST;
   readonly bindingsManager: BindingsManager;
 
-  #std: Std;
+  #std!: Std;
   #modules: Module[];
   #nonces: Record<string, number>;
   #account: Address | undefined;
   #chainId: number | undefined;
-  #getClient: () => Promise<PublicClient>;
-  #getAccount: () => Promise<Address | undefined>;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #prevMessages: string[];
 
   #client: PublicClient | undefined;
 
-  constructor(
-    ast: EvmlAST,
-    getClient: () => Promise<PublicClient>,
-    getAccount: () => Promise<Address | undefined>,
-  ) {
-    this.ast = ast;
+  /** Internal module cache for completions / keywords. */
+  #moduleCache: BindingsManager;
+  #ipfsResolver: IPFSResolver;
 
+  // Used during interpret() — set transiently
+  #ast: EvmlAST | undefined;
+
+  constructor(client?: PublicClient, account?: Address) {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
     this.#setDefaultBindings();
-    this.#getClient = getClient;
-    this.#getAccount = getAccount;
+    this.#client = client;
+    this.#account = account;
     this.#logListeners = [];
     this.#prevMessages = [];
+    this.#ipfsResolver = new IPFSResolver();
+    this.#moduleCache = new BindingsManager([DEFAULT_MODULE_BINDING]);
 
+    this.#initStd();
+  }
+
+  #initStd(): void {
     this.#std = new Std(
       this.bindingsManager,
       this.#nonces,
       this,
-      new IPFSResolver(),
+      this.#ipfsResolver,
       this.#modules,
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Public API: interpret, getCompletions, getKeywords
+  // ---------------------------------------------------------------------------
+
+  async interpret(
+    script: string,
+    actionCallback?: (action: Action) => Promise<void>,
+  ): Promise<Action[]> {
+    const { ast, errors } = parseScript(script);
+
+    if (errors.length) {
+      throw new ErrorException(`Parse errors:\n${errors.join("\n")}`);
+    }
+
+    // Reset per-execution state
+    this.#ast = ast;
+    this.bindingsManager.setBindings(DEFAULT_MODULE_BINDING);
+    this.#modules = [];
+    this.#nonces = {};
+    this.#logListeners = this.#logListeners; // keep listeners
+    this.#prevMessages = [];
+    this.#initStd();
+
+    const results = await this.interpretNodes(ast.body, true, {
+      actionCallback,
+    });
+
+    this.#ast = undefined;
+
+    return results.flat().filter((result) => typeof result !== "undefined");
+  }
+
+  async getCompletions(
+    script: string,
+    position: Position,
+  ): Promise<CompletionItem[]> {
+    return getCompletionsImpl(
+      script,
+      position,
+      this.#moduleCache,
+      this.#client,
+    );
+  }
+
+  async getKeywords(
+    script: string,
+  ): Promise<{ commands: string[]; helpers: string[] }> {
+    return getKeywordsImpl(script, this.#moduleCache);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Client / account management
+  // ---------------------------------------------------------------------------
+
   async getChainId(): Promise<number> {
-    const chainId = await (this.#chainId ??
-      this.#getClient().then((client) => client.getChainId()));
+    const chainId =
+      this.#chainId ?? (await this.#getClient().then((c) => c.getChainId()));
     if (!chainId) {
       throw Error("No chain id found");
     }
@@ -111,14 +177,7 @@ export class EVMcrispr {
     this.#client = client;
   }
 
-  /* TODO: In ethers v5 this function returned the user injected provider
-     or a default one depending on if evmcrispr's chainid and injected provider
-     chain id were the same or not. We should see if that's needed or not.
-  */
   async getClient(): Promise<PublicClient> {
-    if (this.#client) {
-      return this.#client;
-    }
     return this.#getClient();
   }
 
@@ -126,22 +185,16 @@ export class EVMcrispr {
     this.#account = account;
   }
 
-  async getConnectedAccount(retreiveInjected = false): Promise<Address> {
-    const connected =
-      !retreiveInjected && this.#account
-        ? this.#account
-        : await this.#getAccount();
-    if (!connected) {
+  async getConnectedAccount(_retreiveInjected = false): Promise<Address> {
+    if (!this.#account) {
       throw Error("No connected account found");
     }
-    return connected;
+    return this.#account;
   }
 
   async switchChainId(chainId: number): Promise<PublicClient> {
     this.#chainId = chainId;
 
-    // Create a new public client for the target chain so that
-    // subsequent RPC calls (e.g. @token.balance) query the correct network.
     const chain = Object.values(viemChains).find(
       (c) => (c as Chain).id === chainId,
     ) as Chain | undefined;
@@ -151,12 +204,15 @@ export class EVMcrispr {
         transport: http(),
       }) as PublicClient;
     } else {
-      // Unknown chain – clear the cached client so #getClient is called
       this.#client = undefined;
     }
 
     return this.getClient();
   }
+
+  // ---------------------------------------------------------------------------
+  // Bindings / modules
+  // ---------------------------------------------------------------------------
 
   getBinding<BSpace extends BindingsSpace>(
     name: string,
@@ -179,15 +235,27 @@ export class EVMcrispr {
     return [this.#std, ...this.#modules];
   }
 
-  async interpret(
-    actionCallback?: (action: Action) => Promise<void>,
-  ): Promise<Action[]> {
-    const results = await this.interpretNodes(this.ast.body, true, {
-      actionCallback,
-    });
+  // ---------------------------------------------------------------------------
+  // Logging
+  // ---------------------------------------------------------------------------
 
-    return results.flat().filter((result) => typeof result !== "undefined");
+  registerLogListener(
+    listener: (message: string, prevMessages: string[]) => void,
+  ): EVMcrispr {
+    this.#logListeners.push(listener);
+    return this;
   }
+
+  log(message: string): void {
+    this.#logListeners.forEach((listener) =>
+      listener(message, this.#prevMessages),
+    );
+    this.#prevMessages.push(message);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Interpreters (internal)
+  // ---------------------------------------------------------------------------
 
   interpretNode: NodeInterpreter = (n, options) => {
     switch (n.type) {
@@ -261,19 +329,16 @@ export class EVMcrispr {
     );
   };
 
-  registerLogListener(
-    listener: (message: string, prevMessages: string[]) => void,
-  ): EVMcrispr {
-    this.#logListeners.push(listener);
-    return this;
-  }
+  // ---------------------------------------------------------------------------
+  // Private interpreters
+  // ---------------------------------------------------------------------------
 
-  log(message: string): void {
-    this.#logListeners.forEach((listener) =>
-      listener(message, this.#prevMessages),
-    );
-    this.#prevMessages.push(message);
-  }
+  #getClient = async (): Promise<PublicClient> => {
+    if (this.#client) {
+      return this.#client;
+    }
+    throw Error("No client available");
+  };
 
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
     return this.interpretNodes(n.elements);
@@ -377,14 +442,13 @@ export class EVMcrispr {
     }
 
     try {
-      const res = await this.#getClient().then(async (client) =>
-        client.readContract({
-          abi: targetAbi,
-          functionName: n.method,
-          args: args,
-          address: targetAddress,
-        }),
-      );
+      const client = await this.#getClient();
+      const res = await client.readContract({
+        abi: targetAbi,
+        functionName: n.method,
+        args: args,
+        address: targetAddress,
+      });
       return res;
     } catch (err) {
       const err_ = err as Error;

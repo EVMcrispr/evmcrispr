@@ -1,32 +1,30 @@
-import { IPFSResolver } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
-import { useEffect, useMemo } from "react";
-import { usePublicClient } from "wagmi";
+import { useEffect, useRef } from "react";
 import { useEditorState } from "../../hooks/useEditorState";
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
-import { createProvideCompletionItemsFn } from "./autocompletion";
+import { toMonacoCompletionItem } from "./autocompletion";
 import { conf, contribution, createLanguage } from "./evml";
 import { theme } from "./theme";
 
 export default function TerminalEditor() {
   const monaco = useMonaco();
 
-  const ipfsResolver = useMemo(() => new IPFSResolver(), []);
-
   const { script } = useTerminalStore();
-  const { ast, bindingsCache, commandKeywords, helperKeywords } =
-    useEditorState(script);
+  const { evm, commandKeywords, helperKeywords } = useEditorState(script);
 
-  const publicClient = usePublicClient();
+  // Keep a ref so the completion closure always sees the latest script
+  const scriptRef = useRef(script);
+  scriptRef.current = script;
 
   function handleOnChangeEditor(str: string | undefined) {
     terminalStoreActions("script", str ?? "");
   }
 
+  // Syntax highlighting — update tokenizer when keywords change
   useEffect(() => {
     if (!monaco) {
       return;
@@ -42,25 +40,42 @@ export default function TerminalEditor() {
     };
   }, [monaco, commandKeywords, helperKeywords]);
 
+  // Completion provider
   useEffect(() => {
-    if (!monaco || !publicClient) {
+    if (!monaco) {
       return;
     }
+
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       "evml",
       {
-        provideCompletionItems: createProvideCompletionItemsFn(
-          bindingsCache,
-          { client: publicClient, ipfsResolver },
-          ast,
-        ),
+        provideCompletionItems: async (model, pos) => {
+          const { startColumn, endColumn } = model.getWordUntilPosition(pos);
+          const range = {
+            startLineNumber: pos.lineNumber,
+            endLineNumber: pos.lineNumber,
+            startColumn,
+            endColumn: model.getWordAtPosition(pos)?.endColumn ?? endColumn,
+          };
+
+          const items = await evm.getCompletions(scriptRef.current, {
+            line: pos.lineNumber,
+            col: pos.column - 1,
+          });
+
+          return {
+            suggestions: items.map((coreItem) =>
+              toMonacoCompletionItem(coreItem, range),
+            ),
+          };
+        },
       },
     );
 
     return () => {
       completionProvider.dispose();
     };
-  }, [bindingsCache, monaco, publicClient, ast, ipfsResolver]);
+  }, [monaco, evm]);
 
   function handleBeforeMountEditor(monaco: Monaco) {
     monaco.editor.defineTheme("theme", theme);
@@ -72,6 +87,7 @@ export default function TerminalEditor() {
     editor.setPosition({ lineNumber: 10000, column: 0 });
     editor.focus();
   }
+
   return (
     <MonacoEditor
       height="65vh"

@@ -1,5 +1,5 @@
 import type { Action, TransactionAction } from "@evmcrispr/core";
-import { EVMcrispr, isProviderAction, parseScript } from "@evmcrispr/core";
+import { EVMcrispr, isProviderAction } from "@evmcrispr/core";
 import { useCallback, useRef } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
@@ -96,39 +96,29 @@ export function useTransactionExecutor(
           throw new Error("Account not connected or clients not available");
         }
 
-        const { ast, errors: parseErrors } = parseScript(script);
-
-        if (parseErrors.length) {
-          terminalStoreActions("errors", parseErrors);
-          return;
-        }
-
         const batched: TransactionAction[] = [];
         let currentChainId = await walletClient.getChainId();
 
-        await new EVMcrispr(
-          ast,
-          async () => publicClient,
-          async () => address,
-        )
-          .registerLogListener(logListener)
-          .interpret(async (action: Action) => {
-            if (inBatch) {
-              if (isProviderAction(action)) {
-                currentChainId = Number(action.params[0].chainId);
-              } else {
-                batched.push({ chainId: currentChainId, ...action });
-              }
+        const evm = new EVMcrispr(publicClient, address);
+        evm.registerLogListener(logListener);
+
+        await evm.interpret(script, async (action: Action) => {
+          if (inBatch) {
+            if (isProviderAction(action)) {
+              currentChainId = Number(action.params[0].chainId);
             } else {
-              await executeAction(
-                action,
-                address,
-                publicClient,
-                logListener,
-                abortSignal,
-              );
+              batched.push({ chainId: currentChainId, ...action });
             }
-          });
+          } else {
+            await executeAction(
+              action,
+              address,
+              publicClient,
+              logListener,
+              abortSignal,
+            );
+          }
+        });
 
         if (batched.length) {
           const hasOtherSigners = batched.some((action) => {

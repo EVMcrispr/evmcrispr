@@ -3,7 +3,6 @@ import type { PublicClient } from "viem";
 
 import type { Address } from "../../../../src";
 
-import type { EVMcrispr } from "../../../../src/EVMcrispr";
 import { CommandError } from "../../../../src/errors";
 import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import {
@@ -17,6 +16,7 @@ import type {
 } from "../../../../src/types";
 import { NodeType } from "../../../../src/types";
 import { listItems } from "../../../../src/utils";
+import type { TestInterpreter } from "../../../test-helpers/evml";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
@@ -40,7 +40,7 @@ export const _aragonEns = async (
 
 export const createAragonScriptInterpreter =
   (client: PublicClient, daoAddress: Address) =>
-  (commands: string[] = []): EVMcrispr => {
+  (commands: string[] = []): TestInterpreter => {
     return createInterpreter(
       `
   load aragonos as ar
@@ -92,7 +92,7 @@ export const itChecksBadPermission = (
   commandName: string,
   createPermissionActionInterpreter: (
     badPermission: [string, string, string, string?],
-  ) => EVMcrispr,
+  ) => TestInterpreter,
   checkPermissionManager = false,
 ): void => {
   const permissionErrorText = "invalid permission provided";

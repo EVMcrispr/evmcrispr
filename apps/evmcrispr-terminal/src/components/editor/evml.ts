@@ -1,16 +1,4 @@
-import type { BindingsManager } from "@evmcrispr/core";
-import { BindingsSpace } from "@evmcrispr/core";
 import type { languages } from "monaco-editor";
-
-import { DEFAULT_MODULE_BINDING } from "../../utils";
-
-const DEFAULT_COMMAND_KEYWORDS = Object.keys(
-  DEFAULT_MODULE_BINDING.value.commands,
-).flatMap((name) => [name, `std:${name}`]);
-
-const DEFAULT_HELPER_KEYWORDS = Object.keys(
-  DEFAULT_MODULE_BINDING.value.helpers,
-).map((name) => `@${name}`);
 
 const bounded = (text: string) => `\\b${text}\\b`;
 
@@ -59,40 +47,6 @@ export const conf: languages.LanguageConfiguration = {
   wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()=+[{\]}\\|;'",.<>/?\s]+)/g,
 };
 
-export const getModulesKeywords = (
-  currentModuleNames: { name: string; alias?: string }[],
-  bindingsCache: BindingsManager,
-): { commandKeywords: string[]; helperKeywords: string[] } => {
-  const commandKeywords: string[] = [];
-  const helperKeywords: string[] = [];
-
-  currentModuleNames.forEach(({ name: moduleName, alias: moduleAlias }) => {
-    const moduleData = bindingsCache.getBindingValue(
-      moduleName,
-      BindingsSpace.MODULE,
-    );
-    if (!moduleData) {
-      return;
-    }
-
-    const commandNames = Object.keys(moduleData.commands).flatMap((name) => [
-      name,
-      `${moduleAlias ?? moduleName}:${name}`,
-    ]);
-    const helperNames = Object.keys(moduleData.helpers).map(
-      (name) => `@${name}`,
-    );
-
-    commandKeywords.push(...commandNames);
-    helperKeywords.push(...helperNames);
-  });
-
-  return {
-    commandKeywords,
-    helperKeywords,
-  };
-};
-
 export const createLanguage: (
   commands: string[],
   helpers: string[],
@@ -106,9 +60,9 @@ export const createLanguage: (
     { open: "(", close: ")", token: "delimiter.parenthesis" },
   ],
 
-  commands: [...DEFAULT_COMMAND_KEYWORDS, ...commands, "as"],
+  commands: [...commands, "as"],
 
-  helpers: [...DEFAULT_HELPER_KEYWORDS, ...helpers],
+  helpers: [...helpers],
 
   namedLiterals,
 
