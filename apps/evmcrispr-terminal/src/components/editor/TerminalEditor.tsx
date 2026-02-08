@@ -1,51 +1,36 @@
 import { IPFSResolver } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { usePublicClient } from "wagmi";
+import { useEditorState } from "../../hooks/useEditorState";
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
 import { createProvideCompletionItemsFn } from "./autocompletion";
-import { conf, contribution, createLanguage, getModulesKeywords } from "./evml";
+import { conf, contribution, createLanguage } from "./evml";
 import { theme } from "./theme";
 
 export default function TerminalEditor() {
   const monaco = useMonaco();
 
-  const ipfsResolver = new IPFSResolver();
+  const ipfsResolver = useMemo(() => new IPFSResolver(), []);
 
-  const { bindingsCache, script, ast, currentModuleNames } = useTerminalStore();
+  const { script } = useTerminalStore();
+  const { ast, bindingsCache, commandKeywords, helperKeywords } =
+    useEditorState(script);
 
   const publicClient = usePublicClient();
 
-  function handleOnChangeEditor(str: string | undefined, ev: any) {
+  function handleOnChangeEditor(str: string | undefined) {
     terminalStoreActions("script", str ?? "");
-
-    const change = ev.changes[0];
-    const startLineNumber = change.range.startLineNumber;
-    const newLine = change.text
-      ? change.text.split("\n").length +
-        startLineNumber -
-        // Substract current line
-        1
-      : startLineNumber;
-    terminalStoreActions("updateCurrentLine", newLine);
   }
-
-  useEffect(() => {
-    terminalStoreActions("processScript");
-  }, []);
 
   useEffect(() => {
     if (!monaco) {
       return;
     }
-    const { commandKeywords, helperKeywords } = getModulesKeywords(
-      currentModuleNames,
-      bindingsCache,
-    );
 
     const tokensProvider = monaco.languages.setMonarchTokensProvider(
       "evml",
@@ -55,7 +40,7 @@ export default function TerminalEditor() {
     return () => {
       tokensProvider.dispose();
     };
-  }, [monaco, currentModuleNames, bindingsCache]);
+  }, [monaco, commandKeywords, helperKeywords]);
 
   useEffect(() => {
     if (!monaco || !publicClient) {

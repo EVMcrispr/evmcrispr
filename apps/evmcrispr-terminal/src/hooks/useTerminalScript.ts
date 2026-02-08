@@ -33,7 +33,6 @@ export function useTerminalScript() {
     if (encodedTitle || encodedScript) {
       terminalStoreActions("title", encodedTitle ?? "");
       terminalStoreActions("script", encodedScript ?? "");
-      terminalStoreActions("processScript");
     }
   }, []);
 
@@ -48,7 +47,6 @@ export function useTerminalScript() {
   useEffect(() => {
     if (scriptFromId !== undefined) {
       terminalStoreActions("script", scriptFromId);
-      terminalStoreActions("processScript");
     }
   }, [scriptFromId]);
 
