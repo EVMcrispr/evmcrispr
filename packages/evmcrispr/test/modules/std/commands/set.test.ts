@@ -1,10 +1,12 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
 import { BindingsSpace } from "../../../../src/types";
 import { toDecimals } from "../../../../src/utils";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
@@ -12,8 +14,8 @@ import { findStdCommandNode } from "../../../test-helpers/std";
 describe("Std > commands > set <varName> <varValue>", () => {
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should set an user variable correctly", async () => {

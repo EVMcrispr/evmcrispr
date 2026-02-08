@@ -1,10 +1,11 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
 import type { Action } from "../../../../src/types";
-
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
@@ -19,8 +20,8 @@ describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () =>
   const parsedValue = 1000000000000000000n;
   const from = "0x8790B75CF2bd36A2502a3e48A24338D8288f2F15";
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should return a correct raw action", async () => {

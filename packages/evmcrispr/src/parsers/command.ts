@@ -63,31 +63,33 @@ const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
     return commandName;
   });
 
-export const commandOptParser: NodeParser<CommandOptNode> =
-  locate<CommandOptNode>(
-    sequenceOf([
-      optOperatorParser,
-      enclose(camelAndKebabCase).errorMap((err) =>
-        buildParserError(
-          err,
-          COMMAND_PARSER_ERROR,
-          "Expecting a valid option name",
+export const commandOptParser: NodeParser<CommandOptNode> = recursiveParser(
+  () =>
+    locate<CommandOptNode>(
+      sequenceOf([
+        optOperatorParser,
+        enclose(camelAndKebabCase).errorMap((err) =>
+          buildParserError(
+            err,
+            COMMAND_PARSER_ERROR,
+            "Expecting a valid option name",
+          ),
         ),
-      ),
-      whitespace,
-      argumentExpressionParser(),
-    ]),
-    ({ data, index, result: [initialContext, [, name, , value]] }) => ({
-      type: NodeType.CommandOpt,
-      name: name as CommandOptNode["name"],
-      value: value as CommandOptNode["value"],
-      loc: createNodeLocation(initialContext, {
-        line: data.line,
-        index,
-        offset: data.offset,
+        whitespace,
+        argumentExpressionParser(),
+      ]),
+      ({ data, index, result: [initialContext, [, name, , value]] }) => ({
+        type: NodeType.CommandOpt,
+        name: name as CommandOptNode["name"],
+        value: value as CommandOptNode["value"],
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
       }),
-    }),
-  );
+    ),
+);
 
 const isLastParameter = possibly(
   lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),

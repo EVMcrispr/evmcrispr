@@ -1,11 +1,12 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
-
+import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
@@ -15,8 +16,8 @@ describe("Std > helpers > @token(tokenSymbol)", () => {
   let client: PublicClient;
   const lazyClient = () => client;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
@@ -43,8 +44,8 @@ describe("Std > helpers > @token.balance(tokenSymbol, account)", () => {
   let client: PublicClient;
   const lazyClient = () => client;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
@@ -74,8 +75,8 @@ describe("Std > helpers > @token.amount(tokenSymbol, amount)", () => {
   let client: PublicClient;
   const lazyClient = () => client;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should interpret it correctly", async () => {

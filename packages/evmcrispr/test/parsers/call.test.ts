@@ -1,8 +1,9 @@
+import { describe, it } from "bun:test";
 import { callExpressionParser } from "../../src/parsers/call";
 import type { Case } from "../test-helpers/evml";
 import { runCases } from "../test-helpers/evml";
 
-export const callParserDescribe = (): Mocha.Suite =>
+export const callParserDescribe = () =>
   describe("Parsers - call expression", () => {
     it("should parse call expressions correctly", () => {
       const cases: Case[] = [

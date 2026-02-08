@@ -1,10 +1,12 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
 import { Ens } from "../../../../src/modules/ens/Ens";
 import type { CommandExpressionNode } from "../../../../src/types";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { findStdCommandNode } from "../../../test-helpers/std";
@@ -12,8 +14,8 @@ import { findStdCommandNode } from "../../../test-helpers/std";
 describe("Std > commands > load <name> [as <alias>]", () => {
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should load a module correctly", async () => {
@@ -65,7 +67,5 @@ describe("Std > commands > load <name> [as <alias>]", () => {
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it(
-    "should throw an error when trying to load a module with an alias previously used",
-  );
+  it.todo("should throw an error when trying to load a module with an alias previously used", () => {});
 });

@@ -1,20 +1,25 @@
-import { viem } from "hardhat";
+import { beforeAll, describe, it } from "bun:test";
+import "../setup.js";
 
+import { expect } from "chai";
 import type { PublicClient } from "viem";
 import { zeroAddress } from "viem";
 
+import { ExpressionError } from "../../src/errors";
 import type { NumericLiteralNode } from "../../src/types";
-import { NodeType } from "../../src/types";
+import { BindingsSpace, NodeType } from "../../src/types";
 import { timeUnits, toDecimals } from "../../src/utils";
+import { getPublicClient } from "../test-helpers/client.js";
 import type { InterpreterCase } from "../test-helpers/evml";
-import { runInterpreterCases } from "../test-helpers/evml";
+import { createInterpreter, runInterpreterCases } from "../test-helpers/evml";
+import { expectThrowAsync } from "../test-helpers/expects";
 
 describe("Interpreter - primaries", async () => {
   let client: PublicClient;
   const getClient = async () => client;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
   describe("when interpreting a literal node", () => {
     it("should interpret address node correctly", async () => {
@@ -173,7 +178,20 @@ describe("Interpreter - primaries", async () => {
 
       await runInterpreterCases(cases, getClient);
     });
-    it("should interpret a variable correctly");
-    it("should fail when intepreting a non-existent variable");
+    it("should interpret a variable correctly", async () => {
+      const interpreter = createInterpreter(`set $myVar 42`, client);
+      await interpreter.interpret();
+      const value = interpreter.getBinding("$myVar", BindingsSpace.USER);
+      expect(value).to.equal(BigInt(42));
+    });
+
+    it("should fail when intepreting a non-existent variable", async () => {
+      const interpreter = createInterpreter(`set $a $nonExistent`, client);
+      const node = interpreter.ast.body[0].args[1];
+      const err = new ExpressionError(node, "$nonExistent not defined", {
+        name: "VariableIdentifierError",
+      });
+      await expectThrowAsync(() => interpreter.interpret(), err);
+    });
   });
 });

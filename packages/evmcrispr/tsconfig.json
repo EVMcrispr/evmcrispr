@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.json",
   "include": [".", "test/modules"],
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "esnext",
     "moduleResolution": "Node",
     "target": "ES2022",
-    "types": ["node", "mocha"],
+    "types": ["node", "bun"],
     "noEmit": false,
     "outDir": "./dist",
     "declarationDir": "./dist/types"

@@ -1,10 +1,11 @@
+import { describe, it } from "bun:test";
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
 } from "../../src/parsers/helper";
 import { runCases, runErrorCase } from "../test-helpers/evml";
 
-export const helperParserDescribe = (): Mocha.Suite =>
+export const helperParserDescribe = () =>
   describe("Parsers - helper function", () => {
     it("should parse helpers correctly", () => {
       const cases: [string, any, string?][] = [

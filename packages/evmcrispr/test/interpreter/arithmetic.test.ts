@@ -1,12 +1,13 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../setup.js";
 
 import type { PublicClient } from "viem";
 
 import { ExpressionError } from "../../src/errors";
 
 import { toDecimals } from "../../src/utils";
-
+import { getPublicClient } from "../test-helpers/client.js";
 import { createInterpreter, preparingExpression } from "../test-helpers/evml";
 import { expectThrowAsync } from "../test-helpers/expects";
 
@@ -15,8 +16,8 @@ describe("Interpreter - arithmetics", () => {
 
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should return the correct result of an arithmetic operation", async () => {

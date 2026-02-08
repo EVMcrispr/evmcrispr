@@ -1,3 +1,4 @@
+import { beforeEach, describe, it } from "bun:test";
 import { expect } from "chai";
 
 import type { EvmlAST } from "../src/EvmlAST";

@@ -94,12 +94,14 @@ const binaryExpression =
       },
     );
 
-const operableExpressions = choice([
-  callExpressionParser,
-  helperFunctionParser,
-  variableIdentifierParser([plus, minus, times, divide, exp, char(")")]),
-  numberParser([plus, minus, times, divide, exp, char(")")]),
-]);
+const operableExpressions = recursiveParser(() =>
+  choice([
+    callExpressionParser,
+    helperFunctionParser,
+    variableIdentifierParser([plus, minus, times, divide, exp, char(")")]),
+    numberParser([plus, minus, times, divide, exp, char(")")]),
+  ]),
+);
 
 // Each precedence group consists of a set of equal precedence terms,
 // followed by a fall-through to the next level of precedence

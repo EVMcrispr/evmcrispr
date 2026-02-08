@@ -7,6 +7,7 @@ import {
   either,
   endOfInput,
   everyCharUntil,
+  everythingUntil,
   getData,
   lookAhead,
   possibly,
@@ -28,7 +29,6 @@ import type {
   NodeParserState,
 } from "../types";
 import { buildParserError } from "../utils/parsers";
-import { commentParser } from "./comment";
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
@@ -241,3 +241,14 @@ export const locate = <N extends Node = Node>(
       p,
     ]).mapFromData<N>(createNode),
   );
+
+// Comment parser is defined here (instead of comment.ts) to avoid
+// a circular dependency: comment.ts needs optionalWhitespace/endLine
+// from utils.ts, and utils.ts needs commentParser in linesParser.
+const commentInitializerChar = char("#");
+
+export const commentParser = sequenceOf([
+  optionalWhitespace,
+  commentInitializerChar,
+  everythingUntil(choice([endOfInput, endLine])),
+]);

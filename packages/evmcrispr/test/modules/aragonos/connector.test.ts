@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import hre, { viem } from "hardhat";
+import "../../setup.js";
 import { cid } from "is-ipfs";
 
 import type { PublicClient } from "viem";
@@ -11,31 +12,26 @@ import type { ParsedApp } from "../../../src/modules/aragonos/types";
 import { parseContentUri } from "../../../src/modules/aragonos/utils";
 
 import { DAO, EOA_ADDRESS } from "../../fixtures";
+import { getPublicClient } from "../../test-helpers/client.js";
 import { expectThrowAsync } from "../../test-helpers/expects";
 import { isValidArtifact, isValidParsedApp } from "./test-helpers/expects";
 
-const {
-  network: {
-    config: { chainId },
-  },
-} = hre;
-
-const GOERLI_DAO_ADDRESS = "0xd8765273da3a7f7a4dc184e8a9f8a894e4dfb4c4";
+const CHAIN_ID = 100;
 
 describe("AragonOS > Connector", () => {
   let connector: Connector;
-  let goerliConnector: Connector;
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
-
-    connector = new Connector(chainId || 4, client);
-    goerliConnector = new Connector(5, client);
+  beforeAll(async () => {
+    client = getPublicClient();
+    connector = new Connector(CHAIN_ID, client);
   });
 
-  it("should fail when creating a connector with an unknown chain id", () => {
-    expectThrowAsync(() => new Connector(999, client), new ErrorException());
+  it("should fail when creating a connector with an unsupported chain id", async () => {
+    await expectThrowAsync(
+      () => new Connector(999, client),
+      new ErrorException("No subgraph found for chain id 999"),
+    );
   });
 
   describe("repo()", () => {
@@ -45,8 +41,7 @@ describe("AragonOS > Connector", () => {
         "aragonpm.eth",
       );
 
-      expect(isAddress(codeAddress), "Invalid  repo code address").to.be.true;
-
+      expect(isAddress(codeAddress), "Invalid repo code address").to.be.true;
       expect(cid(parseContentUri(contentUri)), "Invalid repo contentUri").to.be
         .true;
 
@@ -67,32 +62,17 @@ describe("AragonOS > Connector", () => {
 
   describe("organizationApps()", () => {
     let daoApps: ParsedApp[];
-    let goerliDaoApps: ParsedApp[];
 
-    before(async () => {
+    beforeAll(async () => {
       daoApps = await connector.organizationApps(DAO.kernel);
-      goerliDaoApps =
-        await goerliConnector.organizationApps(GOERLI_DAO_ADDRESS);
     });
 
-    describe("when fetching apps from a non-goerli's dao", () => {
-      it("should find the apps", () => {
-        expect(daoApps.length).to.be.greaterThan(0);
-      });
-
-      it("should return valid parsed apps", () => {
-        daoApps.forEach((app) => isValidParsedApp(app));
-      });
+    it("should find the apps", () => {
+      expect(daoApps.length).to.be.greaterThan(0);
     });
 
-    describe("when fetching apps from a goerli's dao", () => {
-      it("should find the apps", () => {
-        expect(goerliDaoApps.length).to.be.greaterThan(0);
-      });
-
-      it("shole return valid parsed apps", () => {
-        goerliDaoApps.forEach((app) => isValidParsedApp(app));
-      });
+    it("should return valid parsed apps", () => {
+      daoApps.forEach((app) => isValidParsedApp(app));
     });
 
     it("should fail when fetching the apps of a non-existent dao", async () => {

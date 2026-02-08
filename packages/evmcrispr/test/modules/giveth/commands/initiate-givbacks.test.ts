@@ -1,8 +1,10 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
@@ -10,8 +12,8 @@ const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 describe("Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]", () => {
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   const testInitiateGivbacks =

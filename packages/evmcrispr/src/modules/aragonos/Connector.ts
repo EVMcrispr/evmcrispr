@@ -1,5 +1,3 @@
-import fetch from "isomorphic-fetch";
-
 import type { PublicClient } from "viem";
 
 import { ErrorException, ErrorNotFound } from "../../errors";
@@ -72,7 +70,9 @@ export class Connector {
 
     if (errors?.length) {
       throw new ErrorException(
-        `An error happened while querying subgraph: ${JSON.stringify(errors[0])}`,
+        `An error happened while querying subgraph: ${JSON.stringify(
+          errors[0],
+        )}`,
       );
     }
 

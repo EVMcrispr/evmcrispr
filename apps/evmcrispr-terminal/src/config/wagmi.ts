@@ -17,35 +17,39 @@ function drpcUrl(drpcChain: string) {
   return `https://lb.drpc.org/ogrpc?network=${drpcChain}&dkey=${DRPC_API_KEY}`;
 }
 
-const alchemyTransports = ALCHEMY_API_KEY && {
-  [_chains.mainnet.id]: alchemyUrl(`eth-mainnet`),
-  [_chains.sepolia.id]: alchemyUrl(`eth-sepolia`),
-  [_chains.polygon.id]: alchemyUrl(`polygon-mainnet`),
-  [_chains.polygonAmoy.id]: alchemyUrl(`polygon-amoy`),
-  [_chains.polygonZkEvm.id]: alchemyUrl(`polygonzkevm-mainnet`),
-  [_chains.polygonZkEvmCardona.id]: alchemyUrl(`polygonzkevm-cardona`),
-  [_chains.optimism.id]: alchemyUrl(`opt-mainnet`),
-  [_chains.optimismSepolia.id]: alchemyUrl(`opt-sepolia`),
-  [_chains.arbitrum.id]: alchemyUrl(`arb-mainnet`),
-  [_chains.arbitrumSepolia.id]: alchemyUrl(`arb-sepolia`),
-  [_chains.base.id]: alchemyUrl(`base-mainnet`),
-  [_chains.baseSepolia.id]: alchemyUrl(`base-sepolia`),
-};
+const alchemyTransports: Record<number, string> | undefined = ALCHEMY_API_KEY
+  ? {
+      [_chains.mainnet.id]: alchemyUrl(`eth-mainnet`),
+      [_chains.sepolia.id]: alchemyUrl(`eth-sepolia`),
+      [_chains.polygon.id]: alchemyUrl(`polygon-mainnet`),
+      [_chains.polygonAmoy.id]: alchemyUrl(`polygon-amoy`),
+      [_chains.polygonZkEvm.id]: alchemyUrl(`polygonzkevm-mainnet`),
+      [_chains.polygonZkEvmCardona.id]: alchemyUrl(`polygonzkevm-cardona`),
+      [_chains.optimism.id]: alchemyUrl(`opt-mainnet`),
+      [_chains.optimismSepolia.id]: alchemyUrl(`opt-sepolia`),
+      [_chains.arbitrum.id]: alchemyUrl(`arb-mainnet`),
+      [_chains.arbitrumSepolia.id]: alchemyUrl(`arb-sepolia`),
+      [_chains.base.id]: alchemyUrl(`base-mainnet`),
+      [_chains.baseSepolia.id]: alchemyUrl(`base-sepolia`),
+    }
+  : undefined;
 
-const dRPCTransports = DRPC_API_KEY && {
-  [_chains.mainnet.id]: drpcUrl(`ethereum`),
-  [_chains.sepolia.id]: drpcUrl(`sepolia`),
-  [_chains.polygon.id]: drpcUrl(`polygon`),
-  [_chains.polygonAmoy.id]: drpcUrl(`polygon-amoy`),
-  [_chains.polygonZkEvm.id]: drpcUrl(`polygon-zkevm`),
-  [_chains.polygonZkEvmCardona.id]: drpcUrl(`polygon-zkevm-cardona`),
-  [_chains.optimism.id]: drpcUrl(`optimism`),
-  [_chains.optimismSepolia.id]: drpcUrl(`optimism-sepolia`),
-  [_chains.arbitrum.id]: drpcUrl(`arbitrum`),
-  [_chains.arbitrumSepolia.id]: drpcUrl(`arbitrum-sepolia`),
-  [_chains.base.id]: drpcUrl(`base`),
-  [_chains.baseSepolia.id]: drpcUrl(`base-sepolia`),
-};
+const dRPCTransports: Record<number, string> | undefined = DRPC_API_KEY
+  ? {
+      [_chains.mainnet.id]: drpcUrl(`ethereum`),
+      [_chains.sepolia.id]: drpcUrl(`sepolia`),
+      [_chains.polygon.id]: drpcUrl(`polygon`),
+      [_chains.polygonAmoy.id]: drpcUrl(`polygon-amoy`),
+      [_chains.polygonZkEvm.id]: drpcUrl(`polygon-zkevm`),
+      [_chains.polygonZkEvmCardona.id]: drpcUrl(`polygon-zkevm-cardona`),
+      [_chains.optimism.id]: drpcUrl(`optimism`),
+      [_chains.optimismSepolia.id]: drpcUrl(`optimism-sepolia`),
+      [_chains.arbitrum.id]: drpcUrl(`arbitrum`),
+      [_chains.arbitrumSepolia.id]: drpcUrl(`arbitrum-sepolia`),
+      [_chains.base.id]: drpcUrl(`base`),
+      [_chains.baseSepolia.id]: drpcUrl(`base-sepolia`),
+    }
+  : undefined;
 
 const chains = Object.values(_chains) as unknown as [Chain, ...Chain[]];
 export const transports = chains.reduce(
@@ -75,6 +79,6 @@ export const config = createConfig({
         allowedDomains: [/app.safe.global$/],
         unstable_getInfoTimeout: 500,
       }),
-  ].filter(Boolean),
+  ].filter((c): c is Exclude<typeof c, false | "" | undefined> => Boolean(c)),
   transports,
 });

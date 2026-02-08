@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, parseAbiParameters } from "viem";
@@ -7,16 +8,19 @@ import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
 import type { TransactionAction } from "../../../../src/types";
 import { BindingsSpace } from "../../../../src/types";
 import { addressesEqual } from "../../../../src/utils";
-
+import {
+  getPublicClient,
+  getWalletClients,
+} from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
   let client: PublicClient;
   let walletClient: WalletClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
-    [walletClient] = await viem.getWalletClients();
+  beforeAll(async () => {
+    client = getPublicClient();
+    [walletClient] = getWalletClients();
   });
 
   it("should create a new dao correctly", async () => {

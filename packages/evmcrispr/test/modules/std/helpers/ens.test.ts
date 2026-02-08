@@ -1,10 +1,12 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { HelperFunctionError } from "../../../../src/errors";
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
@@ -15,8 +17,8 @@ describe("Std > helpers > @ens(name)", () => {
   let client: PublicClient;
   const lazyClient = () => client;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("return the hashed value", async () => {

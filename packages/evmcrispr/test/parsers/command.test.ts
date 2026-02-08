@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,

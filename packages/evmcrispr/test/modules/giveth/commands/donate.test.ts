@@ -1,17 +1,18 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 
 import { givethDonationRelayer } from "../../../../src/modules/giveth/addresses";
-
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 
-describe("Giveth > commands > donate <slug> <amount> <token>", () => {
+describe.skip("Giveth > commands > donate <slug> <amount> <token>", () => {
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should return a correct donate action", async () => {

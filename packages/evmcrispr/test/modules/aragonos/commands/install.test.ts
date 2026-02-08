@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
@@ -10,6 +11,7 @@ import { addressesEqual } from "../../../../src/utils";
 
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { APP } from "../fixtures/mock-app";
@@ -36,8 +38,8 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       client,
@@ -181,7 +183,9 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
     const c = findAragonOSCommandNode(interpreter.ast, "install")!;
     const error = new CommandError(
       c,
-      `ENS repo name ${`${invalidRepoENSName.split(":")[0]}.aragonpm.eth`} couldn't be resolved`,
+      `ENS repo name ${`${
+        invalidRepoENSName.split(":")[0]
+      }.aragonpm.eth`} couldn't be resolved`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

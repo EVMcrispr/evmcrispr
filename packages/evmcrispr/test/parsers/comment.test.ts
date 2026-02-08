@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import { scriptParser } from "../../src";
 
 import type { Case } from "../test-helpers/evml";

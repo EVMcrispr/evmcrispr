@@ -1,4 +1,3 @@
-import fetch from "isomorphic-fetch";
 import type { Module } from "../../..";
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";

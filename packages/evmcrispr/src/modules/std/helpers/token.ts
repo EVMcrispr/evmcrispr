@@ -1,5 +1,3 @@
-import fetch from "isomorphic-fetch";
-
 import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
 import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";

@@ -1,3 +1,4 @@
+import { it } from "bun:test";
 import type { PublicClient } from "viem";
 
 import type { Address } from "../../../../src";

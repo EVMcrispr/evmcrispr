@@ -1,3 +1,4 @@
+import { it } from "bun:test";
 import { inspect } from "node:util";
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
@@ -206,9 +207,9 @@ export const itChecksInvalidArgsLength = (
   c: Comparison,
   lazyClient: () => PublicClient,
   module?: string,
-): Mocha.Test => {
+): void => {
   const { type, minValue, maxValue } = c;
-  return it("should fail when receiving an invalid number of arguments", async () => {
+  it("should fail when receiving an invalid number of arguments", async () => {
     /**
      * When calling the 'it' outter fn none of the 'before' statements have been executed
      * so the signer hasn't been defined yet. To solve this, we pass a callback returning
@@ -290,8 +291,8 @@ export const itChecksNonDefinedIdentifier = (
   commandName: string,
   argIndex: number,
   isAragonOS = false,
-): Mocha.Test => {
-  return it(itName, async () => {
+): void => {
+  it(itName, async () => {
     const nonDefinedIdentifier = "non-defined-address";
     const interpreter = createInterpreter(nonDefinedIdentifier);
     let body = interpreter.ast.body;

@@ -1,5 +1,3 @@
-import fetch from "isomorphic-fetch";
-
 import { ErrorException } from "../../../errors";
 import type { HelperFunction } from "../../../types";
 import { ComparisonType, checkArgsLength } from "../../../utils";

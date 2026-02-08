@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import type { Err } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";

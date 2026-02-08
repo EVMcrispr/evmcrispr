@@ -64,12 +64,14 @@ const chainedCallExpressionParser = (
 
 const enclosingParsers = [callOperatorParser];
 
-const callableExpressions = choice([
-  addressParser(enclosingParsers),
-  variableIdentifierParser(enclosingParsers),
-  helperFunctionParser,
-  probableIdentifierParser(enclosingParsers),
-]);
+const callableExpressions = recursiveParser(() =>
+  choice([
+    addressParser(enclosingParsers),
+    variableIdentifierParser(enclosingParsers),
+    helperFunctionParser,
+    probableIdentifierParser(enclosingParsers),
+  ]),
+);
 
 export const callExpressionParser: NodeParser<CallExpressionNode> =
   recursiveParser(() =>

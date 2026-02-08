@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient, WalletClient } from "viem";
 import { getContract, getContractAddress, parseAbi } from "viem";
@@ -12,6 +13,10 @@ import { BindingsSpace } from "../../../../src/types";
 import { addressesEqual } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
+import {
+  getPublicClient,
+  getWalletClients,
+} from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import {
@@ -27,9 +32,9 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
-    [walletClient] = await viem.getWalletClients();
+  beforeAll(async () => {
+    client = getPublicClient();
+    [walletClient] = getWalletClients();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       client,

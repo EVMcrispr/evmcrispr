@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
@@ -7,6 +8,7 @@ import { CommandError } from "../../../../src/errors";
 import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils";
 import { commaListItems } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,
@@ -28,8 +30,8 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       client,

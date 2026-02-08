@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { getContract, keccak256, namehash, toHex } from "viem";
@@ -9,6 +10,7 @@ import { REPO_ABI } from "../../../../src/modules/aragonos/utils";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestAction } from "../test-helpers/actions";
@@ -25,8 +27,8 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       client,

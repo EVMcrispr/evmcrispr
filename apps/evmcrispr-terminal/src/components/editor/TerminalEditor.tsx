@@ -3,7 +3,6 @@ import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import { useEffect } from "react";
 import { usePublicClient } from "wagmi";
-import { useDebounce } from "../../hooks/useDebounce";
 import {
   terminalStoreActions,
   useTerminalStore,
@@ -21,8 +20,6 @@ export default function TerminalEditor() {
 
   const publicClient = usePublicClient();
 
-  const debouncedScript = useDebounce(script, 200);
-
   function handleOnChangeEditor(str: string | undefined, ev: any) {
     terminalStoreActions("script", str ?? "");
 
@@ -39,7 +36,7 @@ export default function TerminalEditor() {
 
   useEffect(() => {
     terminalStoreActions("processScript");
-  }, [debouncedScript]);
+  }, []);
 
   useEffect(() => {
     if (!monaco) {
@@ -78,7 +75,7 @@ export default function TerminalEditor() {
     return () => {
       completionProvider.dispose();
     };
-  }, [bindingsCache, monaco, publicClient, ast]);
+  }, [bindingsCache, monaco, publicClient, ast, ipfsResolver]);
 
   function handleBeforeMountEditor(monaco: Monaco) {
     monaco.editor.defineTheme("theme", theme);

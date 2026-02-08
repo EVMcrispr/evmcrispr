@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { HelperFunctionError } from "../../../../src/errors";
@@ -9,6 +10,7 @@ import type {
 } from "../../../../src/types";
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   createInterpreter,
   itChecksInvalidArgsLength,
@@ -29,8 +31,8 @@ describe("Std > helpers > @ipfs(text)", () => {
   const lazyClient = () => client;
   const ipfsData = "This should be pinned in IPFS";
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should upload text to IPFS and return hash", async () => {

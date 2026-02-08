@@ -1,10 +1,12 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { HelperFunctionError } from "../../../../src/errors";
 import { NodeType } from "../../../../src/types";
 import { ComparisonType } from "../../../../src/utils";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,
@@ -16,8 +18,8 @@ describe("Std > helpers > @get(contractAddress, method, params?)", () => {
   const clientSigner = () => client;
   const targetAddress = "0x44fA8E6f47987339850636F88629646662444217";
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   it("should interpret it correctly", async () => {
@@ -29,8 +31,8 @@ describe("Std > helpers > @get(contractAddress, method, params?)", () => {
     expect(await interpret()).to.eq("Dai Stablecoin on xDai");
   });
 
-  it.skip("should interpret it correctly", async () => {
-    const sushiFarm = "0x44fA8E6f47987339850636F88629646662444217";
+  it("should interpret it correctly", async () => {
+    const sushiFarm = "0xdDCbf776dF3dE60163066A5ddDF2277cB445E0F3";
     const [interpret] = await preparingExpression(
       `@get(${sushiFarm},"poolInfo(uint256):(uint128,uint64,uint64):1",1)`,
       client,

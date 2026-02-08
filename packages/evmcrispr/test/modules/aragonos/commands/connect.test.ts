@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import {
@@ -24,6 +25,7 @@ import {
 import { DAO } from "../../../fixtures/mock-dao";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import { createInterpreter } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
@@ -53,8 +55,8 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     typeof createAragonScriptInterpreter_
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
 
     createAragonScriptInterpreter = createAragonScriptInterpreter_(
       client,

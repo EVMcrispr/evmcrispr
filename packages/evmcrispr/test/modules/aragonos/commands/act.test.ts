@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { toHex } from "viem";
@@ -7,6 +8,7 @@ import { toHex } from "viem";
 import { CommandError } from "../../../../src/errors";
 import { encodeAction } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { itChecksNonDefinedIdentifier } from "../../../test-helpers/evml";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 import { createTestScriptEncodedAction } from "../test-helpers/actions";
@@ -22,8 +24,8 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     typeof _createAragonScriptInterpreter
   >;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
 
     createAragonScriptInterpreter = _createAragonScriptInterpreter(
       client,

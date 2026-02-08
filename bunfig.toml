@@ -1,2 +1,3 @@
 [test]
-root = "./__tests__"
+root = "./packages/evmcrispr/test"
+preload = ["./packages/evmcrispr/test/setup.ts"]

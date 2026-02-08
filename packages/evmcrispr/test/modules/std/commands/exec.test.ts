@@ -1,5 +1,6 @@
+import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
-import { viem } from "hardhat";
+import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { toHex } from "viem";
@@ -7,6 +8,7 @@ import { CommandError } from "../../../../src/errors";
 import type { Action } from "../../../../src/types";
 
 import { encodeAction, toDecimals } from "../../../../src/utils";
+import { getPublicClient } from "../../../test-helpers/client.js";
 import { TEST_ACCOUNT_ADDRESS } from "../../../test-helpers/constants";
 import {
   createInterpreter,
@@ -18,8 +20,8 @@ import { findStdCommandNode } from "../../../test-helpers/std";
 describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]", () => {
   let client: PublicClient;
 
-  before(async () => {
-    client = await viem.getPublicClient();
+  beforeAll(async () => {
+    client = getPublicClient();
   });
 
   const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
@@ -183,15 +185,11 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
 
-  it(
-    "should fail when providing a method's name whose contract ABI isn't found",
-  );
+  it.todo("should fail when providing a method's name whose contract ABI isn't found", () => {});
 
-  it("should fail when providing an ABI duplicated method's name");
+  it.todo("should fail when providing an ABI duplicated method's name", () => {});
 
-  it(
-    "should fail when providing a method's name of a contract which isn't verified",
-  );
+  it.todo("should fail when providing a method's name of a contract which isn't verified", () => {});
 
   it("should fail when providing invalid call params", async () => {
     const paramErrors = [
