@@ -43,13 +43,23 @@ export function useTransactionExecutor(
 
         if (isOurTransaction) {
           const chainId = await walletClient.getChainId();
+
+          // Determine gas limit: explicit --gas > maximizeGasLimit (EIP-7825) > undefined (let wallet estimate)
+          let gasLimit: bigint | undefined = action.gas;
+          if (!gasLimit && maximizeGasLimit) {
+            gasLimit = 16_777_216n; // EIP-7825 gas limit, other chains may have different limits. Check again when EIP-8123 approved.
+          }
+
           const tx = await walletClient.sendTransaction({
             chain: config.chains.find((chain) => chain.id === chainId),
             to: action.to,
             from: action.from,
             data: action.data,
             value: action.value,
-            gasLimit: maximizeGasLimit ? 10_000_000n : undefined,
+            gas: gasLimit,
+            maxFeePerGas: action.maxFeePerGas,
+            maxPriorityFeePerGas: action.maxPriorityFeePerGas,
+            nonce: action.nonce,
           });
           return await currentPublicClient.waitForTransactionReceipt({
             hash: tx,
@@ -75,11 +85,7 @@ export function useTransactionExecutor(
             if (safeConnector) {
               await executeSafeBatchedActions(action.actions);
             } else {
-              return await executeBatchedActions(
-                action.actions,
-                walletClient,
-                maximizeGasLimit,
-              );
+              return await executeBatchedActions(action.actions, walletClient);
             }
             break;
           }

@@ -24,6 +24,22 @@ export interface TransactionAction {
    * The chain ID for the transaction.
    */
   chainId?: number;
+  /**
+   * The gas limit for the transaction (maximum gas units to consume).
+   */
+  gas?: bigint;
+  /**
+   * The maximum total fee per gas (base fee + priority fee) for EIP-1559 transactions (in wei).
+   */
+  maxFeePerGas?: bigint;
+  /**
+   * The maximum priority fee per gas (tip to the validator) for EIP-1559 transactions (in wei).
+   */
+  maxPriorityFeePerGas?: bigint;
+  /**
+   * The transaction nonce (overrides automatic nonce management).
+   */
+  nonce?: number;
 }
 
 /**

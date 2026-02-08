@@ -28,7 +28,14 @@ const { ABI, ADDR } = BindingsSpace;
 export const exec: ICommand<Std> = {
   async run(module, c, { interpretNode, interpretNodes, actionCallback }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ["value", "from"]);
+    checkOpts(c, [
+      "value",
+      "from",
+      "gas",
+      "max-fee-per-gas",
+      "max-priority-fee-per-gas",
+      "nonce",
+    ]);
 
     const [targetNode, signatureNode, ...rest] = c.args;
 
@@ -40,6 +47,14 @@ export const exec: ICommand<Std> = {
 
     const value = await getOptValue(c, "value", interpretNode);
     const from = await getOptValue(c, "from", interpretNode);
+    const gas = await getOptValue(c, "gas", interpretNode);
+    const maxFeePerGas = await getOptValue(c, "max-fee-per-gas", interpretNode);
+    const maxPriorityFeePerGas = await getOptValue(
+      c,
+      "max-priority-fee-per-gas",
+      interpretNode,
+    );
+    const nonce = await getOptValue(c, "nonce", interpretNode);
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
@@ -124,6 +139,38 @@ export const exec: ICommand<Std> = {
 
     if (from) {
       execAction.from = from;
+    }
+
+    if (gas) {
+      if (!isNumberish(gas)) {
+        throw new ErrorException(`expected a valid gas limit, but got ${gas}`);
+      }
+      execAction.gas = BigInt(gas);
+    }
+
+    if (maxFeePerGas) {
+      if (!isNumberish(maxFeePerGas)) {
+        throw new ErrorException(
+          `expected a valid max fee per gas, but got ${maxFeePerGas}`,
+        );
+      }
+      execAction.maxFeePerGas = BigInt(maxFeePerGas);
+    }
+
+    if (maxPriorityFeePerGas) {
+      if (!isNumberish(maxPriorityFeePerGas)) {
+        throw new ErrorException(
+          `expected a valid max priority fee per gas, but got ${maxPriorityFeePerGas}`,
+        );
+      }
+      execAction.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas);
+    }
+
+    if (nonce) {
+      if (!isNumberish(nonce)) {
+        throw new ErrorException(`expected a valid nonce, but got ${nonce}`);
+      }
+      execAction.nonce = Number(nonce);
     }
 
     // Handle event captures: dispatch action, decode receipt logs, store variables

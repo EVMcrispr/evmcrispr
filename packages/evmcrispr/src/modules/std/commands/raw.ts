@@ -17,7 +17,13 @@ const { ABI, ADDR } = BindingsSpace;
 export const raw: ICommand<Std> = {
   async run(module, c, { interpretNode, actionCallback }) {
     checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, ["from"]);
+    checkOpts(c, [
+      "from",
+      "gas",
+      "max-fee-per-gas",
+      "max-priority-fee-per-gas",
+      "nonce",
+    ]);
 
     const [targetNode, dataNode, valueNode] = c.args;
 
@@ -28,6 +34,14 @@ export const raw: ICommand<Std> = {
     ]);
 
     const from = await getOptValue(c, "from", interpretNode);
+    const gas = await getOptValue(c, "gas", interpretNode);
+    const maxFeePerGas = await getOptValue(c, "max-fee-per-gas", interpretNode);
+    const maxPriorityFeePerGas = await getOptValue(
+      c,
+      "max-priority-fee-per-gas",
+      interpretNode,
+    );
+    const nonce = await getOptValue(c, "nonce", interpretNode);
 
     if (!isAddress(contractAddress)) {
       throw new ErrorException(
@@ -56,6 +70,38 @@ export const raw: ICommand<Std> = {
 
     if (from) {
       rawAction.from = from;
+    }
+
+    if (gas) {
+      if (!isNumberish(gas)) {
+        throw new ErrorException(`expected a valid gas limit, but got ${gas}`);
+      }
+      rawAction.gas = BigInt(gas);
+    }
+
+    if (maxFeePerGas) {
+      if (!isNumberish(maxFeePerGas)) {
+        throw new ErrorException(
+          `expected a valid max fee per gas, but got ${maxFeePerGas}`,
+        );
+      }
+      rawAction.maxFeePerGas = BigInt(maxFeePerGas);
+    }
+
+    if (maxPriorityFeePerGas) {
+      if (!isNumberish(maxPriorityFeePerGas)) {
+        throw new ErrorException(
+          `expected a valid max priority fee per gas, but got ${maxPriorityFeePerGas}`,
+        );
+      }
+      rawAction.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas);
+    }
+
+    if (nonce) {
+      if (!isNumberish(nonce)) {
+        throw new ErrorException(`expected a valid nonce, but got ${nonce}`);
+      }
+      rawAction.nonce = Number(nonce);
     }
 
     // Handle event captures: dispatch action, decode receipt logs, store variables

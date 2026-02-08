@@ -10,7 +10,6 @@ export function useTransactionBatcher(safeConnector?: any) {
     async (
       actions: TransactionAction[],
       currentWalletClient: WalletClient<Transport, Chain, Account>,
-      currentMaximizeGasLimit: boolean,
     ) => {
       if (actions.length === 0) return;
 
@@ -40,14 +39,15 @@ export function useTransactionBatcher(safeConnector?: any) {
           to: action.to!,
           data: action.data,
           value: BigInt(action.value || "0"),
-          gasLimit: currentMaximizeGasLimit ? 10_000_000n : undefined,
         })),
       });
 
       const result = await currentWalletClient.waitForCallsStatus({ id });
       if (result.status !== "success") {
         throw new Error(
-          `Transaction batch failed on ${config.chains.find((c) => c.id === chainId)?.name || "unknown chain"}`,
+          `Transaction batch failed on ${
+            config.chains.find((c) => c.id === chainId)?.name || "unknown chain"
+          }`,
         );
       }
 

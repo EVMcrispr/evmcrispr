@@ -154,9 +154,18 @@ export const fork: ICommand<Tenderly> = {
           method: "eth_sendTransaction",
           params: [
             {
-              ...action,
+              to: action.to,
+              data: action.data,
               from: action.from || (await module.getConnectedAccount()),
               value: toHex(action.value || 0n),
+              ...(action.gas !== undefined && { gas: toHex(action.gas) }),
+              ...(action.maxFeePerGas !== undefined && {
+                maxFeePerGas: toHex(action.maxFeePerGas),
+              }),
+              ...(action.maxPriorityFeePerGas !== undefined && {
+                maxPriorityFeePerGas: toHex(action.maxPriorityFeePerGas),
+              }),
+              ...(action.nonce !== undefined && { nonce: toHex(action.nonce) }),
             },
           ],
         });
