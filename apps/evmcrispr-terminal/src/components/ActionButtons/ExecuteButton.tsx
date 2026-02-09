@@ -17,7 +17,7 @@ export function ExecuteButton({
   isLoading: boolean;
   onExecute: (inBatch: boolean) => void;
 }) {
-  const [isBatch, setIsBatch] = useBoolean(true);
+  const [isBatch, setIsBatch] = useBoolean(false);
 
   return (
     <HStack spacing={0}>
