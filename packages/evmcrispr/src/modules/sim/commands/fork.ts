@@ -54,50 +54,60 @@ export const fork: ICommand<Sim> = {
     let walletClient: WalletClient;
     let onSuccess: (() => void) | undefined;
     let onError: (() => void) | undefined;
+    let snapshotId: string | undefined;
 
-    if (using === "anvil") {
-      // ── Anvil backend ──────────────────────────────────────────────
-      const anvilRPC = "http://localhost:8545";
+    if (using === "anvil" || using === "hardhat") {
+      // ── Anvil / Hardhat backend ──────────────────────────────────
+      const rpcUrl = "http://localhost:8545";
+
+      const backendName = using === "anvil" ? "Anvil" : "Hardhat";
 
       publicClient = createPublicClient({
         chain: mainnet,
-        transport: http(anvilRPC),
+        transport: http(rpcUrl),
       });
       walletClient = createWalletClient({
         chain: mainnet,
-        transport: http(anvilRPC),
+        transport: http(rpcUrl),
       });
 
-      // Verify chain ID matches
-      let anvilChainId: number;
+      // Snapshot the clean fork state so we can revert after execution
       try {
-        anvilChainId = await publicClient.getChainId();
+        snapshotId = await walletClient.request({
+          method: "evm_snapshot" as any,
+          params: [],
+        });
       } catch (e) {
         throw new ErrorException(
-          `Failed to connect to Anvil at ${anvilRPC}. Make sure Anvil is running.`,
+          `Failed to connect to ${backendName} at ${rpcUrl}. Make sure ${backendName} is running.`,
         );
       }
 
-      if (anvilChainId !== chainId) {
+      // Verify chain ID matches
+      const backendChainId = await publicClient.getChainId();
+
+      if (backendChainId !== chainId) {
         throw new ErrorException(
-          `Chain ID mismatch: expected ${chainId} but Anvil is forking chain ${anvilChainId}.`,
+          `Chain ID mismatch: expected ${chainId} but ${backendName} is forking chain ${backendChainId}.`,
         );
       }
 
       // Verify block number if specified
       if (blockNumber) {
-        const anvilBlockNumber = await publicClient.getBlockNumber();
+        const currentBlockNumber = await publicClient.getBlockNumber();
         const expectedBlockNumber = BigInt(blockNumber.toString());
-        if (anvilBlockNumber !== expectedBlockNumber) {
+        if (currentBlockNumber !== expectedBlockNumber) {
           throw new ErrorException(
-            `Block number mismatch: expected ${expectedBlockNumber} but Anvil is at block ${anvilBlockNumber}.`,
+            `Block number mismatch: expected ${expectedBlockNumber} but ${backendName} is at block ${currentBlockNumber}.`,
           );
         }
       }
 
+      module.mode = using;
+
       onSuccess = () => {
         module.evmcrispr.log(
-          `:success: All transactions succeeded on Anvil fork.`,
+          `:success: All transactions succeeded on ${backendName} fork.`,
         );
       };
     } else if (tenderlyOpt) {
@@ -193,6 +203,8 @@ export const fork: ICommand<Sim> = {
         );
       };
 
+      module.mode = "tenderly";
+
       onSuccess = () => {
         module.evmcrispr.log(
           `:success: All transactions succeeded: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
@@ -200,11 +212,11 @@ export const fork: ICommand<Sim> = {
       };
     } else if (using) {
       throw new ErrorException(
-        `Unknown simulation backend: "${using}". Supported: anvil`,
+        `Unknown simulation backend: "${using}". Supported: anvil, hardhat`,
       );
     } else {
       throw new ErrorException(
-        "Must specify --using anvil or --tenderly user/project/accessKey",
+        "Must specify --using anvil, --using hardhat, or --tenderly user/project/accessKey",
       );
     }
 
@@ -258,6 +270,15 @@ export const fork: ICommand<Sim> = {
       actionCallback: simulateAction,
     });
 
+    // Revert to the clean snapshot so the next fork starts fresh
+    if (snapshotId && walletClient) {
+      await walletClient.request({
+        method: "evm_revert" as any,
+        params: [snapshotId],
+      });
+    }
+
+    module.mode = null;
     module.evmcrispr.setClient(undefined);
     module.evmcrispr.setConnectedAccount(undefined);
 

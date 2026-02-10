@@ -23,6 +23,7 @@ async function getModule(moduleName: string): Promise<{
       // @ts-ignore-next-line
       return await import("../../aragonos");
     case "sim":
+      // @ts-ignore-next-line
       return await import("../../sim");
     case "giveth":
       return await import("../../giveth");
