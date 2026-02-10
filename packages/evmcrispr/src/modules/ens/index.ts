@@ -1,5 +1,9 @@
-import { Ens } from "./Ens";
+import { defineModule } from "../../utils/defineModule";
 
-export { commands } from "./commands";
-export { helpers } from "./helpers";
-export const ModuleConstructor = Ens;
+export const commands = ["renew"] as const;
+
+export const helpers = ["contenthash"] as const;
+
+export class Ens extends defineModule("ens", commands, helpers) {}
+
+export { Ens as ModuleConstructor };

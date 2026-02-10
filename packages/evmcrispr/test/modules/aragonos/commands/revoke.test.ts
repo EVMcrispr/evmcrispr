@@ -5,7 +5,7 @@ import "../../../setup.js";
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
 import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
 import type { CommandExpressionNode } from "../../../../src/types";
 import { toDecimals } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";

@@ -3,9 +3,10 @@ import type { Action, BatchedAction, TransactionAction } from "../../../types";
 import { isTransactionAction, NodeType } from "../../../types";
 import { defineCommand } from "../../../utils";
 import { resolveEventCaptures } from "../../../utils/events";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
-export const batch = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "batch",
   args: [{ name: "block", type: "any", skipInterpret: true }],
   async run(module, _args, { node, interpreters }) {
     const { interpretNode, actionCallback } = interpreters;

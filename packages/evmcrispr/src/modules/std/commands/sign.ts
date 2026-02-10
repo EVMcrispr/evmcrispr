@@ -2,12 +2,13 @@ import { ErrorException } from "../../../errors";
 import type { WalletAction } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
 import { defineCommand } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const { VariableIdentifier } = NodeType;
 const { USER } = BindingsSpace;
 
-export const sign = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "sign",
   args: [
     { name: "variable", type: "any" },
     { name: "message", type: "any", optional: true },

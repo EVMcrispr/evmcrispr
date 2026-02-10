@@ -5,7 +5,7 @@ import "../../../setup.js";
 import type { PublicClient } from "viem";
 import { getContract, keccak256, namehash, toHex } from "viem";
 import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
 import { REPO_ABI } from "../../../../src/modules/aragonos/utils";
 import { DAO } from "../../../fixtures";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2";

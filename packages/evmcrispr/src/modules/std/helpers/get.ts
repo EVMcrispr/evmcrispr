@@ -2,9 +2,10 @@ import { parseAbiItem } from "viem";
 
 import { ErrorException } from "../../../errors";
 import { defineHelper, isFunctionSignature } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
-export const get = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "get",
   args: [
     { name: "address", type: "address" },
     { name: "abi", type: "string", interpretOptions: { treatAsLiteral: true } },

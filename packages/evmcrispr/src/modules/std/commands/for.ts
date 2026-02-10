@@ -2,12 +2,13 @@ import { ErrorException } from "../../../errors";
 import type { Action } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
 import { defineCommand } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const { USER } = BindingsSpace;
 const { VariableIdentifier } = NodeType;
 
-export const _for = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "for",
   args: [
     { name: "variable", type: "any", skipInterpret: true },
     { name: "connector", type: "any", skipInterpret: true },

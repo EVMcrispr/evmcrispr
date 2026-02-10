@@ -17,7 +17,7 @@ import {
 } from "./errors";
 import { IPFSResolver } from "./IPFSResolver";
 import type { Module } from "./Module";
-import { Std } from "./modules/std/Std";
+import { Std } from "./modules/std";
 import { parseScript } from "./parsers/script";
 import type {
   Action,

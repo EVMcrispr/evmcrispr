@@ -2,9 +2,10 @@ import { namehash as _namehash } from "viem";
 import { normalize } from "viem/ens";
 
 import { defineHelper } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
-export const namehash = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "namehash",
   args: [{ name: "name", type: "string" }],
   async run(_, { name }) {
     try {

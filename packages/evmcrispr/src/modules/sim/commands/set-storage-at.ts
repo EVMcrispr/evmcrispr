@@ -1,8 +1,9 @@
 import { ErrorException } from "../../../errors";
 import { defineCommand } from "../../../utils";
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
-export const setStorageAt = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "set-storage-at",
   args: [
     { name: "address", type: "address" },
     { name: "slot", type: "bytes32" },

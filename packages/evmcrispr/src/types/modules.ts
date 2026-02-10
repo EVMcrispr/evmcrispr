@@ -45,7 +45,21 @@ export type HelperFunction<T> = (
   h: HelperFunctionNode,
   interpreters: NodesInterpreters,
 ) => Promise<string>;
-export type HelperFunctions<T = Module> = Record<string, HelperFunction<T>>;
+
+/** Lazy loader: () => Promise<HelperFunction>. Resolved on first use. */
+export type HelperLoader<M extends Module = Module> = () => Promise<
+  HelperFunction<M>
+>;
+
+/** Helper is either eager (HelperFunction) or lazy (HelperLoader). */
+export type HelperOrLoader<M extends Module = Module> =
+  | HelperFunction<M>
+  | HelperLoader<M>;
+
+export type HelperFunctions<T extends Module = Module> = Record<
+  string,
+  HelperOrLoader<T>
+>;
 
 export interface ICommand<M extends Module = Module> {
   buildCompletionItemsForArg(
@@ -63,7 +77,39 @@ export interface ICommand<M extends Module = Module> {
     closestCommandToCaret: boolean,
   ): Promise<LazyBindings | void>;
 }
-export type Commands<T extends Module = Module> = Record<string, ICommand<T>>;
+
+/** Lazy loader: () => Promise<ICommand>. Resolved on first use. */
+export type CommandLoader<M extends Module = Module> = () => Promise<
+  ICommand<M>
+>;
+
+/** Command is either eager (ICommand) or lazy (CommandLoader). */
+export type CommandOrLoader<M extends Module = Module> =
+  | ICommand<M>
+  | CommandLoader<M>;
+
+export type Commands<T extends Module = Module> = Record<
+  string,
+  CommandOrLoader<T>
+>;
+
+export async function resolveCommand<M extends Module = Module>(
+  commandOrLoader: CommandOrLoader<M>,
+): Promise<ICommand<M>> {
+  return typeof commandOrLoader === "function"
+    ? commandOrLoader()
+    : commandOrLoader;
+}
+
+export async function resolveHelper<M extends Module = Module>(
+  helperOrLoader: HelperOrLoader<M>,
+): Promise<HelperFunction<M>> {
+  // Loaders are 0-arity; helper functions have 3+ params
+  if (helperOrLoader.length === 0) {
+    return (helperOrLoader as HelperLoader<M>)();
+  }
+  return helperOrLoader as HelperFunction<M>;
+}
 
 export interface ModuleExports<T extends Module = Module> {
   ModuleConstructor: Module["constructor"];

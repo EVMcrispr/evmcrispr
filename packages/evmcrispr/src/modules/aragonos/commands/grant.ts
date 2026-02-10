@@ -4,9 +4,9 @@ import { ErrorException } from "../../../errors";
 import type { Action, InterpretOptions } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import { defineCommand, encodeAction, interpretNodeSync } from "../../../utils";
+import type { AragonOS } from "..";
 import { AddressSet } from "../AddressSet";
 import type { AragonDAO } from "../AragonDAO";
-import type { AragonOS } from "../AragonOS";
 import type { CompletePermission, Params } from "../types";
 import {
   getAppRoles,
@@ -108,7 +108,8 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   return actions;
 };
 
-export const grant = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "grant",
   args: [
     { name: "grantee", type: "any", skipInterpret: true },
     { name: "app", type: "any", skipInterpret: true },

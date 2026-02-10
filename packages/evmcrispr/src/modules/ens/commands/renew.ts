@@ -2,11 +2,12 @@ import { parseAbi } from "viem";
 
 import { defineCommand, encodeAction } from "../../../utils";
 
-import type { Ens } from "../Ens";
+import type { Ens } from "..";
 
 const bulkRenewal = "0xfF252725f6122A92551A5FA9a6b6bf10eb0Be035";
 
-export const renew = defineCommand<Ens>({
+export default defineCommand<Ens>({
+  name: "renew",
   args: [
     { name: "domains", type: "any" },
     { name: "duration", type: "any" },

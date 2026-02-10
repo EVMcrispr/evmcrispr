@@ -1,6 +1,6 @@
 import type { Module } from "../../..";
 import { defineHelper } from "../../../utils";
-import type { Giveth } from "../Giveth";
+import type { Giveth } from "..";
 
 export const _projectAddr = async (
   module: Module,
@@ -50,7 +50,8 @@ export const _projectAddr = async (
   return result as [string, number];
 };
 
-export const projectAddr = defineHelper<Giveth>({
+export default defineHelper<Giveth>({
+  name: "projectAddr",
   args: [{ name: "slug", type: "string" }],
   async run(module, { slug }) {
     return (await _projectAddr(module, slug))[0];

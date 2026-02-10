@@ -3,6 +3,7 @@ export * from "./args";
 export * from "./ast";
 export * from "./defineCommand";
 export * from "./defineHelper";
+export * from "./defineModule";
 export * from "./encoders";
 export * from "./formatters";
 export * from "./parsers";

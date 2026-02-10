@@ -1,8 +1,9 @@
 import type { TerminalAction } from "../../../types";
 import { defineCommand } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
-export const halt = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "halt",
   args: [],
   async run(): Promise<TerminalAction[]> {
     return [

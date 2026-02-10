@@ -15,7 +15,7 @@ import type {
   NoNullableBinding,
   Position,
 } from "./types";
-import { BindingsSpace, NodeType } from "./types";
+import { BindingsSpace, NodeType, resolveCommand } from "./types";
 import {
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
@@ -72,13 +72,12 @@ export const runEagerExecutions = async (
 
   const executedCommands = new Set<string>();
 
-  const commandEagerExecutionFns = [...commandNodes]
-    .reverse()
-    .map((c, index) => {
+  const commandEagerExecutionFns = await Promise.all(
+    [...commandNodes].reverse().map(async (c, index) => {
       const commandModule = commandToModule[commandToModule.length - 1 - index];
       const commandFullName = `${commandModule}:${c.name}`;
 
-      const command = resolveCommandNode(
+      const command = await resolveCommandNode(
         c,
         eagerBindingsManager,
         commandModule,
@@ -91,7 +90,7 @@ export const runEagerExecutions = async (
       const isClosestCommandToCaret = !executedCommands.has(commandFullName);
 
       try {
-        const eagerFn = command.runEagerExecution(
+        const eagerFn = await command.runEagerExecution(
           c,
           ...eagerFnParams,
           isClosestCommandToCaret,
@@ -102,11 +101,12 @@ export const runEagerExecutions = async (
       } catch (_err) {
         return;
       }
-    });
+    }),
+  );
 
-  const lazyBindingResolvers = (
-    await Promise.all(commandEagerExecutionFns)
-  ).filter<LazyBindings>((b): b is LazyBindings => !!b);
+  const lazyBindingResolvers = commandEagerExecutionFns.filter<LazyBindings>(
+    (b): b is LazyBindings => !!b,
+  );
 
   lazyBindingResolvers.reverse().forEach((resolveLazyBinding) => {
     try {
@@ -117,11 +117,11 @@ export const runEagerExecutions = async (
   });
 };
 
-const resolveCommandNode = (
+const resolveCommandNode = async (
   c: CommandExpressionNode,
   eagerBindingsManager: BindingsManager,
   parentModule: string,
-): ICommand | undefined => {
+): Promise<ICommand | undefined> => {
   const moduleName =
     c.module ?? parentModule ?? DEFAULT_MODULE_BINDING.identifier;
 
@@ -137,7 +137,9 @@ const resolveCommandNode = (
     return;
   }
 
-  return module.commands[c.name];
+  const commandOrLoader = module.commands[c.name];
+  if (!commandOrLoader) return;
+  return resolveCommand(commandOrLoader);
 };
 
 // ---------------------------------------------------------------------------
@@ -168,7 +170,9 @@ const buildModuleCompletionItems = (
       return Object.keys(module.commands)
         .map(
           (commandName) =>
-            `${scopeModule === moduleAlias ? "" : `${moduleAlias}:`}${commandName}`,
+            `${
+              scopeModule === moduleAlias ? "" : `${moduleAlias}:`
+            }${commandName}`,
         )
         .map(
           (name): CompletionItem => ({
@@ -228,13 +232,13 @@ const buildVarCompletionItems = (
   );
 };
 
-const buildCurrentArgCompletionItems = (
+const buildCurrentArgCompletionItems = async (
   eagerBindingsManager: BindingsManager,
   currentCommandNode: CommandExpressionNode,
   parentModule: string,
   currentPos: Position,
-): CompletionItem[] => {
-  const command = resolveCommandNode(
+): Promise<CompletionItem[]> => {
+  const command = await resolveCommandNode(
     currentCommandNode,
     eagerBindingsManager,
     parentModule,
@@ -421,7 +425,7 @@ export async function getCompletions(
   let currentArgItems: CompletionItem[];
 
   if (currentCommandNode) {
-    currentArgItems = buildCurrentArgCompletionItems(
+    currentArgItems = await buildCurrentArgCompletionItems(
       eagerBindingsManager,
       currentCommandNode,
       contextModuleName,

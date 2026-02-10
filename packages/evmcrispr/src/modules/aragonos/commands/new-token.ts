@@ -3,7 +3,7 @@ import { ErrorException } from "../../../errors";
 import type { Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import { defineCommand, encodeAction } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import {
   buildNonceForAddress,
   getDaoAddrFromIdentifier,
@@ -11,7 +11,8 @@ import {
   MINIME_TOKEN_FACTORIES,
 } from "../utils";
 
-export const newToken = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "new-token",
   args: [
     { name: "name", type: "string" },
     { name: "symbol", type: "string" },

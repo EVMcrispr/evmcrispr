@@ -1,8 +1,9 @@
 import { ErrorException } from "../../../errors";
 import { defineCommand } from "../../../utils";
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
-export const setCode = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "set-code",
   args: [
     { name: "address", type: "string" },
     { name: "bytecode", type: "string" },

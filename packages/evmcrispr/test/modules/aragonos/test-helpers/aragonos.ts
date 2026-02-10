@@ -4,7 +4,7 @@ import type { PublicClient } from "viem";
 import type { Address } from "../../../../src";
 
 import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos";
 import {
   getAragonEnsResolver,
   resolveName,

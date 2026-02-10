@@ -1,11 +1,11 @@
-import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
+import { getAddress, isAddress, zeroAddress } from "viem";
 import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";
 import type { Module } from "../../../Module";
 import type { Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import { defineHelper, toDecimals } from "../../../utils";
-import type { Std } from "../Std";
+import { defineHelper } from "../../../utils";
+import type { Std } from "..";
 
 const ENV_TOKENLIST = "$token.tokenlist";
 
@@ -27,7 +27,7 @@ const getTokenList = async (
   return tokenList;
 };
 
-export const _token = async (
+export const resolveToken = async (
   module: Module,
   tokenSymbolOrAddress: string,
 ): Promise<Address> => {
@@ -60,63 +60,10 @@ export const _token = async (
   return getAddress(tokenAddress);
 };
 
-export const token = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "token",
   args: [{ name: "tokenSymbolOrAddress", type: "string" }],
   async run(module, { tokenSymbolOrAddress }) {
-    return _token(module, tokenSymbolOrAddress);
-  },
-});
-
-export const tokenBalance = defineHelper<Std>({
-  args: [
-    { name: "tokenSymbol", type: "string" },
-    { name: "holder", type: "address" },
-  ],
-  async run(module, { tokenSymbol, holder }) {
-    const tokenAddr = await _token(module, tokenSymbol);
-    const client = await module.getClient();
-
-    // Handle native ETH balance (zero address)
-    if (tokenAddr === zeroAddress) {
-      const balance = await client.getBalance({ address: holder });
-      return balance.toString();
-    }
-
-    const balance = await client.readContract({
-      address: tokenAddr,
-      abi: [
-        parseAbiItem("function balanceOf(address owner) view returns (uint)"),
-      ],
-      functionName: "balanceOf",
-      args: [holder],
-    });
-
-    return balance.toString();
-  },
-});
-
-export const _tokenAmount = async (
-  module: Module,
-  tokenSymbolOrAddress: string,
-  amount: string,
-): Promise<string> => {
-  const tokenAddr = await _token(module, tokenSymbolOrAddress);
-
-  const client = await module.getClient();
-  const decimals = await client.readContract({
-    address: tokenAddr,
-    abi: [parseAbiItem("function decimals() view returns (uint8)")],
-    functionName: "decimals",
-  });
-  return toDecimals(amount, decimals).toString();
-};
-
-export const tokenAmount = defineHelper<Std>({
-  args: [
-    { name: "tokenSymbolOrAddress", type: "string" },
-    { name: "amount", type: "number" },
-  ],
-  async run(module, { tokenSymbolOrAddress, amount }) {
-    return _tokenAmount(module, tokenSymbolOrAddress, amount);
+    return resolveToken(module, tokenSymbolOrAddress);
   },
 });

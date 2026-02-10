@@ -17,11 +17,12 @@ import {
 } from "../../../utils";
 import { fetchAbi } from "../../../utils/abis";
 import { resolveEventCaptures } from "../../../utils/events";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const { ABI, ADDR } = BindingsSpace;
 
-export const exec = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "exec",
   args: [
     {
       name: "contractAddress",

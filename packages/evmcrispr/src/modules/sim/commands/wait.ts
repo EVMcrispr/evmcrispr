@@ -3,7 +3,7 @@ import { numberToHex } from "viem";
 import { ErrorException } from "../../../errors";
 import type { RpcAction } from "../../../types";
 import { defineCommand } from "../../../utils";
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
 /**
  * Build the RPC actions to advance time by `duration` seconds.
@@ -46,7 +46,8 @@ function buildWaitActions(
   return [increaseTime, mine(1n)];
 }
 
-export const wait = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "wait",
   args: [
     { name: "duration", type: "number" },
     { name: "period", type: "number", optional: true },

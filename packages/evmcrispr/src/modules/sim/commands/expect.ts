@@ -1,7 +1,7 @@
 import { ErrorException } from "../../../errors";
 import { BindingsSpace } from "../../../types";
 import { defineCommand, isNumberish } from "../../../utils";
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
 const { USER } = BindingsSpace;
 
@@ -24,7 +24,8 @@ function oppositeOp(operator: string): string {
   }
 }
 
-export const expect = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "expect",
   args: [
     { name: "value", type: "any" },
     { name: "operator", type: "string" },

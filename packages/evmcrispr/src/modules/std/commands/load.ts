@@ -1,39 +1,29 @@
 import { ErrorException } from "../../../errors";
-import type {
-  AsExpressionNode,
-  Commands,
-  HelperFunctions,
-  IModuleConstructor,
-} from "../../../types";
+import type { AsExpressionNode, IModuleConstructor } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
 import { defineCommand, insideNode } from "../../../utils";
-import type { Std } from "../Std";
+import {
+  createCommandLoaders,
+  createHelperLoaders,
+} from "../../../utils/defineModule";
+import { moduleNames, moduleRegistry } from "../../registry";
+import type { Std } from "..";
 
 const { ALIAS, MODULE } = BindingsSpace;
 const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
 
 async function getModule(moduleName: string): Promise<{
-  commands: Commands;
-  helpers: HelperFunctions;
+  commands: readonly string[];
+  helpers: readonly string[];
   ModuleConstructor: IModuleConstructor;
 }> {
-  switch (moduleName) {
-    case "aragonos":
-      // @ts-ignore-next-line
-      return await import("../../aragonos");
-    case "sim":
-      // @ts-ignore-next-line
-      return await import("../../sim");
-    case "giveth":
-      return await import("../../giveth");
-    case "ens":
-      return await import("../../ens");
-    default:
-      throw new ErrorException(`Module ${moduleName} not found.`);
-  }
+  const loader = moduleRegistry[moduleName as keyof typeof moduleRegistry];
+  if (!loader) throw new ErrorException(`Module ${moduleName} not found.`);
+  return await loader();
 }
 
-export const load = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "load",
   args: [{ name: "moduleArg", type: "any", skipInterpret: true }],
   async run(module, _args, { node, interpreters }) {
     const { interpretNode } = interpreters;
@@ -94,7 +84,7 @@ export const load = defineCommand<Std>({
         ) {
           return [];
         }
-        return ["aragonos", "sim", "giveth", "ens"];
+        return [...moduleNames];
       }
       default:
         return [];
@@ -130,7 +120,9 @@ export const load = defineCommand<Std>({
     }
 
     try {
-      const { commands, helpers } = await getModule(moduleName);
+      const mod = await getModule(moduleName);
+      const commands = createCommandLoaders(moduleName, mod.commands);
+      const helpers = createHelperLoaders(moduleName, mod.helpers);
 
       // Cache module
       cache.setBinding(moduleName, { commands, helpers }, MODULE);

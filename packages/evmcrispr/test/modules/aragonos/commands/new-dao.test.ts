@@ -4,7 +4,7 @@ import "../../../setup.js";
 
 import type { PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, parseAbiParameters } from "viem";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
 import type { TransactionAction } from "../../../../src/types";
 import { BindingsSpace } from "../../../../src/types";
 import { addressesEqual } from "../../../../src/utils";

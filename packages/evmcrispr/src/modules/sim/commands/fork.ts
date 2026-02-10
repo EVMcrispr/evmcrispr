@@ -20,9 +20,10 @@ import {
 
 import { defineCommand } from "../../../utils";
 
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
-export const fork = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "fork",
   args: [{ name: "block", type: "any", skipInterpret: true }],
   opts: [
     { name: "block-number", type: "any" },

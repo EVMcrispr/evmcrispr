@@ -1,11 +1,11 @@
 import { decodeFunctionData, getAbiItem, hexToString, parseAbi } from "viem";
 import { defineCommand, encodeAction } from "../../../utils";
 import { decodeCallScript } from "../../aragonos/utils";
+import type { Giveth } from "..";
 import { agentMap, defaultRelayerMap, votingMap } from "../addresses";
 
-import type { Giveth } from "../Giveth";
-
-export const verifyGivbacks = defineCommand<Giveth>({
+export default defineCommand<Giveth>({
+  name: "verify-givbacks",
   args: [
     { name: "hash", type: "any" },
     { name: "voteId", type: "any" },

@@ -3,7 +3,7 @@ import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 import { HelperFunctionError } from "../../../errors";
 import { defineHelper } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const mainnetClient = createPublicClient({
   chain: mainnet,
@@ -14,7 +14,8 @@ function _ens(name: string) {
   return mainnetClient.getEnsAddress({ name });
 }
 
-export const ens = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "ens",
   args: [{ name: "name", type: "string" }],
   async run(_, { name }, { node }) {
     const addr = await _ens(name);

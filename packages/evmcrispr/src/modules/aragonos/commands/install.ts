@@ -13,8 +13,8 @@ import {
   interpretNodeSync,
   tryAndCacheNotFound,
 } from "../../../utils";
+import type { AragonOS } from "..";
 import type { AragonDAO } from "../AragonDAO";
-import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import type { App, AppArtifact } from "../types";
 import {
@@ -99,7 +99,8 @@ const setApp = (
   }
 };
 
-export const install = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "install",
   args: [
     { name: "identifier", type: "any", skipInterpret: true },
     { name: "params", type: "any", rest: true, skipInterpret: true },

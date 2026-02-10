@@ -1,12 +1,12 @@
 import { ErrorException } from "../../../errors";
 
 import { defineCommand, encodeAction } from "../../../utils";
+import type { Giveth } from "..";
 import { givethDonationRelayer } from "../addresses";
-
-import type { Giveth } from "../Giveth";
 import { _projectAddr } from "../helpers/projectAddr";
 
-export const donate = defineCommand<Giveth>({
+export default defineCommand<Giveth>({
+  name: "donate",
   args: [
     { name: "slug", type: "string" },
     { name: "amount", type: "number" },
@@ -32,11 +32,5 @@ export const donate = defineCommand<Giveth>({
         [tokenAddr, projAddr, amount, projectId],
       ),
     ];
-  },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
   },
 });

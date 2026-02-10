@@ -1,8 +1,9 @@
 import { encode } from "@ensdomains/content-hash";
 import { defineHelper } from "../../../utils";
-import type { Ens } from "../Ens";
+import type { Ens } from "..";
 
-export const contenthash = defineHelper<Ens>({
+export default defineHelper<Ens>({
+  name: "contenthash",
   args: [{ name: "input", type: "string" }],
   async run(_, { input }) {
     const [codec, hash] = input.split(":");

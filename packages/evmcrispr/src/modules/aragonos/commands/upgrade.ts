@@ -8,7 +8,7 @@ import {
 } from "viem";
 import { ErrorException } from "../../..";
 import { defineCommand, encodeAction } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
   getDAOAppIdentifiers,
@@ -17,7 +17,8 @@ import {
 } from "../utils";
 import { daoPrefixedIdentifierParser, getDAO } from "../utils/commands";
 
-export const upgrade = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "upgrade",
   args: [
     { name: "apmRepo", type: "any", skipInterpret: true },
     { name: "newAppAddress", type: "any", optional: true, skipInterpret: true },

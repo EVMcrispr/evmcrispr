@@ -22,8 +22,8 @@ import {
   isAddressNodishType,
   tryAndCacheNotFound,
 } from "../../../utils";
+import type { AragonOS } from "..";
 import { AragonDAO, isAragonDAO } from "../AragonDAO";
-import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import type { App, AppIdentifier } from "../types";
 import {
@@ -204,7 +204,8 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   };
 };
 
-export const connect = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "connect",
   args: [
     { name: "daoName", type: "any", skipInterpret: true },
     { name: "blockOrForwarders", type: "any", skipInterpret: true },

@@ -2,6 +2,7 @@ import { parseAbiItem } from "viem";
 
 import { defineCommand, encodeAction } from "../../../utils";
 import { batchForwarderActions } from "../../aragonos/utils";
+import type { Giveth } from "..";
 import {
   agentMap,
   defaultRelayerMap,
@@ -9,9 +10,8 @@ import {
   votingMap,
 } from "../addresses";
 
-import type { Giveth } from "../Giveth";
-
-export const initiateGivbacks = defineCommand<Giveth>({
+export default defineCommand<Giveth>({
+  name: "initiate-givbacks",
   args: [{ name: "hash", type: "any" }],
   opts: [{ name: "relayer", type: "any" }],
   async run(module, { hash }, { opts }) {

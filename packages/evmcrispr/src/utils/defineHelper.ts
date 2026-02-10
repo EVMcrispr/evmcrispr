@@ -13,6 +13,7 @@ export interface HelperContext {
 }
 
 export interface HelperConfig<M extends Module> {
+  name: string;
   args: ArgDef[];
   run(
     module: M,

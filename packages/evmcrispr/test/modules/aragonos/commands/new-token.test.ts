@@ -6,7 +6,7 @@ import type { PublicClient, WalletClient } from "viem";
 import { getContract, getContractAddress, parseAbi } from "viem";
 
 import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
 import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";
 import type { Address, TransactionAction } from "../../../../src/types";
 import { BindingsSpace } from "../../../../src/types";

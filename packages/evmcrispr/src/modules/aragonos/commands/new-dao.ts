@@ -4,7 +4,7 @@ import { ErrorException } from "../../../errors";
 import type { Action, Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import { defineCommand, encodeAction } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
   ARAGON_REGISTRARS,
@@ -34,7 +34,8 @@ const registerAragonId = async (
   ];
 };
 
-export const newDAO = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "new-dao",
   args: [
     {
       name: "daoName",

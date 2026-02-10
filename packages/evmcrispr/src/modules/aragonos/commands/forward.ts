@@ -4,11 +4,12 @@ import { ErrorException } from "../../../errors";
 import type { Action, TransactionAction } from "../../../types";
 import { isTransactionAction } from "../../../types";
 import { commaListItems, defineCommand } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
 
-export const forward = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "forward",
   args: [
     { name: "forwarder", type: "any", skipInterpret: true },
     {

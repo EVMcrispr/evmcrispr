@@ -3,11 +3,12 @@ import type { Abi, TransactionAction } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import { defineCommand } from "../../../utils";
 import { resolveEventCaptures } from "../../../utils/events";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const { ABI, ADDR } = BindingsSpace;
 
-export const raw = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "raw",
   args: [
     {
       name: "contractAddress",

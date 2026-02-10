@@ -4,7 +4,7 @@ import "../../../setup.js";
 
 import type { PublicClient } from "viem";
 import { CommandError } from "../../../../src/errors";
-import { Ens } from "../../../../src/modules/ens/Ens";
+import { Ens } from "../../../../src/modules/ens/index.js";
 import type { CommandExpressionNode } from "../../../../src/types";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml";

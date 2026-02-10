@@ -11,7 +11,7 @@ import {
   zeroAddress,
 } from "viem";
 import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos/AragonOS";
+import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
 import { MINIME_TOKEN_FACTORIES } from "../../../../src/modules/aragonos/utils";
 
 import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces";

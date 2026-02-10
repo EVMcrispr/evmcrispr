@@ -2,7 +2,7 @@ import type { PublicClient } from "viem";
 import { ErrorException } from "../../../errors";
 import type { Address, Nullable } from "../../../types";
 import { defineHelper } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import { getAragonEnsResolver, resolveName } from "../utils";
 
 export const _aragonEns = async (
@@ -17,7 +17,8 @@ export const _aragonEns = async (
   return name;
 };
 
-export const aragonEns = defineHelper<AragonOS>({
+export default defineHelper<AragonOS>({
+  name: "aragonEns",
   args: [
     { name: "ensName", type: "string" },
     { name: "extra", type: "any", optional: true },

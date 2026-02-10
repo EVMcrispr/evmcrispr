@@ -25,6 +25,7 @@ export interface CommandContext {
 }
 
 export interface CommandConfig<M extends Module> {
+  name: string;
   args: ArgDef[];
   opts?: OptDef[];
   run(

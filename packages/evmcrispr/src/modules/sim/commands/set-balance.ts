@@ -2,9 +2,10 @@ import { numberToHex } from "viem";
 
 import { ErrorException } from "../../../errors";
 import { defineCommand } from "../../../utils";
-import type { Sim } from "../Sim";
+import type { Sim } from "..";
 
-export const setBalance = defineCommand<Sim>({
+export default defineCommand<Sim>({
+  name: "set-balance",
   args: [
     { name: "address", type: "address" },
     { name: "amount", type: "number" },

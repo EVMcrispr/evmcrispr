@@ -1,13 +1,14 @@
 import { ErrorInvalid } from "../../../errors";
 import { defineHelper } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const iso8601Regex =
   /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/;
 const offsetRegex =
   /^(?:([-+]\d+)y)?(?:([-+]\d+)mo)?(?:([-+]\d+)w)?(?:([-+]\d+)d)?(?:([-+]\d+)h)?(?:([-+]\d+)m)?(?:([-+]\d+)s?)?$/;
 
-export const date = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "date",
   args: [
     { name: "date", type: "string" },
     { name: "offset", type: "string", optional: true },

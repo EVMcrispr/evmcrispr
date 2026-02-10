@@ -1,10 +1,11 @@
 import { ErrorException } from "../../../errors";
 import { defineHelper } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const IPFS_VAR_NAME = "ipfs.jwt";
 
-export const ipfs = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "ipfs",
   args: [
     {
       name: "text",

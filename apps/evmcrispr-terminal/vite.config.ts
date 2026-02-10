@@ -8,7 +8,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@evmcrispr/core": path.resolve(__dirname, "../../packages/evmcrispr"),
+      "@evmcrispr/core/package.json": path.resolve(
+        __dirname,
+        "../../packages/evmcrispr/package.json",
+      ),
+      "@evmcrispr/core": path.resolve(
+        __dirname,
+        "../../packages/evmcrispr/src/index.ts",
+      ),
     },
   },
   define: {

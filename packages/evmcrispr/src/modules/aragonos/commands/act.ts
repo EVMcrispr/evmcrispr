@@ -15,12 +15,13 @@ import {
   isFunctionSignature,
   tryAndCacheNotFound,
 } from "../../../utils";
-import type { AragonOS } from "../AragonOS";
+import type { AragonOS } from "..";
 import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
 
 const { ABI, ADDR } = BindingsSpace;
-export const act = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "act",
   args: [
     {
       name: "agent",

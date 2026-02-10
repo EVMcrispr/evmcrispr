@@ -2,9 +2,10 @@ import type { AbiFunction } from "viem";
 import { parseAbiItem } from "viem";
 import { HelperFunctionError } from "../../../errors";
 import { defineHelper, encodeCalldata } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
-export const abiEncodeCall = defineHelper<Std>({
+export default defineHelper<Std>({
+  name: "abi.encodeCall",
   args: [
     { name: "signature", type: "string" },
     { name: "params", type: "any", rest: true },

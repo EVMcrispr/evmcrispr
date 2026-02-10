@@ -3,7 +3,7 @@ import * as chains from "viem/chains";
 import { ErrorException } from "../../../errors";
 import type { WalletAction } from "../../../types";
 import { defineCommand } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const nameToChainId = Object.entries(chains).reduce(
   (acc, [name, { id }]) => {
@@ -13,7 +13,8 @@ const nameToChainId = Object.entries(chains).reduce(
   {} as Record<string, number>,
 );
 
-export const _switch = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "switch",
   args: [{ name: "networkNameOrId", type: "any" }],
   async run(module, { networkNameOrId }): Promise<WalletAction[]> {
     let chainId: number;

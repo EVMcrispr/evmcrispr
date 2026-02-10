@@ -13,7 +13,7 @@ import type {
   HelperFunctions,
   NodesInterpreters,
 } from "./types";
-import { BindingsSpace } from "./types";
+import { BindingsSpace, resolveCommand, resolveHelper } from "./types";
 
 export abstract class Module {
   constructor(
@@ -35,26 +35,34 @@ export abstract class Module {
     return `$${this.name}:${name}`;
   }
 
-  interpretCommand(
+  async interpretCommand(
     c: CommandExpressionNode,
     interpreters: NodesInterpreters,
-  ): ReturnType<CommandFunction<this>> {
-    const command = this.commands[c.name];
+  ): Promise<ReturnType<CommandFunction<this>>> {
+    const commandOrLoader = this.commands[c.name];
 
-    if (!command) {
+    if (!commandOrLoader) {
       throw new ErrorException(
         `command not found on module ${this.contextualName}`,
       );
     }
 
+    const command = await resolveCommand(commandOrLoader);
     return command.run(this, c, interpreters);
   }
 
-  interpretHelper(
+  async interpretHelper(
     h: HelperFunctionNode,
     interpreters: NodesInterpreters,
-  ): ReturnType<HelperFunction<this>> {
-    return this.helpers[h.name](this, h, interpreters);
+  ): Promise<ReturnType<HelperFunction<this>>> {
+    const helperOrLoader = this.helpers[h.name];
+    if (!helperOrLoader) {
+      throw new ErrorException(
+        `helper not found on module ${this.contextualName}`,
+      );
+    }
+    const helper = await resolveHelper(helperOrLoader);
+    return helper(this, h, interpreters);
   }
 
   getConfigBinding(name: string): any {

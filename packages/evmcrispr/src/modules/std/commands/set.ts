@@ -1,12 +1,13 @@
 import { ErrorException } from "../../../errors";
 import { BindingsSpace, NodeType } from "../../../types";
 import { defineCommand, inSameLineThanNode } from "../../../utils";
-import type { Std } from "../Std";
+import type { Std } from "..";
 
 const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;
 
-export const set = defineCommand<Std>({
+export default defineCommand<Std>({
+  name: "set",
   args: [
     { name: "variable", type: "any", skipInterpret: true },
     { name: "value", type: "any", skipInterpret: true },

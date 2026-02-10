@@ -15,9 +15,9 @@ import {
   encodeAction,
   interpretNodeSync,
 } from "../../../utils";
+import type { AragonOS } from "..";
 import { AddressSet } from "../AddressSet";
 import type { AragonDAO } from "../AragonDAO";
-import type { AragonOS } from "../AragonOS";
 import {
   formatAppIdentifier,
   getAppRoles,
@@ -90,7 +90,8 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   return actions;
 };
 
-export const revoke = defineCommand<AragonOS>({
+export default defineCommand<AragonOS>({
+  name: "revoke",
   args: [
     { name: "grantee", type: "any", skipInterpret: true },
     { name: "app", type: "any", skipInterpret: true },
