@@ -10,7 +10,7 @@ import { mainnet } from "viem/chains";
 
 import { ErrorException } from "../../../errors";
 
-import type { Action, ICommand } from "../../../types";
+import type { Action } from "../../../types";
 import {
   isRpcAction,
   isTransactionAction,
@@ -18,28 +18,21 @@ import {
   NodeType,
 } from "../../../types";
 
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  getOptValue,
-} from "../../../utils";
+import { defineCommand } from "../../../utils";
 
 import type { Sim } from "../Sim";
 
-export const fork: ICommand<Sim> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 1,
-    });
-    checkOpts(c, ["block-number", "from", "tenderly", "using"]);
-
-    const [blockExpressionNode] = c.args;
-    const blockNumber = await getOptValue(c, "block-number", interpretNode);
-    const from = await getOptValue(c, "from", interpretNode);
-    const using = await getOptValue(c, "using", interpretNode);
-    const tenderlyOpt = await getOptValue(c, "tenderly", interpretNode);
+export const fork = defineCommand<Sim>({
+  args: [{ name: "block", type: "any", skipInterpret: true }],
+  opts: [
+    { name: "block-number", type: "any" },
+    { name: "from", type: "any" },
+    { name: "tenderly", type: "any" },
+    { name: "using", type: "any" },
+  ],
+  async run(module, _args, { opts, node, interpreters }) {
+    const { interpretNode } = interpreters;
+    const [blockExpressionNode] = node.args;
 
     if (
       !blockExpressionNode ||
@@ -47,6 +40,11 @@ export const fork: ICommand<Sim> = {
     ) {
       throw new ErrorException("last argument should be a set of commands");
     }
+
+    const blockNumber = opts["block-number"];
+    const from = opts.from;
+    const using = opts.using;
+    const tenderlyOpt = opts.tenderly;
 
     const chainId = await module.getChainId();
 
@@ -77,7 +75,7 @@ export const fork: ICommand<Sim> = {
           method: "evm_snapshot" as any,
           params: [],
         });
-      } catch (e) {
+      } catch (_e) {
         throw new ErrorException(
           `Failed to connect to ${backendName} at ${rpcUrl}. Make sure ${backendName} is running.`,
         );
@@ -286,10 +284,4 @@ export const fork: ICommand<Sim> = {
 
     return [];
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-};
+});

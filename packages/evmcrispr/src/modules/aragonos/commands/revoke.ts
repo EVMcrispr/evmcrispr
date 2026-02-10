@@ -5,15 +5,13 @@ import type {
   Action,
   Address,
   AddressBinding,
-  ICommand,
   InterpretOptions,
   NoNullableBinding,
 } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
   addressesEqual,
-  ComparisonType,
-  checkArgsLength,
+  defineCommand,
   encodeAction,
   interpretNodeSync,
 } from "../../../utils";
@@ -40,7 +38,7 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   const removeManagerType = typeof removeManager;
   if (removeManagerType !== "undefined" && removeManagerType !== "boolean") {
     throw new ErrorException(
-      `invalid remove manager flag. Expected boolean but got ${typeof removeManager}`,
+      `[removeManager] must be a boolean, got ${typeof removeManager}`,
     );
   }
 
@@ -92,18 +90,20 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   return actions;
 };
 
-export const revoke: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Between,
-      minValue: 3,
-      maxValue: 4,
-    });
+export const revoke = defineCommand<AragonOS>({
+  args: [
+    { name: "grantee", type: "any", skipInterpret: true },
+    { name: "app", type: "any", skipInterpret: true },
+    { name: "role", type: "any", skipInterpret: true },
+    { name: "removeManager", type: "any", optional: true, skipInterpret: true },
+  ],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode } = interpreters;
 
-    const dao = getDAO(module.bindingsManager, c.args[1]);
+    const dao = getDAO(module.bindingsManager, node.args[1]);
 
     const args = await Promise.all(
-      c.args.map((arg, i) => {
+      node.args.map((arg, i) => {
         const opts: Partial<InterpretOptions> | undefined =
           i < 2 ? { allowNotFoundError: true } : undefined;
         return interpretNode(arg, opts);
@@ -227,4 +227,4 @@ export const revoke: ICommand<AragonOS> = {
       _revoke(dao, resolvedArgs);
     };
   },
-};
+});

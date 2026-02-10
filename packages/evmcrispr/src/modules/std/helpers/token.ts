@@ -2,14 +2,9 @@ import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
 import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";
 import type { Module } from "../../../Module";
-import type { Address, HelperFunction } from "../../../types";
+import type { Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  isNumberish,
-  toDecimals,
-} from "../../../utils";
+import { defineHelper, toDecimals } from "../../../utils";
 import type { Std } from "../Std";
 
 const ENV_TOKENLIST = "$token.tokenlist";
@@ -65,52 +60,40 @@ export const _token = async (
   return getAddress(tokenAddress);
 };
 
-export const token: HelperFunction<Std> = async (
-  module,
-  h,
-  { interpretNodes },
-) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Equal,
-    minValue: 1,
-  });
-  const [tokenSymbolOrAddress] = await interpretNodes(h.args);
+export const token = defineHelper<Std>({
+  args: [{ name: "tokenSymbolOrAddress", type: "string" }],
+  async run(module, { tokenSymbolOrAddress }) {
+    return _token(module, tokenSymbolOrAddress);
+  },
+});
 
-  return _token(module, tokenSymbolOrAddress);
-};
+export const tokenBalance = defineHelper<Std>({
+  args: [
+    { name: "tokenSymbol", type: "string" },
+    { name: "holder", type: "address" },
+  ],
+  async run(module, { tokenSymbol, holder }) {
+    const tokenAddr = await _token(module, tokenSymbol);
+    const client = await module.getClient();
 
-export const tokenBalance: HelperFunction<Std> = async (
-  module,
-  h,
-  { interpretNodes },
-) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Equal,
-    minValue: 2,
-  });
+    // Handle native ETH balance (zero address)
+    if (tokenAddr === zeroAddress) {
+      const balance = await client.getBalance({ address: holder });
+      return balance.toString();
+    }
 
-  const [tokenSymbol, holder] = await interpretNodes(h.args);
+    const balance = await client.readContract({
+      address: tokenAddr,
+      abi: [
+        parseAbiItem("function balanceOf(address owner) view returns (uint)"),
+      ],
+      functionName: "balanceOf",
+      args: [holder],
+    });
 
-  const tokenAddr = await _token(module, tokenSymbol);
-  const client = await module.getClient();
-
-  // Handle native ETH balance (zero address)
-  if (tokenAddr === zeroAddress) {
-    const balance = await client.getBalance({ address: holder });
     return balance.toString();
-  }
-
-  const balance = await client.readContract({
-    address: tokenAddr,
-    abi: [
-      parseAbiItem("function balanceOf(address owner) view returns (uint)"),
-    ],
-    functionName: "balanceOf",
-    args: [holder],
-  });
-
-  return balance.toString();
-};
+  },
+});
 
 export const _tokenAmount = async (
   module: Module,
@@ -128,19 +111,12 @@ export const _tokenAmount = async (
   return toDecimals(amount, decimals).toString();
 };
 
-export const tokenAmount: HelperFunction<Std> = async (
-  module,
-  h,
-  { interpretNodes },
-) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Equal,
-    minValue: 2,
-  });
-  const [tokenSymbolOrAddress, amount] = await interpretNodes(h.args);
-
-  if (!isNumberish(amount)) {
-    throw new ErrorException("amount is not a number");
-  }
-  return _tokenAmount(module, tokenSymbolOrAddress, amount);
-};
+export const tokenAmount = defineHelper<Std>({
+  args: [
+    { name: "tokenSymbolOrAddress", type: "string" },
+    { name: "amount", type: "number" },
+  ],
+  async run(module, { tokenSymbolOrAddress, amount }) {
+    return _tokenAmount(module, tokenSymbolOrAddress, amount);
+  },
+});

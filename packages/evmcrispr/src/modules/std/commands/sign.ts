@@ -1,30 +1,21 @@
 import { ErrorException } from "../../../errors";
-import type { ICommand, WalletAction } from "../../../types";
+import type { WalletAction } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  getOptValue,
-} from "../../../utils";
+import { defineCommand } from "../../../utils";
 import type { Std } from "../Std";
 
 const { VariableIdentifier } = NodeType;
 const { USER } = BindingsSpace;
 
-export const sign: ICommand<Std> = {
-  async run(module, c, { interpretNode, actionCallback }) {
-    checkOpts(c, ["typed"]);
-
-    const typedDataJSON = await getOptValue(c, "typed", interpretNode);
-
-    if (typedDataJSON) {
-      checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
-    } else {
-      checkArgsLength(c, { type: ComparisonType.Equal, minValue: 2 });
-    }
-
-    const [varNode, messageNode] = c.args;
+export const sign = defineCommand<Std>({
+  args: [
+    { name: "variable", type: "any" },
+    { name: "message", type: "any", optional: true },
+  ],
+  opts: [{ name: "typed", type: "any" }],
+  async run(module, { message }, { opts, node, interpreters }) {
+    const typedDataJSON = opts.typed;
+    const [varNode] = node.args;
 
     if (varNode.type !== VariableIdentifier) {
       throw new ErrorException(
@@ -32,11 +23,22 @@ export const sign: ICommand<Std> = {
       );
     }
 
+    // If --typed is provided, only 1 arg needed; otherwise 2
+    if (typedDataJSON && node.args.length !== 1) {
+      throw new ErrorException(
+        "sign --typed expects exactly 1 argument (the variable name)",
+      );
+    }
+    if (!typedDataJSON && node.args.length !== 2) {
+      throw new ErrorException(
+        "sign expects exactly 2 arguments (variable and message)",
+      );
+    }
+
     const varName = varNode.value;
     let action: WalletAction;
 
     if (typedDataJSON) {
-      // EIP-712: Sign typed structured data
       const account = await module.getConnectedAccount();
       action = {
         type: "wallet",
@@ -44,8 +46,6 @@ export const sign: ICommand<Std> = {
         params: [account, typedDataJSON],
       };
     } else {
-      // EIP-191: Sign a plain text message
-      const message = await interpretNode(messageNode);
       const account = await module.getConnectedAccount();
       action = {
         type: "wallet",
@@ -54,6 +54,7 @@ export const sign: ICommand<Std> = {
       };
     }
 
+    const { actionCallback } = interpreters;
     if (!actionCallback) {
       throw new ErrorException(
         "sign requires an execution context with wallet access",
@@ -71,12 +72,6 @@ export const sign: ICommand<Std> = {
       true,
     );
 
-    return []; // action already dispatched
-  },
-  buildCompletionItemsForArg() {
     return [];
   },
-  async runEagerExecution() {
-    return;
-  },
-};
+});

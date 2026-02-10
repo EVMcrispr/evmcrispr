@@ -1,12 +1,9 @@
-import type { HelperFunction } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import { defineHelper } from "../../../utils";
 import type { Std } from "../Std";
 
-export const me: HelperFunction<Std> = async (module, h) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Equal,
-    minValue: 0,
-  });
-
-  return module.getConnectedAccount(true);
-};
+export const me = defineHelper<Std>({
+  args: [],
+  async run(module) {
+    return module.getConnectedAccount(true);
+  },
+});

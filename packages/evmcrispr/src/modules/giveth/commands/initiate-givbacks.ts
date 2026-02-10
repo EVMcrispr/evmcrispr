@@ -1,14 +1,6 @@
 import { parseAbiItem } from "viem";
 
-import type { ICommand } from "../../../types";
-
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  encodeAction,
-  getOptValue,
-} from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import { batchForwarderActions } from "../../aragonos/utils";
 import {
   agentMap,
@@ -19,13 +11,10 @@ import {
 
 import type { Giveth } from "../Giveth";
 
-export const initiateGivbacks: ICommand<Giveth> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
-    checkOpts(c, ["relayer"]);
-
-    const [hash] = await interpretNodes(c.args);
-
+export const initiateGivbacks = defineCommand<Giveth>({
+  args: [{ name: "hash", type: "any" }],
+  opts: [{ name: "relayer", type: "any" }],
+  async run(module, { hash }, { opts }) {
     const chainId = await module.getChainId();
     const tokenManager = tokenManagerMap.get(chainId);
     const voting = votingMap.get(chainId);
@@ -35,8 +24,7 @@ export const initiateGivbacks: ICommand<Giveth> = {
       throw new Error(`Givbacks can't be sent for ${chainId} chain`);
     }
 
-    const relayerAddr =
-      (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
+    const relayerAddr = opts.relayer || defaultRelayerAddr;
 
     const data = await fetch(`https://ipfs.blossom.software/ipfs/${hash}`).then(
       (data) => data.json(),
@@ -77,4 +65,4 @@ export const initiateGivbacks: ICommand<Giveth> = {
   buildCompletionItemsForArg() {
     return [];
   },
-};
+});

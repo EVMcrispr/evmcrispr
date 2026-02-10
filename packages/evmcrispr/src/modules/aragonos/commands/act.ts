@@ -1,13 +1,12 @@
 import type { AbiFunction } from "viem";
 import { isAddress } from "viem";
 import { ErrorException } from "../../../errors";
-import type { AbiBinding, ICommand } from "../../../types";
+import type { AbiBinding } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
   addressesEqual,
   beforeOrEqualNode,
-  ComparisonType,
-  checkArgsLength,
+  defineCommand,
   encodeAction,
   fetchAbi,
   getFunctionFragment,
@@ -21,38 +20,28 @@ import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
 
 const { ABI, ADDR } = BindingsSpace;
-export const act: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Greater,
-      minValue: 3,
-    });
-
-    const [agentAddress, targetAddress, signature, ...params] =
-      await Promise.all(
-        c.args.map((arg, i) => {
-          if (i < 2) {
-            return interpretNode(arg, { allowNotFoundError: true });
-          }
-
-          return interpretNode(arg);
-        }),
-      );
-
-    if (!isAddress(agentAddress)) {
-      throw new ErrorException(
-        `expected a valid agent address, but got ${agentAddress}`,
-      );
-    }
-    if (!isAddress(targetAddress)) {
-      throw new ErrorException(
-        `expected a valid target address, but got ${targetAddress}`,
-      );
-    }
-
+export const act = defineCommand<AragonOS>({
+  args: [
+    {
+      name: "agent",
+      type: "address",
+      interpretOptions: { allowNotFoundError: true },
+    },
+    {
+      name: "target",
+      type: "address",
+      interpretOptions: { allowNotFoundError: true },
+    },
+    { name: "signature", type: "string" },
+    { name: "params", type: "any", rest: true },
+  ],
+  async run(
+    module,
+    { agent: agentAddress, target: targetAddress, signature, params },
+  ) {
     if (!isFunctionSignature(signature)) {
       throw new ErrorException(
-        `expected a valid signature, but got ${signature}`,
+        `<signature> must be a valid function signature, got ${signature}`,
       );
     }
 
@@ -169,4 +158,4 @@ export const act: ICommand<AragonOS> = {
       eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
-};
+});

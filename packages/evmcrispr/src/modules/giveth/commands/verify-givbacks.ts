@@ -1,24 +1,17 @@
 import { decodeFunctionData, getAbiItem, hexToString, parseAbi } from "viem";
-import type { ICommand } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  encodeAction,
-  getOptValue,
-} from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import { decodeCallScript } from "../../aragonos/utils";
 import { agentMap, defaultRelayerMap, votingMap } from "../addresses";
 
 import type { Giveth } from "../Giveth";
 
-export const verifyGivbacks: ICommand<Giveth> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 2 });
-    checkOpts(c, ["relayer"]);
-
-    const [hash, voteId] = await interpretNodes(c.args);
-
+export const verifyGivbacks = defineCommand<Giveth>({
+  args: [
+    { name: "hash", type: "any" },
+    { name: "voteId", type: "any" },
+  ],
+  opts: [{ name: "relayer", type: "any" }],
+  async run(module, { hash, voteId }, { opts }) {
     const chainId = await module.getChainId();
     const voting = votingMap.get(chainId);
     const agent = agentMap.get(chainId);
@@ -27,8 +20,7 @@ export const verifyGivbacks: ICommand<Giveth> = {
       throw new Error(`Givbacks can't be sent for ${chainId} chain`);
     }
 
-    const relayerAddr =
-      (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
+    const relayerAddr = opts.relayer || defaultRelayerAddr;
 
     const votingAppAbi = parseAbi([
       "function getVote(uint256) public view returns (bool,bool,uint64,uint64,uint64,uint64,uint256,uint256,uint256,bytes)",
@@ -143,4 +135,4 @@ export const verifyGivbacks: ICommand<Giveth> = {
   buildCompletionItemsForArg() {
     return [];
   },
-};
+});

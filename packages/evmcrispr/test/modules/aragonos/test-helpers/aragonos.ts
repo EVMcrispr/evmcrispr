@@ -135,7 +135,7 @@ export const itChecksBadPermission = (
     const error = new CommandError(
       c!,
       listItems(permissionErrorText, [
-        `Invalid grantee. Expected an address, but got ${invalidGrantee}`,
+        `<grantee> must be a valid address, got ${invalidGrantee}`,
       ]),
     );
 
@@ -153,7 +153,7 @@ export const itChecksBadPermission = (
     const error = new CommandError(
       c!,
       listItems(permissionErrorText, [
-        `Invalid app. Expected an address, but got ${invalidApp}`,
+        `<app> must be a valid address, got ${invalidApp}`,
       ]),
     );
 
@@ -188,7 +188,7 @@ export const itChecksBadPermission = (
     const error = new CommandError(
       c,
       listItems(permissionErrorText, [
-        `Invalid role. Expected a valid hash, but got ${invalidHashRole}`,
+        `<role> must be a valid hash, got ${invalidHashRole}`,
       ]),
     );
 
@@ -233,7 +233,7 @@ export const itChecksBadPermission = (
       const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
       const error = new CommandError(
         c,
-        `invalid permission manager. Expected an address, but got ${invalidManager}`,
+        `[permissionManager] must be a valid address, got ${invalidManager}`,
       );
 
       await expectThrowAsync(() => interpreter.interpret(), error);

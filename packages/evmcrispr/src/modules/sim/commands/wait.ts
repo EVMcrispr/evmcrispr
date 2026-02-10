@@ -1,11 +1,8 @@
 import { numberToHex } from "viem";
 
 import { ErrorException } from "../../../errors";
-
-import type { ICommand, RpcAction } from "../../../types";
-
-import { ComparisonType, checkArgsLength } from "../../../utils";
-
+import type { RpcAction } from "../../../types";
+import { defineCommand } from "../../../utils";
 import type { Sim } from "../Sim";
 
 /**
@@ -49,33 +46,18 @@ function buildWaitActions(
   return [increaseTime, mine(1n)];
 }
 
-export const wait: ICommand<Sim> = {
-  async run(module, c, { interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Greater,
-      minValue: 1,
-    });
-
+export const wait = defineCommand<Sim>({
+  args: [
+    { name: "duration", type: "number" },
+    { name: "period", type: "number", optional: true },
+  ],
+  async run(module, { duration, period: rawPeriod }) {
     if (!module.mode) {
       throw new ErrorException("wait can only be used inside a fork block");
     }
 
-    const [duration, period = 1n] = await interpretNodes(c.args);
+    const period = rawPeriod ?? 1n;
 
-    if (typeof duration !== "bigint") {
-      throw new ErrorException("duration must be a number");
-    }
-
-    if (typeof period !== "bigint") {
-      throw new ErrorException("period must be a number");
-    }
-
-    return buildWaitActions(module, duration, period);
+    return buildWaitActions(module, BigInt(duration), BigInt(period));
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-};
+});

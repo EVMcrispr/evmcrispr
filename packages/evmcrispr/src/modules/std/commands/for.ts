@@ -1,22 +1,22 @@
 import { ErrorException } from "../../../errors";
-import type { Action, ICommand } from "../../../types";
+import type { Action } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
-
-import { ComparisonType, checkArgsLength } from "../../../utils";
-
+import { defineCommand } from "../../../utils";
 import type { Std } from "../Std";
 
 const { USER } = BindingsSpace;
 const { VariableIdentifier } = NodeType;
 
-export const _for: ICommand<Std> = {
-  async run(module, c, { interpretNode, actionCallback }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 4,
-    });
-
-    const [varNode, connectorNode, arrayNode, blockExpressionNode] = c.args;
+export const _for = defineCommand<Std>({
+  args: [
+    { name: "variable", type: "any", skipInterpret: true },
+    { name: "connector", type: "any", skipInterpret: true },
+    { name: "array", type: "any", skipInterpret: true },
+    { name: "block", type: "any", skipInterpret: true },
+  ],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode, actionCallback } = interpreters;
+    const [varNode, connectorNode, arrayNode, blockExpressionNode] = node.args;
 
     if (varNode.type !== VariableIdentifier) {
       throw new ErrorException(`expected a variable identifier`);
@@ -81,4 +81,4 @@ export const _for: ICommand<Std> = {
         return [];
     }
   },
-};
+});

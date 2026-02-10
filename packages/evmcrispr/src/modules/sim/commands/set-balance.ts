@@ -1,48 +1,27 @@
 import { numberToHex } from "viem";
 
 import { ErrorException } from "../../../errors";
-
-import type { ICommand } from "../../../types";
-
-import { ComparisonType, checkArgsLength } from "../../../utils";
-
+import { defineCommand } from "../../../utils";
 import type { Sim } from "../Sim";
 
-export const setBalance: ICommand<Sim> = {
-  async run(module, c, { interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 2,
-    });
-
+export const setBalance = defineCommand<Sim>({
+  args: [
+    { name: "address", type: "address" },
+    { name: "amount", type: "number" },
+  ],
+  async run(module, { address, amount }) {
     if (!module.mode) {
       throw new ErrorException(
         "set-balance can only be used inside a fork block",
       );
     }
 
-    const [address, amount] = await interpretNodes(c.args);
-
-    if (typeof address !== "string") {
-      throw new ErrorException("address must be a string");
-    }
-
-    if (typeof amount !== "bigint") {
-      throw new ErrorException("amount must be a number (in wei)");
-    }
-
     return [
       {
         type: "rpc",
         method: `${module.mode}_setBalance`,
-        params: [address, numberToHex(amount)],
+        params: [address, numberToHex(BigInt(amount))],
       },
     ];
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-};
+});

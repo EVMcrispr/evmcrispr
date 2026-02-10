@@ -1,10 +1,6 @@
 import { ErrorException } from "../../../errors";
-
-import type { ICommand } from "../../../types";
 import { BindingsSpace } from "../../../types";
-
-import { ComparisonType, checkArgsLength, isNumberish } from "../../../utils";
-
+import { defineCommand, isNumberish } from "../../../utils";
 import type { Sim } from "../Sim";
 
 const { USER } = BindingsSpace;
@@ -28,16 +24,14 @@ function oppositeOp(operator: string): string {
   }
 }
 
-export const expect: ICommand<Sim> = {
-  async run(module, c, { interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 3,
-    });
-
-    const [valueNode, , expectedValueNode] = c.args;
-
-    const [value, operator, expectedValue] = await interpretNodes(c.args);
+export const expect = defineCommand<Sim>({
+  args: [
+    { name: "value", type: "any" },
+    { name: "operator", type: "string" },
+    { name: "expectedValue", type: "any" },
+  ],
+  async run(module, { value, operator, expectedValue }, { node }) {
+    const [valueNode, , expectedValueNode] = node.args;
 
     let result;
 
@@ -81,20 +75,16 @@ export const expect: ICommand<Sim> = {
     }
     return [];
   },
-  async runEagerExecution() {
-    return;
-  },
   buildCompletionItemsForArg(argIndex, _, cache) {
     switch (argIndex) {
       case 0:
         return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
       case 1:
         return ["==", "!=", "<", "<=", ">", ">="];
-      case 2: {
+      case 2:
         return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
-      }
       default:
         return [];
     }
   },
-};
+});

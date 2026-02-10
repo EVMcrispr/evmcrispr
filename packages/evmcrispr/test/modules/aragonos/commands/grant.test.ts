@@ -191,7 +191,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
     const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
     const error = new CommandError(
       c,
-      `invalid --oracle option. Expected an address, but got ${invalidOracle}`,
+      `--oracle must be a valid address, got ${invalidOracle}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

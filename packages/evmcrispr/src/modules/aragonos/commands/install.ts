@@ -2,12 +2,10 @@ import type { PublicClient } from "viem";
 import { getAbiItem, hexToString, namehash, toHex } from "viem";
 import type { BindingsManager } from "../../../BindingsManager";
 import { ErrorException } from "../../../errors";
-import type { Address, ICommand, Nullable } from "../../../types";
+import type { Address, Nullable } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
+  defineCommand,
   encodeAction,
   encodeCalldata,
   getOptValue,
@@ -101,21 +99,29 @@ const setApp = (
   }
 };
 
-export const install: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Greater,
-      minValue: 1,
-    });
-    checkOpts(c, [DAO_OPT_NAME, "version"]);
+export const install = defineCommand<AragonOS>({
+  args: [
+    { name: "identifier", type: "any", skipInterpret: true },
+    { name: "params", type: "any", rest: true, skipInterpret: true },
+  ],
+  opts: [
+    { name: DAO_OPT_NAME, type: "any" },
+    { name: "version", type: "any" },
+  ],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode, interpretNodes } = interpreters;
 
-    const dao = await getDAOByOption(c, module.bindingsManager, interpretNode);
+    const dao = await getDAOByOption(
+      node,
+      module.bindingsManager,
+      interpretNode,
+    );
 
-    const [identifierNode, ...paramNodes] = c.args;
+    const [identifierNode, ...paramNodes] = node.args;
     const identifier = await interpretNode(identifierNode, {
       treatAsLiteral: true,
     });
-    const version = await getOptValue(c, "version", interpretNode);
+    const version = await getOptValue(node, "version", interpretNode);
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
     if (dao.appCache.has(identifier)) {
@@ -317,4 +323,4 @@ export const install: ICommand<AragonOS> = {
       setApp(dao, app, artifact, eagerBindingsManager);
     };
   },
-};
+});

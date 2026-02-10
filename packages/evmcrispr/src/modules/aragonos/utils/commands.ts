@@ -104,24 +104,22 @@ export const isPermission = (p: any[]): p is CompletePermission | never => {
   const [granteeAddress, appAddress, role, managerAddress] = p;
 
   if (!isAddress(granteeAddress)) {
-    errors.push(
-      `Invalid grantee. Expected an address, but got ${granteeAddress}`,
-    );
+    errors.push(`<grantee> must be a valid address, got ${granteeAddress}`);
   }
 
   if (!isAddress(appAddress)) {
-    errors.push(`Invalid app. Expected an address, but got ${appAddress}`);
+    errors.push(`<app> must be a valid address, got ${appAddress}`);
   }
 
   if (role.startsWith("0x")) {
     if (role.length !== 66) {
-      errors.push(`Invalid role. Expected a valid hash, but got ${role}`);
+      errors.push(`<role> must be a valid hash, got ${role}`);
     }
   }
 
   if (managerAddress && !isAddress(managerAddress)) {
     errors.push(
-      `Invalid permission manager. Expected an address, but got ${managerAddress}`,
+      `<permissionManager> must be a valid address, got ${managerAddress}`,
     );
   }
 

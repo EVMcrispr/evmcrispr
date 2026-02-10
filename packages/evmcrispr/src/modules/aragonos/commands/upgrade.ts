@@ -7,8 +7,7 @@ import {
   zeroAddress,
 } from "viem";
 import { ErrorException } from "../../..";
-import type { ICommand } from "../../../types";
-import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
@@ -18,22 +17,22 @@ import {
 } from "../utils";
 import { daoPrefixedIdentifierParser, getDAO } from "../utils/commands";
 
-export const upgrade: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Between,
-      minValue: 1,
-      maxValue: 2,
-    });
+export const upgrade = defineCommand<AragonOS>({
+  args: [
+    { name: "apmRepo", type: "any", skipInterpret: true },
+    { name: "newAppAddress", type: "any", optional: true, skipInterpret: true },
+  ],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode } = interpreters;
 
     const client = await module.getClient();
-    const dao = getDAO(module.bindingsManager, c.args[0]);
+    const dao = getDAO(module.bindingsManager, node.args[0]);
 
     const kernel = dao.kernel;
 
     const args = await Promise.all([
-      interpretNode(c.args[0], { treatAsLiteral: true }),
-      c.args[1] ? interpretNode(c.args[1]) : undefined,
+      interpretNode(node.args[0], { treatAsLiteral: true }),
+      node.args[1] ? interpretNode(node.args[1]) : undefined,
     ]);
     const rawApmRepo = args[0];
     let newAppAddress = args[1];
@@ -115,4 +114,4 @@ export const upgrade: ICommand<AragonOS> = {
   async runEagerExecution() {
     return;
   },
-};
+});

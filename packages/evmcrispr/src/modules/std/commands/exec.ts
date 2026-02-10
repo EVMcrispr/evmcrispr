@@ -2,21 +2,17 @@ import type { AbiFunction } from "viem";
 import { erc20Abi, getAbiItem, isAddress } from "viem";
 import type { HelperFunctionNode } from "../../..";
 import { ErrorException } from "../../../errors";
-import type { Abi, AbiBinding, Address, ICommand } from "../../../types";
+import type { Abi, AbiBinding, Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
 import {
   addressesEqual,
   beforeOrEqualNode,
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
+  defineCommand,
   encodeAction,
   getFunctionFragment,
-  getOptValue,
   insideNodeLine,
   interpretNodeSync,
   isFunctionSignature,
-  isNumberish,
   tryAndCacheNotFound,
 } from "../../../utils";
 import { fetchAbi } from "../../../utils/abis";
@@ -25,51 +21,33 @@ import type { Std } from "../Std";
 
 const { ABI, ADDR } = BindingsSpace;
 
-export const exec: ICommand<Std> = {
-  async run(module, c, { interpretNode, interpretNodes, actionCallback }) {
-    checkArgsLength(c, { type: ComparisonType.Greater, minValue: 2 });
-    checkOpts(c, [
-      "value",
-      "from",
-      "gas",
-      "max-fee-per-gas",
-      "max-priority-fee-per-gas",
-      "nonce",
-    ]);
-
-    const [targetNode, signatureNode, ...rest] = c.args;
-
-    const [contractAddress, signature, params] = await Promise.all([
-      interpretNode(targetNode, { allowNotFoundError: true }),
-      interpretNode(signatureNode, { treatAsLiteral: true }),
-      interpretNodes(rest),
-    ]);
-
-    const value = await getOptValue(c, "value", interpretNode);
-    const from = await getOptValue(c, "from", interpretNode);
-    const gas = await getOptValue(c, "gas", interpretNode);
-    const maxFeePerGas = await getOptValue(c, "max-fee-per-gas", interpretNode);
-    const maxPriorityFeePerGas = await getOptValue(
-      c,
-      "max-priority-fee-per-gas",
-      interpretNode,
-    );
-    const nonce = await getOptValue(c, "nonce", interpretNode);
+export const exec = defineCommand<Std>({
+  args: [
+    {
+      name: "contractAddress",
+      type: "address",
+      interpretOptions: { allowNotFoundError: true },
+    },
+    { name: "signature", type: "literal" },
+    { name: "params", type: "any", rest: true },
+  ],
+  opts: [
+    { name: "value", type: "number" },
+    { name: "from", type: "address" },
+    { name: "gas", type: "number" },
+    { name: "max-fee-per-gas", type: "number" },
+    { name: "max-priority-fee-per-gas", type: "number" },
+    { name: "nonce", type: "number" },
+  ],
+  async run(
+    module,
+    { contractAddress, signature, params },
+    { opts, node, interpreters },
+  ) {
+    const { interpretNode, actionCallback } = interpreters;
 
     let finalSignature = signature;
     let targetAddress: Address = contractAddress;
-
-    if (!isAddress(contractAddress)) {
-      throw new ErrorException(
-        `expected a valid target address, but got ${contractAddress}`,
-      );
-    }
-
-    if (from && !isAddress(from)) {
-      throw new ErrorException(
-        `expected a valid from address, but got ${from}`,
-      );
-    }
 
     if (!isFunctionSignature(signature)) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(signature)) {
@@ -130,51 +108,34 @@ export const exec: ICommand<Std> = {
 
     const execAction = encodeAction(targetAddress, finalSignature, params);
 
-    if (value) {
-      if (!isNumberish(value)) {
-        throw new ErrorException(`expected a valid value, but got ${value}`);
-      }
-      execAction.value = BigInt(value);
+    if (opts.value !== undefined) {
+      execAction.value = BigInt(opts.value);
     }
 
-    if (from) {
-      execAction.from = from;
+    if (opts.from) {
+      execAction.from = opts.from;
     }
 
-    if (gas) {
-      if (!isNumberish(gas)) {
-        throw new ErrorException(`expected a valid gas limit, but got ${gas}`);
-      }
-      execAction.gas = BigInt(gas);
+    if (opts.gas !== undefined) {
+      execAction.gas = BigInt(opts.gas);
     }
 
-    if (maxFeePerGas) {
-      if (!isNumberish(maxFeePerGas)) {
-        throw new ErrorException(
-          `expected a valid max fee per gas, but got ${maxFeePerGas}`,
-        );
-      }
-      execAction.maxFeePerGas = BigInt(maxFeePerGas);
+    if (opts["max-fee-per-gas"] !== undefined) {
+      execAction.maxFeePerGas = BigInt(opts["max-fee-per-gas"]);
     }
 
-    if (maxPriorityFeePerGas) {
-      if (!isNumberish(maxPriorityFeePerGas)) {
-        throw new ErrorException(
-          `expected a valid max priority fee per gas, but got ${maxPriorityFeePerGas}`,
-        );
-      }
-      execAction.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas);
+    if (opts["max-priority-fee-per-gas"] !== undefined) {
+      execAction.maxPriorityFeePerGas = BigInt(
+        opts["max-priority-fee-per-gas"],
+      );
     }
 
-    if (nonce) {
-      if (!isNumberish(nonce)) {
-        throw new ErrorException(`expected a valid nonce, but got ${nonce}`);
-      }
-      execAction.nonce = Number(nonce);
+    if (opts.nonce !== undefined) {
+      execAction.nonce = Number(opts.nonce);
     }
 
     // Handle event captures: dispatch action, decode receipt logs, store variables
-    if (c.eventCaptures && c.eventCaptures.length > 0) {
+    if (node.eventCaptures && node.eventCaptures.length > 0) {
       if (!actionCallback) {
         throw new ErrorException(
           "event capture requires an execution context with transaction access",
@@ -192,7 +153,7 @@ export const exec: ICommand<Std> = {
       await resolveEventCaptures(
         receipt as { logs: any[] },
         contractAbi,
-        c.eventCaptures,
+        node.eventCaptures,
         module.bindingsManager,
         interpretNode,
       );
@@ -317,4 +278,4 @@ export const exec: ICommand<Std> = {
       eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
-};
+});

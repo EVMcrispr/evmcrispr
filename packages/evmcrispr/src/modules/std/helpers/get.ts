@@ -1,49 +1,32 @@
-import { isAddress, parseAbiItem } from "viem";
+import { parseAbiItem } from "viem";
 
 import { ErrorException } from "../../../errors";
-import type { HelperFunction } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  isFunctionSignature,
-} from "../../../utils";
+import { defineHelper, isFunctionSignature } from "../../../utils";
 import type { Std } from "../Std";
 
-export const get: HelperFunction<Std> = async (
-  module,
-  h,
-  { interpretNode, interpretNodes },
-) => {
-  checkArgsLength(h, { type: ComparisonType.Greater, minValue: 2 });
+export const get = defineHelper<Std>({
+  args: [
+    { name: "address", type: "address" },
+    { name: "abi", type: "string", interpretOptions: { treatAsLiteral: true } },
+    { name: "params", type: "any", rest: true },
+  ],
+  async run(module, { address, abi, params }) {
+    const [body, returns, index] = abi.split(":");
 
-  const [addressNode, abiNode, ...rest] = h.args;
-  const [address, abi, params] = await Promise.all([
-    interpretNode(addressNode),
-    interpretNode(abiNode, { treatAsLiteral: true }),
-    interpretNodes(rest),
-  ]);
+    if (!isFunctionSignature(body)) {
+      throw new ErrorException(
+        `expected a valid function signature, but got "${abi}"`,
+      );
+    }
 
-  if (!isAddress(address)) {
-    throw new ErrorException(
-      `expected a valid target address, but got "${address}"`,
-    );
-  }
+    const client = await module.getClient();
+    const result = await client.readContract({
+      address,
+      abi: [parseAbiItem(`function ${body} external view returns ${returns}`)],
+      functionName: body.split("(")[0],
+      args: params,
+    });
 
-  const [body, returns, index] = abi.split(":");
-
-  if (!isFunctionSignature(body)) {
-    throw new ErrorException(
-      `expected a valid function signature, but got "${abi}"`,
-    );
-  }
-
-  const client = await module.getClient();
-  const result = await client.readContract({
-    address,
-    abi: [parseAbiItem(`function ${body} external view returns ${returns}`)],
-    functionName: body.split("(")[0],
-    args: params,
-  });
-
-  return index ? result[index] : result;
-};
+    return index ? result[index] : result;
+  },
+});

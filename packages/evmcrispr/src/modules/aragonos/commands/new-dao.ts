@@ -1,9 +1,9 @@
 import { encodePacked, getContractAddress, keccak256, parseAbi } from "viem";
 
 import { ErrorException } from "../../../errors";
-import type { Action, Address, ICommand } from "../../../types";
+import type { Action, Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import { ComparisonType, checkArgsLength, encodeAction } from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { _aragonEns } from "../helpers/aragonEns";
 import {
@@ -34,13 +34,16 @@ const registerAragonId = async (
   ];
 };
 
-export const newDAO: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
-
+export const newDAO = defineCommand<AragonOS>({
+  args: [
+    {
+      name: "daoName",
+      type: "string",
+      interpretOptions: { treatAsLiteral: true },
+    },
+  ],
+  async run(module, { daoName }) {
     const provider = await module.getClient();
-
-    const daoName = await interpretNode(c.args[0], { treatAsLiteral: true });
 
     const bareTemplateRepoAddr: Address = (await _aragonEns(
       `bare-template.aragonpm.eth`,
@@ -96,4 +99,4 @@ export const newDAO: ICommand<AragonOS> = {
   async runEagerExecution() {
     return;
   },
-};
+});

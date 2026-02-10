@@ -182,10 +182,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
     const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
     const error = new CommandError(
       c,
-      `invalid remove manager flag. Expected boolean but got ${typeof toDecimals(
-        1,
-        18,
-      )}`,
+      `[removeManager] must be a boolean, got ${typeof toDecimals(1, 18)}`,
     );
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

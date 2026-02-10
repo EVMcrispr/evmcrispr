@@ -1,23 +1,12 @@
-import type { ICommand } from "../../../types";
-
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  encodeAction,
-  getOptValue,
-} from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import { defaultRelayerMap } from "../addresses";
 
 import type { Giveth } from "../Giveth";
 
-export const finalizeGivbacks: ICommand<Giveth> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 1 });
-    checkOpts(c, ["relayer"]);
-
-    const [hash] = await interpretNodes(c.args);
-
+export const finalizeGivbacks = defineCommand<Giveth>({
+  args: [{ name: "hash", type: "any" }],
+  opts: [{ name: "relayer", type: "any" }],
+  async run(module, { hash }, { opts }) {
     const defaultRelayerAddr = defaultRelayerMap.get(await module.getChainId());
 
     if (!defaultRelayerAddr) {
@@ -26,8 +15,7 @@ export const finalizeGivbacks: ICommand<Giveth> = {
       );
     }
 
-    const relayerAddr =
-      (await getOptValue(c, "relayer", interpretNode)) || defaultRelayerAddr;
+    const relayerAddr = opts.relayer || defaultRelayerAddr;
 
     const batches = await fetch(
       `https://ipfs.blossom.software/ipfs/${hash}`,
@@ -46,4 +34,4 @@ export const finalizeGivbacks: ICommand<Giveth> = {
   buildCompletionItemsForArg() {
     return [];
   },
-};
+});

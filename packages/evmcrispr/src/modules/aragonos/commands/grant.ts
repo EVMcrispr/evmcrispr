@@ -1,16 +1,9 @@
 import { isAddress, zeroAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
-import type { Action, ICommand, InterpretOptions } from "../../../types";
+import type { Action, InterpretOptions } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  encodeAction,
-  getOptValue,
-  interpretNodeSync,
-} from "../../../utils";
+import { defineCommand, encodeAction, interpretNodeSync } from "../../../utils";
 import { AddressSet } from "../AddressSet";
 import type { AragonDAO } from "../AragonDAO";
 import type { AragonOS } from "../AragonOS";
@@ -77,7 +70,7 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
     if (!isAddress(permissionManager)) {
       throw new ErrorException(
-        `invalid permission manager. Expected an address, but got ${permissionManager}`,
+        `[permissionManager] must be a valid address, got ${permissionManager}`,
       );
     }
     appPermissions.set(roleHash, {
@@ -115,38 +108,39 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   return actions;
 };
 
-export const grant: ICommand<AragonOS> = {
-  async run({ bindingsManager }, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Between,
-      minValue: 3,
-      maxValue: 4,
-    });
-    checkOpts(c, ["oracle"]);
+export const grant = defineCommand<AragonOS>({
+  args: [
+    { name: "grantee", type: "any", skipInterpret: true },
+    { name: "app", type: "any", skipInterpret: true },
+    { name: "role", type: "any", skipInterpret: true },
+    {
+      name: "permissionManager",
+      type: "any",
+      optional: true,
+      skipInterpret: true,
+    },
+  ],
+  opts: [{ name: "oracle", type: "address" }],
+  async run({ bindingsManager }, _args, { opts, node, interpreters }) {
+    const { interpretNode } = interpreters;
 
-    const dao = getDAO(bindingsManager, c.args[1]);
+    const dao = getDAO(bindingsManager, node.args[1]);
 
-    const permissionMangerArgNode = c.args[3];
+    const permissionMangerArgNode = node.args[3];
     const permissionManager = permissionMangerArgNode
       ? await interpretNode(permissionMangerArgNode, {
           allowNotFoundError: true,
         })
       : undefined;
     const [grantee, app, role] = await Promise.all(
-      c.args.slice(0, 3).map((arg, i) => {
+      node.args.slice(0, 3).map((arg, i) => {
         const opts: Partial<InterpretOptions> | undefined =
           i !== 2 ? { allowNotFoundError: true } : undefined;
 
         return interpretNode(arg, opts);
       }),
     );
-    const oracleOpt = await getOptValue(c, "oracle", interpretNode);
-
-    if (oracleOpt && !isAddress(oracleOpt)) {
-      throw new ErrorException(
-        `invalid --oracle option. Expected an address, but got ${oracleOpt}`,
-      );
-    }
+    const oracleOpt = opts.oracle;
 
     let params: ReturnType<Params> = [];
 
@@ -225,4 +219,4 @@ export const grant: ICommand<AragonOS> = {
       _grant(dao, argValues);
     };
   },
-};
+});

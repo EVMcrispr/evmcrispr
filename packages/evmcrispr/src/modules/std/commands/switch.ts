@@ -1,8 +1,8 @@
 import * as chains from "viem/chains";
 
 import { ErrorException } from "../../../errors";
-import type { ICommand, WalletAction } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { WalletAction } from "../../../types";
+import { defineCommand } from "../../../utils";
 import type { Std } from "../Std";
 
 const nameToChainId = Object.entries(chains).reduce(
@@ -13,21 +13,9 @@ const nameToChainId = Object.entries(chains).reduce(
   {} as Record<string, number>,
 );
 
-export const _switch: ICommand<Std> = {
-  async run(module, c, { interpretNodes }): Promise<WalletAction[]> {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 1,
-    });
-
-    // TODO: Consider if we need this check
-    // const provider = await module.getClient();
-    // if (!(provider instanceof providers.JsonRpcProvider)) {
-    //   throw new ErrorException("JSON-RPC based providers supported only");
-    // }
-
-    const [networkNameOrId] = await interpretNodes(c.args);
-
+export const _switch = defineCommand<Std>({
+  args: [{ name: "networkNameOrId", type: "any" }],
+  async run(module, { networkNameOrId }): Promise<WalletAction[]> {
     let chainId: number;
     chainId = Number(networkNameOrId.toString());
 
@@ -61,7 +49,4 @@ export const _switch: ICommand<Std> = {
         return [];
     }
   },
-  async runEagerExecution() {
-    return;
-  },
-};
+});

@@ -1,34 +1,18 @@
-import { isAddress } from "viem";
-
 import { ErrorException } from "../../../errors";
 
-import type { ICommand } from "../../../types";
-
-import {
-  ComparisonType,
-  checkArgsLength,
-  encodeAction,
-  isNumberish,
-} from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import { givethDonationRelayer } from "../addresses";
 
 import type { Giveth } from "../Giveth";
 import { _projectAddr } from "../helpers/projectAddr";
 
-export const donate: ICommand<Giveth> = {
-  async run(module, c, { interpretNodes }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 3 });
-
-    const [slug, amount, tokenAddr] = await interpretNodes(c.args);
-
-    if (!isNumberish(amount)) {
-      throw new ErrorException("amount is not a number");
-    }
-
-    if (!isAddress(tokenAddr)) {
-      throw new ErrorException("token is not an address");
-    }
-
+export const donate = defineCommand<Giveth>({
+  args: [
+    { name: "slug", type: "string" },
+    { name: "amount", type: "number" },
+    { name: "tokenAddr", type: "address" },
+  ],
+  async run(module, { slug, amount, tokenAddr }) {
     const [projAddr, projectId] = await _projectAddr(module, slug);
 
     const chainId = await module.getChainId();
@@ -55,4 +39,4 @@ export const donate: ICommand<Giveth> = {
   buildCompletionItemsForArg() {
     return [];
   },
-};
+});

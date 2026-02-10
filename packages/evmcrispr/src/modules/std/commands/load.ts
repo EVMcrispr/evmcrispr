@@ -3,11 +3,10 @@ import type {
   AsExpressionNode,
   Commands,
   HelperFunctions,
-  ICommand,
   IModuleConstructor,
 } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
-import { ComparisonType, checkArgsLength, insideNode } from "../../../utils";
+import { defineCommand, insideNode } from "../../../utils";
 import type { Std } from "../Std";
 
 const { ALIAS, MODULE } = BindingsSpace;
@@ -34,14 +33,11 @@ async function getModule(moduleName: string): Promise<{
   }
 }
 
-export const load: ICommand<Std> = {
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 1,
-    });
-
-    const [argNode] = c.args;
+export const load = defineCommand<Std>({
+  args: [{ name: "moduleArg", type: "any", skipInterpret: true }],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode } = interpreters;
+    const [argNode] = node.args;
     const type = argNode.type;
     const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
@@ -155,4 +151,4 @@ export const load: ICommand<Std> = {
       return;
     }
   },
-};
+});

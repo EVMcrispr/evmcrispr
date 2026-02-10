@@ -1,23 +1,15 @@
 import { ErrorException } from "../../../errors";
-import type {
-  Action,
-  BatchedAction,
-  ICommand,
-  TransactionAction,
-} from "../../../types";
+import type { Action, BatchedAction, TransactionAction } from "../../../types";
 import { isTransactionAction, NodeType } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import { defineCommand } from "../../../utils";
 import { resolveEventCaptures } from "../../../utils/events";
 import type { Std } from "../Std";
 
-export const batch: ICommand<Std> = {
-  async run(module, c, { interpretNode, actionCallback }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Equal,
-      minValue: 1,
-    });
-
-    const [blockExpressionNode] = c.args;
+export const batch = defineCommand<Std>({
+  args: [{ name: "block", type: "any", skipInterpret: true }],
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode, actionCallback } = interpreters;
+    const [blockExpressionNode] = node.args;
 
     if (
       !blockExpressionNode ||
@@ -56,7 +48,7 @@ export const batch: ICommand<Std> = {
     };
 
     // Handle event captures: dispatch action, decode receipt logs, store variables
-    if (c.eventCaptures && c.eventCaptures.length > 0) {
+    if (node.eventCaptures && node.eventCaptures.length > 0) {
       if (!actionCallback) {
         throw new ErrorException(
           "event capture requires an execution context with transaction access",
@@ -68,7 +60,7 @@ export const batch: ICommand<Std> = {
       await resolveEventCaptures(
         receipt as { logs: any[] },
         undefined, // batch has no single contract ABI; inline signatures are used
-        c.eventCaptures,
+        node.eventCaptures,
         module.bindingsManager,
         interpretNode,
       );
@@ -78,10 +70,4 @@ export const batch: ICommand<Std> = {
 
     return [batched];
   },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-  async runEagerExecution() {
-    return;
-  },
-};
+});

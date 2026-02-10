@@ -1,6 +1,5 @@
 import type { Module } from "../../..";
-import type { HelperFunction } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import { defineHelper } from "../../../utils";
 import type { Giveth } from "../Giveth";
 
 export const _projectAddr = async (
@@ -51,17 +50,9 @@ export const _projectAddr = async (
   return result as [string, number];
 };
 
-export const projectAddr: HelperFunction<Giveth> = async (
-  module,
-  h,
-  { interpretNode },
-) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Equal,
-    minValue: 1,
-  });
-
-  const slug = await interpretNode(h.args[0]);
-
-  return (await _projectAddr(module, slug))[0];
-};
+export const projectAddr = defineHelper<Giveth>({
+  args: [{ name: "slug", type: "string" }],
+  async run(module, { slug }) {
+    return (await _projectAddr(module, slug))[0];
+  },
+});

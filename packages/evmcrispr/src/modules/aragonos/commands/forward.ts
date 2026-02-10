@@ -1,32 +1,40 @@
 import { isAddress } from "viem";
 
 import { ErrorException } from "../../../errors";
-import type { Action, ICommand, TransactionAction } from "../../../types";
+import type { Action, TransactionAction } from "../../../types";
 import { isTransactionAction } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  commaListItems,
-  getOptValue,
-} from "../../../utils";
+import { commaListItems, defineCommand } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
 
-export const forward: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Greater,
-      minValue: 2,
-    });
-    checkOpts(c, ["context", "check-forwarder"]);
+export const forward = defineCommand<AragonOS>({
+  args: [
+    { name: "forwarder", type: "any", skipInterpret: true },
+    {
+      name: "forwardersAndBlock",
+      type: "any",
+      rest: true,
+      skipInterpret: true,
+    },
+  ],
+  opts: [
+    { name: "context", type: "string" },
+    { name: "check-forwarder", type: "string" },
+  ],
+  async run(module, _args, { opts, node, interpreters }) {
+    const { interpretNode, interpretNodes } = interpreters;
 
-    const blockCommandsNode = c.args.pop()!;
+    const blockCommandsNode = node.args[node.args.length - 1];
+    const forwarderArgNodes = node.args.slice(0, -1);
 
-    const forwarderAppAddresses = await interpretNodes(c.args, false, {
-      allowNotFoundError: true,
-    });
+    const forwarderAppAddresses = await interpretNodes(
+      forwarderArgNodes,
+      false,
+      {
+        allowNotFoundError: true,
+      },
+    );
 
     const invalidForwarderApps: any[] = [];
 
@@ -52,19 +60,12 @@ export const forward: ICommand<AragonOS> = {
       );
     }
 
-    const context = await getOptValue(c, "context", interpretNode);
-    const checkForwarder = await getOptValue(
-      c,
-      "check-forwarder",
-      interpretNode,
-    );
-
     return batchForwarderActions(
       module,
       blockActions as TransactionAction[],
       forwarderAppAddresses.reverse(),
-      context,
-      checkForwarder,
+      opts.context,
+      opts["check-forwarder"],
     );
   },
   buildCompletionItemsForArg(_, __, bindingsManager) {
@@ -73,4 +74,4 @@ export const forward: ICommand<AragonOS> = {
   async runEagerExecution() {
     return;
   },
-};
+});

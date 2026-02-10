@@ -10,7 +10,6 @@ import type {
   AddressBinding,
   Binding,
   DataProviderBinding,
-  ICommand,
   Nullable,
   TransactionAction,
 } from "../../../types";
@@ -18,10 +17,7 @@ import { BindingsSpace, isTransactionAction, NodeType } from "../../../types";
 import {
   addressesEqual,
   beforeOrEqualNode,
-  ComparisonType,
-  checkArgsLength,
-  checkOpts,
-  getOptValue,
+  defineCommand,
   interpretNodeSync,
   isAddressNodishType,
   tryAndCacheNotFound,
@@ -208,15 +204,16 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   };
 };
 
-export const connect: ICommand<AragonOS> = {
-  async run(module, c, { interpretNode, interpretNodes }) {
-    checkArgsLength(c, {
-      type: ComparisonType.Greater,
-      minValue: 2,
-    });
-    checkOpts(c, ["context"]);
-
-    const [daoNameNode, ...rest] = c.args;
+export const connect = defineCommand<AragonOS>({
+  args: [
+    { name: "daoName", type: "any", skipInterpret: true },
+    { name: "blockOrForwarders", type: "any", skipInterpret: true },
+    { name: "rest", type: "any", rest: true, skipInterpret: true },
+  ],
+  opts: [{ name: "context", type: "any" }],
+  async run(module, _args, { opts, node, interpreters }) {
+    const { interpretNode, interpretNodes } = interpreters;
+    const [daoNameNode, ...rest] = node.args;
     const blockExpressionNode = rest.pop();
 
     const forwarderApps = await interpretNodes(rest);
@@ -279,13 +276,11 @@ export const connect: ICommand<AragonOS> = {
       );
     }
 
-    const context = await getOptValue(c, "context", interpretNode);
-
     return batchForwarderActions(
       module,
       actions as TransactionAction[],
       forwarderAppAddresses.reverse(),
-      context,
+      opts.context,
     );
   },
   async runEagerExecution(
@@ -348,7 +343,7 @@ export const connect: ICommand<AragonOS> = {
           cache,
           client,
           ipfsResolver,
-          ensResolver as Nullable<Address> | undefined, // TODO: Fix BindingsManager to not return null for non-existent bindings
+          ensResolver as Nullable<Address> | undefined,
         );
       },
       daoNameOrAddress,
@@ -400,4 +395,4 @@ export const connect: ICommand<AragonOS> = {
 
     return [];
   },
-};
+});

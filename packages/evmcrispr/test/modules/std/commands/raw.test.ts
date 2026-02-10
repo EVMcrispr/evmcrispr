@@ -106,7 +106,7 @@ describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () =>
     const c = findStdCommandNode(interpreter.ast, "raw")!;
     const error = new CommandError(
       c,
-      `expected a valid target address, but got ${invalidTargetAddress}`,
+      `<contractAddress> must be a valid address, got ${invalidTargetAddress}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -121,7 +121,7 @@ describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () =>
     const c = findStdCommandNode(interpreter.ast, "raw")!;
     const error = new CommandError(
       c,
-      `expected a valid value, but got ${invalidValue}`,
+      `[value] must be a number, got ${invalidValue}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -136,7 +136,7 @@ describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () =>
     const c = findStdCommandNode(interpreter.ast, "raw")!;
     const error = new CommandError(
       c,
-      `expected a valid from address, but got ${invalidFrom}`,
+      `--from must be a valid address, got ${invalidFrom}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

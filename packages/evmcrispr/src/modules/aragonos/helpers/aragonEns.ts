@@ -1,7 +1,7 @@
 import type { PublicClient } from "viem";
 import { ErrorException } from "../../../errors";
-import type { Address, HelperFunction, Nullable } from "../../../types";
-import { ComparisonType, checkArgsLength } from "../../../utils";
+import type { Address, Nullable } from "../../../types";
+import { defineHelper } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import { getAragonEnsResolver, resolveName } from "../utils";
 
@@ -17,29 +17,23 @@ export const _aragonEns = async (
   return name;
 };
 
-export const aragonEns: HelperFunction<AragonOS> = async (
-  module,
-  h,
-  { interpretNodes },
-) => {
-  checkArgsLength(h, {
-    type: ComparisonType.Between,
-    minValue: 1,
-    maxValue: 2,
-  });
+export const aragonEns = defineHelper<AragonOS>({
+  args: [
+    { name: "ensName", type: "string" },
+    { name: "extra", type: "any", optional: true },
+  ],
+  async run(module, { ensName }) {
+    const customENSResolver = module.getConfigBinding("ensResolver");
+    const name = await _aragonEns(
+      ensName,
+      await module.getClient(),
+      customENSResolver,
+    );
 
-  const [ensName] = await interpretNodes(h.args);
+    if (!name) {
+      throw new ErrorException(`ENS ${ensName} couldn't be resolved.`);
+    }
 
-  const customENSResolver = module.getConfigBinding("ensResolver");
-  const name = await _aragonEns(
-    ensName,
-    await module.getClient(),
-    customENSResolver,
-  );
-
-  if (!name) {
-    throw new ErrorException(`ENS ${ensName} couldn't be resolved.`);
-  }
-
-  return name;
-};
+    return name;
+  },
+});

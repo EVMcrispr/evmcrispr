@@ -122,7 +122,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
       c,
-      `expected a valid agent address, but got ${invalidAgentAddress}`,
+      `<agent> must be a valid address, got ${invalidAgentAddress}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -136,7 +136,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
       c,
-      `expected a valid target address, but got 2220000000000000000`,
+      `<target> must be a valid address, got 2220000000000000000`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -162,7 +162,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         const error = new CommandError(
           c,
-          `expected a valid signature, but got ${invalidSignature}`,
+          `<signature> must be a valid function signature, got ${invalidSignature}`,
         );
 
         return expectThrowAsync(

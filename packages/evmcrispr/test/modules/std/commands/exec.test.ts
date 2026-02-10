@@ -175,7 +175,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(
       c,
-      `expected a valid target address, but got ${invalidTargetAddress}`,
+      `<contractAddress> must be a valid address, got ${invalidTargetAddress}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -223,7 +223,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
       client,
     );
     const c = findStdCommandNode(interpreter.ast, "exec")!;
-    const error = new CommandError(c, `expected a valid value, but got tata`);
+    const error = new CommandError(c, `--value must be a number, got tata`);
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
@@ -236,7 +236,7 @@ describe("Std > commands > exec <target> <fnSignature> [<...params>] [--from <se
     const c = findStdCommandNode(interpreter.ast, "exec")!;
     const error = new CommandError(
       c,
-      `expected a valid from address, but got tata`,
+      `--from must be a valid address, got tata`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

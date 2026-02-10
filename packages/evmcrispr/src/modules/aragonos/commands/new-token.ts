@@ -1,13 +1,8 @@
 import { getContractAddress, isAddress, zeroAddress } from "viem";
 import { ErrorException } from "../../../errors";
-import type { Address, ICommand } from "../../../types";
+import type { Address } from "../../../types";
 import { BindingsSpace } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  encodeAction,
-  isNumberish,
-} from "../../../utils";
+import { defineCommand, encodeAction } from "../../../utils";
 import type { AragonOS } from "../AragonOS";
 import {
   buildNonceForAddress,
@@ -16,28 +11,24 @@ import {
   MINIME_TOKEN_FACTORIES,
 } from "../utils";
 
-export const newToken: ICommand<AragonOS> = {
-  async run(module, c, { interpretNodes }) {
+export const newToken = defineCommand<AragonOS>({
+  args: [
+    { name: "name", type: "string" },
+    { name: "symbol", type: "string" },
+    { name: "controller", type: "any" },
+    { name: "decimals", type: "number", optional: true },
+    { name: "transferable", type: "bool", optional: true },
+  ],
+  async run(
+    module,
+    { name, symbol, controller, decimals = 18, transferable = true },
+    { node },
+  ) {
     const chainId = await module.getChainId();
 
     if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
       throw new ErrorException(
         `no MiniMeTokenFactory was found on chain ${chainId}`,
-      );
-    }
-
-    checkArgsLength(c, {
-      type: ComparisonType.Between,
-      minValue: 3,
-      maxValue: 5,
-    });
-
-    const [name, symbol, controller, decimals = 18, transferable = true] =
-      await interpretNodes(c.args);
-
-    if (!isNumberish(decimals)) {
-      throw new ErrorException(
-        `invalid decimals. Expected an integer number, but got ${decimals.toString()}`,
       );
     }
 
@@ -54,7 +45,7 @@ export const newToken: ICommand<AragonOS> = {
       controllerAddress = identifierBinding;
     } else if (isLabeledAppIdentifier(controller) && module.currentDAO) {
       const kernel =
-        getDaoAddrFromIdentifier(c.args[2].value, module.bindingsManager) ||
+        getDaoAddrFromIdentifier(node.args[2].value, module.bindingsManager) ||
         module.currentDAO?.kernel.address;
       controllerAddress = await module.registerNextProxyAddress(
         controller,
@@ -67,16 +58,6 @@ export const newToken: ICommand<AragonOS> = {
     } else {
       throw new ErrorException(
         `invalid controller. Expected an address or an app identifier, but got ${controller}`,
-      );
-    }
-
-    if (
-      typeof transferable !== "boolean" &&
-      transferable !== "true" &&
-      transferable !== "false"
-    ) {
-      throw new ErrorException(
-        `invalid transferable flag. Expected a boolean, but got ${transferable}`,
       );
     }
 
@@ -120,4 +101,4 @@ export const newToken: ICommand<AragonOS> = {
   async runEagerExecution() {
     return;
   },
-};
+});

@@ -1,17 +1,16 @@
 import { ErrorException } from "../../../errors";
-import type { ICommand } from "../../../types";
 import { BindingsSpace, NodeType } from "../../../types";
-import {
-  ComparisonType,
-  checkArgsLength,
-  inSameLineThanNode,
-} from "../../../utils";
+import { defineCommand, inSameLineThanNode } from "../../../utils";
 import type { Std } from "../Std";
 
 const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;
 
-export const set: ICommand<Std> = {
+export const set = defineCommand<Std>({
+  args: [
+    { name: "variable", type: "any", skipInterpret: true },
+    { name: "value", type: "any", skipInterpret: true },
+  ],
   buildCompletionItemsForArg(argIndex, _, cache) {
     switch (argIndex) {
       case 0:
@@ -23,10 +22,9 @@ export const set: ICommand<Std> = {
         return [];
     }
   },
-  async run(module, c, { interpretNode }) {
-    checkArgsLength(c, { type: ComparisonType.Equal, minValue: 2 });
-
-    const [varNode, valueNode] = c.args;
+  async run(module, _args, { node, interpreters }) {
+    const { interpretNode } = interpreters;
+    const [varNode, valueNode] = node.args;
 
     if (varNode.type !== VariableIdentifier) {
       throw new ErrorException(`expected a variable identifier`);
@@ -61,4 +59,4 @@ export const set: ICommand<Std> = {
         eagerBindingsManager.setBinding(varName, varValueNode.value, USER);
     }
   },
-};
+});

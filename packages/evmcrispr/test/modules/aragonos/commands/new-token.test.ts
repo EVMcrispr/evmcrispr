@@ -237,7 +237,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
-      `invalid decimals. Expected an integer number, but got ${invalidDecimals}`,
+      `[decimals] must be a number, got ${invalidDecimals}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -265,7 +265,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
-      `invalid transferable flag. Expected a boolean, but got ${invalidTransferable}`,
+      `[transferable] must be a boolean, got ${invalidTransferable}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
