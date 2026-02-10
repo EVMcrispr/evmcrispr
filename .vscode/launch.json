@@ -8,7 +8,7 @@
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
       "args": ["test"],
-      "cwd": "${workspaceFolder}/packages/evmcrispr/"
+      "cwd": "${workspaceFolder}/packages/core/"
     }
   ]
 }

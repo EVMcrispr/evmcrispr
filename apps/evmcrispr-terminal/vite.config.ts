@@ -10,11 +10,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@evmcrispr/core/package.json": path.resolve(
         __dirname,
-        "../../packages/evmcrispr/package.json",
+        "../../packages/core/package.json",
       ),
       "@evmcrispr/core": path.resolve(
         __dirname,
-        "../../packages/evmcrispr/src/index.ts",
+        "../../packages/core/src/index.ts",
       ),
     },
   },

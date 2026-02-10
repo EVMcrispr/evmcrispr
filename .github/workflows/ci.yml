@@ -34,24 +34,24 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
-          files: "packages/evmcrispr/{src,test}/**"
+          files: "packages/core/{src,test}/**"
 
       - name: Build
         run: bun run build
 
       - name: Lint code
-        run: bun lint
+        run: bun run lint
 
-      - name: Check evmcrispr types
-        run: bun type-check
+      - name: Check types
+        run: bun run type-check
 
       - name: Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> packages/evmcrispr/.env
-          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> packages/evmcrispr/.env
-          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> packages/evmcrispr/.env
-          bun test:coverage
+          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> packages/core/.env
+          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> packages/core/.env
+          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> packages/core/.env
+          bun run test:coverage
         env:
           ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
           VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
@@ -63,5 +63,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
-          base-path: "packages/evmcrispr"
-          path-to-lcov: "packages/evmcrispr/coverage/lcov.info"
+          base-path: "packages/core"
+          path-to-lcov: "packages/core/coverage/lcov.info"
