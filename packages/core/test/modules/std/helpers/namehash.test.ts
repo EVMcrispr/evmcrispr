@@ -2,13 +2,9 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import { ComparisonType, HelperFunctionError, NodeType } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { namehash } from "viem";
-
-import { HelperFunctionError } from "../../../../src/errors.js";
-
-import { NodeType } from "../../../../src/types/index.js";
-import { ComparisonType } from "../../../../src/utils/index.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   itChecksInvalidArgsLength,

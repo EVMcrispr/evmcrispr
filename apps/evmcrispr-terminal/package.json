@@ -5,6 +5,10 @@
   "type": "module",
   "dependencies": {
     "@evmcrispr/core": "*",
+    "@evmcrispr/module-aragonos": "*",
+    "@evmcrispr/module-ens": "*",
+    "@evmcrispr/module-giveth": "*",
+    "@evmcrispr/module-sim": "*",
     "@repo/ui": "*",
     "@fontsource/ubuntu-mono": "^5.2.8",
     "@heroicons/react": "^2.2.0",
@@ -41,7 +45,7 @@
     "dev": "vite --clearScreen false",
     "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
-    "preview": "vite preview",
+    "preview": "vite preview --port 3000",
     "lint": "biome check src"
   },
   "license": "AGPL-3.0-or-later"

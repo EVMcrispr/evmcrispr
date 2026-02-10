@@ -2,12 +2,14 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import type AragonOS from "@evmcrispr/module-aragonos";
+import {
+  CommandError,
+  type CommandExpressionNode,
+  toDecimals,
+} from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-import { CommandError } from "../../../../src/errors.js";
-import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
-import type { CommandExpressionNode } from "../../../../src/types/index.js";
-import { toDecimals } from "../../../../src/utils/index.js";
 import { DAO } from "../../../fixtures/index.js";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2.js";
 import { getPublicClient } from "../../../test-helpers/client.js";

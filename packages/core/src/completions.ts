@@ -1,11 +1,3 @@
-import type { PublicClient } from "viem";
-import { isAddress } from "viem";
-
-import { BindingsManager } from "./BindingsManager";
-import { DEFAULT_MODULE_BINDING } from "./defaults";
-import type { EvmlAST } from "./EvmlAST";
-import { IPFSResolver } from "./IPFSResolver";
-import { parseScript } from "./parsers/script";
 import type {
   CommandExpressionNode,
   CompletionItem,
@@ -14,13 +6,22 @@ import type {
   ModuleBinding,
   NoNullableBinding,
   Position,
-} from "./types";
-import { BindingsSpace, NodeType, resolveCommand } from "./types";
+} from "@evmcrispr/sdk";
 import {
+  BindingsManager,
+  BindingsSpace,
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
-} from "./utils/ast";
+  IPFSResolver,
+  NodeType,
+  resolveCommand,
+} from "@evmcrispr/sdk";
+import type { PublicClient } from "viem";
+import { isAddress } from "viem";
+
+import type { EvmlAST } from "./EvmlAST";
+import { parseScript } from "./parsers/script";
 
 const { ALIAS, MODULE, USER } = BindingsSpace;
 
@@ -39,7 +40,12 @@ const runLoadCommands = async (
   eagerBindingsManager: BindingsManager,
   ...eagerFnParams: EagerExecParams
 ): Promise<void> => {
-  eagerBindingsManager.setBindings(DEFAULT_MODULE_BINDING);
+  // Seed the eager bindings manager with the std module binding from the cache
+  const moduleCache = eagerFnParams[0];
+  const stdData = moduleCache.getBindingValue("std", MODULE);
+  if (stdData) {
+    eagerBindingsManager.setBinding("std", stdData, MODULE);
+  }
 
   const loadCommandNodes = commandNodes.filter((c) =>
     ["load", "std:load"].includes(c.name),
@@ -57,7 +63,7 @@ export const runEagerExecutions = async (
   eagerBindingsManager: BindingsManager,
   ...eagerFnParams: EagerExecParams
 ): Promise<void> => {
-  let parentCommandModule = DEFAULT_MODULE_BINDING.identifier;
+  let parentCommandModule = "std";
 
   const commandToModule = commandNodes.reduce<string[]>(
     (commandToModule, c) => {
@@ -122,8 +128,7 @@ const resolveCommandNode = async (
   eagerBindingsManager: BindingsManager,
   parentModule: string,
 ): Promise<ICommand | undefined> => {
-  const moduleName =
-    c.module ?? parentModule ?? DEFAULT_MODULE_BINDING.identifier;
+  const moduleName = c.module ?? parentModule ?? "std";
 
   const resolvedModuleName =
     eagerBindingsManager.getBindingValue(moduleName, ALIAS) ?? moduleName;
@@ -149,8 +154,7 @@ const resolveCommandNode = async (
 const buildModuleCompletionItems = (
   eagerBindingsManager: BindingsManager,
 ): { commandItems: CompletionItem[]; helperItems: CompletionItem[] } => {
-  const scopeModule =
-    eagerBindingsManager.getScopeModule() ?? DEFAULT_MODULE_BINDING.identifier;
+  const scopeModule = eagerBindingsManager.getScopeModule() ?? "std";
 
   const moduleBindings = eagerBindingsManager.getAllBindings({
     spaceFilters: [MODULE],
@@ -484,13 +488,17 @@ export async function getKeywords(
     );
   }
 
-  // Extract default std keywords
-  const commands: string[] = Object.keys(
-    DEFAULT_MODULE_BINDING.value.commands,
-  ).flatMap((name) => [name, `std:${name}`]);
-  const helpers: string[] = Object.keys(
-    DEFAULT_MODULE_BINDING.value.helpers,
-  ).map((name) => `@${name}`);
+  // Extract default std keywords from the module cache
+  const stdModuleData = moduleCache.getBindingValue("std", MODULE);
+  const commands: string[] = stdModuleData
+    ? Object.keys(stdModuleData.commands).flatMap((name) => [
+        name,
+        `std:${name}`,
+      ])
+    : [];
+  const helpers: string[] = stdModuleData
+    ? Object.keys(stdModuleData.helpers).map((name) => `@${name}`)
+    : [];
 
   // Extract keywords from loaded modules
   const moduleBindings = moduleCache.getAllBindings({

@@ -1,21 +1,19 @@
 import { it } from "bun:test";
-import type { PublicClient } from "viem";
-
-import type { Address } from "../../../../src";
-
-import { CommandError } from "../../../../src/errors";
-import type { AragonOS } from "../../../../src/modules/aragonos";
+import type AragonOS from "@evmcrispr/module-aragonos";
 import {
   getAragonEnsResolver,
   resolveName,
-} from "../../../../src/modules/aragonos/utils";
-import type {
-  AST,
-  BlockExpressionNode,
-  CommandExpressionNode,
-} from "../../../../src/types";
-import { NodeType } from "../../../../src/types";
-import { listItems } from "../../../../src/utils";
+} from "@evmcrispr/module-aragonos/utils";
+import {
+  type Address,
+  type AST,
+  type BlockExpressionNode,
+  CommandError,
+  type CommandExpressionNode,
+  listItems,
+  NodeType,
+} from "@evmcrispr/sdk";
+import type { PublicClient } from "viem";
 import type { TestInterpreter } from "../../../test-helpers/evml";
 import {
   createInterpreter,

@@ -1,6 +1,6 @@
+import { toDecimals } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { namehash, toHex } from "viem";
-import { toDecimals } from "../../../../src/utils";
 import { DAO } from "../../../fixtures";
 
 type App = {

@@ -1,3 +1,10 @@
+import type {
+  EventCaptureBinding,
+  EventCaptureNode,
+  Node,
+  NodeParser,
+} from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
   char,
   choice,
@@ -10,15 +17,6 @@ import {
   sequenceOf,
   str,
 } from "arcsecond";
-
-import type {
-  EventCaptureBinding,
-  EventCaptureNode,
-  Node,
-  NodeParser,
-} from "../types";
-import { NodeType } from "../types";
-import { buildParserError } from "../utils/parsers";
 import { createNodeLocation, locate, whitespace } from "./utils";
 
 export const CAPTURE_PARSER_ERROR = "CaptureParserError";

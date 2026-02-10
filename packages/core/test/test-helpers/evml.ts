@@ -1,31 +1,34 @@
 import { it } from "bun:test";
 import { inspect } from "node:util";
-import type { Err, Parser } from "arcsecond";
-import { withData } from "arcsecond";
-import { expect } from "chai";
-import type { PublicClient } from "viem";
-import type { ErrorException, EvmlAST } from "../../src";
-import { EVMcrispr } from "../../src/EVMcrispr";
-import {
-  CommandError,
-  ExpressionError,
-  HelperFunctionError,
-} from "../../src/errors";
-import { parseScript } from "../../src/parsers/script";
-import { createParserState } from "../../src/parsers/utils";
 import type {
   Action,
   BlockExpressionNode,
   CommandExpressionNode,
+  Comparison,
+  ErrorException,
   HelperFunctionNode,
   Node,
   NodeParser,
   NodeParserState,
-} from "../../src/types";
-import { BindingsSpace, NodeType } from "../../src/types";
-import type { Comparison } from "../../src/utils";
-import { buildArgsLengthErrorMsg, ComparisonType } from "../../src/utils";
-import { buildParserError } from "../../src/utils/parsers";
+} from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  buildArgsLengthErrorMsg,
+  buildParserError,
+  CommandError,
+  ComparisonType,
+  ExpressionError,
+  HelperFunctionError,
+  NodeType,
+} from "@evmcrispr/sdk";
+import type { Err, Parser } from "arcsecond";
+import { withData } from "arcsecond";
+import { expect } from "chai";
+import type { PublicClient } from "viem";
+import { EVMcrispr } from "../../src/EVMcrispr";
+import type { EvmlAST } from "../../src/EvmlAST";
+import { parseScript } from "../../src/parsers/script";
+import { createParserState } from "../../src/parsers/utils";
 import { TEST_ACCOUNT_ADDRESS } from "./constants";
 import { expectThrowAsync } from "./expects";
 

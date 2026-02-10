@@ -7,6 +7,7 @@
       "devDependencies": {
         "@biomejs/biome": "^2.3.14",
         "@changesets/cli": "^2.29.8",
+        "@types/bun": "^1.3.8",
         "husky": "^9.1.7",
         "lint-staged": "^16.2.7",
         "turbo": "^2.8.4",
@@ -17,6 +18,10 @@
       "version": "0.3.0",
       "dependencies": {
         "@evmcrispr/core": "*",
+        "@evmcrispr/module-aragonos": "*",
+        "@evmcrispr/module-ens": "*",
+        "@evmcrispr/module-giveth": "*",
+        "@evmcrispr/module-sim": "*",
         "@fontsource/ubuntu-mono": "^5.2.8",
         "@heroicons/react": "^2.2.0",
         "@monaco-editor/react": "^4.7.0",
@@ -70,16 +75,76 @@
         "typescript": "^5.9.3",
       },
     },
+    "modules/aragonos": {
+      "name": "@evmcrispr/module-aragonos",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+        "arcsecond": "^5.0.0",
+        "lodash.clonedeep": "^4.5.0",
+      },
+      "devDependencies": {
+        "@types/lodash.clonedeep": "^4.5.9",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "modules/ens": {
+      "name": "@evmcrispr/module-ens",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ensdomains/content-hash": "^3.0.0",
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "modules/giveth": {
+      "name": "@evmcrispr/module-giveth",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/module-aragonos": "workspace:*",
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "modules/sim": {
+      "name": "@evmcrispr/module-sim",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "modules/std": {
+      "name": "@evmcrispr/module-std",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
     "packages/core": {
       "name": "@evmcrispr/core",
       "version": "0.11.0",
       "dependencies": {
-        "@ensdomains/content-hash": "^3.0.0",
+        "@evmcrispr/module-std": "workspace:*",
+        "@evmcrispr/sdk": "workspace:*",
         "arcsecond": "^5.0.0",
-        "jsymbol": "^0.3.5",
-        "lodash.clonedeep": "^4.5.0",
       },
       "devDependencies": {
+        "@evmcrispr/module-aragonos": "workspace:*",
+        "@evmcrispr/module-ens": "workspace:*",
+        "@evmcrispr/module-giveth": "workspace:*",
+        "@evmcrispr/module-sim": "workspace:*",
         "@types/bun": "^1.3.8",
         "@types/chai": "^5.2.3",
         "@types/lodash.clonedeep": "^4.5.9",
@@ -89,6 +154,20 @@
         "msw": "^2.12.9",
         "nyc": "^17.1.0",
         "ora": "^9.3.0",
+        "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "packages/sdk": {
+      "name": "@evmcrispr/sdk",
+      "version": "0.1.0",
+      "dependencies": {
+        "jsymbol": "^0.3.5",
+      },
+      "devDependencies": {
+        "arcsecond": "^5.0.0",
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
@@ -319,6 +398,18 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.3", "", { "os": "win32", "cpu": "x64" }, "sha512-4uJGhsxuptu3OcpVAzli+/gWusVGwZZHTlS63hh++ehExkVT8SgiEf7/uC/PclrPPkLhZqGgCTjd0VWLo6xMqA=="],
 
     "@evmcrispr/core": ["@evmcrispr/core@workspace:packages/core"],
+
+    "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
+
+    "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
+
+    "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
+
+    "@evmcrispr/module-sim": ["@evmcrispr/module-sim@workspace:modules/sim"],
+
+    "@evmcrispr/module-std": ["@evmcrispr/module-std@workspace:modules/std"],
+
+    "@evmcrispr/sdk": ["@evmcrispr/sdk@workspace:packages/sdk"],
 
     "@floating-ui/core": ["@floating-ui/core@1.7.4", "", { "dependencies": { "@floating-ui/utils": "^0.2.10" } }, "sha512-C3HlIdsBxszvm5McXlB8PeOEWfBhcGBTZGkGlWc2U0KFY5IwG5OQEuQ8rq52DZmcHDlPLd+YFBK+cZcytwIFWg=="],
 

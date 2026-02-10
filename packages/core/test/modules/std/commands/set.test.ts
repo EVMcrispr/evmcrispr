@@ -2,10 +2,8 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import { BindingsSpace, CommandError, toDecimals } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { CommandError } from "../../../../src/errors.js";
-import { BindingsSpace } from "../../../../src/types/index.js";
-import { toDecimals } from "../../../../src/utils/index.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml.js";
 import { expectThrowAsync } from "../../../test-helpers/expects.js";

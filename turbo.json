@@ -3,12 +3,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "src/_generated.ts"]
     },
     "dev": {
-      "dependsOn": ["^build"],
-      "persistent": true,
-      "cache": false
+      "cache": false,
+      "persistent": true
     },
     "type-check": {
       "dependsOn": ["^build"]

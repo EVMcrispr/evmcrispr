@@ -2,11 +2,9 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import { CommandError, encodeAction } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { toHex } from "viem";
-
-import { CommandError } from "../../../../src/errors.js";
-import { encodeAction } from "../../../../src/utils/index.js";
 import { DAO } from "../../../fixtures/index.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { itChecksNonDefinedIdentifier } from "../../../test-helpers/evml.js";

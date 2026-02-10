@@ -8,6 +8,7 @@
       "!**/.astro",
       "!**/coverage",
       "!**/generated",
+      "!**/_generated.ts",
       "!**/*.astro",
       "!**/editor/evml.ts"
     ]

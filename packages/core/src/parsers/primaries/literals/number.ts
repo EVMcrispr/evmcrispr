@@ -1,8 +1,6 @@
+import type { EnclosingNodeParser, NumericLiteralNode } from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import { char, choice, coroutine, digits, possibly, str } from "arcsecond";
-
-import type { EnclosingNodeParser, NumericLiteralNode } from "../../../types";
-import { NodeType } from "../../../types";
-import { buildParserError } from "../../../utils/parsers";
 import {
   createNodeLocation,
   enclosingLookaheadParser,

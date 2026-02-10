@@ -1,4 +1,4 @@
-import type { AST, CommandExpressionNode } from "../../../src/types";
+import type { AST, CommandExpressionNode } from "@evmcrispr/sdk";
 
 export const findGivethCommandNode = (
   ast: AST,

@@ -2,14 +2,14 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import {
+  type CommandExpressionNode,
+  ComparisonType,
+  HelperFunctionError,
+  type HelperFunctionNode,
+  NodeType,
+} from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { HelperFunctionError } from "../../../../src/errors.js";
-import type {
-  CommandExpressionNode,
-  HelperFunctionNode,
-} from "../../../../src/types/index.js";
-import { NodeType } from "../../../../src/types/index.js";
-import { ComparisonType } from "../../../../src/utils/index.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   createInterpreter,

@@ -2,18 +2,18 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import type AragonOS from "@evmcrispr/module-aragonos";
+import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
+
+import {
+  type Address,
+  addressesEqual,
+  BindingsSpace,
+  CommandError,
+  type TransactionAction,
+} from "@evmcrispr/sdk";
 import type { PublicClient, WalletClient } from "viem";
 import { getContract, getContractAddress, parseAbi } from "viem";
-
-import { CommandError } from "../../../../src/errors.js";
-import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
-import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces.js";
-import type {
-  Address,
-  TransactionAction,
-} from "../../../../src/types/index.js";
-import { BindingsSpace } from "../../../../src/types/index.js";
-import { addressesEqual } from "../../../../src/utils/index.js";
 import { DAO } from "../../../fixtures/index.js";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2.js";
 import {

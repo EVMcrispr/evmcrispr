@@ -2,11 +2,10 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import { ANY_ENTITY } from "@evmcrispr/module-aragonos/utils";
+import { CommandError, commaListItems } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-import { CommandError } from "../../../../src/errors.js";
-import { ANY_ENTITY } from "../../../../src/modules/aragonos/utils/index.js";
-import { commaListItems } from "../../../../src/utils/index.js";
 import { DAO } from "../../../fixtures/index.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import {

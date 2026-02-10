@@ -2,12 +2,10 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import type AragonOS from "@evmcrispr/module-aragonos";
+import { encodeActCall } from "@evmcrispr/module-aragonos/utils";
+import { type Action, addressesEqual, CommandError } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { CommandError } from "../../../../src/errors.js";
-import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
-import { encodeActCall } from "../../../../src/modules/aragonos/utils/index.js";
-import type { Action } from "../../../../src/types/index.js";
-import { addressesEqual } from "../../../../src/utils/index.js";
 
 import { DAO } from "../../../fixtures/index.js";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2.js";

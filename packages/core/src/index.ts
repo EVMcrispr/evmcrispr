@@ -1,22 +1,3 @@
-export { BindingsManager } from "./BindingsManager";
-export { DEFAULT_MODULE_BINDING } from "./defaults";
-export { EVMcrispr } from "./EVMcrispr";
-export { EvmlAST } from "./EvmlAST";
-export type { ErrorOptions } from "./errors";
-export {
-  ErrorException,
-  ErrorInvalid,
-  ErrorNotFound,
-  HaltExecution,
-} from "./errors";
-export { IPFS_GATEWAY, IPFSResolver } from "./IPFSResolver";
-export { Module } from "./Module";
-export {
-  commands as stdCommands,
-  helpers as stdHelpers,
-  ModuleConstructor as StdConstructor,
-} from "./modules/std";
-export { parseScript, scriptParser } from "./parsers/script";
 export type {
   Abi,
   AbiBinding,
@@ -45,6 +26,7 @@ export type {
   CompletionItemKind,
   DataProviderBinding,
   EnclosingNodeParser,
+  ErrorOptions,
   EventCaptureBinding,
   EventCaptureNode,
   HelperFunction,
@@ -89,26 +71,42 @@ export type {
   UserBinding,
   VariableIdentifierNode,
   WalletAction,
-} from "./types";
+} from "@evmcrispr/sdk";
+// Re-export from @evmcrispr/sdk for downstream convenience
 export {
   ASTType,
+  BindingsManager,
   BindingsSpace,
-  isBatchedAction,
-  isRpcAction,
-  isTerminalAction,
-  isTransactionAction,
-  isWalletAction,
-  NodeType,
-} from "./types";
-export {
   beforeOrEqualNode,
+  CommandError,
   calculateCurrentArgIndex,
+  ErrorException,
+  ErrorInvalid,
+  ErrorNotFound,
+  ExpressionError,
   getDeepestNodeWithArgs,
+  HaltExecution,
+  HelperFunctionError,
   hasCommandsBlock,
+  IPFS_GATEWAY,
+  IPFSResolver,
   inSameLineThanNode,
   insideNode,
   insideNodeLine,
   interpretNodeSync,
   isAddressNodishType,
+  isBatchedAction,
   isNodeWithArgs,
-} from "./utils/ast";
+  isRpcAction,
+  isTerminalAction,
+  isTransactionAction,
+  isWalletAction,
+  Module,
+  NodeError,
+  NodeType,
+  resolveCommand,
+  resolveHelper,
+} from "@evmcrispr/sdk";
+export { EVMcrispr } from "./EVMcrispr";
+export { EvmlAST } from "./EvmlAST";
+export { parseScript, scriptParser } from "./parsers/script";

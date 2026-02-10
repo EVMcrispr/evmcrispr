@@ -1,6 +1,15 @@
 import { describe, it } from "bun:test";
+import type {
+  BooleanLiteralNode,
+  BytesLiteralNode,
+  Location,
+  NumericLiteralNode,
+  ProbableIdentifierNode,
+  StringLiteralNode,
+  VariableIdentifierNode,
+} from "@evmcrispr/sdk";
+import { NodeType } from "@evmcrispr/sdk";
 import { expect } from "chai";
-
 import {
   ADDRESS_PARSER_ERROR,
   addressParser,
@@ -16,16 +25,6 @@ import {
   variableIdentifierParser,
 } from "../../src/parsers/primaries";
 import { HEXADECIMAL_PARSER_ERROR } from "../../src/parsers/primaries/literals/hexadecimal";
-import type {
-  BooleanLiteralNode,
-  BytesLiteralNode,
-  Location,
-  NumericLiteralNode,
-  ProbableIdentifierNode,
-  StringLiteralNode,
-  VariableIdentifierNode,
-} from "../../src/types";
-import { NodeType } from "../../src/types";
 
 import type { Case } from "../test-helpers/evml";
 import { runCases, runErrorCase, runParser } from "../test-helpers/evml";

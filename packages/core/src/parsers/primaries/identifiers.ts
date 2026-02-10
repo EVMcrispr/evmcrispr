@@ -1,3 +1,9 @@
+import type {
+  EnclosingNodeParser,
+  ProbableIdentifierNode,
+  VariableIdentifierNode,
+} from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import type { Parser } from "arcsecond";
 import {
   char,
@@ -9,14 +15,6 @@ import {
   regex,
   sequenceOf,
 } from "arcsecond";
-
-import type {
-  EnclosingNodeParser,
-  ProbableIdentifierNode,
-  VariableIdentifierNode,
-} from "../../types";
-import { NodeType } from "../../types";
-import { buildParserError } from "../../utils/parsers";
 import { createNodeLocation, enclosingLookaheadParser, locate } from "../utils";
 
 export const VARIABLE_PARSER_ERROR = "VariableParserError";

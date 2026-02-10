@@ -1,8 +1,5 @@
 import { describe, it } from "bun:test";
-import { expect } from "chai";
-
-import type { Params } from "../../../src/modules/aragonos/types";
-
+import type { Params } from "@evmcrispr/module-aragonos/types";
 import {
   and,
   arg,
@@ -16,7 +13,8 @@ import {
   paramValue,
   timestamp,
   xor,
-} from "../../../src/modules/aragonos/utils/acl";
+} from "@evmcrispr/module-aragonos/utils/acl";
+import { expect } from "chai";
 
 function onlyParam(param: Params): string {
   const _param = param(0);

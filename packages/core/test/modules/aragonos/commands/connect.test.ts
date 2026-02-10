@@ -2,6 +2,17 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import type AragonOS from "@evmcrispr/module-aragonos";
+import { MINIME_TOKEN_FACTORIES } from "@evmcrispr/module-aragonos/utils";
+import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
+import {
+  buildArgsLengthErrorMsg,
+  CommandError,
+  ComparisonType,
+  encodeAction,
+  encodeCalldata,
+  toDecimals,
+} from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import {
   getContractAddress,
@@ -10,18 +21,6 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
-import { CommandError } from "../../../../src/errors.js";
-import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
-import { MINIME_TOKEN_FACTORIES } from "../../../../src/modules/aragonos/utils/index.js";
-
-import { buildNonceForAddress } from "../../../../src/modules/aragonos/utils/nonces.js";
-import {
-  buildArgsLengthErrorMsg,
-  ComparisonType,
-  encodeAction,
-  encodeCalldata,
-  toDecimals,
-} from "../../../../src/utils/index.js";
 import { DAO } from "../../../fixtures/mock-dao.js";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2.js";
 import { DAO as DAO3 } from "../../../fixtures/mock-dao-3.js";

@@ -1,15 +1,14 @@
 import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../setup.js";
-import { cid } from "is-ipfs";
+import { Connector } from "@evmcrispr/module-aragonos/Connector";
+import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
+import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
 
+import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import { cid } from "is-ipfs";
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";
-
-import { ErrorException, ErrorNotFound } from "../../../src/errors.js";
-import { Connector } from "../../../src/modules/aragonos/Connector.js";
-import type { ParsedApp } from "../../../src/modules/aragonos/types/index.js";
-import { parseContentUri } from "../../../src/modules/aragonos/utils/index.js";
 
 import { DAO, EOA_ADDRESS } from "../../fixtures/index.js";
 import { getPublicClient } from "../../test-helpers/client.js";

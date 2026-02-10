@@ -1,14 +1,12 @@
-import { expect } from "chai";
-import { multihash } from "is-ipfs";
-
-import { isAddress } from "viem";
-
-import { ErrorInvalid } from "../../../../src/errors";
 import type {
   AragonArtifact,
   ParsedApp,
-} from "../../../../src/modules/aragonos/types";
-import { parseContentUri } from "../../../../src/modules/aragonos/utils";
+} from "@evmcrispr/module-aragonos/types";
+import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
+import { ErrorInvalid } from "@evmcrispr/sdk";
+import { expect } from "chai";
+import { multihash } from "is-ipfs";
+import { isAddress } from "viem";
 import { expectThrowAsync } from "../../../test-helpers/expects";
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;

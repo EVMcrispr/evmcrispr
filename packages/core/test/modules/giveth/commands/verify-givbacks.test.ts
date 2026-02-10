@@ -1,10 +1,10 @@
 import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
-import type { PublicClient } from "viem";
+import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 
-import { CommandError } from "../../../../src/errors.js";
-import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses.js";
+import { CommandError } from "@evmcrispr/sdk";
+import type { PublicClient } from "viem";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml.js";
 import { expectThrowAsync } from "../../../test-helpers/expects.js";

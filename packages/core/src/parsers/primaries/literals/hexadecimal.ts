@@ -1,8 +1,6 @@
+import type { BytesLiteralNode, EnclosingNodeParser } from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import { regex, sequenceOf } from "arcsecond";
-
-import type { BytesLiteralNode, EnclosingNodeParser } from "../../../types";
-import { NodeType } from "../../../types";
-import { buildParserError } from "../../../utils/parsers";
 import {
   createNodeLocation,
   enclosingLookaheadParser,

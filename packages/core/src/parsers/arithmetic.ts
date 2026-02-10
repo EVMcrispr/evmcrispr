@@ -1,3 +1,9 @@
+import type {
+  BinaryExpressionNode,
+  NodeParser,
+  NodeParserState,
+} from "@evmcrispr/sdk";
+import { NodeType } from "@evmcrispr/sdk";
 import type { Parser } from "arcsecond";
 import {
   between,
@@ -9,13 +15,6 @@ import {
   recursiveParser,
   sequenceOf,
 } from "arcsecond";
-
-import type {
-  BinaryExpressionNode,
-  NodeParser,
-  NodeParserState,
-} from "../types";
-import { NodeType } from "../types";
 import { callExpressionParser } from "./call";
 import { helperFunctionParser } from "./helper";
 import { numberParser, variableIdentifierParser } from "./primaries";

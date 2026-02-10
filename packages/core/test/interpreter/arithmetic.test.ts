@@ -2,11 +2,8 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../setup.js";
 
+import { ExpressionError, toDecimals } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-
-import { ExpressionError } from "../../src/errors.js";
-
-import { toDecimals } from "../../src/utils/index.js";
 import { getPublicClient } from "../test-helpers/client.js";
 import {
   createInterpreter,

@@ -2,8 +2,8 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 import type { PublicClient } from "viem";
-import { defaultRelayerMap } from "../../../../src/modules/giveth/addresses.js";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import { createInterpreter } from "../../../test-helpers/evml.js";
 

@@ -1,10 +1,9 @@
 import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
-import type { PublicClient } from "viem";
 
-import { NodeType } from "../../../../src/types/index.js";
-import { ComparisonType } from "../../../../src/utils/index.js";
+import { ComparisonType, NodeType } from "@evmcrispr/sdk";
+import type { PublicClient } from "viem";
 import { getPublicClient } from "../../../test-helpers/client.js";
 import {
   itChecksInvalidArgsLength,

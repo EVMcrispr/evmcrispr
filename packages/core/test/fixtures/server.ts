@@ -1,10 +1,9 @@
+import { addressesEqual, IPFS_GATEWAY } from "@evmcrispr/sdk";
 import type { DefaultBodyType, PathParams } from "msw";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import type { Address } from "viem";
 import { isAddress } from "viem";
-import { IPFS_GATEWAY } from "../../src/IPFSResolver";
-import { addressesEqual } from "../../src/utils";
 import { artifacts } from "./artifacts";
 import { blockscout } from "./blockscout";
 import { etherscan } from "./etherscan";

@@ -2,12 +2,14 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import type AragonOS from "@evmcrispr/module-aragonos";
+import {
+  addressesEqual,
+  BindingsSpace,
+  type TransactionAction,
+} from "@evmcrispr/sdk";
 import type { PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, parseAbiParameters } from "viem";
-import type { AragonOS } from "../../../../src/modules/aragonos/index.js";
-import type { TransactionAction } from "../../../../src/types/index.js";
-import { BindingsSpace } from "../../../../src/types/index.js";
-import { addressesEqual } from "../../../../src/utils/index.js";
 import {
   getPublicClient,
   getWalletClients,

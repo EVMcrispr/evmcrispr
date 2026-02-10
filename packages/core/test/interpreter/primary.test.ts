@@ -1,14 +1,17 @@
 import { beforeAll, describe, it } from "bun:test";
 import "../setup.js";
 
+import type { NumericLiteralNode } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  ExpressionError,
+  NodeType,
+  timeUnits,
+  toDecimals,
+} from "@evmcrispr/sdk";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
 import { zeroAddress } from "viem";
-
-import { ExpressionError } from "../../src/errors.js";
-import type { NumericLiteralNode } from "../../src/types/index.js";
-import { BindingsSpace, NodeType } from "../../src/types/index.js";
-import { timeUnits, toDecimals } from "../../src/utils/index.js";
 import { getPublicClient } from "../test-helpers/client.js";
 import type { InterpreterCase } from "../test-helpers/evml.js";
 import {

@@ -1,48 +1,50 @@
-import type { Abi, Address, Chain, PublicClient } from "viem";
-import { createPublicClient, http, isAddress, zeroAddress } from "viem";
-import * as viemChains from "viem/chains";
-import { BindingsManager } from "./BindingsManager";
-import {
-  getCompletions as getCompletionsImpl,
-  getKeywords as getKeywordsImpl,
-} from "./completions";
-import { DEFAULT_MODULE_BINDING } from "./defaults";
-import {
-  CommandError,
-  ErrorException,
-  ExpressionError,
-  HaltExecution,
-  HelperFunctionError,
-  NodeError,
-} from "./errors";
-import { IPFSResolver } from "./IPFSResolver";
-import type { Module } from "./Module";
-import { Std } from "./modules/std";
-import { parseScript } from "./parsers/script";
+import Std from "@evmcrispr/module-std";
 import type {
   Action,
   ArrayExpressionNode,
   AsExpressionNode,
   BinaryExpressionNode,
+  Binding,
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
   CompletionItem,
   HelperFunctionNode,
+  IModuleConstructor,
   LiteralExpressionNode,
+  Module,
+  ModuleContext,
   Node,
+  NodeInterpreter,
+  NodesInterpreter,
   Position,
   ProbableIdentifierNode,
   RelativeBinding,
   VariableIdentifierNode,
-} from "./types";
-import { BindingsSpace, NodeType } from "./types";
-import type {
-  ModuleContext,
-  NodeInterpreter,
-  NodesInterpreter,
-} from "./types/modules";
-import { timeUnits, toDecimals } from "./utils";
+} from "@evmcrispr/sdk";
+import {
+  BindingsManager,
+  BindingsSpace,
+  CommandError,
+  ErrorException,
+  ExpressionError,
+  HaltExecution,
+  HelperFunctionError,
+  IPFSResolver,
+  NodeError,
+  NodeType,
+  timeUnits,
+  toDecimals,
+} from "@evmcrispr/sdk";
+import type { Abi, Address, Chain, PublicClient } from "viem";
+import { createPublicClient, http, isAddress, zeroAddress } from "viem";
+import * as viemChains from "viem/chains";
+
+import {
+  getCompletions as getCompletionsImpl,
+  getKeywords as getKeywordsImpl,
+} from "./completions";
+import { parseScript } from "./parsers/script";
 
 const {
   AddressLiteral,
@@ -71,6 +73,18 @@ const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
 export class EVMcrispr {
   readonly bindingsManager: BindingsManager;
 
+  static #registry = new Map<
+    string,
+    () => Promise<{ default: IModuleConstructor }>
+  >();
+
+  static registerModule(
+    name: string,
+    loader: () => Promise<{ default: IModuleConstructor }>,
+  ): void {
+    EVMcrispr.#registry.set(name, loader);
+  }
+
   #std!: Std;
   #modules: Module[];
   #nonces: Record<string, number>;
@@ -96,9 +110,20 @@ export class EVMcrispr {
     this.#logListeners = [];
     this.#prevMessages = [];
     this.#ipfsResolver = new IPFSResolver();
-    this.#moduleCache = new BindingsManager([DEFAULT_MODULE_BINDING]);
 
     this.#initStd();
+    this.#moduleCache = new BindingsManager([this.#buildStdBinding()]);
+  }
+
+  #buildStdBinding(): Binding {
+    return {
+      type: BindingsSpace.MODULE,
+      identifier: "std",
+      value: {
+        commands: this.#std.commands,
+        helpers: this.#std.helpers,
+      },
+    };
   }
 
   #createModuleContext(): ModuleContext {
@@ -106,6 +131,7 @@ export class EVMcrispr {
       bindingsManager: this.bindingsManager,
       nonces: this.#nonces,
       ipfsResolver: this.#ipfsResolver,
+      modules: this.#modules,
       getClient: () => this.getClient(),
       getChainId: () => this.getChainId(),
       switchChainId: (chainId) => this.switchChainId(chainId),
@@ -114,11 +140,17 @@ export class EVMcrispr {
       setClient: (client) => this.setClient(client),
       setConnectedAccount: (account) => this.setConnectedAccount(account),
       log: (message) => this.log(message),
+      loadModule: async (name) => {
+        const loader = EVMcrispr.#registry.get(name);
+        if (!loader) throw new ErrorException(`Module ${name} not found`);
+        return loader();
+      },
+      getAvailableModuleNames: () => [...EVMcrispr.#registry.keys()],
     };
   }
 
   #initStd(): void {
-    this.#std = new Std(this.#createModuleContext(), this.#modules);
+    this.#std = new Std(this.#createModuleContext());
   }
 
   // ---------------------------------------------------------------------------
@@ -136,12 +168,12 @@ export class EVMcrispr {
     }
 
     // Reset per-execution state
-    this.bindingsManager.setBindings(DEFAULT_MODULE_BINDING);
     this.#modules = [];
     this.#nonces = {};
     this.#logListeners = this.#logListeners; // keep listeners
     this.#prevMessages = [];
     this.#initStd();
+    this.bindingsManager.setBindings(this.#buildStdBinding());
 
     const results = await this.interpretNodes(ast.body, true, {
       actionCallback,

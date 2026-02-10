@@ -1,3 +1,11 @@
+import type {
+  Location,
+  LocationData,
+  Node,
+  NodeParser,
+  NodeParserState,
+} from "@evmcrispr/sdk";
+import { buildParserError } from "@evmcrispr/sdk";
 import type { Ok, Parser } from "arcsecond";
 import {
   between,
@@ -20,15 +28,6 @@ import {
   takeLeft,
   tapParser,
 } from "arcsecond";
-
-import type {
-  Location,
-  LocationData,
-  Node,
-  NodeParser,
-  NodeParserState,
-} from "../types";
-import { buildParserError } from "../utils/parsers";
 
 export const createParserState = (): NodeParserState => ({
   line: 1,

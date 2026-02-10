@@ -1,13 +1,9 @@
 {
   "extends": "../../tsconfig.json",
-  "include": [".", "test/modules"],
   "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "Node",
-    "target": "ES2022",
-    "types": ["node", "bun"],
-    "noEmit": false,
+    "rootDir": "./src",
     "outDir": "./dist",
-    "declarationDir": "./dist/types"
-  }
+    "types": ["node", "bun"]
+  },
+  "include": ["src"]
 }

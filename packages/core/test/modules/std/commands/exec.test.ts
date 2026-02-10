@@ -2,18 +2,19 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../../setup.js";
 
+import {
+  type Action,
+  BindingsSpace,
+  CommandError,
+  encodeAction,
+  isBatchedAction,
+  isTransactionAction,
+  toDecimals,
+} from "@evmcrispr/sdk";
 import type { PublicClient, WalletClient } from "viem";
 import { toHex } from "viem";
 import { gnosis } from "viem/chains";
-import { EVMcrispr } from "../../../../src/EVMcrispr.js";
-import { CommandError } from "../../../../src/errors.js";
-import type { Action } from "../../../../src/types/index.js";
-import {
-  BindingsSpace,
-  isBatchedAction,
-  isTransactionAction,
-} from "../../../../src/types/index.js";
-import { encodeAction, toDecimals } from "../../../../src/utils/index.js";
+import { EVMcrispr } from "../../../../src/EVMcrispr";
 import {
   getPublicClient,
   getWalletClients,

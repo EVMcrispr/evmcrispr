@@ -1,7 +1,11 @@
+import { encodeCallScript } from "@evmcrispr/module-aragonos/utils";
+import {
+  type Action,
+  type Address,
+  encodeAction,
+  type TransactionAction,
+} from "@evmcrispr/sdk";
 import { isAddress, parseAbi, toHex } from "viem";
-import { encodeCallScript } from "../../../../src/modules/aragonos/utils";
-import type { Action, Address, TransactionAction } from "../../../../src/types";
-import { encodeAction } from "../../../../src/utils";
 import {
   CONTEXT_FORWARDER_TYPE,
   FORWARDER_TYPE,

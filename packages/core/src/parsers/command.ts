@@ -1,3 +1,12 @@
+import type {
+  CommandArgExpressionNode,
+  CommandExpressionNode,
+  CommandOptNode,
+  EventCaptureNode,
+  Node,
+  NodeParser,
+} from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
   choice,
   coroutine,
@@ -11,17 +20,6 @@ import {
   sequenceOf,
   str,
 } from "arcsecond";
-
-import type {
-  CommandArgExpressionNode,
-  CommandExpressionNode,
-  CommandOptNode,
-  EventCaptureNode,
-  Node,
-  NodeParser,
-} from "../types";
-import { NodeType } from "../types";
-import { buildParserError } from "../utils/parsers";
 import { eventCaptureParser } from "./capture";
 import { commentParser } from "./comment";
 

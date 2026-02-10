@@ -1,6 +1,8 @@
+import type {
+  EnclosingNodeParser,
+  PrimaryExpressionNode,
+} from "@evmcrispr/sdk";
 import { choice, recursiveParser } from "arcsecond";
-
-import type { EnclosingNodeParser, PrimaryExpressionNode } from "../../types";
 
 import {
   addressParser,
