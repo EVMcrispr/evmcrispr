@@ -1,4 +1,4 @@
-import { batchForwarderActions } from "@evmcrispr/module-aragonos/utils";
+import { batchForwarderActions } from "@evmcrispr/module-aragonos";
 
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import { parseAbiItem } from "viem";

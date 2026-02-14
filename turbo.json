@@ -13,8 +13,12 @@
       "dependsOn": ["^build"]
     },
     "lint": {},
-    "test": {
+    "test:unit": {
       "dependsOn": ["^build"]
+    },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "test:coverage": {
       "dependsOn": ["^build"]

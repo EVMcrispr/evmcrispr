@@ -24,6 +24,9 @@
     "@evmcrispr/sdk": "workspace:*",
     "@evmcrispr/module-aragonos": "workspace:*"
   },
+  "devDependencies": {
+    "@evmcrispr/test-utils": "workspace:*"
+  },
   "peerDependencies": {
     "viem": "^2.29.4"
   },
@@ -33,6 +36,7 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsc --noEmit",
-    "build": "bun run ../../packages/sdk/scripts/build.ts"
+    "build": "bun run ../../packages/sdk/scripts/build.ts",
+    "test:integration": "bun test ./test/integration"
   }
 }

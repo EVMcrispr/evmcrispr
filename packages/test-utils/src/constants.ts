@@ -1,0 +1,2 @@
+export const TEST_ACCOUNT_ADDRESS =
+  "0x1234567890abcdef1234567890abcdef12345678";

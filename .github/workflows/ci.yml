@@ -27,6 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - name: Install Dependencies
         run: bun i
 
@@ -34,7 +38,11 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
-          files: "packages/core/{src,test}/**"
+          files: |
+            packages/core/{src,test}/**
+            packages/sdk/{src,test}/**
+            packages/test-utils/**
+            modules/**
 
       - name: Build
         run: bun run build
@@ -45,23 +53,17 @@ jobs:
       - name: Check types
         run: bun run type-check
 
-      - name: Tests
+      - name: Unit Tests
+        run: bun run test:unit
+
+      - name: Integration Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> packages/core/.env
-          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> packages/core/.env
-          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> packages/core/.env
-          bun run test:coverage
+          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> .env
+          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> .env
+          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> .env
+          bun run test:integration
         env:
           ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
           VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
           ETHERSCAN_API: ${{ secrets.ETHERSCAN_API }}
-
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        if: steps.changed-files.outputs.any_changed == 'true'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
-          base-path: "packages/core"
-          path-to-lcov: "packages/core/coverage/lcov.info"

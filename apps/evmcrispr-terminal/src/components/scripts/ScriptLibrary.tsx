@@ -1,6 +1,6 @@
 import { FolderIcon, FolderOpenIcon } from "@heroicons/react/24/solid";
 import { Drawer, IconButton, Input } from "@repo/ui";
-import { Search } from "lucide-react";
+import { Search } from "@repo/ui/icons";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import type { StoredScript } from "../../types/index";

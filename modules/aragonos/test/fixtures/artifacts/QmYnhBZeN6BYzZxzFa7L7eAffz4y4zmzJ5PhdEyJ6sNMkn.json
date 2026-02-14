@@ -1,0 +1,219 @@
+{
+  "roles": [
+    {
+      "name": "Dummy role",
+      "id": "DUMMY_ROLE",
+      "params": [],
+      "bytes": "0x139065b6093ba395ab03ec0d5533040c1e639dcdcc68a426a0bb26abcaf98aa9"
+    }
+  ],
+  "environments": {
+    "default": {
+      "network": "rpc",
+      "appName": "transactions.open.aragonpm.eth"
+    },
+    "rinkeby": {
+      "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
+      "appName": "transactions.open.aragonpm.eth",
+      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
+      "network": "rinkeby"
+    },
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "appName": "transactions.open.aragonpm.eth",
+      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
+      "network": "rinkeby"
+    },
+    "mainnet": {
+      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+      "appName": "transactions.open.aragonpm.eth",
+      "wsRPC": "wss://mainnet.eth.aragon.network/ws",
+      "network": "mainnet"
+    },
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "appName": "transactions.aragonpm.eth",
+      "network": "xdai",
+      "wsRPC": "wss://xdai.poanetwork.dev/wss"
+    }
+  },
+  "path": "contracts/Transactions.sol",
+  "functions": [
+    {
+      "roles": [],
+      "notice": "",
+      "abi": {
+        "constant": false,
+        "inputs": [],
+        "name": "initialize",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "initialize()"
+    },
+    {
+      "roles": [],
+      "notice": "Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_token", "type": "address" }],
+        "name": "transferToVault",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "transferToVault(address)"
+    }
+  ],
+  "deprecatedFunctions": {},
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "hasInitialized",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_script", "type": "bytes" }],
+      "name": "getEVMScriptExecutor",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getRecoveryVault",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "token", "type": "address" }],
+      "name": "allowRecoverability",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "appId",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getInitializationBlock",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_token", "type": "address" }],
+      "name": "transferToVault",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_sender", "type": "address" },
+        { "name": "_role", "type": "bytes32" },
+        { "name": "_params", "type": "uint256[]" }
+      ],
+      "name": "canPerform",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getEVMScriptRegistry",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "DUMMY_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "kernel",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isPetrified",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "executor", "type": "address" },
+        { "indexed": false, "name": "script", "type": "bytes" },
+        { "indexed": false, "name": "input", "type": "bytes" },
+        { "indexed": false, "name": "returnData", "type": "bytes" }
+      ],
+      "name": "ScriptResult",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "vault", "type": "address" },
+        { "indexed": true, "name": "token", "type": "address" },
+        { "indexed": false, "name": "amount", "type": "uint256" }
+      ],
+      "name": "RecoverToVault",
+      "type": "event"
+    }
+  ],
+  "flattenedCode": "./code.sol",
+  "appName": "transactions.aragonpm.eth",
+  "appId": "0xc908326a9f60d6f7e4deb3b57aeb69ab4f4bab797e52d0c79035775322280b30"
+}

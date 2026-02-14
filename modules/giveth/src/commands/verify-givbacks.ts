@@ -1,4 +1,4 @@
-import { decodeCallScript } from "@evmcrispr/module-aragonos/utils";
+import { decodeCallScript } from "@evmcrispr/module-aragonos";
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import { decodeFunctionData, getAbiItem, hexToString, parseAbi } from "viem";
 import type Giveth from "..";

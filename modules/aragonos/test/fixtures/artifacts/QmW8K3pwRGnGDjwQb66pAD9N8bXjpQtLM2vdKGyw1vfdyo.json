@@ -1,0 +1,500 @@
+{
+  "roles": [
+    {
+      "name": "Prepare claims",
+      "id": "PREPARE_CLAIMS_ROLE",
+      "params": [],
+      "bytes": "0x6474482e8240e36d5abf59c82a20d0d31c0d975a6a3b7cf3e7b55d7eabc2a748"
+    },
+    {
+      "name": "Migrate DAO",
+      "id": "MIGRATE_ROLE",
+      "params": [],
+      "bytes": "0xb9b300d045ff55d46078203915e5d481ad644649cae9f607081135e4cd7dbb48"
+    }
+  ],
+  "environments": {
+    "default": { "appName": "migration-tools.aragonpm.eth", "network": "rpc" },
+    "rinkeby": {
+      "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
+      "appName": "migration-tools.aragonpm.eth",
+      "network": "rinkeby"
+    },
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "appName": "migration-tools.aragonpm.eth",
+      "network": "rinkeby"
+    },
+    "mainnet": {
+      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+      "appName": "migration-tools.aragonpm.eth",
+      "network": "mainnet"
+    },
+    "frame": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
+      "appName": "migration-tools.open.aragonpm.eth",
+      "network": "xdai",
+      "wsRPC": "wss://xdai.1hive.org"
+    }
+  },
+  "appName": "migration-tools.open.aragonpm.eth",
+  "path": "contracts/MigrationTools.sol",
+  "functions": [
+    {
+      "roles": [],
+      "notice": "Initialize migration tools with `_tokenManager` as token manager and `_vault1` and `_vault2` as vaults",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_tokenManager", "type": "address" },
+          { "name": "_vault1", "type": "address" },
+          { "name": "_vault2", "type": "address" },
+          { "name": "_freezePeriodBlocks", "type": "uint64" }
+        ],
+        "name": "initialize",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "initialize(address,address,address,uint64)"
+    },
+    {
+      "roles": ["PREPARE_CLAIMS_ROLE"],
+      "notice": "Prepare claims for snapshot token `_snapshotToken.symbol(): string` with a vesting starting `_vestingStartDate == 0 ? 'now' : 'at ' + @formatDate(_vestingStartDate)`, cliff after `@transformTime(_vestingCliffPeriod, 'best')`, and completed vesting after `@transformTime(_vestingCompletePeriod, 'best')`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_snapshotToken", "type": "address" },
+          { "name": "_vestingStartDate", "type": "uint64" },
+          { "name": "_vestingCliffPeriod", "type": "uint64" },
+          { "name": "_vestingCompletePeriod", "type": "uint64" }
+        ],
+        "name": "prepareClaims",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "prepareClaims(address,uint64,uint64,uint64)"
+    },
+    {
+      "roles": [],
+      "notice": "Claim tokens based on a previously taken snapshot for many addresses",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_holders", "type": "address[]" }],
+        "name": "claimForMany",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "claimForMany(address[])"
+    },
+    {
+      "roles": ["MIGRATE_ROLE"],
+      "notice": "Migrate all `_vaultToken.symbol(): string` funds to Vaults `_newVault1` (`@formatPct(_pct)`%) and `_newVault2` (rest) using Migration app `_newMigrationApp` to snapshot and claim tokens with a vesting starting `_vestingStartDate == 0 ? 'now' : 'at ' + @formatDate(_vestingStartDate)`, ending in `@transformTime(_vestingCompletePeriod, 'best')` and having a cliff period of `@transformTime(_vestingCliffPeriod, 'best')`",
+      "abi": {
+        "constant": false,
+        "inputs": [
+          { "name": "_newMigrationApp", "type": "address" },
+          { "name": "_newVault1", "type": "address" },
+          { "name": "_newVault2", "type": "address" },
+          { "name": "_vaultToken", "type": "address" },
+          { "name": "_pct", "type": "uint256" },
+          { "name": "_vestingStartDate", "type": "uint64" },
+          { "name": "_vestingCliffPeriod", "type": "uint64" },
+          { "name": "_vestingCompletePeriod", "type": "uint64" }
+        ],
+        "name": "migrate",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "migrate(address,address,address,address,uint256,uint64,uint64,uint64)"
+    },
+    {
+      "roles": [],
+      "notice": "Claim tokens for `_holder` based on previously taken snapshot",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_holder", "type": "address" }],
+        "name": "claimFor",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "claimFor(address)"
+    },
+    {
+      "roles": [],
+      "notice": "Send funds to recovery Vault. This contract should never receive funds, * but in case it does, this function allows one to recover them.",
+      "abi": {
+        "constant": false,
+        "inputs": [{ "name": "_token", "type": "address" }],
+        "name": "transferToVault",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      "sig": "transferToVault(address)"
+    }
+  ],
+  "deprecatedFunctions": {},
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "vestingCompletePeriod",
+      "outputs": [{ "name": "", "type": "uint64" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "hasInitialized",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "claimedTokens",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "snapshotBlock",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "vestingCliffPeriod",
+      "outputs": [{ "name": "", "type": "uint64" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "_script", "type": "bytes" }],
+      "name": "getEVMScriptExecutor",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "", "type": "address" },
+        { "name": "", "type": "address" },
+        { "name": "", "type": "bytes32" },
+        { "name": "", "type": "uint256[]" }
+      ],
+      "name": "canPerform",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "tokenManager",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_snapshotToken", "type": "address" },
+        { "name": "_vestingStartDate", "type": "uint64" },
+        { "name": "_vestingCliffPeriod", "type": "uint64" },
+        { "name": "_vestingCompletePeriod", "type": "uint64" }
+      ],
+      "name": "prepareClaims",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_newMigrationApp", "type": "address" },
+        { "name": "_newVault1", "type": "address" },
+        { "name": "_newVault2", "type": "address" },
+        { "name": "_vaultToken", "type": "address" },
+        { "name": "_pct", "type": "uint256" },
+        { "name": "_vestingStartDate", "type": "uint64" },
+        { "name": "_vestingCliffPeriod", "type": "uint64" },
+        { "name": "_vestingCompletePeriod", "type": "uint64" }
+      ],
+      "name": "migrate",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getRecoveryVault",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_tokenManager", "type": "address" },
+        { "name": "_vault1", "type": "address" },
+        { "name": "_vault2", "type": "address" },
+        { "name": "_freezePeriodBlocks", "type": "uint64" }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "vestingStartDate",
+      "outputs": [{ "name": "", "type": "uint64" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "", "type": "address" }],
+      "name": "hasClaimed",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [{ "name": "token", "type": "address" }],
+      "name": "allowRecoverability",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "appId",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getInitializationBlock",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "vault2",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "MIGRATE_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "vault1",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_token", "type": "address" }],
+      "name": "transferToVault",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        { "name": "_sender", "type": "address" },
+        { "name": "_role", "type": "bytes32" },
+        { "name": "_params", "type": "uint256[]" }
+      ],
+      "name": "canPerform",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getEVMScriptRegistry",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "snapshotToken",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "kernel",
+      "outputs": [{ "name": "", "type": "address" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_holder", "type": "address" }],
+      "name": "claimFor",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isPetrified",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [{ "name": "_holders", "type": "address[]" }],
+      "name": "claimForMany",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "freezePeriodBlocks",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "PCT_BASE",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "PREPARE_CLAIMS_ROLE",
+      "outputs": [{ "name": "", "type": "bytes32" }],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "name": "_newMigrationTools", "type": "address" },
+        { "indexed": false, "name": "vault1", "type": "address" },
+        { "indexed": false, "name": "vault2", "type": "address" }
+      ],
+      "name": "MigrateDao",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "holder", "type": "address" },
+        { "indexed": false, "name": "amount", "type": "uint256" },
+        { "indexed": false, "name": "vestingId", "type": "uint256" }
+      ],
+      "name": "ClaimTokens",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "executor", "type": "address" },
+        { "indexed": false, "name": "script", "type": "bytes" },
+        { "indexed": false, "name": "input", "type": "bytes" },
+        { "indexed": false, "name": "returnData", "type": "bytes" }
+      ],
+      "name": "ScriptResult",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true, "name": "vault", "type": "address" },
+        { "indexed": true, "name": "token", "type": "address" },
+        { "indexed": false, "name": "amount", "type": "uint256" }
+      ],
+      "name": "RecoverToVault",
+      "type": "event"
+    }
+  ],
+  "flattenedCode": "./code.sol",
+  "appId": "0xc591c987f69b3a93d5ce94a216258ee3f00e1e24ea1a01b66e376e86017df1f0"
+}

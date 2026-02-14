@@ -1,6 +1,5 @@
-import { Button, Dialog, IconButton, Tooltip } from "@repo/ui";
+import { Button, Dialog, IconButton, Tooltip, toast } from "@repo/ui";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
   getScriptSavedInLocalStorage,
   saveScriptToLocalStorage,

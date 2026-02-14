@@ -18,10 +18,7 @@
     "./package.json": "./package.json"
   },
   "devDependencies": {
-    "@evmcrispr/module-aragonos": "workspace:*",
-    "@evmcrispr/module-ens": "workspace:*",
-    "@evmcrispr/module-giveth": "workspace:*",
-    "@evmcrispr/module-sim": "workspace:*",
+    "@evmcrispr/test-utils": "workspace:*",
     "@types/bun": "^1.3.8",
     "@types/chai": "^5.2.3",
     "@types/lodash.clonedeep": "^4.5.9",
@@ -47,8 +44,8 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsc --noEmit",
-    "test": "set -a && . .env && set +a && anvil --fork-url $ARCHIVE_NODE_ENDPOINT --fork-block-number 34630239 --chain-id 100 --silent & sleep 2 && bun test; EXIT=$?; kill %1 2>/dev/null; exit $EXIT",
-    "test:coverage": "nyc --reporter=lcov bun run test",
+    "test:unit": "bun test",
+    "test:coverage": "nyc --reporter=lcov bun run test:unit",
     "build": "rm -rf dist && bun build ./src/index.ts --outdir ./dist --format esm --sourcemap=linked --packages external && tsc"
   },
   "private": true

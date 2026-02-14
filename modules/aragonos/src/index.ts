@@ -10,6 +10,10 @@ import { commands, helpers } from "./_generated";
 import type { AragonDAO } from "./AragonDAO";
 import { buildNonceForAddress } from "./utils";
 
+// Re-export utils that are used by other modules
+export { batchForwarderActions } from "./utils/forwarders";
+export { decodeCallScript } from "./utils/evmscripts";
+
 export default class AragonOS extends defineModule(
   "aragonos",
   commands,

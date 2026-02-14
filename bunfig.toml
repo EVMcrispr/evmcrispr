@@ -1,3 +1,1 @@
-[test]
-root = "./packages/core/test"
-preload = ["./packages/core/test/setup.ts"]
+# Root bunfig.toml - per-package test configuration is in each package's bunfig.toml
