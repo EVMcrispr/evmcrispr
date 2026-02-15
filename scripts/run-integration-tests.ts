@@ -5,30 +5,24 @@
  * This ensures tests don't run in parallel against the same Anvil instance.
  */
 import { resolve } from "node:path";
+import {
+  CHAIN_ID,
+  FORK_BLOCK_NUMBER,
+  isAnvilRunning,
+  loadEnv,
+} from "./anvil-config";
 
-const FORK_BLOCK_NUMBER = 34630239;
-const CHAIN_ID = 100;
 const PACKAGES_WITH_INTEGRATION_TESTS = [
   "modules/std",
   "modules/aragonos",
   "modules/giveth",
 ];
 
-// Load .env from root
-const envFile = Bun.file(resolve(import.meta.dir, "../.env"));
-if (await envFile.exists()) {
-  const text = await envFile.text();
-  for (const line of text.split("\n")) {
-    const [key, ...rest] = line.split("=");
-    if (key && !key.startsWith("#")) {
-      process.env[key.trim()] = rest.join("=").trim();
-    }
-  }
-}
+await loadEnv();
 
 const endpoint = process.env.ARCHIVE_NODE_ENDPOINT;
 if (!endpoint) {
-  console.error("ERROR: ARCHIVE_NODE_ENDPOINT not set in packages/core/.env");
+  console.error("ERROR: ARCHIVE_NODE_ENDPOINT not set in .env");
   process.exit(1);
 }
 
@@ -46,8 +40,11 @@ const anvil = Bun.spawn([
   "--silent",
 ]);
 
-// Wait for Anvil to start
-await Bun.sleep(2000);
+// Poll until ready (up to 10s)
+for (let i = 0; i < 20; i++) {
+  if (await isAnvilRunning()) break;
+  await Bun.sleep(500);
+}
 
 let exitCode = 0;
 

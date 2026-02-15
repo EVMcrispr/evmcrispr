@@ -13,6 +13,7 @@ import {
   NodeType,
 } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
+import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import type { App, CompletePermission, PermissionMap, Role } from "../types";
 import {
@@ -34,6 +35,54 @@ export const parseDaoPrefixedIdentifier = (
   }
   return [daoName, rest];
 };
+
+// --- Runtime path: uses module instance ---
+
+/**
+ * Get DAO from the module's stack. Used by runtime (run) functions.
+ */
+export const getModuleDAO = (module: AragonOS): AragonDAO => {
+  const dao = module.currentDAO;
+  if (!dao) {
+    throw new ErrorException('must be used within a "connect" command');
+  }
+  return dao;
+};
+
+/**
+ * Get DAO from --dao option or current DAO on the module's stack.
+ * Used by runtime (run) functions.
+ */
+export const getModuleDAOByOption = async (
+  c: CommandExpressionNode,
+  module: AragonOS,
+  interpretNode: NodeInterpreter,
+): Promise<AragonDAO> => {
+  let daoIdentifier = await getOptValue(c, "dao", interpretNode);
+
+  if (!daoIdentifier) {
+    const dao = module.currentDAO;
+    if (!dao) {
+      throw new ErrorException('must be used within a "connect" command');
+    }
+    return dao;
+  }
+
+  daoIdentifier = daoIdentifier.toString
+    ? daoIdentifier.toString()
+    : daoIdentifier;
+  const dao = module.findDAO(daoIdentifier);
+  if (!dao) {
+    throw new ErrorException(
+      `--dao option error. No DAO found for identifier ${daoIdentifier}`,
+    );
+  }
+  return dao;
+};
+
+// --- Completions / eager execution path: uses DATA_PROVIDER bindings ---
+// These will be removed when the completions system is refactored to
+// pass module instances.
 
 export const getDAO = (
   bindingsManager: BindingsManager,

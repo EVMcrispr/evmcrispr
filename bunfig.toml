@@ -1,1 +1,2 @@
-# Root bunfig.toml - per-package test configuration is in each package's bunfig.toml
+[test]
+preload = ["./scripts/anvil-preload.ts"]

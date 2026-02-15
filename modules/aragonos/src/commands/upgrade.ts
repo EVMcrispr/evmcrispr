@@ -14,7 +14,7 @@ import {
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
-import { getDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
+import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
   name: "upgrade",
@@ -26,9 +26,6 @@ export default defineCommand<AragonOS>({
     const { interpretNode } = interpreters;
 
     const client = await module.getClient();
-    const dao = getDAO(module.bindingsManager, node.args[0]);
-
-    const kernel = dao.kernel;
 
     const args = await Promise.all([
       interpretNode(node.args[0]),
@@ -37,8 +34,21 @@ export default defineCommand<AragonOS>({
     const rawApmRepo = args[0];
     let newAppAddress = args[1];
 
-    // Check for dao-prefixed identifiers
+    // Check for dao-prefixed identifiers and resolve the target DAO
     const parserRes = parseDaoPrefixedIdentifier(rawApmRepo);
+    let dao;
+    if (parserRes?.[0]) {
+      dao = module.findDAO(parserRes[0]);
+      if (!dao) {
+        throw new ErrorException(
+          `couldn't find a DAO for ${parserRes[0]} on given identifier ${rawApmRepo}`,
+        );
+      }
+    } else {
+      dao = getModuleDAO(module);
+    }
+
+    const kernel = dao.kernel;
     let apmRepo = parserRes ? parserRes[1] : rawApmRepo;
 
     if (

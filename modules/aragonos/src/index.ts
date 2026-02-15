@@ -25,12 +25,16 @@ export default class AragonOS extends defineModule(
     BURN_ENTITY,
   },
 ) {
+  /** All DAOs ever connected (append-only). Used by getConnectedDAO and tests. */
   #connectedDAOs: AragonDAO[];
+  /** Active nesting stack (push/pop). Tracks the current DAO scope. */
+  #daoStack: AragonDAO[];
 
   constructor(context: ModuleContext, alias?: string) {
     super(context, alias);
 
     this.#connectedDAOs = [];
+    this.#daoStack = [];
   }
 
   get connectedDAOs(): AragonDAO[] {
@@ -38,26 +42,34 @@ export default class AragonOS extends defineModule(
   }
 
   get currentDAO(): AragonDAO | undefined {
-    return this.bindingsManager.getBindingValue(
-      "currentDAO",
-      BindingsSpace.DATA_PROVIDER,
-    ) as AragonDAO | undefined;
+    return this.#daoStack.at(-1);
   }
 
-  set currentDAO(dao: AragonDAO | undefined) {
-    if (!dao) {
-      return;
-    }
+  pushDAO(dao: AragonDAO): void {
+    this.#connectedDAOs.push(dao);
+    this.#daoStack.push(dao);
+  }
 
-    this.bindingsManager.setBinding(
-      "currentDAO",
-      dao,
-      BindingsSpace.DATA_PROVIDER,
+  popDAO(): void {
+    this.#daoStack.pop();
+  }
+
+  /** Find a DAO by name or address on the active stack. */
+  findDAO(identifier: string): AragonDAO | undefined {
+    return this.#daoStack.find(
+      (d) =>
+        d.name === identifier ||
+        addressesEqual(d.kernel.address, identifier as Address),
     );
   }
 
+  /** All DAOs currently on the active stack. */
+  get allDAOs(): AragonDAO[] {
+    return [...this.#daoStack];
+  }
+
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {
-    return this.connectedDAOs.find((dao) =>
+    return this.#connectedDAOs.find((dao) =>
       addressesEqual(dao.kernel.address, daoAddress),
     );
   }

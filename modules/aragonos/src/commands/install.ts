@@ -22,13 +22,12 @@ import {
   buildAppPermissions,
   buildArtifactFromABI,
   fetchAppArtifact,
-  getDAOs,
   isLabeledAppIdentifier,
   parseLabeledAppIdentifier,
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
-import { DAO_OPT_NAME, getDAOByOption } from "../utils/commands";
+import { DAO_OPT_NAME, getModuleDAOByOption } from "../utils/commands";
 
 const { ABI, ADDR, OTHER } = BindingsSpace;
 
@@ -117,9 +116,9 @@ export default defineCommand<AragonOS>({
     }
     const varName = varNode.value;
 
-    const dao = await getDAOByOption(
+    const dao = await getModuleDAOByOption(
       node,
-      module.bindingsManager,
+      module,
       interpretNode,
     );
 
@@ -140,7 +139,7 @@ export default defineCommand<AragonOS>({
       module.getConfigBinding("ensResolver"),
     );
 
-    const daos = getDAOs(module.bindingsManager);
+    const daos = module.allDAOs;
     const selectedDAOArtifacts = daos
       .filter((dao) => dao.appArtifactCache.has(codeAddress))
       .map((dao) => dao.appArtifactCache.get(codeAddress)!);
