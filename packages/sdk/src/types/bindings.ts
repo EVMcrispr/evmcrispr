@@ -11,7 +11,6 @@ export enum BindingsSpace {
   DATA_PROVIDER = "DATA_PROVIDER",
   MODULE = "MODULE",
   OTHER = "OTHER",
-  ALIAS = "ALIAS",
 }
 
 export type Nullable<T> = T | null;
@@ -32,6 +31,8 @@ export type NoNullableBinding<B extends Binding = Binding> = Omit<
 export type ModuleData = {
   commands: Commands<any>;
   helpers: HelperFunctions<any>;
+  /** When a module is loaded with `--as`, the alias is stored here. */
+  alias?: string;
 };
 
 export interface AddressBinding extends IBinding<Address> {
@@ -50,10 +51,6 @@ export interface UserBinding extends IBinding<string> {
   type: BindingsSpace.USER;
 }
 
-export interface AliasBinding extends IBinding<string> {
-  type: BindingsSpace.ALIAS;
-}
-
 export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
   extends IBinding<T> {
   type: BindingsSpace.DATA_PROVIDER;
@@ -70,7 +67,6 @@ export type Binding =
   | AbiBinding
   | ModuleBinding
   | UserBinding
-  | AliasBinding
   | DataProviderBinding
   | OtherBinding;
 
@@ -83,31 +79,27 @@ export type RelativeBinding<B extends BindingsSpace> =
     ? AbiBinding
     : B extends BindingsSpace.ADDR
       ? AddressBinding
-      : B extends BindingsSpace.ALIAS
-        ? AliasBinding
-        : B extends BindingsSpace.MODULE
-          ? ModuleBinding
-          : B extends BindingsSpace.DATA_PROVIDER
-            ? DataProviderBinding
-            : B extends BindingsSpace.USER
-              ? UserBinding
-              : B extends BindingsSpace.OTHER
-                ? OtherBinding
-                : unknown;
+      : B extends BindingsSpace.MODULE
+        ? ModuleBinding
+        : B extends BindingsSpace.DATA_PROVIDER
+          ? DataProviderBinding
+          : B extends BindingsSpace.USER
+            ? UserBinding
+            : B extends BindingsSpace.OTHER
+              ? OtherBinding
+              : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
     ? NullableBinding<AbiBinding>
     : B extends BindingsSpace.ADDR
       ? NullableBinding<AddressBinding>
-      : B extends BindingsSpace.ALIAS
-        ? NullableBinding<AliasBinding>
-        : B extends BindingsSpace.MODULE
-          ? NullableBinding<ModuleBinding>
-          : B extends BindingsSpace.DATA_PROVIDER
-            ? NullableBinding<DataProviderBinding>
-            : B extends BindingsSpace.USER
-              ? NullableBinding<UserBinding>
-              : B extends BindingsSpace.OTHER
-                ? NullableBinding<OtherBinding>
-                : any;
+      : B extends BindingsSpace.MODULE
+        ? NullableBinding<ModuleBinding>
+        : B extends BindingsSpace.DATA_PROVIDER
+          ? NullableBinding<DataProviderBinding>
+          : B extends BindingsSpace.USER
+            ? NullableBinding<UserBinding>
+            : B extends BindingsSpace.OTHER
+              ? NullableBinding<OtherBinding>
+              : any;

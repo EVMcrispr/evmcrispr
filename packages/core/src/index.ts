@@ -5,7 +5,6 @@ export type {
   Address,
   AddressBinding,
   AddressLiteralNode,
-  AliasBinding,
   ArgumentExpressionNode,
   ArrayExpressionNode,
   AST,

@@ -7,7 +7,7 @@ import {
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
-const { ALIAS, MODULE } = BindingsSpace;
+const { MODULE } = BindingsSpace;
 const { Bareword, StringLiteral } = NodeType;
 
 export default defineCommand<Std>({
@@ -48,8 +48,24 @@ export default defineCommand<Std>({
       throw new ErrorException(`module ${moduleName} not found`);
     }
   },
-  buildCompletionItemsForArg() {
-    return [];
+  buildCompletionItemsForArg(argIndex, _nodeArgs, bindingsManager) {
+    if (argIndex !== 0) return [];
+
+    const json = bindingsManager.getBindingValue(
+      "__available_modules__",
+      BindingsSpace.OTHER,
+    );
+    if (!json) return [];
+
+    try {
+      const available = JSON.parse(json) as string[];
+      // Exclude modules that are already loaded in the current script
+      return available.filter(
+        (name) => !bindingsManager.hasBinding(name, MODULE),
+      );
+    } catch {
+      return [];
+    }
   },
   async runEagerExecution({ args, opts }, cache, _, caretPos) {
     if (!args.length || insideNode(args[0], caretPos)) {
@@ -65,13 +81,19 @@ export default defineCommand<Std>({
 
     const moduleBinding = cache.getBinding(moduleName, MODULE);
 
-    if (moduleBinding) {
+    if (moduleBinding?.value) {
       return (eagerBindingsManager) => {
+        const moduleData = moduleAlias
+          ? { ...moduleBinding.value!, alias: moduleAlias }
+          : moduleBinding.value;
+
+        // Always register under the canonical name (needed for cache lookups)
+        eagerBindingsManager.setBinding(moduleName, moduleData, MODULE);
+
         if (moduleAlias) {
-          eagerBindingsManager.setBinding(moduleName, moduleAlias, ALIAS);
-          eagerBindingsManager.setBinding(moduleAlias, moduleName, ALIAS);
+          // Also register under the alias so command resolution works
+          eagerBindingsManager.setBinding(moduleAlias, moduleData, MODULE);
         }
-        eagerBindingsManager.setBindings(moduleBinding);
       };
     }
 

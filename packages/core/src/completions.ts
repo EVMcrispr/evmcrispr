@@ -23,7 +23,7 @@ import { isAddress } from "viem";
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 
-const { ALIAS, MODULE, USER } = BindingsSpace;
+const { MODULE, OTHER, USER } = BindingsSpace;
 
 type EagerExecParams = [
   BindingsManager,
@@ -45,6 +45,19 @@ const runLoadCommands = async (
   const stdData = moduleCache.getBindingValue("std", MODULE);
   if (stdData) {
     eagerBindingsManager.setBinding("std", stdData, MODULE);
+  }
+
+  // Propagate available module names so the `load` command can suggest them
+  const availableModulesJSON = moduleCache.getBindingValue(
+    "__available_modules__",
+    OTHER,
+  );
+  if (availableModulesJSON) {
+    eagerBindingsManager.setBinding(
+      "__available_modules__",
+      availableModulesJSON,
+      OTHER,
+    );
   }
 
   const loadCommandNodes = commandNodes.filter((c) =>
@@ -130,13 +143,8 @@ const resolveCommandNode = async (
 ): Promise<ICommand | undefined> => {
   const moduleName = c.module ?? parentModule ?? "std";
 
-  const resolvedModuleName =
-    eagerBindingsManager.getBindingValue(moduleName, ALIAS) ?? moduleName;
-
-  const module = eagerBindingsManager.getBindingValue(
-    resolvedModuleName,
-    MODULE,
-  );
+  // Module is registered under both canonical name and alias
+  const module = eagerBindingsManager.getBindingValue(moduleName, MODULE);
 
   if (!module) {
     return;
@@ -161,15 +169,21 @@ const buildModuleCompletionItems = (
     ignoreNullValues: true,
   }) as NoNullableBinding<ModuleBinding>[];
 
-  const moduleAliases = moduleBindings
-    .filter((b) => !!b.value)
-    .map(
-      ({ identifier }) =>
-        eagerBindingsManager.getBindingValue(identifier, ALIAS) ?? identifier,
-    );
+  // Deduplicate: when a module is registered under both canonical name and
+  // alias, keep only the alias entry (the one users interact with).
+  const seen = new Set<object>();
+  const dedupedBindings = moduleBindings.filter((b) => {
+    if (!b.value || seen.has(b.value)) return false;
+    seen.add(b.value);
+    return true;
+  });
+
+  const moduleAliases = dedupedBindings.map(
+    ({ identifier, value }) => (value as any).alias ?? identifier,
+  );
 
   return {
-    commandItems: moduleBindings.flatMap(({ value: module }, index) => {
+    commandItems: dedupedBindings.flatMap(({ value: module }, index) => {
       const moduleAlias = moduleAliases[index];
       return Object.keys(module.commands)
         .map(
@@ -187,7 +201,7 @@ const buildModuleCompletionItems = (
         );
     }),
 
-    helperItems: moduleBindings.flatMap(({ value: module }) => {
+    helperItems: dedupedBindings.flatMap(({ value: module }) => {
       return Object.keys(module.helpers)
         .map((helperName) => `@${helperName}`)
         .map(
@@ -478,16 +492,6 @@ export async function getKeywords(
     (c: CommandExpressionNode) => c.name === "load",
   );
 
-  if (loadNodes.length) {
-    await runEagerExecutions(
-      loadNodes,
-      moduleCache,
-      moduleCache,
-      {} as any,
-      {} as any,
-    );
-  }
-
   // Extract default std keywords from the module cache
   const stdModuleData = moduleCache.getBindingValue("std", MODULE);
   const commands: string[] = stdModuleData
@@ -500,19 +504,25 @@ export async function getKeywords(
     ? Object.keys(stdModuleData.helpers).map((name) => `@${name}`)
     : [];
 
-  // Extract keywords from loaded modules
-  const moduleBindings = moduleCache.getAllBindings({
-    spaceFilters: [MODULE],
-    ignoreNullValues: true,
-  }) as NoNullableBinding<ModuleBinding>[];
+  // Extract keywords only from modules explicitly loaded in the script
+  const seenModules = new Set<string>();
 
-  for (const { identifier: moduleName, value: moduleData } of moduleBindings) {
-    if (moduleName === "std") continue;
-    const moduleAlias =
-      moduleCache.getBindingValue(moduleName, ALIAS) ?? moduleName;
+  for (const c of loadNodes) {
+    if (!c.args.length) continue;
+    const moduleName: string = c.args[0].value;
+    if (!moduleName || seenModules.has(moduleName)) continue;
+    seenModules.add(moduleName);
+
+    const moduleData = moduleCache.getBindingValue(moduleName, MODULE);
+    if (!moduleData) continue;
+
+    // Check for --as alias
+    const asOpt = c.opts.find((o) => o.name === "as");
+    const displayName: string = asOpt?.value?.value ?? moduleName;
+
     const commandNames = Object.keys(moduleData.commands).flatMap((name) => [
       name,
-      `${moduleAlias}:${name}`,
+      `${displayName}:${name}`,
     ]);
     const helperNames = Object.keys(moduleData.helpers).map(
       (name) => `@${name}`,

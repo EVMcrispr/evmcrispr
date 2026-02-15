@@ -150,6 +150,29 @@ export class EVMcrispr {
     this.#std = new Std(this.#createModuleContext());
   }
 
+  /**
+   * Lazily populate the module cache with data from all registered modules.
+   * This allows the eager-execution pipeline (used by completions and keywords)
+   * to resolve any module referenced by a `load` command in the script.
+   */
+  async #ensureModuleCachePopulated(): Promise<void> {
+    const ctx = this.#createModuleContext();
+    for (const [name, loader] of EVMcrispr.#registry) {
+      if (this.#moduleCache.hasBinding(name, BindingsSpace.MODULE)) continue;
+      try {
+        const { default: Ctor } = await loader();
+        const instance = new Ctor(ctx);
+        this.#moduleCache.setBinding(
+          name,
+          { commands: instance.commands, helpers: instance.helpers },
+          BindingsSpace.MODULE,
+        );
+      } catch {
+        // Module failed to load — skip it
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Public API: interpret, getCompletions, getKeywords
   // ---------------------------------------------------------------------------
@@ -183,6 +206,19 @@ export class EVMcrispr {
     script: string,
     position: Position,
   ): Promise<CompletionItem[]> {
+    await this.#ensureModuleCachePopulated();
+
+    // Store the current list of available module names in the cache so
+    // the `load` command can suggest them during autocompletion.
+    this.#moduleCache.setBinding(
+      "__available_modules__",
+      JSON.stringify([...EVMcrispr.#registry.keys()]),
+      BindingsSpace.OTHER,
+      false,
+      undefined,
+      true,
+    );
+
     return getCompletionsImpl(
       script,
       position,
@@ -194,6 +230,7 @@ export class EVMcrispr {
   async getKeywords(
     script: string,
   ): Promise<{ commands: string[]; helpers: string[] }> {
+    await this.#ensureModuleCachePopulated();
     return getKeywordsImpl(script, this.#moduleCache);
   }
 
