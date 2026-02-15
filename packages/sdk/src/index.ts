@@ -72,7 +72,6 @@ export type {
   NullableBinding,
   NumericLiteralNode,
   OperableExpressionNode,
-  OtherBinding,
   Position,
   PrimaryExpressionNode,
   RelativeBinding,

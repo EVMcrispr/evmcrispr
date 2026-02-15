@@ -29,7 +29,7 @@ import {
 } from "../utils";
 import { DAO_OPT_NAME, getModuleDAOByOption } from "../utils/commands";
 
-const { ABI, ADDR, OTHER } = BindingsSpace;
+const { ABI, ADDR } = BindingsSpace;
 
 const fetchRepoData = async (
   appName: string,
@@ -249,11 +249,11 @@ export default defineCommand<AragonOS>({
       proxyAddress: Nullable<Address> | undefined,
       codeAddress: Nullable<Address> | undefined;
 
-    proxyAddress = cache.getBindingValue(labeledAppIdentifier, OTHER) as
+    proxyAddress = cache.getMetadata(`install:proxy:${labeledAppIdentifier}`) as
       | Address
       | undefined;
     if (proxyAddress) {
-      codeAddress = cache.getBindingValue(proxyAddress, OTHER) as
+      codeAddress = cache.getMetadata(`install:code:${proxyAddress}`) as
         | Address
         | undefined;
     }
@@ -298,8 +298,8 @@ export default defineCommand<AragonOS>({
          * Cache both mock proxy address and code address so we can
          * retrieve the app's ABI on following executions
          */
-        cache.setBinding(labeledAppIdentifier, proxyAddress, OTHER);
-        cache.setBinding(proxyAddress, codeAddress, OTHER);
+        cache.setMetadata(`install:proxy:${labeledAppIdentifier}`, proxyAddress);
+        cache.setMetadata(`install:code:${proxyAddress}`, codeAddress);
       } else {
         artifact = buildArtifactFromABI(appName, appRegistry, abi);
       }

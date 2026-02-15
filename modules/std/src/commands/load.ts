@@ -51,10 +51,7 @@ export default defineCommand<Std>({
   buildCompletionItemsForArg(argIndex, _nodeArgs, bindingsManager) {
     if (argIndex !== 0) return [];
 
-    const json = bindingsManager.getBindingValue(
-      "__available_modules__",
-      BindingsSpace.OTHER,
-    );
+    const json = bindingsManager.getMetadata("__available_modules__");
     if (!json) return [];
 
     try {

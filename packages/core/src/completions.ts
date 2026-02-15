@@ -23,7 +23,7 @@ import { isAddress } from "viem";
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 
-const { MODULE, OTHER, USER } = BindingsSpace;
+const { MODULE, USER } = BindingsSpace;
 
 type EagerExecParams = [
   BindingsManager,
@@ -48,15 +48,11 @@ const runLoadCommands = async (
   }
 
   // Propagate available module names so the `load` command can suggest them
-  const availableModulesJSON = moduleCache.getBindingValue(
-    "__available_modules__",
-    OTHER,
-  );
+  const availableModulesJSON = moduleCache.getMetadata("__available_modules__");
   if (availableModulesJSON) {
-    eagerBindingsManager.setBinding(
+    eagerBindingsManager.setMetadata(
       "__available_modules__",
       availableModulesJSON,
-      OTHER,
     );
   }
 

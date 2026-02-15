@@ -1,8 +1,7 @@
 import { SymbolTable } from "jsymbol";
 
 import { ErrorException } from "./errors";
-import type { Binding, OtherBinding, RelativeBinding } from "./types";
-import { BindingsSpace } from "./types";
+import type { Binding, BindingsSpace, RelativeBinding } from "./types";
 
 type AllBindingsOpts = Partial<{
   onlyLocal: boolean;
@@ -15,38 +14,34 @@ const defaultOpts: AllBindingsOpts = {
   spaceFilters: [],
 };
 
-const SCOPE_MODULE_IDENTIFIER = "scopeModule";
-
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
+  #scopeModuleStack: string[];
+  #metadata: Map<string, string>;
 
   constructor(initialBindings: Binding[] = []) {
     this.#bindings = new SymbolTable<Binding>((b) => b.identifier);
+    this.#scopeModuleStack = [];
+    this.#metadata = new Map();
     initialBindings.forEach((b) => {
       this.setBinding(b.identifier, b.value, b.type, false);
     });
   }
 
   enterScope(scopeModule?: string): void {
-    const scopeModuleValue =
+    const moduleValue =
       scopeModule ??
       // Use parent's scope module when none was provided
-      this.getBindingValue(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER) ??
+      this.getScopeModule() ??
       "std";
 
     this.#bindings.enterScope();
-
-    const b: OtherBinding = {
-      identifier: SCOPE_MODULE_IDENTIFIER,
-      value: scopeModuleValue,
-      type: BindingsSpace.OTHER,
-    };
-
-    this.#setBinding(b as Binding, false, false);
+    this.#scopeModuleStack.push(moduleValue);
   }
 
   exitScope(): void {
     this.#bindings.exitScope();
+    this.#scopeModuleStack.pop();
   }
 
   getBindingValue<BSpace extends BindingsSpace>(
@@ -109,9 +104,16 @@ export class BindingsManager {
     return this.#bindings.parent;
   }
 
-  getScopeModule(): string | null | undefined {
-    return this.#getBinding(SCOPE_MODULE_IDENTIFIER, BindingsSpace.OTHER)
-      ?.value;
+  getScopeModule(): string | undefined {
+    return this.#scopeModuleStack.at(-1);
+  }
+
+  getMetadata(key: string): string | undefined {
+    return this.#metadata.get(key);
+  }
+
+  setMetadata(key: string, value: string): void {
+    this.#metadata.set(key, value);
   }
 
   setBinding<BSpace extends BindingsSpace>(

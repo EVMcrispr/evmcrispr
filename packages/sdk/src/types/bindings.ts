@@ -10,7 +10,6 @@ export enum BindingsSpace {
   ABI = "ABI",
   DATA_PROVIDER = "DATA_PROVIDER",
   MODULE = "MODULE",
-  OTHER = "OTHER",
 }
 
 export type Nullable<T> = T | null;
@@ -56,10 +55,6 @@ export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
   type: BindingsSpace.DATA_PROVIDER;
 }
 
-export interface OtherBinding extends IBinding<string> {
-  type: BindingsSpace.OTHER;
-}
-
 export type LazyBindings = (currentBindingsManager: BindingsManager) => void;
 
 export type Binding =
@@ -67,8 +62,7 @@ export type Binding =
   | AbiBinding
   | ModuleBinding
   | UserBinding
-  | DataProviderBinding
-  | OtherBinding;
+  | DataProviderBinding;
 
 export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
   value: null | B["value"];
@@ -85,9 +79,7 @@ export type RelativeBinding<B extends BindingsSpace> =
           ? DataProviderBinding
           : B extends BindingsSpace.USER
             ? UserBinding
-            : B extends BindingsSpace.OTHER
-              ? OtherBinding
-              : unknown;
+            : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
@@ -100,6 +92,4 @@ export type RelativeNullableBinding<B extends BindingsSpace> =
           ? NullableBinding<DataProviderBinding>
           : B extends BindingsSpace.USER
             ? NullableBinding<UserBinding>
-            : B extends BindingsSpace.OTHER
-              ? NullableBinding<OtherBinding>
-              : any;
+            : any;

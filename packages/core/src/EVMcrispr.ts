@@ -210,13 +210,9 @@ export class EVMcrispr {
 
     // Store the current list of available module names in the cache so
     // the `load` command can suggest them during autocompletion.
-    this.#moduleCache.setBinding(
+    this.#moduleCache.setMetadata(
       "__available_modules__",
       JSON.stringify([...EVMcrispr.#registry.keys()]),
-      BindingsSpace.OTHER,
-      false,
-      undefined,
-      true,
     );
 
     return getCompletionsImpl(
