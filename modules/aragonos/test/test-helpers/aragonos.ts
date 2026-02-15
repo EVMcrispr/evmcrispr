@@ -41,7 +41,7 @@ export const createAragonScriptInterpreter =
   (commands: string[] = []): TestInterpreter => {
     return createInterpreter(
       `
-  load aragonos as ar
+  load aragonos --as ar
   ar:connect ${daoAddress} (
     ${commands.join("\n")}
   )

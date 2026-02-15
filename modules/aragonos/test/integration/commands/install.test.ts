@@ -117,7 +117,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it("should return a correct install action given a different DAO", async () => {
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             install ${newAppIdentifier} ${initializeUnresolvedParams.join(
@@ -149,7 +149,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it('should fail when executing it outside a "connect" command', async () => {
     const interpreter = createInterpreter(
       `
-    load aragonos as ar
+    load aragonos --as ar
 
     ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}
   `,

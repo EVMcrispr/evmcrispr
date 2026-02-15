@@ -66,7 +66,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
   it("should return the correct actions when defining a complete forwarding path compose of a fee, normal and context forwarder", async () => {
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
 
         ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(" ")} (
           grant @me agent TRANSFER_ROLE
@@ -183,7 +183,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     it("should set all the connected DAOs properly", async () => {
       const interpreter = createInterpreter(
         `
-          load aragonos as ar
+          load aragonos --as ar
 
           ar:connect ${DAO.kernel} (
             connect ${DAO2.kernel} (
@@ -222,7 +222,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     it("should return the correct actions when using app identifiers from different DAOs", async () => {
       const interpreter = createInterpreter(
         `
-          load aragonos as ar
+          load aragonos --as ar
 
           ar:connect ${DAO.kernel} (
             connect ${DAO2.kernel} (
@@ -258,7 +258,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     it("should fail when trying to connect to an already connected DAO", async () => {
       const interpreter = createInterpreter(
         `
-      load aragonos as ar
+      load aragonos --as ar
 
       ar:connect ${DAO.kernel} (
         connect ${DAO.kernel} (
@@ -285,7 +285,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
   it("should fail when forwarding a set of actions through a context forwarder without defining a context", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos as ar
+      load aragonos --as ar
 
       ar:connect ${DAO2.kernel} disputable-voting.open (
         grant kernel acl CREATE_PERMISSIONS_ROLE
@@ -302,7 +302,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
   it("should fail when not passing a commands block", async () => {
     const interpreter = createInterpreter(
       `
-    load aragonos as ar
+    load aragonos --as ar
     ar:connect ${DAO.kernel}
   `,
       client,

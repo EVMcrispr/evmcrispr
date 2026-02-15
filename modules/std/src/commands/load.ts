@@ -1,4 +1,3 @@
-import type { AsExpressionNode } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
   defineCommand,
@@ -9,32 +8,26 @@ import {
 import type Std from "..";
 
 const { ALIAS, MODULE } = BindingsSpace;
-const { AsExpression, ProbableIdentifier, StringLiteral } = NodeType;
+const { ProbableIdentifier, StringLiteral } = NodeType;
 
 export default defineCommand<Std>({
   name: "load",
   args: [{ name: "moduleArg", type: "any", skipInterpret: true }],
-  async run(module, _args, { node, interpreters }) {
+  opts: [{ name: "as", type: "string" }],
+  async run(module, _args, { opts, node, interpreters }) {
     const { interpretNode } = interpreters;
     const [argNode] = node.args;
     const type = argNode.type;
     const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
 
-    if (type !== AsExpression && type !== StringLiteral && !isIdentifier) {
+    if (!isIdentifier) {
       throw new ErrorException("invalid argument. Expected a string");
     }
 
-    let moduleName: string, moduleAlias: string | undefined;
-
-    if (argNode.type === AsExpression) {
-      [moduleName, moduleAlias] = await interpretNode(argNode, {
-        treatAsLiteral: true,
-      });
-    } else {
-      moduleName = await interpretNode(argNode, {
-        treatAsLiteral: true,
-      });
-    }
+    const moduleName: string = await interpretNode(argNode, {
+      treatAsLiteral: true,
+    });
+    const moduleAlias: string | undefined = opts.as as string | undefined;
 
     if (module.modules.find((m: any) => m.name === moduleName)) {
       throw new ErrorException(`module ${moduleName} already loaded`);
@@ -57,40 +50,20 @@ export default defineCommand<Std>({
       throw new ErrorException(`module ${moduleName} not found`);
     }
   },
-  buildCompletionItemsForArg(argIndex, nodeArgs, _, caretPos) {
-    switch (argIndex) {
-      case 0: {
-        const arg = nodeArgs[0];
-        if (
-          arg &&
-          arg.type === AsExpression &&
-          insideNode((arg as AsExpressionNode).right, caretPos)
-        ) {
-          return [];
-        }
-        // Module names are resolved at runtime via context
-        return [];
-      }
-      default:
-        return [];
-    }
+  buildCompletionItemsForArg() {
+    return [];
   },
-  async runEagerExecution({ args }, cache, _, caretPos) {
+  async runEagerExecution({ args, opts }, cache, _, caretPos) {
     if (!args.length || insideNode(args[0], caretPos)) {
       return;
     }
 
     const moduleNameArg = args[0];
-    let moduleName: string,
-      moduleAlias = "";
+    const moduleName: string = moduleNameArg.value;
 
-    if (moduleNameArg.type === AsExpression) {
-      const asNode = moduleNameArg as AsExpressionNode;
-      moduleName = asNode.left.value;
-      moduleAlias = asNode.right.value;
-    } else {
-      moduleName = moduleNameArg.value;
-    }
+    // Extract alias from --as option
+    const asOpt = opts.find((o) => o.name === "as");
+    const moduleAlias: string = asOpt?.value?.value ?? "";
 
     const moduleBinding = cache.getBinding(moduleName, MODULE);
 

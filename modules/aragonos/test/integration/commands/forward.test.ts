@@ -85,7 +85,7 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
     (nonDefinedIdentifier) =>
       createInterpreter(
         `
-        load aragonos as ar
+        load aragonos --as ar
 
         ar:connect ${DAO.kernel} (
           forward ${nonDefinedIdentifier} (

@@ -8,8 +8,8 @@ import { DAO, DAO2, DAO3 } from "../fixtures";
 
 describe("EvmlAST", () => {
   const script = `
-    load aragonos as ar
-    load giveth as giv
+    load aragonos --as ar
+    load giveth --as giv
 
     ar:connect ${DAO.kernel} (
       set $dao1Variable agent
@@ -69,44 +69,48 @@ describe("EvmlAST", () => {
           name: "load",
           args: [
             {
-              type: "AsExpression",
-              left: {
-                type: "ProbableIdentifier",
-                value: "aragonos",
-                loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 17 } },
-              },
-              right: {
-                type: "ProbableIdentifier",
-                value: "ar",
-                loc: { start: { line: 2, col: 21 }, end: { line: 2, col: 23 } },
-              },
-              loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 23 } },
+              type: "ProbableIdentifier",
+              value: "aragonos",
+              loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 17 } },
             },
           ],
-          opts: [],
-          loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 23 } },
+          opts: [
+            {
+              type: "CommandOpt",
+              name: "as",
+              value: {
+                type: "ProbableIdentifier",
+                value: "ar",
+                loc: { start: { line: 2, col: 23 }, end: { line: 2, col: 25 } },
+              },
+              loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
+            },
+          ],
+          loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
         },
         {
           type: "CommandExpression",
           name: "load",
           args: [
             {
-              type: "AsExpression",
-              left: {
-                type: "ProbableIdentifier",
-                value: "giveth",
-                loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 15 } },
-              },
-              right: {
-                type: "ProbableIdentifier",
-                value: "giv",
-                loc: { start: { line: 3, col: 19 }, end: { line: 3, col: 22 } },
-              },
-              loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 22 } },
+              type: "ProbableIdentifier",
+              value: "giveth",
+              loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 15 } },
             },
           ],
-          opts: [],
-          loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 22 } },
+          opts: [
+            {
+              type: "CommandOpt",
+              name: "as",
+              value: {
+                type: "ProbableIdentifier",
+                value: "giv",
+                loc: { start: { line: 3, col: 21 }, end: { line: 3, col: 24 } },
+              },
+              loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
+            },
+          ],
+          loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
         },
         {
           type: "CommandExpression",
@@ -239,56 +243,60 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "aragonos",
-                  loc: {
-                    start: { line: 2, col: 9 },
-                    end: { line: 2, col: 17 },
-                  },
+                type: "ProbableIdentifier",
+                value: "aragonos",
+                loc: {
+                  start: { line: 2, col: 9 },
+                  end: { line: 2, col: 17 },
                 },
-                right: {
+              },
+            ],
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
                   type: "ProbableIdentifier",
                   value: "ar",
                   loc: {
-                    start: { line: 2, col: 21 },
-                    end: { line: 2, col: 23 },
+                    start: { line: 2, col: 23 },
+                    end: { line: 2, col: 25 },
                   },
                 },
-                loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 23 } },
+                loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
               },
             ],
-            opts: [],
-            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 23 } },
+            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
           },
           {
             type: "CommandExpression",
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "giveth",
-                  loc: {
-                    start: { line: 3, col: 9 },
-                    end: { line: 3, col: 15 },
-                  },
+                type: "ProbableIdentifier",
+                value: "giveth",
+                loc: {
+                  start: { line: 3, col: 9 },
+                  end: { line: 3, col: 15 },
                 },
-                right: {
+              },
+            ],
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
                   type: "ProbableIdentifier",
                   value: "giv",
                   loc: {
-                    start: { line: 3, col: 19 },
-                    end: { line: 3, col: 22 },
+                    start: { line: 3, col: 21 },
+                    end: { line: 3, col: 24 },
                   },
                 },
-                loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 22 } },
+                loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
               },
             ],
-            opts: [],
-            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 22 } },
+            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
           },
           {
             type: "CommandExpression",
@@ -535,56 +543,60 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "aragonos",
-                  loc: {
-                    start: { line: 2, col: 9 },
-                    end: { line: 2, col: 17 },
-                  },
+                type: "ProbableIdentifier",
+                value: "aragonos",
+                loc: {
+                  start: { line: 2, col: 9 },
+                  end: { line: 2, col: 17 },
                 },
-                right: {
+              },
+            ],
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
                   type: "ProbableIdentifier",
                   value: "ar",
                   loc: {
-                    start: { line: 2, col: 21 },
-                    end: { line: 2, col: 23 },
+                    start: { line: 2, col: 23 },
+                    end: { line: 2, col: 25 },
                   },
                 },
-                loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 23 } },
+                loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
               },
             ],
-            opts: [],
-            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 23 } },
+            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
           },
           {
             type: "CommandExpression",
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "giveth",
-                  loc: {
-                    start: { line: 3, col: 9 },
-                    end: { line: 3, col: 15 },
-                  },
+                type: "ProbableIdentifier",
+                value: "giveth",
+                loc: {
+                  start: { line: 3, col: 9 },
+                  end: { line: 3, col: 15 },
                 },
-                right: {
+              },
+            ],
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
                   type: "ProbableIdentifier",
                   value: "giv",
                   loc: {
-                    start: { line: 3, col: 19 },
-                    end: { line: 3, col: 22 },
+                    start: { line: 3, col: 21 },
+                    end: { line: 3, col: 24 },
                   },
                 },
-                loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 22 } },
+                loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
               },
             ],
-            opts: [],
-            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 22 } },
+            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
           },
           {
             type: "CommandExpression",

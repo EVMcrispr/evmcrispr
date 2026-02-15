@@ -104,7 +104,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
 
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
@@ -172,7 +172,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
         ar:new-token ${params.join(" ")}
         set $token token:MT
       `,
@@ -217,7 +217,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
   it('should fail when executing it using a conterfactual app outside a "connect" command', async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos as ar
+      load aragonos --as ar
 
       ar:new-token "a new token" ANT token-manager.open:counter-factual-tm
     `,

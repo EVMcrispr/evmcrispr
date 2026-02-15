@@ -109,7 +109,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
   it("should return a correct revoke permission action from a different DAO app", async () => {
     const interpreter = await createInterpreter(
       `
-      load aragonos as ar
+      load aragonos --as ar
 
       ar:connect ${DAO.kernel} (
         connect ${DAO2.kernel} (
@@ -142,7 +142,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
     const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             revoke _1:voting ${appIdentifier} SOME_ROLE
@@ -164,7 +164,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
   it('should fail when executing it outside a "connect" command', async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos as ar
+      load aragonos --as ar
       ar:revoke voting token-manager MINT_ROLE`,
       client,
     );

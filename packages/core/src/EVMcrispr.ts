@@ -2,7 +2,6 @@ import Std from "@evmcrispr/module-std";
 import type {
   Action,
   ArrayExpressionNode,
-  AsExpressionNode,
   BinaryExpressionNode,
   Binding,
   BlockExpressionNode,
@@ -53,8 +52,6 @@ const {
   NumberLiteral,
   StringLiteral,
 
-  AsExpression,
-
   ArrayExpression,
 
   BinaryExpression,
@@ -68,7 +65,7 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-const { ABI, ADDR, ALIAS, USER } = BindingsSpace;
+const { ABI, ADDR, USER } = BindingsSpace;
 
 export class EVMcrispr {
   readonly bindingsManager: BindingsManager;
@@ -305,8 +302,6 @@ export class EVMcrispr {
       case StringLiteral:
       case NumberLiteral:
         return this.#interpretLiteral(n as LiteralExpressionNode, options);
-      case AsExpression:
-        return this.#intrepretAsExpression(n as AsExpressionNode, options);
       case ArrayExpression:
         return this.#interpretArrayExpression(
           n as ArrayExpressionNode,
@@ -382,18 +377,6 @@ export class EVMcrispr {
 
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
     return this.interpretNodes(n.elements);
-  };
-
-  #intrepretAsExpression: NodeInterpreter<AsExpressionNode> = async (
-    n,
-    options,
-  ) => {
-    const name = await this.interpretNode(n.left, options);
-    const alias = await this.interpretNode(n.right, options);
-
-    this.bindingsManager.setBinding(name, alias, ALIAS);
-
-    return [name, alias];
   };
 
   #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (

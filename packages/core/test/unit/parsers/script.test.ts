@@ -6,8 +6,8 @@ import { runCases } from "../../test-helpers/evml";
 describe("Parsers - script", () => {
   it("should parse an script correctly", () => {
     const script = `
-      load aragonos as ar
-      load superfluid as sf\r\n
+      load aragonos --as ar
+      load superfluid --as sf\r\n
       
       ar:connect my-dao-ens (   
         forward token-manager voting      (
@@ -65,62 +65,66 @@ describe("Parsers - script", () => {
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "aragonos",
-                  loc: {
-                    start: { line: 2, col: 11 },
-                    end: { line: 2, col: 19 },
-                  },
-                },
-                right: {
-                  type: "ProbableIdentifier",
-                  value: "ar",
-                  loc: {
-                    start: { line: 2, col: 23 },
-                    end: { line: 2, col: 25 },
-                  },
-                },
+                type: "ProbableIdentifier",
+                value: "aragonos",
                 loc: {
                   start: { line: 2, col: 11 },
-                  end: { line: 2, col: 25 },
+                  end: { line: 2, col: 19 },
                 },
               },
             ],
-            opts: [],
-            loc: { start: { line: 2, col: 6 }, end: { line: 2, col: 25 } },
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
+                  type: "ProbableIdentifier",
+                  value: "ar",
+                  loc: {
+                    start: { line: 2, col: 25 },
+                    end: { line: 2, col: 27 },
+                  },
+                },
+                loc: {
+                  start: { line: 2, col: 20 },
+                  end: { line: 2, col: 27 },
+                },
+              },
+            ],
+            loc: { start: { line: 2, col: 6 }, end: { line: 2, col: 27 } },
           },
           {
             type: "CommandExpression",
             name: "load",
             args: [
               {
-                type: "AsExpression",
-                left: {
-                  type: "ProbableIdentifier",
-                  value: "superfluid",
-                  loc: {
-                    start: { line: 3, col: 11 },
-                    end: { line: 3, col: 21 },
-                  },
-                },
-                right: {
-                  type: "ProbableIdentifier",
-                  value: "sf",
-                  loc: {
-                    start: { line: 3, col: 25 },
-                    end: { line: 3, col: 27 },
-                  },
-                },
+                type: "ProbableIdentifier",
+                value: "superfluid",
                 loc: {
                   start: { line: 3, col: 11 },
-                  end: { line: 3, col: 27 },
+                  end: { line: 3, col: 21 },
                 },
               },
             ],
-            opts: [],
-            loc: { start: { line: 3, col: 6 }, end: { line: 3, col: 27 } },
+            opts: [
+              {
+                type: "CommandOpt",
+                name: "as",
+                value: {
+                  type: "ProbableIdentifier",
+                  value: "sf",
+                  loc: {
+                    start: { line: 3, col: 27 },
+                    end: { line: 3, col: 29 },
+                  },
+                },
+                loc: {
+                  start: { line: 3, col: 22 },
+                  end: { line: 3, col: 29 },
+                },
+              },
+            ],
+            loc: { start: { line: 3, col: 6 }, end: { line: 3, col: 29 } },
           },
           {
             type: "CommandExpression",

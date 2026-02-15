@@ -9,7 +9,6 @@ export type {
   ArgumentExpressionNode,
   ArrayExpressionNode,
   AST,
-  AsExpressionNode,
   BatchedAction,
   BinaryExpressionNode,
   Binding,

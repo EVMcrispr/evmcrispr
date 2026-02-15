@@ -89,7 +89,7 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
   it("should return a correct upgrade action given a different DAO", async () => {
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             connect ${DAO3.kernel} (
@@ -123,7 +123,7 @@ describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]"
   it('should fail when executing it outside a "connect" command', async () => {
     const interpreter = createInterpreter(
       `
-    load aragonos as ar
+    load aragonos --as ar
 
     ar:upgrade voting
   `,

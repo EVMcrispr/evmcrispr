@@ -110,34 +110,36 @@ describe("Parsers - command expression", () => {
         "invalid `load` command match",
       ],
       [
-        "load aragonos as ar",
+        "load aragonos --as ar",
         {
           type: "CommandExpression",
           name: "load",
           args: [
             {
-              type: "AsExpression",
-              left: {
-                type: "ProbableIdentifier",
-                value: "aragonos",
-                loc: {
-                  start: { line: 1, col: 5 },
-                  end: { line: 1, col: 13 },
-                },
+              type: "ProbableIdentifier",
+              value: "aragonos",
+              loc: {
+                start: { line: 1, col: 5 },
+                end: { line: 1, col: 13 },
               },
-              right: {
+            },
+          ],
+          opts: [
+            {
+              type: "CommandOpt",
+              name: "as",
+              value: {
                 type: "ProbableIdentifier",
                 value: "ar",
                 loc: {
-                  start: { line: 1, col: 17 },
-                  end: { line: 1, col: 19 },
+                  start: { line: 1, col: 19 },
+                  end: { line: 1, col: 21 },
                 },
               },
-              loc: { start: { line: 1, col: 5 }, end: { line: 1, col: 19 } },
+              loc: { start: { line: 1, col: 14 }, end: { line: 1, col: 21 } },
             },
           ],
-          opts: [],
-          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 19 } },
+          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 21 } },
         },
       ],
       [

@@ -131,7 +131,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
   it(`should return a correct grant permission action from a different DAO app`, async () => {
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
 
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
@@ -164,7 +164,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
     const appIdentifier = `_${invalidDAOPrefix}:token-manager`;
     const interpreter = createInterpreter(
       `
-        load aragonos as ar
+        load aragonos --as ar
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             grant _${DAO.kernel}:disputable-voting.open ${appIdentifier} SOME_ROLE
@@ -212,7 +212,7 @@ describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] 
   it('should fail when executing it outside a "connect" command', async () => {
     const interpreter = createInterpreter(
       `
-    load aragonos as ar
+    load aragonos --as ar
 
     ar:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE
   `,

@@ -10,7 +10,7 @@ import { createInterpreter } from "../../../test-helpers/evml.js";
 import { expectThrowAsync } from "../../../test-helpers/expects.js";
 import { findStdCommandNode } from "../../../test-helpers/std.js";
 
-describe("Std > commands > load <name> [as <alias>]", () => {
+describe("Std > commands > load <name> [--as <alias>]", () => {
   let client: PublicClient;
 
   beforeAll(async () => {
@@ -33,7 +33,7 @@ describe("Std > commands > load <name> [as <alias>]", () => {
   });
 
   it("should set an alias for a module correctly", async () => {
-    const interpreter = createInterpreter("load ens as e", client);
+    const interpreter = createInterpreter("load ens --as e", client);
 
     await interpreter.interpret();
 

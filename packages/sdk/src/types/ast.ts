@@ -9,7 +9,6 @@ export enum NodeType {
   NumberLiteral = "NumberLiteral",
   StringLiteral = "StringLiteral",
 
-  AsExpression = "AsExpression",
   ArrayExpression = "ArrayExpression",
   BinaryExpression = "BinaryExpression",
   BlockExpression = "BlockExpression",
@@ -146,12 +145,6 @@ export interface BlockExpressionNode extends Node {
   body: CommandExpressionNode[];
 }
 
-export interface AsExpressionNode extends Node {
-  type: NodeType.AsExpression;
-  left: ProbableIdentifierNode | StringLiteralNode;
-  right: ProbableIdentifierNode | StringLiteralNode;
-}
-
 export type OperableExpressionNode =
   | CallExpressionNode
   | HelperFunctionNode
@@ -190,7 +183,6 @@ export type ArgumentExpressionNode =
   | PrimaryExpressionNode;
 
 export type CommandArgExpressionNode =
-  | AsExpressionNode
   | ArgumentExpressionNode
   | BlockExpressionNode
   | CommandOptNode;

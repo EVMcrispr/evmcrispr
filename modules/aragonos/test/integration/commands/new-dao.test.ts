@@ -25,7 +25,7 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
     const daoName = "my-evmcrispr-dao";
     const interpreter = createInterpreter(
       `
-      load aragonos as ar
+      load aragonos --as ar
 
       ar:new-dao ${daoName}
     `,

@@ -10,7 +10,7 @@ const scriptPlaceholder = `## Basic commands:
 
 ## Example (unwrap wxDAI):
 
-# load aragonos as ar
+# load aragonos --as ar
 # ar:connect 1hive token-manager voting (
 #   install agent:new
 #   grant voting agent:new TRANSFER_ROLE voting

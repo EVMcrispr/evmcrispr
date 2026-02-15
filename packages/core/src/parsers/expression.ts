@@ -1,19 +1,11 @@
 import type {
   ArgumentExpressionNode,
-  AsExpressionNode,
   CommandArgExpressionNode,
   EnclosingNodeParser,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { getIncorrectReceivedValue, NodeType } from "@evmcrispr/sdk";
-import {
-  between,
-  char,
-  choice,
-  recursiveParser,
-  sequenceOf,
-  str,
-} from "arcsecond";
+import { getIncorrectReceivedValue } from "@evmcrispr/sdk";
+import { between, char, choice, recursiveParser } from "arcsecond";
 import { arithmeticParser } from "./arithmetic";
 import { arrayExpressionParser } from "./array";
 import { blockExpressionParser } from "./block";
@@ -23,39 +15,15 @@ import { helperFunctionParser } from "./helper";
 import {
   primaryParser,
   probableIdentifierParser,
-  stringParser,
   variableIdentifierParser,
 } from "./primaries";
 import {
   closingCharParser,
   comma,
   commaSeparated,
-  createNodeLocation,
-  locate,
   openingCharParser,
-  whitespace,
 } from "./utils";
 
-const asExpressionParser: NodeParser<AsExpressionNode> =
-  locate<AsExpressionNode>(
-    sequenceOf([
-      choice([stringParser(), probableIdentifierParser()]),
-      whitespace,
-      str("as"),
-      whitespace,
-      choice([stringParser(), probableIdentifierParser()]),
-    ]),
-    ({ data, index, result: [initialContext, [left, , , , right]] }) => ({
-      type: NodeType.AsExpression,
-      left: left as AsExpressionNode["left"],
-      right: right as AsExpressionNode["right"],
-      loc: createNodeLocation(initialContext, {
-        line: data.line,
-        index,
-        offset: data.offset,
-      }),
-    }),
-  );
 export const argumentExpressionParser: EnclosingNodeParser<
   ArgumentExpressionNode
 > = (enclosingParsers = []) =>
@@ -81,7 +49,6 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
   recursiveParser(() =>
     choice([
       arithmeticParser,
-      asExpressionParser,
       callExpressionParser,
       helperFunctionParser,
       blockExpressionParser,
