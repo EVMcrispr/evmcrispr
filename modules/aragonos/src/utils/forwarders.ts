@@ -4,10 +4,31 @@ import type {
   Module,
   TransactionAction,
 } from "@evmcrispr/sdk";
-import { ErrorInvalid, encodeAction } from "@evmcrispr/sdk";
+import {
+  ErrorException,
+  ErrorInvalid,
+  encodeAction,
+  isTransactionAction,
+} from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
 import { encodeCallScript } from "./evmscripts";
+
+/**
+ * Asserts that all actions are transaction actions.
+ * Used by both connect and forward commands.
+ */
+export const assertAllTransactionActions = (
+  actions: Action[],
+  commandName: string,
+): actions is TransactionAction[] => {
+  if (actions.find((a) => !isTransactionAction(a))) {
+    throw new ErrorException(
+      `can't use non-transaction actions inside a ${commandName} command`,
+    );
+  }
+  return true;
+};
 
 export const FORWARDER_TYPES = {
   NOT_IMPLEMENTED: 0,

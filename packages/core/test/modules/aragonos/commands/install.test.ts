@@ -3,9 +3,15 @@ import { expect } from "chai";
 import "../../../setup.js";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
-import { encodeActCall } from "@evmcrispr/module-aragonos/utils";
 import { type Action, addressesEqual, CommandError } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
+import { encodeFunctionData, type PublicClient, parseAbiItem } from "viem";
+
+const encodeActCall = (signature: string, params: any[] = []): string =>
+  encodeFunctionData({
+    abi: [parseAbiItem(`function ${signature}`)],
+    functionName: signature.split("(")[0],
+    args: params,
+  });
 
 import { DAO } from "../../../fixtures/index.js";
 import { DAO as DAO2 } from "../../../fixtures/mock-dao-2.js";

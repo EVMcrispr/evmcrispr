@@ -1,5 +1,6 @@
 import type { Action, InterpretOptions } from "@evmcrispr/sdk";
 import {
+  AddressSet,
   BindingsSpace,
   defineCommand,
   ErrorException,
@@ -8,39 +9,23 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
-import { AddressSet } from "../AddressSet";
 import type { AragonDAO } from "../AragonDAO";
 import type { CompletePermission, Params } from "../types";
 import {
   getAppRoles,
   getDAOAppIdentifiers,
-  normalizeRole,
   oracle,
 } from "../utils";
-import { getDAO, isPermission } from "../utils/commands";
+import { getDAO, isPermission, resolvePermissionContext } from "../utils/commands";
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
     permission;
 
-  const roleHash = normalizeRole(role);
-
-  const app = dao.resolveApp(appAddress);
-
-  if (!app) {
-    throw new ErrorException(`${appAddress} is not a DAO's app`);
-  }
-
-  const { permissions: appPermissions, name } = app;
-  const { address: aclAddress } = dao!.resolveApp("acl")!;
+  const { appPermissions, appPermission, aclAddress, roleHash, app } =
+    resolvePermissionContext(dao, appAddress, role);
+  const { name } = app;
   const actions: Action[] = [];
-
-  if (!appPermissions.has(roleHash)) {
-    // TODO: get app identifier. Maybe set it on cache
-    throw new ErrorException(`given permission doesn't exists on app ${name}`);
-  }
-
-  const appPermission = appPermissions.get(roleHash)!;
 
   // If the permission already existed and no parameters are needed, just grant to a new entity and exit
   if (

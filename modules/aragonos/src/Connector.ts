@@ -2,15 +2,13 @@ import type { Address } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import type { ParsedApp, Repo } from "./types";
-import type { GraphQLBody, QueryConfig } from "./utils";
+import type { GraphQLBody } from "./utils";
 import { ORGANIZATION_APPS, parseApp, parseRepo, REPO } from "./utils";
 
 export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {
     case 1:
       return "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/BjzJNAmbkpTN3422j5rh3Gv7aejkDfRH1QLyoJC3qTMZ";
-    case 5:
-      return "https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli";
     case 10:
       return "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/GHtDCXqSdwYPgXSigMA21yRpAWDwiAxqsfYsEw7NLMPk";
     case 100:
@@ -47,7 +45,7 @@ export class Connector {
 
     if (!subgraphUrl) {
       throw new ErrorException(
-        `Network ${chainId} not supported. Use 1, 4 or 100.`,
+        `Network ${chainId} not supported. Use 1, 10 or 100.`,
       );
     }
 
@@ -111,11 +109,8 @@ export class Connector {
    * @returns A promise that resolves to a group of all the apps of the DAO.
    */
   async organizationApps(daoAddress: Address): Promise<ParsedApp[]> {
-    const chainId = await this.#client.getChainId();
-    const queryConfig: QueryConfig = { isGoerliSubgraph: chainId === 5 };
-
     return this.querySubgraph<ParsedApp[]>(
-      ORGANIZATION_APPS(daoAddress.toLowerCase(), queryConfig),
+      ORGANIZATION_APPS(daoAddress.toLowerCase()),
       (data: any) => {
         const apps = data?.organization?.apps;
 

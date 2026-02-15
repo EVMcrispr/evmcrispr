@@ -1,5 +1,4 @@
-import type { Address } from "@evmcrispr/sdk";
-import type { AddressSet } from "../AddressSet";
+import type { Address, AddressSet } from "@evmcrispr/sdk";
 import type { AppIdentifier, LabeledAppIdentifier } from "./app";
 
 /**

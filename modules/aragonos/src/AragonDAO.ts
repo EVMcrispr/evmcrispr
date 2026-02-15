@@ -1,8 +1,7 @@
 import type { Address, IDataProvider, IPFSResolver } from "@evmcrispr/sdk";
-import cloneDeep from "lodash.clonedeep";
 import type { PublicClient } from "viem";
 import { getContractAddress, isAddress } from "viem";
-import { AddressMap } from "./AddressMap";
+import { AddressMap } from "@evmcrispr/sdk";
 import { Connector } from "./Connector";
 import type {
   App,
@@ -244,7 +243,7 @@ export class AragonDAO implements IDataProvider {
   }
 
   clone(): AragonDAO {
-    const clonedAppCache = cloneDeep(this.#appCache);
+    const clonedAppCache = structuredClone(this.#appCache);
 
     return new AragonDAO(
       clonedAppCache,

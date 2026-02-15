@@ -3,12 +3,14 @@ import {
   commaListItems,
   defineCommand,
   ErrorException,
-  isTransactionAction,
 } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
 import { getDAOAppIdentifiers } from "../utils";
-import { batchForwarderActions } from "../utils/forwarders";
+import {
+  assertAllTransactionActions,
+  batchForwarderActions,
+} from "../utils/forwarders";
 
 export default defineCommand<AragonOS>({
   name: "forward",
@@ -57,11 +59,7 @@ export default defineCommand<AragonOS>({
       blockModule: module.contextualName,
     })) as Action[];
 
-    if (blockActions.find((a) => !isTransactionAction(a))) {
-      throw new ErrorException(
-        `can't use non-transaction actions inside a forward command`,
-      );
-    }
+    assertAllTransactionActions(blockActions, "forward");
 
     return batchForwarderActions(
       module,

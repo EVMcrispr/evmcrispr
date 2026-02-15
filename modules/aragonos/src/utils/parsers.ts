@@ -1,6 +1,6 @@
 import type { Address } from "@evmcrispr/sdk";
+import { fetchImplementationAddress } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { parseAbiItem } from "viem";
 import type { ParsedApp, Repo } from "../types";
 import { getSystemApp, isSystemApp } from "./interfaces";
 
@@ -12,19 +12,6 @@ export const parseAppArtifactName = (name: string): string => {
   const parsedName = name.split(/\.(.+)/);
 
   return parsedName.length > 1 ? parsedName[1] : "";
-};
-
-const fetchImplementationAddress = (
-  appAddress: Address,
-  client: PublicClient,
-): Promise<Address> => {
-  return client.readContract({
-    address: appAddress,
-    abi: [
-      parseAbiItem("function implementation() public view returns (address)"),
-    ],
-    functionName: "implementation",
-  });
 };
 
 export const parseApp = async (

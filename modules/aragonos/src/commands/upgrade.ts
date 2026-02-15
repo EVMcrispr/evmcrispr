@@ -14,7 +14,7 @@ import {
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
-import { daoPrefixedIdentifierParser, getDAO } from "../utils/commands";
+import { parseDaoPrefixedIdentifier, getDAO } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
   name: "upgrade",
@@ -38,8 +38,8 @@ export default defineCommand<AragonOS>({
     let newAppAddress = args[1];
 
     // Check for dao-prefixed identifiers
-    const parserRes = daoPrefixedIdentifierParser.run(rawApmRepo);
-    let apmRepo = !parserRes.isError ? parserRes.result[1] : rawApmRepo;
+    const parserRes = parseDaoPrefixedIdentifier(rawApmRepo);
+    let apmRepo = parserRes ? parserRes[1] : rawApmRepo;
 
     if (
       !apmRepo.endsWith("aragonpm.eth") &&

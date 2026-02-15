@@ -1,32 +1,20 @@
 import type { Address } from "viem";
-import {
-  encodeAbiParameters,
-  encodeFunctionData,
-  parseAbiItem,
-  parseAbiParameters,
-} from "viem";
-
-import type { CallScriptAction } from "../types";
+import { encodeAbiParameters, parseAbiParameters } from "viem";
 
 const CALLSCRIPT_ID = "0x00000001";
 
-export function createExecutorId(id: number): string {
-  return `0x${String(id).padStart(8, "0")}`;
-}
-
-export const EMPTY_CALLS_SCRIPT = createExecutorId(1);
-
 /**
- * Encode ACT function call
- * @param {string} signature Function signature
- * @param {any[]} params
+ * A call script action.
  */
-export function encodeActCall(signature: string, params: any[] = []): string {
-  return encodeFunctionData({
-    abi: [parseAbiItem(`function ${signature}`)],
-    functionName: signature.split("(")[0],
-    args: params,
-  });
+export interface CallScriptAction {
+  /**
+   * The action's target.
+   */
+  to: Address;
+  /**
+   * The action's calldata.
+   */
+  data: `0x${string}`;
 }
 
 interface Segment {

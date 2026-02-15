@@ -19,7 +19,6 @@ import {
   ErrorNotFound,
   interpretNodeSync,
   isAddressNodishType,
-  isTransactionAction,
   NodeType,
   tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
@@ -38,7 +37,10 @@ import {
   INITIAL_APP_INDEX,
   NO_ENTITY,
 } from "../utils";
-import { batchForwarderActions } from "../utils/forwarders";
+import {
+  assertAllTransactionActions,
+  batchForwarderActions,
+} from "../utils/forwarders";
 
 const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
 
@@ -245,11 +247,7 @@ export default defineCommand<AragonOS>({
       blockInitializer: setDAOContext(module, dao),
     })) as Action[];
 
-    if (actions.find((a) => !isTransactionAction(a))) {
-      throw new ErrorException(
-        `can't use non-transaction actions inside a connect command`,
-      );
-    }
+    assertAllTransactionActions(actions, "connect");
 
     const invalidApps: any[] = [];
     const forwarderAppAddresses: Address[] = [];

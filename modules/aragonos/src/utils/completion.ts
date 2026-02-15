@@ -1,8 +1,8 @@
 import type { BindingsManager, DataProviderBinding } from "@evmcrispr/sdk";
 import { BindingsSpace } from "@evmcrispr/sdk";
-import type { AbiFunction } from "viem";
 import type { AragonDAO } from "../AragonDAO";
 import type { AppIdentifier } from "../types";
+import { extractRoleNames } from "./apps";
 import {
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
@@ -62,10 +62,5 @@ export const getAppRoles = (
     return [];
   }
 
-  // TODO: This code is repeated somewhere else
-  const appRoles = appAbi
-    .filter((item) => item.type === "function" && item.name.includes("_ROLE"))
-    .map((item) => (item as AbiFunction).name);
-
-  return appRoles;
+  return extractRoleNames(appAbi);
 };

@@ -6,6 +6,7 @@ import type {
   NoNullableBinding,
 } from "@evmcrispr/sdk";
 import {
+  AddressSet,
   addressesEqual,
   BindingsSpace,
   defineCommand,
@@ -15,7 +16,6 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
-import { AddressSet } from "../AddressSet";
 import type { AragonDAO } from "../AragonDAO";
 import {
   formatAppIdentifier,
@@ -23,7 +23,7 @@ import {
   getDAOs,
   normalizeRole,
 } from "../utils";
-import { getDAO, isPermission } from "../utils/commands";
+import { getDAO, isPermission, resolvePermissionContext } from "../utils/commands";
 
 const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);
@@ -43,21 +43,9 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
   const [granteeAddress, appAddress, role] = permission;
 
-  const roleHash = normalizeRole(role);
-  const app = dao.resolveApp(appAddress);
+  const { appPermission, aclAddress, roleHash } =
+    resolvePermissionContext(dao, appAddress, role);
 
-  if (!app) {
-    throw new ErrorException(`${appAddress} is not a DAO's app`);
-  }
-
-  const { permissions: appPermissions, name } = app;
-  const { address: aclAddress } = dao!.resolveApp("acl")!;
-
-  if (!appPermissions.has(roleHash)) {
-    throw new ErrorException(`given permission doesn't exists on app ${name}`);
-  }
-
-  const appPermission = appPermissions.get(roleHash)!;
   if (!appPermission.grantees.has(granteeAddress.toLowerCase() as Address)) {
     throw new ErrorException(
       `grantee ${granteeAddress} doesn't have the given permission`,

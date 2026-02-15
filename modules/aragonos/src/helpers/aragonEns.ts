@@ -11,7 +11,7 @@ export const _aragonEns = async (
 ): Promise<`0x${string}` | null> => {
   const ensResolver =
     customENSResolver || getAragonEnsResolver(await client.getChainId());
-  const name = await resolveName(ensName, ensResolver, client);
+  const name = await resolveName(ensName, client, ensResolver);
 
   return name;
 };

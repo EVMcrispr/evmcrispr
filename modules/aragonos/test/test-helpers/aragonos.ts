@@ -29,8 +29,8 @@ export const _aragonEns = async (
 
   const name = await resolveName(
     ensName,
-    ensResolver || getAragonEnsResolver(await module.getChainId()),
     await module.getClient(),
+    ensResolver || getAragonEnsResolver(await module.getChainId()),
   );
 
   return name;

@@ -2,9 +2,15 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
-import { encodeActCall } from "@evmcrispr/module-aragonos/utils";
 import { type Action, addressesEqual, CommandError } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
+import { type PublicClient, encodeFunctionData, parseAbiItem } from "viem";
+
+const encodeActCall = (signature: string, params: any[] = []): string =>
+  encodeFunctionData({
+    abi: [parseAbiItem(`function ${signature}`)],
+    functionName: signature.split("(")[0],
+    args: params,
+  });
 
 import { DAO, DAO2 } from "../../fixtures";
 import {

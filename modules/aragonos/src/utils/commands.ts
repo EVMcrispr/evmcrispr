@@ -1,4 +1,5 @@
 import type {
+  Address,
   BindingsManager,
   CommandExpressionNode,
   Node,
@@ -11,30 +12,28 @@ import {
   listItems,
   NodeType,
 } from "@evmcrispr/sdk";
-import type { Parser } from "arcsecond";
-import { char, possibly, regex, sequenceOf } from "arcsecond";
 import { isAddress } from "viem";
 import type { AragonDAO } from "../AragonDAO";
-import type { CompletePermission } from "../types";
-import { optionalLabeledAppIdentifierRegex } from "./identifiers";
+import type { App, CompletePermission, PermissionMap, Role } from "../types";
+import { normalizeRole } from "./normalizers";
+import {
+  optionalLabeledAppIdentifierRegex,
+  parsePrefixedDAOIdentifier,
+} from "./identifiers";
 
 const { DATA_PROVIDER } = BindingsSpace;
 
 export const DAO_OPT_NAME = "dao";
 
-export const daoPrefixedIdentifierParser: Parser<
-  [string | undefined, string],
-  string,
-  any
-> = sequenceOf([
-  possibly(
-    sequenceOf([char("_"), regex(/^((?!-)[a-zA-Z0-9-]+(?<!-))/), char(":")]),
-  ),
-  regex(optionalLabeledAppIdentifierRegex),
-]).map(([prefix, appIdentifier]) => [
-  prefix ? prefix[1] : undefined,
-  appIdentifier,
-]);
+export const parseDaoPrefixedIdentifier = (
+  identifier: string,
+): [string | undefined, string] | undefined => {
+  const [daoName, rest] = parsePrefixedDAOIdentifier(identifier);
+  if (!optionalLabeledAppIdentifierRegex.test(rest)) {
+    return undefined;
+  }
+  return [daoName, rest];
+};
 
 export const getDAO = (
   bindingsManager: BindingsManager,
@@ -45,10 +44,10 @@ export const getDAO = (
     | undefined;
 
   if (appNode.type === NodeType.ProbableIdentifier) {
-    const res = daoPrefixedIdentifierParser.run(appNode.value);
+    const res = parseDaoPrefixedIdentifier(appNode.value);
 
-    if (!res.isError && res.result[0]) {
-      const [daoIdentifier] = res.result;
+    if (res && res[0]) {
+      const [daoIdentifier] = res;
 
       dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
         | AragonDAO
@@ -100,6 +99,42 @@ export const getDAOByOption = async (
   }
 
   return dao;
+};
+
+export interface PermissionContext {
+  app: App;
+  roleHash: string;
+  appPermissions: PermissionMap;
+  appPermission: Role;
+  aclAddress: Address;
+}
+
+/**
+ * Resolves and validates a permission's context from the DAO.
+ * Shared between grant and revoke commands.
+ */
+export const resolvePermissionContext = (
+  dao: AragonDAO,
+  appAddress: Address,
+  role: string,
+): PermissionContext => {
+  const app = dao.resolveApp(appAddress);
+
+  if (!app) {
+    throw new ErrorException(`${appAddress} is not a DAO's app`);
+  }
+
+  const roleHash = normalizeRole(role);
+  const { permissions: appPermissions, name } = app;
+  const { address: aclAddress } = dao.resolveApp("acl")!;
+
+  if (!appPermissions.has(roleHash)) {
+    throw new ErrorException(`given permission doesn't exists on app ${name}`);
+  }
+
+  const appPermission = appPermissions.get(roleHash)!;
+
+  return { app, roleHash, appPermissions, appPermission, aclAddress };
 };
 
 export const isPermission = (p: any[]): p is CompletePermission | never => {

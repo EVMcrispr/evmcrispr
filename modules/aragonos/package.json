@@ -36,13 +36,10 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*",
-    "arcsecond": "^5.0.0",
-    "lodash.clonedeep": "^4.5.0"
+    "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*",
-    "@types/lodash.clonedeep": "^4.5.9",
     "is-ipfs": "^8.0.4"
   },
   "peerDependencies": {

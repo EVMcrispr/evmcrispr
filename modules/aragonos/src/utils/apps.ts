@@ -1,7 +1,7 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
 import { keccak256, toHex } from "viem";
-import { AddressSet } from "../AddressSet";
+import { AddressSet } from "@evmcrispr/sdk";
 import type {
   App,
   AppArtifact,
@@ -11,6 +11,14 @@ import type {
 } from "../types";
 
 import { parseAppArtifactName } from "./parsers";
+
+export const extractRoleNames = (abi: Abi): string[] =>
+  abi
+    .filter(
+      (item): item is AbiFunction =>
+        item.type === "function" && item.name.endsWith("_ROLE"),
+    )
+    .map((item) => item.name);
 
 export const buildAppPermissions = (
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -85,9 +93,7 @@ export const buildArtifactFromABI = (
   appRegistry: string,
   abi: Abi,
 ): AppArtifact => {
-  const roleNames = abi
-    .filter((item) => item.type === "function" && item.name.endsWith("_ROLE"))
-    .map((item) => (item as AbiFunction).name);
+  const roleNames = extractRoleNames(abi);
   return {
     appName: `${appName}.${appRegistry}`,
     abi,
