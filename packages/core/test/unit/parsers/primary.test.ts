@@ -1,10 +1,10 @@
 import { describe, it } from "bun:test";
 import type {
+  BarewordNode,
   BooleanLiteralNode,
   BytesLiteralNode,
   Location,
   NumericLiteralNode,
-  ProbableIdentifierNode,
   StringLiteralNode,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
@@ -13,12 +13,12 @@ import { expect } from "chai";
 import {
   ADDRESS_PARSER_ERROR,
   addressParser,
+  BAREWORD_PARSER_ERROR,
   BOOLEAN_PARSER_ERROR,
+  barewordParser,
   booleanParser,
   hexadecimalParser,
   numberParser,
-  PROBABLE_IDENTIFIER_PARSER_ERROR,
-  probableIdentifierParser,
   STRING_PARSER_ERROR,
   stringParser,
   VARIABLE_PARSER_ERROR,
@@ -235,9 +235,9 @@ describe("Parsers - primary", () => {
 
   describe("when parsing identifiers", () => {
     it("should parse probable identifier values", () => {
-      const node = (value: string): ProbableIdentifierNode => {
-        const n: ProbableIdentifierNode = {
-          type: NodeType.ProbableIdentifier,
+      const node = (value: string): BarewordNode => {
+        const n: BarewordNode = {
+          type: NodeType.Bareword,
           value,
           loc: {
             start: {
@@ -267,17 +267,15 @@ describe("Parsers - primary", () => {
         "aSIgnature(with,some,params)",
         "noParamSignature()",
       ].forEach((value) =>
-        expect(runParser(probableIdentifierParser(), value)).to.eql(
-          node(value),
-        ),
+        expect(runParser(barewordParser(), value)).to.eql(node(value)),
       );
     });
 
     it("fail when parsing an invalid identifier", () => {
       runErrorCase(
-        probableIdentifierParser(),
+        barewordParser(),
         "asd([[))",
-        PROBABLE_IDENTIFIER_PARSER_ERROR,
+        BAREWORD_PARSER_ERROR,
         "Expecting an identifier",
       );
     });

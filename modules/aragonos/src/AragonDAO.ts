@@ -1,7 +1,7 @@
 import type { Address, IDataProvider, IPFSResolver } from "@evmcrispr/sdk";
+import { AddressMap } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { getContractAddress, isAddress } from "viem";
-import { AddressMap } from "@evmcrispr/sdk";
 import { Connector } from "./Connector";
 import type {
   App,

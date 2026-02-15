@@ -3,12 +3,12 @@ import { beforeAll, describe, it } from "bun:test";
 import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 
 import { CommandError } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
+import type { PublicClient } from "viem";
 import { createInterpreter } from "../../test-helpers/evml";
 import { findGivethCommandNode } from "../../test-helpers/test-helpers";
 
@@ -43,7 +43,7 @@ describe("Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <re
         `
         load aragonos
         aragonos:connect 0xA1514067E6fE7919FB239aF5259FfF120902b4f9 (
-          exec voting:1 vote(uint256,bool) ${voteId} true
+          exec @app(voting:1) vote(uint256,bool) ${voteId} true
         )`,
         client,
       );

@@ -12,6 +12,12 @@ import {
   encodeCalldata,
   toDecimals,
 } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  getPublicClient,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import {
   getContractAddress,
@@ -21,13 +27,6 @@ import {
   zeroAddress,
 } from "viem";
 import { DAO, DAO2, DAO3 } from "../../fixtures";
-import {
-  expect,
-  expectThrowAsync,
-  getPublicClient,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
-import { createInterpreter } from "../../test-helpers/evml";
 import { APP } from "../../fixtures/mock-app";
 import {
   COMPLETE_FORWARDER_PATH,
@@ -44,6 +43,7 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import { createInterpreter } from "../../test-helpers/evml";
 
 const DAOs = [DAO, DAO2, DAO3];
 
@@ -69,12 +69,12 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
         load aragonos --as ar
 
         ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(" ")} (
-          grant @me agent TRANSFER_ROLE
-          grant dandelion-voting.1hive token-manager ISSUE_ROLE dandelion-voting.1hive
-          revoke dandelion-voting.1hive tollgate.1hive CHANGE_AMOUNT_ROLE true
-          new-token "Other Token" OT token-manager:new
-          install token-manager:new token:OT true 0
-          act agent agent:1 "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
+          grant @me @app(agent) TRANSFER_ROLE
+          grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)
+          revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true
+          new-token $token "Other Token" OT @nextApp
+          install $tm token-manager:new $token true 0
+          act @app(agent) @app(agent:1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
         )
       `,
       client,
@@ -226,9 +226,9 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
 
           ar:connect ${DAO.kernel} (
             connect ${DAO2.kernel} (
-              grant disputable-voting.open _${DAO.kernel}:agent TRANSFER_ROLE
+              grant @app(disputable-voting.open) @app(_${DAO.kernel}:agent) TRANSFER_ROLE
               connect ${DAO3.kernel} (
-                grant _${DAO.kernel}:disputable-voting.open _${DAO2.kernel}:acl CREATE_PERMISSIONS_ROLE
+                grant @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO2.kernel}:acl) CREATE_PERMISSIONS_ROLE
               )
             )
             
@@ -288,7 +288,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       load aragonos --as ar
 
       ar:connect ${DAO2.kernel} disputable-voting.open (
-        grant kernel acl CREATE_PERMISSIONS_ROLE
+        grant @app(kernel) @app(acl) CREATE_PERMISSIONS_ROLE
       )
     `,
       client,

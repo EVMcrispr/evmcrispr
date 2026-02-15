@@ -11,22 +11,22 @@ import {
   CommandError,
   type TransactionAction,
 } from "@evmcrispr/sdk";
-import type { PublicClient, WalletClient } from "viem";
-import { getContract, getContractAddress, parseAbi } from "viem";
-import { DAO, DAO2 } from "../../fixtures";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
   getWalletClients,
 } from "@evmcrispr/test-utils";
-import { createInterpreter } from "../../test-helpers/evml";
+import type { PublicClient, WalletClient } from "viem";
+import { getContract, getContractAddress, parseAbi } from "viem";
+import { DAO, DAO2 } from "../../fixtures";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import { createInterpreter } from "../../test-helpers/evml";
 
-describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals = 18] [transferable = true]", () => {
+describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [decimals = 18] [transferable = true]", () => {
   let client: PublicClient;
   let walletClient: WalletClient;
 
@@ -45,33 +45,26 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
   });
 
   it("should return a correct new token action", async () => {
-    const params = ["my-token", "MT", "token-manager.open:counter-factual-tm"];
-
     const interpreter = await createAragonScriptInterpreter([
-      `new-token ${params.join(" ")}`,
-      `set $token token:MT`,
-      `set $controller token-manager.open:counter-factual-tm`,
+      `new-token $token "my-token" MT @nextApp`,
     ]);
 
-    const newTokenActions = await interpreter.interpret();
+    const actions = await interpreter.interpret();
 
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
+
     const tx1 = await walletClient.sendTransaction({
-      ...(newTokenActions[0] as TransactionAction),
-      // Used to avoid typescript errors
+      ...(actions[0] as TransactionAction),
       chain: undefined,
       account: walletClient.account!,
     });
-
     await client.waitForTransactionReceipt({ hash: tx1 });
 
     const tx2 = await walletClient.sendTransaction({
-      ...(newTokenActions[1] as TransactionAction),
-      // Used to avoid typescript errors
+      ...(actions[1] as TransactionAction),
       chain: undefined,
       account: walletClient.account!,
     });
-
     await client.waitForTransactionReceipt({ hash: tx2 });
 
     const tokenAddr = aragonos.bindingsManager.getBindingValue(
@@ -79,10 +72,10 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       BindingsSpace.USER,
     )! as Address;
 
-    const tokenManagerAddr = aragonos.bindingsManager.getBindingValue(
-      `$controller`,
-      BindingsSpace.USER,
-    )! as Address;
+    const expectedControllerAddr = getContractAddress({
+      from: DAO.kernel,
+      nonce: await buildNonceForAddress(DAO.kernel, 0, client!),
+    });
 
     const token = getContract({
       address: tokenAddr,
@@ -90,51 +83,41 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       client,
     });
 
-    expect(addressesEqual(await token.read.controller(), tokenManagerAddr)).to
-      .be.true;
+    expect(
+      addressesEqual(await token.read.controller(), expectedControllerAddr),
+    ).to.be.true;
   });
 
   it("should return a correct new token action given a different DAO", async () => {
-    const params = [
-      "my-token",
-      "MT",
-      `_${DAO.kernel}:token-manager.open:counter-factual-tm`,
-    ];
-
     const interpreter = createInterpreter(
       `
         load aragonos --as ar
 
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
-            new-token ${params.join(" ")}
-            set $token token:MT
-            set $controller _${DAO.kernel}:token-manager.open:counter-factual-tm
+            new-token $token "my-token" MT @nextApp
           )
         )
       `,
       client,
     );
 
-    const newTokenActions = await interpreter.interpret();
+    const actions = await interpreter.interpret();
 
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
+
     const tx1 = await walletClient.sendTransaction({
-      ...(newTokenActions[0] as TransactionAction),
-      // Used to avoid typescript errors
+      ...(actions[0] as TransactionAction),
       chain: undefined,
       account: walletClient.account!,
     });
-
     await client.waitForTransactionReceipt({ hash: tx1 });
 
     const tx2 = await walletClient.sendTransaction({
-      ...(newTokenActions[1] as TransactionAction),
-      // Used to avoid typescript errors
+      ...(actions[1] as TransactionAction),
       chain: undefined,
       account: walletClient.account!,
     });
-
     await client.waitForTransactionReceipt({ hash: tx2 });
 
     const tokenAddr = aragonos.bindingsManager.getBindingValue(
@@ -142,38 +125,29 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       BindingsSpace.USER,
     )! as Address;
 
-    const tokenManagerAddr = aragonos.bindingsManager.getBindingValue(
-      `$controller`,
-      BindingsSpace.USER,
-    )! as Address;
+    const expectedControllerAddr = getContractAddress({
+      from: DAO2.kernel,
+      nonce: await buildNonceForAddress(DAO2.kernel, 0, client!),
+    });
 
     const token = getContract({
       address: tokenAddr,
       abi: parseAbi(["function controller() view returns (address)"]),
       client,
     });
-    const addr = getContractAddress({
-      from: DAO.kernel,
-      nonce: await buildNonceForAddress(DAO.kernel, 0, client!),
-    });
 
-    expect(addressesEqual(addr, tokenManagerAddr)).to.be.true;
-    expect(addressesEqual(await token.read.controller(), tokenManagerAddr)).to
-      .be.true;
+    expect(
+      addressesEqual(await token.read.controller(), expectedControllerAddr),
+    ).to.be.true;
   });
 
   it("should return a correct new token action when it is not connected to a DAO", async () => {
-    const params: [string, string, Address] = [
-      "my-token",
-      "MT",
-      `0xf762d8c9ea241a72a0b322a28e96155a03566acd`,
-    ];
+    const controllerAddr = `0xf762d8c9ea241a72a0b322a28e96155a03566acd`;
 
     const interpreter = createInterpreter(
       `
         load aragonos --as ar
-        ar:new-token ${params.join(" ")}
-        set $token token:MT
+        ar:new-token $token "my-token" MT ${controllerAddr}
       `,
       client,
     );
@@ -183,7 +157,6 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const tx1 = await walletClient.sendTransaction({
       ...(newTokenActions[0] as TransactionAction),
-      // Used to avoid typescript errors
       chain: undefined,
       account: walletClient.account!,
     });
@@ -192,7 +165,6 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
 
     const tx2 = await walletClient.sendTransaction({
       ...(newTokenActions[1] as TransactionAction),
-      // Used to avoid typescript errors
       chain: undefined,
       account: walletClient.account!,
     });
@@ -210,31 +182,14 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
       client,
     });
 
-    expect(addressesEqual(await token.read.controller(), params[2])).to.be.true;
-  });
-
-  it('should fail when executing it using a conterfactual app outside a "connect" command', async () => {
-    const interpreter = createInterpreter(
-      `
-      load aragonos --as ar
-
-      ar:new-token "a new token" ANT token-manager.open:counter-factual-tm
-    `,
-      client,
-    );
-    const c = interpreter.ast.body[1];
-    const error = new CommandError(
-      c,
-      "invalid controller. Expected a labeled app identifier witin a connect command for token-manager.open:counter-factual-tm",
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
+    expect(addressesEqual(await token.read.controller(), controllerAddr)).to.be
+      .true;
   });
 
   it("should fail when passing an invalid token decimals value", async () => {
     const invalidDecimals = "invalidDecimals";
     const interpreter = createAragonScriptInterpreter([
-      `new-token "a new token" ANT token-manager.open:counter-factual-tm ${invalidDecimals}`,
+      `new-token $token "a new token" ANT @nextApp ${invalidDecimals}`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
@@ -246,14 +201,14 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
   });
 
   it("should fail when passing an invalid controller", async () => {
-    const invalidController = "asd:123-asd&45";
+    const invalidController = "false";
     const interpreter = createAragonScriptInterpreter([
-      `new-token "a new token" ANT ${invalidController}`,
+      `new-token $token "a new token" ANT ${invalidController}`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(
       c,
-      `invalid controller. Expected an address or an app identifier, but got ${invalidController}`,
+      `<controller> must be a valid address, got ${invalidController}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -262,7 +217,7 @@ describe("AragonOS > commands > new-token <name> <symbol> <controller> [decimals
   it("should fail when passing an invalid transferable flag", async () => {
     const invalidTransferable = "an-invalid-value";
     const interpreter = createAragonScriptInterpreter([
-      `new-token "a new token" ANT token-manager.open:counter-factual-tm 18 ${invalidTransferable}`,
+      `new-token $token "a new token" ANT @nextApp 18 ${invalidTransferable}`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "new-token")!;
     const error = new CommandError(

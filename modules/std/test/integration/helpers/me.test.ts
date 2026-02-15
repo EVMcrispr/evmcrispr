@@ -1,10 +1,12 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { ComparisonType, NodeType } from "@evmcrispr/sdk";
+import {
+  expect,
+  getPublicClient,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,

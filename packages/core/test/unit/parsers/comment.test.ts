@@ -24,7 +24,7 @@ describe("Parsers - comment", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "aragonos",
                 loc: {
                   start: { line: 3, col: 13 },
@@ -37,7 +37,7 @@ describe("Parsers - comment", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "ar",
                   loc: {
                     start: { line: 3, col: 27 },
@@ -98,7 +98,7 @@ describe("Parsers - comment", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "aragonos",
                 loc: {
                   start: { line: 2, col: 15 },
@@ -111,7 +111,7 @@ describe("Parsers - comment", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "ar",
                   loc: {
                     start: { line: 2, col: 29 },

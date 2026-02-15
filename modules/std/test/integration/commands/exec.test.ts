@@ -1,5 +1,6 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
+import { EVMcrispr } from "@evmcrispr/core";
 import {
   type Action,
   BindingsSpace,
@@ -9,10 +10,6 @@ import {
   isTransactionAction,
   toDecimals,
 } from "@evmcrispr/sdk";
-import type { PublicClient, WalletClient } from "viem";
-import { toHex } from "viem";
-import { gnosis } from "viem/chains";
-import { EVMcrispr } from "@evmcrispr/core";
 import {
   expect,
   expectThrowAsync,
@@ -21,6 +18,9 @@ import {
   getWalletClients,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
+import type { PublicClient, WalletClient } from "viem";
+import { toHex } from "viem";
+import { gnosis } from "viem/chains";
 import {
   createInterpreter,
   itChecksNonDefinedIdentifier,

@@ -4,21 +4,21 @@ import { beforeAll, describe, it } from "bun:test";
 import type AragonOS from "@evmcrispr/module-aragonos";
 import { REPO_ABI } from "@evmcrispr/module-aragonos/utils";
 import { CommandError } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
-import { getContract, keccak256, namehash, toHex } from "viem";
-import { DAO, DAO2, DAO3 } from "../../fixtures";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
-import { createInterpreter } from "../../test-helpers/evml";
+import type { PublicClient } from "viem";
+import { getContract, keccak256, namehash, toHex } from "viem";
+import { DAO, DAO2, DAO3 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import {
   _aragonEns,
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]", () => {
   let client: PublicClient;

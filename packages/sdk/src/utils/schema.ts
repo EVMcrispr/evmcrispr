@@ -2,7 +2,7 @@ import { isAddress } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
 import { ErrorException } from "../errors";
-import type { InterpretOptions, Node } from "../types";
+import type { Node } from "../types";
 import { BindingsSpace } from "../types";
 import { isNumberish } from "./args";
 
@@ -25,7 +25,6 @@ export interface ArgDef {
   rest?: boolean;
   /** Skip auto-interpretation; the raw AST node value won't be resolved. Use context.node.args for manual interpretation. */
   skipInterpret?: boolean;
-  interpretOptions?: Partial<InterpretOptions>;
 }
 
 export interface OptDef {

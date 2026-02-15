@@ -44,8 +44,6 @@ export interface ModuleContext {
 }
 
 export interface InterpretOptions {
-  allowNotFoundError: boolean;
-  treatAsLiteral: boolean;
   blockModule: string;
   blockInitializer?(): Promise<void>;
   actionCallback?(action: Action): Promise<unknown>;

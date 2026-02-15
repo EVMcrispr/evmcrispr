@@ -4,9 +4,9 @@ import type {
 } from "@evmcrispr/module-aragonos/types";
 import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
 import { ErrorInvalid } from "@evmcrispr/sdk";
+import { expect, expectThrowAsync } from "@evmcrispr/test-utils";
 import { multihash } from "is-ipfs";
 import { isAddress } from "viem";
-import { expect, expectThrowAsync } from "@evmcrispr/test-utils";
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 

@@ -42,7 +42,6 @@ export default defineCommand<AragonOS>({
     {
       name: "daoName",
       type: "string",
-      interpretOptions: { treatAsLiteral: true },
     },
   ],
   async run(module, { daoName }) {

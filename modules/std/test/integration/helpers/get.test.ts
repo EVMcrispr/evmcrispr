@@ -1,10 +1,12 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { ComparisonType, HelperFunctionError, NodeType } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient, expectThrowAsync } from "@evmcrispr/test-utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,

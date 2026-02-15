@@ -34,7 +34,7 @@ describe("Parsers - command expression", () => {
             {
               type: "CallExpression",
               target: {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "contract",
                 loc: {
                   start: { line: 1, col: 40 },
@@ -60,7 +60,7 @@ describe("Parsers - command expression", () => {
                   },
                 },
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "an-identifier",
                   loc: {
                     start: { line: 1, col: 75 },
@@ -80,7 +80,7 @@ describe("Parsers - command expression", () => {
               loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 94 } },
             },
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "anotherIdentifier.open",
               loc: {
                 start: { line: 1, col: 95 },
@@ -99,7 +99,7 @@ describe("Parsers - command expression", () => {
           name: "load",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "superfluid",
               loc: { start: { line: 1, col: 5 }, end: { line: 1, col: 15 } },
             },
@@ -116,7 +116,7 @@ describe("Parsers - command expression", () => {
           name: "load",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "aragonos",
               loc: {
                 start: { line: 1, col: 5 },
@@ -129,7 +129,7 @@ describe("Parsers - command expression", () => {
               type: "CommandOpt",
               name: "as",
               value: {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "ar",
                 loc: {
                   start: { line: 1, col: 19 },
@@ -149,7 +149,7 @@ describe("Parsers - command expression", () => {
           name: "switch",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "gnosis",
               loc: { start: { line: 1, col: 7 }, end: { line: 1, col: 13 } },
             },
@@ -206,7 +206,7 @@ describe("Parsers - command expression", () => {
         name: "example-command",
         args: [
           {
-            type: "ProbableIdentifier",
+            type: "Bareword",
             value: "myArg1",
             loc: { start: { line: 1, col: 16 }, end: { line: 1, col: 22 } },
           },
@@ -223,7 +223,7 @@ describe("Parsers - command expression", () => {
               {
                 type: "CallExpression",
                 target: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "contract",
                   loc: {
                     start: { line: 1, col: 42 },
@@ -259,7 +259,7 @@ describe("Parsers - command expression", () => {
             type: "CommandOpt",
             name: "option1",
             value: {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "optionValue",
               loc: {
                 start: { line: 1, col: 92 },
@@ -276,7 +276,7 @@ describe("Parsers - command expression", () => {
               name: "token",
               args: [
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "DAI",
                   loc: {
                     start: { line: 1, col: 128 },
@@ -339,7 +339,7 @@ describe("Parsers - command expression", () => {
             name: "token",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "DAI",
                 loc: {
                   start: { line: 1, col: 124 },
@@ -411,7 +411,7 @@ describe("Parsers - command expression", () => {
                 name: "another-ne",
                 args: [
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "token-manager:0",
                     loc: {
                       start: { line: 3, col: 21 },
@@ -419,7 +419,7 @@ describe("Parsers - command expression", () => {
                     },
                   },
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "superfluid.open:3",
                     loc: {
                       start: { line: 3, col: 37 },
@@ -461,7 +461,7 @@ describe("Parsers - command expression", () => {
             value: {
               type: "CallExpression",
               target: {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "a",
                 loc: {
                   start: { line: 1, col: 60 },
@@ -482,7 +482,7 @@ describe("Parsers - command expression", () => {
               name: "token.balance",
               args: [
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "GIV",
                   loc: {
                     start: { line: 1, col: 107 },
@@ -535,7 +535,7 @@ describe("Parsers - command expression", () => {
           name: "install",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "wrapper-hooked-token-manager",
               loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 36 } },
             },
@@ -567,7 +567,7 @@ describe("Parsers - command expression", () => {
           name: "install",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "wrapper-hooked-token-manager",
               loc: { start: { line: 1, col: 11 }, end: { line: 1, col: 39 } },
             },
@@ -599,7 +599,7 @@ describe("Parsers - command expression", () => {
           name: "install",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "wrapper-hooked-token-manager",
               loc: { start: { line: 1, col: 15 }, end: { line: 1, col: 43 } },
             },
@@ -644,17 +644,17 @@ describe("Parsers - command expression", () => {
         name: "forward",
         args: [
           {
-            type: "ProbableIdentifier",
+            type: "Bareword",
             value: "token-manager",
             loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 21 } },
           },
           {
-            type: "ProbableIdentifier",
+            type: "Bareword",
             value: "voting",
             loc: { start: { line: 1, col: 22 }, end: { line: 1, col: 28 } },
           },
           {
-            type: "ProbableIdentifier",
+            type: "Bareword",
             value: "agent",
             loc: { start: { line: 1, col: 29 }, end: { line: 1, col: 34 } },
           },
@@ -702,7 +702,7 @@ describe("Parsers - command expression", () => {
                 name: "forward",
                 args: [
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "wrappable-token-manager.open",
                     loc: {
                       start: { line: 3, col: 18 },
@@ -710,7 +710,7 @@ describe("Parsers - command expression", () => {
                     },
                   },
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "disputable-voting.open",
                     loc: {
                       start: { line: 3, col: 47 },
@@ -718,7 +718,7 @@ describe("Parsers - command expression", () => {
                     },
                   },
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "agent",
                     loc: {
                       start: { line: 3, col: 70 },
@@ -741,7 +741,7 @@ describe("Parsers - command expression", () => {
                                 name: "flow",
                                 args: [
                                   {
-                                    type: "ProbableIdentifier",
+                                    type: "Bareword",
                                     value: "create",
                                     loc: {
                                       start: { line: 5, col: 19 },
@@ -753,7 +753,7 @@ describe("Parsers - command expression", () => {
                                     name: "token",
                                     args: [
                                       {
-                                        type: "ProbableIdentifier",
+                                        type: "Bareword",
                                         value: "fDAIx",
                                         loc: {
                                           start: { line: 5, col: 33 },

@@ -1,10 +1,13 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { BindingsSpace, CommandError, toDecimals } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  findStdCommandNode,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient, expectThrowAsync, findStdCommandNode } from "@evmcrispr/test-utils";
 import { createInterpreter } from "../../test-helpers/evml";
 
 describe("Std > commands > set <varName> <varValue>", () => {

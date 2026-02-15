@@ -29,13 +29,10 @@ import { AragonDAO, isAragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
 import type { App, AppIdentifier } from "../types";
 import {
-  ANY_ENTITY,
-  BURN_ENTITY,
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
   getDAOAppIdentifiers,
   INITIAL_APP_INDEX,
-  NO_ENTITY,
 } from "../utils";
 import {
   assertAllTransactionActions,
@@ -182,9 +179,7 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
     const bindingsManager = aragonos.bindingsManager;
 
-    bindingsManager.setBinding("ANY_ENTITY", ANY_ENTITY, ADDR);
-    bindingsManager.setBinding("NO_ENTITY", NO_ENTITY, ADDR);
-    bindingsManager.setBinding("BURN_ENTITY", BURN_ENTITY, ADDR);
+    // Entity constants are now module constants (accessed via @ANY_ENTITY etc.)
 
     aragonos.currentDAO = dao;
 

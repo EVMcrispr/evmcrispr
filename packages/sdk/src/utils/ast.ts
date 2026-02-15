@@ -3,10 +3,10 @@ import { isAddress } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type {
   AddressLiteralNode,
+  BarewordNode,
   Node,
   NodeWithArguments,
   Position,
-  ProbableIdentifierNode,
   StringLiteralNode,
   VariableIdentifierNode,
 } from "../types";
@@ -19,7 +19,7 @@ const {
   BytesLiteral,
   NumberLiteral,
   StringLiteral,
-  ProbableIdentifier,
+  Bareword,
   VariableIdentifier,
 } = NodeType;
 
@@ -131,7 +131,7 @@ export const interpretNodeSync = (
       return n.value;
     case NumberLiteral:
       return isAddress(n.value) ? n.value : undefined;
-    case ProbableIdentifier:
+    case Bareword:
       return (
         bindingsManager.getBindingValue(n.value, BindingsSpace.ADDR) ?? n.value
       );
@@ -150,14 +150,11 @@ export const isAddressNodishType = (
 ): n is
   | AddressLiteralNode
   | StringLiteralNode
-  | ProbableIdentifierNode
+  | BarewordNode
   | VariableIdentifierNode =>
-  [
-    AddressLiteral,
-    StringLiteral,
-    ProbableIdentifier,
-    VariableIdentifier,
-  ].includes(n.type);
+  [AddressLiteral, StringLiteral, Bareword, VariableIdentifier].includes(
+    n.type,
+  );
 
 export const isNodeWithArgs = (n: Node): n is NodeWithArguments => {
   if ((n as NodeWithArguments).args) {

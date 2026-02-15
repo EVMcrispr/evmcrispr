@@ -2,6 +2,7 @@ export * from "./abis";
 export * from "./addresses";
 export * from "./args";
 export * from "./ast";
+export * from "./contracts";
 export * from "./defineCommand";
 export * from "./defineHelper";
 export * from "./defineModule";

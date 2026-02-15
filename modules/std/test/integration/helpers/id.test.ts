@@ -1,11 +1,9 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { ComparisonType, NodeType } from "@evmcrispr/sdk";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
-import { getPublicClient } from "@evmcrispr/test-utils";
 import {
   itChecksInvalidArgsLength,
   preparingExpression,

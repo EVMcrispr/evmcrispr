@@ -24,7 +24,7 @@ import {
 } from "./utils";
 
 export const HELPER_PARSER_ERROR = "HelperParserError";
-const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z\-.]+(?<!-|\.)/))(
+const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z_\-.]+(?<!-|\.)/))(
   enclosingLookaheadParser([
     char("("),
     comma,

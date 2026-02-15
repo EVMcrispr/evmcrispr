@@ -17,7 +17,7 @@ export enum NodeType {
   HelperFunctionExpression = "HelperFunctionExpression",
   UnaryExpression = "UnaryExpression",
 
-  ProbableIdentifier = "ProbableIdentifier",
+  Bareword = "Bareword",
   VariableIdentifier = "VariableIdentifier",
 
   CommandOpt = "CommandOpt",
@@ -79,8 +79,8 @@ export interface ArrayExpressionNode extends Node {
   elements: Node[];
 }
 
-export interface ProbableIdentifierNode extends Node {
-  type: NodeType.ProbableIdentifier;
+export interface BarewordNode extends Node {
+  type: NodeType.Bareword;
   value: string;
 }
 
@@ -172,7 +172,7 @@ export type LiteralExpressionNode =
 
 export type PrimaryExpressionNode =
   | LiteralExpressionNode
-  | ProbableIdentifierNode
+  | BarewordNode
   | VariableIdentifierNode;
 
 export type ArgumentExpressionNode =

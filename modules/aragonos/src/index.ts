@@ -9,15 +9,21 @@ import { getContractAddress } from "viem";
 import { commands, helpers } from "./_generated";
 import type { AragonDAO } from "./AragonDAO";
 import { buildNonceForAddress } from "./utils";
+import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from "./utils/acl";
 
+export { decodeCallScript } from "./utils/evmscripts";
 // Re-export utils that are used by other modules
 export { batchForwarderActions } from "./utils/forwarders";
-export { decodeCallScript } from "./utils/evmscripts";
 
 export default class AragonOS extends defineModule(
   "aragonos",
   commands,
   helpers,
+  {
+    ANY_ENTITY,
+    NO_ENTITY,
+    BURN_ENTITY,
+  },
 ) {
   #connectedDAOs: AragonDAO[];
 

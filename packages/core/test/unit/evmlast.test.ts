@@ -38,7 +38,7 @@ describe("EvmlAST", () => {
         name: "install",
         args: [
           {
-            type: "ProbableIdentifier",
+            type: "Bareword",
             value: "vault:new",
             loc: { start: { line: 9, col: 16 }, end: { line: 9, col: 25 } },
           },
@@ -69,7 +69,7 @@ describe("EvmlAST", () => {
           name: "load",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "aragonos",
               loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 17 } },
             },
@@ -79,7 +79,7 @@ describe("EvmlAST", () => {
               type: "CommandOpt",
               name: "as",
               value: {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "ar",
                 loc: { start: { line: 2, col: 23 }, end: { line: 2, col: 25 } },
               },
@@ -93,7 +93,7 @@ describe("EvmlAST", () => {
           name: "load",
           args: [
             {
-              type: "ProbableIdentifier",
+              type: "Bareword",
               value: "giveth",
               loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 15 } },
             },
@@ -103,7 +103,7 @@ describe("EvmlAST", () => {
               type: "CommandOpt",
               name: "as",
               value: {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "giv",
                 loc: { start: { line: 3, col: 21 }, end: { line: 3, col: 24 } },
               },
@@ -138,7 +138,7 @@ describe("EvmlAST", () => {
                       },
                     },
                     {
-                      type: "ProbableIdentifier",
+                      type: "Bareword",
                       value: "agent",
                       loc: {
                         start: { line: 6, col: 24 },
@@ -180,7 +180,7 @@ describe("EvmlAST", () => {
                               },
                             },
                             {
-                              type: "ProbableIdentifier",
+                              type: "Bareword",
                               value: "vault",
                               loc: {
                                 start: { line: 8, col: 26 },
@@ -199,7 +199,7 @@ describe("EvmlAST", () => {
                           name: "install",
                           args: [
                             {
-                              type: "ProbableIdentifier",
+                              type: "Bareword",
                               value: "vault:new",
                               loc: {
                                 start: { line: 9, col: 16 },
@@ -243,7 +243,7 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "aragonos",
                 loc: {
                   start: { line: 2, col: 9 },
@@ -256,7 +256,7 @@ describe("EvmlAST", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "ar",
                   loc: {
                     start: { line: 2, col: 23 },
@@ -273,7 +273,7 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "giveth",
                 loc: {
                   start: { line: 3, col: 9 },
@@ -286,7 +286,7 @@ describe("EvmlAST", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "giv",
                   loc: {
                     start: { line: 3, col: 21 },
@@ -324,7 +324,7 @@ describe("EvmlAST", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "agent",
                         loc: {
                           start: { line: 6, col: 24 },
@@ -366,7 +366,7 @@ describe("EvmlAST", () => {
                                 },
                               },
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "vault",
                                 loc: {
                                   start: { line: 8, col: 26 },
@@ -385,7 +385,7 @@ describe("EvmlAST", () => {
                             name: "install",
                             args: [
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "vault:new",
                                 loc: {
                                   start: { line: 9, col: 16 },
@@ -429,7 +429,7 @@ describe("EvmlAST", () => {
                 loc: { start: { line: 6, col: 10 }, end: { line: 6, col: 23 } },
               },
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "agent",
                 loc: { start: { line: 6, col: 24 }, end: { line: 6, col: 29 } },
               },
@@ -462,7 +462,7 @@ describe("EvmlAST", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "vault",
                         loc: {
                           start: { line: 8, col: 26 },
@@ -481,7 +481,7 @@ describe("EvmlAST", () => {
                     name: "install",
                     args: [
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "vault:new",
                         loc: {
                           start: { line: 9, col: 16 },
@@ -512,7 +512,7 @@ describe("EvmlAST", () => {
                 loc: { start: { line: 8, col: 12 }, end: { line: 8, col: 25 } },
               },
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "vault",
                 loc: { start: { line: 8, col: 26 }, end: { line: 8, col: 31 } },
               },
@@ -525,7 +525,7 @@ describe("EvmlAST", () => {
             name: "install",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "vault:new",
                 loc: { start: { line: 9, col: 16 }, end: { line: 9, col: 25 } },
               },
@@ -543,7 +543,7 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "aragonos",
                 loc: {
                   start: { line: 2, col: 9 },
@@ -556,7 +556,7 @@ describe("EvmlAST", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "ar",
                   loc: {
                     start: { line: 2, col: 23 },
@@ -573,7 +573,7 @@ describe("EvmlAST", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "giveth",
                 loc: {
                   start: { line: 3, col: 9 },
@@ -586,7 +586,7 @@ describe("EvmlAST", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "giv",
                   loc: {
                     start: { line: 3, col: 21 },
@@ -624,7 +624,7 @@ describe("EvmlAST", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "agent",
                         loc: {
                           start: { line: 6, col: 24 },
@@ -666,7 +666,7 @@ describe("EvmlAST", () => {
                                 },
                               },
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "vault",
                                 loc: {
                                   start: { line: 8, col: 26 },
@@ -685,7 +685,7 @@ describe("EvmlAST", () => {
                             name: "install",
                             args: [
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "vault:new",
                                 loc: {
                                   start: { line: 9, col: 16 },
@@ -729,7 +729,7 @@ describe("EvmlAST", () => {
                 loc: { start: { line: 6, col: 10 }, end: { line: 6, col: 23 } },
               },
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "agent",
                 loc: { start: { line: 6, col: 24 }, end: { line: 6, col: 29 } },
               },
@@ -747,7 +747,7 @@ describe("EvmlAST", () => {
                 loc: { start: { line: 8, col: 12 }, end: { line: 8, col: 25 } },
               },
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "vault",
                 loc: { start: { line: 8, col: 26 }, end: { line: 8, col: 31 } },
               },
@@ -768,7 +768,7 @@ describe("EvmlAST", () => {
                     name: "revoke",
                     args: [
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "voting",
                         loc: {
                           start: { line: 14, col: 13 },
@@ -776,7 +776,7 @@ describe("EvmlAST", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "token-manager",
                         loc: {
                           start: { line: 14, col: 20 },
@@ -784,7 +784,7 @@ describe("EvmlAST", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "MINT_ROLE",
                         loc: {
                           start: { line: 14, col: 34 },

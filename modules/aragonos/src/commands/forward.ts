@@ -1,9 +1,5 @@
 import type { Action, TransactionAction } from "@evmcrispr/sdk";
-import {
-  commaListItems,
-  defineCommand,
-  ErrorException,
-} from "@evmcrispr/sdk";
+import { commaListItems, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
 import { getDAOAppIdentifiers } from "../utils";
@@ -33,13 +29,7 @@ export default defineCommand<AragonOS>({
     const blockCommandsNode = node.args[node.args.length - 1];
     const forwarderArgNodes = node.args.slice(0, -1);
 
-    const forwarderAppAddresses = await interpretNodes(
-      forwarderArgNodes,
-      false,
-      {
-        allowNotFoundError: true,
-      },
-    );
+    const forwarderAppAddresses = await interpretNodes(forwarderArgNodes);
 
     const invalidForwarderApps: any[] = [];
 

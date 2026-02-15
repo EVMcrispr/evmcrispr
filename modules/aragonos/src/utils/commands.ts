@@ -15,11 +15,11 @@ import {
 import { isAddress } from "viem";
 import type { AragonDAO } from "../AragonDAO";
 import type { App, CompletePermission, PermissionMap, Role } from "../types";
-import { normalizeRole } from "./normalizers";
 import {
   optionalLabeledAppIdentifierRegex,
   parsePrefixedDAOIdentifier,
 } from "./identifiers";
+import { normalizeRole } from "./normalizers";
 
 const { DATA_PROVIDER } = BindingsSpace;
 
@@ -43,10 +43,10 @@ export const getDAO = (
     | AragonDAO
     | undefined;
 
-  if (appNode.type === NodeType.ProbableIdentifier) {
+  if (appNode.type === NodeType.Bareword) {
     const res = parseDaoPrefixedIdentifier(appNode.value);
 
-    if (res && res[0]) {
+    if (res?.[0]) {
       const [daoIdentifier] = res;
 
       dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as

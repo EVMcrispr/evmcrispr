@@ -88,16 +88,9 @@ export function defineCommand<M extends Module>(
         }
         if (def.rest) {
           const restNodes = c.args.slice(i);
-          parsedArgs[def.name] = await interpretNodes(
-            restNodes,
-            false,
-            def.interpretOptions,
-          );
+          parsedArgs[def.name] = await interpretNodes(restNodes);
         } else if (c.args[i]) {
-          parsedArgs[def.name] = await interpretNode(
-            c.args[i],
-            def.interpretOptions,
-          );
+          parsedArgs[def.name] = await interpretNode(c.args[i]);
         }
       }
 

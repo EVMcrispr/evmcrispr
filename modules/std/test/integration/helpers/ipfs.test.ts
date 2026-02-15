@@ -1,7 +1,5 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import {
   type CommandExpressionNode,
   ComparisonType,
@@ -9,8 +7,12 @@ import {
   type HelperFunctionNode,
   NodeType,
 } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient, expectThrowAsync } from "@evmcrispr/test-utils";
 import {
   createInterpreter,
   itChecksInvalidArgsLength,
@@ -24,7 +26,6 @@ const JWT_VAR_NAME = "ipfs.jwt";
 const describeFn = PINATA_JWT ? describe : describe.skip;
 
 describeFn("Std > helpers > @ipfs(text)", () => {
-
   let client: PublicClient;
   const lazyClient = () => client;
   const ipfsData = "This should be pinned in IPFS";

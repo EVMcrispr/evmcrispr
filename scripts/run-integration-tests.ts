@@ -37,9 +37,12 @@ console.log("Starting Anvil...");
 // Start Anvil
 const anvil = Bun.spawn([
   "anvil",
-  "--fork-url", endpoint,
-  "--fork-block-number", String(FORK_BLOCK_NUMBER),
-  "--chain-id", String(CHAIN_ID),
+  "--fork-url",
+  endpoint,
+  "--fork-block-number",
+  String(FORK_BLOCK_NUMBER),
+  "--chain-id",
+  String(CHAIN_ID),
   "--silent",
 ]);
 

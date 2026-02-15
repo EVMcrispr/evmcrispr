@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
 import { type Action, addressesEqual, CommandError } from "@evmcrispr/sdk";
-import { type PublicClient, encodeFunctionData, parseAbiItem } from "viem";
+import { encodeFunctionData, type PublicClient, parseAbiItem } from "viem";
 
 const encodeActCall = (signature: string, params: any[] = []): string =>
   encodeFunctionData({
@@ -12,21 +12,21 @@ const encodeActCall = (signature: string, params: any[] = []): string =>
     args: params,
   });
 
-import { DAO, DAO2 } from "../../fixtures";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
-import { createInterpreter } from "../../test-helpers/evml";
+import { DAO, DAO2 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import { createTestAction } from "../../test-helpers/actions";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import { createInterpreter } from "../../test-helpers/evml";
 
-describe("AragonOS > commands > install <repo> [initParams]", () => {
+describe("AragonOS > commands > install <$var> <repo> [initParams]", () => {
   const {
     appId,
     appIdentifier,
@@ -54,7 +54,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
 
   it("should return a correct install action", async () => {
     const interpreter = createAragonScriptInterpreter([
-      `install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
+      `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
     ]);
 
     const installationActions = await interpreter.interpret();
@@ -84,7 +84,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it("should return a correct install action given a specific version", async () => {
     const specificVersion = "0x714c925ede405687752c4ad32078137c4f179538";
     const interpreter = createAragonScriptInterpreter([
-      `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+      `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )} --version 1.0.1`,
     ]);
@@ -120,7 +120,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
         load aragonos --as ar
         ar:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
-            install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+            install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(
               " ",
             )} --dao ${DAO.kernel}
           )
@@ -151,7 +151,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
       `
     load aragonos --as ar
 
-    ar:install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}
+    ar:install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}
   `,
       client,
     );
@@ -167,7 +167,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it("should fail passing an invalid repo identifier", async () => {
     const invalidRepoIdentifier = `missing-label-repo`;
     const interpreter = createAragonScriptInterpreter([
-      `install ${invalidRepoIdentifier} ${initializeUnresolvedParams.join(
+      `install $app ${invalidRepoIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )}`,
     ]);
@@ -183,7 +183,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it("should fail when passing a repo that can not be resolved", async () => {
     const invalidRepoENSName = `non-existent-repo:new-app`;
     const interpreter = createAragonScriptInterpreter([
-      `install ${invalidRepoENSName} ${initializeUnresolvedParams.join(" ")}`,
+      `install $app ${invalidRepoENSName} ${initializeUnresolvedParams.join(" ")}`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "install")!;
     const error = new CommandError(
@@ -199,7 +199,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
   it("should fail when passing an invalid --version option", async () => {
     const invalidVersion = "1e18";
     const interpreter = createAragonScriptInterpreter([
-      `install ${newAppIdentifier} ${initializeUnresolvedParams.join(
+      `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )} --version ${invalidVersion}`,
     ]);
@@ -214,8 +214,8 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
 
   it("should fail when installing an app with an identifier previously used", async () => {
     const interpreter = createAragonScriptInterpreter([
-      `install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
-      `install ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
+      `install $app1 ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
+      `install $app2 ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "install", 0, 1)!;
     const error = new CommandError(
@@ -233,7 +233,7 @@ describe("AragonOS > commands > install <repo> [initParams]", () => {
       "-param _maxAccountTokens of type uint256: Invalid BigInt value. Got false",
     ];
     const interpreter = createAragonScriptInterpreter([
-      `install ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,
+      `install $app ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "install")!;
 

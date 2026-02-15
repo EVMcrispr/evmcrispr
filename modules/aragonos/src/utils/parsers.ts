@@ -1,4 +1,3 @@
-import type { Address } from "@evmcrispr/sdk";
 import { fetchImplementationAddress } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import type { ParsedApp, Repo } from "../types";

@@ -15,10 +15,11 @@ function createModuleClass<M extends Module>(
   name: string,
   commands: Commands<M>,
   helpers: HelperFunctions<M>,
+  constants: Record<string, string> = {},
 ): IModuleConstructor {
   return class extends Module {
     constructor(context: ModuleContext, alias?: string) {
-      super(name, commands, helpers, context, alias);
+      super(name, commands, helpers, constants, context, alias);
     }
   } as IModuleConstructor;
 }
@@ -40,6 +41,7 @@ export function defineModule(
   name: string,
   commandImports: CommandImportMap,
   helperImports?: HelperImportMap,
+  constants?: Record<string, string>,
 ): IModuleConstructor {
   const commands: Commands = Object.fromEntries(
     Object.entries(commandImports).map(([k, load]) => [
@@ -57,5 +59,5 @@ export function defineModule(
       )
     : {};
 
-  return createModuleClass(name, commands, helpers);
+  return createModuleClass(name, commands, helpers, constants ?? {});
 }

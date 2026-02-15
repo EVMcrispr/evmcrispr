@@ -63,16 +63,9 @@ export function defineHelper<M extends Module>(
       }
       if (def.rest) {
         const restNodes = h.args.slice(i);
-        parsedArgs[def.name] = await interpretNodes(
-          restNodes,
-          false,
-          def.interpretOptions,
-        );
+        parsedArgs[def.name] = await interpretNodes(restNodes);
       } else if (h.args[i]) {
-        parsedArgs[def.name] = await interpretNode(
-          h.args[i],
-          def.interpretOptions,
-        );
+        parsedArgs[def.name] = await interpretNode(h.args[i]);
       }
     }
 

@@ -1,10 +1,8 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { givethDonationRelayer } from "@evmcrispr/module-giveth/addresses";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter } from "../../test-helpers/evml";
 
 describe.skip("Giveth > commands > donate <slug> <amount> <token>", () => {

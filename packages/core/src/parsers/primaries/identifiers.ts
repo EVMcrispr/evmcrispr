@@ -1,6 +1,6 @@
 import type {
+  BarewordNode,
   EnclosingNodeParser,
-  ProbableIdentifierNode,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
@@ -19,7 +19,7 @@ import { createNodeLocation, enclosingLookaheadParser, locate } from "../utils";
 
 export const VARIABLE_PARSER_ERROR = "VariableParserError";
 
-export const PROBABLE_IDENTIFIER_PARSER_ERROR = "IdentifierParserError";
+export const BAREWORD_PARSER_ERROR = "IdentifierParserError";
 
 export const variableIdentifierParser: EnclosingNodeParser<
   VariableIdentifierNode
@@ -65,11 +65,11 @@ export const enclosedIdentifierParser: Parser<any, string, any> =
     ).map((values) => values.filter((v) => !!v).join("")),
   );
 
-export const probableIdentifierParser: EnclosingNodeParser<
-  ProbableIdentifierNode
-> = (enclosingParsers = []) =>
+export const barewordParser: EnclosingNodeParser<BarewordNode> = (
+  enclosingParsers = [],
+) =>
   recursiveParser(() =>
-    locate<ProbableIdentifierNode>(
+    locate<BarewordNode>(
       coroutine((run) => {
         const parts: string[] = run(
           many1(
@@ -93,15 +93,11 @@ export const probableIdentifierParser: EnclosingNodeParser<
 
         return [parts.filter((v) => !!v).join("")];
       }).errorMap((err) =>
-        buildParserError(
-          err,
-          PROBABLE_IDENTIFIER_PARSER_ERROR,
-          "Expecting an identifier",
-        ),
+        buildParserError(err, BAREWORD_PARSER_ERROR, "Expecting an identifier"),
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
-        type: NodeType.ProbableIdentifier,
-        value: value as ProbableIdentifierNode["value"],
+        type: NodeType.Bareword,
+        value: value as BarewordNode["value"],
         loc: createNodeLocation(initialContext, {
           line: data.line,
           index,

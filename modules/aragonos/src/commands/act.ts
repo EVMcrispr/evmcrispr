@@ -26,12 +26,10 @@ export default defineCommand<AragonOS>({
     {
       name: "agent",
       type: "address",
-      interpretOptions: { allowNotFoundError: true },
     },
     {
       name: "target",
       type: "address",
-      interpretOptions: { allowNotFoundError: true },
     },
     { name: "signature", type: "string" },
     { name: "params", type: "any", rest: true },

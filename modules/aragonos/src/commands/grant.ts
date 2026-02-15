@@ -1,4 +1,4 @@
-import type { Action, InterpretOptions } from "@evmcrispr/sdk";
+import type { Action } from "@evmcrispr/sdk";
 import {
   AddressSet,
   BindingsSpace,
@@ -11,12 +11,12 @@ import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import type { CompletePermission, Params } from "../types";
+import { getAppRoles, getDAOAppIdentifiers, oracle } from "../utils";
 import {
-  getAppRoles,
-  getDAOAppIdentifiers,
-  oracle,
-} from "../utils";
-import { getDAO, isPermission, resolvePermissionContext } from "../utils/commands";
+  getDAO,
+  isPermission,
+  resolvePermissionContext,
+} from "../utils/commands";
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -110,24 +110,15 @@ export default defineCommand<AragonOS>({
     },
   ],
   opts: [{ name: "oracle", type: "address" }],
-  async run({ bindingsManager }, _args, { opts, node, interpreters }) {
+  async run(module, _args, { opts, node, interpreters }) {
     const { interpretNode } = interpreters;
-
-    const dao = getDAO(bindingsManager, node.args[1]);
 
     const permissionMangerArgNode = node.args[3];
     const permissionManager = permissionMangerArgNode
-      ? await interpretNode(permissionMangerArgNode, {
-          allowNotFoundError: true,
-        })
+      ? await interpretNode(permissionMangerArgNode)
       : undefined;
     const [grantee, app, role] = await Promise.all(
-      node.args.slice(0, 3).map((arg, i) => {
-        const opts: Partial<InterpretOptions> | undefined =
-          i !== 2 ? { allowNotFoundError: true } : undefined;
-
-        return interpretNode(arg, opts);
-      }),
+      node.args.slice(0, 3).map((arg) => interpretNode(arg)),
     );
     const oracleOpt = opts.oracle;
 
@@ -141,6 +132,16 @@ export default defineCommand<AragonOS>({
 
     if (!isPermission(permission)) {
       throw new ErrorException("Invalid permission");
+    }
+
+    // Find the DAO that owns the app by searching all connected DAOs
+    const dao = isAddress(app)
+      ? (module.connectedDAOs.find((d) => d.resolveApp(app)) ??
+        module.currentDAO)
+      : module.currentDAO;
+
+    if (!dao) {
+      throw new ErrorException('must be used within a "connect" command');
     }
 
     return _grant(dao, permission);

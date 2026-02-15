@@ -14,7 +14,7 @@ import {
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
-import { parseDaoPrefixedIdentifier, getDAO } from "../utils/commands";
+import { getDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
   name: "upgrade",
@@ -31,7 +31,7 @@ export default defineCommand<AragonOS>({
     const kernel = dao.kernel;
 
     const args = await Promise.all([
-      interpretNode(node.args[0], { treatAsLiteral: true }),
+      interpretNode(node.args[0]),
       node.args[1] ? interpretNode(node.args[1]) : undefined,
     ]);
     const rawApmRepo = args[0];

@@ -8,7 +8,7 @@ import {
 import type Std from "..";
 
 const { ALIAS, MODULE } = BindingsSpace;
-const { ProbableIdentifier, StringLiteral } = NodeType;
+const { Bareword, StringLiteral } = NodeType;
 
 export default defineCommand<Std>({
   name: "load",
@@ -18,15 +18,13 @@ export default defineCommand<Std>({
     const { interpretNode } = interpreters;
     const [argNode] = node.args;
     const type = argNode.type;
-    const isIdentifier = type === ProbableIdentifier || type === StringLiteral;
+    const isIdentifier = type === Bareword || type === StringLiteral;
 
     if (!isIdentifier) {
       throw new ErrorException("invalid argument. Expected a string");
     }
 
-    const moduleName: string = await interpretNode(argNode, {
-      treatAsLiteral: true,
-    });
+    const moduleName: string = await interpretNode(argNode);
     const moduleAlias: string | undefined = opts.as as string | undefined;
 
     if (module.modules.find((m: any) => m.name === moduleName)) {

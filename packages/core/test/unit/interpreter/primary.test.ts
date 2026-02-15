@@ -11,7 +11,6 @@ import {
 } from "@evmcrispr/sdk";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
-import { zeroAddress } from "viem";
 import { getPublicClient } from "../../test-helpers/client.js";
 import type { InterpreterCase } from "../../test-helpers/evml.js";
 import {
@@ -164,21 +163,21 @@ describe("Interpreter - primaries", async () => {
   });
 
   describe("when intepreting an identifier node", () => {
-    it("should intepret a probable identifier correctly", async () => {
+    it("should intepret a bareword correctly (always returns string)", async () => {
       const cases: InterpreterCase[] = [
         [
           {
-            type: NodeType.ProbableIdentifier,
+            type: NodeType.Bareword,
             value: "token-manager.open:3",
           },
           "token-manager.open:3",
         ],
         [
           {
-            type: NodeType.ProbableIdentifier,
+            type: NodeType.Bareword,
             value: "ETH",
           },
-          zeroAddress,
+          "ETH",
         ],
       ];
 

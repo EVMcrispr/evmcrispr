@@ -8,6 +8,7 @@ import {
   getOptValue,
   inSameLineThanNode,
   interpretNodeSync,
+  NodeType,
   tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -92,15 +93,12 @@ const setApp = (
     true,
   );
   bindingsManager.setBinding(app.address, app.abi, ABI, false, undefined, true);
-
-  if (!bindingsManager.hasBinding(app.name, ADDR)) {
-    bindingsManager.setBinding(app.name, app.address, ADDR);
-  }
 };
 
 export default defineCommand<AragonOS>({
   name: "install",
   args: [
+    { name: "variable", type: "any", skipInterpret: true },
     { name: "identifier", type: "any", skipInterpret: true },
     { name: "params", type: "any", rest: true, skipInterpret: true },
   ],
@@ -111,16 +109,22 @@ export default defineCommand<AragonOS>({
   async run(module, _args, { node, interpreters }) {
     const { interpretNode, interpretNodes } = interpreters;
 
+    const varNode = node.args[0];
+    if (varNode.type !== NodeType.VariableIdentifier) {
+      throw new ErrorException(
+        "first argument must be a $variable to store the proxy address",
+      );
+    }
+    const varName = varNode.value;
+
     const dao = await getDAOByOption(
       node,
       module.bindingsManager,
       interpretNode,
     );
 
-    const [identifierNode, ...paramNodes] = node.args;
-    const identifier = await interpretNode(identifierNode, {
-      treatAsLiteral: true,
-    });
+    const [, identifierNode, ...paramNodes] = node.args;
+    const identifier = await interpretNode(identifierNode);
     const version = await getOptValue(node, "version", interpretNode);
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
@@ -170,13 +174,19 @@ export default defineCommand<AragonOS>({
     const encodedInitializeFunction = encodeCalldata(fnFragment, initParams);
 
     const appId = namehash(`${appName}.${registry}`);
-    if (!module.bindingsManager.getBindingValue(identifier, ADDR)) {
-      await module.registerNextProxyAddress(identifier, kernel.address);
-    }
-    const proxyContractAddress = module.bindingsManager.getBindingValue(
+    const proxyContractAddress = await module.registerNextProxyAddress(
       identifier,
-      ADDR,
-    )!;
+      kernel.address,
+    );
+
+    module.bindingsManager.setBinding(
+      varName,
+      proxyContractAddress,
+      BindingsSpace.USER,
+      true,
+      undefined,
+      true,
+    );
 
     setApp(
       dao,
@@ -223,7 +233,10 @@ export default defineCommand<AragonOS>({
     if (inSameLineThanNode(c, caretPos)) {
       return;
     }
-    const repoNode = c.args[0];
+    const repoNode = c.args[1];
+    if (!repoNode) {
+      return;
+    }
 
     const labeledAppIdentifier = repoNode.value;
 

@@ -2,6 +2,7 @@ import Std from "@evmcrispr/module-std";
 import type {
   Action,
   ArrayExpressionNode,
+  BarewordNode,
   BinaryExpressionNode,
   Binding,
   BlockExpressionNode,
@@ -17,7 +18,6 @@ import type {
   NodeInterpreter,
   NodesInterpreter,
   Position,
-  ProbableIdentifierNode,
   RelativeBinding,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
@@ -36,7 +36,7 @@ import {
   toDecimals,
 } from "@evmcrispr/sdk";
 import type { Abi, Address, Chain, PublicClient } from "viem";
-import { createPublicClient, http, isAddress, zeroAddress } from "viem";
+import { createPublicClient, http, isAddress } from "viem";
 import * as viemChains from "viem/chains";
 
 import {
@@ -61,11 +61,11 @@ const {
   CallExpression,
   HelperFunctionExpression,
 
-  ProbableIdentifier,
+  Bareword,
   VariableIdentifier,
 } = NodeType;
 
-const { ABI, ADDR, USER } = BindingsSpace;
+const { ABI, USER } = BindingsSpace;
 
 export class EVMcrispr {
   readonly bindingsManager: BindingsManager;
@@ -323,11 +323,8 @@ export class EVMcrispr {
         return this.#interpretCommand(n as CommandExpressionNode, options);
       case HelperFunctionExpression:
         return this.#interpretHelperFunction(n as HelperFunctionNode, options);
-      case ProbableIdentifier:
-        return this.#interpretProbableIdentifier(
-          n as ProbableIdentifierNode,
-          options,
-        );
+      case Bareword:
+        return this.#interpretBareword(n as BarewordNode);
       case VariableIdentifier:
         return this.#interpretVariableIdentifier(
           n as VariableIdentifierNode,
@@ -534,6 +531,24 @@ export class EVMcrispr {
 
   #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
     const helperName = h.name;
+
+    // Module constants: @NAME with no args
+    if (h.args.length === 0) {
+      const constantModules = [...this.#modules, this.#std].filter(
+        (m) => m.constants[helperName] !== undefined,
+      );
+      if (constantModules.length === 1) {
+        return constantModules[0].constants[helperName];
+      }
+      if (constantModules.length > 1) {
+        EVMcrispr.panic(
+          h,
+          `constant name collision on modules ${constantModules.map((m) => m.contextualName).join(", ")}`,
+        );
+      }
+      // Not a constant — fall through to helper resolution
+    }
+
     const filteredModules = [...this.#modules, this.#std].filter(
       (m) => !!m.helpers[helperName],
     );
@@ -590,27 +605,9 @@ export class EVMcrispr {
     }
   };
 
-  #interpretProbableIdentifier: NodeInterpreter<ProbableIdentifierNode> =
-    async (n, { allowNotFoundError = false, treatAsLiteral = false } = {}) => {
-      const identifier = n.value;
-
-      if (!treatAsLiteral) {
-        const addressBinding = this.bindingsManager.getBindingValue(
-          identifier,
-          ADDR,
-        );
-
-        if (addressBinding) {
-          return addressBinding;
-        }
-
-        if (allowNotFoundError) {
-          EVMcrispr.panic(n, `identifier "${identifier}" not found`);
-        }
-      }
-
-      return identifier;
-    };
+  #interpretBareword: NodeInterpreter<BarewordNode> = async (n) => {
+    return n.value;
+  };
 
   #interpretVariableIdentifier: NodeInterpreter<VariableIdentifierNode> =
     async (n) => {
@@ -624,8 +621,8 @@ export class EVMcrispr {
     };
 
   #setDefaultBindings(): void {
-    this.bindingsManager.setBinding("XDAI", zeroAddress, ADDR, true);
-    this.bindingsManager.setBinding("ETH", zeroAddress, ADDR, true);
+    // No default bindings needed — barewords always return their string value.
+    // ETH/XDAI are now module constants accessed via @ETH / @XDAI.
   }
 
   static panic(n: Node, msg: string): never {
@@ -638,7 +635,7 @@ export class EVMcrispr {
         throw new CommandError(n as CommandExpressionNode, msg);
       case HelperFunctionExpression:
         throw new HelperFunctionError(n as HelperFunctionNode, msg);
-      case ProbableIdentifier:
+      case Bareword:
         throw new ExpressionError(n, msg, { name: "IdentifierError" });
       case VariableIdentifier:
         throw new ExpressionError(n, msg, { name: "VariableIdentifierError" });

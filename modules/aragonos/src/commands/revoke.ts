@@ -2,7 +2,6 @@ import type {
   Action,
   Address,
   AddressBinding,
-  InterpretOptions,
   NoNullableBinding,
 } from "@evmcrispr/sdk";
 import {
@@ -23,7 +22,11 @@ import {
   getDAOs,
   normalizeRole,
 } from "../utils";
-import { getDAO, isPermission, resolvePermissionContext } from "../utils/commands";
+import {
+  getDAO,
+  isPermission,
+  resolvePermissionContext,
+} from "../utils/commands";
 
 const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);
@@ -43,8 +46,11 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
   const [granteeAddress, appAddress, role] = permission;
 
-  const { appPermission, aclAddress, roleHash } =
-    resolvePermissionContext(dao, appAddress, role);
+  const { appPermission, aclAddress, roleHash } = resolvePermissionContext(
+    dao,
+    appAddress,
+    role,
+  );
 
   if (!appPermission.grantees.has(granteeAddress.toLowerCase() as Address)) {
     throw new ErrorException(
@@ -88,15 +94,19 @@ export default defineCommand<AragonOS>({
   async run(module, _args, { node, interpreters }) {
     const { interpretNode } = interpreters;
 
-    const dao = getDAO(module.bindingsManager, node.args[1]);
+    const args = await Promise.all(node.args.map((arg) => interpretNode(arg)));
 
-    const args = await Promise.all(
-      node.args.map((arg, i) => {
-        const opts: Partial<InterpretOptions> | undefined =
-          i < 2 ? { allowNotFoundError: true } : undefined;
-        return interpretNode(arg, opts);
-      }),
-    );
+    const appAddress = args[1];
+
+    // Find the DAO that owns the app by searching all connected DAOs
+    const dao = isAddress(appAddress)
+      ? (module.connectedDAOs.find((d) => d.resolveApp(appAddress)) ??
+        module.currentDAO)
+      : module.currentDAO;
+
+    if (!dao) {
+      throw new ErrorException('must be used within a "connect" command');
+    }
 
     return _revoke(dao, args);
   },

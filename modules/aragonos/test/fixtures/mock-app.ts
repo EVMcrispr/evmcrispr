@@ -29,10 +29,10 @@ export const APP: App = {
     false,
     toDecimals(1000),
   ],
-  initializeUnresolvedParams: ["agent", false, "1000e18"],
+  initializeUnresolvedParams: ["@app(agent)", false, "1000e18"],
   callSignature: "mint(address,uint256)",
   callSignatureParams: [DAO["disputable-voting.open"], toDecimals(15)],
-  callSignatureUnresolvedParams: ["voting", "15e18"],
+  callSignatureUnresolvedParams: ["@app(voting)", "15e18"],
   actTarget: "0xc778417e063141139fce010982780140aa0cd5ab",
   actSignature: "approve(address[],uint256[][2],bool,bytes,bytes32)",
   actSignatureParams: [
@@ -46,7 +46,7 @@ export const APP: App = {
     toHex("hello", { size: 32 }),
   ],
   actSignatureUnresolvedParams: [
-    ["vault"],
+    ["@app(vault)"],
     [
       ["1000e18", 56],
       ["0.15e8", "56d"],

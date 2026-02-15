@@ -28,7 +28,7 @@ export const callParserDescribe = () =>
                 name: "token",
                 args: [
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "WETH",
                     loc: {
                       start: { line: 1, col: 63 },
@@ -159,7 +159,7 @@ export const callParserDescribe = () =>
               name: "token",
               args: [
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "DAIx",
                   loc: {
                     start: { line: 1, col: 7 },
@@ -176,7 +176,7 @@ export const callParserDescribe = () =>
                 name: "token",
                 args: [
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "DAI",
                     loc: {
                       start: { line: 1, col: 29 },

@@ -1,7 +1,7 @@
 import type { Address } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 
-export { resolveName, normalizeEnsName } from "@evmcrispr/sdk";
+export { normalizeEnsName, resolveName } from "@evmcrispr/sdk";
 
 export function getAragonEnsResolver(chainId: number): Address | never {
   switch (chainId) {

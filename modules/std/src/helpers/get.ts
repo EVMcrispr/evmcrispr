@@ -10,7 +10,7 @@ export default defineHelper<Std>({
   name: "get",
   args: [
     { name: "address", type: "address" },
-    { name: "abi", type: "string", interpretOptions: { treatAsLiteral: true } },
+    { name: "abi", type: "string" },
     { name: "params", type: "any", rest: true },
   ],
   async run(module, { address, abi, params }) {

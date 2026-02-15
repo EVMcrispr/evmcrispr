@@ -1,8 +1,4 @@
-import {
-  defineHelper,
-  HelperFunctionError,
-  resolveName,
-} from "@evmcrispr/sdk";
+import { defineHelper, HelperFunctionError, resolveName } from "@evmcrispr/sdk";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 import type Std from "..";

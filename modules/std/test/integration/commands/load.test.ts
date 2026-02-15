@@ -1,11 +1,14 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import Ens from "@evmcrispr/module-ens";
 import { CommandError, type CommandExpressionNode } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  findStdCommandNode,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient, expectThrowAsync, findStdCommandNode } from "@evmcrispr/test-utils";
 import { createInterpreter } from "../../test-helpers/evml";
 
 describe("Std > commands > load <name> [--as <alias>]", () => {

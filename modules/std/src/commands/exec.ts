@@ -31,7 +31,6 @@ export default defineCommand<Std>({
     {
       name: "contractAddress",
       type: "address",
-      interpretOptions: { allowNotFoundError: true },
     },
     { name: "signature", type: "literal" },
     { name: "params", type: "any", rest: true },

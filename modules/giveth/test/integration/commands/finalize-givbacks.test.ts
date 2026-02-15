@@ -1,10 +1,8 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
-
 import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter } from "../../test-helpers/evml";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;

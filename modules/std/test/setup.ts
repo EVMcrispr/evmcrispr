@@ -1,8 +1,8 @@
 import { EVMcrispr } from "@evmcrispr/core";
 import {
   createTestServer,
-  http,
   HttpResponse,
+  http,
 } from "@evmcrispr/test-utils/msw/server";
 import tokenList from "./fixtures/tokenlist/uniswap.json";
 

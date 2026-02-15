@@ -1,7 +1,7 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
+import { AddressSet } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
 import { keccak256, toHex } from "viem";
-import { AddressSet } from "@evmcrispr/sdk";
 import type {
   App,
   AppArtifact,

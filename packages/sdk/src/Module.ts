@@ -17,6 +17,7 @@ export abstract class Module {
   readonly name: string;
   readonly commands: Commands<any>;
   readonly helpers: HelperFunctions<any>;
+  readonly constants: Record<string, string>;
   readonly context: ModuleContext;
   readonly alias?: string;
 
@@ -24,12 +25,14 @@ export abstract class Module {
     name: string,
     commands: Commands<any>,
     helpers: HelperFunctions<any>,
+    constants: Record<string, string>,
     context: ModuleContext,
     alias?: string,
   ) {
     this.name = name;
     this.commands = commands;
     this.helpers = helpers;
+    this.constants = constants;
     this.context = context;
     this.alias = alias;
   }

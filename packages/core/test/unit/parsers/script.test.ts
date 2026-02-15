@@ -65,7 +65,7 @@ describe("Parsers - script", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "aragonos",
                 loc: {
                   start: { line: 2, col: 11 },
@@ -78,7 +78,7 @@ describe("Parsers - script", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "ar",
                   loc: {
                     start: { line: 2, col: 25 },
@@ -98,7 +98,7 @@ describe("Parsers - script", () => {
             name: "load",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "superfluid",
                 loc: {
                   start: { line: 3, col: 11 },
@@ -111,7 +111,7 @@ describe("Parsers - script", () => {
                 type: "CommandOpt",
                 name: "as",
                 value: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "sf",
                   loc: {
                     start: { line: 3, col: 27 },
@@ -132,7 +132,7 @@ describe("Parsers - script", () => {
             name: "connect",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "my-dao-ens",
                 loc: {
                   start: { line: 6, col: 17 },
@@ -147,7 +147,7 @@ describe("Parsers - script", () => {
                     name: "forward",
                     args: [
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "token-manager",
                         loc: {
                           start: { line: 7, col: 16 },
@@ -155,7 +155,7 @@ describe("Parsers - script", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "voting",
                         loc: {
                           start: { line: 7, col: 30 },
@@ -170,7 +170,7 @@ describe("Parsers - script", () => {
                             name: "install",
                             args: [
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "wrapper-hooked-token-manager.open",
                                 loc: {
                                   start: { line: 8, col: 18 },
@@ -227,7 +227,7 @@ describe("Parsers - script", () => {
                     name: "forward",
                     args: [
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "token-manager",
                         loc: {
                           start: { line: 16, col: 16 },
@@ -235,7 +235,7 @@ describe("Parsers - script", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "voting",
                         loc: {
                           start: { line: 16, col: 30 },
@@ -243,7 +243,7 @@ describe("Parsers - script", () => {
                         },
                       },
                       {
-                        type: "ProbableIdentifier",
+                        type: "Bareword",
                         value: "agent",
                         loc: {
                           start: { line: 16, col: 37 },
@@ -268,7 +268,7 @@ describe("Parsers - script", () => {
                               {
                                 type: "CallExpression",
                                 target: {
-                                  type: "ProbableIdentifier",
+                                  type: "Bareword",
                                   value: "finance",
                                   loc: {
                                     start: { line: 18, col: 21 },
@@ -294,7 +294,7 @@ describe("Parsers - script", () => {
                             name: "forward",
                             args: [
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "wrappable-token-manager.open",
                                 loc: {
                                   start: { line: 20, col: 18 },
@@ -302,7 +302,7 @@ describe("Parsers - script", () => {
                                 },
                               },
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "disputable-voting.open",
                                 loc: {
                                   start: { line: 20, col: 47 },
@@ -310,7 +310,7 @@ describe("Parsers - script", () => {
                                 },
                               },
                               {
-                                type: "ProbableIdentifier",
+                                type: "Bareword",
                                 value: "agent",
                                 loc: {
                                   start: { line: 20, col: 70 },
@@ -363,7 +363,7 @@ describe("Parsers - script", () => {
                                     name: "token",
                                     args: [
                                       {
-                                        type: "ProbableIdentifier",
+                                        type: "Bareword",
                                         value: "approve",
                                         loc: {
                                           start: { line: 30, col: 21 },
@@ -426,7 +426,7 @@ describe("Parsers - script", () => {
                                             name: "token",
                                             args: [
                                               {
-                                                type: "ProbableIdentifier",
+                                                type: "Bareword",
                                                 value: "upgrade",
                                                 loc: {
                                                   start: {
@@ -471,7 +471,7 @@ describe("Parsers - script", () => {
                                             name: "flow",
                                             args: [
                                               {
-                                                type: "ProbableIdentifier",
+                                                type: "Bareword",
                                                 value: "create",
                                                 loc: {
                                                   start: {
@@ -528,7 +528,7 @@ describe("Parsers - script", () => {
                                             name: "token",
                                             args: [
                                               {
-                                                type: "ProbableIdentifier",
+                                                type: "Bareword",
                                                 value: "downgrade",
                                                 loc: {
                                                   start: {

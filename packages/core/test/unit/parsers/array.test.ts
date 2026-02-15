@@ -56,7 +56,7 @@ describe("Parsers - array", () => {
               name: "token",
               args: [
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "DAI",
                   loc: {
                     start: { line: 1, col: 17 },
@@ -83,7 +83,7 @@ describe("Parsers - array", () => {
                   },
                 },
                 {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "anIdentifier",
                   loc: {
                     start: { line: 1, col: 43 },
@@ -113,7 +113,7 @@ describe("Parsers - array", () => {
                       type: "ArrayExpression",
                       elements: [
                         {
-                          type: "ProbableIdentifier",
+                          type: "Bareword",
                           value: "aDeepDeepIdentifier.open",
                           loc: {
                             start: { line: 1, col: 65 },

@@ -598,7 +598,7 @@ describe("Parsers - arithmetic", () => {
                 name: "token.balance",
                 args: [
                   {
-                    type: "ProbableIdentifier",
+                    type: "Bareword",
                     value: "DAI",
                     loc: {
                       start: {
@@ -655,7 +655,7 @@ describe("Parsers - arithmetic", () => {
               left: {
                 type: "CallExpression",
                 target: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "someContract",
                   loc: {
                     start: {

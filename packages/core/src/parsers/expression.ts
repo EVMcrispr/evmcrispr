@@ -13,8 +13,8 @@ import { blockExpressionParser } from "./block";
 import { callExpressionParser } from "./call";
 import { helperFunctionParser } from "./helper";
 import {
+  barewordParser,
   primaryParser,
-  probableIdentifierParser,
   variableIdentifierParser,
 } from "./primaries";
 import {
@@ -35,7 +35,7 @@ export const argumentExpressionParser: EnclosingNodeParser<
       arrayExpressionParser,
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),
-      probableIdentifierParser(enclosingParsers),
+      barewordParser(enclosingParsers),
     ]).errorMap(({ data, error, index }) => {
       return `ExpressionParserError(${data.line},${
         index - data.offset
@@ -55,7 +55,7 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
       arrayExpressionParser,
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),
-      probableIdentifierParser(enclosingParsers),
+      barewordParser(enclosingParsers),
     ]).errorMap(({ data, error, index }) => {
       return `ExpressionParserError(${data.line},${
         index - data.offset

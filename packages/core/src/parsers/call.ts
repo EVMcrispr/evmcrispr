@@ -18,7 +18,7 @@ import { argumentsParser } from "./expression";
 import { helperFunctionParser } from "./helper";
 import {
   addressParser,
-  probableIdentifierParser,
+  barewordParser,
   variableIdentifierParser,
 } from "./primaries";
 import {
@@ -67,7 +67,7 @@ const callableExpressions = recursiveParser(() =>
     addressParser(enclosingParsers),
     variableIdentifierParser(enclosingParsers),
     helperFunctionParser,
-    probableIdentifierParser(enclosingParsers),
+    barewordParser(enclosingParsers),
   ]),
 );
 

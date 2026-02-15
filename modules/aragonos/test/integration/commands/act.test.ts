@@ -2,20 +2,20 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import { CommandError, encodeAction } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
-import { toHex } from "viem";
-import { DAO } from "../../fixtures";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
-import { itChecksNonDefinedIdentifier } from "../../test-helpers/evml";
+import type { PublicClient } from "viem";
+import { toHex } from "viem";
+import { DAO } from "../../fixtures";
 import { createTestScriptEncodedAction } from "../../test-helpers/actions";
 import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import { itChecksNonDefinedIdentifier } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
   let client: PublicClient;
@@ -35,7 +35,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
 
   it("should return a correct act action", async () => {
     const interpreter = createAragonScriptInterpreter([
-      `act agent:1 agent:2 "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]`,
+      `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]`,
     ]);
 
     const actActions = await interpreter.interpret();
@@ -70,7 +70,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
       "QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2",
     ];
     const interpreter = createAragonScriptInterpreter([
-      `act agent ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
+      `act @app(agent) ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
         params[1]
       }`,
     ]);
@@ -96,7 +96,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     "should fail when receiving a non-defined agent identifier",
     (nonDefinedIdentifier) =>
       createAragonScriptInterpreter([
-        `act ${nonDefinedIdentifier} vault "deposit()"`,
+        `act ${nonDefinedIdentifier} @app(agent) "deposit()"`,
       ]),
     "act",
     0,
@@ -107,7 +107,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     "should fail when receiving a non-defined target identifier",
     (nonDefinedIdentifier) =>
       createAragonScriptInterpreter([
-        `act agent ${nonDefinedIdentifier} "deposit()"`,
+        `act @app(agent) ${nonDefinedIdentifier} "deposit()"`,
       ]),
     "act",
     1,
@@ -117,7 +117,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
   it("should fail when receiving an invalid agent address", async () => {
     const invalidAgentAddress = "false";
     const interpreter = createAragonScriptInterpreter([
-      `act ${invalidAgentAddress} agent "deposit()"`,
+      `act ${invalidAgentAddress} @app(agent) "deposit()"`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
@@ -131,7 +131,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
   it("should fail when receiving an invalid target address", async () => {
     const invalidTargetAddress = "2.22e18";
     const interpreter = createAragonScriptInterpreter([
-      `act agent ${invalidTargetAddress} "deposit()"`,
+      `act @app(agent) ${invalidTargetAddress} "deposit()"`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(
@@ -157,7 +157,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
     await Promise.all(
       cases.map(([invalidSignature, msg]) => {
         const interpreter = createAragonScriptInterpreter([
-          `act agent agent:2 "${invalidSignature}"`,
+          `act @app(agent) @app(agent:2) "${invalidSignature}"`,
         ]);
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         const error = new CommandError(
@@ -180,7 +180,7 @@ describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [.
       "-param 1 of type uint256: Invalid BigInt value. Got none",
     ];
     const interpreter = createAragonScriptInterpreter([
-      `act agent agent:2 "deposit(address,uint256)" 1e18`,
+      `act @app(agent) @app(agent:2) "deposit(address,uint256)" 1e18`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "act")!;
     const error = new CommandError(

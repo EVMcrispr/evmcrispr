@@ -5,13 +5,16 @@ import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
 import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
 
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import {
+  expect,
+  expectThrowAsync,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import { cid } from "is-ipfs";
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";
-
-import { DAO } from "../fixtures/mock-dao";
 import { EOA_ADDRESS } from "../fixtures";
-import { expect, expectThrowAsync, getPublicClient } from "@evmcrispr/test-utils";
+import { DAO } from "../fixtures/mock-dao";
 import { isValidArtifact, isValidParsedApp } from "../test-helpers/expects";
 
 const CHAIN_ID = 100;

@@ -3,18 +3,14 @@ import { beforeAll, describe, it } from "bun:test";
 
 import { ANY_ENTITY } from "@evmcrispr/module-aragonos/utils";
 import { CommandError, commaListItems } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
-import { keccak256, toHex } from "viem";
-import { DAO } from "../../fixtures";
 import {
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
-import {
-  createInterpreter,
-  itChecksNonDefinedIdentifier,
-} from "../../test-helpers/evml";
+import type { PublicClient } from "viem";
+import { keccak256, toHex } from "viem";
+import { DAO } from "../../fixtures";
 import {
   createTestAction,
   createTestScriptEncodedAction,
@@ -23,6 +19,10 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
+import {
+  createInterpreter,
+  itChecksNonDefinedIdentifier,
+} from "../../test-helpers/evml";
 
 describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   let client: PublicClient;
@@ -43,9 +43,9 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   it("should return a correct forward action", async () => {
     const interpreter = createAragonScriptInterpreter([
       `
-      forward disputable-voting.open (
-        grant disputable-voting.open disputable-conviction-voting.open PAUSE_CONTRACT_ROLE disputable-voting.open
-        revoke ANY_ENTITY disputable-conviction-voting.open CREATE_PROPOSALS_ROLE true
+      forward @app(disputable-voting.open) (
+        grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)
+        revoke @ANY_ENTITY @app(disputable-conviction-voting.open) CREATE_PROPOSALS_ROLE true
       ) --context "test"
     `,
     ]);
@@ -89,7 +89,7 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
 
         ar:connect ${DAO.kernel} (
           forward ${nonDefinedIdentifier} (
-            grant tollgate.open finance CREATE_PAYMENTS_ROLE
+            grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE
           )
         )
       `,
@@ -107,7 +107,7 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
     ];
     const interpreter = createAragonScriptInterpreter([
       `forward ${invalidAddresses.join(" ")} (
-      grant tollgate.open finance CREATE_PAYMENTS_ROLE
+      grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE
     )`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
@@ -120,8 +120,8 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
 
   it("should fail when forwarding actions through non-forwarder entities", async () => {
     const interpreter = createAragonScriptInterpreter([
-      `forward acl (
-    grant disputable-voting.open disputable-conviction-voting.open PAUSE_CONTRACT_ROLE disputable-voting.open
+      `forward @app(acl) (
+    grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)
   )`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "forward")!;

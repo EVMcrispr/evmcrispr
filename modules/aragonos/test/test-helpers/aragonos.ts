@@ -13,13 +13,10 @@ import {
   listItems,
   NodeType,
 } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
 import { expectThrowAsync } from "@evmcrispr/test-utils";
+import type { PublicClient } from "viem";
 import type { TestInterpreter } from "./evml";
-import {
-  createInterpreter,
-  itChecksNonDefinedIdentifier,
-} from "./evml";
+import { createInterpreter, itChecksNonDefinedIdentifier } from "./evml";
 
 export const _aragonEns = async (
   ensName: string,
@@ -94,7 +91,7 @@ export const itChecksBadPermission = (
   checkPermissionManager = false,
 ): void => {
   const permissionErrorText = "invalid permission provided";
-  const permission = ["kernel", "acl", "CREATE_PERMISSIONS_ROLE"];
+  const permission = ["@app(kernel)", "@app(acl)", "CREATE_PERMISSIONS_ROLE"];
 
   itChecksNonDefinedIdentifier(
     "should fail when receiving a non-defined grantee identifier",
@@ -168,7 +165,7 @@ export const itChecksBadPermission = (
     const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
       c!,
-      `given permission doesn't exists on app ${permission[1]}`,
+      `given permission doesn't exists on app acl`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

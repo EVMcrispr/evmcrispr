@@ -18,7 +18,7 @@ export const helperParserDescribe = () =>
               {
                 type: "CallExpression",
                 target: {
-                  type: "ProbableIdentifier",
+                  type: "Bareword",
                   value: "anotherToken",
                   loc: {
                     start: { line: 1, col: 16 },
@@ -52,7 +52,7 @@ export const helperParserDescribe = () =>
             name: "token",
             args: [
               {
-                type: "ProbableIdentifier",
+                type: "Bareword",
                 value: "WETH",
                 loc: { start: { line: 1, col: 7 }, end: { line: 1, col: 11 } },
               },

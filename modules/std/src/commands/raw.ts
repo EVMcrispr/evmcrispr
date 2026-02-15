@@ -15,7 +15,6 @@ export default defineCommand<Std>({
     {
       name: "contractAddress",
       type: "address",
-      interpretOptions: { allowNotFoundError: true },
     },
     { name: "data", type: "literal" },
     { name: "value", type: "number", optional: true },

@@ -9,7 +9,6 @@ export default defineHelper<Std>({
     {
       name: "text",
       type: "string",
-      interpretOptions: { treatAsLiteral: true },
     },
   ],
   async run(module, { text }) {
