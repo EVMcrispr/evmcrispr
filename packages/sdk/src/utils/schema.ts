@@ -1,18 +1,19 @@
 import { isAddress } from "viem";
 
-import type { BindingsManager } from "../BindingsManager";
 import { ErrorException } from "../errors";
-import type { Node } from "../types";
+import type { Binding, CompletionContext, CompletionItem } from "../types";
 import { BindingsSpace } from "../types";
 import { isNumberish } from "./args";
 
 export interface CustomArgType {
   validate?(argName: string, value: any): void;
+  /** Default completions for arguments of this type. */
   completions?(
-    bindingsManager: BindingsManager,
-    nodeArgs: Node[],
-    argIndex: number,
-  ): string[];
+    ctx: CompletionContext,
+  ): Promise<CompletionItem[]> | CompletionItem[];
+  /** Resolve an argument of this type and return bindings to add to the
+   *  completion context. Called for commands before the cursor. */
+  resolve?(rawValue: string, ctx: CompletionContext): Promise<Binding[]>;
 }
 
 export type CustomArgTypes = Record<string, CustomArgType>;
@@ -41,6 +42,8 @@ export interface ArgDef {
   type: ArgType;
   optional?: boolean;
   rest?: boolean;
+  /** Dynamically resolve the effective type at completion time. */
+  resolveType?: (ctx: CompletionContext) => ArgType;
 }
 
 export interface OptDef {
@@ -102,34 +105,64 @@ export function validateArgType(
   }
 }
 
-export function defaultCompletionsFromSchema(argDefs: ArgDef[]) {
-  return (
-    argIndex: number,
-    nodeArgs: Node[],
-    bindingsManager: BindingsManager,
-  ): string[] => {
-    const def =
-      argDefs[argIndex] ?? (argDefs.at(-1)?.rest ? argDefs.at(-1) : undefined);
-    if (!def) return [];
+/**
+ * Resolve completions for a given arg type. Used by the completion engine as
+ * the default when no command-level override is provided.
+ */
+export function completionsForType(
+  type: ArgType,
+  ctx: CompletionContext,
+  customTypes?: CustomArgTypes,
+): CompletionItem[] | Promise<CompletionItem[]> {
+  switch (type) {
+    case "address":
+      return ctx.bindings
+        .getAllBindings({ spaceFilters: [BindingsSpace.USER] })
+        .filter(
+          (b) => typeof b.value === "string" && isAddress(b.value as string),
+        )
+        .map((b) => fieldItem(b.identifier));
+    case "bool":
+      return [fieldItem("true"), fieldItem("false")];
+    case "block":
+      return [
+        {
+          label: "( ... )",
+          insertText: "(\n\t$0\n)",
+          kind: "field",
+          sortPriority: 0,
+          isSnippet: true,
+        },
+      ];
+    case "variable":
+      return [];
+    default:
+      if (!isBuiltinType(type)) {
+        const customType = customTypes?.[type];
+        if (customType?.completions) {
+          return customType.completions(ctx);
+        }
+      }
+      return [];
+  }
+}
 
-    if (def.type === "address") {
-      return bindingsManager.getAllBindingIdentifiers({
-        spaceFilters: [BindingsSpace.ADDR],
-      });
-    }
+/** Create a field CompletionItem from a string. */
+export function fieldItem(s: string): CompletionItem {
+  return {
+    label: isAddress(s) ? `${s.slice(0, 6)}..${s.slice(-4)}` : s,
+    insertText: s,
+    kind: "field",
+    sortPriority: 1,
+  };
+}
 
-    if (!isBuiltinType(def.type)) {
-      const scopeModule = bindingsManager.getScopeModule() ?? "std";
-      const moduleData = bindingsManager.getBindingValue(
-        scopeModule,
-        BindingsSpace.MODULE,
-      );
-      const customType = moduleData?.types?.[def.type];
-      return (
-        customType?.completions?.(bindingsManager, nodeArgs, argIndex) ?? []
-      );
-    }
-
-    return [];
+/** Create a variable CompletionItem from a string. */
+export function variableItem(s: string): CompletionItem {
+  return {
+    label: s,
+    insertText: s,
+    kind: "variable",
+    sortPriority: 2,
   };
 }

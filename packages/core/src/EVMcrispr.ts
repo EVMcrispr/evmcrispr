@@ -119,6 +119,8 @@ export class EVMcrispr {
       value: {
         commands: this.#std.commands,
         helpers: this.#std.helpers,
+        helperReturnTypes: this.#std.helperReturnTypes,
+        helperHasArgs: this.#std.helperHasArgs,
         types: this.#std.types,
       },
     };
@@ -168,6 +170,8 @@ export class EVMcrispr {
           {
             commands: instance.commands,
             helpers: instance.helpers,
+            helperReturnTypes: instance.helperReturnTypes,
+            helperHasArgs: instance.helperHasArgs,
             types: instance.types,
           },
           BindingsSpace.MODULE,

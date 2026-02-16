@@ -51,6 +51,7 @@ export const _projectAddr = async (
 
 export default defineHelper<Giveth>({
   name: "projectAddr",
+  returnType: "address",
   args: [{ name: "slug", type: "string" }],
   async run(module, { slug }) {
     return (await _projectAddr(module, slug))[0];

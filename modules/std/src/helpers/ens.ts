@@ -10,6 +10,7 @@ const mainnetClient = createPublicClient({
 
 export default defineHelper<Std>({
   name: "ens",
+  returnType: "address",
   args: [{ name: "name", type: "string" }],
   async run(_, { name }, { node }) {
     const addr = await resolveName(name, mainnetClient);

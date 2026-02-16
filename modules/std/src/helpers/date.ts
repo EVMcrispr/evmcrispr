@@ -8,6 +8,7 @@ const offsetRegex =
 
 export default defineHelper<Std>({
   name: "date",
+  returnType: "number",
   args: [
     { name: "date", type: "string" },
     { name: "offset", type: "string", optional: true },

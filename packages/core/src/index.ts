@@ -36,7 +36,6 @@ export type {
   IDataProvider,
   IModuleConstructor,
   InterpretOptions,
-  LazyBindings,
   LiteralExpression,
   LiteralExpressionNode,
   Location,

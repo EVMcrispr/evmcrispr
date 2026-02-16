@@ -19,5 +19,8 @@ export function toMonacoCompletionItem(
     kind: kindMap[item.kind],
     range,
     sortText: item.sortPriority != null ? String(item.sortPriority) : undefined,
+    insertTextRules: item.isSnippet
+      ? languages.CompletionItemInsertTextRule.InsertAsSnippet
+      : undefined,
   };
 }

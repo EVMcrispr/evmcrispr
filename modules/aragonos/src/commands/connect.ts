@@ -1,8 +1,6 @@
 import type {
-  AbiBinding,
   Action,
   Address,
-  AddressBinding,
   Binding,
   IPFSResolver,
   Nullable,
@@ -10,102 +8,22 @@ import type {
 import {
   addressesEqual,
   BindingsSpace,
-  beforeOrEqualNode,
   defineCommand,
   ErrorException,
   ErrorNotFound,
-  interpretNodeSync,
-  isAddressNodishType,
-  tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";
 import type AragonOS from "..";
-import { AragonDAO, isAragonDAO } from "../AragonDAO";
+import { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
-import type { App, AppIdentifier } from "../types";
 import {
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
   INITIAL_APP_INDEX,
 } from "../utils";
 
-// DATA_PROVIDER is still used by the eager execution / completions path,
-// which relies on scope-aware bindings for nested DAO tracking.
-// It will be fully removed when the completions system is refactored.
-const { ABI, ADDR, DATA_PROVIDER, USER } = BindingsSpace;
-
-const buildAppBindings = (
-  appIdentifier: AppIdentifier,
-  app: App,
-  dao: AragonDAO,
-  addPrefixedBindings: boolean,
-  omitRedudantIdentifier: boolean,
-): (AbiBinding | AddressBinding)[] => {
-  const bindingIdentifiers = [];
-  const finalAppIdentifier = formatAppIdentifier(appIdentifier);
-
-  if (!omitRedudantIdentifier && appIdentifier.endsWith(INITIAL_APP_INDEX)) {
-    bindingIdentifiers.push(appIdentifier);
-  }
-
-  bindingIdentifiers.push(finalAppIdentifier);
-
-  if (addPrefixedBindings) {
-    bindingIdentifiers.push(
-      createDaoPrefixedIdentifier(
-        finalAppIdentifier,
-        dao.name ?? dao.kernel.address,
-      ),
-    );
-  }
-
-  const appAddressBindings = bindingIdentifiers.map<AddressBinding>(
-    (identifier) => ({
-      type: ADDR,
-      identifier,
-      value: app.address,
-    }),
-  );
-  const appAbiBinding: AbiBinding = {
-    type: ABI,
-    identifier: app.address,
-    value: app.abi,
-  };
-
-  return [...appAddressBindings, appAbiBinding];
-};
-
-const buildDAOBindings = (
-  dao: AragonDAO,
-  addPrefixedBindings = true,
-  omitRedudantIdentifier = false,
-): Binding[] => {
-  const daoBindings: Binding[] = [];
-
-  dao.appCache.forEach((app, appIdentifier) => {
-    const appBindings = buildAppBindings(
-      appIdentifier,
-      app,
-      dao,
-      addPrefixedBindings,
-      omitRedudantIdentifier,
-    );
-
-    // There could be the case of having multiple same-version apps on the DAO
-    // so avoid setting the same binding twice
-    if (!appBindings.find((b) => b.identifier === app.codeAddress)) {
-      appBindings.push({
-        type: ABI,
-        identifier: app.codeAddress,
-        value: app.abi,
-      });
-    }
-    daoBindings.push(...appBindings);
-  });
-
-  return daoBindings;
-};
+const { ABI, ADDR } = BindingsSpace;
 
 const createDAO = async (
   daoAddressOrName: Address | string,
@@ -137,7 +55,6 @@ const createDAO = async (
     );
   }
 
-  // Allow us to keep track of connected DAOs inside nested 'connect' commands
   const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
 
   const daoName = !isAddress(daoAddressOrName) ? daoAddressOrName : undefined;
@@ -151,11 +68,65 @@ const createDAO = async (
   );
 };
 
+const buildDAOBindings = (
+  dao: AragonDAO,
+  addPrefixedBindings = true,
+  omitRedudantIdentifier = false,
+): Binding[] => {
+  const daoBindings: Binding[] = [];
+
+  dao.appCache.forEach((app, appIdentifier) => {
+    const finalAppIdentifier = formatAppIdentifier(appIdentifier);
+    const bindingIdentifiers: string[] = [];
+
+    if (!omitRedudantIdentifier && appIdentifier.endsWith(INITIAL_APP_INDEX)) {
+      bindingIdentifiers.push(appIdentifier);
+    }
+
+    bindingIdentifiers.push(finalAppIdentifier);
+
+    if (addPrefixedBindings) {
+      bindingIdentifiers.push(
+        createDaoPrefixedIdentifier(
+          finalAppIdentifier,
+          dao.name ?? dao.kernel.address,
+        ),
+      );
+    }
+
+    for (const identifier of bindingIdentifiers) {
+      daoBindings.push({
+        type: ADDR,
+        identifier,
+        value: app.address,
+      });
+    }
+    daoBindings.push({
+      type: ABI,
+      identifier: app.address,
+      value: app.abi,
+    });
+
+    if (
+      !daoBindings.find(
+        (b) => b.identifier === app.codeAddress && b.type === ABI,
+      )
+    ) {
+      daoBindings.push({
+        type: ABI,
+        identifier: app.codeAddress,
+        value: app.abi,
+      });
+    }
+  });
+
+  return daoBindings;
+};
+
 const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
     const bindingsManager = aragonos.bindingsManager;
 
-    // Push DAO onto the module's stack (replaces DATA_PROVIDER bindings)
     aragonos.pushDAO(dao);
 
     const daoBindings = buildDAOBindings(dao);
@@ -164,10 +135,6 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
     const abiBindings = daoBindings.filter((b) => b.type === ABI);
 
     bindingsManager.setBindings(nonAbiBindings);
-    /**
-     * We could have multiple apps from the same repo version
-     * so try to set the ABI if doesn't exists
-     */
     bindingsManager.trySetBindings(abiBindings);
   };
 };
@@ -175,7 +142,7 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
 export default defineCommand<AragonOS>({
   name: "connect",
   args: [
-    { name: "daoName", type: "string" },
+    { name: "daoName", type: "dao" },
     { name: "block", type: "block" },
   ],
   async run(module, { daoName, block }, { interpreters }) {
@@ -203,147 +170,5 @@ export default defineCommand<AragonOS>({
     }
 
     return actions;
-  },
-  async runEagerExecution(
-    c,
-    cache,
-    { ipfsResolver, client },
-    caretPos,
-    closestCommandToCaret,
-  ) {
-    const daoNode = c.args[0];
-
-    if (
-      !daoNode ||
-      beforeOrEqualNode(daoNode, caretPos) ||
-      !isAddressNodishType(daoNode)
-    ) {
-      return;
-    }
-
-    const daoAddress = interpretNodeSync(daoNode, cache);
-
-    const daoNameOrAddress =
-      daoAddress && isAddress(daoAddress) ? daoAddress : daoNode.value;
-
-    const cachedDAOBinding = cache.getBinding(daoNameOrAddress, DATA_PROVIDER);
-
-    if (cachedDAOBinding) {
-      const cachedDAO = cachedDAOBinding.value;
-      if (!cachedDAO || !isAragonDAO(cachedDAO)) {
-        return;
-      }
-
-      const clonedDAO = cachedDAO.clone();
-      return (eagerBindingsManager) => {
-        const upperDAOBinding = eagerBindingsManager.getBinding(
-          "currentDAO",
-          DATA_PROVIDER,
-        );
-
-        eagerBindingsManager.enterScope(c.module);
-
-        // DATA_PROVIDER bindings for completions DAO tracking
-        const dpBindings: Binding[] = [
-          {
-            type: DATA_PROVIDER,
-            identifier: clonedDAO.name ?? clonedDAO.kernel.address,
-            value: clonedDAO,
-          },
-          {
-            type: DATA_PROVIDER,
-            identifier: "currentDAO",
-            value: clonedDAO,
-            parent: upperDAOBinding ?? undefined,
-          },
-        ];
-        eagerBindingsManager.setBindings(dpBindings);
-
-        const appBindings = buildDAOBindings(
-          clonedDAO,
-          !closestCommandToCaret,
-          true,
-        );
-        eagerBindingsManager.setBindings(
-          appBindings.filter((b) => b.type !== ABI),
-        );
-        eagerBindingsManager.trySetBindings(
-          appBindings.filter((b) => b.type === ABI),
-        );
-      };
-    }
-
-    const eagerCurrentDAO = cache.getBindingValue(
-      "currentDAO",
-      DATA_PROVIDER,
-    ) as AragonDAO | undefined;
-
-    const dao = await tryAndCacheNotFound(
-      () => {
-        const ensResolver = cache.getBindingValue(`aragonos:ensResolver`, USER);
-        if (ensResolver !== null && ensResolver && !isAddress(ensResolver)) {
-          throw new Error("");
-        }
-        return createDAO(
-          daoNameOrAddress,
-          eagerCurrentDAO,
-          client,
-          ipfsResolver,
-          ensResolver as Nullable<Address> | undefined,
-        );
-      },
-      daoNameOrAddress,
-      DATA_PROVIDER,
-      cache,
-    );
-
-    if (!dao) {
-      return;
-    }
-
-    const appBindings = buildDAOBindings(
-      dao,
-      !closestCommandToCaret,
-      true,
-    );
-    const abiBindings = appBindings.filter<AbiBinding>(
-      (binding): binding is AbiBinding => binding.type === ABI,
-    );
-
-    // Cache DAO and ABIs
-    cache.setBinding(daoNameOrAddress, dao.clone(), DATA_PROVIDER);
-    cache.trySetBindings(abiBindings);
-
-    return (eagerBindingsManager) => {
-      const upperDAOBinding = eagerBindingsManager.getBinding(
-        "currentDAO",
-        BindingsSpace.DATA_PROVIDER,
-      );
-
-      eagerBindingsManager.enterScope(c.module);
-
-      // DATA_PROVIDER bindings for completions DAO tracking
-      const dpBindings: Binding[] = [
-        {
-          type: DATA_PROVIDER,
-          identifier: dao.name ?? dao.kernel.address,
-          value: dao,
-        },
-        {
-          type: DATA_PROVIDER,
-          identifier: "currentDAO",
-          value: dao,
-          parent: upperDAOBinding ?? undefined,
-        },
-      ];
-      eagerBindingsManager.setBindings(dpBindings);
-
-      const nonAbiBindings = appBindings.filter((b) => b.type !== ABI);
-      eagerBindingsManager.setBindings(nonAbiBindings);
-      eagerBindingsManager.trySetBindings(abiBindings);
-    };
-  },
-  buildCompletionItemsForArg() {
-    return [];
   },
 });

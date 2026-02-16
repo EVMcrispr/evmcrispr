@@ -7,15 +7,12 @@ import {
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
-const { ABI, ADDR } = BindingsSpace;
+const { ABI } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "raw",
   args: [
-    {
-      name: "contractAddress",
-      type: "address",
-    },
+    { name: "contractAddress", type: "address" },
     { name: "data", type: "literal" },
     { name: "value", type: "number", optional: true },
   ],
@@ -60,7 +57,6 @@ export default defineCommand<Std>({
       rawAction.nonce = Number(opts.nonce);
     }
 
-    // Handle event captures: dispatch action, decode receipt logs, store variables
     const { actionCallback, interpretNode } = interpreters;
     if (node.eventCaptures && node.eventCaptures.length > 0) {
       if (!actionCallback) {
@@ -71,7 +67,6 @@ export default defineCommand<Std>({
 
       const receipt = await actionCallback(rawAction);
 
-      // Look up the contract ABI for name-only event captures
       const contractAbi = module.bindingsManager.getBindingValue(
         contractAddress,
         ABI,
@@ -85,21 +80,9 @@ export default defineCommand<Std>({
         interpretNode,
       );
 
-      return []; // action already dispatched
+      return [];
     }
 
     return [rawAction];
-  },
-  buildCompletionItemsForArg(argIndex, _, bindingsManager) {
-    switch (argIndex) {
-      case 0:
-      case 1:
-      case 2:
-        return bindingsManager.getAllBindingIdentifiers({
-          spaceFilters: [ADDR],
-        });
-      default:
-        return [];
-    }
   },
 });

@@ -8,6 +8,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "get",
+  returnType: "any",
   args: [
     { name: "address", type: "address" },
     { name: "abi", type: "string" },

@@ -5,6 +5,7 @@ import { resolveToken } from "./token";
 
 export default defineHelper<Std>({
   name: "token.amount",
+  returnType: "number",
   args: [
     { name: "tokenSymbolOrAddress", type: "string" },
     { name: "amount", type: "number" },

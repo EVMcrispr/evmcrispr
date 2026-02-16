@@ -13,10 +13,10 @@ const { USER } = BindingsSpace;
 export default defineCommand<Std>({
   name: "sign",
   args: [
-    { name: "variable", type: "any" },
-    { name: "message", type: "any", optional: true },
+    { name: "variable", type: "variable" },
+    { name: "message", type: "string", optional: true },
   ],
-  opts: [{ name: "typed", type: "any" }],
+  opts: [{ name: "typed", type: "string" }],
   async run(module, { message }, { opts, node, interpreters }) {
     const typedDataJSON = opts.typed;
     const [varNode] = node.args;

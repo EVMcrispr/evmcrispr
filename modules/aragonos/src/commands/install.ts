@@ -1,4 +1,4 @@
-import type { Address, BindingsManager, Nullable } from "@evmcrispr/sdk";
+import type { Address, BindingsManager } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
   defineCommand,
@@ -6,12 +6,9 @@ import {
   encodeAction,
   encodeCalldata,
   getOptValue,
-  inSameLineThanNode,
-  interpretNodeSync,
-  tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { getAbiItem, hexToString, namehash, toHex } from "viem";
+import { getAbiItem, hexToString, namehash } from "viem";
 import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
@@ -19,16 +16,14 @@ import type { App, AppArtifact } from "../types";
 import {
   buildAppArtifact,
   buildAppPermissions,
-  buildArtifactFromABI,
   fetchAppArtifact,
-  isLabeledAppIdentifier,
   parseLabeledAppIdentifier,
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
 import { DAO_OPT_NAME, getModuleDAOByOption } from "../utils/commands";
 
-const { ABI, ADDR } = BindingsSpace;
+const { ABI } = BindingsSpace;
 
 const fetchRepoData = async (
   appName: string,
@@ -104,14 +99,14 @@ export default defineCommand<AragonOS>({
     { name: DAO_OPT_NAME, type: "any" },
     { name: "version", type: "any" },
   ],
-  async run(module, { variable, identifier, params = [] }, { node, interpreters }) {
+  async run(
+    module,
+    { variable, identifier, params = [] },
+    { node, interpreters },
+  ) {
     const { interpretNode } = interpreters;
 
-    const dao = await getModuleDAOByOption(
-      node,
-      module,
-      interpretNode,
-    );
+    const dao = await getModuleDAOByOption(node, module, interpretNode);
 
     const version = await getOptValue(node, "version", interpretNode);
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
@@ -198,130 +193,5 @@ export default defineCommand<AragonOS>({
         [appId, codeAddress, encodedInitializeFunction, false],
       ),
     ];
-  },
-  buildCompletionItemsForArg(argIndex, _, bindingsManager) {
-    switch (argIndex) {
-      default: {
-        /**
-         * Only provide suggestions for the new app initialize function
-         * parameters
-         */
-        if (argIndex > 0) {
-          const identifiers = bindingsManager.getAllBindingIdentifiers({
-            spaceFilters: [ADDR],
-          });
-          return identifiers;
-        }
-
-        return [];
-      }
-    }
-  },
-  async runEagerExecution(c, cache, { client, ipfsResolver }, caretPos) {
-    if (inSameLineThanNode(c, caretPos)) {
-      return;
-    }
-    const repoNode = c.args[1];
-    if (!repoNode) {
-      return;
-    }
-
-    const labeledAppIdentifier = repoNode.value;
-
-    // Skip over if no valid labeled app identifer was provided
-    if (!isLabeledAppIdentifier(labeledAppIdentifier)) {
-      return;
-    }
-    const [appName, appRegistry] =
-      parseLabeledAppIdentifier(labeledAppIdentifier);
-    let artifact: AppArtifact,
-      proxyAddress: Nullable<Address> | undefined,
-      codeAddress: Nullable<Address> | undefined;
-
-    proxyAddress = cache.getMetadata(`install:proxy:${labeledAppIdentifier}`) as
-      | Address
-      | undefined;
-    if (proxyAddress) {
-      codeAddress = cache.getMetadata(`install:code:${proxyAddress}`) as
-        | Address
-        | undefined;
-    }
-
-    if (!codeAddress) {
-      const repoData = await tryAndCacheNotFound(
-        () => fetchRepoData(appName, appRegistry, "latest", client),
-        `${appName}.${appRegistry}`,
-        ADDR,
-        cache,
-      );
-
-      if (!repoData) {
-        return;
-      }
-
-      codeAddress = repoData.codeAddress;
-      // Check if there's already an ABI for this implementation
-      const abi = cache.getBindingValue(codeAddress, ABI);
-
-      if (!abi) {
-        const rawArtifact = await tryAndCacheNotFound(
-          () => fetchAppArtifact(ipfsResolver, repoData.contentUri),
-          codeAddress,
-          ABI,
-          cache,
-        );
-
-        if (!rawArtifact) {
-          return;
-        }
-
-        artifact = buildAppArtifact(rawArtifact);
-        // Create a random address for the proxy since it's executed in eager mode
-        // This is to avoid conflicts with the proxy address that might be set by
-        // the user
-        proxyAddress = toHex(crypto.getRandomValues(new Uint8Array(20)));
-        // Cache fetched ABI
-        cache.setBinding(codeAddress, artifact.abi, ABI);
-
-        /**
-         * Cache both mock proxy address and code address so we can
-         * retrieve the app's ABI on following executions
-         */
-        cache.setMetadata(`install:proxy:${labeledAppIdentifier}`, proxyAddress);
-        cache.setMetadata(`install:code:${proxyAddress}`, codeAddress);
-      } else {
-        artifact = buildArtifactFromABI(appName, appRegistry, abi);
-      }
-    } else {
-      const abi = cache.getBindingValue(codeAddress, ABI)!;
-      artifact = buildArtifactFromABI(appName, appRegistry, abi);
-    }
-
-    return (eagerBindingsManager) => {
-      const daoOpt = c.opts.find((opt) => opt.name === "dao");
-      const daoOptValue = daoOpt
-        ? interpretNodeSync(daoOpt, eagerBindingsManager)
-        : undefined;
-      const dao = eagerBindingsManager.getBindingValue(
-        daoOptValue ?? "currentDAO",
-        BindingsSpace.DATA_PROVIDER,
-      ) as AragonDAO | undefined;
-
-      if (!dao) {
-        return;
-      }
-
-      const app: App = {
-        abi: artifact.abi,
-        address: proxyAddress!,
-        codeAddress: codeAddress!,
-        contentUri: "",
-        name: labeledAppIdentifier,
-        permissions: buildAppPermissions(artifact.roles, []),
-        registryName: appRegistry,
-      };
-
-      setApp(dao, app, artifact, eagerBindingsManager);
-    };
   },
 });

@@ -1,4 +1,7 @@
 // Re-export chai for convenience
+
+// Re-export EVMcrispr from core
+export { EVMcrispr } from "@evmcrispr/core";
 export { expect } from "chai";
 // Anvil helpers
 export * from "./anvil";
@@ -10,5 +13,7 @@ export * from "./constants";
 export * from "./evml";
 // Expectation helpers
 export * from "./expects";
+// Module registration helper
+export { registerAllModules } from "./modules";
 // Std helpers
 export * from "./std";

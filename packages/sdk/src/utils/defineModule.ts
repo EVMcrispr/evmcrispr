@@ -7,7 +7,7 @@ import type {
   IModuleConstructor,
   ModuleContext,
 } from "../types";
-import type { CustomArgTypes } from "./schema";
+import type { ArgType, CustomArgTypes } from "./schema";
 
 /**
  * Create a module class with the given name, commands, and helpers.
@@ -16,12 +16,24 @@ function createModuleClass<M extends Module>(
   name: string,
   commands: Commands<M>,
   helpers: HelperFunctions<M>,
+  helperReturnTypes: Record<string, ArgType>,
+  helperHasArgs: Record<string, boolean>,
   types: CustomArgTypes = {},
   constants: Record<string, string> = {},
 ): IModuleConstructor {
   return class extends Module {
     constructor(context: ModuleContext, alias?: string) {
-      super(name, commands, helpers, constants, types, context, alias);
+      super(
+        name,
+        commands,
+        helpers,
+        helperReturnTypes,
+        helperHasArgs,
+        constants,
+        types,
+        context,
+        alias,
+      );
     }
   } as IModuleConstructor;
 }
@@ -55,17 +67,32 @@ export function defineModule(
 
   const helpers: HelperFunctions = helperImports
     ? Object.fromEntries(
-        Object.entries(helperImports).map(([k, load]) => [
+        Object.entries(helperImports).map(([k, entry]) => [
           k,
-          () => load().then((m) => m.default),
+          () => entry.load().then((m) => m.default),
         ]),
       )
     : {};
+
+  const helperReturnTypes: Record<string, ArgType> = {};
+  const helperHasArgs: Record<string, boolean> = {};
+  if (helperImports) {
+    for (const [k, entry] of Object.entries(helperImports)) {
+      if (entry.returnType) {
+        helperReturnTypes[k] = entry.returnType;
+      }
+      if (entry.hasArgs !== undefined) {
+        helperHasArgs[k] = entry.hasArgs;
+      }
+    }
+  }
 
   return createModuleClass(
     name,
     commands,
     helpers,
+    helperReturnTypes,
+    helperHasArgs,
     types ?? {},
     constants ?? {},
   );

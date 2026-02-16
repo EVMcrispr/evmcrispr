@@ -1,7 +1,6 @@
 import type { AstSymbol } from "jsymbol";
 
-import type { BindingsManager } from "../BindingsManager";
-import type { CustomArgTypes } from "../utils/schema";
+import type { ArgType, CustomArgTypes } from "../utils/schema";
 import type { Abi, Address } from ".";
 import type { Commands, HelperFunctions, IDataProvider } from "./modules";
 
@@ -31,6 +30,10 @@ export type NoNullableBinding<B extends Binding = Binding> = Omit<
 export type ModuleData = {
   commands: Commands<any>;
   helpers: HelperFunctions<any>;
+  /** Return type declared by each helper (keyed by helper name). */
+  helperReturnTypes?: Record<string, ArgType>;
+  /** Whether each helper accepts arguments (keyed by helper name). */
+  helperHasArgs?: Record<string, boolean>;
   types?: CustomArgTypes;
   /** When a module is loaded with `--as`, the alias is stored here. */
   alias?: string;
@@ -56,8 +59,6 @@ export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
   extends IBinding<T> {
   type: BindingsSpace.DATA_PROVIDER;
 }
-
-export type LazyBindings = (currentBindingsManager: BindingsManager) => void;
 
 export type Binding =
   | AddressBinding

@@ -38,12 +38,7 @@ const registerAragonId = async (
 
 export default defineCommand<AragonOS>({
   name: "new-dao",
-  args: [
-    {
-      name: "daoName",
-      type: "string",
-    },
-  ],
+  args: [{ name: "daoName", type: "string" }],
   async run(module, { daoName }) {
     const provider = await module.getClient();
 
@@ -94,11 +89,5 @@ export default defineCommand<AragonOS>({
       encodeAction(bareTemplateAddr!, "newInstance()", []),
       ...registerAragonIdActions,
     ];
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-  async runEagerExecution() {
-    return;
   },
 });

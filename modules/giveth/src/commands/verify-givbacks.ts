@@ -129,10 +129,4 @@ export default defineCommand<Giveth>({
 
     return [encodeAction(voting, "vote(uint256,bool)", [voteId, true])];
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
 });

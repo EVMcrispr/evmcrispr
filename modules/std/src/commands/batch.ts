@@ -21,12 +21,9 @@ export default defineCommand<Std>({
     // actionCallback is intentionally NOT forwarded here: nested commands
     // must only collect actions, not execute them. Event captures (-> ...)
     // are resolved on the batch itself once the combined transaction lands.
-    const blockActions = (await interpretNode(
-      block as BlockExpressionNode,
-      {
-        blockModule: module.contextualName,
-      },
-    )) as Action[];
+    const blockActions = (await interpretNode(block as BlockExpressionNode, {
+      blockModule: module.contextualName,
+    })) as Action[];
 
     if (blockActions.find((a) => !isTransactionAction(a))) {
       throw new ErrorException(

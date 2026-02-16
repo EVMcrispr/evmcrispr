@@ -28,10 +28,4 @@ export default defineCommand<Giveth>({
       ]),
     );
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
 });

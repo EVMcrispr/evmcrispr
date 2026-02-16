@@ -1,5 +1,5 @@
 import type { WalletAction } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, fieldItem } from "@evmcrispr/sdk";
 import * as chains from "viem/chains";
 import type Std from "..";
 
@@ -14,6 +14,9 @@ const nameToChainId = Object.entries(chains).reduce(
 export default defineCommand<Std>({
   name: "switch",
   args: [{ name: "networkNameOrId", type: "any" }],
+  completions: {
+    networkNameOrId: () => Object.keys(nameToChainId).map(fieldItem),
+  },
   async run(module, { networkNameOrId }): Promise<WalletAction[]> {
     let chainId: number;
     chainId = Number(networkNameOrId.toString());
@@ -39,13 +42,5 @@ export default defineCommand<Std>({
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       },
     ];
-  },
-  buildCompletionItemsForArg(argIndex) {
-    switch (argIndex) {
-      case 0:
-        return [...Object.keys(nameToChainId)];
-      default:
-        return [];
-    }
   },
 });

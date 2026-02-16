@@ -23,6 +23,20 @@ function getNames(dir: string): string[] {
     .sort();
 }
 
+interface HelperMeta {
+  returnType: string | null;
+  hasArgs: boolean;
+}
+
+function extractHelperMeta(dir: string, name: string): HelperMeta {
+  const filePath = join(dir, `${name}.ts`);
+  if (!existsSync(filePath)) return { returnType: null, hasArgs: false };
+  const content = readFileSync(filePath, "utf-8");
+  const rtMatch = content.match(/returnType:\s*["']([^"']+)["']/);
+  const hasArgs = !/args:\s*\[\s*\]/.test(content);
+  return { returnType: rtMatch?.[1] ?? null, hasArgs };
+}
+
 const commandNames = getNames(commandsDir);
 const helperNames = getNames(helpersDir);
 
@@ -57,7 +71,14 @@ lines.push("");
 if (helperNames.length > 0) {
   lines.push("export const helpers: HelperImportMap = {");
   for (const name of helperNames) {
-    lines.push(`  ${JSON.stringify(name)}: () => import("./helpers/${name}"),`);
+    const meta = extractHelperMeta(helpersDir, name);
+    const parts: string[] = [];
+    if (meta.returnType)
+      parts.push(`returnType: ${JSON.stringify(meta.returnType)}`);
+    parts.push(`hasArgs: ${meta.hasArgs}`);
+    lines.push(
+      `  ${JSON.stringify(name)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
+    );
   }
   lines.push("};");
 } else {

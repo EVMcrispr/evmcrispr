@@ -1,22 +1,18 @@
 import type { Action } from "@evmcrispr/sdk";
 import {
   AddressSet,
-  BindingsSpace,
   defineCommand,
   ErrorException,
   encodeAction,
+  fieldItem,
   interpretNodeSync,
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import type { CompletePermission, Params } from "../types";
-import { getAppRoles, getDAOAppIdentifiers, oracle } from "../utils";
-import {
-  getDAO,
-  isPermission,
-  resolvePermissionContext,
-} from "../utils/commands";
+import { getAppRoles } from "../utils";
+import { getDAO, resolvePermissionContext } from "../utils/commands";
 
 const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -27,14 +23,12 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
   const { name } = app;
   const actions: Action[] = [];
 
-  // If the permission already existed and no parameters are needed, just grant to a new entity and exit
   if (
     appPermission.manager &&
     appPermission.manager !== zeroAddress &&
     params.length === 0
   ) {
     if (appPermission.grantees.has(granteeAddress)) {
-      // TODO: get app identifier. Maybe set it on cache
       throw new ErrorException(
         `grantee already has given permission on app ${name}`,
       );
@@ -50,7 +44,6 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     ];
   }
 
-  // If the permission does not exist previously, create it
   if (!appPermission.manager || appPermission.manager === zeroAddress) {
     if (!permissionManager) {
       throw new ErrorException("required permission manager missing");
@@ -75,7 +68,6 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
     );
   }
 
-  // If we need to set up parameters we call the grantPermissionP function, even if we just created the permission
   if (params.length > 0) {
     if (appPermission.grantees.has(granteeAddress)) {
       throw new ErrorException(
@@ -105,18 +97,35 @@ export default defineCommand<AragonOS>({
     { name: "permissionManager", type: "app", optional: true },
   ],
   opts: [{ name: "oracle", type: "address" }],
+  completions: {
+    role: (ctx) => {
+      const grantee = interpretNodeSync(ctx.nodeArgs[0], ctx.bindings);
+      const app = interpretNodeSync(ctx.nodeArgs[1], ctx.bindings);
+      if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
+      const dao = getDAO(ctx.bindings, ctx.nodeArgs[1]);
+      return getAppRoles(ctx.bindings, app)
+        .filter((role) => !dao.hasPermission(grantee, app, role))
+        .map(fieldItem);
+    },
+  },
   async run(module, { grantee, app, role, permissionManager }, { opts }) {
     const oracleOpt = opts.oracle;
 
     let params: ReturnType<Params> = [];
 
     if (oracleOpt) {
+      const { oracle } = await import("../utils");
       params = oracle(oracleOpt)();
     }
 
-    const permission: CompletePermission = [grantee, app, role, permissionManager, params];
+    const permission: CompletePermission = [
+      grantee,
+      app,
+      role,
+      permissionManager,
+      params,
+    ];
 
-    // Find the DAO that owns the app by searching all connected DAOs
     const dao = isAddress(app)
       ? (module.connectedDAOs.find((d) => d.resolveApp(app)) ??
         module.currentDAO)
@@ -127,68 +136,5 @@ export default defineCommand<AragonOS>({
     }
 
     return _grant(dao, permission);
-  },
-  buildCompletionItemsForArg(argIndex, nodeArgs, bindingsManager) {
-    switch (argIndex) {
-      case 0:
-        return bindingsManager.getAllBindingIdentifiers({
-          spaceFilters: [BindingsSpace.ADDR],
-        });
-      case 1:
-        return getDAOAppIdentifiers(bindingsManager);
-      case 2: {
-        const appNode = nodeArgs[1];
-        const grantee = interpretNodeSync(nodeArgs[0], bindingsManager);
-        const dao = getDAO(bindingsManager, appNode);
-        const appAddress = interpretNodeSync(appNode, bindingsManager);
-
-        if (
-          !grantee ||
-          !isAddress(grantee) ||
-          !appAddress ||
-          !isAddress(appAddress)
-        ) {
-          return [];
-        }
-
-        // Get the available roles for the given grantee on the given app
-        return getAppRoles(bindingsManager, appAddress).filter(
-          (role) => !dao.hasPermission(grantee, appAddress, role),
-        );
-      }
-      case 3: {
-        const appNode = nodeArgs[1];
-        const dao = getDAO(bindingsManager, appNode);
-        const appAddress = interpretNodeSync(appNode, bindingsManager);
-        const role = interpretNodeSync(nodeArgs[2], bindingsManager);
-
-        if (
-          !appAddress ||
-          !role ||
-          dao.hasPermissionManager(appAddress, role)
-        ) {
-          return [];
-        }
-
-        return bindingsManager.getAllBindingIdentifiers({
-          spaceFilters: [BindingsSpace.ADDR],
-        });
-      }
-    }
-    return [];
-  },
-  async runEagerExecution(c) {
-    return (eagerBindingsManager) => {
-      const dao = getDAO(eagerBindingsManager, c.args[1]);
-      const argValues = c.args.map((arg) =>
-        interpretNodeSync(arg, eagerBindingsManager),
-      );
-
-      if (!isPermission(argValues)) {
-        return;
-      }
-
-      _grant(dao, argValues);
-    };
   },
 });

@@ -27,7 +27,7 @@ export default defineCommand<Sim>({
     { name: "tenderly", type: "any" },
     { name: "using", type: "any" },
   ],
-  async run(module, { block }, { opts, node, interpreters }) {
+  async run(module, { block }, { opts, interpreters }) {
     console.log("fork commsand haha");
     const { interpretNode } = interpreters;
     const blockExpressionNode = block as BlockExpressionNode;

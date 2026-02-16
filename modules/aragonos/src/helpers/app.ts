@@ -4,6 +4,7 @@ import { parsePrefixedDAOIdentifier } from "../utils";
 
 export default defineHelper<AragonOS>({
   name: "app",
+  returnType: "address",
   args: [{ name: "appIdentifier", type: "string" }],
   async run(module, { appIdentifier }) {
     const [daoPrefix, rest] = parsePrefixedDAOIdentifier(appIdentifier);

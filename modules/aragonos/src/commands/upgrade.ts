@@ -9,11 +9,7 @@ import {
 } from "viem";
 import type AragonOS from "..";
 import { _aragonEns } from "../helpers/aragonEns";
-import {
-  getDAOAppIdentifiers,
-  REPO_ABI,
-  SEMANTIC_VERSION_REGEX,
-} from "../utils";
+import { REPO_ABI, SEMANTIC_VERSION_REGEX } from "../utils";
 import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
@@ -27,7 +23,6 @@ export default defineCommand<AragonOS>({
 
     let newAppAddress = rawNewAppAddress;
 
-    // Check for dao-prefixed identifiers and resolve the target DAO
     const parserRes = parseDaoPrefixedIdentifier(rawApmRepo);
     let dao;
     if (parserRes?.[0]) {
@@ -105,16 +100,5 @@ export default defineCommand<AragonOS>({
         newAppAddress,
       ]),
     ];
-  },
-  buildCompletionItemsForArg(argIndex, _, bindingsManager) {
-    switch (argIndex) {
-      case 0:
-        return getDAOAppIdentifiers(bindingsManager);
-      default:
-        return [];
-    }
-  },
-  async runEagerExecution() {
-    return;
   },
 });

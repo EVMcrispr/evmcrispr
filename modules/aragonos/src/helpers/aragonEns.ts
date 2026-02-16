@@ -18,6 +18,7 @@ export const _aragonEns = async (
 
 export default defineHelper<AragonOS>({
   name: "aragonEns",
+  returnType: "address",
   args: [
     { name: "ensName", type: "string" },
     { name: "extra", type: "any", optional: true },

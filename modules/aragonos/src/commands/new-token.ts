@@ -22,7 +22,6 @@ export default defineCommand<AragonOS>({
     module,
     { variable, name, symbol, controller, decimals = 18, transferable = true },
   ) {
-
     const chainId = await module.getChainId();
 
     if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
@@ -59,11 +58,5 @@ export default defineCommand<AragonOS>({
       ),
       encodeAction(newTokenAddress, "changeController(address)", [controller]),
     ];
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
-  async runEagerExecution() {
-    return;
   },
 });

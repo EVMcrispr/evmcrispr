@@ -7,6 +7,7 @@ import type AragonOS from "..";
 
 export default defineHelper<AragonOS>({
   name: "nextApp",
+  returnType: "address",
   args: [{ name: "offset", type: "number", optional: true }],
   async run(module, { offset = 0 }) {
     const dao = module.currentDAO;

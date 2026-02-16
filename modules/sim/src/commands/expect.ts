@@ -2,7 +2,9 @@ import {
   BindingsSpace,
   defineCommand,
   ErrorException,
+  fieldItem,
   isNumberish,
+  variableItem,
 } from "@evmcrispr/sdk";
 import type Sim from "..";
 
@@ -34,6 +36,17 @@ export default defineCommand<Sim>({
     { name: "operator", type: "string" },
     { name: "expectedValue", type: "any" },
   ],
+  completions: {
+    value: (ctx) =>
+      ctx.bindings
+        .getAllBindingIdentifiers({ spaceFilters: [USER] })
+        .map(variableItem),
+    operator: () => ["==", "!=", "<", "<=", ">", ">="].map(fieldItem),
+    expectedValue: (ctx) =>
+      ctx.bindings
+        .getAllBindingIdentifiers({ spaceFilters: [USER] })
+        .map(variableItem),
+  },
   async run(module, { value, operator, expectedValue }, { node }) {
     const [valueNode, , expectedValueNode] = node.args;
 
@@ -78,17 +91,5 @@ export default defineCommand<Sim>({
       throw new ErrorException("An assertion failed.");
     }
     return [];
-  },
-  buildCompletionItemsForArg(argIndex, _, cache) {
-    switch (argIndex) {
-      case 0:
-        return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
-      case 1:
-        return ["==", "!=", "<", "<=", ">", ">="];
-      case 2:
-        return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
-      default:
-        return [];
-    }
   },
 });

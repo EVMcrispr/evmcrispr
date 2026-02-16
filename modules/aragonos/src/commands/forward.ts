@@ -6,7 +6,6 @@ import type {
 import { commaListItems, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
-import { getDAOAppIdentifiers } from "../utils";
 import {
   assertAllTransactionActions,
   batchForwarderActions,
@@ -41,12 +40,9 @@ export default defineCommand<AragonOS>({
       );
     }
 
-    const blockActions = (await interpretNode(
-      block as BlockExpressionNode,
-      {
-        blockModule: module.contextualName,
-      },
-    )) as Action[];
+    const blockActions = (await interpretNode(block as BlockExpressionNode, {
+      blockModule: module.contextualName,
+    })) as Action[];
 
     assertAllTransactionActions(blockActions, "forward");
 
@@ -57,11 +53,5 @@ export default defineCommand<AragonOS>({
       opts.context,
       opts["check-forwarder"],
     );
-  },
-  buildCompletionItemsForArg(_, __, bindingsManager) {
-    return getDAOAppIdentifiers(bindingsManager);
-  },
-  async runEagerExecution() {
-    return;
   },
 });

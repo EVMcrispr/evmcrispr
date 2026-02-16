@@ -37,10 +37,4 @@ export default defineCommand<Ens>({
       },
     ];
   },
-  async runEagerExecution() {
-    return;
-  },
-  buildCompletionItemsForArg() {
-    return [];
-  },
 });

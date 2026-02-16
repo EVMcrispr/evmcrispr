@@ -3,6 +3,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "nextContract",
+  returnType: "address",
   args: [
     { name: "creator", type: "address" },
     { name: "offset", type: "number", optional: true },

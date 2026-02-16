@@ -5,6 +5,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "namehash",
+  returnType: "bytes32",
   args: [{ name: "name", type: "string" }],
   async run(_, { name }) {
     try {

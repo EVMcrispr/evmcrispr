@@ -4,6 +4,7 @@ import type Ens from "..";
 
 export default defineHelper<Ens>({
   name: "contenthash",
+  returnType: "bytes32",
   args: [{ name: "input", type: "string" }],
   async run(_, { input }) {
     const [codec, hash] = input.split(":");

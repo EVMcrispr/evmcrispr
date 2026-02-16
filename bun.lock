@@ -80,12 +80,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:*",
-        "arcsecond": "^5.0.0",
-        "lodash.clonedeep": "^4.5.0",
       },
       "devDependencies": {
         "@evmcrispr/test-utils": "workspace:*",
-        "@types/lodash.clonedeep": "^4.5.9",
         "is-ipfs": "^8.0.4",
       },
       "peerDependencies": {
@@ -98,6 +95,9 @@
       "dependencies": {
         "@ensdomains/content-hash": "^3.0.0",
         "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
         "viem": "^2.29.4",
@@ -122,6 +122,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
         "viem": "^2.29.4",
@@ -190,10 +193,18 @@
       },
       "peerDependencies": {
         "@evmcrispr/core": "workspace:*",
+        "@evmcrispr/module-aragonos": "workspace:*",
+        "@evmcrispr/module-ens": "workspace:*",
+        "@evmcrispr/module-giveth": "workspace:*",
+        "@evmcrispr/module-sim": "workspace:*",
         "@evmcrispr/sdk": "workspace:*",
       },
       "optionalPeers": [
         "@evmcrispr/core",
+        "@evmcrispr/module-aragonos",
+        "@evmcrispr/module-ens",
+        "@evmcrispr/module-giveth",
+        "@evmcrispr/module-sim",
         "@evmcrispr/sdk",
       ],
     },
@@ -1582,8 +1593,6 @@
     "locate-path": ["locate-path@5.0.0", "", { "dependencies": { "p-locate": "^4.1.0" } }, "sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g=="],
 
     "lodash": ["lodash@4.17.21", "", {}, "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="],
-
-    "lodash.clonedeep": ["lodash.clonedeep@4.5.0", "", {}, "sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ=="],
 
     "lodash.flattendeep": ["lodash.flattendeep@4.4.0", "", {}, "sha512-uHaJFihxmJcEX3kT4I23ABqKKalJ/zDrDg0lsFtc1h+3uw49SIJ5beyhx5ExVRti3AvKoOJngIj7xz3oylPdWQ=="],
 

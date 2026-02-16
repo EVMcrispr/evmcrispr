@@ -3,7 +3,7 @@ import {
   BindingsSpace,
   defineCommand,
   ErrorException,
-  NodeType,
+  fieldItem,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
@@ -17,6 +17,9 @@ export default defineCommand<Std>({
     { name: "array", type: "any" },
     { name: "block", type: "block" },
   ],
+  completions: {
+    connector: () => [fieldItem("of")],
+  },
   async run(module, { variable, connector, array, block }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;
 
@@ -47,30 +50,5 @@ export default defineCommand<Std>({
     }
     module.bindingsManager.exitScope();
     return actions;
-  },
-  async runEagerExecution(c, cache) {
-    const [varNameNode] = c.args;
-
-    if (varNameNode && varNameNode.type === NodeType.VariableIdentifier) {
-      const varName = varNameNode.value;
-
-      cache.setBinding(varName, "array-element", USER, false, undefined, true);
-
-      return (eagerBindingsManager) =>
-        eagerBindingsManager.setBinding(varName, "array-element", USER);
-    }
-  },
-  buildCompletionItemsForArg(argIndex, _, cache) {
-    switch (argIndex) {
-      case 0:
-        return [];
-      case 1:
-        return ["of"];
-      case 2: {
-        return cache.getAllBindingIdentifiers({ spaceFilters: [USER] });
-      }
-      default:
-        return [];
-    }
   },
 });

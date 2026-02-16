@@ -2,14 +2,10 @@ import type { Address, PublicClient } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
+import type { ArgDef, ArgType, OptDef } from "../utils/schema";
 import type { Action } from "./actions";
-import type {
-  CommandExpressionNode,
-  HelperFunctionNode,
-  Node,
-  Position,
-} from "./ast";
-import type { LazyBindings } from "./bindings";
+import type { CommandExpressionNode, HelperFunctionNode, Node } from "./ast";
+import type { CompletionOverrides } from "./completions";
 
 /**
  * Narrow context object passed to every module instead of the full EVMcrispr
@@ -91,20 +87,11 @@ export type HelperFunctions<T extends Module = Module> = Record<
 >;
 
 export interface ICommand<M extends Module = Module> {
-  buildCompletionItemsForArg(
-    argIndex: number,
-    nodeArgs: Node[],
-    bindingsManager: BindingsManager,
-    caretPos: Position,
-  ): string[];
   run: CommandFunction<M>;
-  runEagerExecution(
-    c: CommandExpressionNode,
-    cache: BindingsManager,
-    fetchers: { ipfsResolver: IPFSResolver; client: PublicClient },
-    caretPos: Position,
-    closestCommandToCaret: boolean,
-  ): Promise<LazyBindings | void>;
+  argDefs: ArgDef[];
+  optDefs: OptDef[];
+  /** Override type-driven completions for specific args or opts by name. */
+  completions?: CompletionOverrides;
 }
 
 /** Lazy loader: () => Promise<ICommand>. Resolved on first use. */
@@ -146,11 +133,15 @@ export type CommandImportMap = Record<
   () => Promise<{ default: ICommand<any> }>
 >;
 
-/** Map of name -> lazy dynamic import that yields a HelperFunction as default export. */
-export type HelperImportMap = Record<
-  string,
-  () => Promise<{ default: HelperFunction<any> }>
->;
+/** Entry in a helper import map: lazy loader + optional metadata. */
+export type HelperImportEntry = {
+  load: () => Promise<{ default: HelperFunction<any> }>;
+  returnType?: ArgType;
+  hasArgs?: boolean;
+};
+
+/** Map of name -> helper import entry (loader + return type). */
+export type HelperImportMap = Record<string, HelperImportEntry>;
 
 export interface ModuleExports<T extends Module = Module> {
   default: IModuleConstructor;

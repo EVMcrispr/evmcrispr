@@ -6,9 +6,9 @@ import {
   ErrorNotFound,
 } from "@evmcrispr/sdk";
 import { getContractAddress } from "viem";
-import { types } from "./argTypes";
 import { commands, helpers } from "./_generated";
 import type { AragonDAO } from "./AragonDAO";
+import { types } from "./argTypes";
 import { buildNonceForAddress } from "./utils";
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from "./utils/acl";
 

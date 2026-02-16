@@ -4,6 +4,7 @@ import type {
   Action,
   BlockExpressionNode,
   CommandExpressionNode,
+  CompletionOverrides,
   ICommand,
   NodesInterpreters,
 } from "../types";
@@ -14,12 +15,7 @@ import {
   checkOpts,
   getOptValue,
 } from "./args";
-import {
-  type ArgDef,
-  defaultCompletionsFromSchema,
-  type OptDef,
-  validateArgType,
-} from "./schema";
+import { type ArgDef, type OptDef, validateArgType } from "./schema";
 
 export interface CommandContext {
   opts: Record<string, any>;
@@ -36,8 +32,9 @@ export interface CommandConfig<M extends Module> {
     args: Record<string, any>,
     context: CommandContext,
   ): Promise<Action[] | void>;
-  buildCompletionItemsForArg?: ICommand<M>["buildCompletionItemsForArg"];
-  runEagerExecution?: ICommand<M>["runEagerExecution"];
+  /** Override type-driven completions for specific args or opts by name.
+   *  Keys are matched against arg names first, then opt names. */
+  completions?: CompletionOverrides;
 }
 
 export function defineCommand<M extends Module>(
@@ -166,10 +163,8 @@ export function defineCommand<M extends Module>(
       });
     },
 
-    buildCompletionItemsForArg:
-      config.buildCompletionItemsForArg ??
-      defaultCompletionsFromSchema(argDefs),
-
-    runEagerExecution: config.runEagerExecution ?? (async () => undefined),
+    argDefs,
+    optDefs,
+    completions: config.completions,
   };
 }

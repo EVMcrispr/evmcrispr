@@ -5,6 +5,7 @@ const IPFS_VAR_NAME = "ipfs.jwt";
 
 export default defineHelper<Std>({
   name: "ipfs",
+  returnType: "string",
   args: [
     {
       name: "text",

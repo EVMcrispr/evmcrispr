@@ -7,7 +7,7 @@ import type {
 } from "../types";
 import { NodeType } from "../types";
 import { ComparisonType, checkArgsLength } from "./args";
-import { type ArgDef, validateArgType } from "./schema";
+import { type ArgDef, type ArgType, validateArgType } from "./schema";
 
 export interface HelperContext {
   node: HelperFunctionNode;
@@ -16,6 +16,7 @@ export interface HelperContext {
 
 export interface HelperConfig<M extends Module> {
   name: string;
+  returnType?: ArgType;
   args: ArgDef[];
   run(
     module: M,
