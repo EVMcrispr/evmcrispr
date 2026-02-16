@@ -6,7 +6,6 @@ import type {
   Binding,
   IPFSResolver,
   Nullable,
-  TransactionAction,
 } from "@evmcrispr/sdk";
 import {
   addressesEqual,
@@ -17,7 +16,6 @@ import {
   ErrorNotFound,
   interpretNodeSync,
   isAddressNodishType,
-  NodeType,
   tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -29,13 +27,8 @@ import type { App, AppIdentifier } from "../types";
 import {
   createDaoPrefixedIdentifier,
   formatAppIdentifier,
-  getDAOAppIdentifiers,
   INITIAL_APP_INDEX,
 } from "../utils";
-import {
-  assertAllTransactionActions,
-  batchForwarderActions,
-} from "../utils/forwarders";
 
 // DATA_PROVIDER is still used by the eager execution / completions path,
 // which relies on scope-aware bindings for nested DAO tracking.
@@ -183,11 +176,9 @@ export default defineCommand<AragonOS>({
   name: "connect",
   args: [
     { name: "daoName", type: "string" },
-    { name: "forwarders", type: "string", rest: true },
     { name: "block", type: "block" },
   ],
-  opts: [{ name: "context", type: "any" }],
-  async run(module, { daoName, forwarders = [], block }, { opts, interpreters }) {
+  async run(module, { daoName, block }, { interpreters }) {
     const { interpretNode } = interpreters;
 
     const dao = await createDAO(
@@ -211,43 +202,7 @@ export default defineCommand<AragonOS>({
       module.popDAO();
     }
 
-    assertAllTransactionActions(actions, "connect");
-
-    const invalidApps: any[] = [];
-    const forwarderAppAddresses: Address[] = [];
-
-    (forwarders as string[]).forEach((appOrAddress: string) => {
-      const appAddress = isAddress(appOrAddress)
-        ? appOrAddress
-        : dao.resolveApp(appOrAddress)?.address;
-
-      if (!appAddress) {
-        throw new ErrorException(
-          `${appOrAddress} is not a DAO's forwarder app`,
-        );
-      }
-
-      if (!isAddress(appAddress)) {
-        invalidApps.push(appOrAddress);
-      } else {
-        forwarderAppAddresses.push(appAddress);
-      }
-    });
-
-    if (invalidApps.length) {
-      throw new ErrorException(
-        `invalid forwarder addresses found for the following: ${invalidApps.join(
-          ", ",
-        )}`,
-      );
-    }
-
-    return batchForwarderActions(
-      module,
-      actions as TransactionAction[],
-      forwarderAppAddresses.reverse(),
-      opts.context,
-    );
+    return actions;
   },
   async runEagerExecution(
     c,
@@ -388,11 +343,7 @@ export default defineCommand<AragonOS>({
       eagerBindingsManager.trySetBindings(abiBindings);
     };
   },
-  buildCompletionItemsForArg(argIndex, _, bindingsManager) {
-    if (argIndex > 0) {
-      return getDAOAppIdentifiers(bindingsManager);
-    }
-
+  buildCompletionItemsForArg() {
     return [];
   },
 });

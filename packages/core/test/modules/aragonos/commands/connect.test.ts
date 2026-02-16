@@ -6,9 +6,7 @@ import type AragonOS from "@evmcrispr/module-aragonos";
 import { MINIME_TOKEN_FACTORIES } from "@evmcrispr/module-aragonos/utils";
 import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
 import {
-  buildArgsLengthErrorMsg,
   CommandError,
-  ComparisonType,
   encodeAction,
   encodeCalldata,
   toDecimals,
@@ -47,7 +45,7 @@ import {
 
 const DAOs = [DAO, DAO2, DAO3];
 
-describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <commandsBlock> [--context <contextInfo>]", () => {
+describe("AragonOS > commands > connect <daoNameOrAddress> <commandsBlock>", () => {
   let client: PublicClient;
 
   let createAragonScriptInterpreter: ReturnType<
@@ -63,18 +61,20 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     );
   });
 
-  it("should return the correct actions when defining a complete forwarding path compose of a fee, normal and context forwarder", async () => {
+  it("should return the correct actions when defining a complete forwarding path via forward command", async () => {
     const interpreter = createInterpreter(
       `
         load aragonos --as ar
 
-        ar:connect ${DAO3.kernel} ${COMPLETE_FORWARDER_PATH.join(" ")} (
-          grant @me agent TRANSFER_ROLE
-          grant dandelion-voting.1hive token-manager ISSUE_ROLE dandelion-voting.1hive
-          revoke dandelion-voting.1hive tollgate.1hive CHANGE_AMOUNT_ROLE true
-          new-token "Other Token" OT token-manager:new
-          install token-manager:new token:OT true 0
-          act agent agent:1 "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
+        ar:connect ${DAO3.kernel} (
+          forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (
+            grant @me agent TRANSFER_ROLE
+            grant dandelion-voting.1hive token-manager ISSUE_ROLE dandelion-voting.1hive
+            revoke dandelion-voting.1hive tollgate.1hive CHANGE_AMOUNT_ROLE true
+            new-token "Other Token" OT token-manager:new
+            install token-manager:new token:OT true 0
+            act agent agent:1 "transfer(address,address,uint256)" @token(DAI) @me 10.50e18
+          )
         )
       `,
       client,
@@ -282,23 +282,6 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
     });
   });
 
-  it("should fail when forwarding a set of actions through a context forwarder without defining a context", async () => {
-    const interpreter = createInterpreter(
-      `
-      load aragonos --as ar
-
-      ar:connect ${DAO2.kernel} disputable-voting.open (
-        grant kernel acl CREATE_PERMISSIONS_ROLE
-      )
-    `,
-      client,
-    );
-    const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
-    const error = new CommandError(c, `context option missing`);
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
   it("should fail when not passing a commands block", async () => {
     const interpreter = createInterpreter(
       `
@@ -308,13 +291,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
-    const error = new CommandError(
-      c,
-      buildArgsLengthErrorMsg(1, {
-        type: ComparisonType.Greater,
-        minValue: 2,
-      }),
-    );
+    const error = new CommandError(c, "<block> must be a block expression");
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
