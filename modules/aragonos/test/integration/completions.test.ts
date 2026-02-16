@@ -75,8 +75,14 @@ describe("Completions – aragonos commands", () => {
   // -------------------------------------------------------------------------
 
   describe("new-dao", () => {
-    it("new-dao <cursor> should show string-compatible items", async () => {
+    it("new-dao <cursor> should return empty (variable type)", async () => {
       const { script, line } = inConnect("new-dao ");
+      const items = await evm.getCompletions(script, pos(script, line));
+      expect(items).to.have.lengthOf(0);
+    });
+
+    it("new-dao $dao <cursor> should show string-compatible items for daoName", async () => {
+      const { script, line } = inConnect("new-dao $dao ");
       const items = await evm.getCompletions(script, pos(script, line));
       // "string" type accepts all helpers
       expect(hasLabel(items, "@me")).to.be.true;

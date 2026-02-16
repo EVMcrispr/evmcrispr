@@ -61,7 +61,7 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
     expect(
       addressesEqual(
         aragonos.bindingsManager.getBindingValue(
-          "dao",
+          "$dao",
           BindingsSpace.USER,
         )!,
         newDAOAddress,
