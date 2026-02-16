@@ -329,6 +329,53 @@ describe("Completions – aragonos commands", () => {
   });
 
   // -------------------------------------------------------------------------
+  // exec (ABI-based signature completions via chainId:addr binding)
+  // -------------------------------------------------------------------------
+
+  describe("exec / act (ABI binding lookup via chainId:addr)", () => {
+    it("std:exec <known-app-address> <cursor> should show ABI function signatures", async () => {
+      // Use a known DAO app address; the dao type resolver populates ABI
+      // bindings keyed by chainId:address.
+      const { script, line } = inConnect(`std:exec ${DAO.acl} `);
+      const items = await evm.getCompletions(script, pos(script, line));
+      const fieldItems = onlyKind(items, "field");
+      expect(fieldItems.length).to.be.greaterThan(0);
+      for (const item of fieldItems) {
+        expect(item.kind).to.equal("field");
+      }
+    });
+
+    it("std:exec <known-app-address> <cursor> should include recognized ACL functions", async () => {
+      const { script, line } = inConnect(`std:exec ${DAO.acl} `);
+      const items = await evm.getCompletions(script, pos(script, line));
+      const fieldItems = onlyKind(items, "field");
+      const fnLabels = labels(fieldItems);
+      expect(fnLabels.some((l) => l.startsWith("createPermission"))).to.be
+        .true;
+      expect(fnLabels.some((l) => l.startsWith("grantPermission"))).to.be.true;
+    });
+
+    it("std:exec $unknownVar <cursor> should return empty (unresolvable target)", async () => {
+      const { script, line } = inConnect("std:exec $unknownVar ");
+      const items = await evm.getCompletions(script, pos(script, line));
+      expect(items).to.be.an("array");
+      expect(onlyKind(items, "field")).to.have.lengthOf(0);
+    });
+
+    it("act <agent> <known-app-address> <cursor> should show ABI function signatures", async () => {
+      const { script, line } = inConnect(
+        `act ${DAO.agent} ${DAO.acl} `,
+      );
+      const items = await evm.getCompletions(script, pos(script, line));
+      const fieldItems = onlyKind(items, "field");
+      expect(fieldItems.length).to.be.greaterThan(0);
+      expect(
+        labels(fieldItems).some((l) => l.startsWith("createPermission")),
+      ).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // forward
   // -------------------------------------------------------------------------
 

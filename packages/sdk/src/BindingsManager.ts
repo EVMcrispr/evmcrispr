@@ -196,4 +196,20 @@ export class BindingsManager {
   hasBinding(name: string, memSpace: BindingsSpace): boolean {
     return !!this.#getBinding(name, memSpace);
   }
+
+  /** Remove all bindings belonging to the given space (across all scopes). */
+  clearSpace(space: BindingsSpace): void {
+    let scope: SymbolTable<Binding> | undefined = this.#bindings;
+    while (scope) {
+      for (const [identifier, bindings] of scope.symbols) {
+        const remaining = bindings.filter((b) => b.type !== space);
+        if (remaining.length === 0) {
+          scope.symbols.delete(identifier);
+        } else if (remaining.length !== bindings.length) {
+          scope.symbols.set(identifier, remaining);
+        }
+      }
+      scope = scope.parent;
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import type { BindingsManager } from "@evmcrispr/sdk";
-import { BindingsSpace } from "@evmcrispr/sdk";
+import { abiBindingKey, BindingsSpace } from "@evmcrispr/sdk";
 import type { AragonDAO } from "../AragonDAO";
 import type { AppIdentifier } from "../types";
 import { extractRoleNames } from "./apps";
@@ -101,6 +101,7 @@ export const getDAOAppIdentifiers = (
 export const getAppRoles = (
   bindingsManager: BindingsManager,
   appAddressOrIdentifier: AppIdentifier,
+  chainId: number,
 ): string[] => {
   const daos = getDAOs(bindingsManager);
 
@@ -108,7 +109,10 @@ export const getAppRoles = (
     .find((dao) => dao.resolveApp(appAddressOrIdentifier))
     ?.resolveApp(appAddressOrIdentifier)?.codeAddress;
   const appAbi = appCodeAddress
-    ? bindingsManager.getBindingValue(appCodeAddress, BindingsSpace.ABI)
+    ? bindingsManager.getBindingValue(
+        abiBindingKey(chainId, appCodeAddress),
+        BindingsSpace.ABI,
+      )
     : undefined;
 
   if (!appAbi || !appCodeAddress) {

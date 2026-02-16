@@ -146,7 +146,7 @@ export default defineCommand<AragonOS>({
       ) {
         return [];
       }
-      return getAppRoles(ctx.bindings, appAddress)
+      return getAppRoles(ctx.bindings, appAddress, ctx.chainId)
         .filter((role) => dao.hasPermission(revokeeAddress, appAddress, role))
         .map(fieldItem);
     },

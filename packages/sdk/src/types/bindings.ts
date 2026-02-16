@@ -8,6 +8,7 @@ export enum BindingsSpace {
   USER = "USER",
   ABI = "ABI",
   MODULE = "MODULE",
+  CACHE = "CACHE",
 }
 
 export type Nullable<T> = T | null;
@@ -49,7 +50,11 @@ export interface UserBinding extends IBinding<string> {
   type: BindingsSpace.USER;
 }
 
-export type Binding = AbiBinding | ModuleBinding | UserBinding;
+export interface CacheBinding extends IBinding<string> {
+  type: BindingsSpace.CACHE;
+}
+
+export type Binding = AbiBinding | ModuleBinding | UserBinding | CacheBinding;
 
 export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
   value: null | B["value"];
@@ -62,7 +67,9 @@ export type RelativeBinding<B extends BindingsSpace> =
       ? ModuleBinding
       : B extends BindingsSpace.USER
         ? UserBinding
-        : unknown;
+        : B extends BindingsSpace.CACHE
+          ? CacheBinding
+          : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
@@ -71,4 +78,6 @@ export type RelativeNullableBinding<B extends BindingsSpace> =
       ? NullableBinding<ModuleBinding>
       : B extends BindingsSpace.USER
         ? NullableBinding<UserBinding>
-        : any;
+        : B extends BindingsSpace.CACHE
+          ? NullableBinding<CacheBinding>
+          : any;

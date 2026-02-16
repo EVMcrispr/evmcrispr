@@ -6,6 +6,7 @@ import type {
   Nullable,
 } from "@evmcrispr/sdk";
 import {
+  abiBindingKey,
   addressesEqual,
   BindingsSpace,
   defineCommand,
@@ -63,23 +64,27 @@ const createDAO = async (
   );
 };
 
-const buildAbiBindings = (dao: AragonDAO): Binding[] => {
+const buildAbiBindings = (dao: AragonDAO, chainId: number): Binding[] => {
   const bindings: Binding[] = [];
   const seen = new Set<string>();
 
   dao.appCache.forEach((app) => {
-    if (!seen.has(app.address)) {
-      seen.add(app.address);
-      bindings.push({ type: ABI, identifier: app.address, value: app.abi });
+    const addrKey = abiBindingKey(chainId, app.address);
+    if (!seen.has(addrKey)) {
+      seen.add(addrKey);
+      bindings.push({ type: ABI, identifier: addrKey, value: app.abi });
     }
 
-    if (app.codeAddress && !seen.has(app.codeAddress)) {
-      seen.add(app.codeAddress);
-      bindings.push({
-        type: ABI,
-        identifier: app.codeAddress,
-        value: app.abi,
-      });
+    if (app.codeAddress) {
+      const codeKey = abiBindingKey(chainId, app.codeAddress);
+      if (!seen.has(codeKey)) {
+        seen.add(codeKey);
+        bindings.push({
+          type: ABI,
+          identifier: codeKey,
+          value: app.abi,
+        });
+      }
     }
   });
 
@@ -89,7 +94,8 @@ const buildAbiBindings = (dao: AragonDAO): Binding[] => {
 const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
     aragonos.pushDAO(dao);
-    aragonos.bindingsManager.trySetBindings(buildAbiBindings(dao));
+    const chainId = await aragonos.getChainId();
+    aragonos.bindingsManager.trySetBindings(buildAbiBindings(dao, chainId));
   };
 };
 

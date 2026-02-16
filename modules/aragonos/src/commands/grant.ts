@@ -103,7 +103,7 @@ export default defineCommand<AragonOS>({
       const app = interpretNodeSync(ctx.nodeArgs[1], ctx.bindings);
       if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
       const dao = getDAO(ctx.bindings, ctx.nodeArgs[1]);
-      return getAppRoles(ctx.bindings, app)
+      return getAppRoles(ctx.bindings, app, ctx.chainId)
         .filter((role) => !dao.hasPermission(grantee, app, role))
         .map(fieldItem);
     },

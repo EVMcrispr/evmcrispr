@@ -1,5 +1,6 @@
 import type { Address, BindingsManager } from "@evmcrispr/sdk";
 import {
+  abiBindingKey,
   BindingsSpace,
   defineCommand,
   ErrorException,
@@ -73,19 +74,27 @@ const setApp = (
   app: App,
   artifact: AppArtifact,
   bindingsManager: BindingsManager,
+  chainId: number,
 ): void => {
   dao.appArtifactCache.set(app.codeAddress, artifact);
   dao.appCache.set(app.name, app);
 
   bindingsManager.setBinding(
-    app.codeAddress,
+    abiBindingKey(chainId, app.codeAddress),
     app.abi,
     ABI,
     false,
     undefined,
     true,
   );
-  bindingsManager.setBinding(app.address, app.abi, ABI, false, undefined, true);
+  bindingsManager.setBinding(
+    abiBindingKey(chainId, app.address),
+    app.abi,
+    ABI,
+    false,
+    undefined,
+    true,
+  );
 };
 
 export default defineCommand<AragonOS>({
@@ -171,6 +180,7 @@ export default defineCommand<AragonOS>({
       true,
     );
 
+    const chainId = await module.getChainId();
     setApp(
       dao,
       {
@@ -184,6 +194,7 @@ export default defineCommand<AragonOS>({
       },
       artifact,
       module.bindingsManager,
+      chainId,
     );
 
     return [

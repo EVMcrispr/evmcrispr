@@ -22,6 +22,8 @@ export interface CompletionContext {
   bindings: BindingsManager;
   position: Position;
   client: PublicClient;
+  /** Chain ID of the current client, precomputed for synchronous lookups. */
+  chainId: number;
   /** Persistent cache for fetched data (ABIs, DAOs, etc.) */
   cache: BindingsManager;
   /** The full command AST node (for accessing opts like --as). */
@@ -33,3 +35,12 @@ export type ArgCompletionFn = (
 ) => Promise<CompletionItem[]> | CompletionItem[];
 
 export type CompletionOverrides = Record<string, ArgCompletionFn>;
+
+/** Callback that executes a helper with pre-resolved arguments and returns its result. */
+export type HelperResolver = (
+  helperName: string,
+  resolvedArgs: string[],
+  chainId: number,
+  client: PublicClient,
+  bindings: BindingsManager,
+) => Promise<string>;

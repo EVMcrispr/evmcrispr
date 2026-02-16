@@ -11,7 +11,7 @@ const getTokenList = async (
 ): Promise<string> => {
   const tokenList = String(
     bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      `https://tokenlist.evmcrispr.com/v0/${chainId}`,
+      `https://evmcrispr-api.fermyon.app/tokenlist/${chainId}`,
   );
 
   // Always check user data inputs:

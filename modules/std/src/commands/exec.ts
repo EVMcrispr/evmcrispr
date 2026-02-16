@@ -1,5 +1,6 @@
-import type { Abi, Address, HelperFunctionNode } from "@evmcrispr/sdk";
+import type { Abi, Address } from "@evmcrispr/sdk";
 import {
+  abiBindingKey,
   addressesEqual,
   BindingsSpace,
   defineCommand,
@@ -14,7 +15,7 @@ import {
   resolveEventCaptures,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
-import { erc20Abi, getAbiItem, isAddress } from "viem";
+import { getAbiItem, isAddress } from "viem";
 import type Std from "..";
 
 const { ABI } = BindingsSpace;
@@ -48,25 +49,36 @@ export default defineCommand<Std>({
   completions: {
     signature: async (ctx) => {
       const targetNode = ctx.nodeArgs[0];
-      // Check if it's a @token helper and provide ERC-20 functions
-      const abi =
-        targetNode?.type === "HelperFunctionExpression" &&
-        (targetNode as HelperFunctionNode).name === "token"
-          ? erc20Abi
-          : (() => {
-              const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
-              if (!targetAddress || !isAddress(targetAddress)) return [];
+      const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
+      if (!targetAddress || !isAddress(targetAddress)) return [];
 
-              // Try bindings first, then cache
-              let abi = ctx.bindings.getBindingValue(targetAddress, ABI);
-              if (!abi) {
-                abi = ctx.cache.getBindingValue(targetAddress, ABI);
-              }
-              if (!abi) return [];
-              return abi;
-            })();
+      const key = abiBindingKey(ctx.chainId, targetAddress);
+      let abi = ctx.bindings.getBindingValue(key, ABI);
+      if (!abi) {
+        abi = ctx.cache.getBindingValue(key, ABI);
+      }
+      if (!abi) {
+        try {
+          const [, fetchedAbi, fetchedChainId] = await fetchAbi(
+            targetAddress,
+            ctx.client,
+          );
+          const fetchedKey = abiBindingKey(fetchedChainId, targetAddress);
+          ctx.cache.setBinding(
+            fetchedKey,
+            fetchedAbi,
+            ABI,
+            false,
+            undefined,
+            true,
+          );
+          abi = fetchedAbi;
+        } catch {
+          return [];
+        }
+      }
 
-      const functions = (abi as any[])
+      const functions = abi
         .filter(
           (item): item is AbiFunction =>
             item.type === "function" &&
@@ -95,8 +107,9 @@ export default defineCommand<Std>({
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(signature)) {
         throw new ErrorException(`invalid signature "${signature}"`);
       }
+      const chainId = await module.getChainId();
       const abi = module.bindingsManager.getBindingValue(
-        contractAddress,
+        abiBindingKey(chainId, contractAddress),
         ABI,
       ) as Abi | undefined;
 
@@ -109,8 +122,9 @@ export default defineCommand<Std>({
         finalSignature = getFunctionFragment(func);
       } else {
         let fetchedAbi: Abi;
+        let fetchedChainId: number;
         try {
-          [targetAddress, fetchedAbi] = await fetchAbi(
+          [targetAddress, fetchedAbi, fetchedChainId] = await fetchAbi(
             contractAddress,
             await module.getClient(),
           );
@@ -141,9 +155,17 @@ export default defineCommand<Std>({
           );
         }
 
-        module.bindingsManager.setBinding(contractAddress, fetchedAbi, ABI);
+        module.bindingsManager.setBinding(
+          abiBindingKey(fetchedChainId, contractAddress),
+          fetchedAbi,
+          ABI,
+        );
         if (!addressesEqual(targetAddress, contractAddress)) {
-          module.bindingsManager.setBinding(targetAddress, fetchedAbi, ABI);
+          module.bindingsManager.setBinding(
+            abiBindingKey(fetchedChainId, targetAddress),
+            fetchedAbi,
+            ABI,
+          );
         }
       }
     }
@@ -186,8 +208,9 @@ export default defineCommand<Std>({
 
       const receipt = await actionCallback(execAction);
 
+      const eventChainId = await module.getChainId();
       const contractAbi = module.bindingsManager.getBindingValue(
-        contractAddress,
+        abiBindingKey(eventChainId, contractAddress),
         ABI,
       ) as Abi | undefined;
 

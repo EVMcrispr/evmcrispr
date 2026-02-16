@@ -3,6 +3,8 @@ import type {
   CommandExpressionNode,
   CompletionContext,
   CompletionItem,
+  HelperFunctionNode,
+  HelperResolver,
   ICommand,
   ModuleBinding,
   NoNullableBinding,
@@ -15,17 +17,59 @@ import {
   completionsForType,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
+  interpretNodeSync,
   isBuiltinType,
   NodeType,
   resolveCommand,
   variableItem,
 } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
+import type { Chain, PublicClient } from "viem";
+import { createPublicClient, http } from "viem";
+import * as viemChains from "viem/chains";
 
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 
-const { MODULE, USER } = BindingsSpace;
+// ---------------------------------------------------------------------------
+// Chain resolution for `switch` commands during completion
+// ---------------------------------------------------------------------------
+
+const nameToChainId: Record<string, number> = Object.entries(viemChains).reduce(
+  (acc, [name, chain]) => {
+    acc[name] = (chain as Chain).id;
+    return acc;
+  },
+  {} as Record<string, number>,
+);
+
+/** Resolve a `switch` command's argument to a chain ID, or return undefined. */
+function resolveSwitchChainId(
+  commandNode: CommandExpressionNode,
+  bindings: BindingsManager,
+): number | undefined {
+  if (commandNode.name !== "switch") return undefined;
+  const argNode = commandNode.args[0];
+  if (!argNode) return undefined;
+
+  const raw = argNode.value;
+  if (raw == null) return undefined;
+
+  const asNumber = Number(raw);
+  if (Number.isInteger(asNumber) && asNumber > 0) return asNumber;
+  if (typeof raw === "string") return nameToChainId[raw];
+  return undefined;
+}
+
+/** Create a PublicClient for the given chain ID, or return undefined. */
+function clientForChain(chainId: number): PublicClient | undefined {
+  const chain = Object.values(viemChains).find(
+    (c) => (c as Chain).id === chainId,
+  ) as Chain | undefined;
+  if (!chain) return undefined;
+  return createPublicClient({ chain, transport: http() }) as PublicClient;
+}
+
+const { MODULE, USER, CACHE } = BindingsSpace;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -226,6 +270,68 @@ function seedBindings(bindings: BindingsManager, cache: BindingsManager): void {
   }
 }
 
+/**
+ * Resolve the value node of a `set` command.  Tries, in order:
+ *   1. `interpretNodeSync` for literals / variable references
+ *   2. Helper execution (cached in the CACHE space) for HelperFunctionExpression
+ *   3. Falls back to storing the AST node itself
+ */
+async function resolveValueNode(
+  valueNode: { type: any; value?: any; [k: string]: any },
+  bindings: BindingsManager,
+  cache: BindingsManager,
+  chainId: number,
+  client: PublicClient | undefined,
+  resolveHelper?: HelperResolver,
+): Promise<any> {
+  // Fast path: literals, barewords, variable references
+  const syncResult = interpretNodeSync(valueNode as any, bindings);
+  if (syncResult != null) return syncResult;
+
+  // Helper expression: resolve via cache + executor
+  if (
+    valueNode.type === NodeType.HelperFunctionExpression &&
+    resolveHelper &&
+    client
+  ) {
+    const helperNode = valueNode as unknown as HelperFunctionNode;
+    const resolvedArgs: string[] = [];
+    let allResolved = true;
+
+    for (const arg of helperNode.args) {
+      const v = interpretNodeSync(arg as any, bindings);
+      if (v == null) {
+        allResolved = false;
+        break;
+      }
+      resolvedArgs.push(String(v));
+    }
+
+    if (allResolved) {
+      const cacheKey = `helper:${chainId}:${helperNode.name}:${resolvedArgs.join(":")}`;
+      const cached = cache.getBindingValue(cacheKey, CACHE);
+      if (cached != null) return cached;
+
+      try {
+        const result = await resolveHelper(
+          helperNode.name,
+          resolvedArgs,
+          chainId,
+          client,
+          bindings,
+        );
+        cache.setBinding(cacheKey, result, CACHE, false, undefined, true);
+        return result;
+      } catch {
+        // Helper execution failed — fall through to AST node fallback
+      }
+    }
+  }
+
+  // Fallback: store the AST node itself
+  return valueNode;
+}
+
 /** Walk a list of fully-typed command nodes and resolve any bindings they
  *  produce (variable → USER, custom type with resolve → arbitrary bindings). */
 async function walkCommandsForBindings(
@@ -233,6 +339,8 @@ async function walkCommandsForBindings(
   bindings: BindingsManager,
   cache: BindingsManager,
   client: PublicClient,
+  chainId: number,
+  resolveHelper?: HelperResolver,
 ): Promise<void> {
   let parentModule = "std";
 
@@ -254,8 +362,20 @@ async function walkCommandsForBindings(
 
       // Built-in "variable" type: auto-create USER binding
       if (argDef.type === "variable" && argNode.value) {
+        let bindingValue: any = argNode.value;
+        if (c.name === "set" && c.args[i + 1]) {
+          const valueNode = c.args[i + 1];
+          bindingValue = await resolveValueNode(
+            valueNode,
+            bindings,
+            cache,
+            chainId,
+            client,
+            resolveHelper,
+          );
+        }
         try {
-          bindings.setBinding(argNode.value, argNode.value, USER);
+          bindings.setBinding(argNode.value, bindingValue, USER);
         } catch {
           // binding already exists
         }
@@ -273,6 +393,7 @@ async function walkCommandsForBindings(
               bindings,
               position: { line: 0, col: 0 },
               client,
+              chainId,
               cache,
               commandNode: c,
             };
@@ -317,6 +438,7 @@ export async function getCompletions(
   position: Position,
   moduleCache: BindingsManager,
   client?: PublicClient,
+  resolveHelper?: HelperResolver,
 ): Promise<CompletionItem[]> {
   // 1. Parse the full script
   let fullAST: EvmlAST;
@@ -381,7 +503,7 @@ export async function getCompletions(
   let contextModuleName = "std";
 
   const commandNodes: CommandExpressionNode[] = fullAST
-    .getCommandsUntilLine(position.line - 1, ["load", "set"])
+    .getCommandsUntilLine(position.line - 1, ["load", "set", "switch"])
     .filter((c: any) => {
       const itHasCommandsBlock = hasCommandsBlock(c);
       const loc = c.loc;
@@ -405,11 +527,28 @@ export async function getCompletions(
   const bindings = new BindingsManager();
   seedBindings(bindings, moduleCache);
 
+  // Resolve the effective chain by scanning for `switch` commands before the
+  // cursor.  The last `switch` wins, just as it would during execution.
+  let effectiveClient = client;
+  for (const c of commandNodes) {
+    const switchedChainId = resolveSwitchChainId(c, bindings);
+    if (switchedChainId != null) {
+      const newClient = clientForChain(switchedChainId);
+      if (newClient) {
+        effectiveClient = newClient;
+      }
+    }
+  }
+
+  const chainId = (await effectiveClient?.getChainId()) ?? 0;
+
   await walkCommandsForBindings(
     commandNodes,
     bindings,
     moduleCache,
-    client as PublicClient,
+    effectiveClient as PublicClient,
+    chainId,
+    resolveHelper,
   );
 
   // Also walk the current command to populate bindings for its own completions
@@ -419,7 +558,9 @@ export async function getCompletions(
       [currentCommandNode],
       bindings,
       moduleCache,
-      client as PublicClient,
+      effectiveClient as PublicClient,
+      chainId,
+      resolveHelper,
     );
   }
 
@@ -470,7 +611,8 @@ export async function getCompletions(
             nodeArgs: currentCommandNode.args,
             bindings,
             position,
-            client: client as PublicClient,
+            client: effectiveClient as PublicClient,
+            chainId,
             cache: moduleCache,
             commandNode: currentCommandNode,
           };
@@ -505,7 +647,8 @@ export async function getCompletions(
           nodeArgs: currentCommandNode.args,
           bindings,
           position,
-          client: client as PublicClient,
+          client: effectiveClient as PublicClient,
+          chainId,
           cache: moduleCache,
           commandNode: currentCommandNode,
         };

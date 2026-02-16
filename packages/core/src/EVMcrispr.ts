@@ -10,10 +10,12 @@ import type {
   CommandExpressionNode,
   CompletionItem,
   HelperFunctionNode,
+  HelperResolver,
   IModuleConstructor,
   LiteralExpressionNode,
   Module,
   ModuleContext,
+  ModuleData,
   Node,
   NodeInterpreter,
   NodesInterpreter,
@@ -32,6 +34,7 @@ import {
   IPFSResolver,
   NodeError,
   NodeType,
+  resolveHelper as resolveHelperFn,
   timeUnits,
   toDecimals,
 } from "@evmcrispr/sdk";
@@ -182,6 +185,107 @@ export class EVMcrispr {
     }
   }
 
+  /**
+   * Create a HelperResolver callback that can execute helpers with
+   * pre-resolved arguments.  Used by the completions engine to evaluate
+   * expressions like `@token(USDC)` during the walk phase.
+   */
+  #createHelperResolver(): HelperResolver {
+    return async (
+      helperName: string,
+      resolvedArgs: string[],
+      chainId: number,
+      client: PublicClient,
+      bindings: BindingsManager,
+    ): Promise<string> => {
+      // Find which module owns this helper
+      const moduleBindings = this.#moduleCache.getAllBindings({
+        spaceFilters: [BindingsSpace.MODULE],
+        ignoreNullValues: true,
+      });
+
+      let ownerModuleName: string | undefined;
+      for (const b of moduleBindings) {
+        const data = b.value as ModuleData;
+        if (data.helpers[helperName]) {
+          ownerModuleName = b.identifier;
+          break;
+        }
+      }
+
+      if (!ownerModuleName) {
+        throw new ErrorException(
+          `helper @${helperName} not found on any module`,
+        );
+      }
+
+      // Load the module constructor and create a lightweight instance
+      const loader = EVMcrispr.#registry.get(ownerModuleName);
+      let Ctor: IModuleConstructor;
+
+      if (ownerModuleName === "std") {
+        Ctor = Std as unknown as IModuleConstructor;
+      } else if (loader) {
+        const mod = await loader();
+        Ctor = mod.default;
+      } else {
+        throw new ErrorException(
+          `module ${ownerModuleName} not found in registry`,
+        );
+      }
+
+      const ctx: ModuleContext = {
+        bindingsManager: bindings,
+        nonces: {},
+        ipfsResolver: this.#ipfsResolver,
+        modules: [],
+        getClient: () => Promise.resolve(client),
+        getChainId: () => Promise.resolve(chainId),
+        switchChainId: () => {
+          throw new ErrorException(
+            "switchChainId not available during completions",
+          );
+        },
+        getConnectedAccount: () => {
+          throw new ErrorException(
+            "getConnectedAccount not available during completions",
+          );
+        },
+        setClient: () => {},
+        setConnectedAccount: () => {},
+        log: () => {},
+        loadModule: async (name) => {
+          const l = EVMcrispr.#registry.get(name);
+          if (!l) throw new ErrorException(`Module ${name} not found`);
+          return l();
+        },
+        getAvailableModuleNames: () => [...EVMcrispr.#registry.keys()],
+      };
+
+      const instance = new Ctor(ctx);
+
+      // Build a synthetic HelperFunctionNode with StringLiteral args
+      const syntheticNode: HelperFunctionNode = {
+        type: NodeType.HelperFunctionExpression,
+        name: helperName,
+        args: resolvedArgs.map((value) => ({
+          type: NodeType.StringLiteral as any,
+          value,
+        })),
+      };
+
+      // Passthrough interpreters — args are already resolved
+      const interpreters = {
+        interpretNode: async (n: Node) => (n as any).value,
+        interpretNodes: async (nodes: Node[]) =>
+          nodes.map((n) => (n as any).value),
+      };
+
+      const helper = await resolveHelperFn(instance.helpers[helperName]);
+      return helper(instance, syntheticNode, interpreters);
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Public API: interpret, getCompletions, getKeywords
   // ---------------------------------------------------------------------------
@@ -229,6 +333,7 @@ export class EVMcrispr {
       position,
       this.#moduleCache,
       this.#client,
+      this.#createHelperResolver(),
     );
   }
 
@@ -237,6 +342,11 @@ export class EVMcrispr {
   ): Promise<{ commands: string[]; helpers: string[] }> {
     await this.#ensureModuleCachePopulated();
     return getKeywordsImpl(script, this.#moduleCache);
+  }
+
+  /** Flush the helper result cache.  Call after a transaction is executed. */
+  flushCache(): void {
+    this.#moduleCache.clearSpace(BindingsSpace.CACHE);
   }
 
   // ---------------------------------------------------------------------------

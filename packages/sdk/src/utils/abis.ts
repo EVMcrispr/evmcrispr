@@ -1,12 +1,17 @@
 import type { PublicClient } from "viem";
+import { getAddress } from "viem";
 
 import { ErrorException } from "../errors";
 import type { Abi, Address } from "../types";
 import { fetchImplementationAddress } from "./proxies";
 
-async function getAbiEntries(address: string, chainId: number): Promise<Abi> {
+/** Build the binding key for an ABI entry: `<chainId>:<address>`. */
+export const abiBindingKey = (chainId: number, address: Address): string =>
+  `${chainId}:${getAddress(address)}`;
+
+async function getAbiEntries(address: Address, chainId: number): Promise<Abi> {
   return await fetch(
-    `https://abifetcher.evmcrispr.com/v0/${chainId}/${address}`,
+    `https://evmcrispr-api.fermyon.app/abi/${chainId}/${getAddress(address)}`,
   )
     .then((res) => res.json())
     .catch((err) => {
@@ -18,7 +23,7 @@ async function getAbiEntries(address: string, chainId: number): Promise<Abi> {
 export const fetchAbi = async (
   contractAddress: Address,
   client: PublicClient,
-): Promise<[Address, Abi]> => {
+): Promise<[Address, Abi, number]> => {
   const implementationAddress = await fetchImplementationAddress(
     contractAddress,
     client,
@@ -32,5 +37,5 @@ export const fetchAbi = async (
 
   const fetchedAbi = await getAbiEntries(targetAddress, chainId);
 
-  return [targetAddress, fetchedAbi];
+  return [targetAddress, fetchedAbi, chainId];
 };

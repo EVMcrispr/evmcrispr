@@ -1,5 +1,6 @@
 import type { Binding, CustomArgTypes } from "@evmcrispr/sdk";
 import {
+  abiBindingKey,
   BindingsSpace,
   ErrorException,
   fieldItem,
@@ -29,23 +30,27 @@ const isRepoIdentifier = (value: string): boolean => {
   return isAppIdentifier(rest) || isLabeledAppIdentifier(rest);
 };
 
-const buildAbiBindings = (dao: AragonDAO): Binding[] => {
+const buildAbiBindings = (dao: AragonDAO, chainId: number): Binding[] => {
   const bindings: Binding[] = [];
   const seen = new Set<string>();
 
   dao.appCache.forEach((app) => {
-    if (!seen.has(app.address)) {
-      seen.add(app.address);
-      bindings.push({ type: ABI, identifier: app.address, value: app.abi });
+    const addrKey = abiBindingKey(chainId, app.address);
+    if (!seen.has(addrKey)) {
+      seen.add(addrKey);
+      bindings.push({ type: ABI, identifier: addrKey, value: app.abi });
     }
 
-    if (app.codeAddress && !seen.has(app.codeAddress)) {
-      seen.add(app.codeAddress);
-      bindings.push({
-        type: ABI,
-        identifier: app.codeAddress,
-        value: app.abi,
-      });
+    if (app.codeAddress) {
+      const codeKey = abiBindingKey(chainId, app.codeAddress);
+      if (!seen.has(codeKey)) {
+        seen.add(codeKey);
+        bindings.push({
+          type: ABI,
+          identifier: codeKey,
+          value: app.abi,
+        });
+      }
     }
   });
 
@@ -62,12 +67,13 @@ export const types: CustomArgTypes = {
       }
     },
     async resolve(rawValue, ctx) {
+      const chainId = ctx.chainId;
       // Check cache first
       const cached = getCachedDAO(ctx.cache, rawValue);
       if (cached) {
         const clonedDAO = cached.clone();
         pushCompletionDAO(ctx.bindings, clonedDAO);
-        return buildAbiBindings(clonedDAO);
+        return buildAbiBindings(clonedDAO, chainId);
       }
 
       // Create DAO
@@ -97,7 +103,7 @@ export const types: CustomArgTypes = {
         // Track DAO for completions
         pushCompletionDAO(ctx.bindings, dao);
 
-        return buildAbiBindings(dao);
+        return buildAbiBindings(dao, chainId);
       } catch {
         return [];
       }

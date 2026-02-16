@@ -1,8 +1,10 @@
 import {
+  abiBindingKey,
   BindingsSpace,
   defineCommand,
   ErrorException,
   encodeAction,
+  fetchAbi,
   fieldItem,
   getFunctionFragment,
   interpretNodeSync,
@@ -41,21 +43,39 @@ export default defineCommand<AragonOS>({
       getDAOAppIdentifiers(ctx.bindings)
         .filter((id) => id.includes("agent"))
         .map(fieldItem),
-    signature: (ctx) => {
+    signature: async (ctx) => {
       const targetAddress = interpretNodeSync(ctx.nodeArgs[1], ctx.bindings);
 
       if (!targetAddress || !isAddress(targetAddress)) {
         return [];
       }
 
-      let abi = ctx.bindings.getBindingValue(targetAddress, ABI);
+      const key = abiBindingKey(ctx.chainId, targetAddress);
+      let abi = ctx.bindings.getBindingValue(key, ABI);
       if (!abi) {
-        abi = ctx.cache.getBindingValue(targetAddress, ABI);
+        abi = ctx.cache.getBindingValue(key, ABI);
+      }
+      if (!abi) {
+        try {
+          const [, fetchedAbi, fetchedChainId] = await fetchAbi(
+            targetAddress,
+            ctx.client,
+          );
+          const fetchedKey = abiBindingKey(fetchedChainId, targetAddress);
+          ctx.cache.setBinding(
+            fetchedKey,
+            fetchedAbi,
+            ABI,
+            false,
+            undefined,
+            true,
+          );
+          abi = fetchedAbi;
+        } catch {
+          return [];
+        }
       }
 
-      if (!abi) {
-        return [];
-      }
       const functions = abi
         .filter(
           (item): item is AbiFunction =>
