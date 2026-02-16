@@ -99,27 +99,13 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 export default defineCommand<AragonOS>({
   name: "grant",
   args: [
-    { name: "grantee", type: "any", skipInterpret: true },
-    { name: "app", type: "any", skipInterpret: true },
-    { name: "role", type: "any", skipInterpret: true },
-    {
-      name: "permissionManager",
-      type: "any",
-      optional: true,
-      skipInterpret: true,
-    },
+    { name: "grantee", type: "address" },
+    { name: "app", type: "app" },
+    { name: "role", type: "permission" },
+    { name: "permissionManager", type: "app", optional: true },
   ],
   opts: [{ name: "oracle", type: "address" }],
-  async run(module, _args, { opts, node, interpreters }) {
-    const { interpretNode } = interpreters;
-
-    const permissionMangerArgNode = node.args[3];
-    const permissionManager = permissionMangerArgNode
-      ? await interpretNode(permissionMangerArgNode)
-      : undefined;
-    const [grantee, app, role] = await Promise.all(
-      node.args.slice(0, 3).map((arg) => interpretNode(arg)),
-    );
+  async run(module, { grantee, app, role, permissionManager }, { opts }) {
     const oracleOpt = opts.oracle;
 
     let params: ReturnType<Params> = [];
@@ -128,11 +114,7 @@ export default defineCommand<AragonOS>({
       params = oracle(oracleOpt)();
     }
 
-    const permission: any[] = [grantee, app, role, permissionManager, params];
-
-    if (!isPermission(permission)) {
-      throw new ErrorException("Invalid permission");
-    }
+    const permission: CompletePermission = [grantee, app, role, permissionManager, params];
 
     // Find the DAO that owns the app by searching all connected DAOs
     const dao = isAddress(app)

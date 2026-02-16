@@ -1,4 +1,8 @@
-import type { Action, TransactionAction } from "@evmcrispr/sdk";
+import type {
+  Action,
+  BlockExpressionNode,
+  TransactionAction,
+} from "@evmcrispr/sdk";
 import { commaListItems, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
@@ -11,25 +15,17 @@ import {
 export default defineCommand<AragonOS>({
   name: "forward",
   args: [
-    { name: "forwarder", type: "any", skipInterpret: true },
-    {
-      name: "forwardersAndBlock",
-      type: "any",
-      rest: true,
-      skipInterpret: true,
-    },
+    { name: "forwarders", type: "app", rest: true },
+    { name: "block", type: "block" },
   ],
   opts: [
     { name: "context", type: "string" },
     { name: "check-forwarder", type: "string" },
   ],
-  async run(module, _args, { opts, node, interpreters }) {
-    const { interpretNode, interpretNodes } = interpreters;
+  async run(module, { forwarders = [], block }, { opts, interpreters }) {
+    const { interpretNode } = interpreters;
 
-    const blockCommandsNode = node.args[node.args.length - 1];
-    const forwarderArgNodes = node.args.slice(0, -1);
-
-    const forwarderAppAddresses = await interpretNodes(forwarderArgNodes);
+    const forwarderAppAddresses = forwarders as any[];
 
     const invalidForwarderApps: any[] = [];
 
@@ -45,9 +41,12 @@ export default defineCommand<AragonOS>({
       );
     }
 
-    const blockActions = (await interpretNode(blockCommandsNode, {
-      blockModule: module.contextualName,
-    })) as Action[];
+    const blockActions = (await interpretNode(
+      block as BlockExpressionNode,
+      {
+        blockModule: module.contextualName,
+      },
+    )) as Action[];
 
     assertAllTransactionActions(blockActions, "forward");
 

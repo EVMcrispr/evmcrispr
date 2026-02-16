@@ -1,11 +1,11 @@
 import {
   type Action,
+  type BlockExpressionNode,
   defineCommand,
   ErrorException,
   isRpcAction,
   isTransactionAction,
   isWalletAction,
-  NodeType,
 } from "@evmcrispr/sdk";
 import {
   createPublicClient,
@@ -20,24 +20,17 @@ import type Sim from "..";
 
 export default defineCommand<Sim>({
   name: "fork",
-  args: [{ name: "block", type: "any", skipInterpret: true }],
+  args: [{ name: "block", type: "block" }],
   opts: [
     { name: "block-number", type: "any" },
     { name: "from", type: "any" },
     { name: "tenderly", type: "any" },
     { name: "using", type: "any" },
   ],
-  async run(module, _args, { opts, node, interpreters }) {
+  async run(module, { block }, { opts, node, interpreters }) {
     console.log("fork commsand haha");
     const { interpretNode } = interpreters;
-    const [blockExpressionNode] = node.args;
-
-    if (
-      !blockExpressionNode ||
-      blockExpressionNode.type !== NodeType.BlockExpression
-    ) {
-      throw new ErrorException("last argument should be a set of commands");
-    }
+    const blockExpressionNode = block as BlockExpressionNode;
 
     const blockNumber = opts["block-number"];
     const from = opts.from;

@@ -3,7 +3,6 @@ import {
   defineCommand,
   ErrorException,
   encodeAction,
-  NodeType,
 } from "@evmcrispr/sdk";
 import { getContractAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
@@ -12,7 +11,7 @@ import { buildNonceForAddress, MINIME_TOKEN_FACTORIES } from "../utils";
 export default defineCommand<AragonOS>({
   name: "new-token",
   args: [
-    { name: "variable", type: "any", skipInterpret: true },
+    { name: "variable", type: "variable" },
     { name: "name", type: "string" },
     { name: "symbol", type: "string" },
     { name: "controller", type: "address" },
@@ -21,16 +20,8 @@ export default defineCommand<AragonOS>({
   ],
   async run(
     module,
-    { name, symbol, controller, decimals = 18, transferable = true },
-    { node },
+    { variable, name, symbol, controller, decimals = 18, transferable = true },
   ) {
-    const varNode = node.args[0];
-    if (varNode.type !== NodeType.VariableIdentifier) {
-      throw new ErrorException(
-        "first argument must be a $variable to store the token address",
-      );
-    }
-    const varName = varNode.value;
 
     const chainId = await module.getChainId();
 
@@ -52,7 +43,7 @@ export default defineCommand<AragonOS>({
     });
 
     module.bindingsManager.setBinding(
-      varName,
+      variable,
       newTokenAddress,
       BindingsSpace.USER,
       true,

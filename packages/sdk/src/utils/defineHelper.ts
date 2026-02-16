@@ -1,9 +1,11 @@
+import { ErrorException } from "../errors";
 import type { Module } from "../Module";
 import type {
   HelperFunction,
   HelperFunctionNode,
   NodesInterpreters,
 } from "../types";
+import { NodeType } from "../types";
 import { ComparisonType, checkArgsLength } from "./args";
 import { type ArgDef, validateArgType } from "./schema";
 
@@ -54,13 +56,21 @@ export function defineHelper<M extends Module>(
 
     const { interpretNode, interpretNodes } = interpreters;
 
-    // 2. Interpret arguments
+    // 2. Interpret arguments by type
     const parsedArgs: Record<string, any> = {};
     for (let i = 0; i < argDefs.length; i++) {
       const def = argDefs[i];
-      if (def.skipInterpret) {
+
+      if (def.type === "variable") {
+        const node = h.args[i];
+        if (!node || node.type !== NodeType.VariableIdentifier) {
+          throw new ErrorException(`<${def.name}> must be a $variable`);
+        }
+        parsedArgs[def.name] = (node as any).value;
         continue;
       }
+
+      // All other types: auto-interpret
       if (def.rest) {
         const restNodes = h.args.slice(i);
         parsedArgs[def.name] = await interpretNodes(restNodes);
@@ -74,12 +84,12 @@ export function defineHelper<M extends Module>(
       const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
       const value = parsedArgs[def.name];
       if (value !== undefined && !def.rest) {
-        validateArgType(formatted, value, def.type);
+        validateArgType(formatted, value, def.type, module.types);
       }
       if (def.rest && Array.isArray(value)) {
         if (def.type !== "any") {
           for (const item of value) {
-            validateArgType(formatted, item, def.type);
+            validateArgType(formatted, item, def.type, module.types);
           }
         }
       }

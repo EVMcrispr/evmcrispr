@@ -35,7 +35,7 @@ describe("Std > commands > set <varName> <varValue>", () => {
       client,
     );
     const c = findStdCommandNode(interpreter.ast, "set")!;
-    const error = new CommandError(c, "expected a variable identifier");
+    const error = new CommandError(c, "<variable> must be a $variable");
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

@@ -19,20 +19,13 @@ import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
 export default defineCommand<AragonOS>({
   name: "upgrade",
   args: [
-    { name: "apmRepo", type: "any", skipInterpret: true },
-    { name: "newAppAddress", type: "any", optional: true, skipInterpret: true },
+    { name: "apmRepo", type: "repo" },
+    { name: "newAppAddress", type: "any", optional: true },
   ],
-  async run(module, _args, { node, interpreters }) {
-    const { interpretNode } = interpreters;
-
+  async run(module, { apmRepo: rawApmRepo, newAppAddress: rawNewAppAddress }) {
     const client = await module.getClient();
 
-    const args = await Promise.all([
-      interpretNode(node.args[0]),
-      node.args[1] ? interpretNode(node.args[1]) : undefined,
-    ]);
-    const rawApmRepo = args[0];
-    let newAppAddress = args[1];
+    let newAppAddress = rawNewAppAddress;
 
     // Check for dao-prefixed identifiers and resolve the target DAO
     const parserRes = parseDaoPrefixedIdentifier(rawApmRepo);

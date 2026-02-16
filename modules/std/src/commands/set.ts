@@ -1,20 +1,18 @@
 import {
   BindingsSpace,
   defineCommand,
-  ErrorException,
   inSameLineThanNode,
   NodeType,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
-const { VariableIdentifier } = NodeType;
 const { ADDR, USER } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "set",
   args: [
-    { name: "variable", type: "any", skipInterpret: true },
-    { name: "value", type: "any", skipInterpret: true },
+    { name: "variable", type: "variable" },
+    { name: "value", type: "any" },
   ],
   buildCompletionItemsForArg(argIndex, _, cache) {
     switch (argIndex) {
@@ -27,20 +25,10 @@ export default defineCommand<Std>({
         return [];
     }
   },
-  async run(module, _args, { node, interpreters }) {
-    const { interpretNode } = interpreters;
-    const [varNode, valueNode] = node.args;
-
-    if (varNode.type !== VariableIdentifier) {
-      throw new ErrorException(`expected a variable identifier`);
-    }
-
-    const varName = varNode.value;
-    const varValue = await interpretNode(valueNode);
-
+  async run(module, { variable, value }) {
     module.bindingsManager.setBinding(
-      varName,
-      varValue,
+      variable,
+      value,
       USER,
       true,
       undefined,

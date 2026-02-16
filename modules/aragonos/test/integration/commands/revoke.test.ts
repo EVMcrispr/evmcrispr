@@ -166,7 +166,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
     const interpreter = createInterpreter(
       `
       load aragonos --as ar
-      ar:revoke voting token-manager MINT_ROLE`,
+      ar:revoke ${DAO["disputable-voting.open"]} ${DAO.acl} CREATE_PERMISSIONS_ROLE`,
       client,
     );
     const c = interpreter.ast.body[1];
@@ -185,7 +185,7 @@ describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", 
     const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
     const error = new CommandError(
       c,
-      `[removeManager] must be a boolean, got ${typeof toDecimals(1, 18)}`,
+      `[removeManager] must be a boolean, got ${toDecimals(1, 18)}`,
     );
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

@@ -12,12 +12,14 @@ import type {
   NodesInterpreters,
 } from "./types";
 import { BindingsSpace, resolveCommand, resolveHelper } from "./types";
+import type { CustomArgTypes } from "./utils/schema";
 
 export abstract class Module {
   readonly name: string;
   readonly commands: Commands<any>;
   readonly helpers: HelperFunctions<any>;
   readonly constants: Record<string, string>;
+  readonly types: CustomArgTypes;
   readonly context: ModuleContext;
   readonly alias?: string;
 
@@ -26,6 +28,7 @@ export abstract class Module {
     commands: Commands<any>,
     helpers: HelperFunctions<any>,
     constants: Record<string, string>,
+    types: CustomArgTypes,
     context: ModuleContext,
     alias?: string,
   ) {
@@ -33,6 +36,7 @@ export abstract class Module {
     this.commands = commands;
     this.helpers = helpers;
     this.constants = constants;
+    this.types = types;
     this.context = context;
     this.alias = alias;
   }

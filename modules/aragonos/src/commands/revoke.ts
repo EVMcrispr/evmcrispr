@@ -86,17 +86,15 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 export default defineCommand<AragonOS>({
   name: "revoke",
   args: [
-    { name: "grantee", type: "any", skipInterpret: true },
-    { name: "app", type: "any", skipInterpret: true },
-    { name: "role", type: "any", skipInterpret: true },
-    { name: "removeManager", type: "any", optional: true, skipInterpret: true },
+    { name: "grantee", type: "address" },
+    { name: "app", type: "app" },
+    { name: "role", type: "permission" },
+    { name: "removeManager", type: "bool", optional: true },
   ],
-  async run(module, _args, { node, interpreters }) {
-    const { interpretNode } = interpreters;
+  async run(module, { grantee, app, role, removeManager }) {
+    const args = [grantee, app, role, removeManager];
 
-    const args = await Promise.all(node.args.map((arg) => interpretNode(arg)));
-
-    const appAddress = args[1];
+    const appAddress = app;
 
     // Find the DAO that owns the app by searching all connected DAOs
     const dao = isAddress(appAddress)

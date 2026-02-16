@@ -7,6 +7,7 @@ import type {
   IModuleConstructor,
   ModuleContext,
 } from "../types";
+import type { CustomArgTypes } from "./schema";
 
 /**
  * Create a module class with the given name, commands, and helpers.
@@ -15,11 +16,12 @@ function createModuleClass<M extends Module>(
   name: string,
   commands: Commands<M>,
   helpers: HelperFunctions<M>,
+  types: CustomArgTypes = {},
   constants: Record<string, string> = {},
 ): IModuleConstructor {
   return class extends Module {
     constructor(context: ModuleContext, alias?: string) {
-      super(name, commands, helpers, constants, context, alias);
+      super(name, commands, helpers, constants, types, context, alias);
     }
   } as IModuleConstructor;
 }
@@ -41,6 +43,7 @@ export function defineModule(
   name: string,
   commandImports: CommandImportMap,
   helperImports?: HelperImportMap,
+  types?: CustomArgTypes,
   constants?: Record<string, string>,
 ): IModuleConstructor {
   const commands: Commands = Object.fromEntries(
@@ -59,5 +62,11 @@ export function defineModule(
       )
     : {};
 
-  return createModuleClass(name, commands, helpers, constants ?? {});
+  return createModuleClass(
+    name,
+    commands,
+    helpers,
+    types ?? {},
+    constants ?? {},
+  );
 }

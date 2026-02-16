@@ -5,9 +5,7 @@ import type AragonOS from "@evmcrispr/module-aragonos";
 import { MINIME_TOKEN_FACTORIES } from "@evmcrispr/module-aragonos/utils";
 import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
 import {
-  buildArgsLengthErrorMsg,
   CommandError,
-  ComparisonType,
   encodeAction,
   encodeCalldata,
   toDecimals,
@@ -308,13 +306,7 @@ describe("AragonOS > commands > connect <daoNameOrAddress> [...appsPath] <comman
       client,
     );
     const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
-    const error = new CommandError(
-      c,
-      buildArgsLengthErrorMsg(1, {
-        type: ComparisonType.Greater,
-        minValue: 2,
-      }),
-    );
+    const error = new CommandError(c, "<block> must be a block expression");
 
     await expectThrowAsync(() => interpreter.interpret(), error);
   });

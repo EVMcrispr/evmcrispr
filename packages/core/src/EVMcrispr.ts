@@ -119,6 +119,7 @@ export class EVMcrispr {
       value: {
         commands: this.#std.commands,
         helpers: this.#std.helpers,
+        types: this.#std.types,
       },
     };
   }
@@ -164,7 +165,11 @@ export class EVMcrispr {
         const instance = new Ctor(ctx);
         this.#moduleCache.setBinding(
           name,
-          { commands: instance.commands, helpers: instance.helpers },
+          {
+            commands: instance.commands,
+            helpers: instance.helpers,
+            types: instance.types,
+          },
           BindingsSpace.MODULE,
         );
       } catch {

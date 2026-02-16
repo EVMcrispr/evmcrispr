@@ -182,28 +182,16 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
 export default defineCommand<AragonOS>({
   name: "connect",
   args: [
-    { name: "daoName", type: "any", skipInterpret: true },
-    { name: "blockOrForwarders", type: "any", skipInterpret: true },
-    { name: "rest", type: "any", rest: true, skipInterpret: true },
+    { name: "daoName", type: "string" },
+    { name: "forwarders", type: "string", rest: true },
+    { name: "block", type: "block" },
   ],
   opts: [{ name: "context", type: "any" }],
-  async run(module, _args, { opts, node, interpreters }) {
-    const { interpretNode, interpretNodes } = interpreters;
-    const [daoNameNode, ...rest] = node.args;
-    const blockExpressionNode = rest.pop();
+  async run(module, { daoName, forwarders = [], block }, { opts, interpreters }) {
+    const { interpretNode } = interpreters;
 
-    const forwarderApps = await interpretNodes(rest);
-
-    if (
-      !blockExpressionNode ||
-      blockExpressionNode.type !== NodeType.BlockExpression
-    ) {
-      throw new ErrorException("last argument should be a set of commands");
-    }
-
-    const daoAddressOrName = await interpretNode(daoNameNode);
     const dao = await createDAO(
-      daoAddressOrName,
+      daoName,
       module.currentDAO,
       await module.getClient(),
       module.ipfsResolver,
@@ -212,10 +200,13 @@ export default defineCommand<AragonOS>({
 
     let actions: Action[];
     try {
-      actions = (await interpretNode(blockExpressionNode, {
-        blockModule: module.contextualName,
-        blockInitializer: setDAOContext(module, dao),
-      })) as Action[];
+      actions = (await interpretNode(
+        block as import("@evmcrispr/sdk").BlockExpressionNode,
+        {
+          blockModule: module.contextualName,
+          blockInitializer: setDAOContext(module, dao),
+        },
+      )) as Action[];
     } finally {
       module.popDAO();
     }
@@ -225,7 +216,7 @@ export default defineCommand<AragonOS>({
     const invalidApps: any[] = [];
     const forwarderAppAddresses: Address[] = [];
 
-    forwarderApps.forEach((appOrAddress: string) => {
+    (forwarders as string[]).forEach((appOrAddress: string) => {
       const appAddress = isAddress(appOrAddress)
         ? appOrAddress
         : dao.resolveApp(appOrAddress)?.address;

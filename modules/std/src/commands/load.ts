@@ -3,28 +3,16 @@ import {
   defineCommand,
   ErrorException,
   insideNode,
-  NodeType,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
 const { MODULE } = BindingsSpace;
-const { Bareword, StringLiteral } = NodeType;
 
 export default defineCommand<Std>({
   name: "load",
-  args: [{ name: "moduleArg", type: "any", skipInterpret: true }],
+  args: [{ name: "moduleName", type: "string" }],
   opts: [{ name: "as", type: "string" }],
-  async run(module, _args, { opts, node, interpreters }) {
-    const { interpretNode } = interpreters;
-    const [argNode] = node.args;
-    const type = argNode.type;
-    const isIdentifier = type === Bareword || type === StringLiteral;
-
-    if (!isIdentifier) {
-      throw new ErrorException("invalid argument. Expected a string");
-    }
-
-    const moduleName: string = await interpretNode(argNode);
+  async run(module, { moduleName }, { opts }) {
     const moduleAlias: string | undefined = opts.as as string | undefined;
 
     if (module.modules.find((m: any) => m.name === moduleName)) {

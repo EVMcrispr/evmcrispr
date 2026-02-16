@@ -1,33 +1,32 @@
-import type { Action, BatchedAction, TransactionAction } from "@evmcrispr/sdk";
+import type {
+  Action,
+  BatchedAction,
+  BlockExpressionNode,
+  TransactionAction,
+} from "@evmcrispr/sdk";
 import {
   defineCommand,
   ErrorException,
   isTransactionAction,
-  NodeType,
   resolveEventCaptures,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineCommand<Std>({
   name: "batch",
-  args: [{ name: "block", type: "any", skipInterpret: true }],
-  async run(module, _args, { node, interpreters }) {
+  args: [{ name: "block", type: "block" }],
+  async run(module, { block }, { node, interpreters }) {
     const { interpretNode, actionCallback } = interpreters;
-    const [blockExpressionNode] = node.args;
-
-    if (
-      !blockExpressionNode ||
-      blockExpressionNode.type !== NodeType.BlockExpression
-    ) {
-      throw new ErrorException("batch expects a block of commands");
-    }
 
     // actionCallback is intentionally NOT forwarded here: nested commands
     // must only collect actions, not execute them. Event captures (-> ...)
     // are resolved on the batch itself once the combined transaction lands.
-    const blockActions = (await interpretNode(blockExpressionNode, {
-      blockModule: module.contextualName,
-    })) as Action[];
+    const blockActions = (await interpretNode(
+      block as BlockExpressionNode,
+      {
+        blockModule: module.contextualName,
+      },
+    )) as Action[];
 
     if (blockActions.find((a) => !isTransactionAction(a))) {
       throw new ErrorException(

@@ -10,7 +10,6 @@ import {
   type BlockExpressionNode,
   CommandError,
   type CommandExpressionNode,
-  listItems,
   NodeType,
 } from "@evmcrispr/sdk";
 import { expectThrowAsync } from "@evmcrispr/test-utils";
@@ -90,7 +89,6 @@ export const itChecksBadPermission = (
   ) => TestInterpreter,
   checkPermissionManager = false,
 ): void => {
-  const permissionErrorText = "invalid permission provided";
   const permission = ["@app(kernel)", "@app(acl)", "CREATE_PERMISSIONS_ROLE"];
 
   itChecksNonDefinedIdentifier(
@@ -129,9 +127,7 @@ export const itChecksBadPermission = (
     const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
       c!,
-      listItems(permissionErrorText, [
-        `<grantee> must be a valid address, got ${invalidGrantee}`,
-      ]),
+      `<grantee> must be a valid address, got ${invalidGrantee}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -147,9 +143,7 @@ export const itChecksBadPermission = (
     const c = findAragonOSCommandNode(interpreter.ast, commandName);
     const error = new CommandError(
       c!,
-      listItems(permissionErrorText, [
-        `<app> must be a valid address, got ${invalidApp}`,
-      ]),
+      `<app> must be a valid address, got ${invalidApp}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);
@@ -182,9 +176,7 @@ export const itChecksBadPermission = (
     const c = findAragonOSCommandNode(interpreter.ast, commandName)!;
     const error = new CommandError(
       c,
-      listItems(permissionErrorText, [
-        `<role> must be a valid hash, got ${invalidHashRole}`,
-      ]),
+      `<role> must be a valid role hash (bytes32), got ${invalidHashRole}`,
     );
 
     await expectThrowAsync(() => interpreter.interpret(), error);

@@ -8,7 +8,6 @@ import {
   getOptValue,
   inSameLineThanNode,
   interpretNodeSync,
-  NodeType,
   tryAndCacheNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -97,24 +96,16 @@ const setApp = (
 export default defineCommand<AragonOS>({
   name: "install",
   args: [
-    { name: "variable", type: "any", skipInterpret: true },
-    { name: "identifier", type: "any", skipInterpret: true },
-    { name: "params", type: "any", rest: true, skipInterpret: true },
+    { name: "variable", type: "variable" },
+    { name: "identifier", type: "repo" },
+    { name: "params", type: "any", rest: true },
   ],
   opts: [
     { name: DAO_OPT_NAME, type: "any" },
     { name: "version", type: "any" },
   ],
-  async run(module, _args, { node, interpreters }) {
-    const { interpretNode, interpretNodes } = interpreters;
-
-    const varNode = node.args[0];
-    if (varNode.type !== NodeType.VariableIdentifier) {
-      throw new ErrorException(
-        "first argument must be a $variable to store the proxy address",
-      );
-    }
-    const varName = varNode.value;
+  async run(module, { variable, identifier, params = [] }, { node, interpreters }) {
+    const { interpretNode } = interpreters;
 
     const dao = await getModuleDAOByOption(
       node,
@@ -122,8 +113,6 @@ export default defineCommand<AragonOS>({
       interpretNode,
     );
 
-    const [, identifierNode, ...paramNodes] = node.args;
-    const identifier = await interpretNode(identifierNode);
     const version = await getOptValue(node, "version", interpretNode);
     const [appName, registry] = parseLabeledAppIdentifier(identifier);
 
@@ -157,7 +146,7 @@ export default defineCommand<AragonOS>({
 
     const { abi, roles } = artifact;
     const kernel = dao.kernel;
-    const initParams = await interpretNodes(paramNodes);
+    const initParams = params as any[];
 
     const fnFragment = getAbiItem({
       name: "initialize",
@@ -179,7 +168,7 @@ export default defineCommand<AragonOS>({
     );
 
     module.bindingsManager.setBinding(
-      varName,
+      variable,
       proxyContractAddress,
       BindingsSpace.USER,
       true,

@@ -1,4 +1,4 @@
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
   defineCommand,
@@ -8,53 +8,41 @@ import {
 import type Std from "..";
 
 const { USER } = BindingsSpace;
-const { VariableIdentifier } = NodeType;
 
 export default defineCommand<Std>({
   name: "for",
   args: [
-    { name: "variable", type: "any", skipInterpret: true },
-    { name: "connector", type: "any", skipInterpret: true },
-    { name: "array", type: "any", skipInterpret: true },
-    { name: "block", type: "any", skipInterpret: true },
+    { name: "variable", type: "variable" },
+    { name: "connector", type: "string" },
+    { name: "array", type: "any" },
+    { name: "block", type: "block" },
   ],
-  async run(module, _args, { node, interpreters }) {
+  async run(module, { variable, connector, array, block }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;
-    const [varNode, connectorNode, arrayNode, blockExpressionNode] = node.args;
 
-    if (varNode.type !== VariableIdentifier) {
-      throw new ErrorException(`expected a variable identifier`);
+    if (connector !== "of") {
+      throw new ErrorException(`expected "of", got "${connector}"`);
     }
 
-    if (connectorNode.value !== "of") {
-      throw new ErrorException(`expected of`);
-    }
-
-    if (
-      !blockExpressionNode ||
-      blockExpressionNode.type !== NodeType.BlockExpression
-    ) {
-      throw new ErrorException("last argument should be a set of commands");
-    }
-
-    const varName = varNode.value;
-    const array = await interpretNode(arrayNode);
     const actions = [];
 
     module.bindingsManager.enterScope("for");
     for (const varValue of array) {
       module.bindingsManager.setBinding(
-        varName,
+        variable,
         varValue,
         USER,
         false,
         undefined,
         true,
       );
-      const commandActions = (await interpretNode(blockExpressionNode, {
-        blockModule: module.contextualName,
-        actionCallback,
-      })) as Action[];
+      const commandActions = (await interpretNode(
+        block as BlockExpressionNode,
+        {
+          blockModule: module.contextualName,
+          actionCallback,
+        },
+      )) as Action[];
       actions.push(...commandActions);
     }
     module.bindingsManager.exitScope();

@@ -151,7 +151,7 @@ describe("AragonOS > commands > install <$var> <repo> [initParams]", () => {
       `
     load aragonos --as ar
 
-    ar:install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}
+    ar:install $app ${newAppIdentifier} 0x0000000000000000000000000000000000000001 false 1000e18
   `,
       client,
     );

@@ -1,6 +1,7 @@
 import type { AstSymbol } from "jsymbol";
 
 import type { BindingsManager } from "../BindingsManager";
+import type { CustomArgTypes } from "../utils/schema";
 import type { Abi, Address } from ".";
 import type { Commands, HelperFunctions, IDataProvider } from "./modules";
 
@@ -30,6 +31,7 @@ export type NoNullableBinding<B extends Binding = Binding> = Omit<
 export type ModuleData = {
   commands: Commands<any>;
   helpers: HelperFunctions<any>;
+  types?: CustomArgTypes;
   /** When a module is loaded with `--as`, the alias is stored here. */
   alias?: string;
 };

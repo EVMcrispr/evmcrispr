@@ -2,7 +2,7 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import { ANY_ENTITY } from "@evmcrispr/module-aragonos/utils";
-import { CommandError, commaListItems } from "@evmcrispr/sdk";
+import { CommandError } from "@evmcrispr/sdk";
 import {
   expect,
   expectThrowAsync,
@@ -101,19 +101,15 @@ describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   );
 
   it("should fail when forwarding actions through invalid forwarder addresses", async () => {
-    const invalidAddresses = [
-      "false",
-      "0xab123cd1231255ab45323de234223422a12312321abaceff",
-    ];
     const interpreter = createAragonScriptInterpreter([
-      `forward ${invalidAddresses.join(" ")} (
+      `forward false 0xab123cd1231255ab45323de234223422a12312321abaceff (
       grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE
     )`,
     ]);
     const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
     const error = new CommandError(
       c,
-      `${commaListItems(invalidAddresses)} are not valid forwarder address`,
+      `<forwarders> must be a valid address, got false`,
     );
     await expectThrowAsync(() => interpreter.interpret(), error);
   });
