@@ -1,3 +1,4 @@
+import type { ParseDiagnostic } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
@@ -14,7 +15,8 @@ export default function TerminalEditor() {
   const monaco = useMonaco();
 
   const { script } = useTerminalStore();
-  const { evm, commandKeywords, helperKeywords } = useEditorState(script);
+  const { evm, debouncedScript, commandKeywords, helperKeywords } =
+    useEditorState(script);
 
   // Keep a ref so the completion closure always sees the latest script
   const scriptRef = useRef(script);
@@ -77,6 +79,29 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
+  // Inline diagnostics — show parse errors as markers
+  useEffect(() => {
+    if (!monaco) return;
+
+    const model = monaco.editor.getModels()[0];
+    if (!model) return;
+
+    const diagnostics = evm.getDiagnostics(debouncedScript);
+
+    monaco.editor.setModelMarkers(
+      model,
+      "evml",
+      diagnostics.map((d: ParseDiagnostic) => ({
+        startLineNumber: d.line,
+        startColumn: d.col + 1,
+        endLineNumber: d.line,
+        endColumn: model.getLineLength(d.line) + 1,
+        message: d.message,
+        severity: monaco.MarkerSeverity.Error,
+      })),
+    );
+  }, [monaco, evm, debouncedScript]);
+
   function handleBeforeMountEditor(monaco: Monaco) {
     monaco.editor.defineTheme("theme", theme);
     monaco.languages.register(contribution);
@@ -111,6 +136,16 @@ export default function TerminalEditor() {
           useShadows: false,
           verticalScrollbarSize: 7,
           vertical: "hidden",
+        },
+        bracketPairColorization: {
+          enabled: true,
+        },
+        guides: {
+          bracketPairs: true,
+          indentation: true,
+        },
+        stickyScroll: {
+          enabled: true,
         },
       }}
     />

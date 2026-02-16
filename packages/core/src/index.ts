@@ -100,6 +100,7 @@ export {
   resolveCommand,
   resolveHelper,
 } from "@evmcrispr/sdk";
+export type { ParseDiagnostic } from "./EVMcrispr";
 export { EVMcrispr } from "./EVMcrispr";
 export { EvmlAST } from "./EvmlAST";
 export { parseScript, scriptParser } from "./parsers/script";

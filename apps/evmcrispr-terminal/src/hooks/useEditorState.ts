@@ -23,6 +23,7 @@ export function useEditorState(script: string) {
 
   return {
     evm,
+    debouncedScript,
     commandKeywords: keywords.commands,
     helperKeywords: keywords.helpers,
   };

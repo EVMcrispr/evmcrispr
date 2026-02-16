@@ -48,6 +48,32 @@ import {
 } from "./completions";
 import { parseScript } from "./parsers/script";
 
+// ---------------------------------------------------------------------------
+// Diagnostics
+// ---------------------------------------------------------------------------
+
+export type ParseDiagnostic = {
+  /** 1-indexed line number. */
+  line: number;
+  /** 0-indexed column offset. */
+  col: number;
+  message: string;
+  severity: "error" | "warning";
+};
+
+/** Extract structured data from a parser error string.
+ *  Format produced by `buildParserError`: `Type(line:col): message` */
+function parseDiagnosticString(error: string): ParseDiagnostic | null {
+  const match = error.match(/^\w+\((\d+):(\d+)\):\s*(.+)$/);
+  if (!match) return null;
+  return {
+    line: Number(match[1]),
+    col: Number(match[2]),
+    message: match[3],
+    severity: "error",
+  };
+}
+
 const {
   AddressLiteral,
   BoolLiteral,
@@ -297,7 +323,7 @@ export class EVMcrispr {
   }
 
   // ---------------------------------------------------------------------------
-  // Public API: interpret, getCompletions, getKeywords
+  // Public API: interpret, getCompletions, getKeywords, getDiagnostics
   // ---------------------------------------------------------------------------
 
   async interpret(
@@ -353,6 +379,19 @@ export class EVMcrispr {
   ): Promise<{ commands: string[]; helpers: string[] }> {
     await this.#ensureModuleCachePopulated();
     return getKeywordsImpl(script, this.#moduleCache);
+  }
+
+  /** Return parse diagnostics (errors) for the given script.
+   *  This is synchronous and does not require module data. */
+  getDiagnostics(script: string): ParseDiagnostic[] {
+    try {
+      const { errors } = parseScript(script);
+      return errors
+        .map(parseDiagnosticString)
+        .filter((d): d is ParseDiagnostic => d !== null);
+    } catch {
+      return [];
+    }
   }
 
   /** Flush the helper result cache.  Call after a transaction is executed. */
