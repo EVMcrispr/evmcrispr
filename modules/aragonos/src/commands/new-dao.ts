@@ -38,8 +38,11 @@ const registerAragonId = async (
 
 export default defineCommand<AragonOS>({
   name: "new-dao",
-  args: [{ name: "daoName", type: "string" }],
-  async run(module, { daoName }) {
+  args: [
+    { name: "variable", type: "variable" },
+    { name: "daoName", type: "string" },
+  ],
+  async run(module, { variable, daoName }) {
     const provider = await module.getClient();
 
     const bareTemplateRepoAddr: Address = (await _aragonEns(
@@ -72,9 +75,12 @@ export default defineCommand<AragonOS>({
     const newDaoAddress = getContractAddress({ from: daoFactory, nonce });
 
     module.bindingsManager.setBinding(
-      `_${daoName}`,
+      variable,
       newDaoAddress,
-      BindingsSpace.ADDR,
+      BindingsSpace.USER,
+      true,
+      undefined,
+      true,
     );
 
     let registerAragonIdActions: Action[] = [];

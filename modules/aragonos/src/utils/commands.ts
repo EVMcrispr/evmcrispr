@@ -6,7 +6,6 @@ import type {
   NodeInterpreter,
 } from "@evmcrispr/sdk";
 import {
-  BindingsSpace,
   ErrorException,
   getOptValue,
   listItems,
@@ -21,8 +20,7 @@ import {
   parsePrefixedDAOIdentifier,
 } from "./identifiers";
 import { normalizeRole } from "./normalizers";
-
-const { DATA_PROVIDER } = BindingsSpace;
+import { findCompletionDAO, getDAOs } from "./completion";
 
 export const DAO_OPT_NAME = "dao";
 
@@ -80,17 +78,14 @@ export const getModuleDAOByOption = async (
   return dao;
 };
 
-// --- Completions / eager execution path: uses DATA_PROVIDER bindings ---
-// These will be removed when the completions system is refactored to
-// pass module instances.
+// --- Completions / eager execution path: uses WeakMap-backed DAO stack ---
 
 export const getDAO = (
   bindingsManager: BindingsManager,
   appNode: Node,
 ): AragonDAO => {
-  let dao = bindingsManager.getBindingValue("currentDAO", DATA_PROVIDER) as
-    | AragonDAO
-    | undefined;
+  const daos = getDAOs(bindingsManager);
+  let dao: AragonDAO | undefined = daos[0];
 
   if (appNode.type === NodeType.Bareword) {
     const res = parseDaoPrefixedIdentifier(appNode.value);
@@ -98,9 +93,7 @@ export const getDAO = (
     if (res?.[0]) {
       const [daoIdentifier] = res;
 
-      dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
-        | AragonDAO
-        | undefined;
+      dao = findCompletionDAO(bindingsManager, daoIdentifier);
       if (!dao) {
         throw new ErrorException(
           `couldn't found a DAO for ${daoIdentifier} on given identifier ${appNode.value}`,
@@ -126,10 +119,8 @@ export const getDAOByOption = async (
   let dao: AragonDAO | undefined;
 
   if (!daoIdentifier) {
-    dao = bindingsManager.getBindingValue(
-      "currentDAO",
-      DATA_PROVIDER,
-    ) as AragonDAO;
+    const daos = getDAOs(bindingsManager);
+    dao = daos[0];
     if (!dao) {
       throw new ErrorException(`must be used within a "connect" command`);
     }
@@ -137,9 +128,7 @@ export const getDAOByOption = async (
     daoIdentifier = daoIdentifier.toString
       ? daoIdentifier.toString()
       : daoIdentifier;
-    dao = bindingsManager.getBindingValue(daoIdentifier, DATA_PROVIDER) as
-      | AragonDAO
-      | undefined;
+    dao = findCompletionDAO(bindingsManager, daoIdentifier);
     if (!dao) {
       throw new ErrorException(
         `--dao option error. No DAO found for identifier ${daoIdentifier}`,

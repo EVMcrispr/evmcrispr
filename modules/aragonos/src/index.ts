@@ -1,7 +1,6 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import {
   addressesEqual,
-  BindingsSpace,
   defineModule,
   ErrorNotFound,
 } from "@evmcrispr/sdk";
@@ -94,7 +93,6 @@ export default class AragonOS extends defineModule(
     );
 
     const addr = getContractAddress({ from: kernel.address, nonce });
-    this.bindingsManager.setBinding(identifier, addr, BindingsSpace.ADDR);
     return addr;
   }
 }

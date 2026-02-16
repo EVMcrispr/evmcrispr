@@ -1,7 +1,4 @@
-import type { BindingsManager } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorInvalid } from "@evmcrispr/sdk";
-import type { Address } from "viem";
-import { isAddress } from "viem";
+import { ErrorInvalid } from "@evmcrispr/sdk";
 import type { App, AppIdentifier, LabeledAppIdentifier } from "../types";
 
 const DEFAULT_REGISTRY = "aragonpm.eth";
@@ -134,23 +131,6 @@ export const parsePrefixedDAOIdentifier = (
 
   return [undefined, identifier];
 };
-
-export function getDaoAddrFromIdentifier(
-  identifier: string,
-  bindingsManager: BindingsManager,
-): Address | undefined | null {
-  if (identifier.startsWith("_")) {
-    const [daoPrefix] = parsePrefixedDAOIdentifier(identifier);
-    if (isAddress(daoPrefix!)) {
-      return daoPrefix;
-    } else {
-      return bindingsManager.getBindingValue(
-        `_${daoPrefix}:kernel`,
-        BindingsSpace.ADDR,
-      );
-    }
-  }
-}
 
 export const createDaoPrefixedIdentifier = (
   appIdentifier: AppIdentifier | LabeledAppIdentifier,

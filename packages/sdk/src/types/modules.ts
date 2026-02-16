@@ -149,11 +149,6 @@ export interface ModuleExports<T extends Module = Module> {
   helpers: HelperFunctions<T>;
 }
 
-export interface IDataProvider {
-  readonly type: string;
-  clone(): IDataProvider;
-}
-
 export interface IModuleConstructor {
   new (context: ModuleContext, alias?: string): Module;
 }

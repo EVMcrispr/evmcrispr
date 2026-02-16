@@ -7,85 +7,49 @@ import {
 } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { isAddress } from "viem";
-import { AragonDAO, isAragonDAO } from "./AragonDAO";
+import { AragonDAO } from "./AragonDAO";
 import { _aragonEns } from "./helpers/aragonEns";
-import type { App, AppIdentifier } from "./types";
+import type { App } from "./types";
 import {
-  formatAppIdentifier,
   getDAOAppIdentifiers,
-  INITIAL_APP_INDEX,
   isAppIdentifier,
   isLabeledAppIdentifier,
   parsePrefixedDAOIdentifier,
 } from "./utils";
+import {
+  getCachedDAO,
+  pushCompletionDAO,
+  setCachedDAO,
+} from "./utils/completion";
 
-const { ABI, ADDR, DATA_PROVIDER } = BindingsSpace;
+const { ABI } = BindingsSpace;
 
 const isRepoIdentifier = (value: string): boolean => {
   const [, rest] = parsePrefixedDAOIdentifier(value);
   return isAppIdentifier(rest) || isLabeledAppIdentifier(rest);
 };
 
-const buildAppBindings = (
-  appIdentifier: AppIdentifier,
-  app: App,
-  _dao: AragonDAO,
-): Binding[] => {
+const buildAbiBindings = (dao: AragonDAO): Binding[] => {
   const bindings: Binding[] = [];
-  const finalAppIdentifier = formatAppIdentifier(appIdentifier);
+  const seen = new Set<string>();
 
-  if (appIdentifier.endsWith(INITIAL_APP_INDEX)) {
-    bindings.push({
-      type: ADDR,
-      identifier: appIdentifier,
-      value: app.address,
-    });
-  }
+  dao.appCache.forEach((app) => {
+    if (!seen.has(app.address)) {
+      seen.add(app.address);
+      bindings.push({ type: ABI, identifier: app.address, value: app.abi });
+    }
 
-  bindings.push({
-    type: ADDR,
-    identifier: finalAppIdentifier,
-    value: app.address,
+    if (app.codeAddress && !seen.has(app.codeAddress)) {
+      seen.add(app.codeAddress);
+      bindings.push({
+        type: ABI,
+        identifier: app.codeAddress,
+        value: app.abi,
+      });
+    }
   });
-
-  bindings.push({
-    type: ABI,
-    identifier: app.address,
-    value: app.abi,
-  });
-
-  if (app.codeAddress) {
-    bindings.push({
-      type: ABI,
-      identifier: app.codeAddress,
-      value: app.abi,
-    });
-  }
 
   return bindings;
-};
-
-const buildDAOBindings = (dao: AragonDAO): Binding[] => {
-  const daoBindings: Binding[] = [];
-
-  // DATA_PROVIDER for DAO tracking
-  daoBindings.push({
-    type: DATA_PROVIDER,
-    identifier: dao.name ?? dao.kernel.address,
-    value: dao,
-  });
-  daoBindings.push({
-    type: DATA_PROVIDER,
-    identifier: "currentDAO",
-    value: dao,
-  });
-
-  dao.appCache.forEach((app, appIdentifier) => {
-    const appBindings = buildAppBindings(appIdentifier, app, dao);
-    daoBindings.push(...appBindings);
-  });
-
-  return daoBindings;
 };
 
 export const types: CustomArgTypes = {
@@ -99,10 +63,11 @@ export const types: CustomArgTypes = {
     },
     async resolve(rawValue, ctx) {
       // Check cache first
-      const cached = ctx.cache.getBinding(rawValue, DATA_PROVIDER);
-      if (cached?.value && isAragonDAO(cached.value)) {
-        const clonedDAO = cached.value.clone();
-        return buildDAOBindings(clonedDAO);
+      const cached = getCachedDAO(ctx.cache, rawValue);
+      if (cached) {
+        const clonedDAO = cached.clone();
+        pushCompletionDAO(ctx.bindings, clonedDAO);
+        return buildAbiBindings(clonedDAO);
       }
 
       // Create DAO
@@ -127,9 +92,12 @@ export const types: CustomArgTypes = {
         );
 
         // Cache the DAO
-        ctx.cache.setBinding(rawValue, dao.clone(), DATA_PROVIDER);
+        setCachedDAO(ctx.cache, rawValue, dao.clone());
 
-        return buildDAOBindings(dao);
+        // Track DAO for completions
+        pushCompletionDAO(ctx.bindings, dao);
+
+        return buildAbiBindings(dao);
       } catch {
         return [];
       }

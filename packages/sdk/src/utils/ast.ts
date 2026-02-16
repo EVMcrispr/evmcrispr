@@ -132,9 +132,7 @@ export const interpretNodeSync = (
     case NumberLiteral:
       return isAddress(n.value) ? n.value : undefined;
     case Bareword:
-      return (
-        bindingsManager.getBindingValue(n.value, BindingsSpace.ADDR) ?? n.value
-      );
+      return n.value;
     case VariableIdentifier: {
       const value = bindingsManager.getBindingValue(
         n.value,

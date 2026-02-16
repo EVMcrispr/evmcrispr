@@ -31,7 +31,7 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
       `
       load aragonos --as ar
 
-      ar:new-dao ${daoName}
+      ar:new-dao $dao ${daoName}
     `,
       client,
     );
@@ -60,10 +60,7 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
 
     expect(
       addressesEqual(
-        aragonos.bindingsManager.getBindingValue(
-          `_${daoName}`,
-          BindingsSpace.ADDR,
-        )!,
+        aragonos.bindingsManager.getBindingValue("dao", BindingsSpace.USER)!,
         newDAOAddress,
       ),
       "new DAO binding mismatch",

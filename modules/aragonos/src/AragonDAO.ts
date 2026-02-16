@@ -1,4 +1,4 @@
-import type { Address, IDataProvider, IPFSResolver } from "@evmcrispr/sdk";
+import type { Address, IPFSResolver } from "@evmcrispr/sdk";
 import { AddressMap } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { getContractAddress, isAddress } from "viem";
@@ -22,12 +22,6 @@ import {
   normalizeRole,
   resolveIdentifier,
 } from "./utils";
-
-export const DATA_PROVIDER_TYPE = "ARAGONOS_DAO";
-
-export const isAragonDAO = (
-  dataProvider: IDataProvider,
-): dataProvider is AragonDAO => dataProvider.type === DATA_PROVIDER_TYPE;
 
 async function buildAppArtifactCache(
   apps: ParsedApp[],
@@ -113,8 +107,7 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
   return appCache;
 }
 
-export class AragonDAO implements IDataProvider {
-  type: string;
+export class AragonDAO {
   #appCache: AppCache;
   #appArtifactCache: AppArtifactCache;
   #name?: string;
@@ -126,7 +119,6 @@ export class AragonDAO implements IDataProvider {
     nestingIndex: number,
     name?: string,
   ) {
-    this.type = DATA_PROVIDER_TYPE;
     this.#appCache = appCache;
     this.#appArtifactCache = appArtifactCache;
     this.#name = name;

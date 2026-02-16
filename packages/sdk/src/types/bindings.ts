@@ -1,14 +1,12 @@
 import type { AstSymbol } from "jsymbol";
 
 import type { ArgType, CustomArgTypes } from "../utils/schema";
-import type { Abi, Address } from ".";
-import type { Commands, HelperFunctions, IDataProvider } from "./modules";
+import type { Abi } from ".";
+import type { Commands, HelperFunctions } from "./modules";
 
 export enum BindingsSpace {
   USER = "USER",
-  ADDR = "ADDR",
   ABI = "ABI",
-  DATA_PROVIDER = "DATA_PROVIDER",
   MODULE = "MODULE",
 }
 
@@ -39,10 +37,6 @@ export type ModuleData = {
   alias?: string;
 };
 
-export interface AddressBinding extends IBinding<Address> {
-  type: BindingsSpace.ADDR;
-}
-
 export interface AbiBinding extends IBinding<Abi> {
   type: BindingsSpace.ABI;
 }
@@ -55,17 +49,7 @@ export interface UserBinding extends IBinding<string> {
   type: BindingsSpace.USER;
 }
 
-export interface DataProviderBinding<T extends IDataProvider = IDataProvider>
-  extends IBinding<T> {
-  type: BindingsSpace.DATA_PROVIDER;
-}
-
-export type Binding =
-  | AddressBinding
-  | AbiBinding
-  | ModuleBinding
-  | UserBinding
-  | DataProviderBinding;
+export type Binding = AbiBinding | ModuleBinding | UserBinding;
 
 export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
   value: null | B["value"];
@@ -74,25 +58,17 @@ export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
 export type RelativeBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
     ? AbiBinding
-    : B extends BindingsSpace.ADDR
-      ? AddressBinding
-      : B extends BindingsSpace.MODULE
-        ? ModuleBinding
-        : B extends BindingsSpace.DATA_PROVIDER
-          ? DataProviderBinding
-          : B extends BindingsSpace.USER
-            ? UserBinding
-            : unknown;
+    : B extends BindingsSpace.MODULE
+      ? ModuleBinding
+      : B extends BindingsSpace.USER
+        ? UserBinding
+        : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
     ? NullableBinding<AbiBinding>
-    : B extends BindingsSpace.ADDR
-      ? NullableBinding<AddressBinding>
-      : B extends BindingsSpace.MODULE
-        ? NullableBinding<ModuleBinding>
-        : B extends BindingsSpace.DATA_PROVIDER
-          ? NullableBinding<DataProviderBinding>
-          : B extends BindingsSpace.USER
-            ? NullableBinding<UserBinding>
-            : any;
+    : B extends BindingsSpace.MODULE
+      ? NullableBinding<ModuleBinding>
+      : B extends BindingsSpace.USER
+        ? NullableBinding<UserBinding>
+        : any;

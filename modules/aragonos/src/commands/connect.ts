@@ -17,13 +17,8 @@ import { isAddress } from "viem";
 import type AragonOS from "..";
 import { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
-import {
-  createDaoPrefixedIdentifier,
-  formatAppIdentifier,
-  INITIAL_APP_INDEX,
-} from "../utils";
 
-const { ABI, ADDR } = BindingsSpace;
+const { ABI } = BindingsSpace;
 
 const createDAO = async (
   daoAddressOrName: Address | string,
@@ -68,51 +63,19 @@ const createDAO = async (
   );
 };
 
-const buildDAOBindings = (
-  dao: AragonDAO,
-  addPrefixedBindings = true,
-  omitRedudantIdentifier = false,
-): Binding[] => {
-  const daoBindings: Binding[] = [];
+const buildAbiBindings = (dao: AragonDAO): Binding[] => {
+  const bindings: Binding[] = [];
+  const seen = new Set<string>();
 
-  dao.appCache.forEach((app, appIdentifier) => {
-    const finalAppIdentifier = formatAppIdentifier(appIdentifier);
-    const bindingIdentifiers: string[] = [];
-
-    if (!omitRedudantIdentifier && appIdentifier.endsWith(INITIAL_APP_INDEX)) {
-      bindingIdentifiers.push(appIdentifier);
+  dao.appCache.forEach((app) => {
+    if (!seen.has(app.address)) {
+      seen.add(app.address);
+      bindings.push({ type: ABI, identifier: app.address, value: app.abi });
     }
 
-    bindingIdentifiers.push(finalAppIdentifier);
-
-    if (addPrefixedBindings) {
-      bindingIdentifiers.push(
-        createDaoPrefixedIdentifier(
-          finalAppIdentifier,
-          dao.name ?? dao.kernel.address,
-        ),
-      );
-    }
-
-    for (const identifier of bindingIdentifiers) {
-      daoBindings.push({
-        type: ADDR,
-        identifier,
-        value: app.address,
-      });
-    }
-    daoBindings.push({
-      type: ABI,
-      identifier: app.address,
-      value: app.abi,
-    });
-
-    if (
-      !daoBindings.find(
-        (b) => b.identifier === app.codeAddress && b.type === ABI,
-      )
-    ) {
-      daoBindings.push({
+    if (app.codeAddress && !seen.has(app.codeAddress)) {
+      seen.add(app.codeAddress);
+      bindings.push({
         type: ABI,
         identifier: app.codeAddress,
         value: app.abi,
@@ -120,22 +83,13 @@ const buildDAOBindings = (
     }
   });
 
-  return daoBindings;
+  return bindings;
 };
 
 const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
   return async () => {
-    const bindingsManager = aragonos.bindingsManager;
-
     aragonos.pushDAO(dao);
-
-    const daoBindings = buildDAOBindings(dao);
-
-    const nonAbiBindings = daoBindings.filter((b) => b.type !== ABI);
-    const abiBindings = daoBindings.filter((b) => b.type === ABI);
-
-    bindingsManager.setBindings(nonAbiBindings);
-    bindingsManager.trySetBindings(abiBindings);
+    aragonos.bindingsManager.trySetBindings(buildAbiBindings(dao));
   };
 };
 
