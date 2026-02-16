@@ -44,6 +44,7 @@ export type {
   EnclosingNodeParser,
   EventCaptureBinding,
   EventCaptureNode,
+  HelperArgDefEntry,
   HelperFunction,
   HelperFunctionNode,
   HelperFunctions,

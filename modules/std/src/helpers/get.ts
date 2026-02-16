@@ -12,7 +12,7 @@ export default defineHelper<Std>({
   args: [
     { name: "address", type: "address" },
     { name: "abi", type: "string" },
-    { name: "params", type: "any", rest: true },
+    { name: "params", type: "any", rest: true, signatureArgIndex: 1 },
   ],
   async run(module, { address, abi, params }) {
     const [body, returns, index] = abi.split(":");

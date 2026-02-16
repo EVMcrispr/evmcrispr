@@ -15,12 +15,12 @@ import { isAddress } from "viem";
 import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import type { App, CompletePermission, PermissionMap, Role } from "../types";
+import { findCompletionDAO, getDAOs } from "./completion";
 import {
   optionalLabeledAppIdentifierRegex,
   parsePrefixedDAOIdentifier,
 } from "./identifiers";
 import { normalizeRole } from "./normalizers";
-import { findCompletionDAO, getDAOs } from "./completion";
 
 export const DAO_OPT_NAME = "dao";
 

@@ -5,6 +5,7 @@ import type {
   CommandExpressionNode,
   CommandFunction,
   Commands,
+  HelperArgDefEntry,
   HelperFunction,
   HelperFunctionNode,
   HelperFunctions,
@@ -20,6 +21,7 @@ export abstract class Module {
   readonly helpers: HelperFunctions<any>;
   readonly helperReturnTypes: Record<string, ArgType>;
   readonly helperHasArgs: Record<string, boolean>;
+  readonly helperArgDefs: Record<string, HelperArgDefEntry[]>;
   readonly constants: Record<string, string>;
   readonly types: CustomArgTypes;
   readonly context: ModuleContext;
@@ -31,6 +33,7 @@ export abstract class Module {
     helpers: HelperFunctions<any>,
     helperReturnTypes: Record<string, ArgType>,
     helperHasArgs: Record<string, boolean>,
+    helperArgDefs: Record<string, HelperArgDefEntry[]>,
     constants: Record<string, string>,
     types: CustomArgTypes,
     context: ModuleContext,
@@ -41,6 +44,7 @@ export abstract class Module {
     this.helpers = helpers;
     this.helperReturnTypes = helperReturnTypes;
     this.helperHasArgs = helperHasArgs;
+    this.helperArgDefs = helperArgDefs;
     this.constants = constants;
     this.types = types;
     this.context = context;

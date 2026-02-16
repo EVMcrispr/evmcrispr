@@ -133,11 +133,23 @@ export type CommandImportMap = Record<
   () => Promise<{ default: ICommand<any> }>
 >;
 
+/** Simplified arg definition stored in import metadata (no functions). */
+export type HelperArgDefEntry = {
+  name: string;
+  type: string;
+  optional?: boolean;
+  rest?: boolean;
+  /** For rest args: resolve effective type from the function signature in
+   *  the arg at this index (e.g. `1` means use `nodeArgs[1].value`). */
+  signatureArgIndex?: number;
+};
+
 /** Entry in a helper import map: lazy loader + optional metadata. */
 export type HelperImportEntry = {
   load: () => Promise<{ default: HelperFunction<any> }>;
   returnType?: ArgType;
   hasArgs?: boolean;
+  argDefs?: HelperArgDefEntry[];
 };
 
 /** Map of name -> helper import entry (loader + return type). */

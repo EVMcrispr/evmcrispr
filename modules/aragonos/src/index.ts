@@ -1,9 +1,5 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
-import {
-  addressesEqual,
-  defineModule,
-  ErrorNotFound,
-} from "@evmcrispr/sdk";
+import { addressesEqual, defineModule, ErrorNotFound } from "@evmcrispr/sdk";
 import { getContractAddress } from "viem";
 import { commands, helpers } from "./_generated";
 import type { AragonDAO } from "./AragonDAO";
@@ -76,7 +72,7 @@ export default class AragonOS extends defineModule(
   }
 
   async registerNextProxyAddress(
-    identifier: string,
+    _identifier: string,
     daoAddress: Address,
   ): Promise<Address> {
     const connectedDAO = this.getConnectedDAO(daoAddress);

@@ -2,6 +2,7 @@ import { Module } from "../Module";
 import type {
   CommandImportMap,
   Commands,
+  HelperArgDefEntry,
   HelperFunctions,
   HelperImportMap,
   IModuleConstructor,
@@ -18,6 +19,7 @@ function createModuleClass<M extends Module>(
   helpers: HelperFunctions<M>,
   helperReturnTypes: Record<string, ArgType>,
   helperHasArgs: Record<string, boolean>,
+  helperArgDefs: Record<string, HelperArgDefEntry[]>,
   types: CustomArgTypes = {},
   constants: Record<string, string> = {},
 ): IModuleConstructor {
@@ -29,6 +31,7 @@ function createModuleClass<M extends Module>(
         helpers,
         helperReturnTypes,
         helperHasArgs,
+        helperArgDefs,
         constants,
         types,
         context,
@@ -76,6 +79,7 @@ export function defineModule(
 
   const helperReturnTypes: Record<string, ArgType> = {};
   const helperHasArgs: Record<string, boolean> = {};
+  const helperArgDefsMap: Record<string, HelperArgDefEntry[]> = {};
   if (helperImports) {
     for (const [k, entry] of Object.entries(helperImports)) {
       if (entry.returnType) {
@@ -83,6 +87,9 @@ export function defineModule(
       }
       if (entry.hasArgs !== undefined) {
         helperHasArgs[k] = entry.hasArgs;
+      }
+      if (entry.argDefs) {
+        helperArgDefsMap[k] = entry.argDefs;
       }
     }
   }
@@ -93,6 +100,7 @@ export function defineModule(
     helpers,
     helperReturnTypes,
     helperHasArgs,
+    helperArgDefsMap,
     types ?? {},
     constants ?? {},
   );

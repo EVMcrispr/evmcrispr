@@ -350,8 +350,7 @@ describe("Completions – aragonos commands", () => {
       const items = await evm.getCompletions(script, pos(script, line));
       const fieldItems = onlyKind(items, "field");
       const fnLabels = labels(fieldItems);
-      expect(fnLabels.some((l) => l.startsWith("createPermission"))).to.be
-        .true;
+      expect(fnLabels.some((l) => l.startsWith("createPermission"))).to.be.true;
       expect(fnLabels.some((l) => l.startsWith("grantPermission"))).to.be.true;
     });
 
@@ -363,15 +362,12 @@ describe("Completions – aragonos commands", () => {
     });
 
     it("act <agent> <known-app-address> <cursor> should show ABI function signatures", async () => {
-      const { script, line } = inConnect(
-        `act ${DAO.agent} ${DAO.acl} `,
-      );
+      const { script, line } = inConnect(`act ${DAO.agent} ${DAO.acl} `);
       const items = await evm.getCompletions(script, pos(script, line));
       const fieldItems = onlyKind(items, "field");
       expect(fieldItems.length).to.be.greaterThan(0);
-      expect(
-        labels(fieldItems).some((l) => l.startsWith("createPermission")),
-      ).to.be.true;
+      expect(labels(fieldItems).some((l) => l.startsWith("createPermission")))
+        .to.be.true;
     });
   });
 

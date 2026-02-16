@@ -19,7 +19,7 @@ export default defineCommand<AragonOS>({
   ],
   opts: [
     { name: "context", type: "string" },
-    { name: "check-forwarder", type: "string" },
+    { name: "check-forwarder", type: "bool" },
   ],
   async run(module, { forwarders = [], block }, { opts, interpreters }) {
     const { interpretNode } = interpreters;

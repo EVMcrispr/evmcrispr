@@ -44,6 +44,10 @@ export interface ArgDef {
   rest?: boolean;
   /** Dynamically resolve the effective type at completion time. */
   resolveType?: (ctx: CompletionContext) => ArgType;
+  /** For rest args: resolve effective type from the function signature in
+   *  the arg at this index (e.g. `1` means use `nodeArgs[1].value`).
+   *  Declarative alternative to `resolveType`. */
+  signatureArgIndex?: number;
 }
 
 export interface OptDef {
@@ -121,7 +125,21 @@ export function completionsForType(
         .filter(
           (b) => typeof b.value === "string" && isAddress(b.value as string),
         )
-        .map((b) => fieldItem(b.identifier));
+        .map((b) => variableItem(b.identifier));
+    case "number":
+      return ctx.bindings
+        .getAllBindings({ spaceFilters: [BindingsSpace.USER] })
+        .filter((b) => {
+          const v = b.value;
+          if (typeof v === "bigint") return true;
+          if (typeof v === "string") return isNumberish(v);
+          // Unresolved AST node: accept NumberLiteral
+          if (v && typeof v === "object" && "type" in v) {
+            return (v as { type: string }).type === "NumberLiteral";
+          }
+          return false;
+        })
+        .map((b) => variableItem(b.identifier));
     case "bool":
       return [fieldItem("true"), fieldItem("false")];
     case "block":

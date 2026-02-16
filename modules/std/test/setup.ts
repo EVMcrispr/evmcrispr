@@ -4,17 +4,16 @@ import {
   HttpResponse,
   http,
 } from "@evmcrispr/test-utils/msw/server";
-import tokenList from "./fixtures/tokenlist/uniswap.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
+import tokenList from "./fixtures/tokenlist/uniswap.json";
 
 registerAllModules();
 
 // Std-specific MSW handlers
 const stdHandlers = [
   http.get("https://tokens.uniswap.org/", () => HttpResponse.json(tokenList)),
-  http.get(
-    "https://evmcrispr-api.fermyon.app/tokenlist/:chainId",
-    () => HttpResponse.json(tokenList),
+  http.get("https://evmcrispr-api.fermyon.app/tokenlist/:chainId", () =>
+    HttpResponse.json(tokenList),
   ),
   http.get(
     "https://evmcrispr-api.fermyon.app/abi/:chainId/:address",

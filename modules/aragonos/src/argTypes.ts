@@ -10,7 +10,6 @@ import type { Address } from "viem";
 import { isAddress } from "viem";
 import { AragonDAO } from "./AragonDAO";
 import { _aragonEns } from "./helpers/aragonEns";
-import type { App } from "./types";
 import {
   getDAOAppIdentifiers,
   isAppIdentifier,

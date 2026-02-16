@@ -47,10 +47,7 @@ export function findCompletionDAO(
   const lower = identifier.toLowerCase();
   for (let i = stack.length - 1; i >= 0; i--) {
     const dao = stack[i];
-    if (
-      dao.name === identifier ||
-      dao.kernel.address.toLowerCase() === lower
-    ) {
+    if (dao.name === identifier || dao.kernel.address.toLowerCase() === lower) {
       return dao;
     }
   }

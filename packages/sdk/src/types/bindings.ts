@@ -2,7 +2,7 @@ import type { AstSymbol } from "jsymbol";
 
 import type { ArgType, CustomArgTypes } from "../utils/schema";
 import type { Abi } from ".";
-import type { Commands, HelperFunctions } from "./modules";
+import type { Commands, HelperArgDefEntry, HelperFunctions } from "./modules";
 
 export enum BindingsSpace {
   USER = "USER",
@@ -33,6 +33,8 @@ export type ModuleData = {
   helperReturnTypes?: Record<string, ArgType>;
   /** Whether each helper accepts arguments (keyed by helper name). */
   helperHasArgs?: Record<string, boolean>;
+  /** Argument definitions for each helper (keyed by helper name). */
+  helperArgDefs?: Record<string, HelperArgDefEntry[]>;
   types?: CustomArgTypes;
   /** When a module is loaded with `--as`, the alias is stored here. */
   alias?: string;

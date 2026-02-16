@@ -23,18 +23,54 @@ function getNames(dir: string): string[] {
     .sort();
 }
 
+interface ArgDefMeta {
+  name: string;
+  type: string;
+  optional?: boolean;
+  rest?: boolean;
+  signatureArgIndex?: number;
+}
+
 interface HelperMeta {
   returnType: string | null;
   hasArgs: boolean;
+  argDefs: ArgDefMeta[];
+}
+
+function extractArgDefs(content: string): ArgDefMeta[] {
+  const argsMatch = content.match(/args:\s*\[([\s\S]*?)\],/);
+  if (!argsMatch || !argsMatch[1].trim()) return [];
+
+  const argsContent = argsMatch[1];
+  const result: ArgDefMeta[] = [];
+  const objRegex = /\{([^}]+)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = objRegex.exec(argsContent)) !== null) {
+    const obj = m[1];
+    const nameMatch = obj.match(/name:\s*["']([^"']+)["']/);
+    const typeMatch = obj.match(/type:\s*["']([^"']+)["']/);
+    if (!nameMatch || !typeMatch) continue;
+
+    const arg: ArgDefMeta = { name: nameMatch[1], type: typeMatch[1] };
+    if (/optional:\s*true/.test(obj)) arg.optional = true;
+    if (/rest:\s*true/.test(obj)) arg.rest = true;
+    const sigArgIdxMatch = obj.match(/signatureArgIndex:\s*(\d+)/);
+    if (sigArgIdxMatch) arg.signatureArgIndex = parseInt(sigArgIdxMatch[1], 10);
+    result.push(arg);
+  }
+
+  return result;
 }
 
 function extractHelperMeta(dir: string, name: string): HelperMeta {
   const filePath = join(dir, `${name}.ts`);
-  if (!existsSync(filePath)) return { returnType: null, hasArgs: false };
+  if (!existsSync(filePath))
+    return { returnType: null, hasArgs: false, argDefs: [] };
   const content = readFileSync(filePath, "utf-8");
   const rtMatch = content.match(/returnType:\s*["']([^"']+)["']/);
-  const hasArgs = !/args:\s*\[\s*\]/.test(content);
-  return { returnType: rtMatch?.[1] ?? null, hasArgs };
+  const argDefs = extractArgDefs(content);
+  const hasArgs = argDefs.length > 0;
+  return { returnType: rtMatch?.[1] ?? null, hasArgs, argDefs };
 }
 
 const commandNames = getNames(commandsDir);
@@ -76,6 +112,22 @@ if (helperNames.length > 0) {
     if (meta.returnType)
       parts.push(`returnType: ${JSON.stringify(meta.returnType)}`);
     parts.push(`hasArgs: ${meta.hasArgs}`);
+    if (meta.argDefs.length > 0) {
+      const defsStr = meta.argDefs
+        .map((a) => {
+          const props: string[] = [
+            `name: ${JSON.stringify(a.name)}`,
+            `type: ${JSON.stringify(a.type)}`,
+          ];
+          if (a.optional) props.push("optional: true");
+          if (a.rest) props.push("rest: true");
+          if (a.signatureArgIndex != null)
+            props.push(`signatureArgIndex: ${a.signatureArgIndex}`);
+          return `{ ${props.join(", ")} }`;
+        })
+        .join(", ");
+      parts.push(`argDefs: [${defsStr}]`);
+    }
     lines.push(
       `  ${JSON.stringify(name)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
     );

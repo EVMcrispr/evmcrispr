@@ -3,6 +3,7 @@ import type {
   CommandExpressionNode,
   CompletionContext,
   CompletionItem,
+  HelperArgDefEntry,
   HelperFunctionNode,
   HelperResolver,
   ICommand,
@@ -20,6 +21,7 @@ import {
   interpretNodeSync,
   isBuiltinType,
   NodeType,
+  parseSignatureParamTypes,
   resolveCommand,
   variableItem,
 } from "@evmcrispr/sdk";
@@ -45,7 +47,7 @@ const nameToChainId: Record<string, number> = Object.entries(viemChains).reduce(
 /** Resolve a `switch` command's argument to a chain ID, or return undefined. */
 function resolveSwitchChainId(
   commandNode: CommandExpressionNode,
-  bindings: BindingsManager,
+  _bindings: BindingsManager,
 ): number | undefined {
   if (commandNode.name !== "switch") return undefined;
   const argNode = commandNode.args[0];
@@ -134,7 +136,11 @@ const removePossibleFollowingBlock = (
 
 const buildModuleCompletionItems = (
   bindings: BindingsManager,
-): { commandItems: CompletionItem[]; helperItems: CompletionItem[] } => {
+): {
+  commandItems: CompletionItem[];
+  helperItems: CompletionItem[];
+  helperArgDefsMap: Record<string, HelperArgDefEntry[]>;
+} => {
   const scopeModule = bindings.getScopeModule() ?? "std";
 
   const moduleBindings = bindings.getAllBindings({
@@ -152,6 +158,15 @@ const buildModuleCompletionItems = (
   const moduleAliases = dedupedBindings.map(
     ({ identifier, value }) => (value as any).alias ?? identifier,
   );
+
+  const helperArgDefsMap: Record<string, HelperArgDefEntry[]> = {};
+  for (const { value: mod } of dedupedBindings) {
+    if (mod.helperArgDefs) {
+      for (const [name, defs] of Object.entries(mod.helperArgDefs)) {
+        helperArgDefsMap[name] = defs;
+      }
+    }
+  }
 
   return {
     commandItems: dedupedBindings.flatMap(({ value: mod }, index) => {
@@ -185,6 +200,8 @@ const buildModuleCompletionItems = (
         };
       });
     }),
+
+    helperArgDefsMap,
   };
 };
 
@@ -453,7 +470,7 @@ export async function getCompletions(
   const currentLineContent = scriptLines[position.line - 1] ?? "";
 
   // Parse just the current line for partial/incomplete command support
-  let currentLineAST: EvmlAST;
+  let currentLineAST: EvmlAST | undefined;
   try {
     const result = parseScript(
       [
@@ -463,10 +480,13 @@ export async function getCompletions(
     );
     currentLineAST = result.ast;
   } catch {
-    return [];
+    // Current-line parse may fail when cursor is inside helper parens
+    // (the closing paren gets stripped). Fall through to use fullAST.
   }
 
-  let currentCommandNode = currentLineAST.getCommandAtLine(position.line);
+  let currentCommandNode =
+    currentLineAST?.getCommandAtLine(position.line) ??
+    fullAST.getCommandAtLine(position.line);
 
   // Fallback: if the parser couldn't produce a command node (e.g. because of
   // an incomplete --opt at the end of the line), strip the trailing opt text
@@ -482,6 +502,53 @@ export async function getCompletions(
         currentCommandNode = result.ast.getCommandAtLine(position.line);
       } catch {
         /* ignore – proceed without a command node */
+      }
+    }
+  }
+
+  // Fallback: if the cursor follows a trailing comma inside helper/call parens
+  // (e.g. "@token.amount(WXDAI, )"), the parser produces an empty AST. Inject
+  // a placeholder bareword at the cursor position so the parser succeeds.
+  if (!currentCommandNode) {
+    const textBeforeCursor = currentLineContent.slice(0, position.col);
+    const afterCursor = currentLineContent.slice(position.col);
+    if (/,\s*$/.test(textBeforeCursor) && /^\s*\)/.test(afterCursor)) {
+      try {
+        const patched = `${textBeforeCursor}_${afterCursor}`;
+        const result = parseScript(
+          [...Array(position.line - 1).map(() => ""), patched].join("\n"),
+        );
+        currentCommandNode = result.ast.getCommandAtLine(position.line);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  // Fallback: if the cursor is inside unclosed parentheses (user is still
+  // typing, no closing paren yet), try closing them.  Also insert a
+  // placeholder when the text ends with a trailing comma.
+  if (!currentCommandNode) {
+    const textBeforeCursor = currentLineContent.slice(0, position.col);
+    const afterCursor = currentLineContent.slice(position.col);
+    if (!afterCursor.includes(")")) {
+      const placeholder = /,\s*$/.test(textBeforeCursor) ? "_" : "";
+      let closers = "";
+      for (let i = 0; i < 5; i++) {
+        closers += ")";
+        const patched = textBeforeCursor + placeholder + closers + afterCursor;
+        try {
+          const result = parseScript(
+            [...Array(position.line - 1).map(() => ""), patched].join("\n"),
+          );
+          const cmd = result.ast.getCommandAtLine(position.line);
+          if (cmd) {
+            currentCommandNode = cmd;
+            break;
+          }
+        } catch {
+          /* try more close parens */
+        }
       }
     }
   }
@@ -565,7 +632,8 @@ export async function getCompletions(
   }
 
   // 4. Build completion items
-  const { commandItems, helperItems } = buildModuleCompletionItems(bindings);
+  const { commandItems, helperItems, helperArgDefsMap } =
+    buildModuleCompletionItems(bindings);
   const emptyLine = !currentLineContent.trim().length;
 
   const displayCommandSuggestions =
@@ -576,6 +644,65 @@ export async function getCompletions(
 
   if (displayCommandSuggestions) {
     return commandItems;
+  }
+
+  // 4b. If cursor is inside a helper's argument list, provide completions
+  //     based on the helper's own argDefs rather than the enclosing command's.
+  if (
+    currentCommandNode &&
+    "node" in deepestResult &&
+    deepestResult.node !== currentCommandNode &&
+    (deepestResult.node as any).type === NodeType.HelperFunctionExpression
+  ) {
+    const helperNode = deepestResult.node as unknown as HelperFunctionNode;
+    const argDefs = helperArgDefsMap[helperNode.name];
+    if (argDefs) {
+      const helperArgIndex = deepestResult.argIndex;
+      const argDef =
+        argDefs[helperArgIndex] ??
+        (argDefs.at(-1)?.rest ? argDefs.at(-1) : undefined);
+      if (argDef) {
+        let effectiveType = argDef.type;
+        if (argDef.signatureArgIndex != null) {
+          const sigNode = helperNode.args[argDef.signatureArgIndex];
+          if (sigNode?.value) {
+            const paramTypes = parseSignatureParamTypes(sigNode.value);
+            const paramIndex = helperArgIndex - (argDef.signatureArgIndex + 1);
+            effectiveType = paramTypes[paramIndex] ?? effectiveType;
+          }
+        }
+        const ctx: CompletionContext = {
+          argIndex: helperArgIndex,
+          nodeArgs: helperNode.args,
+          bindings,
+          position,
+          client: effectiveClient as PublicClient,
+          chainId,
+          cache: moduleCache,
+        };
+        const customTypes = collectCustomTypes(bindings);
+        const typeDrivenItems = await completionsForType(
+          effectiveType,
+          ctx,
+          customTypes,
+        );
+        const filteredHelpers = helperItems.filter((h) =>
+          isReturnTypeCompatible(h.returnType, effectiveType),
+        );
+        const includeVars =
+          isBuiltinType(effectiveType) &&
+          effectiveType !== "address" &&
+          effectiveType !== "number" &&
+          effectiveType !== "bool" &&
+          effectiveType !== "variable" &&
+          effectiveType !== "block";
+        const filteredVars = includeVars
+          ? buildVarCompletionItems(bindings, currentCommandNode, position)
+          : [];
+        return [...typeDrivenItems, ...filteredHelpers, ...filteredVars];
+      }
+    }
+    return [];
   }
 
   if (currentCommandNode) {
@@ -627,6 +754,8 @@ export async function getCompletions(
           );
           const includeVars =
             isBuiltinType(optDef.type) &&
+            optDef.type !== "address" &&
+            optDef.type !== "number" &&
             optDef.type !== "bool" &&
             optDef.type !== "variable" &&
             optDef.type !== "block";
@@ -675,6 +804,8 @@ export async function getCompletions(
 
         const includeVars =
           isBuiltinType(effectiveType) &&
+          effectiveType !== "address" &&
+          effectiveType !== "number" &&
           effectiveType !== "bool" &&
           effectiveType !== "variable" &&
           effectiveType !== "block";

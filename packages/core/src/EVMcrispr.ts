@@ -124,6 +124,7 @@ export class EVMcrispr {
         helpers: this.#std.helpers,
         helperReturnTypes: this.#std.helperReturnTypes,
         helperHasArgs: this.#std.helperHasArgs,
+        helperArgDefs: this.#std.helperArgDefs,
         types: this.#std.types,
       },
     };
@@ -175,6 +176,7 @@ export class EVMcrispr {
             helpers: instance.helpers,
             helperReturnTypes: instance.helperReturnTypes,
             helperHasArgs: instance.helperHasArgs,
+            helperArgDefs: instance.helperArgDefs,
             types: instance.types,
           },
           BindingsSpace.MODULE,

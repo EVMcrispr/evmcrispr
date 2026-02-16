@@ -4,6 +4,6 @@ module.exports = {
 
   // Lint and format TypeScript and JavaScript files
   "(apps|packages)/**/*.(ts|tsx|js)": (filenames) => [
-    `bunx biome check --write ${filenames.join(" ")}`,
+    `bunx biome check --write --unsafe ${filenames.join(" ")}`,
   ],
 };
