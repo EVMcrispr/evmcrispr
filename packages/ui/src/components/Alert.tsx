@@ -42,10 +42,9 @@ const AlertTitle = ({ className, ...props }: IAlertTitleProps) => (
 );
 AlertTitle.displayName = "AlertTitle";
 
-interface IAlertDescriptionProps
-  extends HtmlHTMLAttributes<HTMLParagraphElement> {}
+interface IAlertDescriptionProps extends HtmlHTMLAttributes<HTMLDivElement> {}
 const AlertDescription = ({ className, ...props }: IAlertDescriptionProps) => (
-  <p
+  <div
     className={cn("text-sm px-2.5 flex w-full items-center", className)}
     {...props}
   />

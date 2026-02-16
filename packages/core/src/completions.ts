@@ -25,7 +25,7 @@ import {
   resolveCommand,
   variableItem,
 } from "@evmcrispr/sdk";
-import type { Chain, PublicClient } from "viem";
+import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 
@@ -63,12 +63,18 @@ function resolveSwitchChainId(
 }
 
 /** Create a PublicClient for the given chain ID, or return undefined. */
-function clientForChain(chainId: number): PublicClient | undefined {
+function clientForChain(
+  chainId: number,
+  transports?: Record<number, Transport>,
+): PublicClient | undefined {
   const chain = Object.values(viemChains).find(
     (c) => (c as Chain).id === chainId,
   ) as Chain | undefined;
   if (!chain) return undefined;
-  return createPublicClient({ chain, transport: http() }) as PublicClient;
+  return createPublicClient({
+    chain,
+    transport: transports?.[chainId] ?? http(),
+  }) as PublicClient;
 }
 
 const { MODULE, USER, CACHE } = BindingsSpace;
@@ -456,6 +462,7 @@ export async function getCompletions(
   moduleCache: BindingsManager,
   client?: PublicClient,
   resolveHelper?: HelperResolver,
+  transports?: Record<number, Transport>,
 ): Promise<CompletionItem[]> {
   // 1. Parse the full script
   let fullAST: EvmlAST;
@@ -600,7 +607,7 @@ export async function getCompletions(
   for (const c of commandNodes) {
     const switchedChainId = resolveSwitchChainId(c, bindings);
     if (switchedChainId != null) {
-      const newClient = clientForChain(switchedChainId);
+      const newClient = clientForChain(switchedChainId, transports);
       if (newClient) {
         effectiveClient = newClient;
       }

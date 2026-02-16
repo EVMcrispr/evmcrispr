@@ -81,6 +81,7 @@ function evmcrisprModules(modulesDir: string): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  envDir: path.resolve(__dirname, "../.."),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

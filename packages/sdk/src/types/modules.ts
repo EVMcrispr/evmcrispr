@@ -1,4 +1,4 @@
-import type { Address, PublicClient } from "viem";
+import type { Address, PublicClient, Transport } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
@@ -24,6 +24,9 @@ export interface ModuleContext {
   getChainId(): Promise<number>;
   switchChainId(chainId: number): Promise<PublicClient>;
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
+
+  /** Get a Transport for the given chain, using configured RPC endpoints. */
+  getTransport(chainId: number): Transport;
 
   // Mutation helpers used by fork / sim commands
   setClient(client: PublicClient | undefined): void;

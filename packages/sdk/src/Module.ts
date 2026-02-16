@@ -1,4 +1,4 @@
-import type { PublicClient } from "viem";
+import type { PublicClient, Transport } from "viem";
 import { ErrorException } from "./errors";
 import type {
   Address,
@@ -127,6 +127,10 @@ export abstract class Module {
 
   async getClient(): Promise<PublicClient> {
     return this.context.getClient();
+  }
+
+  getTransport(chainId: number): Transport {
+    return this.context.getTransport(chainId);
   }
 
   async getChainId(): Promise<number> {

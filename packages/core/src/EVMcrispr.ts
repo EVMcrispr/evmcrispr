@@ -38,7 +38,7 @@ import {
   timeUnits,
   toDecimals,
 } from "@evmcrispr/sdk";
-import type { Abi, Address, Chain, PublicClient } from "viem";
+import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http, isAddress } from "viem";
 import * as viemChains from "viem/chains";
 
@@ -99,8 +99,13 @@ export class EVMcrispr {
   /** Internal module cache for completions / keywords. */
   #moduleCache: BindingsManager;
   #ipfsResolver: IPFSResolver;
+  #transports?: Record<number, Transport>;
 
-  constructor(client?: PublicClient, account?: Address) {
+  constructor(
+    client?: PublicClient,
+    account?: Address,
+    transports?: Record<number, Transport>,
+  ) {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
@@ -110,6 +115,7 @@ export class EVMcrispr {
     this.#logListeners = [];
     this.#prevMessages = [];
     this.#ipfsResolver = new IPFSResolver();
+    this.#transports = transports;
 
     this.#initStd();
     this.#moduleCache = new BindingsManager([this.#buildStdBinding()]);
@@ -141,6 +147,7 @@ export class EVMcrispr {
       switchChainId: (chainId) => this.switchChainId(chainId),
       getConnectedAccount: (retreiveInjected) =>
         this.getConnectedAccount(retreiveInjected),
+      getTransport: (chainId) => this.#transports?.[chainId] ?? http(),
       setClient: (client) => this.setClient(client),
       setConnectedAccount: (account) => this.setConnectedAccount(account),
       log: (message) => this.log(message),
@@ -253,6 +260,7 @@ export class EVMcrispr {
             "getConnectedAccount not available during completions",
           );
         },
+        getTransport: (cId) => this.#transports?.[cId] ?? http(),
         setClient: () => {},
         setConnectedAccount: () => {},
         log: () => {},
@@ -336,6 +344,7 @@ export class EVMcrispr {
       this.#moduleCache,
       this.#client,
       this.#createHelperResolver(),
+      this.#transports,
     );
   }
 
@@ -392,7 +401,7 @@ export class EVMcrispr {
     if (chain) {
       this.#client = createPublicClient({
         chain,
-        transport: http(),
+        transport: this.#transports?.[chainId] ?? http(),
       }) as PublicClient;
     } else {
       this.#client = undefined;

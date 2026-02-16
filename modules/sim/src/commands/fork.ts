@@ -8,6 +8,7 @@ import {
   isWalletAction,
 } from "@evmcrispr/sdk";
 import {
+  type Chain,
   createPublicClient,
   createWalletClient,
   http,
@@ -15,20 +16,19 @@ import {
   toHex,
   type WalletClient,
 } from "viem";
-import { mainnet } from "viem/chains";
+import * as viemChains from "viem/chains";
 import type Sim from "..";
 
 export default defineCommand<Sim>({
   name: "fork",
   args: [{ name: "block", type: "block" }],
   opts: [
-    { name: "block-number", type: "any" },
-    { name: "from", type: "any" },
-    { name: "tenderly", type: "any" },
-    { name: "using", type: "any" },
+    { name: "block-number", type: "number" },
+    { name: "from", type: "address" },
+    { name: "tenderly", type: "string" },
+    { name: "using", type: "simulation-mode" },
   ],
   async run(module, { block }, { opts, interpreters }) {
-    console.log("fork commsand haha");
     const { interpretNode } = interpreters;
     const blockExpressionNode = block as BlockExpressionNode;
 
@@ -39,11 +39,23 @@ export default defineCommand<Sim>({
 
     const chainId = await module.getChainId();
 
+    const chain = (Object.values(viemChains).find(
+      (c) => (c as Chain).id === chainId,
+    ) ?? {
+      id: chainId,
+      name: "Unknown",
+      nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [] } },
+    }) as Chain;
+
+    const upstreamTransport = module.getTransport(chainId);
+    const upstreamRpcUrl = (upstreamTransport({ chain }) as any).value
+      ?.url as string | undefined;
+
     let publicClient: PublicClient;
     let walletClient: WalletClient;
     let onSuccess: (() => void) | undefined;
     let onError: (() => void) | undefined;
-    let snapshotId: string | undefined;
 
     if (using === "anvil" || using === "hardhat") {
       // ── Anvil / Hardhat backend ──────────────────────────────────
@@ -52,45 +64,37 @@ export default defineCommand<Sim>({
       const backendName = using === "anvil" ? "Anvil" : "Hardhat";
 
       publicClient = createPublicClient({
-        chain: mainnet,
+        chain,
         transport: http(rpcUrl),
       });
       walletClient = createWalletClient({
-        chain: mainnet,
+        chain,
         transport: http(rpcUrl),
       });
 
-      // Snapshot the clean fork state so we can revert after execution
-      try {
-        snapshotId = await walletClient.request({
-          method: "evm_snapshot" as any,
-          params: [],
-        });
-      } catch (_e) {
-        throw new ErrorException(
-          `Failed to connect to ${backendName} at ${rpcUrl}. Make sure ${backendName} is running.`,
-        );
-      }
-
-      // Verify chain ID matches
-      const backendChainId = await publicClient.getChainId();
-
-      if (backendChainId !== chainId) {
-        throw new ErrorException(
-          `Chain ID mismatch: expected ${chainId} but ${backendName} is forking chain ${backendChainId}.`,
-        );
-      }
-
-      // Verify block number if specified
-      if (blockNumber) {
-        const currentBlockNumber = await publicClient.getBlockNumber();
-        const expectedBlockNumber = BigInt(blockNumber.toString());
-        if (currentBlockNumber !== expectedBlockNumber) {
-          throw new ErrorException(
-            `Block number mismatch: expected ${expectedBlockNumber} but ${backendName} is at block ${currentBlockNumber}.`,
-          );
+      // Reset the node to fork from the upstream RPC at the desired block
+      const resetMethod =
+        using === "anvil" ? "anvil_reset" : "hardhat_reset";
+      const resetParams: any[] = [];
+      if (upstreamRpcUrl) {
+        const forkingConfig: any = { jsonRpcUrl: upstreamRpcUrl };
+        if (blockNumber) {
+          forkingConfig.blockNumber = Number(blockNumber.toString());
         }
+        resetParams.push({ forking: forkingConfig });
       }
+
+      try {
+        await walletClient.request({
+          method: resetMethod as any,
+          params: resetParams as any,
+        });
+      } catch (e) {
+        throw new ErrorException(
+          `Failed to reset ${backendName} at ${rpcUrl}. Make sure ${backendName} is running: ${(e as Error).message}`,
+        );
+      }
+
 
       module.mode = using;
 
@@ -178,11 +182,11 @@ export default defineCommand<Sim>({
       const vnetRPC = vnetResponse.rpcs?.[0]?.url || vnetResponse.admin_rpc_url;
 
       publicClient = createPublicClient({
-        chain: mainnet, // Not used by Tenderly, but required to be passed
+        chain,
         transport: http(vnetRPC),
       });
       walletClient = createWalletClient({
-        chain: mainnet,
+        chain,
         transport: http(vnetRPC),
       });
 
@@ -214,6 +218,28 @@ export default defineCommand<Sim>({
     }
     module.context.setClient(publicClient);
 
+    const withImpersonation = async <T>(
+      sender: string,
+      fn: () => Promise<T>,
+    ): Promise<T> => {
+      if (module.mode === "anvil" || module.mode === "hardhat") {
+        await walletClient.request({
+          method: `${module.mode}_impersonateAccount` as any,
+          params: [sender] as any,
+        });
+      }
+      try {
+        return await fn();
+      } finally {
+        if (module.mode === "anvil" || module.mode === "hardhat") {
+          await walletClient.request({
+            method: `${module.mode}_stopImpersonatingAccount` as any,
+            params: [sender] as any,
+          });
+        }
+      }
+    };
+
     const simulateAction = async (action: Action) => {
       if (isWalletAction(action)) {
         throw new ErrorException(`can't switch networks inside a fork command`);
@@ -224,33 +250,39 @@ export default defineCommand<Sim>({
           params: action.params as any,
         });
       } else if (isTransactionAction(action)) {
-        const tx = await walletClient.request({
-          method: "eth_sendTransaction",
-          params: [
-            {
-              to: action.to,
-              data: action.data,
-              from: action.from || (await module.getConnectedAccount()),
-              value: toHex(action.value || 0n),
-              ...(action.gas !== undefined && { gas: toHex(action.gas) }),
-              ...(action.maxFeePerGas !== undefined && {
-                maxFeePerGas: toHex(action.maxFeePerGas),
-              }),
-              ...(action.maxPriorityFeePerGas !== undefined && {
-                maxPriorityFeePerGas: toHex(action.maxPriorityFeePerGas),
-              }),
-              ...(action.nonce !== undefined && { nonce: toHex(action.nonce) }),
-            },
-          ],
+        const sender = action.from || (await module.getConnectedAccount());
+
+        return withImpersonation(sender, async () => {
+          const tx = await walletClient.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                to: action.to,
+                data: action.data,
+                from: sender,
+                value: toHex(action.value || 0n),
+                ...(action.gas !== undefined && { gas: toHex(action.gas) }),
+                ...(action.maxFeePerGas !== undefined && {
+                  maxFeePerGas: toHex(action.maxFeePerGas),
+                }),
+                ...(action.maxPriorityFeePerGas !== undefined && {
+                  maxPriorityFeePerGas: toHex(action.maxPriorityFeePerGas),
+                }),
+                ...(action.nonce !== undefined && {
+                  nonce: toHex(action.nonce),
+                }),
+              },
+            ],
+          });
+          const receipt = await publicClient.waitForTransactionReceipt({
+            hash: tx,
+          });
+          if (receipt.status === "reverted") {
+            onError?.();
+            throw new ErrorException(`Transaction failed.`);
+          }
+          return receipt;
         });
-        const receipt = await publicClient.waitForTransactionReceipt({
-          hash: tx,
-        });
-        if (receipt.status === "reverted") {
-          onError?.();
-          throw new ErrorException(`Transaction failed.`);
-        }
-        return receipt;
       }
     };
 
@@ -259,13 +291,6 @@ export default defineCommand<Sim>({
       actionCallback: simulateAction,
     });
 
-    // Revert to the clean snapshot so the next fork starts fresh
-    if (snapshotId && walletClient) {
-      await walletClient.request({
-        method: "evm_revert" as any,
-        params: [snapshotId],
-      });
-    }
 
     module.mode = null;
     module.context.setClient(undefined);

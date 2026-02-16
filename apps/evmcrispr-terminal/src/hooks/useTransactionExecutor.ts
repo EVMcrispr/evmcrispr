@@ -4,7 +4,7 @@ import { useCallback, useRef } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
 
-import { config } from "../config/wagmi";
+import { config, transports } from "../config/wagmi";
 import { terminalStoreActions } from "../stores/terminal-store";
 import { switchOrAddChain } from "../utils/chain";
 import { observeTransaction } from "../utils/transaction-observer";
@@ -153,7 +153,7 @@ export function useTransactionExecutor(
         throw new Error("Account not connected or clients not available");
       }
 
-      const evm = new EVMcrispr(publicClient, address);
+      const evm = new EVMcrispr(publicClient, address, transports);
       evm.registerLogListener(logListener);
 
       await evm.interpret(script, async (action: Action) => {

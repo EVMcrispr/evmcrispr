@@ -14,7 +14,7 @@ function alchemyUrl(alchemyChain: string) {
 }
 
 function drpcUrl(drpcChain: string) {
-  return `https://lb.drpc.org/ogrpc?network=${drpcChain}&dkey=${DRPC_API_KEY}`;
+  return `https://lb.drpc.live/${drpcChain}/${DRPC_API_KEY}`;
 }
 
 const alchemyTransports: Record<number, string> | undefined = ALCHEMY_API_KEY
@@ -63,7 +63,10 @@ export const transports = chains.reduce(
   },
   {} as Record<number, Transport>,
 );
-
+console.log(
+  "transports",
+  transports[_chains.sepolia.id]?.({ chain: _chains.sepolia }),
+);
 export const config = createConfig({
   chains,
   connectors: [

@@ -96,6 +96,16 @@ describe("Completions – sim commands", () => {
       expect(optLabels).to.include("--using");
       expect(items).to.have.lengthOf(4);
     });
+
+    it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat)", async () => {
+      const script = `${SIM}sim:fork --using `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const fieldItems = onlyKind(items, "field");
+      expect(fieldItems.length).to.equal(3);
+      expect(hasLabel(fieldItems, "anvil")).to.be.true;
+      expect(hasLabel(fieldItems, "hardhat")).to.be.true;
+      expect(hasLabel(fieldItems, "tenderly")).to.be.true;
+    });
   });
 
   // -------------------------------------------------------------------------

@@ -1,12 +1,16 @@
 import { EVMcrispr } from "@evmcrispr/core";
 import { useEffect, useMemo, useState } from "react";
 import { usePublicClient } from "wagmi";
+import { transports } from "../config/wagmi";
 import { useDebounce } from "./useDebounce";
 
 export function useEditorState(script: string) {
   const debouncedScript = useDebounce(script, 300);
   const client = usePublicClient();
-  const evm = useMemo(() => new EVMcrispr(client), [client]);
+  const evm = useMemo(
+    () => new EVMcrispr(client, undefined, transports),
+    [client],
+  );
 
   const [keywords, setKeywords] = useState<{
     commands: string[];
