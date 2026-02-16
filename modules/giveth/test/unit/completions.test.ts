@@ -162,3 +162,135 @@ describe("Completions – giveth commands", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Helper completions
+// ---------------------------------------------------------------------------
+
+describe("Completions – giveth helpers", () => {
+  let evm: EVMcrispr;
+
+  beforeAll(() => {
+    const client = getPublicClient();
+    evm = new EVMcrispr(client as PublicClient);
+  });
+
+  // All 12 std helpers + 1 giveth helper = 13
+  const ALL_HELPERS = [
+    "@abi.encodeCall",
+    "@date",
+    "@ens",
+    "@get",
+    "@id",
+    "@ipfs",
+    "@me",
+    "@namehash",
+    "@nextContract",
+    "@projectAddr",
+    "@token",
+    "@token.amount",
+    "@token.balance",
+  ];
+
+  // Address-returning helpers (std 5 + giveth 1)
+  const ADDRESS_HELPERS = [
+    "@ens",
+    "@get",
+    "@me",
+    "@nextContract",
+    "@projectAddr",
+    "@token",
+  ];
+
+  const NUMBER_HELPERS = ["@date", "@get", "@token.amount", "@token.balance"];
+
+  const GIVETH = "load giveth\n";
+
+  // -------------------------------------------------------------------------
+  // Helpers as suggestions – type filtering
+  // -------------------------------------------------------------------------
+
+  describe("helpers as suggestions", () => {
+    it('set $x <cursor> (type "any") should show all 13 helpers', async () => {
+      const script = `${GIVETH}set $x `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(ALL_HELPERS.length);
+    });
+
+    it("exec <cursor> (address context) should include @projectAddr", async () => {
+      const script = `${GIVETH}set $c 0x0000000000000000000000000000000000000001\nexec `;
+      const items = await evm.getCompletions(script, pos(script, 3));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@id")).to.be.false;
+    });
+
+    it("exec $c f(uint256) <cursor> (number context) should NOT include @projectAddr", async () => {
+      const script = `${GIVETH}exec $c f(uint256) `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@projectAddr")).to.be.false;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Snippet metadata
+  // -------------------------------------------------------------------------
+
+  describe("snippet metadata", () => {
+    it("@projectAddr should have isSnippet = true and insertText with ($0)", async () => {
+      const script = `${GIVETH}print `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const projectAddr = items.find((i) => i.label === "@projectAddr");
+      expect(projectAddr).to.exist;
+      expect(projectAddr!.isSnippet).to.be.true;
+      expect(projectAddr!.insertText).to.equal("@projectAddr($0)");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Helper argument completions
+  // -------------------------------------------------------------------------
+
+  describe("helper argument completions", () => {
+    /**
+     * Place the cursor inside a helper's parentheses on line 2
+     * (after the "load giveth" prefix on line 1).
+     */
+    const helperPos = (before: string, after: string) => ({
+      script: `${GIVETH}${before}${after}`,
+      position: { line: 2, col: before.length },
+    });
+
+    // @projectAddr(string) -> all helpers (string accepts all)
+    it("@projectAddr(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @projectAddr(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // Unclosed parens: @projectAddr without closing ")"
+    it("@projectAddr(<cursor> (no closing paren) should still show string-compatible completions", async () => {
+      const script = `${GIVETH}set $x @projectAddr(`;
+      const position = { line: 2, col: "set $x @projectAddr(".length };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+  });
+});

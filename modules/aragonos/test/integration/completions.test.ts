@@ -417,3 +417,218 @@ describe("Completions – aragonos commands", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Helper completions
+// ---------------------------------------------------------------------------
+
+describe("Completions – aragonos helpers", () => {
+  let evm: EVMcrispr;
+
+  beforeAll(() => {
+    const client = getPublicClient();
+    evm = new EVMcrispr(client as PublicClient);
+  });
+
+  // All 12 std helpers + 3 aragonos helpers = 15
+  const ALL_HELPERS = [
+    "@abi.encodeCall",
+    "@app",
+    "@aragonEns",
+    "@date",
+    "@ens",
+    "@get",
+    "@id",
+    "@ipfs",
+    "@me",
+    "@namehash",
+    "@nextApp",
+    "@nextContract",
+    "@token",
+    "@token.amount",
+    "@token.balance",
+  ];
+
+  // Address-returning helpers (std 5 + aragonos 3)
+  const ADDRESS_HELPERS = [
+    "@app",
+    "@aragonEns",
+    "@ens",
+    "@get",
+    "@me",
+    "@nextApp",
+    "@nextContract",
+    "@token",
+  ];
+
+  const NUMBER_HELPERS = ["@date", "@get", "@token.amount", "@token.balance"];
+  const BYTES32_HELPERS = ["@get", "@id", "@namehash"];
+
+  // Prefix that loads aragonos module
+  const AR = "load aragonos\n";
+
+  // -------------------------------------------------------------------------
+  // Helpers as suggestions – type filtering
+  // -------------------------------------------------------------------------
+
+  describe("helpers as suggestions", () => {
+    it('set $x <cursor> (type "any") should show all 15 helpers', async () => {
+      const script = `${AR}set $x `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(ALL_HELPERS.length);
+    });
+
+    it("exec <cursor> (address context) should include aragonos address helpers", async () => {
+      const script = `${AR}set $c 0x0000000000000000000000000000000000000001\nexec `;
+      const items = await evm.getCompletions(script, pos(script, 3));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@id")).to.be.false;
+    });
+
+    it("exec $c f(uint256) <cursor> (number context) should NOT include aragonos helpers", async () => {
+      const script = `${AR}exec $c f(uint256) `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@app")).to.be.false;
+      expect(hasLabel(helperItems, "@aragonEns")).to.be.false;
+      expect(hasLabel(helperItems, "@nextApp")).to.be.false;
+    });
+
+    it("exec $c f(bytes32) <cursor> should NOT include aragonos helpers", async () => {
+      const script = `${AR}exec $c f(bytes32) `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BYTES32_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@app")).to.be.false;
+      expect(hasLabel(helperItems, "@aragonEns")).to.be.false;
+      expect(hasLabel(helperItems, "@nextApp")).to.be.false;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Snippet metadata
+  // -------------------------------------------------------------------------
+
+  describe("snippet metadata", () => {
+    it("@app should have isSnippet = true and insertText with ($0)", async () => {
+      const script = `${AR}print `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const app = items.find((i) => i.label === "@app");
+      expect(app).to.exist;
+      expect(app!.isSnippet).to.be.true;
+      expect(app!.insertText).to.equal("@app($0)");
+    });
+
+    it("@aragonEns should have isSnippet = true and insertText with ($0)", async () => {
+      const script = `${AR}print `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const aragonEns = items.find((i) => i.label === "@aragonEns");
+      expect(aragonEns).to.exist;
+      expect(aragonEns!.isSnippet).to.be.true;
+      expect(aragonEns!.insertText).to.equal("@aragonEns($0)");
+    });
+
+    it("@nextApp should have isSnippet = true and insertText with ($0)", async () => {
+      const script = `${AR}print `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const nextApp = items.find((i) => i.label === "@nextApp");
+      expect(nextApp).to.exist;
+      expect(nextApp!.isSnippet).to.be.true;
+      expect(nextApp!.insertText).to.equal("@nextApp($0)");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Helper argument completions
+  // -------------------------------------------------------------------------
+
+  describe("helper argument completions", () => {
+    /**
+     * Place the cursor inside a helper's parentheses on line 2
+     * (after the "load aragonos" prefix on line 1).
+     */
+    const helperPos = (before: string, after: string) => ({
+      script: `${AR}${before}${after}`,
+      position: { line: 2, col: before.length },
+    });
+
+    // @app(string) -> all helpers (string accepts all)
+    it("@app(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @app(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @aragonEns(string, any?) -> first arg: string (all helpers)
+    it("@aragonEns(<cursor>) first arg should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @aragonEns(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @aragonEns(string, any?) -> second arg: any (all helpers)
+    it("@aragonEns(name, <cursor>) second arg should show any-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @aragonEns(name, ", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @nextApp(number?) -> number-compatible helpers only
+    it("@nextApp(<cursor>) should show number-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @nextApp(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@app")).to.be.false;
+      expect(hasLabel(helperItems, "@aragonEns")).to.be.false;
+    });
+
+    // Unclosed parens: @app without closing ")"
+    it("@app(<cursor> (no closing paren) should still show string-compatible completions", async () => {
+      const script = `${AR}set $x @app(`;
+      const position = { line: 2, col: "set $x @app(".length };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // Unclosed parens: @nextApp without closing ")"
+    it("@nextApp(<cursor> (no closing paren) should still show number-compatible completions", async () => {
+      const script = `${AR}set $x @nextApp(`;
+      const position = { line: 2, col: "set $x @nextApp(".length };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+    });
+  });
+});
