@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-sim",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Simulation module for EVMcrispr",
+  "description": "Fork a chain locally, simulate transactions, set balances, and assert outcomes.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

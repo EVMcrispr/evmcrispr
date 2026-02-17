@@ -177,32 +177,31 @@ const buildModuleCompletionItems = (
   return {
     commandItems: dedupedBindings.flatMap(({ value: mod }, index) => {
       const moduleAlias = moduleAliases[index];
-      return Object.keys(mod.commands)
-        .map(
-          (commandName) =>
-            `${
-              scopeModule === moduleAlias ? "" : `${moduleAlias}:`
-            }${commandName}`,
-        )
-        .map(
-          (name): CompletionItem => ({
-            label: name,
-            insertText: name,
-            kind: "command",
-          }),
-        );
+      return Object.keys(mod.commands).map((commandName): CompletionItem => {
+        const prefix = scopeModule === moduleAlias ? "" : `${moduleAlias}:`;
+        const label = `${prefix}${commandName}`;
+        return {
+          label,
+          insertText: label,
+          kind: "command",
+          documentation: mod.commandDescriptions?.[commandName],
+        };
+      });
     }),
 
     helperItems: dedupedBindings.flatMap(({ value: mod }) => {
       return Object.keys(mod.helpers).map((helperName): CompletionItem => {
         const hasArgs = mod.helperHasArgs?.[helperName] ?? false;
+        const returnType = mod.helperReturnTypes?.[helperName];
         return {
           label: `@${helperName}`,
           insertText: hasArgs ? `@${helperName}($0)` : `@${helperName} `,
           kind: "helper",
           sortPriority: 3,
-          returnType: mod.helperReturnTypes?.[helperName],
+          returnType,
           isSnippet: hasArgs,
+          detail: returnType ? `→ ${returnType}` : undefined,
+          documentation: mod.helperDescriptions?.[helperName],
         };
       });
     }),

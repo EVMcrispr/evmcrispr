@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-ens",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "ENS module for EVMcrispr",
+  "description": "Register, renew, and manage ENS domain names.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

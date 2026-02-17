@@ -46,8 +46,16 @@ import {
   getCompletions as getCompletionsImpl,
   getKeywords as getKeywordsImpl,
 } from "./completions";
+import {
+  type DocumentSymbol,
+  getDocumentSymbols as getDocumentSymbolsImpl,
+} from "./documentSymbols";
 import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
 import { parseScript } from "./parsers/script";
+import {
+  getSignatureHelp as getSignatureHelpImpl,
+  type SignatureHelp,
+} from "./signature";
 
 // ---------------------------------------------------------------------------
 // Diagnostics
@@ -105,11 +113,15 @@ export class EVMcrispr {
     () => Promise<{ default: IModuleConstructor }>
   >();
 
+  static #descriptions = new Map<string, string>();
+
   static registerModule(
     name: string,
     loader: () => Promise<{ default: IModuleConstructor }>,
+    description?: string,
   ): void {
     EVMcrispr.#registry.set(name, loader);
+    if (description) EVMcrispr.#descriptions.set(name, description);
   }
 
   #std!: Std;
@@ -159,6 +171,7 @@ export class EVMcrispr {
         helperHasArgs: this.#std.helperHasArgs,
         helperArgDefs: this.#std.helperArgDefs,
         helperDescriptions: this.#std.helperDescriptions,
+        commandDescriptions: this.#std.commandDescriptions,
         types: this.#std.types,
       },
     };
@@ -213,6 +226,7 @@ export class EVMcrispr {
             helperHasArgs: instance.helperHasArgs,
             helperArgDefs: instance.helperArgDefs,
             helperDescriptions: instance.helperDescriptions,
+            commandDescriptions: instance.commandDescriptions,
             types: instance.types,
           },
           BindingsSpace.MODULE,
@@ -364,7 +378,12 @@ export class EVMcrispr {
     // the `load` command can suggest them during autocompletion.
     this.#moduleCache.setMetadata(
       "__available_modules__",
-      JSON.stringify([...EVMcrispr.#registry.keys()]),
+      JSON.stringify(
+        [...EVMcrispr.#registry.keys()].map((name) => ({
+          name,
+          description: EVMcrispr.#descriptions.get(name),
+        })),
+      ),
     );
 
     return getCompletionsImpl(
@@ -390,6 +409,20 @@ export class EVMcrispr {
   ): Promise<HoverInfo | null> {
     await this.#ensureModuleCachePopulated();
     return getHoverInfoImpl(script, position, this.#moduleCache);
+  }
+
+  async getSignatureHelp(
+    script: string,
+    position: Position,
+  ): Promise<SignatureHelp | null> {
+    await this.#ensureModuleCachePopulated();
+    return getSignatureHelpImpl(script, position, this.#moduleCache);
+  }
+
+  /** Return document symbols for the outline view.
+   *  This is synchronous and does not require module data. */
+  getDocumentSymbols(script: string): DocumentSymbol[] {
+    return getDocumentSymbolsImpl(script);
   }
 
   /** Return parse diagnostics (errors) for the given script.

@@ -1,6 +1,10 @@
-import type { ParseDiagnostic } from "@evmcrispr/core";
+import type {
+  DocumentSymbol as CoreDocumentSymbol,
+  ParseDiagnostic,
+} from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
+import type { languages } from "monaco-editor";
 import { useEffect, useRef } from "react";
 import { useEditorState } from "../../hooks/useEditorState";
 import {
@@ -98,6 +102,93 @@ export default function TerminalEditor() {
 
     return () => {
       hoverProvider.dispose();
+    };
+  }, [monaco, evm]);
+
+  // Signature help — show parameter hints for helpers and commands
+  useEffect(() => {
+    if (!monaco) return;
+
+    const sigHelpProvider = monaco.languages.registerSignatureHelpProvider(
+      "evml",
+      {
+        signatureHelpTriggerCharacters: ["(", ","],
+        signatureHelpRetriggerCharacters: [",", " "],
+        provideSignatureHelp: async (_model, pos) => {
+          const result = await evm.getSignatureHelp(scriptRef.current, {
+            line: pos.lineNumber,
+            col: pos.column - 1,
+          });
+          if (!result) return null;
+          return {
+            value: {
+              signatures: result.signatures.map((sig) => ({
+                label: sig.label,
+                documentation: sig.documentation,
+                parameters: sig.parameters.map((p) => ({
+                  label: p.label,
+                  documentation: p.documentation,
+                })),
+              })),
+              activeSignature: result.activeSignature,
+              activeParameter: result.activeParameter,
+            },
+            dispose: () => {},
+          };
+        },
+      },
+    );
+
+    return () => {
+      sigHelpProvider.dispose();
+    };
+  }, [monaco, evm]);
+
+  // Document symbols — expose script outline (top-level commands as symbols)
+  useEffect(() => {
+    if (!monaco) return;
+
+    const { SymbolKind } = monaco.languages;
+    const symbolKindMap: Record<string, number> = {
+      command: SymbolKind.Function,
+      block: SymbolKind.Module,
+      variable: SymbolKind.Variable,
+    };
+
+    function toMonacoSymbol(sym: CoreDocumentSymbol): languages.DocumentSymbol {
+      return {
+        name: sym.name,
+        detail: sym.detail ?? "",
+        kind: symbolKindMap[sym.kind] ?? SymbolKind.Function,
+        range: {
+          startLineNumber: sym.range.startLine,
+          startColumn: sym.range.startCol + 1,
+          endLineNumber: sym.range.endLine,
+          endColumn: sym.range.endCol + 1,
+        },
+        selectionRange: {
+          startLineNumber: sym.selectionRange.startLine,
+          startColumn: sym.selectionRange.startCol + 1,
+          endLineNumber: sym.selectionRange.endLine,
+          endColumn: sym.selectionRange.endCol + 1,
+        },
+        tags: [],
+        children: sym.children?.map(toMonacoSymbol) ?? [],
+      };
+    }
+
+    const symbolProvider = monaco.languages.registerDocumentSymbolProvider(
+      "evml",
+      {
+        provideDocumentSymbols: (model) => {
+          const symbols = evm.getDocumentSymbols(model.getValue());
+          return symbols.map(toMonacoSymbol);
+        },
+      },
+    );
+
+    return () => {
+      symbolProvider.dispose();
     };
   }, [monaco, evm]);
 

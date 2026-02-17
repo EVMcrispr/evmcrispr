@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-aragonos",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "AragonOS module for EVMcrispr",
+  "description": "Interact with Aragon DAOs: install apps, manage permissions, and execute through the DAO.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

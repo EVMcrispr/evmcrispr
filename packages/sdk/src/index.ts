@@ -34,6 +34,7 @@ export type {
   CommandArgExpressionNode,
   CommandExpressionNode,
   CommandFunction,
+  CommandImportEntry,
   CommandImportMap,
   CommandOptNode,
   Commands,

@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-giveth",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Giveth module for EVMcrispr",
+  "description": "Manage Giveth rounds, donations, and GIVbacks distribution.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

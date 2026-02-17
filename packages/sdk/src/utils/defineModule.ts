@@ -21,6 +21,7 @@ function createModuleClass<M extends Module>(
   helperHasArgs: Record<string, boolean>,
   helperArgDefs: Record<string, HelperArgDefEntry[]>,
   helperDescriptions: Record<string, string>,
+  commandDescriptions: Record<string, string>,
   types: CustomArgTypes = {},
   constants: Record<string, string> = {},
 ): IModuleConstructor {
@@ -34,6 +35,7 @@ function createModuleClass<M extends Module>(
         helperHasArgs,
         helperArgDefs,
         helperDescriptions,
+        commandDescriptions,
         constants,
         types,
         context,
@@ -64,11 +66,18 @@ export function defineModule(
   constants?: Record<string, string>,
 ): IModuleConstructor {
   const commands: Commands = Object.fromEntries(
-    Object.entries(commandImports).map(([k, load]) => [
+    Object.entries(commandImports).map(([k, entry]) => [
       k,
-      () => load().then((m) => m.default),
+      () => entry.load().then((m) => m.default),
     ]),
   );
+
+  const commandDescriptions: Record<string, string> = {};
+  for (const [k, entry] of Object.entries(commandImports)) {
+    if (entry.description) {
+      commandDescriptions[k] = entry.description;
+    }
+  }
 
   const helpers: HelperFunctions = helperImports
     ? Object.fromEntries(
@@ -108,6 +117,7 @@ export function defineModule(
     helperHasArgs,
     helperArgDefsMap,
     helperDescriptions,
+    commandDescriptions,
     types ?? {},
     constants ?? {},
   );

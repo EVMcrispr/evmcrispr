@@ -13,8 +13,13 @@ export function toMonacoCompletionItem(
   item: CompletionItem,
   range: IRange,
 ): languages.CompletionItem {
+  const inlineDesc = item.detail ?? item.documentation;
+  const label: string | languages.CompletionItemLabel = inlineDesc
+    ? { label: item.label, description: inlineDesc }
+    : item.label;
+
   return {
-    label: item.label,
+    label,
     insertText: item.insertText,
     kind: kindMap[item.kind],
     range,

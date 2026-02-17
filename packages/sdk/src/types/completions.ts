@@ -14,6 +14,10 @@ export type CompletionItem = {
   returnType?: string;
   /** When true, insertText uses Monaco snippet syntax (e.g. $0 for cursor). */
   isSnippet?: boolean;
+  /** Short detail shown inline next to the label (e.g. return type). */
+  detail?: string;
+  /** Longer documentation shown in the details pane (markdown). */
+  documentation?: string;
 };
 
 export interface CompletionContext {

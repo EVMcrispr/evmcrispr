@@ -37,6 +37,8 @@ export type ModuleData = {
   helperArgDefs?: Record<string, HelperArgDefEntry[]>;
   /** Human-readable descriptions for each helper (keyed by helper name). */
   helperDescriptions?: Record<string, string>;
+  /** Human-readable descriptions for each command (keyed by command name). */
+  commandDescriptions?: Record<string, string>;
   types?: CustomArgTypes;
   /** When a module is loaded with `--as`, the alias is stored here. */
   alias?: string;

@@ -53,9 +53,7 @@ function evmcrisprModules(modulesDir: string): Plugin {
     const name = pkgName.slice(MODULE_PREFIX.length);
     if (name !== "std") {
       registrations.push(
-        `EVMcrispr.registerModule(${JSON.stringify(
-          name,
-        )}, () => import(${JSON.stringify(pkgName)}));`,
+        `EVMcrispr.registerModule(${JSON.stringify(name)}, () => import(${JSON.stringify(pkgName)}), ${JSON.stringify(pkg.description ?? "")});`,
       );
     }
   }

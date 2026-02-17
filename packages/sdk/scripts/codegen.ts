@@ -80,6 +80,14 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   };
 }
 
+function extractCommandDescription(dir: string, name: string): string | null {
+  const filePath = join(dir, `${name}.ts`);
+  if (!existsSync(filePath)) return null;
+  const content = readFileSync(filePath, "utf-8");
+  const descMatch = content.match(/description:\s*["']([^"']+)["']/);
+  return descMatch?.[1] ?? null;
+}
+
 const commandNames = getNames(commandsDir);
 const helperNames = getNames(helpersDir);
 
@@ -100,9 +108,10 @@ lines.push("");
 if (commandNames.length > 0) {
   lines.push("export const commands: CommandImportMap = {");
   for (const name of commandNames) {
-    lines.push(
-      `  ${JSON.stringify(name)}: () => import("./commands/${name}"),`,
-    );
+    const desc = extractCommandDescription(commandsDir, name);
+    const parts: string[] = [`load: () => import("./commands/${name}")`];
+    if (desc) parts.push(`description: ${JSON.stringify(desc)}`);
+    lines.push(`  ${JSON.stringify(name)}: { ${parts.join(", ")} },`);
   }
   lines.push("};");
 } else {

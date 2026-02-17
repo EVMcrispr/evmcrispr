@@ -1,5 +1,5 @@
-import type { CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException, fieldItem } from "@evmcrispr/sdk";
+import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
+import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
 
 const { MODULE } = BindingsSpace;
 
@@ -15,10 +15,21 @@ export const types: CustomArgTypes = {
       if (!json) return [];
 
       try {
-        const available = JSON.parse(json) as string[];
+        const available = JSON.parse(json) as {
+          name: string;
+          description?: string;
+        }[];
         return available
-          .filter((name) => !ctx.bindings.hasBinding(name, MODULE))
-          .map(fieldItem);
+          .filter(({ name }) => !ctx.bindings.hasBinding(name, MODULE))
+          .map(
+            ({ name, description }): CompletionItem => ({
+              label: name,
+              insertText: name,
+              kind: "field",
+              sortPriority: 1,
+              documentation: description,
+            }),
+          );
       } catch {
         return [];
       }

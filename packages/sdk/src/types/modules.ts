@@ -132,11 +132,15 @@ export async function resolveHelper<M extends Module = Module>(
   return helperOrLoader as HelperFunction<M>;
 }
 
-/** Map of name -> lazy dynamic import that yields an ICommand as default export. */
-export type CommandImportMap = Record<
-  string,
-  () => Promise<{ default: ICommand<any> }>
->;
+/** Entry in a command import map: lazy loader + optional metadata. */
+export type CommandImportEntry = {
+  load: () => Promise<{ default: ICommand<any> }>;
+  /** Human-readable description shown in completions and hover tooltips. */
+  description?: string;
+};
+
+/** Map of name -> command import entry (loader + optional metadata). */
+export type CommandImportMap = Record<string, CommandImportEntry>;
 
 /** Simplified arg definition stored in import metadata (no functions). */
 export type HelperArgDefEntry = {
