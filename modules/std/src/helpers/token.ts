@@ -58,6 +58,7 @@ export const resolveToken = async (
 
 export default defineHelper<Std>({
   name: "token",
+  description: "Resolve a token symbol to its contract address on the current chain.",
   returnType: "address",
   args: [{ name: "tokenSymbolOrAddress", type: "string" }],
   async run(module, { tokenSymbolOrAddress }) {

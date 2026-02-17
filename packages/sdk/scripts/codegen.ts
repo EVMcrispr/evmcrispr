@@ -35,6 +35,7 @@ interface HelperMeta {
   returnType: string | null;
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
+  description: string | null;
 }
 
 function extractArgDefs(content: string): ArgDefMeta[] {
@@ -65,12 +66,18 @@ function extractArgDefs(content: string): ArgDefMeta[] {
 function extractHelperMeta(dir: string, name: string): HelperMeta {
   const filePath = join(dir, `${name}.ts`);
   if (!existsSync(filePath))
-    return { returnType: null, hasArgs: false, argDefs: [] };
+    return { returnType: null, hasArgs: false, argDefs: [], description: null };
   const content = readFileSync(filePath, "utf-8");
   const rtMatch = content.match(/returnType:\s*["']([^"']+)["']/);
+  const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   const argDefs = extractArgDefs(content);
   const hasArgs = argDefs.length > 0;
-  return { returnType: rtMatch?.[1] ?? null, hasArgs, argDefs };
+  return {
+    returnType: rtMatch?.[1] ?? null,
+    hasArgs,
+    argDefs,
+    description: descMatch?.[1] ?? null,
+  };
 }
 
 const commandNames = getNames(commandsDir);
@@ -128,6 +135,8 @@ if (helperNames.length > 0) {
         .join(", ");
       parts.push(`argDefs: [${defsStr}]`);
     }
+    if (meta.description)
+      parts.push(`description: ${JSON.stringify(meta.description)}`);
     lines.push(
       `  ${JSON.stringify(name)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
     );

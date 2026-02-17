@@ -25,6 +25,8 @@ export interface CommandContext {
 
 export interface CommandConfig<M extends Module> {
   name: string;
+  /** Human-readable description shown in hover tooltips. */
+  description?: string;
   args: ArgDef[];
   opts?: OptDef[];
   run(
@@ -166,5 +168,6 @@ export function defineCommand<M extends Module>(
     argDefs,
     optDefs,
     completions: config.completions,
+    description: config.description,
   };
 }

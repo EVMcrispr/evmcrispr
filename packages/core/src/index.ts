@@ -103,4 +103,5 @@ export {
 export type { ParseDiagnostic } from "./EVMcrispr";
 export { EVMcrispr } from "./EVMcrispr";
 export { EvmlAST } from "./EvmlAST";
+export type { HoverInfo } from "./hover";
 export { parseScript, scriptParser } from "./parsers/script";

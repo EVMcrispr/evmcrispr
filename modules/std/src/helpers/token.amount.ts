@@ -5,6 +5,7 @@ import { resolveToken } from "./token";
 
 export default defineHelper<Std>({
   name: "token.amount",
+  description: "Convert a human-readable token amount to its base unit (applying decimals).",
   returnType: "number",
   args: [
     { name: "tokenSymbolOrAddress", type: "string" },

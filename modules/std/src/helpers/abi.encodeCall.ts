@@ -9,6 +9,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "abi.encodeCall",
+  description: "ABI-encode a function call from its signature and arguments.",
   returnType: "bytes",
   args: [
     { name: "signature", type: "string" },

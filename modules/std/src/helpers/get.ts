@@ -8,6 +8,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "get",
+  description: "Call a read-only contract function and return its result.",
   returnType: "any",
   args: [
     { name: "address", type: "address" },

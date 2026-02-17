@@ -46,6 +46,7 @@ import {
   getCompletions as getCompletionsImpl,
   getKeywords as getKeywordsImpl,
 } from "./completions";
+import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
 import { parseScript } from "./parsers/script";
 
 // ---------------------------------------------------------------------------
@@ -157,6 +158,7 @@ export class EVMcrispr {
         helperReturnTypes: this.#std.helperReturnTypes,
         helperHasArgs: this.#std.helperHasArgs,
         helperArgDefs: this.#std.helperArgDefs,
+        helperDescriptions: this.#std.helperDescriptions,
         types: this.#std.types,
       },
     };
@@ -210,6 +212,7 @@ export class EVMcrispr {
             helperReturnTypes: instance.helperReturnTypes,
             helperHasArgs: instance.helperHasArgs,
             helperArgDefs: instance.helperArgDefs,
+            helperDescriptions: instance.helperDescriptions,
             types: instance.types,
           },
           BindingsSpace.MODULE,
@@ -379,6 +382,14 @@ export class EVMcrispr {
   ): Promise<{ commands: string[]; helpers: string[] }> {
     await this.#ensureModuleCachePopulated();
     return getKeywordsImpl(script, this.#moduleCache);
+  }
+
+  async getHoverInfo(
+    script: string,
+    position: Position,
+  ): Promise<HoverInfo | null> {
+    await this.#ensureModuleCachePopulated();
+    return getHoverInfoImpl(script, position, this.#moduleCache);
   }
 
   /** Return parse diagnostics (errors) for the given script.

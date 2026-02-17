@@ -16,6 +16,8 @@ export interface HelperContext {
 
 export interface HelperConfig<M extends Module> {
   name: string;
+  /** Human-readable description shown in hover tooltips. */
+  description?: string;
   returnType?: ArgType;
   args: ArgDef[];
   run(
@@ -35,7 +37,7 @@ export function defineHelper<M extends Module>(
   const hasOptional = argDefs.some((a) => a.optional);
   const totalFixed = argDefs.filter((a) => !a.rest).length;
 
-  return async (module, h, interpreters) => {
+  const fn: HelperFunction<M> = async (module, h, interpreters) => {
     // 1. Check argument length
     if (hasRest) {
       checkArgsLength(h, {
@@ -99,4 +101,10 @@ export function defineHelper<M extends Module>(
     // 4. Call user's run function
     return run(module as M, parsedArgs, { node: h, interpreters });
   };
+
+  if (config.description) {
+    (fn as any).description = config.description;
+  }
+
+  return fn;
 }

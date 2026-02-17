@@ -4,6 +4,7 @@ import type Std from "..";
 
 export default defineCommand<Std>({
   name: "halt",
+  description: "Stop script execution immediately.",
   args: [],
   async run(): Promise<TerminalAction[]> {
     return [

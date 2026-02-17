@@ -11,6 +11,7 @@ const { ABI } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "raw",
+  description: "Send a raw transaction with pre-encoded calldata.",
   args: [
     { name: "contractAddress", type: "address" },
     { name: "data", type: "literal" },

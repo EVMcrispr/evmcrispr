@@ -5,6 +5,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "ens",
+  description: "Resolve an ENS name to its address.",
   returnType: "address",
   args: [{ name: "name", type: "string" }],
   async run(module, { name }, { node }) {

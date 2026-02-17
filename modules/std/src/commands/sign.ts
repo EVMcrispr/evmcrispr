@@ -12,6 +12,7 @@ const { USER } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "sign",
+  description: "Sign a message or typed data with the connected wallet.",
   args: [
     { name: "variable", type: "variable" },
     { name: "message", type: "string", optional: true },

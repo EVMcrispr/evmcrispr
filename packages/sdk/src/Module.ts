@@ -22,6 +22,7 @@ export abstract class Module {
   readonly helperReturnTypes: Record<string, ArgType>;
   readonly helperHasArgs: Record<string, boolean>;
   readonly helperArgDefs: Record<string, HelperArgDefEntry[]>;
+  readonly helperDescriptions: Record<string, string>;
   readonly constants: Record<string, string>;
   readonly types: CustomArgTypes;
   readonly context: ModuleContext;
@@ -34,6 +35,7 @@ export abstract class Module {
     helperReturnTypes: Record<string, ArgType>,
     helperHasArgs: Record<string, boolean>,
     helperArgDefs: Record<string, HelperArgDefEntry[]>,
+    helperDescriptions: Record<string, string>,
     constants: Record<string, string>,
     types: CustomArgTypes,
     context: ModuleContext,
@@ -45,6 +47,7 @@ export abstract class Module {
     this.helperReturnTypes = helperReturnTypes;
     this.helperHasArgs = helperHasArgs;
     this.helperArgDefs = helperArgDefs;
+    this.helperDescriptions = helperDescriptions;
     this.constants = constants;
     this.types = types;
     this.context = context;

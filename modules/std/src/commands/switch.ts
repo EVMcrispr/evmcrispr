@@ -13,6 +13,7 @@ const nameToChainId = Object.entries(chains).reduce(
 
 export default defineCommand<Std>({
   name: "switch",
+  description: "Switch the active chain by name or ID.",
   args: [{ name: "networkNameOrId", type: "any" }],
   completions: {
     networkNameOrId: () => Object.keys(nameToChainId).map(fieldItem),

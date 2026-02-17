@@ -5,6 +5,7 @@ const { USER } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "set",
+  description: "Assign a value to a variable for use later in the script.",
   args: [
     { name: "variable", type: "variable" },
     { name: "value", type: "any" },

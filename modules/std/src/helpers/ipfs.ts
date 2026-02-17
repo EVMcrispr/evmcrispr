@@ -5,6 +5,7 @@ const IPFS_VAR_NAME = "ipfs.jwt";
 
 export default defineHelper<Std>({
   name: "ipfs",
+  description: "Upload text content to IPFS and return the CID.",
   returnType: "string",
   args: [
     {

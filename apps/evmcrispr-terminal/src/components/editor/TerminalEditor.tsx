@@ -79,6 +79,28 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
+  // Hover provider — show signatures for commands, helpers, variables, options
+  useEffect(() => {
+    if (!monaco) return;
+
+    const hoverProvider = monaco.languages.registerHoverProvider("evml", {
+      provideHover: async (_model, pos) => {
+        const info = await evm.getHoverInfo(scriptRef.current, {
+          line: pos.lineNumber,
+          col: pos.column - 1,
+        });
+        if (!info) return null;
+        return {
+          contents: [{ value: info.contents }],
+        };
+      },
+    });
+
+    return () => {
+      hoverProvider.dispose();
+    };
+  }, [monaco, evm]);
+
   // Inline diagnostics — show parse errors as markers
   useEffect(() => {
     if (!monaco) return;

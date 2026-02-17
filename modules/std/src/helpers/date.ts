@@ -8,6 +8,7 @@ const offsetRegex =
 
 export default defineHelper<Std>({
   name: "date",
+  description: "Parse a date string into a Unix timestamp, with an optional offset.",
   returnType: "number",
   args: [
     { name: "date", type: "string" },

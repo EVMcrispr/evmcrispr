@@ -14,6 +14,7 @@ import type Std from "..";
 
 export default defineCommand<Std>({
   name: "batch",
+  description: "Group multiple commands into a single transaction.",
   args: [{ name: "block", type: "block" }],
   async run(module, { block }, { node, interpreters }) {
     const { interpretNode, actionCallback } = interpreters;

@@ -5,6 +5,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "namehash",
+  description: "Compute the ENS namehash of a domain name.",
   returnType: "bytes32",
   args: [{ name: "name", type: "string" }],
   async run(_, { name }) {

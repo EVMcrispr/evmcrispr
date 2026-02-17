@@ -3,6 +3,7 @@ import type Std from "..";
 
 export default defineCommand<Std>({
   name: "load",
+  description: "Load a module to make its commands and helpers available.",
   args: [{ name: "moduleName", type: "module" }],
   opts: [{ name: "as", type: "string" }],
   async run(module, { moduleName }, { opts }) {

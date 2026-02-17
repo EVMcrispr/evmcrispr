@@ -11,6 +11,7 @@ const { USER } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "for",
+  description: "Iterate over an array, executing a block for each element.",
   args: [
     { name: "variable", type: "variable" },
     { name: "connector", type: "string" },

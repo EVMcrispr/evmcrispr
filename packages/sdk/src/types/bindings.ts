@@ -35,6 +35,8 @@ export type ModuleData = {
   helperHasArgs?: Record<string, boolean>;
   /** Argument definitions for each helper (keyed by helper name). */
   helperArgDefs?: Record<string, HelperArgDefEntry[]>;
+  /** Human-readable descriptions for each helper (keyed by helper name). */
+  helperDescriptions?: Record<string, string>;
   types?: CustomArgTypes;
   /** When a module is loaded with `--as`, the alias is stored here. */
   alias?: string;

@@ -95,6 +95,8 @@ export interface ICommand<M extends Module = Module> {
   optDefs: OptDef[];
   /** Override type-driven completions for specific args or opts by name. */
   completions?: CompletionOverrides;
+  /** Human-readable description shown in hover tooltips. */
+  description?: string;
 }
 
 /** Lazy loader: () => Promise<ICommand>. Resolved on first use. */
@@ -153,6 +155,8 @@ export type HelperImportEntry = {
   returnType?: ArgType;
   hasArgs?: boolean;
   argDefs?: HelperArgDefEntry[];
+  /** Human-readable description shown in hover tooltips. */
+  description?: string;
 };
 
 /** Map of name -> helper import entry (loader + return type). */
