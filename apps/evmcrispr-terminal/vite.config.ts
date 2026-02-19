@@ -29,13 +29,8 @@ function evmcrisprModules(modulesDir: string): Plugin {
     const pkgName: string = pkg.name;
     if (!pkgName.startsWith(MODULE_PREFIX)) continue;
 
-    // Alias: @evmcrispr/module-<name> -> modules/<name>/src/index.ts
-    aliases.push({
-      find: pkgName,
-      replacement: path.resolve(modulesDir, dir, "src/index.ts"),
-    });
-
-    // Sub-path exports (e.g. @evmcrispr/module-aragonos/utils)
+    // Sub-path exports first so they match before the base package alias
+    // (e.g. @evmcrispr/module-aragonos/utils before @evmcrispr/module-aragonos)
     if (pkg.exports) {
       for (const [key, val] of Object.entries(pkg.exports)) {
         if (key === ".") continue;
@@ -48,6 +43,12 @@ function evmcrisprModules(modulesDir: string): Plugin {
         }
       }
     }
+
+    // Alias: @evmcrispr/module-<name> -> modules/<name>/src/index.ts
+    aliases.push({
+      find: pkgName,
+      replacement: path.resolve(modulesDir, dir, "src/index.ts"),
+    });
 
     // Registration (skip std -- it's always loaded)
     const name = pkgName.slice(MODULE_PREFIX.length);
