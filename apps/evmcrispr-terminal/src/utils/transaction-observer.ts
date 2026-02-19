@@ -3,8 +3,8 @@ import type { Address, Hash, PublicClient } from "viem";
 export interface ObserveTransactionParams {
   /** Target contract address */
   to: Address;
-  /** Expected calldata */
-  data: `0x${string}`;
+  /** Expected calldata (undefined for plain ETH transfers) */
+  data?: `0x${string}`;
   /** Expected sender address */
   from: Address;
   /** Viem public client for blockchain queries */
@@ -41,7 +41,7 @@ async function checkBlockForTransaction(
   blockNumber: bigint,
   expectedFrom: Address,
   expectedTo: Address,
-  expectedData: `0x${string}`,
+  expectedData: `0x${string}` | undefined,
 ): Promise<ObserveTransactionResult | null> {
   try {
     const block = await publicClient.getBlock({
@@ -57,7 +57,7 @@ async function checkBlockForTransaction(
       if (
         tx.from.toLowerCase() === expectedFrom.toLowerCase() &&
         tx.to?.toLowerCase() === expectedTo.toLowerCase() &&
-        tx.input.toLowerCase() === expectedData.toLowerCase()
+        tx.input.toLowerCase() === (expectedData ?? "0x").toLowerCase()
       ) {
         return {
           hash: tx.hash,

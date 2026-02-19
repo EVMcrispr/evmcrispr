@@ -96,6 +96,50 @@ describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () =>
     expect(result).eql(expectedCallAction);
   });
 
+  it("should omit data when 0x is passed (plain ETH transfer)", async () => {
+    const interpreter = createInterpreter(`raw ${target} "0x"`, client);
+
+    const result = await interpreter.interpret();
+
+    const expectedCallAction: Action[] = [
+      {
+        to: target,
+      },
+    ];
+
+    expect(result).eql(expectedCallAction);
+  });
+
+  it("should keep data when valid hex bytes are passed", async () => {
+    const interpreter = createInterpreter(`raw ${target} 0x00`, client);
+
+    const result = await interpreter.interpret();
+
+    const expectedCallAction: Action[] = [
+      {
+        to: target,
+        data: "0x00",
+      },
+    ];
+
+    expect(result).eql(expectedCallAction);
+  });
+
+  it("should fail when data is a non-hex string", async () => {
+    const invalidData = '"not-hex"';
+    const interpreter = createInterpreter(
+      `raw ${target} ${invalidData}`,
+      client,
+    );
+    const c = findStdCommandNode(interpreter.ast, "raw")!;
+    const error = new CommandError(
+      c,
+      `<data> must be a hex string, got not-hex`,
+    );
+
+    await expectThrowAsync(() => interpreter.interpret(), error);
+  });
+
   it("should fail when receiving an invalid target address", async () => {
     const invalidTargetAddress = "false";
     const interpreter = createInterpreter(

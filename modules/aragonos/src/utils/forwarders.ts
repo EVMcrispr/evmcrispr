@@ -12,6 +12,7 @@ import {
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
+import type { CallScriptAction } from "../types";
 import { encodeCallScript } from "./evmscripts";
 
 /**
@@ -105,7 +106,7 @@ export const batchForwarderActions = async (
   const client = await module.getClient();
 
   for (const forwarderAddress of forwarders) {
-    script = encodeCallScript(forwarderActions);
+    script = encodeCallScript(forwarderActions as CallScriptAction[]);
 
     if (checkForwarder && !(await isForwarder(forwarderAddress, client))) {
       throw new ErrorInvalid(`app ${forwarderAddress} is not a forwarder`);

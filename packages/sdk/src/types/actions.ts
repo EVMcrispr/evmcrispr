@@ -11,7 +11,7 @@ export interface TransactionAction {
   /**
    * The encoded action. It can be conceived of as contract function calls.
    */
-  data: `0x${string}`;
+  data?: `0x${string}`;
   /**
    * The ether which needs to be sent along with the action (in wei).
    */

@@ -1,3 +1,4 @@
+import type { CallScriptAction } from "@evmcrispr/module-aragonos/types";
 import { encodeCallScript } from "@evmcrispr/module-aragonos/utils";
 import {
   type Action,
@@ -65,7 +66,7 @@ export const createTestScriptEncodedAction = (
   let script: string;
   const forwardingPath = [...path].reverse();
   for (const forwarder of forwardingPath) {
-    script = encodeCallScript(forwarderActions);
+    script = encodeCallScript(forwarderActions as CallScriptAction[]);
     const forwarderType = getAppForwarderType(forwarder);
     const forwarderAddress = isAddress(forwarder) ? forwarder : dao[forwarder];
 

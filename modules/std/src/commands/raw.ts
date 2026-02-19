@@ -14,7 +14,7 @@ export default defineCommand<Std>({
   description: "Send a raw transaction with pre-encoded calldata.",
   args: [
     { name: "contractAddress", type: "address" },
-    { name: "data", type: "literal" },
+    { name: "data", type: "bytes" },
     { name: "value", type: "number", optional: true },
   ],
   opts: [
@@ -31,7 +31,7 @@ export default defineCommand<Std>({
   ) {
     const rawAction: TransactionAction = {
       to: contractAddress,
-      data,
+      ...(data !== "0x" && { data }),
     };
 
     if (value !== undefined) {
