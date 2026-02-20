@@ -26,7 +26,6 @@
     "dotenv": "^17.2.4",
     "is-ipfs": "^8.0.4",
     "msw": "^2.12.9",
-    "nyc": "^17.1.0",
     "ora": "^9.3.0",
     "typescript": "^5.9.3"
   },
@@ -45,7 +44,7 @@
     "lint": "biome check src",
     "type-check": "tsc --noEmit",
     "test:unit": "bun test",
-    "test:coverage": "nyc --reporter=lcov bun run test:unit",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
     "build": "rm -rf dist && bun build ./src/index.ts --outdir ./dist --format esm --sourcemap=linked --packages external && tsc"
   },
   "private": true
