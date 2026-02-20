@@ -19,6 +19,14 @@ const timeUnitsParser = choice([
   str("y"),
 ]);
 
+const ethUnitsPower: Record<string, number> = {
+  wei: 0,
+  gwei: 9,
+  eth: 18,
+};
+
+const ethUnitsParser = choice([str("eth"), str("gwei"), str("wei")]);
+
 export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
   enclosingParsers = [],
 ) =>
@@ -44,9 +52,12 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         value = String(integers);
       }
 
-      let power: string | undefined;
-      if (run(possibly(char("e")))) {
-        power = run(
+      let power: number | undefined;
+      const ethUnit: string | null = run(possibly(ethUnitsParser));
+      if (ethUnit) {
+        power = ethUnitsPower[ethUnit];
+      } else if (run(possibly(char("e")))) {
+        const powerStr = run(
           digits.errorMap((err) =>
             buildParserError(
               err,
@@ -55,6 +66,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
             ),
           ),
         );
+        power = parseInt(powerStr, 10);
       }
 
       const timeUnit: string | null = run(possibly(timeUnitsParser));
@@ -69,13 +81,15 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         ),
       );
 
-      return [value, power ? parseInt(power, 10) : undefined, timeUnit];
+      return [value, power, timeUnit];
     }),
     ({ data, index, result: [initialContext, [value, power, timeUnit]] }) => {
       return {
         type: NodeType.NumberLiteral,
         value: value as NumericLiteralNode["value"],
-        ...(power ? { power: power as NumericLiteralNode["power"] } : {}),
+        ...(power !== undefined
+          ? { power: power as NumericLiteralNode["power"] }
+          : {}),
         ...(timeUnit
           ? { timeUnit: timeUnit as NumericLiteralNode["timeUnit"] }
           : {}),

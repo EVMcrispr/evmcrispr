@@ -129,17 +129,19 @@ describe("Parsers - primary", () => {
           value: number,
           power?: number,
           timeUnit?: string,
+          raw?: string,
         ): NumericLiteralNode => {
+          const locStr =
+            raw ??
+            value.toString() +
+              (power !== undefined ? `${power.toString()}e` : "") +
+              (timeUnit ?? "");
           const n: NumericLiteralNode = {
             type: NodeType.NumberLiteral,
             value: String(value),
-            loc: buildLocation(
-              value.toString() +
-                (power ? `${power?.toString()}e` : "") +
-                (timeUnit ?? ""),
-            ),
+            loc: buildLocation(locStr),
           };
-          if (power) n.power = power;
+          if (power !== undefined) n.power = power;
           if (timeUnit) n.timeUnit = timeUnit;
 
           return n;
@@ -157,6 +159,11 @@ describe("Parsers - primary", () => {
           ["72w", node(72, undefined, "w")],
           ["6.5mo", node(6.5, undefined, "mo")],
           ["2.5y", node(2.5, undefined, "y")],
+          ["100wei", node(100, 0, undefined, "100wei")],
+          ["1gwei", node(1, 9, undefined, "1gwei")],
+          ["1eth", node(1, 18, undefined, "1eth")],
+          ["0.5eth", node(0.5, 18, undefined, "0.5eth")],
+          ["1.5gwei", node(1.5, 9, undefined, "1.5gwei")],
         ];
 
         runCases(cases, numberParser());
