@@ -1,12 +1,12 @@
 import { addressesEqual, IPFS_GATEWAY } from "@evmcrispr/sdk";
-import type { DefaultBodyType, PathParams } from "msw";
-import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
+import { blockscout } from "@evmcrispr/test-utils/msw/blockscout";
+import {
+  createTestServer,
+  HttpResponse,
+  http,
+} from "@evmcrispr/test-utils/msw/server";
 import type { Address } from "viem";
-import { isAddress } from "viem";
 import { artifacts } from "./artifacts";
-import { blockscout } from "./blockscout";
-import { etherscan } from "./etherscan";
 import { DAOs, REPOs } from "./subgraph-data";
 import tokenListFixture from "./tokenlist/uniswap.json";
 
@@ -53,8 +53,7 @@ const handleSubgraphRequest = async ({
   }
 };
 
-const handlers = [
-  // Match each known subgraph URL explicitly (regex patterns don't work with Bun's MSW)
+const coreHandlers = [
   http.post(
     "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/BjzJNAmbkpTN3422j5rh3Gv7aejkDfRH1QLyoJC3qTMZ",
     handleSubgraphRequest,
@@ -91,59 +90,6 @@ const handlers = [
       }
     },
   ),
-  http.get<
-    PathParams<string>,
-    DefaultBodyType,
-    { status: string; message: string; result: string }
-  >(`https://api-rinkeby.etherscan.io/api`, ({ request }) => {
-    const address = new URL(request.url).searchParams.get("address");
-    if (!address || !isAddress(address)) {
-      return HttpResponse.json({
-        status: "0",
-        message: "NOTOK",
-        result: "Invalid Address format",
-      });
-    }
-
-    const data = etherscan[address.toLowerCase() as keyof typeof etherscan];
-
-    if (!data) {
-      return HttpResponse.json({
-        status: "0",
-        message: "NOTOK",
-        result: "Contract source code not verified",
-      });
-    }
-
-    return HttpResponse.json(data);
-  }),
-  http.get<
-    { address: string },
-    { address: string },
-    { status: string; message: string; result: string }
-  >(`https://blockscout.com/xdai/mainnet/api`, ({ request }) => {
-    const address = new URL(request.url).searchParams.get("address");
-
-    if (!address || !isAddress(address)) {
-      return HttpResponse.json({
-        status: "0",
-        message: "NOTOK",
-        result: "Invalid Address format",
-      });
-    }
-
-    const data = blockscout[address.toLowerCase() as keyof typeof blockscout];
-
-    if (!data) {
-      return HttpResponse.json({
-        status: "0",
-        message: "NOTOK",
-        result: "Contract source code not verified",
-      });
-    }
-
-    return HttpResponse.json(data);
-  }),
   http.get("https://api.evmcrispr.com/abi/:chainId/:address", ({ params }) => {
     const address = (params.address as string).toLowerCase();
     const data = blockscout[address as keyof typeof blockscout];
@@ -152,14 +98,11 @@ const handlers = [
     }
     return HttpResponse.json(JSON.parse(data.result));
   }),
-  http.get<PathParams<string>, DefaultBodyType, DefaultBodyType>(
-    "https://tokens.uniswap.org/",
-    () => {
-      return HttpResponse.json(tokenListFixture);
-    },
-  ),
+  http.get("https://tokens.uniswap.org/", () => {
+    return HttpResponse.json(tokenListFixture);
+  }),
   http.post<
-    PathParams<string>,
+    Record<string, never>,
     { pinataContent: string },
     { IpfsHash: string } | { error: { reason: string; details: string } }
   >("https://api.pinata.cloud/pinning/pinJSONToIPFS", async ({ request }) => {
@@ -189,4 +132,4 @@ const handlers = [
   }),
 ];
 
-export const server = setupServer(...handlers);
+export const server = createTestServer(...coreHandlers);

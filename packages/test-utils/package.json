@@ -15,6 +15,11 @@
       "bun": "./src/msw/server.ts",
       "types": "./src/msw/server.ts",
       "import": "./src/msw/server.ts"
+    },
+    "./msw/blockscout": {
+      "bun": "./src/msw/blockscout/index.ts",
+      "types": "./src/msw/blockscout/index.ts",
+      "import": "./src/msw/blockscout/index.ts"
     }
   },
   "dependencies": {
