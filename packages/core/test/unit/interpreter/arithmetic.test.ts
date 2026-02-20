@@ -2,7 +2,7 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../setup.js";
 
-import { ExpressionError } from "@evmcrispr/sdk";
+import { ExpressionError, Num } from "@evmcrispr/sdk";
 import {
   createInterpreter,
   expectThrowAsync,
@@ -10,7 +10,6 @@ import {
   preparingExpression,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { parseUnits } from "viem";
 
 describe("Interpreter - arithmetics", () => {
   const name = "ArithmeticExpressionError";
@@ -28,7 +27,16 @@ describe("Interpreter - arithmetics", () => {
     );
     const res = await interpret();
 
-    expect(res).to.eql(120n - parseUnits("5", 22) * 4n + parseUnits("500", 33));
+    // 120 - 5*10^22 * 4 + 500*10^33
+    const expected = Num.fromBigInt(120n)
+      .sub(
+        Num.fromDecimalString("5")
+          .mul(new Num(10n ** 22n, 1n))
+          .mul(Num.fromBigInt(4n)),
+      )
+      .add(Num.fromDecimalString("500").mul(new Num(10n ** 33n, 1n)));
+    expect(res).to.be.instanceOf(Num);
+    expect((res as Num).eq(expected)).to.be.true;
   });
 
   it("should return the correct result of an arithmetic operation containing priority parenthesis", async () => {
@@ -38,7 +46,14 @@ describe("Interpreter - arithmetics", () => {
     );
     const res = await interpret();
 
-    expect(res).to.eql(parseUnits("1427.25", 18));
+    // (121*10^18 / 4) * 7^2 - 55*10^18 = 121*10^18/4 * 49 - 55*10^18
+    const expected = Num.fromDecimalString("121")
+      .mul(new Num(10n ** 18n, 1n))
+      .div(Num.fromBigInt(4n))
+      .mul(Num.fromBigInt(49n))
+      .sub(Num.fromDecimalString("55").mul(new Num(10n ** 18n, 1n)));
+    expect(res).to.be.instanceOf(Num);
+    expect((res as Num).eq(expected)).to.be.true;
   });
 
   it("should fail when one of the operands is not a number", async () => {

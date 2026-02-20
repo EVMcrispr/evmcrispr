@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from "bun:test";
 import type { ErrorException, HelperArgDefEntry } from "@evmcrispr/sdk";
-import { ComparisonType, NodeType } from "@evmcrispr/sdk";
+import { ComparisonType, NodeType, Num } from "@evmcrispr/sdk";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
 import { getPublicClient } from "../client";
@@ -142,6 +142,8 @@ export function describeHelper(
           const result = await interpret();
           if (c.validate) {
             await c.validate(result);
+          } else if (result instanceof Num && typeof c.expected === "bigint") {
+            expect(result.eq(Num.fromBigInt(c.expected))).to.be.true;
           } else if (typeof c.expected === "bigint") {
             expect(result).to.equal(c.expected);
           } else {

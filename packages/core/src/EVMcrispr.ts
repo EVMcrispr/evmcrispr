@@ -34,11 +34,12 @@ import {
   IPFSResolver,
   NodeError,
   NodeType,
+  Num,
   resolveHelper as resolveHelperFn,
   timeUnits,
 } from "@evmcrispr/sdk";
 import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
-import { createPublicClient, http, isAddress, parseUnits } from "viem";
+import { createPublicClient, http, isAddress } from "viem";
 import * as viemChains from "viem/chains";
 
 import {
@@ -648,10 +649,10 @@ export class EVMcrispr {
       n.right,
     ]);
 
-    let leftOperand: bigint, rightOperand: bigint;
+    let left: Num, right: Num;
 
     try {
-      leftOperand = BigInt(leftOperand_);
+      left = Num.coerce(leftOperand_);
     } catch (_err) {
       EVMcrispr.panic(
         n,
@@ -660,7 +661,7 @@ export class EVMcrispr {
     }
 
     try {
-      rightOperand = BigInt(rightOperand_);
+      right = Num.coerce(rightOperand_);
     } catch (_err) {
       EVMcrispr.panic(
         n,
@@ -670,19 +671,19 @@ export class EVMcrispr {
 
     switch (n.operator) {
       case "+":
-        return leftOperand + rightOperand;
+        return left.add(right);
       case "-":
-        return leftOperand - rightOperand;
+        return left.sub(right);
       case "*":
-        return leftOperand * rightOperand;
+        return left.mul(right);
       case "/": {
-        if (rightOperand === 0n) {
+        if (right.num === 0n) {
           EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
         }
-        return leftOperand / rightOperand;
+        return left.div(right);
       }
       case "^": {
-        return leftOperand ** rightOperand;
+        return left.pow(right);
       }
     }
   };
@@ -862,14 +863,12 @@ export class EVMcrispr {
       case NodeType.StringLiteral:
         return n.value;
       case NodeType.NumberLiteral: {
-        // Preserve existing behavior for decimals without explicit exponent
-        // (e.g. "1.23" => 123n).
-        const numericValue = String(n.value);
-        const implicitExponent = numericValue.split(".")[1]?.length ?? 0;
-        return (
-          parseUnits(numericValue, n.power ?? implicitExponent) *
-          BigInt(timeUnits[n.timeUnit ?? "s"])
-        );
+        let r = Num.fromDecimalString(String(n.value));
+        if (n.power) {
+          r = r.mul(new Num(10n ** BigInt(n.power), 1n));
+        }
+        r = r.mul(Num.fromBigInt(BigInt(timeUnits[n.timeUnit ?? "s"])));
+        return r;
       }
       default:
         EVMcrispr.panic(n, "unknown literal expression node");

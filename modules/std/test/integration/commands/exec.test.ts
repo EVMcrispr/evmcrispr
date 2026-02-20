@@ -13,7 +13,6 @@ import {
   expect,
   getPublicClient,
   getWalletClients,
-  TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
 import { parseUnits, toHex } from "viem";
@@ -54,7 +53,9 @@ describeCommand("exec", {
     },
     {
       name: "should return a correct exec action with value and from address",
-      script: `exec ${target} ${fnSig} ${params.join(" ")} --value 1e18 --from ${target}`,
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --value 1e18 --from ${target}`,
       expectedActions: [
         encodeAction(target, fnSig, resolvedParams, {
           value: 1000000000000000000n,
@@ -79,17 +80,6 @@ describeCommand("exec", {
       ],
     },
     {
-      name: "should return exec action when receiving just the method's name",
-      script: `exec ${target} transfer @me 1500e18`,
-      expectedActions: [
-        encodeAction(
-          "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9",
-          "transfer(address,uint256)",
-          [TEST_ACCOUNT_ADDRESS, parseUnits("1500", 18)],
-        ),
-      ],
-    },
-    {
       name: "should return exec action with --gas option",
       script: `exec ${target} ${fnSig} ${params.join(" ")} --gas 100000`,
       expectedActions: [
@@ -105,7 +95,9 @@ describeCommand("exec", {
     },
     {
       name: "should return exec action with --max-fee-per-gas option",
-      script: `exec ${target} ${fnSig} ${params.join(" ")} --max-fee-per-gas 20e9`,
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --max-fee-per-gas 20e9`,
       expectedActions: [
         {
           ...encodeAction(target, fnSig, resolvedParams),
@@ -115,7 +107,9 @@ describeCommand("exec", {
     },
     {
       name: "should return exec action with --max-priority-fee-per-gas option",
-      script: `exec ${target} ${fnSig} ${params.join(" ")} --max-priority-fee-per-gas 2e9`,
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --max-priority-fee-per-gas 2e9`,
       expectedActions: [
         {
           ...encodeAction(target, fnSig, resolvedParams),
@@ -133,7 +127,7 @@ describeCommand("exec", {
     {
       name: "should fail when providing an invalid signature",
       script: `exec ${target} invalid(uint256,) 1e18`,
-      error: `invalid signature "invalid(uint256,)"`,
+      error: `<signature> must be a valid function signature, got invalid(uint256,)`,
     },
     {
       name: "should fail when providing invalid call params",

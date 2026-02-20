@@ -3,7 +3,8 @@ import { isAddress } from "viem";
 import { ErrorException } from "../errors";
 import type { Binding, CompletionContext, CompletionItem } from "../types";
 import { BindingsSpace } from "../types";
-import { isBoolean, isHexString, isNumber, isString } from "./args";
+import { isBoolean, isHexString, isNum, isString } from "./args";
+import { Num } from "./Num";
 
 export interface CustomArgType {
   validate?(argName: string, value: any): void;
@@ -74,12 +75,12 @@ export function validateArgType(
       }
       break;
     case "number":
-      if (!isNumber(value)) {
+      if (!isNum(value)) {
         throw new ErrorException(`${name} must be a number, got ${value}`);
       }
       break;
     case "string":
-      if (!isString(value) && !isNumber(value)) {
+      if (!isString(value) && !isNum(value)) {
         throw new ErrorException(`${name} must be a string, got ${value}`);
       }
       break;
@@ -129,9 +130,12 @@ export function completionsForType(
         .getAllBindings({ spaceFilters: [BindingsSpace.USER] })
         .filter((b) => {
           const v = b.value;
-          if (typeof v === "bigint" || typeof v === "string")
-            return isNumber(v);
-          // Unresolved AST node: accept NumberLiteral
+          if (
+            v instanceof Num ||
+            typeof v === "bigint" ||
+            typeof v === "string"
+          )
+            return isNum(v);
           if (v && typeof v === "object" && "type" in v) {
             return (v as { type: string }).type === "NumberLiteral";
           }

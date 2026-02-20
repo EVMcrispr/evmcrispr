@@ -10,6 +10,7 @@ export * from "./encoders";
 export * from "./ens";
 export * from "./events";
 export * from "./formatters";
+export { Num } from "./Num";
 export * from "./parsers";
 export * from "./proxies";
 export * from "./requests";

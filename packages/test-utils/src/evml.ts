@@ -20,6 +20,7 @@ import {
   ComparisonType,
   HelperFunctionError,
   NodeType,
+  Num,
 } from "@evmcrispr/sdk";
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
@@ -94,7 +95,11 @@ export const runInterpreterCases = async (
           getTransports(),
         );
         const res = await evm.interpretNode(node);
-        expect(res, errorMsg).to.equal(expected);
+        if (res instanceof Num && expected instanceof Num) {
+          expect(res.eq(expected), errorMsg).to.be.true;
+        } else {
+          expect(res, errorMsg).to.equal(expected);
+        }
       },
     ),
   );

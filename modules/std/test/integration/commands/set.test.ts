@@ -1,7 +1,6 @@
 import "../../setup";
-import { BindingsSpace } from "@evmcrispr/sdk";
+import { BindingsSpace, Num } from "@evmcrispr/sdk";
 import { describeCommand, expect } from "@evmcrispr/test-utils";
-import { parseUnits } from "viem";
 
 describeCommand("set", {
   describeName: "Std > commands > set <varName> <varValue>",
@@ -10,9 +9,9 @@ describeCommand("set", {
       name: "should set a user variable correctly",
       script: "set $var 1e18",
       validate: (_, interpreter) => {
-        expect(interpreter.getBinding("$var", BindingsSpace.USER)).to.be.equal(
-          parseUnits("1", 18),
-        );
+        const val = interpreter.getBinding("$var", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(new Num(10n ** 18n, 1n))).to.be.true;
       },
     },
     {
@@ -37,27 +36,27 @@ describeCommand("set", {
       name: "should set a boolean variable",
       script: "set $flag true",
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$flag", BindingsSpace.USER),
-        ).to.be.equal(true);
+        expect(interpreter.getBinding("$flag", BindingsSpace.USER)).to.be.equal(
+          true,
+        );
       },
     },
     {
       name: "should set a variable to an address",
       script: "set $addr 0x44fA8E6f47987339850636F88629646662444217",
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.be.equal("0x44fA8E6f47987339850636F88629646662444217");
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.be.equal(
+          "0x44fA8E6f47987339850636F88629646662444217",
+        );
       },
     },
     {
       name: "should set a variable from a helper expression",
       script: "set $dai @token(DAI)",
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$dai", BindingsSpace.USER),
-        ).to.be.equal("0x44fA8E6f47987339850636F88629646662444217");
+        expect(interpreter.getBinding("$dai", BindingsSpace.USER)).to.be.equal(
+          "0x44fA8E6f47987339850636F88629646662444217",
+        );
       },
     },
   ],

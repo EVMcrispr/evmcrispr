@@ -6,6 +6,7 @@ import type {
   NodeInterpreter,
 } from "../types";
 import { commaListItems } from "./formatters";
+import { Num } from "./Num";
 
 export enum ComparisonType {
   Between = "Between",
@@ -106,10 +107,12 @@ export const getOptValue = (
   return interpretNode(opt.value);
 };
 
-export function isNumber(number: bigint | string): boolean {
+export function isNum(number: unknown): boolean {
   return (
+    number instanceof Num ||
+    typeof number === "number" ||
     typeof number === "bigint" ||
-    (typeof number === "string" && /^\d+$/.test(number))
+    (typeof number === "string" && /^\d+(\.\d+)?$/.test(number))
   );
 }
 

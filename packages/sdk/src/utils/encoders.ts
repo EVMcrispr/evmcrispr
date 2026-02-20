@@ -9,8 +9,9 @@ import {
 
 import { ErrorInvalid } from "../errors";
 import type { Address, TransactionAction } from "../types";
+import type { Num } from "./Num";
 
-export type Param = string | number | bigint | boolean | Param[];
+export type Param = string | boolean | Num | Param[];
 
 export const encodeAction = (
   target: Address,
@@ -57,7 +58,7 @@ export const encodeCalldata = (
   abiFn.inputs.forEach((paramType, i) => {
     const { name, type } = paramType;
     try {
-      let paramValue = params[i];
+      let paramValue: Param = params[i];
 
       // TODO: Include support for tuple types, e.g. (uint256, uint256)
       if (

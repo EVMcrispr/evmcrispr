@@ -9,6 +9,7 @@ import {
   ErrorInvalid,
   encodeAction,
   isTransactionAction,
+  Num,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
@@ -132,7 +133,7 @@ export const batchForwarderActions = async (
           actions.push(
             encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
-              0,
+              Num.fromBigInt(0n),
             ]),
           );
         }
@@ -140,7 +141,7 @@ export const batchForwarderActions = async (
           actions.push(
             encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
-              feeAmount,
+              Num.fromBigInt(feeAmount),
             ]),
           );
         }

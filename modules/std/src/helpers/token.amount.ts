@@ -1,5 +1,5 @@
 import { ErrorException, defineHelper } from "@evmcrispr/sdk";
-import { parseAbiItem, parseUnits } from "viem";
+import { parseAbiItem, parseUnits, zeroAddress } from "viem";
 import type Std from "..";
 import { resolveToken } from "./token";
 
@@ -12,17 +12,15 @@ export default defineHelper<Std>({
   returnType: "number",
   args: [
     { name: "tokenSymbolOrAddress", type: "string" },
-    { name: "amount", type: "string" },
+    { name: "amount", type: "number" },
   ],
   async run(module, { tokenSymbolOrAddress, amount }) {
-    const amountStr = String(amount);
-    if (!AMOUNT_RE.test(amountStr)) {
-      throw new ErrorException(
-        `<amount> must be a number (e.g. "100" or "0.5"), got ${amountStr}`,
-      );
-    }
-
     const tokenAddr = await resolveToken(module, tokenSymbolOrAddress);
+
+    // Handle native ETH balance (zero address)
+    if (tokenAddr === zeroAddress) {
+      return parseUnits(String(amount), 18).toString();
+    }
 
     const client = await module.getClient();
     const decimals = await client.readContract({
@@ -30,6 +28,6 @@ export default defineHelper<Std>({
       abi: [parseAbiItem("function decimals() view returns (uint8)")],
       functionName: "decimals",
     });
-    return parseUnits(amountStr, decimals).toString();
+    return parseUnits(String(amount), decimals).toString();
   },
 });

@@ -6,6 +6,7 @@ import {
   BindingsSpace,
   ExpressionError,
   NodeType,
+  Num,
   timeUnits,
 } from "@evmcrispr/sdk";
 import {
@@ -17,7 +18,6 @@ import {
 } from "@evmcrispr/test-utils";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
-import { parseUnits } from "viem";
 
 describe("Interpreter - primaries", async () => {
   let client: PublicClient;
@@ -70,10 +70,17 @@ describe("Interpreter - primaries", async () => {
     });
 
     it("should intepret a numeric node correctly", async () => {
-      const toBigInt = (value: number | string, power?: number): bigint => {
-        const valueString = String(value);
-        const implicitExponent = valueString.split(".")[1]?.length ?? 0;
-        return parseUnits(valueString, power ?? implicitExponent);
+      const toNum = (
+        value: number | string,
+        power?: number,
+        timeUnit?: string,
+      ): Num => {
+        let r = Num.fromDecimalString(String(value));
+        if (power) {
+          r = r.mul(new Num(10n ** BigInt(power), 1n));
+        }
+        r = r.mul(Num.fromBigInt(BigInt(timeUnits[timeUnit ?? "s"])));
+        return r;
       };
 
       const node = (
@@ -92,60 +99,60 @@ describe("Interpreter - primaries", async () => {
       };
 
       const cases: InterpreterCase[] = [
-        [node(15), toBigInt(15, 0), "Invalid integer number match"],
+        [node(15), toNum(15), "Invalid integer number match"],
         [
           node(1500, 18),
-          toBigInt(1500, 18),
+          toNum(1500, 18),
           "Invalid integer number raised to a power match",
         ],
         [
           node(7854.2345),
-          toBigInt(7854.2345),
+          toNum(7854.2345),
           "Invalid decimal number raised to a power match",
         ],
         [
           node(0.000123, 14),
-          toBigInt(0.000123, 14),
+          toNum(0.000123, 14),
           "Invalid zero decimal number raised to a power match ",
         ],
         [
           node(1200.12, 18, "mo"),
-          toBigInt(1200.12, 18) * BigInt(timeUnits.mo),
+          toNum(1200.12, 18, "mo"),
           "Invalid decimal number raised to a power followed by time unit match",
         ],
         [
           node(30, undefined, "s"),
-          toBigInt(30, 0) * BigInt(timeUnits.s),
+          toNum(30, undefined, "s"),
           "Invalid number followed by second time unit match",
         ],
         [
           node(5, undefined, "m"),
-          toBigInt(5, 0) * BigInt(timeUnits.m),
+          toNum(5, undefined, "m"),
           "Invalid number followed by minute time unit match",
         ],
         [
           node(35, undefined, "h"),
-          toBigInt(35, 0) * BigInt(timeUnits.h),
+          toNum(35, undefined, "h"),
           "Invalid number followed by hour time unit match",
         ],
         [
           node(463, undefined, "d"),
-          toBigInt(463, 0) * BigInt(timeUnits.d),
+          toNum(463, undefined, "d"),
           "Invalid number followed by day time unit match",
         ],
         [
           node(96, undefined, "w"),
-          toBigInt(96, 0) * BigInt(timeUnits.w),
+          toNum(96, undefined, "w"),
           "Invalid number followed by week time unit match",
         ],
         [
           node(9, undefined, "mo"),
-          toBigInt(9, 0) * BigInt(timeUnits.mo),
+          toNum(9, undefined, "mo"),
           "Invalid number followed by month time unit match",
         ],
         [
           node(4.67, undefined, "y"),
-          toBigInt(4.67) * BigInt(timeUnits.y),
+          toNum(4.67, undefined, "y"),
           "Invalid number followed by year time unit match",
         ],
       ];
@@ -193,7 +200,8 @@ describe("Interpreter - primaries", async () => {
       const interpreter = createInterpreter(`set $myVar 42`, client);
       await interpreter.interpret();
       const value = interpreter.getBinding("$myVar", BindingsSpace.USER);
-      expect(value).to.equal(BigInt(42));
+      expect(value).to.be.instanceOf(Num);
+      expect((value as Num).eq(Num.fromBigInt(42n))).to.be.true;
     });
 
     it("should fail when intepreting a non-existent variable", async () => {

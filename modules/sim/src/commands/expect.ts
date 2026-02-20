@@ -2,8 +2,9 @@ import {
   BindingsSpace,
   defineCommand,
   ErrorException,
+  Num,
   fieldItem,
-  isNumber,
+  isNum,
   variableItem,
 } from "@evmcrispr/sdk";
 import type Sim from "..";
@@ -54,24 +55,36 @@ export default defineCommand<Sim>({
 
     switch (operator) {
       case "==":
-        result = value === expectedValue;
+        if (isNum(value) && isNum(expectedValue)) {
+          result = Num.coerce(value).eq(Num.coerce(expectedValue));
+        } else {
+          result = value === expectedValue;
+        }
         break;
       case "!=":
-        result = value !== expectedValue;
+        if (isNum(value) && isNum(expectedValue)) {
+          result = !Num.coerce(value).eq(Num.coerce(expectedValue));
+        } else {
+          result = value !== expectedValue;
+        }
         break;
       case ">":
       case ">=":
       case "<":
       case "<=":
-        if (!isNumber(value) || !isNumber(expectedValue)) {
+        if (!isNum(value) || !isNum(expectedValue)) {
           throw new ErrorException(
             `Operator ${operator} must be used between two numbers`,
           );
         }
-        if (operator === ">") result = BigInt(value) > BigInt(expectedValue);
-        if (operator === ">=") result = BigInt(value) >= BigInt(expectedValue);
-        if (operator === "<") result = BigInt(value) < BigInt(expectedValue);
-        if (operator === "<=") result = BigInt(value) <= BigInt(expectedValue);
+        {
+          const a = Num.coerce(value);
+          const b = Num.coerce(expectedValue);
+          if (operator === ">") result = a.gt(b);
+          if (operator === ">=") result = a.gte(b);
+          if (operator === "<") result = a.lt(b);
+          if (operator === "<=") result = a.lte(b);
+        }
         break;
       default:
         throw new ErrorException(`Operator ${operator} not recognized`);
