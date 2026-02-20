@@ -10,16 +10,23 @@ export interface CommandTestCase {
   name: string;
   script: string;
   expectedActions?: Action[];
+  /** Run before interpretation to capture pre-test state. Return value is passed to `validate`. */
+  setup?: (client: PublicClient) => Promise<any> | any;
   validate?: (
     result: Action[],
     interpreter: TestInterpreter,
+    setupData?: any,
   ) => void | Promise<void>;
 }
 
 export interface CommandErrorCase {
   name: string;
   script: string;
-  error: string | RegExp | ErrorException;
+  error:
+    | string
+    | RegExp
+    | ErrorException
+    | ((interpreter: TestInterpreter) => ErrorException);
 }
 
 export interface CommandTestConfig {
@@ -33,6 +40,8 @@ export interface CommandTestConfig {
   errorCases?: CommandErrorCase[];
   /** Custom describe name override. */
   describeName?: string;
+  /** Skip the entire describe block. */
+  skip?: boolean;
 }
 
 /**
@@ -54,7 +63,9 @@ export function describeCommand(
     config.describeName ??
     `${config.module ? `${capitalize(config.module)} >` : "Std >"} commands > ${commandName}`;
 
-  describe(label, () => {
+  const describeFn = config.skip ? describe.skip : describe;
+
+  describeFn(label, () => {
     let client: PublicClient;
 
     beforeAll(() => {
@@ -64,6 +75,9 @@ export function describeCommand(
     if (config.cases) {
       for (const c of config.cases) {
         it(c.name, async () => {
+          let setupData: any;
+          if (c.setup) setupData = await c.setup(client);
+
           const fullScript = config.preamble
             ? `${config.preamble}\n${c.script}`
             : c.script;
@@ -74,7 +88,7 @@ export function describeCommand(
             expect(actions).to.eql(c.expectedActions);
           }
           if (c.validate) {
-            await c.validate(actions, interpreter);
+            await c.validate(actions, interpreter, setupData);
           }
         });
       }
@@ -88,7 +102,10 @@ export function describeCommand(
             : ec.script;
           const interpreter = createInterpreter(fullScript, client);
 
-          if (typeof ec.error === "string") {
+          if (typeof ec.error === "function") {
+            const errorObj = ec.error(interpreter);
+            await expectThrowAsync(() => interpreter.interpret(), errorObj);
+          } else if (typeof ec.error === "string") {
             try {
               await interpreter.interpret();
               throw new Error("Expected command to throw");

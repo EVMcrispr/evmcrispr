@@ -17,6 +17,8 @@ const PACKAGES_WITH_INTEGRATION_TESTS = [
   "modules/std",
   "modules/aragonos",
   "modules/giveth",
+  "modules/sim",
+  "modules/ens",
 ];
 
 await loadEnv();

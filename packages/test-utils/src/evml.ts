@@ -25,6 +25,7 @@ import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
+import { getTransports } from "./client";
 import { TEST_ACCOUNT_ADDRESS } from "./constants";
 import { expectThrowAsync } from "./expects";
 
@@ -87,7 +88,11 @@ export const runInterpreterCases = async (
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
         const client = await getClient();
-        const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
+        const evm = new EVMcrispr(
+          client,
+          TEST_ACCOUNT_ADDRESS,
+          getTransports(),
+        );
         const res = await evm.interpretNode(node);
         expect(res, errorMsg).to.equal(expected);
       },
@@ -138,7 +143,7 @@ export const createInterpreter = (
   client: PublicClient,
 ): TestInterpreter => {
   const { ast } = parseScript(script);
-  const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
+  const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS, getTransports());
 
   return {
     ast,
@@ -157,20 +162,23 @@ export const preparingExpression = async (
   expression: string,
   client: PublicClient,
   module?: string,
-  configSetters: string[] = [],
+  preamble = "",
 ): Promise<[Awaited<any>, HelperFunctionNode]> => {
   const script = `
   ${module ? `load ${module}` : ""}
 
-  ${configSetters.join("\n")}
+  ${preamble}
   set $res ${expression}
   `;
 
   const i = createInterpreter(script, client);
 
-  const setCommand = i.ast.body.find(
+  const setCommands = i.ast.body.filter(
     (n) => (n as CommandExpressionNode).name === "set",
-  )! as CommandExpressionNode;
+  );
+  const setCommand = setCommands[
+    setCommands.length - 1
+  ]! as CommandExpressionNode;
   const n = setCommand.args[1] as HelperFunctionNode;
 
   return [

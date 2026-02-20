@@ -1,193 +1,207 @@
 import "../../setup";
-import { beforeAll, describe, it } from "bun:test";
 
 import { CommandError, encodeAction } from "@evmcrispr/sdk";
-import {
-  expect,
-  expectThrowAsync,
-  getPublicClient,
-  itChecksNonDefinedIdentifier,
-} from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { describeCommand, expect } from "@evmcrispr/test-utils";
 import { toHex } from "viem";
 import { DAO } from "../../fixtures";
 import { createTestScriptEncodedAction } from "../../test-helpers/actions";
-import {
-  createAragonScriptInterpreter as _createAragonScriptInterpreter,
-  findAragonOSCommandNode,
-} from "../../test-helpers/aragonos";
+import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
-describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
-  let client: PublicClient;
+const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
 
-  let createAragonScriptInterpreter: ReturnType<
-    typeof _createAragonScriptInterpreter
-  >;
-
-  beforeAll(async () => {
-    client = getPublicClient();
-
-    createAragonScriptInterpreter = _createAragonScriptInterpreter(
-      client,
-      DAO.kernel,
-    );
-  });
-
-  it("should return a correct act action", async () => {
-    const interpreter = createAragonScriptInterpreter([
-      `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]`,
-    ]);
-
-    const actActions = await interpreter.interpret();
-
-    const expectedActActions = [
-      createTestScriptEncodedAction(
-        [
-          encodeAction(
-            DAO["agent:2"],
-            "function deposit((uint256,int256),uint256[][])",
+describeCommand("act", {
+  describeName:
+    "AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]",
+  module: "aragonos",
+  preamble,
+  cases: [
+    {
+      name: "should return a correct act action",
+      script: `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]\n)`,
+      validate: async (actActions) => {
+        const expectedActActions = [
+          createTestScriptEncodedAction(
             [
-              [1, -2],
-              [
-                [2, 3],
-                [4, 5],
-              ],
+              encodeAction(
+                DAO["agent:2"],
+                "function deposit((uint256,int256),uint256[][])",
+                [
+                  [1, -2],
+                  [
+                    [2, 3],
+                    [4, 5],
+                  ],
+                ],
+              ),
             ],
+            ["agent:1"],
+            DAO,
           ),
-        ],
-        ["agent:1"],
-        DAO,
-      ),
-    ];
-
-    expect(actActions).to.be.eql(expectedActActions);
-  });
-
-  it("should return a correct act action when having to implicitly convert any string parameter to bytes when expecting one", async () => {
-    const targetAddress = "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7";
-    const params = [
-      ["0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667"],
-      "QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2",
-    ];
-    const interpreter = createAragonScriptInterpreter([
-      `act @app(agent) ${targetAddress} addBatches(bytes32[],bytes) [${params[0].toString()}] ${
-        params[1]
-      }`,
-    ]);
-
-    const actActions = await interpreter.interpret();
-
-    const expectedActActions = [
-      createTestScriptEncodedAction(
-        [
-          encodeAction(targetAddress, "function addBatches(bytes32[],bytes)", [
-            params[0],
-            toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
-          ]),
-        ],
-        ["agent"],
-        DAO,
-      ),
-    ];
-    expect(actActions).to.be.eql(expectedActActions);
-  });
-
-  itChecksNonDefinedIdentifier(
-    "should fail when receiving a non-defined agent identifier",
-    (nonDefinedIdentifier) =>
-      createAragonScriptInterpreter([
-        `act ${nonDefinedIdentifier} @app(agent) "deposit()"`,
-      ]),
-    "act",
-    0,
-    true,
-  );
-
-  itChecksNonDefinedIdentifier(
-    "should fail when receiving a non-defined target identifier",
-    (nonDefinedIdentifier) =>
-      createAragonScriptInterpreter([
-        `act @app(agent) ${nonDefinedIdentifier} "deposit()"`,
-      ]),
-    "act",
-    1,
-    true,
-  );
-
-  it("should fail when receiving an invalid agent address", async () => {
-    const invalidAgentAddress = "false";
-    const interpreter = createAragonScriptInterpreter([
-      `act ${invalidAgentAddress} @app(agent) "deposit()"`,
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
-    const error = new CommandError(
-      c,
-      `<agent> must be a valid address, got ${invalidAgentAddress}`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  it("should fail when receiving an invalid target address", async () => {
-    const invalidTargetAddress = "2.22e18";
-    const interpreter = createAragonScriptInterpreter([
-      `act @app(agent) ${invalidTargetAddress} "deposit()"`,
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
-    const error = new CommandError(
-      c,
-      `<target> must be a valid address, got 2220000000000000000`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  it("should fail when receiving an invalid signature", async () => {
-    const cases = [
-      ["mint", "no parenthesis"],
-      ["mint(", "left parenthesis"],
-      ["mint)", "right parenthesis"],
-      ["mint(uint,)", "right comma"],
-      ["mint(,uint)", "left comma"],
-      ["mint(uint,uint,())", "empty tuple"],
-      ["mint(uint,uint,(uint,))", "right comma in tuple"],
-      ["mint(uint,uint,(,uint))", "left comma in tuple"],
-    ];
-
-    await Promise.all(
-      cases.map(([invalidSignature, msg]) => {
-        const interpreter = createAragonScriptInterpreter([
-          `act @app(agent) @app(agent:2) "${invalidSignature}"`,
-        ]);
+        ];
+        expect(actActions).to.be.eql(expectedActActions);
+      },
+    },
+    {
+      name: "should return a correct act action when having to implicitly convert any string parameter to bytes when expecting one",
+      script: `act @app(agent) 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2\n)`,
+      validate: async (actActions) => {
+        const expectedActActions = [
+          createTestScriptEncodedAction(
+            [
+              encodeAction(
+                "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7",
+                "function addBatches(bytes32[],bytes)",
+                [
+                  [
+                    "0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667",
+                  ],
+                  toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
+                ],
+              ),
+            ],
+            ["agent"],
+            DAO,
+          ),
+        ];
+        expect(actActions).to.be.eql(expectedActActions);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "should fail when receiving an invalid agent address",
+      script: `act false @app(agent) "deposit()"\n)`,
+      error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
-        const error = new CommandError(
+        return new CommandError(
           c,
-          `<signature> must be a valid function signature, got ${invalidSignature}`,
+          `<agent> must be a valid address, got false`,
         );
-
-        return expectThrowAsync(
-          () => interpreter.interpret(),
-          error,
-          `${msg} signature error mismatch`,
+      },
+    },
+    {
+      name: "should fail when receiving an invalid target address",
+      script: `act @app(agent) 2.22e18 "deposit()"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          `<target> must be a valid address, got 2220000000000000000`,
         );
-      }),
-    );
-  });
-
-  it("should fail when receiving invalid function params", async () => {
-    const paramsErrors = [
-      '-param 0 of type address: Address "1000000000000000000" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 1000000000000000000',
-      "-param 1 of type uint256: Invalid BigInt value. Got none",
-    ];
-    const interpreter = createAragonScriptInterpreter([
-      `act @app(agent) @app(agent:2) "deposit(address,uint256)" 1e18`,
-    ]);
-    const c = findAragonOSCommandNode(interpreter.ast, "act")!;
-    const error = new CommandError(
-      c,
-      `error when encoding deposit call:\n${paramsErrors.join("\n")}`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
+      },
+    },
+    {
+      name: "should fail when receiving invalid function params",
+      script: `act @app(agent) @app(agent:2) "deposit(address,uint256)" 1e18\n)`,
+      error: (interpreter) => {
+        const paramsErrors = [
+          '-param 0 of type address: Address "1000000000000000000" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 1000000000000000000',
+          "-param 1 of type uint256: Invalid BigInt value. Got none",
+        ];
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          `error when encoding deposit call:\n${paramsErrors.join("\n")}`,
+        );
+      },
+    },
+    {
+      name: "should fail when receiving a non-defined agent identifier",
+      script: `act non-defined-address @app(agent) "deposit()"\n)`,
+      error: "non-defined-address",
+    },
+    {
+      name: "should fail when receiving a non-defined target identifier",
+      script: `act @app(agent) non-defined-address "deposit()"\n)`,
+      error: "non-defined-address",
+    },
+    {
+      name: "should fail for signature without parenthesis (mint)",
+      script: `act @app(agent) @app(agent:2) "mint"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with only left parenthesis (mint()",
+      script: `act @app(agent) @app(agent:2) "mint("\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with only right parenthesis (mint))",
+      script: `act @app(agent) @app(agent:2) "mint)"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint)",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with right comma (mint(uint,))",
+      script: `act @app(agent) @app(agent:2) "mint(uint,)"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(uint,)",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with left comma (mint(,uint))",
+      script: `act @app(agent) @app(agent:2) "mint(,uint)"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(,uint)",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with empty tuple (mint(uint,uint,()))",
+      script: `act @app(agent) @app(agent:2) "mint(uint,uint,())"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(uint,uint,())",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with right comma in tuple (mint(uint,uint,(uint,)))",
+      script: `act @app(agent) @app(agent:2) "mint(uint,uint,(uint,))"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(uint,uint,(uint,))",
+        );
+      },
+    },
+    {
+      name: "should fail for signature with left comma in tuple (mint(uint,uint,(,uint)))",
+      script: `act @app(agent) @app(agent:2) "mint(uint,uint,(,uint))"\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "act")!;
+        return new CommandError(
+          c,
+          "<signature> must be a valid function signature, got mint(uint,uint,(,uint))",
+        );
+      },
+    },
+  ],
 });

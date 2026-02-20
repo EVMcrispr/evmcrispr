@@ -1,86 +1,61 @@
 import "../../setup";
-import { beforeAll, describe, it } from "bun:test";
-import {
-  type CommandExpressionNode,
-  ComparisonType,
-  HelperFunctionError,
-  type HelperFunctionNode,
-  NodeType,
-} from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  expect,
-  expectThrowAsync,
-  getPublicClient,
-  itChecksInvalidArgsLength,
-  preparingExpression,
-} from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { HelperFunctionError } from "@evmcrispr/sdk";
+import { describeHelper } from "@evmcrispr/test-utils";
+import { helpers } from "../../../src/_generated";
 
 const PINATA_JWT = process.env.VITE_PINATA_JWT;
-const JWT_VAR_NAME = "ipfs.jwt";
-const describeFn = PINATA_JWT ? describe : describe.skip;
 
-describeFn("Std > helpers > @ipfs(text)", () => {
-  let client: PublicClient;
-  const lazyClient = () => client;
-  const ipfsData = "This should be pinned in IPFS";
+describeHelper(
+  "@ipfs",
+  {
+    skip: !PINATA_JWT,
+    describeName: "Std > helpers > @ipfs(text)",
+    preamble: PINATA_JWT
+      ? `set $std:ipfs.jwt ${PINATA_JWT}`
+      : undefined,
+    cases: [
+      {
+        name: "should upload text to IPFS and return hash",
+        input: "@ipfs('This should be pinned in IPFS')",
+        expected: "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
+      },
+    ],
+    sampleArgs: ["'This should be pinned in IPFS'"],
+  },
+  helpers.ipfs.argDefs,
+);
 
-  beforeAll(() => {
-    client = getPublicClient();
-  });
+describeHelper("@ipfs", {
+  skip: !PINATA_JWT,
+  describeName: "Std > helpers > @ipfs(text) > error: missing JWT",
+  skipArgLengthCheck: true,
+  errorCases: [
+    {
+      name: "should fail when not setting pinata JWT variable",
+      input: "@ipfs('some text')",
+      error: (helperNode) =>
+        new HelperFunctionError(
+          helperNode,
+          "$std:ipfs.jwt is not defined. Go to pinata.cloud and obtain your API key, please",
+        ),
+    },
+  ],
+});
 
-  it("should upload text to IPFS and return hash", async () => {
-    const [interpret] = await preparingExpression(
-      `@ipfs('${ipfsData}')`,
-      client,
-      undefined,
-      [`set $std:${JWT_VAR_NAME} ${PINATA_JWT}`],
-    );
-
-    expect(await interpret()).to.equals(
-      "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
-    );
-  });
-
-  it("should fail when not setting pinata JWT variable", async () => {
-    const interpreter = createInterpreter(
-      `set $res @ipfs('some text')`,
-      client,
-    );
-    const h = (interpreter.ast.body[0] as CommandExpressionNode)
-      .args[1] as HelperFunctionNode;
-    const error = new HelperFunctionError(
-      h,
-      "$std:ipfs.jwt is not defined. Go to pinata.cloud and obtain your API key, please",
-    );
-
-    await expectThrowAsync(async () => interpreter.interpret(), error);
-  });
-
-  it("should fail when setting an invalid pinata JWT", async () => {
-    const interpreter = createInterpreter(
-      `
-        set $std:ipfs.jwt "an invalid JWT"
-        set $res @ipfs("someText")
-      `,
-      client,
-    );
-    const h = (interpreter.ast.body[1] as CommandExpressionNode)
-      .args[1] as HelperFunctionNode;
-    const error = new HelperFunctionError(
-      h,
-      "an error occurred while uploading data to IPFS: Invalid/expired credentials",
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  itChecksInvalidArgsLength(
-    NodeType.HelperFunctionExpression,
-    "@ipfs",
-    [`'${ipfsData}'`],
-    { type: ComparisonType.Equal, minValue: 1 },
-    lazyClient,
-  );
+describeHelper("@ipfs", {
+  skip: !PINATA_JWT,
+  describeName: "Std > helpers > @ipfs(text) > error: invalid JWT",
+  preamble: 'set $std:ipfs.jwt "an invalid JWT"',
+  skipArgLengthCheck: true,
+  errorCases: [
+    {
+      name: "should fail when setting an invalid pinata JWT",
+      input: '@ipfs("someText")',
+      error: (helperNode) =>
+        new HelperFunctionError(
+          helperNode,
+          "an error occurred while uploading data to IPFS: Invalid/expired credentials",
+        ),
+    },
+  ],
 });

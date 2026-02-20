@@ -35,8 +35,8 @@ export interface HelperErrorCase {
 export interface HelperTestConfig {
   /** Module to load (e.g. "giveth"). Omit for std helpers (auto-loaded). */
   module?: string;
-  /** Config setters to run before the expression (e.g. ["set $token.tokenlist ..."]). */
-  configSetters?: string[];
+  /** Script preamble prepended before the expression (e.g. "set $token.tokenlist ..."). */
+  preamble?: string;
   /** Happy-path test cases. */
   cases?: HelperTestCase[];
   /** Error test cases. */
@@ -116,7 +116,9 @@ export function describeHelper(
 
   const label =
     config.describeName ??
-    `${config.module ? `${capitalize(config.module)} >` : "Std >"} helpers > ${atExpr}`;
+    `${
+      config.module ? `${capitalize(config.module)} >` : "Std >"
+    } helpers > ${atExpr}`;
 
   const describeFn = config.skip ? describe.skip : describe;
 
@@ -136,7 +138,7 @@ export function describeHelper(
             c.input,
             client,
             config.module,
-            config.configSetters,
+            config.preamble,
           );
           const result = await interpret();
           if (c.validate) {
@@ -158,7 +160,7 @@ export function describeHelper(
             ec.input,
             client,
             config.module,
-            config.configSetters,
+            config.preamble,
           );
 
           if (typeof ec.error === "function") {

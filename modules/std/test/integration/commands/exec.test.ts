@@ -10,12 +10,10 @@ import {
   toDecimals,
 } from "@evmcrispr/sdk";
 import {
-  createInterpreter,
   describeCommand,
   expect,
   getPublicClient,
   getWalletClients,
-  itChecksNonDefinedIdentifier,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
@@ -92,6 +90,40 @@ describeCommand("exec", {
         ),
       ],
     },
+    {
+      name: "should return exec action with --gas option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --gas 100000`,
+      expectedActions: [
+        { ...encodeAction(target, fnSig, resolvedParams), gas: 100000n },
+      ],
+    },
+    {
+      name: "should return exec action with --nonce option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --nonce 5`,
+      expectedActions: [
+        { ...encodeAction(target, fnSig, resolvedParams), nonce: 5 },
+      ],
+    },
+    {
+      name: "should return exec action with --max-fee-per-gas option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --max-fee-per-gas 20e9`,
+      expectedActions: [
+        {
+          ...encodeAction(target, fnSig, resolvedParams),
+          maxFeePerGas: 20000000000n,
+        },
+      ],
+    },
+    {
+      name: "should return exec action with --max-priority-fee-per-gas option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --max-priority-fee-per-gas 2e9`,
+      expectedActions: [
+        {
+          ...encodeAction(target, fnSig, resolvedParams),
+          maxPriorityFeePerGas: 2000000000n,
+        },
+      ],
+    },
   ],
   errorCases: [
     {
@@ -119,27 +151,12 @@ describeCommand("exec", {
       script: `exec ${target} ${fnSig} @me 1e18 --from tata`,
       error: "--from must be a valid address, got tata",
     },
+    {
+      name: "should fail when receiving a non-defined target identifier",
+      script: `exec non-defined-address "${fnSig}" 1e18`,
+      error: "non-defined-address",
+    },
   ],
-});
-
-describe("Std > commands > exec > non-defined identifier", () => {
-  let client: PublicClient;
-
-  beforeAll(() => {
-    client = getPublicClient();
-  });
-
-  itChecksNonDefinedIdentifier(
-    "should fail when receiving a non-defined target identifier",
-    (nonDefinedIdentifier) =>
-      createInterpreter(`exec ${nonDefinedIdentifier} "${fnSig}" 1e18`, client),
-    "exec",
-    0,
-  );
-
-  it.todo("should fail when providing a method's name whose contract ABI isn't found", () => {});
-  it.todo("should fail when providing an ABI duplicated method's name", () => {});
-  it.todo("should fail when providing a method's name of a contract which isn't verified", () => {});
 });
 
 describe("Std > commands > exec > event capture", () => {

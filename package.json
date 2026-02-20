@@ -15,7 +15,7 @@
     "test": "bun run test:unit && bun run test:integration",
     "test:unit": "turbo run test:unit",
     "test:integration": "bun scripts/run-integration-tests.ts",
-    "test:coverage": "turbo run test:coverage && bun scripts/merge-coverage.ts",
+    "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
     "dev:website": "bun --filter evmcrispr-website dev",
     "dev": "bun --filter=* dev"

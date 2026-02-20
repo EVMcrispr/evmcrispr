@@ -23,6 +23,42 @@ describeCommand("set", {
         );
       },
     },
+    {
+      name: "should set a string variable",
+      script: 'set $greeting "hello world"',
+      validate: (_, interpreter) => {
+        expect(
+          interpreter.getBinding("$greeting", BindingsSpace.USER),
+        ).to.be.equal("hello world");
+      },
+    },
+    {
+      name: "should set a boolean variable",
+      script: "set $flag true",
+      validate: (_, interpreter) => {
+        expect(
+          interpreter.getBinding("$flag", BindingsSpace.USER),
+        ).to.be.equal(true);
+      },
+    },
+    {
+      name: "should set a variable to an address",
+      script: "set $addr 0x44fA8E6f47987339850636F88629646662444217",
+      validate: (_, interpreter) => {
+        expect(
+          interpreter.getBinding("$addr", BindingsSpace.USER),
+        ).to.be.equal("0x44fA8E6f47987339850636F88629646662444217");
+      },
+    },
+    {
+      name: "should set a variable from a helper expression",
+      script: "set $dai @token(DAI)",
+      validate: (_, interpreter) => {
+        expect(
+          interpreter.getBinding("$dai", BindingsSpace.USER),
+        ).to.be.equal("0x44fA8E6f47987339850636F88629646662444217");
+      },
+    },
   ],
   errorCases: [
     {

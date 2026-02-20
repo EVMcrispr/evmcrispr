@@ -41,8 +41,8 @@ export class TestContext {
   async expression(
     expr: string,
     module?: string,
-    configSetters?: string[],
+    preamble?: string,
   ): Promise<[() => Promise<any>, HelperFunctionNode]> {
-    return preparingExpression(expr, this._client, module, configSetters);
+    return preparingExpression(expr, this._client, module, preamble);
   }
 }

@@ -37,6 +37,14 @@ describe("Std > commands > load <name> [--as <alias>]", () => {
     expect(module?.alias).to.be.equal("e");
   });
 
+  it("should allow using commands through an alias", async () => {
+    const interpreter = createInterpreter(
+      'load ens --as e\nset $res @contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")',
+      client,
+    );
+    await interpreter.interpret();
+  });
+
   it("should fail when trying to load a non-existent module", async () => {
     const interpreter = createInterpreter("load nonExistent", client);
     try {
@@ -57,5 +65,16 @@ describe("Std > commands > load <name> [--as <alias>]", () => {
     }
   });
 
-  it.todo("should throw an error when trying to load a module with an alias previously used", () => {});
+  it("should fail when trying to load a module with an alias already used", async () => {
+    const interpreter = createInterpreter(
+      "load ens --as e\nload sim --as e",
+      client,
+    );
+    try {
+      await interpreter.interpret();
+      throw new Error("Expected interpret to throw");
+    } catch (err: any) {
+      expect(err.message).to.include("alias already used");
+    }
+  });
 });

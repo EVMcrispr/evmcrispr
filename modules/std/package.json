@@ -33,6 +33,6 @@
     "build": "bun run ../../packages/sdk/scripts/build.ts",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",
-    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test/unit"
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test"
   }
 }
