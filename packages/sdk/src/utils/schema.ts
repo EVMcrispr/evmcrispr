@@ -3,7 +3,7 @@ import { isAddress } from "viem";
 import { ErrorException } from "../errors";
 import type { Binding, CompletionContext, CompletionItem } from "../types";
 import { BindingsSpace } from "../types";
-import { isNumberish } from "./args";
+import { isBoolean, isHexString, isNumber, isString } from "./args";
 
 export interface CustomArgType {
   validate?(argName: string, value: any): void;
@@ -28,7 +28,6 @@ const BUILTIN_TYPES = new Set<string>([
   "bytes32",
   "bool",
   "any",
-  "literal",
   "variable",
   "block",
 ]);
@@ -75,34 +74,33 @@ export function validateArgType(
       }
       break;
     case "number":
-      if (typeof value !== "bigint" && !isNumberish(value)) {
+      if (!isNumber(value)) {
         throw new ErrorException(`${name} must be a number, got ${value}`);
       }
       break;
     case "string":
-      if (typeof value !== "string" && typeof value !== "bigint") {
+      if (!isString(value) && !isNumber(value)) {
         throw new ErrorException(`${name} must be a string, got ${value}`);
       }
       break;
     case "bytes":
-      if (typeof value !== "string" || !value.startsWith("0x")) {
+      if (!isHexString(value)) {
         throw new ErrorException(`${name} must be a hex string, got ${value}`);
       }
       break;
     case "bytes32":
-      if (typeof value !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(value)) {
+      if (!isHexString(value) || value.length !== 66) {
         throw new ErrorException(
           `${name} must be a bytes32 hex string, got ${value}`,
         );
       }
       break;
     case "bool":
-      if (typeof value !== "boolean") {
+      if (!isBoolean(value)) {
         throw new ErrorException(`${name} must be a boolean, got ${value}`);
       }
       break;
     case "any":
-    case "literal":
     case "variable":
     case "block":
       break;
@@ -131,8 +129,8 @@ export function completionsForType(
         .getAllBindings({ spaceFilters: [BindingsSpace.USER] })
         .filter((b) => {
           const v = b.value;
-          if (typeof v === "bigint") return true;
-          if (typeof v === "string") return isNumberish(v);
+          if (typeof v === "bigint" || typeof v === "string")
+            return isNumber(v);
           // Unresolved AST node: accept NumberLiteral
           if (v && typeof v === "object" && "type" in v) {
             return (v as { type: string }).type === "NumberLiteral";

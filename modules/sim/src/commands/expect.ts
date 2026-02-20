@@ -3,7 +3,7 @@ import {
   defineCommand,
   ErrorException,
   fieldItem,
-  isNumberish,
+  isNumber,
   variableItem,
 } from "@evmcrispr/sdk";
 import type Sim from "..";
@@ -63,7 +63,7 @@ export default defineCommand<Sim>({
       case ">=":
       case "<":
       case "<=":
-        if (!isNumberish(value) || !isNumberish(expectedValue)) {
+        if (!isNumber(value) || !isNumber(expectedValue)) {
           throw new ErrorException(
             `Operator ${operator} must be used between two numbers`,
           );

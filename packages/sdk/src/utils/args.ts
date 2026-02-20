@@ -106,6 +106,21 @@ export const getOptValue = (
   return interpretNode(opt.value);
 };
 
-export function isNumberish(number: bigint | string): boolean {
-  return typeof number === "bigint" || /^\d+$/.test(number);
+export function isNumber(number: bigint | string): boolean {
+  return (
+    typeof number === "bigint" ||
+    (typeof number === "string" && /^\d+$/.test(number))
+  );
+}
+
+export function isString(value: any): boolean {
+  return typeof value === "string";
+}
+
+export function isHexString(value: any): boolean {
+  return typeof value === "string" && /^0x[0-9a-fA-F]*$/.test(value);
+}
+
+export function isBoolean(value: any): boolean {
+  return typeof value === "boolean";
 }

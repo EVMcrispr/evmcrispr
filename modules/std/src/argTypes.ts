@@ -1,9 +1,22 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  ErrorException,
+  isFunctionSignature,
+} from "@evmcrispr/sdk";
 
 const { MODULE } = BindingsSpace;
 
 export const types: CustomArgTypes = {
+  signature: {
+    validate(name, value) {
+      if (!isFunctionSignature(value)) {
+        throw new ErrorException(
+          `${name} must be a valid function signature, got ${value}`,
+        );
+      }
+    },
+  },
   module: {
     validate(name, value) {
       if (typeof value !== "string") {

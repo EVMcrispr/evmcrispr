@@ -13,7 +13,12 @@ import {
   resolveEventCaptures,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
-import { getAbiItem, isAddress, isAddressEqual, toFunctionSignature } from "viem";
+import {
+  getAbiItem,
+  isAddress,
+  isAddressEqual,
+  toFunctionSignature,
+} from "viem";
 import type Std from "..";
 
 const { ABI } = BindingsSpace;
@@ -24,7 +29,7 @@ export default defineCommand<Std>({
     "Call a contract function, encoding the arguments from its signature.",
   args: [
     { name: "contractAddress", type: "address" },
-    { name: "signature", type: "literal" },
+    { name: "signature", type: "signature" },
     {
       name: "params",
       type: "any",
@@ -96,83 +101,7 @@ export default defineCommand<Std>({
   ) {
     const { interpretNode, actionCallback } = interpreters;
 
-    let finalSignature = signature;
-    let targetAddress: Address = contractAddress;
-
-    if (!isFunctionSignature(signature)) {
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(signature)) {
-        throw new ErrorException(`invalid signature "${signature}"`);
-      }
-      const chainId = await module.getChainId();
-      const abi = module.bindingsManager.getBindingValue(
-        abiBindingKey(chainId, contractAddress),
-        ABI,
-      ) as Abi | undefined;
-
-      if (abi) {
-        const func = getAbiItem({
-          abi,
-          name: signature,
-        }) as AbiFunction | undefined;
-
-        if (!func) {
-          throw new ErrorException(
-            `function "${signature}" not found in ABI`,
-          );
-        }
-
-        finalSignature = toFunctionSignature(func);
-      } else {
-        let fetchedAbi: Abi;
-        let fetchedChainId: number;
-        try {
-          [targetAddress, fetchedAbi, fetchedChainId] = await fetchAbi(
-            contractAddress,
-            await module.getClient(),
-          );
-        } catch (err) {
-          const err_ = err as Error;
-          throw new ErrorException(
-            `an error ocurred while fetching ABI for ${contractAddress} - ${err_.message}`,
-          );
-        }
-
-        if (!fetchedAbi) {
-          throw new ErrorException(
-            `ABI not found for signature "${signature}"`,
-          );
-        }
-
-        try {
-          finalSignature = toFunctionSignature(
-            getAbiItem({
-              abi: fetchedAbi,
-              name: signature,
-            }) as AbiFunction,
-          );
-        } catch (err) {
-          const err_ = err as Error;
-          throw new ErrorException(
-            `error when getting function from ABI - ${err_.message}`,
-          );
-        }
-
-        module.bindingsManager.setBinding(
-          abiBindingKey(fetchedChainId, contractAddress),
-          fetchedAbi,
-          ABI,
-        );
-        if (!isAddressEqual(targetAddress, contractAddress)) {
-          module.bindingsManager.setBinding(
-            abiBindingKey(fetchedChainId, targetAddress),
-            fetchedAbi,
-            ABI,
-          );
-        }
-      }
-    }
-
-    const execAction = encodeAction(targetAddress, finalSignature, params);
+    const execAction = encodeAction(contractAddress, signature, params);
 
     if (opts.value !== undefined) {
       execAction.value = BigInt(opts.value);

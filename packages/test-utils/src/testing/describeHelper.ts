@@ -62,7 +62,6 @@ const SAMPLE_VALUES: Record<string, string> = {
   bytes32: "0x0000000000000000000000000000000000000000000000000000000000000001",
   bool: "true",
   any: "'placeholder'",
-  literal: "'placeholder'",
 };
 
 function generateSampleArgs(argDefs: HelperArgDefEntry[]): string[] {

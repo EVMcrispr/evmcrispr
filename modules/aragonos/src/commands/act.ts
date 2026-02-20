@@ -2,12 +2,10 @@ import {
   abiBindingKey,
   BindingsSpace,
   defineCommand,
-  ErrorException,
   encodeAction,
   fetchAbi,
   fieldItem,
   interpretNodeSync,
-  isFunctionSignature,
   parseSignatureParamTypes,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
@@ -23,7 +21,7 @@ export default defineCommand<AragonOS>({
   args: [
     { name: "agent", type: "address" },
     { name: "target", type: "address" },
-    { name: "signature", type: "string" },
+    { name: "signature", type: "signature" },
     {
       name: "params",
       type: "any",
@@ -86,18 +84,8 @@ export default defineCommand<AragonOS>({
       return functions.map(fieldItem);
     },
   },
-  async run(
-    module,
-    { agent: agentAddress, target: targetAddress, signature, params },
-  ) {
-    if (!isFunctionSignature(signature)) {
-      throw new ErrorException(
-        `<signature> must be a valid function signature, got ${signature}`,
-      );
-    }
-
-    const execAction = encodeAction(targetAddress, signature, params);
-
-    return batchForwarderActions(module, [execAction], [agentAddress]);
+  async run(module, { agent, target, signature, params }) {
+    const execAction = encodeAction(target, signature, params);
+    return batchForwarderActions(module, [execAction], [agent]);
   },
 });
