@@ -30,16 +30,13 @@
   },
   "peerDependencies": {
     "@evmcrispr/core": "workspace:*",
+    "@evmcrispr/sdk": "workspace:*",
     "@evmcrispr/module-aragonos": "workspace:*",
     "@evmcrispr/module-ens": "workspace:*",
     "@evmcrispr/module-giveth": "workspace:*",
-    "@evmcrispr/module-sim": "workspace:*",
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/module-sim": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@evmcrispr/core": {
-      "optional": true
-    },
     "@evmcrispr/module-aragonos": {
       "optional": true
     },
@@ -50,9 +47,6 @@
       "optional": true
     },
     "@evmcrispr/module-sim": {
-      "optional": true
-    },
-    "@evmcrispr/sdk": {
       "optional": true
     }
   }

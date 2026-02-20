@@ -3,13 +3,13 @@ import { expect } from "chai";
 import "../../setup.js";
 
 import { ExpressionError, toDecimals } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
-import { getPublicClient } from "../../test-helpers/client.js";
 import {
   createInterpreter,
+  expectThrowAsync,
+  getPublicClient,
   preparingExpression,
-} from "../../test-helpers/evml.js";
-import { expectThrowAsync } from "../../test-helpers/expects.js";
+} from "@evmcrispr/test-utils";
+import type { PublicClient } from "viem";
 
 describe("Interpreter - arithmetics", () => {
   const name = "ArithmeticExpressionError";

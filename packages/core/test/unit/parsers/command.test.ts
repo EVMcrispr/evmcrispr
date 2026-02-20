@@ -1,11 +1,10 @@
 import { describe, it } from "bun:test";
+import { type Case, runCases, runErrorCase } from "@evmcrispr/test-utils";
 import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,
   commandOptParser,
 } from "../../../src/parsers/command";
-import type { Case } from "../../test-helpers/evml";
-import { runCases, runErrorCase } from "../../test-helpers/evml";
 
 describe("Parsers - command expression", () => {
   it("should parse a command correctly", () => {

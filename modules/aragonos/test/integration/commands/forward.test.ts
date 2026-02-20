@@ -4,9 +4,11 @@ import { beforeAll, describe, it } from "bun:test";
 import { ANY_ENTITY } from "@evmcrispr/module-aragonos/utils";
 import { CommandError } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
+  itChecksNonDefinedIdentifier,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { keccak256, toHex } from "viem";
@@ -19,10 +21,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import {
-  createInterpreter,
-  itChecksNonDefinedIdentifier,
-} from "../../test-helpers/evml";
 
 describe("AragonOS > commands > forward <...path> <commandsBlock>", () => {
   let client: PublicClient;

@@ -13,6 +13,7 @@ const encodeActCall = (signature: string, params: any[] = []): string =>
   });
 
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -24,7 +25,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > install <$var> <repo> [initParams]", () => {
   const {

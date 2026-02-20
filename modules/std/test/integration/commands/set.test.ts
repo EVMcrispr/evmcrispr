@@ -1,58 +1,34 @@
 import "../../setup";
-import { beforeAll, describe, it } from "bun:test";
-import { BindingsSpace, CommandError, toDecimals } from "@evmcrispr/sdk";
-import {
-  expect,
-  expectThrowAsync,
-  findStdCommandNode,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
-import { createInterpreter } from "../../test-helpers/evml";
+import { BindingsSpace, toDecimals } from "@evmcrispr/sdk";
+import { describeCommand, expect } from "@evmcrispr/test-utils";
 
-describe("Std > commands > set <varName> <varValue>", () => {
-  let client: PublicClient;
-
-  beforeAll(async () => {
-    client = getPublicClient();
-  });
-
-  it("should set an user variable correctly", async () => {
-    const interpreter = createInterpreter("set $var 1e18", client);
-
-    await interpreter.interpret();
-
-    expect(interpreter.getBinding("$var", BindingsSpace.USER)).to.be.equal(
-      toDecimals(1, 18),
-    );
-  });
-
-  it("should fail when setting an invalid variable identifier", async () => {
-    const interpreter = createInterpreter(
-      `
-   set var1 12e18
-  `,
-      client,
-    );
-    const c = findStdCommandNode(interpreter.ast, "set")!;
-    const error = new CommandError(c, "<variable> must be a $variable");
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  it("should update the value when setting an already-defined variable", async () => {
-    const interpreter = createInterpreter(
-      `
-        set $var1 12e18
-        set $var1 "new"
-      `,
-      client,
-    );
-
-    await interpreter.interpret();
-
-    expect(interpreter.getBinding("$var1", BindingsSpace.USER)).to.be.equal(
-      "new",
-    );
-  });
+describeCommand("set", {
+  describeName: "Std > commands > set <varName> <varValue>",
+  cases: [
+    {
+      name: "should set a user variable correctly",
+      script: "set $var 1e18",
+      validate: (_, interpreter) => {
+        expect(interpreter.getBinding("$var", BindingsSpace.USER)).to.be.equal(
+          toDecimals(1, 18),
+        );
+      },
+    },
+    {
+      name: "should update the value when setting an already-defined variable",
+      script: 'set $var1 12e18\nset $var1 "new"',
+      validate: (_, interpreter) => {
+        expect(interpreter.getBinding("$var1", BindingsSpace.USER)).to.be.equal(
+          "new",
+        );
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "should fail when setting an invalid variable identifier",
+      script: "set var1 12e18",
+      error: "<variable> must be a $variable",
+    },
+  ],
 });

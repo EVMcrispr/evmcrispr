@@ -9,15 +9,15 @@ import {
   timeUnits,
   toDecimals,
 } from "@evmcrispr/sdk";
-import { expect } from "chai";
-import type { PublicClient } from "viem";
-import { getPublicClient } from "../../test-helpers/client.js";
-import type { InterpreterCase } from "../../test-helpers/evml.js";
 import {
   createInterpreter,
+  expectThrowAsync,
+  getPublicClient,
+  type InterpreterCase,
   runInterpreterCases,
-} from "../../test-helpers/evml.js";
-import { expectThrowAsync } from "../../test-helpers/expects.js";
+} from "@evmcrispr/test-utils";
+import { expect } from "chai";
+import type { PublicClient } from "viem";
 
 describe("Interpreter - primaries", async () => {
   let client: PublicClient;

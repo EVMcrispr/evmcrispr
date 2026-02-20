@@ -5,6 +5,7 @@ import type AragonOS from "@evmcrispr/module-aragonos";
 import { REPO_ABI } from "@evmcrispr/module-aragonos/utils";
 import { CommandError } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -18,7 +19,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]", () => {
   let client: PublicClient;

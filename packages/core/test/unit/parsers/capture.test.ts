@@ -1,10 +1,10 @@
 import { describe, it } from "bun:test";
 import type { CommandExpressionNode } from "@evmcrispr/sdk";
+import { runParser } from "@evmcrispr/test-utils";
 import { expect } from "chai";
 import { eventCaptureParser } from "../../../src/parsers/capture";
 import { commandExpressionParser } from "../../../src/parsers/command";
 import { parseScript } from "../../../src/parsers/script";
-import { runParser } from "../../test-helpers/evml";
 
 describe("Parsers - event capture", () => {
   describe("eventCaptureParser", () => {

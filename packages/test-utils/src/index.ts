@@ -1,7 +1,5 @@
-// Re-export chai for convenience
-
 // Re-export EVMcrispr from core
-export { EVMcrispr } from "@evmcrispr/core";
+export { createParserState, EVMcrispr, parseScript } from "@evmcrispr/core";
 export { expect } from "chai";
 // Anvil helpers
 export * from "./anvil";
@@ -9,7 +7,7 @@ export * from "./anvil";
 export * from "./client";
 // Constants
 export * from "./constants";
-// EVML test helpers (require core classes to be passed as arguments)
+// EVML test helpers (pre-bound to @evmcrispr/core)
 export * from "./evml";
 // Expectation helpers
 export * from "./expects";
@@ -17,3 +15,5 @@ export * from "./expects";
 export { registerAllModules } from "./modules";
 // Std helpers
 export * from "./std";
+// Testing factories
+export * from "./testing";

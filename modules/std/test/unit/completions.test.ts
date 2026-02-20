@@ -176,7 +176,6 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "--from")).to.be.true;
       expect(items).to.have.lengthOf(5);
     });
-
   });
 
   // -------------------------------------------------------------------------
@@ -355,7 +354,6 @@ describe("Completions – std commands", () => {
       // Non-address helpers should be excluded
       expect(hasLabel(items, "@date")).to.be.false;
     });
-
   });
 });
 

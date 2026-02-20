@@ -1,7 +1,6 @@
 import { describe, it } from "bun:test";
+import { type Case, runCases } from "@evmcrispr/test-utils";
 import { callExpressionParser } from "../../../src/parsers/call";
-import type { Case } from "../../test-helpers/evml";
-import { runCases } from "../../test-helpers/evml";
 
 export const callParserDescribe = () =>
   describe("Parsers - call expression", () => {

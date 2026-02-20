@@ -201,12 +201,10 @@
         "@evmcrispr/sdk": "workspace:*",
       },
       "optionalPeers": [
-        "@evmcrispr/core",
         "@evmcrispr/module-aragonos",
         "@evmcrispr/module-ens",
         "@evmcrispr/module-giveth",
         "@evmcrispr/module-sim",
-        "@evmcrispr/sdk",
       ],
     },
     "packages/ui": {

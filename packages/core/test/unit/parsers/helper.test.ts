@@ -1,9 +1,9 @@
 import { describe, it } from "bun:test";
+import { runCases, runErrorCase } from "@evmcrispr/test-utils";
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
 } from "../../../src/parsers/helper";
-import { runCases, runErrorCase } from "../../test-helpers/evml";
 
 export const helperParserDescribe = () =>
   describe("Parsers - helper function", () => {

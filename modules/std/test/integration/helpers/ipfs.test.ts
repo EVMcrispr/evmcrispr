@@ -8,21 +8,17 @@ import {
   NodeType,
 } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
-} from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
-import {
-  createInterpreter,
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../test-helpers/evml";
+} from "@evmcrispr/test-utils";
+import type { PublicClient } from "viem";
 
 const PINATA_JWT = process.env.VITE_PINATA_JWT;
-
 const JWT_VAR_NAME = "ipfs.jwt";
-
 const describeFn = PINATA_JWT ? describe : describe.skip;
 
 describeFn("Std > helpers > @ipfs(text)", () => {
@@ -30,7 +26,7 @@ describeFn("Std > helpers > @ipfs(text)", () => {
   const lazyClient = () => client;
   const ipfsData = "This should be pinned in IPFS";
 
-  beforeAll(async () => {
+  beforeAll(() => {
     client = getPublicClient();
   });
 
@@ -49,9 +45,7 @@ describeFn("Std > helpers > @ipfs(text)", () => {
 
   it("should fail when not setting pinata JWT variable", async () => {
     const interpreter = createInterpreter(
-      `
-        set $res @ipfs('some text')
-      `,
+      `set $res @ipfs('some text')`,
       client,
     );
     const h = (interpreter.ast.body[0] as CommandExpressionNode)

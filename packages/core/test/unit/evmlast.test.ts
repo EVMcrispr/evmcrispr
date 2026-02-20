@@ -1,10 +1,8 @@
 import { beforeEach, describe, it } from "bun:test";
 import { expect } from "chai";
-
+import { DAO, DAO2, DAO3 } from "../../../../modules/aragonos/test/fixtures";
 import type { EvmlAST } from "../../src/EvmlAST";
 import { parseScript } from "../../src/parsers/script";
-
-import { DAO, DAO2, DAO3 } from "../fixtures";
 
 describe("EvmlAST", () => {
   const script = `

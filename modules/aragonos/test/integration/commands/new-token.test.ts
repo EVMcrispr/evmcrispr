@@ -12,6 +12,7 @@ import {
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -24,7 +25,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [decimals = 18] [transferable = true]", () => {
   let client: PublicClient;

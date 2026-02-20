@@ -5,6 +5,7 @@ import type AragonOS from "@evmcrispr/module-aragonos";
 import { oracle } from "@evmcrispr/module-aragonos/utils";
 import { type Action, CommandError } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -19,7 +20,6 @@ import {
   findAragonOSCommandNode,
   itChecksBadPermission,
 } from "../../test-helpers/aragonos";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]", () => {
   let client: PublicClient;

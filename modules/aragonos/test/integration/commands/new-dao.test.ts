@@ -8,13 +8,13 @@ import {
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   getPublicClient,
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, parseAbiParameters } from "viem";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
   let client: PublicClient;

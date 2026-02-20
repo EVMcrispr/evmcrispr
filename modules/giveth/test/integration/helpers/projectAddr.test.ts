@@ -1,42 +1,21 @@
 import "../../setup";
-import { beforeAll, describe, it } from "bun:test";
-import { ComparisonType, NodeType } from "@evmcrispr/sdk";
-import { expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
-import {
-  itChecksInvalidArgsLength,
-  preparingExpression,
-} from "../../test-helpers/evml";
+import { describeHelper } from "@evmcrispr/test-utils";
+import { helpers } from "../../../src/_generated";
 
-describe.skip("Giveth > helpers > @projectAddr(slug)", () => {
-  let client: PublicClient;
-  const lazyClient = () => client;
-
-  beforeAll(async () => {
-    client = getPublicClient();
-  });
-
-  it("return the hashed value", async () => {
-    const [interpret] = await preparingExpression(
-      `@projectAddr(evmcrispr)`,
-      client,
-      "giveth",
-    );
-
-    expect(await interpret()).to.equals(
-      "0xeafFF6dB1965886348657E79195EB6f1A84657eB",
-    );
-  });
-
-  itChecksInvalidArgsLength(
-    NodeType.HelperFunctionExpression,
-    "@projectAddr",
-    ["evmcrispr"],
-    {
-      type: ComparisonType.Equal,
-      minValue: 1,
-    },
-    lazyClient,
-    "giveth",
-  );
-});
+describeHelper(
+  "@projectAddr",
+  {
+    skip: true,
+    module: "giveth",
+    describeName: "Giveth > helpers > @projectAddr(slug)",
+    cases: [
+      {
+        name: "return the project address",
+        input: "@projectAddr(evmcrispr)",
+        expected: "0xeafFF6dB1965886348657E79195EB6f1A84657eB",
+      },
+    ],
+    sampleArgs: ["evmcrispr"],
+  },
+  helpers.projectAddr.argDefs,
+);

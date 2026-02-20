@@ -49,8 +49,9 @@ export default defineCommand<Sim>({
     }) as Chain;
 
     const upstreamTransport = module.getTransport(chainId);
-    const upstreamRpcUrl = (upstreamTransport({ chain }) as any).value
-      ?.url as string | undefined;
+    const upstreamRpcUrl = (upstreamTransport({ chain }) as any).value?.url as
+      | string
+      | undefined;
 
     let publicClient: PublicClient;
     let walletClient: WalletClient;
@@ -73,8 +74,7 @@ export default defineCommand<Sim>({
       });
 
       // Reset the node to fork from the upstream RPC at the desired block
-      const resetMethod =
-        using === "anvil" ? "anvil_reset" : "hardhat_reset";
+      const resetMethod = using === "anvil" ? "anvil_reset" : "hardhat_reset";
       const resetParams: any[] = [];
       if (upstreamRpcUrl) {
         const forkingConfig: any = { jsonRpcUrl: upstreamRpcUrl };
@@ -94,7 +94,6 @@ export default defineCommand<Sim>({
           `Failed to reset ${backendName} at ${rpcUrl}. Make sure ${backendName} is running: ${(e as Error).message}`,
         );
       }
-
 
       module.mode = using;
 
@@ -290,7 +289,6 @@ export default defineCommand<Sim>({
       blockModule: module.contextualName,
       actionCallback: simulateAction,
     });
-
 
     module.mode = null;
     module.context.setClient(undefined);

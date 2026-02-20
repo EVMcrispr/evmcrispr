@@ -147,7 +147,7 @@ function findHelperInCache(
 } | null {
   const allModules = getAllModules(moduleCache);
 
-  for (const { identifier, value: mod } of allModules) {
+  for (const { value: mod } of allModules) {
     if (mod.helpers[helperName]) {
       return {
         argDefs: mod.helperArgDefs?.[helperName],
@@ -201,7 +201,9 @@ function buildCommandSignature(
     params.push({ label: `[--${o.name} ${o.type}]` });
   }
 
-  const label = `${prefix}${commandName} ${params.map((p) => p.label).join(" ")}`;
+  const label = `${prefix}${commandName} ${params
+    .map((p) => p.label)
+    .join(" ")}`;
 
   return {
     label,

@@ -6,6 +6,7 @@ import {
   expect,
   expectThrowAsync,
   getPublicClient,
+  itChecksNonDefinedIdentifier,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { toHex } from "viem";
@@ -15,7 +16,6 @@ import {
   createAragonScriptInterpreter as _createAragonScriptInterpreter,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import { itChecksNonDefinedIdentifier } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]", () => {
   let client: PublicClient;

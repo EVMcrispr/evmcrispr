@@ -4,12 +4,12 @@ import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 
 import { CommandError } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import { createInterpreter } from "../../test-helpers/evml";
 import { findGivethCommandNode } from "../../test-helpers/test-helpers";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;

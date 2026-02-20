@@ -1,12 +1,13 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { ComparisonType, NodeType } from "@evmcrispr/sdk";
-import { expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
 import {
+  expect,
+  getPublicClient,
   itChecksInvalidArgsLength,
   preparingExpression,
-} from "../../test-helpers/evml";
+} from "@evmcrispr/test-utils";
+import type { PublicClient } from "viem";
 
 describe("AragonOS > helpers > @aragonEns()", () => {
   let client: PublicClient;

@@ -1,5 +1,6 @@
 import { describe, it } from "bun:test";
 import type { ArrayExpressionNode, NodeParserState } from "@evmcrispr/sdk";
+import { type Case, runCases, runErrorCase } from "@evmcrispr/test-utils";
 import type { Err } from "arcsecond";
 import { withData } from "arcsecond";
 import { expect } from "chai";
@@ -8,8 +9,6 @@ import {
   arrayExpressionParser,
 } from "../../../src/parsers/array";
 import { createParserState } from "../../../src/parsers/utils";
-import type { Case } from "../../test-helpers/evml";
-import { runCases, runErrorCase } from "../../test-helpers/evml";
 
 describe("Parsers - array", () => {
   it("should parse an array correctly", () => {

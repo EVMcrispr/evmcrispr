@@ -9,6 +9,8 @@ import type {
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import { NodeType } from "@evmcrispr/sdk";
+import type { Case } from "@evmcrispr/test-utils";
+import { runCases, runErrorCase, runParser } from "@evmcrispr/test-utils";
 import { expect } from "chai";
 import {
   ADDRESS_PARSER_ERROR,
@@ -25,9 +27,6 @@ import {
   variableIdentifierParser,
 } from "../../../src/parsers/primaries";
 import { HEXADECIMAL_PARSER_ERROR } from "../../../src/parsers/primaries/literals/hexadecimal";
-
-import type { Case } from "../../test-helpers/evml";
-import { runCases, runErrorCase, runParser } from "../../test-helpers/evml";
 
 const buildLocation = (value: string): Location => ({
   start: {

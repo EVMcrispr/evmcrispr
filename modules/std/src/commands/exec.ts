@@ -22,7 +22,8 @@ const { ABI } = BindingsSpace;
 
 export default defineCommand<Std>({
   name: "exec",
-  description: "Call a contract function, encoding the arguments from its signature.",
+  description:
+    "Call a contract function, encoding the arguments from its signature.",
   args: [
     { name: "contractAddress", type: "address" },
     { name: "signature", type: "literal" },

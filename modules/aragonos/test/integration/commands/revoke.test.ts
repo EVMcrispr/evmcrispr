@@ -7,7 +7,9 @@ import {
   type CommandExpressionNode,
   toDecimals,
 } from "@evmcrispr/sdk";
+import type { TestInterpreter } from "@evmcrispr/test-utils";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -22,8 +24,6 @@ import {
   findAragonOSCommandNode,
   itChecksBadPermission,
 } from "../../test-helpers/aragonos";
-import type { TestInterpreter } from "../../test-helpers/evml";
-import { createInterpreter } from "../../test-helpers/evml";
 
 describe("AragonOS > commands > revoke <grantee> <app> <role> [removeManager]", () => {
   let client: PublicClient;

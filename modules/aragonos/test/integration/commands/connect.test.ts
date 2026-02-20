@@ -11,6 +11,7 @@ import {
   toDecimals,
 } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   expect,
   expectThrowAsync,
   getPublicClient,
@@ -41,7 +42,6 @@ import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
-import { createInterpreter } from "../../test-helpers/evml";
 
 const DAOs = [DAO, DAO2, DAO3];
 

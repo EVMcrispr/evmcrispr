@@ -1,144 +1,53 @@
 import "../../setup";
-import { beforeAll, describe, it } from "bun:test";
-import { type Action, CommandError } from "@evmcrispr/sdk";
-import {
-  expect,
-  expectThrowAsync,
-  findStdCommandNode,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
-import { createInterpreter } from "../../test-helpers/evml";
+import { describeCommand } from "@evmcrispr/test-utils";
 
-describe("Std > commands > raw <target> <data> [value] [--from <sender>]", () => {
-  let client: PublicClient;
+const target = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2";
+const data =
+  "0x1688f0b90000000000000000000000003e5c63644e683549055b9be8653de26e0b4cd36e0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000001843dc407500000000000000000000000000000000000000000000000000000000000000164b63e800d0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000f48f2b2d2a534e402487b3ee7c18c33aec0fe5e40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000662048b0a591d8f651e956519f6c5e3112626873000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+const from = "0x8790B75CF2bd36A2502a3e48A24338D8288f2F15";
 
-  const target = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2"; // Gnosis Safe Factory
-  const data =
-    "0x1688f0b90000000000000000000000003e5c63644e683549055b9be8653de26e0b4cd36e0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000001843dc407500000000000000000000000000000000000000000000000000000000000000164b63e800d0000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000f48f2b2d2a534e402487b3ee7c18c33aec0fe5e40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000662048b0a591d8f651e956519f6c5e3112626873000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-  const value = "1e18";
-  const parsedValue = 1000000000000000000n;
-  const from = "0x8790B75CF2bd36A2502a3e48A24338D8288f2F15";
-
-  beforeAll(async () => {
-    client = getPublicClient();
-  });
-
-  it("should return a correct raw action", async () => {
-    const interpreter = createInterpreter(`raw ${target} ${data}`, client);
-
-    const result = await interpreter.interpret();
-
-    const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data,
-      },
-    ];
-
-    expect(result).eql(expectedCallAction);
-  });
-
-  it("should return a correct raw action when value is provided", async () => {
-    const interpreter = createInterpreter(
-      `raw ${target} ${data} ${value}`,
-      client,
-    );
-
-    const result = await interpreter.interpret();
-
-    const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data,
-        value: parsedValue,
-      },
-    ];
-
-    expect(result).eql(expectedCallAction);
-  });
-
-  it("should return a correct raw action when from address is provided", async () => {
-    const interpreter = createInterpreter(
-      `raw ${target} ${data} --from ${from}`,
-      client,
-    );
-
-    const result = await interpreter.interpret();
-
-    const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data,
-        from,
-      },
-    ];
-
-    expect(result).eql(expectedCallAction);
-  });
-
-  it("should return a correct raw action when value and from address are provided", async () => {
-    const interpreter = createInterpreter(
-      `raw ${target} ${data} ${value} --from ${from}`,
-      client,
-    );
-
-    const result = await interpreter.interpret();
-
-    const expectedCallAction: Action[] = [
-      {
-        to: target,
-        data,
-        value: parsedValue,
-        from,
-      },
-    ];
-
-    expect(result).eql(expectedCallAction);
-  });
-
-  it("should fail when receiving an invalid target address", async () => {
-    const invalidTargetAddress = "false";
-    const interpreter = createInterpreter(
-      `raw ${invalidTargetAddress} ${data}`,
-      client,
-    );
-    const c = findStdCommandNode(interpreter.ast, "raw")!;
-    const error = new CommandError(
-      c,
-      `<contractAddress> must be a valid address, got ${invalidTargetAddress}`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  it("should fail when receiving an invalid value", async () => {
-    const invalidValue = "foo";
-    const interpreter = createInterpreter(
-      `raw ${target} ${data} ${invalidValue}`,
-      client,
-    );
-    const c = findStdCommandNode(interpreter.ast, "raw")!;
-    const error = new CommandError(
-      c,
-      `[value] must be a number, got ${invalidValue}`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
-
-  it("should fail when receiving an invalid from address", async () => {
-    const invalidFrom = "0xfail";
-    const interpreter = createInterpreter(
-      `raw ${target} ${data} --from ${invalidFrom}`,
-      client,
-    );
-    const c = findStdCommandNode(interpreter.ast, "raw")!;
-    const error = new CommandError(
-      c,
-      `--from must be a valid address, got ${invalidFrom}`,
-    );
-
-    await expectThrowAsync(() => interpreter.interpret(), error);
-  });
+describeCommand("raw", {
+  describeName:
+    "Std > commands > raw <target> <data> [value] [--from <sender>]",
+  cases: [
+    {
+      name: "should return a correct raw action",
+      script: `raw ${target} ${data}`,
+      expectedActions: [{ to: target, data }],
+    },
+    {
+      name: "should return a correct raw action when value is provided",
+      script: `raw ${target} ${data} 1e18`,
+      expectedActions: [{ to: target, data, value: 1000000000000000000n }],
+    },
+    {
+      name: "should return a correct raw action when from address is provided",
+      script: `raw ${target} ${data} --from ${from}`,
+      expectedActions: [{ to: target, data, from }],
+    },
+    {
+      name: "should return a correct raw action when value and from address are provided",
+      script: `raw ${target} ${data} 1e18 --from ${from}`,
+      expectedActions: [
+        { to: target, data, value: 1000000000000000000n, from },
+      ],
+    },
+  ],
+  errorCases: [
+    {
+      name: "should fail when receiving an invalid target address",
+      script: `raw false ${data}`,
+      error: "<contractAddress> must be a valid address, got false",
+    },
+    {
+      name: "should fail when receiving an invalid value",
+      script: `raw ${target} ${data} foo`,
+      error: "[value] must be a number, got foo",
+    },
+    {
+      name: "should fail when receiving an invalid from address",
+      script: `raw ${target} ${data} --from 0xfail`,
+      error: "--from must be a valid address, got 0xfail",
+    },
+  ],
 });

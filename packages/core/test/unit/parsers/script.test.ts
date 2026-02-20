@@ -1,7 +1,6 @@
 import { describe, it } from "bun:test";
+import { type Case, runCases } from "@evmcrispr/test-utils";
 import { scriptParser } from "../../../src/parsers/script";
-import type { Case } from "../../test-helpers/evml";
-import { runCases } from "../../test-helpers/evml";
 
 describe("Parsers - script", () => {
   it("should parse an script correctly", () => {

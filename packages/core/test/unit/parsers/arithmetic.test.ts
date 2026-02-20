@@ -1,7 +1,6 @@
 import { describe, it } from "bun:test";
+import { type Case, runCases } from "@evmcrispr/test-utils";
 import { arithmeticParser } from "../../../src/parsers/arithmetic";
-import type { Case } from "../../test-helpers/evml";
-import { runCases } from "../../test-helpers/evml";
 
 describe("Parsers - arithmetic", () => {
   it("should parse an arithmetic operation correctly", () => {

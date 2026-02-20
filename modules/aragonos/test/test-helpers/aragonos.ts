@@ -12,10 +12,13 @@ import {
   type CommandExpressionNode,
   NodeType,
 } from "@evmcrispr/sdk";
-import { expectThrowAsync } from "@evmcrispr/test-utils";
+import {
+  createInterpreter,
+  expectThrowAsync,
+  itChecksNonDefinedIdentifier,
+  type TestInterpreter,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
-import type { TestInterpreter } from "./evml";
-import { createInterpreter, itChecksNonDefinedIdentifier } from "./evml";
 
 export const _aragonEns = async (
   ensName: string,

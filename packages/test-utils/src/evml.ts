@@ -1,6 +1,7 @@
 import { it } from "bun:test";
 import { inspect } from "node:util";
-import type { EVMcrispr, EvmlAST } from "@evmcrispr/core";
+import type { EvmlAST } from "@evmcrispr/core";
+import { createParserState, EVMcrispr, parseScript } from "@evmcrispr/core";
 import type {
   Action,
   CommandExpressionNode,
@@ -34,11 +35,6 @@ export type Case = [string, any, string?];
 
 export type InterpreterCase = [Node, any, string?];
 
-/**
- * Wrapper returned by `createInterpreter` that provides the old test-facing
- * interface (`.ast`, `.interpret()`, `.getBinding()`, etc.) on top of the
- * new `EVMcrispr` API which accepts script strings.
- */
 export interface TestInterpreter {
   ast: EvmlAST;
   script: string;
@@ -51,22 +47,18 @@ export interface TestInterpreter {
   bindingsManager: EVMcrispr["bindingsManager"];
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const deepConsoleLog = (thing: any): void =>
   console.log(inspect(thing, false, null, true));
 
-/**
- * Run a parser and return either the result or error
- * Requires createParserState from @evmcrispr/core to be passed in
- */
 export const runParser = (
   parser: Parser<any, string, any>,
   value: string,
-  createParserState: () => NodeParserState,
+  customCreateParserState?: () => NodeParserState,
 ): any => {
-  const res = withData<any, string, NodeParserState>(parser)(
-    createParserState(),
-  ).run(value);
+  const stateFn = customCreateParserState ?? createParserState;
+  const res = withData<any, string, NodeParserState>(parser)(stateFn()).run(
+    value,
+  );
 
   if (res.isError) {
     return res.error;
@@ -75,18 +67,14 @@ export const runParser = (
   return res.result;
 };
 
-/**
- * Run test cases against a parser
- * Requires createParserState from @evmcrispr/core to be passed in
- */
 export const runCases = (
   caseOrCases: Case | Case[],
   parser: Parser<any, string, any>,
-  createParserState: () => NodeParserState,
+  customCreateParserState?: () => NodeParserState,
 ): void =>
   (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).forEach(
     ([value, expected, errorMsg]) =>
-      expect(runParser(parser, value, createParserState), errorMsg).eql(
+      expect(runParser(parser, value, customCreateParserState), errorMsg).eql(
         expected,
       ),
   );
@@ -94,13 +82,12 @@ export const runCases = (
 export const runInterpreterCases = async (
   caseOrCases: InterpreterCase | InterpreterCase[],
   getClient: () => Promise<PublicClient>,
-  EVMcrisprClass: typeof EVMcrispr,
 ): Promise<void[]> =>
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
         const client = await getClient();
-        const evm = new EVMcrisprClass(client, TEST_ACCOUNT_ADDRESS);
+        const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
         const res = await evm.interpretNode(node);
         expect(res, errorMsg).to.equal(expected);
       },
@@ -111,10 +98,20 @@ export const runErrorCase = (
   parser: NodeParser,
   text: string,
   errType: string,
-  createParserState: () => NodeParserState,
+  errMsgOrCreateParserState?: string | (() => NodeParserState),
   errMsg?: string,
 ): void => {
-  const parserState = createParserState();
+  let stateFn: () => NodeParserState;
+  let finalErrMsg: string | undefined;
+
+  if (typeof errMsgOrCreateParserState === "function") {
+    stateFn = errMsgOrCreateParserState;
+    finalErrMsg = errMsg;
+  } else {
+    stateFn = createParserState;
+    finalErrMsg = errMsgOrCreateParserState;
+  }
+  const parserState = stateFn();
   const res = withData<any, string, NodeParserState>(parser)(parserState).run(
     text,
   );
@@ -131,7 +128,7 @@ export const runErrorCase = (
         data: parserState,
       } as Err<string, any>,
       errType,
-      errMsg,
+      finalErrMsg,
     ),
   );
 };
@@ -139,11 +136,9 @@ export const runErrorCase = (
 export const createInterpreter = (
   script: string,
   client: PublicClient,
-  EVMcrisprClass: typeof EVMcrispr,
-  parseScript: (script: string) => { ast: EvmlAST },
 ): TestInterpreter => {
   const { ast } = parseScript(script);
-  const evm = new EVMcrisprClass(client, TEST_ACCOUNT_ADDRESS);
+  const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS);
 
   return {
     ast,
@@ -161,8 +156,6 @@ export const createInterpreter = (
 export const preparingExpression = async (
   expression: string,
   client: PublicClient,
-  EVMcrisprClass: typeof EVMcrispr,
-  parseScript: (script: string) => { ast: EvmlAST },
   module?: string,
   configSetters: string[] = [],
 ): Promise<[Awaited<any>, HelperFunctionNode]> => {
@@ -173,7 +166,7 @@ export const preparingExpression = async (
   set $res ${expression}
   `;
 
-  const i = createInterpreter(script, client, EVMcrisprClass, parseScript);
+  const i = createInterpreter(script, client);
 
   const setCommand = i.ast.body.find(
     (n) => (n as CommandExpressionNode).name === "set",
@@ -238,8 +231,6 @@ export const itChecksInvalidArgsLength = (
   args: string[],
   c: Comparison,
   lazyClient: () => PublicClient,
-  EVMcrisprClass: typeof EVMcrispr,
-  parseScript: (script: string) => { ast: EvmlAST },
   module?: string,
 ): void => {
   const { type, minValue, maxValue } = c;
@@ -256,8 +247,6 @@ export const itChecksInvalidArgsLength = (
       const [interpret, h] = await preparingExpression(
         updateExpressionArgs("add", argumentlessExpression, args, c),
         client,
-        EVMcrisprClass,
-        parseScript,
         module,
       );
       error =
@@ -278,8 +267,6 @@ export const itChecksInvalidArgsLength = (
         const [interpret, h] = await preparingExpression(
           updateExpressionArgs("remove", argumentlessExpression, args, c),
           client,
-          EVMcrisprClass,
-          parseScript,
           module,
         );
         error =
@@ -300,8 +287,6 @@ export const itChecksInvalidArgsLength = (
       const [interpret, h] = await preparingExpression(
         updateExpressionArgs("remove", argumentlessExpression, args, c),
         client,
-        EVMcrisprClass,
-        parseScript,
         module,
       );
       error =
@@ -320,11 +305,6 @@ export const itChecksInvalidArgsLength = (
   });
 };
 
-/**
- * With barewords always returning their string value, passing a non-defined
- * identifier where an address is expected produces a CommandError from
- * type validation (not an IdentifierError from the interpreter).
- */
 export const itChecksNonDefinedIdentifier = (
   itName: string,
   createTestInterpreter: (nonDefinedIdentifier: string) => TestInterpreter,
@@ -336,14 +316,11 @@ export const itChecksNonDefinedIdentifier = (
     const nonDefinedIdentifier = "non-defined-address";
     const interpreter = createTestInterpreter(nonDefinedIdentifier);
 
-    // The bareword is interpreted as the string "non-defined-address" which
-    // then fails address validation at the command level.
     try {
       await interpreter.interpret();
       throw new Error("Expected interpret to throw");
     } catch (err: any) {
       expect(err).to.be.an.instanceOf(Error);
-      // The error message should mention the non-defined identifier somewhere
       expect(err.message).to.include(nonDefinedIdentifier);
     }
   });
