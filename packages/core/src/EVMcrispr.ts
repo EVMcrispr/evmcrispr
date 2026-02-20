@@ -206,14 +206,33 @@ export class EVMcrispr {
   }
 
   /**
-   * Lazily populate the module cache with data from all registered modules.
-   * This allows the eager-execution pipeline (used by completions and keywords)
-   * to resolve any module referenced by a `load` command in the script.
+   * Extract module names referenced by `load` commands in the given script.
    */
-  async #ensureModuleCachePopulated(): Promise<void> {
+  #extractLoadModuleNames(script: string): string[] {
+    try {
+      const { ast } = parseScript(script);
+      const lines = script.split("\n");
+      const loadCommands = ast.getCommandsUntilLine(lines.length, ["load"]);
+      return loadCommands
+        .filter(
+          (c: CommandExpressionNode) => c.name === "load" && c.args[0]?.value,
+        )
+        .map((c: CommandExpressionNode) => c.args[0].value as string);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Populate the module cache with data for the given module names only.
+   * Modules already in the cache are skipped.
+   */
+  async #ensureModulesInCache(names: string[]): Promise<void> {
     const ctx = this.#createModuleContext();
-    for (const [name, loader] of EVMcrispr.#registry) {
+    for (const name of names) {
       if (this.#moduleCache.hasBinding(name, BindingsSpace.MODULE)) continue;
+      const loader = EVMcrispr.#registry.get(name);
+      if (!loader) continue;
       try {
         const { default: Ctor } = await loader();
         const instance = new Ctor(ctx);
@@ -372,7 +391,7 @@ export class EVMcrispr {
     script: string,
     position: Position,
   ): Promise<CompletionItem[]> {
-    await this.#ensureModuleCachePopulated();
+    await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
 
     // Store the current list of available module names in the cache so
     // the `load` command can suggest them during autocompletion.
@@ -399,7 +418,7 @@ export class EVMcrispr {
   async getKeywords(
     script: string,
   ): Promise<{ commands: string[]; helpers: string[] }> {
-    await this.#ensureModuleCachePopulated();
+    await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
     return getKeywordsImpl(script, this.#moduleCache);
   }
 
@@ -407,7 +426,7 @@ export class EVMcrispr {
     script: string,
     position: Position,
   ): Promise<HoverInfo | null> {
-    await this.#ensureModuleCachePopulated();
+    await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
     return getHoverInfoImpl(script, position, this.#moduleCache);
   }
 
@@ -415,7 +434,7 @@ export class EVMcrispr {
     script: string,
     position: Position,
   ): Promise<SignatureHelp | null> {
-    await this.#ensureModuleCachePopulated();
+    await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
     return getSignatureHelpImpl(script, position, this.#moduleCache);
   }
 

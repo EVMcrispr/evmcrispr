@@ -613,7 +613,12 @@ export async function getCompletions(
     }
   }
 
-  const chainId = (await effectiveClient?.getChainId()) ?? 0;
+  let chainId = 0;
+  try {
+    chainId = (await effectiveClient?.getChainId()) ?? 0;
+  } catch {
+    // RPC unavailable — proceed with chainId 0
+  }
 
   await walkCommandsForBindings(
     commandNodes,
