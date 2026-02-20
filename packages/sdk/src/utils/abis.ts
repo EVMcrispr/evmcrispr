@@ -11,7 +11,7 @@ export const abiBindingKey = (chainId: number, address: Address): string =>
 
 async function getAbiEntries(address: Address, chainId: number): Promise<Abi> {
   return await fetch(
-    `https://evmcrispr-api.fermyon.app/abi/${chainId}/${getAddress(address)}`,
+    `https://api.evmcrispr.com/abi/${chainId}/${getAddress(address)}`,
   )
     .then((res) => res.json())
     .catch((err) => {

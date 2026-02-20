@@ -59,11 +59,9 @@ jobs:
       - name: Integration Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> .env
-          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> .env
-          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> .env
+          echo "VITE_DRPC_API_KEY=$VITE_DRPC_API_KEY" >> .env
+          echo "VITE_PINATA_JWT=$VITE_PINATA_JWT" >> .env
           bun run test:integration
         env:
-          ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
+          VITE_DRPC_API_KEY: ${{ secrets.VITE_DRPC_API_KEY }}
           VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
-          ETHERSCAN_API: ${{ secrets.ETHERSCAN_API }}

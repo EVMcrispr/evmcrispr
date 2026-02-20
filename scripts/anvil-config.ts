@@ -4,6 +4,11 @@ export const FORK_BLOCK_NUMBER = 34630239;
 export const CHAIN_ID = 100;
 export const ANVIL_URL = "http://127.0.0.1:8545";
 
+export function getEndpoint(): string | undefined {
+  const apiKey = process.env.VITE_DRPC_API_KEY;
+  return apiKey ? `https://lb.drpc.live/gnosis/${apiKey}` : undefined;
+}
+
 export async function loadEnv(): Promise<void> {
   const envFile = Bun.file(resolve(import.meta.dir, "../.env"));
   if (await envFile.exists()) {

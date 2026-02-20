@@ -8,6 +8,7 @@ import { afterAll, beforeAll } from "bun:test";
 import {
   CHAIN_ID,
   FORK_BLOCK_NUMBER,
+  getEndpoint,
   isAnvilRunning,
   loadEnv,
 } from "./anvil-config";
@@ -19,9 +20,9 @@ beforeAll(async () => {
 
   if (await isAnvilRunning()) return; // already running, nothing to do
 
-  const endpoint = process.env.ARCHIVE_NODE_ENDPOINT;
+  const endpoint = getEndpoint();
   if (!endpoint) {
-    // No endpoint configured -- skip anvil. Unit tests will still work fine;
+    // No API key configured -- skip anvil. Unit tests will still work fine;
     // integration tests will fail with a clear connection error.
     return;
   }

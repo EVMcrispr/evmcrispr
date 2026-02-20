@@ -808,7 +808,9 @@ export class EVMcrispr {
       if (constantModules.length > 1) {
         EVMcrispr.panic(
           h,
-          `constant name collision on modules ${constantModules.map((m) => m.contextualName).join(", ")}`,
+          `constant name collision on modules ${constantModules
+            .map((m) => m.contextualName)
+            .join(", ")}`,
         );
       }
       // Not a constant — fall through to helper resolution

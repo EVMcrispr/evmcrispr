@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import {
   CHAIN_ID,
   FORK_BLOCK_NUMBER,
+  getEndpoint,
   isAnvilRunning,
   loadEnv,
 } from "./anvil-config";
@@ -20,9 +21,9 @@ const PACKAGES_WITH_INTEGRATION_TESTS = [
 
 await loadEnv();
 
-const endpoint = process.env.ARCHIVE_NODE_ENDPOINT;
+const endpoint = getEndpoint();
 if (!endpoint) {
-  console.error("ERROR: ARCHIVE_NODE_ENDPOINT not set in .env");
+  console.error("ERROR: VITE_DRPC_API_KEY not set in .env");
   process.exit(1);
 }
 

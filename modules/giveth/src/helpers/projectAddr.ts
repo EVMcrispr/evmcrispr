@@ -7,7 +7,7 @@ export const _projectAddr = async (
 ): Promise<[string, number]> => {
   const chainId = await module.getChainId();
   const result = await fetch(
-    "https://evmcrispr-api.fermyon.app/cors-proxy/https://mainnet.serve.giveth.io/graphql",
+    "https://api.evmcrispr.com/cors-proxy/https://mainnet.serve.giveth.io/graphql",
     {
       method: "POST",
       headers: {

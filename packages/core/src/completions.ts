@@ -330,7 +330,9 @@ async function resolveValueNode(
     }
 
     if (allResolved) {
-      const cacheKey = `helper:${chainId}:${helperNode.name}:${resolvedArgs.join(":")}`;
+      const cacheKey = `helper:${chainId}:${
+        helperNode.name
+      }:${resolvedArgs.join(":")}`;
       const cached = cache.getBindingValue(cacheKey, CACHE);
       if (cached != null) return cached;
 

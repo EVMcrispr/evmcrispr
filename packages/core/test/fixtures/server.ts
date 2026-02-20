@@ -11,13 +11,6 @@ import { DAOs, REPOs } from "./subgraph-data";
 import tokenListFixture from "./tokenlist/uniswap.json";
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
-// const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API;
-
-// Use http.post instead of graphql.query because MSW's graphql handlers
-// don't work reliably with Bun's native fetch implementation.
-// Use a regex to match all subgraph URLs across different chains.
-const _subgraphUrlPattern =
-  /^https:\/\/(gateway-arbitrum\.network\.thegraph\.com|api\.thegraph\.com)\//;
 
 const handleSubgraphRequest = async ({
   request,
@@ -150,6 +143,14 @@ const handlers = [
     }
 
     return HttpResponse.json(data);
+  }),
+  http.get("https://api.evmcrispr.com/abi/:chainId/:address", ({ params }) => {
+    const address = (params.address as string).toLowerCase();
+    const data = blockscout[address as keyof typeof blockscout];
+    if (!data) {
+      return new HttpResponse(null, { status: 404 });
+    }
+    return HttpResponse.json(JSON.parse(data.result));
   }),
   http.get<PathParams<string>, DefaultBodyType, DefaultBodyType>(
     "https://tokens.uniswap.org/",

@@ -11,7 +11,7 @@ export async function resetAnvil() {
       params: [
         {
           forking: {
-            jsonRpcUrl: process.env.ARCHIVE_NODE_ENDPOINT,
+            jsonRpcUrl: `https://lb.drpc.live/gnosis/${process.env.VITE_DRPC_API_KEY}`,
             blockNumber: FORK_BLOCK_NUMBER,
           },
         },

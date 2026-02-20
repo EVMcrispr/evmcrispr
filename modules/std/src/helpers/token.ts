@@ -11,7 +11,7 @@ const getTokenList = async (
 ): Promise<string> => {
   const tokenList = String(
     bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      `https://evmcrispr-api.fermyon.app/tokenlist/${chainId}`,
+      `https://api.evmcrispr.com/tokenlist/${chainId}`,
   );
 
   // Always check user data inputs:
@@ -58,7 +58,8 @@ export const resolveToken = async (
 
 export default defineHelper<Std>({
   name: "token",
-  description: "Resolve a token symbol to its contract address on the current chain.",
+  description:
+    "Resolve a token symbol to its contract address on the current chain.",
   returnType: "address",
   args: [{ name: "tokenSymbolOrAddress", type: "string" }],
   async run(module, { tokenSymbolOrAddress }) {

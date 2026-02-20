@@ -60,7 +60,9 @@ export function getFunctionFragment(func: AbiItem | undefined) {
       if (baseTypeName === "tuple") {
         // If the base type is a tuple, recursively format its components.
         if ("components" in input && Array.isArray(input.components)) {
-          processedBaseType = `(${input.components.map(formatParameter).join(",")})`;
+          processedBaseType = `(${input.components
+            .map(formatParameter)
+            .join(",")})`;
         } else {
           // Fallback for tuples defined without components or if 'components' isn't an array
           // (which shouldn't happen with a valid ABI).
@@ -74,7 +76,13 @@ export function getFunctionFragment(func: AbiItem | undefined) {
       return `${processedBaseType}${arraySuffix}`;
     };
 
-    return `function ${func.name}(${func.inputs.map(formatParameter).join(",")})${func.outputs.length > 0 ? ` returns (${func.outputs.map(formatParameter).join(",")})` : ""}`;
+    return `function ${func.name}(${func.inputs
+      .map(formatParameter)
+      .join(",")})${
+      func.outputs.length > 0
+        ? ` returns (${func.outputs.map(formatParameter).join(",")})`
+        : ""
+    }`;
   }
   throw new Error("invalid function");
 }
