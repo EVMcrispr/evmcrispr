@@ -36,10 +36,9 @@ import {
   NodeType,
   resolveHelper as resolveHelperFn,
   timeUnits,
-  toDecimals,
 } from "@evmcrispr/sdk";
 import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
-import { createPublicClient, http, isAddress } from "viem";
+import { createPublicClient, http, isAddress, parseUnits } from "viem";
 import * as viemChains from "viem/chains";
 
 import {
@@ -862,11 +861,16 @@ export class EVMcrispr {
       case NodeType.BytesLiteral:
       case NodeType.StringLiteral:
         return n.value;
-      case NodeType.NumberLiteral:
+      case NodeType.NumberLiteral: {
+        // Preserve existing behavior for decimals without explicit exponent
+        // (e.g. "1.23" => 123n).
+        const numericValue = String(n.value);
+        const implicitExponent = numericValue.split(".")[1]?.length ?? 0;
         return (
-          toDecimals(n.value, n.power ?? 0) *
+          parseUnits(numericValue, n.power ?? implicitExponent) *
           BigInt(timeUnits[n.timeUnit ?? "s"])
         );
+      }
       default:
         EVMcrispr.panic(n, "unknown literal expression node");
     }

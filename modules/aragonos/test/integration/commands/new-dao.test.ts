@@ -3,7 +3,6 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
 import {
-  addressesEqual,
   BindingsSpace,
   type TransactionAction,
 } from "@evmcrispr/sdk";
@@ -14,7 +13,7 @@ import {
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
-import { decodeAbiParameters, parseAbiParameters } from "viem";
+import { decodeAbiParameters, isAddressEqual, parseAbiParameters } from "viem";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
   let client: PublicClient;
@@ -59,7 +58,7 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
     )[0];
 
     expect(
-      addressesEqual(
+      isAddressEqual(
         aragonos.bindingsManager.getBindingValue("$dao", BindingsSpace.USER)!,
         newDAOAddress,
       ),

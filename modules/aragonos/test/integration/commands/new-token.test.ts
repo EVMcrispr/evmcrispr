@@ -6,7 +6,6 @@ import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
 
 import {
   type Address,
-  addressesEqual,
   BindingsSpace,
   CommandError,
   type TransactionAction,
@@ -19,7 +18,7 @@ import {
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
-import { getContract, getContractAddress, parseAbi } from "viem";
+import { getContract, getContractAddress, isAddressEqual, parseAbi } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,
@@ -84,7 +83,7 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
     });
 
     expect(
-      addressesEqual(await token.read.controller(), expectedControllerAddr),
+      isAddressEqual(await token.read.controller(), expectedControllerAddr),
     ).to.be.true;
   });
 
@@ -137,7 +136,7 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
     });
 
     expect(
-      addressesEqual(await token.read.controller(), expectedControllerAddr),
+      isAddressEqual(await token.read.controller(), expectedControllerAddr),
     ).to.be.true;
   });
 
@@ -182,7 +181,7 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
       client,
     });
 
-    expect(addressesEqual(await token.read.controller(), controllerAddr)).to.be
+    expect(isAddressEqual(await token.read.controller(), controllerAddr)).to.be
       .true;
   });
 

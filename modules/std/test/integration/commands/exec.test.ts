@@ -7,7 +7,6 @@ import {
   encodeAction,
   isBatchedAction,
   isTransactionAction,
-  toDecimals,
 } from "@evmcrispr/sdk";
 import {
   describeCommand,
@@ -17,14 +16,14 @@ import {
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
-import { toHex } from "viem";
+import { parseUnits, toHex } from "viem";
 import { gnosis } from "viem/chains";
 
 const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
 const params = ["0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6", "1200e18"];
 const resolvedParams = [
   "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
-  toDecimals(1200, 18),
+  parseUnits("1200", 18),
 ];
 const fnSig = "approve(address,uint256)";
 
@@ -86,7 +85,7 @@ describeCommand("exec", {
         encodeAction(
           "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9",
           "transfer(address,uint256)",
-          [TEST_ACCOUNT_ADDRESS, toDecimals(1500)],
+          [TEST_ACCOUNT_ADDRESS, parseUnits("1500", 18)],
         ),
       ],
     },

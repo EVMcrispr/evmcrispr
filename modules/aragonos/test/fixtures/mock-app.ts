@@ -1,6 +1,5 @@
-import { toDecimals } from "@evmcrispr/sdk";
 import type { Address } from "viem";
-import { namehash, toHex } from "viem";
+import { namehash, parseUnits, toHex } from "viem";
 import { DAO } from "./mock-dao";
 
 type App = {
@@ -27,18 +26,18 @@ export const APP: App = {
   initializeParams: [
     "0x01d9c9ca040e90feb47c7513d9a3574f6e1317bd",
     false,
-    toDecimals(1000),
+    parseUnits("1000", 18),
   ],
   initializeUnresolvedParams: ["@app(agent)", false, "1000e18"],
   callSignature: "mint(address,uint256)",
-  callSignatureParams: [DAO["disputable-voting.open"], toDecimals(15)],
+  callSignatureParams: [DAO["disputable-voting.open"], parseUnits("15", 18)],
   callSignatureUnresolvedParams: ["@app(voting)", "15e18"],
   actTarget: "0xc778417e063141139fce010982780140aa0cd5ab",
   actSignature: "approve(address[],uint256[][2],bool,bytes,bytes32)",
   actSignatureParams: [
     ["0x01d9c9ca040e90feb47c7513d9a3574f6e1317bd"],
     [
-      [toDecimals(1000), 56],
+      [parseUnits("1000", 18), 56],
       [String(0.15e8), 4838400],
     ],
     false,

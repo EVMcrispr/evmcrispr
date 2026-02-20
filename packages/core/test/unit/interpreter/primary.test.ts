@@ -7,7 +7,6 @@ import {
   ExpressionError,
   NodeType,
   timeUnits,
-  toDecimals,
 } from "@evmcrispr/sdk";
 import {
   createInterpreter,
@@ -18,6 +17,7 @@ import {
 } from "@evmcrispr/test-utils";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
+import { parseUnits } from "viem";
 
 describe("Interpreter - primaries", async () => {
   let client: PublicClient;
@@ -70,6 +70,12 @@ describe("Interpreter - primaries", async () => {
     });
 
     it("should intepret a numeric node correctly", async () => {
+      const toBigInt = (value: number | string, power?: number): bigint => {
+        const valueString = String(value);
+        const implicitExponent = valueString.split(".")[1]?.length ?? 0;
+        return parseUnits(valueString, power ?? implicitExponent);
+      };
+
       const node = (
         value: number,
         power?: number,
@@ -86,60 +92,60 @@ describe("Interpreter - primaries", async () => {
       };
 
       const cases: InterpreterCase[] = [
-        [node(15), toDecimals(15, 0), "Invalid integer number match"],
+        [node(15), toBigInt(15, 0), "Invalid integer number match"],
         [
           node(1500, 18),
-          toDecimals(1500, 18),
+          toBigInt(1500, 18),
           "Invalid integer number raised to a power match",
         ],
         [
           node(7854.2345),
-          toDecimals(7854.2345, 0),
+          toBigInt(7854.2345),
           "Invalid decimal number raised to a power match",
         ],
         [
           node(0.000123, 14),
-          toDecimals(0.000123, 14),
+          toBigInt(0.000123, 14),
           "Invalid zero decimal number raised to a power match ",
         ],
         [
           node(1200.12, 18, "mo"),
-          toDecimals(1200.12, 18) * BigInt(timeUnits.mo),
+          toBigInt(1200.12, 18) * BigInt(timeUnits.mo),
           "Invalid decimal number raised to a power followed by time unit match",
         ],
         [
           node(30, undefined, "s"),
-          toDecimals(30, 0) * BigInt(timeUnits.s),
+          toBigInt(30, 0) * BigInt(timeUnits.s),
           "Invalid number followed by second time unit match",
         ],
         [
           node(5, undefined, "m"),
-          toDecimals(5, 0) * BigInt(timeUnits.m),
+          toBigInt(5, 0) * BigInt(timeUnits.m),
           "Invalid number followed by minute time unit match",
         ],
         [
           node(35, undefined, "h"),
-          toDecimals(35, 0) * BigInt(timeUnits.h),
+          toBigInt(35, 0) * BigInt(timeUnits.h),
           "Invalid number followed by hour time unit match",
         ],
         [
           node(463, undefined, "d"),
-          toDecimals(463, 0) * BigInt(timeUnits.d),
+          toBigInt(463, 0) * BigInt(timeUnits.d),
           "Invalid number followed by day time unit match",
         ],
         [
           node(96, undefined, "w"),
-          toDecimals(96, 0) * BigInt(timeUnits.w),
+          toBigInt(96, 0) * BigInt(timeUnits.w),
           "Invalid number followed by week time unit match",
         ],
         [
           node(9, undefined, "mo"),
-          toDecimals(9, 0) * BigInt(timeUnits.mo),
+          toBigInt(9, 0) * BigInt(timeUnits.mo),
           "Invalid number followed by month time unit match",
         ],
         [
           node(4.67, undefined, "y"),
-          toDecimals(4.67, 0) * BigInt(timeUnits.y),
+          toBigInt(4.67) * BigInt(timeUnits.y),
           "Invalid number followed by year time unit match",
         ],
       ];

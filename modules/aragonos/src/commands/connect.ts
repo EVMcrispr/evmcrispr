@@ -7,14 +7,13 @@ import type {
 } from "@evmcrispr/sdk";
 import {
   abiBindingKey,
-  addressesEqual,
   BindingsSpace,
   defineCommand,
   ErrorException,
   ErrorNotFound,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { isAddress } from "viem";
+import { isAddress, isAddressEqual } from "viem";
 import type AragonOS from "..";
 import { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
@@ -45,7 +44,7 @@ const createDAO = async (
     daoAddress = res;
   }
 
-  if (currentDao && addressesEqual(currentDao.kernel.address, daoAddress)) {
+  if (currentDao && isAddressEqual(currentDao.kernel.address, daoAddress)) {
     throw new ErrorException(
       `trying to connect to an already connected DAO (${daoAddress})`,
     );

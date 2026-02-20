@@ -1,21 +1,19 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
 import {
   abiBindingKey,
-  addressesEqual,
   BindingsSpace,
   defineCommand,
   ErrorException,
   encodeAction,
   fetchAbi,
   fieldItem,
-  getFunctionFragment,
   interpretNodeSync,
   isFunctionSignature,
   parseSignatureParamTypes,
   resolveEventCaptures,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
-import { getAbiItem, isAddress } from "viem";
+import { getAbiItem, isAddress, isAddressEqual, toFunctionSignature } from "viem";
 import type Std from "..";
 
 const { ABI } = BindingsSpace;
@@ -87,11 +85,7 @@ export default defineCommand<Std>({
             (item.stateMutability === "nonpayable" ||
               item.stateMutability === "payable"),
         )
-        .map((func: AbiFunction) =>
-          getFunctionFragment(func)
-            .replace("function ", "")
-            .replace(/ returns \(.*\)/, ""),
-        );
+        .map((func: AbiFunction) => toFunctionSignature(func));
       return functions.map(fieldItem);
     },
   },
@@ -119,9 +113,15 @@ export default defineCommand<Std>({
         const func = getAbiItem({
           abi,
           name: signature,
-        });
+        }) as AbiFunction | undefined;
 
-        finalSignature = getFunctionFragment(func);
+        if (!func) {
+          throw new ErrorException(
+            `function "${signature}" not found in ABI`,
+          );
+        }
+
+        finalSignature = toFunctionSignature(func);
       } else {
         let fetchedAbi: Abi;
         let fetchedChainId: number;
@@ -144,11 +144,11 @@ export default defineCommand<Std>({
         }
 
         try {
-          finalSignature = getFunctionFragment(
+          finalSignature = toFunctionSignature(
             getAbiItem({
               abi: fetchedAbi,
               name: signature,
-            }),
+            }) as AbiFunction,
           );
         } catch (err) {
           const err_ = err as Error;
@@ -162,7 +162,7 @@ export default defineCommand<Std>({
           fetchedAbi,
           ABI,
         );
-        if (!addressesEqual(targetAddress, contractAddress)) {
+        if (!isAddressEqual(targetAddress, contractAddress)) {
           module.bindingsManager.setBinding(
             abiBindingKey(fetchedChainId, targetAddress),
             fetchedAbi,

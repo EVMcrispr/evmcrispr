@@ -58,8 +58,7 @@ describeHelper(
       },
       {
         name: "should return native ETH balance for a holder",
-        input:
-          "@token.balance(ETH,0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
+        input: "@token.balance(ETH,0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
         validate: (result) => {
           expect(Number(result)).to.be.greaterThanOrEqual(0);
         },
@@ -83,6 +82,11 @@ describeHelper(
         name: "should convert a larger amount",
         input: "@token.amount(DAI, 100)",
         expected: String(100e18),
+      },
+      {
+        name: "should convert a decimal amount (0.5 DAI)",
+        input: '@token.amount(DAI, "0.5")',
+        expected: "500000000000000000",
       },
     ],
     sampleArgs: ["DAI", "1"],

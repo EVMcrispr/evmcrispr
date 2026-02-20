@@ -1,6 +1,6 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
-import { addressesEqual, defineModule, ErrorNotFound } from "@evmcrispr/sdk";
-import { getContractAddress } from "viem";
+import { defineModule, ErrorNotFound } from "@evmcrispr/sdk";
+import { getContractAddress, isAddressEqual } from "viem";
 import { commands, helpers } from "./_generated";
 import type { AragonDAO } from "./AragonDAO";
 import { types } from "./argTypes";
@@ -56,7 +56,7 @@ export default class AragonOS extends defineModule(
     return this.#daoStack.find(
       (d) =>
         d.name === identifier ||
-        addressesEqual(d.kernel.address, identifier as Address),
+        isAddressEqual(d.kernel.address, identifier as Address),
     );
   }
 
@@ -67,7 +67,7 @@ export default class AragonOS extends defineModule(
 
   getConnectedDAO(daoAddress: Address): AragonDAO | undefined {
     return this.#connectedDAOs.find((dao) =>
-      addressesEqual(dao.kernel.address, daoAddress),
+      isAddressEqual(dao.kernel.address, daoAddress),
     );
   }
 

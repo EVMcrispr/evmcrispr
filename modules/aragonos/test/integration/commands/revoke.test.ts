@@ -1,13 +1,13 @@
 import "../../setup";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
-import { CommandError, toDecimals } from "@evmcrispr/sdk";
+import { CommandError } from "@evmcrispr/sdk";
 import {
   describeCommand,
   expect,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
-import { keccak256, toHex } from "viem";
+import { keccak256, parseUnits, toHex } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
@@ -92,7 +92,7 @@ describeCommand("revoke", {
         const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
         return new CommandError(
           c,
-          `[removeManager] must be a boolean, got ${toDecimals(1, 18)}`,
+          `[removeManager] must be a boolean, got ${parseUnits("1", 18)}`,
         );
       },
     },

@@ -6,13 +6,12 @@ import {
   encodeAction,
   fetchAbi,
   fieldItem,
-  getFunctionFragment,
   interpretNodeSync,
   isFunctionSignature,
   parseSignatureParamTypes,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
-import { isAddress } from "viem";
+import { isAddress, toFunctionSignature } from "viem";
 import type AragonOS from "..";
 import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
@@ -83,11 +82,7 @@ export default defineCommand<AragonOS>({
             (item.stateMutability === "nonpayable" ||
               item.stateMutability === "payable"),
         )
-        .map((func: AbiFunction) =>
-          getFunctionFragment(func)
-            .replace("function ", "")
-            .replace(/ returns \(.*\)/, ""),
-        );
+        .map((func: AbiFunction) => toFunctionSignature(func));
       return functions.map(fieldItem);
     },
   },

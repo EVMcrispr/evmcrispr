@@ -1,6 +1,7 @@
 import "../../setup";
-import { BindingsSpace, toDecimals } from "@evmcrispr/sdk";
+import { BindingsSpace } from "@evmcrispr/sdk";
 import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { parseUnits } from "viem";
 
 describeCommand("set", {
   describeName: "Std > commands > set <varName> <varValue>",
@@ -10,7 +11,7 @@ describeCommand("set", {
       script: "set $var 1e18",
       validate: (_, interpreter) => {
         expect(interpreter.getBinding("$var", BindingsSpace.USER)).to.be.equal(
-          toDecimals(1, 18),
+          parseUnits("1", 18),
         );
       },
     },

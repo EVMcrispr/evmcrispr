@@ -7,7 +7,6 @@ import {
   CommandError,
   encodeAction,
   encodeCalldata,
-  toDecimals,
 } from "@evmcrispr/sdk";
 import {
   describeCommand,
@@ -19,6 +18,7 @@ import {
   getContractAddress,
   keccak256,
   parseAbiItem,
+  parseUnits,
   toHex,
   zeroAddress,
 } from "viem";
@@ -145,7 +145,7 @@ describeCommand("connect", {
                     [
                       "0x44fA8E6f47987339850636F88629646662444217",
                       me,
-                      toDecimals("10.50"),
+                      parseUnits("10.50", 18),
                     ],
                   ),
                 ],

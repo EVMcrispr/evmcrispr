@@ -1,6 +1,7 @@
-import { addressesEqual, IPFS_GATEWAY } from "@evmcrispr/sdk";
+import { IPFS_GATEWAY } from "@evmcrispr/sdk";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import type { Address } from "viem";
+import { isAddressEqual } from "viem";
 import { artifacts } from "./artifacts";
 import { DAOs, REPOs } from "./subgraph-data";
 
@@ -33,7 +34,7 @@ const handleSubgraphRequest = async ({
     const dao =
       DAOs[
         daoAddresses.find((addr) =>
-          addressesEqual(addr as Address, id as Address),
+          isAddressEqual(addr as Address, id as Address),
         ) as keyof typeof DAOs
       ];
 

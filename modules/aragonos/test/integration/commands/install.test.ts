@@ -1,8 +1,8 @@
 import "../../setup";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
-import { type Action, addressesEqual, CommandError } from "@evmcrispr/sdk";
-import { encodeFunctionData, parseAbiItem } from "viem";
+import { type Action, CommandError } from "@evmcrispr/sdk";
+import { encodeFunctionData, isAddressEqual, parseAbiItem } from "viem";
 
 const encodeActCall = (signature: string, params: any[] = []): string =>
   encodeFunctionData({
@@ -51,7 +51,7 @@ describeCommand("install", {
 
         expect(installedApp, "DAO does not have installed app").to.exist;
         expect(
-          addressesEqual(installedApp!.codeAddress, codeAddress),
+          isAddressEqual(installedApp!.codeAddress, codeAddress),
           "wrong installed app version",
         ).to.be.true;
         expect(installationActions, "installation actions mismatch").to.eql(
@@ -81,7 +81,7 @@ describeCommand("install", {
 
         expect(installedApp, " DAO does not have installed app").to.exist;
         expect(
-          addressesEqual(installedApp!.codeAddress, specificVersion),
+          isAddressEqual(installedApp!.codeAddress, specificVersion),
           "wrong installed app version",
         ).to.be.true;
         expect(installationActions, "installation actions mismatch").to.eql(

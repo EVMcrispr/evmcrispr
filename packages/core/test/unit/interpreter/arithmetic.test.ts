@@ -2,7 +2,7 @@ import { beforeAll, describe, it } from "bun:test";
 import { expect } from "chai";
 import "../../setup.js";
 
-import { ExpressionError, toDecimals } from "@evmcrispr/sdk";
+import { ExpressionError } from "@evmcrispr/sdk";
 import {
   createInterpreter,
   expectThrowAsync,
@@ -10,6 +10,7 @@ import {
   preparingExpression,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
+import { parseUnits } from "viem";
 
 describe("Interpreter - arithmetics", () => {
   const name = "ArithmeticExpressionError";
@@ -27,7 +28,7 @@ describe("Interpreter - arithmetics", () => {
     );
     const res = await interpret();
 
-    expect(res).to.eql(120n - toDecimals(5, 22) * 4n + toDecimals(500, 33));
+    expect(res).to.eql(120n - parseUnits("5", 22) * 4n + parseUnits("500", 33));
   });
 
   it("should return the correct result of an arithmetic operation containing priority parenthesis", async () => {
@@ -37,7 +38,7 @@ describe("Interpreter - arithmetics", () => {
     );
     const res = await interpret();
 
-    expect(res).to.eql(toDecimals("1427.25", 18));
+    expect(res).to.eql(parseUnits("1427.25", 18));
   });
 
   it("should fail when one of the operands is not a number", async () => {
