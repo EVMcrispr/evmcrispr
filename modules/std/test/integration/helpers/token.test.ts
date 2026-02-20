@@ -12,8 +12,13 @@ describeHelper(
         expected: "0x44fA8E6f47987339850636F88629646662444217",
       },
       {
-        name: "should resolve ETH to the zero address",
-        input: "@token(ETH)",
+        name: "should resolve the chain native token to the zero address",
+        input: "@token(XDAI)",
+        expected: "0x0000000000000000000000000000000000000000",
+      },
+      {
+        name: "should resolve native token case-insensitively",
+        input: "@token(xdai)",
         expected: "0x0000000000000000000000000000000000000000",
       },
       {
@@ -57,8 +62,9 @@ describeHelper(
         expected: "12100000000000000000",
       },
       {
-        name: "should return native ETH balance for a holder",
-        input: "@token.balance(ETH,0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
+        name: "should return native token balance for a holder",
+        input:
+          "@token.balance(XDAI,0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
         validate: (result) => {
           expect(Number(result)).to.be.greaterThanOrEqual(0);
         },
@@ -87,6 +93,11 @@ describeHelper(
         name: "should convert a decimal amount (0.5 DAI)",
         input: '@token.amount(DAI, "0.5")',
         expected: "500000000000000000",
+      },
+      {
+        name: "should convert native token amount to base units",
+        input: "@token.amount(XDAI, 1)",
+        expected: String(1e18),
       },
     ],
     sampleArgs: ["DAI", "1"],

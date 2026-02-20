@@ -1,4 +1,4 @@
-import type { PublicClient, Transport } from "viem";
+import type { Chain, PublicClient, Transport } from "viem";
 import { ErrorException } from "./errors";
 import type {
   Address,
@@ -141,6 +141,10 @@ export abstract class Module {
 
   async getChainId(): Promise<number> {
     return this.context.getChainId();
+  }
+
+  async getChain(): Promise<Chain | undefined> {
+    return this.context.getChain();
   }
 
   async switchChainId(chainId: number): Promise<PublicClient> {

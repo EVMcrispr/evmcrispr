@@ -5,7 +5,6 @@ import { commands, helpers } from "./_generated";
 import { types } from "./argTypes";
 
 export default class Std extends defineModule("std", commands, helpers, types, {
-  ETH: zeroAddress,
   ZERO_ADDRESS: zeroAddress,
 }) {
   get modules(): Module[] {

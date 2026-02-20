@@ -129,6 +129,7 @@ export class EVMcrispr {
   #nonces: Record<string, number>;
   #account: Address | undefined;
   #chainId: number | undefined;
+  #chain: Chain | undefined;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #prevMessages: string[];
@@ -148,8 +149,8 @@ export class EVMcrispr {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
-    this.#setDefaultBindings();
     this.#client = client;
+    this.#chain = (client as any)?.chain as Chain | undefined;
     this.#account = account;
     this.#logListeners = [];
     this.#prevMessages = [];
@@ -185,6 +186,7 @@ export class EVMcrispr {
       modules: this.#modules,
       getClient: () => this.getClient(),
       getChainId: () => this.getChainId(),
+      getChain: () => this.getChain(),
       switchChainId: (chainId) => this.switchChainId(chainId),
       getConnectedAccount: (retreiveInjected) =>
         this.getConnectedAccount(retreiveInjected),
@@ -312,6 +314,7 @@ export class EVMcrispr {
         modules: [],
         getClient: () => Promise.resolve(client),
         getChainId: () => Promise.resolve(chainId),
+        getChain: () => Promise.resolve(this.#chain),
         switchChainId: () => {
           throw new ErrorException(
             "switchChainId not available during completions",
@@ -494,12 +497,17 @@ export class EVMcrispr {
     return this.#account;
   }
 
+  async getChain(): Promise<Chain | undefined> {
+    return this.#chain;
+  }
+
   async switchChainId(chainId: number): Promise<PublicClient> {
     this.#chainId = chainId;
 
     const chain = Object.values(viemChains).find(
       (c) => (c as Chain).id === chainId,
     ) as Chain | undefined;
+    this.#chain = chain;
     if (chain) {
       this.#client = createPublicClient({
         chain,
@@ -889,11 +897,6 @@ export class EVMcrispr {
 
       EVMcrispr.panic(n, `${n.value} not defined`);
     };
-
-  #setDefaultBindings(): void {
-    // No default bindings needed — barewords always return their string value.
-    // ETH/XDAI are now module constants accessed via @ETH / @XDAI.
-  }
 
   static panic(n: Node, msg: string): never {
     switch (n.type) {

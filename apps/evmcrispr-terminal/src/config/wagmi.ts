@@ -1,72 +1,186 @@
 import type { Chain, Transport } from "viem";
+import { defineChain } from "viem";
 import { createConfig, http } from "wagmi";
 
-import * as _chains from "wagmi/chains";
+import {
+  abstract,
+  apeChain,
+  arbitrum,
+  arbitrumNova,
+  arbitrumSepolia,
+  arcTestnet,
+  aurora,
+  avalanche,
+  base,
+  baseSepolia,
+  berachain,
+  bitTorrent,
+  blast,
+  bob,
+  boba,
+  bsc,
+  celo,
+  coreDao,
+  cronos,
+  cronoszkEVM,
+  fantom,
+  gnosis,
+  harmonyOne,
+  hashkey,
+  hemi,
+  immutableZkEvm,
+  ink,
+  katana,
+  kava,
+  klaytn,
+  kroma,
+  linea,
+  lisk,
+  mainnet,
+  manta,
+  mantle,
+  megaeth,
+  merlin,
+  metalL2,
+  metis,
+  moonbeam,
+  moonriver,
+  optimism,
+  optimismSepolia,
+  polygon,
+  polygonAmoy,
+  polygonZkEvm,
+  polygonZkEvmCardona,
+  scroll,
+  sepolia,
+  telos,
+  tempo,
+  thunderCore,
+  unichain,
+  viction,
+  wemix,
+  worldchain,
+  xLayer,
+  zeroGMainnet,
+  zeroNetwork,
+  zetachain,
+  zircuit,
+  zksync,
+  zora,
+} from "wagmi/chains";
 import { injected, safe, walletConnect } from "wagmi/connectors";
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY;
 const DRPC_API_KEY = import.meta.env.VITE_DRPC_API_KEY;
 const isIframe = window.self !== window.top;
-
-function alchemyUrl(alchemyChain: string) {
-  return `https://${alchemyChain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
-}
 
 function drpcUrl(drpcChain: string) {
   return `https://lb.drpc.live/${drpcChain}/${DRPC_API_KEY}`;
 }
 
-const alchemyTransports: Record<number, string> | undefined = ALCHEMY_API_KEY
-  ? {
-      [_chains.mainnet.id]: alchemyUrl(`eth-mainnet`),
-      [_chains.sepolia.id]: alchemyUrl(`eth-sepolia`),
-      [_chains.polygon.id]: alchemyUrl(`polygon-mainnet`),
-      [_chains.polygonAmoy.id]: alchemyUrl(`polygon-amoy`),
-      [_chains.polygonZkEvm.id]: alchemyUrl(`polygonzkevm-mainnet`),
-      [_chains.polygonZkEvmCardona.id]: alchemyUrl(`polygonzkevm-cardona`),
-      [_chains.optimism.id]: alchemyUrl(`opt-mainnet`),
-      [_chains.optimismSepolia.id]: alchemyUrl(`opt-sepolia`),
-      [_chains.arbitrum.id]: alchemyUrl(`arb-mainnet`),
-      [_chains.arbitrumSepolia.id]: alchemyUrl(`arb-sepolia`),
-      [_chains.base.id]: alchemyUrl(`base-mainnet`),
-      [_chains.baseSepolia.id]: alchemyUrl(`base-sepolia`),
-    }
-  : undefined;
+const hyperliquid = defineChain({
+  id: 999,
+  name: "Hyperliquid",
+  nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+  rpcUrls: { default: { http: [] } },
+});
 
-const dRPCTransports: Record<number, string> | undefined = DRPC_API_KEY
-  ? {
-      [_chains.mainnet.id]: drpcUrl(`ethereum`),
-      [_chains.sepolia.id]: drpcUrl(`sepolia`),
-      [_chains.polygon.id]: drpcUrl(`polygon`),
-      [_chains.polygonAmoy.id]: drpcUrl(`polygon-amoy`),
-      [_chains.polygonZkEvm.id]: drpcUrl(`polygon-zkevm`),
-      [_chains.polygonZkEvmCardona.id]: drpcUrl(`polygon-zkevm-cardona`),
-      [_chains.optimism.id]: drpcUrl(`optimism`),
-      [_chains.optimismSepolia.id]: drpcUrl(`optimism-sepolia`),
-      [_chains.arbitrum.id]: drpcUrl(`arbitrum`),
-      [_chains.arbitrumSepolia.id]: drpcUrl(`arbitrum-sepolia`),
-      [_chains.base.id]: drpcUrl(`base`),
-      [_chains.baseSepolia.id]: drpcUrl(`base-sepolia`),
-    }
-  : undefined;
+const mezo = defineChain({
+  id: 31612,
+  name: "Mezo",
+  nativeCurrency: { name: "BTC", symbol: "BTC", decimals: 18 },
+  rpcUrls: { default: { http: [] } },
+});
 
-const chains = Object.values(_chains) as unknown as [Chain, ...Chain[]];
+const moca = defineChain({
+  id: 2288,
+  name: "Moca",
+  nativeCurrency: { name: "MOCA", symbol: "MOCA", decimals: 18 },
+  rpcUrls: { default: { http: [] } },
+});
+
+const chainConfig: [Chain, string][] = [
+  [mainnet, `ethereum`],
+  [bsc, `bsc`],
+  [polygon, `polygon`],
+  [arbitrum, `arbitrum`],
+  [optimism, `optimism`],
+  [zksync, `zksync`],
+  [linea, `linea`],
+  [base, `base`],
+  [fantom, `fantom`],
+  [avalanche, `avalanche`],
+  [gnosis, `gnosis`],
+  [scroll, `scroll`],
+  [mantle, `mantle`],
+  [arbitrumNova, `arbitrum-nova`],
+  [aurora, `aurora`],
+  [polygonZkEvm, `polygon-zkevm`],
+  [klaytn, `klaytn`],
+  [zeroGMainnet, `0g-mainnet`],
+  [abstract, `abstract`],
+  [apeChain, `apechain`],
+  [arcTestnet, `arc-testnet`],
+  [berachain, `berachain`],
+  [bitTorrent, `bittorrent`],
+  [blast, `blast`],
+  [bob, `bob`],
+  [boba, `boba-eth`],
+  [celo, `celo`],
+  [coreDao, `core`],
+  [cronos, `cronos`],
+  [cronoszkEVM, `cronos-zkevm`],
+  [harmonyOne, `harmony-0`],
+  [hashkey, `hashkey`],
+  [hemi, `hemi`],
+  [hyperliquid, `hyperliquid`],
+  [immutableZkEvm, `immutable-zkevm`],
+  [ink, `ink`],
+  [katana, `katana`],
+  [kava, `kava`],
+  [kroma, `kroma`],
+  [lisk, `lisk`],
+  [manta, `manta-pacific`],
+  [megaeth, `megaeth`],
+  [merlin, `merlin`],
+  [metalL2, `metall2`],
+  [metis, `metis`],
+  [mezo, `mezo`],
+  [moca, `moca`],
+  [moonbeam, `moonbeam`],
+  [moonriver, `moonriver`],
+  [telos, `telos`],
+  [tempo, `tempo-mainnet`],
+  [thunderCore, `thundercore`],
+  [unichain, `unichain`],
+  [viction, `viction`],
+  [wemix, `wemix`],
+  [worldchain, `worldchain`],
+  [xLayer, `xlayer`],
+  [zeroNetwork, `zero`],
+  [zetachain, `zeta-chain`],
+  [zircuit, `zircuit-mainnet`],
+  [zora, `zora`],
+  // Testnets
+  [sepolia, `sepolia`],
+  [polygonAmoy, `polygon-amoy`],
+  [polygonZkEvmCardona, `polygon-zkevm-cardona`],
+  [optimismSepolia, `optimism-sepolia`],
+  [arbitrumSepolia, `arbitrum-sepolia`],
+  [baseSepolia, `base-sepolia`],
+];
+
+const chains = chainConfig.map(([chain]) => chain) as [Chain, ...Chain[]];
+
 export const transports = chains.reduce(
   (acc, { id }) => {
-    acc[id] = alchemyTransports?.[id]
-      ? http(alchemyTransports[id])
-      : dRPCTransports?.[id]
-        ? http(dRPCTransports[id])
-        : http();
+    const slug = chainConfig.find(([c]) => c.id === id)?.[1];
+    acc[id] = slug && DRPC_API_KEY ? http(drpcUrl(slug)) : http();
     return acc;
   },
   {} as Record<number, Transport>,
 );
-console.log(
-  "transports",
-  transports[_chains.sepolia.id]?.({ chain: _chains.sepolia }),
-);
+
 export const config = createConfig({
   chains,
   connectors: [

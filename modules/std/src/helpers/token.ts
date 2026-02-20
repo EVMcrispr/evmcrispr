@@ -1,4 +1,4 @@
-import type { Address, BindingsManager, Module } from "@evmcrispr/sdk";
+import type { Address, BindingsManager, Chain, Module } from "@evmcrispr/sdk";
 import { BindingsSpace, defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import type Std from "..";
@@ -23,6 +23,12 @@ const getTokenList = async (
   return tokenList;
 };
 
+export function getChainNativeCurrency(chain: Chain | undefined) {
+  return (
+    chain?.nativeCurrency ?? { name: "Ether", symbol: "ETH", decimals: 18 }
+  );
+}
+
 export const resolveToken = async (
   module: Module,
   tokenSymbolOrAddress: string,
@@ -31,12 +37,15 @@ export const resolveToken = async (
     return tokenSymbolOrAddress;
   }
 
-  // Handle native ETH token symbol
-  if (tokenSymbolOrAddress.toUpperCase() === "ETH") {
+  const chainId = await module.getChainId();
+
+  const chain = await module.getChain();
+  const nativeCurrency = getChainNativeCurrency(chain);
+  if (
+    tokenSymbolOrAddress.toUpperCase() === nativeCurrency.symbol.toUpperCase()
+  ) {
     return zeroAddress;
   }
-
-  const chainId = await module.getChainId();
   const tokenList = await getTokenList(module.bindingsManager, chainId);
   const {
     tokens,

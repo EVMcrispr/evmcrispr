@@ -31,6 +31,7 @@ export type {
   BytesLiteralNode,
   CacheBinding,
   CallExpressionNode,
+  Chain,
   CommandArgExpressionNode,
   CommandExpressionNode,
   CommandFunction,

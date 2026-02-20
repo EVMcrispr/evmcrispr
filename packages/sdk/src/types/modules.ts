@@ -1,4 +1,4 @@
-import type { Address, PublicClient, Transport } from "viem";
+import type { Address, Chain, PublicClient, Transport } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
@@ -22,6 +22,8 @@ export interface ModuleContext {
   // Client / chain access
   getClient(): Promise<PublicClient>;
   getChainId(): Promise<number>;
+  /** Return the full Chain object for the current chain, if known. */
+  getChain(): Promise<Chain | undefined>;
   switchChainId(chainId: number): Promise<PublicClient>;
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
 

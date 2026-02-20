@@ -1,6 +1,7 @@
 import {
   type Action,
   type BlockExpressionNode,
+  type Chain,
   defineCommand,
   ErrorException,
   isRpcAction,
@@ -8,7 +9,6 @@ import {
   isWalletAction,
 } from "@evmcrispr/sdk";
 import {
-  type Chain,
   createPublicClient,
   createWalletClient,
   http,
@@ -16,7 +16,6 @@ import {
   toHex,
   type WalletClient,
 } from "viem";
-import * as viemChains from "viem/chains";
 import type Sim from "..";
 
 export default defineCommand<Sim>({
@@ -39,9 +38,7 @@ export default defineCommand<Sim>({
 
     const chainId = await module.getChainId();
 
-    const chain = (Object.values(viemChains).find(
-      (c) => (c as Chain).id === chainId,
-    ) ?? {
+    const chain = ((await module.getChain()) ?? {
       id: chainId,
       name: "Unknown",
       nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
