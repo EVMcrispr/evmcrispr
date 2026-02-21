@@ -119,6 +119,19 @@ describe("Completions – std exec ABI fetching", () => {
     const items2 = await evm.getCompletions(script, pos(script, 2));
     expect(onlyKind(items2, "field").length).to.be.greaterThan(0);
   });
+
+  it("exec @token(WXDAI) <cursor> should resolve inline helper and fetch ABI", async () => {
+    const script = "exec @token(WXDAI) ";
+    const items = await evm.getCompletions(script, pos(script));
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+    const fnLabels = labels(fieldItems);
+    expect(fnLabels.some((l) => l.startsWith("approve"))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("transfer("))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("transferFrom"))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("totalSupply"))).to.be.false;
+    expect(fnLabels.some((l) => l.startsWith("balanceOf"))).to.be.false;
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -195,5 +208,19 @@ describe("Completions – @get read-abi ABI fetching", () => {
     const fieldItems = onlyKind(items, "field");
     expect(fieldItems.length).to.be.greaterThan(0);
     expect(hasLabel(fieldItems, "totalSupply()(uint256)")).to.be.true;
+  });
+
+  it("@get(@token(WXDAI), <cursor>) should resolve inline helper and show read-abi completions", async () => {
+    const { script, position } = helperPos(
+      "set $x @get(@token(WXDAI), ",
+      ")",
+    );
+    const items = await evm.getCompletions(script, position);
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+    const fnLabels = labels(fieldItems);
+    expect(fnLabels.some((l) => l.startsWith("totalSupply()"))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("balanceOf("))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("approve("))).to.be.false;
   });
 });

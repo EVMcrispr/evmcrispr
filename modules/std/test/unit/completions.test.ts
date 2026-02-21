@@ -77,10 +77,18 @@ describe("Completions – std commands", () => {
   // -------------------------------------------------------------------------
 
   describe("set", () => {
-    it("set <cursor> should return empty (variable type)", async () => {
+    it("set <cursor> should return empty when no user variables exist", async () => {
       const script = "set ";
       const items = await evm.getCompletions(script, pos(script));
       expect(items).to.have.lengthOf(0);
+    });
+
+    it("set <cursor> should show existing user variables", async () => {
+      const script = "set $myVar 123\nset ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "$myVar")).to.be.true;
+      const varItems = onlyKind(items, "variable");
+      expect(varItems).to.have.lengthOf(1);
     });
 
     it("set $x <cursor> should show helpers and variables", async () => {
@@ -818,6 +826,101 @@ describe("Completions – std helpers", () => {
       // Address-returning helpers should NOT be present
       expect(hasLabel(items, "@me")).to.be.false;
       expect(hasLabel(items, "@ens")).to.be.false;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Mid-line cursor completions (cursor NOT at end of line)
+  // -------------------------------------------------------------------------
+
+  describe("mid-line cursor completions", () => {
+    const helperPos = (before: string, after: string) => ({
+      script: before + after,
+      position: { line: 1, col: before.length },
+    });
+
+    it("@token.balance(WXDAI,<cursor> @me) gap between args should show address completions", async () => {
+      const { script, position } = helperPos(
+        "set $x @token.balance(WXDAI,",
+        " @me)",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@id")).to.be.false;
+    });
+
+    it("@token.balance(WXDAI, <cursor>@me) at arg start mid-line should show address completions", async () => {
+      const { script, position } = helperPos(
+        "set $x @token.balance(WXDAI, ",
+        "@me)",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@id")).to.be.false;
+    });
+
+    it("@token.amount(WXDAI, <cursor>@me) mid-line should show number completions", async () => {
+      const { script, position } = helperPos(
+        "set $x @token.amount(WXDAI, ",
+        "@me)",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@token")).to.be.false;
+    });
+
+    it("multiline: @token.amount(WXDAI,<cursor> @me) mid-line should show number completions", async () => {
+      const script = "set $a 1\nset $x @token.amount(WXDAI, @me)";
+      const position = {
+        line: 2,
+        col: "set $x @token.amount(WXDAI,".length,
+      };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+    });
+
+    it("exec $c f(bool) <cursor>true mid-line should show bool completions", async () => {
+      const script = "exec $c f(bool) true";
+      const position = { line: 1, col: "exec $c f(bool) ".length };
+      const items = await evm.getCompletions(script, position);
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      expect(hasLabel(items, "@me")).to.be.false;
+    });
+
+    it("@get(addr,<cursor>, (trailing comma, no closing paren) should still show completions", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const script = `print @get(${addr},`;
+      const position = { line: 1, col: `print @get(${addr},`.length };
+      const items = await evm.getCompletions(script, position);
+      expect(items.length).to.be.greaterThan(0);
+    });
+
+    it("multiline: @get(addr,<cursor>, with invalid full script should use partial context", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const script = `switch gnosis\nprint @get(${addr},,`;
+      const position = {
+        line: 2,
+        col: `print @get(${addr},`.length,
+      };
+      const items = await evm.getCompletions(script, position);
+      expect(items.length).to.be.greaterThan(0);
     });
   });
 });

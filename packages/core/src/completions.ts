@@ -8,6 +8,7 @@ import type {
   HelperResolver,
   ICommand,
   ModuleBinding,
+  Node,
   NoNullableBinding,
   Position,
 } from "@evmcrispr/sdk";
@@ -125,16 +126,7 @@ const removePossibleFollowingBlock = (
   currentLine: string,
   currPos: Position,
 ): string => {
-  const matchIndexes = ["(", ")"]
-    .map((char) => currentLine.indexOf(char))
-    .filter((n) => n > -1 && n >= currPos.col);
-
-  if (!matchIndexes.length) {
-    return currentLine;
-  }
-
-  const endMark = Math.min(...matchIndexes);
-  return currentLine.slice(0, endMark);
+  return currentLine.slice(0, currPos.col);
 };
 
 // ---------------------------------------------------------------------------
@@ -294,67 +286,75 @@ function seedBindings(bindings: BindingsManager, cache: BindingsManager): void {
 }
 
 /**
- * Resolve the value node of a `set` command.  Tries, in order:
- *   1. `interpretNodeSync` for literals / variable references
- *   2. Helper execution (cached in the CACHE space) for HelperFunctionExpression
- *   3. Falls back to storing the AST node itself
+ * Create an async node resolver that closes over completion-local state.
+ * Handles literals, barewords, variable identifiers (via bindings), and
+ * helper expressions (via resolveHelper + cache).  Returns undefined when
+ * the node cannot be resolved.
  */
-async function resolveValueNode(
-  valueNode: { type: any; value?: any; [k: string]: any },
+function createNodeResolver(
   bindings: BindingsManager,
   cache: BindingsManager,
   chainId: number,
   client: PublicClient | undefined,
   resolveHelper?: HelperResolver,
+): (node: Node) => Promise<any> {
+  return async (node: Node): Promise<any> => {
+    const syncResult = interpretNodeSync(node, bindings);
+    if (syncResult != null) return syncResult;
+
+    if (
+      node.type === NodeType.HelperFunctionExpression &&
+      resolveHelper &&
+      client
+    ) {
+      const helperNode = node as unknown as HelperFunctionNode;
+      const resolvedArgs: string[] = [];
+      let allResolved = true;
+
+      for (const arg of helperNode.args) {
+        const v = interpretNodeSync(arg as any, bindings);
+        if (v == null) {
+          allResolved = false;
+          break;
+        }
+        resolvedArgs.push(String(v));
+      }
+
+      if (allResolved) {
+        const cacheKey = `helper:${chainId}:${
+          helperNode.name
+        }:${resolvedArgs.join(":")}`;
+        const cached = cache.getBindingValue(cacheKey, CACHE);
+        if (cached != null) return cached;
+
+        try {
+          const result = await resolveHelper(
+            helperNode.name,
+            resolvedArgs,
+            chainId,
+            client,
+            bindings,
+          );
+          cache.setBinding(cacheKey, result, CACHE, false, undefined, true);
+          return result;
+        } catch {
+          return undefined;
+        }
+      }
+    }
+
+    return undefined;
+  };
+}
+
+/** Resolve a value node for the `set` command walk phase.  Falls back to
+ *  storing the AST node itself when resolution fails. */
+async function resolveValueNode(
+  resolveNode: (node: Node) => Promise<any>,
+  valueNode: Node,
 ): Promise<any> {
-  // Fast path: literals, barewords, variable references
-  const syncResult = interpretNodeSync(valueNode as any, bindings);
-  if (syncResult != null) return syncResult;
-
-  // Helper expression: resolve via cache + executor
-  if (
-    valueNode.type === NodeType.HelperFunctionExpression &&
-    resolveHelper &&
-    client
-  ) {
-    const helperNode = valueNode as unknown as HelperFunctionNode;
-    const resolvedArgs: string[] = [];
-    let allResolved = true;
-
-    for (const arg of helperNode.args) {
-      const v = interpretNodeSync(arg as any, bindings);
-      if (v == null) {
-        allResolved = false;
-        break;
-      }
-      resolvedArgs.push(String(v));
-    }
-
-    if (allResolved) {
-      const cacheKey = `helper:${chainId}:${
-        helperNode.name
-      }:${resolvedArgs.join(":")}`;
-      const cached = cache.getBindingValue(cacheKey, CACHE);
-      if (cached != null) return cached;
-
-      try {
-        const result = await resolveHelper(
-          helperNode.name,
-          resolvedArgs,
-          chainId,
-          client,
-          bindings,
-        );
-        cache.setBinding(cacheKey, result, CACHE, false, undefined, true);
-        return result;
-      } catch {
-        // Helper execution failed — fall through to AST node fallback
-      }
-    }
-  }
-
-  // Fallback: store the AST node itself
-  return valueNode;
+  const resolved = await resolveNode(valueNode);
+  return resolved ?? valueNode;
 }
 
 /** Walk a list of fully-typed command nodes and resolve any bindings they
@@ -365,7 +365,7 @@ async function walkCommandsForBindings(
   cache: BindingsManager,
   client: PublicClient,
   chainId: number,
-  resolveHelper?: HelperResolver,
+  resolveNode: (node: Node) => Promise<any>,
 ): Promise<void> {
   let parentModule = "std";
 
@@ -389,15 +389,7 @@ async function walkCommandsForBindings(
       if (argDef.type === "variable" && argNode.value) {
         let bindingValue: any = argNode.value;
         if (c.name === "set" && c.args[i + 1]) {
-          const valueNode = c.args[i + 1];
-          bindingValue = await resolveValueNode(
-            valueNode,
-            bindings,
-            cache,
-            chainId,
-            client,
-            resolveHelper,
-          );
+          bindingValue = await resolveValueNode(resolveNode, c.args[i + 1]);
         }
         try {
           bindings.setBinding(argNode.value, bindingValue, USER);
@@ -421,6 +413,7 @@ async function walkCommandsForBindings(
               chainId,
               cache,
               commandNode: c,
+              resolveNode,
             };
             const newBindings = await customType.resolve(argNode.value, ctx);
             for (const b of newBindings) {
@@ -467,16 +460,26 @@ export async function getCompletions(
   transports?: Record<number, Transport>,
 ): Promise<CompletionItem[]> {
   // 1. Parse the full script
-  let fullAST: EvmlAST;
+  const scriptLines = script.split("\n");
+  const currentLineContent = scriptLines[position.line - 1] ?? "";
+
+  let fullAST: EvmlAST | undefined;
   try {
     const result = parseScript(script);
     fullAST = result.ast;
   } catch {
-    return [];
+    // Full parse failed (user is mid-edit). Try parsing only the lines before
+    // the cursor so we can still resolve preceding bindings / switch commands.
+    try {
+      const linesBefore = scriptLines.slice(0, position.line - 1);
+      if (linesBefore.length > 0) {
+        const partial = parseScript(linesBefore.join("\n"));
+        fullAST = partial.ast;
+      }
+    } catch {
+      // Even partial parse failed — proceed without context
+    }
   }
-
-  const scriptLines = script.split("\n");
-  const currentLineContent = scriptLines[position.line - 1] ?? "";
 
   // Parse just the current line for partial/incomplete command support
   let currentLineAST: EvmlAST | undefined;
@@ -495,7 +498,7 @@ export async function getCompletions(
 
   let currentCommandNode =
     currentLineAST?.getCommandAtLine(position.line) ??
-    fullAST.getCommandAtLine(position.line);
+    fullAST?.getCommandAtLine(position.line);
 
   // Fallback: if the parser couldn't produce a command node (e.g. because of
   // an incomplete --opt at the end of the line), strip the trailing opt text
@@ -534,18 +537,23 @@ export async function getCompletions(
     }
   }
 
-  // Fallback: if the cursor is inside unclosed parentheses (user is still
-  // typing, no closing paren yet), try closing them.  Also insert a
-  // placeholder when the text ends with a trailing comma.
+  // Fallback: if the cursor is inside unclosed parentheses, try closing them.
+  // Also insert a placeholder when the text ends with a trailing comma.
+  // This handles both cursor-at-end (no closing paren yet) and cursor-mid-line
+  // (closing parens exist after cursor but text-before-cursor is unclosed).
   if (!currentCommandNode) {
     const textBeforeCursor = currentLineContent.slice(0, position.col);
     const afterCursor = currentLineContent.slice(position.col);
-    if (!afterCursor.includes(")")) {
+    const unclosedCount =
+      (textBeforeCursor.match(/\(/g) || []).length -
+      (textBeforeCursor.match(/\)/g) || []).length;
+    if (!afterCursor.includes(")") || unclosedCount > 0) {
       const placeholder = /,\s*$/.test(textBeforeCursor) ? "_" : "";
+      const suffix = unclosedCount > 0 ? "" : afterCursor;
       let closers = "";
       for (let i = 0; i < 5; i++) {
         closers += ")";
-        const patched = textBeforeCursor + placeholder + closers + afterCursor;
+        const patched = textBeforeCursor + placeholder + closers + suffix;
         try {
           const result = parseScript(
             [...Array(position.line - 1).map(() => ""), patched].join("\n"),
@@ -578,26 +586,30 @@ export async function getCompletions(
   // 2. Collect commands before cursor
   let contextModuleName = "std";
 
-  const commandNodes: CommandExpressionNode[] = fullAST
-    .getCommandsUntilLine(position.line - 1, ["load", "set", "switch"])
-    .filter((c: any) => {
-      const itHasCommandsBlock = hasCommandsBlock(c);
-      const loc = c.loc;
-      const currentLine = position.line;
-      if (
-        !itHasCommandsBlock ||
-        (itHasCommandsBlock &&
-          loc &&
-          currentLine >= loc.start.line &&
-          currentLine <= loc.end.line)
-      ) {
-        if (itHasCommandsBlock) {
-          contextModuleName = c.module ?? contextModuleName;
-        }
-        return true;
+  const commandNodes: CommandExpressionNode[] = (
+    fullAST?.getCommandsUntilLine(position.line - 1, [
+      "load",
+      "set",
+      "switch",
+    ]) ?? []
+  ).filter((c: any) => {
+    const itHasCommandsBlock = hasCommandsBlock(c);
+    const loc = c.loc;
+    const currentLine = position.line;
+    if (
+      !itHasCommandsBlock ||
+      (itHasCommandsBlock &&
+        loc &&
+        currentLine >= loc.start.line &&
+        currentLine <= loc.end.line)
+    ) {
+      if (itHasCommandsBlock) {
+        contextModuleName = c.module ?? contextModuleName;
       }
-      return false;
-    });
+      return true;
+    }
+    return false;
+  });
 
   // 3. Seed bindings once, then walk commands to resolve bindings
   const bindings = new BindingsManager();
@@ -623,13 +635,21 @@ export async function getCompletions(
     // RPC unavailable — proceed with chainId 0
   }
 
+  const resolveNode = createNodeResolver(
+    bindings,
+    moduleCache,
+    chainId,
+    effectiveClient,
+    resolveHelper,
+  );
+
   await walkCommandsForBindings(
     commandNodes,
     bindings,
     moduleCache,
     effectiveClient as PublicClient,
     chainId,
-    resolveHelper,
+    resolveNode,
   );
 
   // Also walk the current command to populate bindings for its own completions
@@ -641,7 +661,7 @@ export async function getCompletions(
       moduleCache,
       effectiveClient as PublicClient,
       chainId,
-      resolveHelper,
+      resolveNode,
     );
   }
 
@@ -698,6 +718,7 @@ export async function getCompletions(
           client: effectiveClient as PublicClient,
           chainId,
           cache: moduleCache,
+          resolveNode,
         };
         const customTypes = collectCustomTypes(bindings);
         const typeDrivenItems = await completionsForType(
@@ -761,6 +782,7 @@ export async function getCompletions(
             chainId,
             cache: moduleCache,
             commandNode: currentCommandNode,
+            resolveNode,
           };
           const customTypes = collectCustomTypes(bindings);
           const typeDrivenItems = await completionsForType(
@@ -799,6 +821,7 @@ export async function getCompletions(
           chainId,
           cache: moduleCache,
           commandNode: currentCommandNode,
+          resolveNode,
         };
 
         // Completion override → return ONLY override results

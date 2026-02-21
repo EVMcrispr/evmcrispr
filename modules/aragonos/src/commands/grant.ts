@@ -5,7 +5,6 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  interpretNodeSync,
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
@@ -98,9 +97,10 @@ export default defineCommand<AragonOS>({
   ],
   opts: [{ name: "oracle", type: "address" }],
   completions: {
-    role: (ctx) => {
-      const grantee = interpretNodeSync(ctx.nodeArgs[0], ctx.bindings);
-      const app = interpretNodeSync(ctx.nodeArgs[1], ctx.bindings);
+    role: async (ctx) => {
+      if (!ctx.resolveNode) return [];
+      const grantee = await ctx.resolveNode(ctx.nodeArgs[0]);
+      const app = await ctx.resolveNode(ctx.nodeArgs[1]);
       if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
       const dao = getDAO(ctx.bindings, ctx.nodeArgs[1]);
       return getAppRoles(ctx.bindings, app, ctx.chainId)

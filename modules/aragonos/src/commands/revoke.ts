@@ -5,7 +5,6 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  interpretNodeSync,
 } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { isAddress } from "viem";
@@ -103,9 +102,10 @@ export default defineCommand<AragonOS>({
 
       return [...granteeAddresses].map(fieldItem);
     },
-    app: (ctx) => {
+    app: async (ctx) => {
+      if (!ctx.resolveNode) return [];
       const revokeeAddress = ctx.nodeArgs[0]
-        ? interpretNodeSync(ctx.nodeArgs[0], ctx.bindings)
+        ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
       const daosAppsPermissions = getDAOs(ctx.bindings).map((dao) =>
         dao.getPermissions(),
@@ -128,12 +128,13 @@ export default defineCommand<AragonOS>({
       });
       return [...granteeApps].map(fieldItem);
     },
-    role: (ctx) => {
+    role: async (ctx) => {
+      if (!ctx.resolveNode) return [];
       const revokeeAddress = ctx.nodeArgs[0]
-        ? interpretNodeSync(ctx.nodeArgs[0], ctx.bindings)
+        ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
       const appAddress = ctx.nodeArgs[1]
-        ? interpretNodeSync(ctx.nodeArgs[1], ctx.bindings)
+        ? await ctx.resolveNode(ctx.nodeArgs[1])
         : undefined;
       const appNode = ctx.nodeArgs[1];
       const dao = getDAO(ctx.bindings, appNode);
@@ -150,12 +151,13 @@ export default defineCommand<AragonOS>({
         .filter((role) => dao.hasPermission(revokeeAddress, appAddress, role))
         .map(fieldItem);
     },
-    removeManager: (ctx) => {
+    removeManager: async (ctx) => {
+      if (!ctx.resolveNode) return [];
       const appAddress = ctx.nodeArgs[1]
-        ? interpretNodeSync(ctx.nodeArgs[1], ctx.bindings)
+        ? await ctx.resolveNode(ctx.nodeArgs[1])
         : undefined;
       const role = ctx.nodeArgs[2]
-        ? interpretNodeSync(ctx.nodeArgs[2], ctx.bindings)
+        ? await ctx.resolveNode(ctx.nodeArgs[2])
         : undefined;
 
       if (!role || !appAddress || !isAddress(appAddress)) {

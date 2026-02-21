@@ -6,7 +6,6 @@ import type { Binding, CompletionContext, CompletionItem } from "../types";
 import { BindingsSpace } from "../types";
 import { abiBindingKey, fetchAbi } from "./abis";
 import { isBoolean, isHexString, isNum, isString } from "./args";
-import { interpretNodeSync } from "./ast";
 import { Num } from "./Num";
 import {
   isFunctionSignature,
@@ -181,8 +180,8 @@ export async function completionsForType(
     case "write-abi":
     case "read-abi": {
       const targetNode = ctx.nodeArgs[ctx.argIndex - 1];
-      if (!targetNode) return [];
-      const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
+      if (!targetNode || !ctx.resolveNode) return [];
+      const targetAddress = await ctx.resolveNode(targetNode);
       if (!targetAddress || !isAddress(targetAddress)) return [];
 
       const { ABI } = BindingsSpace;
@@ -226,7 +225,9 @@ export async function completionsForType(
         .map(fieldItem);
     }
     case "variable":
-      return [];
+      return ctx.bindings
+        .getAllBindingIdentifiers({ spaceFilters: [BindingsSpace.USER] })
+        .map((name: string) => variableItem(name));
     default:
       if (!isBuiltinType(type)) {
         const customType = customTypes?.[type];

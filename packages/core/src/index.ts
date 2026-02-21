@@ -82,7 +82,6 @@ export {
   hasCommandsBlock,
   IPFS_GATEWAY,
   IPFSResolver,
-  interpretNodeSync,
   isBatchedAction,
   isRpcAction,
   isTerminalAction,

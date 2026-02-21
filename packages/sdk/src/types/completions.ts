@@ -32,6 +32,9 @@ export interface CompletionContext {
   cache: BindingsManager;
   /** The full command AST node (for accessing opts like --as). */
   commandNode?: CommandExpressionNode;
+  /** Async node resolver that handles literals, variables, and helper
+   *  expressions (via cache + RPC). Returns undefined on failure. */
+  resolveNode?: (node: Node) => Promise<any>;
 }
 
 export type ArgCompletionFn = (

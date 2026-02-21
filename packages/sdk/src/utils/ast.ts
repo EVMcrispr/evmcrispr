@@ -47,8 +47,8 @@ export const calculateCurrentArgIndex = (
        * For cases where the position is located between two arguments we
        * return the former's index
        */
-    } else if (lastArgCol > pos.col && pos.col < argLoc.start.col) {
-      return Math.min(0, i - 1);
+    } else if (pos.col > lastArgCol && pos.col < argLoc.start.col) {
+      return i;
     }
 
     lastArgCol = argLoc.end.col;
@@ -69,7 +69,20 @@ export const getDeepestNodeWithArgs = (
   let currentArg = currentNodeWithArgs.args[currentArgIndex];
 
   while (currentArg && isNodeWithArgs(currentArg)) {
-    currentNodeWithArgs = currentArg;
+    const candidate = currentArg as NodeWithArguments;
+    if (
+      candidate.args.length === 0 &&
+      candidate.loc &&
+      "name" in candidate &&
+      typeof (candidate as any).name === "string"
+    ) {
+      const nameEnd =
+        candidate.loc.start.col +
+        1 +
+        ((candidate as any).name as string).length;
+      if (pos.col <= nameEnd) break;
+    }
+    currentNodeWithArgs = candidate;
     currentArgIndex = calculateCurrentArgIndex(currentNodeWithArgs, pos);
     currentArg = currentNodeWithArgs.args[currentArgIndex];
   }
@@ -81,7 +94,9 @@ export const getDeepestNodeWithArgs = (
   };
 };
 
-// TODO: This function is only used in the `exec` command, so it should be simplified or removed
+/** Synchronous fast path for resolving simple node types (literals, barewords,
+ *  variable identifiers). Used internally by `createNodeResolver` as the first
+ *  attempt before falling back to async helper resolution. */
 export const interpretNodeSync = (
   n: Node,
   bindingsManager: BindingsManager,
