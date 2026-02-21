@@ -14,6 +14,7 @@ import {
 } from "./anvil-config";
 
 const PACKAGES_WITH_INTEGRATION_TESTS = [
+  "packages/sdk",
   "modules/std",
   "modules/aragonos",
   "modules/giveth",
@@ -54,7 +55,7 @@ let exitCode = 0;
 try {
   for (const pkg of PACKAGES_WITH_INTEGRATION_TESTS) {
     console.log(`\n--- Running integration tests: ${pkg} ---`);
-    const result = Bun.spawnSync(["bun", "test", "./test/integration"], {
+    const result = Bun.spawnSync(["bun", "test", "--timeout", "30000", "./test/integration"], {
       cwd: resolve(import.meta.dir, "..", pkg),
       env: process.env,
       stdout: "inherit",

@@ -1,15 +1,7 @@
 import { isAddress } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
-import type {
-  AddressLiteralNode,
-  BarewordNode,
-  Node,
-  NodeWithArguments,
-  Position,
-  StringLiteralNode,
-  VariableIdentifierNode,
-} from "../types";
+import type { Node, NodeWithArguments, Position } from "../types";
 import { BindingsSpace, NodeType } from "../types";
 
 const {
@@ -23,17 +15,7 @@ const {
   VariableIdentifier,
 } = NodeType;
 
-export const insideNodeLine = ({ loc }: Node, { line }: Position): boolean => {
-  if (!loc) {
-    return false;
-  }
-
-  const { start, end } = loc;
-
-  return line >= start.line && line <= end.line;
-};
-
-export const insideNode = ({ loc }: Node, pos: Position): boolean => {
+const insideNode = ({ loc }: Node, pos: Position): boolean => {
   if (!loc) {
     return false;
   }
@@ -45,25 +27,6 @@ export const insideNode = ({ loc }: Node, pos: Position): boolean => {
     pos.line <= end.line &&
     pos.col >= start.col &&
     pos.col <= end.col
-  );
-};
-
-export const inSameLineThanNode = ({ loc }: Node, pos: Position): boolean => {
-  return loc?.start.line === pos.line;
-};
-
-export const beforeOrEqualNode = (
-  { loc }: Node,
-  pos: Position,
-  strictBefore = false,
-): boolean => {
-  if (!loc) {
-    return false;
-  }
-
-  return (
-    pos.line === loc.start.line &&
-    pos.col <= loc[strictBefore ? "start" : "end"].col
   );
 };
 
@@ -143,18 +106,7 @@ export const interpretNodeSync = (
   }
 };
 
-export const isAddressNodishType = (
-  n: Node,
-): n is
-  | AddressLiteralNode
-  | StringLiteralNode
-  | BarewordNode
-  | VariableIdentifierNode =>
-  [AddressLiteral, StringLiteral, Bareword, VariableIdentifier].includes(
-    n.type,
-  );
-
-export const isNodeWithArgs = (n: Node): n is NodeWithArguments => {
+const isNodeWithArgs = (n: Node): n is NodeWithArguments => {
   if ((n as NodeWithArguments).args) {
     return true;
   }

@@ -898,7 +898,7 @@ export class EVMcrispr {
       EVMcrispr.panic(n, `${n.value} not defined`);
     };
 
-  static panic(n: Node, msg: string): never {
+  private static panic(n: Node, msg: string): never {
     switch (n.type) {
       case BinaryExpression:
         throw new ExpressionError(n, msg, {

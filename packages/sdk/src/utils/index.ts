@@ -13,7 +13,6 @@ export * from "./formatters";
 export { Num } from "./Num";
 export * from "./parsers";
 export * from "./proxies";
-export * from "./requests";
 export * from "./schema";
 export * from "./time";
 export * from "./web3";

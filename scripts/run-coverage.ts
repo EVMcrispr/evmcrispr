@@ -14,6 +14,7 @@ import {
 } from "./anvil-config";
 
 const PACKAGES = [
+  "packages/sdk",
   "packages/core",
   "modules/std",
   "modules/aragonos",
@@ -68,6 +69,8 @@ try {
         "--coverage-reporter=text",
         "--coverage-reporter=lcov",
         "--coverage-skip-test-files",
+        "--timeout",
+        "30000",
         "./test",
       ],
       {
@@ -87,15 +90,12 @@ try {
 }
 
 console.log("\nMerging coverage reports...");
-const mergeResult = Bun.spawnSync(
-  ["bun", "scripts/merge-coverage.ts"],
-  {
-    cwd: resolve(import.meta.dir, ".."),
-    env: process.env,
-    stdout: "inherit",
-    stderr: "inherit",
-  },
-);
+const mergeResult = Bun.spawnSync(["bun", "scripts/merge-coverage.ts"], {
+  cwd: resolve(import.meta.dir, ".."),
+  env: process.env,
+  stdout: "inherit",
+  stderr: "inherit",
+});
 
 if (mergeResult.exitCode !== 0) {
   console.error("ERROR: Failed to merge coverage reports");

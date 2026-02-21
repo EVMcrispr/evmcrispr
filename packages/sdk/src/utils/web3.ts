@@ -14,14 +14,8 @@ export const isFunctionSignature = (signature: string) => {
   }
 };
 
-const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
-/** A valid signature is either a full function signature or a plain function name. */
-export const isSignature = (value: string): boolean =>
-  isFunctionSignature(value) || IDENTIFIER_RE.test(value);
-
 /** Map a Solidity type string to the nearest ArgType for completions. */
-export function solidityTypeToArgType(solType: string): ArgType {
+function solidityTypeToArgType(solType: string): ArgType {
   if (solType === "bool") return "bool";
   if (solType === "address") return "address";
   if (solType === "string") return "string";

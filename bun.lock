@@ -175,6 +175,7 @@
         "jsymbol": "^0.3.5",
       },
       "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
         "arcsecond": "^5.0.0",
         "typescript": "^5.9.3",
       },

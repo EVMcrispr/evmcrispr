@@ -103,14 +103,8 @@ export {
 } from "./types";
 export * from "./utils";
 export {
-  beforeOrEqualNode,
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
-  inSameLineThanNode,
-  insideNode,
-  insideNodeLine,
   interpretNodeSync,
-  isAddressNodishType,
-  isNodeWithArgs,
 } from "./utils/ast";

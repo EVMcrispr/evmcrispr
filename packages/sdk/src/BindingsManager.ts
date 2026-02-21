@@ -96,14 +96,6 @@ export class BindingsManager {
     return this.getAllBindings(opts).map((b) => b.identifier);
   }
 
-  getAllBindingValues(opts: AllBindingsOpts = defaultOpts): Binding["value"][] {
-    return this.getAllBindings(opts).map((b) => b.value);
-  }
-
-  getParentScope(): SymbolTable<Binding> | undefined {
-    return this.#bindings.parent;
-  }
-
   getScopeModule(): string | undefined {
     return this.#scopeModuleStack.at(-1);
   }
