@@ -1,5 +1,5 @@
-import { beforeAll, describe, it } from "bun:test";
-import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { afterAll, beforeAll, describe, it } from "bun:test";
+import { expect, getPublicClient, resetAnvil } from "@evmcrispr/test-utils";
 import type { Address, PublicClient } from "viem";
 import { getAddress, isAddress } from "viem";
 import { fetchImplementationAddress } from "../../src/utils/proxies";
@@ -14,7 +14,7 @@ describe("SDK > utils > fetchImplementationAddress", () => {
   describe("EIP-1967 transparent proxy", () => {
     const AAVE_AGNO_USDC: Address =
       "0xc6B7AcA6DE8a6044E0e32d0c841a89244A10D284";
-    const EXPECTED_IMPL: Address = "0xCE579ae642e40f8356a9f538c6db4e2ea91C5850";
+    const EXPECTED_IMPL: Address = "0xCE579ae642E40F8356a9f538c6dB4E2Ea91C5850";
 
     it("should resolve to the implementation address", async () => {
       const impl = await fetchImplementationAddress(AAVE_AGNO_USDC, client);
@@ -24,7 +24,7 @@ describe("SDK > utils > fetchImplementationAddress", () => {
   });
 
   describe("beacon proxy", () => {
-    const BEACON_PROXY: Address = "0x4c524050755385317FaD22De37494f1e9F08be99";
+    const BEACON_PROXY: Address = "0x2af76117f86D6E346e256173B44966e802f3cCbf";
 
     it("should resolve implementation via beacon", async () => {
       const impl = await fetchImplementationAddress(BEACON_PROXY, client);
@@ -44,13 +44,14 @@ describe("SDK > utils > fetchImplementationAddress", () => {
     });
   });
 
-  describe("Safe proxy", () => {
-    const SAFE_PROXY: Address = "0x1Ed7A3D9A3702e6a22d4d90286B98Df42d0310e0";
+  describe("Safe proxy (masterCopy)", () => {
+    const SAFE_PROXY: Address = "0x849D52316331967b6fF1198e5E32A0eB168D039d";
+    const EXPECTED_IMPL: Address = "0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552";
 
     it("should resolve to the singleton implementation", async () => {
       const impl = await fetchImplementationAddress(SAFE_PROXY, client);
       expect(impl).to.not.be.undefined;
-      expect(isAddress(impl!)).to.be.true;
+      expect(getAddress(impl!)).to.equal(getAddress(EXPECTED_IMPL));
     });
   });
 
@@ -66,7 +67,7 @@ describe("SDK > utils > fetchImplementationAddress", () => {
 
   describe("non-proxy contract", () => {
     const IMPLEMENTATION_CONTRACT: Address =
-      "0xCE579ae642e40f8356a9f538c6db4e2ea91C5850";
+      "0x589750BA8aF186cE5B55391B0b7148cAD43a1619";
 
     it("should return undefined for a non-proxy implementation contract", async () => {
       const impl = await fetchImplementationAddress(
@@ -82,6 +83,28 @@ describe("SDK > utils > fetchImplementationAddress", () => {
       const EOA: Address = "0xc125218F4Df091eE40624784caF7F47B9738086f";
       const impl = await fetchImplementationAddress(EOA, client);
       expect(impl).to.be.undefined;
+    });
+  });
+});
+
+describe("SDK > utils > fetchImplementationAddress (mainnet)", () => {
+  let mainnetClient: PublicClient;
+
+  beforeAll(async () => {
+    mainnetClient = await resetAnvil(1);
+  });
+
+  afterAll(async () => {
+    await resetAnvil();
+  });
+
+  describe("ZeppelinOS proxy (USDC FiatTokenProxy)", () => {
+    const USDC_PROXY: Address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+
+    it("should resolve to a non-zero implementation address", async () => {
+      const impl = await fetchImplementationAddress(USDC_PROXY, mainnetClient);
+      expect(impl).to.not.be.undefined;
+      expect(isAddress(impl!)).to.be.true;
     });
   });
 });
