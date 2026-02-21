@@ -1,7 +1,7 @@
 import {
   defineHelper,
   ErrorException,
-  isFunctionSignature,
+  splitReadAbiSignature,
 } from "@evmcrispr/sdk";
 import { parseAbiItem } from "viem";
 import type Std from "..";
@@ -12,17 +12,17 @@ export default defineHelper<Std>({
   returnType: "any",
   args: [
     { name: "address", type: "address" },
-    { name: "abi", type: "string" },
+    { name: "abi", type: "read-abi" },
     { name: "params", type: "any", rest: true, signatureArgIndex: 1 },
   ],
   async run(module, { address, abi, params }) {
-    const [body, returns, index] = abi.split(":");
-
-    if (!isFunctionSignature(body)) {
+    const parts = splitReadAbiSignature(abi);
+    if (!parts) {
       throw new ErrorException(
-        `expected a valid function signature, but got "${abi}"`,
+        `expected a valid read-abi signature, but got "${abi}"`,
       );
     }
+    const { body, returns, index } = parts;
 
     const client = await module.getClient();
     const result = await client.readContract({

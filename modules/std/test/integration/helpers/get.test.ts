@@ -13,28 +13,28 @@ describeHelper(
     cases: [
       {
         name: "should read a string return value",
-        input: `@get(${targetAddress}, name():(string))`,
+        input: `@get(${targetAddress}, name()(string))`,
         expected: "Dai Stablecoin on xDai",
       },
       {
         name: "should read a tuple return value",
-        input: `@get(${sushiFarm},"poolInfo(uint256):(uint128,uint64,uint64):1",1)`,
+        input: `@get(${sushiFarm},"poolInfo(uint256)(uint128,uint64,uint64):1",1)`,
         validate: (result) => expect(result >= 1671364630n).to.be.true,
       },
       {
         name: "should read with params",
-        input: `@get(${targetAddress}, balanceOf(address):(uint), ${targetAddress})`,
+        input: `@get(${targetAddress}, balanceOf(address)(uint), ${targetAddress})`,
         validate: (result) => expect(result).not.to.be.eq("0"),
       },
     ],
     errorCases: [
       {
-        name: "should fail if the method is not a valid function signature",
+        name: "should fail if the method is not a valid read-abi signature",
         input: `@get(${targetAddress}, not_a_valid_function_signature)`,
-        error: "expected a valid function signature",
+        error: "read-abi signature",
       },
     ],
-    sampleArgs: [targetAddress, "name():(string)"],
+    sampleArgs: [targetAddress, "name()(string)"],
   },
   helpers.get.argDefs,
 );

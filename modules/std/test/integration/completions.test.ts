@@ -120,3 +120,80 @@ describe("Completions – std exec ABI fetching", () => {
     expect(onlyKind(items2, "field").length).to.be.greaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Tests – @get read-abi completions (view/pure functions with return types)
+// ---------------------------------------------------------------------------
+
+describe("Completions – @get read-abi ABI fetching", () => {
+  let evm: EVMcrispr;
+
+  const hasLabel = (items: CompletionItem[], label: string): boolean =>
+    items.some((i) => i.label === label);
+
+  const helperPos = (before: string, after: string) => ({
+    script: before + after,
+    position: { line: 1, col: before.length },
+  });
+
+  beforeAll(() => {
+    const client = getPublicClient();
+    evm = new EVMcrispr(client as PublicClient);
+  });
+
+  it("@get(<wxdai-address>, <cursor>) should show view/pure functions with return types", async () => {
+    const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
+    const { script, position } = helperPos(
+      `set $x @get(${wxdai}, `,
+      ")",
+    );
+    const items = await evm.getCompletions(script, position);
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+    const fnLabels = labels(fieldItems);
+    // View functions should appear with return types
+    expect(fnLabels.some((l) => l.startsWith("totalSupply()"))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("balanceOf("))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("allowance("))).to.be.true;
+    // Write functions should NOT appear
+    expect(fnLabels.some((l) => l.startsWith("approve("))).to.be.false;
+    expect(fnLabels.some((l) => l.startsWith("transfer("))).to.be.false;
+    expect(fnLabels.some((l) => l.startsWith("deposit"))).to.be.false;
+  });
+
+  it("read-abi completions should use adjacent-parens format fn(inputs)(outputs)", async () => {
+    const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
+    const { script, position } = helperPos(
+      `set $x @get(${wxdai}, `,
+      ")",
+    );
+    const items = await evm.getCompletions(script, position);
+    const fieldItems = onlyKind(items, "field");
+    // Each completion should have adjacent-parens format with return type
+    expect(hasLabel(fieldItems, "totalSupply()(uint256)")).to.be.true;
+    expect(hasLabel(fieldItems, "balanceOf(address)(uint256)")).to.be.true;
+  });
+
+  it("@get($var, <cursor>) should resolve variable and show read-abi completions", async () => {
+    const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
+    const script = `set $a ${wxdai}\nset $x @get($a, )`;
+    const position = { line: 2, col: "set $x @get($a, ".length };
+    const items = await evm.getCompletions(script, position);
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+    expect(hasLabel(fieldItems, "totalSupply()(uint256)")).to.be.true;
+    // Write functions should NOT appear
+    const fnLabels = labels(fieldItems);
+    expect(fnLabels.some((l) => l.startsWith("approve("))).to.be.false;
+  });
+
+  it("@get($var, <cursor>) nested inside exec should show read-abi completions", async () => {
+    const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
+    const script = `set $a ${wxdai}\nexec $a f(uint256) @get($a, )`;
+    const position = { line: 2, col: "exec $a f(uint256) @get($a, ".length };
+    const items = await evm.getCompletions(script, position);
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+    expect(hasLabel(fieldItems, "totalSupply()(uint256)")).to.be.true;
+  });
+});

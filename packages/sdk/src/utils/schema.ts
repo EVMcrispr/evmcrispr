@@ -8,7 +8,11 @@ import { abiBindingKey, fetchAbi } from "./abis";
 import { isBoolean, isHexString, isNum, isString } from "./args";
 import { interpretNodeSync } from "./ast";
 import { Num } from "./Num";
-import { isFunctionSignature } from "./web3";
+import {
+  isFunctionSignature,
+  isReadAbiSignature,
+  toReadAbiSignature,
+} from "./web3";
 
 export interface CustomArgType {
   validate?(argName: string, value: any): void;
@@ -32,7 +36,8 @@ const BUILTIN_TYPES = new Set<string>([
   "bytes",
   "bytes32",
   "bool",
-  "signature",
+  "write-abi",
+  "read-abi",
   "any",
   "variable",
   "block",
@@ -106,10 +111,17 @@ export function validateArgType(
         throw new ErrorException(`${name} must be a boolean, got ${value}`);
       }
       break;
-    case "signature":
+    case "write-abi":
       if (!isFunctionSignature(value)) {
         throw new ErrorException(
           `${name} must be a valid function signature, got ${value}`,
+        );
+      }
+      break;
+    case "read-abi":
+      if (!isReadAbiSignature(value)) {
+        throw new ErrorException(
+          `${name} must be a valid read-abi signature like fn(uint256)(bool), got ${value}`,
         );
       }
       break;
@@ -166,7 +178,8 @@ export async function completionsForType(
           isSnippet: true,
         },
       ];
-    case "signature": {
+    case "write-abi":
+    case "read-abi": {
       const targetNode = ctx.nodeArgs[ctx.argIndex - 1];
       if (!targetNode) return [];
       const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
@@ -196,14 +209,20 @@ export async function completionsForType(
         }
       }
 
+      const isRead = type === "read-abi";
       return abi
         .filter(
           (item): item is AbiFunction =>
             item.type === "function" &&
-            (item.stateMutability === "nonpayable" ||
-              item.stateMutability === "payable"),
+            (isRead
+              ? item.stateMutability === "view" ||
+                item.stateMutability === "pure"
+              : item.stateMutability === "nonpayable" ||
+                item.stateMutability === "payable"),
         )
-        .map((func: AbiFunction) => toFunctionSignature(func))
+        .map((func: AbiFunction) =>
+          isRead ? toReadAbiSignature(func) : toFunctionSignature(func),
+        )
         .map(fieldItem);
     }
     case "variable":

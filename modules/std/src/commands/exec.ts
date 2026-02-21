@@ -18,7 +18,7 @@ export default defineCommand<Std>({
     "Call a contract function, encoding the arguments from its signature.",
   args: [
     { name: "contractAddress", type: "address" },
-    { name: "signature", type: "signature" },
+    { name: "signature", type: "write-abi" },
     {
       name: "params",
       type: "any",

@@ -13,7 +13,7 @@ export default defineCommand<AragonOS>({
   args: [
     { name: "agent", type: "address" },
     { name: "target", type: "address" },
-    { name: "signature", type: "signature" },
+    { name: "signature", type: "write-abi" },
     {
       name: "params",
       type: "any",

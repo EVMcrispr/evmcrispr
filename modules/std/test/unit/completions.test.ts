@@ -585,7 +585,7 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@token")).to.be.false;
     });
 
-    // @get(address, string, ...any)  →  first arg: address helpers
+    // @get(address, read-abi, ...any)  →  first arg: address helpers
     it("@get(<cursor>) first arg should show address-compatible completions", async () => {
       const { script, position } = helperPos("set $x @get(", ")");
       const items = await evm.getCompletions(script, position);
@@ -596,7 +596,7 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@date")).to.be.false;
     });
 
-    // @get(address, string, ...any)  →  rest arg resolves type from signature
+    // @get(address, read-abi, ...any)  →  rest arg resolves type from signature
     it('@get($addr, "fn(uint256)", <cursor>) rest arg should resolve to number from signature', async () => {
       const { script, position } = helperPos(
         'set $x @get($addr, "fn(uint256)", v',
@@ -668,7 +668,7 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@get")).to.be.true;
     });
 
-    // @get(address, string, ...any)  →  rest arg with bool signature
+    // @get(address, read-abi, ...any)  →  rest arg with bool signature
     it('@get($addr, "bo(bool)", <cursor>) rest arg should resolve to bool from signature', async () => {
       const { script, position } = helperPos(
         'set $x @get($addr, "bo(bool)", ',

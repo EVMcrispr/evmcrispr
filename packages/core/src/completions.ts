@@ -21,6 +21,7 @@ import {
   interpretNodeSync,
   isBuiltinType,
   NodeType,
+  parseReadAbiParamTypes,
   parseSignatureParamTypes,
   resolveCommand,
   variableItem,
@@ -679,7 +680,12 @@ export async function getCompletions(
         if (argDef.signatureArgIndex != null) {
           const sigNode = helperNode.args[argDef.signatureArgIndex];
           if (sigNode?.value) {
-            const paramTypes = parseSignatureParamTypes(sigNode.value);
+            const sigArgDef = argDefs[argDef.signatureArgIndex];
+            const parser =
+              sigArgDef?.type === "read-abi"
+                ? parseReadAbiParamTypes
+                : parseSignatureParamTypes;
+            const paramTypes = parser(sigNode.value);
             const paramIndex = helperArgIndex - (argDef.signatureArgIndex + 1);
             effectiveType = paramTypes[paramIndex] ?? effectiveType;
           }
