@@ -1,10 +1,14 @@
-import { isAddress } from "viem";
+import type { AbiFunction } from "viem";
+import { isAddress, toFunctionSignature } from "viem";
 
 import { ErrorException } from "../errors";
 import type { Binding, CompletionContext, CompletionItem } from "../types";
 import { BindingsSpace } from "../types";
+import { abiBindingKey, fetchAbi } from "./abis";
 import { isBoolean, isHexString, isNum, isString } from "./args";
+import { interpretNodeSync } from "./ast";
 import { Num } from "./Num";
+import { isFunctionSignature } from "./web3";
 
 export interface CustomArgType {
   validate?(argName: string, value: any): void;
@@ -28,6 +32,7 @@ const BUILTIN_TYPES = new Set<string>([
   "bytes",
   "bytes32",
   "bool",
+  "signature",
   "any",
   "variable",
   "block",
@@ -101,6 +106,13 @@ export function validateArgType(
         throw new ErrorException(`${name} must be a boolean, got ${value}`);
       }
       break;
+    case "signature":
+      if (!isFunctionSignature(value)) {
+        throw new ErrorException(
+          `${name} must be a valid function signature, got ${value}`,
+        );
+      }
+      break;
     case "any":
     case "variable":
     case "block":
@@ -112,11 +124,11 @@ export function validateArgType(
  * Resolve completions for a given arg type. Used by the completion engine as
  * the default when no command-level override is provided.
  */
-export function completionsForType(
+export async function completionsForType(
   type: ArgType,
   ctx: CompletionContext,
   customTypes?: CustomArgTypes,
-): CompletionItem[] | Promise<CompletionItem[]> {
+): Promise<CompletionItem[]> {
   switch (type) {
     case "address":
       return ctx.bindings
@@ -154,6 +166,46 @@ export function completionsForType(
           isSnippet: true,
         },
       ];
+    case "signature": {
+      const targetNode = ctx.nodeArgs[ctx.argIndex - 1];
+      if (!targetNode) return [];
+      const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
+      if (!targetAddress || !isAddress(targetAddress)) return [];
+
+      const { ABI } = BindingsSpace;
+      const key = abiBindingKey(ctx.chainId, targetAddress);
+      let abi = ctx.bindings.getBindingValue(key, ABI);
+      if (!abi) abi = ctx.cache.getBindingValue(key, ABI);
+      if (!abi) {
+        try {
+          const [, fetchedAbi, fetchedChainId] = await fetchAbi(
+            targetAddress,
+            ctx.client,
+          );
+          ctx.cache.setBinding(
+            abiBindingKey(fetchedChainId, targetAddress),
+            fetchedAbi,
+            ABI,
+            false,
+            undefined,
+            true,
+          );
+          abi = fetchedAbi;
+        } catch {
+          return [];
+        }
+      }
+
+      return abi
+        .filter(
+          (item): item is AbiFunction =>
+            item.type === "function" &&
+            (item.stateMutability === "nonpayable" ||
+              item.stateMutability === "payable"),
+        )
+        .map((func: AbiFunction) => toFunctionSignature(func))
+        .map(fieldItem);
+    }
     case "variable":
       return [];
     default:

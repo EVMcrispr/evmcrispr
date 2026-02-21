@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import type { Address, PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -47,6 +47,24 @@ describe("Completions – std exec ABI fetching", () => {
     expect(fnLabels.some((l) => l.startsWith("transfer("))).to.be.true;
     expect(fnLabels.some((l) => l.startsWith("transferFrom"))).to.be.true;
     // View functions should NOT appear (only payable/nonpayable)
+    expect(fnLabels.some((l) => l.startsWith("totalSupply"))).to.be.false;
+    expect(fnLabels.some((l) => l.startsWith("balanceOf"))).to.be.false;
+  });
+
+  it("exec <proxy> <cursor> should show both proxy and implementation signatures", async () => {
+    const PROXY: Address = "0xc6B7AcA6DE8a6044E0e32d0c841a89244A10D284";
+    const script = `exec ${PROXY} `;
+    const items = await evm.getCompletions(script, pos(script));
+    const fieldItems = onlyKind(items, "field");
+    expect(fieldItems.length).to.be.greaterThan(0);
+
+    const fnLabels = labels(fieldItems);
+    // Implementation functions (aToken)
+    expect(fnLabels.some((l) => l.startsWith("mint("))).to.be.true;
+    expect(fnLabels.some((l) => l.startsWith("burn("))).to.be.true;
+    // Proxy admin functions
+    expect(fnLabels.some((l) => l.startsWith("upgradeTo("))).to.be.true;
+    // View functions should NOT appear
     expect(fnLabels.some((l) => l.startsWith("totalSupply"))).to.be.false;
     expect(fnLabels.some((l) => l.startsWith("balanceOf"))).to.be.false;
   });

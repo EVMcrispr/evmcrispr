@@ -4,6 +4,7 @@ import {
   HttpResponse,
   http,
 } from "@evmcrispr/test-utils/msw/server";
+import { passthrough } from "msw";
 import daiAbi from "./fixtures/abis/dai.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
 import tokenList from "./fixtures/tokenlist/uniswap.json";
@@ -26,7 +27,7 @@ const stdHandlers = [
       if (address === "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9") {
         return HttpResponse.json(daiAbi);
       }
-      return new HttpResponse(null, { status: 404 });
+      return passthrough();
     },
   ),
 ];

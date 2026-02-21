@@ -4,7 +4,6 @@ import {
   BindingsSpace,
   ErrorException,
   fieldItem,
-  isFunctionSignature,
   IPFSResolver,
 } from "@evmcrispr/sdk";
 import type { Address } from "viem";
@@ -58,15 +57,6 @@ const buildAbiBindings = (dao: AragonDAO, chainId: number): Binding[] => {
 };
 
 export const types: CustomArgTypes = {
-  signature: {
-    validate(name, value) {
-      if (!isFunctionSignature(value)) {
-        throw new ErrorException(
-          `${name} must be a valid function signature, got ${value}`,
-        );
-      }
-    },
-  },
   dao: {
     validate(name, value) {
       if (typeof value !== "string" && !isAddress(value)) {

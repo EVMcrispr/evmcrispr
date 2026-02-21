@@ -10,32 +10,49 @@ export const abiBindingKey = (chainId: number, address: Address): string =>
   `${chainId}:${getAddress(address)}`;
 
 async function getAbiEntries(address: Address, chainId: number): Promise<Abi> {
-  return await fetch(
+  const res = await fetch(
     `https://api.evmcrispr.com/abi/${chainId}/${getAddress(address)}`,
-  )
-    .then((res) => res.json())
-    .catch((err) => {
-      console.error(err);
-      throw new ErrorException("Failed to fetch ABI");
-    });
+  );
+  if (!res.ok) {
+    throw new ErrorException(`Failed to fetch ABI (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+function mergeAbis(primary: Abi, secondary: Abi): Abi {
+  const seen = new Set(primary.map((entry) => JSON.stringify(entry)));
+  return [
+    ...primary,
+    ...secondary.filter((entry) => !seen.has(JSON.stringify(entry))),
+  ];
 }
 
 export const fetchAbi = async (
   contractAddress: Address,
   client: PublicClient,
 ): Promise<[Address, Abi, number]> => {
-  const implementationAddress = await fetchImplementationAddress(
-    contractAddress,
-    client,
-  );
-  const targetAddress = implementationAddress ?? contractAddress;
   const chainId = await client?.getChainId();
-
   if (!chainId) {
     throw new ErrorException("Chain id is not supported");
   }
 
-  const fetchedAbi = await getAbiEntries(targetAddress, chainId);
+  const implementationAddress = await fetchImplementationAddress(
+    contractAddress,
+    client,
+  );
 
-  return [targetAddress, fetchedAbi, chainId];
+  if (!implementationAddress) {
+    return [
+      contractAddress,
+      await getAbiEntries(contractAddress, chainId),
+      chainId,
+    ];
+  }
+
+  const [proxyAbi, implAbi] = await Promise.all([
+    getAbiEntries(contractAddress, chainId).catch(() => [] as Abi),
+    getAbiEntries(implementationAddress, chainId).catch(() => [] as Abi),
+  ]);
+
+  return [implementationAddress, mergeAbis(implAbi, proxyAbi), chainId];
 };

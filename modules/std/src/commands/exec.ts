@@ -1,24 +1,13 @@
-import type { Abi, Address } from "@evmcrispr/sdk";
+import type { Abi } from "@evmcrispr/sdk";
 import {
   abiBindingKey,
   BindingsSpace,
   defineCommand,
   ErrorException,
   encodeAction,
-  fetchAbi,
-  fieldItem,
-  interpretNodeSync,
-  isFunctionSignature,
   parseSignatureParamTypes,
   resolveEventCaptures,
 } from "@evmcrispr/sdk";
-import type { AbiFunction } from "viem";
-import {
-  getAbiItem,
-  isAddress,
-  isAddressEqual,
-  toFunctionSignature,
-} from "viem";
 import type Std from "..";
 
 const { ABI } = BindingsSpace;
@@ -51,49 +40,6 @@ export default defineCommand<Std>({
     { name: "max-priority-fee-per-gas", type: "number" },
     { name: "nonce", type: "number" },
   ],
-  completions: {
-    signature: async (ctx) => {
-      const targetNode = ctx.nodeArgs[0];
-      const targetAddress = interpretNodeSync(targetNode, ctx.bindings);
-      if (!targetAddress || !isAddress(targetAddress)) return [];
-
-      const key = abiBindingKey(ctx.chainId, targetAddress);
-      let abi = ctx.bindings.getBindingValue(key, ABI);
-      if (!abi) {
-        abi = ctx.cache.getBindingValue(key, ABI);
-      }
-      if (!abi) {
-        try {
-          const [, fetchedAbi, fetchedChainId] = await fetchAbi(
-            targetAddress,
-            ctx.client,
-          );
-          const fetchedKey = abiBindingKey(fetchedChainId, targetAddress);
-          ctx.cache.setBinding(
-            fetchedKey,
-            fetchedAbi,
-            ABI,
-            false,
-            undefined,
-            true,
-          );
-          abi = fetchedAbi;
-        } catch {
-          return [];
-        }
-      }
-
-      const functions = abi
-        .filter(
-          (item): item is AbiFunction =>
-            item.type === "function" &&
-            (item.stateMutability === "nonpayable" ||
-              item.stateMutability === "payable"),
-        )
-        .map((func: AbiFunction) => toFunctionSignature(func));
-      return functions.map(fieldItem);
-    },
-  },
   async run(
     module,
     { contractAddress, signature, params },
