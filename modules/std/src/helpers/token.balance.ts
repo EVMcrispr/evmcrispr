@@ -8,7 +8,7 @@ export default defineHelper<Std>({
   description: "Fetch the token balance of an address in base units.",
   returnType: "number",
   args: [
-    { name: "tokenSymbol", type: "string" },
+    { name: "tokenSymbol", type: "token-symbol" },
     { name: "holder", type: "address" },
   ],
   async run(module, { tokenSymbol, holder }) {

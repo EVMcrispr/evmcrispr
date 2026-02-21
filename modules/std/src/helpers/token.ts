@@ -37,6 +37,13 @@ export const resolveToken = async (
     return tokenSymbolOrAddress;
   }
 
+  // Handle SYMBOL:0xAddress format (used when the token list has duplicate symbols)
+  const colonIdx = tokenSymbolOrAddress.lastIndexOf(":");
+  if (colonIdx !== -1) {
+    const addr = tokenSymbolOrAddress.slice(colonIdx + 1);
+    if (isAddress(addr)) return getAddress(addr);
+  }
+
   const chainId = await module.getChainId();
 
   const chain = await module.getChain();
@@ -70,7 +77,7 @@ export default defineHelper<Std>({
   description:
     "Resolve a token symbol to its contract address on the current chain.",
   returnType: "address",
-  args: [{ name: "tokenSymbolOrAddress", type: "string" }],
+  args: [{ name: "tokenSymbolOrAddress", type: "token-symbol" }],
   async run(module, { tokenSymbolOrAddress }) {
     return resolveToken(module, tokenSymbolOrAddress);
   },

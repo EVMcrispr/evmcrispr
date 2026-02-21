@@ -44,7 +44,7 @@ export const conf: languages.LanguageConfiguration = {
     ),
     decreaseIndentPattern: new RegExp("^((?!.*?\\/\\*).*\\*/)?\\s*[\\}\\]].*$"),
   },
-  wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()=+[{\]}\\|;'",.<>/?\s]+)/g,
+  wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()=+[{\]}\\|;'",<>/?\s]+)/g,
 };
 
 export const createLanguage: (
