@@ -291,13 +291,16 @@ function isReturnTypeCompatible(
 // Walk phase: resolve bindings for commands before cursor
 // ---------------------------------------------------------------------------
 
-/** Seed the bindings manager with std module data and metadata from the cache.
- *  Safe to call multiple times -- skips if std is already present. */
+/** Seed the bindings manager with all cached module data and metadata.
+ *  Safe to call multiple times -- skips modules already present. */
 function seedBindings(bindings: BindingsManager, cache: BindingsManager): void {
-  if (!bindings.hasBinding("std", MODULE)) {
-    const stdData = cache.getBindingValue("std", MODULE);
-    if (stdData) {
-      bindings.setBinding("std", stdData, MODULE);
+  const moduleBindings = cache.getAllBindings({
+    spaceFilters: [MODULE],
+    ignoreNullValues: true,
+  }) as NoNullableBinding<ModuleBinding>[];
+  for (const { identifier, value } of moduleBindings) {
+    if (!bindings.hasBinding(identifier, MODULE)) {
+      bindings.setBinding(identifier, value, MODULE);
     }
   }
 
@@ -561,21 +564,28 @@ export async function getCompletions(
 
   // Fallback: if the cursor is inside unclosed parentheses, try closing them.
   // Also insert a placeholder when the text ends with a trailing comma.
-  // This handles both cursor-at-end (no closing paren yet) and cursor-mid-line
-  // (closing parens exist after cursor but text-before-cursor is unclosed).
+  // Close unclosed string quotes before appending paren closers so the parser
+  // succeeds when the cursor is mid-string (e.g. `@json($data, "tokens.`).
   if (!currentCommandNode) {
     const textBeforeCursor = currentLineContent.slice(0, position.col);
     const afterCursor = currentLineContent.slice(position.col);
     const unclosedCount =
       (textBeforeCursor.match(/\(/g) || []).length -
       (textBeforeCursor.match(/\)/g) || []).length;
-    if (!afterCursor.includes(")") || unclosedCount > 0) {
+
+    const doubleQuotes = (textBeforeCursor.match(/"/g) || []).length;
+    const singleQuotes = (textBeforeCursor.match(/'/g) || []).length;
+    const closeQuote =
+      doubleQuotes % 2 !== 0 ? '"' : singleQuotes % 2 !== 0 ? "'" : "";
+
+    if (!afterCursor.includes(")") || unclosedCount > 0 || closeQuote) {
       const placeholder = /,\s*$/.test(textBeforeCursor) ? "_" : "";
       const suffix = unclosedCount > 0 ? "" : afterCursor;
       let closers = "";
       for (let i = 0; i < 5; i++) {
         closers += ")";
-        const patched = textBeforeCursor + placeholder + closers + suffix;
+        const patched =
+          textBeforeCursor + placeholder + closeQuote + closers + suffix;
         try {
           const result = parseScript(
             [...Array(position.line - 1).map(() => ""), patched].join("\n"),
@@ -592,17 +602,27 @@ export async function getCompletions(
     }
   }
 
-  // Suppress completions inside string literals
   const deepestResult = currentCommandNode
     ? getDeepestNodeWithArgs(currentCommandNode, position)
     : { arg: undefined };
 
-  if (
+  const isInsideString =
     currentCommandNode &&
     deepestResult.arg &&
-    deepestResult.arg.type === NodeType.StringLiteral
-  ) {
-    return [];
+    deepestResult.arg.type === NodeType.StringLiteral;
+
+  // Simple string literal suppression: if we're inside a string and the
+  // enclosing node is NOT a helper (i.e. it's a command arg), suppress now
+  // before bindings are available.
+  if (isInsideString) {
+    const helperNode = "node" in deepestResult ? deepestResult.node : undefined;
+    if (
+      !helperNode ||
+      (helperNode as any).type !== NodeType.HelperFunctionExpression
+    ) {
+      return [];
+    }
+    // For helper args, defer the check until after bindings are seeded (below)
   }
 
   // 2. Collect commands before cursor
@@ -636,6 +656,26 @@ export async function getCompletions(
   // 3. Seed bindings once, then walk commands to resolve bindings
   const bindings = new BindingsManager();
   seedBindings(bindings, moduleCache);
+
+  // Deferred string literal suppression for helper args: now that bindings are
+  // available, check whether the enclosing helper arg has a custom type with
+  // completions. If not, suppress.
+  if (isInsideString && "node" in deepestResult) {
+    const helperNode = deepestResult.node as unknown as HelperFunctionNode;
+    const { helperArgDefsMap: earlyHelperArgDefsMap } =
+      buildModuleCompletionItems(bindings);
+    const argDefs = earlyHelperArgDefsMap[helperNode.name];
+    const argDef = argDefs?.[deepestResult.argIndex];
+    if (argDef && !isBuiltinType(argDef.type)) {
+      const customTypes = collectCustomTypes(bindings);
+      const customType = customTypes[argDef.type as string];
+      if (!customType?.completions) {
+        return [];
+      }
+    } else {
+      return [];
+    }
+  }
 
   // Resolve the effective chain by scanning for `switch` commands before the
   // cursor.  The last `switch` wins, just as it would during execution.

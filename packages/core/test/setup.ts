@@ -4,8 +4,8 @@ import {
   HttpResponse,
   http,
 } from "@evmcrispr/test-utils/msw/server";
+import { tokenlistHandlers } from "@evmcrispr/test-utils/msw/tokenlist";
 import { aragonosHandlers } from "../../../modules/aragonos/test/fixtures/msw-handlers";
-import tokenListFixture from "../../../modules/std/test/fixtures/tokenlist/uniswap.json";
 import { EVMcrispr } from "../src/EVMcrispr";
 
 EVMcrispr.registerModule(
@@ -32,9 +32,6 @@ const coreHandlers = [
     }
     return HttpResponse.json(JSON.parse(data.result));
   }),
-  http.get("https://tokens.uniswap.org/", () => {
-    return HttpResponse.json(tokenListFixture);
-  }),
   http.post<
     Record<string, never>,
     { pinataContent: string },
@@ -58,5 +55,9 @@ const coreHandlers = [
   }),
 ];
 
-const server = createTestServer(...aragonosHandlers, ...coreHandlers);
+const server = createTestServer(
+  ...aragonosHandlers,
+  ...tokenlistHandlers,
+  ...coreHandlers,
+);
 server.listen({ onUnhandledRequest: "bypass" });

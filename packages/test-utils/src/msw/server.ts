@@ -2,12 +2,17 @@ import type { RequestHandler } from "msw";
 import { setupServer } from "msw/node";
 import { blockscoutHandlers } from "./blockscout";
 import { etherscanHandlers } from "./etherscan";
+import { tokenlistHandlers } from "./tokenlist";
 
 export type { RequestHandler } from "msw";
 // Re-export msw utilities for handler authoring
 export { HttpResponse, http } from "msw";
 
-export const sharedHandlers = [...etherscanHandlers, ...blockscoutHandlers];
+export const sharedHandlers = [
+  ...etherscanHandlers,
+  ...blockscoutHandlers,
+  ...tokenlistHandlers,
+];
 
 /**
  * Creates an MSW server with shared handlers (etherscan, blockscout) plus

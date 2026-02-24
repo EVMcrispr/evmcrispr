@@ -20,6 +20,11 @@
       "bun": "./src/msw/blockscout/index.ts",
       "types": "./src/msw/blockscout/index.ts",
       "import": "./src/msw/blockscout/index.ts"
+    },
+    "./msw/tokenlist": {
+      "bun": "./src/msw/tokenlist/index.ts",
+      "types": "./src/msw/tokenlist/index.ts",
+      "import": "./src/msw/tokenlist/index.ts"
     }
   },
   "dependencies": {
@@ -34,7 +39,8 @@
     "@evmcrispr/module-aragonos": "workspace:*",
     "@evmcrispr/module-ens": "workspace:*",
     "@evmcrispr/module-giveth": "workspace:*",
-    "@evmcrispr/module-sim": "workspace:*"
+    "@evmcrispr/module-sim": "workspace:*",
+    "@evmcrispr/module-http": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@evmcrispr/module-aragonos": {
@@ -47,6 +53,9 @@
       "optional": true
     },
     "@evmcrispr/module-sim": {
+      "optional": true
+    },
+    "@evmcrispr/module-http": {
       "optional": true
     }
   },

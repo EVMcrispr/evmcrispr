@@ -7,16 +7,11 @@ import {
 import { passthrough } from "msw";
 import daiAbi from "./fixtures/abis/dai.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
-import tokenList from "./fixtures/tokenlist/uniswap.json";
 
 registerAllModules();
 
-// Std-specific MSW handlers
+// Std-specific MSW handlers (ABI endpoint)
 const stdHandlers = [
-  http.get("https://tokens.uniswap.org/", () => HttpResponse.json(tokenList)),
-  http.get("https://api.evmcrispr.com/tokenlist/:chainId", () =>
-    HttpResponse.json(tokenList),
-  ),
   http.get(
     "https://api.evmcrispr.com/abi/:chainId/:address",
     ({ params }: { params: { address: string } }) => {

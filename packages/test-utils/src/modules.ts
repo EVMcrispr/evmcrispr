@@ -11,4 +11,5 @@ export function registerAllModules(): void {
   EVMcrispr.registerModule("sim", () => import("@evmcrispr/module-sim"));
   EVMcrispr.registerModule("giveth", () => import("@evmcrispr/module-giveth"));
   EVMcrispr.registerModule("ens", () => import("@evmcrispr/module-ens"));
+  EVMcrispr.registerModule("http", () => import("@evmcrispr/module-http"));
 }

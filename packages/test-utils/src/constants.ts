@@ -67,3 +67,16 @@ export const STD_BOOL_HELPERS = [
 ];
 
 export const STD_BYTES_HELPERS = ["@abi.encodeCall", "@at", "@get"];
+
+// Http-module helper lists.
+
+export const HTTP_ALL_HELPERS = ["@fetch", "@json", "@json.format"];
+
+// @json has returnType "any", so it appears in every type-specific list.
+// @fetch and @json.format have returnType "string", so they only appear in HTTP_ALL_HELPERS.
+
+export const HTTP_ADDRESS_HELPERS = ["@json"];
+export const HTTP_NUMBER_HELPERS = ["@json"];
+export const HTTP_BYTES32_HELPERS = ["@json"];
+export const HTTP_BOOL_HELPERS = ["@json"];
+export const HTTP_BYTES_HELPERS = ["@json"];

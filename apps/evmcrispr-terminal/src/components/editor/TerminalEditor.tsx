@@ -240,6 +240,7 @@ export default function TerminalEditor() {
         fontFamily: "Ubuntu Mono",
         detectIndentation: false,
         quickSuggestionsDelay: 100,
+        wordBasedSuggestions: "off",
         tabSize: 2,
         language: "evml",
         minimap: {
