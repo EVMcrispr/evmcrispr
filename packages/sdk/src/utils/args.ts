@@ -112,7 +112,7 @@ export function isNum(number: unknown): boolean {
     number instanceof Num ||
     typeof number === "number" ||
     typeof number === "bigint" ||
-    (typeof number === "string" && /^\d+(\.\d+)?$/.test(number))
+    (typeof number === "string" && /^-?\d+(\.\d+)?$/.test(number))
   );
 }
 

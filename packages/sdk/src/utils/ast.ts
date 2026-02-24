@@ -3,6 +3,7 @@ import { isAddress } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { Node, NodeWithArguments, Position } from "../types";
 import { BindingsSpace, NodeType } from "../types";
+import type { Param } from "./encoders";
 
 const {
   AddressLiteral,
@@ -100,7 +101,7 @@ export const getDeepestNodeWithArgs = (
 export const interpretNodeSync = (
   n: Node,
   bindingsManager: BindingsManager,
-): string | undefined => {
+): Param | undefined => {
   switch (n.type) {
     case AddressLiteral:
     case BoolLiteral:

@@ -53,7 +53,7 @@ export interface ModuleBinding extends IBinding<ModuleData> {
   type: BindingsSpace.MODULE;
 }
 
-export interface UserBinding extends IBinding<string> {
+export interface UserBinding extends IBinding<Param> {
   type: BindingsSpace.USER;
 }
 

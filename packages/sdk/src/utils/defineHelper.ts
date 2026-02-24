@@ -6,7 +6,7 @@ import type {
   HelperFunctionNode,
   NodesInterpreters,
 } from "../types";
-import { NodeType } from "../types";
+import { BindingsSpace, NodeType } from "../types";
 import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
 import type { Param } from "./encoders";
 import { type ArgDef, type ArgType, validateArgType } from "./schema";
@@ -77,6 +77,41 @@ export function defineHelper<M extends Module>(
         continue;
       }
 
+      if (def.type === "helper") {
+        const cbNode = h.args[i];
+        if (!cbNode || cbNode.type !== NodeType.HelperFunctionExpression) {
+          throw new ErrorException(
+            `<${def.name}> must be a helper reference like @helperName`,
+          );
+        }
+        const helperNode = cbNode as unknown as HelperFunctionNode;
+        parsedArgs[def.name] = async (...callArgs: Param[]) => {
+          module.bindingsManager.enterScope(config.name);
+          try {
+            const argNodes = callArgs.map((arg, idx) => {
+              const tmpVar = `__cb_${idx}__`;
+              module.bindingsManager.setBinding(
+                tmpVar,
+                arg,
+                BindingsSpace.USER,
+                false,
+                undefined,
+                true,
+              );
+              return { type: NodeType.VariableIdentifier, value: tmpVar };
+            });
+            const call = {
+              ...helperNode,
+              args: [...argNodes, ...helperNode.args],
+            };
+            return await interpretNode(call);
+          } finally {
+            module.bindingsManager.exitScope();
+          }
+        };
+        continue;
+      }
+
       // All other types: auto-interpret
       if (def.rest) {
         const restNodes = h.args.slice(i);
@@ -88,6 +123,7 @@ export function defineHelper<M extends Module>(
 
     // 3. Validate argument types
     for (const def of argDefs) {
+      if (def.type === "helper") continue;
       const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
       const value = parsedArgs[def.name];
       if (value !== undefined && !def.rest) {

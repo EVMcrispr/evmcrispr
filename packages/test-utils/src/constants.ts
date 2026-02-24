@@ -7,24 +7,37 @@ export const TEST_ACCOUNT_ADDRESS =
 export const STD_ALL_HELPERS = [
   "@abi.encodeCall",
   "@and",
+  "@at",
   "@bool",
   "@concat",
   "@date",
   "@ens",
+  "@filter",
   "@get",
   "@id",
+  "@includes",
   "@ipfs",
+  "@len",
+  "@map",
   "@me",
   "@namehash",
   "@nextContract",
   "@not",
   "@or",
+  "@range",
+  "@slice",
+  "@str.join",
+  "@str.lower",
+  "@str.replace",
+  "@str.split",
+  "@str.upper",
   "@token",
   "@token.amount",
   "@token.balance",
 ];
 
 export const STD_ADDRESS_HELPERS = [
+  "@at",
   "@ens",
   "@get",
   "@me",
@@ -33,14 +46,24 @@ export const STD_ADDRESS_HELPERS = [
 ];
 
 export const STD_NUMBER_HELPERS = [
+  "@at",
   "@date",
   "@get",
+  "@len",
   "@token.amount",
   "@token.balance",
 ];
 
-export const STD_BYTES32_HELPERS = ["@get", "@id", "@namehash"];
+export const STD_BYTES32_HELPERS = ["@at", "@get", "@id", "@namehash"];
 
-export const STD_BOOL_HELPERS = ["@and", "@bool", "@get", "@not", "@or"];
+export const STD_BOOL_HELPERS = [
+  "@and",
+  "@at",
+  "@bool",
+  "@get",
+  "@includes",
+  "@not",
+  "@or",
+];
 
-export const STD_BYTES_HELPERS = ["@abi.encodeCall", "@get"];
+export const STD_BYTES_HELPERS = ["@abi.encodeCall", "@at", "@get"];
