@@ -42,6 +42,8 @@ const BUILTIN_TYPES = new Set<string>([
   "variable",
   "block",
   "helper",
+  "command",
+  "expression",
 ]);
 
 export function isBuiltinType(type: ArgType): boolean {
@@ -151,6 +153,8 @@ export function validateArgType(
     case "variable":
     case "block":
     case "helper":
+    case "command":
+    case "expression":
       break;
   }
 }
@@ -269,6 +273,8 @@ export async function completionsForType(
         .getAllBindingIdentifiers({ spaceFilters: [BindingsSpace.USER] })
         .map((name: string) => variableItem(name));
     case "helper":
+    case "command":
+    case "expression":
       return [];
     default:
       if (!isBuiltinType(type)) {

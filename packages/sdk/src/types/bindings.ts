@@ -1,8 +1,9 @@
 import type { AstSymbol } from "jsymbol";
 
 import type { Param } from "../utils/encoders";
-import type { ArgType, CustomArgTypes } from "../utils/schema";
+import type { ArgDef, ArgType, CustomArgTypes, OptDef } from "../utils/schema";
 import type { Abi } from ".";
+import type { Node } from "./ast";
 import type { Commands, HelperArgDefEntry, HelperFunctions } from "./modules";
 
 export enum BindingsSpace {
@@ -10,6 +11,7 @@ export enum BindingsSpace {
   ABI = "ABI",
   MODULE = "MODULE",
   CACHE = "CACHE",
+  DEF = "DEF",
 }
 
 export type Nullable<T> = T | null;
@@ -61,7 +63,25 @@ export interface CacheBinding extends IBinding<Param> {
   type: BindingsSpace.CACHE;
 }
 
-export type Binding = AbiBinding | ModuleBinding | UserBinding | CacheBinding;
+export interface DefValue {
+  kind: "command" | "helper";
+  run: Function;
+  argDefs: ArgDef[];
+  optDefs?: OptDef[];
+  returnType?: ArgType;
+  bodyNode: Node;
+}
+
+export interface DefBinding extends IBinding<DefValue> {
+  type: BindingsSpace.DEF;
+}
+
+export type Binding =
+  | AbiBinding
+  | ModuleBinding
+  | UserBinding
+  | CacheBinding
+  | DefBinding;
 
 export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
   value: null | B["value"];
@@ -76,7 +96,9 @@ export type RelativeBinding<B extends BindingsSpace> =
         ? UserBinding
         : B extends BindingsSpace.CACHE
           ? CacheBinding
-          : unknown;
+          : B extends BindingsSpace.DEF
+            ? DefBinding
+            : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
@@ -87,4 +109,6 @@ export type RelativeNullableBinding<B extends BindingsSpace> =
         ? NullableBinding<UserBinding>
         : B extends BindingsSpace.CACHE
           ? NullableBinding<CacheBinding>
-          : any;
+          : B extends BindingsSpace.DEF
+            ? NullableBinding<DefBinding>
+            : any;

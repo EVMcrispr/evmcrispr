@@ -43,6 +43,8 @@ export type {
   CompletionItem,
   CompletionItemKind,
   CompletionOverrides,
+  DefBinding,
+  DefValue,
   EnclosingNodeParser,
   EventCaptureBinding,
   EventCaptureNode,

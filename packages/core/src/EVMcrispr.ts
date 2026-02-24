@@ -9,6 +9,7 @@ import type {
   CallExpressionNode,
   CommandExpressionNode,
   CompletionItem,
+  DefValue,
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
@@ -759,6 +760,36 @@ export class EVMcrispr {
     c,
     { actionCallback } = {},
   ) => {
+    if (!c.module) {
+      const defCmd = this.bindingsManager.getBindingValue(
+        c.name,
+        BindingsSpace.DEF,
+      ) as DefValue | undefined;
+
+      if (defCmd && defCmd.kind === "command") {
+        let res: Action[] | void;
+        try {
+          res = await defCmd.run(this.#std, c, {
+            interpretNode: this.interpretNode,
+            interpretNodes: this.interpretNodes,
+            actionCallback,
+          });
+
+          if (res && actionCallback) {
+            for (const action of res) {
+              await actionCallback(action);
+            }
+          }
+        } catch (err) {
+          if (err instanceof NodeError || err instanceof HaltExecution) {
+            throw err;
+          }
+          EVMcrispr.panic(c, (err as Error).message);
+        }
+        return res;
+      }
+    }
+
     let module: Module | undefined = this.#std;
     const moduleName = c.module ?? this.bindingsManager.getScopeModule();
 
@@ -805,6 +836,27 @@ export class EVMcrispr {
 
   #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
     const helperName = h.name;
+
+    const defHelper = this.bindingsManager.getBindingValue(
+      `@${helperName}`,
+      BindingsSpace.DEF,
+    ) as DefValue | undefined;
+
+    if (defHelper && defHelper.kind === "helper") {
+      let res: any;
+      try {
+        res = await defHelper.run(this.#std, h, {
+          interpretNode: this.interpretNode,
+          interpretNodes: this.interpretNodes,
+        });
+      } catch (err) {
+        if (err instanceof NodeError) {
+          throw err;
+        }
+        EVMcrispr.panic(h, (err as Error).message);
+      }
+      return res;
+    }
 
     // Module constants: @NAME with no args
     if (h.args.length === 0) {

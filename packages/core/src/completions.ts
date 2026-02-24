@@ -915,6 +915,7 @@ export async function getKeywords(
   const commandNodes = ast.getCommandsUntilLine(scriptLines.length, [
     "load",
     "set",
+    "def",
   ]);
   const loadNodes = commandNodes.filter(
     (c: CommandExpressionNode) => c.name === "load",
@@ -930,6 +931,16 @@ export async function getKeywords(
   const helpers: string[] = stdModuleData
     ? Object.keys(stdModuleData.helpers).map((name) => `@${name}`)
     : [];
+
+  for (const c of commandNodes) {
+    if (c.name !== "def" || !c.args.length) continue;
+    const nameArg = c.args[0];
+    if (nameArg.type === NodeType.Bareword) {
+      commands.push(nameArg.value as string);
+    } else if (nameArg.type === NodeType.HelperFunctionExpression) {
+      helpers.push(`@${(nameArg as HelperFunctionNode).name}`);
+    }
+  }
 
   const seenModules = new Set<string>();
 
