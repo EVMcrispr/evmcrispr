@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { ErrorException, normalizeEnsName } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 
 describe("SDK > utils > normalizeEnsName", () => {
   it("should normalize a simple .eth name", () => {

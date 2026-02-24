@@ -10,8 +10,12 @@ import type {
 } from "@evmcrispr/sdk";
 import { NodeType } from "@evmcrispr/sdk";
 import type { Case } from "@evmcrispr/test-utils";
-import { runCases, runErrorCase, runParser } from "@evmcrispr/test-utils";
-import { expect } from "chai";
+import {
+  expect,
+  runCases,
+  runErrorCase,
+  runParser,
+} from "@evmcrispr/test-utils";
 import {
   ADDRESS_PARSER_ERROR,
   addressParser,

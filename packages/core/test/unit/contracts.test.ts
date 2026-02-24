@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { computeNextContractAddress } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { getContractAddress, isAddress } from "viem";
 
 const DEPLOYER = "0x1234567890abcdef1234567890abcdef12345678";

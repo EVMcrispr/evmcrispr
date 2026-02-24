@@ -1,5 +1,5 @@
 import { beforeAll, describe, it } from "bun:test";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import "../../setup.js";
 
 import { ExpressionError, Num } from "@evmcrispr/sdk";

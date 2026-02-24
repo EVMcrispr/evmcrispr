@@ -1,9 +1,13 @@
 import { describe, it } from "bun:test";
 import type { ArrayExpressionNode, NodeParserState } from "@evmcrispr/sdk";
-import { type Case, runCases, runErrorCase } from "@evmcrispr/test-utils";
+import {
+  type Case,
+  expect,
+  runCases,
+  runErrorCase,
+} from "@evmcrispr/test-utils";
 import type { Err } from "arcsecond";
 import { withData } from "arcsecond";
-import { expect } from "chai";
 import {
   ARRAY_PARSER_ERROR,
   arrayExpressionParser,

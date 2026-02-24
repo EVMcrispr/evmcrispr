@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "arcsecond": "^5.0.0",
-    "chai": "^5.1.1",
+    "chai": "^6.2.2",
     "msw": "^2.3.5",
     "viem": "^2.21.0"
   },
@@ -49,5 +49,8 @@
     "@evmcrispr/module-sim": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3"
   }
 }

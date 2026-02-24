@@ -1,6 +1,6 @@
 import "../setup";
 import { describe, it } from "bun:test";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { EVMcrispr } from "../../src/EVMcrispr";
 
 function diagnostics(script: string) {

@@ -2,7 +2,17 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
+import {
+  EVMcrispr,
+  STD_ADDRESS_HELPERS,
+  STD_ALL_HELPERS,
+  STD_BOOL_HELPERS,
+  STD_BYTES32_HELPERS,
+  STD_BYTES_HELPERS,
+  STD_NUMBER_HELPERS,
+  expect,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
@@ -377,33 +387,22 @@ describe("Completions – std helpers", () => {
     evm = new EVMcrispr(client as PublicClient);
   });
 
-  // All 12 std helpers
-  const ALL_HELPERS = [
-    "@abi.encodeCall",
-    "@date",
-    "@ens",
-    "@get",
-    "@id",
-    "@ipfs",
-    "@me",
-    "@namehash",
-    "@nextContract",
-    "@token",
-    "@token.amount",
-    "@token.balance",
-  ];
-
-  const ADDRESS_HELPERS = ["@ens", "@get", "@me", "@nextContract", "@token"];
-  const NUMBER_HELPERS = ["@date", "@get", "@token.amount", "@token.balance"];
-  const BYTES32_HELPERS = ["@get", "@id", "@namehash"];
-  const BYTES_HELPERS = ["@abi.encodeCall", "@get"];
+  const ALL_HELPERS = STD_ALL_HELPERS;
+  const STRING_HELPERS = ALL_HELPERS.filter(
+    (h) => !["@and", "@bool", "@not", "@or"].includes(h),
+  );
+  const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
+  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
+  const BOOL_HELPERS = STD_BOOL_HELPERS;
+  const BYTES32_HELPERS = STD_BYTES32_HELPERS;
+  const BYTES_HELPERS = STD_BYTES_HELPERS;
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering
   // -------------------------------------------------------------------------
 
   describe("helpers as suggestions", () => {
-    it('print <cursor> (type "any") should show all 12 helpers', async () => {
+    it('print <cursor> (type "any") should show all helpers', async () => {
       const script = "print ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
@@ -471,19 +470,23 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@id")).to.be.false;
     });
 
-    it('exec $c f(bool) <cursor> should show only @get (returnType "any")', async () => {
+    it('exec $c f(bool) <cursor> should show bool-compatible helpers', async () => {
       const script = "exec $c f(bool) ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
-      expect(helperItems).to.have.lengthOf(1);
       expect(hasLabel(helperItems, "@get")).to.be.true;
+      expect(hasLabel(helperItems, "@bool")).to.be.true;
+      expect(hasLabel(helperItems, "@and")).to.be.true;
+      expect(hasLabel(helperItems, "@or")).to.be.true;
+      expect(hasLabel(helperItems, "@not")).to.be.true;
+      expect(helperItems).to.have.lengthOf(5);
     });
 
-    it("exec $c f(string) <cursor> should show all helpers (string accepts all)", async () => {
+    it("exec $c f(string) <cursor> should show string-compatible helpers", async () => {
       const script = "exec $c f(string) ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
@@ -543,24 +546,20 @@ describe("Completions – std helpers", () => {
       position: { line: 1, col: before.length },
     });
 
-    // @token(string)  →  all helpers (string accepts all)
-    it("@token(<cursor>) should show string-compatible completions", async () => {
+    // @token(token-symbol)  →  custom type provides its own completions, no helpers
+    it("@token(<cursor>) should show no helper completions (custom type)", async () => {
       const { script, position } = helperPos("set $x @token(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
+      expect(helperItems).to.have.lengthOf(0);
     });
 
-    // @token.balance(string, address)  →  first arg: string (all helpers)
-    it("@token.balance(<cursor>) first arg should show string-compatible completions", async () => {
+    // @token.balance(token-symbol, address)  →  first arg: custom type, no helpers
+    it("@token.balance(<cursor>) first arg should show no helper completions (custom type)", async () => {
       const { script, position } = helperPos("set $x @token.balance(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
+      expect(helperItems).to.have.lengthOf(0);
     });
 
     // @token.balance(string, address)  →  second arg: address helpers only
@@ -644,13 +643,15 @@ describe("Completions – std helpers", () => {
         ")",
       );
       const items = await evm.getCompletions(script, position);
-      // Should show true/false
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
-      // Only @get (returnType "any") should be compatible with bool
       const helperItems = onlyKind(items, "helper");
-      expect(helperItems).to.have.lengthOf(1);
       expect(hasLabel(helperItems, "@get")).to.be.true;
+      expect(hasLabel(helperItems, "@bool")).to.be.true;
+      expect(hasLabel(helperItems, "@and")).to.be.true;
+      expect(hasLabel(helperItems, "@or")).to.be.true;
+      expect(hasLabel(helperItems, "@not")).to.be.true;
+      expect(helperItems).to.have.lengthOf(5);
     });
 
     // Unclosed parens: same scenarios without closing ")"
@@ -672,8 +673,12 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
       const helperItems = onlyKind(items, "helper");
-      expect(helperItems).to.have.lengthOf(1);
       expect(hasLabel(helperItems, "@get")).to.be.true;
+      expect(hasLabel(helperItems, "@bool")).to.be.true;
+      expect(hasLabel(helperItems, "@and")).to.be.true;
+      expect(hasLabel(helperItems, "@or")).to.be.true;
+      expect(hasLabel(helperItems, "@not")).to.be.true;
+      expect(helperItems).to.have.lengthOf(5);
     });
 
     // @get(address, read-abi, ...any)  →  rest arg with bool signature
@@ -683,13 +688,15 @@ describe("Completions – std helpers", () => {
         ")",
       );
       const items = await evm.getCompletions(script, position);
-      // Should show true/false
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
-      // Only @get (returnType "any") should be compatible with bool
       const helperItems = onlyKind(items, "helper");
-      expect(helperItems).to.have.lengthOf(1);
       expect(hasLabel(helperItems, "@get")).to.be.true;
+      expect(hasLabel(helperItems, "@bool")).to.be.true;
+      expect(hasLabel(helperItems, "@and")).to.be.true;
+      expect(hasLabel(helperItems, "@or")).to.be.true;
+      expect(hasLabel(helperItems, "@not")).to.be.true;
+      expect(helperItems).to.have.lengthOf(5);
     });
 
     // @nextContract(address, number?)  →  first arg: address
@@ -717,62 +724,62 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@me")).to.be.false;
     });
 
-    // @ens(string)  →  all helpers
+    // @ens(string)  →  string-compatible helpers
     it("@ens(<cursor>) should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @ens(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
 
-    // @date(string, string?)  →  all helpers
+    // @date(string, string?)  →  string-compatible helpers
     it("@date(<cursor>) should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @date(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
 
-    // @id(string)  →  all helpers
+    // @id(string)  →  string-compatible helpers
     it("@id(<cursor>) should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @id(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
 
-    // @namehash(string)  →  all helpers
+    // @namehash(string)  →  string-compatible helpers
     it("@namehash(<cursor>) should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @namehash(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
 
-    // @abi.encodeCall(string, ...any)  →  first arg: string (all helpers)
+    // @abi.encodeCall(string, ...any)  →  first arg: string
     it("@abi.encodeCall(<cursor>) first arg should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @abi.encodeCall(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });
 
-    // @ipfs(string)  →  all helpers
+    // @ipfs(string)  →  string-compatible helpers
     it("@ipfs(<cursor>) should show string-compatible completions", async () => {
       const { script, position } = helperPos("set $x @ipfs(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
+      for (const h of STRING_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
     });

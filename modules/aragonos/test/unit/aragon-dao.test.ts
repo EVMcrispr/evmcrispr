@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { AddressMap, AddressSet } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
 
 import { AragonDAO } from "../../src/AragonDAO";

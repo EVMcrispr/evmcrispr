@@ -2,111 +2,71 @@ import "../../setup";
 import { describeCommand } from "@evmcrispr/test-utils";
 
 describeCommand("expect", {
-  describeName: "Sim > commands > expect <value> <operator> <expectedValue>",
+  describeName: "Sim > commands > expect <condition>",
   module: "sim",
   preamble: "load sim",
   cases: [
     {
-      name: "should pass when values are equal (==)",
-      script: "sim:expect 1 == 1",
+      name: "should pass when condition is true",
+      script: "sim:expect true",
       expectedActions: [],
     },
     {
-      name: "should pass when values are not equal (!=)",
-      script: "sim:expect 1 != 2",
+      name: "should pass with @bool equal (==)",
+      script: "sim:expect @bool(1, ==, 1)",
       expectedActions: [],
     },
     {
-      name: "should pass with greater-than (>)",
-      script: "sim:expect 5 > 3",
+      name: "should pass with @bool not-equal (!=)",
+      script: "sim:expect @bool(1, !=, 2)",
       expectedActions: [],
     },
     {
-      name: "should pass with greater-or-equal (>=)",
-      script: "sim:expect 5 >= 5",
+      name: "should pass with @bool greater-than (>)",
+      script: "sim:expect @bool(5, >, 3)",
       expectedActions: [],
     },
     {
-      name: "should pass with less-than (<)",
-      script: "sim:expect 2 < 10",
+      name: "should pass with @bool greater-or-equal (>=)",
+      script: "sim:expect @bool(5, >=, 5)",
       expectedActions: [],
     },
     {
-      name: "should pass with less-or-equal (<=)",
-      script: "sim:expect 7 <= 7",
+      name: "should pass with @bool less-than (<)",
+      script: "sim:expect @bool(2, <, 10)",
       expectedActions: [],
     },
     {
-      name: "should pass with string equality",
-      script: 'sim:expect "hello" == "hello"',
+      name: "should pass with @bool less-or-equal (<=)",
+      script: "sim:expect @bool(7, <=, 7)",
       expectedActions: [],
     },
     {
-      name: "should pass with string inequality",
-      script: 'sim:expect "hello" != "world"',
+      name: "should pass with @bool string equality",
+      script: 'sim:expect @bool("hello", ==, "hello")',
       expectedActions: [],
     },
     {
       name: "should pass with variable references",
-      script: 'set $a 42\nsim:expect $a == 42',
+      script: "set $a 42\nsim:expect @bool($a, ==, 42)",
       expectedActions: [],
     },
   ],
   errorCases: [
     {
-      name: "should fail when equality assertion does not hold",
-      script: "sim:expect 1 == 2",
+      name: "should fail when condition is false",
+      script: "sim:expect false",
       error: "An assertion failed.",
     },
     {
-      name: "should fail when inequality assertion does not hold",
-      script: "sim:expect 1 != 1",
+      name: "should fail when @bool equality does not hold",
+      script: "sim:expect @bool(1, ==, 2)",
       error: "An assertion failed.",
     },
     {
-      name: "should fail when > assertion does not hold",
-      script: "sim:expect 2 > 5",
+      name: "should fail when @bool > does not hold",
+      script: "sim:expect @bool(2, >, 5)",
       error: "An assertion failed.",
-    },
-    {
-      name: "should fail when >= assertion does not hold",
-      script: "sim:expect 2 >= 5",
-      error: "An assertion failed.",
-    },
-    {
-      name: "should fail when < assertion does not hold",
-      script: "sim:expect 10 < 3",
-      error: "An assertion failed.",
-    },
-    {
-      name: "should fail when <= assertion does not hold",
-      script: "sim:expect 10 <= 3",
-      error: "An assertion failed.",
-    },
-    {
-      name: "should fail with an unrecognized operator",
-      script: "sim:expect 1 ~~ 1",
-      error: "not recognized",
-    },
-    {
-      name: "should fail when comparing non-numeric values with >",
-      script: 'sim:expect "a" > "b"',
-      error: "must be used between two numbers",
-    },
-    {
-      name: "should fail when comparing non-numeric values with >=",
-      script: 'sim:expect "a" >= "b"',
-      error: "must be used between two numbers",
-    },
-    {
-      name: "should fail when comparing non-numeric values with <",
-      script: 'sim:expect "a" < "b"',
-      error: "must be used between two numbers",
-    },
-    {
-      name: "should fail when comparing non-numeric values with <=",
-      script: 'sim:expect "a" <= "b"',
-      error: "must be used between two numbers",
     },
   ],
 });

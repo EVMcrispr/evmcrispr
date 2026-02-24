@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from "bun:test";
 import type { Action, ErrorException } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { getPublicClient } from "../client";
 import { createInterpreter, type TestInterpreter } from "../evml";

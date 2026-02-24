@@ -2,7 +2,14 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
+import {
+  EVMcrispr,
+  STD_ADDRESS_HELPERS,
+  STD_ALL_HELPERS,
+  STD_NUMBER_HELPERS,
+  expect,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
@@ -175,34 +182,9 @@ describe("Completions – giveth helpers", () => {
     evm = new EVMcrispr(client as PublicClient);
   });
 
-  // All 12 std helpers + 1 giveth helper = 13
-  const ALL_HELPERS = [
-    "@abi.encodeCall",
-    "@date",
-    "@ens",
-    "@get",
-    "@id",
-    "@ipfs",
-    "@me",
-    "@namehash",
-    "@nextContract",
-    "@projectAddr",
-    "@token",
-    "@token.amount",
-    "@token.balance",
-  ];
-
-  // Address-returning helpers (std 5 + giveth 1)
-  const ADDRESS_HELPERS = [
-    "@ens",
-    "@get",
-    "@me",
-    "@nextContract",
-    "@projectAddr",
-    "@token",
-  ];
-
-  const NUMBER_HELPERS = ["@date", "@get", "@token.amount", "@token.balance"];
+  const ALL_HELPERS = [...STD_ALL_HELPERS, "@projectAddr"].sort();
+  const ADDRESS_HELPERS = [...STD_ADDRESS_HELPERS, "@projectAddr"].sort();
+  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
 
   const GIVETH = "load giveth\n";
 
@@ -211,7 +193,7 @@ describe("Completions – giveth helpers", () => {
   // -------------------------------------------------------------------------
 
   describe("helpers as suggestions", () => {
-    it('set $x <cursor> (type "any") should show all 13 helpers', async () => {
+    it('set $x <cursor> (type "any") should show all helpers', async () => {
       const script = `${GIVETH}set $x `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");

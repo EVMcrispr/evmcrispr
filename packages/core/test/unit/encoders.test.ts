@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { encodeAction } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { decodeFunctionData, parseAbi } from "viem";
 
 const TARGET = "0x1234567890abcdef1234567890abcdef12345678";

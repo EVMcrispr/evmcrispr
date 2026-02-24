@@ -1,7 +1,6 @@
 import "../setup";
 import { describe, it } from "bun:test";
-import { TestContext } from "@evmcrispr/test-utils";
-import { expect } from "chai";
+import { expect, TestContext } from "@evmcrispr/test-utils";
 
 describe("Core > signatureHelp", () => {
   const ctx = new TestContext();

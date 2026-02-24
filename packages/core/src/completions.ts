@@ -260,6 +260,7 @@ function isReturnTypeCompatible(
 ): boolean {
   if (expectedType === "any" || expectedType === "string") return true;
   if (expectedType === "variable" || expectedType === "block") return false;
+  if (!isBuiltinType(expectedType)) return false;
   const rt = returnType ?? "string";
   if (rt === "any") return true;
   return rt === expectedType;

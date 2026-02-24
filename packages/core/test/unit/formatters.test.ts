@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { commaListItems, listItems } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 
 describe("SDK > utils > formatters", () => {
   describe("commaListItems()", () => {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, it } from "bun:test";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { DAO, DAO2, DAO3 } from "../../../../modules/aragonos/test/fixtures";
 import type { EvmlAST } from "../../src/EvmlAST";
 import { parseScript } from "../../src/parsers/script";

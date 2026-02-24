@@ -13,6 +13,7 @@ import {
   ComparisonType,
   checkArgsLength,
   checkOpts,
+  coerceBoolean,
   getOptValue,
 } from "./args";
 import { type ArgDef, type OptDef, validateArgType } from "./schema";
@@ -147,7 +148,14 @@ export function defineCommand<M extends Module>(
         }
       }
 
-      // 6. Interpret and validate options
+      // 6. Coerce bool args from string to native boolean
+      for (const def of argDefs) {
+        if (def.type === "bool" && typeof parsedArgs[def.name] === "string") {
+          parsedArgs[def.name] = coerceBoolean(parsedArgs[def.name]);
+        }
+      }
+
+      // 7. Interpret and validate options
       const parsedOpts: Record<string, any> = {};
       for (const optDef of optDefs) {
         const value = await getOptValue(c, optDef.name, interpretNode);
@@ -157,7 +165,7 @@ export function defineCommand<M extends Module>(
         }
       }
 
-      // 7. Call user's run function
+      // 8. Call user's run function
       return run(module as M, parsedArgs, {
         opts: parsedOpts,
         node: c,

@@ -11,12 +11,12 @@ import {
 } from "@evmcrispr/sdk";
 import {
   createInterpreter,
+  expect,
   expectThrowAsync,
   getPublicClient,
   type InterpreterCase,
   runInterpreterCases,
 } from "@evmcrispr/test-utils";
-import { expect } from "chai";
 import type { PublicClient } from "viem";
 
 describe("Interpreter - primaries", async () => {

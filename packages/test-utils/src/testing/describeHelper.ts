@@ -1,7 +1,7 @@
 import { beforeAll, describe, it } from "bun:test";
 import type { ErrorException, HelperArgDefEntry } from "@evmcrispr/sdk";
 import { ComparisonType, NodeType, Num } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { getPublicClient } from "../client";
 import { itChecksInvalidArgsLength, preparingExpression } from "../evml";

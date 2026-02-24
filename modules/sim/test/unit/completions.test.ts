@@ -42,34 +42,16 @@ describe("Completions – sim commands", () => {
   // -------------------------------------------------------------------------
 
   describe("expect", () => {
-    it("expect <cursor> should show user variables (completion override)", async () => {
-      const script = `set $x 1\n${SIM}sim:expect `;
-      const items = await evm.getCompletions(script, pos(script, 3));
-      // Custom override returns variables only
-      expect(onlyKind(items, "variable").length).to.be.greaterThan(0);
-      expect(hasLabel(items, "$x")).to.be.true;
-    });
-
-    it("expect $x <cursor> should show only operators", async () => {
-      const script = `${SIM}sim:expect $x `;
+    it("expect <cursor> should show bool-compatible items", async () => {
+      const script = `${SIM}sim:expect `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      const fieldItems = onlyKind(items, "field");
-      expect(fieldItems.length).to.be.greaterThan(0);
-      expect(hasLabel(items, "==")).to.be.true;
-      expect(hasLabel(items, "!=")).to.be.true;
-      expect(hasLabel(items, "<")).to.be.true;
-      expect(hasLabel(items, "<=")).to.be.true;
-      expect(hasLabel(items, ">")).to.be.true;
-      expect(hasLabel(items, ">=")).to.be.true;
-      // Should be only operators (field items), no helpers
-      expect(onlyKind(items, "helper")).to.have.lengthOf(0);
-    });
-
-    it("expect $x == <cursor> should show user variables (completion override)", async () => {
-      const script = `set $y 2\n${SIM}sim:expect $x == `;
-      const items = await evm.getCompletions(script, pos(script, 3));
-      expect(onlyKind(items, "variable").length).to.be.greaterThan(0);
-      expect(hasLabel(items, "$y")).to.be.true;
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      const helperItems = onlyKind(items, "helper");
+      expect(hasLabel(helperItems, "@bool")).to.be.true;
+      expect(hasLabel(helperItems, "@and")).to.be.true;
+      expect(hasLabel(helperItems, "@or")).to.be.true;
+      expect(hasLabel(helperItems, "@not")).to.be.true;
     });
   });
 

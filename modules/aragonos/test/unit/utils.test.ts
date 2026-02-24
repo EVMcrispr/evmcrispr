@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
 
 import {

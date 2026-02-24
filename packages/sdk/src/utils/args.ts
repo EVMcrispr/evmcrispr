@@ -125,5 +125,10 @@ export function isHexString(value: any): boolean {
 }
 
 export function isBoolean(value: any): boolean {
-  return typeof value === "boolean";
+  return typeof value === "boolean" || value === "true" || value === "false";
+}
+
+export function coerceBoolean(value: any): boolean {
+  if (typeof value === "boolean") return value;
+  return value === "true";
 }

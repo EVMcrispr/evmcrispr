@@ -36,5 +36,45 @@ if $flag (
         expect(actions).to.have.length(1);
       },
     },
+    {
+      name: "should execute block when @bool returns true",
+      script: `
+if @bool(1, ==, 1) (
+  exec ${target} ${fnSig} ${target} 100e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should skip block when @bool returns false",
+      script: `
+if @bool(1, >, 2) (
+  exec ${target} ${fnSig} ${target} 100e18
+)`,
+      expectedActions: [],
+    },
+    {
+      name: "should work with @and and @bool",
+      script: `
+set $a 10
+set $b 5
+if @and(@bool($a, >, 0), @bool($b, <, 100)) (
+  exec ${target} ${fnSig} ${target} 100e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should work with @not",
+      script: `
+if @not(false) (
+  exec ${target} ${fnSig} ${target} 100e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
   ],
 });

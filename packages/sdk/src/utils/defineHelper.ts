@@ -1,12 +1,13 @@
 import { ErrorException } from "../errors";
 import type { Module } from "../Module";
 import type {
+  CompletionOverrides,
   HelperFunction,
   HelperFunctionNode,
   NodesInterpreters,
 } from "../types";
 import { NodeType } from "../types";
-import { ComparisonType, checkArgsLength } from "./args";
+import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
 import { type ArgDef, type ArgType, validateArgType } from "./schema";
 
 export interface HelperContext {
@@ -20,6 +21,8 @@ export interface HelperConfig<M extends Module> {
   description?: string;
   returnType?: ArgType;
   args: ArgDef[];
+  /** Override type-driven completions for specific args by name. */
+  completions?: CompletionOverrides;
   run(
     module: M,
     args: Record<string, any>,
@@ -98,7 +101,14 @@ export function defineHelper<M extends Module>(
       }
     }
 
-    // 4. Call user's run function
+    // 4. Coerce bool args from string to native boolean
+    for (const def of argDefs) {
+      if (def.type === "bool" && typeof parsedArgs[def.name] === "string") {
+        parsedArgs[def.name] = coerceBoolean(parsedArgs[def.name]);
+      }
+    }
+
+    // 5. Call user's run function
     return run(module as M, parsedArgs, { node: h, interpreters });
   };
 

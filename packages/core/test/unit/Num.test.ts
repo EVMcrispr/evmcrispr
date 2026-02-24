@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import { Num } from "@evmcrispr/sdk";
-import { expect } from "chai";
+import { expect } from "@evmcrispr/test-utils";
 
 describe("Num", () => {
   describe("construction", () => {
