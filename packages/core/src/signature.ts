@@ -142,7 +142,7 @@ function findHelperInCache(
   moduleCache: BindingsManager,
 ): {
   argDefs?: HelperArgDefEntry[];
-  returnType?: string;
+  returnType?: string | string[];
   description?: string;
 } | null {
   const allModules = getAllModules(moduleCache);
@@ -166,17 +166,21 @@ function findHelperInCache(
 function buildHelperSignature(
   helperName: string,
   argDefs: HelperArgDefEntry[],
-  returnType: string | undefined,
+  returnType: string | string[] | undefined,
   description: string | undefined,
 ): SignatureInfo {
   const params: ParameterInfo[] = argDefs.map((a) => {
     const suffix = a.rest ? "..." : "";
     const opt = a.optional ? "?" : "";
-    return { label: `${a.name}${opt}: ${a.type}${suffix}` };
+    const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
+    return { label: `${a.name}${opt}: ${typeLabel}${suffix}` };
   });
 
   const paramLabels = params.map((p) => p.label).join(", ");
-  const ret = returnType ? ` → ${returnType}` : "";
+  const retLabel = Array.isArray(returnType)
+    ? returnType.join(" | ")
+    : returnType;
+  const ret = retLabel ? ` → ${retLabel}` : "";
   const label = `@${helperName}(${paramLabels})${ret}`;
 
   return { label, documentation: description, parameters: params };
@@ -191,7 +195,8 @@ function buildCommandSignature(
 
   const params: ParameterInfo[] = command.argDefs.map((a) => {
     const suffix = a.rest ? "..." : "";
-    const label = `${a.name}: ${a.type}${suffix}`;
+    const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
+    const label = `${a.name}: ${typeLabel}${suffix}`;
     return {
       label: a.optional || a.rest ? `[${label}]` : `<${label}>`,
     };

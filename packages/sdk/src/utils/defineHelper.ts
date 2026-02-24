@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { NodeType } from "../types";
 import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
+import type { Param } from "./encoders";
 import { type ArgDef, type ArgType, validateArgType } from "./schema";
 
 export interface HelperContext {
@@ -27,7 +28,7 @@ export interface HelperConfig<M extends Module> {
     module: M,
     args: Record<string, any>,
     context: HelperContext,
-  ): Promise<string>;
+  ): Promise<Param>;
 }
 
 export function defineHelper<M extends Module>(

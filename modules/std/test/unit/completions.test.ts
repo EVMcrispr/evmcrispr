@@ -474,12 +474,10 @@ describe("Completions – std helpers", () => {
       const script = "exec $c f(bool) ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
-      expect(hasLabel(helperItems, "@get")).to.be.true;
-      expect(hasLabel(helperItems, "@bool")).to.be.true;
-      expect(hasLabel(helperItems, "@and")).to.be.true;
-      expect(hasLabel(helperItems, "@or")).to.be.true;
-      expect(hasLabel(helperItems, "@not")).to.be.true;
-      expect(helperItems).to.have.lengthOf(5);
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
     });
 
     it("exec $c f(string) <cursor> should show string-compatible helpers", async () => {
@@ -646,12 +644,10 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
       const helperItems = onlyKind(items, "helper");
-      expect(hasLabel(helperItems, "@get")).to.be.true;
-      expect(hasLabel(helperItems, "@bool")).to.be.true;
-      expect(hasLabel(helperItems, "@and")).to.be.true;
-      expect(hasLabel(helperItems, "@or")).to.be.true;
-      expect(hasLabel(helperItems, "@not")).to.be.true;
-      expect(helperItems).to.have.lengthOf(5);
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
     });
 
     // Unclosed parens: same scenarios without closing ")"
@@ -673,12 +669,10 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
       const helperItems = onlyKind(items, "helper");
-      expect(hasLabel(helperItems, "@get")).to.be.true;
-      expect(hasLabel(helperItems, "@bool")).to.be.true;
-      expect(hasLabel(helperItems, "@and")).to.be.true;
-      expect(hasLabel(helperItems, "@or")).to.be.true;
-      expect(hasLabel(helperItems, "@not")).to.be.true;
-      expect(helperItems).to.have.lengthOf(5);
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
     });
 
     // @get(address, read-abi, ...any)  →  rest arg with bool signature
@@ -691,12 +685,10 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "true")).to.be.true;
       expect(hasLabel(items, "false")).to.be.true;
       const helperItems = onlyKind(items, "helper");
-      expect(hasLabel(helperItems, "@get")).to.be.true;
-      expect(hasLabel(helperItems, "@bool")).to.be.true;
-      expect(hasLabel(helperItems, "@and")).to.be.true;
-      expect(hasLabel(helperItems, "@or")).to.be.true;
-      expect(hasLabel(helperItems, "@not")).to.be.true;
-      expect(helperItems).to.have.lengthOf(5);
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
     });
 
     // @nextContract(address, number?)  →  first arg: address

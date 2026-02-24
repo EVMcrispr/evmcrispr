@@ -66,30 +66,17 @@ export const createLanguage: (
 
   namedLiterals,
 
-  escapes: `\\\\(u{[0-9A-Fa-f]+}|n|r|t|\\\\|'|\\\${)`,
+  escapes: `\\\\(u{[0-9A-Fa-f]+}|n|r|t|\\\\|')`,
 
   tokenizer: {
     root: [{ include: "@expression" }, { include: "@whitespace" }],
 
     stringLiteral: [
-      {
-        regex: `\\\${`,
-        action: { token: "delimiter.bracket", next: "@bracketCounting" },
-      },
-      { regex: `[^\\\\'"$]+`, action: { token: "string" } },
+      { regex: `[^\\\\\\'"]+`, action: { token: "string" } },
       { regex: "@escapes", action: { token: "string.escape" } },
       { regex: `\\\\.`, action: { token: "string.escape.invalid" } },
       { regex: `'`, action: { token: "string", next: "@pop" } },
       { regex: `"`, action: { token: "string", next: "@pop" } },
-    ],
-
-    bracketCounting: [
-      {
-        regex: `{`,
-        action: { token: "delimiter.bracket", next: "@bracketCounting" },
-      },
-      { regex: `}`, action: { token: "delimiter.bracket", next: "@pop" } },
-      { include: "expression" },
     ],
 
     comment: [],

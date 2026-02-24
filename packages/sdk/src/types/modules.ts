@@ -2,6 +2,7 @@ import type { Address, Chain, PublicClient, Transport } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
+import type { Param } from "../utils/encoders";
 import type { ArgDef, ArgType, OptDef } from "../utils/schema";
 import type { Action } from "./actions";
 import type { CommandExpressionNode, HelperFunctionNode, Node } from "./ast";
@@ -74,7 +75,7 @@ export type HelperFunction<T = Module> = (
   module: T,
   h: HelperFunctionNode,
   interpreters: NodesInterpreters,
-) => Promise<string>;
+) => Promise<Param>;
 
 /** Lazy loader: () => Promise<HelperFunction>. Resolved on first use. */
 export type HelperLoader<M extends Module = Module> = () => Promise<
@@ -147,7 +148,7 @@ export type CommandImportMap = Record<string, CommandImportEntry>;
 /** Simplified arg definition stored in import metadata (no functions). */
 export type HelperArgDefEntry = {
   name: string;
-  type: string;
+  type: string | string[];
   optional?: boolean;
   rest?: boolean;
   /** For rest args: resolve effective type from the function signature in

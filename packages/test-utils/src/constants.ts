@@ -8,6 +8,7 @@ export const STD_ALL_HELPERS = [
   "@abi.encodeCall",
   "@and",
   "@bool",
+  "@concat",
   "@date",
   "@ens",
   "@get",

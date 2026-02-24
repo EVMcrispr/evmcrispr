@@ -13,7 +13,8 @@ export class Num {
   readonly num: bigint;
   readonly den: bigint;
 
-  constructor(num: bigint, den: bigint) {
+  constructor(num: bigint, den?: bigint) {
+    den = den ?? 1n;
     if (den === 0n) {
       throw new Error("Division by zero");
     }

@@ -25,34 +25,66 @@ function getNames(dir: string): string[] {
 
 interface ArgDefMeta {
   name: string;
-  type: string;
+  type: string | string[];
   optional?: boolean;
   rest?: boolean;
   signatureArgIndex?: number;
 }
 
 interface HelperMeta {
-  returnType: string | null;
+  returnType: string | string[] | null;
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
   description: string | null;
 }
 
-function extractArgDefs(content: string): ArgDefMeta[] {
-  const argsMatch = content.match(/args:\s*\[([\s\S]*?)\],/);
-  if (!argsMatch || !argsMatch[1].trim()) return [];
+/** Parse a type value from source: either `"string"` or `["string", "array"]`. */
+function parseTypeValue(text: string, prop: string): string | string[] | null {
+  const singleRe = new RegExp(`${prop}:\\s*["']([^"']+)["']`);
+  const singleMatch = text.match(singleRe);
+  if (singleMatch) return singleMatch[1];
 
-  const argsContent = argsMatch[1];
+  const arrayRe = new RegExp(`${prop}:\\s*\\[([^\\]]+)\\]`);
+  const arrayMatch = text.match(arrayRe);
+  if (arrayMatch) {
+    return arrayMatch[1]
+      .split(",")
+      .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+      .filter(Boolean);
+  }
+  return null;
+}
+
+/** Extract the bracket-balanced content of `args: [ ... ]` from source text. */
+function extractArgsBlock(content: string): string | null {
+  const start = content.search(/args:\s*\[/);
+  if (start === -1) return null;
+  const openIdx = content.indexOf("[", start);
+  let depth = 1;
+  let i = openIdx + 1;
+  while (i < content.length && depth > 0) {
+    if (content[i] === "[") depth++;
+    else if (content[i] === "]") depth--;
+    i++;
+  }
+  if (depth !== 0) return null;
+  return content.slice(openIdx + 1, i - 1);
+}
+
+function extractArgDefs(content: string): ArgDefMeta[] {
+  const argsContent = extractArgsBlock(content);
+  if (!argsContent?.trim()) return [];
+
   const result: ArgDefMeta[] = [];
   const objRegex = /\{([^}]+)\}/g;
   let m: RegExpExecArray | null;
   while ((m = objRegex.exec(argsContent)) !== null) {
     const obj = m[1];
     const nameMatch = obj.match(/name:\s*["']([^"']+)["']/);
-    const typeMatch = obj.match(/type:\s*["']([^"']+)["']/);
-    if (!nameMatch || !typeMatch) continue;
+    const typeVal = parseTypeValue(obj, "type");
+    if (!nameMatch || !typeVal) continue;
 
-    const arg: ArgDefMeta = { name: nameMatch[1], type: typeMatch[1] };
+    const arg: ArgDefMeta = { name: nameMatch[1], type: typeVal };
     if (/optional:\s*true/.test(obj)) arg.optional = true;
     if (/rest:\s*true/.test(obj)) arg.rest = true;
     const sigArgIdxMatch = obj.match(/signatureArgIndex:\s*(\d+)/);
@@ -68,12 +100,12 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   if (!existsSync(filePath))
     return { returnType: null, hasArgs: false, argDefs: [], description: null };
   const content = readFileSync(filePath, "utf-8");
-  const rtMatch = content.match(/returnType:\s*["']([^"']+)["']/);
+  const returnType = parseTypeValue(content, "returnType");
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   const argDefs = extractArgDefs(content);
   const hasArgs = argDefs.length > 0;
   return {
-    returnType: rtMatch?.[1] ?? null,
+    returnType,
     hasArgs,
     argDefs,
     description: descMatch?.[1] ?? null,

@@ -26,10 +26,11 @@ export interface CustomArgType {
 
 export type CustomArgTypes = Record<string, CustomArgType>;
 
-export type ArgType = string;
+export type ArgType = string | string[];
 
 const BUILTIN_TYPES = new Set<string>([
   "address",
+  "array",
   "number",
   "string",
   "bytes",
@@ -42,7 +43,8 @@ const BUILTIN_TYPES = new Set<string>([
   "block",
 ]);
 
-export function isBuiltinType(type: string): boolean {
+export function isBuiltinType(type: ArgType): boolean {
+  if (Array.isArray(type)) return type.every((t) => BUILTIN_TYPES.has(t));
   return BUILTIN_TYPES.has(type);
 }
 
@@ -70,6 +72,21 @@ export function validateArgType(
   type: ArgType,
   customTypes?: CustomArgTypes,
 ): void {
+  if (Array.isArray(type)) {
+    const errors: string[] = [];
+    for (const t of type) {
+      try {
+        validateArgType(name, value, t, customTypes);
+        return;
+      } catch (e: any) {
+        errors.push(e.message);
+      }
+    }
+    throw new ErrorException(
+      `${name} must be one of [${type.join(", ")}], got ${value}`,
+    );
+  }
+
   if (!isBuiltinType(type)) {
     customTypes?.[type]?.validate?.(name, value);
     return;
@@ -81,6 +98,11 @@ export function validateArgType(
         throw new ErrorException(
           `${name} must be a valid address, got ${value}`,
         );
+      }
+      break;
+    case "array":
+      if (!Array.isArray(value)) {
+        throw new ErrorException(`${name} must be an array, got ${value}`);
       }
       break;
     case "number":
@@ -140,6 +162,20 @@ export async function completionsForType(
   ctx: CompletionContext,
   customTypes?: CustomArgTypes,
 ): Promise<CompletionItem[]> {
+  if (Array.isArray(type)) {
+    const seen = new Set<string>();
+    const results: CompletionItem[] = [];
+    for (const t of type) {
+      for (const item of await completionsForType(t, ctx, customTypes)) {
+        if (!seen.has(item.label)) {
+          seen.add(item.label);
+          results.push(item);
+        }
+      }
+    }
+    return results;
+  }
+
   switch (type) {
     case "address":
       return ctx.bindings
@@ -165,6 +201,8 @@ export async function completionsForType(
           return false;
         })
         .map((b) => variableItem(b.identifier));
+    case "array":
+      return [];
     case "bool":
       return [fieldItem("true"), fieldItem("false")];
     case "block":

@@ -19,6 +19,7 @@ import type {
   Node,
   NodeInterpreter,
   NodesInterpreter,
+  Param,
   Position,
   RelativeBinding,
   VariableIdentifierNode,
@@ -270,7 +271,7 @@ export class EVMcrispr {
       chainId: number,
       client: PublicClient,
       bindings: BindingsManager,
-    ): Promise<string> => {
+    ): Promise<Param> => {
       // Find which module owns this helper
       const moduleBindings = this.#moduleCache.getAllBindings({
         spaceFilters: [BindingsSpace.MODULE],

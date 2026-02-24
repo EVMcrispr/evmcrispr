@@ -252,18 +252,39 @@ const buildVarCompletionItems = (
 // Type-compatibility check for filtering helpers / variables
 // ---------------------------------------------------------------------------
 
+/** Normalize an ArgType to an array of single type tags. */
+function toTypeArray(type: string | string[] | undefined): string[] {
+  if (type == null) return ["string"];
+  return Array.isArray(type) ? type : [type];
+}
+
+const VAR_EXCLUDED_TYPES = new Set([
+  "address",
+  "number",
+  "bool",
+  "variable",
+  "block",
+]);
+
+/** Whether variable completions should be included for the given type. */
+function shouldIncludeVars(type: string | string[]): boolean {
+  const types = toTypeArray(type);
+  return isBuiltinType(type) && types.some((t) => !VAR_EXCLUDED_TYPES.has(t));
+}
+
 /** Check if a helper with the given return type can produce a value compatible
  *  with the expected argument type. */
 function isReturnTypeCompatible(
-  returnType: string | undefined,
-  expectedType: string,
+  returnType: string | string[] | undefined,
+  expectedType: string | string[],
 ): boolean {
-  if (expectedType === "any" || expectedType === "string") return true;
-  if (expectedType === "variable" || expectedType === "block") return false;
-  if (!isBuiltinType(expectedType)) return false;
-  const rt = returnType ?? "string";
-  if (rt === "any") return true;
-  return rt === expectedType;
+  const expected = toTypeArray(expectedType);
+  if (expected.includes("any") || expected.includes("string")) return true;
+  if (expected.every((t) => t === "variable" || t === "block")) return false;
+  if (!expected.some((t) => isBuiltinType(t))) return false;
+  const rt = toTypeArray(returnType);
+  if (rt.includes("any")) return true;
+  return rt.some((r) => expected.includes(r));
 }
 
 // ---------------------------------------------------------------------------
@@ -401,7 +422,7 @@ async function walkCommandsForBindings(
       }
 
       // Custom type with resolve: call it to produce bindings
-      if (!isBuiltinType(argDef.type)) {
+      if (!Array.isArray(argDef.type) && !isBuiltinType(argDef.type)) {
         const customType = customTypes[argDef.type];
         if (customType?.resolve && argNode.value) {
           try {
@@ -730,14 +751,7 @@ export async function getCompletions(
         const filteredHelpers = helperItems.filter((h) =>
           isReturnTypeCompatible(h.returnType, effectiveType),
         );
-        const includeVars =
-          isBuiltinType(effectiveType) &&
-          effectiveType !== "address" &&
-          effectiveType !== "number" &&
-          effectiveType !== "bool" &&
-          effectiveType !== "variable" &&
-          effectiveType !== "block";
-        const filteredVars = includeVars
+        const filteredVars = shouldIncludeVars(effectiveType)
           ? buildVarCompletionItems(bindings, currentCommandNode, position)
           : [];
         return [...typeDrivenItems, ...filteredHelpers, ...filteredVars];
@@ -794,14 +808,7 @@ export async function getCompletions(
           const filteredHelpers = helperItems.filter((h) =>
             isReturnTypeCompatible(h.returnType, optDef.type),
           );
-          const includeVars =
-            isBuiltinType(optDef.type) &&
-            optDef.type !== "address" &&
-            optDef.type !== "number" &&
-            optDef.type !== "bool" &&
-            optDef.type !== "variable" &&
-            optDef.type !== "block";
-          const filteredVars = includeVars
+          const filteredVars = shouldIncludeVars(optDef.type)
             ? buildVarCompletionItems(bindings, currentCommandNode, position)
             : [];
           return [...typeDrivenItems, ...filteredHelpers, ...filteredVars];
@@ -845,14 +852,7 @@ export async function getCompletions(
           isReturnTypeCompatible(h.returnType, effectiveType),
         );
 
-        const includeVars =
-          isBuiltinType(effectiveType) &&
-          effectiveType !== "address" &&
-          effectiveType !== "number" &&
-          effectiveType !== "bool" &&
-          effectiveType !== "variable" &&
-          effectiveType !== "block";
-        const filteredVars = includeVars
+        const filteredVars = shouldIncludeVars(effectiveType)
           ? buildVarCompletionItems(bindings, currentCommandNode, position)
           : [];
 

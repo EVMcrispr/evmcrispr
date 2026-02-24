@@ -56,6 +56,7 @@ export interface HelperTestConfig {
 
 const SAMPLE_VALUES: Record<string, string> = {
   address: "0x0000000000000000000000000000000000000001",
+  array: "[1, 2]",
   string: "'placeholder'",
   number: "1",
   bytes: "0x00",
@@ -64,10 +65,20 @@ const SAMPLE_VALUES: Record<string, string> = {
   any: "'placeholder'",
 };
 
+function sampleForType(type: string | string[]): string {
+  if (Array.isArray(type)) {
+    for (const t of type) {
+      if (SAMPLE_VALUES[t]) return SAMPLE_VALUES[t];
+    }
+    return "'placeholder'";
+  }
+  return SAMPLE_VALUES[type] ?? "'placeholder'";
+}
+
 function generateSampleArgs(argDefs: HelperArgDefEntry[]): string[] {
   return argDefs
     .filter((a) => !a.optional && !a.rest)
-    .map((a) => SAMPLE_VALUES[a.type] ?? "'placeholder'");
+    .map((a) => sampleForType(a.type));
 }
 
 function computeComparison(argDefs: HelperArgDefEntry[]) {

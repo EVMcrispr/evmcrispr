@@ -1,6 +1,7 @@
 import type { PublicClient } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
+import type { Param } from "../utils/encoders";
 import type { CommandExpressionNode, Node, Position } from "./ast";
 
 export type CompletionItemKind = "command" | "helper" | "variable" | "field";
@@ -11,7 +12,7 @@ export type CompletionItem = {
   kind: CompletionItemKind;
   sortPriority?: number;
   /** For helper items: the declared return type, used for filtering. */
-  returnType?: string;
+  returnType?: string | string[];
   /** When true, insertText uses Monaco snippet syntax (e.g. $0 for cursor). */
   isSnippet?: boolean;
   /** Short detail shown inline next to the label (e.g. return type). */
@@ -50,4 +51,4 @@ export type HelperResolver = (
   chainId: number,
   client: PublicClient,
   bindings: BindingsManager,
-) => Promise<string>;
+) => Promise<Param>;

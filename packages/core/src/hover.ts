@@ -114,7 +114,7 @@ function findHelperInCache(
   moduleCache: BindingsManager,
 ): {
   argDefs?: HelperArgDefEntry[];
-  returnType?: string;
+  returnType?: string | string[];
   description?: string;
   moduleName: string;
 } | null {
@@ -146,12 +146,14 @@ function formatCommandHover(
   const parts: string[] = [];
 
   for (const a of command.argDefs) {
-    const label = `${a.name}: ${a.type}${a.rest ? "..." : ""}`;
+    const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
+    const label = `${a.name}: ${typeLabel}${a.rest ? "..." : ""}`;
     parts.push(a.optional || a.rest ? `[${label}]` : `<${label}>`);
   }
 
   for (const o of command.optDefs) {
-    parts.push(`[--${o.name} ${o.type}]`);
+    const typeLabel = Array.isArray(o.type) ? o.type.join(" | ") : o.type;
+    parts.push(`[--${o.name} ${typeLabel}]`);
   }
 
   let result = `\`\`\`\n${prefix}${commandName} ${parts.join(" ")}\n\`\`\``;
@@ -164,7 +166,7 @@ function formatCommandHover(
 function formatHelperHover(
   helperName: string,
   argDefs: HelperArgDefEntry[] | undefined,
-  returnType: string | undefined,
+  returnType: string | string[] | undefined,
   description: string | undefined,
 ): string {
   const params = argDefs
@@ -172,11 +174,15 @@ function formatHelperHover(
         .map((a) => {
           const suffix = a.rest ? "..." : "";
           const opt = a.optional ? "?" : "";
-          return `${a.name}${opt}: ${a.type}${suffix}`;
+          const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
+          return `${a.name}${opt}: ${typeLabel}${suffix}`;
         })
         .join(", ")
     : "";
-  const ret = returnType ? ` → ${returnType}` : "";
+  const retLabel = Array.isArray(returnType)
+    ? returnType.join(" | ")
+    : returnType;
+  const ret = retLabel ? ` → ${retLabel}` : "";
   let result = `\`\`\`\n@${helperName}(${params})${ret}\n\`\`\``;
   if (description) {
     result += `\n${description}`;
@@ -281,7 +287,10 @@ export async function getHoverInfo(
     const optDef = resolved.command.optDefs.find((o) => o.name === optName);
     if (!optDef) return null;
 
-    return { contents: `\`\`\`\n--${optDef.name}: ${optDef.type}\n\`\`\`` };
+    const typeLabel = Array.isArray(optDef.type)
+      ? optDef.type.join(" | ")
+      : optDef.type;
+    return { contents: `\`\`\`\n--${optDef.name}: ${typeLabel}\n\`\`\`` };
   }
 
   // --- identifier: might be a command name ---

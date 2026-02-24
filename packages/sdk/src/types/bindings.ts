@@ -1,5 +1,6 @@
 import type { AstSymbol } from "jsymbol";
 
+import type { Param } from "../utils/encoders";
 import type { ArgType, CustomArgTypes } from "../utils/schema";
 import type { Abi } from ".";
 import type { Commands, HelperArgDefEntry, HelperFunctions } from "./modules";
@@ -56,7 +57,7 @@ export interface UserBinding extends IBinding<string> {
   type: BindingsSpace.USER;
 }
 
-export interface CacheBinding extends IBinding<string> {
+export interface CacheBinding extends IBinding<Param> {
   type: BindingsSpace.CACHE;
 }
 
