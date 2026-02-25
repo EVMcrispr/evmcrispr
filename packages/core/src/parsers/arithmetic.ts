@@ -14,6 +14,7 @@ import {
   optionalWhitespace,
   recursiveParser,
   sequenceOf,
+  str,
 } from "arcsecond";
 import { callExpressionParser } from "./call";
 import { helperFunctionParser } from "./helper";
@@ -38,7 +39,9 @@ const betweenParentheses = (parser: Parser<any, string, NodeParserState>) =>
 const plus = char("+");
 const minus = char("-");
 const times = char("*");
+const integerDivide = str("//");
 const divide = char("/");
+const modulo = char("%");
 const exp = char("^");
 
 type RawExpression = [
@@ -97,8 +100,26 @@ const operableExpressions = recursiveParser(() =>
   choice([
     callExpressionParser,
     helperFunctionParser,
-    variableIdentifierParser([plus, minus, times, divide, exp, char(")")]),
-    numberParser([plus, minus, times, divide, exp, char(")")]),
+    variableIdentifierParser([
+      plus,
+      minus,
+      times,
+      integerDivide,
+      divide,
+      modulo,
+      exp,
+      char(")"),
+    ]),
+    numberParser([
+      plus,
+      minus,
+      times,
+      integerDivide,
+      divide,
+      modulo,
+      exp,
+      char(")"),
+    ]),
   ]),
 );
 
@@ -115,9 +136,9 @@ const baseOrPow = recursiveParser(() =>
 
 // Group operations of the same precedence together
 const additionOrSubtraction = binaryExpression(choice([plus, minus]))(term);
-const multiplicationOrDivision = binaryExpression(choice([times, divide]))(
-  factor,
-);
+const multiplicationOrDivision = binaryExpression(
+  choice([times, integerDivide, divide, modulo]),
+)(factor);
 const exponentiation = binaryExpression(exp)(baseOrPow);
 
 // const buildArithmeticExpressionNode = (

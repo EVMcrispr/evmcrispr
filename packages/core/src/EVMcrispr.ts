@@ -692,6 +692,26 @@ export class EVMcrispr {
         }
         return left.div(right);
       }
+      case "%": {
+        const leftInt = left.toBigInt();
+        const rightInt = right.toBigInt();
+
+        if (rightInt === 0n) {
+          EVMcrispr.panic(n, `invalid operation. Can't modulo by zero`);
+        }
+
+        return Num.fromBigInt(leftInt % rightInt);
+      }
+      case "//": {
+        const leftInt = left.toBigInt();
+        const rightInt = right.toBigInt();
+
+        if (rightInt === 0n) {
+          EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
+        }
+
+        return Num.fromBigInt(leftInt / rightInt);
+      }
       case "^": {
         return left.pow(right);
       }

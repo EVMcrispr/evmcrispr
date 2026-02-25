@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { type Case, runCases } from "@evmcrispr/test-utils";
+import { type Case, expect, runCases, runParser } from "@evmcrispr/test-utils";
 import { arithmeticParser } from "../../../src/parsers/arithmetic";
 
 describe("Parsers - arithmetic", () => {
@@ -783,5 +783,39 @@ describe("Parsers - arithmetic", () => {
     ];
 
     runCases(c, arithmeticParser);
+  });
+
+  it("should parse integer division and modulo operators", () => {
+    const result = runParser(arithmeticParser, "(9 // 2 % 2)");
+    expect(result).to.deep.include({
+      type: "BinaryExpression",
+      operator: "%",
+    });
+
+    expect(result.left).to.deep.include({
+      type: "BinaryExpression",
+      operator: "//",
+    });
+  });
+
+  it("should keep integer division and modulo at multiplication precedence", () => {
+    const result = runParser(arithmeticParser, "(8 + 9 // 2 * 3 % 2)");
+    expect(result).to.deep.include({
+      type: "BinaryExpression",
+      operator: "+",
+    });
+
+    expect(result.right).to.deep.include({
+      type: "BinaryExpression",
+      operator: "%",
+    });
+    expect(result.right.left).to.deep.include({
+      type: "BinaryExpression",
+      operator: "*",
+    });
+    expect(result.right.left.left).to.deep.include({
+      type: "BinaryExpression",
+      operator: "//",
+    });
   });
 });

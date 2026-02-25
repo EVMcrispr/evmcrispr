@@ -111,4 +111,52 @@ describe("Interpreter - arithmetics", () => {
 
     await expectThrowAsync(() => interpret(), err);
   });
+
+  it("should return truncated integer results for //", async () => {
+    const [interpretA] = await preparingExpression("(7 // 2)", client);
+    const [interpretB] = await preparingExpression("(5.5 // 2)", client);
+    const [interpretC] = await preparingExpression("((0 - 7.9) // 2)", client);
+
+    const [resA, resB, resC] = await Promise.all([
+      interpretA(),
+      interpretB(),
+      interpretC(),
+    ]);
+
+    expect((resA as Num).eq(Num.fromBigInt(3n))).to.be.true;
+    expect((resB as Num).eq(Num.fromBigInt(2n))).to.be.true;
+    expect((resC as Num).eq(Num.fromBigInt(-3n))).to.be.true;
+  });
+
+  it("should coerce operands to integers for modulo", async () => {
+    const [interpretA] = await preparingExpression("(5.5 % 2)", client);
+    const [interpretB] = await preparingExpression("((0 - 7.9) % 2)", client);
+
+    const [resA, resB] = await Promise.all([interpretA(), interpretB()]);
+
+    expect((resA as Num).eq(Num.fromBigInt(1n))).to.be.true;
+    expect((resB as Num).eq(Num.fromBigInt(-1n))).to.be.true;
+  });
+
+  it("should fail when trying to perform an integer division by zero", async () => {
+    const [interpret, n] = await preparingExpression("(4 // 0.5)", client);
+    const err = new ExpressionError(
+      n,
+      `invalid operation. Can't divide by zero`,
+      { name },
+    );
+
+    await expectThrowAsync(() => interpret(), err);
+  });
+
+  it("should fail when trying to perform modulo by zero", async () => {
+    const [interpret, n] = await preparingExpression("(4 % 0)", client);
+    const err = new ExpressionError(
+      n,
+      `invalid operation. Can't modulo by zero`,
+      { name },
+    );
+
+    await expectThrowAsync(() => interpret(), err);
+  });
 });
