@@ -233,7 +233,9 @@ describe("Completions – giveth helpers", () => {
     it("@projectAddr should have isSnippet = true and insertText with ($0)", async () => {
       const script = `${GIVETH}print `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      const projectAddr = items.find((i) => i.label === "@projectAddr");
+      const projectAddr = items.find(
+        (i: CompletionItem) => i.label === "@projectAddr",
+      );
       expect(projectAddr).to.exist;
       expect(projectAddr!.isSnippet).to.be.true;
       expect(projectAddr!.insertText).to.equal("@projectAddr($0)");

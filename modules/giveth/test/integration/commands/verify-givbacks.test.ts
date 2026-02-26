@@ -1,5 +1,5 @@
 import "../../setup";
-import type { CommandExpressionNode } from "@evmcrispr/sdk";
+import type { CommandExpressionNode, Node } from "@evmcrispr/sdk";
 import { CommandError } from "@evmcrispr/sdk";
 import {
   createInterpreter,
@@ -62,7 +62,7 @@ describeCommand("verify-givbacks", {
         "giveth:verify-givbacks QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1 49",
       error: (interpreter) => {
         const c = interpreter.ast.body.find(
-          (n) =>
+          (n: Node) =>
             (n as CommandExpressionNode).name === "verify-givbacks",
         ) as CommandExpressionNode;
         return new CommandError(

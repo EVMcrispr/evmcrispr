@@ -1,7 +1,8 @@
 import "../../setup";
+import type { WalletAction } from "@evmcrispr/sdk";
 import { describeCommand } from "@evmcrispr/test-utils";
 
-const walletAction = (chainId: string) => ({
+const walletAction = (chainId: string): WalletAction => ({
   type: "wallet",
   method: "wallet_switchEthereumChain",
   params: [{ chainId }],

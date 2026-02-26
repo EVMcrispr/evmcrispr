@@ -18,7 +18,6 @@ import {
   getContractAddress,
   keccak256,
   parseAbiItem,
-  parseUnits,
   toHex,
   zeroAddress,
 } from "viem";
@@ -34,6 +33,7 @@ import {
   createTestAction,
   createTestPreTxAction,
   createTestScriptEncodedAction,
+  toCallScriptAction,
 } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
@@ -133,20 +133,22 @@ describeCommand("connect", {
                 encodeCalldata(parseAbiItem([`function ` + initializeSignature]), [
                   newTokenAddress,
                   true,
-                  0,
+                  "0",
                 ]),
                 false,
               ]),
               createTestScriptEncodedAction(
                 [
-                  encodeAction(
-                    DAO3["agent:1"],
-                    "transfer(address,address,uint256)",
-                    [
-                      "0x44fA8E6f47987339850636F88629646662444217",
-                      me,
-                      parseUnits("10.50", 18),
-                    ],
+                  toCallScriptAction(
+                    encodeAction(
+                      DAO3["agent:1"],
+                      "transfer(address,address,uint256)",
+                      [
+                        "0x44fA8E6f47987339850636F88629646662444217",
+                        me,
+                        "10.50e18",
+                      ],
+                    ),
                   ),
                 ],
                 ["agent"],

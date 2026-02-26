@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, it } from "bun:test";
 import { expect, getPublicClient, resetAnvil } from "@evmcrispr/test-utils";
 import type { Address, PublicClient } from "viem";
-import { getAddress, isAddress } from "viem";
+import { getAddress, isAddress, keccak256, toHex } from "viem";
 import { fetchImplementationAddress } from "../../src/utils/proxies";
 
 describe("SDK > utils > fetchImplementationAddress", () => {
@@ -14,22 +14,75 @@ describe("SDK > utils > fetchImplementationAddress", () => {
   describe("EIP-1967 transparent proxy", () => {
     const AAVE_AGNO_USDC: Address =
       "0xc6B7AcA6DE8a6044E0e32d0c841a89244A10D284";
-    const EXPECTED_IMPL: Address = "0xCE579ae642E40F8356a9f538c6dB4E2Ea91C5850";
 
     it("should resolve to the implementation address", async () => {
       const impl = await fetchImplementationAddress(AAVE_AGNO_USDC, client);
       expect(impl).to.not.be.undefined;
-      expect(getAddress(impl!)).to.equal(getAddress(EXPECTED_IMPL));
+      expect(isAddress(impl!)).to.be.true;
+      expect(getAddress(impl!)).to.not.equal(getAddress(AAVE_AGNO_USDC));
+      // Resolved implementation should itself not resolve further.
+      const nested = await fetchImplementationAddress(impl!, client);
+      expect(nested).to.be.undefined;
     });
   });
 
   describe("beacon proxy", () => {
-    const BEACON_PROXY: Address = "0x2af76117f86D6E346e256173B44966e802f3cCbf";
-
+    /**
+     * Uses a deterministic mocked client so this doesn't rely on mutable
+     * on-chain addresses.
+     */
     it("should resolve implementation via beacon", async () => {
-      const impl = await fetchImplementationAddress(BEACON_PROXY, client);
+      const proxy = "0x1111111111111111111111111111111111111111" as Address;
+      const beacon = "0x2222222222222222222222222222222222222222" as Address;
+      const implementation =
+        "0x3333333333333333333333333333333333333333" as Address;
+
+      const EIP1967_BEACON_SLOT = toHex(
+        BigInt(keccak256(toHex("eip1967.proxy.beacon"))) - 1n,
+      );
+
+      const beaconRaw =
+        `0x${"0".repeat(24)}${beacon.slice(2)}` as `0x${string}`;
+
+      const mockClient = {
+        getCode: async () => "0x6000",
+        getStorageAt: async ({
+          address,
+          slot,
+        }: {
+          address: Address;
+          slot: `0x${string}`;
+        }) => {
+          if (
+            address.toLowerCase() === proxy.toLowerCase() &&
+            slot.toLowerCase() === EIP1967_BEACON_SLOT.toLowerCase()
+          ) {
+            return beaconRaw;
+          }
+          return "0x";
+        },
+        multicall: async ({
+          contracts,
+        }: {
+          contracts: Array<{ address: Address; functionName: string }>;
+        }) => {
+          const firstAddress = contracts[0]?.address?.toLowerCase();
+          if (firstAddress === beacon.toLowerCase()) {
+            return [
+              { status: "success" as const, result: implementation },
+              { status: "failure" as const, error: {} },
+            ];
+          }
+          return [
+            { status: "failure" as const, error: {} },
+            { status: "failure" as const, error: {} },
+          ];
+        },
+      } as unknown as PublicClient;
+
+      const impl = await fetchImplementationAddress(proxy, mockClient);
       expect(impl).to.not.be.undefined;
-      expect(isAddress(impl!)).to.be.true;
+      expect(getAddress(impl!)).to.equal(getAddress(implementation));
     });
   });
 

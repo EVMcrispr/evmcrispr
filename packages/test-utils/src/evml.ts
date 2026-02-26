@@ -179,7 +179,7 @@ export const preparingExpression = async (
   const i = createInterpreter(script, client);
 
   const setCommands = i.ast.body.filter(
-    (n) => (n as CommandExpressionNode).name === "set",
+    (n: Node) => (n as CommandExpressionNode).name === "set",
   );
   const setCommand = setCommands[
     setCommands.length - 1

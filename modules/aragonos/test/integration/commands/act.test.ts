@@ -4,7 +4,10 @@ import { CommandError, encodeAction } from "@evmcrispr/sdk";
 import { describeCommand, expect } from "@evmcrispr/test-utils";
 import { toHex } from "viem";
 import { DAO } from "../../fixtures";
-import { createTestScriptEncodedAction } from "../../test-helpers/actions";
+import {
+  createTestScriptEncodedAction,
+  toCallScriptAction,
+} from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
 const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
@@ -22,16 +25,18 @@ describeCommand("act", {
         const expectedActActions = [
           createTestScriptEncodedAction(
             [
-              encodeAction(
-                DAO["agent:2"],
-                "function deposit((uint256,int256),uint256[][])",
-                [
-                  [1, -2],
+              toCallScriptAction(
+                encodeAction(
+                  DAO["agent:2"],
+                  "function deposit((uint256,int256),uint256[][])",
                   [
-                    [2, 3],
-                    [4, 5],
+                    ["1", "-2"],
+                    [
+                      ["2", "3"],
+                      ["4", "5"],
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
             ["agent:1"],
@@ -48,15 +53,17 @@ describeCommand("act", {
         const expectedActActions = [
           createTestScriptEncodedAction(
             [
-              encodeAction(
-                "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7",
-                "function addBatches(bytes32[],bytes)",
-                [
+              toCallScriptAction(
+                encodeAction(
+                  "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7",
+                  "function addBatches(bytes32[],bytes)",
                   [
-                    "0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667",
+                    [
+                      "0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667",
+                    ],
+                    toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
                   ],
-                  toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
-                ],
+                ),
               ),
             ],
             ["agent"],

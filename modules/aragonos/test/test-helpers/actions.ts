@@ -1,6 +1,8 @@
-import { encodeCallScript } from "@evmcrispr/module-aragonos/utils";
 import {
-  type Action,
+  type CallScriptAction,
+  encodeCallScript,
+} from "@evmcrispr/module-aragonos/utils";
+import {
   type Address,
   encodeAction,
   type TransactionAction,
@@ -16,10 +18,10 @@ export const createTestPreTxAction = (
   operation: string,
   to: Address,
   parameters: any[],
-): Action => {
+): CallScriptAction => {
   switch (operation) {
     case "approve":
-      return encodeAction(to, "approve(address,uint256)", parameters);
+      return toCallScriptAction(encodeAction(to, "approve(address,uint256)", parameters));
     default:
       throw new Error(`Pretransaction operation ${operation} not found.`);
   }
@@ -39,7 +41,7 @@ export const createTestAction = (
     | "setApp",
   to: Address,
   parameters?: any[],
-): TransactionAction => {
+): CallScriptAction => {
   const abi = parseAbi([
     "function changeController(address)",
     "function createCloneToken(address,uint256,string,uint8,string,bool)",
@@ -53,15 +55,15 @@ export const createTestAction = (
     "function setApp(bytes32,bytes32,address)",
   ]);
 
-  return encodeAction(to, operation, parameters || [], { abi });
+  return toCallScriptAction(encodeAction(to, operation, parameters || [], { abi }));
 };
 
 export const createTestScriptEncodedAction = (
-  forwarderActions: TransactionAction[],
+  forwarderActions: CallScriptAction[],
   path: string[],
   dao: Record<string, Address>,
   context?: string,
-): TransactionAction => {
+): CallScriptAction => {
   let script: string;
   const forwardingPath = [...path].reverse();
   for (const forwarder of forwardingPath) {
@@ -71,20 +73,22 @@ export const createTestScriptEncodedAction = (
 
     switch (forwarderType) {
       case FORWARDER_TYPE:
-        forwarderActions = [
-          encodeAction(forwarderAddress, "forward(bytes)", [script]),
-        ];
+        {
+          const action = encodeAction(forwarderAddress, "forward(bytes)", [script]);
+          forwarderActions = [toCallScriptAction(action)];
+        }
         break;
       case CONTEXT_FORWARDER_TYPE:
         if (!context) {
           throw new Error("Context not provided.");
         }
-        forwarderActions = [
-          encodeAction(forwarderAddress, "forward(bytes,bytes)", [
+        {
+          const action = encodeAction(forwarderAddress, "forward(bytes,bytes)", [
             script,
             toHex(context),
-          ]),
-        ];
+          ]);
+          forwarderActions = [toCallScriptAction(action)];
+        }
         break;
       default:
         throw new Error(`Type ${forwarderType} not found.`);
@@ -93,3 +97,10 @@ export const createTestScriptEncodedAction = (
 
   return forwarderActions[0];
 };
+
+export function toCallScriptAction(action: TransactionAction): CallScriptAction {
+  if (!action.data) {
+    throw new Error("Missing calldata for call script action.");
+  }
+  return { to: action.to, data: action.data };
+}

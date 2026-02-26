@@ -20,11 +20,15 @@
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*",
+    "abitype": "^1.2.3",
     "arcsecond": "^5.0.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "viem": "^2.29.4"
+  },
+  "bin": {
+    "evmcrispr-build": "./scripts/build.ts"
   },
   "files": [
     "dist",
@@ -32,7 +36,7 @@
   ],
   "scripts": {
     "lint": "biome check src",
-    "type-check": "tsc --noEmit",
-    "build": "bun ./scripts/build.ts"
+    "type-check": "tsc -p tsconfig.json",
+    "build": "evmcrispr-build"
   }
 }

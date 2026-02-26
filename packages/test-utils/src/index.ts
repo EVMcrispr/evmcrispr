@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 // Re-export EVMcrispr from core
 export { createParserState, EVMcrispr, parseScript } from "@evmcrispr/core";
 export { expect } from "chai";

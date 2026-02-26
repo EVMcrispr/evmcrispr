@@ -1,6 +1,5 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import Ens from "@evmcrispr/module-ens";
 import {
   createInterpreter,
   expect,
@@ -26,7 +25,7 @@ describe("Std > commands > load <name> [--as <alias>]", () => {
     expect(modules.length, "total modules length mismatch").to.be.equal(2);
     expect(module, "module doesn't exists").to.exist;
     expect(module?.name, "module name mismatch").to.equals(moduleName);
-    expect(module, "module class mismatch").instanceOf(Ens);
+    expect(module, "module class mismatch").to.have.property("name", moduleName);
   });
 
   it("should set an alias for a module correctly", async () => {

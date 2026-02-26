@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "types": ["node", "bun"]
+    "types": ["node", "bun"],
+    "baseUrl": ".",
+    "paths": {
+      "@evmcrispr/core": ["./src/index.ts"],
+      "@evmcrispr/core/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

@@ -10,6 +10,17 @@
       "persistent": true
     },
     "type-check": {
+      "dependsOn": [
+        "build",
+        "^build",
+        "@evmcrispr/core#build",
+        "@evmcrispr/module-std#build"
+      ]
+    },
+    "evmcrispr-website#type-check": {
+      "dependsOn": ["^build"]
+    },
+    "evmcrispr-terminal#type-check": {
       "dependsOn": ["^build"]
     },
     "lint": {},

@@ -1,15 +1,18 @@
 import { EVMcrispr } from "@evmcrispr/core";
 
+const loadModule = (moduleName: string) => import(moduleName);
+
 /**
  * Register all available EVMcrispr modules. Call once per test setup file.
  */
 export function registerAllModules(): void {
-  EVMcrispr.registerModule(
-    "aragonos",
-    () => import("@evmcrispr/module-aragonos"),
+  EVMcrispr.registerModule("aragonos", () =>
+    loadModule("@evmcrispr/module-aragonos"),
   );
-  EVMcrispr.registerModule("sim", () => import("@evmcrispr/module-sim"));
-  EVMcrispr.registerModule("giveth", () => import("@evmcrispr/module-giveth"));
-  EVMcrispr.registerModule("ens", () => import("@evmcrispr/module-ens"));
-  EVMcrispr.registerModule("http", () => import("@evmcrispr/module-http"));
+  EVMcrispr.registerModule("sim", () => loadModule("@evmcrispr/module-sim"));
+  EVMcrispr.registerModule("giveth", () =>
+    loadModule("@evmcrispr/module-giveth"),
+  );
+  EVMcrispr.registerModule("ens", () => loadModule("@evmcrispr/module-ens"));
+  EVMcrispr.registerModule("http", () => loadModule("@evmcrispr/module-http"));
 }

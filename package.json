@@ -4,6 +4,7 @@
     "viem": "^2.45.1"
   },
   "scripts": {
+    "postinstall": "ln -sf ../../packages/sdk/scripts/build.ts node_modules/.bin/evmcrispr-build",
     "prepare": "husky",
     "build": "turbo run build",
     "changeset:release": "turbo run build && changeset publish",

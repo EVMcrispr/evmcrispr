@@ -5,7 +5,8 @@ export const findStdCommandNode = (
   commandName: string,
 ): CommandExpressionNode | undefined => {
   const commandNode = ast.body.find(
-    (n) => (n as CommandExpressionNode).name === commandName,
+    (n: AST["body"][number]) =>
+      (n as CommandExpressionNode).name === commandName,
   ) as CommandExpressionNode;
 
   return commandNode;

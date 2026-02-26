@@ -157,7 +157,9 @@ describe("Completions – ens helpers", () => {
     it("@contenthash should have isSnippet = true and insertText with ($0)", async () => {
       const script = `${ENS}print `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      const contenthash = items.find((i) => i.label === "@contenthash");
+      const contenthash = items.find(
+        (i: CompletionItem) => i.label === "@contenthash",
+      );
       expect(contenthash).to.exist;
       expect(contenthash!.isSnippet).to.be.true;
       expect(contenthash!.insertText).to.equal("@contenthash($0)");

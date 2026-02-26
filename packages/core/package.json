@@ -44,7 +44,7 @@
     "type-check": "tsc --noEmit",
     "test:unit": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
-    "build": "rm -rf dist && bun build ./src/index.ts --outdir ./dist --format esm --sourcemap=linked --packages external && tsc"
+    "build": "evmcrispr-build"
   },
   "private": true
 }

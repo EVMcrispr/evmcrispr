@@ -12,7 +12,7 @@ import {
   getPublicClient,
   getWalletClients,
 } from "@evmcrispr/test-utils";
-import type { PublicClient, WalletClient } from "viem";
+import type { Address, PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, isAddressEqual, parseAbiParameters } from "viem";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
@@ -59,7 +59,10 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
 
     expect(
       isAddressEqual(
-        aragonos.bindingsManager.getBindingValue("$dao", BindingsSpace.USER)!,
+        aragonos.bindingsManager.getBindingValue(
+          "$dao",
+          BindingsSpace.USER,
+        ) as Address,
         newDAOAddress,
       ),
       "new DAO binding mismatch",
