@@ -1,4 +1,17 @@
-// Re-exported from utils.ts to avoid circular dependency.
-// comment.ts previously imported optionalWhitespace/endLine from utils.ts,
-// while utils.ts imported commentParser from comment.ts.
-export { commentParser } from "./utils";
+import {
+  char,
+  choice,
+  endOfInput,
+  everythingUntil,
+  recursiveParser,
+  sequenceOf,
+} from "arcsecond";
+import { endLine, optionalWhitespace } from "./utils";
+
+export const commentParser = recursiveParser(() =>
+  sequenceOf([
+    optionalWhitespace,
+    char("#"),
+    everythingUntil(choice([endOfInput, endLine])),
+  ]),
+);

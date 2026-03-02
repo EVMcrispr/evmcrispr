@@ -15,7 +15,6 @@ import {
   either,
   endOfInput,
   everyCharUntil,
-  everythingUntil,
   getData,
   lookAhead,
   possibly,
@@ -28,6 +27,7 @@ import {
   takeLeft,
   tapParser,
 } from "arcsecond";
+import { commentParser } from "./comment";
 
 export const createParserState = (): NodeParserState => ({
   line: 1,
@@ -240,19 +240,3 @@ export const locate = <N extends Node = Node>(
       p,
     ]).mapFromData<N>(createNode),
   );
-
-// Comment parser is defined here (instead of comment.ts) to avoid
-// a circular dependency: comment.ts needs optionalWhitespace/endLine
-// from utils.ts, and utils.ts needs commentParser in linesParser.
-// Comments require "# " (hash + space) or "#" at end of line/input,
-// so that bare "#" can be used in event capture occurrence syntax (e.g. Event#1).
-const commentInitializerSeq = sequenceOf([
-  char("#"),
-  choice([char(" "), lookAhead(endOfLine), lookAhead(endOfInput)]),
-]);
-
-export const commentParser = sequenceOf([
-  optionalWhitespace,
-  commentInitializerSeq,
-  everythingUntil(choice([endOfInput, endLine])),
-]);

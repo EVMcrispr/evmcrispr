@@ -156,6 +156,47 @@ describe("Parsers - comment", () => {
     runCases(c, scriptParser);
   });
 
+  it("should parse a comment without space after #", () => {
+    const c: Case = [
+      `
+        #no space here
+        set $var1 1e18
+      `,
+      {
+        type: "Program",
+        body: [
+          {
+            type: "CommandExpression",
+            name: "set",
+            args: [
+              {
+                type: "VariableIdentifier",
+                value: "$var1",
+                loc: {
+                  start: { line: 3, col: 12 },
+                  end: { line: 3, col: 17 },
+                },
+              },
+              {
+                type: "NumberLiteral",
+                value: "1",
+                power: 18,
+                loc: {
+                  start: { line: 3, col: 18 },
+                  end: { line: 3, col: 22 },
+                },
+              },
+            ],
+            opts: [],
+            loc: { start: { line: 3, col: 8 }, end: { line: 3, col: 22 } },
+          },
+        ],
+      },
+    ];
+
+    runCases(c, scriptParser);
+  });
+
   it("should parse a standalone # (end of line) as a comment", () => {
     const c: Case = [
       `

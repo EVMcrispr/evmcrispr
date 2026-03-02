@@ -121,6 +121,10 @@ export const createLanguage: (
           token: "variable",
         },
       },
+      {
+        regex: /#\d+/,
+        action: { token: "number" },
+      },
     ],
   },
 });
