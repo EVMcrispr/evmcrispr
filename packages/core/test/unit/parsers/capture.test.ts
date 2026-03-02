@@ -7,137 +7,103 @@ import { parseScript } from "../../../src/parsers/script";
 
 describe("Parsers - event capture", () => {
   describe("eventCaptureParser", () => {
-    it("should parse a simple event capture with implicit index 0", () => {
-      const result = runParser(eventCaptureParser, "-> Withdrawn $amount");
+    it("should parse a simple event capture with one variable", () => {
+      const result = runParser(eventCaptureParser, "-> Withdrawn [$amount]");
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
       expect(result.contractFilter).to.be.undefined;
       expect(result.eventParams).to.be.undefined;
       expect(result.occurrence).to.be.undefined;
     });
 
-    it("should parse an event capture with explicit index", () => {
-      const result = runParser(eventCaptureParser, "-> Withdrawn:1 $to");
-      expect(result).to.deep.include({
-        type: "EventCapture",
-        eventName: "Withdrawn",
-        captures: [{ indexPath: [1], variable: "to" }],
-      });
-    });
-
-    it("should parse an event capture with deep index path", () => {
+    it("should parse a capture with a hole (skip position 0)", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> ComplexEvent:1:0:2 $nested",
-      );
-      expect(result).to.deep.include({
-        type: "EventCapture",
-        eventName: "ComplexEvent",
-        captures: [{ indexPath: [1, 0, 2], variable: "nested" }],
-      });
-    });
-
-    it("should parse an event capture with named field", () => {
-      const result = runParser(eventCaptureParser, "-> Withdrawn .amount $amt");
-      expect(result).to.deep.include({
-        type: "EventCapture",
-        eventName: "Withdrawn",
-        captures: [{ indexPath: [], fieldName: "amount", variable: "amt" }],
-      });
-    });
-
-    it("should parse multiple capture bindings", () => {
-      const result = runParser(
-        eventCaptureParser,
-        "-> Withdrawn $amount :1 $to",
+        "-> Withdrawn(address,uint) [, $amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
-        captures: [
-          { indexPath: [], variable: "amount" },
-          { indexPath: [1], variable: "to" },
-        ],
+        eventParams: ["address", "uint"],
+        captures: [null, "amount"],
       });
     });
 
-    it("should parse multiple named captures", () => {
+    it("should parse multiple captures", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Withdrawn .amount $amt .to $recipient",
+        "-> Withdrawn(uint,address) [$amount, $to]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
-        captures: [
-          { indexPath: [], fieldName: "amount", variable: "amt" },
-          { indexPath: [], fieldName: "to", variable: "recipient" },
-        ],
+        eventParams: ["uint", "address"],
+        captures: ["amount", "to"],
+      });
+    });
+
+    it("should parse nested destructure pattern", () => {
+      const result = runParser(
+        eventCaptureParser,
+        "-> Evt(uint,(address,uint)) [$x, [, $y]]",
+      );
+      expect(result).to.deep.include({
+        type: "EventCapture",
+        eventName: "Evt",
+        eventParams: ["uint", "(address,uint)"],
+        captures: ["x", [null, "y"]],
       });
     });
 
     it("should parse occurrence selector", () => {
-      const result = runParser(eventCaptureParser, "-> Transfer#1 $amount");
+      const result = runParser(eventCaptureParser, "-> Transfer#1 [$amount]");
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Transfer",
         occurrence: 1,
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
     });
 
     it("should parse inline event params", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Withdrawn(uint256,address) $amount",
+        "-> Withdrawn(uint256,address) [$amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
         eventParams: ["uint256", "address"],
-        captures: [{ indexPath: [], variable: "amount" }],
-      });
-    });
-
-    it("should parse inline event params with index", () => {
-      const result = runParser(
-        eventCaptureParser,
-        "-> Withdrawn(uint256,address):1 $to",
-      );
-      expect(result).to.deep.include({
-        type: "EventCapture",
-        eventName: "Withdrawn",
-        eventParams: ["uint256", "address"],
-        captures: [{ indexPath: [1], variable: "to" }],
+        captures: ["amount"],
       });
     });
 
     it("should parse inline event params with occurrence", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Swapped(uint256,uint256)#1 $amount",
+        "-> Swapped(uint256,uint256)#1 [$amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Swapped",
         eventParams: ["uint256", "uint256"],
         occurrence: 1,
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
     });
 
     it("should parse contract filter with variable", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> $token:Transfer $amount",
+        "-> $token:Transfer [$amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Transfer",
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
       expect(result.contractFilter).to.deep.include({
         type: "VariableIdentifier",
@@ -148,12 +114,12 @@ describe("Parsers - event capture", () => {
     it("should parse contract filter with address literal", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> 0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374:Transfer $amount",
+        "-> 0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374:Transfer [$amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Transfer",
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
       expect(result.contractFilter).to.deep.include({
         type: "AddressLiteral",
@@ -161,16 +127,16 @@ describe("Parsers - event capture", () => {
       });
     });
 
-    it("should parse contract filter with inline params and index", () => {
+    it("should parse contract filter with inline params", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> $c:Withdrawn(uint256,address):1 $to",
+        "-> $c:Withdrawn(uint256,address) [, $to]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
         eventParams: ["uint256", "address"],
-        captures: [{ indexPath: [1], variable: "to" }],
+        captures: [null, "to"],
       });
       expect(result.contractFilter).to.deep.include({
         type: "VariableIdentifier",
@@ -181,13 +147,26 @@ describe("Parsers - event capture", () => {
     it("should parse inline tuple event params", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> MyEvent(uint256,(address,uint256)[]) $val",
+        "-> MyEvent(uint256,(address,uint256)[]) [$val]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
         eventName: "MyEvent",
         eventParams: ["uint256", "(address,uint256)[]"],
-        captures: [{ indexPath: [], variable: "val" }],
+        captures: ["val"],
+      });
+    });
+
+    it("should parse captures with multiple holes", () => {
+      const result = runParser(
+        eventCaptureParser,
+        "-> Evt(uint,address,uint) [, , $third]",
+      );
+      expect(result).to.deep.include({
+        type: "EventCapture",
+        eventName: "Evt",
+        eventParams: ["uint", "address", "uint"],
+        captures: [null, null, "third"],
       });
     });
   });
@@ -196,7 +175,7 @@ describe("Parsers - event capture", () => {
     it("should parse exec with single event capture", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c withdraw() -> Withdrawn $amount",
+        "exec $c withdraw() -> Withdrawn [$amount]",
       );
       expect(result.type).to.equal("CommandExpression");
       expect(result.name).to.equal("exec");
@@ -204,14 +183,14 @@ describe("Parsers - event capture", () => {
       expect(result.eventCaptures[0]).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
     });
 
     it("should parse exec with multiple event captures", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c swap() -> TokensWithdrawn $a -> TokensDeposited $b",
+        "exec $c swap() -> TokensWithdrawn [$a] -> TokensDeposited [$b]",
       );
       expect(result.type).to.equal("CommandExpression");
       expect(result.name).to.equal("exec");
@@ -219,10 +198,12 @@ describe("Parsers - event capture", () => {
       expect(result.eventCaptures[0]).to.deep.include({
         type: "EventCapture",
         eventName: "TokensWithdrawn",
+        captures: ["a"],
       });
       expect(result.eventCaptures[1]).to.deep.include({
         type: "EventCapture",
         eventName: "TokensDeposited",
+        captures: ["b"],
       });
     });
 
@@ -236,24 +217,24 @@ describe("Parsers - event capture", () => {
       expect(result.eventCaptures).to.be.undefined;
     });
 
-    it("should parse exec with inline event signature", () => {
+    it("should parse exec with inline event signature and destructure", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c withdraw() -> Withdrawn(uint256,address):1 $to",
+        "exec $c withdraw() -> Withdrawn(uint256,address) [, $to]",
       );
       expect(result.eventCaptures).to.have.lengthOf(1);
       expect(result.eventCaptures[0]).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
         eventParams: ["uint256", "address"],
-        captures: [{ indexPath: [1], variable: "to" }],
+        captures: [null, "to"],
       });
     });
 
     it("should parse exec with contract filter", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c withdraw() -> $c:Withdrawn $amount",
+        "exec $c withdraw() -> $c:Withdrawn [$amount]",
       );
       expect(result.eventCaptures).to.have.lengthOf(1);
       expect(result.eventCaptures[0].contractFilter).to.deep.include({
@@ -265,13 +246,13 @@ describe("Parsers - event capture", () => {
     it("should parse exec with event capture and comment", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c withdraw() -> Withdrawn $amount # capture the amount",
+        "exec $c withdraw() -> Withdrawn [$amount] # capture the amount",
       );
       expect(result.eventCaptures).to.have.lengthOf(1);
       expect(result.eventCaptures[0]).to.deep.include({
         type: "EventCapture",
         eventName: "Withdrawn",
-        captures: [{ indexPath: [], variable: "amount" }],
+        captures: ["amount"],
       });
     });
 
@@ -279,7 +260,7 @@ describe("Parsers - event capture", () => {
       const script = `batch (
   exec $c deposit() --value 1e18
   exec $c withdraw(uint) 1e18
-) -> Deposit(address,uint):1 $amount`;
+) -> Deposit(address,uint) [, $amount]`;
 
       const { ast, errors } = parseScript(script);
       expect(errors).to.have.lengthOf(0);
@@ -293,7 +274,7 @@ describe("Parsers - event capture", () => {
         type: "EventCapture",
         eventName: "Deposit",
         eventParams: ["address", "uint"],
-        captures: [{ indexPath: [1], variable: "amount" }],
+        captures: [null, "amount"],
       });
     });
   });

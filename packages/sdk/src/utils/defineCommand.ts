@@ -65,11 +65,13 @@ function extractSpecialArg(
   ) {
     return { ok: true, value: (astNode as HelperFunctionNode).name };
   }
-  if (
-    types.includes("variable") &&
-    astNode?.type === NodeType.VariableIdentifier
-  ) {
-    return { ok: true, value: astNode.value };
+  if (types.includes("variable")) {
+    if (astNode?.type === NodeType.VariableIdentifier) {
+      return { ok: true, value: astNode.value };
+    }
+    if (astNode?.type === NodeType.DestructurePattern) {
+      return { ok: true, value: astNode.slots };
+    }
   }
 
   return { ok: false };

@@ -3,6 +3,8 @@ import type {
   CommandExpressionNode,
   CompletionContext,
   CompletionItem,
+  DestructurePatternNode,
+  DestructureSlot,
   HelperArgDefEntry,
   HelperFunctionNode,
   HelperResolver,
@@ -411,17 +413,36 @@ async function walkCommandsForBindings(
       if (!argNode) continue;
 
       // Built-in "variable" type: auto-create USER binding
-      if (argDef.type === "variable" && argNode.value) {
-        let bindingValue: any = argNode.value;
-        if (c.name === "set" && c.args[i + 1]) {
-          bindingValue = await resolveValueNode(resolveNode, c.args[i + 1]);
+      if (argDef.type === "variable") {
+        if (argNode.type === NodeType.DestructurePattern) {
+          const collectVars = (slots: DestructureSlot[]) => {
+            for (const s of slots) {
+              if (typeof s === "string") {
+                try {
+                  bindings.setBinding(s, s, USER);
+                } catch {
+                  /* already exists */
+                }
+              } else if (Array.isArray(s)) {
+                collectVars(s);
+              }
+            }
+          };
+          collectVars((argNode as DestructurePatternNode).slots);
+          continue;
         }
-        try {
-          bindings.setBinding(argNode.value, bindingValue, USER);
-        } catch {
-          // binding already exists
+        if (argNode.value) {
+          let bindingValue: any = argNode.value;
+          if (c.name === "set" && c.args[i + 1]) {
+            bindingValue = await resolveValueNode(resolveNode, c.args[i + 1]);
+          }
+          try {
+            bindings.setBinding(argNode.value, bindingValue, USER);
+          } catch {
+            // binding already exists
+          }
+          continue;
         }
-        continue;
       }
 
       // Custom type with resolve: call it to produce bindings

@@ -5,10 +5,8 @@ import {
   coroutine,
   endOfInput,
   many,
-  possibly,
   recursiveParser,
   regex,
-  sequenceOf,
 } from "arcsecond";
 import type { AbiFunction, AbiParameter } from "viem";
 import { parseAbiItem } from "viem";
@@ -39,20 +37,16 @@ const balancedParens: Parser<string, string, any> = recursiveParser(() =>
   }),
 );
 
-/** Parses a full read-abi signature: `name(inputs)(outputs)` with optional `:index`. */
+/** Parses a full read-abi signature: `name(inputs)(outputs)`. */
 const readAbiSigParser = coroutine(
-  (run: any): { body: string; returns: string; index?: string } => {
+  (run: any): { body: string; returns: string } => {
     const name: string = run(regex(/^[a-zA-Z_$][a-zA-Z0-9_$]*/));
     const inputs: string = run(balancedParens);
     const outputs: string = run(balancedParens);
-    const indexPart: [string, string] | null = run(
-      possibly(sequenceOf([char(":"), regex(/^\d+/)])),
-    );
     run(endOfInput);
     return {
       body: name + inputs,
       returns: outputs,
-      index: indexPart ? indexPart[1] : undefined,
     };
   },
 );
@@ -63,7 +57,7 @@ const readAbiSigParser = coroutine(
  */
 export function splitReadAbiSignature(
   sig: string,
-): { body: string; returns: string; index?: string } | undefined {
+): { body: string; returns: string } | undefined {
   const result = readAbiSigParser.run(sig);
   if (result.isError) return undefined;
   return result.result;

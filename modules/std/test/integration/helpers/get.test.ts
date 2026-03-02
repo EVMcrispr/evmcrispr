@@ -18,8 +18,11 @@ describeHelper(
       },
       {
         name: "should read a tuple return value",
-        input: `@get(${sushiFarm},"poolInfo(uint256)(uint128,uint64,uint64):1",1)`,
-        validate: (result) => expect(result >= 1671364630n).to.be.true,
+        input: `@get(${sushiFarm},"poolInfo(uint256)(uint128,uint64,uint64)",1)`,
+        validate: (result: readonly [bigint, bigint, bigint]) => {
+          expect(Array.isArray(result)).to.be.true;
+          expect(result[1] >= 1671364630n).to.be.true;
+        },
       },
       {
         name: "should read with params",

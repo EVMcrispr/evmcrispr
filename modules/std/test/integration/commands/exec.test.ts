@@ -15,14 +15,14 @@ import {
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
-import { parseUnits, toHex } from "viem";
+import { toHex } from "viem";
 import { gnosis } from "viem/chains";
 
 const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
 const params = ["0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6", "1200e18"];
 const resolvedParams = [
   "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
-  parseUnits("1200", 18),
+  "1200e18",
 ];
 const fnSig = "approve(address,uint256)";
 
@@ -164,7 +164,7 @@ describe("Std > commands > exec > event capture", () => {
   it("should capture event value and use it in a subsequent transaction", async () => {
     const script = `
       set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
-      exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint):1 $amount
+      exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint) [, $amount]
       exec $wxdai withdraw(uint) $amount
     `;
 
@@ -197,7 +197,7 @@ set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
 batch (
   exec $wxdai deposit() --value 0.001e18
   exec $wxdai withdraw(uint) 0.001e18
-) -> Deposit(address indexed,uint):1 $amount
+) -> Deposit(address indexed,uint) [, $amount]
     `;
 
     const account = walletClient.account!;

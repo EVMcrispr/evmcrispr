@@ -20,6 +20,8 @@ export enum NodeType {
   Bareword = "Bareword",
   VariableIdentifier = "VariableIdentifier",
 
+  DestructurePattern = "DestructurePattern",
+
   CommandOpt = "CommandOpt",
   EventCapture = "EventCapture",
 }
@@ -102,13 +104,13 @@ export interface HelperFunctionNode extends Node {
   args: ArgumentExpressionNode[];
 }
 
-export interface EventCaptureBinding {
-  /** Index path into event args, e.g. [1, 0, 1] from :1:0:1. Empty means [0]. */
-  indexPath: number[];
-  /** Named field accessor, e.g. "amount" from .amount */
-  fieldName?: string;
-  /** Variable name to store the value in (without $) */
-  variable: string;
+/** Recursive destructure slot: variable name, hole (null), or nested pattern. */
+export type DestructureSlot = string | null | DestructureSlot[];
+
+export interface DestructurePatternNode extends Node {
+  type: NodeType.DestructurePattern;
+  /** Each slot is a variable name (with $), null (hole/skip), or nested pattern. */
+  slots: DestructureSlot[];
 }
 
 export interface EventCaptureNode extends Node {
@@ -121,8 +123,8 @@ export interface EventCaptureNode extends Node {
   eventParams?: string[];
   /** Which occurrence of the event to capture (from #N syntax, 0-based) */
   occurrence?: number;
-  /** Bindings to capture from the event args */
-  captures: EventCaptureBinding[];
+  /** Positional capture slots (variable names without $, null = skip, array = nested). */
+  captures: DestructureSlot[];
 }
 
 export interface CommandExpressionNode extends Node {
@@ -178,6 +180,7 @@ export type PrimaryExpressionNode =
 export type ArgumentExpressionNode =
   | BinaryExpressionNode
   | ArrayExpressionNode
+  | DestructurePatternNode
   | CallExpressionNode
   | HelperFunctionNode
   | PrimaryExpressionNode;

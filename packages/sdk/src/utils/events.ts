@@ -4,7 +4,7 @@ import { decodeEventLog, getAbiItem, parseAbiItem } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import { ErrorException } from "../errors";
 import type {
-  EventCaptureBinding,
+  DestructureSlot,
   EventCaptureNode,
   NodeInterpreter,
 } from "../types";
@@ -31,7 +31,6 @@ function getEventAbi(
   abi: Abi | undefined,
 ): AbiEvent {
   if (capture.eventParams && capture.eventParams.length > 0) {
-    // Build from inline signature: "event EventName(type1,type2,...)"
     const sig = `event ${capture.eventName}(${capture.eventParams.join(",")})`;
     try {
       return parseAbiItem(sig) as AbiEvent;
@@ -62,96 +61,6 @@ function getEventAbi(
   }
 }
 
-/**
- * Extract a value from decoded event args using an EventCaptureBinding.
- *
- * Supports:
- * - Named field access: `.fieldName`
- * - Indexed access: `:0`, `:1:0:1` (deep path)
- * - Default: index 0
- */
-function extractValue(
-  args: readonly unknown[] | Record<string, unknown>,
-  binding: EventCaptureBinding,
-  eventAbi: AbiEvent,
-  eventName: string,
-): unknown {
-  let value: unknown;
-
-  if (binding.fieldName) {
-    // Named field access
-    if (typeof args === "object" && args !== null && !Array.isArray(args)) {
-      value = (args as Record<string, unknown>)[binding.fieldName];
-    } else {
-      // Args might be positional — find by name in ABI
-      const paramIndex = eventAbi.inputs.findIndex(
-        (input) => input.name === binding.fieldName,
-      );
-      if (paramIndex === -1) {
-        throw new ErrorException(
-          `field "${binding.fieldName}" not found in event "${eventName}"`,
-        );
-      }
-      value = (args as readonly unknown[])[paramIndex];
-    }
-
-    if (value === undefined) {
-      throw new ErrorException(
-        `field "${binding.fieldName}" not found in event "${eventName}"`,
-      );
-    }
-
-    // Apply sub-index path if present (e.g. .data:0:1)
-    for (const idx of binding.indexPath) {
-      if (!Array.isArray(value) && typeof value !== "object") {
-        throw new ErrorException(
-          `cannot index into non-array/non-tuple value at field "${binding.fieldName}" in event "${eventName}"`,
-        );
-      }
-      const arr = value as unknown[];
-      if (idx >= arr.length) {
-        throw new ErrorException(
-          `index ${idx} out of bounds for field "${binding.fieldName}" in event "${eventName}" (length ${arr.length})`,
-        );
-      }
-      value = arr[idx];
-    }
-  } else {
-    // Indexed access
-    const indexPath = binding.indexPath.length > 0 ? binding.indexPath : [0];
-
-    value = args;
-    for (const idx of indexPath) {
-      if (Array.isArray(value)) {
-        if (idx >= value.length) {
-          throw new ErrorException(
-            `index path :${indexPath.join(":")} out of bounds for event "${eventName}"`,
-          );
-        }
-        value = value[idx];
-      } else if (typeof value === "object" && value !== null) {
-        // viem returns named args as objects — convert to positional access
-        const keys = Object.keys(value);
-        if (idx >= keys.length) {
-          throw new ErrorException(
-            `index path :${indexPath.join(":")} out of bounds for event "${eventName}"`,
-          );
-        }
-        value = (value as Record<string, unknown>)[keys[idx]];
-      } else {
-        throw new ErrorException(
-          `cannot index into non-array/non-tuple value in event "${eventName}"`,
-        );
-      }
-    }
-  }
-
-  return value;
-}
-
-/**
- * Convert a captured value to its string representation for storage in bindings.
- */
 function valueToString(value: unknown): string {
   if (typeof value === "bigint") {
     return value.toString();
@@ -174,15 +83,58 @@ function valueToString(value: unknown): string {
 }
 
 /**
+ * Convert viem decoded args (possibly a named object) to a positional array.
+ */
+function argsToArray(
+  args: readonly unknown[] | Record<string, unknown>,
+): unknown[] {
+  if (Array.isArray(args)) return args as unknown[];
+  if (typeof args === "object" && args !== null) {
+    return Object.values(args);
+  }
+  return [args];
+}
+
+/**
+ * Recursively walk a DestructureSlot[] pattern and store captured values
+ * as user bindings. Variable names are without `$`; the prefix is added
+ * when storing.
+ */
+function applyEventDestructure(
+  slots: DestructureSlot[],
+  args: unknown,
+  eventName: string,
+  bindingsManager: BindingsManager,
+): void {
+  const arr = argsToArray(args as readonly unknown[] | Record<string, unknown>);
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    if (slot === null) continue;
+    if (i >= arr.length) {
+      throw new ErrorException(
+        `destructure index ${i} out of bounds for event "${eventName}" (${arr.length} args)`,
+      );
+    }
+    if (typeof slot === "string") {
+      bindingsManager.setBinding(
+        `$${slot}`,
+        valueToString(arr[i]),
+        USER,
+        true,
+        undefined,
+        true,
+      );
+    } else {
+      applyEventDestructure(slot, arr[i], eventName, bindingsManager);
+    }
+  }
+}
+
+/**
  * Resolve event captures from a transaction receipt.
  *
  * Decodes event logs and stores captured values as user bindings.
- *
- * @param receipt - The transaction receipt containing logs
- * @param abi - The contract ABI (may be undefined if all captures use inline signatures)
- * @param eventCaptures - The event capture nodes from the AST
- * @param bindingsManager - Where to store captured values
- * @param interpretNode - Node interpreter for resolving contract filter nodes
  */
 export async function resolveEventCaptures(
   receipt: ReceiptWithLogs,
@@ -194,7 +146,6 @@ export async function resolveEventCaptures(
   for (const capture of eventCaptures) {
     const eventAbi = getEventAbi(capture, abi);
 
-    // Filter logs by contract address if a filter is specified
     let logs = receipt.logs;
     if (capture.contractFilter) {
       const filterAddress = await interpretNode(capture.contractFilter);
@@ -204,7 +155,6 @@ export async function resolveEventCaptures(
       );
     }
 
-    // Decode matching logs
     const decodedLogs: {
       args: readonly unknown[] | Record<string, unknown>;
     }[] = [];
@@ -237,7 +187,6 @@ export async function resolveEventCaptures(
       );
     }
 
-    // Select occurrence
     const occurrenceIndex = capture.occurrence ?? 0;
     if (occurrenceIndex >= decodedLogs.length) {
       throw new ErrorException(
@@ -246,24 +195,11 @@ export async function resolveEventCaptures(
     }
 
     const selectedLog = decodedLogs[occurrenceIndex];
-
-    // Extract and store each capture binding
-    for (const binding of capture.captures) {
-      const value = extractValue(
-        selectedLog.args,
-        binding,
-        eventAbi,
-        capture.eventName,
-      );
-
-      bindingsManager.setBinding(
-        `$${binding.variable}`,
-        valueToString(value),
-        USER,
-        true,
-        undefined,
-        true,
-      );
-    }
+    applyEventDestructure(
+      capture.captures,
+      selectedLog.args,
+      capture.eventName,
+      bindingsManager,
+    );
   }
 }

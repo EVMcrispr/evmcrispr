@@ -22,7 +22,7 @@ export default defineHelper<Std>({
         `expected a valid read-abi signature, but got "${abi}"`,
       );
     }
-    const { body, returns, index } = parts;
+    const { body, returns } = parts;
 
     const client = await module.getClient();
     const result = await client.readContract({
@@ -32,6 +32,6 @@ export default defineHelper<Std>({
       args: params,
     });
 
-    return index ? result[index] : result;
+    return result;
   },
 });

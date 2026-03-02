@@ -11,6 +11,7 @@ import { arrayExpressionParser } from "./array";
 import { blockExpressionParser } from "./block";
 
 import { callExpressionParser } from "./call";
+import { destructurePatternParser } from "./destructure";
 import { helperFunctionParser } from "./helper";
 import {
   barewordParser,
@@ -32,6 +33,7 @@ export const argumentExpressionParser: EnclosingNodeParser<
       arithmeticParser,
       callExpressionParser,
       helperFunctionParser,
+      destructurePatternParser,
       arrayExpressionParser,
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),
@@ -52,6 +54,7 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
       callExpressionParser,
       helperFunctionParser,
       blockExpressionParser,
+      destructurePatternParser,
       arrayExpressionParser,
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),

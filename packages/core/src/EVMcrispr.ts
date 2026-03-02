@@ -10,6 +10,8 @@ import type {
   CommandExpressionNode,
   CompletionItem,
   DefValue,
+  DestructurePatternNode,
+  DestructureSlot,
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
@@ -93,6 +95,7 @@ const {
   StringLiteral,
 
   ArrayExpression,
+  DestructurePattern,
 
   BinaryExpression,
 
@@ -582,6 +585,11 @@ export class EVMcrispr {
           n as ArrayExpressionNode,
           options,
         );
+      case DestructurePattern:
+        return this.#interpretDestructurePattern(
+          n as DestructurePatternNode,
+          options,
+        );
       case BinaryExpression:
         return this.#interpretBinaryExpression(
           n as BinaryExpressionNode,
@@ -650,6 +658,20 @@ export class EVMcrispr {
   #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
     return this.interpretNodes(n.elements);
   };
+
+  #interpretDestructurePattern: NodeInterpreter<DestructurePatternNode> =
+    async (n) => {
+      const resolveSlot = async (slot: DestructureSlot): Promise<unknown> => {
+        if (slot === null) return undefined;
+        if (Array.isArray(slot)) {
+          return Promise.all(slot.map(resolveSlot));
+        }
+        const binding = this.bindingsManager.getBindingValue(slot, USER);
+        if (binding !== undefined) return binding;
+        EVMcrispr.panic(n, `${slot} not defined`);
+      };
+      return Promise.all(n.slots.map(resolveSlot));
+    };
 
   #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
     n,
