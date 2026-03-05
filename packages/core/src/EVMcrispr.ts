@@ -43,7 +43,7 @@ import {
   timeUnits,
 } from "@evmcrispr/sdk";
 import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
-import { createPublicClient, http, isAddress } from "viem";
+import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import * as viemChains from "viem/chains";
 
 import {
@@ -770,23 +770,36 @@ export class EVMcrispr {
       );
     }
 
-    const targetAbi = this.bindingsManager.getBindingValue(
-      targetAddress,
-      ABI,
-    ) as Abi | undefined;
-    if (!targetAbi) {
-      EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
+    let abi: Abi;
+
+    if (n.inputTypes && n.outputTypes) {
+      const sig = `function ${n.method}${n.inputTypes} external view returns ${n.outputTypes}`;
+      abi = [parseAbiItem(sig) as Abi[number]];
+    } else {
+      const targetAbi = this.bindingsManager.getBindingValue(
+        targetAddress,
+        ABI,
+      ) as Abi | undefined;
+      if (!targetAbi) {
+        EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
+      }
+      abi = targetAbi;
     }
 
     try {
       const client = await this.#getClient();
       const res = await client.readContract({
-        abi: targetAbi,
+        abi,
         functionName: n.method,
         args: args,
         address: targetAddress,
       });
-      return res;
+
+      const result = n.returnDestructure
+        ? EVMcrispr.#applyReturnLens(res, n.returnDestructure, n)
+        : res;
+
+      return typeof result === "bigint" ? Num.fromBigInt(result) : result;
     } catch (err) {
       const err_ = err as Error;
       EVMcrispr.panic(
@@ -797,6 +810,29 @@ export class EVMcrispr {
       );
     }
   };
+
+  static #applyReturnLens(
+    value: unknown,
+    slots: DestructureSlot[],
+    n: CallExpressionNode,
+  ): unknown {
+    const arr = Array.isArray(value) ? value : [value];
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      if (slot === null) continue;
+      if (slot === "$") return arr[i];
+      if (Array.isArray(slot)) {
+        if (i >= arr.length) {
+          EVMcrispr.panic(
+            n,
+            `return destructure index ${i} out of bounds (length ${arr.length})`,
+          );
+        }
+        return EVMcrispr.#applyReturnLens(arr[i], slot, n);
+      }
+    }
+    EVMcrispr.panic(n, "return destructure has no $ capture marker");
+  }
 
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
     c,

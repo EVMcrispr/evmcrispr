@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { type Case, runCases } from "@evmcrispr/test-utils";
+import { type Case, expect, runCases, runParser } from "@evmcrispr/test-utils";
 import { callExpressionParser } from "../../../src/parsers/call";
 
 export const callParserDescribe = () =>
@@ -258,4 +258,167 @@ export const callParserDescribe = () =>
 
       runCases(cases, callExpressionParser);
     });
+
+    it("should parse inline ABI call with no args", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{tokens()(string)}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "tokens",
+        inputTypes: "()",
+        outputTypes: "(string)",
+        args: [],
+      });
+      expect(result.target).to.deep.include({
+        type: "VariableIdentifier",
+        value: "$dao",
+      });
+    });
+
+    it("should parse inline ABI call with one arg", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{balanceOf(address)(uint256) @me}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "balanceOf",
+        inputTypes: "(address)",
+        outputTypes: "(uint256)",
+      });
+      expect(result.args).to.have.lengthOf(1);
+      expect(result.args[0]).to.deep.include({
+        type: "HelperFunctionExpression",
+        name: "me",
+      });
+    });
+
+    it("should parse inline ABI call with tuple output types", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{tokens()(string,(uint,address)[])}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "tokens",
+        inputTypes: "()",
+        outputTypes: "(string,(uint,address)[])",
+        args: [],
+      });
+    });
+
+    it("should parse call with return destructure", () => {
+      const result = runParser(callExpressionParser, `$dao::getInfo()[,$]`);
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "getInfo",
+      });
+      expect(result.returnDestructure).to.deep.equal([null, "$"]);
+    });
+
+    it("should parse inline ABI call with nested return destructure", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{tokens()(string,(uint,address)[])}[,[[,$]]]`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "tokens",
+        inputTypes: "()",
+        outputTypes: "(string,(uint,address)[])",
+      });
+      expect(result.returnDestructure).to.deep.equal([null, [[null, "$"]]]);
+    });
+
+    it("should parse inline ABI chain with destructure", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{tokens()(string,(uint,address)[])}[,[[,$]]]::{balanceOf(address)(uint256) @me}`,
+      );
+      expect(result.type).to.equal("CallExpression");
+      expect(result.method).to.equal("balanceOf");
+      expect(result.inputTypes).to.equal("(address)");
+      expect(result.outputTypes).to.equal("(uint256)");
+      expect(result.args).to.have.lengthOf(1);
+      expect(result.args[0]).to.deep.include({
+        type: "HelperFunctionExpression",
+        name: "me",
+      });
+
+      const inner = result.target;
+      expect(inner).to.deep.include({
+        type: "CallExpression",
+        method: "tokens",
+        inputTypes: "()",
+        outputTypes: "(string,(uint,address)[])",
+      });
+      expect(inner.returnDestructure).to.deep.equal([null, [[null, "$"]]]);
+    });
+
+    it("should parse mixed chain: regular call then inline ABI", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$registry::getToken(1)::{balanceOf(address)(uint256) @me}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "balanceOf",
+        inputTypes: "(address)",
+        outputTypes: "(uint256)",
+      });
+      expect(result.target).to.deep.include({
+        type: "CallExpression",
+        method: "getToken",
+      });
+      expect(result.target.inputTypes).to.be.undefined;
+    });
+
+    it("should parse return destructure with empty slots", () => {
+      const result = runParser(callExpressionParser, `$c::method()[,,$]`);
+      expect(result.returnDestructure).to.deep.equal([null, null, "$"]);
+    });
+
+    it("should parse inline ABI with address target", () => {
+      const result = runParser(
+        callExpressionParser,
+        `0x14FA5C16Af56190239B997485656F5c8b4f86c4b::{name()(string)}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "name",
+        inputTypes: "()",
+        outputTypes: "(string)",
+      });
+      expect(result.target).to.deep.include({
+        type: "AddressLiteral",
+        value: "0x14FA5C16Af56190239B997485656F5c8b4f86c4b",
+      });
+    });
+
+    it("should parse inline ABI with multiple args", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$c::{transfer(address,uint256)(bool) @me 100e18}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "transfer",
+        inputTypes: "(address,uint256)",
+        outputTypes: "(bool)",
+      });
+      expect(result.args).to.have.lengthOf(2);
+      expect(result.args[0]).to.deep.include({
+        type: "HelperFunctionExpression",
+        name: "me",
+      });
+      expect(result.args[1]).to.deep.include({
+        type: "NumberLiteral",
+        value: "100",
+        power: 18,
+      });
+    });
   });
+
+callParserDescribe();

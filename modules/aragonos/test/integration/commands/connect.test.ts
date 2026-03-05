@@ -7,6 +7,7 @@ import {
   CommandError,
   encodeAction,
   encodeCalldata,
+  Num,
 } from "@evmcrispr/sdk";
 import {
   describeCommand,
@@ -146,7 +147,7 @@ describeCommand("connect", {
                       [
                         "0x44fA8E6f47987339850636F88629646662444217",
                         me,
-                        "10.50e18",
+                        Num.fromBigInt(10500000000000000000n),
                       ],
                     ),
                   ),

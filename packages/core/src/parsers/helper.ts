@@ -29,6 +29,7 @@ const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
     char("("),
     comma,
     char("]"),
+    char("}"),
     callOperatorParser,
     char(")"),
   ]),

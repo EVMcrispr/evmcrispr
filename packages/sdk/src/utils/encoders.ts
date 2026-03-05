@@ -9,9 +9,15 @@ import {
 
 import { ErrorInvalid } from "../errors";
 import type { Address, TransactionAction } from "../types";
-import type { Num } from "./Num";
+import { Num } from "./Num";
 
 export type Param = string | boolean | Num | Param[];
+
+function toViemParam(p: Param): unknown {
+  if (p instanceof Num) return p.toBigInt();
+  if (Array.isArray(p)) return p.map(toViemParam);
+  return p;
+}
 
 export const encodeAction = (
   target: Address,
@@ -38,12 +44,13 @@ export const encodeAction = (
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 
-  return {
+  const action: TransactionAction = {
     to: target,
     data: encodeCalldata(fnABI, params),
-    value: opts?.value,
-    from: opts?.from,
   };
+  if (opts?.value !== undefined) action.value = opts.value;
+  if (opts?.from !== undefined) action.from = opts.from;
+  return action;
 };
 
 export const encodeCalldata = (
@@ -91,8 +98,9 @@ export const encodeCalldata = (
         const size = _size ? Number(_size) : undefined;
         paramValue = toHex(paramValue, { size });
       }
-      encodeAbiParameters([paramType], [paramValue]);
-      encodedParams.push(paramValue);
+      const resolved = toViemParam(paramValue);
+      encodeAbiParameters([paramType], [resolved]);
+      encodedParams.push(resolved as Param);
     } catch (err) {
       const err_ = err as Error;
       errors.push(

@@ -26,7 +26,7 @@ export const isFunctionSignature = (signature: string) => {
 };
 
 /** Matches a balanced parenthesised group, including nested parens (tuples). */
-const balancedParens: Parser<string, string, any> = recursiveParser(() =>
+export const balancedParens: Parser<string, string, any> = recursiveParser(() =>
   coroutine((run) => {
     run(char("("));
     const parts: string[] = run(

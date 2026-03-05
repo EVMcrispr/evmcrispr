@@ -7,6 +7,7 @@ import {
   encodeAction,
   isBatchedAction,
   isTransactionAction,
+  Num,
 } from "@evmcrispr/sdk";
 import {
   describeCommand,
@@ -22,7 +23,7 @@ const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
 const params = ["0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6", "1200e18"];
 const resolvedParams = [
   "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
-  "1200e18",
+  Num.fromBigInt(1200000000000000000000n),
 ];
 const fnSig = "approve(address,uint256)";
 

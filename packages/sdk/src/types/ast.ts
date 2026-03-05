@@ -96,6 +96,12 @@ export interface CallExpressionNode extends Node {
   target: ArgumentExpressionNode;
   method: string;
   args: Node[];
+  /** Inline ABI input types, e.g. "(address)" — from ::{method(inputs)(outputs)} syntax. */
+  inputTypes?: string;
+  /** Inline ABI output types, e.g. "(uint256)" — from ::{method(inputs)(outputs)} syntax. */
+  outputTypes?: string;
+  /** Positional lens applied to the return value. `"$"` = take, `null` = skip, array = descend. */
+  returnDestructure?: DestructureSlot[];
 }
 
 export interface HelperFunctionNode extends Node {
