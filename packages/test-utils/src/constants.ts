@@ -9,6 +9,12 @@ export const STD_ALL_HELPERS = [
   "@and",
   "@at",
   "@bool",
+  "@bytes",
+  "@bytes.at",
+  "@bytes.concat",
+  "@bytes.len",
+  "@bytes.not",
+  "@bytes.slice",
   "@concat",
   "@date",
   "@ens",
@@ -47,6 +53,7 @@ export const STD_ADDRESS_HELPERS = [
 
 export const STD_NUMBER_HELPERS = [
   "@at",
+  "@bytes.len",
   "@date",
   "@get",
   "@len",
@@ -66,7 +73,16 @@ export const STD_BOOL_HELPERS = [
   "@or",
 ];
 
-export const STD_BYTES_HELPERS = ["@abi.encodeCall", "@at", "@get"];
+export const STD_BYTES_HELPERS = [
+  "@abi.encodeCall",
+  "@at",
+  "@bytes",
+  "@bytes.at",
+  "@bytes.concat",
+  "@bytes.not",
+  "@bytes.slice",
+  "@get",
+];
 
 // Http-module helper lists.
 
