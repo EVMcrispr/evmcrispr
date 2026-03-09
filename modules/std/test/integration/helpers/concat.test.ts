@@ -7,21 +7,6 @@ import { helpers } from "../../../src/_generated";
 describeHelper("@concat", {
   cases: [
     {
-      name: "should concatenate two strings",
-      input: `@concat("hello", " world")`,
-      expected: "hello world",
-    },
-    {
-      name: "should concatenate multiple strings",
-      input: `@concat("a", "b", "c")`,
-      expected: "abc",
-    },
-    {
-      name: "should return a single string unchanged",
-      input: `@concat("solo")`,
-      expected: "solo",
-    },
-    {
       name: "should concatenate two arrays",
       input: `@concat([1, 2], [3, 4])`,
       validate(result) {
@@ -52,17 +37,5 @@ describeHelper("@concat", {
       },
     },
   ],
-  errorCases: [
-    {
-      name: "should fail when mixing an array with a string",
-      input: `@concat([1, 2], "x")`,
-      error: "cannot mix",
-    },
-    {
-      name: "should fail when mixing a string with an array",
-      input: `@concat("x", [1, 2])`,
-      error: "cannot mix",
-    },
-  ],
-  sampleArgs: [`"a"`],
+  sampleArgs: [`[1]`],
 }, helpers.concat.argDefs);

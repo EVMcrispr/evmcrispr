@@ -4,23 +4,23 @@ import { expect } from "@evmcrispr/test-utils";
 import { describeHelper } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 
-describeHelper("@len", {
+describeHelper("@str.len", {
   cases: [
     {
-      name: "should return the length of an array",
-      input: `@len([1, 2, 3])`,
+      name: "should return the length of a string",
+      input: `@str.len("hello")`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(3n))).to.be.true;
+        expect(result.eq(new Num(5n))).to.be.true;
       },
     },
     {
-      name: "should return 0 for an empty array",
-      input: `@len([])`,
+      name: "should return 0 for an empty string",
+      input: `@str.len("")`,
       validate(result) {
         expect(result.eq(new Num(0n))).to.be.true;
       },
     },
   ],
-  sampleArgs: [`[1]`],
-}, helpers.len.argDefs);
+  sampleArgs: [`"a"`],
+}, helpers["str.len"].argDefs);

@@ -3,26 +3,22 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "at",
-  description: "Access an element by index in a string or array.",
+  description: "Access an element by index in an array.",
   returnType: "any",
   args: [
-    { name: "value", type: ["string", "array"] },
+    { name: "value", type: "array" },
     { name: "index", type: "number" },
   ],
   async run(_, { value, index }) {
     const i = Number(Num.coerce(index).toBigInt());
-    const len = Array.isArray(value) ? value.length : String(value).length;
-    const resolved = i < 0 ? len + i : i;
+    const resolved = i < 0 ? value.length + i : i;
 
-    if (resolved < 0 || resolved >= len) {
+    if (resolved < 0 || resolved >= value.length) {
       throw new ErrorException(
-        `@at: index ${i} out of bounds for length ${len}`,
+        `@at: index ${i} out of bounds for length ${value.length}`,
       );
     }
 
-    if (Array.isArray(value)) {
-      return value[resolved];
-    }
-    return String(value)[resolved];
+    return value[resolved];
   },
 });

@@ -11,16 +11,13 @@ function deepEquals(a: unknown, b: unknown): boolean {
 
 export default defineHelper<Std>({
   name: "includes",
-  description: "Check whether a string contains a substring or an array contains an element.",
+  description: "Check whether an array contains an element.",
   returnType: "bool",
   args: [
-    { name: "value", type: ["string", "array"] },
+    { name: "value", type: "array" },
     { name: "item", type: "any" },
   ],
   async run(_, { value, item }) {
-    if (Array.isArray(value)) {
-      return value.some((el) => deepEquals(el, item)) ? "true" : "false";
-    }
-    return String(value).includes(String(item)) ? "true" : "false";
+    return value.some((el: unknown) => deepEquals(el, item)) ? "true" : "false";
   },
 });

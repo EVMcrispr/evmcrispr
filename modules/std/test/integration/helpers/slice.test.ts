@@ -7,21 +7,6 @@ import { helpers } from "../../../src/_generated";
 describeHelper("@slice", {
   cases: [
     {
-      name: "should slice a string with start and end",
-      input: `@slice("hello world", 0, 5)`,
-      expected: "hello",
-    },
-    {
-      name: "should slice a string from start to end",
-      input: `@slice("hello", 2)`,
-      expected: "llo",
-    },
-    {
-      name: "should support negative indices on strings",
-      input: `@slice("hello", -3)`,
-      expected: "llo",
-    },
-    {
       name: "should slice an array with start and end",
       input: `@slice([10, 20, 30, 40], 1, 3)`,
       validate(result) {
@@ -46,5 +31,5 @@ describeHelper("@slice", {
       },
     },
   ],
-  sampleArgs: [`"a"`, `0`, `1`],
+  sampleArgs: [`[1]`, `0`, `1`],
 }, helpers.slice.argDefs);

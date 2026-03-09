@@ -2,11 +2,11 @@ import { Num, defineHelper } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineHelper<Std>({
-  name: "len",
-  description: "Return the length of an array.",
+  name: "str.len",
+  description: "Return the length of a string.",
   returnType: "number",
-  args: [{ name: "value", type: "array" }],
+  args: [{ name: "value", type: "string" }],
   async run(_, { value }) {
-    return new Num(BigInt(value.length));
+    return new Num(BigInt(String(value).length));
   },
 });

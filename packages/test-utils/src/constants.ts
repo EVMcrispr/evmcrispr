@@ -32,9 +32,14 @@ export const STD_ALL_HELPERS = [
   "@or",
   "@range",
   "@slice",
+  "@str.at",
+  "@str.concat",
+  "@str.includes",
   "@str.join",
+  "@str.len",
   "@str.lower",
   "@str.replace",
+  "@str.slice",
   "@str.split",
   "@str.upper",
   "@token",
@@ -57,6 +62,7 @@ export const STD_NUMBER_HELPERS = [
   "@date",
   "@get",
   "@len",
+  "@str.len",
   "@token.amount",
   "@token.balance",
 ];
@@ -71,6 +77,7 @@ export const STD_BOOL_HELPERS = [
   "@includes",
   "@not",
   "@or",
+  "@str.includes",
 ];
 
 export const STD_BYTES_HELPERS = [

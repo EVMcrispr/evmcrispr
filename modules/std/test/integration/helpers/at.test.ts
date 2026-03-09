@@ -26,16 +26,6 @@ describeHelper("@at", {
         expect(result.eq(new Num(30n))).to.be.true;
       },
     },
-    {
-      name: "should return character at index in string",
-      input: `@at("hello", 1)`,
-      expected: "e",
-    },
-    {
-      name: "should support negative indices in string",
-      input: `@at("hello", -1)`,
-      expected: "o",
-    },
   ],
   errorCases: [
     {
@@ -49,5 +39,5 @@ describeHelper("@at", {
       error: "out of bounds",
     },
   ],
-  sampleArgs: [`"a"`, `0`],
+  sampleArgs: [`[1]`, `0`],
 }, helpers.at.argDefs);

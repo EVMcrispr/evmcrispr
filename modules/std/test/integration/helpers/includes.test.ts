@@ -5,16 +5,6 @@ import { helpers } from "../../../src/_generated";
 describeHelper("@includes", {
   cases: [
     {
-      name: "should return true when string contains substring",
-      input: `@includes("hello world", "world")`,
-      expected: "true",
-    },
-    {
-      name: "should return false when string does not contain substring",
-      input: `@includes("hello", "xyz")`,
-      expected: "false",
-    },
-    {
       name: "should return true when array contains element",
       input: `@includes([1, 2, 3], 2)`,
       expected: "true",
@@ -35,5 +25,5 @@ describeHelper("@includes", {
       expected: "false",
     },
   ],
-  sampleArgs: [`"a"`, `"b"`],
+  sampleArgs: [`[1]`, `1`],
 }, helpers.includes.argDefs);
