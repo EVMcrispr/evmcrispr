@@ -7,6 +7,13 @@ import {
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
+function isTruthy(value: unknown): boolean {
+  if (value === "false" || value === "") return false;
+  if (value instanceof Num) return !value.eq(new Num(0n));
+  if (isNum(value)) return !Num.coerce(value).eq(new Num(0n));
+  return Boolean(value);
+}
+
 function compare(
   left: unknown,
   operator: string,
@@ -46,17 +53,21 @@ function compare(
 
 export default defineHelper<Std>({
   name: "bool",
-  description: "Compare two values and return a boolean string.",
+  description:
+    "Convert a value to a boolean or compare two values and return a boolean string.",
   returnType: "bool",
   args: [
     { name: "left", type: "any" },
-    { name: "operator", type: "string" },
-    { name: "right", type: "any" },
+    { name: "operator", type: "string", optional: true },
+    { name: "right", type: "any", optional: true },
   ],
   completions: {
     operator: () => ["==", "!=", "<", "<=", ">", ">="].map(fieldItem),
   },
   async run(_, { left, operator, right }) {
+    if (operator === undefined) {
+      return isTruthy(left) ? "true" : "false";
+    }
     return compare(left, operator, right) ? "true" : "false";
   },
 });

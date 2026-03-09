@@ -3,7 +3,38 @@ import { describeHelper } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 
 describeHelper("@bool", {
+  skipArgLengthCheck: true,
   cases: [
+    {
+      name: "should return true for a truthy number",
+      input: "@bool(1)",
+      expected: "true",
+    },
+    {
+      name: "should return false for zero",
+      input: "@bool(0)",
+      expected: "false",
+    },
+    {
+      name: "should return true for a non-empty string",
+      input: `@bool("hello")`,
+      expected: "true",
+    },
+    {
+      name: "should return false for an empty string",
+      input: `@bool("")`,
+      expected: "false",
+    },
+    {
+      name: 'should return false for "false"',
+      input: "@bool(false)",
+      expected: "false",
+    },
+    {
+      name: 'should return true for "true"',
+      input: "@bool(true)",
+      expected: "true",
+    },
     {
       name: "should return true for equal numbers (==)",
       input: "@bool(1, ==, 1)",
