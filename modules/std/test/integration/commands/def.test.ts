@@ -24,7 +24,7 @@ set $result @myAddr`,
     {
       name: "should define a helper with one required param",
       script: `
-def @double "$n: number -> number" ($n * 2)
+def @double "$n: number -> number" @num($n * 2)
 set $result @double(5)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
@@ -35,7 +35,7 @@ set $result @double(5)`,
     {
       name: "should define a helper with optional param",
       script: `
-def @addOpt "$a: number [$b: number] -> number" ($a + $b)
+def @addOpt "$a: number [$b: number] -> number" @num($a + $b)
 set $result @addOpt(3 7)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
@@ -138,7 +138,7 @@ set $after @val`,
     {
       name: "should allow user-defined helpers to call other user-defined helpers",
       script: `
-def @inc "$n: number -> number" ($n + 1)
+def @inc "$n: number -> number" @num($n + 1)
 def @incTwice "$n: number -> number" @inc(@inc($n))
 set $result @incTwice(5)`,
       validate: (_, interpreter) => {
@@ -162,7 +162,7 @@ do-approve`,
     {
       name: "should allow calling user-defined helpers multiple times",
       script: `
-def @double "$n: number -> number" ($n * 2)
+def @double "$n: number -> number" @num($n * 2)
 set $a @double(3)
 set $b @double(10)`,
       validate: (_, interpreter) => {
@@ -180,7 +180,7 @@ set $b @double(10)`,
     {
       name: "should accept a helper param and forward calls through it",
       script: `
-def @double "$n: number -> number" ($n * 2)
+def @double "$n: number -> number" @num($n * 2)
 def @apply "$n: number @fn -> number" @fn($n)
 set $result @apply(5 @double)`,
       validate: (_, interpreter) => {
@@ -203,7 +203,7 @@ set $result @negate(5 @bool)`,
     {
       name: "should work with @map and a helper param",
       script: `
-def @double "$n: number -> number" ($n * 2)
+def @double "$n: number -> number" @num($n * 2)
 set $items [1 2 3]
 set $result @map($items @double)`,
       validate: (_, interpreter) => {
@@ -219,7 +219,7 @@ set $result @map($items @double)`,
     {
       name: "should forward helper params through a def that wraps @map",
       script: `
-def @double "$n: number -> number" ($n * 2)
+def @double "$n: number -> number" @num($n * 2)
 def @myMap "$arr: array @fn -> array" @map($arr @fn)
 set $items [1 2 3]
 set $result @myMap($items @double)`,
@@ -236,8 +236,8 @@ set $result @myMap($items @double)`,
     {
       name: "should chain two helper params (double @map)",
       script: `
-def @double "$n: number -> number" ($n * 2)
-def @inc "$n: number -> number" ($n + 1)
+def @double "$n: number -> number" @num($n * 2)
+def @inc "$n: number -> number" @num($n + 1)
 def @mapTwice "$arr: array @first @second -> array" @map(@map($arr @first) @second)
 set $items [1 2 3]
 set $result @mapTwice($items @double @inc)`,
@@ -264,7 +264,7 @@ def @foo "number" 2`,
     {
       name: "should fail when calling a user-defined helper with too few args",
       script: `
-def @add "$a: number $b: number -> number" ($a + $b)
+def @add "$a: number $b: number -> number" @num($a + $b)
 set $r @add(1)`,
       error: "expects 2 argument(s), got 1",
     },

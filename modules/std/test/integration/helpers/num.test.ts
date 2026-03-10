@@ -43,17 +43,66 @@ describeHelper("@num", {
       },
     },
     {
-      name: "should apply decimal shift with 2-arg form",
-      input: `@num("1.5" 18)`,
+      name: "should evaluate addition",
+      input: "@num(3 + 4)",
       validate(result) {
-        expect(result.eq(new Num(1500000000000000000n))).to.be.true;
+        expect(result.eq(new Num(7n))).to.be.true;
       },
     },
     {
-      name: "should apply decimal shift for whole numbers",
-      input: `@num("1" 6)`,
+      name: "should respect operator precedence (mul before add)",
+      input: "@num(3 + 4 * 2)",
       validate(result) {
-        expect(result.eq(new Num(1000000n))).to.be.true;
+        expect(result.eq(new Num(11n))).to.be.true;
+      },
+    },
+    {
+      name: "should evaluate division with precedence",
+      input: "@num(3 + 4 / 4)",
+      validate(result) {
+        expect(result.eq(new Num(4n))).to.be.true;
+      },
+    },
+    {
+      name: "should evaluate exponentiation",
+      input: "@num(2 ^ 10)",
+      validate(result) {
+        expect(result.eq(new Num(1024n))).to.be.true;
+      },
+    },
+    {
+      name: "should evaluate modulo",
+      input: "@num(10 % 3)",
+      validate(result) {
+        expect(result.eq(new Num(1n))).to.be.true;
+      },
+    },
+    {
+      name: "should evaluate integer division",
+      input: "@num(10 // 3)",
+      validate(result) {
+        expect(result.eq(new Num(3n))).to.be.true;
+      },
+    },
+    {
+      name: "should handle unary minus",
+      input: "@num(- 3 + 5)",
+      validate(result) {
+        expect(result.eq(new Num(2n))).to.be.true;
+      },
+    },
+    {
+      name: "should handle grouping with parens",
+      input: "@num(10 * (10 - 9))",
+      validate(result) {
+        expect(result.eq(new Num(10n))).to.be.true;
+      },
+    },
+    {
+      name: "should handle nested grouping",
+      input: "@num((2 + 3) * (4 - 1))",
+      validate(result) {
+        expect(result.eq(new Num(15n))).to.be.true;
       },
     },
   ],
@@ -63,8 +112,38 @@ describeHelper("@num", {
       input: `@num("not_a_number")`,
       error: "",
     },
+    {
+      name: "should reject missing spaces around operator",
+      input: "@num(1+1)",
+      error: "Missing spaces",
+    },
+    {
+      name: "should reject boolean operators",
+      input: "@num(1 and 2)",
+      error: "not valid in @num",
+    },
   ],
 });
+
+describeHelper("@num.parse", {
+  cases: [
+    {
+      name: "should parse with 18 decimals",
+      input: `@num.parse("1.5" 18)`,
+      validate(result) {
+        expect(result.eq(new Num(1500000000000000000n))).to.be.true;
+      },
+    },
+    {
+      name: "should parse whole numbers",
+      input: `@num.parse("1" 6)`,
+      validate(result) {
+        expect(result.eq(new Num(1000000n))).to.be.true;
+      },
+    },
+  ],
+  sampleArgs: [`"1"`, "6"],
+}, helpers["num.parse"].argDefs);
 
 describeHelper("@num.format", {
   cases: [

@@ -6,8 +6,8 @@ import { helpers } from "../../../src/_generated";
 
 describeHelper("@sort", {
   preamble: `
-def @cmpAsc "$a: number $b: number -> number" ($a - $b)
-def @cmpDesc "$a: number $b: number -> number" ($b - $a)
+def @cmpAsc "$a: number $b: number -> number" @num($a - $b)
+def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
 `,
   cases: [
     {

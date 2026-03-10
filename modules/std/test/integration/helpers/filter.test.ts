@@ -8,22 +8,22 @@ describeHelper("@filter", {
   cases: [
     {
       name: "should keep elements where helper returns true",
-      input: `@filter([true false true] @not)`,
+      input: `@filter([1 0 2 0 3] @bool)`,
       validate(result) {
-        expect(result).to.be.an("array").with.lengthOf(1);
-        expect(result[0]).to.equal(false);
+        expect(result).to.be.an("array").with.lengthOf(3);
+        expect(result[0]).to.be.instanceOf(Num);
       },
     },
     {
       name: "should return empty array when nothing matches",
-      input: `@filter([true true] @not)`,
+      input: `@filter([0 0] @bool)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(0);
       },
     },
     {
       name: "should return empty array for empty input",
-      input: `@filter([] @not)`,
+      input: `@filter([] @bool)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(0);
       },

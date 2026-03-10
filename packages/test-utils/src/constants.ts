@@ -7,7 +7,6 @@ export const TEST_ACCOUNT_ADDRESS =
 export const STD_ALL_HELPERS = [
   "@abi.encodeCall",
   "@all",
-  "@and",
   "@any",
   "@at",
   "@bool",
@@ -33,10 +32,9 @@ export const STD_ALL_HELPERS = [
   "@me",
   "@namehash",
   "@nextContract",
-  "@not",
   "@num",
   "@num.format",
-  "@or",
+  "@num.parse",
   "@range",
   "@reduce",
   "@reverse",
@@ -80,6 +78,7 @@ export const STD_NUMBER_HELPERS = [
   "@get",
   "@len",
   "@num",
+  "@num.parse",
   "@reduce",
   "@str.len",
   "@token.amount",
@@ -97,15 +96,12 @@ export const STD_BYTES32_HELPERS = [
 
 export const STD_BOOL_HELPERS = [
   "@all",
-  "@and",
   "@any",
   "@at",
   "@bool",
   "@find",
   "@get",
   "@includes",
-  "@not",
-  "@or",
   "@reduce",
   "@str.includes",
 ];

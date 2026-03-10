@@ -1,6 +1,5 @@
 import "../../setup";
 import { describeHelper } from "@evmcrispr/test-utils";
-import { helpers } from "../../../src/_generated";
 
 describeHelper("@bool", {
   skipArgLengthCheck: true,
@@ -91,22 +90,66 @@ describeHelper("@bool", {
       expected: "false",
     },
     {
-      name: "should work with arithmetic expressions",
-      input: "@bool((2 + 2) == 4)",
+      name: "should evaluate 'and' operator",
+      input: "@bool(1 == 1 and 2 > 1)",
+      expected: "true",
+    },
+    {
+      name: "should evaluate 'and' with false",
+      input: "@bool(1 == 2 and 2 > 1)",
+      expected: "false",
+    },
+    {
+      name: "should evaluate 'or' operator",
+      input: "@bool(1 == 2 or 2 > 1)",
+      expected: "true",
+    },
+    {
+      name: "should evaluate 'or' both false",
+      input: "@bool(1 == 2 or 3 < 1)",
+      expected: "false",
+    },
+    {
+      name: "should evaluate 'not' operator",
+      input: "@bool(not false)",
+      expected: "true",
+    },
+    {
+      name: "should evaluate 'not true'",
+      input: "@bool(not true)",
+      expected: "false",
+    },
+    {
+      name: "should respect precedence: 'and' before 'or'",
+      input: "@bool(true or false and false)",
+      expected: "true",
+    },
+    {
+      name: "should support grouping with parens",
+      input: "@bool((true or false) and true)",
+      expected: "true",
+    },
+    {
+      name: "should work with nested @num for arithmetic",
+      input: "@bool(@num(2 + 2) == 4)",
+      expected: "true",
+    },
+    {
+      name: "should work with nested @num in comparison",
+      input: "@bool(@num(3 + 4) > 5)",
       expected: "true",
     },
   ],
   errorCases: [
     {
-      name: "should fail with an unrecognized operator",
-      input: "@bool(1 ~~ 1)",
-      error: "not recognized",
-    },
-    {
       name: "should fail when comparing non-numeric values with >",
       input: `@bool("a" > "b")`,
-      error: "must be used between two numbers",
+      error: "requires numeric operands",
+    },
+    {
+      name: "should fail for arithmetic operators",
+      input: "@bool(1 + 2)",
+      error: "not valid in @bool",
     },
   ],
-  sampleArgs: ["1", "==", "1"],
-}, helpers.bool.argDefs);
+});

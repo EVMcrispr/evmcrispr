@@ -29,8 +29,8 @@ describeHelper("@str", {
       expected: "0xff",
     },
     {
-      name: "should work with arithmetic expressions",
-      input: "@str((2 + 2))",
+      name: "should work with @num expressions",
+      input: "@str(@num(2 + 2))",
       expected: "4",
     },
   ],

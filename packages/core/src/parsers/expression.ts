@@ -1,12 +1,19 @@
 import type {
   ArgumentExpressionNode,
+  BarewordNode,
   CommandArgExpressionNode,
   EnclosingNodeParser,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { getIncorrectReceivedValue } from "@evmcrispr/sdk";
-import { between, char, choice, recursiveParser } from "arcsecond";
-import { arithmeticParser } from "./arithmetic";
+import { getIncorrectReceivedValue, NodeType } from "@evmcrispr/sdk";
+import {
+  char,
+  choice,
+  coroutine,
+  lookAhead,
+  possibly,
+  recursiveParser,
+} from "arcsecond";
 import { arrayExpressionParser } from "./array";
 import { blockExpressionParser } from "./block";
 
@@ -18,14 +25,18 @@ import {
   primaryParser,
   variableIdentifierParser,
 } from "./primaries";
-import { closingCharParser, openingCharParser, spaceSeparated } from "./utils";
+import {
+  createNodeLocation,
+  locate,
+  openingCharParser,
+  optionalWhitespace,
+} from "./utils";
 
 export const argumentExpressionParser: EnclosingNodeParser<
   ArgumentExpressionNode
 > = (enclosingParsers = []) =>
   recursiveParser(() =>
     choice([
-      arithmeticParser,
       callExpressionParser,
       helperFunctionParser,
       destructurePatternParser,
@@ -45,7 +56,6 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
 ) =>
   recursiveParser(() =>
     choice([
-      arithmeticParser,
       callExpressionParser,
       helperFunctionParser,
       blockExpressionParser,
@@ -61,15 +71,54 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
     }),
   );
 
+const parenToken = (c: "(" | ")") =>
+  recursiveParser(() =>
+    locate<BarewordNode>(
+      char(c).map((v) => [v]),
+      ({ data, index, result: [initialContext, [value]] }) => ({
+        type: NodeType.Bareword,
+        value: value as string,
+        loc: createNodeLocation(initialContext, {
+          line: data.line,
+          index,
+          offset: data.offset,
+        }),
+      }),
+    ),
+  );
+
 export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
   recursiveParser(() =>
-    between<
-      [string, string | null],
-      ArgumentExpressionNode[],
-      [string | null, string]
-    >(openingCharParser("("))(closingCharParser(")"))(
-      spaceSeparated<ArgumentExpressionNode>(
-        argumentExpressionParser([char(")")]),
-      ),
-    ),
+    coroutine((run) => {
+      run(openingCharParser("("));
+
+      const results: ArgumentExpressionNode[] = [];
+      let depth = 0;
+
+      if (run(possibly(char(")")))) return results;
+
+      while (true) {
+        const lp = run(possibly(parenToken("(")));
+        if (lp) {
+          results.push(lp);
+          depth++;
+          run(optionalWhitespace);
+          continue;
+        }
+
+        if (run(possibly(lookAhead(char(")"))))) {
+          if (depth > 0) {
+            results.push(run(parenToken(")")));
+            depth--;
+            run(optionalWhitespace);
+            continue;
+          }
+          run(char(")"));
+          return results;
+        }
+
+        results.push(run(argumentExpressionParser([char(")"), char("(")])));
+        run(optionalWhitespace);
+      }
+    }),
   );

@@ -13,7 +13,7 @@ describeCommand("while", {
       script: `
 set $i 0
 while @bool($i < 3) (
-  set $i ($i + 1)
+  set $i @num($i + 1)
 )`,
       validate: (_actions, interpreter) => {
         const i = interpreter.getBinding("$i", BindingsSpace.USER);
@@ -35,7 +35,7 @@ while false (
 set $i 0
 while @bool($i < 2) (
   exec ${target} ${fnSig} ${target} 1e18
-  set $i ($i + 1)
+  set $i @num($i + 1)
 )`,
       validate: (actions) => {
         expect(actions).to.have.length(2);

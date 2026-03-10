@@ -389,7 +389,7 @@ describe("Completions – std helpers", () => {
 
   const ALL_HELPERS = STD_ALL_HELPERS;
   const STRING_HELPERS = ALL_HELPERS.filter(
-    (h) => !["@and", "@bool", "@not", "@or"].includes(h),
+    (h) => !["@bool"].includes(h),
   );
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;

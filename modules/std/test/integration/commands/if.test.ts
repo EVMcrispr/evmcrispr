@@ -55,11 +55,11 @@ if @bool(1 > 2) (
       expectedActions: [],
     },
     {
-      name: "should work with @and and @bool",
+      name: "should work with @bool and/or operators",
       script: `
 set $a 10
 set $b 5
-if @and(@bool($a > 0) @bool($b < 100)) (
+if @bool($a > 0 and $b < 100) (
   exec ${target} ${fnSig} ${target} 100e18
 )`,
       validate: (actions) => {
@@ -67,9 +67,9 @@ if @and(@bool($a > 0) @bool($b < 100)) (
       },
     },
     {
-      name: "should work with @not",
+      name: "should work with @bool not operator",
       script: `
-if @not(false) (
+if @bool(not false) (
   exec ${target} ${fnSig} ${target} 100e18
 )`,
       validate: (actions) => {

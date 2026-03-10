@@ -6,7 +6,7 @@ import { helpers } from "../../../src/_generated";
 
 describeHelper("@reduce", {
   preamble: `
-def @add "$a: any $b: any -> number" ($a + $b)
+def @add "$a: any $b: any -> number" @num($a + $b)
 def @cat "$a: string $b: string -> string" @str.concat($a $b)
 `,
   cases: [

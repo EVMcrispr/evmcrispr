@@ -57,8 +57,8 @@ describeHelper("@bytes", {
       expected: "0x10",
     },
     {
-      name: "should work with arithmetic expressions",
-      input: "@bytes((2 + 2) << 1)",
+      name: "should work with @num expressions",
+      input: "@bytes(@num(2 + 2) << 1)",
       expected: "0x8",
     },
     {

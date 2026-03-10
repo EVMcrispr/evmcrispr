@@ -1,37 +1,21 @@
-import {
-  ErrorException,
-  Num,
-  defineHelper,
-  isHexString,
-  isNum,
-} from "@evmcrispr/sdk";
-import { parseUnits } from "viem";
+import { ErrorException, defineHelper } from "@evmcrispr/sdk";
 import type Std from "..";
-
-function toNum(v: unknown): Num {
-  if (v === true || v === "true") return new Num(1n);
-  if (v === false || v === "false") return new Num(0n);
-  if (v instanceof Num) return v;
-  if (typeof v === "string" && isHexString(v)) return new Num(BigInt(v));
-  if (isNum(v)) return Num.coerce(v);
-  if (typeof v === "string") return Num.coerce(v);
-  throw new ErrorException("Cannot convert value to number");
-}
+import { evaluateArithmeticExpr, toNum, validateNoEmbeddedOps } from "./_expr";
 
 export default defineHelper<Std>({
   name: "num",
   description:
-    "Convert a value to a number, optionally applying a decimal shift.",
+    "Evaluate an arithmetic expression or convert a value to a number.",
   returnType: "number",
-  args: [
-    { name: "value", type: "any" },
-    { name: "decimals", type: "number", optional: true },
-  ],
-  async run(_, { value, decimals }) {
-    if (decimals !== undefined) {
-      const d = Number(Num.coerce(decimals).toBigInt());
-      return new Num(parseUnits(String(value), d));
+  args: [{ name: "tokens", type: "any", rest: true }],
+  async run(_, { tokens }) {
+    if (!tokens || tokens.length === 0) {
+      throw new ErrorException("@num requires at least one argument");
     }
-    return toNum(value);
+    if (tokens.length === 1) {
+      validateNoEmbeddedOps(tokens[0], "arithmetic");
+      return toNum(tokens[0]);
+    }
+    return evaluateArithmeticExpr(tokens);
   },
 });

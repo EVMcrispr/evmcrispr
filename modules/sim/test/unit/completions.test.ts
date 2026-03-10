@@ -49,9 +49,6 @@ describe("Completions – sim commands", () => {
       expect(hasLabel(items, "false")).to.be.true;
       const helperItems = onlyKind(items, "helper");
       expect(hasLabel(helperItems, "@bool")).to.be.true;
-      expect(hasLabel(helperItems, "@and")).to.be.true;
-      expect(hasLabel(helperItems, "@or")).to.be.true;
-      expect(hasLabel(helperItems, "@not")).to.be.true;
     });
   });
 

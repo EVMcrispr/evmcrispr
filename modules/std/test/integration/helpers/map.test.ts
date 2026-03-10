@@ -13,10 +13,10 @@ describeHelper("@map", {
       },
     },
     {
-      name: "should apply @not to each element",
-      input: `@map([true false true] @not)`,
+      name: "should apply @bool to each element",
+      input: `@map([1 0 1] @bool)`,
       validate(result) {
-        expect(result).to.deep.equal(["false", "true", "false"]);
+        expect(result).to.deep.equal(["true", "false", "true"]);
       },
     },
     {

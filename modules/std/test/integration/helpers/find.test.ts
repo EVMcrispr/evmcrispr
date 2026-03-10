@@ -22,7 +22,9 @@ def @isNeg "$x: number -> bool" @bool($x < 0)
     {
       name: "should return the first match even if multiple exist",
       input: `@find([false true true] @isTrue)`,
-      expected: "true",
+      validate(result) {
+        expect(result).to.equal(true);
+      },
     },
   ],
   errorCases: [
