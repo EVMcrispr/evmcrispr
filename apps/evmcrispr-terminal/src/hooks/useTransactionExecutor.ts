@@ -29,19 +29,24 @@ export function useTransactionExecutor(
   const executeAction = useCallback(
     async (
       action: Action,
-      connectedAddress: `0x${string}`,
+      connectedAddress: `0x${string}` | undefined,
       currentPublicClient: PublicClient,
       onStatusUpdate: (message: string) => void,
       abortSignal?: AbortSignal,
     ) => {
-      if (!walletClient) throw new Error("Wallet client not available");
-
       if (isTransactionAction(action)) {
         const actionFrom = action.from?.toLowerCase();
         const isOurTransaction =
-          !actionFrom || actionFrom === connectedAddress.toLowerCase();
+          !actionFrom ||
+          (connectedAddress && actionFrom === connectedAddress.toLowerCase());
 
         if (isOurTransaction) {
+          if (!walletClient) {
+            throw new Error(
+              "Wallet connection required to sign transactions. Connect a wallet and try again.",
+            );
+          }
+
           const chainId = await walletClient.getChainId();
 
           // Determine gas limit: explicit --gas > maximizeGasLimit (EIP-7825) > undefined (let wallet estimate)
@@ -82,6 +87,11 @@ export function useTransactionExecutor(
       } else {
         switch (action.type) {
           case "batched": {
+            if (!walletClient) {
+              throw new Error(
+                "Wallet connection required to send batched transactions. Connect a wallet and try again.",
+              );
+            }
             if (safeConnector) {
               await executeSafeBatchedActions(action.actions);
             } else {
@@ -92,9 +102,16 @@ export function useTransactionExecutor(
 
           case "wallet": {
             if (action.method === "wallet_switchEthereumChain") {
-              const chainId = Number(action.params[0].chainId);
-              await switchOrAddChain(walletClient, chainId);
+              if (walletClient) {
+                const chainId = Number(action.params[0].chainId);
+                await switchOrAddChain(walletClient, chainId);
+              }
             } else {
+              if (!walletClient) {
+                throw new Error(
+                  "Wallet connection required for wallet actions. Connect a wallet and try again.",
+                );
+              }
               return await walletClient.request({
                 method: action.method as any,
                 params: action.params as any,
@@ -149,8 +166,8 @@ export function useTransactionExecutor(
     const abortSignal = abortControllerRef.current.signal;
 
     try {
-      if (!address || !publicClient || !walletClient) {
-        throw new Error("Account not connected or clients not available");
+      if (!publicClient) {
+        throw new Error("Public client not available");
       }
 
       const evm = new EVMcrispr(publicClient, address, transports);
@@ -191,15 +208,7 @@ export function useTransactionExecutor(
       terminalStoreActions("isLoading", false);
       abortControllerRef.current = null;
     }
-  }, [
-    address,
-    publicClient,
-    walletClient,
-    script,
-    logListener,
-    clearLogs,
-    executeAction,
-  ]);
+  }, [address, publicClient, script, logListener, clearLogs, executeAction]);
 
   return {
     executeScript,

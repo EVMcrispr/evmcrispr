@@ -35,11 +35,7 @@ export default function ActionButtons({
   return (
     <>
       <div className="flex flex-col items-end gap-3 mt-3 h-[60px] pr-6 lg:pr-0 w-full">
-        <ExecuteButton
-          isLoading={isLoading}
-          onExecute={handleExecute}
-          disabled={!address}
-        />
+        <ExecuteButton isLoading={isLoading} onExecute={handleExecute} />
         {errors && errors.length > 0 ? <ErrorMsg errors={errors} /> : null}
       </div>
       <LogModal

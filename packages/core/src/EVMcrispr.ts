@@ -497,7 +497,9 @@ export class EVMcrispr {
 
   async getConnectedAccount(_retreiveInjected = false): Promise<Address> {
     if (!this.#account) {
-      throw Error("No connected account found");
+      throw Error(
+        "No connected account found. Connect a wallet or use --from to specify a sender address.",
+      );
     }
     return this.#account;
   }
