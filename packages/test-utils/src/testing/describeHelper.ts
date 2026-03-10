@@ -155,10 +155,8 @@ export function describeHelper(
             await c.validate(result);
           } else if (result instanceof Num && typeof c.expected === "bigint") {
             expect(result.eq(Num.fromBigInt(c.expected))).to.be.true;
-          } else if (typeof c.expected === "bigint") {
-            expect(result).to.equal(c.expected);
           } else {
-            expect(result).to.equals(c.expected);
+            expect(result).to.deep.equal(c.expected);
           }
         });
       }

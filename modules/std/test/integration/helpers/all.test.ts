@@ -8,24 +8,24 @@ describeHelper("@all", {
   cases: [
     {
       name: "should return true when all elements match",
-      input: `@all([true, true, true], @isTrue)`,
+      input: `@all([true true true] @isTrue)`,
       expected: "true",
     },
     {
       name: "should return false when any element does not match",
-      input: `@all([true, false, true], @isTrue)`,
+      input: `@all([true false true] @isTrue)`,
       expected: "false",
     },
     {
       name: "should return true for empty array",
-      input: `@all([], @isTrue)`,
+      input: `@all([] @isTrue)`,
       expected: "true",
     },
   ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",
-      input: `@all([1, 2], "notAHelper")`,
+      input: `@all([1 2] "notAHelper")`,
       error: "must be a helper reference",
     },
   ],

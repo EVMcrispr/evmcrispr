@@ -8,7 +8,7 @@ describeHelper("@unique", {
   cases: [
     {
       name: "should remove duplicate numbers",
-      input: `@unique([1, 2, 2, 3, 1])`,
+      input: `@unique([1 2 2 3 1])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([1, 2, 3]);
@@ -16,7 +16,7 @@ describeHelper("@unique", {
     },
     {
       name: "should remove duplicate strings",
-      input: `@unique(["a", "b", "a", "c"])`,
+      input: `@unique(["a" "b" "a" "c"])`,
       validate(result) {
         expect(result).to.deep.equal(["a", "b", "c"]);
       },

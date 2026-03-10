@@ -36,7 +36,7 @@ set $result @double(5)`,
       name: "should define a helper with optional param",
       script: `
 def @addOpt "$a: number [$b: number] -> number" ($a + $b)
-set $result @addOpt(3, 7)`,
+set $result @addOpt(3 7)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
@@ -46,7 +46,7 @@ set $result @addOpt(3, 7)`,
     {
       name: "should define a helper using other helpers in the body",
       script: `
-def @isPositive "$n: number -> bool" @bool($n, >, 0)
+def @isPositive "$n: number -> bool" @bool($n > 0)
 set $yes @isPositive(5)
 set $no @isPositive(0)`,
       validate: (_, interpreter) => {
@@ -182,7 +182,7 @@ set $b @double(10)`,
       script: `
 def @double "$n: number -> number" ($n * 2)
 def @apply "$n: number @fn -> number" @fn($n)
-set $result @apply(5, @double)`,
+set $result @apply(5 @double)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
@@ -192,8 +192,8 @@ set $result @apply(5, @double)`,
     {
       name: "should pass a built-in helper as a helper param",
       script: `
-def @negate "$x: number @op -> bool" @op($x, <, 0)
-set $result @negate(5, @bool)`,
+def @negate "$x: number @op -> bool" @op($x < 0)
+set $result @negate(5 @bool)`,
       validate: (_, interpreter) => {
         expect(interpreter.getBinding("$result", BindingsSpace.USER)).to.equal(
           "false",
@@ -204,8 +204,8 @@ set $result @negate(5, @bool)`,
       name: "should work with @map and a helper param",
       script: `
 def @double "$n: number -> number" ($n * 2)
-set $items [1, 2, 3]
-set $result @map($items, @double)`,
+set $items [1 2 3]
+set $result @map($items @double)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.an("array");
@@ -220,9 +220,9 @@ set $result @map($items, @double)`,
       name: "should forward helper params through a def that wraps @map",
       script: `
 def @double "$n: number -> number" ($n * 2)
-def @myMap "$arr: array @fn -> array" @map($arr, @fn)
-set $items [1, 2, 3]
-set $result @myMap($items, @double)`,
+def @myMap "$arr: array @fn -> array" @map($arr @fn)
+set $items [1 2 3]
+set $result @myMap($items @double)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.an("array");
@@ -238,9 +238,9 @@ set $result @myMap($items, @double)`,
       script: `
 def @double "$n: number -> number" ($n * 2)
 def @inc "$n: number -> number" ($n + 1)
-def @mapTwice "$arr: array @first @second -> array" @map(@map($arr, @first), @second)
-set $items [1, 2, 3]
-set $result @mapTwice($items, @double, @inc)`,
+def @mapTwice "$arr: array @first @second -> array" @map(@map($arr @first) @second)
+set $items [1 2 3]
+set $result @mapTwice($items @double @inc)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.an("array");
@@ -272,7 +272,7 @@ set $r @add(1)`,
       name: "should fail when calling a user-defined helper with too many args",
       script: `
 def @id "$x: number -> number" $x
-set $r @id(1, 2)`,
+set $r @id(1 2)`,
       error: "expects 1 argument(s), got 2",
     },
     {
@@ -288,7 +288,7 @@ set $r @scoped`,
       name: "should fail when a non-helper is passed to a helper param",
       script: `
 def @apply "$n: number @fn -> number" @fn($n)
-set $result @apply(5, 42)`,
+set $result @apply(5 42)`,
       error: "@fn must be a helper reference",
     },
     {

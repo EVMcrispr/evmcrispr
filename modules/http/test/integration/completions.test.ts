@@ -32,8 +32,8 @@ describe("Completions – @json json-path autocomplete", () => {
     evm = new EVMcrispr(client as PublicClient);
   });
 
-  it('@json(@fetch(url), "$.<cursor>") should suggest root-level keys without suffix', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.`;
+  it('@json(@fetch(url) "$.<cursor>") should suggest root-level keys without suffix', async () => {
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.`;
     const after = '")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };
@@ -48,8 +48,8 @@ describe("Completions – @json json-path autocomplete", () => {
     expect(hasInsertText(fieldItems, "$.name")).to.be.true;
   });
 
-  it('@json(@fetch(url), "$.tokens<cursor>") should suggest array indices', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.tokens`;
+  it('@json(@fetch(url) "$.tokens<cursor>") should suggest array indices', async () => {
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.tokens`;
     const after = '")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };
@@ -63,8 +63,8 @@ describe("Completions – @json json-path autocomplete", () => {
     expect(hasInsertText(fieldItems, "$.tokens[*]")).to.be.true;
   });
 
-  it('@json(@fetch(url), "$.tokens[<cursor>") should also suggest array indices', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.tokens[`;
+  it('@json(@fetch(url) "$.tokens[<cursor>") should also suggest array indices', async () => {
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.tokens[`;
     const after = '")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };
@@ -77,8 +77,8 @@ describe("Completions – @json json-path autocomplete", () => {
     expect(hasInsertText(fieldItems, "*]")).to.be.true;
   });
 
-  it('@json(@fetch(url), "$.tokens[0]<cursor>") should suggest token keys with dot prefix', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.tokens[0]`;
+  it('@json(@fetch(url) "$.tokens[0]<cursor>") should suggest token keys with dot prefix', async () => {
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.tokens[0]`;
     const after = '")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };
@@ -92,8 +92,8 @@ describe("Completions – @json json-path autocomplete", () => {
     expect(hasInsertText(fieldItems, ".address")).to.be.true;
   });
 
-  it('@json(@fetch(url), "$.tokens[*].<cursor>") should suggest token keys', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.tokens[*].`;
+  it('@json(@fetch(url) "$.tokens[*].<cursor>") should suggest token keys', async () => {
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.tokens[*].`;
     const after = '")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };
@@ -107,7 +107,7 @@ describe("Completions – @json json-path autocomplete", () => {
   });
 
   it('mid-string cursor "$.tokens[0].<cursor>name" should suggest based on path up to cursor', async () => {
-    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}"), "$.tokens[0].`;
+    const before = `${LOAD_PREFIX}print @json(@fetch("${TOKENLIST_URL}") "$.tokens[0].`;
     const after = 'name")';
     const script = before + after;
     const position = { line: 2, col: before.length - LOAD_PREFIX.length };

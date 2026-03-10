@@ -5,11 +5,10 @@ import { argumentExpressionParser } from "./expression";
 
 import {
   closingCharParser,
-  comma,
-  commaSeparated,
   createNodeLocation,
   locate,
   openingCharParser,
+  spaceSeparated,
 } from "./utils";
 
 export const ARRAY_PARSER_ERROR = "ArrayParserError";
@@ -18,7 +17,7 @@ export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
   recursiveParser(() =>
     locate<ArrayExpressionNode>(
       between(openingCharParser("["))(closingCharParser("]"))(
-        commaSeparated(argumentExpressionParser([comma, char("]")])),
+        spaceSeparated(argumentExpressionParser([char("]")])),
       )
         .map((elements) => [elements])
         .errorMap((err) => buildParserError(err, ARRAY_PARSER_ERROR)),

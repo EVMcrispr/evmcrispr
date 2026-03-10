@@ -20,7 +20,7 @@ describeCommand("act", {
   cases: [
     {
       name: "should return a correct act action",
-      script: `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1,-2] [[2,3],[4,5]]\n)`,
+      script: `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
       validate: async (actActions) => {
         const expectedActActions = [
           createTestScriptEncodedAction(

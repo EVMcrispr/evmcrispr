@@ -8,7 +8,7 @@ describeHelper("@reverse", {
   cases: [
     {
       name: "should reverse a numeric array",
-      input: `@reverse([1, 2, 3])`,
+      input: `@reverse([1 2 3])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([3, 2, 1]);
@@ -16,7 +16,7 @@ describeHelper("@reverse", {
     },
     {
       name: "should reverse a string array",
-      input: `@reverse(["a", "b", "c"])`,
+      input: `@reverse(["a" "b" "c"])`,
       validate(result) {
         expect(result).to.deep.equal(["c", "b", "a"]);
       },

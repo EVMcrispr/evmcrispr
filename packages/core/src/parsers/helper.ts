@@ -16,7 +16,6 @@ import {
 import { argumentsParser } from "./expression";
 import {
   callOperatorParser,
-  comma,
   createNodeLocation,
   enclosingLookaheadParser,
   locate,
@@ -27,7 +26,6 @@ export const HELPER_PARSER_ERROR = "HelperParserError";
 const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
   enclosingLookaheadParser([
     char("("),
-    comma,
     char("]"),
     char("}"),
     callOperatorParser,

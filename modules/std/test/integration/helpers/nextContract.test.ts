@@ -18,7 +18,7 @@ describeHelper(
       },
       {
         name: "should return a valid address with an offset",
-        input: `@nextContract(${TEST_ACCOUNT_ADDRESS}, 1)`,
+        input: `@nextContract(${TEST_ACCOUNT_ADDRESS} 1)`,
         validate: (result) => {
           expect(isAddress(result)).to.be.true;
         },

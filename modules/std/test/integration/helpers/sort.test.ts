@@ -12,7 +12,7 @@ def @cmpDesc "$a: number $b: number -> number" ($b - $a)
   cases: [
     {
       name: "should sort numbers ascending with a comparator",
-      input: `@sort([3, 1, 2], @cmpAsc)`,
+      input: `@sort([3 1 2] @cmpAsc)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0]).to.be.instanceOf(Num);
@@ -21,21 +21,21 @@ def @cmpDesc "$a: number $b: number -> number" ($b - $a)
     },
     {
       name: "should sort numbers descending with a reversed comparator",
-      input: `@sort([3, 1, 2], @cmpDesc)`,
+      input: `@sort([3 1 2] @cmpDesc)`,
       validate(result) {
         expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([3, 2, 1]);
       },
     },
     {
       name: "should return empty array for empty input",
-      input: `@sort([], @cmpAsc)`,
+      input: `@sort([] @cmpAsc)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(0);
       },
     },
     {
       name: "should return single-element array unchanged",
-      input: `@sort([42], @cmpAsc)`,
+      input: `@sort([42] @cmpAsc)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(1);
       },
@@ -44,7 +44,7 @@ def @cmpDesc "$a: number $b: number -> number" ($b - $a)
   errorCases: [
     {
       name: "should fail when second argument is not a helper",
-      input: `@sort([1, 2], "notAHelper")`,
+      input: `@sort([1 2] "notAHelper")`,
       error: "must be a helper reference",
     },
   ],

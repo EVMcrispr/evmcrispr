@@ -549,7 +549,7 @@ describe("Parsers - arithmetic", () => {
 
   it("should parse an arithmetic operation containing variable helpers and call expressions correctly", () => {
     const c: Case = [
-      "(90.45e18 + (5000e18 - @token.balance( DAI, @me)) * (someContract::getAmount() / 3) + $some-Variable ^ 2)",
+      "(90.45e18 + (5000e18 - @token.balance( DAI @me)) * (someContract::getAmount() / 3) + $some-Variable ^ 2)",
       {
         type: "BinaryExpression",
         operator: "+",
@@ -617,11 +617,11 @@ describe("Parsers - arithmetic", () => {
                     loc: {
                       start: {
                         line: 1,
-                        col: 44,
+                        col: 43,
                       },
                       end: {
                         line: 1,
-                        col: 47,
+                        col: 46,
                       },
                     },
                   },
@@ -633,7 +633,7 @@ describe("Parsers - arithmetic", () => {
                   },
                   end: {
                     line: 1,
-                    col: 48,
+                    col: 47,
                   },
                 },
               },
@@ -644,7 +644,7 @@ describe("Parsers - arithmetic", () => {
                 },
                 end: {
                   line: 1,
-                  col: 48,
+                  col: 47,
                 },
               },
             },
@@ -659,11 +659,11 @@ describe("Parsers - arithmetic", () => {
                   loc: {
                     start: {
                       line: 1,
-                      col: 53,
+                      col: 52,
                     },
                     end: {
                       line: 1,
-                      col: 65,
+                      col: 64,
                     },
                   },
                 },
@@ -672,11 +672,11 @@ describe("Parsers - arithmetic", () => {
                 loc: {
                   start: {
                     line: 1,
-                    col: 53,
+                    col: 52,
                   },
                   end: {
                     line: 1,
-                    col: 78,
+                    col: 77,
                   },
                 },
               },
@@ -686,22 +686,22 @@ describe("Parsers - arithmetic", () => {
                 loc: {
                   start: {
                     line: 1,
-                    col: 81,
+                    col: 80,
                   },
                   end: {
                     line: 1,
-                    col: 82,
+                    col: 81,
                   },
                 },
               },
               loc: {
                 start: {
                   line: 1,
-                  col: 53,
+                  col: 52,
                 },
                 end: {
                   line: 1,
-                  col: 82,
+                  col: 81,
                 },
               },
             },
@@ -712,7 +712,7 @@ describe("Parsers - arithmetic", () => {
               },
               end: {
                 line: 1,
-                col: 82,
+                col: 81,
               },
             },
           },
@@ -723,7 +723,7 @@ describe("Parsers - arithmetic", () => {
             },
             end: {
               line: 1,
-              col: 82,
+              col: 81,
             },
           },
         },
@@ -736,11 +736,11 @@ describe("Parsers - arithmetic", () => {
             loc: {
               start: {
                 line: 1,
-                col: 86,
+                col: 85,
               },
               end: {
                 line: 1,
-                col: 100,
+                col: 99,
               },
             },
           },
@@ -750,22 +750,22 @@ describe("Parsers - arithmetic", () => {
             loc: {
               start: {
                 line: 1,
-                col: 103,
+                col: 102,
               },
               end: {
                 line: 1,
-                col: 104,
+                col: 103,
               },
             },
           },
           loc: {
             start: {
               line: 1,
-              col: 86,
+              col: 85,
             },
             end: {
               line: 1,
-              col: 104,
+              col: 103,
             },
           },
         },
@@ -776,7 +776,7 @@ describe("Parsers - arithmetic", () => {
           },
           end: {
             line: 1,
-            col: 104,
+            col: 103,
           },
         },
       },

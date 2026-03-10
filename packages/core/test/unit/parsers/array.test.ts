@@ -1,24 +1,16 @@
 import { describe, it } from "bun:test";
 import type { ArrayExpressionNode, NodeParserState } from "@evmcrispr/sdk";
-import {
-  type Case,
-  expect,
-  runCases,
-  runErrorCase,
-} from "@evmcrispr/test-utils";
+import { type Case, expect, runCases } from "@evmcrispr/test-utils";
 import type { Err } from "arcsecond";
 import { withData } from "arcsecond";
-import {
-  ARRAY_PARSER_ERROR,
-  arrayExpressionParser,
-} from "../../../src/parsers/array";
+import { arrayExpressionParser } from "../../../src/parsers/array";
 import { createParserState } from "../../../src/parsers/utils";
 
 describe("Parsers - array", () => {
   it("should parse an array correctly", () => {
     const cases: Case[] = [
       [
-        '[    1, "a text string",    3    ]',
+        '[    1 "a text string"    3    ]',
         {
           type: "ArrayExpression",
           elements: [
@@ -30,20 +22,20 @@ describe("Parsers - array", () => {
             {
               type: "StringLiteral",
               value: "a text string",
-              loc: { start: { line: 1, col: 8 }, end: { line: 1, col: 23 } },
+              loc: { start: { line: 1, col: 7 }, end: { line: 1, col: 22 } },
             },
             {
               type: "NumberLiteral",
               value: "3",
-              loc: { start: { line: 1, col: 28 }, end: { line: 1, col: 29 } },
+              loc: { start: { line: 1, col: 26 }, end: { line: 1, col: 27 } },
             },
           ],
-          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 34 } },
+          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 32 } },
         },
         "Invalid array match",
       ],
       [
-        '[145e18y, @token(DAI), false, ["a string", anIdentifier, [1, 2, [aDeepDeepIdentifier.open]],  $variable], $fDAIx::host()]',
+        '[145e18y @token(DAI) false ["a string" anIdentifier [1 2 [aDeepDeepIdentifier.open]] $variable] $fDAIx::host()]',
         {
           type: "ArrayExpression",
           elements: [
@@ -62,17 +54,17 @@ describe("Parsers - array", () => {
                   type: "Bareword",
                   value: "DAI",
                   loc: {
-                    start: { line: 1, col: 17 },
-                    end: { line: 1, col: 20 },
+                    start: { line: 1, col: 16 },
+                    end: { line: 1, col: 19 },
                   },
                 },
               ],
-              loc: { start: { line: 1, col: 10 }, end: { line: 1, col: 21 } },
+              loc: { start: { line: 1, col: 9 }, end: { line: 1, col: 20 } },
             },
             {
               type: "BoolLiteral",
               value: false,
-              loc: { start: { line: 1, col: 23 }, end: { line: 1, col: 28 } },
+              loc: { start: { line: 1, col: 21 }, end: { line: 1, col: 26 } },
             },
             {
               type: "ArrayExpression",
@@ -81,16 +73,16 @@ describe("Parsers - array", () => {
                   type: "StringLiteral",
                   value: "a string",
                   loc: {
-                    start: { line: 1, col: 31 },
-                    end: { line: 1, col: 41 },
+                    start: { line: 1, col: 28 },
+                    end: { line: 1, col: 38 },
                   },
                 },
                 {
                   type: "Bareword",
                   value: "anIdentifier",
                   loc: {
-                    start: { line: 1, col: 43 },
-                    end: { line: 1, col: 55 },
+                    start: { line: 1, col: 39 },
+                    end: { line: 1, col: 51 },
                   },
                 },
                 {
@@ -100,16 +92,16 @@ describe("Parsers - array", () => {
                       type: "NumberLiteral",
                       value: "1",
                       loc: {
-                        start: { line: 1, col: 58 },
-                        end: { line: 1, col: 59 },
+                        start: { line: 1, col: 53 },
+                        end: { line: 1, col: 54 },
                       },
                     },
                     {
                       type: "NumberLiteral",
                       value: "2",
                       loc: {
-                        start: { line: 1, col: 61 },
-                        end: { line: 1, col: 62 },
+                        start: { line: 1, col: 55 },
+                        end: { line: 1, col: 56 },
                       },
                     },
                     {
@@ -119,34 +111,34 @@ describe("Parsers - array", () => {
                           type: "Bareword",
                           value: "aDeepDeepIdentifier.open",
                           loc: {
-                            start: { line: 1, col: 65 },
-                            end: { line: 1, col: 89 },
+                            start: { line: 1, col: 58 },
+                            end: { line: 1, col: 82 },
                           },
                         },
                       ],
                       loc: {
-                        start: { line: 1, col: 64 },
-                        end: { line: 1, col: 90 },
+                        start: { line: 1, col: 57 },
+                        end: { line: 1, col: 83 },
                       },
                     },
                   ],
                   loc: {
-                    start: { line: 1, col: 57 },
-                    end: { line: 1, col: 91 },
+                    start: { line: 1, col: 52 },
+                    end: { line: 1, col: 84 },
                   },
                 },
                 {
                   type: "VariableIdentifier",
                   value: "$variable",
                   loc: {
-                    start: { line: 1, col: 94 },
-                    end: { line: 1, col: 103 },
+                    start: { line: 1, col: 85 },
+                    end: { line: 1, col: 94 },
                   },
                 },
               ],
               loc: {
-                start: { line: 1, col: 30 },
-                end: { line: 1, col: 104 },
+                start: { line: 1, col: 27 },
+                end: { line: 1, col: 95 },
               },
             },
             {
@@ -155,19 +147,19 @@ describe("Parsers - array", () => {
                 type: "VariableIdentifier",
                 value: "$fDAIx",
                 loc: {
-                  start: { line: 1, col: 106 },
-                  end: { line: 1, col: 112 },
+                  start: { line: 1, col: 96 },
+                  end: { line: 1, col: 102 },
                 },
               },
               method: "host",
               args: [],
               loc: {
-                start: { line: 1, col: 106 },
-                end: { line: 1, col: 120 },
+                start: { line: 1, col: 96 },
+                end: { line: 1, col: 110 },
               },
             },
           ],
-          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 121 } },
+          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 111 } },
         },
         "Invalid nested array match",
       ],
@@ -176,32 +168,14 @@ describe("Parsers - array", () => {
     runCases(cases, arrayExpressionParser);
   });
 
-  it("should fail when parsing an array with multiple primary values between commas", () => {
-    runErrorCase(
-      arrayExpressionParser,
-      "[1,multiple values between commas, false]",
-      ARRAY_PARSER_ERROR,
-      `Expecting character ']'`,
-    );
-  });
-
-  it("should fail when parsing an array with empty elements", () => {
-    runErrorCase(
-      arrayExpressionParser,
-      "[12e14w, ,,]",
-      ARRAY_PARSER_ERROR,
-      "Expecting a valid expression",
-    );
-  });
-
   it("should fail when parsing an array without closing bracket", () => {
     const res = withData<ArrayExpressionNode, string, NodeParserState>(
       arrayExpressionParser,
-    )(createParserState()).run('[12e14w, "asdas"');
+    )(createParserState()).run('[12e14w "asdas"');
 
     expect(res.isError).to.be.true;
     expect((res as Err<string, any>).error).to.equals(
-      `ArrayParserError(1:16): Expecting character ']', but got end of input.`,
+      `ArrayParserError(1:15): Expecting character ']', but got end of input.`,
     );
   });
 });

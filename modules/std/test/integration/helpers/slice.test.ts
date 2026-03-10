@@ -8,7 +8,7 @@ describeHelper("@slice", {
   cases: [
     {
       name: "should slice an array with start and end",
-      input: `@slice([10, 20, 30, 40], 1, 3)`,
+      input: `@slice([10 20 30 40] 1 3)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
         expect(result[0].eq(new Num(20n))).to.be.true;
@@ -17,14 +17,14 @@ describeHelper("@slice", {
     },
     {
       name: "should slice an array from start",
-      input: `@slice([10, 20, 30], 1)`,
+      input: `@slice([10 20 30] 1)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
       },
     },
     {
       name: "should support negative indices on arrays",
-      input: `@slice([10, 20, 30], -2)`,
+      input: `@slice([10 20 30] -2)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
         expect(result[0].eq(new Num(20n))).to.be.true;

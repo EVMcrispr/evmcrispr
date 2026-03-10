@@ -10,7 +10,7 @@ describe("Parsers - command expression", () => {
   it("should parse a command correctly", () => {
     const cases: Case[] = [
       [
-        'my-command @ipfs("upload this to ipfs") contract::getData("param1", false, an-identifier, @me) anotherIdentifier.open',
+        'my-command @ipfs("upload this to ipfs") contract::getData("param1" false an-identifier @me) anotherIdentifier.open',
         {
           type: "CommandExpression",
           name: "my-command",
@@ -54,16 +54,16 @@ describe("Parsers - command expression", () => {
                   type: "BoolLiteral",
                   value: false,
                   loc: {
-                    start: { line: 1, col: 68 },
-                    end: { line: 1, col: 73 },
+                    start: { line: 1, col: 67 },
+                    end: { line: 1, col: 72 },
                   },
                 },
                 {
                   type: "Bareword",
                   value: "an-identifier",
                   loc: {
-                    start: { line: 1, col: 75 },
-                    end: { line: 1, col: 88 },
+                    start: { line: 1, col: 73 },
+                    end: { line: 1, col: 86 },
                   },
                 },
                 {
@@ -71,24 +71,24 @@ describe("Parsers - command expression", () => {
                   name: "me",
                   args: [],
                   loc: {
-                    start: { line: 1, col: 90 },
-                    end: { line: 1, col: 93 },
+                    start: { line: 1, col: 87 },
+                    end: { line: 1, col: 90 },
                   },
                 },
               ],
-              loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 94 } },
+              loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 91 } },
             },
             {
               type: "Bareword",
               value: "anotherIdentifier.open",
               loc: {
-                start: { line: 1, col: 95 },
-                end: { line: 1, col: 117 },
+                start: { line: 1, col: 92 },
+                end: { line: 1, col: 114 },
               },
             },
           ],
           opts: [],
-          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 117 } },
+          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 114 } },
         },
       ],
       [
@@ -199,7 +199,7 @@ describe("Parsers - command expression", () => {
 
   it("should parse a command with opt args correctly", async () => {
     const c: Case = [
-      'example-command myArg1 125.23e18 @aHelper(contract::getSomething(), false) "text" --option1 optionValue --something-else @token(DAI) --anotherOne 1e18',
+      'example-command myArg1 125.23e18 @aHelper(contract::getSomething() false) "text" --option1 optionValue --something-else @token(DAI) --anotherOne 1e18',
       {
         type: "CommandExpression",
         name: "example-command",
@@ -240,17 +240,17 @@ describe("Parsers - command expression", () => {
                 type: "BoolLiteral",
                 value: false,
                 loc: {
-                  start: { line: 1, col: 68 },
-                  end: { line: 1, col: 73 },
+                  start: { line: 1, col: 67 },
+                  end: { line: 1, col: 72 },
                 },
               },
             ],
-            loc: { start: { line: 1, col: 33 }, end: { line: 1, col: 74 } },
+            loc: { start: { line: 1, col: 33 }, end: { line: 1, col: 73 } },
           },
           {
             type: "StringLiteral",
             value: "text",
-            loc: { start: { line: 1, col: 75 }, end: { line: 1, col: 81 } },
+            loc: { start: { line: 1, col: 74 }, end: { line: 1, col: 80 } },
           },
         ],
         opts: [
@@ -261,11 +261,11 @@ describe("Parsers - command expression", () => {
               type: "Bareword",
               value: "optionValue",
               loc: {
-                start: { line: 1, col: 92 },
-                end: { line: 1, col: 103 },
+                start: { line: 1, col: 91 },
+                end: { line: 1, col: 102 },
               },
             },
-            loc: { start: { line: 1, col: 82 }, end: { line: 1, col: 103 } },
+            loc: { start: { line: 1, col: 81 }, end: { line: 1, col: 102 } },
           },
           {
             type: "CommandOpt",
@@ -278,17 +278,17 @@ describe("Parsers - command expression", () => {
                   type: "Bareword",
                   value: "DAI",
                   loc: {
-                    start: { line: 1, col: 128 },
-                    end: { line: 1, col: 131 },
+                    start: { line: 1, col: 127 },
+                    end: { line: 1, col: 130 },
                   },
                 },
               ],
               loc: {
-                start: { line: 1, col: 121 },
-                end: { line: 1, col: 132 },
+                start: { line: 1, col: 120 },
+                end: { line: 1, col: 131 },
               },
             },
-            loc: { start: { line: 1, col: 104 }, end: { line: 1, col: 132 } },
+            loc: { start: { line: 1, col: 103 }, end: { line: 1, col: 131 } },
           },
           {
             type: "CommandOpt",
@@ -298,14 +298,14 @@ describe("Parsers - command expression", () => {
               value: "1",
               power: 18,
               loc: {
-                start: { line: 1, col: 146 },
-                end: { line: 1, col: 150 },
+                start: { line: 1, col: 145 },
+                end: { line: 1, col: 149 },
               },
             },
-            loc: { start: { line: 1, col: 133 }, end: { line: 1, col: 150 } },
+            loc: { start: { line: 1, col: 132 }, end: { line: 1, col: 149 } },
           },
         ],
-        loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 150 } },
+        loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 149 } },
       },
     ];
 
@@ -314,7 +314,7 @@ describe("Parsers - command expression", () => {
 
   it("should parse a command with in-between opt args", () => {
     const c: Case = [
-      `exec 0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374 --inBetween a::getInfo() 1e18 --another-one @token.balance(GIV, @me) @token(DAI, "see") (
+      `exec 0x9C33eaCc2F50E39940D3AfaF2c7B8246B681A374 --inBetween a::getInfo() 1e18 --another-one @token.balance(GIV @me) @token(DAI "see") (
           inside-command @me --t "testing" 25e16
           another-ne token-manager:0 superfluid.open:3 --default true
         ) --lastOne false`,
@@ -341,20 +341,20 @@ describe("Parsers - command expression", () => {
                 type: "Bareword",
                 value: "DAI",
                 loc: {
-                  start: { line: 1, col: 124 },
-                  end: { line: 1, col: 127 },
+                  start: { line: 1, col: 123 },
+                  end: { line: 1, col: 126 },
                 },
               },
               {
                 type: "StringLiteral",
                 value: "see",
                 loc: {
-                  start: { line: 1, col: 129 },
-                  end: { line: 1, col: 134 },
+                  start: { line: 1, col: 127 },
+                  end: { line: 1, col: 132 },
                 },
               },
             ],
-            loc: { start: { line: 1, col: 117 }, end: { line: 1, col: 135 } },
+            loc: { start: { line: 1, col: 116 }, end: { line: 1, col: 133 } },
           },
           {
             type: "BlockExpression",
@@ -450,7 +450,7 @@ describe("Parsers - command expression", () => {
                 },
               },
             ],
-            loc: { start: { line: 1, col: 136 }, end: { line: 4, col: 9 } },
+            loc: { start: { line: 1, col: 134 }, end: { line: 4, col: 9 } },
           },
         ],
         opts: [
@@ -493,17 +493,17 @@ describe("Parsers - command expression", () => {
                   name: "me",
                   args: [],
                   loc: {
-                    start: { line: 1, col: 112 },
-                    end: { line: 1, col: 115 },
+                    start: { line: 1, col: 111 },
+                    end: { line: 1, col: 114 },
                   },
                 },
               ],
               loc: {
                 start: { line: 1, col: 92 },
-                end: { line: 1, col: 116 },
+                end: { line: 1, col: 115 },
               },
             },
-            loc: { start: { line: 1, col: 78 }, end: { line: 1, col: 116 } },
+            loc: { start: { line: 1, col: 78 }, end: { line: 1, col: 115 } },
           },
           {
             type: "CommandOpt",

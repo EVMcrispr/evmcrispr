@@ -8,7 +8,7 @@ describeHelper("@unzip", {
   cases: [
     {
       name: "should transpose pairs into two arrays",
-      input: `@unzip(@zip([1, 2, 3], ["a", "b", "c"]))`,
+      input: `@unzip(@zip([1 2 3] ["a" "b" "c"]))`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
         expect(result[0]).to.be.an("array").with.lengthOf(3);
@@ -28,5 +28,5 @@ describeHelper("@unzip", {
       },
     },
   ],
-  sampleArgs: [`[[1, 2]]`],
+  sampleArgs: [`[[1 2]]`],
 }, helpers.unzip.argDefs);

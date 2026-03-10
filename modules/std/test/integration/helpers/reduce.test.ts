@@ -7,12 +7,12 @@ import { helpers } from "../../../src/_generated";
 describeHelper("@reduce", {
   preamble: `
 def @add "$a: any $b: any -> number" ($a + $b)
-def @cat "$a: string $b: string -> string" @str.concat($a, $b)
+def @cat "$a: string $b: string -> string" @str.concat($a $b)
 `,
   cases: [
     {
       name: "should sum numbers with an add helper",
-      input: `@reduce([1, 2, 3, 4, 5], @add, 0)`,
+      input: `@reduce([1 2 3 4 5] @add 0)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
         expect(result.eq(new Num(15n))).to.be.true;
@@ -20,7 +20,7 @@ def @cat "$a: string $b: string -> string" @str.concat($a, $b)
     },
     {
       name: "should return initial value for empty array",
-      input: `@reduce([], @add, 42)`,
+      input: `@reduce([] @add 42)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
         expect(result.eq(new Num(42n))).to.be.true;
@@ -28,14 +28,14 @@ def @cat "$a: string $b: string -> string" @str.concat($a, $b)
     },
     {
       name: "should concatenate strings",
-      input: `@reduce(["hello", " ", "world"], @cat, "")`,
+      input: `@reduce(["hello" " " "world"] @cat "")`,
       expected: "hello world",
     },
   ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",
-      input: `@reduce([1, 2], "notAHelper", 0)`,
+      input: `@reduce([1 2] "notAHelper" 0)`,
       error: "must be a helper reference",
     },
   ],

@@ -10,7 +10,7 @@ export const helperParserDescribe = () =>
     it("should parse helpers correctly", () => {
       const cases: [string, any, string?][] = [
         [
-          '@helperFunction(anotherToken::symbol(), "this is a string param", 10e18)',
+          '@helperFunction(anotherToken::symbol() "this is a string param" 10e18)',
           {
             type: "HelperFunctionExpression",
             name: "helperFunction",
@@ -32,16 +32,16 @@ export const helperParserDescribe = () =>
               {
                 type: "StringLiteral",
                 value: "this is a string param",
-                loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 64 } },
+                loc: { start: { line: 1, col: 39 }, end: { line: 1, col: 63 } },
               },
               {
                 type: "NumberLiteral",
                 value: "10",
                 power: 18,
-                loc: { start: { line: 1, col: 66 }, end: { line: 1, col: 71 } },
+                loc: { start: { line: 1, col: 64 }, end: { line: 1, col: 69 } },
               },
             ],
-            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 72 } },
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 70 } },
           },
           "invalid helper with call expression match",
         ],
@@ -72,7 +72,7 @@ export const helperParserDescribe = () =>
           "invalid helper without args match",
         ],
         [
-          `@token('DAI', @calc(34, @innerHelper(true)))`,
+          `@token('DAI' @calc(34 @innerHelper(true)))`,
           {
             type: "HelperFunctionExpression",
             name: "token",
@@ -90,8 +90,8 @@ export const helperParserDescribe = () =>
                     type: "NumberLiteral",
                     value: "34",
                     loc: {
-                      start: { line: 1, col: 20 },
-                      end: { line: 1, col: 22 },
+                      start: { line: 1, col: 19 },
+                      end: { line: 1, col: 21 },
                     },
                   },
                   {
@@ -102,21 +102,21 @@ export const helperParserDescribe = () =>
                         type: "BoolLiteral",
                         value: true,
                         loc: {
-                          start: { line: 1, col: 37 },
-                          end: { line: 1, col: 41 },
+                          start: { line: 1, col: 35 },
+                          end: { line: 1, col: 39 },
                         },
                       },
                     ],
                     loc: {
-                      start: { line: 1, col: 24 },
-                      end: { line: 1, col: 42 },
+                      start: { line: 1, col: 22 },
+                      end: { line: 1, col: 40 },
                     },
                   },
                 ],
-                loc: { start: { line: 1, col: 14 }, end: { line: 1, col: 43 } },
+                loc: { start: { line: 1, col: 13 }, end: { line: 1, col: 41 } },
               },
             ],
-            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 44 } },
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 42 } },
           },
           "invalid nested helper match",
         ],
@@ -137,7 +137,7 @@ export const helperParserDescribe = () =>
     it("should fail when parsing a helper without a closing parenthesis", () => {
       runErrorCase(
         helperFunctionParser,
-        "@helper(asda,1e18",
+        "@helper(asda 1e18",
         HELPER_PARSER_ERROR,
       );
     });
@@ -145,9 +145,8 @@ export const helperParserDescribe = () =>
     it("should fail when parsing a helper with empty arguments", () => {
       runErrorCase(
         helperFunctionParser,
-        "@helper(arg1, 1e18, ,)",
+        "@helper(arg1 1e18 )",
         HELPER_PARSER_ERROR,
-        "Expecting a valid expression",
       );
     });
   });

@@ -58,13 +58,13 @@ describeHelper(
     cases: [
       {
         name: "should return ERC-20 balance for a holder",
-        input: "@token.balance(DAI,@token(DAI))",
+        input: "@token.balance(DAI @token(DAI))",
         expected: "12100000000000000000",
       },
       {
         name: "should return native token balance for a holder",
         input:
-          "@token.balance(XDAI,0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
+          "@token.balance(XDAI 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6)",
         validate: (result) => {
           expect(Number(result)).to.be.greaterThanOrEqual(0);
         },
@@ -81,22 +81,22 @@ describeHelper(
     cases: [
       {
         name: "should convert 1 DAI to base units (18 decimals)",
-        input: "@token.amount(DAI, 1)",
+        input: "@token.amount(DAI 1)",
         expected: String(1e18),
       },
       {
         name: "should convert a larger amount",
-        input: "@token.amount(DAI, 100)",
+        input: "@token.amount(DAI 100)",
         expected: String(100e18),
       },
       {
         name: "should convert a decimal amount (0.5 DAI)",
-        input: '@token.amount(DAI, "0.5")',
+        input: '@token.amount(DAI "0.5")',
         expected: "500000000000000000",
       },
       {
         name: "should convert native token amount to base units",
-        input: "@token.amount(XDAI, 1)",
+        input: "@token.amount(XDAI 1)",
         expected: String(1e18),
       },
     ],

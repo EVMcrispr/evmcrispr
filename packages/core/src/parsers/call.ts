@@ -32,17 +32,18 @@ import {
 } from "./utils";
 
 // ---------------------------------------------------------------------------
-// Return-value destructure lens: [,[[,$]]]
-// Bare `$` = "take this value", null = skip, nested [...] = descend.
+// Return-value destructure lens: [_ [[_ $]]]
+// Bare `$` = "take this value", `_` = skip (null), nested [...] = descend.
 // ---------------------------------------------------------------------------
 
-const returnLensSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
-  coroutine((run) => {
-    const dollar: string | null = run(possibly(char("$")));
-    if (dollar !== null) return "$" as DestructureSlot;
+const returnLensHoleParser = char("_").map(() => null);
 
-    return run(returnLensSlotsParser) as DestructureSlot;
-  }),
+const returnLensSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
+  choice([
+    returnLensHoleParser,
+    char("$").map(() => "$" as DestructureSlot),
+    returnLensSlotsParser,
+  ]),
 ) as NodeParser<DestructureSlot>;
 
 const returnLensSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(
@@ -55,18 +56,14 @@ const returnLensSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(
 
       if (run(possibly(char("]")))) return slots;
 
-      const firstSlot = run(possibly(returnLensSlotParser));
-      slots.push(firstSlot);
+      slots.push(run(returnLensSlotParser));
       run(optionalWhitespace);
 
-      while (run(possibly(char(",")))) {
-        run(optionalWhitespace);
-        const slot = run(possibly(returnLensSlotParser));
-        slots.push(slot);
+      while (!run(possibly(char("]")))) {
+        slots.push(run(returnLensSlotParser));
         run(optionalWhitespace);
       }
 
-      run(char("]"));
       return slots;
     }),
 );

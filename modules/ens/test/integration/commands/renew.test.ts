@@ -13,7 +13,7 @@ describeCommand("renew", {
     },
     {
       name: "should fail when not on mainnet (multiple domains)",
-      script: 'ens:renew ["name1.eth","name2.eth"] 31536000',
+      script: 'ens:renew ["name1.eth" "name2.eth"] 31536000',
       error: "This command only works on mainnet",
     },
     {

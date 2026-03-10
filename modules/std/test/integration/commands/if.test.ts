@@ -39,7 +39,7 @@ if $flag (
     {
       name: "should execute block when @bool returns true",
       script: `
-if @bool(1, ==, 1) (
+if @bool(1 == 1) (
   exec ${target} ${fnSig} ${target} 100e18
 )`,
       validate: (actions) => {
@@ -49,7 +49,7 @@ if @bool(1, ==, 1) (
     {
       name: "should skip block when @bool returns false",
       script: `
-if @bool(1, >, 2) (
+if @bool(1 > 2) (
   exec ${target} ${fnSig} ${target} 100e18
 )`,
       expectedActions: [],
@@ -59,7 +59,7 @@ if @bool(1, >, 2) (
       script: `
 set $a 10
 set $b 5
-if @and(@bool($a, >, 0), @bool($b, <, 100)) (
+if @and(@bool($a > 0) @bool($b < 100)) (
   exec ${target} ${fnSig} ${target} 100e18
 )`,
       validate: (actions) => {

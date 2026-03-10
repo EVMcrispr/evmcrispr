@@ -22,7 +22,7 @@ describe("Parsers - event capture", () => {
     it("should parse a capture with a hole (skip position 0)", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Withdrawn(address,uint) [, $amount]",
+        "-> Withdrawn(address,uint) [_ $amount]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
@@ -35,7 +35,7 @@ describe("Parsers - event capture", () => {
     it("should parse multiple captures", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Withdrawn(uint,address) [$amount, $to]",
+        "-> Withdrawn(uint,address) [$amount $to]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
@@ -48,7 +48,7 @@ describe("Parsers - event capture", () => {
     it("should parse nested destructure pattern", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Evt(uint,(address,uint)) [$x, [, $y]]",
+        "-> Evt(uint,(address,uint)) [$x [_ $y]]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
@@ -130,7 +130,7 @@ describe("Parsers - event capture", () => {
     it("should parse contract filter with inline params", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> $c:Withdrawn(uint256,address) [, $to]",
+        "-> $c:Withdrawn(uint256,address) [_ $to]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
@@ -160,7 +160,7 @@ describe("Parsers - event capture", () => {
     it("should parse captures with multiple holes", () => {
       const result = runParser(
         eventCaptureParser,
-        "-> Evt(uint,address,uint) [, , $third]",
+        "-> Evt(uint,address,uint) [_ _ $third]",
       );
       expect(result).to.deep.include({
         type: "EventCapture",
@@ -220,7 +220,7 @@ describe("Parsers - event capture", () => {
     it("should parse exec with inline event signature and destructure", () => {
       const result = runParser(
         commandExpressionParser,
-        "exec $c withdraw() -> Withdrawn(uint256,address) [, $to]",
+        "exec $c withdraw() -> Withdrawn(uint256,address) [_ $to]",
       );
       expect(result.eventCaptures).to.have.lengthOf(1);
       expect(result.eventCaptures[0]).to.deep.include({
@@ -260,7 +260,7 @@ describe("Parsers - event capture", () => {
       const script = `batch (
   exec $c deposit() --value 1e18
   exec $c withdraw(uint) 1e18
-) -> Deposit(address,uint) [, $amount]`;
+) -> Deposit(address,uint) [_ $amount]`;
 
       const { ast, errors } = parseScript(script);
       expect(errors).to.have.lengthOf(0);

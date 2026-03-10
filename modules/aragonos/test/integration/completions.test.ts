@@ -575,8 +575,8 @@ describe("Completions – aragonos helpers", () => {
     });
 
     // @aragonEns(string, any?) -> second arg: any (all helpers)
-    it("@aragonEns(name, <cursor>) second arg should show any-compatible completions", async () => {
-      const { script, position } = helperPos("set $x @aragonEns(name, ", ")");
+    it("@aragonEns(name <cursor>) second arg should show any-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @aragonEns(name ", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of ALL_HELPERS) {

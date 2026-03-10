@@ -561,9 +561,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @token.balance(string, address)  →  second arg: address helpers only
-    it("@token.balance(WXDAI, <cursor>) second arg should show address-compatible completions", async () => {
+    it("@token.balance(WXDAI <cursor>) second arg should show address-compatible completions", async () => {
       const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI, ",
+        "set $x @token.balance(WXDAI ",
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -576,9 +576,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @token.amount(string, number)  →  second arg: number helpers only
-    it("@token.amount(WXDAI, <cursor>) second arg should show number-compatible completions", async () => {
+    it("@token.amount(WXDAI <cursor>) second arg should show number-compatible completions", async () => {
       const { script, position } = helperPos(
-        "set $x @token.amount(WXDAI, ",
+        "set $x @token.amount(WXDAI ",
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -602,9 +602,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @get(address, read-abi, ...any)  →  rest arg resolves type from signature
-    it('@get($addr, "fn(uint256)", <cursor>) rest arg should resolve to number from signature', async () => {
+    it('@get($addr "fn(uint256)" <cursor>) rest arg should resolve to number from signature', async () => {
       const { script, position } = helperPos(
-        'set $x @get($addr, "fn(uint256)", v',
+        'set $x @get($addr "fn(uint256)" v',
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -618,9 +618,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @get multi-param: first rest arg resolves to number
-    it('@get($addr, "fn(uint256,bool)", <cursor>) first rest arg should resolve to number', async () => {
+    it('@get($addr "fn(uint256,bool)" <cursor>) first rest arg should resolve to number', async () => {
       const { script, position } = helperPos(
-        'set $x @get($addr, "fn(uint256,bool)", ',
+        'set $x @get($addr "fn(uint256,bool)" ',
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -635,9 +635,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @get multi-param: second rest arg resolves to bool
-    it('@get($addr, "fn(uint256,bool)", 3, <cursor>) second rest arg should resolve to bool', async () => {
+    it('@get($addr "fn(uint256,bool)" 3 <cursor>) second rest arg should resolve to bool', async () => {
       const { script, position } = helperPos(
-        'set $x @get($addr, "fn(uint256,bool)", 3, ',
+        'set $x @get($addr "fn(uint256,bool)" 3 ',
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -651,8 +651,8 @@ describe("Completions – std helpers", () => {
     });
 
     // Unclosed parens: same scenarios without closing ")"
-    it('@get($addr, "fn(uint256,bool)", <cursor> (no closing paren) should still resolve to number', async () => {
-      const script = 'set $x @get($addr, "fn(uint256,bool)", ';
+    it('@get($addr "fn(uint256,bool)" <cursor> (no closing paren) should still resolve to number', async () => {
+      const script = 'set $x @get($addr "fn(uint256,bool)" ';
       const position = { line: 1, col: script.length };
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
@@ -662,8 +662,8 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@me")).to.be.false;
     });
 
-    it('@get($addr, "fn(uint256,bool)", 3, <cursor> (no closing paren) should still resolve to bool', async () => {
-      const script = 'set $x @get($addr, "fn(uint256,bool)", 3, ';
+    it('@get($addr "fn(uint256,bool)" 3 <cursor> (no closing paren) should still resolve to bool', async () => {
+      const script = 'set $x @get($addr "fn(uint256,bool)" 3 ';
       const position = { line: 1, col: script.length };
       const items = await evm.getCompletions(script, position);
       expect(hasLabel(items, "true")).to.be.true;
@@ -676,9 +676,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @get(address, read-abi, ...any)  →  rest arg with bool signature
-    it('@get($addr, "bo(bool)", <cursor>) rest arg should resolve to bool from signature', async () => {
+    it('@get($addr "bo(bool)" <cursor>) rest arg should resolve to bool from signature', async () => {
       const { script, position } = helperPos(
-        'set $x @get($addr, "bo(bool)", ',
+        'set $x @get($addr "bo(bool)" ',
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -703,9 +703,9 @@ describe("Completions – std helpers", () => {
     });
 
     // @nextContract(address, number?)  →  second arg: number
-    it("@nextContract($addr, <cursor>) second arg should show number-compatible completions", async () => {
+    it("@nextContract($addr <cursor>) second arg should show number-compatible completions", async () => {
       const { script, position } = helperPos(
-        "set $x @nextContract($addr, ",
+        "set $x @nextContract($addr ",
         ")",
       );
       const items = await evm.getCompletions(script, position);
@@ -777,23 +777,23 @@ describe("Completions – std helpers", () => {
     });
 
     // Variables should be included for non-bool/non-block types
-    it("@token.balance(WXDAI, <cursor>) should include address-valued variables only", async () => {
+    it("@token.balance(WXDAI <cursor>) should include address-valued variables only", async () => {
       const before =
-        "set $addr 0x0000000000000000000000000000000000000001\nset $x @token.balance(WXDAI, ";
+        "set $addr 0x0000000000000000000000000000000000000001\nset $x @token.balance(WXDAI ";
       const after = ")";
       const script = before + after;
-      const position = { line: 2, col: "set $x @token.balance(WXDAI, ".length };
+      const position = { line: 2, col: "set $x @token.balance(WXDAI ".length };
       const items = await evm.getCompletions(script, position);
       const varItems = onlyKind(items, "variable");
       expect(hasLabel(varItems, "$addr")).to.be.true;
     });
 
-    it("@token.balance($c, <cursor>) should show only address variable and address helpers, no duplicates", async () => {
+    it("@token.balance($c <cursor>) should show only address variable and address helpers, no duplicates", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const before = `set $a 1\nset $c ${addr}\nexec $c @token.balance($c, `;
+      const before = `set $a 1\nset $c ${addr}\nexec $c @token.balance($c `;
       const after = ")";
       const script = before + after;
-      const position = { line: 3, col: `exec $c @token.balance($c, `.length };
+      const position = { line: 3, col: `exec $c @token.balance($c `.length };
       const items = await evm.getCompletions(script, position);
       // $c should appear exactly once (address variable)
       const cItems = items.filter((i) => i.label === "$c");
@@ -808,12 +808,12 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "@date")).to.be.false;
     });
 
-    it("@token.amount($c, <cursor>) should show only number variable, not address variable", async () => {
+    it("@token.amount($c <cursor>) should show only number variable, not address variable", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const before = `set $a 1\nset $c ${addr}\nexec $c @token.amount($c, `;
+      const before = `set $a 1\nset $c ${addr}\nexec $c @token.amount($c `;
       const after = ")";
       const script = before + after;
-      const position = { line: 3, col: `exec $c @token.amount($c, `.length };
+      const position = { line: 3, col: `exec $c @token.amount($c `.length };
       const items = await evm.getCompletions(script, position);
       // $a should appear (value is 1, a number)
       expect(hasLabel(items, "$a")).to.be.true;
@@ -838,23 +838,9 @@ describe("Completions – std helpers", () => {
       position: { line: 1, col: before.length },
     });
 
-    it("@token.balance(WXDAI,<cursor> @me) gap between args should show address completions", async () => {
+    it("@token.balance(WXDAI <cursor>@me) gap between args should show address completions", async () => {
       const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI,",
-        " @me)",
-      );
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ADDRESS_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-      expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
-    });
-
-    it("@token.balance(WXDAI, <cursor>@me) at arg start mid-line should show address completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI, ",
+        "set $x @token.balance(WXDAI ",
         "@me)",
       );
       const items = await evm.getCompletions(script, position);
@@ -866,9 +852,23 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@id")).to.be.false;
     });
 
-    it("@token.amount(WXDAI, <cursor>@me) mid-line should show number completions", async () => {
+    it("@token.balance(WXDAI <cursor>@me) at arg start mid-line should show address completions", async () => {
       const { script, position } = helperPos(
-        "set $x @token.amount(WXDAI, ",
+        "set $x @token.balance(WXDAI ",
+        "@me)",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@id")).to.be.false;
+    });
+
+    it("@token.amount(WXDAI <cursor>@me) mid-line should show number completions", async () => {
+      const { script, position } = helperPos(
+        "set $x @token.amount(WXDAI ",
         "@me)",
       );
       const items = await evm.getCompletions(script, position);
@@ -880,11 +880,11 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@token")).to.be.false;
     });
 
-    it("multiline: @token.amount(WXDAI,<cursor> @me) mid-line should show number completions", async () => {
-      const script = "set $a 1\nset $x @token.amount(WXDAI, @me)";
+    it("multiline: @token.amount(WXDAI <cursor>@me) mid-line should show number completions", async () => {
+      const script = "set $a 1\nset $x @token.amount(WXDAI @me)";
       const position = {
         line: 2,
-        col: "set $x @token.amount(WXDAI,".length,
+        col: "set $x @token.amount(WXDAI ".length,
       };
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
@@ -903,20 +903,20 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "@me")).to.be.false;
     });
 
-    it("@get(addr,<cursor>, (trailing comma, no closing paren) should still show completions", async () => {
+    it("@get(addr <cursor> (no closing paren) should still show completions", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const script = `print @get(${addr},`;
-      const position = { line: 1, col: `print @get(${addr},`.length };
+      const script = `print @get(${addr} `;
+      const position = { line: 1, col: `print @get(${addr} `.length };
       const items = await evm.getCompletions(script, position);
       expect(items.length).to.be.greaterThan(0);
     });
 
-    it("multiline: @get(addr,<cursor>, with invalid full script should use partial context", async () => {
+    it("multiline: @get(addr <cursor> with invalid full script should use partial context", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const script = `switch gnosis\nprint @get(${addr},,`;
+      const script = `switch gnosis\nprint @get(${addr}  `;
       const position = {
         line: 2,
-        col: `print @get(${addr},`.length,
+        col: `print @get(${addr} `.length,
       };
       const items = await evm.getCompletions(script, position);
       expect(items.length).to.be.greaterThan(0);

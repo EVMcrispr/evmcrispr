@@ -165,7 +165,7 @@ describe("Std > commands > exec > event capture", () => {
   it("should capture event value and use it in a subsequent transaction", async () => {
     const script = `
       set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
-      exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint) [, $amount]
+      exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint) [_ $amount]
       exec $wxdai withdraw(uint) $amount
     `;
 
@@ -198,7 +198,7 @@ set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
 batch (
   exec $wxdai deposit() --value 0.001e18
   exec $wxdai withdraw(uint) 0.001e18
-) -> Deposit(address indexed,uint) [, $amount]
+) -> Deposit(address indexed,uint) [_ $amount]
     `;
 
     const account = walletClient.account!;

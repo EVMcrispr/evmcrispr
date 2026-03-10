@@ -20,7 +20,6 @@ import {
   possibly,
   recursiveParser,
   regex,
-  sepBy,
   sequenceOf,
   setData,
   str,
@@ -64,7 +63,6 @@ export const optionalWhitespace = possibly(whitespace);
 
 export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
-export const comma = char(",");
 export const endOfLine = regex(/^\r?\n/);
 
 export const baseEnclosingCharParsers = [endOfLine, endOfInput, whitespace];
@@ -87,9 +85,23 @@ export const surroundedBy = (
 ): ((p: Parser<any, string, any>) => Parser<any, string, any>) =>
   between(parser)(parser);
 
-export const commaSeparated: <T = Node>(
+export const spaceSeparated = <T = Node>(
   parser: NodeParser<T>,
-) => NodeParser<T[]> = sepBy(surroundedBy(optionalWhitespace)(char(",")));
+): NodeParser<T[]> =>
+  recursiveParser(() =>
+    coroutine((run) => {
+      const results: T[] = [];
+      const first: T | null = run(possibly(parser));
+      if (first === null) return results;
+      results.push(first);
+      while (run(possibly(whitespace))) {
+        const item: T | null = run(possibly(parser));
+        if (item === null) break;
+        results.push(item);
+      }
+      return results;
+    }),
+  );
 
 const defaultEndingParser = possibly(
   sequenceOf([optionalWhitespace, endOfInput]).map(

@@ -13,7 +13,7 @@ describeHelper(
     cases: [
       {
         name: "should encode a transfer(address,uint256) call",
-        input: `@abi.encodeCall("transfer(address,uint256)", ${addr}, 1000e18)`,
+        input: `@abi.encodeCall("transfer(address,uint256)" ${addr} 1000e18)`,
         validate: (result) => {
           const expected = encodeFunctionData({
             abi: [parseAbiItem("function transfer(address,uint256)")],
@@ -24,7 +24,7 @@ describeHelper(
       },
       {
         name: "should encode with explicit function prefix in signature",
-        input: `@abi.encodeCall("function approve(address,uint256)", ${addr}, 500e18)`,
+        input: `@abi.encodeCall("function approve(address,uint256)" ${addr} 500e18)`,
         validate: (result) => {
           const expected = encodeFunctionData({
             abi: [parseAbiItem("function approve(address,uint256)")],
@@ -37,7 +37,7 @@ describeHelper(
     errorCases: [
       {
         name: "should fail with an invalid function signature",
-        input: `@abi.encodeCall("not valid(", ${addr})`,
+        input: `@abi.encodeCall("not valid(" ${addr})`,
         error: "invalid function signature",
       },
     ],

@@ -6,17 +6,17 @@ describeHelper("@str.replace", {
   cases: [
     {
       name: "should replace a substring",
-      input: `@str.replace("hello world", "world", "there")`,
+      input: `@str.replace("hello world" "world" "there")`,
       expected: "hello there",
     },
     {
       name: "should replace all occurrences",
-      input: `@str.replace("aabaa", "a", "x")`,
+      input: `@str.replace("aabaa" "a" "x")`,
       expected: "xxbxx",
     },
     {
       name: "should handle no match",
-      input: `@str.replace("hello", "xyz", "abc")`,
+      input: `@str.replace("hello" "xyz" "abc")`,
       expected: "hello",
     },
   ],

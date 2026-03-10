@@ -8,7 +8,7 @@ describeHelper("@flat", {
   cases: [
     {
       name: "should flatten one level of nested arrays",
-      input: `@flat([[1, 2], [3, 4]])`,
+      input: `@flat([[1 2] [3 4]])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(4);
         expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([1, 2, 3, 4]);
@@ -16,7 +16,7 @@ describeHelper("@flat", {
     },
     {
       name: "should keep non-array elements as-is",
-      input: `@flat([1, [2, 3], 4])`,
+      input: `@flat([1 [2 3] 4])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(4);
         expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([1, 2, 3, 4]);

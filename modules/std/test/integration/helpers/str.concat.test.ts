@@ -6,12 +6,12 @@ describeHelper("@str.concat", {
   cases: [
     {
       name: "should concatenate two strings",
-      input: `@str.concat("hello", " world")`,
+      input: `@str.concat("hello" " world")`,
       expected: "hello world",
     },
     {
       name: "should concatenate multiple strings",
-      input: `@str.concat("a", "b", "c")`,
+      input: `@str.concat("a" "b" "c")`,
       expected: "abc",
     },
     {

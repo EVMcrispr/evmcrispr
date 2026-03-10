@@ -15,7 +15,7 @@ describeCommand("donate", {
   cases: [
     {
       name: "should return a correct donate action",
-      script: "giveth:donate evmcrispr @token.amount(HNY,1) @token(HNY)",
+      script: "giveth:donate evmcrispr @token.amount(HNY 1) @token(HNY)",
       validate: async (result) => {
         const client = getPublicClient();
         const interpreter2 = createInterpreter(

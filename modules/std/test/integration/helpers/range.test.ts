@@ -8,7 +8,7 @@ describeHelper("@range", {
   cases: [
     {
       name: "should generate a range of numbers",
-      input: `@range(0, 5)`,
+      input: `@range(0 5)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(5);
         expect(result[0]).to.be.instanceOf(Num);
@@ -18,14 +18,14 @@ describeHelper("@range", {
     },
     {
       name: "should return empty array when start equals end",
-      input: `@range(3, 3)`,
+      input: `@range(3 3)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(0);
       },
     },
     {
       name: "should support non-zero start",
-      input: `@range(5, 8)`,
+      input: `@range(5 8)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0].eq(new Num(5n))).to.be.true;
@@ -36,7 +36,7 @@ describeHelper("@range", {
   errorCases: [
     {
       name: "should fail when range exceeds maximum length",
-      input: `@range(0, 10001)`,
+      input: `@range(0 10001)`,
       error: "maximum length",
     },
   ],

@@ -8,7 +8,7 @@ describeHelper("@enumerate", {
   cases: [
     {
       name: "should return index-element pairs",
-      input: `@enumerate(["a", "b", "c"])`,
+      input: `@enumerate(["a" "b" "c"])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0]).to.be.an("array").with.lengthOf(2);

@@ -206,7 +206,7 @@ const updateExpressionArgs = (
   switch (op) {
     case "add":
       return `${argumentlessExpression}(${[...args, `'extra argument'`].join(
-        ",",
+        " ",
       )})`;
     case "remove":
       return `${argumentlessExpression}(${args
@@ -214,7 +214,7 @@ const updateExpressionArgs = (
           0,
           Math.max(0, type === Between ? minValue - 1 : args.length - 1),
         )
-        .join(",")})`;
+        .join(" ")})`;
     default:
       throw new Error("Unsupported update expression operation");
   }

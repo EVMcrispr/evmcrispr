@@ -7,7 +7,7 @@ export const callParserDescribe = () =>
     it("should parse call expressions correctly", () => {
       const cases: Case[] = [
         [
-          `0x14FA5C16Af56190239B997485656F5c8b4f86c4b::getEntry(0, @token(WETH))`,
+          `0x14FA5C16Af56190239B997485656F5c8b4f86c4b::getEntry(0 @token(WETH))`,
           {
             type: "CallExpression",
             target: {
@@ -30,19 +30,19 @@ export const callParserDescribe = () =>
                     type: "Bareword",
                     value: "WETH",
                     loc: {
-                      start: { line: 1, col: 63 },
-                      end: { line: 1, col: 67 },
+                      start: { line: 1, col: 62 },
+                      end: { line: 1, col: 66 },
                     },
                   },
                 ],
-                loc: { start: { line: 1, col: 56 }, end: { line: 1, col: 68 } },
+                loc: { start: { line: 1, col: 55 }, end: { line: 1, col: 67 } },
               },
             ],
-            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 69 } },
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 68 } },
           },
         ],
         [
-          `$superfluid::createFlow(@token("DAIx"), $finance::vault([1,2,3]), $contract::method(), 10e18m, 'this is a nice description')`,
+          `$superfluid::createFlow(@token("DAIx") $finance::vault([1 2 3]) $contract::method() 10e18m 'this is a nice description')`,
           {
             type: "CallExpression",
             target: {
@@ -73,8 +73,8 @@ export const callParserDescribe = () =>
                   type: "VariableIdentifier",
                   value: "$finance",
                   loc: {
-                    start: { line: 1, col: 40 },
-                    end: { line: 1, col: 48 },
+                    start: { line: 1, col: 39 },
+                    end: { line: 1, col: 47 },
                   },
                 },
                 method: "vault",
@@ -86,34 +86,34 @@ export const callParserDescribe = () =>
                         type: "NumberLiteral",
                         value: "1",
                         loc: {
-                          start: { line: 1, col: 57 },
-                          end: { line: 1, col: 58 },
+                          start: { line: 1, col: 56 },
+                          end: { line: 1, col: 57 },
                         },
                       },
                       {
                         type: "NumberLiteral",
                         value: "2",
                         loc: {
-                          start: { line: 1, col: 59 },
-                          end: { line: 1, col: 60 },
+                          start: { line: 1, col: 58 },
+                          end: { line: 1, col: 59 },
                         },
                       },
                       {
                         type: "NumberLiteral",
                         value: "3",
                         loc: {
-                          start: { line: 1, col: 61 },
-                          end: { line: 1, col: 62 },
+                          start: { line: 1, col: 60 },
+                          end: { line: 1, col: 61 },
                         },
                       },
                     ],
                     loc: {
-                      start: { line: 1, col: 56 },
-                      end: { line: 1, col: 63 },
+                      start: { line: 1, col: 55 },
+                      end: { line: 1, col: 62 },
                     },
                   },
                 ],
-                loc: { start: { line: 1, col: 40 }, end: { line: 1, col: 64 } },
+                loc: { start: { line: 1, col: 39 }, end: { line: 1, col: 63 } },
               },
               {
                 type: "CallExpression",
@@ -121,36 +121,36 @@ export const callParserDescribe = () =>
                   type: "VariableIdentifier",
                   value: "$contract",
                   loc: {
-                    start: { line: 1, col: 66 },
-                    end: { line: 1, col: 75 },
+                    start: { line: 1, col: 64 },
+                    end: { line: 1, col: 73 },
                   },
                 },
                 method: "method",
                 args: [],
-                loc: { start: { line: 1, col: 66 }, end: { line: 1, col: 85 } },
+                loc: { start: { line: 1, col: 64 }, end: { line: 1, col: 83 } },
               },
               {
                 type: "NumberLiteral",
                 value: "10",
                 power: 18,
                 timeUnit: "m",
-                loc: { start: { line: 1, col: 87 }, end: { line: 1, col: 93 } },
+                loc: { start: { line: 1, col: 84 }, end: { line: 1, col: 90 } },
               },
               {
                 type: "StringLiteral",
                 value: "this is a nice description",
                 loc: {
-                  start: { line: 1, col: 95 },
-                  end: { line: 1, col: 123 },
+                  start: { line: 1, col: 91 },
+                  end: { line: 1, col: 119 },
                 },
               },
             ],
-            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 124 } },
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 120 } },
           },
           "invalid nested call expression",
         ],
         [
-          `@token(DAIx)::upgrade(@token(DAI), 1800e18)`,
+          `@token(DAIx)::upgrade(@token(DAI) 1800e18)`,
           {
             type: "CallExpression",
             target: {
@@ -189,15 +189,15 @@ export const callParserDescribe = () =>
                 type: "NumberLiteral",
                 value: "1800",
                 power: 18,
-                loc: { start: { line: 1, col: 35 }, end: { line: 1, col: 42 } },
+                loc: { start: { line: 1, col: 34 }, end: { line: 1, col: 41 } },
               },
             ],
-            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 43 } },
+            loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 42 } },
           },
           "invalid helper call expression",
         ],
         [
-          `$registryContract::getToken(1)::approve(@me, 560.25e18)::another()`,
+          `$registryContract::getToken(1)::approve(@me 560.25e18)::another()`,
           {
             type: "CallExpression",
             target: {
@@ -241,16 +241,16 @@ export const callParserDescribe = () =>
                   value: "560.25",
                   power: 18,
                   loc: {
-                    start: { line: 1, col: 45 },
-                    end: { line: 1, col: 54 },
+                    start: { line: 1, col: 44 },
+                    end: { line: 1, col: 53 },
                   },
                 },
               ],
-              loc: { start: { line: 1, col: 32 }, end: { line: 1, col: 55 } },
+              loc: { start: { line: 1, col: 32 }, end: { line: 1, col: 54 } },
             },
             method: "another",
             args: [],
-            loc: { start: { line: 1, col: 57 }, end: { line: 1, col: 66 } },
+            loc: { start: { line: 1, col: 56 }, end: { line: 1, col: 65 } },
           },
           "invalid recursive call expression",
         ],
@@ -310,7 +310,7 @@ export const callParserDescribe = () =>
     });
 
     it("should parse call with return destructure", () => {
-      const result = runParser(callExpressionParser, `$dao::getInfo()[,$]`);
+      const result = runParser(callExpressionParser, `$dao::getInfo()[_ $]`);
       expect(result).to.deep.include({
         type: "CallExpression",
         method: "getInfo",
@@ -321,7 +321,7 @@ export const callParserDescribe = () =>
     it("should parse inline ABI call with nested return destructure", () => {
       const result = runParser(
         callExpressionParser,
-        `$dao::{tokens()(string,(uint,address)[])}[,[[,$]]]`,
+        `$dao::{tokens()(string,(uint,address)[])}[_ [[_ $]]]`,
       );
       expect(result).to.deep.include({
         type: "CallExpression",
@@ -335,7 +335,7 @@ export const callParserDescribe = () =>
     it("should parse inline ABI chain with destructure", () => {
       const result = runParser(
         callExpressionParser,
-        `$dao::{tokens()(string,(uint,address)[])}[,[[,$]]]::{balanceOf(address)(uint256) @me}`,
+        `$dao::{tokens()(string,(uint,address)[])}[_ [[_ $]]]::{balanceOf(address)(uint256) @me}`,
       );
       expect(result.type).to.equal("CallExpression");
       expect(result.method).to.equal("balanceOf");
@@ -376,7 +376,7 @@ export const callParserDescribe = () =>
     });
 
     it("should parse return destructure with empty slots", () => {
-      const result = runParser(callExpressionParser, `$c::method()[,,$]`);
+      const result = runParser(callExpressionParser, `$c::method()[_ _ $]`);
       expect(result.returnDestructure).to.deep.equal([null, null, "$"]);
     });
 

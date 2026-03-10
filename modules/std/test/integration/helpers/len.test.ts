@@ -8,7 +8,7 @@ describeHelper("@len", {
   cases: [
     {
       name: "should return the length of an array",
-      input: `@len([1, 2, 3])`,
+      input: `@len([1 2 3])`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
         expect(result.eq(new Num(3n))).to.be.true;

@@ -18,12 +18,7 @@ import {
   primaryParser,
   variableIdentifierParser,
 } from "./primaries";
-import {
-  closingCharParser,
-  comma,
-  commaSeparated,
-  openingCharParser,
-} from "./utils";
+import { closingCharParser, openingCharParser, spaceSeparated } from "./utils";
 
 export const argumentExpressionParser: EnclosingNodeParser<
   ArgumentExpressionNode
@@ -73,8 +68,8 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
       ArgumentExpressionNode[],
       [string | null, string]
     >(openingCharParser("("))(closingCharParser(")"))(
-      commaSeparated<ArgumentExpressionNode>(
-        argumentExpressionParser([comma, char(")")]),
+      spaceSeparated<ArgumentExpressionNode>(
+        argumentExpressionParser([char(")")]),
       ),
     ),
   );

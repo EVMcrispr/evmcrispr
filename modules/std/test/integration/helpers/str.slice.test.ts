@@ -6,17 +6,17 @@ describeHelper("@str.slice", {
   cases: [
     {
       name: "should slice a string with start and end",
-      input: `@str.slice("hello world", 0, 5)`,
+      input: `@str.slice("hello world" 0 5)`,
       expected: "hello",
     },
     {
       name: "should slice a string from start to end",
-      input: `@str.slice("hello", 2)`,
+      input: `@str.slice("hello" 2)`,
       expected: "llo",
     },
     {
       name: "should support negative indices on strings",
-      input: `@str.slice("hello", -3)`,
+      input: `@str.slice("hello" -3)`,
       expected: "llo",
     },
   ],

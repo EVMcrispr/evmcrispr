@@ -25,7 +25,7 @@ const validateFinalizeGivbacks =
           (batch: any) =>
             `exec ${relayerAddr} executeBatch(uint256,address[],uint256[]) ${
               batch.nonce
-            } [${batch.recipients.join(",")}] [${batch.amounts.join(",")}]`,
+            } [${batch.recipients.join(" ")}] [${batch.amounts.join(" ")}]`,
         )
         .join("\n"),
       client,

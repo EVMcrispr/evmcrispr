@@ -759,6 +759,31 @@ describe("EvmlAST", () => {
             name: "connect",
             args: [
               {
+                type: "ArrayExpression",
+                elements: [
+                  {
+                    type: "Bareword",
+                    value: "object",
+                    loc: {
+                      start: { line: 13, col: 16 },
+                      end: { line: 13, col: 22 },
+                    },
+                  },
+                  {
+                    type: "Bareword",
+                    value: "Object",
+                    loc: {
+                      start: { line: 13, col: 23 },
+                      end: { line: 13, col: 29 },
+                    },
+                  },
+                ],
+                loc: {
+                  start: { line: 13, col: 15 },
+                  end: { line: 13, col: 30 },
+                },
+              },
+              {
                 type: "BlockExpression",
                 body: [
                   {

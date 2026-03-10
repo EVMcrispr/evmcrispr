@@ -7,6 +7,7 @@ import type {
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
   char,
+  choice,
   coroutine,
   lookAhead,
   possibly,
@@ -84,24 +85,22 @@ const captureVariableParser = regex(/^\$[a-zA-Z_][a-zA-Z0-9_-]*/).map(
   (v: string) => v.slice(1),
 );
 
+const captureHoleParser = char("_").map(() => null);
+
 /**
  * Parses a single capture destructure slot (variable names WITHOUT $):
+ *   - `_` -> null (hole)
  *   - `$variable` -> string (without $ prefix)
  *   - nested `[...]` -> DestructureSlot[]
- *   - empty (hole) -> null
  */
 const captureSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
-  coroutine((run) => {
-    const variable: string | null = run(possibly(captureVariableParser));
-    if (variable !== null) return variable as DestructureSlot;
-
-    return run(captureSlotsParser) as DestructureSlot;
-  }),
+  choice([captureHoleParser, captureVariableParser, captureSlotsParser]),
 ) as NodeParser<DestructureSlot>;
 
 /**
  * Parses a `[...]` destructure pattern for event captures.
  * Variable names are stored WITHOUT the $ prefix.
+ * `_` marks a hole (null).
  */
 const captureSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
   coroutine((run) => {
@@ -112,19 +111,14 @@ const captureSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
 
     if (run(possibly(char("]")))) return slots;
 
-    const firstSlot = run(possibly(captureSlotParser));
-    slots.push(firstSlot);
-
+    slots.push(run(captureSlotParser));
     run(optionalWhitespace);
 
-    while (run(possibly(char(",")))) {
-      run(optionalWhitespace);
-      const slot = run(possibly(captureSlotParser));
-      slots.push(slot);
+    while (!run(possibly(char("]")))) {
+      slots.push(run(captureSlotParser));
       run(optionalWhitespace);
     }
 
-    run(char("]"));
     return slots;
   }),
 );
@@ -185,11 +179,11 @@ const contractFilterParser = coroutine((run) => {
  *
  * Examples:
  *   `-> Withdrawn [$amount]`
- *   `-> Withdrawn(uint,address) [$amount, $to]`
- *   `-> Withdrawn(address,uint) [, $amount]`
+ *   `-> Withdrawn(uint,address) [$amount $to]`
+ *   `-> Withdrawn(address,uint) [_ $amount]`
  *   `-> Withdrawn#1 [$secondAmount]`
- *   `-> $c:Withdrawn(uint,address) [, $to]`
- *   `-> Evt(uint,(address,uint)) [$x, [, $y]]`
+ *   `-> $c:Withdrawn(uint,address) [_ $to]`
+ *   `-> Evt(uint,(address,uint)) [$x [_ $y]]`
  */
 export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
   () =>

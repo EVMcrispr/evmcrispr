@@ -4,33 +4,27 @@ import type {
   NodeParser,
 } from "@evmcrispr/sdk";
 import { NodeType } from "@evmcrispr/sdk";
-import { char, coroutine, possibly, recursiveParser, regex } from "arcsecond";
+import {
+  char,
+  choice,
+  coroutine,
+  possibly,
+  recursiveParser,
+  regex,
+} from "arcsecond";
 import { createNodeLocation, locate, optionalWhitespace } from "./utils";
 
-/**
- * Matches `$variableName` and returns the full string (including $).
- * Uses the same character set as variableIdentifierParser.
- */
 const destructureVariableParser = regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/);
 
-/**
- * Parses a single destructure slot:
- *   - `$variable` -> string
- *   - nested `[...]` -> DestructureSlot[]
- *   - empty (hole) -> null  (handled by the caller via `possibly`)
- */
-const destructureSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
-  coroutine((run) => {
-    const variable: string | null = run(possibly(destructureVariableParser));
-    if (variable !== null) return variable as DestructureSlot;
+const holeParser = char("_").map(() => null);
 
-    return run(slotsParser) as DestructureSlot;
-  }),
+const destructureSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
+  choice([holeParser, destructureVariableParser, slotsParser]),
 ) as NodeParser<DestructureSlot>;
 
 /**
- * Parses a `[...]` destructure pattern with comma-separated slots.
- * Empty positions between commas are treated as holes (null).
+ * Parses a `[...]` destructure pattern with space-separated slots.
+ * `_` marks a hole (null).
  */
 const slotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
   coroutine((run) => {
@@ -41,26 +35,20 @@ const slotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
 
     if (run(possibly(char("]")))) return slots;
 
-    const firstSlot = run(possibly(destructureSlotParser));
-    slots.push(firstSlot);
-
+    slots.push(run(destructureSlotParser));
     run(optionalWhitespace);
 
-    while (run(possibly(char(",")))) {
-      run(optionalWhitespace);
-      const slot = run(possibly(destructureSlotParser));
-      slots.push(slot);
+    while (!run(possibly(char("]")))) {
+      slots.push(run(destructureSlotParser));
       run(optionalWhitespace);
     }
 
-    run(char("]"));
     return slots;
   }),
 );
 
 /**
- * Top-level parser for a destructure pattern node: `[$a, $b]`, `[$a, [, $b]]`, etc.
- * Produces a `DestructurePatternNode` with location information.
+ * Top-level parser for a destructure pattern node: `[$a $b]`, `[_ $b]`, etc.
  */
 export const destructurePatternParser: NodeParser<DestructurePatternNode> =
   recursiveParser(() =>

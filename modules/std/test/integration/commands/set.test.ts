@@ -61,7 +61,7 @@ describeCommand("set", {
     },
     {
       name: "should destructure an array into variables",
-      script: 'set [$a, $b] ["hello", "world"]',
+      script: 'set [$a $b] ["hello" "world"]',
       validate: (_, interpreter) => {
         expect(
           interpreter.getBinding("$a", BindingsSpace.USER),
@@ -73,7 +73,7 @@ describeCommand("set", {
     },
     {
       name: "should destructure with a leading hole",
-      script: 'set [, $b] ["skip", "keep"]',
+      script: 'set [_ $b] ["skip" "keep"]',
       validate: (_, interpreter) => {
         expect(
           interpreter.getBinding("$b", BindingsSpace.USER),
@@ -82,7 +82,7 @@ describeCommand("set", {
     },
     {
       name: "should destructure with nested patterns",
-      script: 'set [$a, [, $b]] ["x", ["skip", "y"]]',
+      script: 'set [$a [_ $b]] ["x" ["skip" "y"]]',
       validate: (_, interpreter) => {
         expect(
           interpreter.getBinding("$a", BindingsSpace.USER),

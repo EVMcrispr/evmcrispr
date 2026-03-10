@@ -8,7 +8,7 @@ describeHelper("@zip", {
   cases: [
     {
       name: "should pair elements from two arrays",
-      input: `@zip([1, 2, 3], ["a", "b", "c"])`,
+      input: `@zip([1 2 3] ["a" "b" "c"])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0]).to.be.an("array").with.lengthOf(2);
@@ -19,14 +19,14 @@ describeHelper("@zip", {
     },
     {
       name: "should truncate to the shorter array",
-      input: `@zip([1, 2], ["a", "b", "c"])`,
+      input: `@zip([1 2] ["a" "b" "c"])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
       },
     },
     {
       name: "should return empty array when either input is empty",
-      input: `@zip([], [1, 2])`,
+      input: `@zip([] [1 2])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(0);
       },

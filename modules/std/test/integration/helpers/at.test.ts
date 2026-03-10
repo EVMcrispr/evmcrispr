@@ -8,7 +8,7 @@ describeHelper("@at", {
   cases: [
     {
       name: "should return element at index in array",
-      input: `@at([10, 20, 30], 1)`,
+      input: `@at([10 20 30] 1)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
         expect(result.eq(new Num(20n))).to.be.true;
@@ -16,12 +16,12 @@ describeHelper("@at", {
     },
     {
       name: "should return first element at index 0",
-      input: `@at(["a", "b", "c"], 0)`,
+      input: `@at(["a" "b" "c"] 0)`,
       expected: "a",
     },
     {
       name: "should support negative indices in array",
-      input: `@at([10, 20, 30], -1)`,
+      input: `@at([10 20 30] -1)`,
       validate(result) {
         expect(result.eq(new Num(30n))).to.be.true;
       },
@@ -30,12 +30,12 @@ describeHelper("@at", {
   errorCases: [
     {
       name: "should fail on out-of-bounds index",
-      input: `@at([1, 2], 5)`,
+      input: `@at([1 2] 5)`,
       error: "out of bounds",
     },
     {
       name: "should fail on negative out-of-bounds",
-      input: `@at([1], -3)`,
+      input: `@at([1] -3)`,
       error: "out of bounds",
     },
   ],

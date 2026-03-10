@@ -44,14 +44,14 @@ describeHelper("@num", {
     },
     {
       name: "should apply decimal shift with 2-arg form",
-      input: `@num("1.5", 18)`,
+      input: `@num("1.5" 18)`,
       validate(result) {
         expect(result.eq(new Num(1500000000000000000n))).to.be.true;
       },
     },
     {
       name: "should apply decimal shift for whole numbers",
-      input: `@num("1", 6)`,
+      input: `@num("1" 6)`,
       validate(result) {
         expect(result.eq(new Num(1000000n))).to.be.true;
       },
@@ -70,22 +70,22 @@ describeHelper("@num.format", {
   cases: [
     {
       name: "should format with 18 decimals",
-      input: "@num.format(1500000000000000000, 18)",
+      input: "@num.format(1500000000000000000 18)",
       expected: "1.5",
     },
     {
       name: "should format with 6 decimals",
-      input: "@num.format(1000000, 6)",
+      input: "@num.format(1000000 6)",
       expected: "1",
     },
     {
       name: "should format zero",
-      input: "@num.format(0, 18)",
+      input: "@num.format(0 18)",
       expected: "0",
     },
     {
       name: "should format a small value",
-      input: "@num.format(1, 18)",
+      input: "@num.format(1 18)",
       expected: "0.000000000000000001",
     },
   ],

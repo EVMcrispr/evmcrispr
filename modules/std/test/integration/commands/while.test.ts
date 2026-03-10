@@ -12,7 +12,7 @@ describeCommand("while", {
       name: "should loop a fixed number of times using a counter",
       script: `
 set $i 0
-while @bool($i, <, 3) (
+while @bool($i < 3) (
   set $i ($i + 1)
 )`,
       validate: (_actions, interpreter) => {
@@ -33,7 +33,7 @@ while false (
       name: "should produce actions inside the loop",
       script: `
 set $i 0
-while @bool($i, <, 2) (
+while @bool($i < 2) (
   exec ${target} ${fnSig} ${target} 1e18
   set $i ($i + 1)
 )`,

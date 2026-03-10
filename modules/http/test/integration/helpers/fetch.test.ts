@@ -30,7 +30,7 @@ server.use(
 describeHelper(
   "@fetch",
   {
-    describeName: "Http > helpers > @fetch(url, method?, body?)",
+    describeName: "Http > helpers > @fetch(url method? body?)",
     module: "http",
     cases: [
       {
@@ -45,7 +45,7 @@ describeHelper(
       },
       {
         name: "should POST with a body",
-        input: `@fetch("https://test.evmcrispr.local/echo", POST, "payload")`,
+        input: `@fetch("https://test.evmcrispr.local/echo" POST "payload")`,
         expected: '{"received":"payload"}',
       },
     ],
@@ -70,7 +70,7 @@ describeHelper(
     cases: [
       {
         name: "should send Authorization header from auth arg",
-        input: `@fetch("https://test.evmcrispr.local/auth", GET, "", "Bearer test-token")`,
+        input: `@fetch("https://test.evmcrispr.local/auth" GET "" "Bearer test-token")`,
         validate: (result) => {
           const parsed = JSON.parse(result);
           expect(parsed.auth).to.equal("Bearer test-token");
@@ -88,8 +88,8 @@ describeHelper(
     skipArgLengthCheck: true,
     cases: [
       {
-        name: "should compose @json(@fetch(url), path)",
-        input: `@json(@fetch("https://test.evmcrispr.local/hello"), "greeting")`,
+        name: "should compose @json(@fetch(url) path)",
+        input: `@json(@fetch("https://test.evmcrispr.local/hello") "greeting")`,
         expected: "world",
       },
     ],
