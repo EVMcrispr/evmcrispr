@@ -168,11 +168,15 @@
 }
 
 /* ── Base styles ─────────────────────────────────────────────── */
-body,
-html {
+html,
+body {
   height: 100%;
-  background: black;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  background: black;
   font-family: "Pixel Operator Mono", monospace;
+  /* Firefox: prevent scrollbar gutter from reserving layout space */
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
 }

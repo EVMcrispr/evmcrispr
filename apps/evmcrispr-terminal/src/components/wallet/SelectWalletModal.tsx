@@ -1,7 +1,7 @@
 import { Dialog } from "@repo/ui";
 import { useState } from "react";
 import type { Connector } from "wagmi";
-import { useConnect } from "wagmi";
+import { useConnect, useConnectors } from "wagmi";
 import MetamaskIcon from "../icons/MetamaskIcon";
 import SafeIcon from "../icons/SafeIcon";
 import WalletIcon from "../icons/WalletIcon";
@@ -17,7 +17,7 @@ export default function SelectWalletModal({
   onClose: () => void;
 }) {
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
-  const { connectors } = useConnect();
+  const connectors = useConnectors();
   const walletConnectConnector = connectors.find(
     (c) => c.id === "walletConnect",
   );
@@ -87,7 +87,7 @@ function WalletList({
   handleModalClose: () => void;
   setSelectedWallet: (wallet: string) => void;
 }) {
-  const { connect } = useConnect();
+  const { mutate: connect } = useConnect();
   const walletConnectConnector = connectors.find(
     (c) => c.id === "walletConnect",
   );

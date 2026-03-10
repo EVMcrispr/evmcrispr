@@ -123,7 +123,7 @@ export function inferTypes(
       }
 
       case NodeType.BinaryExpression: {
-        const bin = node as { left: Node; right: Node };
+        const bin = node as unknown as { left: Node; right: Node };
         walkArithmetic(bin.left);
         walkArithmetic(bin.right);
         return "number";
@@ -137,7 +137,7 @@ export function inferTypes(
       }
 
       case NodeType.ArrayExpression: {
-        const arr = node as { elements: Node[] };
+        const arr = node as unknown as { elements: Node[] };
         for (const el of arr.elements) walk(el);
         return "array";
       }
@@ -162,7 +162,7 @@ export function inferTypes(
     if (node.type === NodeType.VariableIdentifier && untypedNames.has(node.value!)) {
       recordType(node.value!, "number");
     } else if (node.type === NodeType.BinaryExpression) {
-      const bin = node as { left: Node; right: Node };
+      const bin = node as unknown as { left: Node; right: Node };
       walkArithmetic(bin.left);
       walkArithmetic(bin.right);
     } else {

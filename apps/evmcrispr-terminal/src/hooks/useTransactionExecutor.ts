@@ -11,6 +11,10 @@ import { observeTransaction } from "../utils/transaction-observer";
 import { useExecutionLogs } from "./useExecutionLogs";
 import { useTransactionBatcher } from "./useTransactionBatcher";
 
+function truncateAddress(addr: string): string {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
 export function useTransactionExecutor(
   address: `0x${string}` | undefined,
   maximizeGasLimit: boolean,
@@ -20,8 +24,7 @@ export function useTransactionExecutor(
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
-  const { logs, logListener, clearLogs, isLogModalOpen, closeLogModal } =
-    useExecutionLogs();
+  const { logs, logListener, clearLogs } = useExecutionLogs();
 
   const { executeBatchedActions, executeSafeBatchedActions } =
     useTransactionBatcher(safeConnector);
@@ -47,12 +50,15 @@ export function useTransactionExecutor(
             );
           }
 
+          onStatusUpdate(
+            `Sending transaction to ${truncateAddress(action.to)}`,
+          );
+
           const chainId = await walletClient.getChainId();
 
-          // Determine gas limit: explicit --gas > maximizeGasLimit (EIP-7825) > undefined (let wallet estimate)
           let gasLimit: bigint | undefined = action.gas;
           if (!gasLimit && maximizeGasLimit) {
-            gasLimit = 16_777_216n; // EIP-7825 gas limit, other chains may have different limits. Check again when EIP-8123 approved.
+            gasLimit = 16_777_216n;
           }
 
           const tx = await walletClient.sendTransaction({
@@ -66,15 +72,22 @@ export function useTransactionExecutor(
             maxPriorityFeePerGas: action.maxPriorityFeePerGas,
             nonce: action.nonce,
           });
-          return await currentPublicClient.waitForTransactionReceipt({
+          const receipt = await currentPublicClient.waitForTransactionReceipt({
             hash: tx,
           });
+          onStatusUpdate(
+            `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${tx})`,
+          );
+          return receipt;
         } else {
           if (!action.to) {
             throw new Error(
               "Cannot observe contract deployment transactions from other signers",
             );
           }
+          onStatusUpdate(
+            `:waiting:Waiting for ${truncateAddress(action.from!)} to execute transaction to ${truncateAddress(action.to)}`,
+          );
           await observeTransaction({
             to: action.to,
             data: action.data,
@@ -92,6 +105,9 @@ export function useTransactionExecutor(
                 "Wallet connection required to send batched transactions. Connect a wallet and try again.",
               );
             }
+            onStatusUpdate(
+              `Executing batch of ${action.actions.length} transactions from ${truncateAddress(action.from)}`,
+            );
             if (safeConnector) {
               await executeSafeBatchedActions(action.actions);
             } else {
@@ -101,6 +117,7 @@ export function useTransactionExecutor(
           }
 
           case "wallet": {
+            onStatusUpdate(`Requesting wallet: ${action.method}`);
             if (action.method === "wallet_switchEthereumChain") {
               if (walletClient) {
                 const chainId = Number(action.params[0].chainId);
@@ -121,6 +138,7 @@ export function useTransactionExecutor(
           }
 
           case "rpc": {
+            onStatusUpdate(`RPC call: ${action.method}`);
             return await currentPublicClient.request({
               method: action.method as any,
               params: action.params as any,
@@ -150,7 +168,6 @@ export function useTransactionExecutor(
     ],
   );
 
-  // AbortController for cancelling transaction observations
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const cancelExecution = useCallback(() => {
@@ -160,6 +177,7 @@ export function useTransactionExecutor(
   const executeScript = useCallback(async () => {
     terminalStoreActions("errors", []);
     terminalStoreActions("isLoading", true);
+    terminalStoreActions("activeTab", "console");
     clearLogs();
 
     abortControllerRef.current = new AbortController();
@@ -172,6 +190,9 @@ export function useTransactionExecutor(
 
       const evm = new EVMcrispr(publicClient, address, transports);
       evm.registerLogListener(logListener);
+      evm.registerLineListener((line: number | null) =>
+        terminalStoreActions("executingLine", line),
+      );
 
       await evm.interpret(script, async (action: Action) => {
         return await executeAction(
@@ -185,7 +206,6 @@ export function useTransactionExecutor(
     } catch (err: any) {
       const e = err as Error;
       if (err instanceof HaltExecution) {
-        console.log("HaltExecution");
         // Clean halt — not an error
       } else if (e.message === "Observation cancelled") {
         terminalStoreActions("errors", ["Script execution cancelled"]);
@@ -206,6 +226,7 @@ export function useTransactionExecutor(
       }
     } finally {
       terminalStoreActions("isLoading", false);
+      terminalStoreActions("executingLine", null);
       abortControllerRef.current = null;
     }
   }, [address, publicClient, script, logListener, clearLogs, executeAction]);
@@ -214,7 +235,5 @@ export function useTransactionExecutor(
     executeScript,
     cancelExecution,
     logs,
-    isLogModalOpen,
-    closeLogModal,
   };
 }

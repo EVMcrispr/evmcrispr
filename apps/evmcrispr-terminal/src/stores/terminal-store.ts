@@ -25,6 +25,8 @@ export type TerminalStoreState = {
   script: string;
   errors: string[];
   isLoading: boolean;
+  activeTab: "console" | "library";
+  executingLine: number | null;
 };
 
 const initialState: TerminalStoreState = {
@@ -32,6 +34,8 @@ const initialState: TerminalStoreState = {
   script: scriptPlaceholder,
   errors: [],
   isLoading: false,
+  activeTab: "library",
+  executingLine: null,
 };
 
 const terminalStore = createStore<TerminalStoreState>(initialState, {

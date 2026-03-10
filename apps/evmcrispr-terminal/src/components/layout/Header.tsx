@@ -4,7 +4,7 @@ import makeBlockie from "ethereum-blockies-base64";
 import { useState } from "react";
 import { Link } from "react-router";
 import type { Connector } from "wagmi";
-import { useConnect, useDisconnect } from "wagmi";
+import { useConnect, useConnectors, useDisconnect } from "wagmi";
 
 import logo from "../../assets/logo.svg";
 import { terminalStoreActions } from "../../stores/terminal-store";
@@ -16,8 +16,9 @@ export default function TerminalHeader({
 }: {
   address: `0x${string}` | undefined;
 }) {
-  const { disconnect } = useDisconnect();
-  const { connect, connectors } = useConnect();
+  const { mutate: disconnect } = useDisconnect();
+  const { mutate: connect } = useConnect();
+  const connectors = useConnectors();
   const safeConnector = connectors.find((c: Connector) => c.id === "safe");
 
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
@@ -31,10 +32,10 @@ export default function TerminalHeader({
 
   return (
     <>
-      <div className="flex justify-between h-12 mb-12 items-end gap-6 md:gap-0">
-        <div className="flex items-end gap-6">
+      <div className="flex justify-between w-full h-full items-center gap-6 md:gap-0">
+        <div className="flex items-center gap-6">
           <Link to="/">
-            <img src={logo} alt="Logo" className="w-52" />
+            <img src={logo} alt="Logo" className="h-10" />
           </Link>
           <div className="flex items-center bg-evm-gray-800">
             <div className="w-1.5 h-9 bg-evm-green-300" />
@@ -49,21 +50,21 @@ export default function TerminalHeader({
           </div>
         </div>
         {address ? (
-          <div className="flex flex-col items-end self-end">
-            <div className="flex items-center border border-evm-green-300 px-3">
+          <div className="flex items-center gap-3 pr-6">
+            <div className="flex items-center border border-evm-green-300 px-2 py-0.5">
               <img
                 src={makeBlockie(address.toLowerCase())}
                 alt="blockie"
-                className="w-6 h-6"
+                className="w-4 h-4"
               />
-              <span className="ml-3 text-white text-2xl font-head">
+              <span className="ml-3 text-white text-lg font-head mt-0.5">
                 {addressShortened}
               </span>
             </div>
             {!safeConnector && (
               <Button
                 variant="default"
-                className="bg-evm-pink-400 text-evm-gray-900 border-evm-pink-400 hover:bg-evm-pink-300 mt-1 shadow-destructive"
+                className="bg-evm-pink-400 text-evm-gray-900 border-evm-pink-400 hover:bg-evm-pink-300 shadow-destructive"
                 onClick={onDisconnect}
                 size="sm"
               >
@@ -74,7 +75,6 @@ export default function TerminalHeader({
         ) : (
           <Button
             variant="default"
-            size="lg"
             onClick={
               safeConnector
                 ? () => connect({ connector: safeConnector })

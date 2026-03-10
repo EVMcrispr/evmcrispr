@@ -4,7 +4,7 @@ import type {
 } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
-import type { languages } from "monaco-editor";
+import type { editor, languages } from "monaco-editor";
 import { useEffect, useRef } from "react";
 import { useEditorState } from "../../hooks/useEditorState";
 import {
@@ -18,13 +18,17 @@ import { theme } from "./theme";
 export default function TerminalEditor() {
   const monaco = useMonaco();
 
-  const { script } = useTerminalStore();
+  const { script, executingLine } = useTerminalStore();
   const { evm, debouncedScript, commandKeywords, helperKeywords } =
     useEditorState(script);
 
-  // Keep a ref so the completion closure always sees the latest script
   const scriptRef = useRef(script);
   scriptRef.current = script;
+
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const decorationsRef = useRef<editor.IEditorDecorationsCollection | null>(
+    null,
+  );
 
   function handleOnChangeEditor(str: string | undefined) {
     terminalStoreActions("script", str ?? "");
@@ -221,47 +225,78 @@ export default function TerminalEditor() {
     monaco.languages.setLanguageConfiguration("evml", conf);
   }
 
-  function handleOnMountEditor(editor: any) {
-    editor.setPosition({ lineNumber: 10000, column: 0 });
-    editor.focus();
+  // Line highlighting during execution
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+
+    if (!decorationsRef.current) {
+      decorationsRef.current = ed.createDecorationsCollection([]);
+    }
+
+    if (executingLine != null) {
+      decorationsRef.current.set([
+        {
+          range: new monaco.Range(executingLine, 1, executingLine, 1),
+          options: {
+            isWholeLine: true,
+            className: "executing-line-highlight",
+          },
+        },
+      ]);
+      ed.revealLineInCenter(executingLine);
+    } else {
+      decorationsRef.current.set([]);
+    }
+  }, [executingLine, monaco]);
+
+  function handleOnMountEditor(ed: editor.IStandaloneCodeEditor) {
+    editorRef.current = ed;
+    ed.setPosition({ lineNumber: 10000, column: 0 });
+    ed.focus();
   }
 
   return (
-    <MonacoEditor
-      height="65vh"
-      theme="theme"
-      language="evml"
-      value={script}
-      onChange={handleOnChangeEditor}
-      beforeMount={handleBeforeMountEditor}
-      onMount={handleOnMountEditor}
-      options={{
-        fontSize: 22,
-        fontFamily: "Ubuntu Mono",
-        detectIndentation: false,
-        quickSuggestionsDelay: 100,
-        wordBasedSuggestions: "off",
-        tabSize: 2,
-        language: "evml",
-        minimap: {
-          enabled: false,
-        },
-        scrollbar: {
-          useShadows: false,
-          verticalScrollbarSize: 7,
-          vertical: "hidden",
-        },
-        bracketPairColorization: {
-          enabled: true,
-        },
-        guides: {
-          bracketPairs: true,
-          indentation: true,
-        },
-        stickyScroll: {
-          enabled: true,
-        },
-      }}
-    />
+    <div className="relative w-full h-full">
+      <MonacoEditor
+        height="100%"
+        theme="theme"
+        language="evml"
+        value={script}
+        onChange={handleOnChangeEditor}
+        beforeMount={handleBeforeMountEditor}
+        onMount={handleOnMountEditor}
+        options={{
+          fontSize: 22,
+          fontFamily: "Ubuntu Mono",
+          detectIndentation: false,
+          quickSuggestionsDelay: 100,
+          wordBasedSuggestions: "off",
+          tabSize: 2,
+          language: "evml",
+          minimap: {
+            enabled: false,
+          },
+          wordWrap: "on",
+          scrollbar: {
+            useShadows: false,
+            verticalScrollbarSize: 7,
+            vertical: "hidden",
+            horizontal: "hidden",
+            alwaysConsumeMouseWheel: false,
+          },
+          bracketPairColorization: {
+            enabled: true,
+          },
+          guides: {
+            bracketPairs: true,
+            indentation: true,
+          },
+          stickyScroll: {
+            enabled: true,
+          },
+        }}
+      />
+    </div>
   );
 }

@@ -6,11 +6,25 @@
 /* ── Terminal-specific styles ────────────────────────────────── */
 #root {
   height: 100%;
+  overflow: hidden;
   background: black;
 }
 
 .App {
   height: 100%;
+  overflow: hidden;
   background: black;
   color: white;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Monaco executing-line decoration */
+.executing-line-highlight {
+  background: rgba(15, 255, 80, 0.12) !important;
+  border-left: 3px solid #0fff50 !important;
 }

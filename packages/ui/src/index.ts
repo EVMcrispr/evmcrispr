@@ -10,5 +10,6 @@ export { Menu } from "./components/Menu";
 export { Popover } from "./components/Popover";
 export { Toaster, toast } from "./components/Sonner";
 export { Switch } from "./components/Switch";
+export { Tabs, tabsListVariants } from "./components/Tabs";
 export { Tooltip } from "./components/Tooltip";
 export { cn } from "./utils";

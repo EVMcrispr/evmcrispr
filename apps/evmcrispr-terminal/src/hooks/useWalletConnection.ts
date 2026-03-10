@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Connector } from "wagmi";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useConnect, useConnection, useConnectors, useDisconnect } from "wagmi";
 
 import { terminalStoreActions } from "../stores/terminal-store";
 
 const AUTOCONNECTED_CONNECTOR_IDS = ["safe"];
 
 export function useWalletConnection() {
-  const { address, connector: activeConnector } = useAccount();
-  const { connect, connectAsync, connectors } = useConnect();
-  const { disconnect: wagmiDisconnect } = useDisconnect();
+  const { address, connector: activeConnector } = useConnection();
+  const { mutate: connect, mutateAsync: connectAsync } = useConnect();
+  const { mutate: wagmiDisconnect } = useDisconnect();
+  const connectors = useConnectors();
 
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
 

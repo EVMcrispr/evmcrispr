@@ -137,6 +137,7 @@ export class EVMcrispr {
   #chain: Chain | undefined;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
+  #lineListeners: ((line: number | null) => void)[];
   #prevMessages: string[];
 
   #client: PublicClient | undefined;
@@ -158,6 +159,7 @@ export class EVMcrispr {
     this.#chain = (client as any)?.chain as Chain | undefined;
     this.#account = account;
     this.#logListeners = [];
+    this.#lineListeners = [];
     this.#prevMessages = [];
     this.#ipfsResolver = new IPFSResolver();
     this.#transports = transports;
@@ -392,6 +394,8 @@ export class EVMcrispr {
       actionCallback,
     });
 
+    this.#notifyLine(null);
+
     return results.flat().filter((result) => typeof result !== "undefined");
   }
 
@@ -561,6 +565,15 @@ export class EVMcrispr {
   ): EVMcrispr {
     this.#logListeners.push(listener);
     return this;
+  }
+
+  registerLineListener(listener: (line: number | null) => void): EVMcrispr {
+    this.#lineListeners.push(listener);
+    return this;
+  }
+
+  #notifyLine(line: number | null): void {
+    this.#lineListeners.forEach((l) => l(line));
   }
 
   log(message: string): void {
@@ -840,6 +853,8 @@ export class EVMcrispr {
     c,
     { actionCallback } = {},
   ) => {
+    this.#notifyLine(c.loc?.start.line ?? null);
+
     if (!c.module) {
       const defCmd = this.bindingsManager.getBindingValue(
         c.name,

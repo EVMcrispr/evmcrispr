@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { useConnect } from "wagmi";
+import { useConnect, useConnectors } from "wagmi";
 
 const AUTOCONNECTED_CONNECTOR_IDS = ["safe"];
 
 function useSafeAutoConnect() {
-  const { connectAsync, connectors } = useConnect();
+  const { mutateAsync: connectAsync } = useConnect();
+  const connectors = useConnectors();
 
   useEffect(() => {
     AUTOCONNECTED_CONNECTOR_IDS.forEach((connector) => {
