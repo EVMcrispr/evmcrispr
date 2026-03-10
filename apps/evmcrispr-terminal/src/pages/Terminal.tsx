@@ -9,8 +9,10 @@ import ConfigureButton from "../components/execution/ConfigureButton";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import { SidePanel } from "../components/panel/SidePanel";
-import SaveScriptButton from "../components/scripts/SaveScriptButton";
+import NewScriptButton from "../components/scripts/NewScriptButton";
+import ScriptNotFound from "../components/scripts/ScriptNotFound";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
+import { useAutoSave } from "../hooks/useAutoSave";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
 import { useWalletConnection } from "../hooks/useWalletConnection";
@@ -36,14 +38,15 @@ export default function Terminal() {
   const [maximizeGasLimit, setMaximizeGasLimit] = useState(false);
 
   const { address } = useWalletConnection();
-  const { titleFromSession, scriptFromSession } = useTerminalScript();
-  const { errors, script } = useTerminalStore();
+  const { scriptNotFound, ipfsError, ipfsLoading } = useTerminalScript();
+  useAutoSave();
+  const { script, title } = useTerminalStore();
 
   const { connector: activeConnector } = useConnection();
   const isSafe = activeConnector?.id === "safe";
   const safeConnectorInstance = isSafe ? activeConnector : undefined;
 
-  const { executeScript, logs } = useTransactionExecutor(
+  const { executeScript, logs, errors, clearErrors } = useTransactionExecutor(
     address,
     maximizeGasLimit,
     script,
@@ -61,67 +64,68 @@ export default function Terminal() {
     <>
       <ScrollRestoration />
       <div className="flex flex-col h-screen overflow-hidden">
-        {/* Global Header */}
         <div className="shrink-0 w-full bg-evm-gray-900 border-b border-border px-6 py-4">
-          <Header address={address} />
+          <Header address={address} onDisconnect={clearErrors} />
         </div>
 
-        {/* Main Workspace */}
         <div
           className="flex-1 min-h-0 overflow-hidden flex"
           style={{ flexDirection: isSmallScreen ? "column" : "row" }}
         >
-          {/* Editor panel */}
           <div
             className="flex flex-col overflow-hidden bg-background"
             style={{ flex: isSmallScreen ? "0 0 60%" : "0 0 70%" }}
           >
-            {/* Top Toolbar */}
-            <div className="px-4 py-3 shrink-0 bg-evm-gray-900/50">
-              <div className="flex flex-col items-end">
-                <div className="flex w-full">
-                  <TitleInput />
-                  <div className="flex-1" />
-                  <div className="flex items-center gap-1">
-                    <SaveScriptButton
-                      title={titleFromSession}
-                      script={scriptFromSession}
-                    />
-                    <ShareScriptButton
-                      title={titleFromSession}
-                      script={scriptFromSession}
-                    />
-                    <ConfigureButton
-                      setMaximizeGasLimit={{ toggle: toggleMaximizeGasLimit }}
-                      maximizeGasLimit={maximizeGasLimit}
-                    />
+            {scriptNotFound || ipfsError ? (
+              <ScriptNotFound variant={ipfsError ? "ipfs" : "uuid"} />
+            ) : ipfsLoading ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 select-none animate-fade-in">
+                <div className="w-8 h-8 border-2 border-evm-green-300/30 border-t-evm-green-300 rounded-full animate-spin" />
+                <p className="text-evm-green-300 font-head text-sm tracking-wide">
+                  Fetching DNA sequence from IPFS...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="px-4 py-3 shrink-0 bg-evm-gray-900/50">
+                  <div className="flex flex-col items-end">
+                    <div className="flex w-full">
+                      <TitleInput />
+                      <div className="flex-1" />
+                      <div className="flex items-center gap-1">
+                        <NewScriptButton />
+                        <ShareScriptButton title={title} script={script} />
+                        <ConfigureButton
+                          setMaximizeGasLimit={{
+                            toggle: toggleMaximizeGasLimit,
+                          }}
+                          maximizeGasLimit={maximizeGasLimit}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Editor */}
-            <div className="flex-1 min-h-0 px-4 pt-2 overflow-hidden animate-fade-in">
-              <TerminalEditor />
-            </div>
+                <div className="flex-1 min-h-0 px-4 pt-2 overflow-hidden animate-fade-in">
+                  <TerminalEditor />
+                </div>
 
-            {/* Action Buttons */}
-            <div
-              className="px-4 py-3 shrink-0 bg-evm-gray-900/50 animate-fade-in"
-              style={{ animationDelay: "0.1s" }}
-            >
-              <ActionButtons onExecute={executeScript} />
-            </div>
+                <div
+                  className="px-4 py-3 shrink-0 bg-evm-gray-900/50 animate-fade-in"
+                  style={{ animationDelay: "0.1s" }}
+                >
+                  <ActionButtons onExecute={executeScript} />
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Divider */}
           <div
             className={
               isSmallScreen ? "h-px w-full bg-border" : "w-px h-full bg-border"
             }
           />
 
-          {/* Side panel */}
           <div
             className="flex flex-col overflow-hidden bg-evm-gray-900"
             style={{ flex: isSmallScreen ? "0 0 40%" : "0 0 30%" }}
@@ -130,7 +134,6 @@ export default function Terminal() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="shrink-0 bg-evm-gray-900 border-t border-border">
           <Footer />
         </div>

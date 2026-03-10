@@ -5,10 +5,13 @@ import type {
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useEditorModels } from "../../hooks/useEditorModels";
 import { useEditorState } from "../../hooks/useEditorState";
 import {
+  SCRIPT_PLACEHOLDER,
   terminalStoreActions,
+  terminalStoreGet,
   useTerminalStore,
 } from "../../stores/terminal-store";
 import { toMonacoCompletionItem } from "./autocompletion";
@@ -18,7 +21,7 @@ import { theme } from "./theme";
 export default function TerminalEditor() {
   const monaco = useMonaco();
 
-  const { script, executingLine } = useTerminalStore();
+  const { script, currentScriptId, executingLine } = useTerminalStore();
   const { evm, debouncedScript, commandKeywords, helperKeywords } =
     useEditorState(script);
 
@@ -29,16 +32,31 @@ export default function TerminalEditor() {
   const decorationsRef = useRef<editor.IEditorDecorationsCollection | null>(
     null,
   );
+  const isReplayingRef = useRef(false);
+  const mountedScriptIdRef = useRef<string | null>(null);
 
-  function handleOnChangeEditor(str: string | undefined) {
+  const { setEditor, switchToScript } = useEditorModels();
+
+  const handleOnChangeEditor = useCallback((str: string | undefined) => {
+    if (isReplayingRef.current) return;
     terminalStoreActions("script", str ?? "");
-  }
+  }, []);
+
+  // When currentScriptId changes (script switch), swap the model
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (currentScriptId === mountedScriptIdRef.current) return;
+    mountedScriptIdRef.current = currentScriptId;
+
+    isReplayingRef.current = true;
+    const currentScript = terminalStoreGet("script");
+    switchToScript(currentScriptId, currentScript);
+    isReplayingRef.current = false;
+  }, [currentScriptId, switchToScript]);
 
   // Syntax highlighting — update tokenizer when keywords change
   useEffect(() => {
-    if (!monaco) {
-      return;
-    }
+    if (!monaco) return;
 
     const tokensProvider = monaco.languages.setMonarchTokensProvider(
       "evml",
@@ -52,9 +70,7 @@ export default function TerminalEditor() {
 
   // Completion provider
   useEffect(() => {
-    if (!monaco) {
-      return;
-    }
+    if (!monaco) return;
 
     const completionProvider = monaco.languages.registerCompletionItemProvider(
       "evml",
@@ -87,7 +103,7 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
-  // Hover provider — show signatures for commands, helpers, variables, options
+  // Hover provider
   useEffect(() => {
     if (!monaco) return;
 
@@ -109,7 +125,7 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
-  // Signature help — show parameter hints for helpers and commands
+  // Signature help
   useEffect(() => {
     if (!monaco) return;
 
@@ -148,7 +164,7 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
-  // Document symbols — expose script outline (top-level commands as symbols)
+  // Document symbols
   useEffect(() => {
     if (!monaco) return;
 
@@ -196,11 +212,11 @@ export default function TerminalEditor() {
     };
   }, [monaco, evm]);
 
-  // Inline diagnostics — show parse errors as markers
+  // Inline diagnostics
   useEffect(() => {
     if (!monaco) return;
 
-    const model = monaco.editor.getModels()[0];
+    const model = editorRef.current?.getModel();
     if (!model) return;
 
     const diagnostics = evm.getDiagnostics(debouncedScript);
@@ -250,10 +266,20 @@ export default function TerminalEditor() {
     }
   }, [executingLine, monaco]);
 
-  function handleOnMountEditor(ed: editor.IStandaloneCodeEditor) {
+  function handleOnMountEditor(
+    ed: editor.IStandaloneCodeEditor,
+    monacoInstance: Monaco,
+  ) {
     editorRef.current = ed;
-    ed.setPosition({ lineNumber: 10000, column: 0 });
-    ed.focus();
+    setEditor(ed, monacoInstance);
+
+    const id = terminalStoreGet("currentScriptId");
+    const currentScript = terminalStoreGet("script");
+    mountedScriptIdRef.current = id;
+
+    isReplayingRef.current = true;
+    switchToScript(id, currentScript);
+    isReplayingRef.current = false;
   }
 
   return (
@@ -262,7 +288,7 @@ export default function TerminalEditor() {
         height="100%"
         theme="theme"
         language="evml"
-        value={script}
+        defaultValue={SCRIPT_PLACEHOLDER}
         onChange={handleOnChangeEditor}
         beforeMount={handleBeforeMountEditor}
         onMount={handleOnMountEditor}

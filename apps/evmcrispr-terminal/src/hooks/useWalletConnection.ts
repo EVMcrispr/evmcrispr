@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import type { Connector } from "wagmi";
 import { useConnect, useConnection, useConnectors, useDisconnect } from "wagmi";
 
-import { terminalStoreActions } from "../stores/terminal-store";
-
 const AUTOCONNECTED_CONNECTOR_IDS = ["safe"];
 
 export function useWalletConnection() {
@@ -37,7 +35,6 @@ export function useWalletConnection() {
   }, []);
 
   const disconnect = useCallback(() => {
-    terminalStoreActions("errors", []);
     wagmiDisconnect();
   }, [wagmiDisconnect]);
 

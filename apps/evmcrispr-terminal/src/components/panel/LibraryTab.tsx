@@ -1,41 +1,34 @@
 import { IconButton, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import type { StoredScript } from "../../types/index";
-import { getScriptList, removeScriptFromLocalStorage, slug } from "../../utils";
+import { flushAutoSave } from "../../hooks/useAutoSave";
+import { disposeModel } from "../../hooks/useEditorModels";
+import { useLibraryStore } from "../../stores/library-store";
+import { useTerminalStore } from "../../stores/terminal-store";
+import { removeScript, slug } from "../../utils";
 import { SavedScript } from "../scripts/SavedScript";
 
 export function LibraryTab() {
-  const [scripts, setScripts] = useState<StoredScript[]>(getScriptList());
-  const [filteredScripts, setFilteredScripts] =
-    useState<StoredScript[]>(scripts);
+  const scripts = useLibraryStore((s) => s.scripts);
+  const { currentScriptId, title: liveTitle, isSaving } = useTerminalStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
-  function filterScripts(scripts: StoredScript[], query: string): void {
-    const filtered = scripts.filter(({ title }) =>
-      slug(title).includes(slug(query)),
-    );
-    setQuery(query);
-    setFilteredScripts(filtered);
-  }
+  const filteredScripts = useMemo(() => {
+    const q = slug(query);
+    return q ? scripts.filter(({ title }) => slug(title).includes(q)) : scripts;
+  }, [scripts, query]);
 
-  const handleItemClick = (title: string) => {
-    navigate(`/${slug(title)}`);
+  const handleItemClick = (id: string) => {
+    if (id === currentScriptId) return;
+    flushAutoSave();
+    navigate(`/${id}`);
   };
 
-  const handleItemRemove = (title: string) => {
-    removeScriptFromLocalStorage(title);
-    const updated = getScriptList();
-    setScripts(updated);
-    filterScripts(updated, query);
-  };
-
-  const refreshScripts = () => {
-    const updated = getScriptList();
-    setScripts(updated);
-    filterScripts(updated, query);
+  const handleItemRemove = (id: string) => {
+    disposeModel(id);
+    removeScript(id);
   };
 
   return (
@@ -46,8 +39,7 @@ export function LibraryTab() {
             placeholder="Search"
             className="text-base pr-10 border"
             value={query}
-            onChange={(e) => filterScripts(scripts, e.target.value)}
-            onFocus={refreshScripts}
+            onChange={(e) => setQuery(e.target.value)}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
             <IconButton
@@ -67,9 +59,12 @@ export function LibraryTab() {
             filteredScripts.map((s) => (
               <SavedScript
                 script={s}
+                isActive={s.id === currentScriptId}
+                isSaving={s.id === currentScriptId && isSaving}
+                liveTitle={s.id === currentScriptId ? liveTitle : undefined}
                 onItemClick={handleItemClick}
                 onItemRemove={handleItemRemove}
-                key={s.title}
+                key={s.id}
               />
             ))
           ) : (

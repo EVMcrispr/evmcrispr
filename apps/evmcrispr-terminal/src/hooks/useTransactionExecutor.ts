@@ -1,6 +1,6 @@
 import type { Action } from "@evmcrispr/core";
 import { EVMcrispr, HaltExecution, isTransactionAction } from "@evmcrispr/core";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
 
@@ -25,6 +25,8 @@ export function useTransactionExecutor(
   const publicClient = usePublicClient();
 
   const { logs, logListener, clearLogs } = useExecutionLogs();
+  const [errors, setErrors] = useState<string[]>([]);
+  const clearErrors = useCallback(() => setErrors([]), []);
 
   const { executeBatchedActions, executeSafeBatchedActions } =
     useTransactionBatcher(safeConnector);
@@ -175,7 +177,7 @@ export function useTransactionExecutor(
   }, []);
 
   const executeScript = useCallback(async () => {
-    terminalStoreActions("errors", []);
+    clearErrors();
     terminalStoreActions("isLoading", true);
     terminalStoreActions("activeTab", "console");
     clearLogs();
@@ -208,20 +210,20 @@ export function useTransactionExecutor(
       if (err instanceof HaltExecution) {
         // Clean halt — not an error
       } else if (e.message === "Observation cancelled") {
-        terminalStoreActions("errors", ["Script execution cancelled"]);
+        setErrors(["Script execution cancelled"]);
       } else {
         console.error(e);
         if (
           e.message.startsWith("transaction failed") &&
           /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
         ) {
-          terminalStoreActions("errors", [
+          setErrors([
             `Transaction failed, watch in block explorer ${
               e.message.split('"')[1]
             }`,
           ]);
         } else {
-          terminalStoreActions("errors", [e.message]);
+          setErrors([e.message]);
         }
       }
     } finally {
@@ -229,11 +231,21 @@ export function useTransactionExecutor(
       terminalStoreActions("executingLine", null);
       abortControllerRef.current = null;
     }
-  }, [address, publicClient, script, logListener, clearLogs, executeAction]);
+  }, [
+    address,
+    publicClient,
+    script,
+    logListener,
+    clearLogs,
+    executeAction,
+    clearErrors,
+  ]);
 
   return {
     executeScript,
     cancelExecution,
     logs,
+    errors,
+    clearErrors,
   };
 }

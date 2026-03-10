@@ -1,4 +1,10 @@
-import type { StoredScript } from "../types/index";
+import { useLibraryStore } from "../stores/library-store";
+import type { EditLog, StoredScript } from "../types/index";
+
+const SCRIPTS_KEY = "evmcrispr:scripts";
+const EDITS_PREFIX = "evmcrispr:edits:";
+const LAST_SCRIPT_KEY = "evmcrispr:lastScript";
+const MAX_EDIT_OPS = 500;
 
 export function slug(title: string) {
   return title
@@ -7,54 +13,129 @@ export function slug(title: string) {
     .replace(/[^\w-]+/g, "");
 }
 
-export function getScriptList() {
-  const savedScripts = localStorage.getItem("savedScripts");
-  if (!savedScripts) return [];
-  return Object.values(JSON.parse(savedScripts)).reverse() as StoredScript[];
+// ---------------------------------------------------------------------------
+// Registry CRUD
+// ---------------------------------------------------------------------------
+
+function readRegistry(): Record<string, StoredScript> {
+  const raw = localStorage.getItem(SCRIPTS_KEY);
+  return raw ? JSON.parse(raw) : {};
 }
 
-export function getScriptSavedInLocalStorage(
-  title?: string,
-): StoredScript | undefined {
-  if (!title) return undefined;
-
-  const scripts = localStorage.getItem("savedScripts");
-  const s = scripts ? JSON.parse(scripts)[slug(title)] : null;
-
-  return s
-    ? {
-        title: String(s.title),
-        script: String(s.script),
-        date: new Date(s.date),
-      }
-    : undefined;
+function writeRegistry(registry: Record<string, StoredScript>) {
+  localStorage.setItem(SCRIPTS_KEY, JSON.stringify(registry));
 }
 
-export function saveScriptToLocalStorage(title: string, script: string) {
-  if (!title) throw new Error("Title cannot be empty.");
-  const scripts = localStorage.getItem("savedScripts");
-  const newScript = {
+export function getScript(id: string): StoredScript | undefined {
+  return readRegistry()[id];
+}
+
+export function saveScript(id: string, title: string, script: string) {
+  const registry = readRegistry();
+  const existing = registry[id];
+
+  if (existing && existing.title === title && existing.script === script)
+    return;
+
+  const now = new Date().toISOString();
+  registry[id] = {
+    id,
     title,
-    date: new Date(),
     script,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
   };
+  writeRegistry(registry);
+  useLibraryStore.getState().updateScript(id, { title, updatedAt: now });
+}
 
-  if (scripts) {
-    const parsedScripts = JSON.parse(scripts);
-    const newScripts = { ...parsedScripts, [slug(newScript.title)]: newScript };
-    localStorage.setItem("savedScripts", JSON.stringify(newScripts));
-  } else {
-    localStorage.setItem(
-      "savedScripts",
-      JSON.stringify({ [slug(newScript.title)]: newScript }),
-    );
+export function removeScript(id: string) {
+  const registry = readRegistry();
+  delete registry[id];
+  writeRegistry(registry);
+  localStorage.removeItem(`${EDITS_PREFIX}${id}`);
+  useLibraryStore.getState().removeScript(id);
+}
+
+export function getAllScripts(): StoredScript[] {
+  const registry = readRegistry();
+  return Object.values(registry).sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+export function createScript(title = "", script = ""): string {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const registry = readRegistry();
+  registry[id] = { id, title, script, createdAt: now, updatedAt: now };
+  writeRegistry(registry);
+  useLibraryStore
+    .getState()
+    .addScript({ id, title, createdAt: now, updatedAt: now });
+  return id;
+}
+
+// ---------------------------------------------------------------------------
+// Per-script edit log (fine-grained undo history)
+// ---------------------------------------------------------------------------
+
+export function getEditLog(id: string): EditLog | null {
+  const raw = localStorage.getItem(`${EDITS_PREFIX}${id}`);
+  return raw ? (JSON.parse(raw) as EditLog) : null;
+}
+
+export function saveEditLog(id: string, log: EditLog) {
+  if (log.ops.length > MAX_EDIT_OPS) {
+    compactEditLog(log, Math.floor(log.ops.length / 2));
+  }
+  try {
+    localStorage.setItem(`${EDITS_PREFIX}${id}`, JSON.stringify(log));
+  } catch {
+    compactEditLog(log, Math.floor(log.ops.length / 2));
+    try {
+      localStorage.setItem(`${EDITS_PREFIX}${id}`, JSON.stringify(log));
+    } catch {
+      // storage completely full — drop the edit log
+      localStorage.removeItem(`${EDITS_PREFIX}${id}`);
+    }
   }
 }
 
-export function removeScriptFromLocalStorage(title: string) {
-  const savedScripts = localStorage.getItem("savedScripts");
-  if (!savedScripts) return;
-  const filteredScripts = JSON.parse(savedScripts);
-  delete filteredScripts[slug(title)];
-  localStorage.setItem("savedScripts", JSON.stringify(filteredScripts));
+export function clearEditLog(id: string) {
+  localStorage.removeItem(`${EDITS_PREFIX}${id}`);
+}
+
+/**
+ * Compact an edit log in-place: replay the first `count` ops against `base`
+ * to produce a new base, then drop those ops.
+ */
+function compactEditLog(log: EditLog, count: number) {
+  const linesToDrop = log.ops.splice(0, count);
+  const lines = log.base.split("\n");
+
+  for (const op of linesToDrop) {
+    for (const edit of op.edits) {
+      const [startLine, startCol, endLine, endCol] = edit.r;
+      const clampedEndLine = Math.min(endLine, lines.length);
+      const prefix = lines[startLine - 1]?.substring(0, startCol - 1) ?? "";
+      const suffix = lines[clampedEndLine - 1]?.substring(endCol - 1) ?? "";
+      const newLines = (prefix + edit.t + suffix).split("\n");
+      lines.splice(startLine - 1, clampedEndLine - startLine + 1, ...newLines);
+    }
+  }
+
+  log.base = lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Last viewed script
+// ---------------------------------------------------------------------------
+
+export function getLastViewedScript(): string | null {
+  return localStorage.getItem(LAST_SCRIPT_KEY);
+}
+
+export function setLastViewedScript(id: string) {
+  localStorage.setItem(LAST_SCRIPT_KEY, id);
 }

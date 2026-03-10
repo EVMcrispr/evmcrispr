@@ -1,6 +1,6 @@
 import { createStore } from "zustand-x";
 
-const scriptPlaceholder = `## Basic commands:
+export const SCRIPT_PLACEHOLDER = `## Basic commands:
 
 # exec <contractAddress> <methodNameOrSignature> [...params] [--value <value>]
 # load <module> [as <alias>]
@@ -21,36 +21,30 @@ const scriptPlaceholder = `## Basic commands:
 `;
 
 export type TerminalStoreState = {
+  currentScriptId: string | null;
   title: string;
   script: string;
-  errors: string[];
   isLoading: boolean;
+  isSaving: boolean;
   activeTab: "console" | "library";
   executingLine: number | null;
 };
 
 const initialState: TerminalStoreState = {
+  currentScriptId: null,
   title: "",
-  script: scriptPlaceholder,
-  errors: [],
+  script: SCRIPT_PLACEHOLDER,
   isLoading: false,
+  isSaving: false,
   activeTab: "library",
   executingLine: null,
 };
 
 const terminalStore = createStore<TerminalStoreState>(initialState, {
   name: "terminal-store",
-  persist: {
-    enabled: true,
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    partialize: (state) => ({
-      title: state.title,
-      script: state.script,
-    }),
-  },
   devtools: { enabled: process.env.NODE_ENV === "development" },
 });
 
 export const useTerminalStore = terminalStore.useStore;
 export const terminalStoreActions = terminalStore.set;
+export const terminalStoreGet = terminalStore.get;

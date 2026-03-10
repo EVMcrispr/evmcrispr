@@ -181,7 +181,7 @@ export const transports = chains.reduce(
   {} as Record<number, Transport>,
 );
 
-export const config = createConfig({
+export const config: ReturnType<typeof createConfig> = createConfig({
   chains,
   connectors: [
     !isIframe && injected(),
