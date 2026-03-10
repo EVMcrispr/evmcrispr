@@ -6,7 +6,9 @@ export const TEST_ACCOUNT_ADDRESS =
 
 export const STD_ALL_HELPERS = [
   "@abi.encodeCall",
+  "@all",
   "@and",
+  "@any",
   "@at",
   "@bool",
   "@bytes",
@@ -18,7 +20,10 @@ export const STD_ALL_HELPERS = [
   "@concat",
   "@date",
   "@ens",
+  "@enumerate",
   "@filter",
+  "@find",
+  "@flat",
   "@get",
   "@id",
   "@includes",
@@ -33,7 +38,10 @@ export const STD_ALL_HELPERS = [
   "@num.format",
   "@or",
   "@range",
+  "@reduce",
+  "@reverse",
   "@slice",
+  "@sort",
   "@str",
   "@str.at",
   "@str.concat",
@@ -48,14 +56,19 @@ export const STD_ALL_HELPERS = [
   "@token",
   "@token.amount",
   "@token.balance",
+  "@unique",
+  "@unzip",
+  "@zip",
 ];
 
 export const STD_ADDRESS_HELPERS = [
   "@at",
   "@ens",
+  "@find",
   "@get",
   "@me",
   "@nextContract",
+  "@reduce",
   "@token",
 ];
 
@@ -63,24 +76,37 @@ export const STD_NUMBER_HELPERS = [
   "@at",
   "@bytes.len",
   "@date",
+  "@find",
   "@get",
   "@len",
   "@num",
+  "@reduce",
   "@str.len",
   "@token.amount",
   "@token.balance",
 ];
 
-export const STD_BYTES32_HELPERS = ["@at", "@get", "@id", "@namehash"];
+export const STD_BYTES32_HELPERS = [
+  "@at",
+  "@find",
+  "@get",
+  "@id",
+  "@namehash",
+  "@reduce",
+];
 
 export const STD_BOOL_HELPERS = [
+  "@all",
   "@and",
+  "@any",
   "@at",
   "@bool",
+  "@find",
   "@get",
   "@includes",
   "@not",
   "@or",
+  "@reduce",
   "@str.includes",
 ];
 
@@ -92,7 +118,9 @@ export const STD_BYTES_HELPERS = [
   "@bytes.concat",
   "@bytes.not",
   "@bytes.slice",
+  "@find",
   "@get",
+  "@reduce",
 ];
 
 // Http-module helper lists.

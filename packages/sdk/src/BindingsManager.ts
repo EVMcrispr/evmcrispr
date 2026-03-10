@@ -160,10 +160,11 @@ export class BindingsManager {
       }
     } catch (_err) {
       if (overwrite) {
-        const b = this.#bindings.localLookup(binding.identifier, binding.type)!;
-        b[0]!.value = binding.value;
-
-        return;
+        const b = this.#bindings.lookup(binding.identifier, binding.type);
+        if (b?.length) {
+          b[0]!.value = binding.value;
+          return;
+        }
       }
 
       throw new ErrorException(

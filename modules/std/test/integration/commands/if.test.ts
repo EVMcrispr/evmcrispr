@@ -76,5 +76,38 @@ if @not(false) (
         expect(actions).to.have.length(1);
       },
     },
+    {
+      name: "should execute the then block when condition is true (if/else)",
+      script: `
+if true (
+  exec ${target} ${fnSig} ${target} 100e18
+) (
+  exec ${target} ${fnSig} ${target} 200e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should execute the else block when condition is false (if/else)",
+      script: `
+if false (
+  exec ${target} ${fnSig} ${target} 100e18
+  exec ${target} ${fnSig} ${target} 100e18
+) (
+  exec ${target} ${fnSig} ${target} 200e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should return no actions when condition is false and no else block",
+      script: `
+if false (
+  exec ${target} ${fnSig} ${target} 100e18
+)`,
+      expectedActions: [],
+    },
   ],
 });

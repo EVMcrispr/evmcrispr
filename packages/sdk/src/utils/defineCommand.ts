@@ -104,43 +104,56 @@ export function defineCommand<M extends Module>(
 ): ICommand<M> {
   const { args: argDefs, opts: optDefs = [], run } = config;
 
-  const lastType = argDefs.at(-1)?.type;
-  const hasTrailingBlock =
-    lastType !== undefined && typeIncludes(lastType, "block");
-  const isBlockUnion = hasTrailingBlock && Array.isArray(lastType);
-  const nonBlockDefs = hasTrailingBlock ? argDefs.slice(0, -1) : argDefs;
-  const _requiredCount = nonBlockDefs.filter(
-    (a) => !a.optional && !a.rest,
-  ).length;
-  const _hasRest = nonBlockDefs.some((a) => a.rest);
-  const _hasOptional = nonBlockDefs.some((a) => a.optional);
-  const _totalFixed = nonBlockDefs.filter((a) => !a.rest).length;
+  const blockDefIndices: number[] = [];
+  for (let i = 0; i < argDefs.length; i++) {
+    if (typeIncludes(argDefs[i].type, "block")) blockDefIndices.push(i);
+  }
+  const hasBlocks = blockDefIndices.length > 0;
+  const lastBlockDef = hasBlocks ? argDefs[blockDefIndices.at(-1)!] : undefined;
+  const isBlockUnion = hasBlocks && Array.isArray(lastBlockDef!.type);
+  const nonBlockDefs = argDefs.filter((_, i) => !blockDefIndices.includes(i));
 
   return {
     async run(module, c, interpreters) {
       const { interpretNode, interpretNodes } = interpreters;
 
-      // 1. Extract trailing block if last argDef is "block"
+      // 1. Extract trailing block(s) from AST args
       let astArgs = c.args;
-      let blockNode: BlockExpressionNode | undefined;
+      const blockNodes: (BlockExpressionNode | undefined)[] = [];
 
-      if (hasTrailingBlock) {
-        const lastNode = astArgs.at(-1);
-        if (lastNode?.type === NodeType.BlockExpression) {
-          blockNode = lastNode as BlockExpressionNode;
-          astArgs = astArgs.slice(0, -1);
-        } else if (!isBlockUnion) {
-          const blockDef = argDefs.at(-1)!;
-          throw new ErrorException(
-            `<${blockDef.name}> must be a block expression`,
-          );
+      if (hasBlocks) {
+        const extracted: BlockExpressionNode[] = [];
+        let endIdx = astArgs.length - 1;
+        while (
+          endIdx >= 0 &&
+          extracted.length < blockDefIndices.length &&
+          astArgs[endIdx]?.type === NodeType.BlockExpression
+        ) {
+          extracted.unshift(astArgs[endIdx] as BlockExpressionNode);
+          endIdx--;
+        }
+        astArgs = astArgs.slice(0, endIdx + 1);
+
+        for (let i = 0; i < blockDefIndices.length; i++) {
+          blockNodes.push(i < extracted.length ? extracted[i] : undefined);
+        }
+
+        if (extracted.length === 0 && !isBlockUnion) {
+          const firstRequired = blockDefIndices
+            .map((idx) => argDefs[idx])
+            .find((d) => !d.optional);
+          if (firstRequired) {
+            throw new ErrorException(
+              `<${firstRequired.name}> must be a block expression`,
+            );
+          }
         }
       }
 
       // 2. Check argument length (against non-block args)
       // When isBlockUnion and no block was extracted, the expression arg is
       // a regular arg, so count against the full argDefs instead of nonBlockDefs.
-      const useFullDefs = isBlockUnion && !blockNode;
+      const useFullDefs = isBlockUnion && blockNodes.every((b) => !b);
       const countDefs = useFullDefs ? argDefs : nonBlockDefs;
       const effRequired = countDefs.filter(
         (a) => !a.optional && !a.rest,
@@ -150,7 +163,7 @@ export function defineCommand<M extends Module>(
       const effTotalFixed = countDefs.filter((a) => !a.rest).length;
 
       const effectiveNode =
-        hasTrailingBlock && !useFullDefs
+        hasBlocks && !useFullDefs
           ? ({ ...c, args: astArgs } as CommandExpressionNode)
           : c;
       if (effHasRest) {
@@ -181,16 +194,20 @@ export function defineCommand<M extends Module>(
 
       // 4. Interpret arguments by type
       const parsedArgs: Record<string, any> = {};
+      let blockIdx = 0;
       for (let i = 0; i < argDefs.length; i++) {
         const def = argDefs[i];
 
         if (isSpecialType(def.type)) {
-          const extracted = extractSpecialArg(def, astArgs[i], blockNode);
+          const blockForThis = typeIncludes(def.type, "block")
+            ? blockNodes[blockIdx++]
+            : undefined;
+          const extracted = extractSpecialArg(def, astArgs[i], blockForThis);
           if (extracted.ok) {
             parsedArgs[def.name] = extracted.value;
             continue;
           }
-          if (!Array.isArray(def.type)) {
+          if (!Array.isArray(def.type) && !def.optional) {
             const typeLabel = def.type === "variable" ? "$variable" : def.type;
             throw new ErrorException(`<${def.name}> must be a ${typeLabel}`);
           }
