@@ -5,19 +5,19 @@ import { expect } from "@evmcrispr/test-utils";
 describe("Num", () => {
   describe("construction", () => {
     it("should create from two bigints and simplify via GCD", () => {
-      const n = new Num(6n, 4n);
+      const n = Num(6n, 4n);
       expect(n.num).to.equal(3n);
       expect(n.den).to.equal(2n);
     });
 
     it("should normalize negative denominator", () => {
-      const n = new Num(3n, -2n);
+      const n = Num(3n, -2n);
       expect(n.num).to.equal(-3n);
       expect(n.den).to.equal(2n);
     });
 
     it("should throw on zero denominator", () => {
-      expect(() => new Num(1n, 0n)).to.throw("Division by zero");
+      expect(() => Num(1n, 0n)).to.throw("Division by zero");
     });
   });
 
@@ -57,36 +57,36 @@ describe("Num", () => {
 
   describe("coerce", () => {
     it("should pass through Num", () => {
-      const n = new Num(3n, 2n);
-      expect(Num.coerce(n)).to.equal(n);
+      const n = Num(3n, 2n);
+      expect(Num(n)).to.equal(n);
     });
 
     it("should coerce bigint", () => {
-      const n = Num.coerce(5n);
+      const n = Num(5n);
       expect(n.num).to.equal(5n);
       expect(n.den).to.equal(1n);
     });
 
     it("should coerce integer string", () => {
-      const n = Num.coerce("123");
+      const n = Num("123");
       expect(n.num).to.equal(123n);
       expect(n.den).to.equal(1n);
     });
 
     it("should coerce decimal string", () => {
-      const n = Num.coerce("0.75");
+      const n = Num("0.75");
       expect(n.num).to.equal(3n);
       expect(n.den).to.equal(4n);
     });
 
     it("should throw for non-numeric types", () => {
-      expect(() => Num.coerce(true)).to.throw();
+      expect(() => Num(true as any)).to.throw();
     });
   });
 
   describe("arithmetic", () => {
-    const a = new Num(3n, 2n); // 1.5
-    const b = new Num(1n, 3n); // 1/3
+    const a = Num(3n, 2n); // 1.5
+    const b = Num(1n, 3n); // 1/3
 
     it("should add correctly", () => {
       const r = a.add(b); // 3/2 + 1/3 = 11/6
@@ -124,15 +124,13 @@ describe("Num", () => {
     });
 
     it("should handle negative exponents", () => {
-      const r = Num.fromBigInt(2n).pow(new Num(-1n, 1n)); // 2^(-1) = 1/2
+      const r = Num.fromBigInt(2n).pow(Num(-1n, 1n)); // 2^(-1) = 1/2
       expect(r.num).to.equal(1n);
       expect(r.den).to.equal(2n);
     });
 
     it("should throw on non-integer exponent", () => {
-      expect(() => a.pow(new Num(1n, 2n))).to.throw(
-        "Exponent must be an integer",
-      );
+      expect(() => a.pow(Num(1n, 2n))).to.throw("Exponent must be an integer");
     });
 
     it("should give exact result for 1/3 * 3", () => {
@@ -151,14 +149,14 @@ describe("Num", () => {
 
   describe("comparison", () => {
     it("should compare equal values", () => {
-      const a = new Num(1n, 2n);
-      const b = new Num(2n, 4n);
+      const a = Num(1n, 2n);
+      const b = Num(2n, 4n);
       expect(a.eq(b)).to.be.true;
       expect(a.compare(b)).to.equal(0);
     });
 
     it("should compare greater than", () => {
-      const a = new Num(3n, 2n);
+      const a = Num(3n, 2n);
       const b = Num.fromBigInt(1n);
       expect(a.gt(b)).to.be.true;
       expect(a.gte(b)).to.be.true;
@@ -167,7 +165,7 @@ describe("Num", () => {
     });
 
     it("should compare less than", () => {
-      const a = new Num(1n, 3n);
+      const a = Num(1n, 3n);
       const b = Num.fromBigInt(1n);
       expect(a.lt(b)).to.be.true;
       expect(a.lte(b)).to.be.true;
@@ -178,25 +176,25 @@ describe("Num", () => {
 
   describe("conversion", () => {
     it("should truncate toward zero for toBigInt", () => {
-      expect(new Num(7n, 2n).toBigInt()).to.equal(3n); // 3.5 → 3
-      expect(new Num(-7n, 2n).toBigInt()).to.equal(-3n); // -3.5 → -3
+      expect(Num(7n, 2n).toBigInt()).to.equal(3n); // 3.5 → 3
+      expect(Num(-7n, 2n).toBigInt()).to.equal(-3n); // -3.5 → -3
     });
 
     it("toString should return decimal string", () => {
-      expect(new Num(7n, 2n).toString()).to.equal("3.5");
+      expect(Num(7n, 2n).toString()).to.equal("3.5");
     });
 
     it("toFractionString should return num/den", () => {
-      expect(new Num(3n, 2n).toFractionString()).to.equal("3/2");
+      expect(Num(3n, 2n).toFractionString()).to.equal("3/2");
     });
 
     it("isInteger should detect whole numbers", () => {
       expect(Num.fromBigInt(5n).isInteger()).to.be.true;
-      expect(new Num(3n, 2n).isInteger()).to.be.false;
+      expect(Num(3n, 2n).isInteger()).to.be.false;
     });
 
     it("BigInt() coercion should work via toBigInt()", () => {
-      const n = new Num(7n, 2n); // 3.5
+      const n = Num(7n, 2n); // 3.5
       expect(BigInt(n.toBigInt())).to.equal(3n);
     });
   });

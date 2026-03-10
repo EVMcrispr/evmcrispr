@@ -16,14 +16,14 @@ def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0]).to.be.instanceOf(Num);
-        expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([1, 2, 3]);
+        expect(result.map((n: Num) => n.toNumber())).to.deep.equal([1, 2, 3]);
       },
     },
     {
       name: "should sort numbers descending with a reversed comparator",
       input: `@sort([3 1 2] @cmpDesc)`,
       validate(result) {
-        expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([3, 2, 1]);
+        expect(result.map((n: Num) => n.toNumber())).to.deep.equal([3, 2, 1]);
       },
     },
     {

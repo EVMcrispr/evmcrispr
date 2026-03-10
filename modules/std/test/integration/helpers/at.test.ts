@@ -11,7 +11,7 @@ describeHelper("@at", {
       input: `@at([10 20 30] 1)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(20n))).to.be.true;
+        expect(result.eq(Num(20n))).to.be.true;
       },
     },
     {
@@ -23,7 +23,7 @@ describeHelper("@at", {
       name: "should support negative indices in array",
       input: `@at([10 20 30] -1)`,
       validate(result) {
-        expect(result.eq(new Num(30n))).to.be.true;
+        expect(result.eq(Num(30n))).to.be.true;
       },
     },
   ],

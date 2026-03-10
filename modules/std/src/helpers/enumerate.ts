@@ -7,6 +7,6 @@ export default defineHelper<Std>({
   returnType: "array",
   args: [{ name: "arr", type: "array" }],
   async run(_, { arr }) {
-    return arr.map((el: unknown, i: number) => [new Num(BigInt(i)), el]);
+    return arr.map((el: unknown, i: number) => [Num(BigInt(i)), el]);
   },
 });

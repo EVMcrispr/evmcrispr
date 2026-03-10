@@ -11,14 +11,14 @@ describeHelper("@len", {
       input: `@len([1 2 3])`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(3n))).to.be.true;
+        expect(result.eq(Num(3n))).to.be.true;
       },
     },
     {
       name: "should return 0 for an empty array",
       input: `@len([])`,
       validate(result) {
-        expect(result.eq(new Num(0n))).to.be.true;
+        expect(result.eq(Num(0n))).to.be.true;
       },
     },
   ],

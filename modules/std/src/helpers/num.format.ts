@@ -11,8 +11,8 @@ export default defineHelper<Std>({
     { name: "decimals", type: "number" },
   ],
   async run(_, { value, decimals }) {
-    const v = Num.coerce(value).toBigInt();
-    const d = Number(Num.coerce(decimals).toBigInt());
+    const v = Num(value).toBigInt();
+    const d = Num(decimals).toNumber();
     return formatUnits(v, d);
   },
 });

@@ -11,8 +11,8 @@ export default defineHelper<Std>({
     { name: "end", type: "number", optional: true },
   ],
   async run(_, { value, start, end }) {
-    const s = Number(Num.coerce(start).toBigInt());
-    const e = end !== undefined ? Number(Num.coerce(end).toBigInt()) : undefined;
+    const s = Num(start).toNumber();
+    const e = end !== undefined ? Num(end).toNumber() : undefined;
     return String(value).slice(s, e);
   },
 });

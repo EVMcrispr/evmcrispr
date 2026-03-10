@@ -33,7 +33,7 @@ describeHelper("@concat", {
       name: "should concatenate nested arrays",
       input: `@concat(["a" 3] ["c" ["d"]])`,
       validate(result) {
-        expect(result).to.deep.equal(["a", new Num(3n), "c", ["d"]]);
+        expect(result).to.deep.equal(["a", Num(3n), "c", ["d"]]);
       },
     },
   ],

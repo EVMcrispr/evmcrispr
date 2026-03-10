@@ -24,7 +24,7 @@ async function asyncMerge(
   let j = 0;
   while (i < left.length && j < right.length) {
     const c = await cmp(left[i], right[j]);
-    const n = c instanceof Num ? Number(c.toBigInt()) : Number(c);
+    const n = c instanceof Num ? c.toNumber() : Number(c);
     if (n <= 0) {
       result.push(left[i++]);
     } else {

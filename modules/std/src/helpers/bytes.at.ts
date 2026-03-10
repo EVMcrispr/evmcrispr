@@ -12,7 +12,7 @@ export default defineHelper<Std>({
   async run(_, { value, index }) {
     const hex = String(value);
     const byteLen = (hex.length - 2) / 2;
-    const i = Number(Num.coerce(index).toBigInt());
+    const i = Num(index).toNumber();
     const resolved = i < 0 ? byteLen + i : i;
 
     if (resolved < 0 || resolved >= byteLen) {

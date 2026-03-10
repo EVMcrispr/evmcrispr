@@ -9,12 +9,11 @@ function gcd(a: bigint, b: bigint): bigint {
   return a;
 }
 
-export class Num {
+class _Num {
   readonly num: bigint;
   readonly den: bigint;
 
-  constructor(num: bigint, den?: bigint) {
-    den = den ?? 1n;
+  constructor(num: bigint, den: bigint = 1n) {
     if (den === 0n) {
       throw new Error("Division by zero");
     }
@@ -27,59 +26,29 @@ export class Num {
     this.den = den / g;
   }
 
-  static fromBigInt(n: bigint): Num {
-    return new Num(n, 1n);
-  }
-
-  static fromDecimalString(s: string): Num {
-    const dotIndex = s.indexOf(".");
-    if (dotIndex === -1) {
-      return new Num(BigInt(s), 1n);
-    }
-    const decimals = s.length - dotIndex - 1;
-    const withoutDot = s.slice(0, dotIndex) + s.slice(dotIndex + 1);
-    return new Num(BigInt(withoutDot), 10n ** BigInt(decimals));
-  }
-
-  static coerce(v: unknown): Num {
-    if (v instanceof Num) {
-      return v;
-    }
-    if (typeof v === "bigint") {
-      return Num.fromBigInt(v);
-    }
-    if (typeof v === "string") {
-      if (v.includes(".")) {
-        return Num.fromDecimalString(v);
-      }
-      return new Num(BigInt(v), 1n);
-    }
-    throw new Error(`Cannot coerce ${typeof v} to Num`);
-  }
-
   add(other: Num): Num {
-    return new Num(
+    return new _Num(
       this.num * other.den + other.num * this.den,
       this.den * other.den,
     );
   }
 
   sub(other: Num): Num {
-    return new Num(
+    return new _Num(
       this.num * other.den - other.num * this.den,
       this.den * other.den,
     );
   }
 
   mul(other: Num): Num {
-    return new Num(this.num * other.num, this.den * other.den);
+    return new _Num(this.num * other.num, this.den * other.den);
   }
 
   div(other: Num): Num {
     if (other.num === 0n) {
       throw new Error("Division by zero");
     }
-    return new Num(this.num * other.den, this.den * other.num);
+    return new _Num(this.num * other.den, this.den * other.num);
   }
 
   pow(exp: Num): Num {
@@ -91,10 +60,10 @@ export class Num {
 
     if (n < 0n) {
       const posExp = -n;
-      return new Num(this.den ** posExp, this.num ** posExp);
+      return new _Num(this.den ** posExp, this.num ** posExp);
     }
 
-    return new Num(this.num ** n, this.den ** n);
+    return new _Num(this.num ** n, this.den ** n);
   }
 
   compare(other: Num): -1 | 0 | 1 {
@@ -133,6 +102,10 @@ export class Num {
     return this.num / this.den;
   }
 
+  toNumber(): number {
+    return Number(this.num) / Number(this.den);
+  }
+
   toString(): string {
     return formatUnits((this.num * BigInt(10 ** 18)) / this.den, 18);
   }
@@ -141,3 +114,43 @@ export class Num {
     return `${this.num}/${this.den}`;
   }
 }
+
+interface Num extends _Num {}
+
+interface NumFactory {
+  (num: bigint, den?: bigint): Num;
+  (v: Num | bigint | string): Num;
+  (v: unknown): Num;
+  fromBigInt(n: bigint): Num;
+  fromDecimalString(s: string): Num;
+  prototype: _Num;
+}
+
+function _parseDecimalString(s: string): Num {
+  const dotIndex = s.indexOf(".");
+  if (dotIndex === -1) {
+    return new _Num(BigInt(s), 1n);
+  }
+  const decimals = s.length - dotIndex - 1;
+  const withoutDot = s.slice(0, dotIndex) + s.slice(dotIndex + 1);
+  return new _Num(BigInt(withoutDot), 10n ** BigInt(decimals));
+}
+
+function _Num_factory(v: unknown, den?: bigint): Num {
+  if (v instanceof _Num && den === undefined) return v;
+  if (typeof v === "bigint") return new _Num(v, den);
+  if (typeof v === "string") return _parseDecimalString(v);
+  throw new Error(`Cannot coerce ${typeof v} to Num`);
+}
+
+_Num_factory.fromBigInt = (n: bigint): Num => new _Num(n, 1n);
+_Num_factory.fromDecimalString = _parseDecimalString;
+_Num_factory.prototype = _Num.prototype;
+
+Object.defineProperty(_Num_factory, Symbol.hasInstance, {
+  value: (v: unknown) => v instanceof _Num,
+});
+
+const Num: NumFactory = _Num_factory as NumFactory;
+
+export { Num };

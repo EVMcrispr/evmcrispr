@@ -11,7 +11,7 @@ describeCommand("set", {
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$var", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
-        expect((val as Num).eq(new Num(10n ** 18n, 1n))).to.be.true;
+        expect((val as Num).eq(Num(10n ** 18n, 1n))).to.be.true;
       },
     },
     {

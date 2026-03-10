@@ -13,9 +13,9 @@ describeHelper("@enumerate", {
         expect(result).to.be.an("array").with.lengthOf(3);
         expect(result[0]).to.be.an("array").with.lengthOf(2);
         expect(result[0][0]).to.be.instanceOf(Num);
-        expect(Number(result[0][0].toBigInt())).to.equal(0);
+        expect(result[0][0].toNumber()).to.equal(0);
         expect(result[0][1]).to.equal("a");
-        expect(Number(result[2][0].toBigInt())).to.equal(2);
+        expect(result[2][0].toNumber()).to.equal(2);
         expect(result[2][1]).to.equal("c");
       },
     },

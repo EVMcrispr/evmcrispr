@@ -29,7 +29,7 @@ set $result @double(5)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
-        expect((val as Num).eq(new Num(10n, 1n))).to.be.true;
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
       },
     },
     {
@@ -40,7 +40,7 @@ set $result @addOpt(3 7)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
-        expect((val as Num).eq(new Num(10n, 1n))).to.be.true;
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
       },
     },
     {
@@ -107,7 +107,7 @@ if true (
       validate: (_, interpreter) => {
         const inner = interpreter.getBinding("$inner", BindingsSpace.USER);
         expect(inner).to.be.instanceOf(Num);
-        expect((inner as Num).eq(new Num(99n, 1n))).to.be.true;
+        expect((inner as Num).eq(Num(99n, 1n))).to.be.true;
         expect(
           interpreter.getBinding("@scopedVal", BindingsSpace.DEF),
         ).to.be.undefined;
@@ -127,9 +127,9 @@ set $after @val`,
         const outer = interpreter.getBinding("$outer", BindingsSpace.USER);
         const after = interpreter.getBinding("$after", BindingsSpace.USER);
         expect(outer).to.be.instanceOf(Num);
-        expect((outer as Num).eq(new Num(1n, 1n))).to.be.true;
+        expect((outer as Num).eq(Num(1n, 1n))).to.be.true;
         expect(after).to.be.instanceOf(Num);
-        expect((after as Num).eq(new Num(1n, 1n))).to.be.true;
+        expect((after as Num).eq(Num(1n, 1n))).to.be.true;
       },
     },
 
@@ -144,7 +144,7 @@ set $result @incTwice(5)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
-        expect((val as Num).eq(new Num(7n, 1n))).to.be.true;
+        expect((val as Num).eq(Num(7n, 1n))).to.be.true;
       },
     },
     {
@@ -169,9 +169,9 @@ set $b @double(10)`,
         const a = interpreter.getBinding("$a", BindingsSpace.USER);
         const b = interpreter.getBinding("$b", BindingsSpace.USER);
         expect(a).to.be.instanceOf(Num);
-        expect((a as Num).eq(new Num(6n, 1n))).to.be.true;
+        expect((a as Num).eq(Num(6n, 1n))).to.be.true;
         expect(b).to.be.instanceOf(Num);
-        expect((b as Num).eq(new Num(20n, 1n))).to.be.true;
+        expect((b as Num).eq(Num(20n, 1n))).to.be.true;
       },
     },
 
@@ -186,7 +186,7 @@ set $result @apply(5 @double)`,
       validate: (_, interpreter) => {
         const val = interpreter.getBinding("$result", BindingsSpace.USER);
         expect(val).to.be.instanceOf(Num);
-        expect((val as Num).eq(new Num(10n, 1n))).to.be.true;
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
       },
     },
     {
@@ -211,9 +211,9 @@ set $result @map($items @double)`,
         expect(val).to.be.an("array");
         const nums = val as Num[];
         expect(nums).to.have.length(3);
-        expect((nums[0] as Num).eq(new Num(2n, 1n))).to.be.true;
-        expect((nums[1] as Num).eq(new Num(4n, 1n))).to.be.true;
-        expect((nums[2] as Num).eq(new Num(6n, 1n))).to.be.true;
+        expect((nums[0] as Num).eq(Num(2n, 1n))).to.be.true;
+        expect((nums[1] as Num).eq(Num(4n, 1n))).to.be.true;
+        expect((nums[2] as Num).eq(Num(6n, 1n))).to.be.true;
       },
     },
     {
@@ -228,9 +228,9 @@ set $result @myMap($items @double)`,
         expect(val).to.be.an("array");
         const nums = val as Num[];
         expect(nums).to.have.length(3);
-        expect((nums[0] as Num).eq(new Num(2n, 1n))).to.be.true;
-        expect((nums[1] as Num).eq(new Num(4n, 1n))).to.be.true;
-        expect((nums[2] as Num).eq(new Num(6n, 1n))).to.be.true;
+        expect((nums[0] as Num).eq(Num(2n, 1n))).to.be.true;
+        expect((nums[1] as Num).eq(Num(4n, 1n))).to.be.true;
+        expect((nums[2] as Num).eq(Num(6n, 1n))).to.be.true;
       },
     },
     {
@@ -246,9 +246,9 @@ set $result @mapTwice($items @double @inc)`,
         expect(val).to.be.an("array");
         const nums = val as Num[];
         expect(nums).to.have.length(3);
-        expect((nums[0] as Num).eq(new Num(3n, 1n))).to.be.true;
-        expect((nums[1] as Num).eq(new Num(5n, 1n))).to.be.true;
-        expect((nums[2] as Num).eq(new Num(7n, 1n))).to.be.true;
+        expect((nums[0] as Num).eq(Num(3n, 1n))).to.be.true;
+        expect((nums[1] as Num).eq(Num(5n, 1n))).to.be.true;
+        expect((nums[2] as Num).eq(Num(7n, 1n))).to.be.true;
       },
     },
   ],

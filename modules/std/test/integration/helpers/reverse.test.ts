@@ -11,7 +11,7 @@ describeHelper("@reverse", {
       input: `@reverse([1 2 3])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
-        expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([3, 2, 1]);
+        expect(result.map((n: Num) => n.toNumber())).to.deep.equal([3, 2, 1]);
       },
     },
     {

@@ -12,8 +12,8 @@ describeHelper("@range", {
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(5);
         expect(result[0]).to.be.instanceOf(Num);
-        expect(result[0].eq(new Num(0n))).to.be.true;
-        expect(result[4].eq(new Num(4n))).to.be.true;
+        expect(result[0].eq(Num(0n))).to.be.true;
+        expect(result[4].eq(Num(4n))).to.be.true;
       },
     },
     {
@@ -28,8 +28,8 @@ describeHelper("@range", {
       input: `@range(5 8)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
-        expect(result[0].eq(new Num(5n))).to.be.true;
-        expect(result[2].eq(new Num(7n))).to.be.true;
+        expect(result[0].eq(Num(5n))).to.be.true;
+        expect(result[2].eq(Num(7n))).to.be.true;
       },
     },
   ],

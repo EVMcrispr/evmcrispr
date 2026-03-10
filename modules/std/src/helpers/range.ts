@@ -10,8 +10,8 @@ export default defineHelper<Std>({
     { name: "end", type: "number" },
   ],
   async run(_, { start, end }) {
-    const s = Num.coerce(start).toBigInt();
-    const e = Num.coerce(end).toBigInt();
+    const s = Num(start).toBigInt();
+    const e = Num(end).toBigInt();
 
     if (e - s > 10_000n) {
       throw new ErrorException("@range: maximum length is 10,000");
@@ -19,7 +19,7 @@ export default defineHelper<Std>({
 
     const result: Num[] = [];
     for (let i = s; i < e; i++) {
-      result.push(new Num(i));
+      result.push(Num(i));
     }
     return result;
   },

@@ -10,7 +10,7 @@ export default defineHelper<Std>({
     { name: "index", type: "number" },
   ],
   async run(_, { value, index }) {
-    const i = Number(Num.coerce(index).toBigInt());
+    const i = Num(index).toNumber();
     const resolved = i < 0 ? value.length + i : i;
 
     if (resolved < 0 || resolved >= value.length) {

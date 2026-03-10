@@ -71,7 +71,7 @@ function findMatchingBrace(src: string, openIdx: number): number {
 function paramToJson(value: Param): unknown {
   if (value instanceof Num) {
     return value.isInteger()
-      ? Number(value.toBigInt())
+      ? value.toNumber()
       : Number(value.num) / Number(value.den);
   }
   if (value === "true") return true;

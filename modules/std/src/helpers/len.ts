@@ -7,6 +7,6 @@ export default defineHelper<Std>({
   returnType: "number",
   args: [{ name: "value", type: "array" }],
   async run(_, { value }) {
-    return new Num(BigInt(value.length));
+    return Num(BigInt(value.length));
   },
 });

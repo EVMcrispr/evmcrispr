@@ -58,7 +58,7 @@ describeHelper(
         name: "should handle leading bracket path",
         input: `@json('[10,20,30]' "[1]")`,
         validate: (result) =>
-          expect(result.eq(new Num(20n))).to.be.true,
+          expect(result.eq(Num(20n))).to.be.true,
       },
       {
         name: "should handle boolean values",
@@ -92,9 +92,9 @@ describeHelper(
         input: `@json('[[1,2],[3,4],[5,6]]' "[*][0]")`,
         validate: (result) => {
           expect(result).to.be.an("array").with.lengthOf(3);
-          expect(result[0].eq(new Num(1n))).to.be.true;
-          expect(result[1].eq(new Num(3n))).to.be.true;
-          expect(result[2].eq(new Num(5n))).to.be.true;
+          expect(result[0].eq(Num(1n))).to.be.true;
+          expect(result[1].eq(Num(3n))).to.be.true;
+          expect(result[2].eq(Num(5n))).to.be.true;
         },
       },
     ],

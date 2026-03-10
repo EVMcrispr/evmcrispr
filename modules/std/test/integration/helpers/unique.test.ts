@@ -11,7 +11,7 @@ describeHelper("@unique", {
       input: `@unique([1 2 2 3 1])`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(3);
-        expect(result.map((n: Num) => Number(n.toBigInt()))).to.deep.equal([1, 2, 3]);
+        expect(result.map((n: Num) => n.toNumber())).to.deep.equal([1, 2, 3]);
       },
     },
     {

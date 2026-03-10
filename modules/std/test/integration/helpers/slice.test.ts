@@ -11,8 +11,8 @@ describeHelper("@slice", {
       input: `@slice([10 20 30 40] 1 3)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
-        expect(result[0].eq(new Num(20n))).to.be.true;
-        expect(result[1].eq(new Num(30n))).to.be.true;
+        expect(result[0].eq(Num(20n))).to.be.true;
+        expect(result[1].eq(Num(30n))).to.be.true;
       },
     },
     {
@@ -27,7 +27,7 @@ describeHelper("@slice", {
       input: `@slice([10 20 30] -2)`,
       validate(result) {
         expect(result).to.be.an("array").with.lengthOf(2);
-        expect(result[0].eq(new Num(20n))).to.be.true;
+        expect(result[0].eq(Num(20n))).to.be.true;
       },
     },
   ],

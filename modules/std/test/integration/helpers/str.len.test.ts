@@ -11,14 +11,14 @@ describeHelper("@str.len", {
       input: `@str.len("hello")`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(5n))).to.be.true;
+        expect(result.eq(Num(5n))).to.be.true;
       },
     },
     {
       name: "should return 0 for an empty string",
       input: `@str.len("")`,
       validate(result) {
-        expect(result.eq(new Num(0n))).to.be.true;
+        expect(result.eq(Num(0n))).to.be.true;
       },
     },
   ],

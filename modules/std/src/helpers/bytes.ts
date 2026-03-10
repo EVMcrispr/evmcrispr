@@ -19,7 +19,7 @@ function toBytes(v: unknown): string {
     if (isHexString(v)) return v;
     return toHex(v);
   }
-  if (isNum(v)) return toHex(Num.coerce(v).toBigInt());
+  if (isNum(v)) return toHex(Num(v).toBigInt());
   throw new ErrorException("Cannot convert value to bytes");
 }
 

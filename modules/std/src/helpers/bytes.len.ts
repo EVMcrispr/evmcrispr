@@ -7,6 +7,6 @@ export default defineHelper<Std>({
   returnType: "number",
   args: [{ name: "value", type: "bytes" }],
   async run(_, { value }) {
-    return new Num(BigInt((String(value).length - 2) / 2));
+    return Num(BigInt((String(value).length - 2) / 2));
   },
 });

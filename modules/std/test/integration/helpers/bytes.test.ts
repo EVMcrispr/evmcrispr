@@ -181,14 +181,14 @@ describeHelper("@bytes.len", {
       input: "@bytes.len(0x010203)",
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(3n))).to.be.true;
+        expect(result.eq(Num(3n))).to.be.true;
       },
     },
     {
       name: "should return 1 for a single byte",
       input: "@bytes.len(0xff)",
       validate(result) {
-        expect(result.eq(new Num(1n))).to.be.true;
+        expect(result.eq(Num(1n))).to.be.true;
       },
     },
   ],

@@ -77,7 +77,7 @@ describe("Interpreter - primaries", async () => {
       ): Num => {
         let r = Num.fromDecimalString(String(value));
         if (power) {
-          r = r.mul(new Num(10n ** BigInt(power), 1n));
+          r = r.mul(Num(10n ** BigInt(power), 1n));
         }
         r = r.mul(Num.fromBigInt(BigInt(timeUnits[timeUnit ?? "s"])));
         return r;

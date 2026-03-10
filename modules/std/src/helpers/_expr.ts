@@ -73,19 +73,19 @@ function detectMissingSpaces(token: string, validOps: Set<string>): void {
 // ---------------------------------------------------------------------------
 
 export function toNum(v: unknown): Num {
-  if (v === true || v === "true") return new Num(1n);
-  if (v === false || v === "false") return new Num(0n);
+  if (v === true || v === "true") return Num(1n);
+  if (v === false || v === "false") return Num(0n);
   if (v instanceof Num) return v;
-  if (typeof v === "string" && isHexString(v)) return new Num(BigInt(v));
-  if (isNum(v)) return Num.coerce(v);
-  if (typeof v === "string") return Num.coerce(v);
+  if (typeof v === "string" && isHexString(v)) return Num(BigInt(v));
+  if (isNum(v)) return Num(v);
+  if (typeof v === "string") return Num(v);
   throw new ErrorException("Cannot convert value to number");
 }
 
 export function isTruthy(value: unknown): boolean {
   if (value === "false" || value === "") return false;
-  if (value instanceof Num) return !value.eq(new Num(0n));
-  if (isNum(value)) return !Num.coerce(value).eq(new Num(0n));
+  if (value instanceof Num) return !value.eq(Num(0n));
+  if (isNum(value)) return !Num(value).eq(Num(0n));
   return Boolean(value);
 }
 
@@ -131,10 +131,10 @@ function applyBool(op: string, left: unknown, right: unknown): boolean {
     case "and": return isTruthy(left) && isTruthy(right);
     case "or": return isTruthy(left) || isTruthy(right);
     case "==":
-      if (isNum(left) && isNum(right)) return Num.coerce(left).eq(Num.coerce(right));
+      if (isNum(left) && isNum(right)) return Num(left).eq(Num(right));
       return left === right;
     case "!=":
-      if (isNum(left) && isNum(right)) return !Num.coerce(left).eq(Num.coerce(right));
+      if (isNum(left) && isNum(right)) return !Num(left).eq(Num(right));
       return left !== right;
     case ">":
     case ">=":
@@ -142,8 +142,8 @@ function applyBool(op: string, left: unknown, right: unknown): boolean {
     case "<=": {
       if (!isNum(left) || !isNum(right))
         throw new ErrorException(`Operator '${op}' requires numeric operands`);
-      const a = Num.coerce(left);
-      const b = Num.coerce(right);
+      const a = Num(left);
+      const b = Num(right);
       if (op === ">") return a.gt(b);
       if (op === ">=") return a.gte(b);
       if (op === "<") return a.lt(b);
@@ -157,7 +157,7 @@ const UNARY_MINUS = "unary-";
 
 function applyPrefix(op: string, operand: unknown): unknown {
   if (op === "not") return !isTruthy(operand);
-  if (op === UNARY_MINUS) return toNum(operand).mul(new Num(-1n));
+  if (op === UNARY_MINUS) return toNum(operand).mul(Num(-1n));
   throw new ErrorException(`Unknown prefix operator '${op}'`);
 }
 

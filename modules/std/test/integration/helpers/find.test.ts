@@ -16,7 +16,7 @@ def @isNeg "$x: number -> bool" @bool($x < 0)
       input: `@find([1 2 3 4] @isThree)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(3n))).to.be.true;
+        expect(result.eq(Num(3n))).to.be.true;
       },
     },
     {

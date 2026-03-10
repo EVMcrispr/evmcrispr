@@ -18,7 +18,7 @@ while @bool($i < 3) (
       validate: (_actions, interpreter) => {
         const i = interpreter.getBinding("$i", BindingsSpace.USER);
         expect(i).to.be.instanceOf(Num);
-        expect((i as Num).eq(new Num(3n))).to.be.true;
+        expect((i as Num).eq(Num(3n))).to.be.true;
       },
     },
     {

@@ -684,7 +684,7 @@ export class EVMcrispr {
     let left: Num, right: Num;
 
     try {
-      left = Num.coerce(leftOperand_);
+      left = Num(leftOperand_);
     } catch (_err) {
       EVMcrispr.panic(
         n,
@@ -693,7 +693,7 @@ export class EVMcrispr {
     }
 
     try {
-      right = Num.coerce(rightOperand_);
+      right = Num(rightOperand_);
     } catch (_err) {
       EVMcrispr.panic(
         n,
@@ -1004,7 +1004,7 @@ export class EVMcrispr {
       case NodeType.NumberLiteral: {
         let r = Num.fromDecimalString(String(n.value));
         if (n.power) {
-          r = r.mul(new Num(10n ** BigInt(n.power), 1n));
+          r = r.mul(Num(10n ** BigInt(n.power), 1n));
         }
         r = r.mul(Num.fromBigInt(BigInt(timeUnits[n.timeUnit ?? "s"])));
         return r;

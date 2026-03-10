@@ -15,7 +15,7 @@ def @cat "$a: string $b: string -> string" @str.concat($a $b)
       input: `@reduce([1 2 3 4 5] @add 0)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(15n))).to.be.true;
+        expect(result.eq(Num(15n))).to.be.true;
       },
     },
     {
@@ -23,7 +23,7 @@ def @cat "$a: string $b: string -> string" @str.concat($a $b)
       input: `@reduce([] @add 42)`,
       validate(result) {
         expect(result).to.be.instanceOf(Num);
-        expect(result.eq(new Num(42n))).to.be.true;
+        expect(result.eq(Num(42n))).to.be.true;
       },
     },
     {
