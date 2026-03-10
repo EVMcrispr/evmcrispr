@@ -17,6 +17,7 @@ import {
 } from "@evmcrispr/sdk";
 import type { Module } from "@evmcrispr/sdk";
 import type Std from "..";
+import { inferTypes } from "../utils/inferTypes";
 import { parseSignature } from "../utils/parseSignature";
 
 const { USER, DEF } = BindingsSpace;
@@ -168,8 +169,29 @@ export default defineCommand<Std>({
     const { params: paramDefs, opts: optDefs, returnType } = parseSignature(params);
     const isHelper = node.args[0].type === NodeType.HelperFunctionExpression;
 
+    let finalReturnType = returnType;
+
+    const needsInference =
+      isHelper &&
+      (paramDefs.some((p) => p.type === "any") || !returnType);
+
+    if (needsInference) {
+      const allModules = [module, ...module.context.modules];
+      const inferred = inferTypes(body as Node, paramDefs, allModules);
+
+      for (const p of paramDefs) {
+        if (p.type === "any") {
+          const resolved = inferred.paramTypes.get(p.name);
+          if (resolved) p.type = resolved;
+        }
+      }
+      if (!finalReturnType && inferred.returnType) {
+        finalReturnType = inferred.returnType;
+      }
+    }
+
     const defValue = isHelper
-      ? buildDef("helper", name, paramDefs, returnType, body as Node)
+      ? buildDef("helper", name, paramDefs, finalReturnType, body as Node)
       : buildDef("command", name, paramDefs, optDefs, body as Node);
 
     module.bindingsManager.setBinding(

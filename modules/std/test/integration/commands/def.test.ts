@@ -133,6 +133,76 @@ set $after @val`,
       },
     },
 
+    // ── Type inference ──
+
+    {
+      name: "should infer param types and return type from nested helpers",
+      script: `
+def @catlen "$a $b" @str.len(@str.concat($a $b))
+set $result @catlen("hello" "world")`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
+      },
+    },
+    {
+      name: "should infer return type when params are explicit",
+      script: `
+def @double "$n: number" @num($n * 2)
+set $result @double(5)`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
+      },
+    },
+    {
+      name: "should infer types with mixed explicit and bare params",
+      script: `
+def @greet "$greeting: string $name" @str.concat($greeting $name)
+set $result @greet("hello " "world")`,
+      validate: (_, interpreter) => {
+        expect(interpreter.getBinding("$result", BindingsSpace.USER)).to.equal(
+          "hello world",
+        );
+      },
+    },
+    {
+      name: "should infer number type from arithmetic body",
+      script: `
+def @add "$a $b" @num($a + $b)
+set $result @add(3 7)`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(10n, 1n))).to.be.true;
+      },
+    },
+    {
+      name: "should infer types from chained user-defined helpers",
+      script: `
+def @double "$n" @num($n * 2)
+def @quadruple "$n" @double(@double($n))
+set $result @quadruple(3)`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(12n, 1n))).to.be.true;
+      },
+    },
+    {
+      name: "should work with pass-through (unresolvable type stays any)",
+      script: `
+def @id "$x" $x
+set $result @id(42)`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(42n, 1n))).to.be.true;
+      },
+    },
+
     // ── Composition ──
 
     {

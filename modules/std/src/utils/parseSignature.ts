@@ -12,9 +12,10 @@ const OPTIONAL_RE = /^\[\$(\w[\w-]*):\s*(\S+)\]$/;
 const REST_RE = /^\.\.\.\$(\w[\w-]*):\s*(\S+)$/;
 const OPTION_RE = /^\[--(\w[\w-]*):\s*(\S+)\]$/;
 const HELPER_PARAM_RE = /^@(\w[\w-]*)$/;
+const BARE_PARAM_RE = /^\$(\w[\w-]*)$/;
 const RETURN_RE = /\s*->\s*(\S+)\s*$/;
 const TOKEN_RE =
-  /\[--\w[\w-]*:\s*\S+\]|\[\$\w[\w-]*:\s*\S+\]|\.\.\.\$\w[\w-]*:\s*\S+|\$\w[\w-]*:\s*\S+|@\w[\w-]*/g;
+  /\[--\w[\w-]*:\s*\S+\]|\[\$\w[\w-]*:\s*\S+\]|\.\.\.\$\w[\w-]*:\s*\S+|\$\w[\w-]*:\s*\S+|\$\w[\w-]*|@\w[\w-]*/g;
 
 export function parseSignature(sig: string): ParsedSignature {
   const trimmed = sig.trim();
@@ -81,6 +82,16 @@ export function parseSignature(sig: string): ParsedSignature {
         );
       }
       params.push({ name: m[1], type: m[2] });
+      continue;
+    }
+
+    if ((m = token.match(BARE_PARAM_RE))) {
+      if (seenOptional) {
+        throw new ErrorException(
+          "required parameters must come before optional ones",
+        );
+      }
+      params.push({ name: m[1], type: "any" });
       continue;
     }
   }
