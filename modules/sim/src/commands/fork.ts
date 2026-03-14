@@ -17,6 +17,10 @@ import {
   type WalletClient,
 } from "viem";
 import type Sim from "..";
+import {
+  createEthereumJSBackend,
+  type EthereumJSBackend,
+} from "../lib/ethereumjs-backend";
 
 export default defineCommand<Sim>({
   name: "fork",
@@ -24,7 +28,7 @@ export default defineCommand<Sim>({
   opts: [
     { name: "block-number", type: "number" },
     { name: "from", type: "address" },
-    { name: "tenderly", type: "string" },
+    { name: "auth-token", type: "string" },
     { name: "using", type: "simulation-mode" },
   ],
   async run(module, { block }, { opts, interpreters }) {
@@ -34,7 +38,7 @@ export default defineCommand<Sim>({
     const blockNumber = opts["block-number"];
     const from = opts.from;
     const using = opts.using;
-    const tenderlyOpt = opts.tenderly;
+    const tenderlyOpt = opts["auth-token"];
 
     const chainId = await module.getChainId();
 
@@ -52,6 +56,7 @@ export default defineCommand<Sim>({
 
     let publicClient: PublicClient;
     let walletClient: WalletClient;
+    let backend: EthereumJSBackend | undefined;
     let onSuccess: (() => void) | undefined;
     let onError: (() => void) | undefined;
 
@@ -99,16 +104,22 @@ export default defineCommand<Sim>({
           `:success: All transactions succeeded on ${backendName} fork.`,
         );
       };
-    } else if (tenderlyOpt) {
+    } else if (using === "tenderly" || tenderlyOpt) {
       // ── Tenderly backend ───────────────────────────────────────────
       // set up your access-key, if you don't have one or you want to generate new one follow next link
       // https://dashboard.tenderly.co/account/authorization
+      if (!tenderlyOpt) {
+        throw new ErrorException(
+          "--using tenderly requires --auth-token user/project/accessKey",
+        );
+      }
+
       const [tenderlyUser, tenderlyProject, tenderlyAccessKey] =
         (tenderlyOpt as string)?.split("/") || [];
 
       if (!tenderlyAccessKey) {
         throw new ErrorException(
-          "Invalid --tenderly option. Expected format: user/project/accessKey",
+          "Invalid --auth-token option. Expected format: user/project/accessKey",
         );
       }
 
@@ -199,14 +210,38 @@ export default defineCommand<Sim>({
           `:success: All transactions succeeded: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
         );
       };
-    } else if (using) {
+    } else if (using && using !== "ethereumjs") {
       throw new ErrorException(
-        `Unknown simulation backend: "${using}". Supported: anvil, hardhat`,
+        `Unknown simulation backend: "${using}". Supported: anvil, hardhat, ethereumjs`,
       );
     } else {
-      throw new ErrorException(
-        "Must specify --using anvil, --using hardhat, or --tenderly user/project/accessKey",
-      );
+      // ── EthereumJS in-browser backend (default) ──────────────────
+      if (!upstreamRpcUrl) {
+        throw new ErrorException(
+          "EthereumJS backend requires an upstream RPC URL. Make sure a transport is configured.",
+        );
+      }
+
+      backend = await createEthereumJSBackend({
+        upstreamRpcUrl,
+        blockNumber: blockNumber ? Number(blockNumber.toString()) : undefined,
+        chainId,
+      });
+
+      publicClient = createPublicClient({
+        chain,
+        transport: backend.transport,
+      });
+
+      walletClient = undefined as any;
+
+      module.mode = "ethereumjs";
+
+      onSuccess = () => {
+        module.context.log(
+          `:success: All transactions succeeded in-browser (EthereumJS).`,
+        );
+      };
     }
 
     if (from) {
@@ -240,6 +275,11 @@ export default defineCommand<Sim>({
       if (isWalletAction(action)) {
         throw new ErrorException(`can't switch networks inside a fork command`);
       }
+
+      if (module.mode === "ethereumjs" && backend) {
+        return backend.handleAction(action);
+      }
+
       if (isRpcAction(action)) {
         await walletClient.request({
           method: action.method as any,

@@ -2,7 +2,7 @@ import { defineModule } from "@evmcrispr/sdk";
 import { commands } from "./_generated";
 import { types } from "./argTypes";
 
-export type SimMode = "anvil" | "hardhat" | "tenderly";
+export type SimMode = "anvil" | "hardhat" | "tenderly" | "ethereumjs";
 
 export default class Sim extends defineModule(
   "sim",

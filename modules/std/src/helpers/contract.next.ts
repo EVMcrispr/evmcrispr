@@ -2,7 +2,7 @@ import { computeNextContractAddress, defineHelper } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineHelper<Std>({
-  name: "nextContract",
+  name: "contract.next",
   description: "Predict the next contract address deployed by a given account.",
   returnType: "address",
   args: [

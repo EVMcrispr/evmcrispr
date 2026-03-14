@@ -7,25 +7,19 @@ describeCommand("fork", {
   preamble: "load sim",
   errorCases: [
     {
-      name: "should fail when neither --using nor --tenderly is specified",
-      script: `sim:fork (
+      name: "should fail with an invalid --auth-token format",
+      script: `sim:fork --auth-token badformat (
   print "inside"
 )`,
-      error: "Must specify --using anvil, --using hardhat, or --tenderly",
-    },
-    {
-      name: "should fail with an invalid --tenderly format",
-      script: `sim:fork --tenderly badformat (
-  print "inside"
-)`,
-      error: "Invalid --tenderly option",
+      error: "Invalid --auth-token option",
     },
     {
       name: "should fail with an unknown --using backend",
       script: `sim:fork --using unknown-backend (
   print "inside"
 )`,
-      error: "--using must be one of anvil, hardhat, tenderly, got unknown-backend",
+      error:
+        "--using must be one of anvil, hardhat, tenderly, ethereumjs, got unknown-backend",
     },
   ],
 });

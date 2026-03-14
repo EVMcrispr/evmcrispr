@@ -17,6 +17,9 @@ export const STD_ALL_HELPERS = [
   "@bytes.not",
   "@bytes.slice",
   "@concat",
+  "@contract.codeAt",
+  "@contract.next",
+  "@contract.storageAt",
   "@date",
   "@ens",
   "@enumerate",
@@ -31,7 +34,6 @@ export const STD_ALL_HELPERS = [
   "@map",
   "@me",
   "@namehash",
-  "@nextContract",
   "@num",
   "@num.format",
   "@num.parse",
@@ -61,11 +63,11 @@ export const STD_ALL_HELPERS = [
 
 export const STD_ADDRESS_HELPERS = [
   "@at",
+  "@contract.next",
   "@ens",
   "@find",
   "@get",
   "@me",
-  "@nextContract",
   "@reduce",
   "@token",
 ];
@@ -87,6 +89,7 @@ export const STD_NUMBER_HELPERS = [
 
 export const STD_BYTES32_HELPERS = [
   "@at",
+  "@contract.storageAt",
   "@find",
   "@get",
   "@id",
@@ -110,6 +113,7 @@ export const STD_BYTES_HELPERS = [
   "@abi.encodeCall",
   "@at",
   "@bytes",
+  "@contract.codeAt",
   "@bytes.at",
   "@bytes.concat",
   "@bytes.not",

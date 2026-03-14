@@ -7,9 +7,7 @@ export default defineCommand<Sim>({
   args: [{ name: "condition", type: "bool" }],
   async run(module, { condition }) {
     module.context.log(
-      condition
-        ? ":success: Assertion passed"
-        : ":error: Assertion failed",
+      condition ? ":success: Assertion passed" : ":error: Assertion failed",
     );
 
     if (!condition) {

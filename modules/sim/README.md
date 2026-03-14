@@ -83,7 +83,7 @@ You can generate an access key at <https://dashboard.tenderly.co/account/authori
 ```
 load sim
 
-sim:fork --tenderly myUser/myProject/myAccessKey (
+sim:fork --using tenderly --auth-token myUser/myProject/myAccessKey (
   # your commands here
 )
 ```
@@ -102,8 +102,8 @@ Fork a live chain into a simulation backend.
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `--using` | `anvil` \| `hardhat` \| `tenderly` | Local backend to use. |
-| `--tenderly` | `string` | Tenderly credentials (`user/project/accessKey`). |
+| `--using` | `anvil` \| `hardhat` \| `tenderly` | Backend to use (defaults to `ethereumjs`). |
+| `--auth-token` | `string` | Tenderly credentials (`user/project/accessKey`). |
 | `--block-number` | `number` | Pin the fork to a specific block. |
 | `--from` | `address` | Override the connected account (sender). |
 

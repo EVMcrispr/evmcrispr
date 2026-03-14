@@ -71,19 +71,20 @@ describe("Completions – sim commands", () => {
       const optLabels = labels(items);
       expect(optLabels).to.include("--block-number");
       expect(optLabels).to.include("--from");
-      expect(optLabels).to.include("--tenderly");
+      expect(optLabels).to.include("--auth-token");
       expect(optLabels).to.include("--using");
       expect(items).to.have.lengthOf(4);
     });
 
-    it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat)", async () => {
+    it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat, tenderly, ethereumjs)", async () => {
       const script = `${SIM}sim:fork --using `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const fieldItems = onlyKind(items, "field");
-      expect(fieldItems.length).to.equal(3);
+      expect(fieldItems.length).to.equal(4);
       expect(hasLabel(fieldItems, "anvil")).to.be.true;
       expect(hasLabel(fieldItems, "hardhat")).to.be.true;
       expect(hasLabel(fieldItems, "tenderly")).to.be.true;
+      expect(hasLabel(fieldItems, "ethereumjs")).to.be.true;
     });
   });
 
