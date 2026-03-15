@@ -16,7 +16,7 @@ export function registerCreateLink(server: McpServer): void {
           .string()
           .optional()
           .describe(
-            "Base URL for the generated link (default: https://localhost:3000)",
+            "Base URL for the generated link (default: https://next.evmcrispr.com)",
           ),
       },
       annotations: {

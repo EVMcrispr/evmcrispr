@@ -19,7 +19,10 @@ export async function createLink(args: {
     };
   }
 
-  const baseUrl = (args.baseUrl ?? "https://localhost:3000").replace(/\/$/, "");
+  const baseUrl = (args.baseUrl ?? "https://next.evmcrispr.com").replace(
+    /\/$/,
+    "",
+  );
 
   try {
     const res = await fetch(PINATA_URL, {
