@@ -13,6 +13,8 @@ import {
 
 export default defineCommand<AragonOS>({
   name: "forward",
+  description:
+    "Route actions through a chain of forwarder apps with optional context.",
   args: [
     { name: "forwarders", type: "app", rest: true },
     { name: "block", type: "block" },

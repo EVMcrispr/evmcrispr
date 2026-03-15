@@ -10,6 +10,8 @@ import { buildNonceForAddress, MINIME_TOKEN_FACTORIES } from "../utils";
 
 export default defineCommand<AragonOS>({
   name: "new-token",
+  description:
+    "Create a new MiniMe token with configurable name, symbol, and decimals.",
   args: [
     { name: "variable", type: "variable" },
     { name: "name", type: "string" },

@@ -10,6 +10,8 @@ import { batchForwarderActions } from "../utils/forwarders";
 
 export default defineCommand<AragonOS>({
   name: "act",
+  description:
+    "Execute an action on a target contract through an agent or vault.",
   args: [
     { name: "agent", type: "address" },
     { name: "target", type: "address" },

@@ -12,6 +12,7 @@ import {
 
 export default defineCommand<Giveth>({
   name: "initiate-givbacks",
+  description: "Initiate a GIVbacks distribution through DAO governance.",
   args: [{ name: "hash", type: "any" }],
   opts: [{ name: "relayer", type: "any" }],
   async run(module, { hash }, { opts }) {

@@ -1,33 +1,86 @@
 # EVMcrispr
 
-This is an official starter Turborepo.
+A domain-specific language for encoding and executing batched EVM transactions targeting smart contracts, Aragon DAOs, ENS, and DeFi protocols.
 
-## Using this example
+## Quick Start
 
-Run the following command:
+```
+# Install dependencies
+bun install
 
-```sh
-npx create-turbo@latest -e with-vite
+# Start the web terminal
+bun dev:terminal
+
+# Start the docs website
+bun dev:website
 ```
 
-## What's inside?
+Visit [evmcrispr.com](https://evmcrispr.com) to use the hosted terminal.
 
-This Turborepo includes the following packages and apps:
+## Example Script
 
-### Apps and Packages
+```
+# Approve and swap tokens in a single transaction
+load sim
 
-- `docs`: a vanilla [vite](https://vitejs.dev) ts app
-- `web`: another vanilla [vite](https://vitejs.dev) ts app
-- `@repo/ui`: a stub component & utility library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: shared `eslint` configurations
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+sim:fork (
+  set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+  set $amount @token.amount(DAI 100)
 
-Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
+  batch (
+    exec @token(DAI) "approve(address,uint256)" $router $amount
+    exec $router "swapExactTokensForETH(uint256,uint256,address[],address,uint256)" $amount 0 [@token(DAI) @token(WETH)] @me @date("2025-12-31")
+  )
 
-### Utilities
+  sim:expect @bool(@get(@token(WETH) "balanceOf(address)(uint256)" @me) > 0)
+)
+```
 
-This Turborepo has some additional tools already setup for you:
+## Modules
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+| Module | Description | Commands | Helpers |
+|--------|-------------|----------|---------|
+| [std](modules/std/README.md) | Core language (always loaded) | 13 | 55 |
+| [aragonos](modules/aragonos/README.md) | Aragon DAO operations | 9 | 3 |
+| [sim](modules/sim/README.md) | Chain fork simulation | 6 | - |
+| [ens](modules/ens/README.md) | ENS domain operations | 1 | 1 |
+| [giveth](modules/giveth/README.md) | Giveth protocol | 4 | 1 |
+| [http](modules/http/README.md) | HTTP + JSON | - | 3 |
+
+## Project Structure
+
+```
+packages/
+  core/          Parser, interpreter, AST
+  sdk/           Module SDK (defineCommand, defineHelper)
+modules/
+  std/           Default module — always loaded
+  aragonos/      Aragon DAO operations
+  sim/           Chain fork simulation
+  ens/           ENS domain operations
+  giveth/        Giveth protocol
+  http/          HTTP + JSON helpers
+apps/
+  evmcrispr-terminal/   React + Monaco web terminal
+  evmcrispr-website/    Astro landing page + docs
+```
+
+## Development
+
+```sh
+bun install           # Install dependencies
+bun run build         # Build all packages
+bun test:unit         # Run unit tests
+bun test:integration  # Run integration tests (needs anvil)
+biome check .         # Lint
+```
+
+## Documentation
+
+- [Getting Started](apps/evmcrispr-website/src/content/docs/guides/getting-started.md)
+- [Language Basics](apps/evmcrispr-website/src/content/docs/guides/language-basics.md)
+- [Full Reference](https://evmcrispr.com/llms-full.txt)
+
+## License
+
+[GPL-3.0](LICENSE)

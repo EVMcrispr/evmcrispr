@@ -51,6 +51,7 @@ export const _projectAddr = async (
 
 export default defineHelper<Giveth>({
   name: "projectAddr",
+  description: "Resolve a Giveth project slug to its contract address.",
   returnType: "address",
   args: [{ name: "slug", type: "string" }],
   async run(module, { slug }) {

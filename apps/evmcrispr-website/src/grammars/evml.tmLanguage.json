@@ -1,0 +1,91 @@
+{
+  "name": "evml",
+  "displayName": "EVML",
+  "scopeName": "source.evml",
+  "fileTypes": ["evml"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string-double" },
+    { "include": "#string-single" },
+    { "include": "#variable" },
+    { "include": "#helper" },
+    { "include": "#boolean" },
+    { "include": "#number" },
+    { "include": "#option-flag" },
+    { "include": "#operator" },
+    { "include": "#module-command" },
+    { "include": "#command" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#.*$",
+      "name": "comment.line.number-sign.evml"
+    },
+    "string-double": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.evml",
+      "patterns": [
+        {
+          "match": "\\\\(?:u\\{[0-9A-Fa-f]+\\}|[nrt\\\\'\"])",
+          "name": "constant.character.escape.evml"
+        }
+      ]
+    },
+    "string-single": {
+      "begin": "'",
+      "end": "'",
+      "name": "string.quoted.single.evml",
+      "patterns": [
+        {
+          "match": "\\\\(?:u\\{[0-9A-Fa-f]+\\}|[nrt\\\\'\"])",
+          "name": "constant.character.escape.evml"
+        }
+      ]
+    },
+    "variable": {
+      "match": "\\$[a-zA-Z_][a-zA-Z0-9_]*",
+      "name": "variable.other.evml"
+    },
+    "helper": {
+      "match": "@[a-zA-Z][a-zA-Z0-9._-]*",
+      "name": "entity.name.function.helper.evml"
+    },
+    "boolean": {
+      "match": "\\b(true|false)\\b",
+      "name": "constant.language.boolean.evml"
+    },
+    "number": {
+      "match": "\\b(?:0x[0-9a-fA-F]+|[0-9]+(?:e[0-9]+)?(?:s|mo|h|d|w|m|y)?(?:/(?:s|mo|h|d|w|m|y))?)\\b",
+      "name": "constant.numeric.evml"
+    },
+    "option-flag": {
+      "match": "--[a-zA-Z][a-zA-Z0-9-]*",
+      "name": "entity.name.tag.option.evml"
+    },
+    "operator": {
+      "patterns": [
+        {
+          "match": "::",
+          "name": "keyword.operator.namespace.evml"
+        },
+        {
+          "match": "->",
+          "name": "keyword.operator.arrow.evml"
+        },
+        {
+          "match": "=>",
+          "name": "keyword.operator.arrow.evml"
+        }
+      ]
+    },
+    "module-command": {
+      "match": "\\b[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9-]*\\b",
+      "name": "keyword.control.module-command.evml"
+    },
+    "command": {
+      "match": "\\b(?:batch|def|exec|for|halt|if|else|in|load|print|raw|set|sign|switch|while|as)\\b",
+      "name": "keyword.control.evml"
+    }
+  }
+}

@@ -5,6 +5,7 @@ import { _projectAddr } from "../helpers/projectAddr";
 
 export default defineCommand<Giveth>({
   name: "donate",
+  description: "Send a donation to a Giveth project.",
   args: [
     { name: "slug", type: "string" },
     { name: "amount", type: "number" },

@@ -17,3 +17,7 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 _generated.ts
+
+# Auto-generated docs
+apps/evmcrispr-website/src/content/docs/reference/
+apps/evmcrispr-website/public/llms-full.txt

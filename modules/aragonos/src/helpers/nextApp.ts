@@ -7,6 +7,7 @@ import type AragonOS from "..";
 
 export default defineHelper<AragonOS>({
   name: "nextApp",
+  description: "Predict the address of the next app to be installed in the DAO.",
   returnType: "address",
   args: [{ name: "offset", type: "number", optional: true }],
   async run(module, { offset = 0 }) {

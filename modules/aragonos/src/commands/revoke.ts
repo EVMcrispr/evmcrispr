@@ -79,6 +79,8 @@ const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
 
 export default defineCommand<AragonOS>({
   name: "revoke",
+  description:
+    "Revoke a permission from an entity on a DAO app, optionally removing the manager.",
   args: [
     { name: "grantee", type: "address" },
     { name: "app", type: "app" },

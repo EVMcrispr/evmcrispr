@@ -14,6 +14,7 @@ import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
   name: "upgrade",
+  description: "Upgrade an installed Aragon app to a new version.",
   args: [
     { name: "apmRepo", type: "repo" },
     { name: "newAppAddress", type: "any", optional: true },

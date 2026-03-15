@@ -99,6 +99,7 @@ const setApp = (
 
 export default defineCommand<AragonOS>({
   name: "install",
+  description: "Install an Aragon app into the connected DAO.",
   args: [
     { name: "variable", type: "variable" },
     { name: "identifier", type: "repo" },

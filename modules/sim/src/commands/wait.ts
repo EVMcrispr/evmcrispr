@@ -45,6 +45,7 @@ function buildWaitActions(
 
 export default defineCommand<Sim>({
   name: "wait",
+  description: "Advance time and mine blocks in a fork simulation.",
   args: [
     { name: "duration", type: "number" },
     { name: "period", type: "number", optional: true },

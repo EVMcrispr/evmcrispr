@@ -4,6 +4,7 @@ import { defaultRelayerMap } from "../addresses";
 
 export default defineCommand<Giveth>({
   name: "finalize-givbacks",
+  description: "Finalize a GIVbacks distribution by executing batches from IPFS.",
   args: [{ name: "hash", type: "any" }],
   opts: [{ name: "relayer", type: "any" }],
   async run(module, { hash }, { opts }) {

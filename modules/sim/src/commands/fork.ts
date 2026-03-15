@@ -24,6 +24,7 @@ import {
 
 export default defineCommand<Sim>({
   name: "fork",
+  description: "Fork the blockchain and execute commands in a simulation.",
   args: [{ name: "block", type: "block" }],
   opts: [
     { name: "block-number", type: "number" },

@@ -1,0 +1,138 @@
+---
+title: Working with DAOs
+---
+
+EVMcrispr provides the `aragonos` module for interacting with Aragon DAOs.
+This guide covers the most common DAO operations.
+
+## Connecting to a DAO
+
+Use `connect` to establish a DAO context. All DAO commands run inside the
+connect block:
+
+```evml
+load aragonos
+
+aragonos:connect my-dao.aragonid.eth (
+  # DAO commands go here
+  grant @me @app(voting) CREATE_VOTES_ROLE
+)
+```
+
+You can connect by ENS name or by address:
+
+```evml
+aragonos:connect 0xb1f5...a84e (
+  # ...
+)
+```
+
+## Managing Permissions
+
+### Granting Roles
+
+```evml
+# Grant a role to the connected wallet
+grant @me @app(voting) CREATE_VOTES_ROLE
+
+# Grant with a specific permission manager
+grant @app(voting) @app(token-manager) MINT_ROLE @app(voting)
+
+# Grant with an oracle contract
+grant @app(voting) @app(finance) CREATE_PAYMENTS_ROLE --oracle 0xOracle...
+```
+
+### Revoking Roles
+
+```evml
+# Revoke a permission
+revoke @app(voting) @app(acl) CREATE_PERMISSIONS_ROLE
+
+# Revoke and remove the permission manager
+revoke @app(voting) @app(acl) CREATE_PERMISSIONS_ROLE true
+```
+
+## Installing Apps
+
+```evml
+# Install a new agent app
+install $agent agent:new
+
+# Install with initialization parameters
+install $tm token-manager:new @token(ANT) false 1e18
+
+# Install a specific version
+install $vault vault:new --version 2.0.0
+
+# Use the installed app
+grant @me $tm MINT_ROLE
+```
+
+## Upgrading Apps
+
+```evml
+# Upgrade to the latest version
+upgrade token-manager.aragonpm.eth
+
+# Upgrade to a specific version
+upgrade token-manager.aragonpm.eth 2.0.0
+```
+
+## Executing Through an Agent
+
+Use `act` to call external contracts through the DAO's agent:
+
+```evml
+# Transfer tokens from the DAO treasury
+act @app(agent) @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 100)
+```
+
+## Forwarding Through Governance
+
+Use `forward` to route actions through voting or other forwarder apps:
+
+```evml
+forward @app(voting) (
+  grant @app(voting) @app(finance) CREATE_PAYMENTS_ROLE @app(voting)
+) --context "Add payment permission"
+```
+
+## Resolving App Addresses
+
+```evml
+# Get the address of a DAO app
+set $agent @app(agent)
+
+# With index for multiple instances
+set $agent2 @app(agent:1)
+
+# Cross-DAO reference (in nested connect)
+set $otherAgent @app(_0xOtherDAO...:agent)
+```
+
+## Creating DAOs
+
+```evml
+# Create a new DAO
+new-dao $dao "my-new-dao"
+
+# Create a token for the DAO
+new-token $token "My Token" "MTK" 0xController...
+```
+
+## Combining with Simulation
+
+Test DAO operations before executing them on-chain:
+
+```evml
+load aragonos
+load sim
+
+sim:fork (
+  aragonos:connect my-dao.aragonid.eth (
+    grant @me @app(voting) CREATE_VOTES_ROLE
+    install $agent agent:new
+    sim:expect @bool(@app(agent:1) != 0x0000000000000000000000000000000000000000)
+  )
+)
+```

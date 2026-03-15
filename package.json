@@ -19,7 +19,7 @@
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
     "dev:website": "bun --filter evmcrispr-website dev",
-    "dev": "bun --filter=* dev"
+    "dev": "bun run dev:website & bun run dev:terminal"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
@@ -27,6 +27,7 @@
     "@types/node": "^22.15.21",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "portless": "^0.6.0",
     "turbo": "^2.8.4",
     "typescript": "^5.9.3"
   },

@@ -38,6 +38,7 @@ const registerAragonId = async (
 
 export default defineCommand<AragonOS>({
   name: "new-dao",
+  description: "Create a new Aragon DAO and register it with an ENS name.",
   args: [
     { name: "variable", type: "variable" },
     { name: "daoName", type: "string" },

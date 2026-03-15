@@ -6,6 +6,7 @@ import { agentMap, defaultRelayerMap, votingMap } from "../addresses";
 
 export default defineCommand<Giveth>({
   name: "verify-givbacks",
+  description: "Verify a GIVbacks vote against its IPFS proposal and vote if valid.",
   args: [
     { name: "hash", type: "any" },
     { name: "voteId", type: "any" },

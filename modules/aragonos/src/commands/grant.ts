@@ -89,6 +89,8 @@ const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
 
 export default defineCommand<AragonOS>({
   name: "grant",
+  description:
+    "Grant a permission on a DAO app to an entity, with an optional oracle.",
   args: [
     { name: "grantee", type: "address" },
     { name: "app", type: "app" },

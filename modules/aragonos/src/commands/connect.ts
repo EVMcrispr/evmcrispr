@@ -100,6 +100,8 @@ const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
 
 export default defineCommand<AragonOS>({
   name: "connect",
+  description:
+    "Connect to an Aragon DAO and execute commands within its context.",
   args: [
     { name: "daoName", type: "dao" },
     { name: "block", type: "block" },
