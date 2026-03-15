@@ -7,6 +7,7 @@ import evmlGrammar from "./src/grammars/evml.tmLanguage.json";
 export default defineConfig({
   integrations: [
     starlight({
+      customCss: ["/src/styles/starlight-theme.css"],
       expressiveCode: {
         shiki: { langs: [evmlGrammar] },
       },
