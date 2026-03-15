@@ -20,14 +20,20 @@ export const SCRIPT_PLACEHOLDER = `## Basic commands:
 # )
 `;
 
+export type CursorRef = {
+  name: string;
+  kind: "command" | "helper";
+};
+
 export type TerminalStoreState = {
   currentScriptId: string | null;
   title: string;
   script: string;
   isLoading: boolean;
   isSaving: boolean;
-  activeTab: "console" | "library";
+  activeTab: "console" | "library" | "reference";
   executingLine: number | null;
+  cursorRef: CursorRef | null;
 };
 
 const initialState: TerminalStoreState = {
@@ -38,6 +44,7 @@ const initialState: TerminalStoreState = {
   isSaving: false,
   activeTab: "library",
   executingLine: null,
+  cursorRef: null,
 };
 
 const terminalStore = createStore<TerminalStoreState>(initialState, {

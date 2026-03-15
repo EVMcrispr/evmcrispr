@@ -45,6 +45,5 @@
     "test:unit": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
     "build": "evmcrispr-build"
-  },
-  "private": true
+  }
 }

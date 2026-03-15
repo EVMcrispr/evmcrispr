@@ -93,11 +93,6 @@ export function isTruthy(value: unknown): boolean {
 //  Shunting-yard core
 // ---------------------------------------------------------------------------
 
-type StackItem =
-  | { kind: "value"; value: unknown }
-  | { kind: "op"; op: string }
-  | { kind: "paren"; side: "(" | ")" };
-
 function applyBinary(op: string, left: unknown, right: unknown, ops: Record<string, OpInfo>): unknown {
   if (ops === ARITH_OPS) return applyArith(op, left, right);
   return applyBool(op, left, right);

@@ -6,9 +6,11 @@ import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
 import { useCallback, useEffect, useRef } from "react";
+import { commandNames, helperNames } from "../../data/reference-data";
 import { useEditorModels } from "../../hooks/useEditorModels";
 import { useEditorState } from "../../hooks/useEditorState";
 import {
+  type CursorRef,
   SCRIPT_PLACEHOLDER,
   terminalStoreActions,
   terminalStoreGet,
@@ -17,6 +19,42 @@ import {
 import { toMonacoCompletionItem } from "./autocompletion";
 import { conf, contribution, createLanguage } from "./evml";
 import { theme } from "./theme";
+
+/** Detect whether the cursor is on a known command or @helper name. */
+function detectCursorRef(line: string, col: number): CursorRef | null {
+  // Check for @helper: find @identifier spanning the cursor
+  // Walk backwards from col to find a preceding @
+  const helperMatch = line.match(/@([\w.]+)/g);
+  if (helperMatch) {
+    let offset = 0;
+    for (const m of helperMatch) {
+      const idx = line.indexOf(m, offset);
+      const end = idx + m.length;
+      if (col >= idx && col <= end) {
+        const name = m.slice(1); // strip @
+        if (helperNames.has(name)) {
+          return { name, kind: "helper" };
+        }
+      }
+      offset = end;
+    }
+  }
+
+  // Check for command: first word on the line (after optional whitespace,
+  // and optionally after a module prefix like "ar:")
+  const cmdMatch = line.match(/^\s*(?:[\w-]+:)?([\w-]+)/);
+  if (cmdMatch) {
+    const name = cmdMatch[1];
+    const fullMatchStart = line.indexOf(cmdMatch[0]);
+    const nameStart = fullMatchStart + cmdMatch[0].length - name.length;
+    const nameEnd = nameStart + name.length;
+    if (col >= nameStart && col <= nameEnd && commandNames.has(name)) {
+      return { name, kind: "command" };
+    }
+  }
+
+  return null;
+}
 
 export default function TerminalEditor() {
   const monaco = useMonaco();
@@ -280,6 +318,21 @@ export default function TerminalEditor() {
     isReplayingRef.current = true;
     switchToScript(id, currentScript);
     isReplayingRef.current = false;
+
+    // Track cursor position to detect command/helper under cursor
+    ed.onDidChangeCursorPosition((e) => {
+      const model = ed.getModel();
+      if (!model) return;
+
+      const line = model.getLineContent(e.position.lineNumber);
+      const col = e.position.column - 1; // 0-indexed
+
+      const ref = detectCursorRef(line, col);
+      const prev = terminalStoreGet("cursorRef");
+      if (prev?.name !== ref?.name || prev?.kind !== ref?.kind) {
+        terminalStoreActions("cursorRef", ref);
+      }
+    });
   }
 
   return (

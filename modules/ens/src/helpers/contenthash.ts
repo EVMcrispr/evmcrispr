@@ -17,6 +17,6 @@ export default defineHelper<Ens>({
     if (!hash) {
       throw new Error("The hash format should be <codec>:<hash>");
     }
-    return `0x${encode(`${codec}-ns`, hash)}`;
+    return `0x${encode(`${codec}-ns` as "ipfs" | "ipns" | "skynet", hash)}`;
   },
 });
