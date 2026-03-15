@@ -4,7 +4,7 @@
     "viem": "^2.45.1"
   },
   "scripts": {
-    "postinstall": "ln -sf ../../packages/sdk/scripts/build.ts node_modules/.bin/evmcrispr-build",
+    "postinstall": "ln -sf ../../packages/sdk/scripts/build.ts node_modules/.bin/evmcrispr-build && ln -sf ../../packages/cli/src/bin.ts node_modules/.bin/evmcrispr",
     "prepare": "husky",
     "build": "turbo run build",
     "changeset:release": "turbo run build && changeset publish",
@@ -19,6 +19,7 @@
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
     "dev:website": "bun --filter evmcrispr-website dev",
+    "dev:mcp": "bun --filter evmcrispr-mcp dev",
     "dev": "bun run dev:website & bun run dev:terminal"
   },
   "devDependencies": {

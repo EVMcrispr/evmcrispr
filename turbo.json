@@ -23,6 +23,12 @@
     "evmcrispr-terminal#type-check": {
       "dependsOn": ["^build"]
     },
+    "evmcrispr-mcp#build": {
+      "dependsOn": ["evmcrispr#build", "^build"]
+    },
+    "evmcrispr-mcp#type-check": {
+      "dependsOn": ["^build"]
+    },
     "lint": {},
     "test:unit": {
       "dependsOn": ["^build"]
