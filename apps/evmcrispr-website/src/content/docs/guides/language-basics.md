@@ -72,7 +72,7 @@ The DSL supports these value types:
 | `bool` | `true`, `false` | Boolean |
 | `bytes` | `0xdeadbeef` | Hex-encoded bytes |
 | `bytes32` | `0x00...001` | 32-byte value |
-| `array` | (produced by helpers) | Ordered collection |
+| `array` | `[1 2 3]` | Ordered collection |
 
 Numbers support scientific notation with `e`: `100e18` means `100 * 10^18`.
 This is useful for token amounts with 18 decimals.
@@ -150,9 +150,7 @@ load aragonos --as dao
 The `exec` command can capture events emitted by the transaction:
 
 ```evml
-exec 0xAbC... "createPool(address,uint24)" @token(DAI) 3000 => (
-  $pool = Transfer.to
-)
+exec 0xAbC... "createPool(address,uint24)" @token(DAI) 3000 -> Transfer [_ $pool]
 ```
 
 ## Arithmetic & Boolean Expressions
@@ -161,7 +159,7 @@ Use `@num()` for arithmetic and `@bool()` for boolean logic:
 
 ```evml
 set $total @num($a + $b * 2)
-set $isValid @bool($x > 0 && $y < 100)
+set $isValid @bool($x > 0 and $y < 100)
 ```
 
 ## Control Flow
