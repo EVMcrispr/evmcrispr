@@ -1,7 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { formatUnits, parseAbiItem, zeroAddress } from "viem";
+import { parseAbiItem, zeroAddress } from "viem";
 import type Std from "..";
-import { getChainNativeCurrency, resolveToken } from "./token";
+import { resolveToken } from "./token";
 
 export default defineHelper<Std>({
   name: "token.balance",
@@ -16,10 +16,8 @@ export default defineHelper<Std>({
     const client = await module.getClient();
 
     if (tokenAddr === zeroAddress) {
-      const chain = await module.getChain();
-      const { decimals } = getChainNativeCurrency(chain);
       const balance = await client.getBalance({ address: holder });
-      return formatUnits(balance, decimals);
+      return balance.toString();
     }
 
     const balance = await client.readContract({
