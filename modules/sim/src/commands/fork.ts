@@ -278,6 +278,9 @@ export default defineCommand<Sim>({
       }
 
       if (module.mode === "ethereumjs" && backend) {
+        if (isTransactionAction(action) && !action.from) {
+          action = { ...action, from: await module.getConnectedAccount() };
+        }
         return backend.handleAction(action);
       }
 
