@@ -7,7 +7,7 @@ const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
 // Monorepo root (fallback for local dev without building)
 const MONOREPO_ROOT = resolve(import.meta.dirname, "../../../..");
 
-const MODULES = ["std", "sim", "aragonos", "ens", "giveth", "http"];
+const MODULES = ["std", "lang", "sim", "aragonos", "ens", "giveth", "http"];
 
 let fullDocsCache: string | null = null;
 const moduleDocsCache = new Map<string, string>();

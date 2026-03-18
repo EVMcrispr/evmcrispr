@@ -1,3 +1,7 @@
+/* ── Load fonts (same as landing page) ─────────────────────── */
+@import "@fontsource/ubuntu-mono";
+@import "@repo/ui/styles/theme.css" layer(theme);
+
 /* ── Map Starlight CSS variables to EVMcrispr theme ────────── */
 /* Apply to both :root and [data-theme='light'] to force dark-only */
 :root,

@@ -9,4 +9,5 @@ export function registerAllModules(): void {
   EVMcrispr.registerModule("giveth", () => import("@evmcrispr/module-giveth"));
   EVMcrispr.registerModule("ens", () => import("@evmcrispr/module-ens"));
   EVMcrispr.registerModule("http", () => import("@evmcrispr/module-http"));
+  EVMcrispr.registerModule("lang", () => import("@evmcrispr/module-lang"));
 }

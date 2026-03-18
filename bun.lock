@@ -158,6 +158,19 @@
         "viem": "^2.29.4",
       },
     },
+    "modules/lang": {
+      "name": "@evmcrispr/module-lang",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
     "modules/sim": {
       "name": "@evmcrispr/module-sim",
       "version": "0.1.0",
@@ -270,6 +283,7 @@
         "@evmcrispr/module-ens": "workspace:*",
         "@evmcrispr/module-giveth": "workspace:*",
         "@evmcrispr/module-http": "workspace:*",
+        "@evmcrispr/module-lang": "workspace:*",
         "@evmcrispr/module-sim": "workspace:*",
         "@evmcrispr/sdk": "workspace:*",
       },
@@ -278,6 +292,7 @@
         "@evmcrispr/module-ens",
         "@evmcrispr/module-giveth",
         "@evmcrispr/module-http",
+        "@evmcrispr/module-lang",
         "@evmcrispr/module-sim",
       ],
     },
@@ -552,6 +567,8 @@
     "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
 
     "@evmcrispr/module-http": ["@evmcrispr/module-http@workspace:modules/http"],
+
+    "@evmcrispr/module-lang": ["@evmcrispr/module-lang@workspace:modules/lang"],
 
     "@evmcrispr/module-sim": ["@evmcrispr/module-sim@workspace:modules/sim"],
 

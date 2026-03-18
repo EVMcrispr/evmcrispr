@@ -45,7 +45,7 @@ for $x of $empty (
   docCases: [
     {
       description: "Iterate over a range",
-      code: `for $i of @range(0 3) (\n  print $i\n)`,
+      code: `for $i of @arr(0 3) (\n  print $i\n)`,
     },
     {
       description: "Process items",

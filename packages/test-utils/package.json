@@ -40,7 +40,8 @@
     "@evmcrispr/module-ens": "workspace:*",
     "@evmcrispr/module-giveth": "workspace:*",
     "@evmcrispr/module-sim": "workspace:*",
-    "@evmcrispr/module-http": "workspace:*"
+    "@evmcrispr/module-http": "workspace:*",
+    "@evmcrispr/module-lang": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@evmcrispr/module-aragonos": {
@@ -56,6 +57,9 @@
       "optional": true
     },
     "@evmcrispr/module-http": {
+      "optional": true
+    },
+    "@evmcrispr/module-lang": {
       "optional": true
     }
   },

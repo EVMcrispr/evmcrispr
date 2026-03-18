@@ -72,6 +72,14 @@ const MODULES: ModuleInfo[] = [
     overview:
       "HTTP and JSON helpers: fetch URLs, parse JSON, and construct JSON strings.",
   },
+  {
+    name: "lang",
+    prefix: "",
+    dir: join(ROOT, "modules/lang"),
+    overview:
+      "Language primitives: string, number, bytes, array, and boolean helpers " +
+      "for data manipulation. Requires `load lang`.",
+  },
 ];
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -739,7 +747,8 @@ function generateModuleIndex(
 
 // ── Website symlinks ─────────────────────────────────────────────────
 
-const { mkdirSync, symlinkSync, lstatSync, unlinkSync } = require("node:fs");
+const { mkdirSync, symlinkSync, lstatSync, unlinkSync, readlinkSync } =
+  require("node:fs");
 const { dirname, relative } = require("node:path");
 
 const WEBSITE_DOCS = join(
@@ -764,6 +773,20 @@ function ensureSymlink(target: string, dest: string): void {
   symlinkSync(rel, dest);
 }
 
+/** Remove broken symlinks from a directory. */
+function cleanBrokenSymlinks(dir: string): void {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    try {
+      const stat = lstatSync(full);
+      if (stat.isSymbolicLink() && !existsSync(full)) {
+        unlinkSync(full);
+      }
+    } catch {}
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 let totalCommands = 0;
@@ -774,6 +797,10 @@ for (const mod of MODULES) {
   const { commands, helpers } = parseModuleSource(mod.dir);
   totalCommands += commands.length;
   totalHelpers += helpers.length;
+
+  // Clean up stale symlinks from previous runs
+  cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "commands"));
+  cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "helpers"));
 
   // Write command docs
   for (const cmd of commands) {

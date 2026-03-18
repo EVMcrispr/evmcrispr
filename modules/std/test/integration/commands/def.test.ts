@@ -7,6 +7,7 @@ const fnSig = "approve(address,uint256)";
 
 describeCommand("def", {
   describeName: "Std > commands > def",
+  preamble: "load lang",
   docCases: [
     {
       description: "Constant helper - returns a fixed address",

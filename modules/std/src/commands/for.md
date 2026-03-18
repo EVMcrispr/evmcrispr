@@ -23,7 +23,7 @@ for <variable> <connector> <array> <block>
 
 ```evml
 # Iterate over a range
-for $i of @range(0 3) (
+for $i of @arr(0 3) (
   print $i
 )
 
@@ -45,5 +45,4 @@ for $item of $items (
 ## See Also
 
 - [while](while.md) — condition-based loop
-- [@range](../helpers/range.md) — generate a sequence of numbers
-- [@map](../helpers/map.md) — transform arrays functionally
+- [@arr](../helpers/arr.md) — generate a sequence of numbers
