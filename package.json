@@ -18,6 +18,7 @@
     "test:integration": "bun scripts/run-integration-tests.ts",
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
+    "generate-docs": "bun scripts/generate-docs.ts",
     "dev:website": "bun --filter evmcrispr-website dev",
     "dev:mcp": "bun --filter evmcrispr-mcp dev",
     "dev": "bun run dev:website & bun run dev:terminal"

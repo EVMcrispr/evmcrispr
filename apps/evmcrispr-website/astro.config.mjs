@@ -12,6 +12,7 @@ const REFERENCE_DIR = resolve(import.meta.dirname, "src/content/docs/reference")
 const PRIORITY = ["std", "lang"]; // shown first, in this order
 
 function buildReferenceSidebar() {
+  if (!existsSync(REFERENCE_DIR)) return [];
   const modules = readdirSync(REFERENCE_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);

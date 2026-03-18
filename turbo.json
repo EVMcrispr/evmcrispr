@@ -17,6 +17,15 @@
         "@evmcrispr/module-std#build"
       ]
     },
+    "//#generate-docs": {
+      "outputs": [
+        "apps/evmcrispr-website/src/content/docs/reference/**",
+        "apps/evmcrispr-website/public/llms-full.txt"
+      ]
+    },
+    "evmcrispr-website#build": {
+      "dependsOn": ["^build", "//#generate-docs"]
+    },
     "evmcrispr-website#type-check": {
       "dependsOn": ["^build"]
     },
