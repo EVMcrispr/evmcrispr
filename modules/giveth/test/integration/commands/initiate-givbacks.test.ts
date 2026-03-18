@@ -34,6 +34,12 @@ describeCommand("initiate-givbacks", {
     "Giveth > commands > initiate-givbacks <ipfsHash> [--relayer <relayer>]",
   module: "giveth",
   preamble: "load giveth",
+  docCases: [
+    {
+      description: "Initiate a GIVbacks distribution",
+      code: `giveth:initiate-givbacks QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct initiate-givbacks action",

@@ -2,7 +2,7 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
-import evmlGrammar from "./src/grammars/evml.tmLanguage.json";
+import evmlGrammar from "@repo/ui/grammars/evml";
 
 export default defineConfig({
   integrations: [

@@ -27,5 +27,8 @@ describeHelper("@enumerate", {
       },
     },
   ],
+  docCases: [
+    { description: "Enumerate array elements", code: `set $items ["a" "b" "c"]\nset $pairs @enumerate($items)` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.enumerate.argDefs);

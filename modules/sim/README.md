@@ -2,7 +2,7 @@
 
 Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, or EthereumJS backends.
 
-```
+```evml
 load sim
 ```
 

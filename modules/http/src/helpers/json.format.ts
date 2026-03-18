@@ -115,7 +115,7 @@ export default defineHelper<Http>({
   returnType: "string",
   args: [
     { name: "template", type: "string" },
-    { name: "values", type: "array" },
+    { name: "values", type: "array", description: "Values to substitute into template" },
   ],
   async run(_, { template, values }) {
     const entries = parseTemplate(String(template));

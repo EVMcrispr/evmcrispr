@@ -14,10 +14,10 @@ export default defineCommand<Std>({
   name: "sign",
   description: "Sign a message or typed data with the connected wallet.",
   args: [
-    { name: "variable", type: "variable" },
-    { name: "message", type: "string", optional: true },
+    { name: "variable", type: "variable", description: "Variable name" },
+    { name: "message", type: "string", description: "Plain-text message to sign", optional: true },
   ],
-  opts: [{ name: "typed", type: "string" }],
+  opts: [{ name: "typed", type: "string", description: "EIP-712 typed data JSON string" }],
   async run(module, { message }, { opts, node, interpreters }) {
     const typedDataJSON = opts.typed;
     const [varNode] = node.args;

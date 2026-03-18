@@ -7,8 +7,8 @@ export default defineHelper<Std>({
   description: "Format a number with decimal places (like formatUnits).",
   returnType: "string",
   args: [
-    { name: "value", type: "number" },
-    { name: "decimals", type: "number" },
+    { name: "value", type: "number", description: "Input value" },
+    { name: "decimals", type: "number", description: "Number of decimal places" },
   ],
   async run(_, { value, decimals }) {
     const v = Num(value).toBigInt();

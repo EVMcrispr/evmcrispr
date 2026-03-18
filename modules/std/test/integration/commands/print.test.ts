@@ -2,10 +2,20 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 import {
   createInterpreter,
+  describeCommand,
   expect,
   getPublicClient,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
+
+describeCommand("print", {
+  describeName: "Std > commands > print > doc examples",
+  docCases: [
+    { description: "Print a string", code: `print "hello"` },
+    { description: "Print multiple values", code: `print "count:" 42` },
+    { description: "Print variables", code: `set $name "world"\nprint "hello" $name` },
+  ],
+});
 
 describe("Std > commands > print <...values>", () => {
   let client: PublicClient;

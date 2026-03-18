@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Join array elements into a string with a delimiter.",
   returnType: "string",
   args: [
-    { name: "arr", type: "array" },
-    { name: "delim", type: "string" },
+    { name: "arr", type: "array", description: "Source array" },
+    { name: "delim", type: "string", description: "Delimiter string" },
   ],
   async run(_, { arr, delim }) {
     return arr.map((el: unknown) => String(el)).join(String(delim));

@@ -9,7 +9,7 @@ export default defineCommand<Std>({
   description: "Repeat a block while a condition is true.",
   args: [
     { name: "condition", type: "expression" },
-    { name: "block", type: "block" },
+    { name: "block", type: "block", description: "Commands to repeat" },
   ],
   async run(module, { condition, block }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;

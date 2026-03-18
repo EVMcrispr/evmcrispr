@@ -1,4 +1,6 @@
-# @ens:contenthash
+---
+title: "@ens:contenthash"
+---
 
 Encode a content hash (ipfs, ipns, skynet) for ENS records.
 
@@ -6,30 +8,32 @@ Encode a content hash (ipfs, ipns, skynet) for ENS records.
 
 ## Syntax
 
-```
+```evml
 @ens:contenthash(input)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| input | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `input` | `string` | Content hash (e.g. "ipfs:Qm...") |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Encode an IPFS content hash
+set $hash @contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")
+print $hash
 ```
 
+<!-- HAND-WRITTEN -->
+
+## Notes
+
+- Supported codecs: `ipfs`, `ipns`, `skynet`
+- Format: `codec:hash`
+
 ## See Also
+
+- [ens:renew](../../commands/renew.md) — renew ENS domains
+- [@ipfs](../../../std/src/helpers/ipfs.md) — upload content to IPFS

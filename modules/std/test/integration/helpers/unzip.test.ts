@@ -28,5 +28,8 @@ describeHelper("@unzip", {
       },
     },
   ],
+  docCases: [
+    { description: "Unzip pairs into arrays", code: `set $pairs [[1 "a"] [2 "b"] [3 "c"]]\nset [$keys $vals] @unzip($pairs)` },
+  ],
   sampleArgs: [`[[1 2]]`],
 }, helpers.unzip.argDefs);

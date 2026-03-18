@@ -1,34 +1,42 @@
-# ens:renew
+---
+title: "ens:renew"
+---
 
 Renew ENS domain registrations via bulk renewal.
 
 ## Syntax
 
-```
+```evml
 ens:renew <domains> <duration>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| domains | `any` | Yes |
-| duration | `any` | Yes |
+| Name | Type | Description |
+|------|------|-------------|
+| `domains` | `any` |  |
+| `duration` | `any` | Renewal duration in seconds |
 
 <!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
 
 ## Examples
 
 ```
-# TODO: add examples
+load ens
+
+# Renew a single domain for one year (in seconds)
+ens:renew "mydomain" 31536000
+
+# Renew multiple domains at once
+ens:renew ["domain1" "domain2" "domain3"] 31536000
 ```
 
+## Notes
+
+- Only works on Ethereum mainnet (chain ID 1)
+- Uses the ENS bulk renewal contract
+
 ## See Also
+
+- [@ens:contenthash](../helpers/contenthash.md) — encode content hashes
+- [@ens](../../../std/src/helpers/ens.md) — resolve ENS names

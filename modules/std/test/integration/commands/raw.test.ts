@@ -74,6 +74,12 @@ describeCommand("raw", {
       ],
     },
   ],
+  docCases: [
+    {
+      description: "Send pre-encoded calldata",
+      code: `set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F88629646662444217 100e18)\nraw @token(DAI) $data`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when receiving an invalid target address",

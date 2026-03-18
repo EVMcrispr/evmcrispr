@@ -31,5 +31,10 @@ describeHelper("@slice", {
       },
     },
   ],
+  docCases: [
+    { description: "Slice middle portion", code: `set $arr [10 20 30 40 50]\nset $mid @slice($arr 1 3)` },
+    { description: "Slice from offset to end", code: `set $arr [10 20 30 40 50]\nset $tail @slice($arr 2)` },
+    { description: "Negative index slice", code: `set $arr [10 20 30 40 50]\nset $last2 @slice($arr -2)` },
+  ],
   sampleArgs: [`[1]`, `0`, `1`],
 }, helpers.slice.argDefs);

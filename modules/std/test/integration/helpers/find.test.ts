@@ -27,6 +27,9 @@ def @isNeg "$x: number -> bool" @bool($x < 0)
       },
     },
   ],
+  docCases: [
+    { description: "Find first even number", code: `def @isEven "$n: number -> bool" @bool(@num($n % 2) == 0)\nset $nums [1 3 4 6]\nset $first @find($nums @isEven)` },
+  ],
   errorCases: [
     {
       name: "should throw when no element matches",

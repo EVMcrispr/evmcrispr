@@ -103,6 +103,12 @@ describeHelper(
         expected: ts("2012-07-08T05:40:25Z"),
       },
     ],
+    docCases: [
+      { description: "Parse an ISO date to Unix timestamp", code: `set $ts @date(2025-01-01)` },
+      { description: "Current timestamp", code: `set $now @date(now)` },
+      { description: "With positive offset", code: `set $future @date(2025-01-01 +1d)` },
+      { description: "With negative offset", code: `set $yesterday @date(2025-01-01 -1d)` },
+    ],
     sampleArgs: ["2010-05-05", "+2y"],
   },
   helpers.date.argDefs,

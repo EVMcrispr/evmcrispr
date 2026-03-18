@@ -1,4 +1,6 @@
-# @aragonos:aragonEns
+---
+title: "@aragonos:aragonEns"
+---
 
 Resolve an Aragon ENS name to its address.
 
@@ -6,31 +8,28 @@ Resolve an Aragon ENS name to its address.
 
 ## Syntax
 
-```
+```evml
 @aragonos:aragonEns(ensName, extra?)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| ensName | `string` | Yes |
-| extra | `any` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `ensName` | `string` |  |
+| `[extra]` | `any` | Additional ENS path segment |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Resolve an Aragon ENS name
+set $addr @aragonEns("test.aragonid.eth")
+print $addr
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@app](app.md) — resolve app addresses within a DAO
+- [@ens](../../../std/src/helpers/ens.md) — resolve general ENS names

@@ -20,5 +20,9 @@ describeHelper("@str.join", {
       expected: "solo",
     },
   ],
+  docCases: [
+    { description: "Join array with comma", code: `set $parts ["a" "b" "c"]\nset $csv @str.join($parts ",")` },
+    { description: "Join with space", code: `set $parts ["a" "b" "c"]\nset $spaced @str.join($parts " ")` },
+  ],
   sampleArgs: [`[1 2]`, `","`],
 }, helpers["str.join"].argDefs);

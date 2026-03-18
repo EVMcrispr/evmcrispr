@@ -7,6 +7,24 @@ const fnSig = "approve(address,uint256)";
 
 describeCommand("def", {
   describeName: "Std > commands > def",
+  docCases: [
+    {
+      description: "Constant helper - returns a fixed address",
+      code: `def @myAddr "address" 0x44fA8E6f47987339850636F88629646662444217\nset $result @myAddr`,
+    },
+    {
+      description: "Helper with typed parameters",
+      code: `def @double "$n: number -> number" @num($n * 2)\nset $result @double(5)`,
+    },
+    {
+      description: "Boolean helper",
+      code: `def @isPositive "$n: number -> bool" @bool($n > 0)\nset $result @isPositive(5)`,
+    },
+    {
+      description: "Composition",
+      code: `def @double "$n: number -> number" @num($n * 2)\ndef @quadruple "$n: number -> number" @double(@double($n))\nset $result @quadruple(3)`,
+    },
+  ],
   cases: [
     // ── Helper definitions ──
 

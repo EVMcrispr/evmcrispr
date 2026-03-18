@@ -22,7 +22,7 @@ export default defineHelper<AragonOS>({
   returnType: "address",
   args: [
     { name: "ensName", type: "string" },
-    { name: "extra", type: "any", optional: true },
+    { name: "extra", type: "any", description: "Additional ENS path segment", optional: true },
   ],
   async run(module, { ensName }) {
     const customENSResolver = module.getConfigBinding("ensResolver");

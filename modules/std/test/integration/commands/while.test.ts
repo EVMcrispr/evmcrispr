@@ -7,6 +7,12 @@ const fnSig = "approve(address,uint256)";
 
 describeCommand("while", {
   describeName: "Std > commands > while <expression> (...)",
+  docCases: [
+    {
+      description: "Countdown loop",
+      code: `set $i 3\nwhile @bool($i > 0) (\n  print $i\n  set $i @num($i - 1)\n)`,
+    },
+  ],
   cases: [
     {
       name: "should loop a fixed number of times using a counter",

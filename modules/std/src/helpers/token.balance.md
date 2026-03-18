@@ -1,4 +1,6 @@
-# @token.balance
+---
+title: "@token.balance"
+---
 
 Fetch the token balance of an address in base units.
 
@@ -6,31 +8,28 @@ Fetch the token balance of an address in base units.
 
 ## Syntax
 
-```
+```evml
 @token.balance(tokenSymbol, holder)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| tokenSymbol | `token-symbol` | Yes |
-| holder | `address` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `tokenSymbol` | `token-symbol` |  |
+| `holder` | `address` | Address to query |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Query a token balance
+set $bal @token.balance(DAI @token(DAI))
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@token](token.md) — resolve token address
+- [@token.amount](token.amount.md) — convert to base units
+- [@get](get.md) — generic contract reads

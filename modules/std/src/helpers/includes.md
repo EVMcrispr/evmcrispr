@@ -1,4 +1,6 @@
-# @includes
+---
+title: "@includes"
+---
 
 Check whether an array contains an element.
 
@@ -6,31 +8,32 @@ Check whether an array contains an element.
 
 ## Syntax
 
-```
+```evml
 @includes(value, item)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `array` | Yes |
-| item | `any` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `array` | Input value |
+| `item` | `any` | Element to search for |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Check if array contains element
+set $arr [1 2 3]
+print @includes($arr 2)
+
+# Check for missing element
+set $arr [1 2 3]
+print @includes($arr 99)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@find](find.md) — find the first matching element
+- [@filter](filter.md) — keep all matching elements

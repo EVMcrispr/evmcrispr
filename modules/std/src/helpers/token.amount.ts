@@ -10,7 +10,7 @@ export default defineHelper<Std>({
   returnType: "number",
   args: [
     { name: "tokenSymbolOrAddress", type: "token-symbol" },
-    { name: "amount", type: "number" },
+    { name: "amount", type: "number", description: "Human-readable amount" },
   ],
   async run(module, { tokenSymbolOrAddress, amount }) {
     const tokenAddr = await resolveToken(module, tokenSymbolOrAddress);

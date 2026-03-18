@@ -2,11 +2,23 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 import {
   createInterpreter,
+  describeHelper,
   expect,
   getPublicClient,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
+
+describeHelper("@app", {
+  module: "aragonos",
+  describeName: "AragonOS > helpers > @app > doc examples",
+  docCases: [
+    {
+      description: "Resolve app address within a DAO",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  set $agent @app(agent)\n  print $agent\n)",
+    },
+  ],
+});
 
 describe("AragonOS > helpers > @app(appIdentifier)", () => {
   let client: PublicClient;

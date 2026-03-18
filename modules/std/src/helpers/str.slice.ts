@@ -6,9 +6,9 @@ export default defineHelper<Std>({
   description: "Extract a section of a string.",
   returnType: "string",
   args: [
-    { name: "value", type: "string" },
-    { name: "start", type: "number" },
-    { name: "end", type: "number", optional: true },
+    { name: "value", type: "string", description: "Input value" },
+    { name: "start", type: "number", description: "Start index (inclusive)" },
+    { name: "end", type: "number", description: "End index (exclusive)", optional: true },
   ],
   async run(_, { value, start, end }) {
     const s = Num(start).toNumber();

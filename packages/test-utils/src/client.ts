@@ -18,6 +18,7 @@ export function getTransports(): Record<number, Transport> {
   if (!drpcKey) return {};
   return {
     [mainnet.id]: http(`https://lb.drpc.live/ethereum/${drpcKey}`),
+    [gnosis.id]: http(`https://lb.drpc.live/gnosis/${drpcKey}`),
   };
 }
 

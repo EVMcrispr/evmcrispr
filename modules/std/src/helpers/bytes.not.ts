@@ -8,7 +8,7 @@ export default defineHelper<Std>({
   name: "bytes.not",
   description: "Bitwise NOT of a bytes value (256-bit complement).",
   returnType: "bytes",
-  args: [{ name: "value", type: "bytes" }],
+  args: [{ name: "value", type: "bytes", description: "Input value" }],
   async run(_, { value }) {
     if (typeof value !== "string" || !isHexString(value)) {
       throw new ErrorException("@bytes.not expects a hex bytes value");

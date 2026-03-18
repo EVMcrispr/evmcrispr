@@ -93,6 +93,32 @@ describeCommand("set", {
       },
     },
   ],
+  docCases: [
+    {
+      description: "Set a simple value",
+      code: `set $amount 1e18`,
+    },
+    {
+      description: "Set a string",
+      code: `set $greeting "hello world"`,
+    },
+    {
+      description: "Set from a helper result",
+      code: `set $dai @token(DAI)`,
+    },
+    {
+      description: "Destructuring assignment",
+      code: `set [$a $b] ["hello" "world"]`,
+    },
+    {
+      description: "Skip values with _",
+      code: `set [_ $second] ["skip" "keep"]`,
+    },
+    {
+      description: "Nested destructuring",
+      code: `set [$a [_ $b]] ["x" ["skip" "y"]]`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when setting an invalid variable identifier",

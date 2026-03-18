@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   returnType: "string",
   args: [
     { name: "first", type: "string" },
-    { name: "rest", type: "string", rest: true },
+    { name: "rest", type: "string", description: "Strings to append", rest: true },
   ],
   async run(_, { first, rest }) {
     return [first, ...rest].join("");

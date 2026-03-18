@@ -2,7 +2,7 @@
 
 Giveth protocol operations: donations, GIVbacks distribution, and project resolution.
 
-```
+```evml
 load giveth
 ```
 

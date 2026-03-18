@@ -2,7 +2,7 @@
 
 ENS domain operations: renewal and content hash encoding.
 
-```
+```evml
 load ens
 ```
 

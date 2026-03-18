@@ -1,4 +1,6 @@
-# @ens
+---
+title: "@ens"
+---
 
 Resolve an ENS name to its address.
 
@@ -6,30 +8,26 @@ Resolve an ENS name to its address.
 
 ## Syntax
 
-```
+```evml
 @ens(name)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| name | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `name` | `string` | ENS name (e.g. `vitalik.eth`) |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Resolve an ENS name to its address
+set $addr @ens("vitalik.eth")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@namehash](namehash.md) — compute ENS namehash
+- [@token](token.md) — resolve token addresses

@@ -1,41 +1,34 @@
-# aragonos:act
+---
+title: "aragonos:act"
+---
 
 Execute an action on a target contract through an agent or vault.
 
 ## Syntax
 
-```
+```evml
 aragonos:act <agent> <target> <signature> [...params]
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| agent | `address` | Yes |
-| target | `address` | Yes |
-| signature | `write-abi` | Yes |
-| ...params | `any` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `agent` | `address` |  |
+| `target` | `address` | Target contract address |
+| `signature` | `write-abi` | Function signature to call |
+| `[...params]` | `any` | Function arguments |
 
 ## Examples
 
-```
+```evml
 # Execute a contract call through the DAO agent
-act @app(agent) @token(DAI) "transfer(address,uint256)" @me 100e18
-
-# Call with complex parameters
-act @app(agent) 0xTarget... "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  act @app(agent) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]
+)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

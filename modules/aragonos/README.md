@@ -2,7 +2,7 @@
 
 Aragon DAO operations: connect to DAOs, manage permissions, install and upgrade apps.
 
-```
+```evml
 load aragonos
 ```
 

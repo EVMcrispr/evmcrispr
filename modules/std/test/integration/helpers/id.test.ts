@@ -13,6 +13,9 @@ describeHelper(
         expected: keccak256(toHex("an example test")),
       },
     ],
+    docCases: [
+      { description: "Compute a function selector", code: `set $sel @id("transfer(address,uint256)")` },
+    ],
     sampleArgs: ["exampleValue"],
   },
   helpers.id.argDefs,

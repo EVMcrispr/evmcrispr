@@ -5,6 +5,12 @@ describeCommand("wait", {
   describeName: "Sim > commands > wait <duration> [period]",
   module: "sim",
   preamble: "load sim",
+  docCases: [
+    {
+      description: "Advance time by 1 hour",
+      code: `sim:fork --using anvil (\n  sim:wait 3600\n)`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when used outside a fork block",
@@ -20,14 +26,13 @@ describeCommand("wait", {
     {
       name: "should advance time inside a fork block",
       script: "load sim\nsim:fork --using anvil (\n  sim:wait 3600\n)",
-      setup: async (client) => {
-        const block = await client.getBlock();
-        return { timestampBefore: block.timestamp };
-      },
-      validate: async (_actions, _interpreter, setupData) => {
+      validate: async () => {
         const client = getPublicClient();
-        const blockAfter = await client.getBlock();
-        const timeDiff = blockAfter.timestamp - setupData.timestampBefore;
+        const latest = await client.getBlock();
+        const prev = await client.getBlock({
+          blockNumber: latest.number - 1n,
+        });
+        const timeDiff = latest.timestamp - prev.timestamp;
         expect(Number(timeDiff)).to.be.greaterThanOrEqual(3600);
       },
     },

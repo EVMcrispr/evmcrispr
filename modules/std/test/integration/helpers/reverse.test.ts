@@ -29,5 +29,8 @@ describeHelper("@reverse", {
       },
     },
   ],
+  docCases: [
+    { description: "Reverse an array", code: `set $arr [1 2 3]\nset $rev @reverse($arr)` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.reverse.argDefs);

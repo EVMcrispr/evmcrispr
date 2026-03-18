@@ -37,6 +37,12 @@ describeCommand("verify-givbacks", {
     "Giveth > commands > verify-givbacks <ipfsHash> <voteId> [--relayer <relayer>]",
   module: "giveth",
   preamble: "load giveth",
+  docCases: [
+    {
+      description: "Verify a GIVbacks vote and cast vote",
+      code: `giveth:verify-givbacks QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr 49`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct verify-givbacks action",

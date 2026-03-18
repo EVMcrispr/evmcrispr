@@ -1,48 +1,33 @@
-# sim:expect
+---
+title: "sim:expect"
+---
 
 Assert that a condition is true.
 
 ## Syntax
 
-```
+```evml
 sim:expect <condition>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| condition | `bool` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `condition` | `bool` | Boolean condition to assert |
 
 ## Examples
 
-```
+```evml
 # Assert a simple condition
 sim:expect true
-
-# Assert equality
-sim:expect @bool(1 == 1)
 
 # Assert with variables
 set $a 42
 sim:expect @bool($a == 42)
-
-# Assert contract state after simulation
-sim:fork (
-  sim:set-balance @me 100e18
-  sim:expect @bool(@get(@token(DAI) "balanceOf(address)(uint256)" @me) > 0)
-)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

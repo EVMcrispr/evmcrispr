@@ -32,6 +32,16 @@ describeCommand("switch", {
       expectedActions: [walletAction("0x1")],
     },
   ],
+  docCases: [
+    {
+      description: "Switch by chain name",
+      code: `switch gnosis`,
+    },
+    {
+      description: "Switch by chain ID",
+      code: `switch 137`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when receiving an unknown chain name",

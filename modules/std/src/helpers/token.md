@@ -1,4 +1,6 @@
-# @token
+---
+title: "@token"
+---
 
 Resolve a token symbol to its contract address on the current chain.
 
@@ -6,38 +8,27 @@ Resolve a token symbol to its contract address on the current chain.
 
 ## Syntax
 
-```
+```evml
 @token(tokenSymbolOrAddress)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| tokenSymbolOrAddress | `token-symbol` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `tokenSymbolOrAddress` | `token-symbol` | Token symbol (e.g. `DAI`) or address |
 
 ## Examples
 
-```
+```evml
 # Resolve a token symbol
 set $dai @token(DAI)
 
-# Also works with the native token symbol
+# Resolve the native token
 set $native @token(XDAI)
-
-# Pass-through: accepts an address too
-set $addr @token(0x6B17...1d0F)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also
 

@@ -1,4 +1,6 @@
-# @get
+---
+title: "@get"
+---
 
 Call a read-only contract function and return its result.
 
@@ -6,43 +8,32 @@ Call a read-only contract function and return its result.
 
 ## Syntax
 
-```
+```evml
 @get(address, abi, ...params)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| address | `address` | Yes |
-| abi | `read-abi` | Yes |
-| ...params | `any` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `address` | `address` | Contract or account address |
+| `abi` | `read-abi` | Signature with return types (e.g. `"balanceOf(address)(uint256)"`) |
+| `[...params]` | `any` | Function arguments |
 
 ## Examples
 
-```
+```evml
 # Read a token name
-set $name @get(0x6B17...1d0F "name()(string)")
+set $name @get(0x44fA8E6f47987339850636F88629646662444217 "name()(string)")
 
 # Read a balance
 set $balance @get(@token(DAI) "balanceOf(address)(uint256)" @me)
 
-# Read with multiple return values
-set $reserves @get(0xPair... "getReserves()(uint112,uint112,uint32)")
-
 # Read with indexed parameter
-set $info @get(0xFarm... "poolInfo(uint256)(uint128,uint64,uint64)" 1)
+set $info @get(0xdDCbf776dF3dE60163066A5ddDF2277cB445E0F3 "poolInfo(uint256)(uint128,uint64,uint64)" 1)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

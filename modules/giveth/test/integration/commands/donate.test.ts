@@ -12,6 +12,12 @@ describeCommand("donate", {
   describeName: "Giveth > commands > donate <slug> <amount> <token>",
   module: "giveth",
   preamble: "load giveth\nset $token.tokenlist https://tokens.honeyswap.org",
+  docCases: [
+    {
+      description: "Donate to a Giveth project",
+      code: `set $token.tokenlist https://tokens.honeyswap.org\ngiveth:donate evmcrispr @token.amount(HNY 1) @token(HNY)`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct donate action",

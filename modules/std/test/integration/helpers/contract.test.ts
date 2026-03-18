@@ -25,6 +25,9 @@ describeHelper(
         expected: "0x",
       },
     ],
+    docCases: [
+      { description: "Read contract bytecode", code: `set $code @contract.codeAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)` },
+    ],
     sampleArgs: [WXDAI],
   },
   helpers["contract.codeAt"].argDefs,
@@ -49,6 +52,9 @@ describeHelper(
         expected:
           "0x0000000000000000000000000000000000000000000000000000000000000000",
       },
+    ],
+    docCases: [
+      { description: "Read storage slot 0", code: `set $val @contract.storageAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x0000000000000000000000000000000000000000000000000000000000000000)` },
     ],
     sampleArgs: [
       WXDAI,
@@ -78,6 +84,9 @@ describeHelper(
           expect(isAddress(result)).to.be.true;
         },
       },
+    ],
+    docCases: [
+      { description: "Predict next contract address", code: `set $next @contract.next(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)` },
     ],
     sampleArgs: [TEST_ACCOUNT_ADDRESS],
     skipArgLengthCheck: true,

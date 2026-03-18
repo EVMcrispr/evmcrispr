@@ -17,6 +17,12 @@ describeCommand("forward", {
   describeName: "AragonOS > commands > forward <...path> <commandsBlock>",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Forward through voting to modify permissions",
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  forward @app(disputable-voting.open) (\n    grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)\n  ) --context "Modify permissions"\n)`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct forward action",

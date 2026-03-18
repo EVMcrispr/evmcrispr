@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   name: "ens",
   description: "Resolve an ENS name to its address.",
   returnType: "address",
-  args: [{ name: "name", type: "string" }],
+  args: [{ name: "name", type: "string", description: "ENS name (e.g. `vitalik.eth`)" }],
   async run(module, { name }, { node }) {
     const client = createPublicClient({
       chain: mainnet,

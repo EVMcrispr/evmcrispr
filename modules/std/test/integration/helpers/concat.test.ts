@@ -37,5 +37,9 @@ describeHelper("@concat", {
       },
     },
   ],
+  docCases: [
+    { description: "Concatenate two arrays", code: `set $a [1 2]\nset $b [3 4]\nset $merged @concat($a $b)` },
+    { description: "Concatenate three arrays", code: `set $triple @concat([1 2] [3 4] [5 6])` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.concat.argDefs);

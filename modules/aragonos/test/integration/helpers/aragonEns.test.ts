@@ -7,6 +7,12 @@ describeHelper(
   {
     module: "aragonos",
     describeName: "AragonOS > helpers > @aragonEns()",
+    docCases: [
+      {
+        description: "Resolve an Aragon ENS name",
+        code: `set $addr @aragonEns("test.aragonid.eth")\nprint $addr`,
+      },
+    ],
     cases: [
       {
         name: "should resolve a repo ENS name to an address",

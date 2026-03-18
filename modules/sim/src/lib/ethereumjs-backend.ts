@@ -286,5 +286,11 @@ async function fetchBlockTimestamp(
     method: "eth_getBlockByNumber",
     params: [bigIntToHex(blockNumber), false],
   });
+  if (block == null) {
+    throw new ErrorException(
+      `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +
+        `The RPC may not serve this block or may be rate-limiting requests.`,
+    );
+  }
   return BigInt(block.timestamp);
 }

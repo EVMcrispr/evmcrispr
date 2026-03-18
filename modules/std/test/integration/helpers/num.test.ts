@@ -106,6 +106,12 @@ describeHelper("@num", {
       },
     },
   ],
+  docCases: [
+    { description: "Basic arithmetic", code: `set $sum @num(1 + 2)` },
+    { description: "Exponentiation", code: `set $pow @num(2 ^ 10)` },
+    { description: "Expression with variables", code: `set $a 10\nset $b 3\nset $result @num($a * $b + 1)` },
+    { description: "Convert a string to number", code: `set $n @num("42")` },
+  ],
   errorCases: [
     {
       name: "should reject an unconvertible value",
@@ -142,6 +148,10 @@ describeHelper("@num.parse", {
       },
     },
   ],
+  docCases: [
+    { description: "Parse ETH to wei (18 decimals)", code: `set $wei @num.parse("1.5" 18)` },
+    { description: "Parse USDC (6 decimals)", code: `set $raw @num.parse("1.5" 6)` },
+  ],
   sampleArgs: [`"1"`, "6"],
 }, helpers["num.parse"].argDefs);
 
@@ -167,6 +177,10 @@ describeHelper("@num.format", {
       input: "@num.format(1 18)",
       expected: "0.000000000000000001",
     },
+  ],
+  docCases: [
+    { description: "Format wei to ETH (18 decimals)", code: `set $eth @num.format(1500000000000000000 18)` },
+    { description: "Format USDC (6 decimals)", code: `set $usd @num.format(1500000 6)` },
   ],
   sampleArgs: ["1000000", "6"],
 }, helpers["num.format"].argDefs);

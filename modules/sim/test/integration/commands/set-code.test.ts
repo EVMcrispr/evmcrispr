@@ -8,6 +8,12 @@ describeCommand("set-code", {
   describeName: "Sim > commands > set-code <address> <bytecode>",
   module: "sim",
   preamble: "load sim",
+  docCases: [
+    {
+      description: "Replace contract bytecode in a fork",
+      code: "sim:fork --using anvil (\n  sim:set-code 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 0x600160005260206000f3\n)",
+    },
+  ],
   errorCases: [
     {
       name: "should fail when used outside a fork block",

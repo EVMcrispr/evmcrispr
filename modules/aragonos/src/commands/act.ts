@@ -14,11 +14,11 @@ export default defineCommand<AragonOS>({
     "Execute an action on a target contract through an agent or vault.",
   args: [
     { name: "agent", type: "address" },
-    { name: "target", type: "address" },
-    { name: "signature", type: "write-abi" },
+    { name: "target", type: "address", description: "Target contract address" },
+    { name: "signature", type: "write-abi", description: "Function signature to call" },
     {
       name: "params",
-      type: "any",
+      type: "any", description: "Function arguments",
       rest: true,
       resolveType: (ctx) => {
         const sigNode = ctx.nodeArgs[2];

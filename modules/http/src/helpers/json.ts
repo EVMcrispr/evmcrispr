@@ -93,7 +93,7 @@ export default defineHelper<Http>({
   returnType: "any",
   args: [
     { name: "data", type: "string" },
-    { name: "path", type: "json-path" },
+    { name: "path", type: "json-path", description: "JSONPath expression (e.g. `data.items[0].name`)" },
   ],
   async run(_, { data, path }) {
     let parsed: unknown;

@@ -5,6 +5,7 @@ import type { PublicClient } from "viem";
 import { getPublicClient } from "../client";
 import { createInterpreter, type TestInterpreter } from "../evml";
 import { expectThrowAsync } from "../expects";
+import type { DocExample } from "./describeHelper";
 
 export interface CommandTestCase {
   name: string;
@@ -38,6 +39,8 @@ export interface CommandTestConfig {
   cases?: CommandTestCase[];
   /** Error test cases. */
   errorCases?: CommandErrorCase[];
+  /** Documentation examples — tested as runnable scripts and included in generated docs. */
+  docCases?: DocExample[];
   /** Custom describe name override. */
   describeName?: string;
   /** Skip the entire describe block. */
@@ -90,6 +93,20 @@ export function describeCommand(
           if (c.validate) {
             await c.validate(actions, interpreter, setupData);
           }
+        });
+      }
+    }
+
+    if (config.docCases) {
+      for (const doc of config.docCases) {
+        it(`[DOC] ${doc.description}`, async () => {
+          const fullScript = config.module
+            ? `load ${config.module}\n${doc.code}`
+            : config.preamble
+              ? `${config.preamble}\n${doc.code}`
+              : doc.code;
+          const interpreter = createInterpreter(fullScript, client);
+          await interpreter.interpret();
         });
       }
     }

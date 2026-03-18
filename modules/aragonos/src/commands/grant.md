@@ -1,53 +1,40 @@
-# aragonos:grant
+---
+title: "aragonos:grant"
+---
 
 Grant a permission on a DAO app to an entity, with an optional oracle.
 
 ## Syntax
 
-```
+```evml
 aragonos:grant <grantee> <app> <role> [permissionManager]
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| grantee | `address` | Yes |
-| app | `app` | Yes |
-| role | `permission` | Yes |
-| permissionManager | `app` | No |
+| Name | Type | Description |
+|------|------|-------------|
+| `grantee` | `address` |  |
+| `app` | `app` | Target app |
+| `role` | `permission` | Permission identifier |
+| `[permissionManager]` | `app` | Entity managing this permission |
 
 ## Options
 
-| Name | Type |
-|------|------|
-| --oracle | `address` |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `--oracle` | `address` | ACL oracle contract address |
 
 ## Examples
 
-```
+```evml
 # Grant a role to the connected wallet
-grant @me @app(voting) CREATE_VOTES_ROLE
-
-# Grant with a permission manager
-grant @app(voting) @app(token-manager) WRAP_TOKEN_ROLE @app(voting)
-
-# Grant with an oracle
-grant @app(voting) @app(token-manager) WRAP_TOKEN_ROLE --oracle @app(token-manager)
-
-# Cross-DAO grant (inside nested connect)
-grant @app(voting) @app(_0xDAO1...:voting) CREATE_VOTES_ROLE
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  grant @me @app(agent) TRANSFER_ROLE
+)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also
 

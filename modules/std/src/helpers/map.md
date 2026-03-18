@@ -1,4 +1,6 @@
-# @map
+---
+title: "@map"
+---
 
 Transform each element of an array by applying a helper.
 
@@ -6,31 +8,30 @@ Transform each element of an array by applying a helper.
 
 ## Syntax
 
-```
+```evml
 @map(arr, fn)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| arr | `array` | Yes |
-| fn | `helper` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Transform helper applied to each element |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Double each element
+def @double "$n: number -> number" @num($n * 2)
+set $nums [1 2 3]
+set $doubled @map($nums @double)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@filter](filter.md) — keep elements by predicate
+- [@reduce](reduce.md) — fold an array to a single value
+- [for](../../commands/for.md) — imperative iteration

@@ -1,39 +1,34 @@
-# load
+---
+title: "load"
+---
 
 Load a module to make its commands and helpers available.
 
 ## Syntax
 
-```
+```evml
 load <moduleName>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| moduleName | `module` | Yes |
+| Name | Type | Description |
+|------|------|-------------|
+| `moduleName` | `module` | Module name (e.g. `aragonos`, `sim`) |
 
 ## Options
 
-| Name | Type |
-|------|------|
-| --as | `string` |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `--as` | `string` | Module alias for namespacing |
 
 ## Examples
 
+```evml
+# Load the simulation module
+load sim
 ```
-# TODO: add examples
-```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also

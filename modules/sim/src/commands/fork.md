@@ -1,63 +1,40 @@
-# sim:fork
+---
+title: "sim:fork"
+---
 
 Fork the blockchain and execute commands in a simulation.
 
 ## Syntax
 
-```
+```evml
 sim:fork <block>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| block | `block` | Yes |
+| Name | Type | Description |
+|------|------|-------------|
+| `block` | `block` | Commands to execute in the fork |
 
 ## Options
 
-| Name | Type |
-|------|------|
-| --block-number | `number` |
-| --from | `address` |
-| --auth-token | `string` |
-| --using | `simulation-mode` |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `--block-number` | `number` | Block number to fork from |
+| `--from` | `address` | Default sender address |
+| `--auth-token` | `string` | RPC provider authentication token |
+| `--using` | `simulation-mode` | Simulation backend (anvil, hardhat, tenderly, ethereumjs) |
 
 ## Examples
 
-```
-# Fork mainnet using the default backend (ethereumjs)
-load sim
-sim:fork (
-  sim:set-balance @me 100e18
-  exec @token(DAI) "transfer(address,uint256)" 0x1234... @token.amount(DAI 50)
-)
-
-# Use Anvil backend
+```evml
+# Fork and set account balance
 sim:fork --using anvil (
   sim:set-balance @me 100e18
 )
-
-# Fork at a specific block
-sim:fork --block-number 18000000 (
-  print @get(@token(DAI) "totalSupply()(uint256)")
-)
-
-# Simulate as a specific address
-sim:fork --from 0xWhale... (
-  exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 1000)
-)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

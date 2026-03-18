@@ -30,5 +30,8 @@ describeHelper("@flat", {
       },
     },
   ],
+  docCases: [
+    { description: "Flatten nested arrays", code: `set $nested [[1 2] [3 4] [5]]\nset $result @flat($nested)` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.flat.argDefs);

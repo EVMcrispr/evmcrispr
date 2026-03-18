@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Generate an array of sequential integers from start (inclusive) to end (exclusive).",
   returnType: "array",
   args: [
-    { name: "start", type: "number" },
-    { name: "end", type: "number" },
+    { name: "start", type: "number", description: "Start index (inclusive)" },
+    { name: "end", type: "number", description: "End value (exclusive)" },
   ],
   async run(_, { start, end }) {
     const s = Num(start).toBigInt();

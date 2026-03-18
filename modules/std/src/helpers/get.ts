@@ -11,9 +11,9 @@ export default defineHelper<Std>({
   description: "Call a read-only contract function and return its result.",
   returnType: "any",
   args: [
-    { name: "address", type: "address" },
-    { name: "abi", type: "read-abi" },
-    { name: "params", type: "any", rest: true, signatureArgIndex: 1 },
+    { name: "address", type: "address", description: "Contract or account address" },
+    { name: "abi", type: "read-abi", description: "Signature with return types (e.g. `\"balanceOf(address)(uint256)\"`)" },
+    { name: "params", type: "any", description: "Function arguments", rest: true, signatureArgIndex: 1 },
   ],
   async run(module, { address, abi, params }) {
     const parts = splitReadAbiSignature(abi);

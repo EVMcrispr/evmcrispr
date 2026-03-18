@@ -5,6 +5,16 @@ describeCommand("expect", {
   describeName: "Sim > commands > expect <condition>",
   module: "sim",
   preamble: "load sim",
+  docCases: [
+    {
+      description: "Assert a simple condition",
+      code: `sim:expect true`,
+    },
+    {
+      description: "Assert with variables",
+      code: `set $a 42\nsim:expect @bool($a == 42)`,
+    },
+  ],
   cases: [
     {
       name: "should pass when condition is true",

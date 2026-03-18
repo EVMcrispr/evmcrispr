@@ -1,4 +1,6 @@
-# @http:json.format
+---
+title: "@http:json.format"
+---
 
 Construct a JSON string from a template and an array of values.
 
@@ -6,31 +8,28 @@ Construct a JSON string from a template and an array of values.
 
 ## Syntax
 
-```
+```evml
 @http:json.format(template, values)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| template | `string` | Yes |
-| values | `array` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `template` | `string` |  |
+| `values` | `array` | Values to substitute into template |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Build a JSON object from values
+set $body @json.format("{name, age}" ["Alice" 30])
+print $body
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@http:json](json.md) — parse JSON strings
+- [@http:fetch](fetch.md) — fetch a URL

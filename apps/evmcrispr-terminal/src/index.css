@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@repo/ui/styles/theme.css";
+@plugin "@tailwindcss/typography";
 
 @source "../../../packages/ui/src";
 

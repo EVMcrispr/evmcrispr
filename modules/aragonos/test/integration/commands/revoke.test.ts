@@ -19,6 +19,12 @@ describeCommand("revoke", {
     "AragonOS > commands > revoke <grantee> <app> <role> [removeManager]",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Revoke a permission",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE\n)",
+    },
+  ],
   cases: [
     {
       name: "should return a correct revoke permission action",

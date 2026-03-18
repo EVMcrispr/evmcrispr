@@ -22,5 +22,9 @@ describeHelper("@str.len", {
       },
     },
   ],
+  docCases: [
+    { description: "Get string length", code: `set $s "hello"\nprint @str.len($s)` },
+    { description: "Empty string length", code: `print @str.len("")` },
+  ],
   sampleArgs: [`"a"`],
 }, helpers["str.len"].argDefs);

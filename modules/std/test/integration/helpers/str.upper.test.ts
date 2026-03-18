@@ -20,4 +20,7 @@ describeHelper("@str.upper", {
       expected: "HELLO WORLD",
     },
   ],
+  docCases: [
+    { description: "Uppercase a string", code: `set $s @str.upper("hello")` },
+  ],
 }, helpers["str.upper"].argDefs);

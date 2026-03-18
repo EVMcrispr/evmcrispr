@@ -5,8 +5,8 @@ export default defineCommand<Sim>({
   name: "set-code",
   description: "Set the bytecode at an address in a fork simulation.",
   args: [
-    { name: "address", type: "string" },
-    { name: "bytecode", type: "string" },
+    { name: "address", type: "string", description: "Contract or account address" },
+    { name: "bytecode", type: "string", description: "New bytecode to set" },
   ],
   async run(module, { address, bytecode }) {
     if (!module.mode) {

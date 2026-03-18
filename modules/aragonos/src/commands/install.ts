@@ -101,13 +101,13 @@ export default defineCommand<AragonOS>({
   name: "install",
   description: "Install an Aragon app into the connected DAO.",
   args: [
-    { name: "variable", type: "variable" },
-    { name: "identifier", type: "repo" },
-    { name: "params", type: "any", rest: true },
+    { name: "variable", type: "variable", description: "Variable name" },
+    { name: "identifier", type: "repo", description: "App APM repository name" },
+    { name: "params", type: "any", rest: true, description: "App initialization arguments" },
   ],
   opts: [
-    { name: DAO_OPT_NAME, type: "any" },
-    { name: "version", type: "any" },
+    { name: DAO_OPT_NAME, type: "any", description: "DAO address or name to install into" },
+    { name: "version", type: "any", description: "Specific app version to install" },
   ],
   async run(
     module,

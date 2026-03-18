@@ -34,6 +34,9 @@ describeHelper(
         },
       },
     ],
+    docCases: [
+      { description: "Encode a transfer call", code: `set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F88629646662444217 100e18)` },
+    ],
     errorCases: [
       {
         name: "should fail with an invalid function signature",

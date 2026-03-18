@@ -1,4 +1,6 @@
-# @str.lower
+---
+title: "@str.lower"
+---
 
 Convert a string to lowercase.
 
@@ -6,30 +8,25 @@ Convert a string to lowercase.
 
 ## Syntax
 
-```
+```evml
 @str.lower(s)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| s | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `s` | `string` | Source string |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Lowercase a string
+set $s @str.lower("Hello World")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.upper](str.upper.md) — convert to uppercase

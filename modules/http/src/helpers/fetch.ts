@@ -9,9 +9,9 @@ export default defineHelper<Http>({
   returnType: "string",
   args: [
     { name: "url", type: "string" },
-    { name: "method", type: "string", optional: true },
-    { name: "body", type: "string", optional: true },
-    { name: "auth", type: "string", optional: true },
+    { name: "method", type: "string", description: "HTTP method (`GET`, `POST`, etc.)", optional: true },
+    { name: "body", type: "string", description: "Request body (JSON string)", optional: true },
+    { name: "auth", type: "string", description: "Authorization header value", optional: true },
   ],
   async run(_, { url, method, body, auth }) {
     const httpMethod = method ? String(method).toUpperCase() : "GET";

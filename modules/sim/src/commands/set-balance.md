@@ -1,39 +1,32 @@
-# sim:set-balance
+---
+title: "sim:set-balance"
+---
 
 Set the ETH balance of an account in a fork simulation.
 
 ## Syntax
 
-```
+```evml
 sim:set-balance <address> <amount>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| address | `address` | Yes |
-| amount | `number` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `address` | `address` | Contract or account address |
+| `amount` | `number` | New balance in wei |
 
 ## Examples
 
-```
+```evml
 # Fund the connected wallet with 100 ETH
-sim:set-balance @me 100e18
-
-# Fund a specific address
-sim:set-balance 0x64c0...a84e 100e18
+sim:fork --using anvil (
+  sim:set-balance @me 100e18
+)
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

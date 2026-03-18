@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   name: "namehash",
   description: "Compute the ENS namehash of a domain name.",
   returnType: "bytes32",
-  args: [{ name: "name", type: "string" }],
+  args: [{ name: "name", type: "string", description: "ENS domain name" }],
   async run(_, { name }) {
     try {
       normalize(name);

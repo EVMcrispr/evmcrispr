@@ -1,6 +1,19 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
+import { describeCommand } from "@evmcrispr/test-utils";
+
+describeCommand("new-dao", {
+  module: "aragonos",
+  describeName: "AragonOS > commands > new-dao > doc examples",
+  docCases: [
+    {
+      description: "Create a new DAO",
+      code: `aragonos:new-dao $dao "my-dao"`,
+    },
+  ],
+});
+
 import type AragonOS from "@evmcrispr/module-aragonos";
 import {
   BindingsSpace,

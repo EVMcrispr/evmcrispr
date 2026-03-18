@@ -1,4 +1,6 @@
-# @bytes.at
+---
+title: "@bytes.at"
+---
 
 Access a single byte by index in a bytes value.
 
@@ -6,31 +8,27 @@ Access a single byte by index in a bytes value.
 
 ## Syntax
 
-```
+```evml
 @bytes.at(value, index)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `bytes` | Yes |
-| index | `number` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `bytes` | Input value |
+| `index` | `number` | Zero-based byte index |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Get byte at index
+set $first @bytes.at(0xaabbcc 0)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@bytes.slice](bytes.slice.md) — extract a byte range
+- [@at](at.md) — array element access

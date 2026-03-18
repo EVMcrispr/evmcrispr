@@ -13,10 +13,10 @@ export default defineCommand<Std>({
   name: "for",
   description: "Iterate over an array, executing a block for each element.",
   args: [
-    { name: "variable", type: "variable" },
-    { name: "connector", type: "string" },
-    { name: "array", type: "any" },
-    { name: "block", type: "block" },
+    { name: "variable", type: "variable", description: "Variable name" },
+    { name: "connector", type: "string", description: "Keyword `of`" },
+    { name: "array", type: "any", description: "Array to iterate over" },
+    { name: "block", type: "block", description: "Commands to execute per element" },
   ],
   completions: {
     connector: () => [fieldItem("of")],

@@ -1,52 +1,40 @@
-# for
+---
+title: "for"
+---
 
 Iterate over an array, executing a block for each element.
 
 ## Syntax
 
-```
+```evml
 for <variable> <connector> <array> <block>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| variable | `variable` | Yes |
-| connector | `string` | Yes |
-| array | `any` | Yes |
-| block | `block` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `variable` | `variable` | Variable name |
+| `connector` | `string` | Keyword `of` |
+| `array` | `any` | Array to iterate over |
+| `block` | `block` | Commands to execute per element |
 
 ## Examples
 
-```
-# Approve multiple addresses
-set $addresses [0x64c0...a84e 0x8790...2F15]
-for $addr of $addresses (
-  exec @token(DAI) "approve(address,uint256)" $addr 100e18
-)
-
+```evml
 # Iterate over a range
-for $i of @range(0 5) (
+for $i of @range(0 3) (
   print $i
 )
 
 # Process items
 set $items [1 2 3]
 for $item of $items (
-  print "Item:" $item
+  print $item
 )
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

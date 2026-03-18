@@ -162,7 +162,7 @@ export default defineCommand<Std>({
   description: "Define a user command or helper.",
   args: [
     { name: "name", type: ["command", "helper"] },
-    { name: "params", type: "string" },
+    { name: "params", type: "string", description: "Definition expression (see syntax variants below)" },
     { name: "body", type: ["expression", "block"] },
   ],
   async run(module, { name, params, body }, { node }) {

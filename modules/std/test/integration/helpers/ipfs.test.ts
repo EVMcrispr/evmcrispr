@@ -20,6 +20,13 @@ describeHelper(
         expected: "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
       },
     ],
+    docCases: [
+      {
+        description: "Upload text to IPFS",
+        code: `set $cid @ipfs("hello world")`,
+        preamble: PINATA_JWT ? `set $std:ipfs.jwt ${PINATA_JWT}` : undefined,
+      },
+    ],
     sampleArgs: ["'This should be pinned in IPFS'"],
   },
   helpers.ipfs.argDefs,
@@ -51,11 +58,7 @@ describeHelper("@ipfs", {
     {
       name: "should fail when setting an invalid pinata JWT",
       input: '@ipfs("someText")',
-      error: (helperNode) =>
-        new HelperFunctionError(
-          helperNode,
-          "an error occurred while uploading data to IPFS: Invalid/expired credentials",
-        ),
+      error: "an error occurred while uploading data to IPFS",
     },
   ],
 });

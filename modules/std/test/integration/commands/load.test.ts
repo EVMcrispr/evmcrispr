@@ -2,10 +2,18 @@ import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 import {
   createInterpreter,
+  describeCommand,
   expect,
   getPublicClient,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
+
+describeCommand("load", {
+  describeName: "Std > commands > load > doc examples",
+  docCases: [
+    { description: "Load the simulation module", code: `load sim` },
+  ],
+});
 
 describe("Std > commands > load <name> [--as <alias>]", () => {
   let client: PublicClient;

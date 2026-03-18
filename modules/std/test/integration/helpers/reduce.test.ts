@@ -32,6 +32,9 @@ def @cat "$a: string $b: string -> string" @str.concat($a $b)
       expected: "hello world",
     },
   ],
+  docCases: [
+    { description: "Sum an array", code: `def @add "$acc: number $n: number -> number" @num($acc + $n)\nset $nums [1 2 3 4]\nset $sum @reduce($nums @add 0)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

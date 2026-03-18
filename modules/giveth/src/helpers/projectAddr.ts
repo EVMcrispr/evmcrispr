@@ -53,7 +53,7 @@ export default defineHelper<Giveth>({
   name: "projectAddr",
   description: "Resolve a Giveth project slug to its contract address.",
   returnType: "address",
-  args: [{ name: "slug", type: "string" }],
+  args: [{ name: "slug", type: "string", description: "Giveth project slug" }],
   async run(module, { slug }) {
     return (await _projectAddr(module, slug))[0];
   },

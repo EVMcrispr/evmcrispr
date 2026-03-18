@@ -1,6 +1,19 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
+import { describeCommand } from "@evmcrispr/test-utils";
+
+describeCommand("new-token", {
+  module: "aragonos",
+  describeName: "AragonOS > commands > new-token > doc examples",
+  docCases: [
+    {
+      description: "Create a standard MiniMe token",
+      code: `aragonos:new-token $token "My Token" "TKN" @me`,
+    },
+  ],
+});
+
 import type AragonOS from "@evmcrispr/module-aragonos";
 import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
 

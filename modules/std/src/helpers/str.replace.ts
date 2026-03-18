@@ -6,9 +6,9 @@ export default defineHelper<Std>({
   description: "Replace all occurrences of a substring.",
   returnType: "string",
   args: [
-    { name: "s", type: "string" },
-    { name: "old", type: "string" },
-    { name: "replacement", type: "string" },
+    { name: "s", type: "string", description: "Source string" },
+    { name: "old", type: "string", description: "Substring to match" },
+    { name: "replacement", type: "string", description: "Replacement text" },
   ],
   async run(_, { s, old, replacement }) {
     return String(s).replaceAll(String(old), String(replacement));

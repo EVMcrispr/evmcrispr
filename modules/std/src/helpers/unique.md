@@ -1,4 +1,6 @@
-# @unique
+---
+title: "@unique"
+---
 
 Remove duplicates from an array, preserving first-occurrence order.
 
@@ -6,30 +8,26 @@ Remove duplicates from an array, preserving first-occurrence order.
 
 ## Syntax
 
-```
+```evml
 @unique(arr)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| arr | `array` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `arr` | `array` | Source array |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Remove duplicates
+set $arr [1 2 2 3 1 3]
+set $uniq @unique($arr)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@filter](filter.md) — custom duplicate removal

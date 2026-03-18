@@ -93,11 +93,11 @@ export default defineCommand<AragonOS>({
     "Grant a permission on a DAO app to an entity, with an optional oracle.",
   args: [
     { name: "grantee", type: "address" },
-    { name: "app", type: "app" },
-    { name: "role", type: "permission" },
-    { name: "permissionManager", type: "app", optional: true },
+    { name: "app", type: "app", description: "Target app" },
+    { name: "role", type: "permission", description: "Permission identifier" },
+    { name: "permissionManager", type: "app", description: "Entity managing this permission", optional: true },
   ],
-  opts: [{ name: "oracle", type: "address" }],
+  opts: [{ name: "oracle", type: "address", description: "ACL oracle contract address" }],
   completions: {
     role: async (ctx) => {
       if (!ctx.resolveNode) return [];

@@ -22,6 +22,9 @@ describeHelper("@any", {
       expected: "false",
     },
   ],
+  docCases: [
+    { description: "Check if any negative", code: `def @isNegative "$n: number -> bool" @bool($n < 0)\nprint @any([1 -2 3] @isNegative)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

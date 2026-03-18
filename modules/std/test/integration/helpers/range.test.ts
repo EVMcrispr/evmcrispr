@@ -33,6 +33,10 @@ describeHelper("@range", {
       },
     },
   ],
+  docCases: [
+    { description: "Generate a range", code: `set $nums @range(0 5)` },
+    { description: "Range with offset start", code: `set $nums @range(3 7)` },
+  ],
   errorCases: [
     {
       name: "should fail when range exceeds maximum length",

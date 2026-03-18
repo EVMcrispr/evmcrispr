@@ -13,7 +13,7 @@ export default defineHelper<Std>({
   returnType: "bytes",
   args: [
     { name: "signature", type: "string" },
-    { name: "params", type: "any", rest: true },
+    { name: "params", type: "any", description: "Arguments to encode", rest: true },
   ],
   async run(_, { signature, params }, { node }) {
     let fnABI: AbiFunction;

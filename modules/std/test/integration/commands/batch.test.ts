@@ -61,6 +61,12 @@ describeCommand("batch", {
       },
     },
   ],
+  docCases: [
+    {
+      description: "Batch approve + transfer into one transaction",
+      code: `batch (\n  exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1000e18\n  exec @token(DAI) "transfer(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1000e18\n)`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when batch contains a non-transaction action like switch",

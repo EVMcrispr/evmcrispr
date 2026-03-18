@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Transform each element of an array by applying a helper.",
   returnType: "array",
   args: [
-    { name: "arr", type: "array" },
-    { name: "fn", type: "helper" },
+    { name: "arr", type: "array", description: "Source array" },
+    { name: "fn", type: "helper", description: "Transform helper applied to each element" },
   ],
   async run(_, { arr, fn }) {
     const results = [];

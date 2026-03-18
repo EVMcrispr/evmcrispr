@@ -3,6 +3,12 @@ import { describeCommand, expect } from "@evmcrispr/test-utils";
 
 describeCommand("halt", {
   describeName: "Std > commands > halt",
+  docCases: [
+    {
+      description: "Stop script execution",
+      code: `print "before"\nhalt`,
+    },
+  ],
   cases: [
     {
       name: "should return a terminal action",

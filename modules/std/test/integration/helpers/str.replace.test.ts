@@ -20,4 +20,8 @@ describeHelper("@str.replace", {
       expected: "hello",
     },
   ],
+  docCases: [
+    { description: "Replace all occurrences", code: `set $s @str.replace("foo-bar-baz" "-" "_")` },
+    { description: "Remove a substring", code: `set $s @str.replace("hello world" " world" "")` },
+  ],
 }, helpers["str.replace"].argDefs);

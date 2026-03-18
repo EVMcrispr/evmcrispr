@@ -6,6 +6,7 @@ export {
   describeCommand,
 } from "./describeCommand";
 export {
+  type DocExample,
   describeHelper,
   type HelperErrorCase,
   type HelperTestCase,

@@ -6,7 +6,7 @@ export default defineHelper<AragonOS>({
   name: "app",
   description: "Resolve an app identifier to its proxy address within the connected DAO.",
   returnType: "address",
-  args: [{ name: "appIdentifier", type: "string" }],
+  args: [{ name: "appIdentifier", type: "string", description: "App name, or `dao:app` for cross-DAO lookup" }],
   async run(module, { appIdentifier }) {
     const [daoPrefix, rest] = parsePrefixedDAOIdentifier(appIdentifier);
 

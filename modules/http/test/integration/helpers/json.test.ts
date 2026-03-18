@@ -12,6 +12,20 @@ describeHelper(
     describeName: "Http > helpers > @json(data path)",
     module: "http",
     preamble: `set $data '${sampleJson}'`,
+    docCases: [
+      {
+        description: "Parse JSON and extract a field",
+        code: `set $data '{"name":"Alice","age":30}'\nset $name @json($data "name")\nprint $name`,
+      },
+      {
+        description: "Nested path",
+        code: `set $data '{"user":{"name":"Alice"}}'\nset $name @json($data "user.name")\nprint $name`,
+      },
+      {
+        description: "Array access",
+        code: `set $data '{"items":[10,20,30]}'\nset $second @json($data "items[1]")\nprint $second`,
+      },
+    ],
     cases: [
       {
         name: "should extract a string value",
@@ -130,6 +144,12 @@ describeHelper(
   {
     describeName: "Http > helpers > @json.format(template values)",
     module: "http",
+    docCases: [
+      {
+        description: "Build a JSON object from values",
+        code: `set $body @json.format("{name, age}" ["Alice" 30])\nprint $body`,
+      },
+    ],
     cases: [
       {
         name: "should format a flat object",

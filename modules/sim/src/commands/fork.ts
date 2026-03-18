@@ -25,12 +25,12 @@ import {
 export default defineCommand<Sim>({
   name: "fork",
   description: "Fork the blockchain and execute commands in a simulation.",
-  args: [{ name: "block", type: "block" }],
+  args: [{ name: "block", type: "block", description: "Commands to execute in the fork" }],
   opts: [
-    { name: "block-number", type: "number" },
-    { name: "from", type: "address" },
-    { name: "auth-token", type: "string" },
-    { name: "using", type: "simulation-mode" },
+    { name: "block-number", type: "number", description: "Block number to fork from" },
+    { name: "from", type: "address", description: "Default sender address" },
+    { name: "auth-token", type: "string", description: "RPC provider authentication token" },
+    { name: "using", type: "simulation-mode", description: "Simulation backend (anvil, hardhat, tenderly, ethereumjs)" },
   ],
   async run(module, { block }, { opts, interpreters }) {
     const { interpretNode } = interpreters;

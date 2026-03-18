@@ -151,6 +151,8 @@ export type HelperArgDefEntry = {
   type: string | string[];
   optional?: boolean;
   rest?: boolean;
+  /** Human-readable description for documentation. */
+  description?: string;
   /** For rest args: resolve effective type from the function signature in
    *  the arg at this index (e.g. `1` means use `nodeArgs[1].value`). */
   signatureArgIndex?: number;

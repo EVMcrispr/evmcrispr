@@ -11,6 +11,12 @@ describeCommand("set-storage-at", {
   describeName: "Sim > commands > set-storage-at <address> <slot> <value>",
   module: "sim",
   preamble: "load sim",
+  docCases: [
+    {
+      description: "Set a storage slot value in a fork",
+      code: "sim:fork --using anvil (\n  sim:set-storage-at 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 0x0000000000000000000000000000000000000000000000000000000000000001 0x00000000000000000000000000000000000000000000000000000000000000ff\n)",
+    },
+  ],
   errorCases: [
     {
       name: "should fail when used outside a fork block",

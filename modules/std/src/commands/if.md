@@ -1,37 +1,29 @@
-# if
+---
+title: "if"
+---
 
 Conditionally execute a block of commands, with an optional else block.
 
 ## Syntax
 
-```
+```evml
 if <condition> <thenBlock> [elseBlock]
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| condition | `bool` | Yes |
-| thenBlock | `block` | Yes |
-| elseBlock | `block` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `condition` | `bool` |  |
+| `thenBlock` | `block` | Commands when condition is true |
+| `[elseBlock]` | `block` | Commands when condition is false |
 
 ## Examples
 
-```
+```evml
 # Simple condition
 if true (
-  exec @token(DAI) "approve(address,uint256)" @me 100e18
+  print "yes"
 )
 
 # Boolean expression
@@ -39,26 +31,16 @@ if @bool(1 == 1) (
   print "equal"
 )
 
-# Variable condition
-set $flag true
-if $flag (
-  print "flag is true"
-)
-
-# Compound conditions
-set $a 10
-set $b 5
-if @bool($a > 0 and $b < 100) (
-  print "both conditions met"
-)
-
 # If-else
-if @bool($balance > 0) (
-  print "has balance"
+set $x 10
+if @bool($x > 0) (
+  print "positive"
 ) (
-  print "no balance"
+  print "non-positive"
 )
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also
 

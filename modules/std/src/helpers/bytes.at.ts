@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Access a single byte by index in a bytes value.",
   returnType: "bytes",
   args: [
-    { name: "value", type: "bytes" },
-    { name: "index", type: "number" },
+    { name: "value", type: "bytes", description: "Input value" },
+    { name: "index", type: "number", description: "Zero-based byte index" },
   ],
   async run(_, { value, index }) {
     const hex = String(value);

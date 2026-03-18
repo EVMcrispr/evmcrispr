@@ -29,6 +29,9 @@ describeHelper("@filter", {
       },
     },
   ],
+  docCases: [
+    { description: "Filter positive numbers", code: `def @isPositive "$n: number -> bool" @bool($n > 0)\nset $nums [-1 2 -3 4]\nset $pos @filter($nums @isPositive)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

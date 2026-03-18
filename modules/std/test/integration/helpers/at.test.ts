@@ -27,6 +27,10 @@ describeHelper("@at", {
       },
     },
   ],
+  docCases: [
+    { description: "Access first element", code: `set $arr [10 20 30]\nset $first @at($arr 0)` },
+    { description: "Access last element (negative index)", code: `set $arr [10 20 30]\nset $last @at($arr -1)` },
+  ],
   errorCases: [
     {
       name: "should fail on out-of-bounds index",

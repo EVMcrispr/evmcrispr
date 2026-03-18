@@ -14,8 +14,8 @@ export default defineHelper<Std>({
   description: "Check whether an array contains an element.",
   returnType: "bool",
   args: [
-    { name: "value", type: "array" },
-    { name: "item", type: "any" },
+    { name: "value", type: "array", description: "Input value" },
+    { name: "item", type: "any", description: "Element to search for" },
   ],
   async run(_, { value, item }) {
     return value.some((el: unknown) => deepEquals(el, item)) ? "true" : "false";

@@ -32,5 +32,8 @@ describeHelper("@zip", {
       },
     },
   ],
+  docCases: [
+    { description: "Zip two arrays", code: `set $keys [1 2 3]\nset $vals ["a" "b" "c"]\nset $pairs @zip($keys $vals)` },
+  ],
   sampleArgs: [`[1]`, `[2]`],
 }, helpers.zip.argDefs);

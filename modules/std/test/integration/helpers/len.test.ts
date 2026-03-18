@@ -22,5 +22,8 @@ describeHelper("@len", {
       },
     },
   ],
+  docCases: [
+    { description: "Get array length", code: `set $arr [10 20 30]\nprint @len($arr)` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.len.argDefs);

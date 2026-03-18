@@ -13,6 +13,9 @@ describeHelper(
         expected: namehash("evmcrispr.eth"),
       },
     ],
+    docCases: [
+      { description: "Hash an ENS domain", code: `set $node @namehash("vitalik.eth")` },
+    ],
     errorCases: [
       {
         name: "fails if the value is not an ENS domain",

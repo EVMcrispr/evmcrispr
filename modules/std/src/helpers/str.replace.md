@@ -1,4 +1,6 @@
-# @str.replace
+---
+title: "@str.replace"
+---
 
 Replace all occurrences of a substring.
 
@@ -6,32 +8,31 @@ Replace all occurrences of a substring.
 
 ## Syntax
 
-```
+```evml
 @str.replace(s, old, replacement)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| s | `string` | Yes |
-| old | `string` | Yes |
-| replacement | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `s` | `string` | Source string |
+| `old` | `string` | Substring to match |
+| `replacement` | `string` | Replacement text |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Replace all occurrences
+set $s @str.replace("foo-bar-baz" "-" "_")
+
+# Remove a substring
+set $s @str.replace("hello world" " world" "")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.includes](str.includes.md) — check for substring
+- [@str.split](str.split.md) — split by delimiter

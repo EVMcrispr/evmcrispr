@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Read a raw storage slot of a contract.",
   returnType: "bytes32",
   args: [
-    { name: "address", type: "address" },
-    { name: "slot", type: "bytes32" },
+    { name: "address", type: "address", description: "Contract or account address" },
+    { name: "slot", type: "bytes32", description: "Storage slot index" },
   ],
   async run(module, { address, slot }) {
     const client = await module.getClient();

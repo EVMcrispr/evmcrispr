@@ -1,4 +1,6 @@
-# @str.concat
+---
+title: "@str.concat"
+---
 
 Concatenate strings together.
 
@@ -6,31 +8,30 @@ Concatenate strings together.
 
 ## Syntax
 
-```
+```evml
 @str.concat(first, ...rest)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| first | `string` | Yes |
-| ...rest | `string` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `first` | `string` |  |
+| `[...rest]` | `string` | Strings to append |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Concatenate strings
+set $full @str.concat("hello" " " "world")
+
+# Concatenate with helper result
+set $greeting @str.concat("hi " @str(@me))
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.join](str.join.md) — join array elements with a delimiter
+- [@concat](concat.md) — concatenate arrays

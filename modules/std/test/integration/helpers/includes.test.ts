@@ -25,5 +25,9 @@ describeHelper("@includes", {
       expected: "false",
     },
   ],
+  docCases: [
+    { description: "Check if array contains element", code: `set $arr [1 2 3]\nprint @includes($arr 2)` },
+    { description: "Check for missing element", code: `set $arr [1 2 3]\nprint @includes($arr 99)` },
+  ],
   sampleArgs: [`[1]`, `1`],
 }, helpers.includes.argDefs);

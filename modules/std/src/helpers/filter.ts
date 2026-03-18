@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Keep elements of an array for which a helper returns truthy.",
   returnType: "array",
   args: [
-    { name: "arr", type: "array" },
-    { name: "fn", type: "helper" },
+    { name: "arr", type: "array", description: "Source array" },
+    { name: "fn", type: "helper", description: "Predicate helper returning bool" },
   ],
   async run(_, { arr, fn }) {
     const results = [];

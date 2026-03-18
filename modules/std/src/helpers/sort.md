@@ -1,4 +1,6 @@
-# @sort
+---
+title: "@sort"
+---
 
 Sort an array using a comparator helper.
 
@@ -6,31 +8,28 @@ Sort an array using a comparator helper.
 
 ## Syntax
 
-```
+```evml
 @sort(arr, fn)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| arr | `array` | Yes |
-| fn | `helper` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Comparator helper returning a number |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Sort ascending
+def @cmpAsc "$a: number $b: number -> number" @num($a - $b)
+set $nums [3 1 4 1 5]
+set $sorted @sort($nums @cmpAsc)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@reverse](reverse.md) — reverse an array

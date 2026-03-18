@@ -12,6 +12,20 @@ describeHelper(
         expected: TEST_ACCOUNT_ADDRESS,
       },
     ],
+    docCases: [
+      {
+        description: "Get own address",
+        code: `print @me`,
+      },
+      {
+        description: "Check own token balance",
+        code: `set $balance @get(@token(DAI) "balanceOf(address)(uint256)" @me)\nprint $balance`,
+      },
+      {
+        description: "Use in exec",
+        code: `exec @token(DAI) "approve(address,uint256)" @me 100e18`,
+      },
+    ],
   },
   helpers.me.argDefs,
 );

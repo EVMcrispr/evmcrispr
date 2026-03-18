@@ -41,6 +41,9 @@ def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
       },
     },
   ],
+  docCases: [
+    { description: "Sort ascending", code: `def @cmpAsc "$a: number $b: number -> number" @num($a - $b)\nset $nums [3 1 4 1 5]\nset $sorted @sort($nums @cmpAsc)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

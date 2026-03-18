@@ -1,4 +1,6 @@
-# @aragonos:nextApp
+---
+title: "@aragonos:nextApp"
+---
 
 Predict the address of the next app to be installed in the DAO.
 
@@ -6,30 +8,29 @@ Predict the address of the next app to be installed in the DAO.
 
 ## Syntax
 
-```
+```evml
 @aragonos:nextApp(offset?)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| offset | `number` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `[offset]` | `number` | Nonce offset from next install |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Predict the next app address
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  set $next @nextApp
+  print $next
+)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [install](../../commands/install.md) — install apps in a DAO
+- [@app](app.md) — resolve existing app addresses

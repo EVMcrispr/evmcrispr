@@ -17,6 +17,12 @@ describeCommand("act", {
     "AragonOS > commands > act <agent> <targetAddress> <methodSignature> [...params]",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Execute a contract call through the DAO agent",
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  act @app(agent) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct act action",

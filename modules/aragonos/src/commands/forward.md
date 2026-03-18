@@ -1,46 +1,41 @@
-# aragonos:forward
+---
+title: "aragonos:forward"
+---
 
 Route actions through a chain of forwarder apps with optional context.
 
 ## Syntax
 
-```
+```evml
 aragonos:forward [...forwarders] <block>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| ...forwarders | `app` | No |
-| block | `block` | Yes |
+| Name | Type | Description |
+|------|------|-------------|
+| `[...forwarders]` | `app` | Forwarding path through apps |
+| `block` | `block` | Commands to forward |
 
 ## Options
 
-| Name | Type |
-|------|------|
-| --context | `string` |
-| --check-forwarder | `bool` |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `--context` | `string` | Context string attached to the forwarding |
+| `--check-forwarder` | `bool` | Verify forwarder can forward before submitting |
 
 ## Examples
 
+```evml
+# Forward through voting to modify permissions
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  forward @app(disputable-voting.open) (
+    grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)
+  ) --context "Modify permissions"
+)
 ```
-# Forward through voting to execute privileged actions
-forward @app(voting) (
-  grant @app(voting) @app(conviction-voting) PAUSE_CONTRACT_ROLE @app(voting)
-  revoke @ANY_ENTITY @app(conviction-voting) CREATE_PROPOSALS_ROLE true
-) --context "Modify conviction voting permissions"
-```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

@@ -13,6 +13,7 @@ import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
+import { markdownComponents } from "./MarkdownComponents";
 import { ReferenceItem } from "./ReferenceItem";
 
 function isUsedInScript(entry: ReferenceEntry, script: string): boolean {
@@ -72,7 +73,13 @@ export function ReferenceTab() {
   const openEntry = useCallback(async (entry: ReferenceEntry) => {
     setSelectedItem(entry);
     setMarkdownContent(null);
-    const content = await entry.loadDocs();
+    let content = await entry.loadDocs();
+    // Strip YAML frontmatter (e.g. ---\ntitle: "..."\n---)
+    content = content.replace(/^---[\s\S]*?---\n*/, "");
+    // Strip the leading h1 since the detail header already shows the name
+    content = content.replace(/^#\s+.+\n+/, "");
+    // Strip HTML comments (e.g. <!-- HAND-WRITTEN -->)
+    content = content.replace(/<!--[\s\S]*?-->\n*/g, "");
     setMarkdownContent(content);
   }, []);
 
@@ -154,22 +161,10 @@ export function ReferenceTab() {
               {selectedItem.description}
             </p>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none">
+            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-foreground prose-h1:text-base prose-h2:text-sm prose-h2:text-evm-green-300 prose-h2:border-b prose-h2:border-foreground/10 prose-h2:pb-1 prose-h3:text-sm prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-th:text-foreground/70 prose-td:text-foreground/80 prose-li:text-foreground/80 prose-hr:border-foreground/10">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children, ...props }) => (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-evm-green-300 underline"
-                      {...props}
-                    >
-                      {children}
-                    </a>
-                  ),
-                }}
+                components={markdownComponents}
               >
                 {markdownContent}
               </ReactMarkdown>

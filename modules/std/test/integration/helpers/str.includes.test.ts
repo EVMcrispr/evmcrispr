@@ -25,5 +25,9 @@ describeHelper("@str.includes", {
       expected: "true",
     },
   ],
+  docCases: [
+    { description: "Check if string contains substring", code: `print @str.includes("hello world" "world")` },
+    { description: "Check for missing substring", code: `print @str.includes("hello world" "xyz")` },
+  ],
   sampleArgs: [`"a"`, `"b"`],
 }, helpers["str.includes"].argDefs);

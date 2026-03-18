@@ -1,4 +1,6 @@
-# @bytes.concat
+---
+title: "@bytes.concat"
+---
 
 Concatenate bytes values together.
 
@@ -6,31 +8,27 @@ Concatenate bytes values together.
 
 ## Syntax
 
-```
+```evml
 @bytes.concat(first, ...rest)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| first | `bytes` | Yes |
-| ...rest | `bytes` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `first` | `bytes` |  |
+| `[...rest]` | `bytes` | Bytes values to append |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Concatenate bytes
+set $c @bytes.concat(0xaa 0xbb)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@concat](concat.md) — concatenate arrays
+- [@str.concat](str.concat.md) — concatenate strings

@@ -1,4 +1,6 @@
-# @str.split
+---
+title: "@str.split"
+---
 
 Split a string by a delimiter into an array of strings.
 
@@ -6,31 +8,29 @@ Split a string by a delimiter into an array of strings.
 
 ## Syntax
 
-```
+```evml
 @str.split(s, delim)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| s | `string` | Yes |
-| delim | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `s` | `string` | Source string |
+| `delim` | `string` | Delimiter string |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Split by comma
+set $parts @str.split("a,b,c" ",")
+
+# Split by space
+set $words @str.split("hello world" " ")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.join](str.join.md) — join array into a string

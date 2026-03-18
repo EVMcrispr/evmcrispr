@@ -9,7 +9,7 @@ export default defineHelper<AragonOS>({
   name: "nextApp",
   description: "Predict the address of the next app to be installed in the DAO.",
   returnType: "address",
-  args: [{ name: "offset", type: "number", optional: true }],
+  args: [{ name: "offset", type: "number", optional: true, description: "Nonce offset from next install" }],
   async run(module, { offset = 0 }) {
     const dao = module.currentDAO;
     if (!dao) {

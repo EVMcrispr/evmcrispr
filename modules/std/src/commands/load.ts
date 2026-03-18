@@ -4,8 +4,8 @@ import type Std from "..";
 export default defineCommand<Std>({
   name: "load",
   description: "Load a module to make its commands and helpers available.",
-  args: [{ name: "moduleName", type: "module" }],
-  opts: [{ name: "as", type: "string" }],
+  args: [{ name: "moduleName", type: "module", description: "Module name (e.g. `aragonos`, `sim`)" }],
+  opts: [{ name: "as", type: "string", description: "Module alias for namespacing" }],
   async run(module, { moduleName }, { opts }) {
     const moduleAlias: string | undefined = opts.as as string | undefined;
 

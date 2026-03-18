@@ -1,44 +1,32 @@
-# batch
+---
+title: "batch"
+---
 
 Group multiple commands into a single transaction.
 
 ## Syntax
 
-```
+```evml
 batch <block>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| block | `block` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `block` | `block` | Block of commands |
 
 ## Examples
 
-```
-# Batch approve + swap into one transaction
+```evml
+# Batch approve + transfer into one transaction
 batch (
-  exec @token(DAI) "approve(address,uint256)" 0xRouter... @token.amount(DAI 1000)
-  exec 0xRouter... "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+  exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1000e18
+  exec @token(DAI) "transfer(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1000e18
 )
-
-# Capture events from the entire batch
-batch (
-  exec $wxdai "deposit()" --value 0.001e18
-  exec $wxdai "withdraw(uint)" 0.001e18
-) -> Deposit(address indexed, uint) [_ $amount]
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

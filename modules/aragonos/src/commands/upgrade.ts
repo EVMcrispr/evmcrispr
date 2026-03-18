@@ -17,7 +17,7 @@ export default defineCommand<AragonOS>({
   description: "Upgrade an installed Aragon app to a new version.",
   args: [
     { name: "apmRepo", type: "repo" },
-    { name: "newAppAddress", type: "any", optional: true },
+    { name: "newAppAddress", type: "any", description: "Specific implementation address", optional: true },
   ],
   async run(module, { apmRepo: rawApmRepo, newAppAddress: rawNewAppAddress }) {
     const client = await module.getClient();

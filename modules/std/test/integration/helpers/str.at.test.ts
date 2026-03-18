@@ -20,6 +20,10 @@ describeHelper("@str.at", {
       expected: "a",
     },
   ],
+  docCases: [
+    { description: "Get the first character", code: `set $s "hello"\nset $c @str.at($s 0)` },
+    { description: "Get the last character (negative index)", code: `set $s "hello"\nset $l @str.at($s -1)` },
+  ],
   errorCases: [
     {
       name: "should fail on out-of-bounds index",

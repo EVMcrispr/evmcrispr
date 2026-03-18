@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Split a string by a delimiter into an array of strings.",
   returnType: "array",
   args: [
-    { name: "s", type: "string" },
-    { name: "delim", type: "string" },
+    { name: "s", type: "string", description: "Source string" },
+    { name: "delim", type: "string", description: "Delimiter string" },
   ],
   async run(_, { s, delim }) {
     return String(s).split(String(delim));

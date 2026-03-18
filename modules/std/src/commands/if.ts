@@ -7,8 +7,8 @@ export default defineCommand<Std>({
   description: "Conditionally execute a block of commands, with an optional else block.",
   args: [
     { name: "condition", type: "bool" },
-    { name: "thenBlock", type: "block" },
-    { name: "elseBlock", type: "block", optional: true },
+    { name: "thenBlock", type: "block", description: "Commands when condition is true" },
+    { name: "elseBlock", type: "block", description: "Commands when condition is false", optional: true },
   ],
   async run(module, { condition, thenBlock, elseBlock }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;

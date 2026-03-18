@@ -7,6 +7,12 @@ describeCommand("set-balance", {
   describeName: "Sim > commands > set-balance <address> <amount>",
   module: "sim",
   preamble: "load sim",
+  docCases: [
+    {
+      description: "Fund the connected wallet with 100 ETH",
+      code: `sim:fork --using anvil (\n  sim:set-balance @me 100e18\n)`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when used outside a fork block",

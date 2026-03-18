@@ -29,5 +29,8 @@ describeHelper("@unique", {
       },
     },
   ],
+  docCases: [
+    { description: "Remove duplicates", code: `set $arr [1 2 2 3 1 3]\nset $uniq @unique($arr)` },
+  ],
   sampleArgs: [`[1]`],
 }, helpers.unique.argDefs);

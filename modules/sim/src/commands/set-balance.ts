@@ -6,8 +6,8 @@ export default defineCommand<Sim>({
   name: "set-balance",
   description: "Set the ETH balance of an account in a fork simulation.",
   args: [
-    { name: "address", type: "address" },
-    { name: "amount", type: "number" },
+    { name: "address", type: "address", description: "Contract or account address" },
+    { name: "amount", type: "number", description: "New balance in wei" },
   ],
   async run(module, { address, amount }) {
     if (!module.mode) {

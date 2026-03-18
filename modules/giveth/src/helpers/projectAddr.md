@@ -1,4 +1,6 @@
-# @giveth:projectAddr
+---
+title: "@giveth:projectAddr"
+---
 
 Resolve a Giveth project slug to its contract address.
 
@@ -6,30 +8,26 @@ Resolve a Giveth project slug to its contract address.
 
 ## Syntax
 
-```
+```evml
 @giveth:projectAddr(slug)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| slug | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `slug` | `string` | Giveth project slug |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Resolve a project slug to its address
+set $addr @projectAddr("evmcrispr")
+print $addr
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [giveth:donate](../../commands/donate.md) — donate to a project

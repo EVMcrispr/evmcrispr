@@ -119,6 +119,28 @@ describeCommand("exec", {
       ],
     },
   ],
+  docCases: [
+    {
+      description: "Approve a token",
+      code: `exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18`,
+    },
+    {
+      description: "Send ETH with the call",
+      code: `exec 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d "deposit()" --value 1e18`,
+    },
+    {
+      description: "Specify sender",
+      code: `exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18 --from 0x44fA8E6f47987339850636F88629646662444217`,
+    },
+    {
+      description: "Capture events from the transaction",
+      code: `load sim\nset $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d\nsim:fork --using anvil (\n  sim:set-balance @me 1e18\n  exec $wxdai "deposit()" --value 0.001e18 -> Deposit(address indexed, uint) [_ $amount]\n  exec $wxdai "withdraw(uint)" $amount\n)`,
+    },
+    {
+      description: "Complex parameter types",
+      code: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when receiving an invalid target address",

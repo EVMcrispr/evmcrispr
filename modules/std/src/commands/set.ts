@@ -30,8 +30,8 @@ export default defineCommand<Std>({
   name: "set",
   description: "Assign a value to a variable for use later in the script.",
   args: [
-    { name: "variable", type: "variable" },
-    { name: "value", type: "any" },
+    { name: "variable", type: "variable", description: "Variable name" },
+    { name: "value", type: "any", description: "Value to assign" },
   ],
   async run(module, { variable, value }) {
     applyDestructure([variable], [value], module.bindingsManager);

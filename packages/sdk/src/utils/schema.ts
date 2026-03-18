@@ -56,6 +56,8 @@ export interface ArgDef {
   type: ArgType;
   optional?: boolean;
   rest?: boolean;
+  /** Human-readable description for documentation. */
+  description?: string;
   /** Dynamically resolve the effective type at completion time. */
   resolveType?: (ctx: CompletionContext) => ArgType;
   /** For rest args: resolve effective type from the function signature in
@@ -67,6 +69,8 @@ export interface ArgDef {
 export interface OptDef {
   name: string;
   type: ArgType;
+  /** Human-readable description for documentation. */
+  description?: string;
 }
 
 export function validateArgType(

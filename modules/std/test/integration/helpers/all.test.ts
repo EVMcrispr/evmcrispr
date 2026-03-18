@@ -22,6 +22,9 @@ describeHelper("@all", {
       expected: "true",
     },
   ],
+  docCases: [
+    { description: "Check all positive", code: `def @isPositive "$n: number -> bool" @bool($n > 0)\nprint @all([1 2 3] @isPositive)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

@@ -1,51 +1,32 @@
-# aragonos:connect
+---
+title: "aragonos:connect"
+---
 
 Connect to an Aragon DAO and execute commands within its context.
 
 ## Syntax
 
-```
+```evml
 aragonos:connect <daoName> <block>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| daoName | `dao` | Yes |
-| block | `block` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `daoName` | `dao` |  |
+| `block` | `block` | Commands to execute in DAO context |
 
 ## Examples
 
-```
-# Connect to a DAO by ENS name
-load aragonos
-aragonos:connect my-dao.aragonid.eth (
-  aragonos:grant @me @app(voting) CREATE_VOTES_ROLE
-)
-
-# Connect by address
-aragonos:connect 0xb1f5...a84e (
-  aragonos:grant @me @app(agent) TRANSFER_ROLE
-)
-
-# Nested DAO connections
-aragonos:connect 0xDAO1... (
-  connect 0xDAO2... (
-    grant @app(voting) @app(_0xDAO1...:agent) TRANSFER_ROLE
-  )
+```evml
+# Connect to a DAO and grant a permission
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  grant @me @app(agent) TRANSFER_ROLE
 )
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## Notes
 

@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Return the first element that satisfies the predicate.",
   returnType: "any",
   args: [
-    { name: "arr", type: "array" },
-    { name: "fn", type: "helper" },
+    { name: "arr", type: "array", description: "Source array" },
+    { name: "fn", type: "helper", description: "Predicate helper returning bool" },
   ],
   async run(_, { arr, fn }) {
     for (const item of arr) {

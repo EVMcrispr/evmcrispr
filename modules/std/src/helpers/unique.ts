@@ -6,7 +6,7 @@ export default defineHelper<Std>({
   name: "unique",
   description: "Remove duplicates from an array, preserving first-occurrence order.",
   returnType: "array",
-  args: [{ name: "arr", type: "array" }],
+  args: [{ name: "arr", type: "array", description: "Source array" }],
   async run(_, { arr }) {
     const seen = new Set<string>();
     const result: Param[] = [];

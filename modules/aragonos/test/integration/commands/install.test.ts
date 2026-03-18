@@ -32,6 +32,12 @@ describeCommand("install", {
   describeName: "AragonOS > commands > install <$var> <repo> [initParams]",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Install a token-manager app",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  install $tm token-manager:new-app @app(agent) false 1000e18\n)",
+    },
+  ],
   cases: [
     {
       name: "should return a correct install action",

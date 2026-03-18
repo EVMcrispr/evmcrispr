@@ -5,8 +5,8 @@ import { defaultRelayerMap } from "../addresses";
 export default defineCommand<Giveth>({
   name: "finalize-givbacks",
   description: "Finalize a GIVbacks distribution by executing batches from IPFS.",
-  args: [{ name: "hash", type: "any" }],
-  opts: [{ name: "relayer", type: "any" }],
+  args: [{ name: "hash", type: "any", description: "IPFS hash of the distribution data" }],
+  opts: [{ name: "relayer", type: "any", description: "Relayer address for transaction submission" }],
   async run(module, { hash }, { opts }) {
     const defaultRelayerAddr = defaultRelayerMap.get(await module.getChainId());
 

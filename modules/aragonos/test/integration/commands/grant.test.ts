@@ -20,6 +20,12 @@ describeCommand("grant", {
     "AragonOS > commands > grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Grant a role to the connected wallet",
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  grant @me @app(agent) TRANSFER_ROLE\n)`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct grant permission action",

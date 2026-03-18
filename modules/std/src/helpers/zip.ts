@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   returnType: "array",
   args: [
     { name: "a", type: "array" },
-    { name: "b", type: "array" },
+    { name: "b", type: "array", description: "Second array" },
   ],
   async run(_, { a, b }) {
     const len = Math.min(a.length, b.length);

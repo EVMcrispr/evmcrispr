@@ -9,9 +9,9 @@ export default defineCommand<Giveth>({
   description: "Verify a GIVbacks vote against its IPFS proposal and vote if valid.",
   args: [
     { name: "hash", type: "any" },
-    { name: "voteId", type: "any" },
+    { name: "voteId", type: "any", description: "Governance vote ID to verify" },
   ],
-  opts: [{ name: "relayer", type: "any" }],
+  opts: [{ name: "relayer", type: "any", description: "Relayer address for transaction submission" }],
   async run(module, { hash, voteId }, { opts }) {
     const chainId = await module.getChainId();
     const voting = votingMap.get(chainId);

@@ -7,6 +7,12 @@ describeHelper(
   {
     describeName: "Ens > helpers > @contenthash(input)",
     module: "ens",
+    docCases: [
+      {
+        description: "Encode an IPFS content hash",
+        code: `set $hash @contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")\nprint $hash`,
+      },
+    ],
     cases: [
       {
         name: "should encode an IPFS content hash",

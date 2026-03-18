@@ -27,6 +27,9 @@ describeHelper("@map", {
       },
     },
   ],
+  docCases: [
+    { description: "Double each element", code: `def @double "$n: number -> number" @num($n * 2)\nset $nums [1 2 3]\nset $doubled @map($nums @double)` },
+  ],
   errorCases: [
     {
       name: "should fail when second argument is not a helper",

@@ -7,8 +7,8 @@ export default defineHelper<Std>({
   description: "Parse a decimal string with a given number of decimals (like parseUnits).",
   returnType: "number",
   args: [
-    { name: "value", type: "any" },
-    { name: "decimals", type: "number" },
+    { name: "value", type: "any", description: "Input value" },
+    { name: "decimals", type: "number", description: "Number of decimal places" },
   ],
   async run(_, { value, decimals }) {
     const d = Num(decimals).toNumber();

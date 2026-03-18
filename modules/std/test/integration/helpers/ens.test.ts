@@ -12,6 +12,9 @@ describeHelper(
         expected: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
       },
     ],
+    docCases: [
+      { description: "Resolve an ENS name to its address", code: `set $addr @ens("vitalik.eth")` },
+    ],
     errorCases: [
       {
         name: "should fail when ENS name not found",

@@ -1,4 +1,6 @@
-# @bytes.not
+---
+title: "@bytes.not"
+---
 
 Bitwise NOT of a bytes value (256-bit complement).
 
@@ -6,30 +8,25 @@ Bitwise NOT of a bytes value (256-bit complement).
 
 ## Syntax
 
-```
+```evml
 @bytes.not(value)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `bytes` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `bytes` | Input value |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Bitwise NOT
+set $b @bytes.not(0x00ff)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@bytes](bytes.md) — bitwise AND, OR, shift

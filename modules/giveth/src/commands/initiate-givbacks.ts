@@ -13,8 +13,8 @@ import {
 export default defineCommand<Giveth>({
   name: "initiate-givbacks",
   description: "Initiate a GIVbacks distribution through DAO governance.",
-  args: [{ name: "hash", type: "any" }],
-  opts: [{ name: "relayer", type: "any" }],
+  args: [{ name: "hash", type: "any", description: "IPFS hash of the distribution data" }],
+  opts: [{ name: "relayer", type: "any", description: "Relayer address for transaction submission" }],
   async run(module, { hash }, { opts }) {
     const chainId = await module.getChainId();
     const tokenManager = tokenManagerMap.get(chainId);

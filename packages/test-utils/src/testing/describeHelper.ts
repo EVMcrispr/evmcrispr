@@ -4,8 +4,21 @@ import { ComparisonType, NodeType, Num } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { getPublicClient } from "../client";
-import { itChecksInvalidArgsLength, preparingExpression } from "../evml";
+import {
+  createInterpreter,
+  itChecksInvalidArgsLength,
+  preparingExpression,
+} from "../evml";
 import { expectThrowAsync } from "../expects";
+
+export interface DocExample {
+  /** Human-readable description — shown as a comment in the generated markdown. */
+  description: string;
+  /** Full EVML script to run. Shown as the code block in generated markdown. */
+  code: string;
+  /** Optional preamble prepended before the code when running as a test (not shown in docs). */
+  preamble?: string;
+}
 
 export interface HelperTestCase {
   name?: string;
@@ -41,6 +54,8 @@ export interface HelperTestConfig {
   cases?: HelperTestCase[];
   /** Error test cases. */
   errorCases?: HelperErrorCase[];
+  /** Documentation examples — tested as runnable scripts and included in generated docs. */
+  docCases?: DocExample[];
   /**
    * Sample args for the arg-length validation test.
    * If omitted, auto-generated from argDefs using placeholder values.
@@ -195,6 +210,19 @@ export function describeHelper(
               }
             }
           }
+        });
+      }
+    }
+
+    if (config.docCases) {
+      for (const doc of config.docCases) {
+        it(`[DOC] ${doc.description}`, async () => {
+          const preamble =
+            doc.preamble ??
+            (config.module ? `load ${config.module}` : undefined);
+          const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
+          const interpreter = createInterpreter(fullScript, client);
+          await interpreter.interpret();
         });
       }
     }

@@ -1,36 +1,36 @@
-# aragonos:revoke
+---
+title: "aragonos:revoke"
+---
 
 Revoke a permission from an entity on a DAO app, optionally removing the manager.
 
 ## Syntax
 
-```
+```evml
 aragonos:revoke <grantee> <app> <role> [removeManager]
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| grantee | `address` | Yes |
-| app | `app` | Yes |
-| role | `permission` | Yes |
-| removeManager | `bool` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `grantee` | `address` |  |
+| `app` | `app` | Target app |
+| `role` | `permission` | Permission to revoke |
+| `[removeManager]` | `bool` | Also remove the permission manager |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Revoke a permission
+aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
+  revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE
+)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [grant](grant.md) — grant permissions
+- [connect](connect.md) — connect to a DAO

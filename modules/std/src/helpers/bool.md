@@ -1,4 +1,6 @@
-# @bool
+---
+title: "@bool"
+---
 
 Evaluate a boolean expression or convert a value to a boolean string.
 
@@ -6,30 +8,37 @@ Evaluate a boolean expression or convert a value to a boolean string.
 
 ## Syntax
 
-```
+```evml
 @bool(...tokens)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| ...tokens | `any` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `[...tokens]` | `any` | Boolean expression (e.g. `$a > 0 and $b < 100`) |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Comparisons
+set $a @bool(1 == 1)
+set $b @bool(5 > 3)
+set $c @bool(5 <= 3)
+
+# Logical operators
+set $e @bool(true and true)
+set $f @bool(true or false)
+set $g @bool(not false)
+
+# Compound expression
+set $x 10
+set $h @bool($x > 0 and $x < 100)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [if](../../commands/if.md) — conditional execution
+- [while](../../commands/while.md) — condition-based loop

@@ -6,9 +6,9 @@ export default defineHelper<Std>({
   description: "Reduce an array to a single value by applying a helper.",
   returnType: "any",
   args: [
-    { name: "arr", type: "array" },
-    { name: "fn", type: "helper" },
-    { name: "initial", type: "any" },
+    { name: "arr", type: "array", description: "Source array" },
+    { name: "fn", type: "helper", description: "Reducer helper receiving `(accumulator, element)`" },
+    { name: "initial", type: "any", description: "Initial accumulator value" },
   ],
   async run(_, { arr, fn, initial }) {
     let acc = initial;

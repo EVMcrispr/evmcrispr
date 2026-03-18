@@ -1,4 +1,6 @@
-# @str.includes
+---
+title: "@str.includes"
+---
 
 Check whether a string contains a substring.
 
@@ -6,31 +8,30 @@ Check whether a string contains a substring.
 
 ## Syntax
 
-```
+```evml
 @str.includes(value, item)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `string` | Yes |
-| item | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `string` | Input value |
+| `item` | `string` | Substring to search for |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Check if string contains substring
+print @str.includes("hello world" "world")
+
+# Check for missing substring
+print @str.includes("hello world" "xyz")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.replace](str.replace.md) — find and replace
+- [@includes](includes.md) — array membership check

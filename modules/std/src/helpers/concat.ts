@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   returnType: "array",
   args: [
     { name: "first", type: "array" },
-    { name: "rest", type: "array", rest: true },
+    { name: "rest", type: "array", description: "Additional arrays to append", rest: true },
   ],
   async run(_, { first, rest }) {
     return [first, ...rest].flat();

@@ -23,6 +23,12 @@ describeCommand("upgrade", {
     "AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]",
   module: "aragonos",
   preamble,
+  docCases: [
+    {
+      description: "Upgrade to latest version",
+      code: "aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (\n  upgrade disputable-conviction-voting.open\n)",
+    },
+  ],
   cases: [
     {
       name: "should return a correct upgrade action to the latest app's version",

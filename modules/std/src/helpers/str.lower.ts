@@ -5,7 +5,7 @@ export default defineHelper<Std>({
   name: "str.lower",
   description: "Convert a string to lowercase.",
   returnType: "string",
-  args: [{ name: "s", type: "string" }],
+  args: [{ name: "s", type: "string", description: "Source string" }],
   async run(_, { s }) {
     return String(s).toLowerCase();
   },

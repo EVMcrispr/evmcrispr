@@ -44,6 +44,12 @@ describeCommand("connect", {
   describeName:
     "AragonOS > commands > connect <daoNameOrAddress> <commandsBlock> > error cases",
   module: "aragonos",
+  docCases: [
+    {
+      description: "Connect to a DAO and grant a permission",
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  grant @me @app(agent) TRANSFER_ROLE\n)`,
+    },
+  ],
   errorCases: [
     {
       name: "should fail when not passing a commands block",

@@ -2,7 +2,7 @@
 
 HTTP and JSON helpers: fetch URLs, parse JSON, and construct JSON strings.
 
-```
+```evml
 load http
 ```
 

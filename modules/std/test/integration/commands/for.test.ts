@@ -42,6 +42,16 @@ for $x of $empty (
       expectedActions: [],
     },
   ],
+  docCases: [
+    {
+      description: "Iterate over a range",
+      code: `for $i of @range(0 3) (\n  print $i\n)`,
+    },
+    {
+      description: "Process items",
+      code: `set $items [1 2 3]\nfor $item of $items (\n  print $item\n)`,
+    },
+  ],
   errorCases: [
     {
       name: 'should fail when the connector is not "of"',

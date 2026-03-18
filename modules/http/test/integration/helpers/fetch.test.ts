@@ -32,6 +32,16 @@ describeHelper(
   {
     describeName: "Http > helpers > @fetch(url method? body?)",
     module: "http",
+    docCases: [
+      {
+        description: "Simple GET request",
+        code: `set $response @fetch("https://test.evmcrispr.local/hello")\nprint $response`,
+      },
+      {
+        description: "POST with a body",
+        code: `set $response @fetch("https://test.evmcrispr.local/echo" POST "payload")\nprint $response`,
+      },
+    ],
     cases: [
       {
         name: "should GET and return body as string",

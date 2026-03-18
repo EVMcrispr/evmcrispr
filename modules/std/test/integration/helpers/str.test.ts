@@ -34,4 +34,9 @@ describeHelper("@str", {
       expected: "4",
     },
   ],
+  docCases: [
+    { description: "Convert a number to string", code: `set $s @str(42)` },
+    { description: "Convert an address to string", code: `set $s @str(@me)` },
+    { description: "Convert a boolean to string", code: `set $s @str(true)` },
+  ],
 });

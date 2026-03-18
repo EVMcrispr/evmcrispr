@@ -67,6 +67,11 @@ describeHelper("@bytes", {
       expected: "0x1f",
     },
   ],
+  docCases: [
+    { description: "Convert a number to bytes", code: `set $b @bytes(0xff)` },
+    { description: "Bitwise AND", code: `set $b @bytes(0xff00 "&" 0x0ff0)` },
+    { description: "Left shift", code: `set $b @bytes(0x01 "<<" 8)` },
+  ],
   errorCases: [
     {
       name: "should reject invalid 2-arg form",
@@ -101,6 +106,9 @@ describeHelper("@bytes.not", {
         "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00",
     },
   ],
+  docCases: [
+    { description: "Bitwise NOT", code: `set $b @bytes.not(0x00ff)` },
+  ],
   sampleArgs: ["0xff"],
 }, helpers["bytes.not"].argDefs);
 
@@ -121,6 +129,9 @@ describeHelper("@bytes.concat", {
       input: "@bytes.concat(@bytes(1) @bytes(2))",
       expected: "0x12",
     },
+  ],
+  docCases: [
+    { description: "Concatenate bytes", code: `set $c @bytes.concat(0xaa 0xbb)` },
   ],
   sampleArgs: ["0x01"],
 }, helpers["bytes.concat"].argDefs);
@@ -143,6 +154,9 @@ describeHelper("@bytes.slice", {
       expected: "0x0203",
     },
   ],
+  docCases: [
+    { description: "Slice bytes", code: `set $mid @bytes.slice(0xaabbccdd 1 3)` },
+  ],
   sampleArgs: ["0x0102", "0", "1"],
 }, helpers["bytes.slice"].argDefs);
 
@@ -163,6 +177,9 @@ describeHelper("@bytes.at", {
       input: "@bytes.at(0x010203 -1)",
       expected: "0x03",
     },
+  ],
+  docCases: [
+    { description: "Get byte at index", code: `set $first @bytes.at(0xaabbcc 0)` },
   ],
   errorCases: [
     {
@@ -191,6 +208,9 @@ describeHelper("@bytes.len", {
         expect(result.eq(Num(1n))).to.be.true;
       },
     },
+  ],
+  docCases: [
+    { description: "Get byte length", code: `print @bytes.len(0xaabbccdd)` },
   ],
   sampleArgs: ["0xff"],
 }, helpers["bytes.len"].argDefs);

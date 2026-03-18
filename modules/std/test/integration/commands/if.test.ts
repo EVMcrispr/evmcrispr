@@ -6,6 +6,20 @@ const fnSig = "approve(address,uint256)";
 
 describeCommand("if", {
   describeName: "Std > commands > if <condition> (...)",
+  docCases: [
+    {
+      description: "Simple condition",
+      code: `if true (\n  print "yes"\n)`,
+    },
+    {
+      description: "Boolean expression",
+      code: `if @bool(1 == 1) (\n  print "equal"\n)`,
+    },
+    {
+      description: "If-else",
+      code: `set $x 10\nif @bool($x > 0) (\n  print "positive"\n) (\n  print "non-positive"\n)`,
+    },
+  ],
   cases: [
     {
       name: "should execute the block when condition is truthy (boolean true)",

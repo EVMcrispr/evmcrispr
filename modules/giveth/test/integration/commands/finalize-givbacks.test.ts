@@ -40,6 +40,12 @@ describeCommand("finalize-givbacks", {
     "Giveth > commands > finalize-givbacks <ipfsHash> [--relayer <relayer>]",
   module: "giveth",
   preamble: "load giveth",
+  docCases: [
+    {
+      description: "Finalize a GIVbacks distribution",
+      code: `giveth:finalize-givbacks QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct initiate-givbacks action",

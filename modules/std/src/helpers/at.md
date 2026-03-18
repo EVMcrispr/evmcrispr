@@ -1,4 +1,6 @@
-# @at
+---
+title: "@at"
+---
 
 Access an element by index in an array.
 
@@ -6,31 +8,31 @@ Access an element by index in an array.
 
 ## Syntax
 
-```
+```evml
 @at(value, index)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `array` | Yes |
-| index | `number` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `array` | Input value |
+| `index` | `number` | Zero-based index (negative counts from end) |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Access first element
+set $arr [10 20 30]
+set $first @at($arr 0)
+
+# Access last element (negative index)
+set $arr [10 20 30]
+set $last @at($arr -1)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@slice](slice.md) — extract a sub-array

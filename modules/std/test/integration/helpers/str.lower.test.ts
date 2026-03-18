@@ -20,4 +20,7 @@ describeHelper("@str.lower", {
       expected: "hello world",
     },
   ],
+  docCases: [
+    { description: "Lowercase a string", code: `set $s @str.lower("Hello World")` },
+  ],
 }, helpers["str.lower"].argDefs);

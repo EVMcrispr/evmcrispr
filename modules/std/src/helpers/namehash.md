@@ -1,4 +1,6 @@
-# @namehash
+---
+title: "@namehash"
+---
 
 Compute the ENS namehash of a domain name.
 
@@ -6,30 +8,26 @@ Compute the ENS namehash of a domain name.
 
 ## Syntax
 
-```
+```evml
 @namehash(name)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| name | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `name` | `string` | ENS domain name |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Hash an ENS domain
+set $node @namehash("vitalik.eth")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@ens](ens.md) — resolve ENS name to address
+- [@id](id.md) — keccak256 hash

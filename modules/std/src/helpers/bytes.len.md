@@ -1,4 +1,6 @@
-# @bytes.len
+---
+title: "@bytes.len"
+---
 
 Return the byte length of a bytes value.
 
@@ -6,30 +8,26 @@ Return the byte length of a bytes value.
 
 ## Syntax
 
-```
+```evml
 @bytes.len(value)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `bytes` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `bytes` | Input value |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Get byte length
+print @bytes.len(0xaabbccdd)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@len](len.md) — array length
+- [@str.len](str.len.md) — string length

@@ -20,5 +20,9 @@ describeHelper("@str.concat", {
       expected: "solo",
     },
   ],
+  docCases: [
+    { description: "Concatenate strings", code: `set $full @str.concat("hello" " " "world")` },
+    { description: "Concatenate with helper result", code: `set $greeting @str.concat("hi " @str(@me))` },
+  ],
   sampleArgs: [`"a"`],
 }, helpers["str.concat"].argDefs);

@@ -1,32 +1,24 @@
-# print
+---
+title: "print"
+---
 
 Log values to the console output.
 
 ## Syntax
 
-```
+```evml
 print [...values]
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| ...values | `any` | No |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `[...values]` | `any` | Values to output, space-separated |
 
 ## Examples
 
-```
+```evml
 # Print a string
 print "hello"
 
@@ -36,13 +28,8 @@ print "count:" 42
 # Print variables
 set $name "world"
 print "hello" $name
-
-# Print helper results
-print @token(DAI)
-
-# Print numbers and addresses
-print 1e18
-print 0x44fA8E6f47987339850636F88629646662444217
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also

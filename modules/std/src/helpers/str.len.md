@@ -1,4 +1,6 @@
-# @str.len
+---
+title: "@str.len"
+---
 
 Return the length of a string.
 
@@ -6,30 +8,30 @@ Return the length of a string.
 
 ## Syntax
 
-```
+```evml
 @str.len(value)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `string` | Input value |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Get string length
+set $s "hello"
+print @str.len($s)
+
+# Empty string length
+print @str.len("")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.slice](str.slice.md) — extract a substring
+- [@len](len.md) — array length

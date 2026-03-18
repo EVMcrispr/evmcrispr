@@ -1,33 +1,25 @@
-# set
+---
+title: "set"
+---
 
 Assign a value to a variable for use later in the script.
 
 ## Syntax
 
-```
+```evml
 set <variable> <value>
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| variable | `variable` | Yes |
-| value | `any` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `variable` | `variable` | Variable name |
+| `value` | `any` | Value to assign |
 
 ## Examples
 
-```
+```evml
 # Set a simple value
 set $amount 1e18
 
@@ -46,6 +38,8 @@ set [_ $second] ["skip" "keep"]
 # Nested destructuring
 set [$a [_ $b]] ["x" ["skip" "y"]]
 ```
+
+<!-- HAND-WRITTEN -->
 
 ## See Also
 

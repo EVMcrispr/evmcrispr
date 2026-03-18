@@ -1,4 +1,6 @@
-# @len
+---
+title: "@len"
+---
 
 Return the length of an array.
 
@@ -6,30 +8,28 @@ Return the length of an array.
 
 ## Syntax
 
-```
+```evml
 @len(value)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| value | `array` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `value` | `array` | Input value |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Get array length
+set $arr [10 20 30]
+print @len($arr)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@at](at.md) — access element by index
+- [@slice](slice.md) — extract a sub-array
+- [@str.len](str.len.md) — string length

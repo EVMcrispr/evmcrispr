@@ -6,8 +6,8 @@ export default defineHelper<Std>({
   description: "Access an element by index in an array.",
   returnType: "any",
   args: [
-    { name: "value", type: "array" },
-    { name: "index", type: "number" },
+    { name: "value", type: "array", description: "Input value" },
+    { name: "index", type: "number", description: "Zero-based index (negative counts from end)" },
   ],
   async run(_, { value, index }) {
     const i = Num(index).toNumber();

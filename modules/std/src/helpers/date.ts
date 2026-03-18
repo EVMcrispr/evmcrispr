@@ -13,7 +13,7 @@ export default defineHelper<Std>({
   returnType: "number",
   args: [
     { name: "date", type: "string" },
-    { name: "offset", type: "string", optional: true },
+    { name: "offset", type: "string", description: "Time offset (e.g. `+1d`, `-2h`, `+3mo`)", optional: true },
   ],
   async run(_, { date, offset }) {
     if (date !== "now" && !iso8601Regex.test(date)) {

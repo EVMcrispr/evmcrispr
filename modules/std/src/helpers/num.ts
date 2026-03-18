@@ -7,7 +7,7 @@ export default defineHelper<Std>({
   description:
     "Evaluate an arithmetic expression or convert a value to a number.",
   returnType: "number",
-  args: [{ name: "tokens", type: "any", rest: true }],
+  args: [{ name: "tokens", type: "any", rest: true, description: "Arithmetic expression (e.g. `$a + $b * 2`)" }],
   async run(_, { tokens }) {
     if (!tokens || tokens.length === 0) {
       throw new ErrorException("@num requires at least one argument");

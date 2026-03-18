@@ -1,4 +1,6 @@
-# @str.upper
+---
+title: "@str.upper"
+---
 
 Convert a string to uppercase.
 
@@ -6,30 +8,25 @@ Convert a string to uppercase.
 
 ## Syntax
 
-```
+```evml
 @str.upper(s)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| s | `string` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `s` | `string` | Source string |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Uppercase a string
+set $s @str.upper("hello")
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [@str.lower](str.lower.md) — convert to lowercase

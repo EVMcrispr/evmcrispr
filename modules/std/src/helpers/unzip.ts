@@ -6,7 +6,7 @@ export default defineHelper<Std>({
   name: "unzip",
   description: "Transpose an array of pairs into two separate arrays.",
   returnType: "array",
-  args: [{ name: "pairs", type: "array" }],
+  args: [{ name: "pairs", type: "array", description: "Array of [a, b] pairs" }],
   async run(_, { pairs }) {
     const firsts: Param[] = [];
     const seconds: Param[] = [];

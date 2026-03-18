@@ -27,6 +27,10 @@ describeHelper(
         expected: "0x44fA8E6f47987339850636F88629646662444217",
       },
     ],
+    docCases: [
+      { description: "Resolve a token symbol", code: `set $dai @token(DAI)` },
+      { description: "Resolve the native token", code: `set $native @token(XDAI)` },
+    ],
     errorCases: [
       {
         name: "should fail for an unsupported token symbol",
@@ -70,6 +74,9 @@ describeHelper(
         },
       },
     ],
+    docCases: [
+      { description: "Query a token balance", code: `set $bal @token.balance(DAI @token(DAI))` },
+    ],
     sampleArgs: ["DAI", "@token(DAI)"],
   },
   helpers["token.balance"].argDefs,
@@ -99,6 +106,9 @@ describeHelper(
         input: "@token.amount(XDAI 1)",
         expected: String(1e18),
       },
+    ],
+    docCases: [
+      { description: "Convert 100 DAI to base units", code: `set $amount @token.amount(DAI 100)` },
     ],
     sampleArgs: ["DAI", "1"],
   },

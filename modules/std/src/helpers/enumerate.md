@@ -1,4 +1,6 @@
-# @enumerate
+---
+title: "@enumerate"
+---
 
 Return an array of [index, element] pairs.
 
@@ -6,30 +8,27 @@ Return an array of [index, element] pairs.
 
 ## Syntax
 
-```
+```evml
 @enumerate(arr)
 ```
 
 ## Arguments
 
-| Name | Type | Required |
-|------|------|----------|
-| arr | `array` | Yes |
-
-<!-- HAND-WRITTEN -->
-
-
-
-
-
-
-
-
+| Name | Type | Description |
+|------|------|-------------|
+| `arr` | `array` | Source array |
 
 ## Examples
 
-```
-# TODO: add examples
+```evml
+# Enumerate array elements
+set $items ["a" "b" "c"]
+set $pairs @enumerate($items)
 ```
 
+<!-- HAND-WRITTEN -->
+
 ## See Also
+
+- [for](../../commands/for.md) — iterate over arrays
+- [@zip](zip.md) — combine two arrays into pairs

@@ -6,7 +6,7 @@ export default defineHelper<Std>({
   name: "flat",
   description: "Flatten one level of nesting in an array.",
   returnType: "array",
-  args: [{ name: "arr", type: "array" }],
+  args: [{ name: "arr", type: "array", description: "Source array" }],
   async run(_, { arr }) {
     const result: Param[] = [];
     for (const item of arr) {

@@ -8,6 +8,12 @@ describeHelper(
     skip: true,
     module: "giveth",
     describeName: "Giveth > helpers > @projectAddr(slug)",
+    docCases: [
+      {
+        description: "Resolve a project slug to its address",
+        code: `set $addr @projectAddr("evmcrispr")\nprint $addr`,
+      },
+    ],
     cases: [
       {
         name: "return the project address",

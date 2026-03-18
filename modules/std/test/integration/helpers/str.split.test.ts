@@ -27,4 +27,8 @@ describeHelper("@str.split", {
       },
     },
   ],
+  docCases: [
+    { description: "Split by comma", code: `set $parts @str.split("a,b,c" ",")` },
+    { description: "Split by space", code: `set $words @str.split("hello world" " ")` },
+  ],
 }, helpers["str.split"].argDefs);

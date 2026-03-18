@@ -5,9 +5,9 @@ export default defineCommand<Sim>({
   name: "set-storage-at",
   description: "Set a storage slot value at an address in a fork simulation.",
   args: [
-    { name: "address", type: "address" },
-    { name: "slot", type: "bytes32" },
-    { name: "value", type: "string" },
+    { name: "address", type: "address", description: "Contract or account address" },
+    { name: "slot", type: "bytes32", description: "Storage slot" },
+    { name: "value", type: "string", description: "New 32-byte value" },
   ],
   async run(module, { address, slot, value }) {
     if (!module.mode) {

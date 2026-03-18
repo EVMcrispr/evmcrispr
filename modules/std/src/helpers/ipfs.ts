@@ -11,6 +11,7 @@ export default defineHelper<Std>({
     {
       name: "text",
       type: "string",
+      description: "Content to upload",
     },
   ],
   async run(module, { text }) {

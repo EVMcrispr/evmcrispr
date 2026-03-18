@@ -13,12 +13,12 @@ export default defineCommand<AragonOS>({
   description:
     "Create a new MiniMe token with configurable name, symbol, and decimals.",
   args: [
-    { name: "variable", type: "variable" },
-    { name: "name", type: "string" },
-    { name: "symbol", type: "string" },
-    { name: "controller", type: "address" },
-    { name: "decimals", type: "number", optional: true },
-    { name: "transferable", type: "bool", optional: true },
+    { name: "variable", type: "variable", description: "Variable name" },
+    { name: "name", type: "string", description: "Token name" },
+    { name: "symbol", type: "string", description: "Token symbol" },
+    { name: "controller", type: "address", description: "Token controller address" },
+    { name: "decimals", type: "number", description: "Decimal places", optional: true },
+    { name: "transferable", type: "bool", description: "Whether the token is transferable", optional: true },
   ],
   async run(
     module,

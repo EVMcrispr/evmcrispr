@@ -28,6 +28,7 @@ interface ArgDefMeta {
   type: string | string[];
   optional?: boolean;
   rest?: boolean;
+  description?: string;
   signatureArgIndex?: number;
 }
 
@@ -87,6 +88,8 @@ function extractArgDefs(content: string): ArgDefMeta[] {
     const arg: ArgDefMeta = { name: nameMatch[1], type: typeVal };
     if (/optional:\s*true/.test(obj)) arg.optional = true;
     if (/rest:\s*true/.test(obj)) arg.rest = true;
+    const descMatch = obj.match(/description:\s*["']([^"']+)["']/);
+    if (descMatch) arg.description = descMatch[1];
     const sigArgIdxMatch = obj.match(/signatureArgIndex:\s*(\d+)/);
     if (sigArgIdxMatch) arg.signatureArgIndex = parseInt(sigArgIdxMatch[1], 10);
     result.push(arg);
@@ -169,6 +172,8 @@ if (helperNames.length > 0) {
           ];
           if (a.optional) props.push("optional: true");
           if (a.rest) props.push("rest: true");
+          if (a.description)
+            props.push(`description: ${JSON.stringify(a.description)}`);
           if (a.signatureArgIndex != null)
             props.push(`signatureArgIndex: ${a.signatureArgIndex}`);
           return `{ ${props.join(", ")} }`;
