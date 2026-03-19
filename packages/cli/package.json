@@ -33,6 +33,7 @@
     "@evmcrispr/module-aragonos": "*",
     "@evmcrispr/module-ens": "*",
     "@evmcrispr/module-giveth": "*",
+    "@evmcrispr/module-lang": "*",
     "@evmcrispr/module-http": "*",
     "@evmcrispr/module-sim": "*",
     "viem": "^2.45.1",

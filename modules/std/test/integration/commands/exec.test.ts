@@ -202,6 +202,7 @@ describe("Std > commands > exec > event capture", () => {
           to: action.to,
           data: action.data,
           value: action.value,
+          gas: action.gas ?? 200_000n,
         });
         return await client.waitForTransactionReceipt({ hash });
       }
@@ -234,6 +235,7 @@ batch (
           to: action.to,
           data: action.data,
           value: action.value,
+          gas: action.gas ?? 200_000n,
         });
         return await client.waitForTransactionReceipt({ hash });
       }
@@ -246,6 +248,7 @@ batch (
             to: txAction.to,
             data: txAction.data,
             value: txAction.value,
+            gas: txAction.gas ?? 200_000n,
           });
           const receipt = await client.waitForTransactionReceipt({ hash });
           allLogs.push(...receipt.logs);
