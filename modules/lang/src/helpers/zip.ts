@@ -6,7 +6,7 @@ export default defineHelper<Lang>({
   description: "Combine two arrays element-wise into an array of pairs.",
   returnType: "array",
   args: [
-    { name: "a", type: "array" },
+    { name: "a", type: "array", description: "First array to zip" },
     { name: "b", type: "array", description: "Second array" },
   ],
   async run(_, { a, b }) {

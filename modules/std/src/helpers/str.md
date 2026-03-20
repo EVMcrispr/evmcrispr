@@ -2,14 +2,14 @@
 title: "@str"
 ---
 
-Convert a value to its string representation.
+Convert a value to its string representation, or decode hex bytes as UTF-8.
 
 **Returns**: `string`
 
 ## Syntax
 
 ```evml
-@str(value)
+@str(value, encoding?)
 ```
 
 ## Arguments
@@ -17,6 +17,7 @@ Convert a value to its string representation.
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `any` | Input value |
+| `[encoding]` | `string` | `utf8` to decode hex bytes as a UTF-8 string |
 
 ## Examples
 
@@ -27,8 +28,9 @@ set $s @str(42)
 # Convert an address to string
 set $s @str(@me)
 
-# Convert a boolean to string
-set $s @str(true)
+# Decode hex bytes as UTF-8
+set $s @str(0x48656c6c6f utf8)
+print $s
 ```
 
 <!-- HAND-WRITTEN -->

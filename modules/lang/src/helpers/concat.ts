@@ -6,7 +6,7 @@ export default defineHelper<Lang>({
   description: "Concatenate arrays together.",
   returnType: "array",
   args: [
-    { name: "first", type: "array" },
+    { name: "first", type: "array", description: "First array to concatenate" },
     { name: "rest", type: "array", description: "Additional arrays to append", rest: true },
   ],
   async run(_, { first, rest }) {

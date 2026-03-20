@@ -127,7 +127,7 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "@date")).to.be.false;
     });
 
-    it('exec $c f(bool) <cursor> should show true/false (resolveType = "bool")', async () => {
+    it('exec $c f(bool) <cursor> should show true/false (auto ABI type = "bool")', async () => {
       const script = "exec $c f(bool) ";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "true")).to.be.true;
@@ -496,10 +496,11 @@ describe("Completions – std helpers", () => {
 
   describe("snippet metadata", () => {
     it("helpers with args should have isSnippet = true", async () => {
+      const NO_ARG_HELPERS = new Set(["@me", "@gas.price"]);
       const script = "print ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
-      const withArgs = helperItems.filter((i) => i.label !== "@me");
+      const withArgs = helperItems.filter((i) => !NO_ARG_HELPERS.has(i.label));
       for (const item of withArgs) {
         expect(item.isSnippet).to.be.true;
       }
@@ -756,13 +757,13 @@ describe("Completions – std helpers", () => {
       }
     });
 
-    // @abi.encodeCall(string, ...any)  →  first arg: string
-    it("@abi.encodeCall(<cursor>) first arg should show string-compatible completions", async () => {
+    // @abi.encodeCall(write-abi, ...any)  →  first arg: write-abi (only "any"-returning helpers match)
+    it("@abi.encodeCall(<cursor>) first arg should show only any-returning helpers", async () => {
       const { script, position } = helperPos("set $x @abi.encodeCall(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
-      for (const h of STRING_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
+      for (const h of helperItems) {
+        expect(["@block", "@get"]).to.include(h.label);
       }
     });
 

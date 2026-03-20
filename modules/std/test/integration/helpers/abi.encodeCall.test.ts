@@ -41,7 +41,7 @@ describeHelper(
       {
         name: "should fail with an invalid function signature",
         input: `@abi.encodeCall("not valid(" ${addr})`,
-        error: "invalid function signature",
+        error: "must be a valid function signature",
       },
     ],
     sampleArgs: ['"transfer(address,uint256)"', addr, "1e18"],

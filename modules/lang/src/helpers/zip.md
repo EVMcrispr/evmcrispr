@@ -16,7 +16,7 @@ Combine two arrays element-wise into an array of pairs.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `a` | `array` |  |
+| `a` | `array` | First array to zip |
 | `b` | `array` | Second array |
 
 ## Examples

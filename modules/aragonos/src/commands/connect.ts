@@ -103,7 +103,7 @@ export default defineCommand<AragonOS>({
   description:
     "Connect to an Aragon DAO and execute commands within its context.",
   args: [
-    { name: "daoName", type: "dao" },
+    { name: "daoName", type: "dao", description: "DAO kernel address or Aragonid ENS name" },
     { name: "block", type: "block", description: "Commands to execute in DAO context" },
   ],
   async run(module, { daoName, block }, { interpreters }) {

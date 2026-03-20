@@ -16,7 +16,7 @@ export default defineCommand<AragonOS>({
   name: "upgrade",
   description: "Upgrade an installed Aragon app to a new version.",
   args: [
-    { name: "apmRepo", type: "repo" },
+    { name: "apmRepo", type: "repo", description: "APM repository name for the app package" },
     { name: "newAppAddress", type: "any", description: "Specific implementation address", optional: true },
   ],
   async run(module, { apmRepo: rawApmRepo, newAppAddress: rawNewAppAddress }) {

@@ -1,0 +1,39 @@
+---
+title: "@ens:ens.text"
+---
+
+Read a text record from an ENS name.
+
+**Returns**: `string`
+
+## Syntax
+
+```evml
+@ens:ens.text(name, key)
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `name` | `string` | ENS name (e.g. vitalik.eth) |
+| `key` | `string` |  |
+
+## Examples
+
+```evml
+# Read a URL text record
+set $url @ens.text("vitalik.eth" "url")
+print $url
+
+# Read a Twitter handle
+set $twitter @ens.text("vitalik.eth" "com.twitter")
+print $twitter
+```
+
+<!-- HAND-WRITTEN -->
+
+## See Also
+
+- [@ens.name](ens.name.md) — reverse-resolve an address
+- [@ens.avatar](ens.avatar.md) — get the avatar URI

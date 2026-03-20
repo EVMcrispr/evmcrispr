@@ -82,7 +82,7 @@ export default defineCommand<AragonOS>({
   description:
     "Revoke a permission from an entity on a DAO app, optionally removing the manager.",
   args: [
-    { name: "grantee", type: "address" },
+    { name: "grantee", type: "address", description: "Address whose permission is revoked" },
     { name: "app", type: "app", description: "Target app" },
     { name: "role", type: "permission", description: "Permission to revoke" },
     { name: "removeManager", type: "bool", description: "Also remove the permission manager", optional: true },

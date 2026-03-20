@@ -53,8 +53,8 @@ describeCommand("act", {
       },
     },
     {
-      name: "should return a correct act action when having to implicitly convert any string parameter to bytes when expecting one",
-      script: `act @app(agent) 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2\n)`,
+      name: "should convert string to bytes via @bytes helper",
+      script: `act @app(agent) 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)\n)`,
       validate: async (actActions) => {
         const expectedActActions = [
           createTestScriptEncodedAction(
@@ -107,14 +107,10 @@ describeCommand("act", {
       name: "should fail when receiving invalid function params",
       script: `act @app(agent) @app(agent:2) "deposit(address,uint256)" 1e18\n)`,
       error: (interpreter) => {
-        const paramsErrors = [
-          '-param 0 of type address: Address "1000000000000000000" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 1000000000000000000',
-          "-param 1 of type uint256: Invalid BigInt value. Got none",
-        ];
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
           c,
-          `error when encoding deposit call:\n${paramsErrors.join("\n")}`,
+          "<params>[0] must be a valid address, got 1000000000000000000",
         );
       },
     },

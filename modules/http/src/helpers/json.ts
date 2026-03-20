@@ -92,7 +92,7 @@ export default defineHelper<Http>({
   description: "Parse a JSON string and extract a value by path.",
   returnType: "any",
   args: [
-    { name: "data", type: "string" },
+    { name: "data", type: "string", description: "JSON string to parse" },
     { name: "path", type: "json-path", description: "JSONPath expression (e.g. `data.items[0].name`)" },
   ],
   async run(_, { data, path }) {

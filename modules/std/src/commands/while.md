@@ -14,7 +14,7 @@ while <condition> <block>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `condition` | `expression` |  |
+| `condition` | `expression` | Expression; loop continues while truthy |
 | `block` | `block` | Commands to repeat |
 
 ## Examples

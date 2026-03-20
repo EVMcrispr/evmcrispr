@@ -23,7 +23,7 @@ exec <contractAddress> <signature> [...params]
 | Name | Type | Description |
 |------|------|-------------|
 | `--value` | `number` | ETH to send with the call (in wei) |
-| `--from` | `address` | Sender address (requires simulation) |
+| `--from` | `address` | Sender address (requires simulation or connected wallet) |
 | `--gas` | `number` | Gas limit |
 | `--max-fee-per-gas` | `number` | Max fee per gas (EIP-1559) |
 | `--max-priority-fee-per-gas` | `number` | Max priority fee per gas (EIP-1559) |
@@ -51,7 +51,7 @@ sim:fork --using anvil (
 )
 
 # Complex parameter types
-exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2
+exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)
 ```
 
 <!-- HAND-WRITTEN -->

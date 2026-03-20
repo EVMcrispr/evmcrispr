@@ -16,7 +16,7 @@ Fetch the token balance of an address in base units.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `tokenSymbol` | `token-symbol` |  |
+| `tokenSymbol` | `token-symbol` | Token symbol (e.g. `DAI`) or address |
 | `holder` | `address` | Address to query |
 
 ## Examples

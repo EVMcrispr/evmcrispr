@@ -16,7 +16,7 @@ Construct a JSON string from a template and an array of values.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `template` | `string` |  |
+| `template` | `string` | Brace-wrapped template listing JSON object keys |
 | `values` | `array` | Values to substitute into template |
 
 ## Examples

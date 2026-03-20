@@ -19,6 +19,7 @@ import {
   BindingsSpace,
   calculateCurrentArgIndex,
   completionsForType,
+  findAbiArgForRest,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
   interpretNodeSync,
@@ -780,17 +781,19 @@ export async function getCompletions(
         (argDefs.at(-1)?.rest ? argDefs.at(-1) : undefined);
       if (argDef) {
         let effectiveType = argDef.type;
-        if (argDef.signatureArgIndex != null) {
-          const sigNode = helperNode.args[argDef.signatureArgIndex];
-          if (sigNode?.value) {
-            const sigArgDef = argDefs[argDef.signatureArgIndex];
-            const parser =
-              sigArgDef?.type === "read-abi"
+        if (argDef.rest) {
+          const restDefIndex = argDefs.indexOf(argDef);
+          const abiInfo = findAbiArgForRest(argDefs, restDefIndex);
+          if (abiInfo) {
+            const sigNode = helperNode.args[abiInfo.sigIndex];
+            if (sigNode?.value) {
+              const parser = abiInfo.isReadAbi
                 ? parseReadAbiParamTypes
                 : parseSignatureParamTypes;
-            const paramTypes = parser(sigNode.value);
-            const paramIndex = helperArgIndex - (argDef.signatureArgIndex + 1);
-            effectiveType = paramTypes[paramIndex] ?? effectiveType;
+              const paramTypes = parser(sigNode.value);
+              const paramIndex = helperArgIndex - (abiInfo.sigIndex + 1);
+              effectiveType = paramTypes[paramIndex] ?? effectiveType;
+            }
           }
         }
         const ctx: CompletionContext = {
@@ -819,6 +822,45 @@ export async function getCompletions(
       }
     }
     return [];
+  }
+
+  // 4c. If cursor is inside a ::{}  inline-ABI call's args, derive types from
+  //     the embedded input types.
+  if (
+    currentCommandNode &&
+    "node" in deepestResult &&
+    deepestResult.node !== currentCommandNode &&
+    (deepestResult.node as any).type === NodeType.CallExpression
+  ) {
+    const callNode = deepestResult.node as any;
+    if (callNode.inputTypes) {
+      const paramTypes = parseSignatureParamTypes(`fn${callNode.inputTypes}`);
+      const callArgIndex = deepestResult.argIndex;
+      const effectiveType = paramTypes[callArgIndex] ?? "any";
+      const ctx: CompletionContext = {
+        argIndex: callArgIndex,
+        nodeArgs: callNode.args,
+        bindings,
+        position,
+        client: effectiveClient as PublicClient,
+        chainId,
+        cache: moduleCache,
+        resolveNode,
+      };
+      const customTypes = collectCustomTypes(bindings);
+      const typeDrivenItems = await completionsForType(
+        effectiveType,
+        ctx,
+        customTypes,
+      );
+      const filteredHelpers = helperItems.filter((h) =>
+        isReturnTypeCompatible(h.returnType, effectiveType),
+      );
+      const filteredVars = shouldIncludeVars(effectiveType)
+        ? buildVarCompletionItems(bindings, currentCommandNode, position)
+        : [];
+      return [...typeDrivenItems, ...filteredHelpers, ...filteredVars];
+    }
   }
 
   if (currentCommandNode) {
@@ -898,8 +940,23 @@ export async function getCompletions(
           return command.completions[argDef.name](ctx);
         }
 
-        // Resolve effective type (may be dynamic via resolveType)
-        const effectiveType = argDef.resolveType?.(ctx) ?? argDef.type;
+        // Resolve effective type — auto-detect ABI arg for rest params
+        let effectiveType: string | string[] = argDef.type;
+        if (argDef.rest) {
+          const restDefIndex = command.argDefs.indexOf(argDef);
+          const abiInfo = findAbiArgForRest(command.argDefs, restDefIndex);
+          if (abiInfo) {
+            const sigNode = currentCommandNode.args[abiInfo.sigIndex];
+            if (sigNode?.value) {
+              const parser = abiInfo.isReadAbi
+                ? parseReadAbiParamTypes
+                : parseSignatureParamTypes;
+              const paramTypes = parser(sigNode.value);
+              const paramIndex = argIndex - (abiInfo.sigIndex + 1);
+              effectiveType = paramTypes[paramIndex] ?? effectiveType;
+            }
+          }
+        }
 
         // Type-driven completions + filtered helpers + filtered variables
         const customTypes = collectCustomTypes(bindings);

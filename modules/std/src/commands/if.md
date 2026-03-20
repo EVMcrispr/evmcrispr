@@ -14,7 +14,7 @@ if <condition> <thenBlock> [elseBlock]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `condition` | `bool` |  |
+| `condition` | `bool` | Whether to execute the then block |
 | `thenBlock` | `block` | Commands when condition is true |
 | `[elseBlock]` | `block` | Commands when condition is false |
 

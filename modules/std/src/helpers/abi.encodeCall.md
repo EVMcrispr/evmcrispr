@@ -16,7 +16,7 @@ ABI-encode a function call from its signature and arguments.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `signature` | `string` |  |
+| `signature` | `write-abi` | Function signature (e.g. `transfer(address,uint256)`) |
 | `[...params]` | `any` | Arguments to encode |
 
 ## Examples

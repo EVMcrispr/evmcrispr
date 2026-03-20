@@ -1,8 +1,4 @@
-import {
-  defineHelper,
-  encodeCalldata,
-  HelperFunctionError,
-} from "@evmcrispr/sdk";
+import { defineHelper, encodeCalldata } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
 import { parseAbiItem } from "viem";
 import type Std from "..";
@@ -12,23 +8,14 @@ export default defineHelper<Std>({
   description: "ABI-encode a function call from its signature and arguments.",
   returnType: "bytes",
   args: [
-    { name: "signature", type: "string" },
+    { name: "signature", type: "write-abi", description: "Function signature (e.g. `transfer(address,uint256)`)" },
     { name: "params", type: "any", description: "Arguments to encode", rest: true },
   ],
-  async run(_, { signature, params }, { node }) {
-    let fnABI: AbiFunction;
-    try {
-      const fullSignature = signature.startsWith("function")
-        ? signature
-        : `function ${signature}`;
-      fnABI = parseAbiItem(fullSignature) as AbiFunction;
-    } catch (_err) {
-      throw new HelperFunctionError(
-        node,
-        `invalid function signature: "${signature}"`,
-      );
-    }
-
+  async run(_, { signature, params }) {
+    const bare = signature.startsWith("function ")
+      ? signature.slice(9)
+      : signature;
+    const fnABI = parseAbiItem(`function ${bare}`) as AbiFunction;
     return encodeCalldata(fnABI, params);
   },
 });

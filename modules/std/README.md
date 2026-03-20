@@ -24,8 +24,11 @@ The standard module is loaded by default. It provides core language constructs, 
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
+| [@abi.decode](src/helpers/abi.decode.md) | `array` | Decode ABI-encoded bytes into values given a comma-separated type list. |
 | [@abi.encodeCall](src/helpers/abi.encodeCall.md) | `bytes` | ABI-encode a function call from its signature and arguments. |
+| [@abi.encodePacked](src/helpers/abi.encodePacked.md) | `bytes` | ABI non-standard packed encoding, matching Solidity |
 | [@arr](src/helpers/arr.md) | `array` | Generate an array of sequential integers from start (inclusive) to end (exclusive). |
+| [@block](src/helpers/block.md) | `any` | Return [number, timestamp] of the latest or a specific block. |
 | [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. |
 | [@bytes](src/helpers/bytes.md) | `bytes` | Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. |
 | [@contract.codeAt](src/helpers/contract.codeAt.md) | `bytes` | Return the deployed bytecode at an address. |
@@ -33,13 +36,17 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@contract.storageAt](src/helpers/contract.storageAt.md) | `bytes32` | Read a raw storage slot of a contract. |
 | [@date](src/helpers/date.md) | `number` | Parse a date string into a Unix timestamp, with an optional offset. |
 | [@ens](src/helpers/ens.md) | `address` | Resolve an ENS name to its address. |
+| [@gas.estimate](src/helpers/gas.estimate.md) | `number` | Estimate the gas required for a contract call. |
+| [@gas.price](src/helpers/gas.price.md) | `number` | Return the current gas price in wei. |
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
 | [@id](src/helpers/id.md) | `bytes32` | Compute the keccak256 hash of a string (first 4 bytes for selectors). |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
+| [@msgAddr](src/helpers/msgAddr.md) | `address` | Recover the signer address from a message and its signature. |
 | [@namehash](src/helpers/namehash.md) | `bytes32` | Compute the ENS namehash of a domain name. |
+| [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
-| [@str](src/helpers/str.md) | `string` | Convert a value to its string representation. |
+| [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@token](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
 | [@token.amount](src/helpers/token.amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |
 | [@token.balance](src/helpers/token.balance.md) | `number` | Fetch the token balance of an address in base units. |

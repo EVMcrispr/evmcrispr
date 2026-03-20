@@ -5,8 +5,11 @@ export const TEST_ACCOUNT_ADDRESS =
 // When a std helper is added/removed, update only here.
 
 export const STD_ALL_HELPERS = [
+  "@abi.decode",
   "@abi.encodeCall",
+  "@abi.encodePacked",
   "@arr",
+  "@block",
   "@bool",
   "@bytes",
   "@contract.codeAt",
@@ -14,11 +17,15 @@ export const STD_ALL_HELPERS = [
   "@contract.storageAt",
   "@date",
   "@ens",
+  "@gas.estimate",
+  "@gas.price",
   "@get",
   "@id",
   "@ipfs",
   "@me",
+  "@msgAddr",
   "@namehash",
+  "@nonce",
   "@num",
   "@str",
   "@token",
@@ -27,32 +34,41 @@ export const STD_ALL_HELPERS = [
 ];
 
 export const STD_ADDRESS_HELPERS = [
+  "@block",
   "@contract.next",
   "@ens",
   "@get",
   "@me",
+  "@msgAddr",
   "@token",
 ];
 
 export const STD_NUMBER_HELPERS = [
+  "@block",
   "@date",
+  "@gas.estimate",
+  "@gas.price",
   "@get",
+  "@nonce",
   "@num",
   "@token.amount",
   "@token.balance",
 ];
 
 export const STD_BYTES32_HELPERS = [
+  "@block",
   "@contract.storageAt",
   "@get",
   "@id",
   "@namehash",
 ];
 
-export const STD_BOOL_HELPERS = ["@bool", "@get"];
+export const STD_BOOL_HELPERS = ["@block", "@bool", "@get"];
 
 export const STD_BYTES_HELPERS = [
   "@abi.encodeCall",
+  "@abi.encodePacked",
+  "@block",
   "@bytes",
   "@contract.codeAt",
   "@get",

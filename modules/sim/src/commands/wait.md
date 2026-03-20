@@ -14,7 +14,7 @@ sim:wait <duration> [period]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `duration` | `number` |  |
+| `duration` | `number` | Simulated time to advance, in seconds |
 | `[period]` | `number` | Seconds per block |
 
 ## Examples

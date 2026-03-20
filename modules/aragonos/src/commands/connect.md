@@ -14,7 +14,7 @@ aragonos:connect <daoName> <block>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `daoName` | `dao` |  |
+| `daoName` | `dao` | DAO kernel address or Aragonid ENS name |
 | `block` | `block` | Commands to execute in DAO context |
 
 ## Examples

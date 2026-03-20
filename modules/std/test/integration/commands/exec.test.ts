@@ -65,8 +65,8 @@ describeCommand("exec", {
       ],
     },
     {
-      name: "should handle implicit bytes conversion for string parameters",
-      script: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2`,
+      name: "should handle explicit bytes conversion for string parameters via @bytes",
+      script: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)`,
       expectedActions: [
         encodeAction(
           "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7",
@@ -138,7 +138,7 @@ describeCommand("exec", {
     },
     {
       description: "Complex parameter types",
-      code: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2`,
+      code: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)`,
     },
   ],
   errorCases: [
@@ -155,7 +155,7 @@ describeCommand("exec", {
     {
       name: "should fail when providing invalid call params",
       script: `exec ${target} ${fnSig} false 1e18`,
-      error: "error when encoding approve call",
+      error: "<params>[0] must be a valid address, got false",
     },
     {
       name: "should fail when providing invalid value parameter",

@@ -7,6 +7,7 @@ import {
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_BYTES32_HELPERS,
+  STD_BYTES_HELPERS,
   STD_NUMBER_HELPERS,
   expect,
   getPublicClient,
@@ -95,9 +96,15 @@ describe("Completions – ens helpers", () => {
     evm = new EVMcrispr(client as PublicClient);
   });
 
-  const ALL_HELPERS = [...STD_ALL_HELPERS, "@contenthash"].sort();
+  const ENS_HELPERS = [
+    "@contenthash",
+    "@ens.avatar",
+    "@ens.name",
+    "@ens.text",
+  ];
+  const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
-  const BYTES32_HELPERS = [...STD_BYTES32_HELPERS, "@contenthash"].sort();
+  const BYTES32_HELPERS = STD_BYTES32_HELPERS;
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;
 
   const ENS = "load ens\n";
@@ -117,11 +124,12 @@ describe("Completions – ens helpers", () => {
       expect(helperItems).to.have.lengthOf(ALL_HELPERS.length);
     });
 
-    it("exec $c f(bytes32) <cursor> should include @contenthash", async () => {
-      const script = `${ENS}exec $c f(bytes32) `;
+    it("exec $c f(bytes) <cursor> should include @contenthash", async () => {
+      const script = `${ENS}exec $c f(bytes) `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
-      for (const h of BYTES32_HELPERS) {
+      const BYTES_HELPERS = [...STD_BYTES_HELPERS, "@contenthash"].sort();
+      for (const h of BYTES_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
       expect(hasLabel(helperItems, "@me")).to.be.false;

@@ -9,7 +9,7 @@ export default defineHelper<Std>({
     "Convert a human-readable token amount to its base unit (applying decimals).",
   returnType: "number",
   args: [
-    { name: "tokenSymbolOrAddress", type: "token-symbol" },
+    { name: "tokenSymbolOrAddress", type: "token-symbol", description: "Token symbol (e.g. `DAI`) or address" },
     { name: "amount", type: "number", description: "Human-readable amount" },
   ],
   async run(module, { tokenSymbolOrAddress, amount }) {

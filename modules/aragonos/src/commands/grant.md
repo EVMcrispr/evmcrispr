@@ -14,7 +14,7 @@ aragonos:grant <grantee> <app> <role> [permissionManager]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `grantee` | `address` |  |
+| `grantee` | `address` | Address to grant the permission to |
 | `app` | `app` | Target app |
 | `role` | `permission` | Permission identifier |
 | `[permissionManager]` | `app` | Entity managing this permission |

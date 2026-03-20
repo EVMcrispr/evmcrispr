@@ -16,7 +16,7 @@ Concatenate strings together.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `string` |  |
+| `first` | `string` | First string segment |
 | `[...rest]` | `string` | Strings to append |
 
 ## Examples

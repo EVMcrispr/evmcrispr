@@ -14,7 +14,7 @@ aragonos:revoke <grantee> <app> <role> [removeManager]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `grantee` | `address` |  |
+| `grantee` | `address` | Address whose permission is revoked |
 | `app` | `app` | Target app |
 | `role` | `permission` | Permission to revoke |
 | `[removeManager]` | `bool` | Also remove the permission manager |

@@ -1,8 +1,4 @@
-import {
-  defineCommand,
-  encodeAction,
-  parseSignatureParamTypes,
-} from "@evmcrispr/sdk";
+import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineCommand<Std>({
@@ -12,18 +8,7 @@ export default defineCommand<Std>({
   args: [
     { name: "contractAddress", type: "address", description: "Target contract address" },
     { name: "signature", type: "write-abi", description: "Function signature (e.g. `\"transfer(address,uint256)\"`)" },
-    {
-      name: "params",
-      type: "any", description: "Arguments matching the signature types",
-      rest: true,
-      resolveType: (ctx) => {
-        const sigNode = ctx.nodeArgs[1];
-        if (!sigNode?.value) return "any";
-        const paramTypes = parseSignatureParamTypes(sigNode.value);
-        const paramIndex = ctx.argIndex - 2;
-        return paramTypes[paramIndex] ?? "any";
-      },
-    },
+    { name: "params", type: "any", description: "Arguments matching the signature types", rest: true },
   ],
   opts: [
     { name: "value", type: "number", description: "ETH to send with the call (in wei)" },

@@ -7,7 +7,7 @@ export default defineCommand<Giveth>({
   name: "donate",
   description: "Send a donation to a Giveth project.",
   args: [
-    { name: "slug", type: "string" },
+    { name: "slug", type: "string", description: "Giveth project URL slug" },
     { name: "amount", type: "number", description: "Donation amount in token base units" },
     { name: "tokenAddr", type: "address", description: "Payment token address" },
   ],

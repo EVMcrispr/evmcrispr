@@ -14,9 +14,11 @@ import type { ArgType } from "./schema";
 
 export const isFunctionSignature = (signature: string) => {
   try {
-    parseAbiItem(`function ${signature} external`);
-    if (signature.includes(",)")) {
-      // Viem does not catch fn(a,) as invalid
+    const bare = signature.startsWith("function ")
+      ? signature.slice(9)
+      : signature;
+    parseAbiItem(`function ${bare} external`);
+    if (bare.includes(",)")) {
       return false;
     }
     return true;
@@ -96,6 +98,7 @@ export function toReadAbiSignature(func: AbiFunction): string {
 
 /** Map a Solidity type string to the nearest ArgType for completions. */
 function solidityTypeToArgType(solType: string): ArgType {
+  if (solType.endsWith("[]") || solType.startsWith("(")) return "array";
   if (solType === "bool") return "bool";
   if (solType === "address") return "address";
   if (solType === "string") return "string";
@@ -105,13 +108,16 @@ function solidityTypeToArgType(solType: string): ArgType {
   return "any";
 }
 
-/** Extract parameter types from a function signature string like `transfer(address,uint256)`. */
+/** Extract parameter types from a function signature string like `transfer(address,uint256)`.
+ *  Handles nested tuples via viem's parseAbiItem. */
 export function parseSignatureParamTypes(sig: string): ArgType[] {
-  const match = sig.match(/\(([^)]*)\)/);
-  if (!match) return [];
-  const inner = match[1].trim();
-  if (!inner) return [];
-  return inner.split(",").map((s) => solidityTypeToArgType(s.trim()));
+  try {
+    const bare = sig.startsWith("function ") ? sig.slice(9) : sig;
+    const item = parseAbiItem(`function ${bare} external`) as AbiFunction;
+    return item.inputs.map((p) => solidityTypeToArgType(formatAbiParamType(p)));
+  } catch {
+    return [];
+  }
 }
 
 /**
