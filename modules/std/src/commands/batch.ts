@@ -8,7 +8,6 @@ import {
   defineCommand,
   ErrorException,
   isTransactionAction,
-  resolveEventCaptures,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 
@@ -16,12 +15,9 @@ export default defineCommand<Std>({
   name: "batch",
   description: "Group multiple commands into a single transaction.",
   args: [{ name: "block", type: "block", description: "Block of commands" }],
-  async run(module, { block }, { node, interpreters }) {
-    const { interpretNode, actionCallback } = interpreters;
+  async run(module, { block }, { interpreters }) {
+    const { interpretNode } = interpreters;
 
-    // actionCallback is intentionally NOT forwarded here: nested commands
-    // must only collect actions, not execute them. Event captures (-> ...)
-    // are resolved on the batch itself once the combined transaction lands.
     const blockActions = (await interpretNode(block as BlockExpressionNode, {
       blockModule: module.contextualName,
     })) as Action[];
@@ -47,27 +43,6 @@ export default defineCommand<Std>({
       from,
       actions: txActions,
     };
-
-    // Handle event captures: dispatch action, decode receipt logs, store variables
-    if (node.eventCaptures && node.eventCaptures.length > 0) {
-      if (!actionCallback) {
-        throw new ErrorException(
-          "event capture requires an execution context with transaction access",
-        );
-      }
-
-      const receipt = await actionCallback(batched);
-
-      await resolveEventCaptures(
-        receipt as { logs: any[] },
-        undefined, // batch has no single contract ABI; inline signatures are used
-        node.eventCaptures,
-        module.bindingsManager,
-        interpretNode,
-      );
-
-      return []; // action already dispatched
-    }
 
     return [batched];
   },

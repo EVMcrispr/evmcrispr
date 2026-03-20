@@ -56,6 +56,37 @@ exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0
 
 <!-- HAND-WRITTEN -->
 
+## Error Captures
+
+Error captures (`-!>` / `-?!>`) catch transaction reverts and decode the error data into variables. Three forms are available after the error name: nothing (assertion only), destructure (`[...]`), or a boolean variable (`$var`).
+
+```evml
+# Assert a specific error without capturing data
+exec $c "deny()" -!> Unauthorized()
+
+# Destructure error arguments into variables
+exec $c "withdraw(uint256)" 200 -!> InsufficientBalance(uint256,uint256) [$balance $required]
+
+# Catch a require/revert reason
+exec $c "transfer(address,uint256)" @me 100e18 -!> Error(string) [$reason]
+
+# Boolean variable: $e is "true" if the error matched
+exec $c "deny()" -!> Unauthorized() $e
+
+# Generic catch-all (no error name)
+exec $c "doSomething()" -!> [$reason]
+exec $c "doSomething()" -!> $e
+
+# Optional: skip silently if tx succeeds
+exec $c "maybeRevert()" -?!> Error(string) [$reason]
+exec $c "maybeRevert()" -?!> Unauthorized() $e  # $e = "false" if tx succeeds or wrong error
+```
+
+- `-!>` expects the transaction to revert; throws if it succeeds
+- `-?!>` captures the error if the tx reverts; silently continues if it succeeds
+- With a boolean variable (`$e`), `-?!>` sets `$e = "false"` on success or mismatched error; `-!>` always sets `$e = "true"` (throws otherwise)
+- Supported error types: custom named errors, `Error(string)` (require/revert), `Panic(uint256)` (assert), and empty reverts
+
 ## Notes
 
 - The signature follows Solidity syntax: `"functionName(type1,type2)"`
@@ -63,6 +94,7 @@ exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0
 - Use `--value` to send ETH with the call
 - Use `--from` to impersonate a sender (requires simulation mode)
 - Event captures (`->`) execute the transaction immediately and store decoded log values in variables
+- Error captures (`-!>` / `-?!>`) catch and decode transaction reverts
 
 ## See Also
 

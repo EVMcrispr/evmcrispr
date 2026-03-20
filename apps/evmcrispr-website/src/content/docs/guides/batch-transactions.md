@@ -36,6 +36,28 @@ batch (
 ) -> Deposit(address indexed, uint) [_ $amount]
 ```
 
+## Error Captures on Batches
+
+You can capture revert errors from the entire batch. All three forms work:
+assertion only, destructure, or boolean variable.
+
+```evml
+# Destructure the error reason
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -!> Error(string) [$reason]
+
+# Assert a specific error without capturing data
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -!> Unauthorized()
+
+# Boolean variable with optional capture
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -?!> Unauthorized() $reverted
+```
+
 ## Nested Batching
 
 Batches can contain control flow and other constructs:

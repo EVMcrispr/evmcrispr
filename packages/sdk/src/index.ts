@@ -9,6 +9,7 @@ export {
   HaltExecution,
   HelperFunctionError,
   NodeError,
+  RevertError,
 } from "./errors";
 export { IPFS_GATEWAY, IPFSResolver } from "./IPFSResolver";
 export { Module } from "./Module";
@@ -48,6 +49,7 @@ export type {
   DestructurePatternNode,
   DestructureSlot,
   EnclosingNodeParser,
+  ErrorCaptureNode,
   EventCaptureNode,
   HelperArgDefEntry,
   HelperFunction,

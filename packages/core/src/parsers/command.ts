@@ -2,6 +2,7 @@ import type {
   CommandArgExpressionNode,
   CommandExpressionNode,
   CommandOptNode,
+  ErrorCaptureNode,
   EventCaptureNode,
   Node,
   NodeParser,
@@ -20,7 +21,7 @@ import {
   sequenceOf,
   str,
 } from "arcsecond";
-import { eventCaptureParser } from "./capture";
+import { errorCaptureParser, eventCaptureParser } from "./capture";
 import { commentParser } from "./comment";
 
 import { argumentExpressionParser, expressionParser } from "./expression";
@@ -96,6 +97,10 @@ const captureArrowLookahead = lookAhead(
   sequenceOf([whitespace, str("->"), whitespace]),
 );
 
+const errorCaptureArrowLookahead = lookAhead(
+  sequenceOf([whitespace, choice([str("-?!>"), str("-!>")]), whitespace]),
+);
+
 const isLastParameter = possibly(
   lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),
 );
@@ -143,7 +148,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               ),
             )
           ) {
-            return [module, name, [], [], []];
+            return [module, name, [], [], [], []];
           }
 
           do {
@@ -156,10 +161,13 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             }
 
             /**
-             * Check if there's an event capture arrow (->) ahead.
+             * Check if there's a capture arrow (->, -!>, -?!>) ahead.
              * If so, stop parsing args and move to capture parsing.
              */
             if (run(possibly(captureArrowLookahead))) {
+              break;
+            }
+            if (run(possibly(errorCaptureArrowLookahead))) {
               break;
             }
 
@@ -188,6 +196,22 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             eventCaptures.push(capture);
           }
 
+          // Parse error capture clauses (-!> or -?!> ErrorName ...)
+          const errorCaptures: ErrorCaptureNode[] = [];
+          while (
+            run(
+              possibly(
+                lookAhead(
+                  sequenceOf([whitespace, choice([str("-?!>"), str("-!>")])]),
+                ),
+              ),
+            )
+          ) {
+            run(whitespace);
+            const capture: ErrorCaptureNode = run(errorCaptureParser);
+            errorCaptures.push(capture);
+          }
+
           const args = commandArgsAndOpts.filter(
             (cArg) => cArg.type !== NodeType.CommandOpt,
           );
@@ -196,12 +220,15 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             (cArg) => cArg.type === NodeType.CommandOpt,
           ) as CommandOptNode[];
 
-          return [module, name, args, opts, eventCaptures];
+          return [module, name, args, opts, eventCaptures, errorCaptures];
         }),
         ({
           data,
           index,
-          result: [initialContext, [module, name, args, opts, eventCaptures]],
+          result: [
+            initialContext,
+            [module, name, args, opts, eventCaptures, errorCaptures],
+          ],
         }) => {
           const node: CommandExpressionNode = {
             type: NodeType.CommandExpression,
@@ -215,9 +242,13 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               offset: data.offset,
             }),
           };
-          const captures = eventCaptures as EventCaptureNode[];
-          if (captures && captures.length > 0) {
-            node.eventCaptures = captures;
+          const evtCaptures = eventCaptures as EventCaptureNode[];
+          if (evtCaptures && evtCaptures.length > 0) {
+            node.eventCaptures = evtCaptures;
+          }
+          const errCaptures = errorCaptures as ErrorCaptureNode[];
+          if (errCaptures && errCaptures.length > 0) {
+            node.errorCaptures = errCaptures;
           }
           return node;
         },

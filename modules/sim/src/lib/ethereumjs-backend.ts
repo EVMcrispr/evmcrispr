@@ -15,6 +15,7 @@ import {
   ErrorException,
   isRpcAction,
   isTransactionAction,
+  RevertError,
 } from "@evmcrispr/sdk";
 import { custom, type Transport } from "viem";
 
@@ -155,8 +156,14 @@ export async function createEthereumJSBackend(
 
     if (result.execResult.exceptionError) {
       await vm.evm.journal.revert();
-      throw new ErrorException(
+      const returnValue = result.execResult.returnValue;
+      const revertData =
+        returnValue && returnValue.length > 0
+          ? (bytesToHex(returnValue) as `0x${string}`)
+          : undefined;
+      throw new RevertError(
         `Transaction reverted: ${result.execResult.exceptionError.error}`,
+        revertData,
       );
     }
 

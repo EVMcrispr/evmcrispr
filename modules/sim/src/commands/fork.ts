@@ -7,6 +7,7 @@ import {
   isRpcAction,
   isTransactionAction,
   isWalletAction,
+  RevertError,
 } from "@evmcrispr/sdk";
 import {
   createPublicClient,
@@ -319,7 +320,29 @@ export default defineCommand<Sim>({
           });
           if (receipt.status === "reverted") {
             onError?.();
-            throw new ErrorException(`Transaction failed.`);
+            // Replay via eth_call to extract revert data
+            let revertData: `0x${string}` | undefined;
+            try {
+              await publicClient.call({
+                to: action.to,
+                data: action.data,
+                account: sender as `0x${string}`,
+                value: action.value,
+                gas: action.gas,
+                blockNumber: receipt.blockNumber,
+              });
+            } catch (callErr: any) {
+              if (callErr?.data && typeof callErr.data === "string" && callErr.data.startsWith("0x")) {
+                revertData = callErr.data as `0x${string}`;
+              } else if (callErr?.walk) {
+                callErr.walk((inner: any) => {
+                  if (!revertData && inner?.data && typeof inner.data === "string" && inner.data.startsWith("0x")) {
+                    revertData = inner.data as `0x${string}`;
+                  }
+                });
+              }
+            }
+            throw new RevertError(`Transaction failed.`, revertData);
           }
           return receipt;
         });

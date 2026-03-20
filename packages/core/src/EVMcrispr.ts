@@ -12,6 +12,8 @@ import type {
   DefValue,
   DestructurePatternNode,
   DestructureSlot,
+  ErrorCaptureNode,
+  EventCaptureNode,
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
@@ -28,6 +30,7 @@ import type {
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import {
+  abiBindingKey,
   BindingsManager,
   BindingsSpace,
   CommandError,
@@ -36,10 +39,15 @@ import {
   HaltExecution,
   HelperFunctionError,
   IPFSResolver,
+  isBatchedAction,
+  isTransactionAction,
   NodeError,
   NodeType,
   Num,
+  resolveErrorCaptures,
+  resolveEventCaptures,
   resolveHelper as resolveHelperFn,
+  setBoolVarsFalse,
   timeUnits,
 } from "@evmcrispr/sdk";
 import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
@@ -849,6 +857,122 @@ export class EVMcrispr {
     EVMcrispr.panic(n, "return destructure has no $ capture marker");
   }
 
+  async #executeWithCaptures(
+    c: CommandExpressionNode,
+    res: Action[] | void,
+    actionCallback: ((action: Action) => Promise<unknown>) | undefined,
+  ): Promise<Action[] | void> {
+    const hasEventCaptures =
+      c.eventCaptures != null && c.eventCaptures.length > 0;
+    const hasErrorCaptures =
+      c.errorCaptures != null && c.errorCaptures.length > 0;
+
+    if (!hasEventCaptures && !hasErrorCaptures) {
+      if (res && actionCallback) {
+        for (const action of res) {
+          await actionCallback(action);
+        }
+      }
+      return res;
+    }
+
+    if (!actionCallback) {
+      throw new ErrorException(
+        "captures require an execution context with transaction access",
+      );
+    }
+
+    if (!res || res.length === 0) {
+      throw new ErrorException(
+        "captures require a command that produces transaction actions",
+      );
+    }
+
+    for (const action of res) {
+      if (!isTransactionAction(action) && !isBatchedAction(action)) {
+        throw new ErrorException(
+          "captures require transaction actions (not RPC, wallet, or terminal actions)",
+        );
+      }
+    }
+
+    const tryLookupAbi = async (
+      actions: Action[],
+    ): Promise<Abi | undefined> => {
+      const first = actions[0];
+      if (isTransactionAction(first) && first.to) {
+        try {
+          const chainId = await this.#getClient().then((c) => c.getChainId());
+          return this.bindingsManager.getBindingValue(
+            abiBindingKey(chainId, first.to),
+            BindingsSpace.ABI,
+          ) as Abi | undefined;
+        } catch {
+          return undefined;
+        }
+      }
+      return undefined;
+    };
+
+    if (hasEventCaptures) {
+      const allLogs: any[] = [];
+      for (const action of res) {
+        const receipt = await actionCallback(action);
+        if (receipt && typeof receipt === "object" && "logs" in receipt) {
+          allLogs.push(...(receipt as { logs: any[] }).logs);
+        }
+      }
+
+      const abi = await tryLookupAbi(res);
+
+      await resolveEventCaptures(
+        { logs: allLogs },
+        abi,
+        c.eventCaptures as EventCaptureNode[],
+        this.bindingsManager,
+        this.interpretNode,
+      );
+
+      return [];
+    }
+
+    // Error captures
+    const abi = await tryLookupAbi(res);
+
+    try {
+      for (const action of res) {
+        await actionCallback(action);
+      }
+      const required = (c.errorCaptures as ErrorCaptureNode[]).find(
+        (cap) => !cap.optional,
+      );
+      if (required) {
+        throw new ErrorException(
+          "expected transaction to revert but it succeeded",
+        );
+      }
+      setBoolVarsFalse(
+        c.errorCaptures as ErrorCaptureNode[],
+        this.bindingsManager,
+      );
+      return [];
+    } catch (err) {
+      if (
+        err instanceof ErrorException &&
+        err.message === "expected transaction to revert but it succeeded"
+      ) {
+        throw err;
+      }
+      await resolveErrorCaptures(
+        err,
+        abi,
+        c.errorCaptures as ErrorCaptureNode[],
+        this.bindingsManager,
+      );
+      return [];
+    }
+  }
+
   #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
     c,
     { actionCallback } = {},
@@ -870,18 +994,13 @@ export class EVMcrispr {
             actionCallback,
           });
 
-          if (res && actionCallback) {
-            for (const action of res) {
-              await actionCallback(action);
-            }
-          }
+          return await this.#executeWithCaptures(c, res, actionCallback);
         } catch (err) {
           if (err instanceof NodeError || err instanceof HaltExecution) {
             throw err;
           }
           EVMcrispr.panic(c, (err as Error).message);
         }
-        return res;
       }
     }
 
@@ -910,11 +1029,7 @@ export class EVMcrispr {
         actionCallback,
       });
 
-      if (res && actionCallback) {
-        for (const action of res) {
-          await actionCallback(action);
-        }
-      }
+      return await this.#executeWithCaptures(c, res, actionCallback);
     } catch (err) {
       // Avoid wrapping a node error insde another node error
       if (err instanceof NodeError || err instanceof HaltExecution) {
@@ -925,8 +1040,6 @@ export class EVMcrispr {
 
       EVMcrispr.panic(c, err_.message);
     }
-
-    return res;
   };
 
   #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {

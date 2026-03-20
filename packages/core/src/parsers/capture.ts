@@ -1,5 +1,6 @@
 import type {
   DestructureSlot,
+  ErrorCaptureNode,
   EventCaptureNode,
   Node,
   NodeParser,
@@ -257,6 +258,131 @@ export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
         }
         if (occurrence !== undefined) {
           node.occurrence = occurrence as number;
+        }
+
+        return node;
+      },
+    ),
+);
+
+// ── Error capture parsers ────────────────────────────────────────────
+
+/**
+ * Matches `-?!>` (optional) or `-!>` (required) error capture arrow.
+ * Returns `true` for optional (`-?!>`), `false` for required (`-!>`).
+ */
+const errorCaptureArrowParser = choice([
+  str("-?!>").map(() => true),
+  str("-!>").map(() => false),
+]);
+
+/**
+ * Look-ahead that checks for `-!>` or `-?!>` without consuming.
+ */
+export const errorCaptureArrowLookahead = lookAhead(
+  sequenceOf([choice([str("-?!>"), str("-!>")]), whitespace]),
+);
+
+/**
+ * Matches a complete error capture clause:
+ *   `(-!> | -?!>) ErrorName(params)? ([captures] | $boolVar)?`
+ *   `(-!> | -?!>) [captures]`           (generic catch-all + destructure)
+ *   `(-!> | -?!>) $boolVar`             (generic catch-all + bool var)
+ *
+ * Examples:
+ *   `-!> InsufficientBalance(uint256,uint256) [$balance $required]`
+ *   `-!> Error(string) [$reason]`
+ *   `-!> Panic(uint256) [$code]`
+ *   `-!> Unauthorized()`
+ *   `-!> [$reason]`
+ *   `-!> $e`
+ *   `-?!> Unauthorized() $e`
+ *   `-?!> CustomError(address) [$addr]`
+ */
+export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
+  () =>
+    locate<ErrorCaptureNode>(
+      coroutine((run) => {
+        const optional: boolean = run(errorCaptureArrowParser);
+        run(whitespace);
+
+        const nextChar = run(
+          possibly(lookAhead(choice([char("["), char("$")]))),
+        );
+
+        let errorName: string | undefined;
+        let errorParams: string[] | null = null;
+        let captures: DestructureSlot[] = [];
+        let boolVar: string | undefined;
+
+        if (nextChar === "[") {
+          captures = run(captureSlotsParser);
+        } else if (nextChar === "$") {
+          boolVar = run(captureVariableParser);
+        } else {
+          errorName = run(
+            eventNameParser.errorMap((err) =>
+              buildParserError(
+                err,
+                CAPTURE_PARSER_ERROR,
+                "Expecting an error name, [captures], or $boolVar",
+              ),
+            ),
+          );
+
+          errorParams = run(possibly(eventParamsParser));
+
+          const hasDestructure = run(
+            possibly(lookAhead(sequenceOf([whitespace, char("[")]))),
+          );
+          const hasBoolVar =
+            !hasDestructure &&
+            run(possibly(lookAhead(sequenceOf([whitespace, char("$")]))));
+
+          if (hasDestructure) {
+            run(whitespace);
+            captures = run(captureSlotsParser);
+          } else if (hasBoolVar) {
+            run(whitespace);
+            boolVar = run(captureVariableParser);
+          }
+        }
+
+        return [optional, errorName, errorParams, captures, boolVar];
+      }).errorMap((err) =>
+        buildParserError(
+          err,
+          CAPTURE_PARSER_ERROR,
+          "Expecting a valid error capture clause",
+        ),
+      ),
+      ({
+        data,
+        index,
+        result: [
+          initialContext,
+          [optional, errorName, errorParams, captures, boolVar],
+        ],
+      }) => {
+        const node: ErrorCaptureNode = {
+          type: NodeType.ErrorCapture,
+          optional: optional as boolean,
+          captures: captures as DestructureSlot[],
+          loc: createNodeLocation(initialContext, {
+            line: data.line,
+            index,
+            offset: data.offset,
+          }),
+        };
+
+        if (errorName) {
+          node.errorName = errorName as string;
+        }
+        if (errorParams) {
+          node.errorParams = errorParams as string[];
+        }
+        if (boolVar) {
+          node.boolVar = boolVar as string;
         }
 
         return node;

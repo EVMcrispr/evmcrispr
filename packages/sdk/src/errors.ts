@@ -137,6 +137,19 @@ export class ExpressionError extends NodeError {
 }
 
 /**
+ * A blockchain transaction revert carrying the raw ABI-encoded revert data.
+ * Used by error capture (`-!>` / `-?!>`) to decode revert reasons and custom errors.
+ * @category Error
+ */
+export class RevertError extends ErrorException {
+  revertData: `0x${string}` | undefined;
+  constructor(message: string, revertData?: `0x${string}`) {
+    super(message, { name: "RevertError", code: "RevertError" });
+    this.revertData = revertData;
+  }
+}
+
+/**
  * Thrown to cleanly halt script execution (e.g. by the `halt` command).
  * Not an error — signals an intentional early stop.
  * @category Error

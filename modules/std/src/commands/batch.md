@@ -28,11 +28,26 @@ batch (
 
 <!-- HAND-WRITTEN -->
 
+## Error Captures on Batches
+
+Error captures on a batch catch the combined transaction revert:
+
+```evml
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -!> Error(string) [$reason]
+
+# Assertion only, boolean variable, and optional forms all work
+batch (...) -!> Unauthorized()
+batch (...) -?!> Unauthorized() $reverted
+```
+
 ## Notes
 
 - All commands in the batch are combined into a single multicall transaction
 - If any command in the batch reverts, the entire batch reverts
-- Event captures on a batch apply to the combined transaction receipt
+- Event captures (`->`) on a batch apply to the combined transaction receipt
+- Error captures (`-!>` / `-?!>`) on a batch catch the combined transaction revert
 
 ## See Also
 

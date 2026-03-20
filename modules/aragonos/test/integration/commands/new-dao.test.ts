@@ -15,8 +15,11 @@ describeCommand("new-dao", {
 });
 
 import type AragonOS from "@evmcrispr/module-aragonos";
+import { EVMcrispr } from "@evmcrispr/core";
 import {
+  type Action,
   BindingsSpace,
+  isTransactionAction,
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import {
@@ -27,6 +30,7 @@ import {
 } from "@evmcrispr/test-utils";
 import type { Address, PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, isAddressEqual, parseAbiParameters } from "viem";
+import { gnosis } from "viem/chains";
 
 describe("AragonOS > commands > new-dao <daoName>", () => {
   let client: PublicClient;
@@ -80,5 +84,52 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
       ),
       "new DAO binding mismatch",
     ).to.be.true;
+  });
+});
+
+function createActionCallback(
+  wc: WalletClient,
+  pc: PublicClient,
+): (action: Action) => Promise<any> {
+  return async (action: Action) => {
+    if (!isTransactionAction(action)) {
+      throw new Error("Unexpected action type");
+    }
+    const hash = await wc.sendTransaction({
+      account: wc.account!,
+      chain: gnosis,
+      to: action.to,
+      data: action.data,
+      value: action.value,
+      gas: 5_000_000n,
+    });
+    return pc.waitForTransactionReceipt({ hash });
+  };
+}
+
+describe("AragonOS > commands > new-dao > event capture", () => {
+  let client: PublicClient;
+  let walletClient: WalletClient;
+
+  beforeAll(() => {
+    client = getPublicClient();
+    [walletClient] = getWalletClients();
+  });
+
+  it("should capture DeployDAO event address from new-dao command", async () => {
+    const evm = new EVMcrispr(client, walletClient.account!.address);
+    const actionCallback = createActionCallback(walletClient, client);
+
+    await evm.interpret(
+      `load aragonos --as ar
+       ar:new-dao $dao "capture-test-dao" -> DeployDAO(address) [$daoAddr]`,
+      actionCallback,
+    );
+
+    const daoBinding = evm.getBinding("$dao", BindingsSpace.USER) as Address;
+    const capturedAddr = evm.getBinding("$daoAddr", BindingsSpace.USER) as Address;
+
+    expect(capturedAddr).to.not.be.undefined;
+    expect(isAddressEqual(daoBinding, capturedAddr)).to.be.true;
   });
 });

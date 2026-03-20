@@ -38,6 +38,21 @@ raw @token(DAI) $data
 
 <!-- HAND-WRITTEN -->
 
+## Error Captures
+
+Like `exec`, `raw` supports error captures (`-!>` / `-?!>`):
+
+```evml
+# Assert the raw call reverts with a specific error
+raw $contract 0xa3fdfee3 -!> Unauthorized()
+
+# Capture the revert reason
+raw $contract $calldata -!> Error(string) [$reason]
+
+# Boolean variable
+raw $contract $calldata -?!> Unauthorized() $e
+```
+
 ## See Also
 
 - [exec](exec.md) — call a contract by signature (auto-encodes)

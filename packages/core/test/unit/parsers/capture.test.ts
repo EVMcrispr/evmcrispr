@@ -1,7 +1,10 @@
 import { describe, it } from "bun:test";
 import type { CommandExpressionNode } from "@evmcrispr/sdk";
 import { expect, runParser } from "@evmcrispr/test-utils";
-import { eventCaptureParser } from "../../../src/parsers/capture";
+import {
+  errorCaptureParser,
+  eventCaptureParser,
+} from "../../../src/parsers/capture";
 import { commandExpressionParser } from "../../../src/parsers/command";
 import { parseScript } from "../../../src/parsers/script";
 
@@ -276,6 +279,352 @@ describe("Parsers - event capture", () => {
         eventParams: ["address", "uint"],
         captures: [null, "amount"],
       });
+    });
+  });
+});
+
+describe("Parsers - error capture", () => {
+  describe("errorCaptureParser", () => {
+    it("should parse a required error capture with named error", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-!> InsufficientBalance(uint256,uint256) [$balance $required]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "InsufficientBalance",
+        errorParams: ["uint256", "uint256"],
+        optional: false,
+        captures: ["balance", "required"],
+      });
+    });
+
+    it("should parse an optional error capture", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-?!> InsufficientBalance(uint256) [$balance]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "InsufficientBalance",
+        errorParams: ["uint256"],
+        optional: true,
+        captures: ["balance"],
+      });
+    });
+
+    it("should parse Error(string) capture", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-!> Error(string) [$reason]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Error",
+        errorParams: ["string"],
+        optional: false,
+        captures: ["reason"],
+      });
+    });
+
+    it("should parse Panic(uint256) capture", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-!> Panic(uint256) [$code]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Panic",
+        errorParams: ["uint256"],
+        optional: false,
+        captures: ["code"],
+      });
+    });
+
+    it("should parse generic catch-all (no error name)", () => {
+      const result = runParser(errorCaptureParser, "-!> [$reason]");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        optional: false,
+        captures: ["reason"],
+      });
+      expect(result.errorName).to.be.undefined;
+      expect(result.errorParams).to.be.undefined;
+    });
+
+    it("should parse optional generic catch-all", () => {
+      const result = runParser(errorCaptureParser, "-?!> [$reason]");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        optional: true,
+        captures: ["reason"],
+      });
+      expect(result.errorName).to.be.undefined;
+    });
+
+    it("should parse named error without inline params", () => {
+      const result = runParser(errorCaptureParser, "-!> Unauthorized []");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        optional: false,
+        captures: [],
+      });
+      expect(result.errorParams).to.be.undefined;
+    });
+
+    it("should parse error capture with holes", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-!> MyError(address,uint256,bool) [_ $amount _]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "MyError",
+        errorParams: ["address", "uint256", "bool"],
+        optional: false,
+        captures: [null, "amount", null],
+      });
+    });
+
+    it("should parse error capture with nested destructure", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-!> TupleError(uint256,(address,uint256)) [$x [_ $y]]",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "TupleError",
+        errorParams: ["uint256", "(address,uint256)"],
+        captures: ["x", [null, "y"]],
+      });
+    });
+
+    it("should parse named error with empty parens and no capture", () => {
+      const result = runParser(errorCaptureParser, "-!> Unauthorized()");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        errorParams: [],
+        optional: false,
+        captures: [],
+      });
+      expect(result.boolVar).to.be.undefined;
+    });
+
+    it("should parse named error without parens and no capture", () => {
+      const result = runParser(errorCaptureParser, "-!> Unauthorized");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        optional: false,
+        captures: [],
+      });
+      expect(result.errorParams).to.be.undefined;
+      expect(result.boolVar).to.be.undefined;
+    });
+
+    it("should parse named error with bool var", () => {
+      const result = runParser(errorCaptureParser, "-!> Unauthorized() $e");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        errorParams: [],
+        optional: false,
+        captures: [],
+        boolVar: "e",
+      });
+    });
+
+    it("should parse optional named error with bool var", () => {
+      const result = runParser(errorCaptureParser, "-?!> Unauthorized() $e");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        errorParams: [],
+        optional: true,
+        captures: [],
+        boolVar: "e",
+      });
+    });
+
+    it("should parse named error with params and bool var", () => {
+      const result = runParser(
+        errorCaptureParser,
+        "-?!> InsufficientBalance(uint256,uint256) $matched",
+      );
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "InsufficientBalance",
+        errorParams: ["uint256", "uint256"],
+        optional: true,
+        captures: [],
+        boolVar: "matched",
+      });
+    });
+
+    it("should parse generic catch-all with bool var", () => {
+      const result = runParser(errorCaptureParser, "-!> $e");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        optional: false,
+        captures: [],
+        boolVar: "e",
+      });
+      expect(result.errorName).to.be.undefined;
+    });
+
+    it("should parse optional generic catch-all with bool var", () => {
+      const result = runParser(errorCaptureParser, "-?!> $caught");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        optional: true,
+        captures: [],
+        boolVar: "caught",
+      });
+      expect(result.errorName).to.be.undefined;
+    });
+  });
+
+  describe("commandExpressionParser with error captures", () => {
+    it("should parse exec with required error capture", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "transfer(address,uint256)" @me 100e18 -!> InsufficientBalance(uint256,uint256) [$balance $required]',
+      );
+      expect(result.type).to.equal("CommandExpression");
+      expect(result.name).to.equal("exec");
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "InsufficientBalance",
+        errorParams: ["uint256", "uint256"],
+        optional: false,
+        captures: ["balance", "required"],
+      });
+      expect(result.eventCaptures).to.be.undefined;
+    });
+
+    it("should parse exec with optional error capture", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "transfer(address,uint256)" @me 100e18 -?!> Error(string) [$reason]',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Error",
+        errorParams: ["string"],
+        optional: true,
+        captures: ["reason"],
+      });
+    });
+
+    it("should parse exec with generic error capture", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "doSomething()" -!> [$reason]',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        optional: false,
+        captures: ["reason"],
+      });
+      expect(result.errorCaptures[0].errorName).to.be.undefined;
+    });
+
+    it("should parse exec without error captures (no errorCaptures property)", () => {
+      const result = runParser(
+        commandExpressionParser,
+        "exec $c withdraw() 100",
+      );
+      expect(result.type).to.equal("CommandExpression");
+      expect(result.errorCaptures).to.be.undefined;
+    });
+
+    it("should parse exec with error capture and comment", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "transfer()" -!> Error(string) [$reason] # catch the error',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Error",
+        errorParams: ["string"],
+        captures: ["reason"],
+      });
+    });
+
+    it("should parse batch with block expression followed by error capture", () => {
+      const script = `batch (
+  exec $c deposit() --value 1e18
+  exec $c withdraw(uint) 1e18
+) -!> Error(string) [$reason]`;
+
+      const { ast, errors } = parseScript(script);
+      expect(errors).to.have.lengthOf(0);
+
+      const batchNode = ast.body[0] as CommandExpressionNode;
+      expect(batchNode.type).to.equal("CommandExpression");
+      expect(batchNode.name).to.equal("batch");
+      expect(batchNode.args).to.have.lengthOf(1);
+      expect(batchNode.errorCaptures).to.have.lengthOf(1);
+      expect(batchNode.errorCaptures![0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Error",
+        errorParams: ["string"],
+        optional: false,
+        captures: ["reason"],
+      });
+    });
+
+    it("should parse exec with named error and no capture", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "transfer(address,uint256)" @me 100e18 -!> Unauthorized()',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        errorParams: [],
+        optional: false,
+        captures: [],
+      });
+      expect(result.errorCaptures[0].boolVar).to.be.undefined;
+    });
+
+    it("should parse exec with named error and bool var", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "transfer(address,uint256)" @me 100e18 -?!> Unauthorized() $e',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        errorName: "Unauthorized",
+        errorParams: [],
+        optional: true,
+        captures: [],
+        boolVar: "e",
+      });
+    });
+
+    it("should parse exec with generic bool var error capture", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "doSomething()" -?!> $reverted',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(1);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        optional: true,
+        captures: [],
+        boolVar: "reverted",
+      });
+      expect(result.errorCaptures[0].errorName).to.be.undefined;
     });
   });
 });

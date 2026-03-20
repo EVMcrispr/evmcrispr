@@ -24,6 +24,7 @@ export enum NodeType {
 
   CommandOpt = "CommandOpt",
   EventCapture = "EventCapture",
+  ErrorCapture = "ErrorCapture",
 }
 
 export type LiteralExpression =
@@ -133,6 +134,20 @@ export interface EventCaptureNode extends Node {
   captures: DestructureSlot[];
 }
 
+export interface ErrorCaptureNode extends Node {
+  type: NodeType.ErrorCapture;
+  /** Error name (e.g. "InsufficientBalance"). Undefined = generic catch-all. */
+  errorName?: string;
+  /** Inline error param types from ErrorName(uint,address) syntax. */
+  errorParams?: string[];
+  /** If true, this is -?!> (optional -- no error is not a failure). */
+  optional: boolean;
+  /** Positional capture slots (variable names without $, null = skip, array = nested). */
+  captures: DestructureSlot[];
+  /** Variable name (without $) for boolean capture — mutually exclusive with captures. */
+  boolVar?: string;
+}
+
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
   module?: string;
@@ -140,6 +155,7 @@ export interface CommandExpressionNode extends Node {
   args: Node[];
   opts: CommandOptNode[];
   eventCaptures?: EventCaptureNode[];
+  errorCaptures?: ErrorCaptureNode[];
 }
 
 export interface CommandOptNode extends Node {

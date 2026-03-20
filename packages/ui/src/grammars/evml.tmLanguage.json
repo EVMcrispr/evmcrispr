@@ -70,6 +70,14 @@
           "name": "keyword.operator.namespace.evml"
         },
         {
+          "match": "-\\?!>",
+          "name": "keyword.operator.error-capture-optional.evml"
+        },
+        {
+          "match": "-!>",
+          "name": "keyword.operator.error-capture.evml"
+        },
+        {
           "match": "->",
           "name": "keyword.operator.arrow.evml"
         },
