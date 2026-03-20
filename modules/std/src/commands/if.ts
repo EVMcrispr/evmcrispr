@@ -6,7 +6,7 @@ export default defineCommand<Std>({
   name: "if",
   description: "Conditionally execute a block of commands, with an optional else block.",
   args: [
-    { name: "condition", type: "bool" },
+    { name: "condition", type: "bool", description: "Whether to execute the then block" },
     { name: "thenBlock", type: "block", description: "Commands when condition is true" },
     { name: "elseBlock", type: "block", description: "Commands when condition is false", optional: true },
   ],

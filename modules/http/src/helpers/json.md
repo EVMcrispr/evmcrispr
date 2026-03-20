@@ -16,7 +16,7 @@ Parse a JSON string and extract a value by path.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `data` | `string` |  |
+| `data` | `string` | JSON string to parse |
 | `path` | `json-path` | JSONPath expression (e.g. `data.items[0].name`) |
 
 ## Examples

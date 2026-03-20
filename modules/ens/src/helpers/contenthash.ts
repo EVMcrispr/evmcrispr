@@ -5,7 +5,7 @@ import type Ens from "..";
 export default defineHelper<Ens>({
   name: "contenthash",
   description: "Encode a content hash (ipfs, ipns, skynet) for ENS records.",
-  returnType: "bytes32",
+  returnType: "bytes",
   args: [{ name: "input", type: "string", description: "Content hash (e.g. \"ipfs:Qm...\")" }],
   async run(_, { input }) {
     const [codec, hash] = input.split(":");

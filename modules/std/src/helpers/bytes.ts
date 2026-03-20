@@ -44,7 +44,7 @@ export default defineHelper<Std>({
     "Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation.",
   returnType: "bytes",
   args: [
-    { name: "a", type: "any" },
+    { name: "a", type: "any", description: "Value to convert or left operand" },
     { name: "b", type: "string", description: "Operator (`&` `|` `<<` `>>`) or `utf8`", optional: true },
     { name: "c", type: "any", description: "Right operand for bitwise ops", optional: true },
   ],

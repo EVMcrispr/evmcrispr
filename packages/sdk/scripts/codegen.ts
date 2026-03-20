@@ -29,7 +29,6 @@ interface ArgDefMeta {
   optional?: boolean;
   rest?: boolean;
   description?: string;
-  signatureArgIndex?: number;
 }
 
 interface HelperMeta {
@@ -90,8 +89,6 @@ function extractArgDefs(content: string): ArgDefMeta[] {
     if (/rest:\s*true/.test(obj)) arg.rest = true;
     const descMatch = obj.match(/description:\s*["']([^"']+)["']/);
     if (descMatch) arg.description = descMatch[1];
-    const sigArgIdxMatch = obj.match(/signatureArgIndex:\s*(\d+)/);
-    if (sigArgIdxMatch) arg.signatureArgIndex = parseInt(sigArgIdxMatch[1], 10);
     result.push(arg);
   }
 
@@ -174,8 +171,6 @@ if (helperNames.length > 0) {
           if (a.rest) props.push("rest: true");
           if (a.description)
             props.push(`description: ${JSON.stringify(a.description)}`);
-          if (a.signatureArgIndex != null)
-            props.push(`signatureArgIndex: ${a.signatureArgIndex}`);
           return `{ ${props.join(", ")} }`;
         })
         .join(", ");

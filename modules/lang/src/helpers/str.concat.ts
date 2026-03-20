@@ -6,7 +6,7 @@ export default defineHelper<Lang>({
   description: "Concatenate strings together.",
   returnType: "string",
   args: [
-    { name: "first", type: "string" },
+    { name: "first", type: "string", description: "First string segment" },
     { name: "rest", type: "string", description: "Strings to append", rest: true },
   ],
   async run(_, { first, rest }) {

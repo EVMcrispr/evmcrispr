@@ -20,6 +20,7 @@ import {
 import {
   type ArgDef,
   type ArgType,
+  buildRuntimeResolver,
   type OptDef,
   validateArgType,
 } from "./schema";
@@ -223,7 +224,8 @@ export function defineCommand<M extends Module>(
       }
 
       // 5. Validate argument types (skip special types)
-      for (const def of argDefs) {
+      for (let vi = 0; vi < argDefs.length; vi++) {
+        const def = argDefs[vi];
         if (isSpecialType(def.type)) continue;
         const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
         const value = parsedArgs[def.name];
@@ -231,7 +233,20 @@ export function defineCommand<M extends Module>(
           validateArgType(formatted, value, def.type, module.types);
         }
         if (def.rest && Array.isArray(value)) {
-          if (def.type !== "any") {
+          const resolver = buildRuntimeResolver(argDefs, vi);
+          if (resolver) {
+            for (let ri = 0; ri < value.length; ri++) {
+              const resolved = resolver(parsedArgs, ri);
+              if (resolved !== "any") {
+                validateArgType(
+                  `${formatted}[${ri}]`,
+                  value[ri],
+                  resolved,
+                  module.types,
+                );
+              }
+            }
+          } else if (def.type !== "any") {
             for (const item of value) {
               validateArgType(formatted, item, def.type, module.types);
             }

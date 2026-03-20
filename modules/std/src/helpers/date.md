@@ -16,7 +16,7 @@ Parse a date string into a Unix timestamp, with an optional offset.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `date` | `string` |  |
+| `date` | `string` | ISO 8601 date string or `now` |
 | `[offset]` | `string` | Time offset (e.g. `+1d`, `-2h`, `+3mo`) |
 
 ## Examples

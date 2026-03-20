@@ -16,7 +16,7 @@ Concatenate bytes values together.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `bytes` |  |
+| `first` | `bytes` | First bytes value |
 | `[...rest]` | `bytes` | Bytes values to append |
 
 ## Examples

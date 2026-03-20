@@ -16,7 +16,7 @@ Concatenate arrays together.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `array` |  |
+| `first` | `array` | First array to concatenate |
 | `[...rest]` | `array` | Additional arrays to append |
 
 ## Examples

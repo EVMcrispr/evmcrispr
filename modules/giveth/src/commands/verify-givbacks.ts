@@ -8,7 +8,7 @@ export default defineCommand<Giveth>({
   name: "verify-givbacks",
   description: "Verify a GIVbacks vote against its IPFS proposal and vote if valid.",
   args: [
-    { name: "hash", type: "any" },
+    { name: "hash", type: "any", description: "IPFS CID of the GIVbacks proposal data" },
     { name: "voteId", type: "any", description: "Governance vote ID to verify" },
   ],
   opts: [{ name: "relayer", type: "any", description: "Relayer address for transaction submission" }],

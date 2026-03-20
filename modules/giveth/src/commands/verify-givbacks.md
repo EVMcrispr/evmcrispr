@@ -14,7 +14,7 @@ giveth:verify-givbacks <hash> <voteId>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `hash` | `any` |  |
+| `hash` | `any` | IPFS CID of the GIVbacks proposal data |
 | `voteId` | `any` | Governance vote ID to verify |
 
 ## Options

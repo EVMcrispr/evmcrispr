@@ -16,7 +16,7 @@ Fetch a URL and return the response body as a string.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `url` | `string` |  |
+| `url` | `string` | Request URL |
 | `[method]` | `string` | HTTP method (`GET`, `POST`, etc.) |
 | `[body]` | `string` | Request body (JSON string) |
 | `[auth]` | `string` | Authorization header value |

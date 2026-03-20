@@ -14,7 +14,7 @@ giveth:donate <slug> <amount> <tokenAddr>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `slug` | `string` |  |
+| `slug` | `string` | Giveth project URL slug |
 | `amount` | `number` | Donation amount in token base units |
 | `tokenAddr` | `address` | Payment token address |
 

@@ -114,7 +114,7 @@ export default defineHelper<Http>({
   description: "Construct a JSON string from a template and an array of values.",
   returnType: "string",
   args: [
-    { name: "template", type: "string" },
+    { name: "template", type: "string", description: "Brace-wrapped template listing JSON object keys" },
     { name: "values", type: "array", description: "Values to substitute into template" },
   ],
   async run(_, { template, values }) {

@@ -9,7 +9,12 @@ import type {
 import { BindingsSpace, NodeType } from "../types";
 import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
 import type { Param } from "./encoders";
-import { type ArgDef, type ArgType, validateArgType } from "./schema";
+import {
+  type ArgDef,
+  type ArgType,
+  buildRuntimeResolver,
+  validateArgType,
+} from "./schema";
 
 export interface HelperContext {
   node: HelperFunctionNode;
@@ -122,7 +127,8 @@ export function defineHelper<M extends Module>(
     }
 
     // 3. Validate argument types
-    for (const def of argDefs) {
+    for (let vi = 0; vi < argDefs.length; vi++) {
+      const def = argDefs[vi];
       if (def.type === "helper") continue;
       const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
       const value = parsedArgs[def.name];
@@ -130,7 +136,20 @@ export function defineHelper<M extends Module>(
         validateArgType(formatted, value, def.type, module.types);
       }
       if (def.rest && Array.isArray(value)) {
-        if (def.type !== "any") {
+        const resolver = buildRuntimeResolver(argDefs, vi);
+        if (resolver) {
+          for (let ri = 0; ri < value.length; ri++) {
+            const resolved = resolver(parsedArgs, ri);
+            if (resolved !== "any") {
+              validateArgType(
+                `${formatted}[${ri}]`,
+                value[ri],
+                resolved,
+                module.types,
+              );
+            }
+          }
+        } else if (def.type !== "any") {
           for (const item of value) {
             validateArgType(formatted, item, def.type, module.types);
           }
@@ -145,8 +164,22 @@ export function defineHelper<M extends Module>(
       }
     }
 
-    // 5. Call user's run function
-    return run(module as M, parsedArgs, { node: h, interpreters });
+    // 5. Call user's run function and validate return type
+    const result = await run(module as M, parsedArgs, {
+      node: h,
+      interpreters,
+    });
+
+    if (config.returnType && config.returnType !== "any") {
+      validateArgType(
+        `@${config.name} return value`,
+        result,
+        config.returnType,
+        module.types,
+      );
+    }
+
+    return result;
   };
 
   if (config.description) {

@@ -16,7 +16,7 @@ Convert a human-readable token amount to its base unit (applying decimals).
 
 | Name | Type | Description |
 |------|------|-------------|
-| `tokenSymbolOrAddress` | `token-symbol` |  |
+| `tokenSymbolOrAddress` | `token-symbol` | Token symbol (e.g. `DAI`) or address |
 | `amount` | `number` | Human-readable amount |
 
 ## Examples

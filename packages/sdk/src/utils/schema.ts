@@ -10,6 +10,8 @@ import { Num } from "./Num";
 import {
   isFunctionSignature,
   isReadAbiSignature,
+  parseReadAbiParamTypes,
+  parseSignatureParamTypes,
   toReadAbiSignature,
 } from "./web3";
 
@@ -58,12 +60,43 @@ export interface ArgDef {
   rest?: boolean;
   /** Human-readable description for documentation. */
   description?: string;
-  /** Dynamically resolve the effective type at completion time. */
-  resolveType?: (ctx: CompletionContext) => ArgType;
-  /** For rest args: resolve effective type from the function signature in
-   *  the arg at this index (e.g. `1` means use `nodeArgs[1].value`).
-   *  Declarative alternative to `resolveType`. */
-  signatureArgIndex?: number;
+}
+
+/**
+ * Scan backward from `restIndex` to find a `write-abi` or `read-abi` arg
+ * whose signature should drive type resolution for the rest params.
+ */
+export function findAbiArgForRest(
+  argDefs: readonly { type: ArgType }[],
+  restIndex: number,
+): { sigIndex: number; isReadAbi: boolean } | undefined {
+  for (let i = restIndex - 1; i >= 0; i--) {
+    const t = argDefs[i].type;
+    if (t === "write-abi") return { sigIndex: i, isReadAbi: false };
+    if (t === "read-abi") return { sigIndex: i, isReadAbi: true };
+  }
+  return undefined;
+}
+
+/**
+ * Build a runtime type resolver for a rest arg that follows an ABI-typed arg.
+ * Returns `undefined` when no ABI arg precedes the rest arg.
+ */
+export function buildRuntimeResolver(
+  argDefs: ArgDef[],
+  restIndex: number,
+): ((parsedArgs: Record<string, any>, i: number) => ArgType) | undefined {
+  const found = findAbiArgForRest(argDefs, restIndex);
+  if (!found) return undefined;
+  const sigName = argDefs[found.sigIndex].name;
+  const parser = found.isReadAbi
+    ? parseReadAbiParamTypes
+    : parseSignatureParamTypes;
+  return (parsedArgs, i) => {
+    const sig = parsedArgs[sigName];
+    if (!sig) return "any";
+    return parser(sig)[i] ?? "any";
+  };
 }
 
 export interface OptDef {

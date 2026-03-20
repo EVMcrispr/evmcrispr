@@ -47,7 +47,7 @@ export default defineCommand<Sim>({
   name: "wait",
   description: "Advance time and mine blocks in a fork simulation.",
   args: [
-    { name: "duration", type: "number" },
+    { name: "duration", type: "number", description: "Simulated time to advance, in seconds" },
     { name: "period", type: "number", description: "Seconds per block", optional: true },
   ],
   async run(module, { duration, period: rawPeriod }) {

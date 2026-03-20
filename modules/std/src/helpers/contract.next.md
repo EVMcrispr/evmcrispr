@@ -16,7 +16,7 @@ Predict the next contract address deployed by a given account.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `creator` | `address` |  |
+| `creator` | `address` | Deployer address |
 | `[offset]` | `number` | Nonce offset from current |
 
 ## Examples

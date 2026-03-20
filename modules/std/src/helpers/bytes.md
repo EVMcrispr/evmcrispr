@@ -16,7 +16,7 @@ Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operati
 
 | Name | Type | Description |
 |------|------|-------------|
-| `a` | `any` |  |
+| `a` | `any` | Value to convert or left operand |
 | `[b]` | `string` | Operator (`&` `|` `<<` `>>`) or `utf8` |
 | `[c]` | `any` | Right operand for bitwise ops |
 

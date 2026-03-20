@@ -14,7 +14,7 @@ aragonos:act <agent> <target> <signature> [...params]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `agent` | `address` |  |
+| `agent` | `address` | Agent or vault forwarder address |
 | `target` | `address` | Target contract address |
 | `signature` | `write-abi` | Function signature to call |
 | `[...params]` | `any` | Function arguments |

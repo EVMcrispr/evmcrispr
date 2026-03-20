@@ -8,7 +8,7 @@ export default defineCommand<Std>({
   name: "while",
   description: "Repeat a block while a condition is true.",
   args: [
-    { name: "condition", type: "expression" },
+    { name: "condition", type: "expression", description: "Expression; loop continues while truthy" },
     { name: "block", type: "block", description: "Commands to repeat" },
   ],
   async run(module, { condition, block }, { interpreters }) {

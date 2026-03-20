@@ -4,7 +4,7 @@ title: "@ens:contenthash"
 
 Encode a content hash (ipfs, ipns, skynet) for ENS records.
 
-**Returns**: `bytes32`
+**Returns**: `bytes`
 
 ## Syntax
 

@@ -22,7 +22,7 @@ raw <contractAddress> <data> [value]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--from` | `address` | Sender address (requires simulation) |
+| `--from` | `address` | Sender address (requires simulation or connected wallet) |
 | `--gas` | `number` | Gas limit |
 | `--max-fee-per-gas` | `number` | Max fee per gas (EIP-1559) |
 | `--max-priority-fee-per-gas` | `number` | Max priority fee per gas (EIP-1559) |
