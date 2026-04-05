@@ -6,7 +6,7 @@ type ActionButtonsType = {
 };
 
 export default function ActionButtons({ onExecute }: ActionButtonsType) {
-  const { isLoading } = useTerminalStore();
+  const isLoading = useTerminalStore((s) => s.isLoading);
 
   return (
     <div className="flex justify-end gap-3 mt-3 pr-6 lg:pr-0 w-full">

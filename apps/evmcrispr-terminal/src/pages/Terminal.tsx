@@ -40,7 +40,8 @@ export default function Terminal() {
   const { address } = useWalletConnection();
   const { scriptNotFound, ipfsError, ipfsLoading } = useTerminalScript();
   useAutoSave();
-  const { script, title } = useTerminalStore();
+  const script = useTerminalStore((s) => s.script);
+  const title = useTerminalStore((s) => s.title);
 
   const { connector: activeConnector } = useConnection();
   const isSafe = activeConnector?.id === "safe";

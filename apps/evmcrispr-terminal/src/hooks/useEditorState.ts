@@ -1,16 +1,44 @@
 import { EVMcrispr } from "@evmcrispr/core";
-import { useEffect, useMemo, useState } from "react";
+import type { editor } from "monaco-editor";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { transports } from "../config/wagmi";
-import { useDebounce } from "./useDebounce";
 
-export function useEditorState(script: string) {
-  const debouncedScript = useDebounce(script, 300);
+const SCRIPT_DEBOUNCE_MS = 300;
+
+export function useEditorState(
+  editorInstance: editor.IStandaloneCodeEditor | null,
+) {
+  const [debouncedScript, setDebouncedScript] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const client = usePublicClient();
   const evm = useMemo(
     () => new EVMcrispr(client, undefined, transports),
     [client],
   );
+
+  useEffect(() => {
+    if (!editorInstance) return;
+
+    setDebouncedScript(editorInstance.getValue());
+
+    const disposable = editorInstance.onDidChangeModelContent(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        setDebouncedScript(editorInstance.getValue());
+      }, SCRIPT_DEBOUNCE_MS);
+    });
+
+    return () => {
+      disposable.dispose();
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [editorInstance]);
 
   const [keywords, setKeywords] = useState<{
     commands: string[];
