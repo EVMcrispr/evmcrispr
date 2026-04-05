@@ -5,7 +5,7 @@ import type {
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditor, { useMonaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commandNames, helperNames } from "../../data/reference-data";
 import { useEditorModels } from "../../hooks/useEditorModels";
 import { useEditorState } from "../../hooks/useEditorState";
@@ -56,15 +56,16 @@ function detectCursorRef(line: string, col: number): CursorRef | null {
   return null;
 }
 
-export default function TerminalEditor() {
+function TerminalEditor() {
   const monaco = useMonaco();
 
-  const { script, currentScriptId, executingLine } = useTerminalStore();
-  const { evm, debouncedScript, commandKeywords, helperKeywords } =
-    useEditorState(script);
+  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const executingLine = useTerminalStore((s) => s.executingLine);
 
-  const scriptRef = useRef(script);
-  scriptRef.current = script;
+  const [editorInstance, setEditorInstance] =
+    useState<editor.IStandaloneCodeEditor | null>(null);
+  const { evm, debouncedScript, commandKeywords, helperKeywords } =
+    useEditorState(editorInstance);
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<editor.IEditorDecorationsCollection | null>(
@@ -72,12 +73,14 @@ export default function TerminalEditor() {
   );
   const isReplayingRef = useRef(false);
   const mountedScriptIdRef = useRef<string | null>(null);
+  const storeSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { setEditor, switchToScript } = useEditorModels();
 
-  const handleOnChangeEditor = useCallback((str: string | undefined) => {
-    if (isReplayingRef.current) return;
-    terminalStoreActions("script", str ?? "");
+  useEffect(() => {
+    return () => {
+      if (storeSyncTimerRef.current) clearTimeout(storeSyncTimerRef.current);
+    };
   }, []);
 
   // When currentScriptId changes (script switch), swap the model
@@ -122,7 +125,7 @@ export default function TerminalEditor() {
             endColumn: model.getWordAtPosition(pos)?.endColumn ?? endColumn,
           };
 
-          const items = await evm.getCompletions(scriptRef.current, {
+          const items = await evm.getCompletions(model.getValue(), {
             line: pos.lineNumber,
             col: pos.column - 1,
           });
@@ -146,8 +149,8 @@ export default function TerminalEditor() {
     if (!monaco) return;
 
     const hoverProvider = monaco.languages.registerHoverProvider("evml", {
-      provideHover: async (_model, pos) => {
-        const info = await evm.getHoverInfo(scriptRef.current, {
+      provideHover: async (model, pos) => {
+        const info = await evm.getHoverInfo(model.getValue(), {
           line: pos.lineNumber,
           col: pos.column - 1,
         });
@@ -172,8 +175,8 @@ export default function TerminalEditor() {
       {
         signatureHelpTriggerCharacters: ["(", ","],
         signatureHelpRetriggerCharacters: [",", " "],
-        provideSignatureHelp: async (_model, pos) => {
-          const result = await evm.getSignatureHelp(scriptRef.current, {
+        provideSignatureHelp: async (model, pos) => {
+          const result = await evm.getSignatureHelp(model.getValue(), {
             line: pos.lineNumber,
             col: pos.column - 1,
           });
@@ -273,11 +276,11 @@ export default function TerminalEditor() {
     );
   }, [monaco, evm, debouncedScript]);
 
-  function handleBeforeMountEditor(monaco: Monaco) {
+  const handleBeforeMountEditor = useCallback((monaco: Monaco) => {
     monaco.editor.defineTheme("theme", theme);
     monaco.languages.register(contribution);
     monaco.languages.setLanguageConfiguration("evml", conf);
-  }
+  }, []);
 
   // Line highlighting during execution
   useEffect(() => {
@@ -304,36 +307,70 @@ export default function TerminalEditor() {
     }
   }, [executingLine, monaco]);
 
-  function handleOnMountEditor(
-    ed: editor.IStandaloneCodeEditor,
-    monacoInstance: Monaco,
-  ) {
-    editorRef.current = ed;
-    setEditor(ed, monacoInstance);
+  const handleOnMountEditor = useCallback(
+    (ed: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
+      editorRef.current = ed;
+      setEditorInstance(ed);
+      setEditor(ed, monacoInstance);
 
-    const id = terminalStoreGet("currentScriptId");
-    const currentScript = terminalStoreGet("script");
-    mountedScriptIdRef.current = id;
+      const id = terminalStoreGet("currentScriptId");
+      const currentScript = terminalStoreGet("script");
+      mountedScriptIdRef.current = id;
 
-    isReplayingRef.current = true;
-    switchToScript(id, currentScript);
-    isReplayingRef.current = false;
+      isReplayingRef.current = true;
+      switchToScript(id, currentScript);
+      isReplayingRef.current = false;
 
-    // Track cursor position to detect command/helper under cursor
-    ed.onDidChangeCursorPosition((e) => {
-      const model = ed.getModel();
-      if (!model) return;
+      const STORE_SYNC_MS = 150;
+      ed.onDidChangeModelContent(() => {
+        if (isReplayingRef.current) return;
+        if (storeSyncTimerRef.current) clearTimeout(storeSyncTimerRef.current);
+        storeSyncTimerRef.current = setTimeout(() => {
+          storeSyncTimerRef.current = null;
+          terminalStoreActions("script", ed.getValue());
+        }, STORE_SYNC_MS);
+      });
 
-      const line = model.getLineContent(e.position.lineNumber);
-      const col = e.position.column - 1; // 0-indexed
+      ed.onDidChangeCursorPosition((e) => {
+        const model = ed.getModel();
+        if (!model) return;
 
-      const ref = detectCursorRef(line, col);
-      const prev = terminalStoreGet("cursorRef");
-      if (prev?.name !== ref?.name || prev?.kind !== ref?.kind) {
-        terminalStoreActions("cursorRef", ref);
-      }
-    });
-  }
+        const line = model.getLineContent(e.position.lineNumber);
+        const col = e.position.column - 1;
+
+        const ref = detectCursorRef(line, col);
+        const prev = terminalStoreGet("cursorRef");
+        if (prev?.name !== ref?.name || prev?.kind !== ref?.kind) {
+          terminalStoreActions("cursorRef", ref);
+        }
+      });
+    },
+    [setEditor, switchToScript],
+  );
+
+  const editorOptions = useMemo(
+    () => ({
+      fontSize: 22,
+      fontFamily: "Ubuntu Mono",
+      detectIndentation: false,
+      quickSuggestionsDelay: 100,
+      wordBasedSuggestions: "off" as const,
+      tabSize: 2,
+      minimap: { enabled: false },
+      wordWrap: "on" as const,
+      scrollbar: {
+        useShadows: false,
+        verticalScrollbarSize: 7,
+        vertical: "hidden" as const,
+        horizontal: "hidden" as const,
+        alwaysConsumeMouseWheel: false,
+      },
+      bracketPairColorization: { enabled: true },
+      guides: { bracketPairs: true, indentation: true },
+      stickyScroll: { enabled: true },
+    }),
+    [],
+  );
 
   return (
     <div className="relative w-full h-full">
@@ -342,40 +379,12 @@ export default function TerminalEditor() {
         theme="theme"
         language="evml"
         defaultValue={SCRIPT_PLACEHOLDER}
-        onChange={handleOnChangeEditor}
         beforeMount={handleBeforeMountEditor}
         onMount={handleOnMountEditor}
-        options={{
-          fontSize: 22,
-          fontFamily: "Ubuntu Mono",
-          detectIndentation: false,
-          quickSuggestionsDelay: 100,
-          wordBasedSuggestions: "off",
-          tabSize: 2,
-          language: "evml",
-          minimap: {
-            enabled: false,
-          },
-          wordWrap: "on",
-          scrollbar: {
-            useShadows: false,
-            verticalScrollbarSize: 7,
-            vertical: "hidden",
-            horizontal: "hidden",
-            alwaysConsumeMouseWheel: false,
-          },
-          bracketPairColorization: {
-            enabled: true,
-          },
-          guides: {
-            bracketPairs: true,
-            indentation: true,
-          },
-          stickyScroll: {
-            enabled: true,
-          },
-        }}
+        options={editorOptions}
       />
     </div>
   );
 }
+
+export default memo(TerminalEditor);

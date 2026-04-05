@@ -24,6 +24,9 @@ export function useTransactionExecutor(
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
+  const scriptRef = useRef(script);
+  scriptRef.current = script;
+
   const { logs, logListener, clearLogs } = useExecutionLogs();
   const [errors, setErrors] = useState<string[]>([]);
   const clearErrors = useCallback(() => setErrors([]), []);
@@ -196,7 +199,7 @@ export function useTransactionExecutor(
         terminalStoreActions("executingLine", line),
       );
 
-      await evm.interpret(script, async (action: Action) => {
+      await evm.interpret(scriptRef.current, async (action: Action) => {
         return await executeAction(
           action,
           address,
@@ -234,7 +237,6 @@ export function useTransactionExecutor(
   }, [
     address,
     publicClient,
-    script,
     logListener,
     clearLogs,
     executeAction,
