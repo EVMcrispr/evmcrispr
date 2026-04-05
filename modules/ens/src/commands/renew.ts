@@ -3,7 +3,7 @@ import { parseAbi } from "viem";
 
 import type Ens from "..";
 
-const bulkRenewal = "0xfF252725f6122A92551A5FA9a6b6bf10eb0Be035";
+const bulkRenewal = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
 
 export default defineCommand<Ens>({
   name: "renew",
