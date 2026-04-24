@@ -25,7 +25,6 @@ export type {
   AST,
   BarewordNode,
   BatchedAction,
-  BinaryExpressionNode,
   Binding,
   BlockExpressionNode,
   BooleanLiteralNode,
@@ -81,7 +80,6 @@ export type {
   Nullable,
   NullableBinding,
   NumericLiteralNode,
-  OperableExpressionNode,
   Position,
   PrimaryExpressionNode,
   RelativeBinding,
@@ -111,5 +109,4 @@ export {
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
-  interpretNodeSync,
 } from "./utils/ast";

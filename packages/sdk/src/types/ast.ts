@@ -10,12 +10,10 @@ export enum NodeType {
   StringLiteral = "StringLiteral",
 
   ArrayExpression = "ArrayExpression",
-  BinaryExpression = "BinaryExpression",
   BlockExpression = "BlockExpression",
   CallExpression = "CallExpression",
   CommandExpression = "CommandExpression",
   HelperFunctionExpression = "HelperFunctionExpression",
-  UnaryExpression = "UnaryExpression",
 
   Bareword = "Bareword",
   VariableIdentifier = "VariableIdentifier",
@@ -169,19 +167,6 @@ export interface BlockExpressionNode extends Node {
   body: CommandExpressionNode[];
 }
 
-export type OperableExpressionNode =
-  | CallExpressionNode
-  | HelperFunctionNode
-  | NumericLiteralNode
-  | BinaryExpressionNode;
-
-export interface BinaryExpressionNode extends Node {
-  type: NodeType.BinaryExpression;
-  operator: "+" | "-" | "*" | "/" | "%" | "//" | "^";
-  left: OperableExpressionNode;
-  right: OperableExpressionNode;
-}
-
 export type NodeWithArguments =
   | CommandExpressionNode
   | HelperFunctionNode
@@ -200,7 +185,6 @@ export type PrimaryExpressionNode =
   | VariableIdentifierNode;
 
 export type ArgumentExpressionNode =
-  | BinaryExpressionNode
   | ArrayExpressionNode
   | DestructurePatternNode
   | CallExpressionNode

@@ -156,7 +156,7 @@ function TerminalEditor() {
         });
         if (!info) return null;
         return {
-          contents: [{ value: info.contents }],
+          contents: info.contents.map((value) => ({ value })),
         };
       },
     });
@@ -368,6 +368,7 @@ function TerminalEditor() {
       bracketPairColorization: { enabled: true },
       guides: { bracketPairs: true, indentation: true },
       stickyScroll: { enabled: true },
+      hover: { above: false },
     }),
     [],
   );

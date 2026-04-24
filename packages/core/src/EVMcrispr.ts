@@ -1,23 +1,12 @@
 import Std from "@evmcrispr/module-std";
 import type {
   Action,
-  ArrayExpressionNode,
-  BarewordNode,
-  BinaryExpressionNode,
   Binding,
-  BlockExpressionNode,
-  CallExpressionNode,
   CommandExpressionNode,
   CompletionItem,
-  DefValue,
-  DestructurePatternNode,
-  DestructureSlot,
-  ErrorCaptureNode,
-  EventCaptureNode,
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
-  LiteralExpressionNode,
   Module,
   ModuleContext,
   ModuleData,
@@ -27,31 +16,17 @@ import type {
   Param,
   Position,
   RelativeBinding,
-  VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import {
-  abiBindingKey,
   BindingsManager,
   BindingsSpace,
-  CommandError,
   ErrorException,
-  ExpressionError,
-  HaltExecution,
-  HelperFunctionError,
   IPFSResolver,
-  isBatchedAction,
-  isTransactionAction,
-  NodeError,
   NodeType,
-  Num,
-  resolveErrorCaptures,
-  resolveEventCaptures,
   resolveHelper as resolveHelperFn,
-  setBoolVarsFalse,
-  timeUnits,
 } from "@evmcrispr/sdk";
-import type { Abi, Address, Chain, PublicClient, Transport } from "viem";
-import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
+import type { Address, Chain, PublicClient, Transport } from "viem";
+import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 
 import {
@@ -63,7 +38,17 @@ import {
   getDocumentSymbols as getDocumentSymbolsImpl,
 } from "./documentSymbols";
 import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
+import {
+  createInterpreter,
+  type InterpretCtx,
+  makeExecuteWithCaptures,
+  makeExecutionResolveCallExpression,
+  makeExecutionResolveCommand,
+  makeExecutionResolveHelper,
+  makeResolveBlockExpression,
+} from "./interpreter";
 import { parseScript } from "./parsers/script";
+import { type VariableHistory, walkScript } from "./scriptWalk";
 import {
   getSignatureHelp as getSignatureHelpImpl,
   type SignatureHelp,
@@ -94,29 +79,6 @@ function parseDiagnosticString(error: string): ParseDiagnostic | null {
     severity: "error",
   };
 }
-
-const {
-  AddressLiteral,
-  BoolLiteral,
-  BytesLiteral,
-  NumberLiteral,
-  StringLiteral,
-
-  ArrayExpression,
-  DestructurePattern,
-
-  BinaryExpression,
-
-  BlockExpression,
-  CommandExpression,
-  CallExpression,
-  HelperFunctionExpression,
-
-  Bareword,
-  VariableIdentifier,
-} = NodeType;
-
-const { ABI, USER } = BindingsSpace;
 
 export class EVMcrispr {
   readonly bindingsManager: BindingsManager;
@@ -152,8 +114,23 @@ export class EVMcrispr {
 
   /** Internal module cache for completions / keywords. */
   #moduleCache: BindingsManager;
+  /** USER bindings produced by the most recent `prewarm(script)` call. */
+  #scriptBindings?: BindingsManager;
+  /** Per-variable `(line, value)` history from the most recent
+   *  `prewarm(script)` call. Used by hover to render a variable's value
+   *  as it stood at a specific line. */
+  #variableHistory?: VariableHistory;
+  /** Effective chain id observed during the most recent `prewarm(script)`. */
+  #scriptChainId?: number;
+  /** Effective PublicClient for the chain reached at the end of the most
+   *  recent `prewarm(script)` call. May differ from `#client` when the
+   *  script `switch`ed chains. Always paired with `#scriptChainId`. */
+  #scriptClient?: PublicClient;
   #ipfsResolver: IPFSResolver;
   #transports?: Record<number, Transport>;
+  /** Captures wrapper bound to this instance — used by the execution-mode
+   *  command resolver. Built lazily once `interpretNode` is available. */
+  #executeWithCaptures!: ReturnType<typeof makeExecuteWithCaptures>;
 
   constructor(
     client?: PublicClient,
@@ -174,6 +151,52 @@ export class EVMcrispr {
 
     this.#initStd();
     this.#moduleCache = new BindingsManager([this.#buildStdBinding()]);
+
+    // Wire the unified interpreter. The ctx closes over `this`, so live
+    // state (modules, client, ...) is read at call time — no rebuild
+    // needed when modules load or chains switch.
+    const ctx: InterpretCtx = {
+      bindings: this.bindingsManager,
+      // Execution mode never reads chainId/client from ctx (no helperCache);
+      // resolveCallExpression/resolveHelper read live state via closures.
+      get chainId() {
+        return 0;
+      },
+      get client() {
+        return undefined;
+      },
+      onError: "throw",
+      resolveHelper: makeExecutionResolveHelper({
+        bindings: this.bindingsManager,
+        std: () => this.#std,
+        modules: () => this.#modules,
+      }),
+      resolveBlockExpression: makeResolveBlockExpression(this.bindingsManager),
+      resolveCallExpression: makeExecutionResolveCallExpression({
+        bindings: this.bindingsManager,
+        getClient: () => this.#getClient(),
+      }),
+      // resolveCommand depends on executeWithCaptures, which depends on
+      // interpretNode. Wire it up after we've built the interpreters.
+      notifyLine: (line) => this.#notifyLine(line),
+    };
+    const interpreters = createInterpreter(ctx);
+    this.interpretNode = interpreters.interpretNode;
+    this.interpretNodes = interpreters.interpretNodes;
+
+    this.#executeWithCaptures = makeExecuteWithCaptures({
+      bindings: this.bindingsManager,
+      getClient: () => this.#getClient(),
+      interpretNode: this.interpretNode,
+    });
+
+    ctx.resolveCommand = makeExecutionResolveCommand({
+      bindings: this.bindingsManager,
+      std: () => this.#std,
+      modules: () => this.#modules,
+      getClient: () => this.#getClient(),
+      executeWithCaptures: this.#executeWithCaptures,
+    });
   }
 
   #buildStdBinding(): Binding {
@@ -447,7 +470,65 @@ export class EVMcrispr {
     position: Position,
   ): Promise<HoverInfo | null> {
     await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
-    return getHoverInfoImpl(script, position, this.#moduleCache);
+    // Pair the chainId with the matching client so on-chain hover calls
+    // (eth_getCode etc.) hit the same chain we report in the card. After a
+    // `switch` in the script, `#scriptClient` points at the switched-to
+    // chain even though `#client` still points at the constructor chain.
+    const chainId = this.#scriptChainId ?? this.#chainId ?? this.#chain?.id;
+    const client =
+      this.#scriptChainId != null && this.#scriptClient
+        ? this.#scriptClient
+        : this.#client;
+    return getHoverInfoImpl(script, position, {
+      moduleCache: this.#moduleCache,
+      scriptBindings: this.#scriptBindings,
+      variableHistory: this.#variableHistory,
+      client,
+      chainId,
+    });
+  }
+
+  /**
+   * Pre-resolve every helper call and `set` in `script`, populating the
+   * module cache (helper CACHE entries) and `#scriptBindings` (USER values).
+   *
+   * Call this on every debounced script change so subsequent hover requests
+   * can render rich values (e.g. the address card under `@ens(vitalik.eth)`
+   * or under a `$dao` variable) without making any new RPC calls.
+   *
+   * Always resolves; failures during parsing or lookup are swallowed.
+   */
+  async prewarm(script: string): Promise<void> {
+    try {
+      await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+
+      const {
+        bindings,
+        chainId,
+        client: effectiveClient,
+        variableHistory,
+      } = await walkScript(
+        script,
+        Number.POSITIVE_INFINITY,
+        this.#moduleCache,
+        this.#client,
+        this.#createHelperResolver(),
+        this.#transports,
+      );
+
+      this.#scriptBindings = bindings;
+      this.#variableHistory = variableHistory;
+      this.#scriptChainId = chainId || undefined;
+      // Only retain the prewarmed client when the script switched to a
+      // different chain than the constructor client; otherwise we'd shadow
+      // any future `setClient(...)` call with a stale instance.
+      this.#scriptClient =
+        effectiveClient && effectiveClient !== this.#client
+          ? effectiveClient
+          : undefined;
+    } catch {
+      // best-effort — never throw from prewarm
+    }
   }
 
   async getSignatureHelp(
@@ -497,6 +578,9 @@ export class EVMcrispr {
 
   setClient(client: PublicClient | undefined): void {
     this.#client = client;
+    // Invalidate any prewarmed switched-to client, since the user is
+    // explicitly choosing a new base client.
+    this.#scriptClient = undefined;
   }
 
   async getClient(): Promise<PublicClient> {
@@ -535,6 +619,9 @@ export class EVMcrispr {
     } else {
       this.#client = undefined;
     }
+    // Drop any prewarmed switched-to client; the next prewarm will
+    // recompute from the new base client.
+    this.#scriptClient = undefined;
 
     return this.getClient();
   }
@@ -592,84 +679,15 @@ export class EVMcrispr {
   }
 
   // ---------------------------------------------------------------------------
-  // Interpreters (internal)
+  // Interpreters
   // ---------------------------------------------------------------------------
+  //
+  // All node-level interpretation lives in `./interpreter`. Both fields are
+  // assigned in the constructor — declare them here so the rest of the
+  // class can reference them.
 
-  interpretNode: NodeInterpreter = (n, options) => {
-    switch (n.type) {
-      case AddressLiteral:
-      case BoolLiteral:
-      case BytesLiteral:
-      case StringLiteral:
-      case NumberLiteral:
-        return this.#interpretLiteral(n as LiteralExpressionNode, options);
-      case ArrayExpression:
-        return this.#interpretArrayExpression(
-          n as ArrayExpressionNode,
-          options,
-        );
-      case DestructurePattern:
-        return this.#interpretDestructurePattern(
-          n as DestructurePatternNode,
-          options,
-        );
-      case BinaryExpression:
-        return this.#interpretBinaryExpression(
-          n as BinaryExpressionNode,
-          options,
-        );
-      case BlockExpression:
-        return this.#interpretBlockExpression(
-          n as BlockExpressionNode,
-          options,
-        );
-      case CallExpression:
-        return this.#interpretCallFunction(n as CallExpressionNode, options);
-      case CommandExpression:
-        return this.#interpretCommand(n as CommandExpressionNode, options);
-      case HelperFunctionExpression:
-        return this.#interpretHelperFunction(n as HelperFunctionNode, options);
-      case Bareword:
-        return this.#interpretBareword(n as BarewordNode);
-      case VariableIdentifier:
-        return this.#interpretVariableIdentifier(
-          n as VariableIdentifierNode,
-          options,
-        );
-
-      default:
-        EVMcrispr.panic(n, `unknown ${n.type} node found`);
-    }
-  };
-
-  interpretNodes: NodesInterpreter = async (
-    nodes: Node[],
-    sequentally = false,
-    options,
-  ): Promise<any[]> => {
-    if (sequentally) {
-      const results: any = [];
-
-      for (const node of nodes) {
-        const result = await this.interpretNode(node, options);
-        if (Array.isArray(result)) {
-          results.push(...result);
-        } else {
-          results.push(result);
-        }
-      }
-
-      return results;
-    }
-
-    return await Promise.all(
-      nodes.map((node) => this.interpretNode(node, options)),
-    );
-  };
-
-  // ---------------------------------------------------------------------------
-  // Private interpreters
-  // ---------------------------------------------------------------------------
+  interpretNode!: NodeInterpreter;
+  interpretNodes!: NodesInterpreter;
 
   #getClient = async (): Promise<PublicClient> => {
     if (this.#client) {
@@ -677,504 +695,4 @@ export class EVMcrispr {
     }
     throw Error("No client available");
   };
-
-  #interpretArrayExpression: NodeInterpreter<ArrayExpressionNode> = (n) => {
-    return this.interpretNodes(n.elements);
-  };
-
-  #interpretDestructurePattern: NodeInterpreter<DestructurePatternNode> =
-    async (n) => {
-      const resolveSlot = async (slot: DestructureSlot): Promise<unknown> => {
-        if (slot === null) return undefined;
-        if (Array.isArray(slot)) {
-          return Promise.all(slot.map(resolveSlot));
-        }
-        const binding = this.bindingsManager.getBindingValue(slot, USER);
-        if (binding !== undefined) return binding;
-        EVMcrispr.panic(n, `${slot} not defined`);
-      };
-      return Promise.all(n.slots.map(resolveSlot));
-    };
-
-  #interpretBinaryExpression: NodeInterpreter<BinaryExpressionNode> = async (
-    n,
-  ) => {
-    const [leftOperand_, rightOperand_] = await this.interpretNodes([
-      n.left,
-      n.right,
-    ]);
-
-    let left: Num, right: Num;
-
-    try {
-      left = Num(leftOperand_);
-    } catch (_err) {
-      EVMcrispr.panic(
-        n,
-        `invalid left operand. Expected a number but got "${leftOperand_}"`,
-      );
-    }
-
-    try {
-      right = Num(rightOperand_);
-    } catch (_err) {
-      EVMcrispr.panic(
-        n,
-        `invalid right operand. Expected a number but got "${rightOperand_}"`,
-      );
-    }
-
-    switch (n.operator) {
-      case "+":
-        return left.add(right);
-      case "-":
-        return left.sub(right);
-      case "*":
-        return left.mul(right);
-      case "/": {
-        if (right.num === 0n) {
-          EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
-        }
-        return left.div(right);
-      }
-      case "%": {
-        const leftInt = left.toBigInt();
-        const rightInt = right.toBigInt();
-
-        if (rightInt === 0n) {
-          EVMcrispr.panic(n, `invalid operation. Can't modulo by zero`);
-        }
-
-        return Num.fromBigInt(leftInt % rightInt);
-      }
-      case "//": {
-        const leftInt = left.toBigInt();
-        const rightInt = right.toBigInt();
-
-        if (rightInt === 0n) {
-          EVMcrispr.panic(n, `invalid operation. Can't divide by zero`);
-        }
-
-        return Num.fromBigInt(leftInt / rightInt);
-      }
-      case "^": {
-        return left.pow(right);
-      }
-    }
-  };
-
-  #interpretBlockExpression: NodeInterpreter<BlockExpressionNode> = async (
-    n,
-    opts = {},
-  ) => {
-    this.bindingsManager.enterScope(opts.blockModule);
-
-    if (opts.blockInitializer) {
-      await opts.blockInitializer();
-    }
-
-    const results = await this.interpretNodes(n.body, true, opts);
-
-    this.bindingsManager.exitScope();
-
-    return results.filter((r) => !!r);
-  };
-
-  #interpretCallFunction: NodeInterpreter<CallExpressionNode> = async (n) => {
-    const [targetAddress, ...args] = await this.interpretNodes([
-      n.target,
-      ...n.args,
-    ]);
-
-    if (!isAddress(targetAddress)) {
-      EVMcrispr.panic(
-        n,
-        `invalid target. Expected an address, but got ${targetAddress}`,
-      );
-    }
-
-    let abi: Abi;
-
-    if (n.inputTypes && n.outputTypes) {
-      const sig = `function ${n.method}${n.inputTypes} external view returns ${n.outputTypes}`;
-      abi = [parseAbiItem(sig) as Abi[number]];
-    } else {
-      const targetAbi = this.bindingsManager.getBindingValue(
-        targetAddress,
-        ABI,
-      ) as Abi | undefined;
-      if (!targetAbi) {
-        EVMcrispr.panic(n, `no ABI found for ${targetAddress}`);
-      }
-      abi = targetAbi;
-    }
-
-    try {
-      const client = await this.#getClient();
-      const res = await client.readContract({
-        abi,
-        functionName: n.method,
-        args: args,
-        address: targetAddress,
-      });
-
-      const result = n.returnDestructure
-        ? EVMcrispr.#applyReturnLens(res, n.returnDestructure, n)
-        : res;
-
-      return typeof result === "bigint" ? Num.fromBigInt(result) : result;
-    } catch (err) {
-      const err_ = err as Error;
-      EVMcrispr.panic(
-        n,
-        `error occured whe calling ${n.target.value ?? targetAddress}: ${
-          err_.message
-        }`,
-      );
-    }
-  };
-
-  static #applyReturnLens(
-    value: unknown,
-    slots: DestructureSlot[],
-    n: CallExpressionNode,
-  ): unknown {
-    const arr = Array.isArray(value) ? value : [value];
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
-      if (slot === null) continue;
-      if (slot === "$") return arr[i];
-      if (Array.isArray(slot)) {
-        if (i >= arr.length) {
-          EVMcrispr.panic(
-            n,
-            `return destructure index ${i} out of bounds (length ${arr.length})`,
-          );
-        }
-        return EVMcrispr.#applyReturnLens(arr[i], slot, n);
-      }
-    }
-    EVMcrispr.panic(n, "return destructure has no $ capture marker");
-  }
-
-  async #executeWithCaptures(
-    c: CommandExpressionNode,
-    res: Action[] | void,
-    actionCallback: ((action: Action) => Promise<unknown>) | undefined,
-  ): Promise<Action[] | void> {
-    const hasEventCaptures =
-      c.eventCaptures != null && c.eventCaptures.length > 0;
-    const hasErrorCaptures =
-      c.errorCaptures != null && c.errorCaptures.length > 0;
-
-    if (!hasEventCaptures && !hasErrorCaptures) {
-      if (res && actionCallback) {
-        for (const action of res) {
-          await actionCallback(action);
-        }
-      }
-      return res;
-    }
-
-    if (!actionCallback) {
-      throw new ErrorException(
-        "captures require an execution context with transaction access",
-      );
-    }
-
-    if (!res || res.length === 0) {
-      throw new ErrorException(
-        "captures require a command that produces transaction actions",
-      );
-    }
-
-    for (const action of res) {
-      if (!isTransactionAction(action) && !isBatchedAction(action)) {
-        throw new ErrorException(
-          "captures require transaction actions (not RPC, wallet, or terminal actions)",
-        );
-      }
-    }
-
-    const tryLookupAbi = async (
-      actions: Action[],
-    ): Promise<Abi | undefined> => {
-      const first = actions[0];
-      if (isTransactionAction(first) && first.to) {
-        try {
-          const chainId = await this.#getClient().then((c) => c.getChainId());
-          return this.bindingsManager.getBindingValue(
-            abiBindingKey(chainId, first.to),
-            BindingsSpace.ABI,
-          ) as Abi | undefined;
-        } catch {
-          return undefined;
-        }
-      }
-      return undefined;
-    };
-
-    if (hasEventCaptures) {
-      const allLogs: any[] = [];
-      for (const action of res) {
-        const receipt = await actionCallback(action);
-        if (receipt && typeof receipt === "object" && "logs" in receipt) {
-          allLogs.push(...(receipt as { logs: any[] }).logs);
-        }
-      }
-
-      const abi = await tryLookupAbi(res);
-
-      await resolveEventCaptures(
-        { logs: allLogs },
-        abi,
-        c.eventCaptures as EventCaptureNode[],
-        this.bindingsManager,
-        this.interpretNode,
-      );
-
-      return [];
-    }
-
-    // Error captures
-    const abi = await tryLookupAbi(res);
-
-    try {
-      for (const action of res) {
-        await actionCallback(action);
-      }
-      const required = (c.errorCaptures as ErrorCaptureNode[]).find(
-        (cap) => !cap.optional,
-      );
-      if (required) {
-        throw new ErrorException(
-          "expected transaction to revert but it succeeded",
-        );
-      }
-      setBoolVarsFalse(
-        c.errorCaptures as ErrorCaptureNode[],
-        this.bindingsManager,
-      );
-      return [];
-    } catch (err) {
-      if (
-        err instanceof ErrorException &&
-        err.message === "expected transaction to revert but it succeeded"
-      ) {
-        throw err;
-      }
-      await resolveErrorCaptures(
-        err,
-        abi,
-        c.errorCaptures as ErrorCaptureNode[],
-        this.bindingsManager,
-      );
-      return [];
-    }
-  }
-
-  #interpretCommand: NodeInterpreter<CommandExpressionNode> = async (
-    c,
-    { actionCallback } = {},
-  ) => {
-    this.#notifyLine(c.loc?.start.line ?? null);
-
-    if (!c.module) {
-      const defCmd = this.bindingsManager.getBindingValue(
-        c.name,
-        BindingsSpace.DEF,
-      ) as DefValue | undefined;
-
-      if (defCmd && defCmd.kind === "command") {
-        let res: Action[] | void;
-        try {
-          res = await defCmd.run(this.#std, c, {
-            interpretNode: this.interpretNode,
-            interpretNodes: this.interpretNodes,
-            actionCallback,
-          });
-
-          return await this.#executeWithCaptures(c, res, actionCallback);
-        } catch (err) {
-          if (err instanceof NodeError || err instanceof HaltExecution) {
-            throw err;
-          }
-          EVMcrispr.panic(c, (err as Error).message);
-        }
-      }
-    }
-
-    let module: Module | undefined = this.#std;
-    const moduleName = c.module ?? this.bindingsManager.getScopeModule();
-
-    if (moduleName && moduleName !== "std") {
-      module = this.#modules.find((m) => m.contextualName === moduleName);
-
-      if (!module) {
-        EVMcrispr.panic(c, `module ${moduleName} not found`);
-      }
-
-      // Fallback to Std module
-      if (!module.commands[c.name] && this.#std.commands[c.name]) {
-        module = this.#std;
-      }
-    }
-
-    let res: Awaited<ReturnType<typeof module.interpretCommand>>;
-
-    try {
-      res = await module.interpretCommand(c, {
-        interpretNode: this.interpretNode,
-        interpretNodes: this.interpretNodes,
-        actionCallback,
-      });
-
-      return await this.#executeWithCaptures(c, res, actionCallback);
-    } catch (err) {
-      // Avoid wrapping a node error insde another node error
-      if (err instanceof NodeError || err instanceof HaltExecution) {
-        throw err;
-      }
-
-      const err_ = err as Error;
-
-      EVMcrispr.panic(c, err_.message);
-    }
-  };
-
-  #interpretHelperFunction: NodeInterpreter<HelperFunctionNode> = async (h) => {
-    const helperName = h.name;
-
-    const defHelper = this.bindingsManager.getBindingValue(
-      `@${helperName}`,
-      BindingsSpace.DEF,
-    ) as DefValue | undefined;
-
-    if (defHelper && defHelper.kind === "helper") {
-      let res: any;
-      try {
-        res = await defHelper.run(this.#std, h, {
-          interpretNode: this.interpretNode,
-          interpretNodes: this.interpretNodes,
-        });
-      } catch (err) {
-        if (err instanceof NodeError) {
-          throw err;
-        }
-        EVMcrispr.panic(h, (err as Error).message);
-      }
-      return res;
-    }
-
-    // Module constants: @NAME with no args
-    if (h.args.length === 0) {
-      const constantModules = [...this.#modules, this.#std].filter(
-        (m) => m.constants[helperName] !== undefined,
-      );
-      if (constantModules.length === 1) {
-        return constantModules[0].constants[helperName];
-      }
-      if (constantModules.length > 1) {
-        EVMcrispr.panic(
-          h,
-          `constant name collision on modules ${constantModules
-            .map((m) => m.contextualName)
-            .join(", ")}`,
-        );
-      }
-      // Not a constant — fall through to helper resolution
-    }
-
-    const filteredModules = [...this.#modules, this.#std].filter(
-      (m) => !!m.helpers[helperName],
-    );
-
-    if (!filteredModules.length) {
-      EVMcrispr.panic(h, "helper not found on any module");
-    }
-
-    // TODO: Prefix helpers with module name/alias to avoid collisions
-    else if (filteredModules.length > 1) {
-      EVMcrispr.panic(
-        h,
-        `name collisions found on modules ${filteredModules.join(", ")}`,
-      );
-    }
-
-    const m = filteredModules[0];
-
-    let res: Awaited<ReturnType<typeof m.interpretHelper>>;
-
-    try {
-      res = await m.interpretHelper(h, {
-        interpretNode: this.interpretNode,
-        interpretNodes: this.interpretNodes,
-      });
-    } catch (err) {
-      // Avoid wrapping a node error insde another node error
-      if (err instanceof NodeError) {
-        throw err;
-      }
-
-      const err_ = err as Error;
-
-      EVMcrispr.panic(h, err_.message);
-    }
-
-    return res;
-  };
-
-  #interpretLiteral: NodeInterpreter<LiteralExpressionNode> = async (n) => {
-    switch (n.type) {
-      case NodeType.AddressLiteral:
-      case NodeType.BoolLiteral:
-      case NodeType.BytesLiteral:
-      case NodeType.StringLiteral:
-        return n.value;
-      case NodeType.NumberLiteral: {
-        let r = Num.fromDecimalString(String(n.value));
-        if (n.power) {
-          r = r.mul(Num(10n ** BigInt(n.power), 1n));
-        }
-        r = r.mul(Num.fromBigInt(BigInt(timeUnits[n.timeUnit ?? "s"])));
-        return r;
-      }
-      default:
-        EVMcrispr.panic(n, "unknown literal expression node");
-    }
-  };
-
-  #interpretBareword: NodeInterpreter<BarewordNode> = async (n) => {
-    return n.value;
-  };
-
-  #interpretVariableIdentifier: NodeInterpreter<VariableIdentifierNode> =
-    async (n) => {
-      const binding = this.bindingsManager.getBindingValue(n.value, USER);
-
-      if (binding !== undefined) {
-        return binding;
-      }
-
-      EVMcrispr.panic(n, `${n.value} not defined`);
-    };
-
-  private static panic(n: Node, msg: string): never {
-    switch (n.type) {
-      case BinaryExpression:
-        throw new ExpressionError(n, msg, {
-          name: "ArithmeticExpressionError",
-        });
-      case CommandExpression:
-        throw new CommandError(n as CommandExpressionNode, msg);
-      case HelperFunctionExpression:
-        throw new HelperFunctionError(n as HelperFunctionNode, msg);
-      case Bareword:
-        throw new ExpressionError(n, msg, { name: "IdentifierError" });
-      case VariableIdentifier:
-        throw new ExpressionError(n, msg, { name: "VariableIdentifierError" });
-      default:
-        throw new ErrorException(msg);
-    }
-  }
 }

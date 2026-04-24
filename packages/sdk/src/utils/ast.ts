@@ -1,20 +1,7 @@
-import { isAddress } from "viem";
-
-import type { BindingsManager } from "../BindingsManager";
 import type { Node, NodeWithArguments, Position } from "../types";
-import { BindingsSpace, NodeType } from "../types";
-import type { Param } from "./encoders";
+import { NodeType } from "../types";
 
-const {
-  AddressLiteral,
-  BoolLiteral,
-  BlockExpression,
-  BytesLiteral,
-  NumberLiteral,
-  StringLiteral,
-  Bareword,
-  VariableIdentifier,
-} = NodeType;
+const { BlockExpression } = NodeType;
 
 const insideNode = ({ loc }: Node, pos: Position): boolean => {
   if (!loc) {
@@ -93,33 +80,6 @@ export const getDeepestNodeWithArgs = (
     arg: currentArg,
     argIndex: currentArgIndex,
   };
-};
-
-/** Synchronous fast path for resolving simple node types (literals, barewords,
- *  variable identifiers). Used internally by `createNodeResolver` as the first
- *  attempt before falling back to async helper resolution. */
-export const interpretNodeSync = (
-  n: Node,
-  bindingsManager: BindingsManager,
-): Param | undefined => {
-  switch (n.type) {
-    case AddressLiteral:
-    case BoolLiteral:
-    case BytesLiteral:
-    case StringLiteral:
-      return n.value;
-    case NumberLiteral:
-      return isAddress(n.value) ? n.value : undefined;
-    case Bareword:
-      return n.value;
-    case VariableIdentifier: {
-      const value = bindingsManager.getBindingValue(
-        n.value,
-        BindingsSpace.USER,
-      );
-      return value ?? undefined;
-    }
-  }
 };
 
 const isNodeWithArgs = (n: Node): n is NodeWithArguments => {

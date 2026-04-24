@@ -47,6 +47,10 @@ export function useEditorState(
 
   useEffect(() => {
     evm.getKeywords(debouncedScript).then(setKeywords);
+    // Pre-resolve helper calls and `set` bindings so subsequent hovers can
+    // render values (e.g. the address card under @ens / @token / $vars)
+    // without making any new RPC calls at hover time.
+    evm.prewarm(debouncedScript);
   }, [evm, debouncedScript]);
 
   return {
