@@ -42,10 +42,10 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@id](src/helpers/id.md) | `bytes32` | Compute the keccak256 hash of a string (first 4 bytes for selectors). |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
-| [@msgAddr](src/helpers/msgAddr.md) | `address` | Recover the signer address from a message and its signature. |
 | [@namehash](src/helpers/namehash.md) | `bytes32` | Compute the ENS namehash of a domain name. |
 | [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
+| [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@token](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
 | [@token.amount](src/helpers/token.amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |

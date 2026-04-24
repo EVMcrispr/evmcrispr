@@ -23,10 +23,10 @@ export const STD_ALL_HELPERS = [
   "@id",
   "@ipfs",
   "@me",
-  "@msgAddr",
   "@namehash",
   "@nonce",
   "@num",
+  "@sigValid",
   "@str",
   "@token",
   "@token.amount",
@@ -39,7 +39,6 @@ export const STD_ADDRESS_HELPERS = [
   "@ens",
   "@get",
   "@me",
-  "@msgAddr",
   "@token",
 ];
 
@@ -63,7 +62,7 @@ export const STD_BYTES32_HELPERS = [
   "@namehash",
 ];
 
-export const STD_BOOL_HELPERS = ["@block", "@bool", "@get"];
+export const STD_BOOL_HELPERS = ["@block", "@bool", "@get", "@sigValid"];
 
 export const STD_BYTES_HELPERS = [
   "@abi.encodeCall",
