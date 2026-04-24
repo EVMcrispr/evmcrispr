@@ -16,6 +16,7 @@ import {
   runErrorCase,
   runParser,
 } from "@evmcrispr/test-utils";
+import { arrayExpressionParser } from "../../../src/parsers/array";
 import {
   ADDRESS_PARSER_ERROR,
   addressParser,
@@ -240,6 +241,41 @@ describe("Parsers - primary", () => {
         STRING_PARSER_ERROR,
         "Expecting a quoted string",
       );
+    });
+
+    describe("when parsing multi-line strings", () => {
+      it("should preserve newlines inside the string value", () => {
+        const result = runParser(stringParser(), '"hello\nworld"');
+        expect(result).to.deep.include({
+          type: NodeType.StringLiteral,
+          value: "hello\nworld",
+        });
+        expect(result.loc).to.eql({
+          start: { line: 1, col: 0 },
+          end: { line: 2, col: 6 },
+        });
+      });
+
+      it("should advance line/col so subsequent tokens have correct loc", () => {
+        const result = runParser(arrayExpressionParser, '["a\nb" 42]');
+        expect(result.elements).to.have.lengthOf(2);
+        expect(result.elements[0]).to.deep.include({
+          type: NodeType.StringLiteral,
+          value: "a\nb",
+        });
+        expect(result.elements[0].loc).to.eql({
+          start: { line: 1, col: 1 },
+          end: { line: 2, col: 2 },
+        });
+        expect(result.elements[1]).to.deep.include({
+          type: NodeType.NumberLiteral,
+          value: "42",
+        });
+        expect(result.elements[1].loc).to.eql({
+          start: { line: 2, col: 3 },
+          end: { line: 2, col: 5 },
+        });
+      });
     });
   });
 

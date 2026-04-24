@@ -1,5 +1,10 @@
 import { describe, it } from "bun:test";
-import { runCases, runErrorCase } from "@evmcrispr/test-utils";
+import {
+  expect,
+  runCases,
+  runErrorCase,
+  runParser,
+} from "@evmcrispr/test-utils";
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,
@@ -150,3 +155,54 @@ export const helperParserDescribe = () =>
       );
     });
   });
+
+describe("Parsers - helper function (multiline)", () => {
+  it("should parse a helper whose args span multiple lines", () => {
+    const script = `@helper(
+  arg1
+  "two
+  lines"
+  42
+)`;
+    const result = runParser(helperFunctionParser, script);
+    expect(result).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "helper",
+    });
+    expect(result.args).to.have.lengthOf(3);
+    expect(result.args[0]).to.deep.include({
+      type: "Bareword",
+      value: "arg1",
+    });
+    expect(result.args[0].loc).to.eql({
+      start: { line: 2, col: 2 },
+      end: { line: 2, col: 6 },
+    });
+    expect(result.args[1]).to.deep.include({
+      type: "StringLiteral",
+      value: "two\n  lines",
+    });
+    expect(result.args[1].loc).to.eql({
+      start: { line: 3, col: 2 },
+      end: { line: 4, col: 8 },
+    });
+    expect(result.args[2]).to.deep.include({
+      type: "NumberLiteral",
+      value: "42",
+    });
+    expect(result.args[2].loc).to.eql({
+      start: { line: 5, col: 2 },
+      end: { line: 5, col: 4 },
+    });
+    expect(result.loc).to.eql({
+      start: { line: 1, col: 0 },
+      end: { line: 6, col: 1 },
+    });
+  });
+
+  it("should parse a helper with newlines around the parens", () => {
+    const result = runParser(helperFunctionParser, `@h(\n  arg1\n  arg2\n)`);
+    expect(result.name).to.equal("h");
+    expect(result.args.map((a: any) => a.value)).to.eql(["arg1", "arg2"]);
+  });
+});

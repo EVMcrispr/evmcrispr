@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
-import { type Case, runCases } from "@evmcrispr/test-utils";
-import { scriptParser } from "../../../src/parsers/script";
+import { type Case, expect, runCases } from "@evmcrispr/test-utils";
+import { parseScript, scriptParser } from "../../../src/parsers/script";
 
 describe("Parsers - script", () => {
   it("should parse an script correctly", () => {
@@ -624,5 +624,56 @@ describe("Parsers - script", () => {
       },
     ];
     runCases(c, scriptParser);
+  });
+
+  it("should track lines correctly across a multi-line string and helper", () => {
+    const script = `print "hello
+world"
+print @helper(
+  arg1
+  "arg2
+  still arg2"
+)`;
+    const { ast } = parseScript(script);
+    expect(ast.body).to.have.lengthOf(2);
+
+    const [first, second] = ast.body;
+    expect(first.name).to.equal("print");
+    expect(first.args).to.have.lengthOf(1);
+    expect(first.args[0]).to.deep.include({
+      type: "StringLiteral",
+      value: "hello\nworld",
+    });
+    expect(first.args[0].loc).to.eql({
+      start: { line: 1, col: 6 },
+      end: { line: 2, col: 6 },
+    });
+
+    expect(second.name).to.equal("print");
+    expect(second.args).to.have.lengthOf(1);
+    const helper = second.args[0] as any;
+    expect(helper).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "helper",
+    });
+    expect(helper.loc.start).to.eql({ line: 3, col: 6 });
+    expect(helper.loc.end).to.eql({ line: 7, col: 1 });
+    expect(helper.args).to.have.lengthOf(2);
+    expect(helper.args[0]).to.deep.include({
+      type: "Bareword",
+      value: "arg1",
+    });
+    expect(helper.args[0].loc).to.eql({
+      start: { line: 4, col: 2 },
+      end: { line: 4, col: 6 },
+    });
+    expect(helper.args[1]).to.deep.include({
+      type: "StringLiteral",
+      value: "arg2\n  still arg2",
+    });
+    expect(helper.args[1].loc).to.eql({
+      start: { line: 5, col: 2 },
+      end: { line: 6, col: 13 },
+    });
   });
 });

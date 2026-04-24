@@ -178,4 +178,36 @@ describe("Parsers - array", () => {
       `ArrayParserError(1:15): Expecting character ']', but got end of input.`,
     );
   });
+
+  it("should parse an array whose elements span multiple lines", () => {
+    const cases: Case[] = [
+      [
+        `[\n  1\n  2\n  3\n]`,
+        {
+          type: "ArrayExpression",
+          elements: [
+            {
+              type: "NumberLiteral",
+              value: "1",
+              loc: { start: { line: 2, col: 2 }, end: { line: 2, col: 3 } },
+            },
+            {
+              type: "NumberLiteral",
+              value: "2",
+              loc: { start: { line: 3, col: 2 }, end: { line: 3, col: 3 } },
+            },
+            {
+              type: "NumberLiteral",
+              value: "3",
+              loc: { start: { line: 4, col: 2 }, end: { line: 4, col: 3 } },
+            },
+          ],
+          loc: { start: { line: 1, col: 0 }, end: { line: 5, col: 1 } },
+        },
+        "Invalid multiline array match",
+      ],
+    ];
+
+    runCases(cases, arrayExpressionParser);
+  });
 });

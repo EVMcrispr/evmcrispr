@@ -61,6 +61,31 @@ export const whitespace = regex(/^ +/).errorMap((err) =>
 
 export const optionalWhitespace = possibly(whitespace);
 
+/**
+ * Consumes any mix of spaces and newlines, updating `state.line` /
+ * `state.offset` for each `\n` that is consumed (mirrors what `endLine`
+ * does for top-level command parsing). Used inside grouped constructs
+ * (`@h(...)`, `[...]`, `x::m(...)`, inline ABI `{...}`) where a newline
+ * is just whitespace separating arguments.
+ */
+export const optionalMultilineWhitespace: Parser<
+  null,
+  string,
+  NodeParserState
+> = recursiveParser(() =>
+  coroutine((run) => {
+    while (true) {
+      run(optionalWhitespace);
+      const nl: string | null = run(possibly(endOfLine));
+      if (nl === null) break;
+      run(
+        currentContexDataParser.chain((context) => addNewLine(context!.index)),
+      );
+    }
+    return null;
+  }),
+);
+
 export const camelAndKebabCase = regex(/^(?!-)[a-zA-Z\d-]+(?<!-)/);
 
 export const endOfLine = regex(/^\r?\n/);

@@ -422,3 +422,61 @@ export const callParserDescribe = () =>
   });
 
 callParserDescribe();
+
+describe("Parsers - call expression (multiline)", () => {
+  it("should parse method-call args spanning multiple lines", () => {
+    const result = runParser(
+      callExpressionParser,
+      `$contract::transfer(\n  $to\n  100e18\n)`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "transfer",
+    });
+    expect(result.args).to.have.lengthOf(2);
+    expect(result.args[0]).to.deep.include({
+      type: "VariableIdentifier",
+      value: "$to",
+    });
+    expect(result.args[0].loc).to.eql({
+      start: { line: 2, col: 2 },
+      end: { line: 2, col: 5 },
+    });
+    expect(result.args[1]).to.deep.include({
+      type: "NumberLiteral",
+      value: "100",
+      power: 18,
+    });
+    expect(result.args[1].loc).to.eql({
+      start: { line: 3, col: 2 },
+      end: { line: 3, col: 8 },
+    });
+    expect(result.loc).to.eql({
+      start: { line: 1, col: 0 },
+      end: { line: 4, col: 1 },
+    });
+  });
+
+  it("should parse inline ABI call args spanning multiple lines", () => {
+    const result = runParser(
+      callExpressionParser,
+      `$c::{transfer(address,uint256)(bool)\n  @me\n  100e18\n}`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "transfer",
+      inputTypes: "(address,uint256)",
+      outputTypes: "(bool)",
+    });
+    expect(result.args).to.have.lengthOf(2);
+    expect(result.args[0]).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "me",
+    });
+    expect(result.args[1]).to.deep.include({
+      type: "NumberLiteral",
+      value: "100",
+      power: 18,
+    });
+  });
+});

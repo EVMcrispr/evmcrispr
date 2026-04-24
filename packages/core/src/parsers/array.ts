@@ -1,14 +1,18 @@
 import type { ArrayExpressionNode, NodeParser } from "@evmcrispr/sdk";
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
-import { between, char, recursiveParser } from "arcsecond";
+import {
+  char,
+  coroutine,
+  lookAhead,
+  possibly,
+  recursiveParser,
+} from "arcsecond";
 import { argumentExpressionParser } from "./expression";
 
 import {
-  closingCharParser,
   createNodeLocation,
   locate,
-  openingCharParser,
-  spaceSeparated,
+  optionalMultilineWhitespace,
 } from "./utils";
 
 export const ARRAY_PARSER_ERROR = "ArrayParserError";
@@ -16,11 +20,21 @@ export const ARRAY_PARSER_ERROR = "ArrayParserError";
 export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
   recursiveParser(() =>
     locate<ArrayExpressionNode>(
-      between(openingCharParser("["))(closingCharParser("]"))(
-        spaceSeparated(argumentExpressionParser([char("]")])),
-      )
-        .map((elements) => [elements])
-        .errorMap((err) => buildParserError(err, ARRAY_PARSER_ERROR)),
+      coroutine((run) => {
+        run(char("["));
+        run(optionalMultilineWhitespace);
+
+        const elements: ArrayExpressionNode["elements"] = [];
+        while (!run(possibly(lookAhead(char("]"))))) {
+          const elem = run(possibly(argumentExpressionParser([char("]")])));
+          if (elem === null) break;
+          elements.push(elem as ArrayExpressionNode["elements"][number]);
+          run(optionalMultilineWhitespace);
+        }
+
+        run(char("]"));
+        return [elements];
+      }).errorMap((err) => buildParserError(err, ARRAY_PARSER_ERROR)),
       ({
         data: { line, offset },
         index,

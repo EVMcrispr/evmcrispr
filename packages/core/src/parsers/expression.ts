@@ -28,8 +28,7 @@ import {
 import {
   createNodeLocation,
   locate,
-  openingCharParser,
-  optionalWhitespace,
+  optionalMultilineWhitespace,
 } from "./utils";
 
 export const argumentExpressionParser: EnclosingNodeParser<
@@ -90,7 +89,8 @@ const parenToken = (c: "(" | ")") =>
 export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
   recursiveParser(() =>
     coroutine((run) => {
-      run(openingCharParser("("));
+      run(char("("));
+      run(optionalMultilineWhitespace);
 
       const results: ArgumentExpressionNode[] = [];
       let depth = 0;
@@ -102,7 +102,7 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
         if (lp) {
           results.push(lp);
           depth++;
-          run(optionalWhitespace);
+          run(optionalMultilineWhitespace);
           continue;
         }
 
@@ -110,7 +110,7 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
           if (depth > 0) {
             results.push(run(parenToken(")")));
             depth--;
-            run(optionalWhitespace);
+            run(optionalMultilineWhitespace);
             continue;
           }
           run(char(")"));
@@ -118,7 +118,7 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
         }
 
         results.push(run(argumentExpressionParser([char(")"), char("(")])));
-        run(optionalWhitespace);
+        run(optionalMultilineWhitespace);
       }
     }),
   );

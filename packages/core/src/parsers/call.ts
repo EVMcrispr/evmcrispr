@@ -12,6 +12,7 @@ import {
   choice,
   coroutine,
   letters,
+  lookAhead,
   possibly,
   recursiveParser,
   regex,
@@ -27,8 +28,8 @@ import {
   callOperatorParser,
   createNodeLocation,
   currentContexDataParser,
+  optionalMultilineWhitespace,
   optionalWhitespace,
-  whitespace,
 } from "./utils";
 
 // ---------------------------------------------------------------------------
@@ -91,10 +92,12 @@ const _inlineAbiCallParser: NodeParser<InlineAbiResult> = recursiveParser(() =>
 
     const args: CallExpressionNode["args"] = [];
 
-    while (run(possibly(whitespace))) {
+    run(optionalMultilineWhitespace);
+    while (!run(possibly(lookAhead(char("}"))))) {
       const arg = run(possibly(argumentExpressionParser([char("}")])));
       if (arg === null) break;
       args.push(arg);
+      run(optionalMultilineWhitespace);
     }
 
     run(char("}"));
@@ -124,10 +127,12 @@ const chainedCallExpressionParser = (
         const outputTypes: string = run(balancedParens);
 
         const args: CallExpressionNode["args"] = [];
-        while (run(possibly(whitespace))) {
+        run(optionalMultilineWhitespace);
+        while (!run(possibly(lookAhead(char("}"))))) {
           const arg = run(possibly(argumentExpressionParser([char("}")])));
           if (arg === null) break;
           args.push(arg);
+          run(optionalMultilineWhitespace);
         }
         run(char("}"));
 
@@ -205,10 +210,12 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
         const outputTypes: string = run(balancedParens);
 
         const args: CallExpressionNode["args"] = [];
-        while (run(possibly(whitespace))) {
+        run(optionalMultilineWhitespace);
+        while (!run(possibly(lookAhead(char("}"))))) {
           const arg = run(possibly(argumentExpressionParser([char("}")])));
           if (arg === null) break;
           args.push(arg);
+          run(optionalMultilineWhitespace);
         }
         run(char("}"));
 
