@@ -1,5 +1,5 @@
 import "../../setup";
-import { BindingsSpace, encodeAction, Num } from "@evmcrispr/sdk";
+import { BindingsSpace, Num } from "@evmcrispr/sdk";
 import { describeCommand, expect } from "@evmcrispr/test-utils";
 
 const target = "0x44fA8E6f47987339850636F88629646662444217";

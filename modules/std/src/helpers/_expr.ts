@@ -1,4 +1,4 @@
-import { ErrorException, Num, isHexString, isNum } from "@evmcrispr/sdk";
+import { ErrorException, isHexString, isNum, Num } from "@evmcrispr/sdk";
 
 // ---------------------------------------------------------------------------
 //  Operator definitions
@@ -61,8 +61,7 @@ function detectMissingSpaces(token: string, validOps: Set<string>): void {
         i + op.length < token.length &&
         !OPERATOR_CHARS.test(token[i + op.length]);
       if (hasBefore && hasAfter) {
-        const spaced =
-          token.slice(0, i) + ` ${op} ` + token.slice(i + op.length);
+        const spaced = `${token.slice(0, i)} ${op} ${token.slice(i + op.length)}`;
         throw new ErrorException(
           `Missing spaces around operator '${op}': did you mean '${spaced.trim()}'?`,
         );

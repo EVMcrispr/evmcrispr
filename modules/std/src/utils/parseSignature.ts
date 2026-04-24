@@ -1,5 +1,5 @@
-import { ErrorException } from "@evmcrispr/sdk";
 import type { ArgDef, OptDef } from "@evmcrispr/sdk";
+import { ErrorException } from "@evmcrispr/sdk";
 
 export interface ParsedSignature {
   params: ArgDef[];
@@ -96,7 +96,6 @@ export function parseSignature(sig: string): ParsedSignature {
         );
       }
       params.push({ name: m[1], type: "any" });
-      continue;
     }
   }
 

@@ -5,6 +5,7 @@ import type {
   CommandExpressionNode,
   DefValue,
   HelperFunctionNode,
+  Module,
   Node,
   NodesInterpreters,
   OptDef,
@@ -15,7 +16,6 @@ import {
   ErrorException,
   NodeType,
 } from "@evmcrispr/sdk";
-import type { Module } from "@evmcrispr/sdk";
 import type Std from "..";
 import { inferTypes } from "../utils/inferTypes";
 import { parseSignature } from "../utils/parseSignature";

@@ -136,9 +136,11 @@ describeCommand("connect", {
               createTestAction("newAppInstance", DAO3.kernel, [
                 appId,
                 codeAddress,
-                // biome-ignore lint/style/useTemplate: template literal breaks viem's type inference for parseAbiItem
                 encodeCalldata(
-                  parseAbiItem([`function ` + initializeSignature]),
+                  parseAbiItem([
+                    // biome-ignore lint/style/useTemplate: template literal with interpolation breaks viem's type inference for parseAbiItem
+                    `function ` + initializeSignature,
+                  ]),
                   [newTokenAddress, true, "0"],
                 ),
                 false,

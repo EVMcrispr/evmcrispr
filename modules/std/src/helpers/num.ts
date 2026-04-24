@@ -1,4 +1,4 @@
-import { ErrorException, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type Std from "..";
 import { evaluateArithmeticExpr, toNum, validateNoEmbeddedOps } from "./_expr";
 

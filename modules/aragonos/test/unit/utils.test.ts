@@ -1,22 +1,21 @@
 import { describe, it } from "bun:test";
+import { subgraphUrlFromChainId } from "@evmcrispr/module-aragonos/Connector";
+import {
+  buildAppIdentifier,
+  createDaoPrefixedIdentifier,
+  decodeCallScript,
+  encodeCallScript,
+  formatAppIdentifier,
+  isAppIdentifier,
+  isCallScript,
+  isLabeledAppIdentifier,
+  normalizeRole,
+  parseLabeledAppIdentifier,
+  parsePrefixedDAOIdentifier,
+  resolveIdentifier,
+} from "@evmcrispr/module-aragonos/utils";
 import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
-
-import {
-  encodeCallScript,
-  decodeCallScript,
-  isCallScript,
-  resolveIdentifier,
-  isAppIdentifier,
-  isLabeledAppIdentifier,
-  buildAppIdentifier,
-  parseLabeledAppIdentifier,
-  formatAppIdentifier,
-  parsePrefixedDAOIdentifier,
-  createDaoPrefixedIdentifier,
-  normalizeRole,
-} from "@evmcrispr/module-aragonos/utils";
-import { subgraphUrlFromChainId } from "@evmcrispr/module-aragonos/Connector";
 
 describe("AragonOS > utils > evmscripts", () => {
   const addr1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

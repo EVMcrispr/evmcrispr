@@ -1,5 +1,5 @@
 import type { Param } from "@evmcrispr/sdk";
-import { ErrorException, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 export default defineHelper<Lang>({

@@ -2,8 +2,8 @@ import type { Param, TransactionAction } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
   defineCommand,
-  encodeConstructorParams,
   ErrorException,
+  encodeConstructorParams,
 } from "@evmcrispr/sdk";
 import {
   concatHex,
@@ -108,7 +108,8 @@ export default defineCommand<Std>({
   ],
   async run(module, { variable, bytecode }, { opts }) {
     const ctorSig = Object.hasOwn(opts, "constructor")
-      ? (opts["constructor"] as string | undefined)
+      ? // biome-ignore lint/complexity/useLiteralKeys: dot access resolves to Object.prototype.constructor (Function)
+        (opts["constructor"] as string | undefined)
       : undefined;
     const ctorArgs = opts["constructor-args"] as Param[] | undefined;
 

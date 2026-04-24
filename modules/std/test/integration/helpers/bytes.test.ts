@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeHelper, expect } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils";
 
 describeHelper("@bytes", {
   skipArgLengthCheck: true,

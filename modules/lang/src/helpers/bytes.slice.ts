@@ -1,4 +1,4 @@
-import { Num, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, Num } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 export default defineHelper<Lang>({
@@ -20,6 +20,6 @@ export default defineHelper<Lang>({
     const e = end !== undefined ? Num(end).toNumber() : undefined;
     const s2 = 2 + s * 2;
     const e2 = e !== undefined ? 2 + e * 2 : undefined;
-    return "0x" + String(value).slice(s2, e2);
+    return `0x${String(value).slice(s2, e2)}`;
   },
 });

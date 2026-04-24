@@ -111,7 +111,7 @@ function objectKeyItems(
 
 // Characters that break Monaco words (from the evml wordPattern exclusion set)
 // relevant inside JSONPath strings.
-const WORD_BREAK_RE = /[\[\]*]/;
+const WORD_BREAK_RE = /[[\]*]/;
 
 /**
  * Compute the Monaco-aware insert base and label prefix.
@@ -259,8 +259,8 @@ export function jsonPathCompletions(
         typeof fullResolved === "object" &&
         fullResolved !== null
       ) {
-        labelPrefix = fullPath + ".";
-        insertBase = monacoInsertBase(fullPath + ".");
+        labelPrefix = `${fullPath}.`;
+        insertBase = monacoInsertBase(`${fullPath}.`);
         return objectKeyItems(
           fullResolved as Record<string, unknown>,
           "",

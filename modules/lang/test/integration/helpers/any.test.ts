@@ -1,5 +1,4 @@
 import "../../setup";
-import { expect } from "@evmcrispr/test-utils";
 import { describeHelper } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 

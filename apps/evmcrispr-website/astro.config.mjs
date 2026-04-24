@@ -2,9 +2,9 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
+import evmlGrammar from "@repo/ui/grammars/evml";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
-import evmlGrammar from "@repo/ui/grammars/evml";
 
 // Build reference sidebar by scanning the reference/ content directory.
 // Modules with symlinked docs appear automatically after running generate-docs.

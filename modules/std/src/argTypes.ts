@@ -1,7 +1,7 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
 import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
-import * as viemChains from "viem/chains";
 import type { Chain } from "viem";
+import * as viemChains from "viem/chains";
 
 const { MODULE, USER, CACHE } = BindingsSpace;
 
@@ -18,7 +18,7 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}..${addr.slice(-4)}`;
 }
 
-const SAFE_SYMBOL_RE = /^[a-zA-Z0-9.\-]+$/;
+const SAFE_SYMBOL_RE = /^[a-zA-Z0-9.-]+$/;
 const UNSAFE_CHAR_RE = /[\\'"]/;
 
 export const types: CustomArgTypes = {

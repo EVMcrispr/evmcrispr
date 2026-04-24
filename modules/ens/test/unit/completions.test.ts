@@ -4,13 +4,13 @@ import { beforeAll, describe, it } from "bun:test";
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
-  STD_ADDRESS_HELPERS,
-  STD_ALL_HELPERS,
-  STD_BYTES32_HELPERS,
-  STD_BYTES_HELPERS,
-  STD_NUMBER_HELPERS,
   expect,
   getPublicClient,
+  STD_ADDRESS_HELPERS,
+  STD_ALL_HELPERS,
+  STD_BYTES_HELPERS,
+  STD_BYTES32_HELPERS,
+  STD_NUMBER_HELPERS,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 
@@ -99,7 +99,7 @@ describe("Completions – ens helpers", () => {
   const ENS_HELPERS = ["@contenthash", "@ens.avatar", "@ens.name", "@ens.text"];
   const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
-  const BYTES32_HELPERS = STD_BYTES32_HELPERS;
+  const _BYTES32_HELPERS = STD_BYTES32_HELPERS;
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;
 
   const ENS = "load ens\n";

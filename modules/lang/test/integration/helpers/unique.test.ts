@@ -1,7 +1,6 @@
 import "../../setup";
-import { Num } from "@evmcrispr/sdk";
-import { expect } from "@evmcrispr/test-utils";
-import { describeHelper } from "@evmcrispr/test-utils";
+import type { Num } from "@evmcrispr/sdk";
+import { describeHelper, expect } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(

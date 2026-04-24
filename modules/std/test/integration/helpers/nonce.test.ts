@@ -1,6 +1,6 @@
 import "../../setup";
-import { describeHelper, expect } from "@evmcrispr/test-utils";
 import { Num } from "@evmcrispr/sdk";
+import { describeHelper, expect } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 
 const testAddr = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";

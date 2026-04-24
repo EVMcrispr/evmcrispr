@@ -4,12 +4,12 @@ import { beforeAll, describe, it } from "bun:test";
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
+  expect,
+  getPublicClient,
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_BYTES32_HELPERS,
   STD_NUMBER_HELPERS,
-  expect,
-  getPublicClient,
 } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 import { DAO } from "../fixtures";

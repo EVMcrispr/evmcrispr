@@ -307,7 +307,7 @@ function resolveConstant(
     const { dirname } = require("node:path");
     const fileDir = filePath ? dirname(filePath) : join(modDir, "src");
     const candidates = [
-      resolve(fileDir, importMatch[1] + ".ts"),
+      resolve(fileDir, `${importMatch[1]}.ts`),
       resolve(fileDir, importMatch[1], "index.ts"),
     ];
     for (const candidate of candidates) {
@@ -365,7 +365,7 @@ function extractDocCases(
     const callMatch = callRe.exec(content);
     if (!callMatch) continue;
 
-    let pos = callMatch.index + callMatch[0].length;
+    const pos = callMatch.index + callMatch[0].length;
     const commaIdx = content.indexOf(",", pos);
     if (commaIdx === -1) continue;
     const configStart = content.indexOf("{", commaIdx);
@@ -625,7 +625,7 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("");
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
@@ -730,7 +730,7 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
     lines.push("");
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 function generateModuleIndex(
@@ -778,7 +778,7 @@ function generateModuleIndex(
     lines.push("");
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 // ── Website symlinks ─────────────────────────────────────────────────
@@ -884,5 +884,5 @@ console.log(
 function writeIfChanged(path: string, content: string): void {
   if (existsSync(path) && readFileSync(path, "utf-8") === content) return;
   writeFileSync(path, content);
-  console.log(`  wrote ${path.replace(ROOT + "/", "")}`);
+  console.log(`  wrote ${path.replace(`${ROOT}/`, "")}`);
 }

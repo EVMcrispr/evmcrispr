@@ -1,4 +1,4 @@
-import { resolve, relative, dirname } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { Glob } from "bun";
 
 const root = process.cwd();
@@ -19,8 +19,7 @@ for (const lcovPath of glob.scanSync(".")) {
     const resolved = relative(root, resolve(packageDir, sfMatch[1]));
     if (/\btest\b/.test(resolved)) continue;
 
-    merged +=
-      record.replace(/^SF:(.+)$/m, `SF:${resolved}`) + "end_of_record\n";
+    merged += `${record.replace(/^SF:(.+)$/m, `SF:${resolved}`)}end_of_record\n`;
   }
 }
 

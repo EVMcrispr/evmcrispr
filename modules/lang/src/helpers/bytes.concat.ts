@@ -16,6 +16,6 @@ export default defineHelper<Lang>({
   ],
   async run(_, { first, rest }) {
     const items: string[] = [first, ...rest];
-    return "0x" + items.map((v) => v.slice(2)).join("");
+    return `0x${items.map((v) => v.slice(2)).join("")}`;
   },
 });

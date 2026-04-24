@@ -1,5 +1,5 @@
 import type { BindingsManager, DestructureSlot } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException, defineCommand } from "@evmcrispr/sdk";
+import { BindingsSpace, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Std from "..";
 
 const { USER } = BindingsSpace;

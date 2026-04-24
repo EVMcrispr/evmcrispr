@@ -1,4 +1,4 @@
-import { ErrorException, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type Http from "..";
 
 const METHODS_WITH_BODY = new Set(["POST", "PUT", "PATCH"]);

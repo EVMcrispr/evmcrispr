@@ -3,10 +3,10 @@ import type {
   DefValue,
   HelperArgDefEntry,
   HelperFunctionNode,
+  Module,
   Node,
 } from "@evmcrispr/sdk";
 import { BindingsSpace, NodeType } from "@evmcrispr/sdk";
-import type { Module } from "@evmcrispr/sdk";
 
 export interface InferResult {
   paramTypes: Map<string, string>;

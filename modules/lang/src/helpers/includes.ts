@@ -1,4 +1,4 @@
-import { Num, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, Num } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 function deepEquals(a: unknown, b: unknown): boolean {

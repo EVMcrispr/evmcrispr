@@ -1,4 +1,4 @@
-import { Num, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, Num } from "@evmcrispr/sdk";
 import { parseUnits } from "viem";
 import type Lang from "..";
 

@@ -14,8 +14,8 @@ describeCommand("new-dao", {
   ],
 });
 
-import type AragonOS from "@evmcrispr/module-aragonos";
 import { EVMcrispr } from "@evmcrispr/core";
+import type AragonOS from "@evmcrispr/module-aragonos";
 import {
   type Action,
   BindingsSpace,

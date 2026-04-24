@@ -1,8 +1,8 @@
 import "../../setup";
-import { server } from "../../setup";
 import { describeHelper, expect } from "@evmcrispr/test-utils";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import { helpers } from "../../../src/_generated";
+import { server } from "../../setup";
 
 server.use(
   http.get("https://test.evmcrispr.local/hello", () =>

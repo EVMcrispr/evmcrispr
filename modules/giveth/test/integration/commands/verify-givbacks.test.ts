@@ -1,4 +1,5 @@
 import "../../setup";
+import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 import type { CommandExpressionNode, Node } from "@evmcrispr/sdk";
 import { CommandError } from "@evmcrispr/sdk";
 import {
@@ -7,14 +8,13 @@ import {
   expect,
   getPublicClient,
 } from "@evmcrispr/test-utils";
-import { defaultRelayerMap } from "@evmcrispr/module-giveth/addresses";
 
 const defaultRelayerAddr = defaultRelayerMap.get(100)!;
 
 const validateVerifyGivbacks =
   (
-    relayerAddr: string = defaultRelayerAddr,
-    ipfsHash = "QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr",
+    _relayerAddr: string = defaultRelayerAddr,
+    _ipfsHash = "QmdERB7Mu5e7TPzDpmNtY12rtvj9PB89pXUGkssoH7pvyr",
     voteId = 49,
   ) =>
   async (result: any) => {

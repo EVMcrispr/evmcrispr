@@ -43,12 +43,12 @@ nav.sidebar a,
 .card,
 .hero .action a,
 .sl-markdown-content .expressive-code pre {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ── Hide light/dark theme toggle ──────────────────────────── */
 starlight-theme-select {
-  display: none !important;
+  display: none;
 }
 
 /* ── Hide scrollbars (match EVMcrispr UI) ──────────────────── */

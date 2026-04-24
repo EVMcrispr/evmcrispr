@@ -1,4 +1,4 @@
-import { ErrorException, Num, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 async function asyncMergeSort(

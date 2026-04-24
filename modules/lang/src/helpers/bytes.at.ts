@@ -1,4 +1,4 @@
-import { ErrorException, Num, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 export default defineHelper<Lang>({
@@ -21,6 +21,6 @@ export default defineHelper<Lang>({
       );
     }
 
-    return "0x" + hex.slice(2 + resolved * 2, 2 + resolved * 2 + 2);
+    return `0x${hex.slice(2 + resolved * 2, 2 + resolved * 2 + 2)}`;
   },
 });
