@@ -1,6 +1,7 @@
 import "../setup";
 import { describe, it } from "bun:test";
 import { expect, TestContext } from "@evmcrispr/test-utils";
+import { EVMcrispr, Module, type ModuleContext } from "../../src";
 
 describe("Core > hover", () => {
   const ctx = new TestContext();
@@ -116,6 +117,67 @@ describe("Core > hover", () => {
   });
 
   describe("over variables with prewarmed values", () => {
+    it("does not let an older slow prewarm overwrite newer hover bindings", async () => {
+      let resolveOldStarted!: () => void;
+      let releaseOld!: () => void;
+      const oldStarted = new Promise<void>((resolve) => {
+        resolveOldStarted = resolve;
+      });
+      const oldGate = new Promise<void>((resolve) => {
+        releaseOld = resolve;
+      });
+
+      class PrewarmRaceModule extends Module {
+        constructor(context: ModuleContext, alias?: string) {
+          super(
+            "prewarmrace",
+            {},
+            {
+              raceValue: async (_module, h, interpreters) => {
+                const value = String(
+                  await interpreters.interpretNode(h.args[0]),
+                );
+                if (value === "old") {
+                  resolveOldStarted();
+                  await oldGate;
+                }
+                return value;
+              },
+            },
+            { raceValue: "string" },
+            { raceValue: true },
+            { raceValue: [{ name: "value", type: "string" }] },
+            { raceValue: "Return a controllable test value." },
+            {},
+            {},
+            {},
+            context,
+            alias,
+          );
+        }
+      }
+
+      EVMcrispr.registerModule("prewarmrace", async () => ({
+        default: PrewarmRaceModule,
+      }));
+
+      const evm = ctx.createEvm();
+      const oldScript = "load prewarmrace\nset $x @raceValue(old)";
+      const newScript = "load prewarmrace\nset $x @raceValue(new)";
+
+      const oldPrewarm = evm.prewarm(oldScript);
+      await oldStarted;
+      await evm.prewarm(newScript);
+      releaseOld();
+      await oldPrewarm;
+
+      const result = await evm.getHoverInfo(newScript, { line: 2, col: 5 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("= new");
+      expect(c).to.not.include("= old");
+    });
+
     it("renders the variable's resolved value after prewarm", async () => {
       const script = "set $myVar 42\nset $other $myVar";
       const evm = ctx.createEvm();
