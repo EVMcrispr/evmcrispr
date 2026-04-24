@@ -1,2 +1,7 @@
 [test]
 root = "./test/unit"
+# Inherit the repo-root preload (loads .env, ensures anvil is up). Bun does
+# not merge bunfig.toml files — the closest one wins — so each sub-package
+# must reference the preload explicitly. Path is resolved relative to this
+# bunfig.toml (Bun >= 1.2 / PR #29310).
+preload = ["../../scripts/anvil-preload.ts"]
