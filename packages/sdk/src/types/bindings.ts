@@ -4,7 +4,13 @@ import type { Param } from "../utils/encoders";
 import type { ArgDef, ArgType, CustomArgTypes, OptDef } from "../utils/schema";
 import type { Abi } from ".";
 import type { Node } from "./ast";
-import type { Commands, HelperArgDefEntry, HelperFunctions } from "./modules";
+import type {
+  CommandFunction,
+  Commands,
+  HelperArgDefEntry,
+  HelperFunction,
+  HelperFunctions,
+} from "./modules";
 
 export enum BindingsSpace {
   USER = "USER",
@@ -63,14 +69,24 @@ export interface CacheBinding extends IBinding<Param> {
   type: BindingsSpace.CACHE;
 }
 
-export interface DefValue {
-  kind: "command" | "helper";
-  run: Function;
+interface DefValueBase {
   argDefs: ArgDef[];
   optDefs?: OptDef[];
   returnType?: ArgType;
   bodyNode: Node;
 }
+
+export interface DefCommandValue extends DefValueBase {
+  kind: "command";
+  run: CommandFunction;
+}
+
+export interface DefHelperValue extends DefValueBase {
+  kind: "helper";
+  run: HelperFunction;
+}
+
+export type DefValue = DefCommandValue | DefHelperValue;
 
 export interface DefBinding extends IBinding<DefValue> {
   type: BindingsSpace.DEF;

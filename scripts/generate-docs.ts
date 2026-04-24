@@ -783,8 +783,7 @@ function generateModuleIndex(
 
 // ── Website symlinks ─────────────────────────────────────────────────
 
-const { mkdirSync, symlinkSync, lstatSync, unlinkSync, readlinkSync } =
-  require("node:fs");
+const { mkdirSync, symlinkSync, lstatSync, unlinkSync } = require("node:fs");
 const { dirname, relative } = require("node:path");
 
 const WEBSITE_DOCS = join(

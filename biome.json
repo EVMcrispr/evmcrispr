@@ -6,6 +6,7 @@
       "!**/dist",
       "!**/node_modules",
       "!**/.astro",
+      "!**/.turbo",
       "!**/coverage",
       "!**/generated",
       "!**/_generated.ts",

@@ -66,7 +66,7 @@ export type NodesInterpreters = {
   actionCallback?(action: Action): Promise<unknown>;
 };
 
-export type CommandFunction<T extends Module> = (
+export type CommandFunction<T extends Module = Module> = (
   module: T,
   c: CommandExpressionNode,
   interpreters: NodesInterpreters,

@@ -264,7 +264,7 @@ describe("defineHelper auto ABI type resolution", () => {
         { name: "sig", type: "write-abi" },
         { name: "params", type: "any", rest: true },
       ],
-      async run(_m, { sig, params }) {
+      async run(_m, { sig: _sig, params }) {
         return params;
       },
     });
