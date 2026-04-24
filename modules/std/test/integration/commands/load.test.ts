@@ -10,9 +10,7 @@ import type { PublicClient } from "viem";
 
 describeCommand("load", {
   describeName: "Std > commands > load > doc examples",
-  docCases: [
-    { description: "Load the simulation module", code: `load sim` },
-  ],
+  docCases: [{ description: "Load the simulation module", code: `load sim` }],
 });
 
 describe("Std > commands > load <name> [--as <alias>]", () => {
@@ -33,7 +31,10 @@ describe("Std > commands > load <name> [--as <alias>]", () => {
     expect(modules.length, "total modules length mismatch").to.be.equal(2);
     expect(module, "module doesn't exists").to.exist;
     expect(module?.name, "module name mismatch").to.equals(moduleName);
-    expect(module, "module class mismatch").to.have.property("name", moduleName);
+    expect(module, "module class mismatch").to.have.property(
+      "name",
+      moduleName,
+    );
   });
 
   it("should set an alias for a module correctly", async () => {

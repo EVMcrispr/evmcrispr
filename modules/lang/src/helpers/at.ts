@@ -7,7 +7,11 @@ export default defineHelper<Lang>({
   returnType: "any",
   args: [
     { name: "value", type: "array", description: "Input value" },
-    { name: "index", type: "number", description: "Zero-based index (negative counts from end)" },
+    {
+      name: "index",
+      type: "number",
+      description: "Zero-based index (negative counts from end)",
+    },
   ],
   async run(_, { value, index }) {
     const i = Num(index).toNumber();

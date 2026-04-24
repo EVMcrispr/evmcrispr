@@ -92,9 +92,9 @@ describe("parseSignature", () => {
   });
 
   it("should throw on multiple rest params", () => {
-    expect(() =>
-      parseSignature("...$a: number ...$b: string"),
-    ).to.throw("only one rest parameter is allowed");
+    expect(() => parseSignature("...$a: number ...$b: string")).to.throw(
+      "only one rest parameter is allowed",
+    );
   });
 
   it("should parse a helper param (@name)", () => {

@@ -8,7 +8,11 @@ export default defineCommand<Std>({
   name: "while",
   description: "Repeat a block while a condition is true.",
   args: [
-    { name: "condition", type: "expression", description: "Expression; loop continues while truthy" },
+    {
+      name: "condition",
+      type: "expression",
+      description: "Expression; loop continues while truthy",
+    },
     { name: "block", type: "block", description: "Commands to repeat" },
   ],
   async run(module, { condition, block }, { interpreters }) {
@@ -21,10 +25,10 @@ export default defineCommand<Std>({
       const cond = await interpretNode(condition);
       if (cond !== true && cond !== "true") break;
       actions.push(
-        ...(await interpretNode(block as BlockExpressionNode, {
+        ...((await interpretNode(block as BlockExpressionNode, {
           blockModule: module.contextualName,
           actionCallback,
-        })) as Action[],
+        })) as Action[]),
       );
     }
     module.bindingsManager.exitScope();

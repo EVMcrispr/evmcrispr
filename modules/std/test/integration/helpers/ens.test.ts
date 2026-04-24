@@ -13,7 +13,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Resolve an ENS name to its address", code: `set $addr @ens("vitalik.eth")` },
+      {
+        description: "Resolve an ENS name to its address",
+        code: `set $addr @ens("vitalik.eth")`,
+      },
     ],
     errorCases: [
       {

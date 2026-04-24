@@ -9,8 +9,16 @@ export default defineHelper<Ens>({
   description: "Read a text record from an ENS name.",
   returnType: "string",
   args: [
-    { name: "name", type: "string", description: "ENS name (e.g. vitalik.eth)" },
-    { name: "key", type: "string", description: 'Text record key (e.g. "url", "com.twitter", "description")' },
+    {
+      name: "name",
+      type: "string",
+      description: "ENS name (e.g. vitalik.eth)",
+    },
+    {
+      name: "key",
+      type: "string",
+      description: 'Text record key (e.g. "url", "com.twitter", "description")',
+    },
   ],
   async run(module, { name, key }, { node }) {
     const client = createPublicClient({

@@ -7,7 +7,11 @@ export default defineHelper<Lang>({
   returnType: "string",
   args: [
     { name: "value", type: "string", description: "Input value" },
-    { name: "index", type: "number", description: "Zero-based character index" },
+    {
+      name: "index",
+      type: "number",
+      description: "Zero-based character index",
+    },
   ],
   async run(_, { value, index }) {
     const str = String(value);

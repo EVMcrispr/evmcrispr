@@ -4,7 +4,8 @@ import type Std from "..";
 
 function toPackedValue(type: string, v: unknown): unknown {
   if (v instanceof Num) return v.toBigInt();
-  if (type.startsWith("uint") || type.startsWith("int")) return BigInt(String(v));
+  if (type.startsWith("uint") || type.startsWith("int"))
+    return BigInt(String(v));
   if (type === "bool") return v === "true" || v === true;
   return v;
 }
@@ -28,7 +29,9 @@ export default defineHelper<Std>({
     },
   ],
   async run(_, { types, values }, { node }) {
-    const typeList = types.split(",").map((t: string) => t.trim()) as readonly string[];
+    const typeList = types
+      .split(",")
+      .map((t: string) => t.trim()) as readonly string[];
 
     if (typeList.length !== values.length) {
       throw new HelperFunctionError(

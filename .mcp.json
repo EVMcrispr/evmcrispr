@@ -3,7 +3,10 @@
     "evmcrispr": {
       "type": "stdio",
       "command": "bash",
-      "args": ["-c", "source .env && TRANSPORT=stdio bun apps/evmcrispr-mcp/src/index.ts"]
+      "args": [
+        "-c",
+        "source .env && TRANSPORT=stdio bun apps/evmcrispr-mcp/src/index.ts"
+      ]
     }
   }
 }

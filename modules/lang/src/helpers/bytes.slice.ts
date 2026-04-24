@@ -8,7 +8,12 @@ export default defineHelper<Lang>({
   args: [
     { name: "value", type: "bytes", description: "Input value" },
     { name: "start", type: "number", description: "Start index (inclusive)" },
-    { name: "end", type: "number", description: "End index (exclusive)", optional: true },
+    {
+      name: "end",
+      type: "number",
+      description: "End index (exclusive)",
+      optional: true,
+    },
   ],
   async run(_, { value, start, end }) {
     const s = Num(start).toNumber();

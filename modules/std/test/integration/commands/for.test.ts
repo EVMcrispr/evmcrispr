@@ -27,9 +27,8 @@ for $item of $items (
   print $item
 )`,
       validate: (_, interpreter) => {
-        expect(() =>
-          interpreter.getBinding("$item", BindingsSpace.USER),
-        ).to.throw;
+        expect(() => interpreter.getBinding("$item", BindingsSpace.USER)).to
+          .throw;
       },
     },
     {

@@ -1,5 +1,9 @@
 import "../../setup";
-import { describeCommand, expect, getPublicClient } from "@evmcrispr/test-utils";
+import {
+  describeCommand,
+  expect,
+  getPublicClient,
+} from "@evmcrispr/test-utils";
 
 const addr = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 const bytecode = "0x600160005260206000f3";

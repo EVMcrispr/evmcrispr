@@ -16,12 +16,25 @@ export default defineCommand<AragonOS>({
   description:
     "Route actions through a chain of forwarder apps with optional context.",
   args: [
-    { name: "forwarders", type: "app", rest: true, description: "Forwarding path through apps" },
+    {
+      name: "forwarders",
+      type: "app",
+      rest: true,
+      description: "Forwarding path through apps",
+    },
     { name: "block", type: "block", description: "Commands to forward" },
   ],
   opts: [
-    { name: "context", type: "string", description: "Context string attached to the forwarding" },
-    { name: "check-forwarder", type: "bool", description: "Verify forwarder can forward before submitting" },
+    {
+      name: "context",
+      type: "string",
+      description: "Context string attached to the forwarding",
+    },
+    {
+      name: "check-forwarder",
+      type: "bool",
+      description: "Verify forwarder can forward before submitting",
+    },
   ],
   async run(module, { forwarders = [], block }, { opts, interpreters }) {
     const { interpretNode } = interpreters;

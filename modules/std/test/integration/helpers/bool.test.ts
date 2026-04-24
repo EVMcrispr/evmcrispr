@@ -141,9 +141,18 @@ describeHelper("@bool", {
     },
   ],
   docCases: [
-    { description: "Comparisons", code: `set $a @bool(1 == 1)\nset $b @bool(5 > 3)\nset $c @bool(5 <= 3)` },
-    { description: "Logical operators", code: `set $e @bool(true and true)\nset $f @bool(true or false)\nset $g @bool(not false)` },
-    { description: "Compound expression", code: `set $x 10\nset $h @bool($x > 0 and $x < 100)` },
+    {
+      description: "Comparisons",
+      code: `set $a @bool(1 == 1)\nset $b @bool(5 > 3)\nset $c @bool(5 <= 3)`,
+    },
+    {
+      description: "Logical operators",
+      code: `set $e @bool(true and true)\nset $f @bool(true or false)\nset $g @bool(not false)`,
+    },
+    {
+      description: "Compound expression",
+      code: `set $x 10\nset $h @bool($x > 0 and $x < 100)`,
+    },
   ],
   errorCases: [
     {

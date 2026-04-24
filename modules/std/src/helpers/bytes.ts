@@ -45,8 +45,18 @@ export default defineHelper<Std>({
   returnType: "bytes",
   args: [
     { name: "a", type: "any", description: "Value to convert or left operand" },
-    { name: "b", type: "string", description: "Operator (`&` `|` `<<` `>>`) or `utf8`", optional: true },
-    { name: "c", type: "any", description: "Right operand for bitwise ops", optional: true },
+    {
+      name: "b",
+      type: "string",
+      description: "Operator (`&` `|` `<<` `>>`) or `utf8`",
+      optional: true,
+    },
+    {
+      name: "c",
+      type: "any",
+      description: "Right operand for bitwise ops",
+      optional: true,
+    },
   ],
   completions: { b: () => ["&", "|", "<<", ">>", "utf8"].map(fieldItem) },
   async run(_, { a, b, c }) {

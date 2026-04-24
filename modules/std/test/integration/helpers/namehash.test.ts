@@ -14,7 +14,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Hash an ENS domain", code: `set $node @namehash("vitalik.eth")` },
+      {
+        description: "Hash an ENS domain",
+        code: `set $node @namehash("vitalik.eth")`,
+      },
     ],
     errorCases: [
       {

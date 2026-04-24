@@ -8,8 +8,16 @@ export default defineCommand<Giveth>({
   description: "Send a donation to a Giveth project.",
   args: [
     { name: "slug", type: "string", description: "Giveth project URL slug" },
-    { name: "amount", type: "number", description: "Donation amount in token base units" },
-    { name: "tokenAddr", type: "address", description: "Payment token address" },
+    {
+      name: "amount",
+      type: "number",
+      description: "Donation amount in token base units",
+    },
+    {
+      name: "tokenAddr",
+      type: "address",
+      description: "Payment token address",
+    },
   ],
   async run(module, { slug, amount, tokenAddr }) {
     const [projAddr, projectId] = await _projectAddr(module, slug);

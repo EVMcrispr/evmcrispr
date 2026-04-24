@@ -127,9 +127,8 @@ if true (
         const inner = interpreter.getBinding("$inner", BindingsSpace.USER);
         expect(inner).to.be.instanceOf(Num);
         expect((inner as Num).eq(Num(99n, 1n))).to.be.true;
-        expect(
-          interpreter.getBinding("@scopedVal", BindingsSpace.DEF),
-        ).to.be.undefined;
+        expect(interpreter.getBinding("@scopedVal", BindingsSpace.DEF)).to.be
+          .undefined;
       },
     },
     {

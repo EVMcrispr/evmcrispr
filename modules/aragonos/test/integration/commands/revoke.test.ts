@@ -65,10 +65,7 @@ describeCommand("revoke", {
             DAO.acl,
             role,
           ]),
-          createTestAction("removePermissionManager", DAO.acl, [
-            DAO.acl,
-            role,
-          ]),
+          createTestAction("removePermissionManager", DAO.acl, [DAO.acl, role]),
         ];
 
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
@@ -128,7 +125,10 @@ describeCommand("revoke", {
       script: `revoke false @app(acl) CREATE_PERMISSIONS_ROLE\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
-        return new CommandError(c, "<grantee> must be a valid address, got false");
+        return new CommandError(
+          c,
+          "<grantee> must be a valid address, got false",
+        );
       },
     },
     {
@@ -144,7 +144,10 @@ describeCommand("revoke", {
       script: `revoke @app(kernel) @app(acl) NON_EXISTENT_ROLE\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
-        return new CommandError(c, "given permission doesn't exists on app acl");
+        return new CommandError(
+          c,
+          "given permission doesn't exists on app acl",
+        );
       },
     },
     {
@@ -163,7 +166,10 @@ describeCommand("revoke", {
       script: `revoke @app(disputable-voting.open) ${TEST_ACCOUNT_ADDRESS} A_ROLE\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "revoke")!;
-        return new CommandError(c, `${TEST_ACCOUNT_ADDRESS} is not a DAO's app`);
+        return new CommandError(
+          c,
+          `${TEST_ACCOUNT_ADDRESS} is not a DAO's app`,
+        );
       },
     },
   ],

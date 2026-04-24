@@ -30,7 +30,8 @@ export const types: CustomArgTypes = {
       }
 
       const pathNode = ctx.nodeArgs[ctx.argIndex];
-      const fullValue: string = pathNode?.value != null ? String(pathNode.value) : "";
+      const fullValue: string =
+        pathNode?.value != null ? String(pathNode.value) : "";
 
       // Truncate at cursor position so mid-string edits work correctly.
       // pathNode.loc.start.col is the opening quote; content starts at +1.

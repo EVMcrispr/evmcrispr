@@ -6,23 +6,52 @@ export default defineCommand<Std>({
   description:
     "Call a contract function, encoding the arguments from its signature.",
   args: [
-    { name: "contractAddress", type: "address", description: "Target contract address" },
-    { name: "signature", type: "write-abi", description: "Function signature (e.g. `\"transfer(address,uint256)\"`)" },
-    { name: "params", type: "any", description: "Arguments matching the signature types", rest: true },
+    {
+      name: "contractAddress",
+      type: "address",
+      description: "Target contract address",
+    },
+    {
+      name: "signature",
+      type: "write-abi",
+      description: 'Function signature (e.g. `"transfer(address,uint256)"`)',
+    },
+    {
+      name: "params",
+      type: "any",
+      description: "Arguments matching the signature types",
+      rest: true,
+    },
   ],
   opts: [
-    { name: "value", type: "number", description: "ETH to send with the call (in wei)" },
-    { name: "from", type: "address", description: "Sender address (requires simulation or connected wallet)" },
+    {
+      name: "value",
+      type: "number",
+      description: "ETH to send with the call (in wei)",
+    },
+    {
+      name: "from",
+      type: "address",
+      description: "Sender address (requires simulation or connected wallet)",
+    },
     { name: "gas", type: "number", description: "Gas limit" },
-    { name: "max-fee-per-gas", type: "number", description: "Max fee per gas (EIP-1559)" },
-    { name: "max-priority-fee-per-gas", type: "number", description: "Max priority fee per gas (EIP-1559)" },
-    { name: "nonce", type: "number", description: "Transaction nonce override" },
+    {
+      name: "max-fee-per-gas",
+      type: "number",
+      description: "Max fee per gas (EIP-1559)",
+    },
+    {
+      name: "max-priority-fee-per-gas",
+      type: "number",
+      description: "Max priority fee per gas (EIP-1559)",
+    },
+    {
+      name: "nonce",
+      type: "number",
+      description: "Transaction nonce override",
+    },
   ],
-  async run(
-    _module,
-    { contractAddress, signature, params },
-    { opts },
-  ) {
+  async run(_module, { contractAddress, signature, params }, { opts }) {
     const execAction = encodeAction(contractAddress, signature, params);
 
     if (opts.value !== undefined) {

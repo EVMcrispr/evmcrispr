@@ -4,7 +4,7 @@
     "": {
       "name": "evmcrispr-monorepo",
       "devDependencies": {
-        "@biomejs/biome": "^2.3.14",
+        "@biomejs/biome": "^2.4.4",
         "@changesets/cli": "^2.29.8",
         "@types/node": "^22.15.21",
         "husky": "^9.1.7",

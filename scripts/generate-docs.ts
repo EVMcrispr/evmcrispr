@@ -189,7 +189,10 @@ function extractArgs(content: string): ArgDef[] {
     /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
   );
   if (!defMatch) return [];
-  const configStart = content.indexOf("{", defMatch.index! + defMatch[0].length - 1);
+  const configStart = content.indexOf(
+    "{",
+    defMatch.index! + defMatch[0].length - 1,
+  );
   const argsBlock = extractArrayBlock(content, configStart, "args");
   if (!argsBlock) return [];
   return parseArgObjects(argsBlock);
@@ -205,7 +208,10 @@ function extractOpts(
     /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
   );
   if (!defMatch) return [];
-  const configStart = content.indexOf("{", defMatch.index! + defMatch[0].length - 1);
+  const configStart = content.indexOf(
+    "{",
+    defMatch.index! + defMatch[0].length - 1,
+  );
   const optsBlock = extractArrayBlock(content, configStart, "opts");
   if (!optsBlock) return [];
 
@@ -338,7 +344,12 @@ function extractDocCases(
   const dotIdx = name.indexOf(".");
   if (dotIdx !== -1) {
     candidates.push(
-      join(modDir, "test/integration", kind, `${name.slice(0, dotIdx)}.test.ts`),
+      join(
+        modDir,
+        "test/integration",
+        kind,
+        `${name.slice(0, dotIdx)}.test.ts`,
+      ),
     );
   }
 
@@ -412,9 +423,18 @@ function skipStringLiteral(content: string, start: number): number {
   const quote = content[start];
   let i = start + 1;
   while (i < content.length) {
-    if (content[i] === "\\" && quote !== "`") { i += 2; continue; }
-    if (content[i] === "\\" && content[i + 1] === "`") { i += 2; continue; }
-    if (content[i] === "\\" && content[i + 1] === "\\") { i += 2; continue; }
+    if (content[i] === "\\" && quote !== "`") {
+      i += 2;
+      continue;
+    }
+    if (content[i] === "\\" && content[i + 1] === "`") {
+      i += 2;
+      continue;
+    }
+    if (content[i] === "\\" && content[i + 1] === "\\") {
+      i += 2;
+      continue;
+    }
     if (content[i] === quote) return i + 1;
     i++;
   }
@@ -455,11 +475,21 @@ function extractStringProp(objContent: string, key: string): string | null {
       i++;
       if (i >= objContent.length) break;
       switch (objContent[i]) {
-        case "n": result += "\n"; break;
-        case "t": result += "\t"; break;
-        case "\\": result += "\\"; break;
-        case quote: result += quote; break;
-        default: result += objContent[i]; break;
+        case "n":
+          result += "\n";
+          break;
+        case "t":
+          result += "\t";
+          break;
+        case "\\":
+          result += "\\";
+          break;
+        case quote:
+          result += quote;
+          break;
+        default:
+          result += objContent[i];
+          break;
       }
       i++;
       continue;
@@ -535,7 +565,9 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
         : arg.type;
       const rawName = arg.rest ? `...${arg.name}` : arg.name;
       const displayName = arg.optional || arg.rest ? `[${rawName}]` : rawName;
-      lines.push(`| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`);
+      lines.push(
+        `| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`,
+      );
     }
     lines.push("");
   }
@@ -547,7 +579,9 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("| Name | Type | Description |");
     lines.push("|------|------|-------------|");
     for (const opt of cmd.optDefs) {
-      lines.push(`| \`--${opt.name}\` | \`${opt.type}\` | ${opt.description ?? ""} |`);
+      lines.push(
+        `| \`--${opt.name}\` | \`${opt.type}\` | ${opt.description ?? ""} |`,
+      );
     }
     lines.push("");
   }
@@ -650,7 +684,9 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
         : arg.type;
       const rawName = arg.rest ? `...${arg.name}` : arg.name;
       const displayName = arg.optional || arg.rest ? `[${rawName}]` : rawName;
-      lines.push(`| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`);
+      lines.push(
+        `| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`,
+      );
     }
     lines.push("");
   }
@@ -822,7 +858,12 @@ for (const mod of MODULES) {
     allDocs.push(doc);
 
     // Symlink into website
-    const webPath = join(WEBSITE_DOCS, mod.name, "helpers", `${helper.name}.md`);
+    const webPath = join(
+      WEBSITE_DOCS,
+      mod.name,
+      "helpers",
+      `${helper.name}.md`,
+    );
     ensureSymlink(outPath, webPath);
   }
 

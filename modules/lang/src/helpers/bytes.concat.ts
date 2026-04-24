@@ -7,7 +7,12 @@ export default defineHelper<Lang>({
   returnType: "bytes",
   args: [
     { name: "first", type: "bytes", description: "First bytes value" },
-    { name: "rest", type: "bytes", description: "Bytes values to append", rest: true },
+    {
+      name: "rest",
+      type: "bytes",
+      description: "Bytes values to append",
+      rest: true,
+    },
   ],
   async run(_, { first, rest }) {
     const items: string[] = [first, ...rest];

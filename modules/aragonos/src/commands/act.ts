@@ -8,10 +8,23 @@ export default defineCommand<AragonOS>({
   description:
     "Execute an action on a target contract through an agent or vault.",
   args: [
-    { name: "agent", type: "address", description: "Agent or vault forwarder address" },
+    {
+      name: "agent",
+      type: "address",
+      description: "Agent or vault forwarder address",
+    },
     { name: "target", type: "address", description: "Target contract address" },
-    { name: "signature", type: "write-abi", description: "Function signature to call" },
-    { name: "params", type: "any", description: "Function arguments", rest: true },
+    {
+      name: "signature",
+      type: "write-abi",
+      description: "Function signature to call",
+    },
+    {
+      name: "params",
+      type: "any",
+      description: "Function arguments",
+      rest: true,
+    },
   ],
   completions: {
     agent: (ctx) =>

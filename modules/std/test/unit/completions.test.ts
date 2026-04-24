@@ -388,9 +388,7 @@ describe("Completions – std helpers", () => {
   });
 
   const ALL_HELPERS = STD_ALL_HELPERS;
-  const STRING_HELPERS = ALL_HELPERS.filter(
-    (h) => !["@bool"].includes(h),
-  );
+  const STRING_HELPERS = ALL_HELPERS.filter((h) => !["@bool"].includes(h));
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;
   const BOOL_HELPERS = STD_BOOL_HELPERS;
@@ -470,7 +468,7 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@id")).to.be.false;
     });
 
-    it('exec $c f(bool) <cursor> should show bool-compatible helpers', async () => {
+    it("exec $c f(bool) <cursor> should show bool-compatible helpers", async () => {
       const script = "exec $c f(bool) ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");

@@ -8,8 +8,7 @@ const addr = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 describeHelper(
   "@abi.encodeCall",
   {
-    describeName:
-      "Std > helpers > @abi.encodeCall(signature, ...params)",
+    describeName: "Std > helpers > @abi.encodeCall(signature, ...params)",
     cases: [
       {
         name: "should encode a transfer(address,uint256) call",
@@ -35,7 +34,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Encode a transfer call", code: `set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F88629646662444217 100e18)` },
+      {
+        description: "Encode a transfer call",
+        code: `set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F88629646662444217 100e18)`,
+      },
     ],
     errorCases: [
       {

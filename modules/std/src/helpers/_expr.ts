@@ -57,9 +57,12 @@ function detectMissingSpaces(token: string, validOps: Set<string>): void {
       }
       if (!validOps.has(op)) continue;
       const hasBefore = i > 0 && !OPERATOR_CHARS.test(token[i - 1]);
-      const hasAfter = i + op.length < token.length && !OPERATOR_CHARS.test(token[i + op.length]);
+      const hasAfter =
+        i + op.length < token.length &&
+        !OPERATOR_CHARS.test(token[i + op.length]);
       if (hasBefore && hasAfter) {
-        const spaced = token.slice(0, i) + ` ${op} ` + token.slice(i + op.length);
+        const spaced =
+          token.slice(0, i) + ` ${op} ` + token.slice(i + op.length);
         throw new ErrorException(
           `Missing spaces around operator '${op}': did you mean '${spaced.trim()}'?`,
         );
@@ -93,7 +96,12 @@ export function isTruthy(value: unknown): boolean {
 //  Shunting-yard core
 // ---------------------------------------------------------------------------
 
-function applyBinary(op: string, left: unknown, right: unknown, ops: Record<string, OpInfo>): unknown {
+function applyBinary(
+  op: string,
+  left: unknown,
+  right: unknown,
+  ops: Record<string, OpInfo>,
+): unknown {
   if (ops === ARITH_OPS) return applyArith(op, left, right);
   return applyBool(op, left, right);
 }
@@ -102,10 +110,14 @@ function applyArith(op: string, rawL: unknown, rawR: unknown): Num {
   const l = toNum(rawL);
   const r = toNum(rawR);
   switch (op) {
-    case "+": return l.add(r);
-    case "-": return l.sub(r);
-    case "*": return l.mul(r);
-    case "/": return l.div(r);
+    case "+":
+      return l.add(r);
+    case "-":
+      return l.sub(r);
+    case "*":
+      return l.mul(r);
+    case "/":
+      return l.div(r);
     case "//": {
       if (!l.isInteger() || !r.isInteger())
         throw new ErrorException("Integer division requires integer operands");
@@ -116,15 +128,19 @@ function applyArith(op: string, rawL: unknown, rawR: unknown): Num {
         throw new ErrorException("Modulo requires integer operands");
       return Num.fromBigInt(l.toBigInt() % r.toBigInt());
     }
-    case "^": return l.pow(r);
-    default: throw new ErrorException(`Unknown arithmetic operator '${op}'`);
+    case "^":
+      return l.pow(r);
+    default:
+      throw new ErrorException(`Unknown arithmetic operator '${op}'`);
   }
 }
 
 function applyBool(op: string, left: unknown, right: unknown): boolean {
   switch (op) {
-    case "and": return isTruthy(left) && isTruthy(right);
-    case "or": return isTruthy(left) || isTruthy(right);
+    case "and":
+      return isTruthy(left) && isTruthy(right);
+    case "or":
+      return isTruthy(left) || isTruthy(right);
     case "==":
       if (isNum(left) && isNum(right)) return Num(left).eq(Num(right));
       return left === right;
@@ -144,7 +160,8 @@ function applyBool(op: string, left: unknown, right: unknown): boolean {
       if (op === "<") return a.lt(b);
       return a.lte(b);
     }
-    default: throw new ErrorException(`Unknown boolean operator '${op}'`);
+    default:
+      throw new ErrorException(`Unknown boolean operator '${op}'`);
   }
 }
 
@@ -182,20 +199,31 @@ function shouldPop(
   return s.prec > c.prec;
 }
 
-function popAndApply(opStack: string[], output: unknown[], ops: Record<string, OpInfo>): void {
+function popAndApply(
+  opStack: string[],
+  output: unknown[],
+  ops: Record<string, OpInfo>,
+): void {
   const op = opStack.pop()!;
   if (isStackPrefix(op)) {
-    if (output.length < 1) throw new ErrorException(`Missing operand for '${op}'`);
+    if (output.length < 1)
+      throw new ErrorException(`Missing operand for '${op}'`);
     output.push(applyPrefix(op, output.pop()));
   } else {
-    if (output.length < 2) throw new ErrorException(`Missing operand for '${op}'`);
+    if (output.length < 2)
+      throw new ErrorException(`Missing operand for '${op}'`);
     const r = output.pop();
     const l = output.pop();
     output.push(applyBinary(op, l, r, ops));
   }
 }
 
-function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<string>, label: string): unknown {
+function evaluate(
+  tokens: unknown[],
+  ops: Record<string, OpInfo>,
+  validOps: Set<string>,
+  label: string,
+): unknown {
   const output: unknown[] = [];
   const opStack: string[] = [];
 
@@ -212,15 +240,18 @@ function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<
       while (opStack.length > 0 && opStack[opStack.length - 1] !== "(") {
         popAndApply(opStack, output, ops);
       }
-      if (opStack.length === 0) throw new ErrorException("Mismatched parentheses");
+      if (opStack.length === 0)
+        throw new ErrorException("Mismatched parentheses");
       opStack.pop();
       prevWasValue = true;
       continue;
     }
 
-    const isOp = typeof token === "string" && (validOps.has(token) || token === "-");
+    const isOp =
+      typeof token === "string" && (validOps.has(token) || token === "-");
     const isUnaryMinus = token === "-" && !prevWasValue && ops === ARITH_OPS;
-    const isPrefix = typeof token === "string" && ops[token]?.arity === "prefix";
+    const isPrefix =
+      typeof token === "string" && ops[token]?.arity === "prefix";
 
     if (isOp && (isPrefix || isUnaryMinus) && !prevWasValue) {
       const prefixOp = isUnaryMinus ? UNARY_MINUS : (token as string);
@@ -234,10 +265,14 @@ function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<
       if (!ops[opStr]) {
         throw new ErrorException(
           `Operator '${opStr}' is not valid in ${label}. ` +
-          (label === "@bool" ? "Use @num(...) for arithmetic." : ""),
+            (label === "@bool" ? "Use @num(...) for arithmetic." : ""),
         );
       }
-      while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && shouldPop(opStack[opStack.length - 1], opStr, ops)) {
+      while (
+        opStack.length > 0 &&
+        opStack[opStack.length - 1] !== "(" &&
+        shouldPop(opStack[opStack.length - 1], opStr, ops)
+      ) {
         popAndApply(opStack, output, ops);
       }
       opStack.push(opStr);
@@ -245,7 +280,12 @@ function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<
       continue;
     }
 
-    if (typeof token === "string" && !validOps.has(token) && token !== "(" && token !== ")") {
+    if (
+      typeof token === "string" &&
+      !validOps.has(token) &&
+      token !== "(" &&
+      token !== ")"
+    ) {
       detectMissingSpaces(token, validOps);
     }
 
@@ -254,7 +294,8 @@ function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<
   }
 
   while (opStack.length > 0) {
-    if (opStack[opStack.length - 1] === "(") throw new ErrorException("Mismatched parentheses");
+    if (opStack[opStack.length - 1] === "(")
+      throw new ErrorException("Mismatched parentheses");
     popAndApply(opStack, output, ops);
   }
 
@@ -269,14 +310,18 @@ function evaluate(tokens: unknown[], ops: Record<string, OpInfo>, validOps: Set<
 //  Public API
 // ---------------------------------------------------------------------------
 
-export function validateNoEmbeddedOps(token: unknown, context: "arithmetic" | "boolean"): void {
+export function validateNoEmbeddedOps(
+  token: unknown,
+  context: "arithmetic" | "boolean",
+): void {
   if (typeof token !== "string") return;
   const ops = context === "arithmetic" ? ALL_ARITH : ALL_BOOL;
   detectMissingSpaces(token, ops);
 }
 
 export function evaluateArithmeticExpr(tokens: unknown[]): Num {
-  if (tokens.length === 0) throw new ErrorException("@num requires at least one argument");
+  if (tokens.length === 0)
+    throw new ErrorException("@num requires at least one argument");
 
   for (const t of tokens) {
     if (typeof t === "string" && ALL_BOOL.has(t)) {
@@ -291,7 +336,8 @@ export function evaluateArithmeticExpr(tokens: unknown[]): Num {
 }
 
 export function evaluateBoolExpr(tokens: unknown[]): boolean {
-  if (tokens.length === 0) throw new ErrorException("@bool requires at least one argument");
+  if (tokens.length === 0)
+    throw new ErrorException("@bool requires at least one argument");
 
   for (const t of tokens) {
     if (typeof t === "string" && ALL_ARITH.has(t) && !ALL_BOOL.has(t)) {

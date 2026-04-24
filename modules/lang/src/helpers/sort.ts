@@ -42,7 +42,11 @@ export default defineHelper<Lang>({
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },
-    { name: "fn", type: "helper", description: "Comparator helper returning a number" },
+    {
+      name: "fn",
+      type: "helper",
+      description: "Comparator helper returning a number",
+    },
   ],
   async run(_, { arr, fn }) {
     if (arr.length > 10_000) {

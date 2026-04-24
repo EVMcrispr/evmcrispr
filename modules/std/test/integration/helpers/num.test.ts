@@ -109,7 +109,10 @@ describeHelper("@num", {
   docCases: [
     { description: "Basic arithmetic", code: `set $sum @num(1 + 2)` },
     { description: "Exponentiation", code: `set $pow @num(2 ^ 10)` },
-    { description: "Expression with variables", code: `set $a 10\nset $b 3\nset $result @num($a * $b + 1)` },
+    {
+      description: "Expression with variables",
+      code: `set $a 10\nset $b 3\nset $result @num($a * $b + 1)`,
+    },
     { description: "Convert a string to number", code: `set $n @num("42")` },
   ],
   errorCases: [

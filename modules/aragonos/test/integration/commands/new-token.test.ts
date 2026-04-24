@@ -31,7 +31,12 @@ import {
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
-import { getContract, getContractAddress, isAddressEqual, parseAbi } from "viem";
+import {
+  getContract,
+  getContractAddress,
+  isAddressEqual,
+  parseAbi,
+} from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 import {
   createAragonScriptInterpreter as createAragonScriptInterpreter_,

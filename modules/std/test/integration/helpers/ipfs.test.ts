@@ -10,9 +10,7 @@ describeHelper(
   {
     skip: !PINATA_JWT,
     describeName: "Std > helpers > @ipfs(text)",
-    preamble: PINATA_JWT
-      ? `set $std:ipfs.jwt ${PINATA_JWT}`
-      : undefined,
+    preamble: PINATA_JWT ? `set $std:ipfs.jwt ${PINATA_JWT}` : undefined,
     cases: [
       {
         name: "should upload text to IPFS and return hash",

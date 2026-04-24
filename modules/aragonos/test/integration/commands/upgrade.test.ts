@@ -122,7 +122,11 @@ describeCommand("upgrade", {
           "disputable-conviction-voting.open.aragonpm.eth",
           interpreter.getModule("aragonos") as AragonOS,
         );
-        const repo = getContract({ address: repoAddress!, abi: REPO_ABI, client });
+        const repo = getContract({
+          address: repoAddress!,
+          abi: REPO_ABI,
+          client,
+        });
         const [, latestImplementationAddress] = await repo.read.getLatest();
         const expectedUpgradeActions = [
           createTestAction("setApp", DAO2.kernel, [

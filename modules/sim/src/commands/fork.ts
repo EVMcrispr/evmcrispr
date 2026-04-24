@@ -26,12 +26,30 @@ import {
 export default defineCommand<Sim>({
   name: "fork",
   description: "Fork the blockchain and execute commands in a simulation.",
-  args: [{ name: "block", type: "block", description: "Commands to execute in the fork" }],
+  args: [
+    {
+      name: "block",
+      type: "block",
+      description: "Commands to execute in the fork",
+    },
+  ],
   opts: [
-    { name: "block-number", type: "number", description: "Block number to fork from" },
+    {
+      name: "block-number",
+      type: "number",
+      description: "Block number to fork from",
+    },
     { name: "from", type: "address", description: "Default sender address" },
-    { name: "auth-token", type: "string", description: "RPC provider authentication token" },
-    { name: "using", type: "simulation-mode", description: "Simulation backend (anvil, hardhat, tenderly, ethereumjs)" },
+    {
+      name: "auth-token",
+      type: "string",
+      description: "RPC provider authentication token",
+    },
+    {
+      name: "using",
+      type: "simulation-mode",
+      description: "Simulation backend (anvil, hardhat, tenderly, ethereumjs)",
+    },
   ],
   async run(module, { block }, { opts, interpreters }) {
     const { interpretNode } = interpreters;
@@ -332,11 +350,20 @@ export default defineCommand<Sim>({
                 blockNumber: receipt.blockNumber,
               });
             } catch (callErr: any) {
-              if (callErr?.data && typeof callErr.data === "string" && callErr.data.startsWith("0x")) {
+              if (
+                callErr?.data &&
+                typeof callErr.data === "string" &&
+                callErr.data.startsWith("0x")
+              ) {
                 revertData = callErr.data as `0x${string}`;
               } else if (callErr?.walk) {
                 callErr.walk((inner: any) => {
-                  if (!revertData && inner?.data && typeof inner.data === "string" && inner.data.startsWith("0x")) {
+                  if (
+                    !revertData &&
+                    inner?.data &&
+                    typeof inner.data === "string" &&
+                    inner.data.startsWith("0x")
+                  ) {
                     revertData = inner.data as `0x${string}`;
                   }
                 });

@@ -21,8 +21,17 @@ export default defineHelper<AragonOS>({
   description: "Resolve an Aragon ENS name to its address.",
   returnType: "address",
   args: [
-    { name: "ensName", type: "string", description: "ENS name to resolve to an address" },
-    { name: "extra", type: "any", description: "Additional ENS path segment", optional: true },
+    {
+      name: "ensName",
+      type: "string",
+      description: "ENS name to resolve to an address",
+    },
+    {
+      name: "extra",
+      type: "any",
+      description: "Additional ENS path segment",
+      optional: true,
+    },
   ],
   async run(module, { ensName }) {
     const customENSResolver = module.getConfigBinding("ensResolver");

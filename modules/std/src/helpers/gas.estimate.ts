@@ -10,9 +10,22 @@ export default defineHelper<Std>({
   description: "Estimate the gas required for a contract call.",
   returnType: "number",
   args: [
-    { name: "address", type: "address", description: "Target contract address" },
-    { name: "signature", type: "write-abi", description: 'Function signature (e.g. "transfer(address,uint256)")' },
-    { name: "params", type: "any", description: "Arguments matching the signature types", rest: true },
+    {
+      name: "address",
+      type: "address",
+      description: "Target contract address",
+    },
+    {
+      name: "signature",
+      type: "write-abi",
+      description: 'Function signature (e.g. "transfer(address,uint256)")',
+    },
+    {
+      name: "params",
+      type: "any",
+      description: "Arguments matching the signature types",
+      rest: true,
+    },
   ],
   async run(module, { address, signature, params }, { node }) {
     const action = encodeAction(address, signature, params);

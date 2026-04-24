@@ -55,12 +55,15 @@ let exitCode = 0;
 try {
   for (const pkg of PACKAGES_WITH_INTEGRATION_TESTS) {
     console.log(`\n--- Running integration tests: ${pkg} ---`);
-    const result = Bun.spawnSync(["bun", "test", "--timeout", "30000", "./test/integration"], {
-      cwd: resolve(import.meta.dir, "..", pkg),
-      env: process.env,
-      stdout: "inherit",
-      stderr: "inherit",
-    });
+    const result = Bun.spawnSync(
+      ["bun", "test", "--timeout", "30000", "./test/integration"],
+      {
+        cwd: resolve(import.meta.dir, "..", pkg),
+        env: process.env,
+        stdout: "inherit",
+        stderr: "inherit",
+      },
+    );
     if (result.exitCode !== 0) {
       exitCode = 1;
     }

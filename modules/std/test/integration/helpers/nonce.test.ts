@@ -13,7 +13,8 @@ describeHelper(
         name: "should return the nonce for an address",
         input: `@nonce(${testAddr})`,
         validate: (result) => {
-          const n = result instanceof Num ? result.toBigInt() : BigInt(String(result));
+          const n =
+            result instanceof Num ? result.toBigInt() : BigInt(String(result));
           expect(n).to.be.a("bigint");
           expect(n).to.be.greaterThanOrEqual(0n as unknown as number);
         },

@@ -4,7 +4,8 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "unique",
-  description: "Remove duplicates from an array, preserving first-occurrence order.",
+  description:
+    "Remove duplicates from an array, preserving first-occurrence order.",
   returnType: "array",
   args: [{ name: "arr", type: "array", description: "Source array" }],
   async run(_, { arr }) {

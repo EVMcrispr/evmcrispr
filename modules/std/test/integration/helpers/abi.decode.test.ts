@@ -47,7 +47,10 @@ describeHelper(
         error: "invalid type list",
       },
     ],
-    sampleArgs: ['"uint256"', "0x0000000000000000000000000000000000000000000000000000000000000001"],
+    sampleArgs: [
+      '"uint256"',
+      "0x0000000000000000000000000000000000000000000000000000000000000001",
+    ],
   },
   helpers["abi.decode"].argDefs,
 );

@@ -7,7 +7,11 @@ export default defineHelper<Lang>({
   returnType: "any",
   args: [
     { name: "arr", type: "array", description: "Source array" },
-    { name: "fn", type: "helper", description: "Reducer helper receiving `(accumulator, element)`" },
+    {
+      name: "fn",
+      type: "helper",
+      description: "Reducer helper receiving `(accumulator, element)`",
+    },
     { name: "initial", type: "any", description: "Initial accumulator value" },
   ],
   async run(_, { arr, fn, initial }) {

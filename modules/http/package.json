@@ -31,7 +31,7 @@
     "lint": "biome check src",
     "type-check": "tsc -p tsconfig.json",
     "build": "evmcrispr-build",
-    
+
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test"
   }

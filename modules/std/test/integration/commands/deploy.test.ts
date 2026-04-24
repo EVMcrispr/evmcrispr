@@ -49,8 +49,7 @@ function predictCreate3(
 }
 
 describeCommand("deploy", {
-  describeName:
-    "Std > commands > deploy <$variable> <bytecode> [opts...]",
+  describeName: "Std > commands > deploy <$variable> <bytecode> [opts...]",
   cases: [
     {
       name: "plain CREATE: emits a deployment action without `to` and binds the predicted address",
@@ -58,9 +57,9 @@ describeCommand("deploy", {
       expectedActions: [{ data: BYTECODE, from: FROM }],
       validate: (_actions, interpreter) => {
         const expected = getContractAddress({ from: FROM, nonce: 0n });
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
     {
@@ -93,9 +92,9 @@ describeCommand("deploy", {
           from: "0x000000000000000000000000000000000000beef",
           nonce: 0n,
         });
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
     {
@@ -119,19 +118,20 @@ describeCommand("deploy", {
       validate: (actions, interpreter) => {
         const encoded = encodeAbiParameters(
           [{ type: "uint256" }, { type: "address" }],
-          [
-            1000000000000000000n,
-            "0x000000000000000000000000000000000000beef",
-          ],
+          [1000000000000000000n, "0x000000000000000000000000000000000000beef"],
         );
         const expectedInitCode = concatHex([BYTECODE, encoded]);
         expect(actions).to.have.length(1);
-        const action = actions[0] as { data?: string; to?: string; from?: string };
+        const action = actions[0] as {
+          data?: string;
+          to?: string;
+          from?: string;
+        };
         expect(action.data).to.equal(expectedInitCode);
         expect(action.to).to.equal(undefined);
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(getContractAddress({ from: FROM, nonce: 0n }));
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          getContractAddress({ from: FROM, nonce: 0n }),
+        );
       },
     },
     {
@@ -151,9 +151,9 @@ describeCommand("deploy", {
           salt: SALT_1,
           bytecode: BYTECODE,
         });
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
     {
@@ -173,9 +173,9 @@ describeCommand("deploy", {
           salt: SALT_2,
           bytecode: BYTECODE,
         });
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
     {
@@ -194,9 +194,9 @@ describeCommand("deploy", {
       ],
       validate: (_actions, interpreter) => {
         const expected = predictCreate3(CREATEX, SALT_1);
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
     {
@@ -219,9 +219,9 @@ describeCommand("deploy", {
             args: [SALT_2, BYTECODE],
           }),
         );
-        expect(
-          interpreter.getBinding("$addr", BindingsSpace.USER),
-        ).to.equal(expected);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          expected,
+        );
       },
     },
   ],

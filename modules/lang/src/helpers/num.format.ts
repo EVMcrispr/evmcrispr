@@ -8,7 +8,11 @@ export default defineHelper<Lang>({
   returnType: "string",
   args: [
     { name: "value", type: "number", description: "Input value" },
-    { name: "decimals", type: "number", description: "Number of decimal places" },
+    {
+      name: "decimals",
+      type: "number",
+      description: "Number of decimal places",
+    },
   ],
   async run(_, { value, decimals }) {
     const v = Num(value).toBigInt();

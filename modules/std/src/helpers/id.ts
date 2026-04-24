@@ -7,7 +7,13 @@ export default defineHelper<Std>({
   description:
     "Compute the keccak256 hash of a string (first 4 bytes for selectors).",
   returnType: "bytes32",
-  args: [{ name: "text", type: "string", description: "String to hash (e.g. a function signature)" }],
+  args: [
+    {
+      name: "text",
+      type: "string",
+      description: "String to hash (e.g. a function signature)",
+    },
+  ],
   async run(_, { text }) {
     return keccak256(toHex(text));
   },

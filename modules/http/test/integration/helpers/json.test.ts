@@ -3,8 +3,10 @@ import { Num } from "@evmcrispr/sdk";
 import { describeHelper, expect } from "@evmcrispr/test-utils";
 import { helpers } from "../../../src/_generated";
 
-const sampleJson = '{"name":"Alice","age":30,"tags":["a","b"],"nested":{"x":1}}';
-const tokensJson = '{"tokens":[{"symbol":"DAI","address":"0x1"},{"symbol":"USDC","address":"0x2"},{"symbol":"WETH","address":"0x3"}]}';
+const sampleJson =
+  '{"name":"Alice","age":30,"tags":["a","b"],"nested":{"x":1}}';
+const tokensJson =
+  '{"tokens":[{"symbol":"DAI","address":"0x1"},{"symbol":"USDC","address":"0x2"},{"symbol":"WETH","address":"0x3"}]}';
 
 describeHelper(
   "@json",
@@ -35,14 +37,12 @@ describeHelper(
       {
         name: "should extract a number value",
         input: `@json($data "age")`,
-        validate: (result) =>
-          expect(result).to.be.instanceOf(Num),
+        validate: (result) => expect(result).to.be.instanceOf(Num),
       },
       {
         name: "should navigate nested objects",
         input: `@json($data "nested.x")`,
-        validate: (result) =>
-          expect(result).to.be.instanceOf(Num),
+        validate: (result) => expect(result).to.be.instanceOf(Num),
       },
       {
         name: "should access array elements by index",
@@ -71,8 +71,7 @@ describeHelper(
       {
         name: "should handle leading bracket path",
         input: `@json('[10,20,30]' "[1]")`,
-        validate: (result) =>
-          expect(result.eq(Num(20n))).to.be.true,
+        validate: (result) => expect(result.eq(Num(20n))).to.be.true,
       },
       {
         name: "should handle boolean values",
@@ -159,7 +158,8 @@ describeHelper(
       {
         name: "should format a nested object",
         input: `@json.format("{name, job: {title, company}}" ["Alice" ["Engineer" "Acme"]])`,
-        expected: '{"name":"Alice","job":{"title":"Engineer","company":"Acme"}}',
+        expected:
+          '{"name":"Alice","job":{"title":"Engineer","company":"Acme"}}',
       },
       {
         name: "should format deeply nested objects",

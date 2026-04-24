@@ -14,7 +14,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Compute a function selector", code: `set $sel @id("transfer(address,uint256)")` },
+      {
+        description: "Compute a function selector",
+        code: `set $sel @id("transfer(address,uint256)")`,
+      },
     ],
     sampleArgs: ["exampleValue"],
   },

@@ -7,7 +7,12 @@ const { MODULE, USER, CACHE } = BindingsSpace;
 
 const ENV_TOKENLIST = "$token.tokenlist";
 
-type TokenEntry = { symbol: string; name: string; chainId: number; address: string };
+type TokenEntry = {
+  symbol: string;
+  name: string;
+  chainId: number;
+  address: string;
+};
 
 function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}..${addr.slice(-4)}`;

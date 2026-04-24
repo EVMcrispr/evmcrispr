@@ -9,12 +9,18 @@ export default defineHelper<Std>({
   returnType: "string",
   args: [
     { name: "value", type: "any", description: "Input value" },
-    { name: "encoding", type: "string", optional: true, description: "`utf8` to decode hex bytes as a UTF-8 string" },
+    {
+      name: "encoding",
+      type: "string",
+      optional: true,
+      description: "`utf8` to decode hex bytes as a UTF-8 string",
+    },
   ],
   completions: { encoding: () => ["utf8"].map(fieldItem) },
   async run(_, { value, encoding }) {
     if (encoding === "utf8") {
-      const hex = typeof value === "string" && isHexString(value) ? value : String(value);
+      const hex =
+        typeof value === "string" && isHexString(value) ? value : String(value);
       return fromHex(hex as `0x${string}`, "string");
     }
     return String(value);

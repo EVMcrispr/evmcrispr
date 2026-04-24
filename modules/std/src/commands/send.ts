@@ -16,8 +16,16 @@ export default defineCommand<Std>({
     },
   ],
   opts: [
-    { name: "data", type: "bytes", description: "Pre-encoded calldata or init code" },
-    { name: "value", type: "number", description: "Native value to send (in wei)" },
+    {
+      name: "data",
+      type: "bytes",
+      description: "Pre-encoded calldata or init code",
+    },
+    {
+      name: "value",
+      type: "number",
+      description: "Native value to send (in wei)",
+    },
     {
       name: "from",
       type: "address",
@@ -34,7 +42,11 @@ export default defineCommand<Std>({
       type: "number",
       description: "Max priority fee per gas (EIP-1559)",
     },
-    { name: "nonce", type: "number", description: "Transaction nonce override" },
+    {
+      name: "nonce",
+      type: "number",
+      description: "Transaction nonce override",
+    },
   ],
   async run(_module, { to }, { opts }) {
     const data = opts.data as `0x${string}` | undefined;

@@ -13,7 +13,10 @@ describeCommand("print", {
   docCases: [
     { description: "Print a string", code: `print "hello"` },
     { description: "Print multiple values", code: `print "count:" 42` },
-    { description: "Print variables", code: `set $name "world"\nprint "hello" $name` },
+    {
+      description: "Print variables",
+      code: `set $name "world"\nprint "hello" $name`,
+    },
   ],
 });
 

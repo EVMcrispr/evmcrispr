@@ -3,7 +3,8 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "arr",
-  description: "Generate an array of sequential integers from start (inclusive) to end (exclusive).",
+  description:
+    "Generate an array of sequential integers from start (inclusive) to end (exclusive).",
   returnType: "array",
   args: [
     { name: "start", type: "number", description: "Start value (inclusive)" },

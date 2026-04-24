@@ -21,7 +21,9 @@ export const createTestPreTxAction = (
 ): CallScriptAction => {
   switch (operation) {
     case "approve":
-      return toCallScriptAction(encodeAction(to, "approve(address,uint256)", parameters));
+      return toCallScriptAction(
+        encodeAction(to, "approve(address,uint256)", parameters),
+      );
     default:
       throw new Error(`Pretransaction operation ${operation} not found.`);
   }
@@ -55,7 +57,9 @@ export const createTestAction = (
     "function setApp(bytes32,bytes32,address)",
   ]);
 
-  return toCallScriptAction(encodeAction(to, operation, parameters || [], { abi }));
+  return toCallScriptAction(
+    encodeAction(to, operation, parameters || [], { abi }),
+  );
 };
 
 export const createTestScriptEncodedAction = (
@@ -74,7 +78,9 @@ export const createTestScriptEncodedAction = (
     switch (forwarderType) {
       case FORWARDER_TYPE:
         {
-          const action = encodeAction(forwarderAddress, "forward(bytes)", [script]);
+          const action = encodeAction(forwarderAddress, "forward(bytes)", [
+            script,
+          ]);
           forwarderActions = [toCallScriptAction(action)];
         }
         break;
@@ -83,10 +89,11 @@ export const createTestScriptEncodedAction = (
           throw new Error("Context not provided.");
         }
         {
-          const action = encodeAction(forwarderAddress, "forward(bytes,bytes)", [
-            script,
-            toHex(context),
-          ]);
+          const action = encodeAction(
+            forwarderAddress,
+            "forward(bytes,bytes)",
+            [script, toHex(context)],
+          );
           forwarderActions = [toCallScriptAction(action)];
         }
         break;
@@ -98,7 +105,9 @@ export const createTestScriptEncodedAction = (
   return forwarderActions[0];
 };
 
-export function toCallScriptAction(action: TransactionAction): CallScriptAction {
+export function toCallScriptAction(
+  action: TransactionAction,
+): CallScriptAction {
   if (!action.data) {
     throw new Error("Missing calldata for call script action.");
   }

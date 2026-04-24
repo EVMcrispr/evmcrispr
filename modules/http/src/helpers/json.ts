@@ -15,7 +15,8 @@ function parsePath(path: string): Segment[] {
     }
     if (path[i] === "[") {
       const close = path.indexOf("]", i);
-      if (close === -1) throw new ErrorException("@json: unclosed bracket in path");
+      if (close === -1)
+        throw new ErrorException("@json: unclosed bracket in path");
       const inner = path.slice(i + 1, close).trim();
       if (inner === "*") {
         segments.push(WILDCARD);
@@ -35,7 +36,13 @@ function parsePath(path: string): Segment[] {
       continue;
     }
     let end = i;
-    while (end < path.length && path[end] !== "." && path[end] !== "[" && path[end] !== "*") end++;
+    while (
+      end < path.length &&
+      path[end] !== "." &&
+      path[end] !== "[" &&
+      path[end] !== "*"
+    )
+      end++;
     if (end > i) segments.push(path.slice(i, end));
     i = end;
   }
@@ -93,7 +100,11 @@ export default defineHelper<Http>({
   returnType: "any",
   args: [
     { name: "data", type: "string", description: "JSON string to parse" },
-    { name: "path", type: "json-path", description: "JSONPath expression (e.g. `data.items[0].name`)" },
+    {
+      name: "path",
+      type: "json-path",
+      description: "JSONPath expression (e.g. `data.items[0].name`)",
+    },
   ],
   async run(_, { data, path }) {
     let parsed: unknown;
@@ -106,9 +117,7 @@ export default defineHelper<Http>({
     const result = navigatePath(parsed, String(path));
 
     if (result === undefined) {
-      throw new ErrorException(
-        `@json: path "${path}" resolved to undefined`,
-      );
+      throw new ErrorException(`@json: path "${path}" resolved to undefined`);
     }
 
     return toParam(result);

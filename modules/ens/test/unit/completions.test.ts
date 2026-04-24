@@ -96,12 +96,7 @@ describe("Completions – ens helpers", () => {
     evm = new EVMcrispr(client as PublicClient);
   });
 
-  const ENS_HELPERS = [
-    "@contenthash",
-    "@ens.avatar",
-    "@ens.name",
-    "@ens.text",
-  ];
+  const ENS_HELPERS = ["@contenthash", "@ens.avatar", "@ens.name", "@ens.text"];
   const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
   const BYTES32_HELPERS = STD_BYTES32_HELPERS;

@@ -128,9 +128,7 @@ export default defineCommand<Std>({
       );
     }
     if (opts.via && !opts.create2 && !opts.create3) {
-      throw new ErrorException(
-        "deploy: --via requires --create2 or --create3",
-      );
+      throw new ErrorException("deploy: --via requires --create2 or --create3");
     }
 
     let initCode = bytecode as `0x${string}`;
@@ -165,8 +163,7 @@ export default defineCommand<Std>({
     } else if (opts.create3) {
       const salt = pad(opts.create3 as `0x${string}`, { size: 32 });
       const factory =
-        (opts.via as `0x${string}` | undefined) ??
-        (CREATEX as `0x${string}`);
+        (opts.via as `0x${string}` | undefined) ?? (CREATEX as `0x${string}`);
 
       // Reject CreateX-style permissioned salts so client-side prediction stays
       // deterministic. See CreateX `_guard` logic:
@@ -178,8 +175,7 @@ export default defineCommand<Std>({
         from,
       );
       const isZeroProtected =
-        saltSenderPrefix === ZERO_ADDR_BYTES20 &&
-        saltCrossChainByte === "0x01";
+        saltSenderPrefix === ZERO_ADDR_BYTES20 && saltCrossChainByte === "0x01";
       if (isPermissioned || isZeroProtected) {
         throw new ErrorException(
           "deploy --create3: permissioned salts are not supported (first 20 bytes of salt must not equal --from, and a zero-prefixed salt must not have 0x01 in byte 20)",

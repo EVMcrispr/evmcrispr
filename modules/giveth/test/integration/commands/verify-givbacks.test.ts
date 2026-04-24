@@ -68,8 +68,7 @@ describeCommand("verify-givbacks", {
         "giveth:verify-givbacks QmYYpntQPV3CSeCGKUZSYK2ET6czvrwqtDQdzopoqUwws1 49",
       error: (interpreter) => {
         const c = interpreter.ast.body.find(
-          (n: Node) =>
-            (n as CommandExpressionNode).name === "verify-givbacks",
+          (n: Node) => (n as CommandExpressionNode).name === "verify-givbacks",
         ) as CommandExpressionNode;
         return new CommandError(
           c,

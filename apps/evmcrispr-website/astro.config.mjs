@@ -8,7 +8,10 @@ import evmlGrammar from "@repo/ui/grammars/evml";
 
 // Build reference sidebar by scanning the reference/ content directory.
 // Modules with symlinked docs appear automatically after running generate-docs.
-const REFERENCE_DIR = resolve(import.meta.dirname, "src/content/docs/reference");
+const REFERENCE_DIR = resolve(
+  import.meta.dirname,
+  "src/content/docs/reference",
+);
 const PRIORITY = ["std", "lang"]; // shown first, in this order
 
 function buildReferenceSidebar() {

@@ -4,7 +4,12 @@ import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
 
 import { AragonDAO } from "../../src/AragonDAO";
-import type { App, AppArtifactCache, PermissionMap, Role } from "../../src/types";
+import type {
+  App,
+  AppArtifactCache,
+  PermissionMap,
+  Role,
+} from "../../src/types";
 
 function createMockApp(
   name: string,
@@ -121,9 +126,8 @@ describe("AragonOS > AragonDAO", () => {
 
     it("should return undefined for unknown addresses", () => {
       const { dao } = createMockDAO();
-      expect(
-        dao.resolveApp("0x9999999999999999999999999999999999999999"),
-      ).to.be.undefined;
+      expect(dao.resolveApp("0x9999999999999999999999999999999999999999")).to.be
+        .undefined;
     });
   });
 
@@ -153,7 +157,8 @@ describe("AragonOS > AragonDAO", () => {
 
     it("hasPermission() should return false for unknown grantees", () => {
       const { dao } = createMockDAO();
-      const unknown = "0x9999999999999999999999999999999999999999" as `0x${string}`;
+      const unknown =
+        "0x9999999999999999999999999999999999999999" as `0x${string}`;
       expect(dao.hasPermission(unknown, "agent:0", "TRANSFER_ROLE")).to.be
         .false;
     });

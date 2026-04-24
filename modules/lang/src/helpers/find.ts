@@ -7,7 +7,11 @@ export default defineHelper<Lang>({
   returnType: "any",
   args: [
     { name: "arr", type: "array", description: "Source array" },
-    { name: "fn", type: "helper", description: "Predicate helper returning bool" },
+    {
+      name: "fn",
+      type: "helper",
+      description: "Predicate helper returning bool",
+    },
   ],
   async run(_, { arr, fn }) {
     for (const item of arr) {

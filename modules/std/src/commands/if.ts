@@ -4,11 +4,25 @@ import type Std from "..";
 
 export default defineCommand<Std>({
   name: "if",
-  description: "Conditionally execute a block of commands, with an optional else block.",
+  description:
+    "Conditionally execute a block of commands, with an optional else block.",
   args: [
-    { name: "condition", type: "bool", description: "Whether to execute the then block" },
-    { name: "thenBlock", type: "block", description: "Commands when condition is true" },
-    { name: "elseBlock", type: "block", description: "Commands when condition is false", optional: true },
+    {
+      name: "condition",
+      type: "bool",
+      description: "Whether to execute the then block",
+    },
+    {
+      name: "thenBlock",
+      type: "block",
+      description: "Commands when condition is true",
+    },
+    {
+      name: "elseBlock",
+      type: "block",
+      description: "Commands when condition is false",
+      optional: true,
+    },
   ],
   async run(module, { condition, thenBlock, elseBlock }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;

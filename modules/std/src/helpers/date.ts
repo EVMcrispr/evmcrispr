@@ -12,8 +12,17 @@ export default defineHelper<Std>({
     "Parse a date string into a Unix timestamp, with an optional offset.",
   returnType: "number",
   args: [
-    { name: "date", type: "string", description: "ISO 8601 date string or `now`" },
-    { name: "offset", type: "string", description: "Time offset (e.g. `+1d`, `-2h`, `+3mo`)", optional: true },
+    {
+      name: "date",
+      type: "string",
+      description: "ISO 8601 date string or `now`",
+    },
+    {
+      name: "offset",
+      type: "string",
+      description: "Time offset (e.g. `+1d`, `-2h`, `+3mo`)",
+      optional: true,
+    },
   ],
   async run(_, { date, offset }) {
     if (date !== "now" && !iso8601Regex.test(date)) {

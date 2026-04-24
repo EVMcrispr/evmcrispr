@@ -24,7 +24,9 @@ describe("AragonOS > utils > evmscripts", () => {
 
   describe("encodeCallScript / decodeCallScript", () => {
     it("should encode and decode a single action", () => {
-      const actions = [{ to: addr1 as `0x${string}`, data: "0x11111111" as `0x${string}` }];
+      const actions = [
+        { to: addr1 as `0x${string}`, data: "0x11111111" as `0x${string}` },
+      ];
       const encoded = encodeCallScript(actions);
       expect(encoded.startsWith("0x00000001")).to.be.true;
 
@@ -67,7 +69,9 @@ describe("AragonOS > utils > evmscripts", () => {
 
   describe("decodeCallScript()", () => {
     it("should throw for non-callscript input", () => {
-      expect(() => decodeCallScript("0x00000002")).to.throw("Not a call script");
+      expect(() => decodeCallScript("0x00000002")).to.throw(
+        "Not a call script",
+      );
     });
   });
 });

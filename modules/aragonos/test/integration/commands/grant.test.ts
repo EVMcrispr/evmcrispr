@@ -158,7 +158,10 @@ describeCommand("grant", {
       script: `grant false @app(acl) CREATE_PERMISSIONS_ROLE\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
-        return new CommandError(c, "<grantee> must be a valid address, got false");
+        return new CommandError(
+          c,
+          "<grantee> must be a valid address, got false",
+        );
       },
     },
     {
@@ -174,7 +177,10 @@ describeCommand("grant", {
       script: `grant @app(kernel) @app(acl) NON_EXISTENT_ROLE\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
-        return new CommandError(c, "given permission doesn't exists on app acl");
+        return new CommandError(
+          c,
+          "given permission doesn't exists on app acl",
+        );
       },
     },
     {

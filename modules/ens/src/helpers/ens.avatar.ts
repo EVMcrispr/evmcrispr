@@ -9,7 +9,11 @@ export default defineHelper<Ens>({
   description: "Get the avatar URI for an ENS name.",
   returnType: "string",
   args: [
-    { name: "name", type: "string", description: "ENS name (e.g. vitalik.eth)" },
+    {
+      name: "name",
+      type: "string",
+      description: "ENS name (e.g. vitalik.eth)",
+    },
   ],
   async run(module, { name }, { node }) {
     const client = createPublicClient({
@@ -18,10 +22,7 @@ export default defineHelper<Ens>({
     });
     const avatar = await client.getEnsAvatar({ name: normalize(name) });
     if (!avatar) {
-      throw new HelperFunctionError(
-        node,
-        `no avatar found for ${name}`,
-      );
+      throw new HelperFunctionError(node, `no avatar found for ${name}`);
     }
     return avatar;
   },

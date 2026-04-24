@@ -77,7 +77,13 @@ export default defineHelper<Std>({
   description:
     "Resolve a token symbol to its contract address on the current chain.",
   returnType: "address",
-  args: [{ name: "tokenSymbolOrAddress", type: "token-symbol", description: "Token symbol (e.g. `DAI`) or address" }],
+  args: [
+    {
+      name: "tokenSymbolOrAddress",
+      type: "token-symbol",
+      description: "Token symbol (e.g. `DAI`) or address",
+    },
+  ],
   async run(module, { tokenSymbolOrAddress }) {
     return resolveToken(module, tokenSymbolOrAddress);
   },

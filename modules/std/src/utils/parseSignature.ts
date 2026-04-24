@@ -24,7 +24,11 @@ export function parseSignature(sig: string): ParsedSignature {
     return { params: [], opts: [] };
   }
 
-  if (!trimmed.includes("$") && !trimmed.includes("--") && !trimmed.includes("@")) {
+  if (
+    !trimmed.includes("$") &&
+    !trimmed.includes("--") &&
+    !trimmed.includes("@")
+  ) {
     return { params: [], opts: [], returnType: trimmed };
   }
 

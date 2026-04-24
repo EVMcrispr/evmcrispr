@@ -1,5 +1,9 @@
 import "../../setup";
-import { describeHelper, expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import {
+  describeHelper,
+  expect,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import { isAddress } from "viem";
 import { helpers } from "../../../src/_generated";
 
@@ -26,7 +30,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Read contract bytecode", code: `set $code @contract.codeAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)` },
+      {
+        description: "Read contract bytecode",
+        code: `set $code @contract.codeAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)`,
+      },
     ],
     sampleArgs: [WXDAI],
   },
@@ -54,7 +61,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Read storage slot 0", code: `set $val @contract.storageAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x0000000000000000000000000000000000000000000000000000000000000000)` },
+      {
+        description: "Read storage slot 0",
+        code: `set $val @contract.storageAt(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x0000000000000000000000000000000000000000000000000000000000000000)`,
+      },
     ],
     sampleArgs: [
       WXDAI,
@@ -67,8 +77,7 @@ describeHelper(
 describeHelper(
   "@contract.next",
   {
-    describeName:
-      "Std > helpers > @contract.next(creator, offset?)",
+    describeName: "Std > helpers > @contract.next(creator, offset?)",
     cases: [
       {
         name: "should return a valid address for the next contract",
@@ -86,7 +95,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Predict next contract address", code: `set $next @contract.next(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)` },
+      {
+        description: "Predict next contract address",
+        code: `set $next @contract.next(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)`,
+      },
     ],
     sampleArgs: [TEST_ACCOUNT_ADDRESS],
     skipArgLengthCheck: true,

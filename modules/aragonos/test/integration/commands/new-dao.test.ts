@@ -127,7 +127,10 @@ describe("AragonOS > commands > new-dao > event capture", () => {
     );
 
     const daoBinding = evm.getBinding("$dao", BindingsSpace.USER) as Address;
-    const capturedAddr = evm.getBinding("$daoAddr", BindingsSpace.USER) as Address;
+    const capturedAddr = evm.getBinding(
+      "$daoAddr",
+      BindingsSpace.USER,
+    ) as Address;
 
     expect(capturedAddr).to.not.be.undefined;
     expect(isAddressEqual(daoBinding, capturedAddr)).to.be.true;

@@ -7,7 +7,12 @@ export default defineHelper<Lang>({
   returnType: "array",
   args: [
     { name: "first", type: "array", description: "First array to concatenate" },
-    { name: "rest", type: "array", description: "Additional arrays to append", rest: true },
+    {
+      name: "rest",
+      type: "array",
+      description: "Additional arrays to append",
+      rest: true,
+    },
   ],
   async run(_, { first, rest }) {
     return [first, ...rest].flat();

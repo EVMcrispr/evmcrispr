@@ -7,7 +7,12 @@ export default defineHelper<Std>({
   returnType: "address",
   args: [
     { name: "creator", type: "address", description: "Deployer address" },
-    { name: "offset", type: "number", description: "Nonce offset from current", optional: true },
+    {
+      name: "offset",
+      type: "number",
+      description: "Nonce offset from current",
+      optional: true,
+    },
   ],
   async run(module, { creator, offset = 0 }) {
     const client = await module.getClient();

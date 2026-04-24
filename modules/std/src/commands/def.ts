@@ -44,7 +44,9 @@ function buildDef(
   bodyNode: Node,
 ): DefValue {
   const isHelper = kind === "helper";
-  const returnType = isHelper ? (returnTypeOrOptDefs as string | undefined) : undefined;
+  const returnType = isHelper
+    ? (returnTypeOrOptDefs as string | undefined)
+    : undefined;
   const optDefs = isHelper ? [] : (returnTypeOrOptDefs as OptDef[]);
 
   const requiredCount = paramDefs.filter((p) => !p.optional && !p.rest).length;
@@ -94,7 +96,11 @@ function buildDef(
           const helperNode = argNode as HelperFunctionNode;
           const proxyDef: DefValue = {
             kind: "helper",
-            run: async (_mod: Module, proxyCall: HelperFunctionNode, ints: NodesInterpreters) => {
+            run: async (
+              _mod: Module,
+              proxyCall: HelperFunctionNode,
+              ints: NodesInterpreters,
+            ) => {
               const syntheticCall = {
                 ...helperNode,
                 args: [...proxyCall.args, ...helperNode.args],
@@ -105,7 +111,12 @@ function buildDef(
             bodyNode: helperNode,
           };
           module.bindingsManager.setBinding(
-            `@${def.name}`, proxyDef, DEF, false, undefined, true,
+            `@${def.name}`,
+            proxyDef,
+            DEF,
+            false,
+            undefined,
+            true,
           );
           continue;
         }
@@ -116,10 +127,24 @@ function buildDef(
           for (let j = i; j < args.length; j++) {
             restValues.push(await interpretNode(args[j]));
           }
-          module.bindingsManager.setBinding(bindKey, restValues, USER, false, undefined, true);
+          module.bindingsManager.setBinding(
+            bindKey,
+            restValues,
+            USER,
+            false,
+            undefined,
+            true,
+          );
         } else if (args[i]) {
           const val = await interpretNode(args[i]);
-          module.bindingsManager.setBinding(bindKey, val, USER, false, undefined, true);
+          module.bindingsManager.setBinding(
+            bindKey,
+            val,
+            USER,
+            false,
+            undefined,
+            true,
+          );
         }
       }
 
@@ -129,7 +154,14 @@ function buildDef(
           const opt = cmdNode.opts.find((o) => o.name === optDef.name);
           if (opt) {
             const val = await interpretNode(opt.value);
-            module.bindingsManager.setBinding(optDef.name, val, USER, false, undefined, true);
+            module.bindingsManager.setBinding(
+              optDef.name,
+              val,
+              USER,
+              false,
+              undefined,
+              true,
+            );
           }
         }
       }
@@ -162,18 +194,25 @@ export default defineCommand<Std>({
   description: "Define a user command or helper.",
   args: [
     { name: "name", type: ["command", "helper"] },
-    { name: "params", type: "string", description: "Definition expression (see syntax variants below)" },
+    {
+      name: "params",
+      type: "string",
+      description: "Definition expression (see syntax variants below)",
+    },
     { name: "body", type: ["expression", "block"] },
   ],
   async run(module, { name, params, body }, { node }) {
-    const { params: paramDefs, opts: optDefs, returnType } = parseSignature(params);
+    const {
+      params: paramDefs,
+      opts: optDefs,
+      returnType,
+    } = parseSignature(params);
     const isHelper = node.args[0].type === NodeType.HelperFunctionExpression;
 
     let finalReturnType = returnType;
 
     const needsInference =
-      isHelper &&
-      (paramDefs.some((p) => p.type === "any") || !returnType);
+      isHelper && (paramDefs.some((p) => p.type === "any") || !returnType);
 
     if (needsInference) {
       const allModules = [module, ...module.context.modules];

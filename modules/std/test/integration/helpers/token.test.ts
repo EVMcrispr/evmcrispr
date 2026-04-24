@@ -29,7 +29,10 @@ describeHelper(
     ],
     docCases: [
       { description: "Resolve a token symbol", code: `set $dai @token(DAI)` },
-      { description: "Resolve the native token", code: `set $native @token(XDAI)` },
+      {
+        description: "Resolve the native token",
+        code: `set $native @token(XDAI)`,
+      },
     ],
     errorCases: [
       {
@@ -75,7 +78,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Query a token balance", code: `set $bal @token.balance(DAI @token(DAI))` },
+      {
+        description: "Query a token balance",
+        code: `set $bal @token.balance(DAI @token(DAI))`,
+      },
     ],
     sampleArgs: ["DAI", "@token(DAI)"],
   },
@@ -108,7 +114,10 @@ describeHelper(
       },
     ],
     docCases: [
-      { description: "Convert 100 DAI to base units", code: `set $amount @token.amount(DAI 100)` },
+      {
+        description: "Convert 100 DAI to base units",
+        code: `set $amount @token.amount(DAI 100)`,
+      },
     ],
     sampleArgs: ["DAI", "1"],
   },

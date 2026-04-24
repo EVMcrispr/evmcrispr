@@ -10,9 +10,7 @@ interface TemplateEntry {
 function parseTemplate(src: string): TemplateEntry[] {
   const s = src.trim();
   if (!s.startsWith("{") || !s.endsWith("}")) {
-    throw new ErrorException(
-      '@json.format: template must be wrapped in { }',
-    );
+    throw new ErrorException("@json.format: template must be wrapped in { }");
   }
   return parseEntries(s.slice(1, -1));
 }
@@ -26,7 +24,12 @@ function parseEntries(src: string): TemplateEntry[] {
     if (i >= src.length) break;
 
     let keyEnd = i;
-    while (keyEnd < src.length && src[keyEnd] !== "," && src[keyEnd] !== ":" && src[keyEnd] !== " ") {
+    while (
+      keyEnd < src.length &&
+      src[keyEnd] !== "," &&
+      src[keyEnd] !== ":" &&
+      src[keyEnd] !== " "
+    ) {
       keyEnd++;
     }
     const key = src.slice(i, keyEnd).trim();
@@ -39,9 +42,7 @@ function parseEntries(src: string): TemplateEntry[] {
       i++;
       while (i < src.length && src[i] === " ") i++;
       if (i >= src.length || src[i] !== "{") {
-        throw new ErrorException(
-          `@json.format: expected '{' after "${key}:"`,
-        );
+        throw new ErrorException(`@json.format: expected '{' after "${key}:"`);
       }
       const close = findMatchingBrace(src, i);
       const children = parseEntries(src.slice(i + 1, close));
@@ -111,11 +112,20 @@ function buildObject(
 
 export default defineHelper<Http>({
   name: "json.format",
-  description: "Construct a JSON string from a template and an array of values.",
+  description:
+    "Construct a JSON string from a template and an array of values.",
   returnType: "string",
   args: [
-    { name: "template", type: "string", description: "Brace-wrapped template listing JSON object keys" },
-    { name: "values", type: "array", description: "Values to substitute into template" },
+    {
+      name: "template",
+      type: "string",
+      description: "Brace-wrapped template listing JSON object keys",
+    },
+    {
+      name: "values",
+      type: "array",
+      description: "Values to substitute into template",
+    },
   ],
   async run(_, { template, values }) {
     const entries = parseTemplate(String(template));

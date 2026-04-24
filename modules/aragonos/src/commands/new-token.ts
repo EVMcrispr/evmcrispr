@@ -16,9 +16,23 @@ export default defineCommand<AragonOS>({
     { name: "variable", type: "variable", description: "Variable name" },
     { name: "name", type: "string", description: "Token name" },
     { name: "symbol", type: "string", description: "Token symbol" },
-    { name: "controller", type: "address", description: "Token controller address" },
-    { name: "decimals", type: "number", description: "Decimal places", optional: true },
-    { name: "transferable", type: "bool", description: "Whether the token is transferable", optional: true },
+    {
+      name: "controller",
+      type: "address",
+      description: "Token controller address",
+    },
+    {
+      name: "decimals",
+      type: "number",
+      description: "Decimal places",
+      optional: true,
+    },
+    {
+      name: "transferable",
+      type: "bool",
+      description: "Whether the token is transferable",
+      optional: true,
+    },
   ],
   async run(
     module,

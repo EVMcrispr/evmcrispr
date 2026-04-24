@@ -41,16 +41,38 @@ function arrayIndexItems(
 ): CompletionItem[] {
   const o = bracketOpen ? "[" : "";
   if (arr.length === 0) {
-    return [{ label: `${labelPrefix}[*]`, insertText: `${insertBase}${o}*]`, kind: "field", sortPriority: 0 }];
+    return [
+      {
+        label: `${labelPrefix}[*]`,
+        insertText: `${insertBase}${o}*]`,
+        kind: "field",
+        sortPriority: 0,
+      },
+    ];
   }
   const items: CompletionItem[] = [
-    { label: `${labelPrefix}[0]`, insertText: `${insertBase}${o}0]`, kind: "field", sortPriority: 0 },
+    {
+      label: `${labelPrefix}[0]`,
+      insertText: `${insertBase}${o}0]`,
+      kind: "field",
+      sortPriority: 0,
+    },
   ];
   if (arr.length > 1) {
     const last = arr.length - 1;
-    items.push({ label: `${labelPrefix}[${last}]`, insertText: `${insertBase}${o}${last}]`, kind: "field", sortPriority: 1 });
+    items.push({
+      label: `${labelPrefix}[${last}]`,
+      insertText: `${insertBase}${o}${last}]`,
+      kind: "field",
+      sortPriority: 1,
+    });
   }
-  items.push({ label: `${labelPrefix}[*]`, insertText: `${insertBase}${o}*]`, kind: "field", sortPriority: 2 });
+  items.push({
+    label: `${labelPrefix}[*]`,
+    insertText: `${insertBase}${o}*]`,
+    kind: "field",
+    sortPriority: 2,
+  });
   return items;
 }
 
@@ -113,7 +135,6 @@ function monacoInsertBase(fullPrefix: string): string {
   return lastBreak === -1 ? fullPrefix : fullPrefix.slice(lastBreak + 1);
 }
 
-
 /** Split a JSONPath string into segments, preserving bracket expressions. */
 function splitJsonPath(path: string): string[] {
   const segments: string[] = [];
@@ -150,7 +171,10 @@ function splitJsonPath(path: string): string[] {
  * value typed so far (e.g. `$.tokens[*].`). Labels show the full `$.`-prefixed
  * path; insertText contains only what replaces the current Monaco word.
  */
-export function jsonPathCompletions(parsed: unknown, rawPath: string): CompletionItem[] {
+export function jsonPathCompletions(
+  parsed: unknown,
+  rawPath: string,
+): CompletionItem[] {
   const jsonPath = rawPath.startsWith("$.")
     ? rawPath.slice(2)
     : rawPath.startsWith("$")
@@ -171,13 +195,22 @@ export function jsonPathCompletions(parsed: unknown, rawPath: string): Completio
     try {
       navigated = navigateJson(parsed, segments);
     } catch {
-      return [{ label: "Error: only a subset of JSONPath is supported", insertText: "", kind: "field" }];
+      return [
+        {
+          label: "Error: only a subset of JSONPath is supported",
+          insertText: "",
+          kind: "field",
+        },
+      ];
     }
     const pathUpToBracket = rawPath.slice(0, rawPath.lastIndexOf("["));
-    labelPrefix = pathUpToBracket.startsWith("$.") ? pathUpToBracket : `$.${pathBefore}`;
+    labelPrefix = pathUpToBracket.startsWith("$.")
+      ? pathUpToBracket
+      : `$.${pathBefore}`;
     // After `[`, Monaco word is empty → insertBase is empty, bracket already typed
     insertBase = "";
-    if (Array.isArray(navigated)) return arrayIndexItems(navigated, labelPrefix, insertBase, false);
+    if (Array.isArray(navigated))
+      return arrayIndexItems(navigated, labelPrefix, insertBase, false);
     return [];
   }
 
@@ -197,7 +230,13 @@ export function jsonPathCompletions(parsed: unknown, rawPath: string): Completio
       try {
         navigated = navigateJson(parsed, segments);
       } catch {
-        return [{ label: "Error: only a subset of JSONPath is supported", insertText: "", kind: "field" }];
+        return [
+          {
+            label: "Error: only a subset of JSONPath is supported",
+            insertText: "",
+            kind: "field",
+          },
+        ];
       }
     } else {
       let fullResolved: unknown;
@@ -215,10 +254,19 @@ export function jsonPathCompletions(parsed: unknown, rawPath: string): Completio
         return arrayIndexItems(fullResolved, labelPrefix, insertBase);
       }
 
-      if (fullResolved !== undefined && typeof fullResolved === "object" && fullResolved !== null) {
+      if (
+        fullResolved !== undefined &&
+        typeof fullResolved === "object" &&
+        fullResolved !== null
+      ) {
         labelPrefix = fullPath + ".";
         insertBase = monacoInsertBase(fullPath + ".");
-        return objectKeyItems(fullResolved as Record<string, unknown>, "", labelPrefix, insertBase);
+        return objectKeyItems(
+          fullResolved as Record<string, unknown>,
+          "",
+          labelPrefix,
+          insertBase,
+        );
       }
 
       prefix = segments.pop() ?? "";
@@ -228,17 +276,30 @@ export function jsonPathCompletions(parsed: unknown, rawPath: string): Completio
       labelPrefix = fullBase;
       insertBase = monacoInsertBase(fullBase);
       try {
-        navigated = segments.length > 0 ? navigateJson(parsed, segments) : parsed;
+        navigated =
+          segments.length > 0 ? navigateJson(parsed, segments) : parsed;
       } catch {
-        return [{ label: "Error: only a subset of JSONPath is supported", insertText: "", kind: "field" }];
+        return [
+          {
+            label: "Error: only a subset of JSONPath is supported",
+            insertText: "",
+            kind: "field",
+          },
+        ];
       }
     }
   }
 
   if (navigated == null) return [];
-  if (Array.isArray(navigated)) return arrayIndexItems(navigated, labelPrefix, insertBase);
+  if (Array.isArray(navigated))
+    return arrayIndexItems(navigated, labelPrefix, insertBase);
   if (typeof navigated === "object" && navigated !== null) {
-    return objectKeyItems(navigated as Record<string, unknown>, prefix, labelPrefix, insertBase);
+    return objectKeyItems(
+      navigated as Record<string, unknown>,
+      prefix,
+      labelPrefix,
+      insertBase,
+    );
   }
   return [];
 }

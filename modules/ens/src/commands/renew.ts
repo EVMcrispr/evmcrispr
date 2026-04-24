@@ -9,8 +9,16 @@ export default defineCommand<Ens>({
   name: "renew",
   description: "Renew ENS domain registrations via bulk renewal.",
   args: [
-    { name: "domains", type: "any", description: "ENS label(s) or names to renew" },
-    { name: "duration", type: "any", description: "Renewal duration in seconds" },
+    {
+      name: "domains",
+      type: "any",
+      description: "ENS label(s) or names to renew",
+    },
+    {
+      name: "duration",
+      type: "any",
+      description: "Renewal duration in seconds",
+    },
   ],
   async run(module, { domains, duration }) {
     if ((await module.getChainId()) !== 1) {

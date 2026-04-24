@@ -63,33 +63,33 @@ describeCommand("set", {
       name: "should destructure an array into variables",
       script: 'set [$a $b] ["hello" "world"]',
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$a", BindingsSpace.USER),
-        ).to.be.equal("hello");
-        expect(
-          interpreter.getBinding("$b", BindingsSpace.USER),
-        ).to.be.equal("world");
+        expect(interpreter.getBinding("$a", BindingsSpace.USER)).to.be.equal(
+          "hello",
+        );
+        expect(interpreter.getBinding("$b", BindingsSpace.USER)).to.be.equal(
+          "world",
+        );
       },
     },
     {
       name: "should destructure with a leading hole",
       script: 'set [_ $b] ["skip" "keep"]',
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$b", BindingsSpace.USER),
-        ).to.be.equal("keep");
+        expect(interpreter.getBinding("$b", BindingsSpace.USER)).to.be.equal(
+          "keep",
+        );
       },
     },
     {
       name: "should destructure with nested patterns",
       script: 'set [$a [_ $b]] ["x" ["skip" "y"]]',
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$a", BindingsSpace.USER),
-        ).to.be.equal("x");
-        expect(
-          interpreter.getBinding("$b", BindingsSpace.USER),
-        ).to.be.equal("y");
+        expect(interpreter.getBinding("$a", BindingsSpace.USER)).to.be.equal(
+          "x",
+        );
+        expect(interpreter.getBinding("$b", BindingsSpace.USER)).to.be.equal(
+          "y",
+        );
       },
     },
   ],

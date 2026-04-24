@@ -33,10 +33,9 @@ function lookupHelper(
 
   const bm = allModules[0]?.bindingsManager;
   if (bm) {
-    const defVal = bm.getBindingValue(
-      `@${name}`,
-      BindingsSpace.DEF,
-    ) as DefValue | undefined;
+    const defVal = bm.getBindingValue(`@${name}`, BindingsSpace.DEF) as
+      | DefValue
+      | undefined;
     if (defVal?.kind === "helper") {
       return {
         argDefs: defVal.argDefs as HelperArgDefEntry[],
@@ -159,7 +158,10 @@ export function inferTypes(
   }
 
   function walkArithmetic(node: Node): void {
-    if (node.type === NodeType.VariableIdentifier && untypedNames.has(node.value!)) {
+    if (
+      node.type === NodeType.VariableIdentifier &&
+      untypedNames.has(node.value!)
+    ) {
       recordType(node.value!, "number");
     } else if (node.type === NodeType.BinaryExpression) {
       const bin = node as unknown as { left: Node; right: Node };

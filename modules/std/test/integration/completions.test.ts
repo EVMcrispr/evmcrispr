@@ -156,10 +156,7 @@ describe("Completions – @get read-abi ABI fetching", () => {
 
   it("@get(<wxdai-address> <cursor>) should show view/pure functions with return types", async () => {
     const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
-    const { script, position } = helperPos(
-      `set $x @get(${wxdai} `,
-      ")",
-    );
+    const { script, position } = helperPos(`set $x @get(${wxdai} `, ")");
     const items = await evm.getCompletions(script, position);
     const fieldItems = onlyKind(items, "field");
     expect(fieldItems.length).to.be.greaterThan(0);
@@ -176,10 +173,7 @@ describe("Completions – @get read-abi ABI fetching", () => {
 
   it("read-abi completions should use adjacent-parens format fn(inputs)(outputs)", async () => {
     const wxdai = "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d";
-    const { script, position } = helperPos(
-      `set $x @get(${wxdai} `,
-      ")",
-    );
+    const { script, position } = helperPos(`set $x @get(${wxdai} `, ")");
     const items = await evm.getCompletions(script, position);
     const fieldItems = onlyKind(items, "field");
     // Each completion should have adjacent-parens format with return type
@@ -211,10 +205,7 @@ describe("Completions – @get read-abi ABI fetching", () => {
   });
 
   it("@get(@token(WXDAI) <cursor>) should resolve inline helper and show read-abi completions", async () => {
-    const { script, position } = helperPos(
-      "set $x @get(@token(WXDAI) ",
-      ")",
-    );
+    const { script, position } = helperPos("set $x @get(@token(WXDAI) ", ")");
     const items = await evm.getCompletions(script, position);
     const fieldItems = onlyKind(items, "field");
     expect(fieldItems.length).to.be.greaterThan(0);

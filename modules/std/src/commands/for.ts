@@ -16,7 +16,11 @@ export default defineCommand<Std>({
     { name: "variable", type: "variable", description: "Variable name" },
     { name: "connector", type: "string", description: "Keyword `of`" },
     { name: "array", type: "any", description: "Array to iterate over" },
-    { name: "block", type: "block", description: "Commands to execute per element" },
+    {
+      name: "block",
+      type: "block",
+      description: "Commands to execute per element",
+    },
   ],
   completions: {
     connector: () => [fieldItem("of")],

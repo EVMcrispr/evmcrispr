@@ -7,7 +7,14 @@ export default defineHelper<Std>({
   description:
     "Evaluate a boolean expression or convert a value to a boolean string.",
   returnType: "bool",
-  args: [{ name: "tokens", type: "any", rest: true, description: "Boolean expression (e.g. `$a > 0 and $b < 100`)" }],
+  args: [
+    {
+      name: "tokens",
+      type: "any",
+      rest: true,
+      description: "Boolean expression (e.g. `$a > 0 and $b < 100`)",
+    },
+  ],
   async run(_, { tokens }) {
     if (!tokens || tokens.length === 0) {
       throw new ErrorException("@bool requires at least one argument");

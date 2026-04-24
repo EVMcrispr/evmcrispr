@@ -137,11 +137,10 @@ describeCommand("connect", {
                 appId,
                 codeAddress,
                 // biome-ignore lint/style/useTemplate: template literal breaks viem's type inference for parseAbiItem
-                encodeCalldata(parseAbiItem([`function ` + initializeSignature]), [
-                  newTokenAddress,
-                  true,
-                  "0",
-                ]),
+                encodeCalldata(
+                  parseAbiItem([`function ` + initializeSignature]),
+                  [newTokenAddress, true, "0"],
+                ),
                 false,
               ]),
               createTestScriptEncodedAction(
