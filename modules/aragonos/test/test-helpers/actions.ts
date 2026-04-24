@@ -102,5 +102,8 @@ export function toCallScriptAction(action: TransactionAction): CallScriptAction 
   if (!action.data) {
     throw new Error("Missing calldata for call script action.");
   }
+  if (!action.to) {
+    throw new Error("Missing target for call script action.");
+  }
   return { to: action.to, data: action.data };
 }

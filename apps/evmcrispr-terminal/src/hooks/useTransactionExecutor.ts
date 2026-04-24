@@ -56,7 +56,9 @@ export function useTransactionExecutor(
           }
 
           onStatusUpdate(
-            `Sending transaction to ${truncateAddress(action.to)}`,
+            action.to
+              ? `Sending transaction to ${truncateAddress(action.to)}`
+              : "Sending contract deployment transaction",
           );
 
           const chainId = await walletClient.getChainId();

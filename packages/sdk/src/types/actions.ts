@@ -5,9 +5,9 @@ import type { Address } from "viem";
  */
 export interface TransactionAction {
   /**
-   * The recipient address.
+   * The recipient address. Omit (`undefined`) for contract deployments via CREATE.
    */
-  to: Address;
+  to?: Address;
   /**
    * The encoded action. It can be conceived of as contract function calls.
    */

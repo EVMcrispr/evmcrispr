@@ -85,9 +85,18 @@ export function useTransactionBatcher(safeConnector?: any) {
         throw new Error("Safe does not support switching chains");
       }
 
+      const callableActions = actions.filter(
+        (action) => action.to !== undefined,
+      );
+      if (callableActions.length !== actions.length) {
+        throw new Error(
+          "Contract deployments cannot be executed in batch mode",
+        );
+      }
+
       await sdk.txs.send({
-        txs: actions.map((action) => ({
-          to: action.to,
+        txs: callableActions.map((action) => ({
+          to: action.to as `0x${string}`,
           data: action.data,
           value: String(action.value || "0"),
         })),
