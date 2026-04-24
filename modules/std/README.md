@@ -15,7 +15,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
 | [load](src/commands/load.md) | Load a module to make its commands and helpers available. |
 | [print](src/commands/print.md) | Log values to the console output. |
-| [raw](src/commands/raw.md) | Send a raw transaction with pre-encoded calldata. |
+| [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
 | [switch](src/commands/switch.md) | Switch the active chain by name or ID. |

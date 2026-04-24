@@ -51,7 +51,7 @@ describeCommand("batch", {
       name: "should batch multiple different commands",
       script: `batch (
   exec ${target} ${fnSig} ${spender} 100e18
-  raw ${spender} 0x1234
+  send ${spender} --data 0x1234
 )`,
       validate: (actions) => {
         expect(actions).to.have.length(1);

@@ -30,6 +30,6 @@ set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F8
 
 ## See Also
 
-- [raw](../../commands/raw.md) — send pre-encoded calldata
+- [send](../commands/send.md) — send pre-encoded calldata
 - [exec](../../commands/exec.md) — call by signature (auto-encodes)
 - [@id](id.md) — compute a function selector

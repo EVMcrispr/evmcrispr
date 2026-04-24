@@ -343,13 +343,13 @@ describe("Std > commands > exec > error capture", () => {
     });
   });
 
-  // ── H. Raw command ──────────────────────────────────────────────────
+  // ── H. Send command ─────────────────────────────────────────────────
 
-  describe("H — Raw command with error capture", () => {
+  describe("H — Send command with error capture", () => {
     it("H1: should capture error from raw calldata", async () => {
       const evm = newEvm();
       await evm.interpret(
-        `raw ${contractAddress} 0xa3fdfee3 -!> Unauthorized()`,
+        `send ${contractAddress} --data 0xa3fdfee3 -!> Unauthorized()`,
         actionCallback,
       );
     });

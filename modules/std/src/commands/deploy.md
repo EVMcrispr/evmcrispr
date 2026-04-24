@@ -87,4 +87,4 @@ exec $token "transfer(address,uint256)" @me 1e18
 
 - [@contract.next](../helpers/contract.next.md) — predict the next CREATE address for an account
 - [exec](exec.md) — call a contract function on the deployed address
-- [raw](raw.md) — send a pre-encoded transaction to an existing address
+- [send](send.md) — send a pre-encoded transaction or value transfer to an existing address

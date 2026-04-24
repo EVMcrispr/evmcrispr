@@ -197,35 +197,35 @@ describe("Completions – std commands", () => {
   });
 
   // -------------------------------------------------------------------------
-  // raw
+  // send
   // -------------------------------------------------------------------------
 
-  describe("raw", () => {
-    it("raw <cursor> should show address-type completions", async () => {
-      const script = "raw ";
+  describe("send", () => {
+    it("send <cursor> should show address-type completions", async () => {
+      const script = "send ";
       const items = await evm.getCompletions(script, pos(script));
       // Should include address-returning helpers
       expect(hasLabel(items, "@me")).to.be.true;
       expect(hasLabel(items, "@ens")).to.be.true;
     });
 
-    it("raw $c 0x1234 <cursor> should show optional number completions AND opts", async () => {
-      const script = "raw $c 0x1234 ";
+    it("send $c <cursor> should show opts (only one positional arg)", async () => {
+      const script = "send $c ";
       const items = await evm.getCompletions(script, pos(script));
-      // Optional arg is "number" type; number-returning helpers
-      expect(hasLabel(items, "@date")).to.be.true;
-      // Should also show opts since all mandatory args are filled
+      expect(hasLabel(items, "--data")).to.be.true;
+      expect(hasLabel(items, "--value")).to.be.true;
       expect(hasLabel(items, "--from")).to.be.true;
       expect(hasLabel(items, "--gas")).to.be.true;
     });
 
-    it("raw $c 0x1234 --<cursor> should show opts", async () => {
-      const script = "raw $c 0x1234 --";
+    it("send $c --<cursor> should show opts", async () => {
+      const script = "send $c --";
       const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "--data")).to.be.true;
+      expect(hasLabel(items, "--value")).to.be.true;
       expect(hasLabel(items, "--from")).to.be.true;
       expect(hasLabel(items, "--gas")).to.be.true;
       expect(hasLabel(items, "--max-fee-per-gas")).to.be.true;
-      // All items should be field kind
       for (const item of items) {
         expect(item.kind).to.equal("field");
       }

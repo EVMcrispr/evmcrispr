@@ -100,4 +100,4 @@ exec $c "maybeRevert()" -?!> Unauthorized() $e  # $e = "false" if tx succeeds or
 
 - [@get](../helpers/get.md) — read-only contract calls
 - [batch](batch.md) — group multiple exec calls into one transaction
-- [raw](raw.md) — send pre-encoded calldata
+- [send](send.md) — send pre-encoded calldata or native value
