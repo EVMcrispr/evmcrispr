@@ -143,10 +143,9 @@ function parseModuleSource(modDir: string): {
 function extractCommandMeta(modDir: string, name: string): CommandMeta {
   const filePath = join(modDir, "src/commands", `${name}.ts`);
   const content = readFileSync(filePath, "utf-8");
-  const descMatch = content.match(/description:\s*\n?\s*["']([^"']+)["']/);
   return {
     name,
-    description: descMatch?.[1] ?? "",
+    description: extractStringProp(content, "description") ?? "",
     argDefs: extractArgs(content),
     optDefs: extractOpts(content, modDir, filePath),
   };
@@ -155,12 +154,11 @@ function extractCommandMeta(modDir: string, name: string): CommandMeta {
 function extractHelperMeta(modDir: string, name: string): HelperMeta {
   const filePath = join(modDir, "src/helpers", `${name}.ts`);
   const content = readFileSync(filePath, "utf-8");
-  const descMatch = content.match(/description:\s*\n?\s*["']([^"']+)["']/);
   const returnType = parseTypeValue(content, "returnType") ?? "any";
   const argDefs = extractArgs(content);
   return {
     name,
-    description: descMatch?.[1] ?? "",
+    description: extractStringProp(content, "description") ?? "",
     returnType,
     hasArgs: argDefs.length > 0,
     argDefs,
@@ -226,11 +224,10 @@ function extractOpts(
       if (!nameMatch[1] && optName) {
         optName = resolveConstant(content, modDir, optName, filePath);
       }
-      const descMatch = m[1].match(/description:\s*"((?:[^"\\]|\\.)*)"/);
       opts.push({
         name: optName,
         type: typeMatch[1],
-        description: descMatch?.[1],
+        description: extractStringProp(m[1], "description") ?? undefined,
       });
     }
   }
@@ -277,8 +274,8 @@ function parseArgObjects(block: string): ArgDef[] {
       const arg: ArgDef = { name: nameMatch[1], type: typeMatch[1] };
       if (/optional:\s*true/.test(objContent)) arg.optional = true;
       if (/rest:\s*true/.test(objContent)) arg.rest = true;
-      const descMatch = objContent.match(/description:\s*"((?:[^"\\]|\\.)*)"/);
-      if (descMatch) arg.description = descMatch[1].replace(/\\"/g, '"');
+      const description = extractStringProp(objContent, "description");
+      if (description !== null) arg.description = description;
       args.push(arg);
     }
     i = j;

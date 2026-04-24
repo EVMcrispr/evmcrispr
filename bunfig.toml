@@ -1,2 +1,10 @@
+[install]
+# Use isolated installs (pnpm-style) so each workspace resolves the version
+# of `vite` (and other shared deps) it actually declares. Without this, on
+# environments where bun defaults to the hoisted linker, the website's
+# `@tailwindcss/vite` would resolve the terminal's Vite 8 from the root,
+# breaking the Astro build (`@tailwindcss/vite@4.x` requires Vite 7).
+linker = "isolated"
+
 [test]
 preload = ["./scripts/anvil-preload.ts"]

@@ -122,6 +122,17 @@ export default defineConfig({
     rollupOptions: {
       // Externalize @metamask/sdk's unresolvable transitive browser deps
       external: ["eventemitter2", "cross-fetch", "socket.io-client"],
+      output: {
+        // Rolldown splits @noble/hashes and @noble/curves into separate
+        // chunks with a circular dependency, causing sha256 to be undefined
+        // when secp256k1 initialises at module evaluation time.
+        // See: https://github.com/rolldown/rolldown/issues/3650
+        manualChunks(id) {
+          if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
+            return "noble-crypto";
+          }
+        },
+      },
     },
   },
   server: {

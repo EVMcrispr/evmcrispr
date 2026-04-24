@@ -1,6 +1,5 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { EVMcrispr } from "@evmcrispr/core";
 import {
   type Action,
   BindingsSpace,
@@ -8,6 +7,7 @@ import {
   RevertError,
 } from "@evmcrispr/sdk";
 import {
+  EVMcrispr,
   expect,
   getPublicClient,
   getWalletClients,

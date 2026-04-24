@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*",
+    "@types/bun": "^1.3.10",
     "abitype": "^1.2.3",
     "arcsecond": "^5.0.0",
     "typescript": "^5.9.3"

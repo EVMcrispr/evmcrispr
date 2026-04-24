@@ -6,7 +6,7 @@ import { tokenlistHandlers } from "./tokenlist";
 
 export type { RequestHandler } from "msw";
 // Re-export msw utilities for handler authoring
-export { HttpResponse, http } from "msw";
+export { HttpResponse, http, passthrough } from "msw";
 
 export const sharedHandlers = [
   ...etherscanHandlers,

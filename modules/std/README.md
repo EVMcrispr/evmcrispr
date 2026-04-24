@@ -27,7 +27,7 @@ The standard module is loaded by default. It provides core language constructs, 
 |--------|---------|-------------|
 | [@abi.decode](src/helpers/abi.decode.md) | `array` | Decode ABI-encoded bytes into values given a comma-separated type list. |
 | [@abi.encodeCall](src/helpers/abi.encodeCall.md) | `bytes` | ABI-encode a function call from its signature and arguments. |
-| [@abi.encodePacked](src/helpers/abi.encodePacked.md) | `bytes` | ABI non-standard packed encoding, matching Solidity |
+| [@abi.encodePacked](src/helpers/abi.encodePacked.md) | `bytes` | ABI non-standard packed encoding, matching Solidity's abi.encodePacked. |
 | [@arr](src/helpers/arr.md) | `array` | Generate an array of sequential integers from start (inclusive) to end (exclusive). |
 | [@block](src/helpers/block.md) | `any` | Return [number, timestamp] of the latest or a specific block. |
 | [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. |

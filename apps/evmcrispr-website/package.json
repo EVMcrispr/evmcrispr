@@ -10,20 +10,21 @@
     "type-check": "astro check"
   },
   "dependencies": {
-    "@astrojs/react": "^5.0.0",
-    "@astrojs/starlight": "^0.38.1",
+    "@astrojs/react": "^5.0.4",
+    "@astrojs/starlight": "^0.38.4",
     "@fontsource/ubuntu-mono": "^5.2.8",
     "@repo/ui": "*",
-    "@tailwindcss/vite": "^4.1.18",
-    "astro": "^6.0.4",
+    "@tailwindcss/vite": "^4.2.4",
+    "astro": "~6.1.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.7",
+    "@astrojs/check": "^0.9.8",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.2"
   }
 }

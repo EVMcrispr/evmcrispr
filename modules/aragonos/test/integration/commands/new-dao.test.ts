@@ -14,7 +14,6 @@ describeCommand("new-dao", {
   ],
 });
 
-import { EVMcrispr } from "@evmcrispr/core";
 import type AragonOS from "@evmcrispr/module-aragonos";
 import {
   type Action,
@@ -24,6 +23,7 @@ import {
 } from "@evmcrispr/sdk";
 import {
   createInterpreter,
+  EVMcrispr,
   expect,
   getPublicClient,
   getWalletClients,

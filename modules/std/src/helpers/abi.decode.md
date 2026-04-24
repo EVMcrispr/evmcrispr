@@ -16,7 +16,7 @@ Decode ABI-encoded bytes into values given a comma-separated type list.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `types` | `string` |  |
+| `types` | `string` | Comma-separated Solidity types (e.g. "uint256,address") |
 | `data` | `bytes` | ABI-encoded hex data |
 
 ## Examples

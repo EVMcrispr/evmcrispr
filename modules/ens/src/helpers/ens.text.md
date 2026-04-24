@@ -17,7 +17,7 @@ Read a text record from an ENS name.
 | Name | Type | Description |
 |------|------|-------------|
 | `name` | `string` | ENS name (e.g. vitalik.eth) |
-| `key` | `string` |  |
+| `key` | `string` | Text record key (e.g. "url", "com.twitter", "description") |
 
 ## Examples
 

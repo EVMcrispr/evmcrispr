@@ -3,8 +3,8 @@ import {
   createTestServer,
   HttpResponse,
   http,
+  passthrough,
 } from "@evmcrispr/test-utils/msw/server";
-import { passthrough } from "msw";
 import daiAbi from "./fixtures/abis/dai.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
 

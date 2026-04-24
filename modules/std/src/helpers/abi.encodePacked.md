@@ -2,7 +2,7 @@
 title: "@abi.encodePacked"
 ---
 
-ABI non-standard packed encoding, matching Solidity
+ABI non-standard packed encoding, matching Solidity's abi.encodePacked.
 
 **Returns**: `bytes`
 
@@ -16,7 +16,7 @@ ABI non-standard packed encoding, matching Solidity
 
 | Name | Type | Description |
 |------|------|-------------|
-| `types` | `string` |  |
+| `types` | `string` | Comma-separated Solidity types (e.g. "address,uint256") |
 | `[...values]` | `any` | Values to encode, one per type |
 
 ## Examples

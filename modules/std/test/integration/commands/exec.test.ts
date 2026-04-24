@@ -1,6 +1,5 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { EVMcrispr } from "@evmcrispr/core";
 import {
   type Action,
   BindingsSpace,
@@ -11,6 +10,7 @@ import {
 } from "@evmcrispr/sdk";
 import {
   describeCommand,
+  EVMcrispr,
   expect,
   getPublicClient,
   getWalletClients,

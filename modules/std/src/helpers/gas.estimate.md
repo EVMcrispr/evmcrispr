@@ -17,7 +17,7 @@ Estimate the gas required for a contract call.
 | Name | Type | Description |
 |------|------|-------------|
 | `address` | `address` | Target contract address |
-| `signature` | `write-abi` |  |
+| `signature` | `write-abi` | Function signature (e.g. "transfer(address,uint256)") |
 | `[...params]` | `any` | Arguments matching the signature types |
 
 <!-- HAND-WRITTEN -->
