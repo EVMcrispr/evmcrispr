@@ -126,6 +126,8 @@ export class EVMcrispr {
    *  recent `prewarm(script)` call. May differ from `#client` when the
    *  script `switch`ed chains. Always paired with `#scriptChainId`. */
   #scriptClient?: PublicClient;
+  /** Monotonic guard so slower prewarm calls cannot publish stale state. */
+  #prewarmSequence = 0;
   #ipfsResolver: IPFSResolver;
   #transports?: Record<number, Transport>;
   /** Captures wrapper bound to this instance — used by the execution-mode
@@ -499,8 +501,10 @@ export class EVMcrispr {
    * Always resolves; failures during parsing or lookup are swallowed.
    */
   async prewarm(script: string): Promise<void> {
+    const sequence = ++this.#prewarmSequence;
     try {
       await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+      if (sequence !== this.#prewarmSequence) return;
 
       const {
         bindings,
@@ -515,6 +519,8 @@ export class EVMcrispr {
         this.#createHelperResolver(),
         this.#transports,
       );
+
+      if (sequence !== this.#prewarmSequence) return;
 
       this.#scriptBindings = bindings;
       this.#variableHistory = variableHistory;
