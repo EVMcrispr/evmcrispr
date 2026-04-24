@@ -71,11 +71,17 @@ export const createLanguage: (
   tokenizer: {
     root: [{ include: "@expression" }, { include: "@whitespace" }],
 
-    stringLiteral: [
-      { regex: `[^\\\\\\'"]+`, action: { token: "string" } },
+    stringSingle: [
+      { regex: `[^\\\\']+`, action: { token: "string" } },
       { regex: "@escapes", action: { token: "string.escape" } },
       { regex: `\\\\.`, action: { token: "string.escape.invalid" } },
       { regex: `'`, action: { token: "string", next: "@pop" } },
+    ],
+
+    stringDouble: [
+      { regex: `[^\\\\"]+`, action: { token: "string" } },
+      { regex: "@escapes", action: { token: "string.escape" } },
+      { regex: `\\\\.`, action: { token: "string.escape.invalid" } },
       { regex: `"`, action: { token: "string", next: "@pop" } },
     ],
 
@@ -89,11 +95,11 @@ export const createLanguage: (
     expression: [
       {
         regex: `'`,
-        action: { token: "string.literal", next: "@stringLiteral" },
+        action: { token: "string", next: "@stringSingle" },
       },
       {
         regex: `"`,
-        action: { token: "string.literal", next: "@stringLiteral" },
+        action: { token: "string", next: "@stringDouble" },
       },
 
       { regex: bounded(numericLiteral), action: { token: "number" } },
