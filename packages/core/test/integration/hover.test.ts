@@ -10,14 +10,14 @@ describe("Core > hover", () => {
       const script = "set $x 1";
       const result = await ctx.hover(script, { line: 1, col: 1 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("set");
+      expect(result!.contents.join("\n")).to.include("set");
     });
 
     it("should return hover info for 'load'", async () => {
       const script = "load aragonos --as ar";
       const result = await ctx.hover(script, { line: 1, col: 0 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("load");
+      expect(result!.contents.join("\n")).to.include("load");
     });
   });
 
@@ -26,15 +26,16 @@ describe("Core > hover", () => {
       const script = "set $x @me";
       const result = await ctx.hover(script, { line: 1, col: 7 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("@me");
+      expect(result!.contents.join("\n")).to.include("@me");
     });
 
     it("should return hover info for @token", async () => {
       const script = "set $x @token(DAI)";
       const result = await ctx.hover(script, { line: 1, col: 7 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("@token");
-      expect(result!.contents).to.include("address");
+      const c = result!.contents.join("\n");
+      expect(c).to.include("@token");
+      expect(c).to.include("address");
     });
   });
 
@@ -43,16 +44,204 @@ describe("Core > hover", () => {
       const script = "set $myVar 42\nset $other $myVar";
       const result = await ctx.hover(script, { line: 2, col: 11 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("$myVar");
-      expect(result!.contents).to.include("variable");
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$myVar");
+      expect(c).to.include("variable");
     });
 
     it("should return variable hover even without a prior set definition", async () => {
       const script = "set $other $unknown";
       const result = await ctx.hover(script, { line: 1, col: 11 });
       expect(result).to.not.be.null;
-      expect(result!.contents).to.include("$unknown");
-      expect(result!.contents).to.include("variable");
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$unknown");
+      expect(c).to.include("variable");
+    });
+  });
+
+  describe("over address literals", () => {
+    it("should return EOA-style hover info for a 0x address literal", async () => {
+      // Hover lands on the address literal in the script.
+      const script = "set $x 0x000000000000000000000000000000000000aaaa";
+      const result = await ctx.hover(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("EOA");
+      expect(c).to.include(
+        "0x000000000000000000000000000000000000aAaa".toLowerCase(),
+      );
+    });
+
+    it("should return Contract-style hover info for a deployed contract on the active chain", async () => {
+      // WXDAI on Gnosis — the test fork chain.
+      const script = "set $x 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Contract**");
+      expect(c).to.include("Code size:");
+    });
+  });
+
+  describe("over address-returning helpers", () => {
+    it("should still render the @ens(...) signature card without an address card when no cache entry exists", async () => {
+      const script = "set $x @ens(vitalik.eth)";
+      const result = await ctx.hover(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      // Always: helper signature.
+      expect(c).to.include("@ens");
+      expect(c).to.include("address");
+      // The address card should NOT appear: hover is a pure cache reader and
+      // cannot resolve helpers itself.
+      expect(c).to.not.include("**EOA**");
+      expect(c).to.not.include("**Contract**");
+    });
+
+    it("appends the address card under @token(...) after prewarm", async () => {
+      const script = "set $x @token(DAI)";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
+      // The address card lives in its own section so Monaco draws a clear
+      // divider line between the signature and the address details.
+      expect(result!.contents.length).to.be.greaterThan(1);
+      const c = result!.contents.join("\n");
+      expect(c).to.include("@token");
+      expect(c).to.match(/\*\*EOA\*\*|\*\*Contract\*\*/);
+    });
+  });
+
+  describe("over variables with prewarmed values", () => {
+    it("renders the variable's resolved value after prewarm", async () => {
+      const script = "set $myVar 42\nset $other $myVar";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 12 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$myVar");
+      expect(c).to.include("variable");
+      expect(c).to.include("= 42");
+    });
+
+    it("renders @num(1 + 4) as the precomputed value after prewarm", async () => {
+      const script = "set $a @num(1 + 4)\nset $b $a";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$a");
+      expect(c).to.include("= 5");
+    });
+
+    it("evaluates nested @num arithmetic during prewarm", async () => {
+      // Nested arithmetic (operator precedence) — proves the unified
+      // interpreter handles helper invocations whose own args are themselves
+      // helper invocations during prewarm.
+      const script = "set $x @num(@num(1 + 4) * 2)\nset $y $x";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$x");
+      expect(c).to.include("= 10");
+    });
+
+    it("evaluates ArrayExpression rhs during prewarm", async () => {
+      // The unified interpreter resolves ArrayExpression nodes too, so the
+      // hover card shows the array contents rather than the unresolved AST.
+      const script = "set $x [1 2 3]\nset $y $x";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$x");
+      // Each element from the resolved array should appear in the value line
+      // (rendered as the array's `.toString()`, e.g. `1,2,3`).
+      expect(c).to.match(/=\s+1.*2.*3/);
+      // Must NOT be the placeholder `= $x` from when the walker couldn't
+      // resolve the rhs.
+      expect(c).to.not.include("= $x");
+    });
+
+    it("destructures helper results into individual variables", async () => {
+      // `@block()` returns `[number, timestamp]`. The destructure pattern
+      // should bind `$c` to the block number after prewarm so hover shows
+      // the actual value rather than the literal string `$c`.
+      const script = "set [$c] @block()\nprint $c";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 7 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$c");
+      expect(c).to.include("variable");
+      // The binding must NOT be the placeholder `= $c` from the old
+      // walker's seed-with-own-name behaviour.
+      expect(c).to.not.include("= $c");
+      // Block number on the test fork is some bigint — assert we render
+      // a numeric `=` line.
+      expect(c).to.match(/=\s+\d+/);
+    });
+
+    it("appends the address card to a variable that resolves to an address", async () => {
+      const script =
+        "set $dao 0x000000000000000000000000000000000000aaaa\nset $other $dao";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 12 });
+      expect(result).to.not.be.null;
+      // Same as helpers: address card is its own section.
+      expect(result!.contents.length).to.be.greaterThan(1);
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$dao");
+      expect(c).to.include("0x000000000000000000000000000000000000aaaa");
+      expect(c).to.match(/\*\*EOA\*\*|\*\*Contract\*\*/);
+    });
+
+    it("redefining a variable shows the NEW value at the second `set`", async () => {
+      const script = "set $x 1\nset $x 2";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 5 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$x");
+      expect(c).to.include("= 2");
+      expect(c).to.not.include("= 1");
+    });
+
+    it("redefining a variable shows the OLD value at the first `set`", async () => {
+      const script = "set $x 1\nset $x 2";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 1, col: 5 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("$x");
+      expect(c).to.include("= 1");
+      expect(c).to.not.include("= 2");
+    });
+
+    it("renders the per-line value when the variable is used after each `set`", async () => {
+      const script = "set $x 1\nset $y $x\nset $x 2\nset $z $x";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      // Hover the `$x` reference on line 2 — should still be 1.
+      const earlier = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(earlier).to.not.be.null;
+      expect(earlier!.contents.join("\n")).to.include("= 1");
+      // Hover the `$x` reference on line 4 — should now be 2.
+      const later = await evm.getHoverInfo(script, { line: 4, col: 8 });
+      expect(later).to.not.be.null;
+      expect(later!.contents.join("\n")).to.include("= 2");
     });
   });
 

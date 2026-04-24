@@ -213,4 +213,19 @@ describe("Interpreter - primaries", async () => {
       await expectThrowAsync(() => interpreter.interpret(), err);
     });
   });
+
+  describe("when interpreting an array expression node", () => {
+    it("should evaluate an ArrayExpression node directly", async () => {
+      const node = {
+        type: NodeType.ArrayExpression,
+        elements: [
+          { type: NodeType.StringLiteral, value: "a" },
+          { type: NodeType.StringLiteral, value: "b" },
+        ],
+      } as any;
+      const evm = new (await import("@evmcrispr/core")).EVMcrispr(client);
+      const res = await evm.interpretNode(node);
+      expect(res).to.deep.equal(["a", "b"]);
+    });
+  });
 });

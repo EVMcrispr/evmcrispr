@@ -1,0 +1,10 @@
+{
+  "status": "perfect",
+  "files": [
+    {
+      "name": "metadata.json",
+      "path": "contracts/full_match/1/0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef/metadata.json",
+      "content": "{\"language\":\"Solidity\",\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"settings\":{\"compilationTarget\":{\"contracts/MyImpl.sol\":\"MyImpl\"},\"optimizer\":{\"enabled\":true,\"runs\":10000},\"evmVersion\":\"london\"},\"sources\":{\"contracts/MyImpl.sol\":{\"license\":\"MIT\"}}}"
+    }
+  ]
+}

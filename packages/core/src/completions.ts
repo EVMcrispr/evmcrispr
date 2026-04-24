@@ -1,16 +1,12 @@
 import type {
-  BlockExpressionNode,
   CommandExpressionNode,
   CompletionContext,
   CompletionItem,
-  DestructurePatternNode,
-  DestructureSlot,
   HelperArgDefEntry,
   HelperFunctionNode,
   HelperResolver,
   ICommand,
   ModuleBinding,
-  Node,
   NoNullableBinding,
   Position,
 } from "@evmcrispr/sdk";
@@ -22,101 +18,31 @@ import {
   findAbiArgForRest,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
-  interpretNodeSync,
   isBuiltinType,
   NodeType,
   parseReadAbiParamTypes,
   parseSignatureParamTypes,
-  resolveCommand,
   variableItem,
 } from "@evmcrispr/sdk";
-import type { Chain, PublicClient, Transport } from "viem";
-import { createPublicClient, http } from "viem";
-import * as viemChains from "viem/chains";
+import type { PublicClient, Transport } from "viem";
 
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
+import {
+  clientForChain,
+  collectCustomTypes,
+  createNodeResolver,
+  resolveCommandNode,
+  resolveSwitchChainId,
+  seedBindings,
+  walkCommandsForBindings,
+} from "./scriptWalk";
 
-// ---------------------------------------------------------------------------
-// Chain resolution for `switch` commands during completion
-// ---------------------------------------------------------------------------
-
-const nameToChainId: Record<string, number> = Object.entries(viemChains).reduce(
-  (acc, [name, chain]) => {
-    acc[name] = (chain as Chain).id;
-    return acc;
-  },
-  {} as Record<string, number>,
-);
-
-/** Resolve a `switch` command's argument to a chain ID, or return undefined. */
-function resolveSwitchChainId(
-  commandNode: CommandExpressionNode,
-  _bindings: BindingsManager,
-): number | undefined {
-  if (commandNode.name !== "switch") return undefined;
-  const argNode = commandNode.args[0];
-  if (!argNode) return undefined;
-
-  const raw = argNode.value;
-  if (raw == null) return undefined;
-
-  const asNumber = Number(raw);
-  if (Number.isInteger(asNumber) && asNumber > 0) return asNumber;
-  if (typeof raw === "string") return nameToChainId[raw];
-  return undefined;
-}
-
-/** Create a PublicClient for the given chain ID, or return undefined. */
-function clientForChain(
-  chainId: number,
-  transports?: Record<number, Transport>,
-): PublicClient | undefined {
-  const chain = Object.values(viemChains).find(
-    (c) => (c as Chain).id === chainId,
-  ) as Chain | undefined;
-  if (!chain) return undefined;
-  return createPublicClient({
-    chain,
-    transport: transports?.[chainId] ?? http(),
-  }) as PublicClient;
-}
-
-const { MODULE, USER, CACHE } = BindingsSpace;
+const { MODULE, USER } = BindingsSpace;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const resolveCommandNode = async (
-  c: CommandExpressionNode,
-  bindings: BindingsManager,
-  parentModule: string,
-): Promise<ICommand | undefined> => {
-  const moduleName = c.module ?? parentModule ?? "std";
-  const moduleData = bindings.getBindingValue(moduleName, MODULE);
-  if (!moduleData) return;
-
-  const commandOrLoader = moduleData.commands[c.name];
-  if (!commandOrLoader) return;
-  return resolveCommand(commandOrLoader);
-};
-
-/** Find all custom types across loaded modules. */
-const collectCustomTypes = (bindings: BindingsManager) => {
-  const moduleBindings = bindings.getAllBindings({
-    spaceFilters: [MODULE],
-    ignoreNullValues: true,
-  }) as NoNullableBinding<ModuleBinding>[];
-
-  const merged: Record<string, any> = {};
-  for (const { value: mod } of moduleBindings) {
-    if (mod.types) {
-      Object.assign(merged, mod.types);
-    }
-  }
-  return merged;
-};
 
 const calculateCommandNameLength = (c: CommandExpressionNode) => {
   const offset = c.loc?.start.col ?? 0;
@@ -288,210 +214,6 @@ function isReturnTypeCompatible(
   const rt = toTypeArray(returnType);
   if (rt.includes("any")) return true;
   return rt.some((r) => expected.includes(r));
-}
-
-// ---------------------------------------------------------------------------
-// Walk phase: resolve bindings for commands before cursor
-// ---------------------------------------------------------------------------
-
-/** Seed the bindings manager with all cached module data and metadata.
- *  Safe to call multiple times -- skips modules already present. */
-function seedBindings(bindings: BindingsManager, cache: BindingsManager): void {
-  const moduleBindings = cache.getAllBindings({
-    spaceFilters: [MODULE],
-    ignoreNullValues: true,
-  }) as NoNullableBinding<ModuleBinding>[];
-  for (const { identifier, value } of moduleBindings) {
-    if (!bindings.hasBinding(identifier, MODULE)) {
-      bindings.setBinding(identifier, value, MODULE);
-    }
-  }
-
-  const availableModulesJSON = cache.getMetadata("__available_modules__");
-  if (availableModulesJSON) {
-    bindings.setMetadata("__available_modules__", availableModulesJSON);
-  }
-}
-
-/**
- * Create an async node resolver that closes over completion-local state.
- * Handles literals, barewords, variable identifiers (via bindings), and
- * helper expressions (via resolveHelper + cache).  Returns undefined when
- * the node cannot be resolved.
- */
-function createNodeResolver(
-  bindings: BindingsManager,
-  cache: BindingsManager,
-  chainId: number,
-  client: PublicClient | undefined,
-  resolveHelper?: HelperResolver,
-): (node: Node) => Promise<any> {
-  return async (node: Node): Promise<any> => {
-    const syncResult = interpretNodeSync(node, bindings);
-    if (syncResult != null) return syncResult;
-
-    if (
-      node.type === NodeType.HelperFunctionExpression &&
-      resolveHelper &&
-      client
-    ) {
-      const helperNode = node as unknown as HelperFunctionNode;
-      const resolvedArgs: string[] = [];
-      let allResolved = true;
-
-      for (const arg of helperNode.args) {
-        const v = interpretNodeSync(arg as any, bindings);
-        if (v == null) {
-          allResolved = false;
-          break;
-        }
-        resolvedArgs.push(String(v));
-      }
-
-      if (allResolved) {
-        const cacheKey = `helper:${chainId}:${
-          helperNode.name
-        }:${resolvedArgs.join(":")}`;
-        const cached = cache.getBindingValue(cacheKey, CACHE);
-        if (cached != null) return cached;
-
-        try {
-          const result = await resolveHelper(
-            helperNode.name,
-            resolvedArgs,
-            chainId,
-            client,
-            bindings,
-          );
-          cache.setBinding(cacheKey, result, CACHE, false, undefined, true);
-          return result;
-        } catch {
-          return undefined;
-        }
-      }
-    }
-
-    return undefined;
-  };
-}
-
-/** Resolve a value node for the `set` command walk phase.  Falls back to
- *  storing the AST node itself when resolution fails. */
-async function resolveValueNode(
-  resolveNode: (node: Node) => Promise<any>,
-  valueNode: Node,
-): Promise<any> {
-  const resolved = await resolveNode(valueNode);
-  return resolved ?? valueNode;
-}
-
-/** Walk a list of fully-typed command nodes and resolve any bindings they
- *  produce (variable → USER, custom type with resolve → arbitrary bindings). */
-async function walkCommandsForBindings(
-  commandNodes: CommandExpressionNode[],
-  bindings: BindingsManager,
-  cache: BindingsManager,
-  client: PublicClient,
-  chainId: number,
-  resolveNode: (node: Node) => Promise<any>,
-): Promise<void> {
-  let parentModule = "std";
-
-  for (const c of commandNodes) {
-    if (hasCommandsBlock(c)) {
-      parentModule = c.module ?? parentModule;
-    }
-    const commandModule = c.module ?? parentModule;
-
-    const command = await resolveCommandNode(c, bindings, commandModule);
-    if (!command) continue;
-
-    const customTypes = collectCustomTypes(bindings);
-
-    for (let i = 0; i < command.argDefs.length; i++) {
-      const argDef = command.argDefs[i];
-      const argNode = c.args[i];
-      if (!argNode) continue;
-
-      // Built-in "variable" type: auto-create USER binding
-      if (argDef.type === "variable") {
-        if (argNode.type === NodeType.DestructurePattern) {
-          const collectVars = (slots: DestructureSlot[]) => {
-            for (const s of slots) {
-              if (typeof s === "string") {
-                try {
-                  bindings.setBinding(s, s, USER);
-                } catch {
-                  /* already exists */
-                }
-              } else if (Array.isArray(s)) {
-                collectVars(s);
-              }
-            }
-          };
-          collectVars((argNode as DestructurePatternNode).slots);
-          continue;
-        }
-        if (argNode.value) {
-          let bindingValue: any = argNode.value;
-          if (c.name === "set" && c.args[i + 1]) {
-            bindingValue = await resolveValueNode(resolveNode, c.args[i + 1]);
-          }
-          try {
-            bindings.setBinding(argNode.value, bindingValue, USER);
-          } catch {
-            // binding already exists
-          }
-          continue;
-        }
-      }
-
-      // Custom type with resolve: call it to produce bindings
-      if (!Array.isArray(argDef.type) && !isBuiltinType(argDef.type)) {
-        const customType = customTypes[argDef.type];
-        if (customType?.resolve && argNode.value) {
-          try {
-            const ctx: CompletionContext = {
-              argIndex: i,
-              nodeArgs: c.args,
-              bindings,
-              position: { line: 0, col: 0 },
-              client,
-              chainId,
-              cache,
-              commandNode: c,
-              resolveNode,
-            };
-            const newBindings = await customType.resolve(argNode.value, ctx);
-            for (const b of newBindings) {
-              try {
-                bindings.setBinding(
-                  b.identifier,
-                  b.value,
-                  b.type,
-                  false,
-                  undefined,
-                  true,
-                );
-              } catch {
-                // ignore duplicate binding errors
-              }
-            }
-          } catch {
-            // resolve failed, skip
-          }
-        }
-      }
-    }
-
-    // If command has a block arg, enter a scope for the block body
-    const blockArg = c.args.find((a) => a.type === NodeType.BlockExpression) as
-      | BlockExpressionNode
-      | undefined;
-    if (blockArg) {
-      bindings.enterScope(commandModule);
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------

@@ -121,13 +121,6 @@ export function inferTypes(
         return undefined;
       }
 
-      case NodeType.BinaryExpression: {
-        const bin = node as unknown as { left: Node; right: Node };
-        walkArithmetic(bin.left);
-        walkArithmetic(bin.right);
-        return "number";
-      }
-
       case NodeType.VariableIdentifier: {
         if (expectedType && untypedNames.has(node.value!)) {
           recordType(node.value!, expectedType);
@@ -154,21 +147,6 @@ export function inferTypes(
 
       default:
         return undefined;
-    }
-  }
-
-  function walkArithmetic(node: Node): void {
-    if (
-      node.type === NodeType.VariableIdentifier &&
-      untypedNames.has(node.value!)
-    ) {
-      recordType(node.value!, "number");
-    } else if (node.type === NodeType.BinaryExpression) {
-      const bin = node as unknown as { left: Node; right: Node };
-      walkArithmetic(bin.left);
-      walkArithmetic(bin.right);
-    } else {
-      walk(node, "number");
     }
   }
 
