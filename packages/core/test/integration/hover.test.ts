@@ -47,7 +47,7 @@ describe("Core > hover", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("$myVar");
-      expect(c).to.include("variable");
+      expect(c).to.include("**Variable**");
     });
 
     it("should return variable hover even without a prior set definition", async () => {
@@ -56,7 +56,7 @@ describe("Core > hover", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("$unknown");
-      expect(c).to.include("variable");
+      expect(c).to.include("**Variable**");
     });
   });
 
@@ -109,6 +109,22 @@ describe("Core > hover", () => {
       expect(result).to.not.be.null;
       // The address card lives in its own section so Monaco draws a clear
       // divider line between the signature and the address details.
+      expect(result!.contents.length).to.be.greaterThan(1);
+      const c = result!.contents.join("\n");
+      expect(c).to.include("@token");
+      expect(c).to.match(/\*\*EOA\*\*|\*\*Contract\*\*/);
+    });
+
+    it("appends the address card under @token(...) when used as a direct arg to a non-binding command", async () => {
+      // Regression: previously the prewarm walker only visited
+      // `load`/`set`/`switch` commands, so helpers used as direct args to
+      // commands like `print` never reached the helper cache and hover
+      // could not surface their address card.
+      const script = "print @token(DAI)";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
       expect(result!.contents.length).to.be.greaterThan(1);
       const c = result!.contents.join("\n");
       expect(c).to.include("@token");
@@ -186,7 +202,7 @@ describe("Core > hover", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("$myVar");
-      expect(c).to.include("variable");
+      expect(c).to.include("**Variable**");
       expect(c).to.include("= 42");
     });
 
@@ -244,7 +260,7 @@ describe("Core > hover", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("$c");
-      expect(c).to.include("variable");
+      expect(c).to.include("**Variable**");
       // The binding must NOT be the placeholder `= $c` from the old
       // walker's seed-with-own-name behaviour.
       expect(c).to.not.include("= $c");

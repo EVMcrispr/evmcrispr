@@ -79,7 +79,25 @@ function TerminalEditor() {
 
   useEffect(() => {
     return () => {
-      if (storeSyncTimerRef.current) clearTimeout(storeSyncTimerRef.current);
+      // Flush any pending debounced sync before unmount. Without this,
+      // toggling from edit -> view mode within 150ms of typing throws
+      // away the latest edits: Monaco's model persists at module scope
+      // (so re-mounting shows the new text), but the store -- which the
+      // ScriptViewer reads from -- never receives the update, so the
+      // viewer renders stale content.
+      if (storeSyncTimerRef.current) {
+        clearTimeout(storeSyncTimerRef.current);
+        storeSyncTimerRef.current = null;
+        const ed = editorRef.current;
+        if (ed) {
+          try {
+            terminalStoreActions("script", ed.getValue());
+          } catch {
+            // editor disposed before we could read its value -- nothing
+            // we can do, the next mount will re-derive from the model.
+          }
+        }
+      }
     };
   }, []);
 

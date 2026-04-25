@@ -321,9 +321,9 @@ describe("Core > hover > getAddressHoverInfo", () => {
 
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
-      expect(c).to.include("$answer");
-      expect(c).to.include("*(variable)*");
-      expect(c).to.include("= 42");
+      expect(c).to.include("**Variable** $answer = 42");
+      expect(c).to.not.include("*(variable)*");
+      expect(c).to.not.include("defined on line");
       expect(c).to.not.include("**EOA**");
       expect(c).to.not.include("**Contract**");
     });
@@ -351,12 +351,12 @@ describe("Core > hover > getAddressHoverInfo", () => {
       );
 
       expect(result).to.not.be.null;
-      // Address card is now a separate section (own card with Monaco's
-      // native divider above it) — at least 2 sections in the array.
+      // Address card is now a separate section (own card with the
+      // green divider above it) — at least 2 sections in the array.
       expect(result!.contents.length).to.be.greaterThan(1);
       const c = result!.contents.join("\n");
-      expect(c).to.include("$dao");
-      expect(c).to.include(`= ${EOA}`);
+      expect(c).to.include(`**Variable** $dao = ${EOA}`);
+      expect(c).to.not.include("*(variable)*");
       expect(c).to.include("**EOA**");
       expect(c).to.include("Balance: 3 ETH");
     });
@@ -376,9 +376,9 @@ describe("Core > hover > getAddressHoverInfo", () => {
 
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
-      expect(c).to.include("$unknown");
-      expect(c).to.include("*(variable)*");
-      expect(c).to.not.include("=");
+      expect(c).to.include("**Variable** $unknown");
+      expect(c).to.not.include("*(variable)*");
+      expect(c).to.not.include(" = ");
     });
   });
 

@@ -242,7 +242,16 @@ export function HoverPopover({
           <div className="prose prose-invert prose-sm max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-li:text-foreground/80 prose-hr:border-foreground/20 prose-a:text-evm-green-300 prose-p:my-1 prose-ul:my-1">
             {sections.map((md, i) => (
               <div key={i}>
-                {i > 0 && <hr className="my-2 border-foreground/20" />}
+                {i > 0 && (
+                  // The boundary between the variable/helper card and
+                  // the address-info card. Bright green to match the
+                  // popover's border so it reads as a deliberate
+                  // section break, not a stray rule.
+                  // `!` prefix overrides Tailwind's `prose` defaults —
+                  // the parent applies `prose-hr:border-foreground/20`
+                  // which would otherwise mute this rule grey.
+                  <hr className="!my-3 !border-evm-green-300" />
+                )}
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={markdownComponents}

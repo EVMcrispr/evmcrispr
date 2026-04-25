@@ -510,5 +510,43 @@ export async function walkScript(
     variableHistory,
   );
 
+  // Second pass: populate the helper cache for *all* commands the user
+  // might hover over, not just the ones that produce bindings. Without
+  // this, `print @token(DAI)` and similar helpers used as direct args
+  // to non-binding commands never reach the cache and the hover card
+  // can't show their resolved address. Helpers already evaluated
+  // during `walkCommandsForBindings` are cache hits and re-add no
+  // network cost.
+  const allCommandNodes: CommandExpressionNode[] =
+    ast?.getCommandsUntilLine(upToLine) ?? [];
+  await prewarmHelperExpressions(allCommandNodes, resolveNode);
+
   return { bindings, chainId, client: effectiveClient, variableHistory };
+}
+
+/**
+ * Walk every top-level argument of every command node and run it
+ * through `resolveNode`. The unified interpreter's helper branch
+ * memoises each successful evaluation into the CACHE space (keyed by
+ * `helperCacheKey(name, args, chainId)`), which is exactly what
+ * hover's `tryRenderAddressFromCache` reads.
+ *
+ * `resolveNode` is configured with `onError: "undefined"`, so failures
+ * (e.g. helpers that need RPC, variables not in scope at this point,
+ * unsupported node kinds like `BlockExpression`) silently no-op
+ * instead of throwing.
+ */
+async function prewarmHelperExpressions(
+  commandNodes: CommandExpressionNode[],
+  resolveNode: (node: Node) => Promise<any>,
+): Promise<void> {
+  for (const c of commandNodes) {
+    for (const arg of c.args) {
+      try {
+        await resolveNode(arg);
+      } catch {
+        // resolveNode already swallows; this is belt-and-suspenders.
+      }
+    }
+  }
 }

@@ -136,39 +136,143 @@
     "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* Dark scrollbars for the viewer + popover. The default OS scrollbar
-   (a bright grey on dark backgrounds) is jarring against the black
-   terminal aesthetic; this mirrors what Monaco renders inside the
-   editor view so toggling between view ↔ edit looks consistent. */
+/* Dark scrollbars for the viewer + popover + Monaco hover. The default
+   OS scrollbar (a bright grey on dark backgrounds) is jarring against
+   the black terminal aesthetic; this mirrors what Monaco renders
+   inside the editor view so toggling between view ↔ edit looks
+   consistent. */
 .evml-viewer,
-.evml-hover-popover {
+.evml-hover-popover,
+.monaco-editor .monaco-hover {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   scrollbar-width: thin;
 }
 
 .evml-viewer::-webkit-scrollbar,
-.evml-hover-popover::-webkit-scrollbar {
+.evml-hover-popover::-webkit-scrollbar,
+.monaco-editor .monaco-hover::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .evml-viewer::-webkit-scrollbar-track,
-.evml-hover-popover::-webkit-scrollbar-track {
+.evml-hover-popover::-webkit-scrollbar-track,
+.monaco-editor .monaco-hover::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .evml-viewer::-webkit-scrollbar-thumb,
-.evml-hover-popover::-webkit-scrollbar-thumb {
+.evml-hover-popover::-webkit-scrollbar-thumb,
+.monaco-editor .monaco-hover::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.18);
   border-radius: 4px;
 }
 
 .evml-viewer::-webkit-scrollbar-thumb:hover,
-.evml-hover-popover::-webkit-scrollbar-thumb:hover {
+.evml-hover-popover::-webkit-scrollbar-thumb:hover,
+.monaco-editor .monaco-hover::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
 .evml-viewer::-webkit-scrollbar-corner,
-.evml-hover-popover::-webkit-scrollbar-corner {
+.evml-hover-popover::-webkit-scrollbar-corner,
+.monaco-editor .monaco-hover::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* ── Monaco hover widget — match `.evml-hover-popover` ────────── */
+/* Monaco renders its hover widget into a portal at the editor root,
+   bypassing `.evml-viewer` styling entirely. Mirror the viewer popover
+   so toggling between view ↔ edit doesn't change how hover cards
+   look. The colour palette flows through the Monaco theme
+   (`editor/theme.ts` → editorHoverWidget.* + textLink.* +
+   textCodeBlock.background); these rules cover what the theme can't
+   reach: typography, RetroUI border + zero radius, padding inside
+   hover rows, and prose/markdown spacing. */
+.monaco-editor .monaco-hover,
+.monaco-editor .monaco-resizable-hover {
+  /* biome-ignore lint/complexity/noImportantStyles: Monaco's
+     hover.css is injected on editor mount (after our bundle), so a
+     same-specificity rule loses without `!important`. */
+  border-width: 2px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
+  border-radius: 0 !important;
+  max-width: min(92vw, 360px);
+}
+
+.monaco-editor .monaco-hover {
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
+  font-family:
+    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.monaco-editor .monaco-hover .hover-row {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Boundary between the variable/helper card and the appended
+   address-info card. Bright green to match `.evml-hover-popover`'s
+   section divider so the visual break reads the same on both
+   surfaces (vs. the dim `hr` *inside* a single markdown card).
+
+   Monaco renders each `IMarkdownString` from a single hover provider
+   as its own `<div class="markdown-hover">` inside `.hover-contents`,
+   and groups providers as separate `.hover-row` elements — match
+   both so the rule fires regardless of which path is taken. */
+.monaco-editor .monaco-hover .hover-row + .hover-row,
+.monaco-editor .monaco-hover .markdown-hover + .markdown-hover,
+.monaco-editor .monaco-hover .hover-contents > *:not(:first-child) {
+  border-top: 1px solid var(--color-evm-green-300);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.monaco-editor .monaco-hover code,
+.monaco-editor .monaco-hover pre {
+  font-family: inherit;
+}
+
+/* Inline `code` (not inside a code block). Monaco only sets
+   `background-color`; the orange text + tighter padding are ours. */
+.monaco-editor .monaco-hover :not(pre) > code {
+  color: var(--color-evm-orange-300);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.monaco-editor .monaco-hover hr {
+  border: none;
+  border-top: 1px solid rgba(245, 245, 245, 0.2);
+  margin: 0.5rem 0;
+}
+
+.monaco-editor .monaco-hover p {
+  margin: 0.25rem 0;
+}
+
+.monaco-editor .monaco-hover ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.monaco-editor .monaco-hover ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: decimal;
+}
+
+.monaco-editor .monaco-hover li {
+  color: rgba(245, 245, 245, 0.85);
+  /* Monaco's base stylesheet sets `list-style: none` on global lists.
+     Force the disc/decimal markers back so the cards match the
+     viewer popover, which renders bullets via Tailwind's prose. */
+  display: list-item;
+}
+
+.monaco-editor .monaco-hover strong {
+  color: var(--foreground);
 }

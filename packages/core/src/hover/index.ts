@@ -350,24 +350,6 @@ export async function getHoverInfo(
 
   // --- variable: $name ---
   if (token.kind === "variable") {
-    let defLine: number | undefined;
-    try {
-      const ast = parseScript(script).ast;
-      const setNodes = ast
-        .getCommandsUntilLine(position.line, ["set"])
-        .filter(
-          (c: CommandExpressionNode) =>
-            c.name === "set" && c.args[0]?.value === token.value,
-        );
-      defLine = setNodes[setNodes.length - 1]?.loc?.start.line;
-    } catch {
-      // best-effort — fall through without a definition line hint
-    }
-
-    const lineHint = defLine ? `  *(defined on line ${defLine})*` : "";
-    const labelCard = `\`\`\`\n${token.value}\n\`\`\`\n*(variable)*${lineHint}`;
-    const sections: string[] = [labelCard];
-
     // Variable bindings are keyed with the `$` prefix in the BindingsManager
     // (matches what `set` writes and what the unified interpreter reads).
     // Use the position-aware snapshot when available so a redefinition like
@@ -377,9 +359,16 @@ export async function getHoverInfo(
       USER,
     );
     const formatted = formatVariableValue(value, scriptLines);
-    if (formatted != null) {
-      sections[0] = `${labelCard}\n\n\`= ${formatted}\``;
-    }
+
+    // Single-line card: `**Variable** $name = value`. The address
+    // card, if any, is appended as a separate section so the renderer
+    // draws the green divider between the two — no need for a verbose
+    // "(variable)" tag or "(defined on line N)" hint.
+    const labelCard =
+      formatted != null
+        ? `**Variable** ${token.value} = ${formatted}`
+        : `**Variable** ${token.value}`;
+    const sections: string[] = [labelCard];
 
     if (typeof value === "string" && isAddress(value) && ctx.chainId != null) {
       const info = await getAddressHoverInfo(
