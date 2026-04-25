@@ -57,6 +57,28 @@ const addressFromSlot = (
   return isNonZeroAddress(trimmed) ? trimmed : undefined;
 };
 
+/**
+ * An "implementation address" is only meaningful if it actually has
+ * deployed bytecode — a proxy can't `DELEGATECALL` into an EOA or a
+ * precompile. Many old contracts (e.g. TheDAO at 0xd98157…) have a
+ * fallback that returns `0x01` for any unknown selector, which our
+ * `implementation()` / `masterCopy()` probes then decode as the
+ * address `0x0000…0001` (the SHA-256 precompile). Filtering out
+ * codeless candidates eliminates that whole class of false positives
+ * without giving up real proxy detection.
+ */
+async function isContract(
+  address: Address,
+  client: PublicClient,
+): Promise<boolean> {
+  try {
+    const code = await client.getCode({ address });
+    return !!code && code !== "0x";
+  } catch {
+    return false;
+  }
+}
+
 async function resolveBeaconImplementation(
   beaconAddress: Address,
   client: PublicClient,
@@ -82,7 +104,8 @@ async function resolveBeaconImplementation(
     if (
       result.status === "success" &&
       result.result &&
-      isNonZeroAddress(result.result)
+      isNonZeroAddress(result.result) &&
+      (await isContract(result.result, client))
     ) {
       return (
         (await resolveImpl(result.result, client, visited)) || result.result
@@ -157,12 +180,17 @@ export async function fetchImplementationAddress(
     return (await resolveImpl(zeosImpl, client, visited)) || zeosImpl;
   }
 
-  // Direct implementation() / masterCopy() via multicall3
+  // Direct implementation() / masterCopy() via multicall3. Old contracts
+  // (e.g. TheDAO) have catch-all fallbacks that return non-zero garbage
+  // for any unknown selector — we only trust the result when it points
+  // at an address that actually has code, since a proxy can't
+  // DELEGATECALL into an EOA or a precompile anyway.
   for (const result of fnResults) {
     if (
       result.status === "success" &&
       result.result &&
-      isNonZeroAddress(result.result)
+      isNonZeroAddress(result.result) &&
+      (await isContract(result.result, client))
     ) {
       return (
         (await resolveImpl(result.result, client, visited)) || result.result

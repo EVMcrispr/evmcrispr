@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { ScrollRestoration } from "react-router";
 import { useConnection } from "wagmi";
 
-import TerminalEditor from "../components/editor/TerminalEditor";
 import TitleInput from "../components/editor/TitleInput";
 import ActionButtons from "../components/execution/ActionButtons";
 import ConfigureButton from "../components/execution/ConfigureButton";
@@ -12,11 +11,20 @@ import { SidePanel } from "../components/panel/SidePanel";
 import NewScriptButton from "../components/scripts/NewScriptButton";
 import ScriptNotFound from "../components/scripts/ScriptNotFound";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
+import { ScriptViewer } from "../components/viewer/ScriptViewer";
+import { ViewModeToggle } from "../components/viewer/ViewModeToggle";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
 import { useWalletConnection } from "../hooks/useWalletConnection";
 import { useTerminalStore } from "../stores/terminal-store";
+
+// Code-split Monaco out of the mobile critical path. The editor module
+// pulls in `monaco-editor` (~700 KB gzipped) which is wasted bytes for
+// users who only want to read or execute a script.
+const TerminalEditor = lazy(
+  () => import("../components/editor/TerminalEditor"),
+);
 
 function useIsSmallScreen(breakpoint = 768) {
   const [isSmall, setIsSmall] = useState(
@@ -60,6 +68,8 @@ export default function Terminal() {
   );
 
   const isSmallScreen = useIsSmallScreen();
+  const viewMode = useTerminalStore((s) => s.viewMode);
+  const isViewing = viewMode === "view";
 
   return (
     <>
@@ -89,26 +99,37 @@ export default function Terminal() {
             ) : (
               <>
                 <div className="px-4 py-3 shrink-0 bg-evm-gray-900/50">
-                  <div className="flex flex-col items-end">
-                    <div className="flex w-full">
-                      <TitleInput />
-                      <div className="flex-1" />
-                      <div className="flex items-center gap-1">
-                        <NewScriptButton />
-                        <ShareScriptButton title={title} script={script} />
-                        <ConfigureButton
-                          setMaximizeGasLimit={{
-                            toggle: toggleMaximizeGasLimit,
-                          }}
-                          maximizeGasLimit={maximizeGasLimit}
-                        />
-                      </div>
+                  <div className="flex w-full">
+                    <TitleInput />
+                    <div className="flex-1" />
+                    <div className="flex items-center gap-1">
+                      <ViewModeToggle />
+                      <NewScriptButton />
+                      <ShareScriptButton title={title} script={script} />
+                      <ConfigureButton
+                        setMaximizeGasLimit={{
+                          toggle: toggleMaximizeGasLimit,
+                        }}
+                        maximizeGasLimit={maximizeGasLimit}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex-1 min-h-0 px-4 pt-2 overflow-hidden animate-fade-in">
-                  <TerminalEditor />
+                  {isViewing ? (
+                    <ScriptViewer />
+                  ) : (
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center h-full text-foreground/40 text-sm">
+                          Loading editor…
+                        </div>
+                      }
+                    >
+                      <TerminalEditor />
+                    </Suspense>
+                  )}
                 </div>
 
                 <div

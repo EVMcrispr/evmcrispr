@@ -24,8 +24,151 @@
   box-sizing: border-box;
 }
 
-/* Monaco executing-line decoration */
+/* Monaco executing-line decoration. Also reused by the Shiki-based
+   ScriptViewer — applied directly to the `.line` span there, so the
+   `display: block` rule below makes the highlight stretch full-width. */
 .executing-line-highlight {
   background: rgba(15, 255, 80, 0.12);
   border-left: 3px solid #0fff50;
+}
+
+/* ── Script viewer (Monaco-free read view) ─────────────────────── */
+/* Mirror the editor's typography: Ubuntu Mono at 22px is exactly what
+   the Monaco instance uses (see TerminalEditor.tsx editorOptions), so
+   toggling between view ↔ edit doesn't reflow the script. */
+.evml-viewer {
+  counter-reset: evml-line;
+  font-family:
+    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 22px;
+  line-height: 0.3;
+}
+
+@media (max-width: 640px) {
+  .evml-viewer {
+    /* Slightly smaller on phones to keep typical lines from wrapping. */
+    font-size: 18px;
+  }
+}
+
+.evml-viewer pre,
+.evml-viewer code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.evml-viewer pre {
+  margin: 0;
+  padding: 0.5rem 0;
+  /* Shiki applies the theme background as an inline style on the <pre>,
+     and `!important` is the only way to defeat that without a custom
+     fork of `codeToHtml`. */
+  /* biome-ignore lint/complexity/noImportantStyles: see comment above */
+  background: transparent !important;
+  /* Disable contextual ligatures so identifiers read like Monaco's. */
+  font-feature-settings:
+    "calt" 0,
+    "liga" 0;
+  font-variant-ligatures: none;
+}
+
+.evml-viewer code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+
+.evml-viewer code .line {
+  display: block;
+  position: relative;
+  padding: 0 0.75rem 0 3.25rem;
+  min-height: 1em;
+  counter-increment: evml-line;
+}
+
+.evml-viewer code .line::before {
+  content: counter(evml-line);
+  position: absolute;
+  left: 0;
+  width: 2.5rem;
+  text-align: right;
+  padding-right: 0.5rem;
+  color: rgb(255 255 255 / 0.25);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Make the executing-line highlight survive Shiki's per-line wrapper */
+.evml-viewer code .line.executing-line-highlight {
+  display: block;
+  background: rgba(15, 255, 80, 0.12);
+  border-left: 3px solid #0fff50;
+  padding-left: calc(3.25rem - 3px);
+}
+
+/* Hover targets — addresses, @helpers, $variables. Subtle dotted
+   underline so users discover them, but no color shift since Shiki
+   already paints the token. */
+.evml-viewer .evml-hover-target {
+  cursor: help;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.evml-viewer .evml-hover-target:hover,
+.evml-viewer .evml-hover-target:focus-visible {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+/* Hover popover content. Portaled outside `.evml-viewer`, so the
+   typography has to be re-applied here. Ubuntu Mono everywhere keeps
+   prose, code blocks, and inline code visually consistent with the
+   highlighted script behind the popover. */
+.evml-hover-popover,
+.evml-hover-popover *,
+.evml-hover-popover code,
+.evml-hover-popover pre {
+  font-family:
+    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Dark scrollbars for the viewer + popover. The default OS scrollbar
+   (a bright grey on dark backgrounds) is jarring against the black
+   terminal aesthetic; this mirrors what Monaco renders inside the
+   editor view so toggling between view ↔ edit looks consistent. */
+.evml-viewer,
+.evml-hover-popover {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: thin;
+}
+
+.evml-viewer::-webkit-scrollbar,
+.evml-hover-popover::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.evml-viewer::-webkit-scrollbar-track,
+.evml-hover-popover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.evml-viewer::-webkit-scrollbar-thumb,
+.evml-hover-popover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.evml-viewer::-webkit-scrollbar-thumb:hover,
+.evml-hover-popover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.evml-viewer::-webkit-scrollbar-corner,
+.evml-hover-popover::-webkit-scrollbar-corner {
+  background: transparent;
 }

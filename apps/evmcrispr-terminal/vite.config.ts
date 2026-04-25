@@ -126,7 +126,7 @@ export default defineConfig({
         // Rolldown splits @noble/hashes and @noble/curves into separate
         // chunks with a circular dependency, causing sha256 to be undefined
         // when secp256k1 initialises at module evaluation time.
-        // See: https://github.com/rolldown/rolldown/issues/3650
+        // See: https://github.com/rolldown/rolldown/issues/9225
         manualChunks(id) {
           if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
             return "noble-crypto";

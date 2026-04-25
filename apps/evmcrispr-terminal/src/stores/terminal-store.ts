@@ -1,4 +1,5 @@
 import { createStore } from "zustand-x";
+import { resolveInitialViewMode } from "../utils/view-mode";
 
 export const SCRIPT_PLACEHOLDER = `## Basic commands:
 
@@ -25,6 +26,8 @@ export type CursorRef = {
   kind: "command" | "helper";
 };
 
+export type ViewMode = "edit" | "view";
+
 export type TerminalStoreState = {
   currentScriptId: string | null;
   title: string;
@@ -34,6 +37,7 @@ export type TerminalStoreState = {
   activeTab: "console" | "library" | "reference";
   executingLine: number | null;
   cursorRef: CursorRef | null;
+  viewMode: ViewMode;
 };
 
 const initialState: TerminalStoreState = {
@@ -45,6 +49,7 @@ const initialState: TerminalStoreState = {
   activeTab: "library",
   executingLine: null,
   cursorRef: null,
+  viewMode: resolveInitialViewMode(),
 };
 
 const terminalStore = createStore<TerminalStoreState>(initialState, {

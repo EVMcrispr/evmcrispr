@@ -137,6 +137,43 @@ describe("SDK > utils > fetchImplementationAddress", () => {
       const impl = await fetchImplementationAddress(EOA, client);
       expect(impl).to.be.undefined;
     });
+
+    /**
+     * Regression for TheDAO-style fallbacks: a contract whose fallback
+     * returns `0x01` for any unknown selector. Calling
+     * `implementation()` / `masterCopy()` succeeds (because the fallback
+     * runs) and decodes as the address `0x0000…0001` (the SHA-256
+     * precompile). The previous implementation reported that as a real
+     * proxy target — we now require the candidate to have bytecode
+     * before trusting it.
+     */
+    it("should ignore implementation() return values that point at codeless addresses", async () => {
+      const TRUE_AS_ADDRESS =
+        "0x0000000000000000000000000000000000000001" as Address;
+
+      const mockClient = {
+        getCode: async ({ address }: { address: Address }) => {
+          // The probed contract has bytecode (it's a real contract);
+          // the bogus "implementation" address (a precompile) does not.
+          if (address.toLowerCase() === TRUE_AS_ADDRESS.toLowerCase()) {
+            return "0x";
+          }
+          return "0x6060604052"; // any non-empty bytecode
+        },
+        getStorageAt: async () =>
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+        multicall: async () => [
+          { status: "success" as const, result: TRUE_AS_ADDRESS },
+          { status: "success" as const, result: TRUE_AS_ADDRESS },
+        ],
+      } as unknown as PublicClient;
+
+      const impl = await fetchImplementationAddress(
+        "0xd98157ae53342c90cfd341417d3c856351c1df95" as Address,
+        mockClient,
+      );
+      expect(impl).to.be.undefined;
+    });
   });
 });
 
