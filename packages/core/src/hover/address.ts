@@ -23,7 +23,13 @@ interface ChainData {
 
 interface ContractExtras {
   implementation?: Address;
-  implementationName?: string;
+  /**
+   * Verification metadata for the address itself. Only consulted when
+   * the contract is *not* a proxy — proxy targets render the
+   * implementation's verified data instead, since the proxy shell
+   * (e.g. `TransparentUpgradeableProxy`) carries no information the user
+   * cares about.
+   */
   verified?: VerifiedContractInfo | null;
   implementationVerified?: VerifiedContractInfo | null;
 }
@@ -201,7 +207,6 @@ async function fetchContractExtras(
 
   return {
     implementation,
-    implementationName: implementationVerified?.name,
     verified,
     implementationVerified,
   };
@@ -306,31 +311,30 @@ function renderContract(
 
   if (data.ensName) lines.push(`- ENS: \`${data.ensName}\``);
 
-  const verified = extras.verified;
-  if (verified) {
-    const verifiedTag =
-      verified.matchType === "partial"
-        ? "*(verified — partial match)*"
-        : "*(verified)*";
-    lines.push(`- Name: **${verified.name}**  ${verifiedTag}`);
-    if (verified.compilerVersion) {
-      const optim = verified.optimizationUsed
-        ? ` (optimizer, ${formatNumber(verified.runs)} runs)`
+  // For proxies, the user cares about the implementation — the proxy
+  // shell itself (e.g. `TransparentUpgradeableProxy`) is just plumbing.
+  // Pick the most relevant verification metadata accordingly, and
+  // silently omit the Name row when nothing is known so we never display
+  // a noisy `(unverified)` placeholder.
+  const meta: VerifiedContractInfo | null = extras.implementation
+    ? (extras.implementationVerified ?? null)
+    : (extras.verified ?? null);
+
+  if (meta) {
+    const matchTag = meta.matchType === "partial" ? "  *(partial match)*" : "";
+    const viaProxy = extras.implementation ? "  *(via proxy)*" : "";
+    lines.push(`- Name: **${meta.name}**${viaProxy}${matchTag}`);
+    if (meta.compilerVersion) {
+      const optim = meta.optimizationUsed
+        ? ` (optimizer, ${formatNumber(meta.runs)} runs)`
         : " (no optimizer)";
-      lines.push(`- Compiler: ${verified.compilerVersion}${optim}`);
+      lines.push(`- Compiler: ${meta.compilerVersion}${optim}`);
     }
-    if (verified.license) lines.push(`- License: ${verified.license}`);
-  } else {
-    lines.push("- Name: *(unverified)*");
+    if (meta.license) lines.push(`- License: ${meta.license}`);
   }
 
   if (extras.implementation) {
-    const implName = extras.implementationName
-      ? ` (${extras.implementationName})`
-      : "";
-    lines.push(
-      `- Proxy: → \`${shortAddress(extras.implementation)}\`${implName}`,
-    );
+    lines.push(`- Proxy: → \`${shortAddress(extras.implementation)}\``);
   }
 
   if (data.balance !== undefined)

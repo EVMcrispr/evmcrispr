@@ -11,6 +11,7 @@ Commands:
 Environment:
   VITE_DRPC_API_KEY          DRPC API key for RPC access
   VITE_PINATA_JWT            Pinata JWT for IPFS pinning
+  VITE_ETHERSCAN_API_KEY     Etherscan V2 API key for verified-contract metadata
   EVMCRISPR_DEFAULT_CHAIN_ID Default chain ID (default: 1)
   EVMCRISPR_RPC_URL          Global RPC URL override
   EVMCRISPR_RPC_URL_<ID>     Per-chain RPC URL override

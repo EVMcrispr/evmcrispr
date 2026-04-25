@@ -1,0 +1,21 @@
+{
+  "status": "1",
+  "message": "OK",
+  "result": [
+    {
+      "SourceCode": "",
+      "ABI": "[]",
+      "ContractName": "TransparentUpgradeableProxy",
+      "CompilerVersion": "v0.8.10+commit.fc410830",
+      "OptimizationUsed": "1",
+      "Runs": "10000",
+      "ConstructorArguments": "",
+      "EVMVersion": "london",
+      "Library": "",
+      "LicenseType": "Apache-2.0",
+      "Proxy": "1",
+      "Implementation": "0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef",
+      "SwarmSource": ""
+    }
+  ]
+}

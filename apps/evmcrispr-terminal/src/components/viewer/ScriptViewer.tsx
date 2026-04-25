@@ -1,6 +1,13 @@
 import { useShiki } from "@repo/ui";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useScriptAnalysis } from "../../hooks/useScriptAnalysis";
+import { useViewMode } from "../../hooks/useViewMode";
 import { useTerminalStore } from "../../stores/terminal-store";
 import { DiagnosticsChip } from "./DiagnosticsChip";
 import { HoverPopover } from "./HoverPopover";
@@ -22,6 +29,35 @@ export function ScriptViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { diagnostics, getHoverInfo } = useScriptAnalysis(script);
+  const { setViewMode } = useViewMode();
+
+  // Tapping anywhere on the rendered script (other than a hover token, or
+  // while the user is in the middle of a text-selection gesture) flips
+  // into the editor — the same effect as the toolbar's Edit button. This
+  // makes it cheap to reach for a quick tweak without hunting for a small
+  // icon, especially on mobile.
+  const handleViewerClick = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(".evml-hover-target")) return;
+
+      // Preserve text-selection gestures: if the user just dragged to
+      // highlight a slice of the script (to copy / inspect), the
+      // resulting click shouldn't yank them into the editor.
+      const selection =
+        typeof window !== "undefined" ? window.getSelection() : null;
+      if (
+        selection &&
+        !selection.isCollapsed &&
+        selection.toString().length > 0
+      ) {
+        return;
+      }
+
+      setViewMode("edit");
+    },
+    [setViewMode],
+  );
 
   const html = useMemo(() => {
     if (!highlighter) return null;
@@ -70,6 +106,7 @@ export function ScriptViewer() {
       <div
         ref={containerRef}
         className="flex-1 min-h-0 overflow-auto evml-viewer"
+        onClick={handleViewerClick}
       >
         {html ? (
           // biome-ignore lint/security/noDangerouslySetInnerHtml: shiki produces trusted HTML from a known grammar / theme

@@ -62,6 +62,9 @@ const server = setupServer(...etherscanHandlers);
 
 describe("Core > hover > getAddressHoverInfo", () => {
   beforeAll(() => {
+    // `fetchVerifiedContract` is a no-op without an API key. The MSW
+    // handlers ignore the value, so any non-empty string is fine.
+    process.env.VITE_ETHERSCAN_API_KEY ||= "test-key";
     server.listen({ onUnhandledRequest: "bypass" });
   });
 
@@ -136,7 +139,8 @@ describe("Core > hover > getAddressHoverInfo", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("**Contract**");
-      expect(c).to.include("Name: **Verified**  *(verified)*");
+      expect(c).to.include("Name: **Verified**");
+      expect(c).to.not.include("*(unverified)*");
       expect(c).to.include("0.8.20+commit.a1b79de6");
       expect(c).to.include("optimizer, 200 runs");
       expect(c).to.include("License: MIT");
@@ -144,7 +148,7 @@ describe("Core > hover > getAddressHoverInfo", () => {
       expect(c).to.include("Code size: 5 bytes");
     });
 
-    it("renders an unverified contract card with the unverified tag", async () => {
+    it("omits the Name row entirely when the contract is unverified", async () => {
       const client = makeClient({
         code: "0x6080604052",
         balance: 0n,
@@ -159,13 +163,14 @@ describe("Core > hover > getAddressHoverInfo", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("**Contract**");
-      expect(c).to.include("Name: *(unverified)*");
+      expect(c).to.not.include("Name:");
+      expect(c).to.not.include("*(unverified)*");
       expect(c).to.not.include("Compiler:");
     });
 
     it("renders a Delegated EOA card for an EIP-7702 designator", async () => {
       // EIP-7702 code: `0xef0100` || 20-byte target address. The target
-      // is `VERIFIED_CONTRACT` so the Sourcify mock resolves its name.
+      // is `VERIFIED_CONTRACT` so the Etherscan mock resolves its name.
       const designator =
         `0xef0100${VERIFIED_CONTRACT.slice(2)}` as `0x${string}`;
       const client = makeClient({
@@ -184,7 +189,7 @@ describe("Core > hover > getAddressHoverInfo", () => {
       const c = result!.contents.join("\n");
       expect(c).to.include("**Delegated EOA**");
       expect(c).to.include("EIP-7702");
-      // Sourcify mock returns "Verified" for VERIFIED_CONTRACT.
+      // Etherscan mock returns "Verified" for VERIFIED_CONTRACT.
       expect(c).to.include("Delegate:");
       expect(c).to.include("(Verified)");
       expect(c).to.include("Balance: 0.5 ETH");
@@ -194,7 +199,7 @@ describe("Core > hover > getAddressHoverInfo", () => {
       expect(c).to.not.include("Code size:");
     });
 
-    it("detects EIP-1967 proxies and shows the implementation row", async () => {
+    it("detects EIP-1967 proxies and surfaces the implementation's name", async () => {
       const client = makeClient({
         code: "0x6080604052",
         balance: 0n,
@@ -210,9 +215,12 @@ describe("Core > hover > getAddressHoverInfo", () => {
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("**Contract**");
-      // Etherscan reports it as TransparentUpgradeableProxy, but the
-      // implementation it returns is `0x...beef` -> resolved name MyImpl.
-      expect(c).to.include("Proxy: → `0xbeef…beef` (MyImpl)");
+      // Even though Etherscan also reports the proxy itself as
+      // TransparentUpgradeableProxy, we render only the implementation's
+      // name (`MyImpl`) since that's what callers actually care about.
+      expect(c).to.include("Name: **MyImpl**  *(via proxy)*");
+      expect(c).to.not.include("TransparentUpgradeableProxy");
+      expect(c).to.include("Proxy: → `0xbeef…beef`");
       expect(c).to.include("[Implementation ↗]");
     });
   });

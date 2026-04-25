@@ -7,16 +7,18 @@ import type { Address } from "../types";
 // ---------------------------------------------------------------------------
 
 /**
- * A subset of verified-contract metadata that is useful for hover cards and
- * other inline UIs.
+ * A subset of verified-contract metadata that is useful for hover cards
+ * and other inline UIs.
  *
- * The data is sourced from Sourcify's public, key-less API — it covers most
- * EVM chains via a single unified endpoint.  Etherscan's v2 API was
- * abandoned because, contrary to its docs, it now requires an API key for
- * every request including read-only `getsourcecode` calls.
+ * Sourced from Etherscan's V2 unified API (`https://api.etherscan.io/v2`),
+ * which covers all supported chains via a single `chainid` parameter and
+ * requires an API key (free tier: 5 req/s, 100k req/day). The key is
+ * read from `VITE_ETHERSCAN_API_KEY` — when it isn't set, this module
+ * silently returns `null` for every lookup so unverified UI degrades
+ * gracefully.
  */
 export interface VerifiedContractInfo {
-  /** Contract name as published to the verifier. */
+  /** Contract name as published to Etherscan. */
   name: string;
   /** Solidity/Vyper compiler version, e.g. `0.8.20+commit.a1b79de6`. */
   compilerVersion: string;
@@ -27,14 +29,15 @@ export interface VerifiedContractInfo {
   /** SPDX license identifier, when published (e.g. `MIT`). */
   license?: string;
   /**
-   * Sourcify's match quality:
-   *  - `"perfect"`: deployed bytecode matches exactly (incl. metadata hash).
-   *  - `"partial"`: source matches but metadata differs (still trustworthy).
+   * Match quality. Etherscan only exposes verified contracts (no notion
+   * of partial match) — kept on the type for parity with the previous
+   * Sourcify-backed shape, but always `"perfect"` here.
    */
   matchType: "perfect" | "partial";
-  /** Reserved for forward compat — Sourcify does not flag proxies. */
+  /** Etherscan's own proxy flag. We don't rely on it — proxy detection
+   * is done by `fetchImplementationAddress` against on-chain bytecode. */
   isProxy: boolean;
-  /** Reserved for forward compat — implementation comes from on-chain reads. */
+  /** Implementation address as reported by Etherscan, when present. */
   implementation?: Address;
 }
 
@@ -64,7 +67,6 @@ function readCache(key: string): VerifiedContractInfo | null | undefined {
     cache.delete(key);
     return undefined;
   }
-  // Refresh LRU recency.
   cache.delete(key);
   cache.set(key, entry);
   return entry.value;
@@ -85,101 +87,130 @@ export function clearContractVerificationCache(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Network — Sourcify
+// Env-based API key resolution
 // ---------------------------------------------------------------------------
 
-const SOURCIFY_FILES_URL = "https://sourcify.dev/server/files/any";
-
-interface SourcifyFile {
-  name?: string;
-  path?: string;
-  content?: string;
-}
-
-interface SourcifyResponse {
-  status?: "perfect" | "partial";
-  files?: SourcifyFile[];
-}
-
-/** Shape of the standard Solidity/Vyper compiler-output `metadata.json`. */
-interface CompilerMetadata {
-  language?: string;
-  compiler?: { version?: string };
-  settings?: {
-    compilationTarget?: Record<string, string>;
-    optimizer?: { enabled?: boolean; runs?: number };
-    evmVersion?: string;
-  };
-  sources?: Record<string, { license?: string }>;
-}
-
-function pickLicense(meta: CompilerMetadata): string | undefined {
-  if (!meta.sources) return undefined;
-  for (const src of Object.values(meta.sources)) {
-    if (src?.license && src.license.length > 0) return src.license;
-  }
-  return undefined;
-}
-
-function pickContractName(meta: CompilerMetadata): string | undefined {
-  const target = meta.settings?.compilationTarget;
-  if (!target) return undefined;
-  const entries = Object.entries(target);
-  if (entries.length === 0) return undefined;
-  // Sourcify metadata always has exactly one compilationTarget entry; the
-  // value is the contract name we care about.
-  return entries[0]?.[1];
-}
-
-function parseSourcify(res: SourcifyResponse): VerifiedContractInfo | null {
-  if (!res || (res.status !== "perfect" && res.status !== "partial")) {
-    return null;
-  }
-  const metaFile = res.files?.find((f) => f.name === "metadata.json");
-  if (!metaFile?.content) return null;
-
-  let meta: CompilerMetadata;
+/**
+ * Pull the Etherscan API key from whichever runtime is hosting us:
+ *  - In Vite-built browser bundles, `import.meta.env.VITE_ETHERSCAN_API_KEY`
+ *    is statically replaced at build time.
+ *  - In Node/Bun (CLI, MCP, tests), `process.env.VITE_ETHERSCAN_API_KEY`
+ *    is read at runtime.
+ *
+ * Returns `undefined` when no key is configured, which makes
+ * `fetchVerifiedContract` a no-op.
+ */
+function readEtherscanApiKey(): string | undefined {
+  let key: string | undefined;
   try {
-    meta = JSON.parse(metaFile.content) as CompilerMetadata;
+    key = (
+      import.meta as unknown as { env?: Record<string, string | undefined> }
+    ).env?.VITE_ETHERSCAN_API_KEY;
   } catch {
+    /* `import.meta.env` is undefined outside Vite — fall through. */
+  }
+  if (!key && typeof process !== "undefined") {
+    key = process.env?.VITE_ETHERSCAN_API_KEY;
+  }
+  return key && key.length > 0 ? key : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Network — Etherscan V2
+// ---------------------------------------------------------------------------
+
+const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
+
+/** Shape of a single result entry in `getsourcecode`. Etherscan returns
+ *  every numeric field as a string, so we deliberately keep them as such
+ *  here and parse on demand. */
+interface EtherscanSourceResult {
+  ContractName?: string;
+  CompilerVersion?: string;
+  OptimizationUsed?: string;
+  Runs?: string;
+  LicenseType?: string;
+  Proxy?: string;
+  Implementation?: string;
+  ABI?: string;
+}
+
+interface EtherscanSourceResponse {
+  status: string;
+  message?: string;
+  result?: EtherscanSourceResult[] | string;
+}
+
+function normalizeCompilerVersion(raw: string | undefined): string {
+  if (!raw) return "";
+  // Etherscan prefixes Solidity versions with `v` (e.g. `v0.8.20+...`).
+  return raw.startsWith("v") ? raw.slice(1) : raw;
+}
+
+function normalizeLicense(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  // Etherscan uses "None" for unspecified licenses; treat that as missing.
+  if (raw === "None" || raw === "Unlicense") return undefined;
+  return raw;
+}
+
+function parseEtherscan(
+  res: EtherscanSourceResponse,
+): VerifiedContractInfo | null {
+  if (res.status !== "1" || !Array.isArray(res.result) || !res.result[0]) {
     return null;
   }
+  const entry = res.result[0];
+  const name = entry.ContractName?.trim();
+  // Unverified contracts come back with status "1" but ABI === "Contract
+  // source code not verified" and no ContractName.
+  if (!name || entry.ABI === "Contract source code not verified") return null;
 
-  const name = pickContractName(meta);
-  if (!name) return null;
+  const optimizationUsed = entry.OptimizationUsed === "1";
+  const runs = optimizationUsed ? Number(entry.Runs ?? 0) || 0 : 0;
+  const isProxy = entry.Proxy === "1";
 
-  const optimizationUsed = !!meta.settings?.optimizer?.enabled;
-  const runs = optimizationUsed
-    ? Number(meta.settings?.optimizer?.runs ?? 0) || 0
-    : 0;
+  let implementation: Address | undefined;
+  if (entry.Implementation && entry.Implementation !== "") {
+    try {
+      implementation = getAddress(entry.Implementation as `0x${string}`);
+    } catch {
+      /* ignore malformed implementation addresses */
+    }
+  }
 
   return {
     name,
-    compilerVersion: meta.compiler?.version ?? "",
+    compilerVersion: normalizeCompilerVersion(entry.CompilerVersion),
     optimizationUsed,
     runs,
-    license: pickLicense(meta),
-    matchType: res.status,
-    isProxy: false,
+    license: normalizeLicense(entry.LicenseType),
+    matchType: "perfect",
+    isProxy,
+    implementation,
   };
 }
 
 /**
  * Fetch verified-contract metadata for the given chain.
  *
- * Uses Sourcify's public files endpoint (no API key required).  Successful
- * and `null` responses are cached in-memory for a few minutes, and
- * concurrent calls for the same `(chainId, address)` are deduped.
+ * Uses Etherscan's V2 unified endpoint and the `VITE_ETHERSCAN_API_KEY`
+ * env var. Successful and `null` responses are cached in-memory for
+ * a few minutes, and concurrent calls for the same `(chainId, address)`
+ * are deduped.
  *
  * Returns `null` when:
- *  - The contract is not verified on Sourcify.
- *  - The chain isn't supported by Sourcify.
- *  - The endpoint is unreachable or rate-limited.
+ *  - `VITE_ETHERSCAN_API_KEY` is not set.
+ *  - The contract is not verified on Etherscan.
+ *  - Etherscan doesn't support the chain or rate-limited the request.
  */
 export async function fetchVerifiedContract(
   chainId: number,
   address: Address,
 ): Promise<VerifiedContractInfo | null> {
+  const apiKey = readEtherscanApiKey();
+  if (!apiKey) return null;
+
   const key = makeKey(chainId, address);
 
   const cached = readCache(key);
@@ -190,11 +221,17 @@ export async function fetchVerifiedContract(
 
   const promise = (async (): Promise<VerifiedContractInfo | null> => {
     try {
-      const url = `${SOURCIFY_FILES_URL}/${chainId}/${getAddress(address)}`;
-      const res = await fetch(url);
-      if (!res.ok) return null; // 404 = unverified, 429 = rate limited, etc.
-      const json = (await res.json()) as SourcifyResponse;
-      return parseSourcify(json);
+      const url = new URL(ETHERSCAN_V2_URL);
+      url.searchParams.set("chainid", String(chainId));
+      url.searchParams.set("module", "contract");
+      url.searchParams.set("action", "getsourcecode");
+      url.searchParams.set("address", getAddress(address));
+      url.searchParams.set("apikey", apiKey);
+
+      const res = await fetch(url.toString());
+      if (!res.ok) return null;
+      const json = (await res.json()) as EtherscanSourceResponse;
+      return parseEtherscan(json);
     } catch {
       return null;
     }
