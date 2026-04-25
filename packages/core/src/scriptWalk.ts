@@ -4,6 +4,8 @@ import type {
   CompletionContext,
   DestructurePatternNode,
   DestructureSlot,
+  ErrorCaptureNode,
+  EventCaptureNode,
   HelperResolver,
   ICommand,
   ModuleBinding,
@@ -262,8 +264,64 @@ function seedDestructureSlots(
 // Walk
 // ---------------------------------------------------------------------------
 
+/** Seed every `EventCapture` / `ErrorCapture` slot on a command as a
+ *  USER binding. The walker can't predict the runtime value (logs and
+ *  reverts only exist at execution time), so the bindings hold a
+ *  placeholder name that the hover renderer suppresses — what matters
+ *  is that the variable *exists* in the prewarm snapshot, so hovering
+ *  `$err` later renders `**Variable** $err` instead of "no info".
+ *
+ *  Note: capture slots are parsed WITHOUT the `$` prefix (the runtime
+ *  prefixes them when calling `applyDestructure`). We mirror that here
+ *  so the hover lookup `bindings.getBindingValue("$err", USER)` finds
+ *  the placeholder. */
+function seedCapturePlaceholders(
+  slots: DestructureSlot[],
+  bindings: BindingsManager,
+): void {
+  for (const s of slots) {
+    if (typeof s === "string") {
+      const key = `$${s}`;
+      try {
+        bindings.setBinding(key, key, USER);
+      } catch {
+        // binding already exists
+      }
+    } else if (Array.isArray(s)) {
+      seedCapturePlaceholders(s, bindings);
+    }
+  }
+}
+
+function seedCaptureBindings(
+  c: CommandExpressionNode,
+  bindings: BindingsManager,
+): void {
+  const captures: Array<EventCaptureNode | ErrorCaptureNode> = [
+    ...(c.eventCaptures ?? []),
+    ...(c.errorCaptures ?? []),
+  ];
+  for (const cap of captures) {
+    seedCapturePlaceholders(cap.captures, bindings);
+    if ("boolVar" in cap && cap.boolVar) {
+      try {
+        bindings.setBinding(`$${cap.boolVar}`, `$${cap.boolVar}`, USER);
+      } catch {
+        // binding already exists
+      }
+    }
+  }
+}
+
 /** Walk a list of fully-typed command nodes and resolve any bindings they
- *  produce (variable → USER, custom type with resolve → arbitrary bindings).
+ *  produce (variable → USER, custom type with resolve → arbitrary bindings,
+ *  event/error captures → USER placeholders).
+ *
+ *  Per-command behaviour is driven by the command's own argDefs (looking
+ *  for `type: "variable"` or a custom type with a `resolve()` hook) and
+ *  by any `eventCaptures` / `errorCaptures` attached to the node — never
+ *  by command-name allowlists. New binding-producing commands therefore
+ *  participate in prewarm automatically.
  *
  *  When `history` is provided, each `set`-style variable assignment is also
  *  appended to it as `{ line, value }`. Hover uses this to render the value
@@ -285,6 +343,12 @@ export async function walkCommandsForBindings(
       parentModule = c.module ?? parentModule;
     }
     const commandModule = c.module ?? parentModule;
+
+    // Even when the command isn't registered (e.g. an aragonos command
+    // before `load aragonos` has run, or a typo) the user can still
+    // attach event/error captures to it — seed those so hover finds
+    // the symbols even when the command resolution fails.
+    seedCaptureBindings(c, bindings);
 
     const command = await resolveCommandNode(c, bindings, commandModule);
     if (!command) continue;
@@ -414,16 +478,24 @@ export interface WalkResult {
 }
 
 /**
- * Parse `script` and walk all `load` / `set` / `switch` commands up to and
- * including `upToLine`. Helper-function results are written into
- * `moduleCache`'s CACHE space (using the same key shape as completions),
- * which is what makes hover's address card visible for `@ens(...)` etc.
+ * Parse `script` and walk every command up to (and including) `upToLine`,
+ * producing the bindings + variable history hover needs to render rich
+ * cards. Helper-function results are also written into `moduleCache`'s
+ * CACHE space (using the same key shape as completions), which is what
+ * makes hover's address card visible for `@ens(...)` etc.
  *
- * `upToLine` is 1-indexed (matches `Position.line`).  Pass `Infinity` to walk
- * the entire script.
+ * Per-command behaviour is purely argDef-driven (see
+ * `walkCommandsForBindings`): commands with `type: "variable"` argDefs
+ * seed USER bindings, custom-typed argDefs with a `resolve()` hook get
+ * invoked, and any `eventCaptures` / `errorCaptures` on a node seed
+ * placeholder bindings for the captured slots. This means new
+ * binding-producing commands work automatically — no allowlist edits.
+ *
+ * `upToLine` is 1-indexed (matches `Position.line`). Pass `Infinity` to
+ * walk the entire script.
  *
  * Returns the per-walk USER bindings and the effective chainId after any
- * `switch` commands.  Failures during parsing or RPC lookup are swallowed —
+ * `switch` commands. Failures during parsing or RPC lookup are swallowed —
  * the function always resolves so callers can use it as a best-effort
  * pre-warm step.
  */
@@ -456,24 +528,18 @@ export async function walkScript(
     }
   }
 
-  const commandNodes: CommandExpressionNode[] = (
-    ast?.getCommandsUntilLine(upToLine, ["load", "set", "switch"]) ?? []
-  ).filter((c: CommandExpressionNode) => {
-    const itHasCommandsBlock = hasCommandsBlock(c);
-    const loc = c.loc;
-    if (
-      !itHasCommandsBlock ||
-      (itHasCommandsBlock &&
-        loc &&
-        upToLine >= loc.start.line &&
-        upToLine <= loc.end.line)
-    ) {
-      return true;
-    }
-    return false;
-  });
+  // Walk EVERY command up to `upToLine`, including those inside blocks
+  // that don't enclose the cursor (e.g. a `connect myDao { ... }`
+  // block whose body installs apps the rest of the script references).
+  // The per-command logic in `walkCommandsForBindings` already decides
+  // what to do based on each command's argDefs and capture nodes — no
+  // command-name allowlist required.
+  const commandNodes: CommandExpressionNode[] =
+    ast?.getAllCommandsUntilLine(upToLine) ?? [];
 
-  // Apply switch commands to find the effective client/chain.
+  // Apply switch commands to find the effective client/chain. `switch`
+  // is the only command that mutates *which* chain the rest of the
+  // walk runs against, so it gets a dedicated pre-pass.
   let effectiveClient = client;
   for (const c of commandNodes) {
     const switchedChainId = resolveSwitchChainId(c, bindings);
@@ -510,16 +576,13 @@ export async function walkScript(
     variableHistory,
   );
 
-  // Second pass: populate the helper cache for *all* commands the user
-  // might hover over, not just the ones that produce bindings. Without
-  // this, `print @token(DAI)` and similar helpers used as direct args
-  // to non-binding commands never reach the cache and the hover card
-  // can't show their resolved address. Helpers already evaluated
-  // during `walkCommandsForBindings` are cache hits and re-add no
-  // network cost.
-  const allCommandNodes: CommandExpressionNode[] =
-    ast?.getCommandsUntilLine(upToLine) ?? [];
-  await prewarmHelperExpressions(allCommandNodes, resolveNode);
+  // Second pass: populate the helper cache for *every* command the
+  // user might hover over, including helpers inside non-binding
+  // commands (`print @token(DAI)`) and helpers nested deep inside
+  // `connect myDao { ... }` blocks. Helpers already evaluated during
+  // `walkCommandsForBindings` are cache hits and re-add no network
+  // cost.
+  await prewarmHelperExpressions(commandNodes, resolveNode);
 
   return { bindings, chainId, client: effectiveClient, variableHistory };
 }

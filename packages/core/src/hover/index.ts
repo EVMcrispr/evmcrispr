@@ -360,12 +360,20 @@ export async function getHoverInfo(
     );
     const formatted = formatVariableValue(value, scriptLines);
 
+    // Commands like `deploy`, `new-dao`, `new-token`, `install`, `sign`
+    // and `for` produce a runtime value the prewarm walker can't
+    // predict; it seeds the binding with the variable's own name as a
+    // placeholder so subsequent hovers know the symbol is defined.
+    // Treat that as "no resolvable value yet" rather than rendering
+    // `**Variable** $voting = $voting`.
+    const isPlaceholder = formatted === token.value;
+
     // Single-line card: `**Variable** $name = value`. The address
     // card, if any, is appended as a separate section so the renderer
     // draws the green divider between the two — no need for a verbose
     // "(variable)" tag or "(defined on line N)" hint.
     const labelCard =
-      formatted != null
+      formatted != null && !isPlaceholder
         ? `**Variable** ${token.value} = ${formatted}`
         : `**Variable** ${token.value}`;
     const sections: string[] = [labelCard];

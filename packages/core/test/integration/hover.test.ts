@@ -115,6 +115,68 @@ describe("Core > hover", () => {
       expect(c).to.match(/\*\*EOA\*\*|\*\*Contract\*\*/);
     });
 
+    it("seeds variable bindings for any command with a `type: variable` argDef", async () => {
+      // Regression: previously the prewarm walker only visited
+      // `load`/`set`/`switch` commands, so variables created by
+      // commands like `deploy`, `new-dao`, `new-token`, `install`,
+      // `sign` and `for` were never seeded — hovering them returned
+      // null. The walker now visits every command and trusts each
+      // command's own argDefs to decide what to bind, so any
+      // `type: "variable"` argDef on any command participates in
+      // prewarm automatically.
+      const script = "deploy $myContract Foo.sol\nprint $myContract";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Variable**");
+      expect(c).to.include("$myContract");
+      // Placeholder bindings (value === name) shouldn't render as
+      // `$myContract = $myContract` — that's noise.
+      expect(c).to.not.include("= $myContract");
+    });
+
+    it("seeds variable bindings for event-capture slots", async () => {
+      // The `-> Withdrawn(uint, address) [$amount $to]` syntax
+      // attaches an `EventCaptureNode` to a command. The walker has to
+      // descend into `c.eventCaptures` and seed each slot as a USER
+      // placeholder so hover finds `$amount` even though no command
+      // argDef declares it.
+      const script =
+        "exec $contract withdraw() -> Withdrawn(uint,address) [$amount $to]\nprint $amount";
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Variable**");
+      expect(c).to.include("$amount");
+      expect(c).to.not.include("= $amount");
+    });
+
+    it("seeds variable bindings for error-capture slots and bool flags", async () => {
+      // `-!> Err(uint) [$shortfall]` (required) and `-?!> Err $e`
+      // (optional, boolean) both produce USER bindings the walker
+      // must seed so hover finds them. We exercise both shapes in one
+      // script — the boolVar variant goes through a different code
+      // path than the destructure-slot variant.
+      const script = [
+        "exec $contract transfer(uint) 100 -!> InsufficientBalance(uint) [$shortfall]",
+        "exec $contract approve(address,uint) $spender 1 -?!> Unauthorized() $authErr",
+        "print $shortfall",
+        "print $authErr",
+      ].join("\n");
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+      const shortfall = await evm.getHoverInfo(script, { line: 3, col: 8 });
+      const authErr = await evm.getHoverInfo(script, { line: 4, col: 8 });
+      expect(shortfall).to.not.be.null;
+      expect(shortfall!.contents.join("\n")).to.include("$shortfall");
+      expect(authErr).to.not.be.null;
+      expect(authErr!.contents.join("\n")).to.include("$authErr");
+    });
+
     it("appends the address card under @token(...) when used as a direct arg to a non-binding command", async () => {
       // Regression: previously the prewarm walker only visited
       // `load`/`set`/`switch` commands, so helpers used as direct args to

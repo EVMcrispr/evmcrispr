@@ -38,6 +38,41 @@ export class EvmlAST implements AST {
     );
   }
 
+  /**
+   * Walk every command in the AST up to (and including) `line`,
+   * descending into every block expression regardless of whether it
+   * encloses `line`. Returns a flat list in DFS pre-order (parent
+   * before its block's children). Used by the prewarm walker so that
+   * hover sees bindings produced by any command — `set`, `deploy`,
+   * `new-dao`, `install`, `for`, `sign`, command-with-event/error
+   * captures, ... — without having to enumerate command names by hand.
+   */
+  getAllCommandsUntilLine(line: number): CommandExpressionNode[] {
+    return this.#getAllCommandsUntilLine(this.body, line);
+  }
+
+  #getAllCommandsUntilLine(
+    body: CommandExpressionNode[],
+    line: number,
+  ): CommandExpressionNode[] {
+    const out: CommandExpressionNode[] = [];
+    for (const c of body) {
+      if (c.loc?.start.line && c.loc.start.line > line) continue;
+      out.push(c);
+      for (const arg of c.args) {
+        if (arg.type === NodeType.BlockExpression) {
+          out.push(
+            ...this.#getAllCommandsUntilLine(
+              (arg as BlockExpressionNode).body,
+              line,
+            ),
+          );
+        }
+      }
+    }
+    return out;
+  }
+
   #getCommandAtLine(
     line: number,
     body: CommandExpressionNode[],
