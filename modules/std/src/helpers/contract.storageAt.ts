@@ -1,4 +1,5 @@
 import { defineHelper } from "@evmcrispr/sdk";
+import { pad } from "viem";
 import type Std from "..";
 
 export default defineHelper<Std>({
@@ -16,9 +17,12 @@ export default defineHelper<Std>({
   async run(module, { address, slot }) {
     const client = await module.getClient();
     const value = await client.getStorageAt({ address, slot });
-    return (
-      value ??
-      "0x0000000000000000000000000000000000000000000000000000000000000000"
-    );
+    if (!value || value === "0x") {
+      return "0x0000000000000000000000000000000000000000000000000000000000000000";
+    }
+    // Some RPCs strip leading zeros from storage values (e.g. returning a
+    // 20-byte address for an EIP-1967 implementation slot). Left-pad to 32
+    // bytes so the value satisfies the bytes32 contract.
+    return pad(value, { size: 32 });
   },
 });

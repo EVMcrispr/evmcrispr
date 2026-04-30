@@ -59,6 +59,14 @@ describeHelper(
         expected:
           "0x0000000000000000000000000000000000000000000000000000000000000000",
       },
+      {
+        name: "should left-pad short RPC responses to 32 bytes",
+        input: `@contract.storageAt(${WXDAI} 0x0000000000000000000000000000000000000000000000000000000000000000)`,
+        validate: (result) => {
+          expect(result.startsWith("0x")).to.be.true;
+          expect(result.length).to.equal(66);
+        },
+      },
     ],
     docCases: [
       {
