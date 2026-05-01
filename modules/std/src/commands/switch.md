@@ -14,7 +14,7 @@ switch <networkNameOrId>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `networkNameOrId` | `any` | Chain name (e.g. `ethereum`) or numeric chain ID |
+| `networkNameOrId` | `chain` | Chain name (e.g. `ethereum`) or numeric chain ID |
 
 ## Examples
 

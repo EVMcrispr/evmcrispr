@@ -8,6 +8,7 @@ import {
 } from "@evmcrispr/sdk";
 import { getAddress, isAddressEqual } from "viem";
 import type Std from "..";
+import { resolveChainId } from "../argTypes";
 
 const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
 
@@ -246,9 +247,9 @@ export default defineCommand<Std>({
   opts: [
     {
       name: "mirror-chain",
-      type: "number",
+      type: "chain",
       description:
-        "Chain id to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set.",
+        "Chain (id or viem name like `optimism`) to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set.",
     },
     {
       name: "mirror-address",
@@ -348,7 +349,9 @@ export default defineCommand<Std>({
 
     const mirrorChainOptRaw = opts["mirror-chain"];
     const mirrorChainOpt =
-      mirrorChainOptRaw === undefined ? undefined : Number(mirrorChainOptRaw);
+      mirrorChainOptRaw === undefined
+        ? undefined
+        : resolveChainId(mirrorChainOptRaw);
     const mirrorAddressOpt = opts["mirror-address"] as
       | `0x${string}`
       | undefined;

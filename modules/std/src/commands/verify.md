@@ -20,7 +20,7 @@ verify <address>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--mirror-chain` | `number` | Chain id to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
+| `--mirror-chain` | `chain` | Chain (id or viem name like `optimism`) to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
 | `--mirror-address` | `address` | Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set. |
 | `--source` | `string` | Solidity Standard JSON Input text including language, sources, and settings. Required for explicit (non-mirror) mode. |
 | `--contract-name` | `string` | Qualified contract name `path/File.sol:ContractName`. Required for explicit mode. |

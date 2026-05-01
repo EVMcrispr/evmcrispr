@@ -21,7 +21,7 @@ deploy <variable> [bytecode]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--mirror-chain` | `number` | Chain id to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address. |
+| `--mirror-chain` | `chain` | Chain (id or viem name like `optimism`) to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address. |
 | `--mirror-address` | `address` | Address of an existing deployment to mirror. The original creation bytecode (with constructor args already appended) is fetched from Etherscan and used as the init code for this deployment. |
 | `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. Mutually exclusive with --mirror-address. |
 | `--constructor-args` | `array` | Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor. |

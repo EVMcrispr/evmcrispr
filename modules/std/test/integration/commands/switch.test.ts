@@ -46,7 +46,7 @@ describeCommand("switch", {
     {
       name: "should fail when receiving an unknown chain name",
       script: "switch fakechainname",
-      error: 'chain "fakechainname" not found',
+      error: "must be a chain id or a known chain name",
     },
   ],
 });

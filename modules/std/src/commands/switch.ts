@@ -1,15 +1,7 @@
 import type { WalletAction } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException, fieldItem } from "@evmcrispr/sdk";
-import * as chains from "viem/chains";
+import { defineCommand } from "@evmcrispr/sdk";
 import type Std from "..";
-
-const nameToChainId = Object.entries(chains).reduce(
-  (acc, [name, { id }]) => {
-    acc[name] = id;
-    return acc;
-  },
-  {} as Record<string, number>,
-);
+import { resolveChainId } from "../argTypes";
 
 export default defineCommand<Std>({
   name: "switch",
@@ -17,28 +9,12 @@ export default defineCommand<Std>({
   args: [
     {
       name: "networkNameOrId",
-      type: "any",
+      type: "chain",
       description: "Chain name (e.g. `ethereum`) or numeric chain ID",
     },
   ],
-  completions: {
-    networkNameOrId: () => Object.keys(nameToChainId).map(fieldItem),
-  },
   async run(module, { networkNameOrId }): Promise<WalletAction[]> {
-    let chainId: number;
-    chainId = Number(networkNameOrId.toString());
-
-    if (!Number.isInteger(chainId)) {
-      if (typeof networkNameOrId !== "string") {
-        throw new ErrorException(
-          `Invalid chain id. Expected a string or number, but got ${typeof networkNameOrId}`,
-        );
-      }
-      chainId = nameToChainId[networkNameOrId as keyof typeof nameToChainId];
-      if (!chainId) {
-        throw new ErrorException(`chain "${networkNameOrId}" not found`);
-      }
-    }
+    const chainId = resolveChainId(networkNameOrId);
 
     await module.switchChainId(chainId);
 

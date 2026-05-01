@@ -102,6 +102,21 @@ describe("Std > commands > verify", () => {
     expect(parsed.settings.evmVersion).to.equal("paris");
   });
 
+  it("mirror — accepts a viem chain name (e.g. `optimism`) for --mirror-chain", async () => {
+    // Optimism = chain id 10. The Etherscan MSW only keys fixtures by
+    // address (chainid is just echoed as a query param), so the actual
+    // assertion is that the command parses + resolves the name without
+    // throwing and successfully submits.
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain optimism --poll-interval 0`;
+    const interp = createInterpreter(script, client);
+    await interp.interpret();
+
+    const submitted = etherscanVerifyState.lastSubmit;
+    if (!submitted) throw new Error("expected POST submission");
+    expect(submitted.get("contractaddress")).to.equal(VERIFIED_ADDR);
+    expect(submitted.get("chainid")).to.equal(String(TARGET_CHAIN_ID));
+  });
+
   it("mirror — different address, same chain: uses --mirror-address for source lookup", async () => {
     const TARGET = "0x000000000000000000000000000000000000fffa";
     const script = `verify ${TARGET} --mirror-address ${VERIFIED_ADDR} --poll-interval 0`;
@@ -509,6 +524,11 @@ describeCommand("verify", {
       name: "--constructor-args-hex is mutually exclusive with --constructor",
       script: `verify ${VERIFIED_ADDR} --mirror-chain 1 --constructor "constructor(uint256)" --constructor-args [1] --constructor-args-hex 0xdeadbeef`,
       error: "mutually exclusive",
+    },
+    {
+      name: "--mirror-chain rejects unknown chain names with a clear error",
+      script: `verify ${VERIFIED_ADDR} --mirror-chain notarealchain --poll-interval 0`,
+      error: "must be a chain id or a known chain name",
     },
   ],
 });

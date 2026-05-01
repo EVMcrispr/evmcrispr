@@ -1,9 +1,44 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
+import { BindingsSpace, ErrorException, fieldItem, isNum } from "@evmcrispr/sdk";
 import type { Chain } from "viem";
 import * as viemChains from "viem/chains";
 
 const { MODULE, USER, CACHE } = BindingsSpace;
+
+/**
+ * Map of viem chain export name → chain id (e.g. `mainnet` → 1,
+ * `optimism` → 10). Built once at module load from `viem/chains`.
+ */
+const chainNameToId: Record<string, number> = Object.entries(
+  viemChains,
+).reduce(
+  (acc, [name, chain]) => {
+    if (chain && typeof chain === "object" && "id" in chain) {
+      const id = (chain as Chain).id;
+      if (typeof id === "number") acc[name] = id;
+    }
+    return acc;
+  },
+  {} as Record<string, number>,
+);
+
+/**
+ * Resolve a value coming from a `chain`-typed arg/opt to a numeric chain id.
+ * Accepts either a numeric chain id or a viem chain export name like
+ * `mainnet`, `optimism`, `base`. Throws on unknown values.
+ */
+export function resolveChainId(value: unknown): number {
+  if (isNum(value)) {
+    const n = Number(value.toString());
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  if (typeof value === "string" && chainNameToId[value] !== undefined) {
+    return chainNameToId[value];
+  }
+  throw new ErrorException(
+    `unknown chain "${String(value)}" — pass a numeric chain id or a viem chain name (e.g. mainnet, optimism, base)`,
+  );
+}
 
 const ENV_TOKENLIST = "$token.tokenlist";
 
@@ -22,6 +57,23 @@ const SAFE_SYMBOL_RE = /^[a-zA-Z0-9.-]+$/;
 const UNSAFE_CHAR_RE = /[\\'"]/;
 
 export const types: CustomArgTypes = {
+  chain: {
+    validate(name, value) {
+      if (isNum(value)) {
+        const n = Number(value.toString());
+        if (Number.isInteger(n) && n > 0) return;
+      }
+      if (typeof value === "string" && chainNameToId[value] !== undefined) {
+        return;
+      }
+      throw new ErrorException(
+        `${name} must be a chain id or a known chain name (e.g. mainnet, optimism, base), got ${value}`,
+      );
+    },
+    completions() {
+      return Object.keys(chainNameToId).map(fieldItem);
+    },
+  },
   "token-symbol": {
     validate(name, value) {
       if (typeof value !== "string") {

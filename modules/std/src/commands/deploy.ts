@@ -23,6 +23,7 @@ import {
   zeroAddress,
 } from "viem";
 import type Std from "..";
+import { resolveChainId } from "../argTypes";
 
 const ARACHNID_CREATE2 = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
 const CREATEX = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
@@ -55,9 +56,9 @@ export default defineCommand<Std>({
   opts: [
     {
       name: "mirror-chain",
-      type: "number",
+      type: "chain",
       description:
-        "Chain id to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address.",
+        "Chain (id or viem name like `optimism`) to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address.",
     },
     {
       name: "mirror-address",
@@ -151,7 +152,9 @@ export default defineCommand<Std>({
 
     const mirrorChainOptRaw = opts["mirror-chain"];
     const mirrorChainOpt =
-      mirrorChainOptRaw === undefined ? undefined : Number(mirrorChainOptRaw);
+      mirrorChainOptRaw === undefined
+        ? undefined
+        : resolveChainId(mirrorChainOptRaw);
     const mirrorAddressOpt = opts["mirror-address"] as
       | `0x${string}`
       | undefined;

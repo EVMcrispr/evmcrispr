@@ -312,6 +312,11 @@ describeCommand("deploy", {
       error:
         "--constructor / --constructor-args are not allowed with --mirror-address",
     },
+    {
+      name: "--mirror-chain rejects unknown chain names with a clear error",
+      script: `deploy $addr --mirror-chain notarealchain --mirror-address ${SOURCE_ADDR}`,
+      error: "must be a chain id or a known chain name",
+    },
   ],
 });
 
@@ -353,6 +358,19 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
     } else {
       process.env.VITE_ETHERSCAN_API_KEY = ORIGINAL_API_KEY;
     }
+  });
+
+  it("--mirror-chain accepts a viem chain name (e.g. `optimism`)", async () => {
+    // Optimism = chain id 10. The Etherscan MSW only keys creation
+    // fixtures by address, so the assertion is that the name resolves
+    // and the command pulls + uses the bytecode without throwing.
+    const script = `deploy $addr --mirror-chain optimism --mirror-address ${SOURCE_ADDR}`;
+    const interp = createInterpreter(script, client);
+    const actions = await interp.interpret();
+
+    expect(actions).to.have.length(1);
+    const action = actions[0] as { data?: string };
+    expect(action.data).to.equal(BYTECODE);
   });
 
   it("plain CREATE mirror: uses the fetched creationBytecode as init code and predicts via --from + nonce", async () => {
