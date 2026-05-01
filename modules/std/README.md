@@ -19,6 +19,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
 | [switch](src/commands/switch.md) | Switch the active chain by name or ID. |
+| [verify](src/commands/verify.md) | Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --from-chain / --from-address, or supply source explicitly with --source. |
 | [while](src/commands/while.md) | Repeat a block while a condition is true. |
 
 ## Helpers

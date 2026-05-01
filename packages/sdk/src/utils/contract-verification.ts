@@ -100,7 +100,7 @@ export function clearContractVerificationCache(): void {
  * Returns `undefined` when no key is configured, which makes
  * `fetchVerifiedContract` a no-op.
  */
-function readEtherscanApiKey(): string | undefined {
+export function readEtherscanApiKey(): string | undefined {
   let key: string | undefined;
   try {
     key = (
@@ -123,16 +123,27 @@ const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
 
 /** Shape of a single result entry in `getsourcecode`. Etherscan returns
  *  every numeric field as a string, so we deliberately keep them as such
- *  here and parse on demand. */
-interface EtherscanSourceResult {
+ *  here and parse on demand.
+ *
+ *  This type is exported because the `verify` command in `@evmcrispr/std`
+ *  needs the **full** payload (source code, constructor args, EVM
+ *  version, libraries, license) to mirror an existing verification to
+ *  another chain. The slim `VerifiedContractInfo` is a subset of these
+ *  fields used by the hover UI. */
+export interface EtherscanSourceResult {
+  SourceCode?: string;
+  ABI?: string;
   ContractName?: string;
   CompilerVersion?: string;
   OptimizationUsed?: string;
   Runs?: string;
+  ConstructorArguments?: string;
+  EVMVersion?: string;
+  Library?: string;
   LicenseType?: string;
   Proxy?: string;
   Implementation?: string;
-  ABI?: string;
+  SwarmSource?: string;
 }
 
 interface EtherscanSourceResponse {
@@ -244,5 +255,57 @@ export async function fetchVerifiedContract(
     return value;
   } finally {
     inflight.delete(key);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full payload fetch — used by `std:verify` to mirror an existing
+// verification onto another chain.
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch the **complete** verified-contract payload for the given chain
+ * and address. Returns the raw `EtherscanSourceResult` Etherscan ships
+ * back, including `SourceCode`, `ConstructorArguments`, `EVMVersion`,
+ * `Library`, and `LicenseType` — fields the slim `fetchVerifiedContract`
+ * doesn't expose.
+ *
+ * Returns `null` under the same conditions as `fetchVerifiedContract`
+ * (no API key, contract not verified, network error, etc.). This call
+ * is **uncached** because the response can be large (full source code)
+ * and is typically only read once, when a user explicitly invokes
+ * `verify --from-chain ...`.
+ */
+export async function fetchVerifiedContractFull(
+  chainId: number,
+  address: Address,
+): Promise<EtherscanSourceResult | null> {
+  const apiKey = readEtherscanApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(ETHERSCAN_V2_URL);
+    url.searchParams.set("chainid", String(chainId));
+    url.searchParams.set("module", "contract");
+    url.searchParams.set("action", "getsourcecode");
+    url.searchParams.set("address", getAddress(address));
+    url.searchParams.set("apikey", apiKey);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const json = (await res.json()) as EtherscanSourceResponse;
+    if (json.status !== "1" || !Array.isArray(json.result) || !json.result[0]) {
+      return null;
+    }
+    const entry = json.result[0];
+    if (
+      !entry.ContractName ||
+      entry.ABI === "Contract source code not verified"
+    ) {
+      return null;
+    }
+    return entry;
+  } catch {
+    return null;
   }
 }

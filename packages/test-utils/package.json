@@ -21,6 +21,11 @@
       "types": "./src/msw/blockscout/index.ts",
       "import": "./src/msw/blockscout/index.ts"
     },
+    "./msw/etherscan": {
+      "bun": "./src/msw/etherscan/index.ts",
+      "types": "./src/msw/etherscan/index.ts",
+      "import": "./src/msw/etherscan/index.ts"
+    },
     "./msw/tokenlist": {
       "bun": "./src/msw/tokenlist/index.ts",
       "types": "./src/msw/tokenlist/index.ts",
