@@ -232,6 +232,46 @@ describe("Parsers - primary", () => {
 
         runCases(cases, stringParser());
       });
+
+      it("should unescape recognized backslash escapes", () => {
+        const cases: Array<[string, string, number]> = [
+          [`'it\\'s a test'`, "it's a test", 14],
+          [`"say \\"hi\\""`, 'say "hi"', 12],
+          [`"a\\\\b"`, "a\\b", 6],
+          [`"line1\\nline2"`, "line1\nline2", 14],
+          [`"tab\\there"`, "tab\there", 11],
+          [`"cr\\rhere"`, "cr\rhere", 10],
+          [`"\\u{1F600}"`, String.fromCodePoint(0x1f600), 11],
+        ];
+
+        for (const [input, value, sourceLen] of cases) {
+          const result = runParser(stringParser(), input);
+          expect(result).to.deep.include({
+            type: NodeType.StringLiteral,
+            value,
+          });
+          expect(result.loc).to.eql({
+            start: { line: 1, col: 0 },
+            end: { line: 1, col: sourceLen },
+          });
+        }
+      });
+
+      it("should leave unknown backslash sequences literal", () => {
+        const result = runParser(stringParser(), `"C:\\Users"`);
+        expect(result).to.deep.include({
+          type: NodeType.StringLiteral,
+          value: "C:\\Users",
+        });
+      });
+
+      it("should not bump source line for inline \\n escapes", () => {
+        const result = runParser(stringParser(), '"line1\\nline2"');
+        expect(result.loc).to.eql({
+          start: { line: 1, col: 0 },
+          end: { line: 1, col: 14 },
+        });
+      });
     });
 
     it("should fail when parsing an invalid string", () => {

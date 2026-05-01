@@ -68,7 +68,7 @@ The DSL supports these value types:
 |------|---------|-------------|
 | `address` | `0xAbCd...1234` | 20-byte Ethereum address |
 | `number` | `42`, `100e18`, `1.5e6` | Integer or scientific notation |
-| `string` | `"hello"` | Quoted string |
+| `string` | `"hello"`, `'it\'s fine'` | Quoted string (single or double); supports `\'`, `\"`, `\\`, `\n`, `\r`, `\t`, and `\u{HHHH}` escapes (any other `\X` is left literal); may span multiple lines |
 | `bool` | `true`, `false` | Boolean |
 | `bytes` | `0xdeadbeef` | Hex-encoded bytes |
 | `bytes32` | `0x00...001` | 32-byte value |
