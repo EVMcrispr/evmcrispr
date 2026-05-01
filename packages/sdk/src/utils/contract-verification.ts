@@ -274,7 +274,7 @@ export async function fetchVerifiedContract(
  * (no API key, contract not verified, network error, etc.). This call
  * is **uncached** because the response can be large (full source code)
  * and is typically only read once, when a user explicitly invokes
- * `verify --from-chain ...`.
+ * `verify --mirror-chain ...`.
  */
 export async function fetchVerifiedContractFull(
   chainId: number,

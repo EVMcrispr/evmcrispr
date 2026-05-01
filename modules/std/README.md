@@ -8,7 +8,7 @@ The standard module is loaded by default. It provides core language constructs, 
 |---------|-------------|
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
 | [def](src/commands/def.md) | Define a user command or helper. |
-| [deploy](src/commands/deploy.md) | Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --source-chain / --source-address (fetches the original creation bytecode from Etherscan). |
+| [deploy](src/commands/deploy.md) | Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [for](src/commands/for.md) | Iterate over an array, executing a block for each element. |
 | [halt](src/commands/halt.md) | Stop script execution immediately. |
@@ -19,7 +19,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
 | [switch](src/commands/switch.md) | Switch the active chain by name or ID. |
-| [verify](src/commands/verify.md) | Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --from-chain / --from-address, or supply source explicitly with --source. |
+| [verify](src/commands/verify.md) | Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. |
 | [while](src/commands/while.md) | Repeat a block while a condition is true. |
 
 ## Helpers

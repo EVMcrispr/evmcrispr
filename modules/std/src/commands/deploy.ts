@@ -37,7 +37,7 @@ const ZERO_ADDR_BYTES20 = pad("0x", { size: 20 });
 export default defineCommand<Std>({
   name: "deploy",
   description:
-    "Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --source-chain / --source-address (fetches the original creation bytecode from Etherscan).",
+    "Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan).",
   args: [
     {
       name: "variable",
@@ -49,18 +49,18 @@ export default defineCommand<Std>({
       type: "bytes",
       optional: true,
       description:
-        "Creation bytecode. Constructor args are appended automatically when --constructor is set. Omit when using --source-chain / --source-address to mirror an existing deployment.",
+        "Creation bytecode. Constructor args are appended automatically when --constructor is set. Omit when using --mirror-chain / --mirror-address to mirror an existing deployment.",
     },
   ],
   opts: [
     {
-      name: "source-chain",
+      name: "mirror-chain",
       type: "number",
       description:
-        "Chain id to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --source-address is set. Requires --source-address.",
+        "Chain id to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address.",
     },
     {
-      name: "source-address",
+      name: "mirror-address",
       type: "address",
       description:
         "Address of an existing deployment to mirror. The original creation bytecode (with constructor args already appended) is fetched from Etherscan and used as the init code for this deployment.",
@@ -69,7 +69,7 @@ export default defineCommand<Std>({
       name: "constructor",
       type: "string",
       description:
-        "Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. Mutually exclusive with --source-address.",
+        "Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. Mutually exclusive with --mirror-address.",
     },
     {
       name: "constructor-args",
@@ -149,33 +149,33 @@ export default defineCommand<Std>({
       throw new ErrorException("deploy: --via requires --create2 or --create3");
     }
 
-    const sourceChainOptRaw = opts["source-chain"];
-    const sourceChainOpt =
-      sourceChainOptRaw === undefined ? undefined : Number(sourceChainOptRaw);
-    const sourceAddressOpt = opts["source-address"] as
+    const mirrorChainOptRaw = opts["mirror-chain"];
+    const mirrorChainOpt =
+      mirrorChainOptRaw === undefined ? undefined : Number(mirrorChainOptRaw);
+    const mirrorAddressOpt = opts["mirror-address"] as
       | `0x${string}`
       | undefined;
     const isMirror =
-      sourceChainOpt !== undefined || sourceAddressOpt !== undefined;
+      mirrorChainOpt !== undefined || mirrorAddressOpt !== undefined;
 
-    if (sourceChainOpt !== undefined && sourceAddressOpt === undefined) {
+    if (mirrorChainOpt !== undefined && mirrorAddressOpt === undefined) {
       throw new ErrorException(
-        "deploy: --source-chain requires --source-address (no implicit source contract is available before deployment)",
+        "deploy: --mirror-chain requires --mirror-address (no implicit source contract is available before deployment)",
       );
     }
     if (isMirror && bytecode !== undefined) {
       throw new ErrorException(
-        "deploy: <bytecode> and --source-address are mutually exclusive — mirror mode fetches the creation bytecode from Etherscan",
+        "deploy: <bytecode> and --mirror-address are mutually exclusive — mirror mode fetches the creation bytecode from Etherscan",
       );
     }
     if (isMirror && (ctorSig || ctorArgs)) {
       throw new ErrorException(
-        "deploy: --constructor / --constructor-args are not allowed with --source-address — the fetched creation bytecode already includes the original constructor arguments",
+        "deploy: --constructor / --constructor-args are not allowed with --mirror-address — the fetched creation bytecode already includes the original constructor arguments",
       );
     }
     if (!isMirror && bytecode === undefined) {
       throw new ErrorException(
-        "deploy: <bytecode> is required (or pass --source-address to mirror an existing deployment)",
+        "deploy: <bytecode> is required (or pass --mirror-address to mirror an existing deployment)",
       );
     }
 
@@ -184,27 +184,27 @@ export default defineCommand<Std>({
     if (isMirror) {
       if (!readEtherscanApiKey()) {
         throw new ErrorException(
-          "deploy: VITE_ETHERSCAN_API_KEY env var is required to mirror an existing deployment via --source-address",
+          "deploy: VITE_ETHERSCAN_API_KEY env var is required to mirror an existing deployment via --mirror-address",
         );
       }
 
       const targetChainId = await module.getChainId();
-      const sourceChain = sourceChainOpt ?? targetChainId;
-      const sourceAddress = getAddress(sourceAddressOpt as `0x${string}`);
+      const mirrorChain = mirrorChainOpt ?? targetChainId;
+      const mirrorAddress = getAddress(mirrorAddressOpt as `0x${string}`);
 
       module.context.log(
-        `deploy: fetching creation bytecode from chain ${sourceChain} at ${sourceAddress}…`,
+        `deploy: fetching creation bytecode from chain ${mirrorChain} at ${mirrorAddress}…`,
       );
-      const creation = await fetchContractCreation(sourceChain, sourceAddress);
+      const creation = await fetchContractCreation(mirrorChain, mirrorAddress);
       if (!creation) {
         throw new ErrorException(
-          `deploy: no creation record on chain ${sourceChain} for address ${sourceAddress}`,
+          `deploy: no creation record on chain ${mirrorChain} for address ${mirrorAddress}`,
         );
       }
       const fetched = creation.creationBytecode;
       if (!fetched || !isHex(fetched) || fetched === "0x") {
         throw new ErrorException(
-          `deploy: Etherscan did not return creationBytecode for chain ${sourceChain} address ${sourceAddress}`,
+          `deploy: Etherscan did not return creationBytecode for chain ${mirrorChain} address ${mirrorAddress}`,
         );
       }
       initCode = fetched as `0x${string}`;

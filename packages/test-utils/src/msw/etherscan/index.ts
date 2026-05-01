@@ -50,7 +50,7 @@ const ETHERSCAN_UNVERIFIED = {
 /**
  * Map of lowercased addresses to creation-bytecode fixtures used by the
  * Etherscan V2 `getcontractcreation` endpoint. Lets `deploy
- * --source-address` tests assert on which bytecode the command pulled
+ * --mirror-address` tests assert on which bytecode the command pulled
  * from "Etherscan". Tests can mutate this directly to inject custom
  * fixtures per-test (mirrors the `etherscanVerifiedFixtures` pattern).
  */

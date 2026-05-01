@@ -2,7 +2,7 @@
 title: "verify"
 ---
 
-Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --from-chain / --from-address, or supply source explicitly with --source.
+Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.
 
 ## Syntax
 
@@ -20,8 +20,8 @@ verify <address>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--from-chain` | `number` | Chain id to mirror an existing verification from. Defaults to the current chain when only --from-address is set. |
-| `--from-address` | `address` | Source contract to mirror an existing verification from. Defaults to <address> when only --from-chain is set. |
+| `--mirror-chain` | `number` | Chain id to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
+| `--mirror-address` | `address` | Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set. |
 | `--source` | `string` | Solidity Standard JSON Input text including language, sources, and settings. Required for explicit (non-mirror) mode. |
 | `--contract-name` | `string` | Qualified contract name `path/File.sol:ContractName`. Required for explicit mode. |
 | `--compiler` | `string` | Solidity compiler version, e.g. `0.8.20+commit.a1b79de6`. Required for explicit mode. |
@@ -38,26 +38,26 @@ verify <address>
 
 ```evml
 # Mirror SAME address from a DIFFERENT chain (the canonical cross-chain re-verify)
-verify 0xAbC0000000000000000000000000000000000000 --from-chain 1
+verify 0xAbC0000000000000000000000000000000000000 --mirror-chain 1
 
 # Mirror a DIFFERENT address on the SAME chain
 # (e.g. clone an already-verified implementation onto a freshly deployed copy)
 verify 0xNewDeploy000000000000000000000000000000 \
-  --from-address 0xAlreadyVerified00000000000000000000000
+  --mirror-address 0xAlreadyVerified00000000000000000000000
 
 # Mirror a DIFFERENT address on a DIFFERENT chain
 verify 0xNewDeploy000000000000000000000000000000 \
-  --from-chain 1 --from-address 0xMainnetSibling0000000000000000000000
+  --mirror-chain 1 --mirror-address 0xMainnetSibling0000000000000000000000
 
 # Mirror with overridden constructor arguments
 # (typical when an immutable like `owner` differs across chains)
-verify $myToken --from-chain 1 \
+verify $myToken --mirror-chain 1 \
   --constructor "constructor(address)" --constructor-args [@me]
 
 # Pair with deploy: same source, deterministic CREATE2 address on a new chain
 deploy $token 0x6080604052... --create2 0x0...01 \
   --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
-verify $token --from-chain 1 \
+verify $token --mirror-chain 1 \
   --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
 
 # Explicit Standard JSON Input fetched from a URL
@@ -71,12 +71,12 @@ verify 0xAbC0000000000000000000000000000000000000 \
 
 ## Modes
 
-- **Mirror mode** is activated by either `--from-chain` or `--from-address`. The
+- **Mirror mode** is activated by either `--mirror-chain` or `--mirror-address`. The
   command pulls the verified source from Etherscan via `getsourcecode` and
   resubmits it on the **current chain** for `<address>`. The other selector
   defaults so all three combinations are reachable:
-  - same address, different chain  → only `--from-chain`
-  - different address, same chain  → only `--from-address`
+  - same address, different chain  → only `--mirror-chain`
+  - different address, same chain  → only `--mirror-address`
   - different address, different chain → both
   Settings (optimizer, evmVersion, libraries) and the original constructor
   arguments are preserved by default; supply `--constructor` /

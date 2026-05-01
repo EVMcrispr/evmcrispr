@@ -235,7 +235,7 @@ async function pollVerification(
 export default defineCommand<Std>({
   name: "verify",
   description:
-    "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --from-chain / --from-address, or supply source explicitly with --source.",
+    "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.",
   args: [
     {
       name: "address",
@@ -245,16 +245,16 @@ export default defineCommand<Std>({
   ],
   opts: [
     {
-      name: "from-chain",
+      name: "mirror-chain",
       type: "number",
       description:
-        "Chain id to mirror an existing verification from. Defaults to the current chain when only --from-address is set.",
+        "Chain id to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set.",
     },
     {
-      name: "from-address",
+      name: "mirror-address",
       type: "address",
       description:
-        "Source contract to mirror an existing verification from. Defaults to <address> when only --from-chain is set.",
+        "Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set.",
     },
     {
       name: "source",
@@ -346,11 +346,14 @@ export default defineCommand<Std>({
       );
     }
 
-    const fromChainOptRaw = opts["from-chain"];
-    const fromChainOpt =
-      fromChainOptRaw === undefined ? undefined : Number(fromChainOptRaw);
-    const fromAddressOpt = opts["from-address"] as `0x${string}` | undefined;
-    const isMirror = fromChainOpt !== undefined || fromAddressOpt !== undefined;
+    const mirrorChainOptRaw = opts["mirror-chain"];
+    const mirrorChainOpt =
+      mirrorChainOptRaw === undefined ? undefined : Number(mirrorChainOptRaw);
+    const mirrorAddressOpt = opts["mirror-address"] as
+      | `0x${string}`
+      | undefined;
+    const isMirror =
+      mirrorChainOpt !== undefined || mirrorAddressOpt !== undefined;
 
     let sourceCode: string;
     let contractName: string;
@@ -359,32 +362,35 @@ export default defineCommand<Std>({
     let mirrorCtorArgsHex = "";
 
     if (isMirror) {
-      const fromChain = fromChainOpt ?? targetChainId;
-      const fromAddress = getAddress(fromAddressOpt ?? targetAddress);
+      const mirrorChain = mirrorChainOpt ?? targetChainId;
+      const mirrorAddress = getAddress(mirrorAddressOpt ?? targetAddress);
 
       if (
-        fromChain === targetChainId &&
-        isAddressEqual(fromAddress, targetAddress)
+        mirrorChain === targetChainId &&
+        isAddressEqual(mirrorAddress, targetAddress)
       ) {
         throw new ErrorException(
-          "verify: refusing to self-mirror — resolved (--from-chain, --from-address) equals (currentChain, address). Pass a different source, or use explicit --source mode.",
+          "verify: refusing to self-mirror — resolved (--mirror-chain, --mirror-address) equals (currentChain, address). Pass a different source, or use explicit --source mode.",
         );
       }
 
       module.context.log(
-        `verify: fetching verified source from chain ${fromChain} at ${fromAddress}…`,
+        `verify: fetching verified source from chain ${mirrorChain} at ${mirrorAddress}…`,
       );
-      const mirror = await fetchVerifiedContractFull(fromChain, fromAddress);
+      const mirror = await fetchVerifiedContractFull(
+        mirrorChain,
+        mirrorAddress,
+      );
       if (!mirror) {
         throw new ErrorException(
-          `verify: no verified source on chain ${fromChain} for address ${fromAddress}`,
+          `verify: no verified source on chain ${mirrorChain} for address ${mirrorAddress}`,
         );
       }
 
       const mirrorContractName = (mirror.ContractName ?? "").trim();
       if (!mirrorContractName) {
         throw new ErrorException(
-          `verify: source on chain ${fromChain} for ${fromAddress} is missing a ContractName`,
+          `verify: source on chain ${mirrorChain} for ${mirrorAddress} is missing a ContractName`,
         );
       }
 
@@ -419,7 +425,7 @@ export default defineCommand<Std>({
 
       if (!explicitSource || !explicitName || !explicitCompiler) {
         throw new ErrorException(
-          "verify: explicit mode requires --source, --contract-name, and --compiler (or use --from-chain / --from-address to mirror an existing verification)",
+          "verify: explicit mode requires --source, --contract-name, and --compiler (or use --mirror-chain / --mirror-address to mirror an existing verification)",
         );
       }
 

@@ -70,7 +70,7 @@ describe("Std > commands > verify", () => {
   // ── Mirror happy paths ────────────────────────────────────────────
 
   it("mirror — same address, different chain: re-submits the verified source on the current chain", async () => {
-    const script = `verify ${VERIFIED_ADDR} --from-chain 1 --poll-interval 0`;
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -102,9 +102,9 @@ describe("Std > commands > verify", () => {
     expect(parsed.settings.evmVersion).to.equal("paris");
   });
 
-  it("mirror — different address, same chain: uses --from-address for source lookup", async () => {
+  it("mirror — different address, same chain: uses --mirror-address for source lookup", async () => {
     const TARGET = "0x000000000000000000000000000000000000fffa";
-    const script = `verify ${TARGET} --from-address ${VERIFIED_ADDR} --poll-interval 0`;
+    const script = `verify ${TARGET} --mirror-address ${VERIFIED_ADDR} --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
 
@@ -121,7 +121,7 @@ describe("Std > commands > verify", () => {
 
   it("mirror — different address AND chain: combines both selectors", async () => {
     const TARGET = "0x000000000000000000000000000000000000fffb";
-    const script = `verify ${TARGET} --from-chain 1 --from-address ${VERIFIED_ADDR} --poll-interval 0`;
+    const script = `verify ${TARGET} --mirror-chain 1 --mirror-address ${VERIFIED_ADDR} --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
 
@@ -168,7 +168,7 @@ describe("Std > commands > verify", () => {
 
     try {
       await createInterpreter(
-        `verify 0x000000000000000000000000000000000000aaaa --from-address ${ADDR_DOUBLE} --poll-interval 0`,
+        `verify 0x000000000000000000000000000000000000aaaa --mirror-address ${ADDR_DOUBLE} --poll-interval 0`,
         client,
       ).interpret();
 
@@ -226,7 +226,7 @@ describe("Std > commands > verify", () => {
 
     try {
       await createInterpreter(
-        `verify 0x000000000000000000000000000000000000aaab --from-address ${ADDR_FLAT} --poll-interval 0`,
+        `verify 0x000000000000000000000000000000000000aaab --mirror-address ${ADDR_FLAT} --poll-interval 0`,
         client,
       ).interpret();
 
@@ -247,8 +247,8 @@ describe("Std > commands > verify", () => {
 
   // ── Self-mirror guard ─────────────────────────────────────────────
 
-  it("self-mirror guard: throws when --from-chain + --from-address resolve to the current (chain, address)", async () => {
-    const script = `verify ${VERIFIED_ADDR} --from-chain ${TARGET_CHAIN_ID} --from-address ${VERIFIED_ADDR}`;
+  it("self-mirror guard: throws when --mirror-chain + --mirror-address resolve to the current (chain, address)", async () => {
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain ${TARGET_CHAIN_ID} --mirror-address ${VERIFIED_ADDR}`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -355,7 +355,7 @@ describe("Std > commands > verify", () => {
     etherscanVerifiedFixtures[lower(predicted)] =
       etherscanVerifiedFixtures[VERIFIED_ADDR_LOWER];
     try {
-      const script = `deploy $tok ${BYTECODE} --create2 ${SALT_1}\nverify $tok --from-chain 1 --poll-interval 0`;
+      const script = `deploy $tok ${BYTECODE} --create2 ${SALT_1}\nverify $tok --mirror-chain 1 --poll-interval 0`;
       const interp = createInterpreter(script, client);
       await interp.interpret();
 
@@ -384,7 +384,7 @@ describe("Std > commands > verify", () => {
     try {
       const script = [
         `deploy $tok ${BYTECODE} --create2 ${SALT_1} --constructor "constructor(address)" --constructor-args [0x000000000000000000000000000000000000beef]`,
-        `verify $tok --from-chain 1 --constructor "constructor(address)" --constructor-args [0x000000000000000000000000000000000000beef] --poll-interval 0`,
+        `verify $tok --mirror-chain 1 --constructor "constructor(address)" --constructor-args [0x000000000000000000000000000000000000beef] --poll-interval 0`,
       ].join("\n");
       const interp = createInterpreter(script, client);
       await interp.interpret();
@@ -407,7 +407,7 @@ describe("Std > commands > verify", () => {
       { status: "0", message: "NOTOK", result: "Pending in queue" },
       { status: "1", message: "OK", result: "Pass - Verified" },
     ];
-    const script = `verify ${VERIFIED_ADDR} --from-chain 1 --poll-interval 0`;
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
     expect(etherscanVerifyState.statusQueue.length).to.equal(0);
@@ -419,7 +419,7 @@ describe("Std > commands > verify", () => {
       message: "NOTOK",
       result: "Fail - Unable to verify",
     };
-    const script = `verify ${VERIFIED_ADDR} --from-chain 1 --poll-interval 0`;
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -437,7 +437,7 @@ describe("Std > commands > verify", () => {
       message: "NOTOK",
       result: "Daily rate limit exceeded",
     };
-    const script = `verify ${VERIFIED_ADDR} --from-chain 1 --poll-interval 0`;
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -453,7 +453,7 @@ describe("Std > commands > verify", () => {
   it("missing API key: throws a clear error before contacting Etherscan", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
     try {
-      const script = `verify ${VERIFIED_ADDR} --from-chain 1`;
+      const script = `verify ${VERIFIED_ADDR} --mirror-chain 1`;
       const interp = createInterpreter(script, client);
       let caught: Error | undefined;
       try {
@@ -472,7 +472,7 @@ describe("Std > commands > verify", () => {
   it("mirror: throws when the source address is not verified on the source chain", async () => {
     // 0x...beef is not in `etherscanVerifiedFixtures`, so `getsourcecode`
     // returns the unverified envelope.
-    const script = `verify 0x000000000000000000000000000000000000fade --from-address 0x00000000000000000000000000000000000000ee --poll-interval 0`;
+    const script = `verify 0x000000000000000000000000000000000000fade --mirror-address 0x00000000000000000000000000000000000000ee --poll-interval 0`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -497,17 +497,17 @@ describeCommand("verify", {
     },
     {
       name: "--constructor requires --constructor-args",
-      script: `verify ${VERIFIED_ADDR} --from-chain 1 --constructor "constructor(uint256)"`,
+      script: `verify ${VERIFIED_ADDR} --mirror-chain 1 --constructor "constructor(uint256)"`,
       error: "verify --constructor requires --constructor-args",
     },
     {
       name: "--constructor-args requires --constructor",
-      script: `verify ${VERIFIED_ADDR} --from-chain 1 --constructor-args [1]`,
+      script: `verify ${VERIFIED_ADDR} --mirror-chain 1 --constructor-args [1]`,
       error: "verify --constructor-args requires --constructor",
     },
     {
       name: "--constructor-args-hex is mutually exclusive with --constructor",
-      script: `verify ${VERIFIED_ADDR} --from-chain 1 --constructor "constructor(uint256)" --constructor-args [1] --constructor-args-hex 0xdeadbeef`,
+      script: `verify ${VERIFIED_ADDR} --mirror-chain 1 --constructor "constructor(uint256)" --constructor-args [1] --constructor-args-hex 0xdeadbeef`,
       error: "mutually exclusive",
     },
   ],

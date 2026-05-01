@@ -257,7 +257,7 @@ describeCommand("deploy", {
       error: "deploy: bytecode must be non-empty",
     },
     {
-      name: "should fail when neither bytecode nor --source-address is provided",
+      name: "should fail when neither bytecode nor --mirror-address is provided",
       script: `deploy $addr`,
       error: "deploy: <bytecode> is required",
     },
@@ -297,27 +297,27 @@ describeCommand("deploy", {
       error: "permissioned salts are not supported",
     },
     {
-      name: "should fail when --source-chain is set without --source-address",
-      script: `deploy $addr --source-chain 1`,
-      error: "deploy: --source-chain requires --source-address",
+      name: "should fail when --mirror-chain is set without --mirror-address",
+      script: `deploy $addr --mirror-chain 1`,
+      error: "deploy: --mirror-chain requires --mirror-address",
     },
     {
-      name: "should fail when both <bytecode> and --source-address are provided",
-      script: `deploy $addr ${BYTECODE} --source-address ${SOURCE_ADDR}`,
+      name: "should fail when both <bytecode> and --mirror-address are provided",
+      script: `deploy $addr ${BYTECODE} --mirror-address ${SOURCE_ADDR}`,
       error: "mutually exclusive",
     },
     {
-      name: "should fail when --constructor is combined with --source-address",
-      script: `deploy $addr --source-address ${SOURCE_ADDR} --constructor "constructor(uint256)" --constructor-args [1e18]`,
+      name: "should fail when --constructor is combined with --mirror-address",
+      script: `deploy $addr --mirror-address ${SOURCE_ADDR} --constructor "constructor(uint256)" --constructor-args [1e18]`,
       error:
-        "--constructor / --constructor-args are not allowed with --source-address",
+        "--constructor / --constructor-args are not allowed with --mirror-address",
     },
   ],
 });
 
-// ── --source-chain / --source-address (mirror an existing deployment) ───
+// ── --mirror-chain / --mirror-address (mirror an existing deployment) ───
 
-describe("Std > commands > deploy --source-chain/--source-address", () => {
+describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
   let client: PublicClient;
 
   beforeAll(() => {
@@ -356,7 +356,7 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
   });
 
   it("plain CREATE mirror: uses the fetched creationBytecode as init code and predicts via --from + nonce", async () => {
-    const script = `deploy $addr --source-chain 1 --source-address ${SOURCE_ADDR}`;
+    const script = `deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -370,12 +370,12 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
     );
   });
 
-  it("--source-address only: defaults --source-chain to the current chain", async () => {
+  it("--mirror-address only: defaults --mirror-chain to the current chain", async () => {
     // Re-key the fixture under the same address — this confirms that
-    // when --source-chain is omitted the helper still hits Etherscan
+    // when --mirror-chain is omitted the helper still hits Etherscan
     // with the *current* chain id (gnosis = 100). The MSW handler is
     // chain-agnostic, so we just need the fixture to be present.
-    const script = `deploy $addr --source-address ${SOURCE_ADDR}`;
+    const script = `deploy $addr --mirror-address ${SOURCE_ADDR}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
     expect(actions).to.have.length(1);
@@ -384,7 +384,7 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
   });
 
   it("CREATE2 mirror: feeds the fetched bytecode through the Arachnid factory and predicts via CREATE2", async () => {
-    const script = `deploy $addr --source-address ${SOURCE_ADDR} --create2 ${SALT_1}`;
+    const script = `deploy $addr --mirror-address ${SOURCE_ADDR} --create2 ${SALT_1}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -404,7 +404,7 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
 
   it("mirror: throws when Etherscan has no creation record for the source address", async () => {
     const UNKNOWN = "0x000000000000000000000000000000000000bbbb";
-    const script = `deploy $addr --source-chain 1 --source-address ${UNKNOWN}`;
+    const script = `deploy $addr --mirror-chain 1 --mirror-address ${UNKNOWN}`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -429,7 +429,7 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
       // creationBytecode intentionally omitted (older Etherscan
       // snapshots don't include it).
     };
-    const script = `deploy $addr --source-chain 1 --source-address ${getAddress(NO_BYTECODE_LOWER as `0x${string}`)}`;
+    const script = `deploy $addr --mirror-chain 1 --mirror-address ${getAddress(NO_BYTECODE_LOWER as `0x${string}`)}`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -444,7 +444,7 @@ describe("Std > commands > deploy --source-chain/--source-address", () => {
   it("mirror: throws a clear error when VITE_ETHERSCAN_API_KEY is unset", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
     try {
-      const script = `deploy $addr --source-chain 1 --source-address ${SOURCE_ADDR}`;
+      const script = `deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
       const interp = createInterpreter(script, client);
       let caught: Error | undefined;
       try {
