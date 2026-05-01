@@ -194,6 +194,93 @@ describe("Core > hover", () => {
     });
   });
 
+  describe("with `switch` mid-script", () => {
+    it("evaluates `set` rhs against the chain active at that line, not the final chain", async () => {
+      // Regression: prewarm previously did a single pre-pass to find the
+      // *final* effective chain, then resolved every `set` rhs against it.
+      // After `switch mainnet; set $x @chainProbe(); switch optimism`, that
+      // bound `$x` to the optimism value instead of the mainnet one.
+      class ChainProbeModule extends Module {
+        constructor(context: ModuleContext, alias?: string) {
+          super(
+            "chainprobe",
+            {},
+            {
+              chainProbe: async (module) => String(await module.getChainId()),
+            },
+            { chainProbe: "string" },
+            { chainProbe: false },
+            { chainProbe: [] },
+            { chainProbe: "Return the active chain id as a string." },
+            {},
+            {},
+            {},
+            context,
+            alias,
+          );
+        }
+      }
+
+      EVMcrispr.registerModule("chainprobe", async () => ({
+        default: ChainProbeModule,
+      }));
+
+      const evm = ctx.createEvm();
+      const script = [
+        "load chainprobe",
+        "switch 1",
+        "set $a @chainProbe()",
+        "switch 100",
+        "set $b @chainProbe()",
+        "print $a",
+        "print $b",
+      ].join("\n");
+      await evm.prewarm(script);
+
+      const aCard = await evm.getHoverInfo(script, { line: 6, col: 7 });
+      expect(aCard).to.not.be.null;
+      const aText = aCard!.contents.join("\n");
+      expect(aText).to.include("$a");
+      expect(aText).to.include("= 1");
+      expect(aText).to.not.include("= 100");
+
+      const bCard = await evm.getHoverInfo(script, { line: 7, col: 7 });
+      expect(bCard).to.not.be.null;
+      const bText = bCard!.contents.join("\n");
+      expect(bText).to.include("$b");
+      expect(bText).to.include("= 100");
+    });
+
+    it("looks up `@token(SYMBOL)` against the chain active at the `set`", async () => {
+      // The same shape as the user-reported bug: `set $mainnetWeth
+      // @token(WETH)` after `switch mainnet`, then a `switch optimism`
+      // later in the script. The variable should keep the chain-1
+      // resolution. The mocked tokenlist has DAI on chain 4 and chain
+      // 100 with different addresses — exactly the contrast we need.
+      const script = [
+        "switch 4",
+        "set $rinkebyDai @token(DAI)",
+        "switch 100",
+        "set $gnosisDai @token(DAI)",
+        "print $rinkebyDai",
+      ].join("\n");
+      const evm = ctx.createEvm();
+      await evm.prewarm(script);
+
+      const result = await evm.getHoverInfo(script, { line: 5, col: 8 });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n").toLowerCase();
+      // chain 4 DAI from the mock tokenlist
+      expect(c).to.include(
+        "0xc7ad46e0b8a400bb3c915120d284aafba8fc4735".toLowerCase(),
+      );
+      // Must NOT have leaked the chain 100 DAI address
+      expect(c).to.not.include(
+        "0x44fa8e6f47987339850636f88629646662444217".toLowerCase(),
+      );
+    });
+  });
+
   describe("over variables with prewarmed values", () => {
     it("does not let an older slow prewarm overwrite newer hover bindings", async () => {
       let resolveOldStarted!: () => void;

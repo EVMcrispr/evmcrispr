@@ -29,12 +29,11 @@ import type { PublicClient, Transport } from "viem";
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 import {
-  clientForChain,
   collectCustomTypes,
   createNodeResolver,
   resolveCommandNode,
-  resolveSwitchChainId,
   seedBindings,
+  type WalkChainState,
   walkCommandsForBindings,
 } from "./scriptWalk";
 
@@ -421,31 +420,28 @@ export async function getCompletions(
     }
   }
 
-  // Resolve the effective chain by scanning for `switch` commands before the
-  // cursor.  The last `switch` wins, just as it would during execution.
-  let effectiveClient = client;
-  for (const c of commandNodes) {
-    const switchedChainId = resolveSwitchChainId(c, bindings);
-    if (switchedChainId != null) {
-      const newClient = clientForChain(switchedChainId, transports);
-      if (newClient) {
-        effectiveClient = newClient;
-      }
-    }
-  }
-
-  let chainId = 0;
+  // Walk the script in command order, advancing chain state as we hit
+  // each `switch`. After the walk, `state` reflects the chain that's
+  // active at the cursor — the same value the previous pre-pass
+  // computed, but with each `set` rhs resolved against the chain it
+  // was actually written under (mainnet WETH stays a mainnet address
+  // even after the script switches to optimism later on).
+  let initialChainId = 0;
   try {
-    chainId = (await effectiveClient?.getChainId()) ?? 0;
+    initialChainId = (await client?.getChainId()) ?? 0;
   } catch {
     // RPC unavailable — proceed with chainId 0
   }
+  const state: WalkChainState = {
+    chainId: initialChainId,
+    client,
+    transports,
+  };
 
   const resolveNode = createNodeResolver(
     bindings,
     moduleCache,
-    chainId,
-    effectiveClient,
+    state,
     resolveHelper,
   );
 
@@ -453,8 +449,7 @@ export async function getCompletions(
     commandNodes,
     bindings,
     moduleCache,
-    effectiveClient as PublicClient,
-    chainId,
+    state,
     resolveNode,
   );
 
@@ -465,11 +460,13 @@ export async function getCompletions(
       [currentCommandNode],
       bindings,
       moduleCache,
-      effectiveClient as PublicClient,
-      chainId,
+      state,
       resolveNode,
     );
   }
+
+  const chainId = state.chainId;
+  const effectiveClient = state.client;
 
   // 4. Build completion items
   const { commandItems, helperItems, helperArgDefsMap } =

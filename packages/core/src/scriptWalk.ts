@@ -134,6 +134,39 @@ export function seedBindings(
   }
 }
 
+/** Mutable chain context threaded through the walk. `walkScript` advances
+ *  `chainId` / `client` whenever it visits a `switch` command, so the
+ *  resolver and helper-cache lookups always see the chain that was active
+ *  at *that point* in the script — not the chain that wins after every
+ *  switch in the file has been applied. */
+export interface WalkChainState {
+  chainId: number;
+  client: PublicClient | undefined;
+  /** Optional per-chain transports map. Used by `applySwitch` to mint a
+   *  client for the chain a `switch` command targets. */
+  transports?: Record<number, Transport>;
+}
+
+/** If `c` is a `switch <chain>` we can resolve, mutate `state` in place
+ *  to point at the new chain. The `chainId` always advances (it comes
+ *  from the parser and is what helpers like `@token(DAI)` key off of,
+ *  even without RPC). The `client` only swaps when viem knows the
+ *  chain — for unknown chains we keep the previous client so calls
+ *  that *do* need RPC degrade gracefully instead of hard-failing. */
+export function applySwitch(
+  state: WalkChainState,
+  c: CommandExpressionNode,
+  bindings: BindingsManager,
+): void {
+  const switchedChainId = resolveSwitchChainId(c, bindings);
+  if (switchedChainId == null) return;
+  state.chainId = switchedChainId;
+  const newClient = clientForChain(switchedChainId, state.transports);
+  if (newClient) {
+    state.client = newClient;
+  }
+}
+
 /**
  * Create an async node resolver that closes over walk-local state.
  *
@@ -143,18 +176,26 @@ export function seedBindings(
  * memoises helper results into `cache`'s CACHE space using the same
  * key shape that hover reads. Returns `undefined` for any node that
  * cannot be resolved, instead of throwing.
+ *
+ * `state` is read on every dispatch so that `switch` commands the
+ * caller applies between resolver invocations are picked up immediately
+ * — the helper cache key (`helper:<chainId>:...`) and the chain id
+ * forwarded to `resolveHelper` always reflect the *current* chain.
  */
 export function createNodeResolver(
   bindings: BindingsManager,
   cache: BindingsManager,
-  chainId: number,
-  client: PublicClient | undefined,
+  state: WalkChainState,
   resolveHelper?: HelperResolver,
 ): (node: Node) => Promise<any> {
   const ctx: InterpretCtx = {
     bindings,
-    chainId,
-    client,
+    get chainId() {
+      return state.chainId;
+    },
+    get client() {
+      return state.client;
+    },
     helperCache: cache,
     onError: "undefined",
     resolveHelper: async (h, interpreters) => {
@@ -171,8 +212,8 @@ export function createNodeResolver(
       return resolveHelper(
         h.name,
         resolvedArgs.map(String),
-        chainId,
-        client as PublicClient,
+        state.chainId,
+        state.client as PublicClient,
         bindings,
       );
     },
@@ -323,6 +364,10 @@ function seedCaptureBindings(
  *  by command-name allowlists. New binding-producing commands therefore
  *  participate in prewarm automatically.
  *
+ *  `state` is mutated in place when a `switch` command is encountered,
+ *  so any helper resolution that runs *after* the switch (e.g. the rhs
+ *  of `set $x @token(WETH)` later in the file) sees the new chain.
+ *
  *  When `history` is provided, each `set`-style variable assignment is also
  *  appended to it as `{ line, value }`. Hover uses this to render the value
  *  of `$x` as it stood at a given line (the live `bindings` only carries
@@ -331,8 +376,7 @@ export async function walkCommandsForBindings(
   commandNodes: CommandExpressionNode[],
   bindings: BindingsManager,
   cache: BindingsManager,
-  client: PublicClient,
-  chainId: number,
+  state: WalkChainState,
   resolveNode: (node: Node) => Promise<any>,
   history?: VariableHistory,
 ): Promise<void> {
@@ -349,6 +393,10 @@ export async function walkCommandsForBindings(
     // attach event/error captures to it — seed those so hover finds
     // the symbols even when the command resolution fails.
     seedCaptureBindings(c, bindings);
+
+    // Apply `switch` BEFORE resolving this command's args so the switch
+    // itself never runs on the previous chain.
+    applySwitch(state, c, bindings);
 
     const command = await resolveCommandNode(c, bindings, commandModule);
     if (!command) continue;
@@ -419,8 +467,8 @@ export async function walkCommandsForBindings(
               nodeArgs: c.args,
               bindings,
               position: { line: 0, col: 0 },
-              client,
-              chainId,
+              client: state.client as PublicClient,
+              chainId: state.chainId,
               cache,
               commandNode: c,
               resolveNode,
@@ -537,32 +585,20 @@ export async function walkScript(
   const commandNodes: CommandExpressionNode[] =
     ast?.getAllCommandsUntilLine(upToLine) ?? [];
 
-  // Apply switch commands to find the effective client/chain. `switch`
-  // is the only command that mutates *which* chain the rest of the
-  // walk runs against, so it gets a dedicated pre-pass.
-  let effectiveClient = client;
-  for (const c of commandNodes) {
-    const switchedChainId = resolveSwitchChainId(c, bindings);
-    if (switchedChainId != null) {
-      const newClient = clientForChain(switchedChainId, transports);
-      if (newClient) {
-        effectiveClient = newClient;
-      }
-    }
-  }
-
-  let chainId = 0;
-  try {
-    chainId = (await effectiveClient?.getChainId()) ?? 0;
-  } catch {
-    // RPC unavailable — proceed with chainId 0
-  }
+  // Initial chain comes from the constructor client. Subsequent
+  // `switch` commands during the walk advance `state` in place, which
+  // both the resolver and helper-cache lookups read on every dispatch.
+  const initialChainId = await safeChainId(client);
+  const state: WalkChainState = {
+    chainId: initialChainId,
+    client,
+    transports,
+  };
 
   const resolveNode = createNodeResolver(
     bindings,
     moduleCache,
-    chainId,
-    effectiveClient,
+    state,
     resolveHelper,
   );
 
@@ -570,11 +606,15 @@ export async function walkScript(
     commandNodes,
     bindings,
     moduleCache,
-    effectiveClient as PublicClient,
-    chainId,
+    state,
     resolveNode,
     variableHistory,
   );
+
+  // Snapshot the end-of-walk chain so callers (EVMcrispr.prewarm) can
+  // pair the right client with the chainId in hover requests.
+  const finalChainId = state.chainId;
+  const finalClient = state.client;
 
   // Second pass: populate the helper cache for *every* command the
   // user might hover over, including helpers inside non-binding
@@ -582,9 +622,31 @@ export async function walkScript(
   // `connect myDao { ... }` blocks. Helpers already evaluated during
   // `walkCommandsForBindings` are cache hits and re-add no network
   // cost.
-  await prewarmHelperExpressions(commandNodes, resolveNode);
+  //
+  // The helper cache is keyed by chain id, so we replay switches from
+  // the initial chain and let `applySwitch` advance `state` again as
+  // we revisit each command.
+  state.chainId = initialChainId;
+  state.client = client;
+  await prewarmHelperExpressions(commandNodes, resolveNode, state, bindings);
 
-  return { bindings, chainId, client: effectiveClient, variableHistory };
+  return {
+    bindings,
+    chainId: finalChainId,
+    client: finalClient,
+    variableHistory,
+  };
+}
+
+/** Best-effort `client.getChainId()` that swallows RPC failures so the
+ *  walker can keep going (it just won't have a chain id for cache keys). */
+async function safeChainId(client: PublicClient | undefined): Promise<number> {
+  if (!client) return 0;
+  try {
+    return (await client.getChainId()) ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -598,12 +660,19 @@ export async function walkScript(
  * (e.g. helpers that need RPC, variables not in scope at this point,
  * unsupported node kinds like `BlockExpression`) silently no-op
  * instead of throwing.
+ *
+ * `state` is mutated in place when a `switch` command is encountered,
+ * so the cache key for `@token(DAI)` after `switch optimism` uses
+ * chain 10 — distinct from the same call seen earlier on chain 1.
  */
 async function prewarmHelperExpressions(
   commandNodes: CommandExpressionNode[],
   resolveNode: (node: Node) => Promise<any>,
+  state: WalkChainState,
+  bindings: BindingsManager,
 ): Promise<void> {
   for (const c of commandNodes) {
+    applySwitch(state, c, bindings);
     for (const arg of c.args) {
       try {
         await resolveNode(arg);
