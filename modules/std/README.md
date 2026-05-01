@@ -8,7 +8,7 @@ The standard module is loaded by default. It provides core language constructs, 
 |---------|-------------|
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
 | [def](src/commands/def.md) | Define a user command or helper. |
-| [deploy](src/commands/deploy.md) | Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. |
+| [deploy](src/commands/deploy.md) | Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --source-chain / --source-address (fetches the original creation bytecode from Etherscan). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [for](src/commands/for.md) | Iterate over an array, executing a block for each element. |
 | [halt](src/commands/halt.md) | Stop script execution immediately. |

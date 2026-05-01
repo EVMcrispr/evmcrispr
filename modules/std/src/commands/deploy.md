@@ -2,12 +2,12 @@
 title: "deploy"
 ---
 
-Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>.
+Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --source-chain / --source-address (fetches the original creation bytecode from Etherscan).
 
 ## Syntax
 
 ```evml
-deploy <variable> <bytecode>
+deploy <variable> [bytecode]
 ```
 
 ## Arguments
@@ -15,13 +15,15 @@ deploy <variable> <bytecode>
 | Name | Type | Description |
 |------|------|-------------|
 | `variable` | `variable` | Variable to bind the deployed contract address to |
-| `bytecode` | `bytes` | Creation bytecode. Constructor args are appended automatically when --constructor is set. |
+| `[bytecode]` | `bytes` | Creation bytecode. Constructor args are appended automatically when --constructor is set. Omit when using --source-chain / --source-address to mirror an existing deployment. |
 
 ## Options
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. |
+| `--source-chain` | `number` | Chain id to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --source-address is set. Requires --source-address. |
+| `--source-address` | `address` | Address of an existing deployment to mirror. The original creation bytecode (with constructor args already appended) is fetched from Etherscan and used as the init code for this deployment. |
+| `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. Mutually exclusive with --source-address. |
 | `--constructor-args` | `array` | Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor. |
 | `--create2` | `bytes32` | Salt for CREATE2 deployment. Defaults to the Arachnid deterministic deployer; override factory with --via. |
 | `--create3` | `bytes32` | Salt for CREATE3 deployment. Defaults to the CreateX factory; override with --via. |
@@ -56,6 +58,16 @@ deploy $vault 0x6080604052... --create2 0x0...01 --via 0xMyFactory00000000000000
 deploy $proxy 0x6080604052... --create3 0x0000000000000000000000000000000000000000000000000000000000000002 \
   --constructor "constructor(address)" --constructor-args [@me]
 
+# Mirror an existing deployment from another chain — fetches the
+# original creation bytecode (with constructor args already baked in)
+# from Etherscan and replays it byte-for-byte on the current chain.
+deploy $clone --source-chain 1 --source-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+
+# Same flow, deterministically pinned to a CREATE2 address so the
+# clone lands at the same address on every chain that runs this script.
+deploy $clone --source-chain 1 --source-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 \
+  --create2 0x0000000000000000000000000000000000000000000000000000000000000003
+
 # Use the bound address in subsequent calls
 exec $token "transfer(address,uint256)" @me 1e18
 ```
@@ -75,6 +87,14 @@ exec $token "transfer(address,uint256)" @me 1e18
   The deployed address depends only on `(factory, salt)`, not on the bytecode.
   Permissioned salts (first 20 bytes equal `--from`, or zero-prefixed with
   `0x01` in byte 20) are rejected so client-side prediction stays deterministic.
+- **Mirror** (`--source-address <addr> [--source-chain <id>]`): fetches the
+  original creation bytecode of an existing deployment from Etherscan V2's
+  `getcontractcreation` endpoint and uses it as the init code for this
+  deployment. The fetched bytecode already includes the original ABI-encoded
+  constructor arguments, so `--constructor` / `--constructor-args` are not
+  allowed in this mode. Combine with `--create2` / `--create3` to pin the
+  cloned contract to a deterministic address. Requires
+  `VITE_ETHERSCAN_API_KEY`.
 
 ## Caveats
 

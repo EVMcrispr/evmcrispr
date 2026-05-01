@@ -1,14 +1,20 @@
 import "../../setup";
+import { afterEach, beforeAll, beforeEach, describe, it } from "bun:test";
 import { BindingsSpace } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   describeCommand,
   expect,
+  getPublicClient,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
+import { etherscanCreationFixtures } from "@evmcrispr/test-utils/msw/etherscan";
+import type { PublicClient } from "viem";
 import {
   concatHex,
   encodeAbiParameters,
   encodeFunctionData,
+  getAddress,
   getContractAddress,
   keccak256,
   pad,
@@ -32,6 +38,15 @@ const FROM = TEST_ACCOUNT_ADDRESS as `0x${string}`;
 const SALT_1 = pad("0x01", { size: 32 });
 const SALT_2 = pad("0x02", { size: 32 });
 
+// Source contract address used by the --source-* mirror tests.
+const SOURCE_ADDR_LOWER = "0x000000000000000000000000000000000000aaaa";
+const SOURCE_ADDR = getAddress(SOURCE_ADDR_LOWER as `0x${string}`);
+
+// API key is read at command-run time from process.env, so set it once
+// before any test imports take effect. The MSW handlers ignore the key.
+const ORIGINAL_API_KEY = process.env.VITE_ETHERSCAN_API_KEY;
+process.env.VITE_ETHERSCAN_API_KEY = "test-key";
+
 function predictCreate3(
   factory: `0x${string}`,
   salt: `0x${string}`,
@@ -49,7 +64,7 @@ function predictCreate3(
 }
 
 describeCommand("deploy", {
-  describeName: "Std > commands > deploy <$variable> <bytecode> [opts...]",
+  describeName: "Std > commands > deploy <$variable> [bytecode] [opts...]",
   cases: [
     {
       name: "plain CREATE: emits a deployment action without `to` and binds the predicted address",
@@ -234,12 +249,17 @@ describeCommand("deploy", {
     {
       name: "should fail when bytecode is not a hex string",
       script: `deploy $addr nothex`,
-      error: "<bytecode> must be a hex string",
+      error: "[bytecode] must be a hex string",
     },
     {
       name: "should fail when bytecode is empty",
       script: `deploy $addr 0x`,
       error: "deploy: bytecode must be non-empty",
+    },
+    {
+      name: "should fail when neither bytecode nor --source-address is provided",
+      script: `deploy $addr`,
+      error: "deploy: <bytecode> is required",
     },
     {
       name: "should fail when --constructor is set without --constructor-args",
@@ -276,5 +296,166 @@ describeCommand("deploy", {
       script: `deploy $addr ${BYTECODE} --create3 ${`0x${"00".repeat(20)}01${"00".repeat(11)}` as `0x${string}`}`,
       error: "permissioned salts are not supported",
     },
+    {
+      name: "should fail when --source-chain is set without --source-address",
+      script: `deploy $addr --source-chain 1`,
+      error: "deploy: --source-chain requires --source-address",
+    },
+    {
+      name: "should fail when both <bytecode> and --source-address are provided",
+      script: `deploy $addr ${BYTECODE} --source-address ${SOURCE_ADDR}`,
+      error: "mutually exclusive",
+    },
+    {
+      name: "should fail when --constructor is combined with --source-address",
+      script: `deploy $addr --source-address ${SOURCE_ADDR} --constructor "constructor(uint256)" --constructor-args [1e18]`,
+      error:
+        "--constructor / --constructor-args are not allowed with --source-address",
+    },
   ],
+});
+
+// ── --source-chain / --source-address (mirror an existing deployment) ───
+
+describe("Std > commands > deploy --source-chain/--source-address", () => {
+  let client: PublicClient;
+
+  beforeAll(() => {
+    client = getPublicClient();
+  });
+
+  beforeEach(() => {
+    // Reset fixtures + ensure the API key is set for each test, since
+    // the verify suite (which shares the env var) may have cleared it.
+    for (const k of Object.keys(etherscanCreationFixtures)) {
+      delete etherscanCreationFixtures[k];
+    }
+    etherscanCreationFixtures[SOURCE_ADDR_LOWER] = {
+      contractAddress: SOURCE_ADDR_LOWER,
+      contractCreator: "0x000000000000000000000000000000000000c0de",
+      txHash:
+        "0xdce495a9261c4a2a5d4e879cfb55c060b4616a846d3425c441a9e31aa34c956f",
+      blockNumber: "10720863",
+      timestamp: "1598242563",
+      contractFactory: "",
+      creationBytecode: BYTECODE,
+    };
+    process.env.VITE_ETHERSCAN_API_KEY = "test-key";
+  });
+
+  afterEach(() => {
+    for (const k of Object.keys(etherscanCreationFixtures)) {
+      delete etherscanCreationFixtures[k];
+    }
+    if (ORIGINAL_API_KEY === undefined) {
+      // Other suites in this run depend on the key being present.
+      process.env.VITE_ETHERSCAN_API_KEY = "test-key";
+    } else {
+      process.env.VITE_ETHERSCAN_API_KEY = ORIGINAL_API_KEY;
+    }
+  });
+
+  it("plain CREATE mirror: uses the fetched creationBytecode as init code and predicts via --from + nonce", async () => {
+    const script = `deploy $addr --source-chain 1 --source-address ${SOURCE_ADDR}`;
+    const interp = createInterpreter(script, client);
+    const actions = await interp.interpret();
+
+    expect(actions).to.have.length(1);
+    const action = actions[0] as { data?: string; to?: string; from?: string };
+    expect(action.to).to.equal(undefined);
+    expect(action.data).to.equal(BYTECODE);
+    expect(action.from).to.equal(FROM);
+    expect(interp.getBinding("$addr", BindingsSpace.USER)).to.equal(
+      getContractAddress({ from: FROM, nonce: 0n }),
+    );
+  });
+
+  it("--source-address only: defaults --source-chain to the current chain", async () => {
+    // Re-key the fixture under the same address — this confirms that
+    // when --source-chain is omitted the helper still hits Etherscan
+    // with the *current* chain id (gnosis = 100). The MSW handler is
+    // chain-agnostic, so we just need the fixture to be present.
+    const script = `deploy $addr --source-address ${SOURCE_ADDR}`;
+    const interp = createInterpreter(script, client);
+    const actions = await interp.interpret();
+    expect(actions).to.have.length(1);
+    const action = actions[0] as { data?: string };
+    expect(action.data).to.equal(BYTECODE);
+  });
+
+  it("CREATE2 mirror: feeds the fetched bytecode through the Arachnid factory and predicts via CREATE2", async () => {
+    const script = `deploy $addr --source-address ${SOURCE_ADDR} --create2 ${SALT_1}`;
+    const interp = createInterpreter(script, client);
+    const actions = await interp.interpret();
+
+    expect(actions).to.have.length(1);
+    const action = actions[0] as { data?: string; to?: string };
+    expect(action.to).to.equal(ARACHNID_CREATE2);
+    expect(action.data).to.equal(concatHex([SALT_1, BYTECODE]));
+
+    const expected = getContractAddress({
+      opcode: "CREATE2",
+      from: ARACHNID_CREATE2,
+      salt: SALT_1,
+      bytecode: BYTECODE,
+    });
+    expect(interp.getBinding("$addr", BindingsSpace.USER)).to.equal(expected);
+  });
+
+  it("mirror: throws when Etherscan has no creation record for the source address", async () => {
+    const UNKNOWN = "0x000000000000000000000000000000000000bbbb";
+    const script = `deploy $addr --source-chain 1 --source-address ${UNKNOWN}`;
+    const interp = createInterpreter(script, client);
+    let caught: Error | undefined;
+    try {
+      await interp.interpret();
+    } catch (e: any) {
+      caught = e;
+    }
+    expect(caught).to.not.equal(undefined);
+    expect(caught!.message).to.include("no creation record");
+    expect(caught!.message).to.include("chain 1");
+  });
+
+  it("mirror: throws when Etherscan returns a creation record without creationBytecode", async () => {
+    const NO_BYTECODE_LOWER = "0x000000000000000000000000000000000000cccc";
+    etherscanCreationFixtures[NO_BYTECODE_LOWER] = {
+      contractAddress: NO_BYTECODE_LOWER,
+      contractCreator: "0x000000000000000000000000000000000000c0de",
+      txHash: "0x0",
+      blockNumber: "1",
+      timestamp: "1",
+      contractFactory: "",
+      // creationBytecode intentionally omitted (older Etherscan
+      // snapshots don't include it).
+    };
+    const script = `deploy $addr --source-chain 1 --source-address ${getAddress(NO_BYTECODE_LOWER as `0x${string}`)}`;
+    const interp = createInterpreter(script, client);
+    let caught: Error | undefined;
+    try {
+      await interp.interpret();
+    } catch (e: any) {
+      caught = e;
+    }
+    expect(caught).to.not.equal(undefined);
+    expect(caught!.message).to.include("did not return creationBytecode");
+  });
+
+  it("mirror: throws a clear error when VITE_ETHERSCAN_API_KEY is unset", async () => {
+    delete process.env.VITE_ETHERSCAN_API_KEY;
+    try {
+      const script = `deploy $addr --source-chain 1 --source-address ${SOURCE_ADDR}`;
+      const interp = createInterpreter(script, client);
+      let caught: Error | undefined;
+      try {
+        await interp.interpret();
+      } catch (e: any) {
+        caught = e;
+      }
+      expect(caught).to.not.equal(undefined);
+      expect(caught!.message).to.include("VITE_ETHERSCAN_API_KEY");
+    } finally {
+      process.env.VITE_ETHERSCAN_API_KEY = "test-key";
+    }
+  });
 });

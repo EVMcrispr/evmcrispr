@@ -309,3 +309,78 @@ export async function fetchVerifiedContractFull(
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Contract creation payload — used by `std:deploy` to mirror an existing
+// deployment onto another chain.
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of a single result entry in `getcontractcreation`. Etherscan's
+ * V2 endpoint returns the original creation bytecode (init code with
+ * constructor args appended) along with creator/factory metadata, which
+ * is exactly what we need to faithfully replay a deployment on another
+ * chain.
+ *
+ * `contractFactory` is non-empty when the contract was deployed via
+ * another contract (e.g. a CREATE2 factory). In that case
+ * `creationBytecode` is still the **init code** that ran inside the
+ * factory's CREATE/CREATE2 — i.e. it remains the right value to feed
+ * into `deploy`.
+ */
+export interface EtherscanCreationResult {
+  contractAddress: string;
+  contractCreator?: string;
+  txHash?: string;
+  blockNumber?: string;
+  timestamp?: string;
+  contractFactory?: string;
+  creationBytecode?: string;
+}
+
+interface EtherscanCreationResponse {
+  status: string;
+  message?: string;
+  result?: EtherscanCreationResult[] | string;
+}
+
+/**
+ * Fetch the original creation bytecode (and creator/factory metadata)
+ * for a deployed contract. Uses Etherscan V2's `getcontractcreation`
+ * endpoint, which returns the **init code** the EVM ran when the
+ * contract was created — including any ABI-encoded constructor args
+ * appended by the deployer. Replaying this byte-for-byte on another
+ * chain reproduces the original deployment.
+ *
+ * Returns `null` when `VITE_ETHERSCAN_API_KEY` is unset, the address
+ * isn't found, the response omits `creationBytecode` (older Etherscan
+ * snapshots), or the request fails. Uncached for the same reason as
+ * `fetchVerifiedContractFull` — bytecode payloads can be large and are
+ * typically read once per `deploy --source-...`.
+ */
+export async function fetchContractCreation(
+  chainId: number,
+  address: Address,
+): Promise<EtherscanCreationResult | null> {
+  const apiKey = readEtherscanApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(ETHERSCAN_V2_URL);
+    url.searchParams.set("chainid", String(chainId));
+    url.searchParams.set("module", "contract");
+    url.searchParams.set("action", "getcontractcreation");
+    url.searchParams.set("contractaddresses", getAddress(address));
+    url.searchParams.set("apikey", apiKey);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const json = (await res.json()) as EtherscanCreationResponse;
+    if (json.status !== "1" || !Array.isArray(json.result) || !json.result[0]) {
+      return null;
+    }
+    return json.result[0];
+  } catch {
+    return null;
+  }
+}

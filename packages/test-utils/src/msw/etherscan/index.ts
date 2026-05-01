@@ -47,6 +47,27 @@ const ETHERSCAN_UNVERIFIED = {
   ],
 };
 
+/**
+ * Map of lowercased addresses to creation-bytecode fixtures used by the
+ * Etherscan V2 `getcontractcreation` endpoint. Lets `deploy
+ * --source-address` tests assert on which bytecode the command pulled
+ * from "Etherscan". Tests can mutate this directly to inject custom
+ * fixtures per-test (mirrors the `etherscanVerifiedFixtures` pattern).
+ */
+export interface EtherscanCreationFixture {
+  contractAddress: string;
+  contractCreator?: string;
+  txHash?: string;
+  blockNumber?: string;
+  timestamp?: string;
+  contractFactory?: string;
+  creationBytecode?: string;
+}
+export const etherscanCreationFixtures: Record<
+  string,
+  EtherscanCreationFixture
+> = {};
+
 /** Generic Etherscan envelope shape. */
 interface EtherscanEnvelope {
   status: string;
@@ -162,6 +183,37 @@ export const etherscanHandlers = [
         etherscanVerifyState.statusQueue.shift() ??
         etherscanVerifyState.statusResponse;
       return HttpResponse.json(next);
+    }
+
+    if (module_ === "contract" && action === "getcontractcreation") {
+      // V2 takes a comma-separated `contractaddresses` list (up to 5).
+      // We honour the first address only, which is what the SDK helper
+      // sends.
+      const raw = url.searchParams.get("contractaddresses");
+      const first = raw?.split(",")[0]?.trim();
+      if (!first) {
+        return HttpResponse.json({
+          status: "0",
+          message: "NOTOK",
+          result: "Missing contractaddresses",
+        });
+      }
+      const fixture = etherscanCreationFixtures[first.toLowerCase()];
+      if (!fixture) {
+        // Etherscan returns status: 0 for unknown addresses on this
+        // endpoint, mirroring its real behaviour for non-contract or
+        // never-deployed addresses.
+        return HttpResponse.json({
+          status: "0",
+          message: "No data found",
+          result: "No data found",
+        });
+      }
+      return HttpResponse.json({
+        status: "1",
+        message: "OK",
+        result: [fixture],
+      });
     }
 
     return HttpResponse.json({
