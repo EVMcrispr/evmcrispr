@@ -55,13 +55,15 @@ describe("Core > completions", () => {
   });
 
   describe("cross-module completions", () => {
-    it("should include aragonos helpers after loading the module", async () => {
-      const script = "load aragonos --as ar\nset $x @";
+    it("should include helpers from a loaded module", async () => {
+      // Uses the `coretest` stub registered in test/setup.ts so the
+      // assertion verifies the cross-module loading machinery itself
+      // without coupling the core package to any concrete module.
+      const script = "load coretest --as ct\nset $x @";
       const result = await ctx.completions(script, { line: 2, col: 8 });
       expect(result).to.be.an("array");
       const labels = result.map((c) => c.label);
-      expect(labels).to.include("@app");
-      expect(labels).to.include("@aragonEns");
+      expect(labels).to.include("@coretest-helper");
     });
   });
 

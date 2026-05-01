@@ -1,3 +1,4 @@
+import { Module, type ModuleContext } from "@evmcrispr/sdk";
 import { blockscout } from "@evmcrispr/test-utils/msw/blockscout";
 import {
   createTestServer,
@@ -5,16 +6,49 @@ import {
   http,
 } from "@evmcrispr/test-utils/msw/server";
 import { tokenlistHandlers } from "@evmcrispr/test-utils/msw/tokenlist";
-import { aragonosHandlers } from "../../../modules/aragonos/test/fixtures/msw-handlers";
 import { EVMcrispr } from "../src/EVMcrispr";
 
-EVMcrispr.registerModule(
-  "aragonos",
-  () => import("@evmcrispr/module-aragonos"),
-);
-EVMcrispr.registerModule("sim", () => import("@evmcrispr/module-sim"));
-EVMcrispr.registerModule("giveth", () => import("@evmcrispr/module-giveth"));
-EVMcrispr.registerModule("ens", () => import("@evmcrispr/module-ens"));
+/**
+ * Minimal stub module registered with the test EVMcrispr instance so the
+ * cross-module loading machinery (completions, `getModule`, `getKeywords`)
+ * can be exercised without depending on a real workspace module like
+ * `@evmcrispr/module-aragonos`. Tests reference it by name (`coretest`)
+ * and check for its single helper (`@coretest-helper`) and command
+ * (`coretest-cmd`).
+ */
+class CoreTestModule extends Module {
+  constructor(context: ModuleContext, alias?: string) {
+    super(
+      "coretest",
+      {
+        "coretest-cmd": {
+          description: "Stub command exercised by core cross-module tests.",
+          argDefs: [],
+          optDefs: [],
+          run: async () => [],
+        },
+      },
+      {
+        "coretest-helper": async () => "ok",
+      },
+      { "coretest-helper": "string" },
+      { "coretest-helper": false },
+      { "coretest-helper": [] },
+      {
+        "coretest-helper": "Stub helper exercised by core cross-module tests.",
+      },
+      { "coretest-cmd": "Stub command exercised by core cross-module tests." },
+      {},
+      {},
+      context,
+      alias,
+    );
+  }
+}
+
+EVMcrispr.registerModule("coretest", async () => ({
+  default: CoreTestModule,
+}));
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 
@@ -55,9 +89,5 @@ const coreHandlers = [
   }),
 ];
 
-const server = createTestServer(
-  ...aragonosHandlers,
-  ...tokenlistHandlers,
-  ...coreHandlers,
-);
+const server = createTestServer(...tokenlistHandlers, ...coreHandlers);
 server.listen({ onUnhandledRequest: "bypass" });

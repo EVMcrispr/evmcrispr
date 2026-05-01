@@ -64,10 +64,12 @@ describe("Core > EVMcrispr", () => {
     });
 
     it("should return loaded modules after interpret", async () => {
+      // Uses the `coretest` stub registered in test/setup.ts.
       const evm = createEvm();
-      await evm.interpret("load aragonos --as ar\nset $x 1");
-      const aragonos = evm.getModule("ar");
-      expect(aragonos).to.not.be.undefined;
+      await evm.interpret("load coretest --as ct\nset $x 1");
+      const stub = evm.getModule("ct");
+      expect(stub).to.not.be.undefined;
+      expect(stub!.name).to.equal("coretest");
     });
 
     it("should return all modules including std", async () => {
@@ -203,9 +205,10 @@ describe("Core > EVMcrispr", () => {
     });
 
     it("should include module commands after load", async () => {
+      // Uses the `coretest` stub registered in test/setup.ts.
       const evm = createEvm();
-      const result = await evm.getKeywords("load aragonos --as ar\nset $x 1");
-      expect(result.commands).to.include("connect");
+      const result = await evm.getKeywords("load coretest --as ct\nset $x 1");
+      expect(result.commands).to.include("coretest-cmd");
     });
   });
 });

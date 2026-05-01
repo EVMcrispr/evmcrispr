@@ -44,6 +44,19 @@ function lower(addr: string): string {
   return addr.toLowerCase();
 }
 
+/**
+ * Escape a string for safe embedding inside a single-quoted DSL string
+ * literal. The DSL parser decodes `\n`, `\r`, `\t`, `\'` and `\\`
+ * escapes inside quoted strings (TextMate-style), so any literal
+ * backslash in the JSON would otherwise be interpreted as the start of
+ * an escape — turning `\n` (two chars) into a real newline and breaking
+ * a verbatim round-trip. Doubling backslashes makes the parser decode
+ * them back to single backslashes, preserving the JSON exactly.
+ */
+function escapeForDslString(s: string): string {
+  return s.replace(/\\/g, "\\\\");
+}
+
 describe("Std > commands > verify", () => {
   let client: PublicClient;
 
@@ -309,7 +322,7 @@ describe("Std > commands > verify", () => {
       settings: { optimizer: { enabled: true, runs: 200 } },
     });
     const ADDR = "0x000000000000000000000000000000000000ffec";
-    const script = `verify ${ADDR} --source '${standardJson}' --contract-name "src/Foo.sol:Foo" --compiler "0.8.20+commit.a1b79de6" --license "MIT" --poll-interval 0`;
+    const script = `verify ${ADDR} --source '${escapeForDslString(standardJson)}' --contract-name "src/Foo.sol:Foo" --compiler "0.8.20+commit.a1b79de6" --license "MIT" --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
 
@@ -340,7 +353,7 @@ describe("Std > commands > verify", () => {
       settings: { optimizer: { enabled: false, runs: 200 } },
     });
     const ADDR = "0x000000000000000000000000000000000000ffed";
-    const script = `verify ${ADDR} --source '${standardJson}' --contract-name "src/Tok.sol:Tok" --compiler "0.8.20+commit.a1b79de6" --constructor "constructor(uint256,address)" --constructor-args [1e18 0x000000000000000000000000000000000000beef] --poll-interval 0`;
+    const script = `verify ${ADDR} --source '${escapeForDslString(standardJson)}' --contract-name "src/Tok.sol:Tok" --compiler "0.8.20+commit.a1b79de6" --constructor "constructor(uint256,address)" --constructor-args [1e18 0x000000000000000000000000000000000000beef] --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
 
@@ -366,7 +379,7 @@ describe("Std > commands > verify", () => {
     const ADDR = "0x000000000000000000000000000000000000ffee";
     const HEX =
       "0x000000000000000000000000000000000000000000000000000000000000002a";
-    const script = `verify ${ADDR} --source '${standardJson}' --contract-name "src/Tok.sol:Tok" --compiler "0.8.20+commit.a1b79de6" --constructor-args-hex ${HEX} --poll-interval 0`;
+    const script = `verify ${ADDR} --source '${escapeForDslString(standardJson)}' --contract-name "src/Tok.sol:Tok" --compiler "0.8.20+commit.a1b79de6" --constructor-args-hex ${HEX} --poll-interval 0`;
     const interp = createInterpreter(script, client);
     await interp.interpret();
 

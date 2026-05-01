@@ -1,5 +1,10 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException, fieldItem, isNum } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  ErrorException,
+  fieldItem,
+  isNum,
+} from "@evmcrispr/sdk";
 import type { Chain } from "viem";
 import * as viemChains from "viem/chains";
 
@@ -9,9 +14,7 @@ const { MODULE, USER, CACHE } = BindingsSpace;
  * Map of viem chain export name → chain id (e.g. `mainnet` → 1,
  * `optimism` → 10). Built once at module load from `viem/chains`.
  */
-const chainNameToId: Record<string, number> = Object.entries(
-  viemChains,
-).reduce(
+const chainNameToId: Record<string, number> = Object.entries(viemChains).reduce(
   (acc, [name, chain]) => {
     if (chain && typeof chain === "object" && "id" in chain) {
       const id = (chain as Chain).id;

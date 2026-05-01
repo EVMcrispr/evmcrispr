@@ -5,6 +5,17 @@
 @source "../../../packages/ui/src";
 
 /* ── Terminal-specific styles ────────────────────────────────── */
+
+/* Editor / viewer / hover all share the same mono stack so that
+   toggling between view ↔ edit and opening a hover popover never
+   reflows. Defined here (not in @repo/ui) because the terminal app
+   uses `Ubuntu Mono` while the rest of the design system uses
+   `Pixel Operator Mono` (see packages/ui/src/styles/theme.css). */
+:root {
+  --terminal-font-mono:
+    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 #root {
   height: 100%;
   overflow: hidden;
@@ -38,8 +49,7 @@
    toggling between view ↔ edit doesn't reflow the script. */
 .evml-viewer {
   counter-reset: evml-line;
-  font-family:
-    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--terminal-font-mono);
   font-size: 22px;
   line-height: 0.3;
 }
@@ -132,8 +142,7 @@
 .evml-hover-popover *,
 .evml-hover-popover code,
 .evml-hover-popover pre {
-  font-family:
-    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--terminal-font-mono);
 }
 
 /* Dark scrollbars for the viewer + popover + Monaco hover. The default
@@ -202,8 +211,7 @@
 
 .monaco-editor .monaco-hover {
   /* biome-ignore lint/complexity/noImportantStyles: see above */
-  font-family:
-    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-family: var(--terminal-font-mono) !important;
   font-size: 13px;
   line-height: 1.5;
 }
