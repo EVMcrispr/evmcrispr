@@ -89,17 +89,26 @@ interface EtherscanEnvelope {
  */
 export const etherscanVerifyState: {
   lastSubmit: URLSearchParams | undefined;
+  /**
+   * URL query params from the last `verifysourcecode` POST. Etherscan V2
+   * requires `apikey`, `chainid`, `module`, and `action` to live here
+   * (not the form body); tests assert on this directly to lock in the
+   * v2 contract.
+   */
+  lastSubmitUrlParams: URLSearchParams | undefined;
   submitResponse: EtherscanEnvelope;
   statusResponse: EtherscanEnvelope;
   statusQueue: EtherscanEnvelope[];
   reset(): void;
 } = {
   lastSubmit: undefined,
+  lastSubmitUrlParams: undefined,
   submitResponse: { status: "1", message: "OK", result: "guid-default" },
   statusResponse: { status: "1", message: "OK", result: "Pass - Verified" },
   statusQueue: [],
   reset() {
     this.lastSubmit = undefined;
+    this.lastSubmitUrlParams = undefined;
     this.submitResponse = {
       status: "1",
       message: "OK",
@@ -226,15 +235,23 @@ export const etherscanHandlers = [
   /**
    * Etherscan V2 `verifysourcecode` POST endpoint.
    *
-   * Stashes the submitted form body in `etherscanVerifyState.lastSubmit`
-   * so tests can assert on it, and returns
-   * `etherscanVerifyState.submitResponse` (default: status 1, GUID
-   * `guid-default`).
+   * Etherscan V2 expects `apikey`, `chainid`, `module`, and `action` as
+   * URL query parameters and the contract payload (`sourceCode`,
+   * `contractaddress`, etc.) in the form body. We merge both into a
+   * single `URLSearchParams` so tests can assert on the full submission
+   * via `etherscanVerifyState.lastSubmit.get(...)` regardless of which
+   * side of the wire each field lives on.
    */
   http.post(`https://api.etherscan.io/v2/api`, async ({ request }) => {
+    const url = new URL(request.url);
     const text = await request.text();
-    const params = new URLSearchParams(text);
-    const action = params.get("action");
+    const bodyParams = new URLSearchParams(text);
+
+    const merged = new URLSearchParams();
+    for (const [k, v] of url.searchParams) merged.set(k, v);
+    for (const [k, v] of bodyParams) merged.set(k, v);
+
+    const action = merged.get("action");
     if (action !== "verifysourcecode") {
       return HttpResponse.json({
         status: "0",
@@ -242,7 +259,8 @@ export const etherscanHandlers = [
         result: `Unsupported action: ${action ?? "<none>"}`,
       });
     }
-    etherscanVerifyState.lastSubmit = params;
+    etherscanVerifyState.lastSubmit = merged;
+    etherscanVerifyState.lastSubmitUrlParams = url.searchParams;
     return HttpResponse.json(etherscanVerifyState.submitResponse);
   }),
 ];

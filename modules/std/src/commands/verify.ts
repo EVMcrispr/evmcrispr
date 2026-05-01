@@ -153,9 +153,10 @@ interface SubmitVerifyResponse {
 }
 
 async function submitVerification(
+  url: URL,
   body: URLSearchParams,
 ): Promise<SubmitVerifyResponse> {
-  const res = await fetch(ETHERSCAN_V2_URL, {
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
@@ -450,11 +451,17 @@ export default defineCommand<Std>({
       constructorArgsHex = mirrorCtorArgsHex;
     }
 
+    // Etherscan V2 requires `apikey`, `chainid`, `module`, and `action`
+    // as URL query parameters even for POST. The actual contract payload
+    // (sourceCode etc.) is sent as the form body — `sourceCode` would
+    // otherwise blow the URL length limit.
+    const url = new URL(ETHERSCAN_V2_URL);
+    url.searchParams.set("apikey", apiKey);
+    url.searchParams.set("chainid", String(targetChainId));
+    url.searchParams.set("module", "contract");
+    url.searchParams.set("action", "verifysourcecode");
+
     const body = new URLSearchParams();
-    body.set("apikey", apiKey);
-    body.set("chainid", String(targetChainId));
-    body.set("module", "contract");
-    body.set("action", "verifysourcecode");
     body.set("contractaddress", targetAddress);
     body.set("sourceCode", sourceCode);
     body.set("codeformat", "solidity-standard-json-input");
@@ -470,7 +477,18 @@ export default defineCommand<Std>({
       `verify: submitting ${targetAddress} on chain ${targetChainId} to Etherscan…`,
     );
 
-    const submit = await submitVerification(body);
+    const submit = await submitVerification(url, body);
+
+    // Etherscan replies with `status: "0"` and `result: "Contract source
+    // code already verified"` when re-submitting an address that's already
+    // verified. The user's intent (have this address verified) is met, so
+    // treat it as success and skip polling — there's no GUID to poll.
+    const submitResultLower = (submit.result ?? "").toString().toLowerCase();
+    if (submitResultLower.includes("already verified")) {
+      module.context.log(`verify: ${submit.result}`);
+      return [];
+    }
+
     if (submit.status !== "1" || !submit.result) {
       throw new ErrorException(
         `verify: Etherscan rejected submission – ${submit.result || submit.message || "unknown error"}`,

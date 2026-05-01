@@ -29,7 +29,7 @@ const chainNameToId: Record<string, number> = Object.entries(
  */
 export function resolveChainId(value: unknown): number {
   if (isNum(value)) {
-    const n = Number(value.toString());
+    const n = Number(String(value));
     if (Number.isInteger(n) && n > 0) return n;
   }
   if (typeof value === "string" && chainNameToId[value] !== undefined) {
@@ -60,7 +60,7 @@ export const types: CustomArgTypes = {
   chain: {
     validate(name, value) {
       if (isNum(value)) {
-        const n = Number(value.toString());
+        const n = Number(String(value));
         if (Number.isInteger(n) && n > 0) return;
       }
       if (typeof value === "string" && chainNameToId[value] !== undefined) {

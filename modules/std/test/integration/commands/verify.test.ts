@@ -102,6 +102,27 @@ describe("Std > commands > verify", () => {
     expect(parsed.settings.evmVersion).to.equal("paris");
   });
 
+  it("submission: sends apikey/chainid/module/action as URL query params (Etherscan v2 requirement)", async () => {
+    // Etherscan V2's `verifysourcecode` POST rejects requests where these
+    // identifiers live in the form body with `Missing or unsupported
+    // chainid parameter (required for v2 api)`. This test pins the wire
+    // format so a regression to body-only submission can't sneak back in.
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
+    await createInterpreter(script, client).interpret();
+
+    const urlParams = etherscanVerifyState.lastSubmitUrlParams;
+    if (!urlParams) throw new Error("expected lastSubmitUrlParams to be set");
+    expect(urlParams.get("apikey")).to.equal("test-key");
+    expect(urlParams.get("chainid")).to.equal(String(TARGET_CHAIN_ID));
+    expect(urlParams.get("module")).to.equal("contract");
+    expect(urlParams.get("action")).to.equal("verifysourcecode");
+
+    // Conversely, the contract payload (large + per-submission) belongs
+    // in the form body, not the URL.
+    expect(urlParams.has("sourceCode")).to.equal(false);
+    expect(urlParams.has("contractaddress")).to.equal(false);
+  });
+
   it("mirror — accepts a viem chain name (e.g. `optimism`) for --mirror-chain", async () => {
     // Optimism = chain id 10. The Etherscan MSW only keys fixtures by
     // address (chainid is just echoed as a query param), so the actual
@@ -444,6 +465,23 @@ describe("Std > commands > verify", () => {
     }
     expect(caught).to.not.equal(undefined);
     expect(caught!.message).to.include("Fail - Unable to verify");
+  });
+
+  it("submit: treats `Contract source code already verified` as success (no throw, no poll)", async () => {
+    etherscanVerifyState.submitResponse = {
+      status: "0",
+      message: "NOTOK",
+      result: "Contract source code already verified",
+    };
+    // Make any status poll blow up so we can assert polling was skipped.
+    etherscanVerifyState.statusResponse = {
+      status: "0",
+      message: "NOTOK",
+      result: "Fail - status poll should not have run",
+    };
+    const script = `verify ${VERIFIED_ADDR} --mirror-chain 1 --poll-interval 0`;
+    const actions = await createInterpreter(script, client).interpret();
+    expect(actions).to.eql([]);
   });
 
   it("submit: throws when Etherscan rejects the submission upfront", async () => {
