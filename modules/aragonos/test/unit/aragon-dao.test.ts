@@ -6,7 +6,7 @@ import { keccak256, toHex } from "viem";
 import { AragonDAO } from "../../src/AragonDAO";
 import type {
   App,
-  AppArtifactCache,
+  AppResourceCache,
   PermissionMap,
   Role,
 } from "../../src/types";
@@ -55,10 +55,10 @@ function createMockDAO() {
     ["vault:0", vault],
   ]);
 
-  const appArtifactCache: AppArtifactCache = new AddressMap();
+  const appResourceCache: AppResourceCache = new AddressMap();
 
   return {
-    dao: new AragonDAO(appCache, appArtifactCache, 1, "test-dao"),
+    dao: new AragonDAO(appCache, appResourceCache, 1, "test-dao"),
     kernelAddr,
     agentAddr,
     vaultAddr,
@@ -91,9 +91,9 @@ describe("AragonOS > AragonDAO", () => {
       expect(dao.appCache.size).to.equal(3);
     });
 
-    it("should expose the app artifact cache", () => {
+    it("should expose the app resource cache", () => {
       const { dao } = createMockDAO();
-      expect(dao.appArtifactCache).to.be.instanceOf(AddressMap);
+      expect(dao.appResourceCache).to.be.instanceOf(AddressMap);
     });
   });
 
@@ -212,10 +212,10 @@ describe("AragonOS > AragonDAO", () => {
       expect(cloned.appCache.size).to.equal(dao.appCache.size);
     });
 
-    it("should share the artifact cache (by design)", () => {
+    it("should share the resource cache (by design)", () => {
       const { dao } = createMockDAO();
       const cloned = dao.clone();
-      expect(cloned.appArtifactCache).to.equal(dao.appArtifactCache);
+      expect(cloned.appResourceCache).to.equal(dao.appResourceCache);
     });
   });
 });

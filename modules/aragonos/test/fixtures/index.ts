@@ -1,5 +1,4 @@
 // Export all AragonOS test fixtures
-export * from "./artifacts";
 export * from "./mock-app";
 export { DAO } from "./mock-dao";
 export { DAO as DAO2 } from "./mock-dao-2";

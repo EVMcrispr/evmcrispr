@@ -1,30 +1,16 @@
-import type {
-  Action,
-  Address,
-  Binding,
-  IPFSResolver,
-  Nullable,
-} from "@evmcrispr/sdk";
-import {
-  abiBindingKey,
-  BindingsSpace,
-  defineCommand,
-  ErrorException,
-  ErrorNotFound,
-} from "@evmcrispr/sdk";
+import type { Action, Address, Nullable } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { isAddress, isAddressEqual } from "viem";
 import type AragonOS from "..";
 import { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
-
-const { ABI } = BindingsSpace;
+import { buildAbiBindings } from "../utils";
 
 const createDAO = async (
   daoAddressOrName: Address | string,
   currentDao: AragonDAO | undefined,
   client: PublicClient,
-  ipfsResolver: IPFSResolver,
   ensResolver?: Nullable<Address>,
 ): Promise<AragonDAO> => {
   let daoAddress: Address;
@@ -54,40 +40,7 @@ const createDAO = async (
 
   const daoName = !isAddress(daoAddressOrName) ? daoAddressOrName : undefined;
 
-  return AragonDAO.create(
-    daoAddress,
-    client,
-    ipfsResolver,
-    nextNestingIndex,
-    daoName,
-  );
-};
-
-const buildAbiBindings = (dao: AragonDAO, chainId: number): Binding[] => {
-  const bindings: Binding[] = [];
-  const seen = new Set<string>();
-
-  dao.appCache.forEach((app) => {
-    const addrKey = abiBindingKey(chainId, app.address);
-    if (!seen.has(addrKey)) {
-      seen.add(addrKey);
-      bindings.push({ type: ABI, identifier: addrKey, value: app.abi });
-    }
-
-    if (app.codeAddress) {
-      const codeKey = abiBindingKey(chainId, app.codeAddress);
-      if (!seen.has(codeKey)) {
-        seen.add(codeKey);
-        bindings.push({
-          type: ABI,
-          identifier: codeKey,
-          value: app.abi,
-        });
-      }
-    }
-  });
-
-  return bindings;
+  return AragonDAO.create(daoAddress, client, nextNestingIndex, daoName);
 };
 
 const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
@@ -121,7 +74,6 @@ export default defineCommand<AragonOS>({
       daoName,
       module.currentDAO,
       await module.getClient(),
-      module.ipfsResolver,
       module.getConfigBinding("ensResolver"),
     );
 

@@ -2,7 +2,6 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { Connector } from "@evmcrispr/module-aragonos/Connector";
 import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
-import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
 
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import {
@@ -15,7 +14,7 @@ import type { PublicClient } from "viem";
 import { isAddress } from "viem";
 import { EOA_ADDRESS } from "../fixtures";
 import { DAO } from "../fixtures/mock-dao";
-import { isValidArtifact, isValidParsedApp } from "../test-helpers/expects";
+import { isValidParsedApp } from "../test-helpers/expects";
 
 const CHAIN_ID = 100;
 
@@ -37,18 +36,14 @@ describe("AragonOS > Connector", () => {
 
   describe("repo()", () => {
     it("should find a valid repo", async () => {
-      const { codeAddress, contentUri, artifact } = await connector.repo(
+      const { codeAddress, contentUri } = await connector.repo(
         "token-manager",
         "aragonpm.eth",
       );
 
       expect(isAddress(codeAddress), "Invalid repo code address").to.be.true;
-      expect(cid(parseContentUri(contentUri)), "Invalid repo contentUri").to.be
+      expect(cid(contentUri.split(":").pop()!), "Invalid repo contentUri").to.be
         .true;
-
-      if (artifact) {
-        isValidArtifact(artifact);
-      }
     });
 
     it("should fail when fetching a non-existent repo", async () => {

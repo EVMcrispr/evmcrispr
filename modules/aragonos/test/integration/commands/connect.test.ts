@@ -1,5 +1,4 @@
-import "../../setup";
-
+import { it } from "bun:test";
 import type AragonOS from "@evmcrispr/module-aragonos";
 import { MINIME_TOKEN_FACTORIES } from "@evmcrispr/module-aragonos/utils";
 import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
@@ -10,11 +9,13 @@ import {
   Num,
 } from "@evmcrispr/sdk";
 import {
+  createInterpreter,
   describeCommand,
   expect,
   getPublicClient,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
+import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import {
   getContractAddress,
   keccak256,
@@ -30,6 +31,7 @@ import {
   FEE_FORWARDER,
   FEE_TOKEN_ADDRESS,
 } from "../../fixtures/mock-forwarders";
+import { server } from "../../setup";
 import {
   createTestAction,
   createTestPreTxAction,
@@ -233,4 +235,35 @@ describeCommand("connect", {
       },
     },
   ],
+});
+
+it("connect should keep apps connected when an implementation ABI is missing", async () => {
+  server.use(
+    http.get(
+      "https://api.evmcrispr.com/abi/:chainId/:address",
+      ({ params }: { params: { address: string } }) => {
+        if (params.address.toLowerCase() === APP.codeAddress) {
+          return new HttpResponse(null, { status: 404 });
+        }
+      },
+    ),
+  );
+
+  try {
+    const interpreter = createInterpreter(
+      `load aragonos --as ar\nar:connect ${DAO3.kernel} (\n)`,
+      getPublicClient(),
+    );
+    await interpreter.interpret();
+
+    const aragonos = interpreter.getModule("aragonos") as AragonOS;
+    const dao = aragonos.getConnectedDAO(DAO3.kernel);
+    const app = dao!.resolveApp(APP.appIdentifier);
+
+    expect(app).to.not.be.undefined;
+    expect(app!.address).to.equal(DAO3[APP.appIdentifier]);
+    expect(app!.abi).to.eql([]);
+  } finally {
+    server.resetHandlers();
+  }
 });

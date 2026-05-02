@@ -1,0 +1,42 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "UPDATE_SETTINGS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_commonPoolTokenManager",
+        "type": "address"
+      },
+      {
+        "name": "_commonPoolVault",
+        "type": "address"
+      },
+      {
+        "name": "_targetRatio",
+        "type": "uint256"
+      },
+      {
+        "name": "_maxAdjustmentRatioPerSecond",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

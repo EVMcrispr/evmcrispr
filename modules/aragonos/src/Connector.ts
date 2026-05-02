@@ -59,7 +59,11 @@ export class Connector {
   ): Promise<T> {
     const rawResponse = await fetch(this.#subgraphUrl, {
       body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://evmcrispr.com",
+        Referer: "https://evmcrispr.com/",
+      },
       method: "POST",
     });
 

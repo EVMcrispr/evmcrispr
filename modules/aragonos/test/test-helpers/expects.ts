@@ -1,8 +1,4 @@
-import type {
-  AragonArtifact,
-  ParsedApp,
-} from "@evmcrispr/module-aragonos/types";
-import { parseContentUri } from "@evmcrispr/module-aragonos/utils";
+import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
 import { ErrorInvalid } from "@evmcrispr/sdk";
 import { expect, expectThrowAsync } from "@evmcrispr/test-utils";
 import { multihash } from "is-ipfs";
@@ -12,20 +8,6 @@ const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 
 export const expectHash = (hash: string, message?: string): void => {
   expect(HASH_REGEX.test(hash), message).to.be.true;
-};
-
-export const isValidArtifact = (artifact: AragonArtifact): void => {
-  const { appName, abi, roles } = artifact;
-
-  expect(appName, "Artifact name not found").to.not.be.null;
-
-  expect(abi.length, "Artifact ABI not found").to.be.greaterThan(0);
-
-  roles.forEach(({ bytes, id, name }) => {
-    expectHash(bytes, "Invalid artifact role hash");
-    expect(id, "Artifact role id not found").to.not.be.empty;
-    expect(name, "Artifact role name not found").to.not.be.empty;
-  });
 };
 
 export const isValidIdentifier = (
@@ -87,8 +69,7 @@ export const isValidIdentifier = (
 };
 
 export const isValidParsedApp = (app: ParsedApp): void => {
-  const { address, appId, artifact, codeAddress, contentUri, name, roles } =
-    app;
+  const { address, appId, codeAddress, contentUri, name, roles } = app;
 
   expect(isAddress(address), "Invalid app address").to.be.true;
 
@@ -97,17 +78,11 @@ export const isValidParsedApp = (app: ParsedApp): void => {
   expect(isAddress(codeAddress), "Invalid app code address").to.be.true;
 
   if (contentUri) {
-    expect(multihash(parseContentUri(contentUri)), "Invalid contentUri").to.be
+    expect(multihash(contentUri.split(":").pop()!), "Invalid contentUri").to.be
       .true;
   }
 
   expect(name, "App name missing").to.not.be.empty;
-
-  expect(app).has.property("artifact");
-
-  if (artifact) {
-    isValidArtifact(artifact);
-  }
 
   roles.forEach(({ manager, grantees, roleHash }) => {
     expect(isAddress(manager), "Invalid app role manager").to.be.true;

@@ -1,16 +1,11 @@
-import type { Binding, CustomArgTypes } from "@evmcrispr/sdk";
-import {
-  abiBindingKey,
-  BindingsSpace,
-  ErrorException,
-  fieldItem,
-  IPFSResolver,
-} from "@evmcrispr/sdk";
+import type { CustomArgTypes } from "@evmcrispr/sdk";
+import { ErrorException, fieldItem } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { AragonDAO } from "./AragonDAO";
 import { _aragonEns } from "./helpers/aragonEns";
 import {
+  buildAbiBindings,
   getDAOAppIdentifiers,
   isAppIdentifier,
   isLabeledAppIdentifier,
@@ -22,38 +17,9 @@ import {
   setCachedDAO,
 } from "./utils/completion";
 
-const { ABI } = BindingsSpace;
-
 const isRepoIdentifier = (value: string): boolean => {
   const [, rest] = parsePrefixedDAOIdentifier(value);
   return isAppIdentifier(rest) || isLabeledAppIdentifier(rest);
-};
-
-const buildAbiBindings = (dao: AragonDAO, chainId: number): Binding[] => {
-  const bindings: Binding[] = [];
-  const seen = new Set<string>();
-
-  dao.appCache.forEach((app) => {
-    const addrKey = abiBindingKey(chainId, app.address);
-    if (!seen.has(addrKey)) {
-      seen.add(addrKey);
-      bindings.push({ type: ABI, identifier: addrKey, value: app.abi });
-    }
-
-    if (app.codeAddress) {
-      const codeKey = abiBindingKey(chainId, app.codeAddress);
-      if (!seen.has(codeKey)) {
-        seen.add(codeKey);
-        bindings.push({
-          type: ABI,
-          identifier: codeKey,
-          value: app.abi,
-        });
-      }
-    }
-  });
-
-  return bindings;
 };
 
 export const types: CustomArgTypes = {
@@ -87,11 +53,9 @@ export const types: CustomArgTypes = {
           daoAddress = res;
         }
 
-        const ipfsResolver = new IPFSResolver();
         const dao = await AragonDAO.create(
           daoAddress,
           ctx.client,
-          ipfsResolver,
           1,
           !isAddress(rawValue) ? rawValue : undefined,
         );

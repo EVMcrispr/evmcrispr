@@ -1,0 +1,46 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "UPDATE_SETTINGS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_brightIdContext",
+        "type": "bytes32"
+      },
+      {
+        "name": "_brightIdVerifiers",
+        "type": "address[]"
+      },
+      {
+        "name": "_requiredVerifications",
+        "type": "uint256"
+      },
+      {
+        "name": "_registrationPeriod",
+        "type": "uint256"
+      },
+      {
+        "name": "_verificationTimestampVariance",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

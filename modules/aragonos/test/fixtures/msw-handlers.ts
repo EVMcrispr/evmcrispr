@@ -1,8 +1,7 @@
-import { IPFS_GATEWAY } from "@evmcrispr/sdk";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import type { Address } from "viem";
 import { isAddressEqual } from "viem";
-import { artifacts } from "./artifacts";
+import { abiByAddress, systemAbi } from "./abis";
 import { DAOs, REPOs } from "./subgraph-data";
 
 const handleSubgraphRequest = async ({
@@ -64,24 +63,13 @@ export const aragonosHandlers = [
     "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/4xcBUyAqw61JTtP4SwvTw8f7RgRA6A1bxENatnK9cF33",
     handleSubgraphRequest,
   ),
-  http.get<{ cid: string; resource: string }>(
-    `${IPFS_GATEWAY}:cid/:resource`,
-    ({ params }) => {
-      const { cid, resource } = params;
+  http.get(
+    "https://api.evmcrispr.com/abi/:chainId/:address",
+    ({ params }: { params: { address: string } }) => {
+      const address = params.address.toLowerCase();
+      const abi = abiByAddress[address as keyof typeof abiByAddress];
 
-      try {
-        if (resource === "artifact.json") {
-          const artifact = artifacts[cid as keyof typeof artifacts];
-
-          if (!artifact) {
-            return HttpResponse.error();
-          }
-
-          return HttpResponse.json(artifact);
-        }
-      } catch (err) {
-        console.log(err);
-      }
+      return HttpResponse.json(abi ?? systemAbi);
     },
   ),
 ];

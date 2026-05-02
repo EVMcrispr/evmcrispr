@@ -1,5 +1,4 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
-import type { AbiEvent, AbiFunction } from "viem";
 import type { PermissionMap } from "./permission";
 
 /**
@@ -19,7 +18,7 @@ export interface App {
    */
   codeAddress: Address;
   /**
-   * The IPFS content identifier the app's data is located on.
+   * The app's aragonPM content URI, when available from the subgraph.
    */
   contentUri: string;
   /**
@@ -36,95 +35,18 @@ export interface App {
   registryName: string;
 }
 
-export interface AppMethod {
-  roles: string[];
-  sig: string;
-  params?: any[];
-  /**
-   * This field might not be able if the contract does not use
-   * conventional solidity syntax and Aragon naming standards
-   * null if there in no notice
-   */
-  notice: string | null;
-}
-
-export interface AragonEnvironment {
-  network: string;
-  registry?: string;
-  appName?: string;
-  gasPrice?: string;
-  wsRPC?: string;
-  appId?: string;
-}
-
-export interface AragonEnvironments {
-  [environmentName: string]: AragonEnvironment;
-}
-
-export interface AragonAppJson {
-  roles: AragonArtifactRole[];
-  environments: AragonEnvironments;
-  path: string;
-  dependencies?: {
-    appName: string; // 'vault.aragonpm.eth'
-    version: string; // '^4.0.0'
-    initParam: string; // '_vault'
-    state: string; // 'vault'
-    requiredPermissions: {
-      name: string; // 'TRANSFER_ROLE'
-      params: string; // '*'
-    }[];
-  }[];
-  /**
-   * If the appName is different per network use environments
-   * ```ts
-   * environments: {
-   *   rinkeby: {
-   *     appName: "myapp.open.aragonpm.eth"
-   *   }
-   * }
-   * ```
-   */
-  appName?: string;
-  env?: AragonEnvironment;
-}
-
-export interface AragonArtifact extends AragonAppJson {
-  roles: AragonArtifactRole[];
-  abi: (AbiEvent | AbiFunction)[];
-  /**
-   * All publicly accessible functions
-   * Includes metadata needed for radspec and transaction pathing
-   * initialize() function should also be included for completeness
-   */
-  functions: AppMethod[];
-  /**
-   * Functions that are no longer available at `version`
-   */
-  deprecatedFunctions: {
-    [version: string]: AppMethod[];
-  };
-  /**
-   * The flaten source code of the contracts must be included in
-   * any type of release at this path
-   */
-  flattenedCode: string; // "./code.sol"
-  appId: string;
-  appName: string;
-}
-
-export interface AragonArtifactRole {
-  name: string; // 'Create new payments'
-  id: string; // 'CREATE_PAYMENTS_ROLE'
-  params: string[]; //  ['Token address', ... ]
-  bytes: string; // '0x5de467a460382d13defdc02aacddc9c7d6605d6d4e0b8bd2f70732cae8ea17bc'
+export interface AppRole {
+  name: string;
+  id: string;
+  params: string[];
+  bytes: string;
 }
 
 /** @internal */
-export interface AppArtifact {
+export interface AppResource {
   abi: Abi;
   appName: string;
-  roles: AragonArtifactRole[];
+  roles: AppRole[];
   functions: { sig: string }[];
 }
 
@@ -138,12 +60,6 @@ export interface AppArtifact {
  * When the index is omitted, EVMcrispr assumes you're referencing the app with index zero.
  */
 export type AppIdentifier = string;
-
-/** @internal */
-export interface ArtifactData {
-  abi: Abi;
-  roles: any[];
-}
 
 /**
  * A string similar to [[AppIdentifier]] that follows the format `<AppName>:<Label>` (e.g. `vault:main-org-reserve`):

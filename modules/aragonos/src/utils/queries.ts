@@ -12,7 +12,6 @@ export const REPO = (
     query Repos($repoName: String!, $registryName: String! $versions: [String!]!) {
       repos(where: { name: $repoName, registry_: { name: $registryName } }) {
         lastVersion {
-          artifact
           contentUri
           codeAddress
         }
@@ -20,7 +19,6 @@ export const REPO = (
           name
         }
         versions(where: { semanticVersion_in: $versions }) {
-          artifact
           codeAddress
           contentUri
         }
@@ -57,7 +55,6 @@ export const ORGANIZATION_APPS = (id: string): GraphQLBody => ({
           version {
             codeAddress
             contentUri
-            artifact
           }
         }
       }

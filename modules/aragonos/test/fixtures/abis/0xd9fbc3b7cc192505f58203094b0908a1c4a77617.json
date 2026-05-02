@@ -1,0 +1,106 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CLOSE_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "OPEN_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CONTRIBUTE_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_tokenManager",
+        "type": "address"
+      },
+      {
+        "name": "_reserve",
+        "type": "address"
+      },
+      {
+        "name": "_beneficiary",
+        "type": "address"
+      },
+      {
+        "name": "_contributionToken",
+        "type": "address"
+      },
+      {
+        "name": "_minGoal",
+        "type": "uint256"
+      },
+      {
+        "name": "_maxGoal",
+        "type": "uint256"
+      },
+      {
+        "name": "_period",
+        "type": "uint64"
+      },
+      {
+        "name": "_exchangeRate",
+        "type": "uint256"
+      },
+      {
+        "name": "_vestingCliffPeriod",
+        "type": "uint64"
+      },
+      {
+        "name": "_vestingCompletePeriod",
+        "type": "uint64"
+      },
+      {
+        "name": "_supplyOfferedPct",
+        "type": "uint256"
+      },
+      {
+        "name": "_fundingForBeneficiaryPct",
+        "type": "uint256"
+      },
+      {
+        "name": "_openDate",
+        "type": "uint64"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

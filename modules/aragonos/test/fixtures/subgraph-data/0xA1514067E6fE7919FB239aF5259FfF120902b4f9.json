@@ -5,7 +5,12 @@
         {
           "address": "0x1b75b2adc4fcea2dc946701cdc3abd4fdfa412da",
           "appId": "0xbf8491150dafc5dcaee5b861414dca922de09ccffa344964ae167212e8c673ae",
-          "repo": { "name": "finance", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "finance",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0x30597dd103acfaef0649675953d9cb22faadab7e9d9ed57acc1c429d04b80777",
@@ -37,14 +42,18 @@
           ],
           "version": {
             "codeAddress": "0x3e8c034e8958689799bb486626f3804d815cce97",
-            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk",
-            "artifact": null
+            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk"
           }
         },
         {
           "address": "0x2fa20fa7fc404d35748497c0f28f8fb2f8731336",
           "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
-          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "agent",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
@@ -82,14 +91,18 @@
           ],
           "version": {
             "codeAddress": "0xa6ad366bfd2f43615bbec56f50cf606036fc11fe",
-            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG",
-            "artifact": null
+            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG"
           }
         },
         {
           "address": "0x30c9aa17fc30e4c23a65680a35b33e8f3b4198a2",
           "appId": "0x9fa3927f639745e587912d4b0fea7ef9013bf93fb907d29faeab57417ba6e1d4",
-          "repo": { "name": "voting", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "voting",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0xe7dcd7275292e064d090fbc5f3bd7995be23b502c1fed5cd94cfddbbdcd32bbc",
@@ -103,8 +116,7 @@
           ],
           "version": {
             "codeAddress": "0xd4856cd82cb507b2691bcc3f02d8939671a800c0",
-            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU",
-            "artifact": null
+            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU"
           }
         },
         {
@@ -112,7 +124,9 @@
           "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
           "repo": {
             "name": "token-manager",
-            "registry": { "name": "aragonpm.eth" }
+            "registry": {
+              "name": "aragonpm.eth"
+            }
           },
           "roles": [
             {
@@ -139,8 +153,7 @@
           ],
           "version": {
             "codeAddress": "0x714c925ede405687752c4ad32078137c4f179538",
-            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf",
-            "artifact": null
+            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf"
           }
         },
         {
@@ -148,7 +161,9 @@
           "appId": "0xc908326a9f60d6f7e4deb3b57aeb69ab4f4bab797e52d0c79035775322280b30",
           "repo": {
             "name": "transactions",
-            "registry": { "name": "aragonpm.eth" }
+            "registry": {
+              "name": "aragonpm.eth"
+            }
           },
           "roles": [
             {
@@ -163,14 +178,18 @@
           ],
           "version": {
             "codeAddress": "0xd326ee6c49ed41c12025cf0b2bd4108b9f4cef42",
-            "contentUri": "ipfs:QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn",
-            "artifact": null
+            "contentUri": "ipfs:QmYnhBZeN6BYzZxzFa7L7eAffz4y4zmzJ5PhdEyJ6sNMkn"
           }
         },
         {
           "address": "0x66bf6264c376cf635bab4294f0317161a447199e",
           "appId": "0xbf8491150dafc5dcaee5b861414dca922de09ccffa344964ae167212e8c673ae",
-          "repo": { "name": "finance", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "finance",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0x30597dd103acfaef0649675953d9cb22faadab7e9d9ed57acc1c429d04b80777",
@@ -202,14 +221,18 @@
           ],
           "version": {
             "codeAddress": "0x3e8c034e8958689799bb486626f3804d815cce97",
-            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk",
-            "artifact": null
+            "contentUri": "ipfs:QmcJNTXjdRyeixbpFwd8cmd1XffszD2kiUcCogaiucmtDk"
           }
         },
         {
           "address": "0x749cccd03c00110cf76f4e009c6eaf59b5f2bd0e",
           "appId": "0x9fa3927f639745e587912d4b0fea7ef9013bf93fb907d29faeab57417ba6e1d4",
-          "repo": { "name": "voting", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "voting",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0xad15e7261800b4bb73f1b69d3864565ffb1fd00cb93cf14fe48da8f1f2149f39",
@@ -244,8 +267,7 @@
           ],
           "version": {
             "codeAddress": "0xd4856cd82cb507b2691bcc3f02d8939671a800c0",
-            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU",
-            "artifact": null
+            "contentUri": "ipfs:QmcokWKsf7aHWvUzt5Zn95XTQXGiLZe2ULrtCGfS5mPJiU"
           }
         },
         {
@@ -253,7 +275,9 @@
           "appId": "0x6b20a3010614eeebf2138ccec99f028a61c811b3b1a3343b6ff635985c75c91f",
           "repo": {
             "name": "token-manager",
-            "registry": { "name": "aragonpm.eth" }
+            "registry": {
+              "name": "aragonpm.eth"
+            }
           },
           "roles": [
             {
@@ -268,8 +292,7 @@
           ],
           "version": {
             "codeAddress": "0x714c925ede405687752c4ad32078137c4f179538",
-            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf",
-            "artifact": null
+            "contentUri": "ipfs:QmcDCHLShmtcNiKhu6Z5kYMNN9ekavtTXgrQx8gcZXr2jf"
           }
         },
         {
@@ -327,7 +350,12 @@
         {
           "address": "0xe70494225312c6b1167c15134dab66730f36708d",
           "appId": "0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a",
-          "repo": { "name": "agent", "registry": { "name": "aragonpm.eth" } },
+          "repo": {
+            "name": "agent",
+            "registry": {
+              "name": "aragonpm.eth"
+            }
+          },
           "roles": [
             {
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
@@ -365,8 +393,7 @@
           ],
           "version": {
             "codeAddress": "0xa6ad366bfd2f43615bbec56f50cf606036fc11fe",
-            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG",
-            "artifact": null
+            "contentUri": "ipfs:QmfTtgVcrfUjkReNrWjyt9TJFkhf5ke96QUTW8y2b8kNXG"
           }
         },
         {

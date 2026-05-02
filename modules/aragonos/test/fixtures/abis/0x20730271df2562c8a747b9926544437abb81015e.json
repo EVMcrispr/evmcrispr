@@ -1,0 +1,56 @@
+[
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_tokenManager",
+        "type": "address"
+      },
+      {
+        "name": "_vault1",
+        "type": "address"
+      },
+      {
+        "name": "_vault2",
+        "type": "address"
+      },
+      {
+        "name": "_freezePeriodBlocks",
+        "type": "uint64"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "MIGRATE_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "PREPARE_CLAIMS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

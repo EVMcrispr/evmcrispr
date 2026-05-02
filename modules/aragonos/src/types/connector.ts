@@ -1,5 +1,4 @@
 import type { Address } from "@evmcrispr/sdk";
-import type { AragonArtifact } from "./app";
 
 /**
  * An intermediate app object that contains raw properties
@@ -10,22 +9,12 @@ export interface ParsedApp {
    * The app's address.
    */
   address: Address;
-  /**
-   * The app's Aragon artifact.
-   */
-  artifact: AragonArtifact;
-  /**
-   * The app's id.
-   */
   appId: string;
   /**
    * The app's base contract address.
    */
   codeAddress: Address;
-  /**
-   * The IPFS content identifier the app's data is located on.
-   */
-  contentUri: string;
+  contentUri?: string;
   /**
    * The app's name.
    */
@@ -33,7 +22,7 @@ export interface ParsedApp {
   /**
    * The app's aragonPM ens registry name.
    */
-  registryName: string;
+  registryName?: string;
   /**
    * The app's roles.
    */
@@ -48,13 +37,6 @@ export interface ParsedApp {
  * An object that contains the app's repo data.
  */
 export interface Repo {
-  /**
-   * The repo's app artifact.
-   */
-  artifact: any;
-  /**
-   * The IPFS content identifier the repo's app data is located on.
-   */
   contentUri: string;
   /**
    * The repo's app base contract address.

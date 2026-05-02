@@ -1,12 +1,12 @@
-import type { Address, IPFSResolver } from "@evmcrispr/sdk";
-import { AddressMap } from "@evmcrispr/sdk";
+import type { Abi, Address } from "@evmcrispr/sdk";
+import { AddressMap, fetchAbi } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { getContractAddress, isAddress } from "viem";
 import { Connector } from "./Connector";
 import type {
   App,
-  AppArtifactCache,
   AppCache,
+  AppResourceCache,
   Entity,
   LabeledAppIdentifier,
   ParsedApp,
@@ -15,57 +15,43 @@ import type {
 } from "./types";
 import {
   buildApp,
-  buildAppArtifact,
   buildAppIdentifier,
-  fetchAppArtifact,
+  buildAppResource,
   INITIAL_APP_INDEX,
   normalizeRole,
   resolveIdentifier,
 } from "./utils";
 
-async function buildAppArtifactCache(
+async function buildAppResourceCache(
   apps: ParsedApp[],
-  ipfsResolver: IPFSResolver,
-): Promise<AppArtifactCache> {
-  const appArtifactCache: AppArtifactCache = new AddressMap();
-  const artifactApps = apps.filter((app) => app.artifact);
-  const artifactlessApps = apps.filter(
-    (app) => !app.artifact && app.contentUri,
-  );
-  const contentUris = artifactlessApps.map((app) => app.contentUri);
+  client: PublicClient,
+): Promise<AppResourceCache> {
+  const appResourceCache: AppResourceCache = new AddressMap();
+  const appsByCodeAddress = new AddressMap<ParsedApp>();
 
-  // Construct a contentUri => artifact map
-  const uriToArtifactKeys = [...new Set<string>(contentUris)];
-  const uriToArtifactValues: any[] = await Promise.all(
-    uriToArtifactKeys.map((contentUri) =>
-      fetchAppArtifact(ipfsResolver, contentUri),
-    ),
-  );
-  const uriToArtifactMap = Object.fromEntries(
-    uriToArtifactKeys.map((_, i) => [
-      uriToArtifactKeys[i],
-      uriToArtifactValues[i],
-    ]),
-  );
-
-  // Resolve all content uris to artifacts
-  const artifacts: any[] = contentUris.map((uri) => uriToArtifactMap[uri]);
-
-  artifactlessApps.forEach(({ codeAddress }, index) => {
-    const artifact = artifacts[index];
-
-    if (!appArtifactCache.has(codeAddress)) {
-      appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
+  apps.forEach((app) => {
+    if (!appsByCodeAddress.has(app.codeAddress)) {
+      appsByCodeAddress.set(app.codeAddress, app);
     }
   });
 
-  artifactApps.forEach(({ artifact, codeAddress }) => {
-    if (!appArtifactCache.has(codeAddress)) {
-      appArtifactCache.set(codeAddress, buildAppArtifact(artifact));
-    }
-  });
+  await Promise.all(
+    [...appsByCodeAddress.values()].map(async (app) => {
+      let abi: Abi = [];
+      try {
+        [, abi] = await fetchAbi(app.codeAddress, client);
+      } catch {
+        // Keep the app resolvable even when the ABI API has no metadata.
+      }
 
-  return appArtifactCache;
+      appResourceCache.set(
+        app.codeAddress,
+        buildAppResource(app.name, app.registryName ?? "aragonpm.eth", abi),
+      );
+    }),
+  );
+
+  return appResourceCache;
 }
 
 async function buildAppCache(apps: App[]): Promise<AppCache> {
@@ -109,18 +95,18 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
 
 export class AragonDAO {
   #appCache: AppCache;
-  #appArtifactCache: AppArtifactCache;
+  #appResourceCache: AppResourceCache;
   #name?: string;
   #nestingIndex: number;
 
   constructor(
     appCache: AppCache,
-    appArtifactCache: AppArtifactCache,
+    appResourceCache: AppResourceCache,
     nestingIndex: number,
     name?: string,
   ) {
     this.#appCache = appCache;
-    this.#appArtifactCache = appArtifactCache;
+    this.#appResourceCache = appResourceCache;
     this.#name = name;
     this.#nestingIndex = nestingIndex;
   }
@@ -129,8 +115,8 @@ export class AragonDAO {
     return this.#appCache;
   }
 
-  get appArtifactCache(): AppArtifactCache {
-    return this.#appArtifactCache;
+  get appResourceCache(): AppResourceCache {
+    return this.#appResourceCache;
   }
 
   get kernel(): App {
@@ -148,16 +134,12 @@ export class AragonDAO {
   static async create(
     daoAddress: Address,
     client: PublicClient,
-    ipfsResolver: IPFSResolver,
     index: number,
     name?: string,
   ): Promise<AragonDAO> {
     const connector = new Connector(await client.getChainId(), client);
     const parsedApps = await connector.organizationApps(daoAddress);
-    const appResourcesCache = await buildAppArtifactCache(
-      parsedApps,
-      ipfsResolver,
-    );
+    const appResourcesCache = await buildAppResourceCache(parsedApps, client);
     const apps = (
       await Promise.all(
         parsedApps.map((parsedApp: ParsedApp) =>
@@ -239,7 +221,7 @@ export class AragonDAO {
 
     return new AragonDAO(
       clonedAppCache,
-      this.#appArtifactCache,
+      this.#appResourceCache,
       this.#nestingIndex,
       this.#name,
     );

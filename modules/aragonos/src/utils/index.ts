@@ -1,5 +1,6 @@
 export * from "./acl";
 export * from "./apps";
+export * from "./bindings";
 export * from "./commands";
 export * from "./completion";
 export * from "./evmscripts";
@@ -7,7 +8,6 @@ export * from "./factories";
 export * from "./forwarders";
 export * from "./identifiers";
 export * from "./interfaces";
-export * from "./ipfs";
 export * from "./nonces";
 export * from "./normalizers";
 export * from "./parsers";

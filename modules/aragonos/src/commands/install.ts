@@ -6,6 +6,7 @@ import {
   ErrorException,
   encodeAction,
   encodeCalldata,
+  fetchAbi,
   getOptValue,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -13,11 +14,10 @@ import { getAbiItem, hexToString, namehash } from "viem";
 import type AragonOS from "..";
 import type { AragonDAO } from "../AragonDAO";
 import { _aragonEns } from "../helpers/aragonEns";
-import type { App, AppArtifact } from "../types";
+import type { App, AppResource } from "../types";
 import {
-  buildAppArtifact,
   buildAppPermissions,
-  fetchAppArtifact,
+  buildAppResource,
   parseLabeledAppIdentifier,
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
@@ -72,11 +72,11 @@ const fetchRepoData = async (
 const setApp = (
   dao: AragonDAO,
   app: App,
-  artifact: AppArtifact,
+  resource: AppResource,
   bindingsManager: BindingsManager,
   chainId: number,
 ): void => {
-  dao.appArtifactCache.set(app.codeAddress, artifact);
+  dao.appResourceCache.set(app.codeAddress, resource);
   dao.appCache.set(app.name, app);
 
   bindingsManager.setBinding(
@@ -142,31 +142,29 @@ export default defineCommand<AragonOS>({
       throw new ErrorException(`identifier ${identifier} is already in use.`);
     }
 
+    const client = await module.getClient();
     const { codeAddress, contentUri } = await fetchRepoData(
       appName,
       registry,
       version ?? "latest",
-      await module.getClient(),
+      client,
       module.getConfigBinding("ensResolver"),
     );
 
     const daos = module.allDAOs;
-    const selectedDAOArtifacts = daos
-      .filter((dao) => dao.appArtifactCache.has(codeAddress))
-      .map((dao) => dao.appArtifactCache.get(codeAddress)!);
-    let artifact: AppArtifact;
+    const selectedDAOResources = daos
+      .filter((dao) => dao.appResourceCache.has(codeAddress))
+      .map((dao) => dao.appResourceCache.get(codeAddress)!);
+    let resource: AppResource;
 
-    if (!selectedDAOArtifacts.length) {
-      const rawArtifact = await fetchAppArtifact(
-        module.ipfsResolver,
-        contentUri,
-      );
-      artifact = buildAppArtifact(rawArtifact);
+    if (!selectedDAOResources.length) {
+      const [, abi] = await fetchAbi(codeAddress, client);
+      resource = buildAppResource(appName, registry, abi);
     } else {
-      artifact = selectedDAOArtifacts[0];
+      resource = selectedDAOResources[0];
     }
 
-    const { abi, roles } = artifact;
+    const { abi, roles } = resource;
     const kernel = dao.kernel;
     const initParams = params as any[];
 
@@ -210,7 +208,7 @@ export default defineCommand<AragonOS>({
         permissions: buildAppPermissions(roles, []),
         registryName: registry,
       },
-      artifact,
+      resource,
       module.bindingsManager,
       chainId,
     );
