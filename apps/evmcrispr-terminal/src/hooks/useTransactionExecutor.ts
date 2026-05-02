@@ -134,7 +134,6 @@ export function useTransactionExecutor(
           }
 
           case "wallet": {
-            onStatusUpdate(`Requesting wallet: ${action.method}`);
             if (action.method === "wallet_switchEthereumChain") {
               if (walletClient) {
                 const chainId = Number(action.params[0].chainId);
