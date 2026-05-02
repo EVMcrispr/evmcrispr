@@ -38,36 +38,6 @@
     "msw": "^2.3.5",
     "viem": "^2.21.0"
   },
-  "peerDependencies": {
-    "@evmcrispr/core": "workspace:*",
-    "@evmcrispr/sdk": "workspace:*",
-    "@evmcrispr/module-aragonos": "workspace:*",
-    "@evmcrispr/module-ens": "workspace:*",
-    "@evmcrispr/module-giveth": "workspace:*",
-    "@evmcrispr/module-sim": "workspace:*",
-    "@evmcrispr/module-http": "workspace:*",
-    "@evmcrispr/module-lang": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@evmcrispr/module-aragonos": {
-      "optional": true
-    },
-    "@evmcrispr/module-ens": {
-      "optional": true
-    },
-    "@evmcrispr/module-giveth": {
-      "optional": true
-    },
-    "@evmcrispr/module-sim": {
-      "optional": true
-    },
-    "@evmcrispr/module-http": {
-      "optional": true
-    },
-    "@evmcrispr/module-lang": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@types/chai": "^5.2.3",
     "bun-types": "^1.3.9"
