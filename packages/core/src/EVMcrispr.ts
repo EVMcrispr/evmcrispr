@@ -28,6 +28,7 @@ import {
 import type { Address, Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
+import { mainnet } from "viem/chains";
 
 import {
   getCompletions as getCompletionsImpl,
@@ -103,7 +104,7 @@ export class EVMcrispr {
   #modules: Module[];
   #nonces: Record<string, number>;
   #account: Address | undefined;
-  #chainId: number | undefined;
+  #chainId: number;
   #chain: Chain | undefined;
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
@@ -134,16 +135,16 @@ export class EVMcrispr {
    *  command resolver. Built lazily once `interpretNode` is available. */
   #executeWithCaptures!: ReturnType<typeof makeExecuteWithCaptures>;
 
-  constructor(
-    client?: PublicClient,
-    account?: Address,
-    transports?: Record<number, Transport>,
-  ) {
+  constructor(account?: Address, transports?: Record<number, Transport>) {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
-    this.#client = client;
-    this.#chain = (client as any)?.chain as Chain | undefined;
+    this.#chainId = mainnet.id;
+    this.#chain = mainnet;
+    this.#client = createPublicClient({
+      chain: mainnet,
+      transport: transports?.[mainnet.id] ?? http(),
+    }) as PublicClient;
     this.#account = account;
     this.#logListeners = [];
     this.#lineListeners = [];
@@ -454,9 +455,9 @@ export class EVMcrispr {
       script,
       position,
       this.#moduleCache,
-      this.#client,
       this.#createHelperResolver(),
       this.#transports,
+      this.#chainId,
     );
   }
 
@@ -476,7 +477,7 @@ export class EVMcrispr {
     // (eth_getCode etc.) hit the same chain we report in the card. After a
     // `switch` in the script, `#scriptClient` points at the switched-to
     // chain even though `#client` still points at the constructor chain.
-    const chainId = this.#scriptChainId ?? this.#chainId ?? this.#chain?.id;
+    const chainId = this.#scriptChainId ?? this.#chainId;
     const client =
       this.#scriptChainId != null && this.#scriptClient
         ? this.#scriptClient
@@ -515,9 +516,9 @@ export class EVMcrispr {
         script,
         Number.POSITIVE_INFINITY,
         this.#moduleCache,
-        this.#client,
         this.#createHelperResolver(),
         this.#transports,
+        this.#chainId,
       );
 
       if (sequence !== this.#prewarmSequence) return;
@@ -574,16 +575,19 @@ export class EVMcrispr {
   // ---------------------------------------------------------------------------
 
   async getChainId(): Promise<number> {
-    const chainId =
-      this.#chainId ?? (await this.#getClient().then((c) => c.getChainId()));
-    if (!chainId) {
-      throw Error("No chain id found");
-    }
-    return chainId;
+    return this.#chainId;
   }
 
-  setClient(client: PublicClient | undefined): void {
+  setClient(client: PublicClient): void {
     this.#client = client;
+    // Track the client's chain so subsequent helpers / commands see the
+    // right chain id. Used by `sim:fork` to swap the active client to a
+    // forked chain mid-execution.
+    const chain = (client as any)?.chain as Chain | undefined;
+    if (chain) {
+      this.#chain = chain;
+      this.#chainId = chain.id;
+    }
     // Invalidate any prewarmed switched-to client, since the user is
     // explicitly choosing a new base client.
     this.#scriptClient = undefined;
@@ -610,26 +614,26 @@ export class EVMcrispr {
     return this.#chain;
   }
 
-  async switchChainId(chainId: number): Promise<PublicClient> {
+  switchChainId(chainId: number): PublicClient {
     this.#chainId = chainId;
 
     const chain = Object.values(viemChains).find(
       (c) => (c as Chain).id === chainId,
     ) as Chain | undefined;
     this.#chain = chain;
-    if (chain) {
-      this.#client = createPublicClient({
-        chain,
-        transport: this.#transports?.[chainId] ?? http(),
-      }) as PublicClient;
-    } else {
-      this.#client = undefined;
-    }
+    const client = chain
+      ? (createPublicClient({
+          chain,
+          transport: this.#transports?.[chainId] ?? http(),
+        }) as PublicClient)
+      : undefined;
+    this.#client = client;
     // Drop any prewarmed switched-to client; the next prewarm will
     // recompute from the new base client.
     this.#scriptClient = undefined;
 
-    return this.getClient();
+    if (!client) throw Error("No client available");
+    return client;
   }
 
   // ---------------------------------------------------------------------------

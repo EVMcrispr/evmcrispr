@@ -5,10 +5,11 @@ import {
   describeCommand,
   EVMcrispr,
   expect,
-  getPublicClient,
+  getTransports,
   getWalletClients,
 } from "@evmcrispr/test-utils";
-import type { PublicClient, WalletClient } from "viem";
+import type { WalletClient } from "viem";
+import { gnosis } from "viem/chains";
 
 describeCommand("sign", {
   describeName: "Std > commands > sign <$variable> <message> [--typed <json>]",
@@ -42,18 +43,17 @@ describeCommand("sign", {
 });
 
 describe("Std > commands > sign > with wallet", () => {
-  let client: PublicClient;
   let walletClient: WalletClient;
 
   beforeAll(() => {
-    client = getPublicClient();
     walletClient = getWalletClients()[0];
   });
 
   it("should sign a personal message and store the signature", async () => {
     const script = 'sign $sig "hello world"';
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isWalletAction(action) && action.method === "personal_sign") {
@@ -77,7 +77,8 @@ describe("Std > commands > sign > with wallet", () => {
     const script = `sign $sig "hello world"
 set $ok @sigValid(@me "hello world" $sig)`;
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isWalletAction(action) && action.method === "personal_sign") {
@@ -107,7 +108,8 @@ set $ok @sigValid(@me "hello world" $sig)`;
 
     const script = `sign $sig --typed '${typedData}'`;
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isWalletAction(action) && action.method === "eth_signTypedData_v4") {
@@ -141,7 +143,8 @@ set $ok @sigValid(@me "hello world" $sig)`;
     const script = `sign $sig --typed '${typedData}'
 set $ok @sigValid(@me '${typedData}' $sig)`;
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isWalletAction(action) && action.method === "eth_signTypedData_v4") {

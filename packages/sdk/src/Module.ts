@@ -147,7 +147,7 @@ export abstract class Module {
     return this.context.getChain();
   }
 
-  async switchChainId(chainId: number): Promise<PublicClient> {
+  switchChainId(chainId: number): PublicClient {
     return this.context.switchChainId(chainId);
   }
 

@@ -13,6 +13,7 @@ import {
   EVMcrispr,
   expect,
   getPublicClient,
+  getTransports,
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import type { PublicClient, WalletClient } from "viem";
@@ -192,7 +193,8 @@ describe("Std > commands > exec > event capture", () => {
     `;
 
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isTransactionAction(action)) {
@@ -225,7 +227,8 @@ batch (
     `;
 
     const account = walletClient.account!;
-    const evm = new EVMcrispr(client, account.address);
+    const evm = new EVMcrispr(account.address, getTransports());
+    evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
       if (isTransactionAction(action)) {

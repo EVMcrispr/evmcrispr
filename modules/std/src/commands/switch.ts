@@ -16,7 +16,7 @@ export default defineCommand<Std>({
   async run(module, { networkNameOrId }): Promise<WalletAction[]> {
     const chainId = resolveChainId(networkNameOrId);
 
-    await module.switchChainId(chainId);
+    module.switchChainId(chainId);
 
     return [
       {

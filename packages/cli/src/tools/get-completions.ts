@@ -5,6 +5,6 @@ export async function getCompletions(
   line: number,
   col: number,
 ) {
-  const { evm } = createEVMcrisprInstance();
+  const { evm } = await createEVMcrisprInstance();
   return evm.getCompletions(script, { line, col });
 }

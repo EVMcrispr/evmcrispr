@@ -2,8 +2,9 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { Address, PublicClient } from "viem";
+import { EVMcrispr, expect, getTransports } from "@evmcrispr/test-utils";
+import type { Address } from "viem";
+import { gnosis } from "viem/chains";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -29,8 +30,8 @@ describe("Completions – std exec ABI fetching", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
+    evm.switchChainId(gnosis.id);
   });
 
   it("exec <wxdai-address> <cursor> should fetch ABI and show function signatures", async () => {
@@ -150,8 +151,8 @@ describe("Completions – @get read-abi ABI fetching", () => {
   });
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
+    evm.switchChainId(gnosis.id);
   });
 
   it("@get(<wxdai-address> <cursor>) should show view/pure functions with return types", async () => {

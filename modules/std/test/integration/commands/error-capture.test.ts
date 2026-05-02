@@ -10,6 +10,7 @@ import {
   EVMcrispr,
   expect,
   getPublicClient,
+  getTransports,
   getWalletClients,
   resetAnvil,
 } from "@evmcrispr/test-utils";
@@ -97,7 +98,9 @@ function createActionCallback(
 }
 
 function newEvm() {
-  return new EVMcrispr(client, walletClient.account!.address);
+  const evm = new EVMcrispr(walletClient.account!.address, getTransports());
+  evm.switchChainId(gnosis.id);
+  return evm;
 }
 
 let actionCallback: (action: Action) => Promise<any>;

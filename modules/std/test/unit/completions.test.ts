@@ -5,7 +5,7 @@ import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
   expect,
-  getPublicClient,
+  getTransports,
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_BOOL_HELPERS,
@@ -13,7 +13,6 @@ import {
   STD_BYTES32_HELPERS,
   STD_NUMBER_HELPERS,
 } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -46,8 +45,7 @@ describe("Completions – std commands", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
   });
 
   // -------------------------------------------------------------------------
@@ -383,8 +381,7 @@ describe("Completions – std helpers", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
   });
 
   const ALL_HELPERS = STD_ALL_HELPERS;

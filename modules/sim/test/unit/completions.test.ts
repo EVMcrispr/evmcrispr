@@ -2,8 +2,7 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { EVMcrispr, expect } from "@evmcrispr/test-utils";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -33,8 +32,7 @@ describe("Completions – sim commands", () => {
   const SIM = "load sim\n";
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   // -------------------------------------------------------------------------

@@ -5,13 +5,13 @@ import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
   expect,
-  getPublicClient,
+  getTransports,
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_BYTES32_HELPERS,
   STD_NUMBER_HELPERS,
 } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
 import { DAO } from "../fixtures";
 
 // ---------------------------------------------------------------------------
@@ -52,8 +52,8 @@ describe("Completions – aragonos commands", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
+    evm.switchChainId(gnosis.id);
   });
 
   // -------------------------------------------------------------------------
@@ -434,8 +434,8 @@ describe("Completions – aragonos helpers", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr(undefined, getTransports());
+    evm.switchChainId(gnosis.id);
   });
 
   const ALL_HELPERS = [

@@ -35,7 +35,7 @@ export async function simulateEvml(args: {
 }> {
   const from = args.from as Address | undefined;
 
-  const { evm, logs } = createEVMcrisprInstance({
+  const { evm, logs } = await createEVMcrisprInstance({
     chainId: args.chainId,
     rpcUrl: args.rpcUrl,
     from,

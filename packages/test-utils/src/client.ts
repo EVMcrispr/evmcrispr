@@ -10,15 +10,27 @@ export function getPublicClient() {
 }
 
 /**
- * Build a transports map for cross-chain helpers (e.g. @ens resolving on mainnet).
- * Uses the DRPC API key from the environment when available.
+ * Build a transports map for the chains the tests touch.
+ *
+ * Gnosis is ALWAYS routed at the local anvil fork because that's where
+ * `getWalletClients()` sends transactions. Routing it anywhere else —
+ * e.g. through DRPC — causes `getTransactionCount(...)` reads to see
+ * the real upstream chain state while writes land on anvil, which
+ * desyncs nonce predictions (e.g. `aragonos:new-token`'s predicted
+ * token address ends up at the upstream factory's nonce instead of
+ * anvil's, so the follow-up `changeController` reverts).
+ *
+ * Mainnet is for cross-chain helpers (e.g. `@ens` resolving). It uses
+ * DRPC when a key is present, otherwise falls through to anvil so
+ * unit tests stay offline-runnable.
  */
 export function getTransports(): Record<number, Transport> {
   const drpcKey = process.env.VITE_DRPC_API_KEY;
-  if (!drpcKey) return {};
   return {
-    [mainnet.id]: http(`https://lb.drpc.live/ethereum/${drpcKey}`),
-    [gnosis.id]: http(`https://lb.drpc.live/gnosis/${drpcKey}`),
+    [mainnet.id]: drpcKey
+      ? http(`https://lb.drpc.live/ethereum/${drpcKey}`)
+      : transport,
+    [gnosis.id]: transport,
   };
 }
 

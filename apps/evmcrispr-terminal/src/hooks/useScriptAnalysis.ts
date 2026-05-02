@@ -1,6 +1,5 @@
 import { EVMcrispr, type ParseDiagnostic } from "@evmcrispr/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePublicClient } from "wagmi";
 import { transports } from "../config/wagmi";
 import { useDebounce } from "./useDebounce";
 
@@ -31,12 +30,7 @@ type Position = { line: number; col: number };
  * - `diagnostics`: parse-time errors (re-computed on debounced changes)
  */
 export function useScriptAnalysis(script: string) {
-  const client = usePublicClient();
-
-  const evm = useMemo(
-    () => new EVMcrispr(client, undefined, transports),
-    [client],
-  );
+  const evm = useMemo(() => new EVMcrispr(undefined, transports), []);
 
   const debouncedScript = useDebounce(script, SCRIPT_DEBOUNCE_MS);
 

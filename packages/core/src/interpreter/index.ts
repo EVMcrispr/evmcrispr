@@ -656,11 +656,44 @@ export function makeExecuteWithCaptures(
     return undefined;
   };
 
+  // Stamp the current chain id on any TransactionAction that doesn't
+  // already carry one. Commands like `exec` build their actions via
+  // `encodeAction` without knowing what chain they run on; the chain
+  // is whatever EVMcrispr's `#chainId` is at execution time. The
+  // terminal executor uses `action.chainId` to pick the right chain
+  // when sending a transaction (so the wallet can be on a different
+  // chain than the one the script targets).
+  //
+  // Only stamp when an `actionCallback` is provided — i.e. the actions
+  // are actually about to be executed against a wallet. Without a
+  // callback, `interpret()` is being used for structural inspection
+  // (tests, dry-runs, doc generation) where adding `chainId` would
+  // bloat fixtures with no benefit.
+  //
+  // We let `getClient()` failures propagate: if the script `switch`ed to
+  // a chain we don't know how to build a client for, surfacing the error
+  // here is far more useful than letting the executor send the tx to
+  // whatever chain the wallet happens to be on.
+  const stampChainId = async (actions: Action[] | void): Promise<void> => {
+    if (!actions || actions.length === 0) return;
+    let chainId: number | undefined;
+    for (const action of actions) {
+      if (isTransactionAction(action) && action.chainId === undefined) {
+        if (chainId === undefined) {
+          chainId = await getClient().then((c) => c.getChainId());
+        }
+        action.chainId = chainId;
+      }
+    }
+  };
+
   return async (c, res, actionCallback) => {
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
     const hasErrorCaptures =
       c.errorCaptures != null && c.errorCaptures.length > 0;
+
+    if (actionCallback) await stampChainId(res);
 
     if (!hasEventCaptures && !hasErrorCaptures) {
       if (res && actionCallback) {

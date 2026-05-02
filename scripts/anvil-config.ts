@@ -1,6 +1,11 @@
 import { resolve } from "node:path";
 
-export const FORK_BLOCK_NUMBER = 34630239;
+/**
+ * Pinned gnosis fork block. Bump occasionally to keep DRPC's cache hot —
+ * very old blocks force every state read to walk the archive, which
+ * backs up anvil 1.5.x's upstream request queue and deadlocks it.
+ */
+export const FORK_BLOCK_NUMBER = 45900000;
 export const CHAIN_ID = 100;
 export const ANVIL_URL = "http://127.0.0.1:8545";
 

@@ -1,24 +1,19 @@
 import "../setup";
-import { beforeAll, describe, it } from "bun:test";
+import { describe, it } from "bun:test";
 import { BindingsSpace } from "@evmcrispr/sdk";
 import {
   expect,
-  getPublicClient,
   getTransports,
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
 import { EVMcrispr } from "../../src/EVMcrispr";
 
 describe("Core > EVMcrispr", () => {
-  let client: PublicClient;
-
-  beforeAll(() => {
-    client = getPublicClient();
-  });
-
   function createEvm() {
-    return new EVMcrispr(client, TEST_ACCOUNT_ADDRESS, getTransports());
+    const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
+    evm.switchChainId(gnosis.id);
+    return evm;
   }
 
   describe("interpret()", () => {
@@ -140,7 +135,7 @@ describe("Core > EVMcrispr", () => {
     });
 
     it("should throw when no account is set", async () => {
-      const evm = new EVMcrispr(client);
+      const evm = new EVMcrispr();
       try {
         await evm.getConnectedAccount();
         throw new Error("expected to throw");
@@ -166,7 +161,7 @@ describe("Core > EVMcrispr", () => {
 
     it("should switch chain via switchChainId", async () => {
       const evm = createEvm();
-      const newClient = await evm.switchChainId(1);
+      const newClient = evm.switchChainId(1);
       expect(newClient).to.not.be.undefined;
       const chainId = await evm.getChainId();
       expect(chainId).to.equal(1);

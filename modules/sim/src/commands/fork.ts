@@ -23,6 +23,13 @@ import {
   type EthereumJSBackend,
 } from "../lib/ethereumjs-backend";
 
+/** Loose equality for RPC URLs that should be treated as the same node. */
+function isSameLocalRpc(a: string, b: string): boolean {
+  const normalize = (u: string) =>
+    u.toLowerCase().replace(/\/+$/, "").replace("://localhost", "://127.0.0.1");
+  return normalize(a) === normalize(b);
+}
+
 export default defineCommand<Sim>({
   name: "fork",
   description: "Fork the blockchain and execute commands in a simulation.",
@@ -95,11 +102,33 @@ export default defineCommand<Sim>({
         transport: http(rpcUrl),
       });
 
+      // Resolve the URL we'll feed back into anvil/hardhat as the fork
+      // source. If the user-configured upstream points at the same node
+      // we're about to reset (e.g. test setups where the chain transport
+      // already targets the local anvil fork), asking it to fork from
+      // itself deadlocks. Query the node for its real upstream instead.
+      let forkingJsonRpcUrl: string | undefined = upstreamRpcUrl;
+      if (
+        using === "anvil" &&
+        forkingJsonRpcUrl &&
+        isSameLocalRpc(forkingJsonRpcUrl, rpcUrl)
+      ) {
+        try {
+          const nodeInfo = (await walletClient.request({
+            method: "anvil_nodeInfo" as any,
+            params: [] as any,
+          })) as { forkConfig?: { forkUrl?: string } } | undefined;
+          forkingJsonRpcUrl = nodeInfo?.forkConfig?.forkUrl;
+        } catch {
+          forkingJsonRpcUrl = undefined;
+        }
+      }
+
       // Reset the node to fork from the upstream RPC at the desired block
       const resetMethod = using === "anvil" ? "anvil_reset" : "hardhat_reset";
       const resetParams: any[] = [];
-      if (upstreamRpcUrl) {
-        const forkingConfig: any = { jsonRpcUrl: upstreamRpcUrl };
+      if (forkingJsonRpcUrl) {
+        const forkingConfig: any = { jsonRpcUrl: forkingJsonRpcUrl };
         if (blockNumber) {
           forkingConfig.blockNumber = Number(blockNumber.toString());
         }
@@ -382,7 +411,12 @@ export default defineCommand<Sim>({
     });
 
     module.mode = null;
-    module.context.setClient(undefined);
+    // Restore the pre-fork chain so the rest of the script doesn't see the
+    // simulated client. `chainId` was captured at the top of `run()` from
+    // the script's chain at fork-entry time (preserves any preceding
+    // `switch` the script performed). `switchChainId` rebuilds the client
+    // from the configured transports for that chain.
+    module.context.switchChainId(chainId);
     module.context.setConnectedAccount(undefined);
 
     onSuccess?.();

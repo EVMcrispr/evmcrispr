@@ -25,10 +25,12 @@ import {
   variableItem,
 } from "@evmcrispr/sdk";
 import type { PublicClient, Transport } from "viem";
+import { mainnet } from "viem/chains";
 
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 import {
+  clientForChain,
   collectCustomTypes,
   createNodeResolver,
   resolveCommandNode,
@@ -223,10 +225,20 @@ export async function getCompletions(
   script: string,
   position: Position,
   moduleCache: BindingsManager,
-  client?: PublicClient,
   resolveHelper?: HelperResolver,
   transports?: Record<number, Transport>,
+  initialChainId: number = mainnet.id,
 ): Promise<CompletionItem[]> {
+  // The walk starts on the caller-provided chain (defaults to mainnet)
+  // and advances `state` in place when it sees a `switch` command, so
+  // completions for code under a `switch optimism` block will see
+  // chain id 10. The caller (EVMcrispr) typically passes its own
+  // `#chainId` so completions match what the script actually runs
+  // against (e.g. tests forking gnosis pass 100).
+  const client: PublicClient | undefined = clientForChain(
+    initialChainId,
+    transports,
+  );
   // 1. Parse the full script
   const scriptLines = script.split("\n");
   const currentLineContent = scriptLines[position.line - 1] ?? "";
@@ -426,12 +438,6 @@ export async function getCompletions(
   // computed, but with each `set` rhs resolved against the chain it
   // was actually written under (mainnet WETH stays a mainnet address
   // even after the script switches to optimism later on).
-  let initialChainId = 0;
-  try {
-    initialChainId = (await client?.getChainId()) ?? 0;
-  } catch {
-    // RPC unavailable — proceed with chainId 0
-  }
   const state: WalkChainState = {
     chainId: initialChainId,
     client,

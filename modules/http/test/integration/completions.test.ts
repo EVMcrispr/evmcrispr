@@ -2,8 +2,7 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getPublicClient } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
+import { EVMcrispr, expect } from "@evmcrispr/test-utils";
 
 const onlyKind = (
   items: CompletionItem[],
@@ -28,8 +27,7 @@ describe("Completions – @json json-path autocomplete", () => {
   const TOKENLIST_URL = "https://api.evmcrispr.com/tokenlist/1";
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   it('@json(@fetch(url) "$.<cursor>") should suggest root-level keys without suffix', async () => {

@@ -5,14 +5,12 @@ import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
   expect,
-  getPublicClient,
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_BYTES_HELPERS,
   STD_BYTES32_HELPERS,
   STD_NUMBER_HELPERS,
 } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -43,8 +41,7 @@ describe("Completions – ens commands", () => {
   const ENS = "load ens\n";
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   // -------------------------------------------------------------------------
@@ -92,8 +89,7 @@ describe("Completions – ens helpers", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   const ENS_HELPERS = ["@contenthash", "@ens.avatar", "@ens.name", "@ens.text"];

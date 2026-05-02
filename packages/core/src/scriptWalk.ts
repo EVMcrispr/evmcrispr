@@ -1,4 +1,5 @@
 import type {
+  BarewordNode,
   BlockExpressionNode,
   CommandExpressionNode,
   CompletionContext,
@@ -11,18 +12,22 @@ import type {
   ModuleBinding,
   Node,
   NoNullableBinding,
+  NumericLiteralNode,
+  StringLiteralNode,
 } from "@evmcrispr/sdk";
 import {
   BindingsManager,
   BindingsSpace,
   hasCommandsBlock,
   isBuiltinType,
+  isNum,
   NodeType,
   resolveCommand,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
+import { mainnet } from "viem/chains";
 
 import type { EvmlAST } from "./EvmlAST";
 import { createInterpreter, type InterpretCtx } from "./interpreter";
@@ -42,14 +47,77 @@ const nameToChainId: Record<string, number> = Object.entries(viemChains).reduce(
   {} as Record<string, number>,
 );
 
-/** Resolve a `switch` command's argument to a chain ID, or return undefined. */
+function chainIdFromStaticValue(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  if (isNum(raw)) {
+    const n = Number(String(raw));
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  if (typeof raw === "string") {
+    const n = Number(raw);
+    if (Number.isInteger(n) && n > 0) return n;
+    return nameToChainId[raw];
+  }
+  return undefined;
+}
+
+/** Rhs literals we reuse for `$var` lookups when pre-warming `switch`. */
+function extractLiteralSetRhs(node: Node): string | number | undefined {
+  switch (node.type) {
+    case NodeType.Bareword:
+      return (node as BarewordNode).value;
+    case NodeType.StringLiteral:
+      return (node as StringLiteralNode).value;
+    case NodeType.NumberLiteral: {
+      const nl = node as NumericLiteralNode;
+      if (nl.power != null || (nl.timeUnit != null && nl.timeUnit !== "s")) {
+        return undefined;
+      }
+      const v = Number(String(nl.value));
+      return Number.isInteger(v) && v > 0 ? v : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+/** Record literal `std:set $name <rhs>` for static chain prep. */
+function tryApplyLiteralStdSet(
+  bindings: BindingsManager,
+  c: CommandExpressionNode,
+): void {
+  if ((c.module ?? "std") !== "std" || c.name !== "set") return;
+  const lhs = c.args[0];
+  const rhs = c.args[1];
+  if (!lhs || lhs.type !== NodeType.VariableIdentifier) return;
+  if (!rhs) return;
+  const lit = extractLiteralSetRhs(rhs);
+  if (lit === undefined) return;
+  const bindingValue: string = typeof lit === "number" ? String(lit) : lit;
+  bindings.setBinding(lhs.value, bindingValue, USER, false, undefined, true);
+}
+
+/** Resolve a `switch` command's argument to a chain ID, or return undefined.
+ *  Honors USER bindings produced by preceding literal `std:set` commands when
+ *  the argument is `$variable`.
+ */
 export function resolveSwitchChainId(
   commandNode: CommandExpressionNode,
-  _bindings: BindingsManager,
+  bindings: BindingsManager,
 ): number | undefined {
   if (commandNode.name !== "switch") return undefined;
   const argNode = commandNode.args[0];
   if (!argNode) return undefined;
+
+  if (argNode.type === NodeType.VariableIdentifier) {
+    const key = argNode.value;
+    const bound =
+      bindings.getBindingValue(key, USER) ??
+      (key.startsWith("$")
+        ? undefined
+        : bindings.getBindingValue(`$${key}`, USER));
+    return chainIdFromStaticValue(bound);
+  }
 
   const raw = argNode.value;
   if (raw == null) return undefined;
@@ -60,7 +128,70 @@ export function resolveSwitchChainId(
   return undefined;
 }
 
-/** Create a PublicClient for the given chain ID, or return undefined. */
+/** Walk `EvmlAST.getAllCommandsUntilLine` order: apply literal `set`s,
+ * collect every resolved `switch` chain id for wallet pre-add / prep.
+ * When the first AST body stmt is `switch`, `leadingSwitchChainId`
+ * resolves it with literal `std:set`s that appear earlier in DFS pre-order.
+ */
+export function collectPreparedSwitchTargets(
+  allCommands: CommandExpressionNode[],
+  firstBodyStatement?: CommandExpressionNode,
+): {
+  orderedSwitchChainIds: number[];
+  leadingSwitchChainId: number | undefined;
+} {
+  const bindings = new BindingsManager();
+  const orderedSwitchChainIds: number[] = [];
+  let leadingSwitchChainId: number | undefined;
+
+  for (const c of allCommands) {
+    tryApplyLiteralStdSet(bindings, c);
+
+    if (firstBodyStatement?.name === "switch" && c === firstBodyStatement) {
+      leadingSwitchChainId = resolveSwitchChainId(c, bindings);
+    }
+
+    if (c.name === "switch" && (c.module ?? "std") === "std") {
+      const id = resolveSwitchChainId(c, bindings);
+      if (id !== undefined) orderedSwitchChainIds.push(id);
+    }
+  }
+
+  return { orderedSwitchChainIds, leadingSwitchChainId };
+}
+
+/** Pretty token accepted by `switch` for messaging (decimal id **or**
+ * a viem `chains/*` export name). Pick the shortest alias so errors like
+ * "start with switch gnosis" match what the DSL parser resolves, unlike
+ * wagmi `.name` display strings ("OP Mainnet", "Gnosis", …). Unknown
+ * ids fall back to decimal `String(chainId)` which `switch` also accepts.
+ */
+export function switchArgForChainId(chainId: number): string {
+  const aliases: string[] = [];
+  for (const [exportName, id] of Object.entries(nameToChainId)) {
+    if (id === chainId) aliases.push(exportName);
+  }
+  if (aliases.length === 0) return String(chainId);
+  aliases.sort((a, b) => {
+    const d = a.length - b.length;
+    return d !== 0 ? d : a.localeCompare(b);
+  });
+  return aliases[0];
+}
+
+/** Stable key for callers that omit `transports` (distinct from `{}`). */
+const NO_TRANSPORTS_SENTINEL: Record<number, Transport> = Object.freeze(
+  {},
+) as Record<number, Transport>;
+
+const clientCache = new WeakMap<object, Map<number, PublicClient>>();
+
+/** Create a PublicClient for the given chain ID, or return undefined.
+ *  Instances are reused per `(transports, chainId)` where `transports`
+ *  is keyed by object identity — the typical EVMcrispr `#transports`
+ *  reference stays stable and benefits the cache across completions /
+ *  walks / switches. Inline literal maps miss the cache (by design).
+ */
 export function clientForChain(
   chainId: number,
   transports?: Record<number, Transport>,
@@ -69,10 +200,25 @@ export function clientForChain(
     (c) => (c as Chain).id === chainId,
   ) as Chain | undefined;
   if (!chain) return undefined;
-  return createPublicClient({
+
+  const transportsKey =
+    transports === undefined ? NO_TRANSPORTS_SENTINEL : (transports as object);
+
+  let byChainId = clientCache.get(transportsKey);
+  if (!byChainId) {
+    byChainId = new Map<number, PublicClient>();
+    clientCache.set(transportsKey, byChainId);
+  }
+
+  const hit = byChainId.get(chainId);
+  if (hit) return hit;
+
+  const client = createPublicClient({
     chain,
     transport: transports?.[chainId] ?? http(),
   }) as PublicClient;
+  byChainId.set(chainId, client);
+  return client;
 }
 
 // ---------------------------------------------------------------------------
@@ -551,14 +697,20 @@ export async function walkScript(
   script: string,
   upToLine: number,
   moduleCache: BindingsManager,
-  client: PublicClient | undefined,
   resolveHelper: HelperResolver | undefined,
   transports: Record<number, Transport> | undefined,
+  initialChainId: number = mainnet.id,
 ): Promise<WalkResult> {
   const bindings = new BindingsManager();
   seedBindings(bindings, moduleCache);
 
   const variableHistory: VariableHistory = new Map();
+
+  // The walk starts on the caller-provided chain (defaults to mainnet)
+  // and `applySwitch` advances `state` in place when it sees a `switch`
+  // command. EVMcrispr passes its own `#chainId` so the walk runs on
+  // the same chain the executor would use.
+  const initialClient = clientForChain(initialChainId, transports);
 
   let ast: EvmlAST | undefined;
   try {
@@ -572,7 +724,12 @@ export async function walkScript(
         .join("\n");
       ast = parseScript(trimmed).ast;
     } catch {
-      return { bindings, chainId: 0, client, variableHistory };
+      return {
+        bindings,
+        chainId: initialChainId,
+        client: initialClient,
+        variableHistory,
+      };
     }
   }
 
@@ -585,13 +742,9 @@ export async function walkScript(
   const commandNodes: CommandExpressionNode[] =
     ast?.getAllCommandsUntilLine(upToLine) ?? [];
 
-  // Initial chain comes from the constructor client. Subsequent
-  // `switch` commands during the walk advance `state` in place, which
-  // both the resolver and helper-cache lookups read on every dispatch.
-  const initialChainId = await safeChainId(client);
   const state: WalkChainState = {
     chainId: initialChainId,
-    client,
+    client: initialClient,
     transports,
   };
 
@@ -627,7 +780,7 @@ export async function walkScript(
   // the initial chain and let `applySwitch` advance `state` again as
   // we revisit each command.
   state.chainId = initialChainId;
-  state.client = client;
+  state.client = initialClient;
   await prewarmHelperExpressions(commandNodes, resolveNode, state, bindings);
 
   return {
@@ -636,17 +789,6 @@ export async function walkScript(
     client: finalClient,
     variableHistory,
   };
-}
-
-/** Best-effort `client.getChainId()` that swallows RPC failures so the
- *  walker can keep going (it just won't have a chain id for cache keys). */
-async function safeChainId(client: PublicClient | undefined): Promise<number> {
-  if (!client) return 0;
-  try {
-    return (await client.getChainId()) ?? 0;
-  } catch {
-    return 0;
-  }
 }
 
 /**

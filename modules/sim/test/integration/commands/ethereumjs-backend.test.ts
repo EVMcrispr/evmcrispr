@@ -3,10 +3,15 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { createInterpreter, getPublicClient } from "@evmcrispr/test-utils";
 import type { PublicClient } from "viem";
 
+import { FORK_BLOCK_NUMBER } from "../../../../../scripts/anvil-config";
+
 const ADDR = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
 const DEAD = "0x000000000000000000000000000000000000dEaD";
-const BLOCK = 34630239;
+// Pin to the same block the local anvil is forked at — the EthereumJS
+// backend forks from anvil over RPC, and anvil only serves the block
+// it was launched at (older blocks throw "Block N not found").
+const BLOCK = FORK_BLOCK_NUMBER;
 const FORK_OPTS = `--using ethereumjs --block-number ${BLOCK}`;
 
 function script(body: string): string {

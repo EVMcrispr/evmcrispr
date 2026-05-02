@@ -10,6 +10,31 @@ You can use it in the web terminal or programmatically.
 Visit [evmcrispr.com](https://evmcrispr.com) to open the web terminal.
 Connect your wallet, write a script, and click Execute.
 
+## Active Chain
+
+Every script starts on **Ethereum mainnet** by default — independent of
+the chain your wallet is connected to. Use `switch <chainName>` (or a
+chain id) at the top of the script to run it on a different chain:
+
+```evml
+switch gnosis
+
+exec @token(WXDAI) "transfer(address,uint256)" 0x1234...abcd 1e18
+```
+
+Before execution the terminal scans every `switch` in your script and
+asks the wallet to add (and switch to) each referenced chain up front,
+so chain prompts don't interrupt a running script. Wallets that are
+pinned to a single chain — for example a Safe App or some
+WalletConnect-compatible wallets — will refuse to switch; in that case
+the terminal returns one of these errors before any transaction is
+submitted:
+
+- `The script should start with \`switch <chainName>\`.` — the script
+  defaults to mainnet but the wallet only supports a different chain.
+- `Wallet only supports <chainName>.` — the script references multiple
+  chains; rewrite it to target only the wallet's chain.
+
 ## Your First Script
 
 A simple script that transfers tokens:

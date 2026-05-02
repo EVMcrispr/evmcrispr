@@ -12,6 +12,7 @@ import type {
   Position,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
 import { getPublicClient, getTransports } from "../client";
 import { TEST_ACCOUNT_ADDRESS } from "../constants";
 import {
@@ -58,9 +59,15 @@ export class TestContext {
     return preparingExpression(expr, this._client, module, preamble);
   }
 
-  /** Create a fresh EVMcrispr instance wired to the test client. */
+  /** Create a fresh EVMcrispr instance wired to the test client.
+   *
+   * EVMcrispr defaults to mainnet; the tests run against the local
+   * anvil-forked Gnosis chain, so we immediately switch the instance to
+   * Gnosis. */
   createEvm(): EVMcrispr {
-    return new EVMcrispr(this._client, TEST_ACCOUNT_ADDRESS, getTransports());
+    const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
+    evm.switchChainId(gnosis.id);
+    return evm;
   }
 
   async completions(

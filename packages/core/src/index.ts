@@ -99,4 +99,10 @@ export { EvmlAST } from "./EvmlAST";
 export type { HoverInfo } from "./hover";
 export { parseScript, scriptParser } from "./parsers/script";
 export { createParserState } from "./parsers/utils";
+export {
+  clientForChain,
+  collectPreparedSwitchTargets,
+  resolveSwitchChainId,
+  switchArgForChainId,
+} from "./scriptWalk";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";

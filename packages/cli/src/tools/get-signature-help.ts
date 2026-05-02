@@ -5,6 +5,6 @@ export async function getSignatureHelp(
   line: number,
   col: number,
 ) {
-  const { evm } = createEVMcrisprInstance();
+  const { evm } = await createEVMcrisprInstance();
   return evm.getSignatureHelp(script, { line, col });
 }

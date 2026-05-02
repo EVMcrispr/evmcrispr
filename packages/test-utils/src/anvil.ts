@@ -1,9 +1,11 @@
 import { createPublicClient, http, type PublicClient } from "viem";
 import { arbitrum, gnosis, mainnet, optimism, polygon } from "viem/chains";
+import {
+  FORK_BLOCK_NUMBER as GNOSIS_FORK_BLOCK_NUMBER,
+  ANVIL_URL as SHARED_ANVIL_URL,
+} from "../../../scripts/anvil-config";
 
-const ANVIL_URL = "http://127.0.0.1:8545";
-
-const GNOSIS_FORK_BLOCK_NUMBER = 44798478;
+const ANVIL_URL = SHARED_ANVIL_URL;
 
 const chainIdToRpcUrl = {
   1: "ethereum",

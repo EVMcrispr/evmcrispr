@@ -3,10 +3,11 @@ import { EVMcrispr, HaltExecution, isTransactionAction } from "@evmcrispr/core";
 import { useCallback, useRef, useState } from "react";
 import type { PublicClient } from "viem";
 import { usePublicClient, useWalletClient } from "wagmi";
+import { getPublicClient } from "wagmi/actions";
 
 import { config, transports } from "../config/wagmi";
 import { terminalStoreActions } from "../stores/terminal-store";
-import { switchOrAddChain } from "../utils/chain";
+import { prepareChainsForScript, switchOrAddChain } from "../utils/chain";
 import { observeTransaction } from "../utils/transaction-observer";
 import { useExecutionLogs } from "./useExecutionLogs";
 import { useTransactionBatcher } from "./useTransactionBatcher";
@@ -61,7 +62,12 @@ export function useTransactionExecutor(
               : "Sending contract deployment transaction",
           );
 
-          const chainId = await walletClient.getChainId();
+          if (action.chainId === undefined) {
+            throw new Error(
+              `Transaction to ${action.to ?? "<deploy>"} is missing chainId`,
+            );
+          }
+          const chainId = action.chainId;
 
           let gasLimit: bigint | undefined = action.gas;
           if (!gasLimit && maximizeGasLimit) {
@@ -79,7 +85,11 @@ export function useTransactionExecutor(
             maxPriorityFeePerGas: action.maxPriorityFeePerGas,
             nonce: action.nonce,
           });
-          const receipt = await currentPublicClient.waitForTransactionReceipt({
+          const txPublicClient =
+            (getPublicClient(config, { chainId: chainId as any }) as
+              | PublicClient
+              | undefined) ?? currentPublicClient;
+          const receipt = await txPublicClient.waitForTransactionReceipt({
             hash: tx,
           });
           onStatusUpdate(
@@ -195,7 +205,11 @@ export function useTransactionExecutor(
         throw new Error("Public client not available");
       }
 
-      const evm = new EVMcrispr(publicClient, address, transports);
+      if (walletClient) {
+        await prepareChainsForScript(walletClient, scriptRef.current);
+      }
+
+      const evm = new EVMcrispr(address, transports);
       evm.registerLogListener(logListener);
       evm.registerLineListener((line: number | null) =>
         terminalStoreActions("executingLine", line),
@@ -239,6 +253,7 @@ export function useTransactionExecutor(
   }, [
     address,
     publicClient,
+    walletClient,
     logListener,
     clearLogs,
     executeAction,

@@ -25,14 +25,14 @@ export interface ModuleContext {
   getChainId(): Promise<number>;
   /** Return the full Chain object for the current chain, if known. */
   getChain(): Promise<Chain | undefined>;
-  switchChainId(chainId: number): Promise<PublicClient>;
+  switchChainId(chainId: number): PublicClient;
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
 
   /** Get a Transport for the given chain, using configured RPC endpoints. */
   getTransport(chainId: number): Transport;
 
   // Mutation helpers used by fork / sim commands
-  setClient(client: PublicClient | undefined): void;
+  setClient(client: PublicClient): void;
   setConnectedAccount(account: Address | undefined): void;
 
   // Logging

@@ -5,12 +5,10 @@ import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
   EVMcrispr,
   expect,
-  getPublicClient,
   STD_ADDRESS_HELPERS,
   STD_ALL_HELPERS,
   STD_NUMBER_HELPERS,
 } from "@evmcrispr/test-utils";
-import type { PublicClient } from "viem";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -40,8 +38,7 @@ describe("Completions – giveth commands", () => {
   const GIVETH = "load giveth\n";
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   // -------------------------------------------------------------------------
@@ -178,8 +175,7 @@ describe("Completions – giveth helpers", () => {
   let evm: EVMcrispr;
 
   beforeAll(() => {
-    const client = getPublicClient();
-    evm = new EVMcrispr(client as PublicClient);
+    evm = new EVMcrispr();
   });
 
   const ALL_HELPERS = [...STD_ALL_HELPERS, "@projectAddr"].sort();

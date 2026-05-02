@@ -26,6 +26,7 @@ import { expect } from "@evmcrispr/test-utils";
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
 import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
 import { getTransports } from "./client";
 import { TEST_ACCOUNT_ADDRESS } from "./constants";
 import { expectThrowAsync } from "./expects";
@@ -83,17 +84,13 @@ export const runCases = (
 
 export const runInterpreterCases = async (
   caseOrCases: InterpreterCase | InterpreterCase[],
-  getClient: () => Promise<PublicClient>,
+  _getClient: () => Promise<PublicClient>,
 ): Promise<void[]> =>
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
-        const client = await getClient();
-        const evm = new EVMcrispr(
-          client,
-          TEST_ACCOUNT_ADDRESS,
-          getTransports(),
-        );
+        const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
+        evm.switchChainId(gnosis.id);
         const res = await evm.interpretNode(node);
         if (res instanceof Num && expected instanceof Num) {
           expect(res.eq(expected), errorMsg).to.be.true;
@@ -145,10 +142,12 @@ export const runErrorCase = (
 
 export const createInterpreter = (
   script: string,
-  client: PublicClient,
+  _client: PublicClient,
 ): TestInterpreter => {
   const { ast } = parseScript(script);
-  const evm = new EVMcrispr(client, TEST_ACCOUNT_ADDRESS, getTransports());
+  const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
+  // EVMcrispr defaults to mainnet; tests expect Gnosis.
+  evm.switchChainId(gnosis.id);
 
   return {
     ast,
