@@ -2,7 +2,7 @@ import type { CustomArgTypes } from "@evmcrispr/sdk";
 import { ErrorException, fieldItem } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { isAddress } from "viem";
-import { AragonDAO } from "./AragonDAO";
+import { cloneDao, loadDao } from "./dao";
 import { _aragonEns } from "./helpers/aragonEns";
 import {
   buildAbiBindings,
@@ -36,7 +36,7 @@ export const types: CustomArgTypes = {
       // Check cache first
       const cached = getCachedDAO(ctx.cache, rawValue);
       if (cached) {
-        const clonedDAO = cached.clone();
+        const clonedDAO = cloneDao(cached);
         pushCompletionDAO(ctx.bindings, clonedDAO);
         return buildAbiBindings(clonedDAO, chainId);
       }
@@ -53,7 +53,7 @@ export const types: CustomArgTypes = {
           daoAddress = res;
         }
 
-        const dao = await AragonDAO.create(
+        const dao = await loadDao(
           daoAddress,
           ctx.client,
           1,
@@ -61,7 +61,7 @@ export const types: CustomArgTypes = {
         );
 
         // Cache the DAO
-        setCachedDAO(ctx.cache, rawValue, dao.clone());
+        setCachedDAO(ctx.cache, rawValue, cloneDao(dao));
 
         // Track DAO for completions
         pushCompletionDAO(ctx.bindings, dao);

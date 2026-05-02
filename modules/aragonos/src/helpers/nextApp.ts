@@ -4,6 +4,7 @@ import {
   ErrorException,
 } from "@evmcrispr/sdk";
 import type AragonOS from "..";
+import { getKernel } from "../dao";
 
 export default defineHelper<AragonOS>({
   name: "nextApp",
@@ -26,7 +27,7 @@ export default defineHelper<AragonOS>({
       );
     }
 
-    const kernel = dao.kernel;
+    const kernel = getKernel(dao);
     const internalIndex = (await module.getNonce(kernel.address)) ?? 0;
     const client = await module.getClient();
 

@@ -8,6 +8,7 @@ import {
   zeroAddress,
 } from "viem";
 import type AragonOS from "..";
+import { getKernel } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
 import { REPO_ABI, SEMANTIC_VERSION_REGEX } from "../utils";
 import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
@@ -46,7 +47,7 @@ export default defineCommand<AragonOS>({
       dao = getModuleDAO(module);
     }
 
-    const kernel = dao.kernel;
+    const kernel = getKernel(dao);
     let apmRepo = parserRes ? parserRes[1] : rawApmRepo;
 
     if (

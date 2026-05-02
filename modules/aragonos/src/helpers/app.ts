@@ -1,5 +1,6 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type AragonOS from "..";
+import { getKernel, resolveApp } from "../dao";
 import { parsePrefixedDAOIdentifier } from "../utils";
 
 export default defineHelper<AragonOS>({
@@ -20,7 +21,7 @@ export default defineHelper<AragonOS>({
     const dao = daoPrefix
       ? module.connectedDAOs.find(
           (d) =>
-            d.kernel.address.toLowerCase() === daoPrefix.toLowerCase() ||
+            getKernel(d).address.toLowerCase() === daoPrefix.toLowerCase() ||
             d.name === daoPrefix,
         )
       : module.currentDAO;
@@ -33,10 +34,10 @@ export default defineHelper<AragonOS>({
       );
     }
 
-    const app = dao.resolveApp(rest);
+    const app = resolveApp(dao, rest);
     if (!app) {
       throw new ErrorException(
-        `app "${rest}" not found in DAO ${dao.name ?? dao.kernel.address}`,
+        `app "${rest}" not found in DAO ${dao.name ?? getKernel(dao).address}`,
       );
     }
 

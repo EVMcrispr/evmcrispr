@@ -3,16 +3,16 @@ import { defineCommand, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { isAddress, isAddressEqual } from "viem";
 import type AragonOS from "..";
-import { AragonDAO } from "../AragonDAO";
+import { type DaoContext, getKernel, loadDao } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
 import { buildAbiBindings } from "../utils";
 
 const createDAO = async (
   daoAddressOrName: Address | string,
-  currentDao: AragonDAO | undefined,
+  currentDao: DaoContext | undefined,
   client: PublicClient,
   ensResolver?: Nullable<Address>,
-): Promise<AragonDAO> => {
+): Promise<DaoContext> => {
   let daoAddress: Address;
 
   if (isAddress(daoAddressOrName)) {
@@ -30,7 +30,7 @@ const createDAO = async (
     daoAddress = res;
   }
 
-  if (currentDao && isAddressEqual(currentDao.kernel.address, daoAddress)) {
+  if (currentDao && isAddressEqual(getKernel(currentDao).address, daoAddress)) {
     throw new ErrorException(
       `trying to connect to an already connected DAO (${daoAddress})`,
     );
@@ -40,10 +40,10 @@ const createDAO = async (
 
   const daoName = !isAddress(daoAddressOrName) ? daoAddressOrName : undefined;
 
-  return AragonDAO.create(daoAddress, client, nextNestingIndex, daoName);
+  return loadDao(daoAddress, client, nextNestingIndex, daoName);
 };
 
-const setDAOContext = (aragonos: AragonOS, dao: AragonDAO) => {
+const setDAOContext = (aragonos: AragonOS, dao: DaoContext) => {
   return async () => {
     aragonos.pushDAO(dao);
     const chainId = await aragonos.getChainId();

@@ -32,6 +32,7 @@ import {
   FEE_TOKEN_ADDRESS,
 } from "../../fixtures/mock-forwarders";
 import { server } from "../../setup";
+import { resolveApp } from "../../../src/dao";
 import {
   createTestAction,
   createTestPreTxAction,
@@ -184,7 +185,7 @@ describeCommand("connect", {
         expect(dao!.nestingIndex, "DAO nested index mismatch").to.equals(1);
         Object.entries(DAO).forEach(([appIdentifier, appAddress]) => {
           expect(
-            dao!.resolveApp(appIdentifier)!.address,
+            resolveApp(dao!, appIdentifier)!.address,
             `${appIdentifier} binding mismatch`,
           ).equals(appAddress);
         });
@@ -206,7 +207,7 @@ describeCommand("connect", {
           );
           Object.entries(DAOs[i]).forEach(([appIdentifier, appAddress]) => {
             expect(
-              dao!.resolveApp(appIdentifier)!.address,
+              resolveApp(dao!, appIdentifier)!.address,
               `DAO ${i} ${appIdentifier} binding mismatch`,
             ).equals(appAddress);
           });
@@ -258,7 +259,7 @@ it("connect should keep apps connected when an implementation ABI is missing", a
 
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
     const dao = aragonos.getConnectedDAO(DAO3.kernel);
-    const app = dao!.resolveApp(APP.appIdentifier);
+    const app = resolveApp(dao!, APP.appIdentifier);
 
     expect(app).to.not.be.undefined;
     expect(app!.address).to.equal(DAO3[APP.appIdentifier]);

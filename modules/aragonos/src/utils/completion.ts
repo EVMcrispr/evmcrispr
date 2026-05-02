@@ -1,6 +1,6 @@
 import type { BindingsManager } from "@evmcrispr/sdk";
 import { abiBindingKey, BindingsSpace } from "@evmcrispr/sdk";
-import type { AragonDAO } from "../AragonDAO";
+import { type DaoContext, getKernel, resolveApp } from "../dao";
 import type { AppIdentifier } from "../types";
 import { extractRoleNames } from "./apps";
 import {
@@ -14,13 +14,13 @@ import {
 // its own DAO stack.  This replaces the old DATA_PROVIDER binding approach.
 // ---------------------------------------------------------------------------
 
-const completionDAOStacks = new WeakMap<BindingsManager, AragonDAO[]>();
-const daoCaches = new WeakMap<BindingsManager, Map<string, AragonDAO>>();
+const completionDAOStacks = new WeakMap<BindingsManager, DaoContext[]>();
+const daoCaches = new WeakMap<BindingsManager, Map<string, DaoContext>>();
 
 /** Push a DAO onto the completions stack for the given bindings context. */
 export function pushCompletionDAO(
   bindings: BindingsManager,
-  dao: AragonDAO,
+  dao: DaoContext,
 ): void {
   let stack = completionDAOStacks.get(bindings);
   if (!stack) {
@@ -31,7 +31,7 @@ export function pushCompletionDAO(
 }
 
 /** Get all DAOs on the completions stack (most-recent first). */
-export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
+export const getDAOs = (bindingsManager: BindingsManager): DaoContext[] => {
   const stack = completionDAOStacks.get(bindingsManager);
   if (!stack || stack.length === 0) return [];
   return [...stack].reverse();
@@ -41,13 +41,16 @@ export const getDAOs = (bindingsManager: BindingsManager): AragonDAO[] => {
 export function findCompletionDAO(
   bindings: BindingsManager,
   identifier: string,
-): AragonDAO | undefined {
+): DaoContext | undefined {
   const stack = completionDAOStacks.get(bindings);
   if (!stack) return undefined;
   const lower = identifier.toLowerCase();
   for (let i = stack.length - 1; i >= 0; i--) {
     const dao = stack[i];
-    if (dao.name === identifier || dao.kernel.address.toLowerCase() === lower) {
+    if (
+      dao.name === identifier ||
+      getKernel(dao).address.toLowerCase() === lower
+    ) {
       return dao;
     }
   }
@@ -58,7 +61,7 @@ export function findCompletionDAO(
 export function setCachedDAO(
   cache: BindingsManager,
   key: string,
-  dao: AragonDAO,
+  dao: DaoContext,
 ): void {
   let map = daoCaches.get(cache);
   if (!map) {
@@ -72,7 +75,7 @@ export function setCachedDAO(
 export function getCachedDAO(
   cache: BindingsManager,
   key: string,
-): AragonDAO | undefined {
+): DaoContext | undefined {
   return daoCaches.get(cache)?.get(key);
 }
 
@@ -89,7 +92,7 @@ export const getDAOAppIdentifiers = (
         ? formattedIdentifier
         : createDaoPrefixedIdentifier(
             formattedIdentifier,
-            dao.name ?? dao.kernel.address,
+            dao.name ?? getKernel(dao).address,
           );
     });
   });
@@ -102,9 +105,10 @@ export const getAppRoles = (
 ): string[] => {
   const daos = getDAOs(bindingsManager);
 
-  const appCodeAddress = daos
-    .find((dao) => dao.resolveApp(appAddressOrIdentifier))
-    ?.resolveApp(appAddressOrIdentifier)?.codeAddress;
+  const appDao = daos.find((dao) => resolveApp(dao, appAddressOrIdentifier));
+  const appCodeAddress = appDao
+    ? resolveApp(appDao, appAddressOrIdentifier)?.codeAddress
+    : undefined;
   const appAbi = appCodeAddress
     ? bindingsManager.getBindingValue(
         abiBindingKey(chainId, appCodeAddress),

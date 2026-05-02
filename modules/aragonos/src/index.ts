@@ -2,8 +2,8 @@ import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import { defineModule, ErrorNotFound } from "@evmcrispr/sdk";
 import { getContractAddress, isAddressEqual } from "viem";
 import { commands, helpers } from "./_generated";
-import type { AragonDAO } from "./AragonDAO";
 import { types } from "./argTypes";
+import { type DaoContext, getKernel, resolveApp } from "./dao";
 import { buildNonceForAddress } from "./utils";
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from "./utils/acl";
 
@@ -23,9 +23,9 @@ export default class AragonOS extends defineModule(
   },
 ) {
   /** All DAOs ever connected (append-only). Used by getConnectedDAO and tests. */
-  #connectedDAOs: AragonDAO[];
+  #connectedDAOs: DaoContext[];
   /** Active nesting stack (push/pop). Tracks the current DAO scope. */
-  #daoStack: AragonDAO[];
+  #daoStack: DaoContext[];
 
   constructor(context: ModuleContext, alias?: string) {
     super(context, alias);
@@ -34,15 +34,15 @@ export default class AragonOS extends defineModule(
     this.#daoStack = [];
   }
 
-  get connectedDAOs(): AragonDAO[] {
+  get connectedDAOs(): DaoContext[] {
     return this.#connectedDAOs;
   }
 
-  get currentDAO(): AragonDAO | undefined {
+  get currentDAO(): DaoContext | undefined {
     return this.#daoStack.at(-1);
   }
 
-  pushDAO(dao: AragonDAO): void {
+  pushDAO(dao: DaoContext): void {
     this.#connectedDAOs.push(dao);
     this.#daoStack.push(dao);
   }
@@ -52,22 +52,22 @@ export default class AragonOS extends defineModule(
   }
 
   /** Find a DAO by name or address on the active stack. */
-  findDAO(identifier: string): AragonDAO | undefined {
+  findDAO(identifier: string): DaoContext | undefined {
     return this.#daoStack.find(
       (d) =>
         d.name === identifier ||
-        isAddressEqual(d.kernel.address, identifier as Address),
+        isAddressEqual(getKernel(d).address, identifier as Address),
     );
   }
 
   /** All DAOs currently on the active stack. */
-  get allDAOs(): AragonDAO[] {
+  get allDAOs(): DaoContext[] {
     return [...this.#daoStack];
   }
 
-  getConnectedDAO(daoAddress: Address): AragonDAO | undefined {
+  getConnectedDAO(daoAddress: Address): DaoContext | undefined {
     return this.#connectedDAOs.find((dao) =>
-      isAddressEqual(dao.kernel.address, daoAddress),
+      isAddressEqual(getKernel(dao).address, daoAddress),
     );
   }
 
@@ -81,7 +81,7 @@ export default class AragonOS extends defineModule(
       throw new ErrorNotFound(`couldn't found DAO ${daoAddress}`);
     }
 
-    const kernel = connectedDAO.resolveApp("kernel")!;
+    const kernel = resolveApp(connectedDAO, "kernel")!;
     const nonce = await buildNonceForAddress(
       kernel.address,
       await this.incrementNonce(kernel.address),

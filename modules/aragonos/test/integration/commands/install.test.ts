@@ -16,6 +16,7 @@ import { DAO, DAO2 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
+import { resolveApp } from "../../../src/dao";
 
 const {
   appId,
@@ -53,7 +54,7 @@ describeCommand("install", {
         ];
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.connectedDAOs[0];
-        const installedApp = dao.resolveApp(newAppIdentifier);
+        const installedApp = resolveApp(dao, newAppIdentifier);
 
         expect(installedApp, "DAO does not have installed app").to.exist;
         expect(
@@ -74,7 +75,7 @@ describeCommand("install", {
         const specificVersion = "0x714c925ede405687752c4ad32078137c4f179538";
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel)!;
-        const installedApp = dao.resolveApp(newAppIdentifier);
+        const installedApp = resolveApp(dao, newAppIdentifier);
 
         const expectedInstallationActions = [
           createTestAction("newAppInstance", DAO.kernel, [

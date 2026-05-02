@@ -8,12 +8,12 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
-import type { AragonDAO } from "../AragonDAO";
+import { type DaoContext, hasPermission, resolveApp } from "../dao";
 import type { CompletePermission, Params } from "../types";
 import { getAppRoles } from "../utils";
 import { getDAO, resolvePermissionContext } from "../utils/commands";
 
-const _grant = (dao: AragonDAO, permission: CompletePermission): Action[] => {
+const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
     permission;
 
@@ -121,7 +121,7 @@ export default defineCommand<AragonOS>({
       if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
       const dao = getDAO(ctx.bindings, ctx.nodeArgs[1]);
       return getAppRoles(ctx.bindings, app, ctx.chainId)
-        .filter((role) => !dao.hasPermission(grantee, app, role))
+        .filter((role) => !hasPermission(dao, grantee, app, role))
         .map(fieldItem);
     },
   },
@@ -144,7 +144,7 @@ export default defineCommand<AragonOS>({
     ];
 
     const dao = isAddress(app)
-      ? (module.connectedDAOs.find((d) => d.resolveApp(app)) ??
+      ? (module.connectedDAOs.find((dao) => resolveApp(dao, app)) ??
         module.currentDAO)
       : module.currentDAO;
 

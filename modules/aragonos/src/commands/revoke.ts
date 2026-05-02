@@ -9,7 +9,13 @@ import {
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import type AragonOS from "..";
-import type { AragonDAO } from "../AragonDAO";
+import {
+  type DaoContext,
+  getPermissions,
+  hasPermission,
+  hasPermissionManager,
+  resolveApp,
+} from "../dao";
 import {
   formatAppIdentifier,
   getAppRoles,
@@ -22,7 +28,7 @@ import {
   resolvePermissionContext,
 } from "../utils/commands";
 
-const _revoke = (dao: AragonDAO, resolvedArgs: any[]): Action[] => {
+const _revoke = (dao: DaoContext, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);
 
   if (!isPermission(permission)) {
@@ -100,7 +106,7 @@ export default defineCommand<AragonOS>({
     grantee: (ctx) => {
       const granteeAddresses = new AddressSet();
       const daosAppsPermissions = getDAOs(ctx.bindings).map((dao) =>
-        dao.getPermissions(),
+        getPermissions(dao),
       );
 
       daosAppsPermissions.forEach((daoAppsPermissions) => {
@@ -119,7 +125,7 @@ export default defineCommand<AragonOS>({
         ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
       const daosAppsPermissions = getDAOs(ctx.bindings).map((dao) =>
-        dao.getPermissions(),
+        getPermissions(dao),
       );
 
       if (!revokeeAddress || !isAddress(revokeeAddress)) {
@@ -159,7 +165,7 @@ export default defineCommand<AragonOS>({
         return [];
       }
       return getAppRoles(ctx.bindings, appAddress, ctx.chainId)
-        .filter((role) => dao.hasPermission(revokeeAddress, appAddress, role))
+        .filter((role) => hasPermission(dao, revokeeAddress, appAddress, role))
         .map(fieldItem);
     },
     removeManager: async (ctx) => {
@@ -178,7 +184,7 @@ export default defineCommand<AragonOS>({
       const appNode = ctx.nodeArgs[1];
       const roleHash = normalizeRole(role);
       const dao = getDAO(ctx.bindings, appNode);
-      const hasManager = dao.hasPermissionManager(appAddress, roleHash);
+      const hasManager = hasPermissionManager(dao, appAddress, roleHash);
 
       return hasManager ? [fieldItem("true")] : [];
     },
@@ -189,7 +195,7 @@ export default defineCommand<AragonOS>({
     const appAddress = app;
 
     const dao = isAddress(appAddress)
-      ? (module.connectedDAOs.find((d) => d.resolveApp(appAddress)) ??
+      ? (module.connectedDAOs.find((dao) => resolveApp(dao, appAddress)) ??
         module.currentDAO)
       : module.currentDAO;
 

@@ -11,6 +11,7 @@ import { keccak256, parseUnits, toHex } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
+import { resolveApp } from "../../../src/dao";
 
 const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
 
@@ -41,7 +42,7 @@ describeCommand("revoke", {
 
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao?.resolveApp("acl");
+        const app = dao ? resolveApp(dao, "acl") : undefined;
         const appPermission = app?.permissions.get(role);
 
         expect(
@@ -70,7 +71,7 @@ describeCommand("revoke", {
 
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao?.resolveApp(DAO.acl);
+        const app = dao ? resolveApp(dao, DAO.acl) : undefined;
         const appPermission = app?.permissions.get(role);
 
         expect(

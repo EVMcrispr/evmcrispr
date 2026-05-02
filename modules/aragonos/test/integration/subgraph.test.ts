@@ -1,6 +1,10 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { Connector } from "@evmcrispr/module-aragonos/Connector";
+import {
+  organizationApps,
+  repo,
+  subgraphUrlFromChainId,
+} from "@evmcrispr/module-aragonos/subgraph";
 import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
 
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
@@ -16,27 +20,24 @@ import { EOA_ADDRESS } from "../fixtures";
 import { DAO } from "../fixtures/mock-dao";
 import { isValidParsedApp } from "../test-helpers/expects";
 
-const CHAIN_ID = 100;
-
-describe("AragonOS > Connector", () => {
-  let connector: Connector;
+describe("AragonOS > subgraph", () => {
   let client: PublicClient;
 
   beforeAll(async () => {
     client = getPublicClient();
-    connector = new Connector(CHAIN_ID, client);
   });
 
-  it("should fail when creating a connector with an unsupported chain id", async () => {
+  it("should fail when resolving an unsupported chain id", async () => {
     await expectThrowAsync(
-      () => new Connector(999, client),
+      () => subgraphUrlFromChainId(999),
       new ErrorException("No subgraph found for chain id 999"),
     );
   });
 
   describe("repo()", () => {
     it("should find a valid repo", async () => {
-      const { codeAddress, contentUri } = await connector.repo(
+      const { codeAddress, contentUri } = await repo(
+        client,
         "token-manager",
         "aragonpm.eth",
       );
@@ -48,7 +49,7 @@ describe("AragonOS > Connector", () => {
 
     it("should fail when fetching a non-existent repo", async () => {
       await expectThrowAsync(
-        () => connector.repo("non-existent-repo", "aragonpm.eth"),
+        () => repo(client, "non-existent-repo", "aragonpm.eth"),
         new ErrorNotFound("Repo non-existent-repo.aragonpm.eth not found", {
           name: "ErrorRepoNotFound",
         }),
@@ -60,7 +61,7 @@ describe("AragonOS > Connector", () => {
     let daoApps: ParsedApp[];
 
     beforeAll(async () => {
-      daoApps = await connector.organizationApps(DAO.kernel);
+      daoApps = await organizationApps(client, DAO.kernel);
     });
 
     it("should find the apps", () => {
@@ -73,7 +74,7 @@ describe("AragonOS > Connector", () => {
 
     it("should fail when fetching the apps of a non-existent dao", async () => {
       await expectThrowAsync(
-        () => connector.organizationApps(EOA_ADDRESS),
+        () => organizationApps(client, EOA_ADDRESS),
         new ErrorNotFound("Organization apps not found"),
       );
     });

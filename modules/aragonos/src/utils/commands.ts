@@ -13,7 +13,7 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
-import type { AragonDAO } from "../AragonDAO";
+import { type DaoContext, resolveApp } from "../dao";
 import type { App, CompletePermission, PermissionMap, Role } from "../types";
 import { findCompletionDAO, getDAOs } from "./completion";
 import {
@@ -39,7 +39,7 @@ export const parseDaoPrefixedIdentifier = (
 /**
  * Get DAO from the module's stack. Used by runtime (run) functions.
  */
-export const getModuleDAO = (module: AragonOS): AragonDAO => {
+export const getModuleDAO = (module: AragonOS): DaoContext => {
   const dao = module.currentDAO;
   if (!dao) {
     throw new ErrorException('must be used within a "connect" command');
@@ -55,7 +55,7 @@ export const getModuleDAOByOption = async (
   c: CommandExpressionNode,
   module: AragonOS,
   interpretNode: NodeInterpreter,
-): Promise<AragonDAO> => {
+): Promise<DaoContext> => {
   let daoIdentifier = await getOptValue(c, "dao", interpretNode);
 
   if (!daoIdentifier) {
@@ -83,9 +83,9 @@ export const getModuleDAOByOption = async (
 export const getDAO = (
   bindingsManager: BindingsManager,
   appNode: Node,
-): AragonDAO => {
+): DaoContext => {
   const daos = getDAOs(bindingsManager);
-  let dao: AragonDAO | undefined = daos[0];
+  let dao: DaoContext | undefined = daos[0];
 
   if (appNode.type === NodeType.Bareword) {
     const res = parseDaoPrefixedIdentifier(appNode.value);
@@ -113,10 +113,10 @@ export const getDAOByOption = async (
   c: CommandExpressionNode,
   bindingsManager: BindingsManager,
   interpretNode: NodeInterpreter,
-): Promise<AragonDAO> => {
+): Promise<DaoContext> => {
   let daoIdentifier = await getOptValue(c, "dao", interpretNode);
 
-  let dao: AragonDAO | undefined;
+  let dao: DaoContext | undefined;
 
   if (!daoIdentifier) {
     const daos = getDAOs(bindingsManager);
@@ -152,11 +152,11 @@ export interface PermissionContext {
  * Shared between grant and revoke commands.
  */
 export const resolvePermissionContext = (
-  dao: AragonDAO,
+  dao: DaoContext,
   appAddress: Address,
   role: string,
 ): PermissionContext => {
-  const app = dao.resolveApp(appAddress);
+  const app = resolveApp(dao, appAddress);
 
   if (!app) {
     throw new ErrorException(`${appAddress} is not a DAO's app`);
@@ -164,7 +164,7 @@ export const resolvePermissionContext = (
 
   const roleHash = normalizeRole(role);
   const { permissions: appPermissions, name } = app;
-  const { address: aclAddress } = dao.resolveApp("acl")!;
+  const { address: aclAddress } = resolveApp(dao, "acl")!;
 
   if (!appPermissions.has(roleHash)) {
     throw new ErrorException(`given permission doesn't exists on app ${name}`);

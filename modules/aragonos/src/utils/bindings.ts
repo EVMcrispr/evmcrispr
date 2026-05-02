@@ -1,11 +1,11 @@
 import type { Binding } from "@evmcrispr/sdk";
 import { abiBindingKey, BindingsSpace } from "@evmcrispr/sdk";
-import type { AragonDAO } from "../AragonDAO";
+import type { DaoContext } from "../dao";
 
 const { ABI } = BindingsSpace;
 
 export const buildAbiBindings = (
-  dao: AragonDAO,
+  dao: DaoContext,
   chainId: number,
 ): Binding[] => {
   const bindings: Binding[] = [];

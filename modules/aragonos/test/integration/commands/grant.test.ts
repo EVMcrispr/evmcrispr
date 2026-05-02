@@ -12,6 +12,7 @@ import { keccak256, toHex } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
+import { resolveApp } from "../../../src/dao";
 
 const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
 
@@ -40,7 +41,7 @@ describeCommand("grant", {
         ];
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao?.resolveApp("agent");
+        const app = dao ? resolveApp(dao, "agent") : undefined;
         const grantees = app?.permissions?.get(
           keccak256(toHex("TRANSFER_ROLE")),
         )?.grantees;
@@ -69,7 +70,9 @@ describeCommand("grant", {
         ];
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao?.resolveApp("wrappable-hooked-token-manager.open");
+        const app = dao
+          ? resolveApp(dao, "wrappable-hooked-token-manager.open")
+          : undefined;
         const permission = app?.permissions?.get(
           keccak256(toHex("WRAP_TOKEN_ROLE")),
         );

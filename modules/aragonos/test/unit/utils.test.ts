@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { subgraphUrlFromChainId } from "@evmcrispr/module-aragonos/Connector";
+import { subgraphUrlFromChainId } from "@evmcrispr/module-aragonos/subgraph";
 import {
   buildAppIdentifier,
   createDaoPrefixedIdentifier,
@@ -191,7 +191,7 @@ describe("AragonOS > utils > normalizeRole", () => {
   });
 });
 
-describe("AragonOS > Connector > subgraphUrlFromChainId", () => {
+describe("AragonOS > subgraph > subgraphUrlFromChainId", () => {
   it("should return a URL for Ethereum mainnet (1)", () => {
     const url = subgraphUrlFromChainId(1);
     expect(url).to.include("thegraph.com");

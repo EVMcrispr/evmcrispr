@@ -12,7 +12,7 @@ import {
 import type { PublicClient } from "viem";
 import { getAbiItem, hexToString, namehash } from "viem";
 import type AragonOS from "..";
-import type { AragonDAO } from "../AragonDAO";
+import { type DaoContext, getKernel } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
 import type { App, AppResource } from "../types";
 import {
@@ -70,7 +70,7 @@ const fetchRepoData = async (
 };
 
 const setApp = (
-  dao: AragonDAO,
+  dao: DaoContext,
   app: App,
   resource: AppResource,
   bindingsManager: BindingsManager,
@@ -165,7 +165,7 @@ export default defineCommand<AragonOS>({
     }
 
     const { abi, roles } = resource;
-    const kernel = dao.kernel;
+    const kernel = getKernel(dao);
     const initParams = params as any[];
 
     const fnFragment = getAbiItem({

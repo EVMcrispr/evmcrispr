@@ -29,10 +29,10 @@
       "types": "./src/types/index.ts",
       "import": "./src/types/index.ts"
     },
-    "./Connector": {
-      "bun": "./src/Connector.ts",
-      "types": "./src/Connector.ts",
-      "import": "./src/Connector.ts"
+    "./subgraph": {
+      "bun": "./src/subgraph.ts",
+      "types": "./src/subgraph.ts",
+      "import": "./src/subgraph.ts"
     }
   },
   "dependencies": {
