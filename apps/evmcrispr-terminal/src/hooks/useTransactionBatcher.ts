@@ -1,4 +1,4 @@
-import type { TransactionAction } from "@evmcrispr/core";
+import type { BatchedAction } from "@evmcrispr/core";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback } from "react";
 import type { Account, Chain, Transport, WalletClient } from "viem";
@@ -8,18 +8,24 @@ import { config } from "../config/wagmi";
 export function useTransactionBatcher(safeConnector?: any) {
   const executeBatchedActions = useCallback(
     async (
-      actions: TransactionAction[],
+      batch: BatchedAction,
       currentWalletClient: WalletClient<Transport, Chain, Account>,
     ) => {
+      const { actions, chainId } = batch;
       if (actions.length === 0) return;
 
-      const chainId = actions[0].chainId;
+      if (
+        actions.find(
+          (action) =>
+            action.chainId !== undefined && action.chainId !== chainId,
+        )
+      ) {
+        throw new Error("Batch contains transactions for multiple chains");
+      }
 
-      if (chainId !== undefined) {
-        const chain = config.chains.find((c) => c.id === chainId);
-        if (chain) {
-          await currentWalletClient.switchChain({ id: chainId });
-        }
+      const chain = config.chains.find((c) => c.id === chainId);
+      if (chain) {
+        await currentWalletClient.switchChain({ id: chainId });
       }
 
       // Filter out contract deployments (no 'to' address) as they cannot be batched
@@ -69,7 +75,7 @@ export function useTransactionBatcher(safeConnector?: any) {
   );
 
   const executeSafeBatchedActions = useCallback(
-    async (actions: TransactionAction[]) => {
+    async (batch: BatchedAction) => {
       if (!safeConnector)
         throw new Error(
           "Safe connector not available for Safe batched actions.",
@@ -80,8 +86,15 @@ export function useTransactionBatcher(safeConnector?: any) {
       if (!sdk) throw new Error("Safe SDK not available");
 
       const chainId = await safeConnector.getChainId();
+      const { actions } = batch;
 
-      if (actions.find((action) => action.chainId !== chainId)) {
+      if (
+        batch.chainId !== chainId ||
+        actions.find(
+          (action) =>
+            action.chainId !== undefined && action.chainId !== chainId,
+        )
+      ) {
         throw new Error("Safe does not support switching chains");
       }
 

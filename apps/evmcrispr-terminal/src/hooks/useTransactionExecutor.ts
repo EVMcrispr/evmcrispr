@@ -126,9 +126,9 @@ export function useTransactionExecutor(
               `Executing batch of ${action.actions.length} transactions from ${truncateAddress(action.from)}`,
             );
             if (safeConnector) {
-              await executeSafeBatchedActions(action.actions);
+              await executeSafeBatchedActions(action);
             } else {
-              return await executeBatchedActions(action.actions, walletClient);
+              return await executeBatchedActions(action, walletClient);
             }
             break;
           }
