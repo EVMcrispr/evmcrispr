@@ -1,24 +1,10 @@
 import { createStore } from "zustand-x";
 import { resolveInitialViewMode } from "../utils/view-mode";
 
-export const SCRIPT_PLACEHOLDER = `## Basic commands:
+export const SCRIPT_PLACEHOLDER = `## Example: deposit 1 ETH into WETH
 
-# exec <contractAddress> <methodNameOrSignature> [...params] [--value <value>]
-# load <module> [as <alias>]
-# set $<varName> <value>
-# switch <chainId>
-
-
-## Example (unwrap wxDAI):
-
-# load aragonos --as ar
-# ar:connect 1hive token-manager voting (
-#   install agent:new
-#   grant voting agent:new TRANSFER_ROLE voting
-#   exec vault transfer @token(WXDAI) agent:new 100e18
-#   act agent:new @token(WXDAI) withdraw(uint256) 100e18
-#   exec agent:new transfer XDAI vault 100e18
-# )
+# switch mainnet
+# exec @token(WETH) deposit() --value 1e18
 `;
 
 export type CursorRef = {

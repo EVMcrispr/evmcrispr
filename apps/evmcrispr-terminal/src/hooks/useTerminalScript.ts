@@ -5,13 +5,7 @@ import {
   SCRIPT_PLACEHOLDER,
   terminalStoreActions,
 } from "../stores/terminal-store";
-import {
-  createScript,
-  getAllScripts,
-  getLastViewedScript,
-  getScript,
-  setLastViewedScript,
-} from "../utils";
+import { createScript, getAllScripts, setLastViewedScript } from "../utils";
 import { migrateFromLegacyStorage } from "../utils/migration";
 import { isCID, useScriptFromId } from "./useStoredScript";
 
@@ -24,7 +18,7 @@ function loadIntoStore(id: string, title: string, script: string) {
 
 /**
  * Encapsulates all URL-param parsing, script-from-ID loading,
- * and last-viewed restoration for the terminal page.
+ * and initial script creation for the terminal page.
  */
 export function useTerminalScript(): {
   scriptNotFound: boolean;
@@ -46,7 +40,7 @@ export function useTerminalScript(): {
   const scriptFromId = found?.script;
   const idFromUrl = found?.id;
 
-  // One-time init: migration + load last viewed script (when no URL param)
+  // One-time init: migration + fresh script creation (when no URL param)
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -78,18 +72,8 @@ export function useTerminalScript(): {
       return;
     }
 
-    // Restore last viewed script
-    const lastId = getLastViewedScript();
-    if (lastId) {
-      const stored = getScript(lastId);
-      if (stored) {
-        loadIntoStore(stored.id, stored.title, stored.script);
-        navigate(`/${stored.id}`, { replace: true });
-        return;
-      }
-    }
-
-    // No URL, no query params, no last viewed script -- first visit
+    // No URL or query params: start from a fresh script instead of restoring
+    // the previous session. Existing scripts only load through their own URLs.
     const id = createScript("", SCRIPT_PLACEHOLDER);
     loadIntoStore(id, "", SCRIPT_PLACEHOLDER);
     navigate(`/${id}`, { replace: true });
