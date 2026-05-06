@@ -12,6 +12,9 @@ export async function switchOrAddChain(
   walletClient: WalletClient<Transport, Chain, Account>,
   chainId: number,
 ) {
+  const currentChainId = await walletClient.getChainId();
+  if (currentChainId === chainId) return;
+
   try {
     await walletClient.switchChain({ id: chainId });
   } catch (_e: any) {
