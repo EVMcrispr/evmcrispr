@@ -1,13 +1,8 @@
 import "../../setup";
 import { afterEach, beforeAll, beforeEach, describe, it } from "bun:test";
 import { BindingsSpace } from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  describeCommand,
-  expect,
-  getPublicClient,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 import { etherscanCreationFixtures } from "@evmcrispr/test-utils/msw/etherscan";
 import type { PublicClient } from "viem";
 import {

@@ -1,11 +1,7 @@
 import "../../setup";
 import { givethDonationRelayer } from "@evmcrispr/module-giveth/addresses";
-import {
-  createInterpreter,
-  describeCommand,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("donate", {
   skip: true,

@@ -3,11 +3,8 @@ import "../../setup";
 import type AragonOS from "@evmcrispr/module-aragonos";
 import { REPO_ABI } from "@evmcrispr/module-aragonos/utils";
 import { CommandError } from "@evmcrispr/sdk";
-import {
-  describeCommand,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { getContract, keccak256, namehash, toHex } from "viem";
 import { DAO, DAO2, DAO3 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";

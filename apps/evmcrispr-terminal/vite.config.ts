@@ -115,6 +115,24 @@ export default defineConfig({
         if (id === "\0metamask-sdk-stub") return "export default {};";
       },
     },
+    // arcsecond's entry has a dead `require('util')` fallback for environments
+    // without a global TextEncoder. Browsers always have one, but Vite still
+    // warns about externalizing the node builtin. Resolve `util` to a stub
+    // when imported from arcsecond.
+    {
+      name: "stub-util-in-arcsecond",
+      enforce: "pre",
+      resolveId(id, importer) {
+        if (id === "util" && importer?.includes("/arcsecond/")) {
+          return "\0arcsecond-util-stub";
+        }
+      },
+      load(id) {
+        if (id === "\0arcsecond-util-stub") {
+          return "export const TextEncoder = globalThis.TextEncoder; export const TextDecoder = globalThis.TextDecoder;";
+        }
+      },
+    },
     react(),
     tailwindcss(),
   ],

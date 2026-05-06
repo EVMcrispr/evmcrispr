@@ -1,6 +1,6 @@
 import "../setup";
 import { describe, it } from "bun:test";
-import { TestContext } from "@evmcrispr/test-utils";
+import { TestContext } from "@evmcrispr/test-utils/evml";
 import { parseScript } from "../../src/parsers/script";
 
 describe("probe", () => {

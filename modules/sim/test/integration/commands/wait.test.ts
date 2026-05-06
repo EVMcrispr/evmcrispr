@@ -1,9 +1,6 @@
 import "../../setup";
-import {
-  describeCommand,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("wait", {
   describeName: "Sim > commands > wait <duration> [period]",

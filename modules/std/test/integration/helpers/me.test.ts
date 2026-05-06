@@ -1,5 +1,6 @@
 import "../../setup";
-import { describeHelper, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(

@@ -2,7 +2,8 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { EVMcrispr, expect, getTransports } from "@evmcrispr/test-utils";
+import { expect, getTransports } from "@evmcrispr/test-utils";
+import { EVMcrispr } from "@evmcrispr/test-utils/evml";
 import type { Address } from "viem";
 import { gnosis } from "viem/chains";
 

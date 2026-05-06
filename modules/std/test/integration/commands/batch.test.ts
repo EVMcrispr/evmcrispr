@@ -1,10 +1,7 @@
 import "../../setup";
 import { isBatchedAction } from "@evmcrispr/sdk";
-import {
-  describeCommand,
-  expect,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
+import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
 const fnSig = "approve(address,uint256)";

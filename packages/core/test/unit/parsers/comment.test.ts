@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { type Case, runCases } from "@evmcrispr/test-utils";
+import { type Case, runCases } from "@evmcrispr/test-utils/evml";
 import { scriptParser } from "../../../src";
 
 describe("Parsers - comment", () => {

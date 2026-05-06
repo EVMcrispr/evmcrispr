@@ -1,5 +1,6 @@
 import "../../setup";
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("halt", {
   describeName: "Std > commands > halt",

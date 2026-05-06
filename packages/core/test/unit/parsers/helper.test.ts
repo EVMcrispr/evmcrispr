@@ -1,10 +1,6 @@
 import { describe, it } from "bun:test";
-import {
-  expect,
-  runCases,
-  runErrorCase,
-  runParser,
-} from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { runCases, runErrorCase, runParser } from "@evmcrispr/test-utils/evml";
 import {
   HELPER_PARSER_ERROR,
   helperFunctionParser,

@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeHelper } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { namehash } from "viem";
 import { helpers } from "../../../src/_generated";
 

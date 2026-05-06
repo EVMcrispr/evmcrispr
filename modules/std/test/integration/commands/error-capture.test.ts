@@ -6,14 +6,8 @@ import {
   isTransactionAction,
   RevertError,
 } from "@evmcrispr/sdk";
-import {
-  EVMcrispr,
-  expect,
-  getPublicClient,
-  getTransports,
-  getWalletClients,
-  resetAnvil,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, getTransports, getWalletClients, resetAnvil } from "@evmcrispr/test-utils";
+import { EVMcrispr } from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import { gnosis } from "viem/chains";
 

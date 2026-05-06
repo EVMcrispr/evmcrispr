@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { type Case, runCases, runErrorCase } from "@evmcrispr/test-utils";
+import { type Case, runCases, runErrorCase } from "@evmcrispr/test-utils/evml";
 import {
   COMMAND_PARSER_ERROR,
   commandExpressionParser,

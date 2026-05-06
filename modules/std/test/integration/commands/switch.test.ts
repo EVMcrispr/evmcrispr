@@ -1,6 +1,6 @@
 import "../../setup";
 import type { WalletAction } from "@evmcrispr/sdk";
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 const walletAction = (chainId: string): WalletAction => ({
   type: "wallet",

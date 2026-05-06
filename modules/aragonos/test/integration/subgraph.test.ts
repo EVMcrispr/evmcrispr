@@ -8,11 +8,8 @@ import {
 import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
 
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
-import {
-  expect,
-  expectThrowAsync,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { expectThrowAsync } from "@evmcrispr/test-utils/evml";
 import { cid } from "is-ipfs";
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";

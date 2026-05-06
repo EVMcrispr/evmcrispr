@@ -5,6 +5,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "src/_generated.ts"]
     },
+    "@evmcrispr/test-utils#build": {},
     "dev": {
       "cache": false,
       "persistent": true

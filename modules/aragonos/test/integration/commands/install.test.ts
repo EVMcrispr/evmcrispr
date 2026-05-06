@@ -11,7 +11,8 @@ const encodeActCall = (signature: string, params: any[] = []): string =>
     args: params,
   });
 
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { DAO, DAO2 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import { createTestAction } from "../../test-helpers/actions";

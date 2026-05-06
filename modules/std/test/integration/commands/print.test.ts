@@ -1,11 +1,7 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import {
-  createInterpreter,
-  describeCommand,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 
 describeCommand("print", {

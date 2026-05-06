@@ -1,6 +1,6 @@
 import "../../setup";
 import { HelperFunctionError } from "@evmcrispr/sdk";
-import { describeHelper } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 const PINATA_JWT = process.env.VITE_PINATA_JWT;

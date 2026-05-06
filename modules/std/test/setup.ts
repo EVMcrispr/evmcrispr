@@ -1,4 +1,4 @@
-import { registerAllModules } from "@evmcrispr/test-utils";
+import { registerAllModules } from "@evmcrispr/test-utils/evml";
 import {
   createTestServer,
   HttpResponse,

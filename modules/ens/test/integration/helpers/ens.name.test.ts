@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeHelper } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 const vitalikAddr = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";

@@ -1,7 +1,7 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("new-token", {
   module: "aragonos",
@@ -23,13 +23,8 @@ import {
   CommandError,
   type TransactionAction,
 } from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  expect,
-  expectThrowAsync,
-  getPublicClient,
-  getWalletClients,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, getWalletClients } from "@evmcrispr/test-utils";
+import { createInterpreter, expectThrowAsync } from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import {
   getContract,

@@ -8,14 +8,8 @@ import {
   isTransactionAction,
   Num,
 } from "@evmcrispr/sdk";
-import {
-  describeCommand,
-  EVMcrispr,
-  expect,
-  getPublicClient,
-  getTransports,
-  getWalletClients,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, getTransports, getWalletClients } from "@evmcrispr/test-utils";
+import { describeCommand, EVMcrispr } from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import { toHex } from "viem";
 import { gnosis } from "viem/chains";

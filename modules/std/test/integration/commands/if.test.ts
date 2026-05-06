@@ -1,5 +1,6 @@
 import "../../setup";
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 const target = "0x44fA8E6f47987339850636F88629646662444217";
 const fnSig = "approve(address,uint256)";

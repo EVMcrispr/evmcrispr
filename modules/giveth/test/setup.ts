@@ -1,4 +1,4 @@
-import { registerAllModules } from "@evmcrispr/test-utils";
+import { registerAllModules } from "@evmcrispr/test-utils/evml";
 import { createTestServer } from "@evmcrispr/test-utils/msw/server";
 // Import aragonos handlers since giveth tests use aragonos:connect
 import { aragonosHandlers } from "../../aragonos/test/fixtures/msw-handlers";

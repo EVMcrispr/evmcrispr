@@ -1,13 +1,8 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { type Action, BindingsSpace, isWalletAction } from "@evmcrispr/sdk";
-import {
-  describeCommand,
-  EVMcrispr,
-  expect,
-  getTransports,
-  getWalletClients,
-} from "@evmcrispr/test-utils";
+import { expect, getTransports, getWalletClients } from "@evmcrispr/test-utils";
+import { describeCommand, EVMcrispr } from "@evmcrispr/test-utils/evml";
 import type { WalletClient } from "viem";
 import { gnosis } from "viem/chains";
 

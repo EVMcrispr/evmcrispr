@@ -22,13 +22,13 @@ import {
   NodeType,
   Num,
 } from "@evmcrispr/sdk";
-import { expect } from "@evmcrispr/test-utils";
 import type { Err, Parser } from "arcsecond";
 import { withData } from "arcsecond";
+import { expect } from "chai";
 import type { PublicClient } from "viem";
 import { gnosis } from "viem/chains";
-import { getTransports } from "./client";
-import { TEST_ACCOUNT_ADDRESS } from "./constants";
+import { getTransports } from "../client";
+import { TEST_ACCOUNT_ADDRESS } from "../constants";
 import { expectThrowAsync } from "./expects";
 
 const { CommandExpression } = NodeType;

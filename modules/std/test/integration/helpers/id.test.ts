@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeHelper } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { keccak256, toHex } from "viem";
 import { helpers } from "../../../src/_generated";
 

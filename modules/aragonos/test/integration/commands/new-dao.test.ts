@@ -1,7 +1,7 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
 
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("new-dao", {
   module: "aragonos",
@@ -21,14 +21,8 @@ import {
   isTransactionAction,
   type TransactionAction,
 } from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  EVMcrispr,
-  expect,
-  getPublicClient,
-  getTransports,
-  getWalletClients,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, getTransports, getWalletClients } from "@evmcrispr/test-utils";
+import { createInterpreter, EVMcrispr } from "@evmcrispr/test-utils/evml";
 import type { Address, PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, isAddressEqual, parseAbiParameters } from "viem";
 import { gnosis } from "viem/chains";

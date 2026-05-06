@@ -1,11 +1,7 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import {
-  createInterpreter,
-  describeHelper,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { createInterpreter, describeHelper } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 

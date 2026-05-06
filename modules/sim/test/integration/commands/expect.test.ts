@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("expect", {
   describeName: "Sim > commands > expect <condition>",

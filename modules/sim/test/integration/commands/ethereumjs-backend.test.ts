@@ -1,6 +1,7 @@
 import "../../setup";
 import { beforeAll, describe, expect, it } from "bun:test";
-import { createInterpreter, getPublicClient } from "@evmcrispr/test-utils";
+import { getPublicClient } from "@evmcrispr/test-utils";
+import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 
 import { FORK_BLOCK_NUMBER } from "../../../../../scripts/anvil-config";

@@ -1,5 +1,6 @@
 import "../../setup";
-import { describeHelper, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { encodeFunctionData, parseAbiItem } from "viem";
 import { helpers } from "../../../src/_generated";
 

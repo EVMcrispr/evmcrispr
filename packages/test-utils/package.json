@@ -11,6 +11,11 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./evml": {
+      "bun": "./src/evml/index.ts",
+      "types": "./src/evml/index.ts",
+      "import": "./src/evml/index.ts"
+    },
     "./msw/server": {
       "bun": "./src/msw/server.ts",
       "types": "./src/msw/server.ts",

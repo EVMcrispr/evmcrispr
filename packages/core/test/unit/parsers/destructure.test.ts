@@ -1,5 +1,6 @@
 import { describe, it } from "bun:test";
-import { expect, runParser } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { runParser } from "@evmcrispr/test-utils/evml";
 import { destructurePatternParser } from "../../../src/parsers/destructure";
 
 describe("Parsers - destructure pattern", () => {

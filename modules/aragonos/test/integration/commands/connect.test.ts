@@ -8,13 +8,8 @@ import {
   encodeCalldata,
   Num,
 } from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  describeCommand,
-  expect,
-  getPublicClient,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import {
   getContractAddress,

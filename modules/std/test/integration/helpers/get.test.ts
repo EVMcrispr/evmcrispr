@@ -1,5 +1,6 @@
 import "../../setup";
-import { describeHelper, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 const targetAddress = "0x44fA8E6f47987339850636F88629646662444217";

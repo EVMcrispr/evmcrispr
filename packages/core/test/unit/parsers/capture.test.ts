@@ -1,6 +1,7 @@
 import { describe, it } from "bun:test";
 import type { CommandExpressionNode } from "@evmcrispr/sdk";
-import { expect, runParser } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { runParser } from "@evmcrispr/test-utils/evml";
 import {
   errorCaptureParser,
   eventCaptureParser,

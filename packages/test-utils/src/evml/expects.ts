@@ -1,5 +1,5 @@
 import type { ErrorException } from "@evmcrispr/sdk";
-import { expect } from "@evmcrispr/test-utils";
+import { expect } from "chai";
 
 const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 

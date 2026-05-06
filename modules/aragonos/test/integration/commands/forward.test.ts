@@ -2,7 +2,8 @@ import "../../setup";
 
 import { ANY_ENTITY } from "@evmcrispr/module-aragonos/utils";
 import { CommandError } from "@evmcrispr/sdk";
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { keccak256, toHex } from "viem";
 import { DAO } from "../../fixtures";
 import {

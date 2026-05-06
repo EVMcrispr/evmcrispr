@@ -9,13 +9,9 @@ import type {
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import { NodeType } from "@evmcrispr/sdk";
-import type { Case } from "@evmcrispr/test-utils";
-import {
-  expect,
-  runCases,
-  runErrorCase,
-  runParser,
-} from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import type { Case } from "@evmcrispr/test-utils/evml";
+import { runCases, runErrorCase, runParser } from "@evmcrispr/test-utils/evml";
 import { arrayExpressionParser } from "../../../src/parsers/array";
 import {
   ADDRESS_PARSER_ERROR,

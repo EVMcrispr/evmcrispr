@@ -1,9 +1,6 @@
 import "../../setup";
-import {
-  describeHelper,
-  expect,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
+import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { isAddress } from "viem";
 import { helpers } from "../../../src/_generated";
 

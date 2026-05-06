@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 const target = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2";
 const data =

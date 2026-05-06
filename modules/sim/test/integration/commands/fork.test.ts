@@ -1,5 +1,5 @@
 import "../../setup";
-import { describeCommand } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("fork", {
   describeName: "Sim > commands > fork (...) [--using <backend>]",

@@ -1,6 +1,7 @@
 import "../../setup";
 import { BindingsSpace, Num } from "@evmcrispr/sdk";
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("set", {
   describeName: "Std > commands > set <varName> <varValue>",

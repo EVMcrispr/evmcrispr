@@ -9,14 +9,13 @@ import {
   Num,
   timeUnits,
 } from "@evmcrispr/sdk";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import {
   createInterpreter,
-  expect,
   expectThrowAsync,
-  getPublicClient,
   type InterpreterCase,
   runInterpreterCases,
-} from "@evmcrispr/test-utils";
+} from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 
 describe("Interpreter - primaries", async () => {

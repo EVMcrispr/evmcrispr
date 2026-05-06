@@ -13,8 +13,8 @@ import type {
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { gnosis } from "viem/chains";
-import { getPublicClient, getTransports } from "../client";
-import { TEST_ACCOUNT_ADDRESS } from "../constants";
+import { getPublicClient, getTransports } from "../../client";
+import { TEST_ACCOUNT_ADDRESS } from "../../constants";
 import {
   createInterpreter,
   preparingExpression,

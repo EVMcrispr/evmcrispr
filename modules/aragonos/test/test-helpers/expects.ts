@@ -1,6 +1,7 @@
 import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
 import { ErrorInvalid } from "@evmcrispr/sdk";
-import { expect, expectThrowAsync } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { expectThrowAsync } from "@evmcrispr/test-utils/evml";
 import { multihash } from "is-ipfs";
 import { isAddress } from "viem";
 
