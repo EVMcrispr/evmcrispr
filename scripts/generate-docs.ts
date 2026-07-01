@@ -80,6 +80,14 @@ const MODULES: ModuleInfo[] = [
       "Language primitives: string, number, bytes, array, and boolean helpers " +
       "for data manipulation. Requires `load lang`.",
   },
+  {
+    name: "assertions",
+    prefix: "",
+    dir: join(ROOT, "modules/assertions"),
+    overview:
+      "On-chain assertions backed by the assertions.eth contract: verify view " +
+      "return values and chain state atomically. Requires `load assertions`.",
+  },
 ];
 
 // ── Types ────────────────────────────────────────────────────────────

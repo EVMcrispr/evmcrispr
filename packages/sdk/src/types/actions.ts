@@ -40,6 +40,14 @@ export interface TransactionAction {
    * The transaction nonce (overrides automatic nonce management).
    */
   nonce?: number;
+  /**
+   * When executed standalone, run as a read-only `eth_call` instead of a write
+   * transaction. The call must not revert for the action to succeed (used by
+   * on-chain assertions, whose contracts revert on failure). Inside a batch the
+   * flag is ignored and the call runs atomically, so a failing assertion reverts
+   * the whole batch.
+   */
+  readOnly?: boolean;
 }
 
 /**

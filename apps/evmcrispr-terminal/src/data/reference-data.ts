@@ -3,6 +3,10 @@ import {
   helpers as aragonosHelpers,
 } from "../../../../modules/aragonos/src/_generated";
 import {
+  commands as assertionsCommands,
+  helpers as assertionsHelpers,
+} from "../../../../modules/assertions/src/_generated";
+import {
   commands as ensCommands,
   helpers as ensHelpers,
 } from "../../../../modules/ens/src/_generated";
@@ -57,6 +61,11 @@ const modules: ModuleDef[] = [
   { name: "http", commands: {}, helpers: httpHelpers },
   { name: "ens", commands: ensCommands, helpers: ensHelpers },
   { name: "giveth", commands: givethCommands, helpers: givethHelpers },
+  {
+    name: "assertions",
+    commands: assertionsCommands,
+    helpers: assertionsHelpers,
+  },
 ];
 
 // Map of module name -> doc import function for commands and helpers
@@ -87,6 +96,10 @@ const docImports: Record<
   giveth: (name, kind) =>
     import(
       `../../../../modules/giveth/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  assertions: (name, kind) =>
+    import(
+      `../../../../modules/assertions/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
     ).then((m) => m.default),
 };
 

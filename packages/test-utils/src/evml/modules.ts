@@ -16,4 +16,7 @@ export function registerAllModules(): void {
   EVMcrispr.registerModule("ens", () => loadModule("@evmcrispr/module-ens"));
   EVMcrispr.registerModule("http", () => loadModule("@evmcrispr/module-http"));
   EVMcrispr.registerModule("lang", () => loadModule("@evmcrispr/module-lang"));
+  EVMcrispr.registerModule("assertions", () =>
+    loadModule("@evmcrispr/module-assertions"),
+  );
 }

@@ -44,6 +44,29 @@ export function useTransactionExecutor(
       abortSignal?: AbortSignal,
     ) => {
       if (isTransactionAction(action)) {
+        if (action.readOnly) {
+          if (!action.to) {
+            throw new Error(
+              "Read-only assertion action is missing a target address",
+            );
+          }
+          onStatusUpdate(`Checking assertion at ${truncateAddress(action.to)}`);
+          try {
+            await currentPublicClient.call({
+              to: action.to,
+              data: action.data,
+              ...(action.from ? { account: action.from } : {}),
+              ...(action.value !== undefined ? { value: action.value } : {}),
+            });
+          } catch (err: any) {
+            const reason =
+              err?.shortMessage ?? err?.details ?? err?.message ?? String(err);
+            throw new Error(`Assertion failed: ${reason}`);
+          }
+          onStatusUpdate(":success:Assertion passed");
+          return;
+        }
+
         const actionFrom = action.from?.toLowerCase();
         const isOurTransaction =
           !actionFrom ||

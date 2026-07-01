@@ -6,6 +6,7 @@
   "dependencies": {
     "@evmcrispr/core": "*",
     "@evmcrispr/module-aragonos": "*",
+    "@evmcrispr/module-assertions": "*",
     "@evmcrispr/module-ens": "*",
     "@evmcrispr/module-giveth": "*",
     "@evmcrispr/module-http": "*",

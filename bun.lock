@@ -21,6 +21,7 @@
       "dependencies": {
         "@evmcrispr/core": "*",
         "@evmcrispr/module-aragonos": "*",
+        "@evmcrispr/module-assertions": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-http": "*",
@@ -40,6 +41,7 @@
       "dependencies": {
         "@evmcrispr/core": "*",
         "@evmcrispr/module-aragonos": "*",
+        "@evmcrispr/module-assertions": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-http": "*",
@@ -116,6 +118,19 @@
       "devDependencies": {
         "@evmcrispr/test-utils": "workspace:*",
         "is-ipfs": "^8.0.4",
+      },
+      "peerDependencies": {
+        "viem": "^2.29.4",
+      },
+    },
+    "modules/assertions": {
+      "name": "@evmcrispr/module-assertions",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
         "viem": "^2.29.4",
@@ -214,6 +229,7 @@
       "dependencies": {
         "@evmcrispr/core": "*",
         "@evmcrispr/module-aragonos": "*",
+        "@evmcrispr/module-assertions": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-http": "*",
@@ -553,6 +569,8 @@
     "@evmcrispr/core": ["@evmcrispr/core@workspace:packages/core"],
 
     "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
+
+    "@evmcrispr/module-assertions": ["@evmcrispr/module-assertions@workspace:modules/assertions"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
 
