@@ -176,4 +176,8 @@ export interface ModuleExports<T extends Module = Module> {
 
 export interface IModuleConstructor {
   new (context: ModuleContext, alias?: string): Module;
+  /** Module name as registered in the language (`load <moduleName>`). */
+  readonly moduleName: string;
+  /** Human-readable module description, surfaced in completions. */
+  readonly moduleDescription?: string;
 }

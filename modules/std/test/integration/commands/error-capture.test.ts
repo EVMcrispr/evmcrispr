@@ -7,7 +7,7 @@ import {
   RevertError,
 } from "@evmcrispr/sdk";
 import { expect, getPublicClient, getTransports, getWalletClients, resetAnvil } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "@evmcrispr/test-utils/evml";
+import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import { gnosis } from "viem/chains";
 
@@ -92,7 +92,7 @@ function createActionCallback(
 }
 
 function newEvm() {
-  const evm = new EVMcrispr(walletClient.account!.address, getTransports());
+  const evm = new Interpreter(evml.registry, { account: walletClient.account!.address, transports: getTransports() });
   evm.switchChainId(gnosis.id);
   return evm;
 }

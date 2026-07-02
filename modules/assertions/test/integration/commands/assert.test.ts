@@ -1,6 +1,7 @@
 import "../../setup";
 import { isTransactionAction } from "@evmcrispr/sdk";
-import { describeCommand, expect } from "@evmcrispr/test-utils";
+import { expect } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { type Address, getAddress, toFunctionSelector } from "viem";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");

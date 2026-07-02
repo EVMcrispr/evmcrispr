@@ -1,11 +1,10 @@
 import "../setup";
 import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "../../src/EVMcrispr";
+import { getDocumentSymbols } from "../../src/documentSymbols";
 
 function symbols(script: string) {
-  const evm = new EVMcrispr();
-  return evm.getDocumentSymbols(script);
+  return getDocumentSymbols(script);
 }
 
 describe("Core > documentSymbols", () => {

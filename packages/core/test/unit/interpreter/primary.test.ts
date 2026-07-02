@@ -222,7 +222,8 @@ describe("Interpreter - primaries", async () => {
           { type: NodeType.StringLiteral, value: "b" },
         ],
       } as any;
-      const evm = new (await import("@evmcrispr/core")).EVMcrispr(client);
+      const core = await import("@evmcrispr/core");
+      const evm = new core.Interpreter(core.evml.registry);
       const res = await evm.interpretNode(node);
       expect(res).to.deep.equal(["a", "b"]);
     });

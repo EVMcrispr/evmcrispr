@@ -11,7 +11,7 @@ import { type Alias, defineConfig, type Plugin } from "vite";
 //   1. Injects Vite aliases for every @evmcrispr/module-* package (incl.
 //      sub-path exports) so imports resolve to source files.
 //   2. Provides a `virtual:evmcrispr-modules` virtual module that registers
-//      every non-std module via EVMcrispr.registerModule().
+//      every non-std module via evml.use().
 // ---------------------------------------------------------------------------
 
 const MODULE_PREFIX = "@evmcrispr/module-";
@@ -54,7 +54,7 @@ function evmcrisprModules(modulesDir: string): Plugin {
     const name = pkgName.slice(MODULE_PREFIX.length);
     if (name !== "std") {
       registrations.push(
-        `EVMcrispr.registerModule(${JSON.stringify(name)}, () => import(${JSON.stringify(pkgName)}), ${JSON.stringify(pkg.description ?? "")});`,
+        `evml.use({ name: ${JSON.stringify(name)}, load: () => import(${JSON.stringify(pkgName)}), description: ${JSON.stringify(pkg.description ?? "")} });`,
       );
     }
   }
@@ -70,7 +70,7 @@ function evmcrisprModules(modulesDir: string): Plugin {
     load(id) {
       if (id !== RESOLVED_VIRTUAL_ID) return;
       return [
-        'import { EVMcrispr } from "@evmcrispr/core";',
+        'import { evml } from "@evmcrispr/core";',
         "",
         ...registrations,
       ].join("\n");

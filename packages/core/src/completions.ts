@@ -232,7 +232,7 @@ export async function getCompletions(
   // The walk starts on the caller-provided chain (defaults to mainnet)
   // and advances `state` in place when it sees a `switch` command, so
   // completions for code under a `switch optimism` block will see
-  // chain id 10. The caller (EVMcrispr) typically passes its own
+  // chain id 10. The caller (EvmlWorkspace) typically passes its own
   // `#chainId` so completions match what the script actually runs
   // against (e.g. tests forking gnosis pass 100).
   const client: PublicClient | undefined = clientForChain(

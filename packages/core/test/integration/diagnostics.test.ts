@@ -1,11 +1,10 @@
 import "../setup";
 import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "../../src/EVMcrispr";
+import { getDiagnostics } from "../../src";
 
 function diagnostics(script: string) {
-  const evm = new EVMcrispr();
-  return evm.getDiagnostics(script);
+  return getDiagnostics(script);
 }
 
 describe("Core > diagnostics", () => {

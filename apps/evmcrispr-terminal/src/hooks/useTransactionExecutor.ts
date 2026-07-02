@@ -1,19 +1,49 @@
-import type { Action } from "@evmcrispr/core";
-import { EVMcrispr, HaltExecution, isTransactionAction } from "@evmcrispr/core";
+import type { ActionHandlers } from "@evmcrispr/core";
+import { evml } from "@evmcrispr/core";
+import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useRef, useState } from "react";
-import type { PublicClient } from "viem";
-import { usePublicClient, useWalletClient } from "wagmi";
-import { getPublicClient } from "wagmi/actions";
+import { useWalletClient } from "wagmi";
 
-import { config, transports } from "../config/wagmi";
+import { transports } from "../config/wagmi";
 import { terminalStoreActions } from "../stores/terminal-store";
-import { prepareChainsForScript, switchOrAddChain } from "../utils/chain";
-import { observeTransaction } from "../utils/transaction-observer";
 import { useExecutionLogs } from "./useExecutionLogs";
-import { useTransactionBatcher } from "./useTransactionBatcher";
 
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+/** Safe apps can't use EIP-5792 batching — route batched actions through
+ *  the Safe SDK instead. Non-Safe runs use the core default handler. */
+export function makeSafeBatchedHandler(
+  safeConnector: any,
+): ActionHandlers["batched"] {
+  return async (batch, _ctx) => {
+    const sdk = await safeConnector
+      .getProvider()
+      .then((provider: any) => provider.sdk as SafeAppProvider);
+    if (!sdk) throw new Error("Safe SDK not available");
+
+    const chainId = await safeConnector.getChainId();
+    const { actions } = batch;
+
+    if (
+      batch.chainId !== chainId ||
+      actions.find(
+        (action) => action.chainId !== undefined && action.chainId !== chainId,
+      )
+    ) {
+      throw new Error("Safe does not support switching chains");
+    }
+
+    const callableActions = actions.filter((action) => action.to !== undefined);
+    if (callableActions.length !== actions.length) {
+      throw new Error("Contract deployments cannot be executed in batch mode");
+    }
+
+    await sdk.txs.send({
+      txs: callableActions.map((action) => ({
+        to: action.to as `0x${string}`,
+        data: action.data,
+        value: String(action.value || "0"),
+      })),
+    });
+  };
 }
 
 export function useTransactionExecutor(
@@ -23,7 +53,6 @@ export function useTransactionExecutor(
   safeConnector?: any,
 ) {
   const { data: walletClient } = useWalletClient();
-  const publicClient = usePublicClient();
 
   const scriptRef = useRef(script);
   scriptRef.current = script;
@@ -31,181 +60,6 @@ export function useTransactionExecutor(
   const { logs, logListener, clearLogs } = useExecutionLogs();
   const [errors, setErrors] = useState<string[]>([]);
   const clearErrors = useCallback(() => setErrors([]), []);
-
-  const { executeBatchedActions, executeSafeBatchedActions } =
-    useTransactionBatcher(safeConnector);
-
-  const executeAction = useCallback(
-    async (
-      action: Action,
-      connectedAddress: `0x${string}` | undefined,
-      currentPublicClient: PublicClient,
-      onStatusUpdate: (message: string) => void,
-      abortSignal?: AbortSignal,
-    ) => {
-      if (isTransactionAction(action)) {
-        if (action.readOnly) {
-          if (!action.to) {
-            throw new Error(
-              "Read-only assertion action is missing a target address",
-            );
-          }
-          onStatusUpdate(`Checking assertion at ${truncateAddress(action.to)}`);
-          try {
-            await currentPublicClient.call({
-              to: action.to,
-              data: action.data,
-              ...(action.from ? { account: action.from } : {}),
-              ...(action.value !== undefined ? { value: action.value } : {}),
-            });
-          } catch (err: any) {
-            const reason =
-              err?.shortMessage ?? err?.details ?? err?.message ?? String(err);
-            throw new Error(`Assertion failed: ${reason}`);
-          }
-          onStatusUpdate(":success:Assertion passed");
-          return;
-        }
-
-        const actionFrom = action.from?.toLowerCase();
-        const isOurTransaction =
-          !actionFrom ||
-          (connectedAddress && actionFrom === connectedAddress.toLowerCase());
-
-        if (isOurTransaction) {
-          if (!walletClient) {
-            throw new Error(
-              "Wallet connection required to sign transactions. Connect a wallet and try again.",
-            );
-          }
-
-          onStatusUpdate(
-            action.to
-              ? `Sending transaction to ${truncateAddress(action.to)}`
-              : "Sending contract deployment transaction",
-          );
-
-          if (action.chainId === undefined) {
-            throw new Error(
-              `Transaction to ${action.to ?? "<deploy>"} is missing chainId`,
-            );
-          }
-          const chainId = action.chainId;
-
-          let gasLimit: bigint | undefined = action.gas;
-          if (!gasLimit && maximizeGasLimit) {
-            gasLimit = 16_777_216n;
-          }
-
-          const tx = await walletClient.sendTransaction({
-            chain: config.chains.find((chain) => chain.id === chainId),
-            to: action.to,
-            from: action.from,
-            data: action.data,
-            value: action.value,
-            gas: gasLimit,
-            maxFeePerGas: action.maxFeePerGas,
-            maxPriorityFeePerGas: action.maxPriorityFeePerGas,
-            nonce: action.nonce,
-          });
-          const txPublicClient =
-            (getPublicClient(config, { chainId: chainId as any }) as
-              | PublicClient
-              | undefined) ?? currentPublicClient;
-          const receipt = await txPublicClient.waitForTransactionReceipt({
-            hash: tx,
-          });
-          onStatusUpdate(
-            `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${tx})`,
-          );
-          return receipt;
-        } else {
-          if (!action.to) {
-            throw new Error(
-              "Cannot observe contract deployment transactions from other signers",
-            );
-          }
-          onStatusUpdate(
-            `:waiting:Waiting for ${truncateAddress(action.from!)} to execute transaction to ${truncateAddress(action.to)}`,
-          );
-          await observeTransaction({
-            to: action.to,
-            data: action.data,
-            from: action.from!,
-            publicClient: currentPublicClient,
-            onStatusUpdate,
-            signal: abortSignal,
-          });
-        }
-      } else {
-        switch (action.type) {
-          case "batched": {
-            if (!walletClient) {
-              throw new Error(
-                "Wallet connection required to send batched transactions. Connect a wallet and try again.",
-              );
-            }
-            onStatusUpdate(
-              `Executing batch of ${action.actions.length} transactions from ${truncateAddress(action.from)}`,
-            );
-            if (safeConnector) {
-              await executeSafeBatchedActions(action);
-            } else {
-              return await executeBatchedActions(action, walletClient);
-            }
-            break;
-          }
-
-          case "wallet": {
-            if (action.method === "wallet_switchEthereumChain") {
-              if (walletClient) {
-                const chainId = Number(action.params[0].chainId);
-                await switchOrAddChain(walletClient, chainId);
-              }
-            } else {
-              if (!walletClient) {
-                throw new Error(
-                  "Wallet connection required for wallet actions. Connect a wallet and try again.",
-                );
-              }
-              return await walletClient.request({
-                method: action.method as any,
-                params: action.params as any,
-              });
-            }
-            break;
-          }
-
-          case "rpc": {
-            onStatusUpdate(`RPC call: ${action.method}`);
-            return await currentPublicClient.request({
-              method: action.method as any,
-              params: action.params as any,
-            });
-          }
-
-          case "terminal": {
-            if (action.command === "halt") {
-              throw new HaltExecution();
-            }
-            onStatusUpdate(
-              `Terminal action: ${action.command} ${JSON.stringify(
-                action.args,
-              )}`,
-            );
-            break;
-          }
-        }
-      }
-    },
-    [
-      walletClient,
-      maximizeGasLimit,
-      safeConnector,
-      executeBatchedActions,
-      executeSafeBatchedActions,
-    ],
-  );
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -223,34 +77,33 @@ export function useTransactionExecutor(
     const abortSignal = abortControllerRef.current.signal;
 
     try {
-      if (!publicClient) {
-        throw new Error("Public client not available");
-      }
-
-      if (walletClient) {
-        await prepareChainsForScript(walletClient, scriptRef.current);
-      }
-
-      const evm = new EVMcrispr(address, transports);
-      evm.registerLogListener(logListener);
-      evm.registerLineListener((line: number | null) =>
-        terminalStoreActions("executingLine", line),
-      );
-
-      await evm.interpret(scriptRef.current, async (action: Action) => {
-        return await executeAction(
-          action,
-          address,
-          publicClient,
-          logListener,
-          abortSignal,
+      if (!walletClient) {
+        throw new Error(
+          "Wallet connection required to sign transactions. Connect a wallet and try again.",
         );
+      }
+
+      const evmlScript = evml
+        .with({
+          account: address,
+          transports,
+          onLog: logListener,
+          onLine: (line: number | null) =>
+            terminalStoreActions("executingLine", line),
+        })
+        .script(scriptRef.current);
+
+      await evmlScript.execute(walletClient, {
+        signal: abortSignal,
+        maximizeGasLimit,
+        onLog: logListener,
+        handlers: safeConnector
+          ? { batched: makeSafeBatchedHandler(safeConnector) }
+          : undefined,
       });
     } catch (err: any) {
       const e = err as Error;
-      if (err instanceof HaltExecution) {
-        // Clean halt — not an error
-      } else if (e.message === "Observation cancelled") {
+      if (e.message === "Observation cancelled") {
         setErrors(["Script execution cancelled"]);
       } else {
         console.error(e);
@@ -274,11 +127,11 @@ export function useTransactionExecutor(
     }
   }, [
     address,
-    publicClient,
     walletClient,
+    maximizeGasLimit,
+    safeConnector,
     logListener,
     clearLogs,
-    executeAction,
     clearErrors,
   ]);
 

@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "@evmcrispr/test-utils/evml";
+import { evml, type EvmlWorkspace } from "@evmcrispr/test-utils/evml";
 
 const onlyKind = (
   items: CompletionItem[],
@@ -17,7 +17,7 @@ const LOAD_PREFIX = "load http\n";
 // ---------------------------------------------------------------------------
 
 describe("Completions – @json json-path autocomplete", () => {
-  let evm: EVMcrispr;
+  let evm: EvmlWorkspace;
 
   const hasLabel = (items: CompletionItem[], label: string): boolean =>
     items.some((i) => i.label === label);
@@ -28,7 +28,7 @@ describe("Completions – @json json-path autocomplete", () => {
   const TOKENLIST_URL = "https://api.evmcrispr.com/tokenlist/1";
 
   beforeAll(() => {
-    evm = new EVMcrispr();
+    evm = evml.workspace();
   });
 
   it('@json(@fetch(url) "$.<cursor>") should suggest root-level keys without suffix', async () => {

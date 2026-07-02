@@ -1,4 +1,4 @@
-import { EVMcrispr } from "@evmcrispr/core";
+import { evml } from "@evmcrispr/core";
 import type { editor } from "monaco-editor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { transports } from "../config/wagmi";
@@ -11,7 +11,7 @@ export function useEditorState(
   const [debouncedScript, setDebouncedScript] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const evm = useMemo(() => new EVMcrispr(undefined, transports), []);
+  const evm = useMemo(() => evml.with({ transports }).workspace(), []);
 
   useEffect(() => {
     if (!editorInstance) return;

@@ -37,7 +37,7 @@ export type { HoverInfo } from "./types";
 
 export interface HoverContext {
   moduleCache: BindingsManager;
-  /** USER bindings produced by the latest `EVMcrispr.prewarm(script)` call.
+  /** USER bindings produced by the latest `EvmlWorkspace.prewarm(script)` call.
    *  Holds the *final* value of each variable (after every `set` in the
    *  script). Used as a fallback when no `variableHistory` is supplied. */
   scriptBindings?: BindingsManager;

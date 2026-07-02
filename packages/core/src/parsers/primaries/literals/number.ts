@@ -34,7 +34,13 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
     coroutine((run) => {
       let value: string;
 
-      const integers = run(digits);
+      // A minus sign is only part of a number literal when immediately
+      // followed by digits; otherwise the whole parser fails and the
+      // enclosing choice backtracks (barewords like `token-manager` and
+      // option flags like `--block-number` are unaffected).
+      const sign = run(possibly(char("-"))) ?? "";
+
+      const integers = sign + run(digits);
 
       if (run(possibly(char(".")))) {
         const decimals = run(

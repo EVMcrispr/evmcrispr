@@ -22,7 +22,7 @@ import {
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import { expect, getPublicClient, getTransports, getWalletClients } from "@evmcrispr/test-utils";
-import { createInterpreter, EVMcrispr } from "@evmcrispr/test-utils/evml";
+import { createInterpreter, evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import type { Address, PublicClient, WalletClient } from "viem";
 import { decodeAbiParameters, isAddressEqual, parseAbiParameters } from "viem";
 import { gnosis } from "viem/chains";
@@ -112,7 +112,7 @@ describe("AragonOS > commands > new-dao > event capture", () => {
   });
 
   it("should capture DeployDAO event address from new-dao command", async () => {
-    const evm = new EVMcrispr(walletClient.account!.address, getTransports());
+    const evm = new Interpreter(evml.registry, { account: walletClient.account!.address, transports: getTransports() });
     evm.switchChainId(gnosis.id);
     const actionCallback = createActionCallback(walletClient, client);
 

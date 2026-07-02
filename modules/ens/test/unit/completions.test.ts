@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import { expect, STD_ADDRESS_HELPERS, STD_ALL_HELPERS, STD_BYTES_HELPERS, STD_BYTES32_HELPERS, STD_NUMBER_HELPERS } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "@evmcrispr/test-utils/evml";
+import { evml, type EvmlWorkspace } from "@evmcrispr/test-utils/evml";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -30,11 +30,11 @@ const pos = (script: string, line = 1) => ({
 // ---------------------------------------------------------------------------
 
 describe("Completions – ens commands", () => {
-  let evm: EVMcrispr;
+  let evm: EvmlWorkspace;
   const ENS = "load ens\n";
 
   beforeAll(() => {
-    evm = new EVMcrispr();
+    evm = evml.workspace();
   });
 
   // -------------------------------------------------------------------------
@@ -79,10 +79,10 @@ describe("Completions – ens commands", () => {
 // ---------------------------------------------------------------------------
 
 describe("Completions – ens helpers", () => {
-  let evm: EVMcrispr;
+  let evm: EvmlWorkspace;
 
   beforeAll(() => {
-    evm = new EVMcrispr();
+    evm = evml.workspace();
   });
 
   const ENS_HELPERS = ["@contenthash", "@ens.avatar", "@ens.name", "@ens.text"];

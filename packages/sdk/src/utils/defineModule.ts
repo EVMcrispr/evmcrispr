@@ -26,6 +26,8 @@ function createModuleClass<M extends Module>(
   constants: Record<string, string> = {},
 ): IModuleConstructor {
   return class extends Module {
+    static readonly moduleName = name;
+
     constructor(context: ModuleContext, alias?: string) {
       super(
         name,

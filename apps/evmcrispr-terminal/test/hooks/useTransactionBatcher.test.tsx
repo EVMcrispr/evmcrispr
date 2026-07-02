@@ -1,7 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { BatchedAction } from "@evmcrispr/core";
-import { renderHook } from "@testing-library/react";
-import { useTransactionBatcher } from "../../src/hooks/useTransactionBatcher";
+import type { ActionHandlerCtx, BatchedAction } from "@evmcrispr/core";
+import { makeSafeBatchedHandler } from "../../src/hooks/useTransactionExecutor";
 
 const batch: BatchedAction = {
   type: "batched",
@@ -16,7 +15,9 @@ const batch: BatchedAction = {
   ],
 };
 
-describe("useTransactionBatcher", () => {
+const ctx = {} as ActionHandlerCtx;
+
+describe("makeSafeBatchedHandler", () => {
   test("submits Safe batches using the outer batch chain", async () => {
     const send = mock(async () => undefined);
     const safeConnector = {
@@ -26,9 +27,7 @@ describe("useTransactionBatcher", () => {
       })),
     };
 
-    const { result } = renderHook(() => useTransactionBatcher(safeConnector));
-
-    await result.current.executeSafeBatchedActions(batch);
+    await makeSafeBatchedHandler(safeConnector)(batch, ctx);
 
     expect(send).toHaveBeenCalledWith({
       txs: [
@@ -49,10 +48,8 @@ describe("useTransactionBatcher", () => {
       })),
     };
 
-    const { result } = renderHook(() => useTransactionBatcher(safeConnector));
-
     await expect(
-      result.current.executeSafeBatchedActions(batch),
+      makeSafeBatchedHandler(safeConnector)(batch, ctx),
     ).rejects.toThrow("Safe does not support switching chains");
   });
 });

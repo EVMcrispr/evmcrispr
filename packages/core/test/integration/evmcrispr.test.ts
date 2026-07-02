@@ -7,13 +7,21 @@ import {
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
 import { gnosis } from "viem/chains";
-import { EVMcrispr } from "../../src/EVMcrispr";
+import { evml, Interpreter } from "../../src";
 
-describe("Core > EVMcrispr", () => {
+describe("Core > Interpreter", () => {
   function createEvm() {
-    const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
-    evm.switchChainId(gnosis.id);
-    return evm;
+    return new Interpreter(evml.registry, {
+      account: TEST_ACCOUNT_ADDRESS,
+      chainId: gnosis.id,
+      transports: getTransports(),
+    });
+  }
+
+  function createWs() {
+    return evml
+      .with({ chainId: gnosis.id, transports: getTransports() })
+      .workspace();
   }
 
   describe("interpret()", () => {
@@ -114,7 +122,7 @@ describe("Core > EVMcrispr", () => {
       expect(b).to.eql(["test"]);
     });
 
-    it("should return the EVMcrispr instance for chaining", () => {
+    it("should return the Interpreter instance for chaining", () => {
       const evm = createEvm();
       const result = evm.registerLogListener(() => {});
       expect(result).to.equal(evm);
@@ -135,7 +143,7 @@ describe("Core > EVMcrispr", () => {
     });
 
     it("should throw when no account is set", async () => {
-      const evm = new EVMcrispr();
+      const evm = new Interpreter(evml.registry);
       try {
         await evm.getConnectedAccount();
         throw new Error("expected to throw");
@@ -170,30 +178,30 @@ describe("Core > EVMcrispr", () => {
     });
   });
 
-  describe("flushCache()", () => {
+  describe("workspace flushCache()", () => {
     it("should not throw when called", () => {
-      const evm = createEvm();
-      expect(() => evm.flushCache()).to.not.throw();
+      const ws = createWs();
+      expect(() => ws.flushCache()).to.not.throw();
     });
   });
 
-  describe("getDiagnostics()", () => {
+  describe("workspace getDiagnostics()", () => {
     it("should return empty for valid scripts", () => {
-      const evm = createEvm();
-      expect(evm.getDiagnostics("set $x 1")).to.eql([]);
+      const ws = createWs();
+      expect(ws.getDiagnostics("set $x 1")).to.eql([]);
     });
 
     it("should return diagnostics for invalid scripts", () => {
-      const evm = createEvm();
-      const result = evm.getDiagnostics("(");
+      const ws = createWs();
+      const result = ws.getDiagnostics("(");
       expect(result.length).to.be.greaterThan(0);
     });
   });
 
-  describe("getKeywords()", () => {
+  describe("workspace getKeywords()", () => {
     it("should return commands and helpers for a script", async () => {
-      const evm = createEvm();
-      const result = await evm.getKeywords("set $x 1");
+      const ws = createWs();
+      const result = await ws.getKeywords("set $x 1");
       expect(result.commands).to.be.an("array");
       expect(result.helpers).to.be.an("array");
       expect(result.commands).to.include("set");
@@ -201,8 +209,8 @@ describe("Core > EVMcrispr", () => {
 
     it("should include module commands after load", async () => {
       // Uses the `coretest` stub registered in test/setup.ts.
-      const evm = createEvm();
-      const result = await evm.getKeywords("load coretest --as ct\nset $x 1");
+      const ws = createWs();
+      const result = await ws.getKeywords("load coretest --as ct\nset $x 1");
       expect(result.commands).to.include("coretest-cmd");
     });
   });

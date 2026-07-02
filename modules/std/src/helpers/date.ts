@@ -28,6 +28,13 @@ export default defineHelper<Std>({
     if (date !== "now" && !iso8601Regex.test(date)) {
       throw new ErrorInvalid("Invalid date provided.");
     }
+    // Negative offsets like `-1y` parse as number literals and arrive
+    // already evaluated into seconds (the interpreter applies the time
+    // unit); `+1d` style offsets still arrive as strings.
+    if (offset !== undefined && typeof offset !== "string") {
+      const _date = date === "now" ? Date.now() : new Date(date.toString());
+      return (Math.floor(_date.valueOf() / 1000) + Number(offset)).toString();
+    }
     if (offset && !offsetRegex.test(offset)) {
       throw new ErrorInvalid("Invalid offset provided.");
     }

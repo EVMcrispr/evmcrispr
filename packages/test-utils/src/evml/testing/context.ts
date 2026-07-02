@@ -5,7 +5,7 @@ import type {
   ParseDiagnostic,
   SignatureHelp,
 } from "@evmcrispr/core";
-import { EVMcrispr } from "@evmcrispr/core";
+import { type EvmlWorkspace, evml, Interpreter } from "@evmcrispr/core";
 import type {
   CompletionItem,
   HelperFunctionNode,
@@ -59,40 +59,46 @@ export class TestContext {
     return preparingExpression(expr, this._client, module, preamble);
   }
 
-  /** Create a fresh EVMcrispr instance wired to the test client.
-   *
-   * EVMcrispr defaults to mainnet; the tests run against the local
-   * anvil-forked Gnosis chain, so we immediately switch the instance to
-   * Gnosis. */
-  createEvm(): EVMcrispr {
-    const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
-    evm.switchChainId(gnosis.id);
-    return evm;
+  /** Create a fresh Interpreter wired to the test client on the local
+   *  anvil-forked Gnosis chain. */
+  createEvm(): Interpreter {
+    return new Interpreter(evml.registry, {
+      account: TEST_ACCOUNT_ADDRESS,
+      chainId: gnosis.id,
+      transports: getTransports(),
+    });
+  }
+
+  /** Create a fresh editor workspace on the test Gnosis chain. */
+  createWorkspace(): EvmlWorkspace {
+    return evml
+      .with({ chainId: gnosis.id, transports: getTransports() })
+      .workspace();
   }
 
   async completions(
     script: string,
     position: Position,
   ): Promise<CompletionItem[]> {
-    return this.createEvm().getCompletions(script, position);
+    return this.createWorkspace().getCompletions(script, position);
   }
 
   async hover(script: string, position: Position): Promise<HoverInfo | null> {
-    return this.createEvm().getHoverInfo(script, position);
+    return this.createWorkspace().getHoverInfo(script, position);
   }
 
   async signatureHelp(
     script: string,
     position: Position,
   ): Promise<SignatureHelp | null> {
-    return this.createEvm().getSignatureHelp(script, position);
+    return this.createWorkspace().getSignatureHelp(script, position);
   }
 
   documentSymbols(script: string): DocumentSymbol[] {
-    return this.createEvm().getDocumentSymbols(script);
+    return this.createWorkspace().getDocumentSymbols(script);
   }
 
   diagnostics(script: string): ParseDiagnostic[] {
-    return this.createEvm().getDiagnostics(script);
+    return this.createWorkspace().getDiagnostics(script);
   }
 }

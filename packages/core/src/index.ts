@@ -92,17 +92,54 @@ export {
   resolveCommand,
   resolveHelper,
 } from "@evmcrispr/sdk";
+export type { ParseDiagnostic } from "./diagnostics";
+export { getDiagnostics, parseDiagnosticString } from "./diagnostics";
 export type { DocumentSymbol, DocumentSymbolKind } from "./documentSymbols";
-export type { ParseDiagnostic } from "./EVMcrispr";
-export { EVMcrispr } from "./EVMcrispr";
 export { EvmlAST } from "./EvmlAST";
+export type {
+  ActionHandlerCtx,
+  ActionHandlers,
+  ExecuteOptions,
+  ExecutionResult,
+  ObserveTransactionParams,
+  ObserveTransactionResult,
+} from "./evml/execute";
+export {
+  executeScript,
+  observeTransaction,
+  prepareChainsForScript,
+  switchOrAddChain,
+} from "./evml/execute";
+export { ModuleRegistry } from "./evml/registry";
+export type { InterpretOptions as ScriptInterpretOptions } from "./evml/script";
+export { EvmlScript } from "./evml/script";
+export type { EvmlValue } from "./evml/serialize";
+export {
+  EvmlRaw,
+  EvmlSerializationError,
+  serializeEvmlValue,
+} from "./evml/serialize";
+export type { SimulateOptions, SimulationResult } from "./evml/simulate";
+export { simulateScript } from "./evml/simulate";
+export type { EvmlTag } from "./evml/tag";
+export { createEvml, evml } from "./evml/tag";
+export type { EvmlConfig, ModuleInput, ModuleLoader } from "./evml/types";
 export type { HoverInfo } from "./hover";
+export { Interpreter } from "./interpreter/Interpreter";
 export { parseScript, scriptParser } from "./parsers/script";
 export { createParserState } from "./parsers/utils";
+export type {
+  PrewarmCheckpoint,
+  PrewarmSnapshot,
+  VariableHistory,
+  WalkResult,
+} from "./scriptWalk";
 export {
   clientForChain,
   collectPreparedSwitchTargets,
   resolveSwitchChainId,
   switchArgForChainId,
+  walkScript,
 } from "./scriptWalk";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";
+export { EvmlWorkspace } from "./Workspace";

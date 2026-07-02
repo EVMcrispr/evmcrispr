@@ -1,22 +1,22 @@
-import { EVMcrispr } from "@evmcrispr/core";
+import { evml } from "@evmcrispr/core";
 
 const loadModule = (moduleName: string) => import(moduleName);
 
 /**
- * Register all available EVMcrispr modules. Call once per test setup file.
+ * Register all available EVMcrispr modules on the shared `evml` tag.
+ * Call once per test setup file.
  */
 export function registerAllModules(): void {
-  EVMcrispr.registerModule("aragonos", () =>
-    loadModule("@evmcrispr/module-aragonos"),
-  );
-  EVMcrispr.registerModule("sim", () => loadModule("@evmcrispr/module-sim"));
-  EVMcrispr.registerModule("giveth", () =>
-    loadModule("@evmcrispr/module-giveth"),
-  );
-  EVMcrispr.registerModule("ens", () => loadModule("@evmcrispr/module-ens"));
-  EVMcrispr.registerModule("http", () => loadModule("@evmcrispr/module-http"));
-  EVMcrispr.registerModule("lang", () => loadModule("@evmcrispr/module-lang"));
-  EVMcrispr.registerModule("assertions", () =>
-    loadModule("@evmcrispr/module-assertions"),
+  evml.use(
+    { name: "aragonos", load: () => loadModule("@evmcrispr/module-aragonos") },
+    { name: "sim", load: () => loadModule("@evmcrispr/module-sim") },
+    { name: "giveth", load: () => loadModule("@evmcrispr/module-giveth") },
+    { name: "ens", load: () => loadModule("@evmcrispr/module-ens") },
+    { name: "http", load: () => loadModule("@evmcrispr/module-http") },
+    { name: "lang", load: () => loadModule("@evmcrispr/module-lang") },
+    {
+      name: "assertions",
+      load: () => loadModule("@evmcrispr/module-assertions"),
+    },
   );
 }

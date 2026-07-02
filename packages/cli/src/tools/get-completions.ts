@@ -1,10 +1,9 @@
-import { createEVMcrisprInstance } from "../lib/evmcrispr-factory.js";
+import { getWorkspace } from "../lib/workspace.js";
 
 export async function getCompletions(
   script: string,
   line: number,
   col: number,
 ) {
-  const { evm } = await createEVMcrisprInstance();
-  return evm.getCompletions(script, { line, col });
+  return getWorkspace().getCompletions(script, { line, col });
 }

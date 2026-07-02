@@ -1,26 +1,5 @@
 import type { Address } from "viem";
-import { createEVMcrisprInstance } from "../lib/evmcrispr-factory.js";
-
-function needsSimWrap(script: string): boolean {
-  const normalized = script.toLowerCase();
-  return !(normalized.includes("load sim") && normalized.includes("sim:fork"));
-}
-
-function wrapScript(
-  script: string,
-  options?: { blockNumber?: number; from?: Address },
-): string {
-  const forkOpts: string[] = [];
-  if (options?.blockNumber) {
-    forkOpts.push(`--block-number ${options.blockNumber}`);
-  }
-  if (options?.from) {
-    forkOpts.push(`--from ${options.from}`);
-  }
-
-  const optsStr = forkOpts.length > 0 ? ` ${forkOpts.join(" ")}` : "";
-  return `load sim\nsim:fork${optsStr} (\n${script}\n)`;
-}
+import { createEvmlTag } from "../lib/evmcrispr-factory.js";
 
 export async function simulateEvml(args: {
   script: string;
@@ -35,24 +14,16 @@ export async function simulateEvml(args: {
 }> {
   const from = args.from as Address | undefined;
 
-  const { evm, logs } = await createEVMcrisprInstance({
+  const { tag } = createEvmlTag({
     chainId: args.chainId,
     rpcUrl: args.rpcUrl,
     from,
   });
 
-  const script = needsSimWrap(args.script)
-    ? wrapScript(args.script, {
-        blockNumber: args.blockNumber,
-        from,
-      })
-    : args.script;
+  const { success, logs, error } = await tag.script(args.script).simulate({
+    blockNumber: args.blockNumber,
+    from,
+  });
 
-  try {
-    await evm.interpret(script);
-    return { success: true, logs };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { success: false, logs, error: message };
-  }
+  return error === undefined ? { success, logs } : { success, logs, error };
 }

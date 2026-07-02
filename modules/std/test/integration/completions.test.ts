@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import { expect, getTransports } from "@evmcrispr/test-utils";
-import { EVMcrispr } from "@evmcrispr/test-utils/evml";
+import { evml, type EvmlWorkspace } from "@evmcrispr/test-utils/evml";
 import type { Address } from "viem";
 import { gnosis } from "viem/chains";
 
@@ -28,10 +28,10 @@ const pos = (script: string, line = 1) => ({
 // ---------------------------------------------------------------------------
 
 describe("Completions – std exec ABI fetching", () => {
-  let evm: EVMcrispr;
+  let evm: EvmlWorkspace;
 
   beforeAll(() => {
-    evm = new EVMcrispr(undefined, getTransports());
+    evm = evml.with({ transports: getTransports() }).workspace();
     evm.switchChainId(gnosis.id);
   });
 
@@ -141,7 +141,7 @@ describe("Completions – std exec ABI fetching", () => {
 // ---------------------------------------------------------------------------
 
 describe("Completions – @get read-abi ABI fetching", () => {
-  let evm: EVMcrispr;
+  let evm: EvmlWorkspace;
 
   const hasLabel = (items: CompletionItem[], label: string): boolean =>
     items.some((i) => i.label === label);
@@ -152,7 +152,7 @@ describe("Completions – @get read-abi ABI fetching", () => {
   });
 
   beforeAll(() => {
-    evm = new EVMcrispr(undefined, getTransports());
+    evm = evml.with({ transports: getTransports() }).workspace();
     evm.switchChainId(gnosis.id);
   });
 

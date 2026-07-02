@@ -1,11 +1,8 @@
 import "../../setup";
 import { describe, it } from "bun:test";
 import { isTransactionAction } from "@evmcrispr/sdk";
-import {
-  createInterpreter,
-  expect,
-  getPublicClient,
-} from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import { type Address, getAddress, toFunctionSelector } from "viem";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");

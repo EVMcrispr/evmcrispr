@@ -1,21 +1,16 @@
 import Std from "@evmcrispr/module-std";
 import type {
-  Action,
   Binding,
   CommandExpressionNode,
   CompletionItem,
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
-  Module,
   ModuleContext,
   ModuleData,
   Node,
-  NodeInterpreter,
-  NodesInterpreter,
   Param,
   Position,
-  RelativeBinding,
 } from "@evmcrispr/sdk";
 import {
   BindingsManager,
@@ -25,7 +20,7 @@ import {
   NodeType,
   resolveHelper as resolveHelperFn,
 } from "@evmcrispr/sdk";
-import type { Address, Chain, PublicClient, Transport } from "viem";
+import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
@@ -35,83 +30,42 @@ import {
   getKeywords as getKeywordsImpl,
 } from "./completions";
 import {
+  getDiagnostics as getDiagnosticsImpl,
+  type ParseDiagnostic,
+} from "./diagnostics";
+import {
   type DocumentSymbol,
   getDocumentSymbols as getDocumentSymbolsImpl,
 } from "./documentSymbols";
+import type { ModuleRegistry } from "./evml/registry";
+import type { EvmlConfig } from "./evml/types";
 import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
-import {
-  createInterpreter,
-  type InterpretCtx,
-  makeExecuteWithCaptures,
-  makeExecutionResolveCallExpression,
-  makeExecutionResolveCommand,
-  makeExecutionResolveHelper,
-  makeResolveBlockExpression,
-} from "./interpreter";
 import { parseScript } from "./parsers/script";
-import { type VariableHistory, walkScript } from "./scriptWalk";
+import {
+  type PrewarmSnapshot,
+  type VariableHistory,
+  walkScript,
+} from "./scriptWalk";
 import {
   getSignatureHelp as getSignatureHelpImpl,
   type SignatureHelp,
 } from "./signature";
 
-// ---------------------------------------------------------------------------
-// Diagnostics
-// ---------------------------------------------------------------------------
+/**
+ * Long-lived editor/LSP session: completions, hover, signature help,
+ * diagnostics, document symbols and prewarm. Holds the module cache and
+ * prewarm state across keystrokes — create one per editor, feed it raw
+ * script strings, and keep it alive between edits.
+ */
+export class EvmlWorkspace {
+  readonly registry: ModuleRegistry;
 
-export type ParseDiagnostic = {
-  /** 1-indexed line number. */
-  line: number;
-  /** 0-indexed column offset. */
-  col: number;
-  message: string;
-  severity: "error" | "warning";
-};
-
-/** Extract structured data from a parser error string.
- *  Format produced by `buildParserError`: `Type(line:col): message` */
-function parseDiagnosticString(error: string): ParseDiagnostic | null {
-  const match = error.match(/^\w+\((\d+):(\d+)\):\s*(.+)$/);
-  if (!match) return null;
-  return {
-    line: Number(match[1]),
-    col: Number(match[2]),
-    message: match[3],
-    severity: "error",
-  };
-}
-
-export class EVMcrispr {
-  readonly bindingsManager: BindingsManager;
-
-  static #registry = new Map<
-    string,
-    () => Promise<{ default: IModuleConstructor }>
-  >();
-
-  static #descriptions = new Map<string, string>();
-
-  static registerModule(
-    name: string,
-    loader: () => Promise<{ default: IModuleConstructor }>,
-    description?: string,
-  ): void {
-    EVMcrispr.#registry.set(name, loader);
-    if (description) EVMcrispr.#descriptions.set(name, description);
-  }
-
-  #std!: Std;
-  #modules: Module[];
-  #nonces: Record<string, number>;
-  #account: Address | undefined;
+  #std: Std;
   #chainId: number;
   #chain: Chain | undefined;
-
-  #logListeners: ((message: string, prevMessages: string[]) => void)[];
-  #lineListeners: ((line: number | null) => void)[];
-  #prevMessages: string[];
-
   #client: PublicClient | undefined;
+  #transports?: Record<number, Transport>;
+  #ipfsResolver: IPFSResolver;
 
   /** Internal module cache for completions / keywords. */
   #moduleCache: BindingsManager;
@@ -129,77 +83,28 @@ export class EVMcrispr {
   #scriptClient?: PublicClient;
   /** Monotonic guard so slower prewarm calls cannot publish stale state. */
   #prewarmSequence = 0;
-  #ipfsResolver: IPFSResolver;
-  #transports?: Record<number, Transport>;
-  /** Captures wrapper bound to this instance — used by the execution-mode
-   *  command resolver. Built lazily once `interpretNode` is available. */
-  #executeWithCaptures!: ReturnType<typeof makeExecuteWithCaptures>;
+  /** Per-command checkpoints from the most recent `prewarm(script)` walk.
+   *  The next walk replays the byte-identical command prefix from here
+   *  instead of re-resolving it. */
+  #prewarmSnapshot?: PrewarmSnapshot;
 
-  constructor(account?: Address, transports?: Record<number, Transport>) {
-    this.bindingsManager = new BindingsManager();
-    this.#modules = [];
-    this.#nonces = {};
-    this.#chainId = mainnet.id;
-    this.#chain = mainnet;
-    this.#client = createPublicClient({
-      chain: mainnet,
-      transport: transports?.[mainnet.id] ?? http(),
-    }) as PublicClient;
-    this.#account = account;
-    this.#logListeners = [];
-    this.#lineListeners = [];
-    this.#prevMessages = [];
+  constructor(registry: ModuleRegistry, config: EvmlConfig = {}) {
+    this.registry = registry;
+    this.#chainId = config.chainId ?? mainnet.id;
+    this.#chain = Object.values(viemChains).find(
+      (c) => (c as Chain).id === this.#chainId,
+    ) as Chain | undefined;
+    this.#client = this.#chain
+      ? (createPublicClient({
+          chain: this.#chain,
+          transport: config.transports?.[this.#chainId] ?? http(),
+        }) as PublicClient)
+      : undefined;
+    this.#transports = config.transports;
     this.#ipfsResolver = new IPFSResolver();
-    this.#transports = transports;
 
-    this.#initStd();
+    this.#std = new Std(this.#createModuleContext());
     this.#moduleCache = new BindingsManager([this.#buildStdBinding()]);
-
-    // Wire the unified interpreter. The ctx closes over `this`, so live
-    // state (modules, client, ...) is read at call time — no rebuild
-    // needed when modules load or chains switch.
-    const ctx: InterpretCtx = {
-      bindings: this.bindingsManager,
-      // Execution mode never reads chainId/client from ctx (no helperCache);
-      // resolveCallExpression/resolveHelper read live state via closures.
-      get chainId() {
-        return 0;
-      },
-      get client() {
-        return undefined;
-      },
-      onError: "throw",
-      resolveHelper: makeExecutionResolveHelper({
-        bindings: this.bindingsManager,
-        std: () => this.#std,
-        modules: () => this.#modules,
-      }),
-      resolveBlockExpression: makeResolveBlockExpression(this.bindingsManager),
-      resolveCallExpression: makeExecutionResolveCallExpression({
-        bindings: this.bindingsManager,
-        getClient: () => this.#getClient(),
-      }),
-      // resolveCommand depends on executeWithCaptures, which depends on
-      // interpretNode. Wire it up after we've built the interpreters.
-      notifyLine: (line) => this.#notifyLine(line),
-    };
-    const interpreters = createInterpreter(ctx);
-    this.interpretNode = interpreters.interpretNode;
-    this.interpretNodes = interpreters.interpretNodes;
-
-    this.#executeWithCaptures = makeExecuteWithCaptures({
-      bindings: this.bindingsManager,
-      getClient: () => this.#getClient(),
-      interpretNode: this.interpretNode,
-    });
-
-    ctx.resolveCommand = makeExecutionResolveCommand({
-      bindings: this.bindingsManager,
-      std: () => this.#std,
-      modules: () => this.#modules,
-      getClient: () => this.#getClient(),
-      executeWithCaptures: this.#executeWithCaptures,
-    });
   }
 
   #buildStdBinding(): Binding {
@@ -219,33 +124,39 @@ export class EVMcrispr {
     };
   }
 
+  /** Lightweight module context: enough for instantiating modules to read
+   *  their command/helper metadata, never used to execute a script. */
   #createModuleContext(): ModuleContext {
     return {
-      bindingsManager: this.bindingsManager,
-      nonces: this.#nonces,
+      bindingsManager: new BindingsManager(),
+      nonces: {},
       ipfsResolver: this.#ipfsResolver,
-      modules: this.#modules,
-      getClient: () => this.getClient(),
-      getChainId: () => this.getChainId(),
-      getChain: () => this.getChain(),
-      switchChainId: (chainId) => this.switchChainId(chainId),
-      getConnectedAccount: (retreiveInjected) =>
-        this.getConnectedAccount(retreiveInjected),
+      modules: [],
+      getClient: async () => {
+        if (!this.#client) throw Error("No client available");
+        return this.#client;
+      },
+      getChainId: async () => this.#chainId,
+      getChain: async () => this.#chain,
+      switchChainId: () => {
+        throw new ErrorException("switchChainId not available in workspace");
+      },
+      getConnectedAccount: () => {
+        throw new ErrorException(
+          "getConnectedAccount not available in workspace",
+        );
+      },
       getTransport: (chainId) => this.#transports?.[chainId] ?? http(),
-      setClient: (client) => this.setClient(client),
-      setConnectedAccount: (account) => this.setConnectedAccount(account),
-      log: (message) => this.log(message),
+      setClient: () => {},
+      setConnectedAccount: () => {},
+      log: () => {},
       loadModule: async (name) => {
-        const loader = EVMcrispr.#registry.get(name);
+        const loader = this.registry.get(name);
         if (!loader) throw new ErrorException(`Module ${name} not found`);
         return loader();
       },
-      getAvailableModuleNames: () => [...EVMcrispr.#registry.keys()],
+      getAvailableModuleNames: () => this.registry.names(),
     };
-  }
-
-  #initStd(): void {
-    this.#std = new Std(this.#createModuleContext());
   }
 
   /**
@@ -274,7 +185,7 @@ export class EVMcrispr {
     const ctx = this.#createModuleContext();
     for (const name of names) {
       if (this.#moduleCache.hasBinding(name, BindingsSpace.MODULE)) continue;
-      const loader = EVMcrispr.#registry.get(name);
+      const loader = this.registry.get(name);
       if (!loader) continue;
       try {
         const { default: Ctor } = await loader();
@@ -334,7 +245,7 @@ export class EVMcrispr {
       }
 
       // Load the module constructor and create a lightweight instance
-      const loader = EVMcrispr.#registry.get(ownerModuleName);
+      const loader = this.registry.get(ownerModuleName);
       let Ctor: IModuleConstructor;
 
       if (ownerModuleName === "std") {
@@ -371,11 +282,11 @@ export class EVMcrispr {
         setConnectedAccount: () => {},
         log: () => {},
         loadModule: async (name) => {
-          const l = EVMcrispr.#registry.get(name);
+          const l = this.registry.get(name);
           if (!l) throw new ErrorException(`Module ${name} not found`);
           return l();
         },
-        getAvailableModuleNames: () => [...EVMcrispr.#registry.keys()],
+        getAvailableModuleNames: () => this.registry.names(),
       };
 
       const instance = new Ctor(ctx);
@@ -403,35 +314,8 @@ export class EVMcrispr {
   }
 
   // ---------------------------------------------------------------------------
-  // Public API: interpret, getCompletions, getKeywords, getDiagnostics
+  // Public API
   // ---------------------------------------------------------------------------
-
-  async interpret(
-    script: string,
-    actionCallback?: (action: Action) => Promise<unknown>,
-  ): Promise<Action[]> {
-    const { ast, errors } = parseScript(script);
-
-    if (errors.length) {
-      throw new ErrorException(`Parse errors:\n${errors.join("\n")}`);
-    }
-
-    // Reset per-execution state
-    this.#modules = [];
-    this.#nonces = {};
-    this.#logListeners = this.#logListeners; // keep listeners
-    this.#prevMessages = [];
-    this.#initStd();
-    this.bindingsManager.setBindings(this.#buildStdBinding());
-
-    const results = await this.interpretNodes(ast.body, true, {
-      actionCallback,
-    });
-
-    this.#notifyLine(null);
-
-    return results.flat().filter((result) => typeof result !== "undefined");
-  }
 
   async getCompletions(
     script: string,
@@ -444,9 +328,9 @@ export class EVMcrispr {
     this.#moduleCache.setMetadata(
       "__available_modules__",
       JSON.stringify(
-        [...EVMcrispr.#registry.keys()].map((name) => ({
+        this.registry.names().map((name) => ({
           name,
-          description: EVMcrispr.#descriptions.get(name),
+          description: this.registry.description(name),
         })),
       ),
     );
@@ -512,6 +396,7 @@ export class EVMcrispr {
         chainId,
         client: effectiveClient,
         variableHistory,
+        snapshot,
       } = await walkScript(
         script,
         Number.POSITIVE_INFINITY,
@@ -519,12 +404,19 @@ export class EVMcrispr {
         this.#createHelperResolver(),
         this.#transports,
         this.#chainId,
+        this.#prewarmSnapshot,
       );
 
       if (sequence !== this.#prewarmSequence) return;
 
       this.#scriptBindings = bindings;
       this.#variableHistory = variableHistory;
+      // Keep the previous checkpoints when the walk produced none (e.g.
+      // an unparsable intermediate keystroke) — a later valid script may
+      // still share its prefix with the last good walk.
+      if (snapshot.checkpoints.length > 0) {
+        this.#prewarmSnapshot = snapshot;
+      }
       this.#scriptChainId = chainId || undefined;
       // Only retain the prewarmed client when the script switched to a
       // different chain than the constructor client; otherwise we'd shadow
@@ -555,154 +447,44 @@ export class EVMcrispr {
   /** Return parse diagnostics (errors) for the given script.
    *  This is synchronous and does not require module data. */
   getDiagnostics(script: string): ParseDiagnostic[] {
-    try {
-      const { errors } = parseScript(script);
-      return errors
-        .map(parseDiagnosticString)
-        .filter((d): d is ParseDiagnostic => d !== null);
-    } catch {
-      return [];
-    }
+    return getDiagnosticsImpl(script);
   }
 
   /** Flush the helper result cache.  Call after a transaction is executed. */
   flushCache(): void {
     this.#moduleCache.clearSpace(BindingsSpace.CACHE);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Client / account management
-  // ---------------------------------------------------------------------------
-
-  async getChainId(): Promise<number> {
-    return this.#chainId;
+    // Checkpoints replay values resolved through the (now flushed) cache
+    // — drop them so the next prewarm recomputes from live state.
+    this.#prewarmSnapshot = undefined;
   }
 
   setClient(client: PublicClient): void {
     this.#client = client;
-    // Track the client's chain so subsequent helpers / commands see the
-    // right chain id. Used by `sim:fork` to swap the active client to a
-    // forked chain mid-execution.
     const chain = (client as any)?.chain as Chain | undefined;
     if (chain) {
       this.#chain = chain;
       this.#chainId = chain.id;
     }
-    // Invalidate any prewarmed switched-to client, since the user is
+    // Invalidate any prewarmed switched-to client, since the caller is
     // explicitly choosing a new base client.
     this.#scriptClient = undefined;
+    this.#prewarmSnapshot = undefined;
   }
 
-  async getClient(): Promise<PublicClient> {
-    return this.#getClient();
-  }
-
-  setConnectedAccount(account: Address | undefined) {
-    this.#account = account;
-  }
-
-  async getConnectedAccount(_retreiveInjected = false): Promise<Address> {
-    if (!this.#account) {
-      throw Error(
-        "No connected account found. Connect a wallet or use --from to specify a sender address.",
-      );
-    }
-    return this.#account;
-  }
-
-  async getChain(): Promise<Chain | undefined> {
-    return this.#chain;
-  }
-
-  switchChainId(chainId: number): PublicClient {
+  switchChainId(chainId: number): void {
     this.#chainId = chainId;
-
-    const chain = Object.values(viemChains).find(
+    this.#chain = Object.values(viemChains).find(
       (c) => (c as Chain).id === chainId,
     ) as Chain | undefined;
-    this.#chain = chain;
-    const client = chain
+    this.#client = this.#chain
       ? (createPublicClient({
-          chain,
+          chain: this.#chain,
           transport: this.#transports?.[chainId] ?? http(),
         }) as PublicClient)
       : undefined;
-    this.#client = client;
     // Drop any prewarmed switched-to client; the next prewarm will
     // recompute from the new base client.
     this.#scriptClient = undefined;
-
-    if (!client) throw Error("No client available");
-    return client;
+    this.#prewarmSnapshot = undefined;
   }
-
-  // ---------------------------------------------------------------------------
-  // Bindings / modules
-  // ---------------------------------------------------------------------------
-
-  getBinding<BSpace extends BindingsSpace>(
-    name: string,
-    memSpace: BSpace,
-  ): RelativeBinding<BSpace>["value"] | undefined {
-    return this.bindingsManager.getBindingValue(name, memSpace);
-  }
-
-  getModule(aliasOrName: string): Module | undefined {
-    if (aliasOrName === this.#std.name || aliasOrName === this.#std.alias) {
-      return this.#std;
-    }
-
-    return this.#modules.find(
-      (m) => m.name === aliasOrName || m.alias === aliasOrName,
-    );
-  }
-
-  getAllModules(): Module[] {
-    return [this.#std, ...this.#modules];
-  }
-
-  // ---------------------------------------------------------------------------
-  // Logging
-  // ---------------------------------------------------------------------------
-
-  registerLogListener(
-    listener: (message: string, prevMessages: string[]) => void,
-  ): EVMcrispr {
-    this.#logListeners.push(listener);
-    return this;
-  }
-
-  registerLineListener(listener: (line: number | null) => void): EVMcrispr {
-    this.#lineListeners.push(listener);
-    return this;
-  }
-
-  #notifyLine(line: number | null): void {
-    this.#lineListeners.forEach((l) => l(line));
-  }
-
-  log(message: string): void {
-    this.#logListeners.forEach((listener) =>
-      listener(message, this.#prevMessages),
-    );
-    this.#prevMessages.push(message);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Interpreters
-  // ---------------------------------------------------------------------------
-  //
-  // All node-level interpretation lives in `./interpreter`. Both fields are
-  // assigned in the constructor — declare them here so the rest of the
-  // class can reference them.
-
-  interpretNode!: NodeInterpreter;
-  interpretNodes!: NodesInterpreter;
-
-  #getClient = async (): Promise<PublicClient> => {
-    if (this.#client) {
-      return this.#client;
-    }
-    throw Error("No client available");
-  };
 }

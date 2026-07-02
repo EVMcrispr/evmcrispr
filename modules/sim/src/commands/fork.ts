@@ -457,6 +457,8 @@ export default defineCommand<Sim>({
           return receipt;
         });
       }
+      // Terminal actions (and rpc actions, handled above) produce no result.
+      return undefined;
     };
 
     await interpretNode(blockExpressionNode, {

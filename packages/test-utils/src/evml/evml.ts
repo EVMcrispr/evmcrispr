@@ -1,7 +1,12 @@
 import { it } from "bun:test";
 import { inspect } from "node:util";
 import type { EvmlAST } from "@evmcrispr/core";
-import { createParserState, EVMcrispr, parseScript } from "@evmcrispr/core";
+import {
+  createParserState,
+  evml,
+  Interpreter,
+  parseScript,
+} from "@evmcrispr/core";
 import type {
   Action,
   CommandExpressionNode,
@@ -41,13 +46,13 @@ export type InterpreterCase = [Node, any, string?];
 export interface TestInterpreter {
   ast: EvmlAST;
   script: string;
-  evm: EVMcrispr;
+  evm: Interpreter;
   interpret(): Promise<Action[]>;
-  getBinding: EVMcrispr["getBinding"];
-  getModule: EVMcrispr["getModule"];
-  getAllModules: EVMcrispr["getAllModules"];
-  registerLogListener: EVMcrispr["registerLogListener"];
-  bindingsManager: EVMcrispr["bindingsManager"];
+  getBinding: Interpreter["getBinding"];
+  getModule: Interpreter["getModule"];
+  getAllModules: Interpreter["getAllModules"];
+  registerLogListener: Interpreter["registerLogListener"];
+  bindingsManager: Interpreter["bindingsManager"];
 }
 
 export const deepConsoleLog = (thing: any): void =>
@@ -89,8 +94,11 @@ export const runInterpreterCases = async (
   Promise.all(
     (Array.isArray(caseOrCases[0]) ? caseOrCases : [caseOrCases]).map(
       async ([node, expected, errorMsg]) => {
-        const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
-        evm.switchChainId(gnosis.id);
+        const evm = new Interpreter(evml.registry, {
+          account: TEST_ACCOUNT_ADDRESS,
+          chainId: gnosis.id,
+          transports: getTransports(),
+        });
         const res = await evm.interpretNode(node);
         if (res instanceof Num && expected instanceof Num) {
           expect(res.eq(expected), errorMsg).to.be.true;
@@ -145,9 +153,12 @@ export const createInterpreter = (
   _client: PublicClient,
 ): TestInterpreter => {
   const { ast } = parseScript(script);
-  const evm = new EVMcrispr(TEST_ACCOUNT_ADDRESS, getTransports());
-  // EVMcrispr defaults to mainnet; tests expect Gnosis.
-  evm.switchChainId(gnosis.id);
+  // Tests run against Gnosis by default.
+  const evm = new Interpreter(evml.registry, {
+    account: TEST_ACCOUNT_ADDRESS,
+    chainId: gnosis.id,
+    transports: getTransports(),
+  });
 
   return {
     ast,

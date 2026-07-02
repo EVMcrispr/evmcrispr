@@ -2,7 +2,7 @@ import "../setup";
 import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 import { TestContext } from "@evmcrispr/test-utils/evml";
-import { EVMcrispr, Module, type ModuleContext } from "../../src";
+import { evml, Module, type ModuleContext } from "../../src";
 
 describe("Core > hover", () => {
   const ctx = new TestContext();
@@ -77,7 +77,7 @@ describe("Core > hover", () => {
     it("should return Contract-style hover info for a deployed contract on the active chain", async () => {
       // WXDAI on Gnosis — the test fork chain.
       const script = "set $x 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
       expect(result).to.not.be.null;
@@ -104,7 +104,7 @@ describe("Core > hover", () => {
 
     it("appends the address card under @token(...) after prewarm", async () => {
       const script = "set $x @token(DAI)";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
       expect(result).to.not.be.null;
@@ -126,7 +126,7 @@ describe("Core > hover", () => {
       // `type: "variable"` argDef on any command participates in
       // prewarm automatically.
       const script = "deploy $myContract Foo.sol\nprint $myContract";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
@@ -146,7 +146,7 @@ describe("Core > hover", () => {
       // argDef declares it.
       const script =
         "exec $contract withdraw() -> Withdrawn(uint,address) [$amount $to]\nprint $amount";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
@@ -168,7 +168,7 @@ describe("Core > hover", () => {
         "print $shortfall",
         "print $authErr",
       ].join("\n");
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const shortfall = await evm.getHoverInfo(script, { line: 3, col: 8 });
       const authErr = await evm.getHoverInfo(script, { line: 4, col: 8 });
@@ -184,7 +184,7 @@ describe("Core > hover", () => {
       // commands like `print` never reached the helper cache and hover
       // could not surface their address card.
       const script = "print @token(DAI)";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 1, col: 8 });
       expect(result).to.not.be.null;
@@ -222,11 +222,12 @@ describe("Core > hover", () => {
         }
       }
 
-      EVMcrispr.registerModule("chainprobe", async () => ({
-        default: ChainProbeModule,
-      }));
+      evml.use({
+        name: "chainprobe",
+        load: async () => ({ default: ChainProbeModule }),
+      });
 
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       const script = [
         "load chainprobe",
         "switch 1",
@@ -265,7 +266,7 @@ describe("Core > hover", () => {
         "set $gnosisDai @token(DAI)",
         "print $rinkebyDai",
       ].join("\n");
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
 
       const result = await evm.getHoverInfo(script, { line: 5, col: 8 });
@@ -323,11 +324,12 @@ describe("Core > hover", () => {
         }
       }
 
-      EVMcrispr.registerModule("prewarmrace", async () => ({
-        default: PrewarmRaceModule,
-      }));
+      evml.use({
+        name: "prewarmrace",
+        load: async () => ({ default: PrewarmRaceModule }),
+      });
 
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       const oldScript = "load prewarmrace\nset $x @raceValue(old)";
       const newScript = "load prewarmrace\nset $x @raceValue(new)";
 
@@ -346,7 +348,7 @@ describe("Core > hover", () => {
 
     it("renders the variable's resolved value after prewarm", async () => {
       const script = "set $myVar 42\nset $other $myVar";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 12 });
       expect(result).to.not.be.null;
@@ -358,7 +360,7 @@ describe("Core > hover", () => {
 
     it("renders @num(1 + 4) as the precomputed value after prewarm", async () => {
       const script = "set $a @num(1 + 4)\nset $b $a";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
@@ -372,7 +374,7 @@ describe("Core > hover", () => {
       // interpreter handles helper invocations whose own args are themselves
       // helper invocations during prewarm.
       const script = "set $x @num(@num(1 + 4) * 2)\nset $y $x";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
@@ -385,7 +387,7 @@ describe("Core > hover", () => {
       // The unified interpreter resolves ArrayExpression nodes too, so the
       // hover card shows the array contents rather than the unresolved AST.
       const script = "set $x [1 2 3]\nset $y $x";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
@@ -404,7 +406,7 @@ describe("Core > hover", () => {
       // should bind `$c` to the block number after prewarm so hover shows
       // the actual value rather than the literal string `$c`.
       const script = "set [$c] @block()\nprint $c";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 7 });
       expect(result).to.not.be.null;
@@ -422,7 +424,7 @@ describe("Core > hover", () => {
     it("appends the address card to a variable that resolves to an address", async () => {
       const script =
         "set $dao 0x000000000000000000000000000000000000aaaa\nset $other $dao";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 12 });
       expect(result).to.not.be.null;
@@ -436,7 +438,7 @@ describe("Core > hover", () => {
 
     it("redefining a variable shows the NEW value at the second `set`", async () => {
       const script = "set $x 1\nset $x 2";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 5 });
       expect(result).to.not.be.null;
@@ -448,7 +450,7 @@ describe("Core > hover", () => {
 
     it("redefining a variable shows the OLD value at the first `set`", async () => {
       const script = "set $x 1\nset $x 2";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 1, col: 5 });
       expect(result).to.not.be.null;
@@ -460,7 +462,7 @@ describe("Core > hover", () => {
 
     it("renders the per-line value when the variable is used after each `set`", async () => {
       const script = "set $x 1\nset $y $x\nset $x 2\nset $z $x";
-      const evm = ctx.createEvm();
+      const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       // Hover the `$x` reference on line 2 — should still be 1.
       const earlier = await evm.getHoverInfo(script, { line: 2, col: 8 });

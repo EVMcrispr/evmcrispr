@@ -56,7 +56,7 @@
       "name": "constant.language.boolean.evml"
     },
     "number": {
-      "match": "\\b(?:0x[0-9a-fA-F]+|[0-9]+(?:e[0-9]+)?(?:s|mo|h|d|w|m|y)?(?:/(?:s|mo|h|d|w|m|y))?)\\b",
+      "match": "(?:\\b0x[0-9a-fA-F]+|(?<![\\w-])-?[0-9]+(?:\\.[0-9]+)?(?:e[0-9]+)?(?:s|mo|h|d|w|m|y)?(?:/(?:s|mo|h|d|w|m|y))?)\\b",
       "name": "constant.numeric.evml"
     },
     "option-flag": {

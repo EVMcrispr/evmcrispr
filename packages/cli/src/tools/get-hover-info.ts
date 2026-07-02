@@ -1,6 +1,7 @@
-import { createEVMcrisprInstance } from "../lib/evmcrispr-factory.js";
+import { getWorkspace } from "../lib/workspace.js";
 
 export async function getHoverInfo(script: string, line: number, col: number) {
-  const { evm } = await createEVMcrisprInstance();
-  return evm.getHoverInfo(script, { line, col });
+  const workspace = getWorkspace();
+  await workspace.prewarm(script);
+  return workspace.getHoverInfo(script, { line, col });
 }

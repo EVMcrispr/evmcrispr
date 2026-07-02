@@ -1,4 +1,5 @@
-import { registerAllModules } from "@evmcrispr/test-utils";
+import { registerAllModules } from "@evmcrispr/test-utils/evml";
+import "@evmcrispr/test-utils";
 import { createTestServer } from "@evmcrispr/test-utils/msw/server";
 
 registerAllModules();

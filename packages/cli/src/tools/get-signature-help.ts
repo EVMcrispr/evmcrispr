@@ -1,10 +1,9 @@
-import { createEVMcrisprInstance } from "../lib/evmcrispr-factory.js";
+import { getWorkspace } from "../lib/workspace.js";
 
 export async function getSignatureHelp(
   script: string,
   line: number,
   col: number,
 ) {
-  const { evm } = await createEVMcrisprInstance();
-  return evm.getSignatureHelp(script, { line, col });
+  return getWorkspace().getSignatureHelp(script, { line, col });
 }

@@ -1,4 +1,4 @@
-import { EVMcrispr, type ParseDiagnostic } from "@evmcrispr/core";
+import { evml, type ParseDiagnostic } from "@evmcrispr/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { transports } from "../config/wagmi";
 import { useDebounce } from "./useDebounce";
@@ -9,7 +9,7 @@ type Position = { line: number; col: number };
 
 /**
  * Read-only sibling of `useEditorState` for the viewer page. Maintains an
- * `EVMcrispr` instance bound to the active public client and prewarms it
+ * `EvmlWorkspace` instance bound to the active public client and prewarms it
  * whenever the (debounced) script changes — same pattern Monaco uses, so
  * hover lookups for `@helper` and `$variable` tokens progressively
  * upgrade from "name + signature" to "name + signature + resolved value
@@ -30,7 +30,7 @@ type Position = { line: number; col: number };
  * - `diagnostics`: parse-time errors (re-computed on debounced changes)
  */
 export function useScriptAnalysis(script: string) {
-  const evm = useMemo(() => new EVMcrispr(undefined, transports), []);
+  const evm = useMemo(() => evml.with({ transports }).workspace(), []);
 
   const debouncedScript = useDebounce(script, SCRIPT_DEBOUNCE_MS);
 

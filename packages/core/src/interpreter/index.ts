@@ -314,7 +314,7 @@ function onUnsupported(n: Node, ctx: InterpretCtx, label: string): undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Per-node bodies (lifted unchanged from EVMcrispr.#interpret*)
+// Per-node bodies (lifted unchanged from the legacy interpreter)
 // ---------------------------------------------------------------------------
 
 function interpretLiteral(n: LiteralExpressionNode): unknown {
@@ -622,7 +622,7 @@ export function makeResolveBlockExpression(
 }
 
 // ---------------------------------------------------------------------------
-// Captures (execution-only — kept here so EVMcrispr stays slim)
+// Captures (execution-only — kept here so Interpreter stays slim)
 // ---------------------------------------------------------------------------
 
 export interface CapturesInput {
@@ -659,7 +659,7 @@ export function makeExecuteWithCaptures(
   // Stamp the current chain id on any TransactionAction that doesn't
   // already carry one. Commands like `exec` build their actions via
   // `encodeAction` without knowing what chain they run on; the chain
-  // is whatever EVMcrispr's `#chainId` is at execution time. The
+  // is whatever the Interpreter's `#chainId` is at execution time. The
   // terminal executor uses `action.chainId` to pick the right chain
   // when sending a transaction (so the wallet can be on a different
   // chain than the one the script targets).

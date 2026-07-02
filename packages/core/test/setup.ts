@@ -6,10 +6,10 @@ import {
   http,
 } from "@evmcrispr/test-utils/msw/server";
 import { tokenlistHandlers } from "@evmcrispr/test-utils/msw/tokenlist";
-import { EVMcrispr } from "../src/EVMcrispr";
+import { evml } from "../src";
 
 /**
- * Minimal stub module registered with the test EVMcrispr instance so the
+ * Minimal stub module registered on the test `evml` tag so the
  * cross-module loading machinery (completions, `getModule`, `getKeywords`)
  * can be exercised without depending on a real workspace module like
  * `@evmcrispr/module-aragonos`. Tests reference it by name (`coretest`)
@@ -46,9 +46,10 @@ class CoreTestModule extends Module {
   }
 }
 
-EVMcrispr.registerModule("coretest", async () => ({
-  default: CoreTestModule,
-}));
+evml.use({
+  name: "coretest",
+  load: async () => ({ default: CoreTestModule }),
+});
 
 const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
 

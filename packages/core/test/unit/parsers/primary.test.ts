@@ -165,9 +165,19 @@ describe("Parsers - primary", () => {
           ["1eth", node(1, 18, undefined, "1eth")],
           ["0.5eth", node(0.5, 18, undefined, "0.5eth")],
           ["1.5gwei", node(1.5, 9, undefined, "1.5gwei")],
+          ["-15", node(-15)],
+          ["-4500.32", node(-4500.32)],
+          ["-1e18", node(-1, 18)],
+          ["-0.5eth", node(-0.5, 18, undefined, "-0.5eth")],
+          ["-50s", node(-50, undefined, "s")],
         ];
 
         runCases(cases, numberParser());
+      });
+
+      it("should fail when a minus sign is not followed by digits", () => {
+        const res = runParser(numberParser(), "-abc");
+        expect(res).to.be.a("string");
       });
 
       it("should fail when parsing an incomplete decimal", () => {

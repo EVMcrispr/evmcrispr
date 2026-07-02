@@ -188,7 +188,7 @@ const clientCache = new WeakMap<object, Map<number, PublicClient>>();
 
 /** Create a PublicClient for the given chain ID, or return undefined.
  *  Instances are reused per `(transports, chainId)` where `transports`
- *  is keyed by object identity — the typical EVMcrispr `#transports`
+ *  is keyed by object identity — the typical Interpreter `#transports`
  *  reference stays stable and benefits the cache across completions /
  *  walks / switches. Inline literal maps miss the cache (by design).
  */
@@ -448,6 +448,94 @@ function seedDestructureSlots(
 }
 
 // ---------------------------------------------------------------------------
+// Incremental prewarm checkpoints
+// ---------------------------------------------------------------------------
+
+/** A recorded bindings mutation, replayable via `bindings[method](...args)`. */
+export interface WalkDelta {
+  method: "setBinding" | "setBindings" | "trySetBindings" | "enterScope";
+  args: unknown[];
+}
+
+/** State produced by walking one command, keyed by the command's exact
+ *  source text. Replaying `deltas` (in order, across checkpoints)
+ *  reproduces the walk's bindings without re-resolving anything. */
+export interface PrewarmCheckpoint {
+  /** Exact source slice of the command node. A checkpoint is only reused
+   *  when the whole text is byte-identical — never on a character-level
+   *  prefix — so `print $hello` can't match an edit to `print $hellow`. */
+  commandText: string;
+  /** 1-indexed line the command started at when recorded. History entries
+   *  are remapped to the command's *new* line on reuse. */
+  startLine: number;
+  /** Chain id after this command (tracks `switch`). */
+  chainIdAfter: number;
+  deltas: WalkDelta[];
+  historyEntries: { name: string; value: unknown }[];
+}
+
+export interface PrewarmSnapshot {
+  /** Chain the walk started on — a prefix is only valid for the same
+   *  starting chain. */
+  initialChainId: number;
+  checkpoints: PrewarmCheckpoint[];
+}
+
+const RECORDED_METHODS = new Set<WalkDelta["method"]>([
+  "setBinding",
+  "setBindings",
+  "trySetBindings",
+  "enterScope",
+]);
+
+/** Wrap `bindings` so every mutating call is appended to `sink()` (when a
+ *  sink is active) before being forwarded. Replaying the recorded calls on
+ *  a fresh manager reproduces the walk state — pure in-memory, no RPC. */
+function createRecordingBindings(
+  bindings: BindingsManager,
+  sink: () => WalkDelta[] | undefined,
+): BindingsManager {
+  return new Proxy(bindings, {
+    get(target, prop) {
+      const value = Reflect.get(target, prop, target);
+      if (
+        typeof value === "function" &&
+        RECORDED_METHODS.has(prop as WalkDelta["method"])
+      ) {
+        return (...args: unknown[]) => {
+          sink()?.push({ method: prop as WalkDelta["method"], args });
+          return value.apply(target, args);
+        };
+      }
+      if (typeof value === "function") {
+        return value.bind(target);
+      }
+      return value;
+    },
+  });
+}
+
+/** Slice a node's exact source text using its `loc` (line/col based). */
+function sliceNodeText(
+  scriptLines: string[],
+  node: CommandExpressionNode,
+): string | undefined {
+  const loc = node.loc;
+  if (!loc) return undefined;
+  const { start, end } = loc;
+  if (start.line === end.line) {
+    return scriptLines[start.line - 1]?.slice(start.col, end.col);
+  }
+  const parts: string[] = [];
+  parts.push(scriptLines[start.line - 1]?.slice(start.col) ?? "");
+  for (let l = start.line + 1; l < end.line; l++) {
+    parts.push(scriptLines[l - 1] ?? "");
+  }
+  parts.push(scriptLines[end.line - 1]?.slice(0, end.col) ?? "");
+  return parts.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Walk
 // ---------------------------------------------------------------------------
 
@@ -525,10 +613,13 @@ export async function walkCommandsForBindings(
   state: WalkChainState,
   resolveNode: (node: Node) => Promise<any>,
   history?: VariableHistory,
+  onCommandDone?: (index: number, c: CommandExpressionNode) => void,
+  initialParentModule = "std",
 ): Promise<void> {
-  let parentModule = "std";
+  let parentModule = initialParentModule;
 
-  for (const c of commandNodes) {
+  for (let cIndex = 0; cIndex < commandNodes.length; cIndex++) {
+    const c = commandNodes[cIndex];
     if (hasCommandsBlock(c)) {
       parentModule = c.module ?? parentModule;
     }
@@ -545,7 +636,12 @@ export async function walkCommandsForBindings(
     applySwitch(state, c, bindings);
 
     const command = await resolveCommandNode(c, bindings, commandModule);
-    if (!command) continue;
+    if (!command) {
+      // Still emit a checkpoint boundary so incremental prewarm stays
+      // aligned with the command list.
+      onCommandDone?.(cIndex, c);
+      continue;
+    }
 
     const customTypes = collectCustomTypes(bindings);
     const cmdLine = c.loc?.start.line ?? 0;
@@ -608,6 +704,11 @@ export async function walkCommandsForBindings(
         const customType = customTypes[argDef.type];
         if (customType?.resolve && argNode.value) {
           try {
+            // Note: resolve() hooks memoize their own expensive lookups
+            // into `cache` (e.g. aragonos' DAO cache), so a re-walk of an
+            // unchanged command is already cheap. Don't memoize the
+            // returned bindings here — hooks also have side effects on
+            // `ctx.bindings` (e.g. pushCompletionDAO) that must re-run.
             const ctx: CompletionContext = {
               argIndex: i,
               nodeArgs: c.args,
@@ -619,7 +720,8 @@ export async function walkCommandsForBindings(
               commandNode: c,
               resolveNode,
             };
-            const newBindings = await customType.resolve(argNode.value, ctx);
+            const newBindings =
+              (await customType.resolve(argNode.value, ctx)) ?? [];
             for (const b of newBindings) {
               try {
                 bindings.setBinding(
@@ -648,6 +750,8 @@ export async function walkCommandsForBindings(
     if (blockArg) {
       bindings.enterScope(commandModule);
     }
+
+    onCommandDone?.(cIndex, c);
   }
 }
 
@@ -669,6 +773,9 @@ export interface WalkResult {
    *  Used by hover to render the value of a variable as it stood at a given
    *  line, even when later `set`s have overwritten the live binding. */
   variableHistory: VariableHistory;
+  /** Per-command checkpoints for incremental prewarm — pass back as
+   *  `previous` on the next walk to reuse the unchanged command prefix. */
+  snapshot: PrewarmSnapshot;
 }
 
 /**
@@ -700,16 +807,18 @@ export async function walkScript(
   resolveHelper: HelperResolver | undefined,
   transports: Record<number, Transport> | undefined,
   initialChainId: number = mainnet.id,
+  previous?: PrewarmSnapshot,
 ): Promise<WalkResult> {
   const bindings = new BindingsManager();
   seedBindings(bindings, moduleCache);
 
   const variableHistory: VariableHistory = new Map();
+  const emptySnapshot: PrewarmSnapshot = { initialChainId, checkpoints: [] };
 
   // The walk starts on the caller-provided chain (defaults to mainnet)
   // and `applySwitch` advances `state` in place when it sees a `switch`
-  // command. EVMcrispr passes its own `#chainId` so the walk runs on
-  // the same chain the executor would use.
+  // command. The workspace passes its own `#chainId` so the walk runs
+  // on the same chain the executor would use.
   const initialClient = clientForChain(initialChainId, transports);
 
   let ast: EvmlAST | undefined;
@@ -729,6 +838,7 @@ export async function walkScript(
         chainId: initialChainId,
         client: initialClient,
         variableHistory,
+        snapshot: emptySnapshot,
       };
     }
   }
@@ -742,29 +852,124 @@ export async function walkScript(
   const commandNodes: CommandExpressionNode[] =
     ast?.getAllCommandsUntilLine(upToLine) ?? [];
 
+  // ------------------------------------------------------------------
+  // Incremental prefix reuse: match previous checkpoints against the new
+  // command list by *whole-command* source text. Only byte-identical
+  // commands (in the same order) are reused; the first difference — even
+  // a single extended token like `$hello` → `$hellow` — invalidates that
+  // command and everything after it.
+  // ------------------------------------------------------------------
+  const scriptLines = script.split("\n");
+  const commandTexts = commandNodes.map((c) => sliceNodeText(scriptLines, c));
+
+  let prefixLen = 0;
+  if (previous && previous.initialChainId === initialChainId) {
+    const max = Math.min(previous.checkpoints.length, commandNodes.length);
+    while (prefixLen < max) {
+      const text = commandTexts[prefixLen];
+      if (
+        text === undefined ||
+        text !== previous.checkpoints[prefixLen].commandText
+      ) {
+        break;
+      }
+      prefixLen++;
+    }
+  }
+
+  const checkpoints: PrewarmCheckpoint[] = [];
+
+  // Replay the unchanged prefix: apply each checkpoint's recorded bindings
+  // mutations and its history entries (remapped to the command's new line,
+  // so inserting blank lines above keeps hover's per-line values right).
+  // Pure in-memory — no helper or custom-type resolution runs here.
+  for (let i = 0; i < prefixLen; i++) {
+    const cp = previous!.checkpoints[i];
+    for (const delta of cp.deltas) {
+      (bindings as any)[delta.method](...delta.args);
+    }
+    const newLine = commandNodes[i].loc?.start.line ?? cp.startLine;
+    for (const entry of cp.historyEntries) {
+      recordHistory(variableHistory, entry.name, entry.value, newLine);
+    }
+    checkpoints.push({ ...cp, startLine: newLine });
+  }
+
   const state: WalkChainState = {
-    chainId: initialChainId,
-    client: initialClient,
+    chainId:
+      prefixLen > 0 ? checkpoints[prefixLen - 1].chainIdAfter : initialChainId,
+    client: undefined,
     transports,
   };
+  state.client = clientForChain(state.chainId, transports) ?? initialClient;
+
+  // `parentModule` is loop-carried through the whole command list; derive
+  // its value at the end of the replayed prefix so the suffix walk sees
+  // the same block context (e.g. inside a `connect (...)` body).
+  let parentModuleAfterPrefix = "std";
+  for (let i = 0; i < prefixLen; i++) {
+    const c = commandNodes[i];
+    if (hasCommandsBlock(c)) {
+      parentModuleAfterPrefix = c.module ?? parentModuleAfterPrefix;
+    }
+  }
+
+  // Record the suffix walk: every bindings mutation goes into the current
+  // command's checkpoint so the *next* walk can replay it.
+  let currentDeltas: WalkDelta[] | undefined = [];
+  const recordedBindings = createRecordingBindings(
+    bindings,
+    () => currentDeltas,
+  );
+  const historyCounts = new Map<string, number>();
+  for (const [name, entries] of variableHistory) {
+    historyCounts.set(name, entries.length);
+  }
 
   const resolveNode = createNodeResolver(
-    bindings,
+    recordedBindings,
     moduleCache,
     state,
     resolveHelper,
   );
 
+  const onCommandDone = (suffixIndex: number, c: CommandExpressionNode) => {
+    const historyEntries: { name: string; value: unknown }[] = [];
+    for (const [name, entries] of variableHistory) {
+      const seen = historyCounts.get(name) ?? 0;
+      for (let e = seen; e < entries.length; e++) {
+        historyEntries.push({ name, value: entries[e].value });
+      }
+      historyCounts.set(name, entries.length);
+    }
+    checkpoints.push({
+      // ` ` never appears in real source, so a loc-less command can
+      // never be reused as part of a prefix.
+      commandText: commandTexts[prefixLen + suffixIndex] ?? " ",
+      startLine: c.loc?.start.line ?? 0,
+      chainIdAfter: state.chainId,
+      deltas: currentDeltas ?? [],
+      historyEntries,
+    });
+    currentDeltas = [];
+  };
+
   await walkCommandsForBindings(
-    commandNodes,
-    bindings,
+    commandNodes.slice(prefixLen),
+    recordedBindings,
     moduleCache,
     state,
     resolveNode,
     variableHistory,
+    onCommandDone,
+    parentModuleAfterPrefix,
   );
 
-  // Snapshot the end-of-walk chain so callers (EVMcrispr.prewarm) can
+  // Stop recording — the helper-expression pass below memoizes into the
+  // module cache, not the walk bindings.
+  currentDeltas = undefined;
+
+  // Snapshot the end-of-walk chain so callers (EvmlWorkspace.prewarm) can
   // pair the right client with the chainId in hover requests.
   const finalChainId = state.chainId;
   const finalClient = state.client;
@@ -773,8 +978,8 @@ export async function walkScript(
   // user might hover over, including helpers inside non-binding
   // commands (`print @token(DAI)`) and helpers nested deep inside
   // `connect myDao { ... }` blocks. Helpers already evaluated during
-  // `walkCommandsForBindings` are cache hits and re-add no network
-  // cost.
+  // `walkCommandsForBindings` (or during a previous prewarm — the cache
+  // persists across walks) are cache hits and re-add no network cost.
   //
   // The helper cache is keyed by chain id, so we replay switches from
   // the initial chain and let `applySwitch` advance `state` again as
@@ -788,6 +993,7 @@ export async function walkScript(
     chainId: finalChainId,
     client: finalClient,
     variableHistory,
+    snapshot: { initialChainId, checkpoints },
   };
 }
 

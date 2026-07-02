@@ -1,136 +1,104 @@
-# EVMcrispr
+# @evmcrispr/core
 
 [![](https://img.shields.io/npm/v/@evmcrispr/core.svg?logo=npm)](https://www.npmjs.com/package/@evmcrispr/core)
-[![Coverage Status](https://img.shields.io/coveralls/github/1Hive/evmcrispr?logo=coveralls&branch=master)](https://coveralls.io/github/1Hive/evmcrispr?branch=master)
 
 **_EVMcrispr is still in active development and its API might change until it reaches 1.0._**
 
-A TypeScript library for Aragon-based DAOs that allows you to encode a series of actions into an EVM script that can be sent to [forwarder apps](https://hack.aragon.org/docs/forwarding-intro).
+EVMcrispr parses and runs **EVML** scripts — a DSL for encoding batches of on-chain actions (contract calls, DAO operations, token transfers, deployments) that can be simulated on a fork and then executed with any viem wallet.
 
-Actions can be thought of as events performed by some entity inside a DAO such as installing apps, granting or revoking permissions, minting tokens, withdrawing funds, etc.
+## Quick start
 
-## How does it work?
-
-EVMcrispr offers two main methods to create EVM scripts containing actions: `encode()` and `forward()` (this one encodes the actions and forwards it afterwards).
-
-Both methods receive two parameters: a group of the encoded actions and a group of forwarder apps used to forward the aforementioned actions.
-
-The library exposes a series of methods that allows you to encode different actions such as installing an app, revoking a permission, etc. The idea is to invoke these methods inside an `encode()` or `forward()` to build the script. Here is an example of it:
-
-```js
-const evmcrispr = EVMcrispr(dao, signer);
-await evmcrispr.forward(
-  [
-    evmcrispr.install(app, params),
-    evmcrispr.grantPermissions([permission1, permission2, permission3]),
-    evmcrispr.revoke(permission, removeManager),
-    // ...
-  ],
-  // forwarder apps path.
-  [forwarder1, forwarder2],
-);
+```sh
+bun add @evmcrispr/core viem
 ```
 
-The same EVMscript can be encoded using the `evml` template:
+```ts
+import { evml } from "@evmcrispr/core";
 
-```js
-await evml`
-  connect ${dao} ${forwarder1} ${forwarder2}
-  install ${app} ${param1} ${param2}
-  grant ${entity1} ${app1} ${role1} ${permissionManager}
-  grant ${entity2} ${app2} ${role1} ${permissionManager}
-  grant ${entity3} ${app3} ${role3} ${permissionManager}
-  revoke ${entity4} ${app4} ${role4} ${removeManager}
-  # ...
-`.forward(signer);
+const script = evml`
+  exec ${tokenAddress} transfer(address,uint256) ${recipient} 100e18
+`;
+
+const actions = await script.interpret();  // dry run: resolve Action[]
+await script.execute(walletClient);        // sign & send with a viem WalletClient
 ```
 
-To facilitate the EVM script creation, you can use [identifiers](https://1hive.github.io/EVMcrispr/modules.html#AppIdentifier) to reference DAO apps instead of using the contract address directly.
+Values interpolated with `${...}` are serialized into EVML literals safely: addresses and hex strings splice bare, other strings are quoted and escaped (injection-safe), numbers and bigints (including negatives) become numeric literals, arrays become `[a b c]`, and nested `evml` fragments compose. Use `evml.raw("...")` to splice text verbatim.
 
-The available commands are:
+## Modules
 
-```
-connect <dao> <...path> [--context:https://yoursite.com]
-new token <name> <symbol> <controller> [decimals=18] [transferable=true]
-install <repo> [...initParams]
-upgrade <apmRepo> <contract>
-grant <entity> <app> <role> [permissionManager]
-revoke <entity> <app> <role>
-exec <app> <methodName> [...params]
-act <agent> <targetAddr> <methodSignature> [...params]
-```
+Language modules ship as separate packages and are registered with `use()` — registration makes `load <name>` work inside scripts; `std` is always available:
 
-Below you can find a full example:
+```ts
+import { evml } from "@evmcrispr/core";
+import aragonos from "@evmcrispr/module-aragonos";
 
-```js
-await evml`
-  connect ${dao} token-manager:1 voting
-  install wrapped-hooked-token-manager.open:membership-tm ${token} false 0
-  install voting:membership-voting ${token} ${suppPct} ${minQuorumPct} ${voteTime}
-  grant ANY_ENTITY voting:membership-voting CREATE_VOTES_ROLE
-  grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm MINT_ROLE
-  grant voting:membership-voting wrapped-hooked-token-manager.open:membership-tm BURN_ROLE
-  exec wrapped-hooked-token-manager.open:membership-tm mint ${address} 2e18
-`.forward(signer);
-);
+evml.use(aragonos); // eager
+
+// or lazy, keeping code-splitting in bundled apps:
+evml.use({ name: "aragonos", load: () => import("@evmcrispr/module-aragonos") });
+
+const script = evml`
+  load aragonos
+  connect mydao (
+    exec token-manager mint ${recipient} 100e18
+  )
+`;
 ```
 
-## Set up
+## Configuration
 
-1. Add the following dependencies to your project:
+Environment config lives on the tag; `with()` returns a derived tag that shares the module registry:
 
-   ```sh
-   yarn add @evmcrispr/core ethers
-   ```
+```ts
+const gnosisEvml = evml.with({
+  account: "0x...",                       // sender account
+  chainId: 100,                           // initial chain (default mainnet)
+  transports: { 100: http("https://rpc.gnosischain.com") },
+  onLog: (message) => console.log(message),
+});
 
-2. Import the `evml` template:
+await gnosisEvml`print @token(WETH)`.interpret();
+```
 
-   ```js
-   import { evml } from "@evmcrispr/core";
-   ```
+Per-run options go on the method instead:
 
-3. Fill the evml template with the available commands. It receives an ether's [Signer](https://docs.ethers.io/v5/single-page/#/v5/api/signer/-%23-signers) object and the DAO address to connect to:
+```ts
+await script.execute(walletClient, {
+  signal: abortController.signal,
+  maximizeGasLimit: true,
+  handlers: { batched: mySafeBatchHandler }, // override any action type
+});
+```
 
-   ```js
-   const evm = evml`
-    connect 1hive disputable-voting.open
-    set $token.tokenlist https://tokens.honeyswap.org/
-    act agent @token(HNY) transfer(address,uint256) @me 100e18
-    act agent @token(WETH) transfer(address,uint256) @me 1e18
-   `;
-   ```
+## Simulation
 
-4. Use the EVMcrispr's `encode` or `forward` functions to pass an array of actions, or an evml script.
+With `@evmcrispr/module-sim` registered, `simulate()` runs the script inside a fork (`anvil`, `hardhat`, `tenderly` or the in-process `ethereumjs` backend) and never throws on script failure:
 
-   ```js
-   const { actions, forward } = await evm.encode(signer);
-   await forward();
-   // or just
-   await evm.forward(signer);
-   ```
+```ts
+import sim from "@evmcrispr/module-sim";
+evml.use(sim);
 
-## Parametric permission utils
+const { success, logs, error } = await script.simulate({ blockNumber: 21000000 });
+```
 
-The following utils can be used to encode complex [permission parameters](https://hack.aragon.org/docs/aragonos-ref#parameter-interpretation):
+## Editor tooling
 
-- `arg(i)`: Can be used to compare the `i`th parameter with a given value.
-- `oracle(address)`: Can be used to check the output of an external contract
-- `blocknumber`: Can be used to compare a given value with the block number.
-- `timestamp`: Can be used to compare a given value with the block timestamp.
-- `not(param)`: Can be used to negate a parameter.
-- `and(param1, param2)`: Can be used to compose two parameters with the AND logical function.
-- `or(param1, param2)`: Same as previous one with the OR logical function.
-- `xor(param1, param2)`: Same as the previous one with the XOR logical function.
-- `iif(param).then(param).else(param)`: Ternary operator for more complex logic expressions.
+`evml.workspace()` returns a long-lived `EvmlWorkspace` with the LSP-style surface: `getCompletions`, `getHoverInfo`, `getSignatureHelp`, `getDiagnostics`, `getDocumentSymbols` and `prewarm`. Prewarm is incremental: it checkpoints per command and only re-resolves from the first edited command on each keystroke.
 
-They can be used within the forth parameter of `grant(entity, app, role, params)` function.
+```ts
+const workspace = evml.with({ transports }).workspace();
+await workspace.prewarm(source);
+const hover = await workspace.getHoverInfo(source, { line: 2, col: 10 });
+```
+
+## Low-level access
+
+`Interpreter` is the underlying runtime (`new Interpreter(evml.registry, config)`), exposing `interpret`, `interpretNode`, `bindingsManager` and module accessors — useful for tests and advanced embedding. `parseScript(source)` returns the raw AST.
 
 ## Other examples
 
-Below you can find some script examples that use EVMcrispr:
-
 - [Commons Upgrade script](https://github.com/CommonsSwarm/commons-upgrade)
-- [App installation script](https://gist.github.com/PJColombo/4d4536b87fbae6beece427f0d7de8bb9)
 
 ## Contributing
 
