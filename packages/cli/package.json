@@ -37,12 +37,12 @@
     "@evmcrispr/module-lang": "*",
     "@evmcrispr/module-http": "*",
     "@evmcrispr/module-sim": "*",
-    "viem": "^2.45.1",
-    "zod": "^4.3.6"
+    "viem": "^2.54.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.10",
-    "@types/node": "^22.15.21"
+    "@types/bun": "^1.3.14",
+    "@types/node": "^24.13.2"
   },
   "files": [
     "dist",
@@ -52,7 +52,7 @@
     "prebuild": "bun scripts/bundle-docs.ts",
     "build": "evmcrispr-build src/bin.ts",
     "test:unit": "bun test",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsgo --noEmit",
     "lint": "biome check src"
   }
 }

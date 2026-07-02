@@ -19,14 +19,14 @@
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*",
-    "@types/bun": "^1.3.8",
+    "@types/bun": "^1.3.14",
     "@types/chai": "^5.2.3",
     "@types/lodash.clonedeep": "^4.5.9",
-    "dotenv": "^17.2.4",
+    "dotenv": "^17.4.2",
     "is-ipfs": "^8.0.4",
-    "msw": "^2.12.9",
-    "ora": "^9.3.0",
-    "typescript": "^5.9.3"
+    "msw": "^2.14.6",
+    "ora": "^9.4.1",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@evmcrispr/module-std": "workspace:*",
@@ -34,14 +34,14 @@
     "arcsecond": "^5.0.0"
   },
   "peerDependencies": {
-    "viem": "^2.29.4"
+    "viem": "^2.54.1"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "lint": "biome check src",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsgo --noEmit",
     "test:unit": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
     "build": "evmcrispr-build"

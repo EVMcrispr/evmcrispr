@@ -8,8 +8,8 @@ import {
   createRoutesFromElements,
   Navigate,
   Route,
-  RouterProvider,
 } from "react-router";
+import { RouterProvider } from "react-router/dom";
 import { transports } from "./config/wagmi";
 import Terminal from "./pages/Terminal";
 import Wagmi from "./providers/Wagmi";

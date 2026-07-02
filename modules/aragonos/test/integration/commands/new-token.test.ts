@@ -23,8 +23,15 @@ import {
   CommandError,
   type TransactionAction,
 } from "@evmcrispr/sdk";
-import { expect, getPublicClient, getWalletClients } from "@evmcrispr/test-utils";
-import { createInterpreter, expectThrowAsync } from "@evmcrispr/test-utils/evml";
+import {
+  expect,
+  getPublicClient,
+  getWalletClients,
+} from "@evmcrispr/test-utils";
+import {
+  createInterpreter,
+  expectThrowAsync,
+} from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import {
   getContract,

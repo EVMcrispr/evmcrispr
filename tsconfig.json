@@ -16,8 +16,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "noEmit": true,
-    "emitDeclarationOnly": true,
-    "baseUrl": "."
+    "emitDeclarationOnly": true
   },
   "exclude": ["node_modules", "dist"]
 }

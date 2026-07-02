@@ -2,8 +2,13 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import { expect, STD_ADDRESS_HELPERS, STD_ALL_HELPERS, STD_NUMBER_HELPERS } from "@evmcrispr/test-utils";
-import { evml, type EvmlWorkspace } from "@evmcrispr/test-utils/evml";
+import {
+  expect,
+  STD_ADDRESS_HELPERS,
+  STD_ALL_HELPERS,
+  STD_NUMBER_HELPERS,
+} from "@evmcrispr/test-utils";
+import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
 
 // ---------------------------------------------------------------------------
 // Test helpers

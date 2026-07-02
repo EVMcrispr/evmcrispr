@@ -8,7 +8,6 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "types": ["node", "bun"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

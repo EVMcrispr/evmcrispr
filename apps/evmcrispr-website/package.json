@@ -4,29 +4,29 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --port 3001",
     "build": "astro build",
     "preview": "astro preview",
     "type-check": "astro check"
   },
   "dependencies": {
-    "@astrojs/react": "^5.0.4",
-    "@astrojs/starlight": "^0.38.4",
+    "@astrojs/react": "^6.0.0",
+    "@astrojs/starlight": "^0.41.2",
     "@evmcrispr/editor": "*",
     "@fontsource/ubuntu-mono": "^5.2.8",
-    "viem": "^2.45.1",
+    "viem": "^2.54.1",
     "@repo/ui": "*",
-    "@tailwindcss/vite": "^4.2.4",
-    "astro": "~6.1.9",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwindcss": "^4.2.4"
+    "@tailwindcss/vite": "^4.3.2",
+    "astro": "^7.0.5",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.8",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.2"
+    "@astrojs/check": "^0.9.9",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.3"
   }
 }

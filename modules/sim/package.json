@@ -16,24 +16,24 @@
     }
   },
   "dependencies": {
-    "@ethereumjs/common": "^10.1.1",
-    "@ethereumjs/statemanager": "^10.1.1",
-    "@ethereumjs/util": "^10.1.1",
-    "@ethereumjs/vm": "^10.1.1",
+    "@ethereumjs/common": "^10.1.2",
+    "@ethereumjs/statemanager": "^10.1.2",
+    "@ethereumjs/util": "^10.1.2",
+    "@ethereumjs/vm": "^10.1.2",
     "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {
-    "viem": "^2.29.4"
+    "viem": "^2.54.1"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "lint": "biome check src",
-    "type-check": "tsc -p tsconfig.json",
+    "type-check": "tsgo -p tsconfig.json",
     "build": "evmcrispr-build",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",

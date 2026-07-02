@@ -8,7 +8,12 @@ import {
   isTransactionAction,
   Num,
 } from "@evmcrispr/sdk";
-import { expect, getPublicClient, getTransports, getWalletClients } from "@evmcrispr/test-utils";
+import {
+  expect,
+  getPublicClient,
+  getTransports,
+  getWalletClients,
+} from "@evmcrispr/test-utils";
 import { describeCommand, evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import type { PublicClient, WalletClient } from "viem";
 import { toHex } from "viem";
@@ -187,7 +192,10 @@ describe("Std > commands > exec > event capture", () => {
     `;
 
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
@@ -221,7 +229,10 @@ batch (
     `;
 
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {

@@ -12,18 +12,18 @@
     "@evmcrispr/module-giveth": "*",
     "@evmcrispr/module-http": "*",
     "@evmcrispr/module-sim": "*",
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "zod": "^4.3.6"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.10",
-    "@types/node": "^22.15.21"
+    "@types/bun": "^1.3.14",
+    "@types/node": "^24.13.2"
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "evmcrispr-build src/index.ts",
     "start": "bun src/index.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsgo --noEmit",
     "lint": "biome check src"
   }
 }

@@ -5,10 +5,10 @@ import { CommandError } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { keccak256, parseUnits, toHex } from "viem";
+import { resolveApp } from "../../../src/dao";
 import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
-import { resolveApp } from "../../../src/dao";
 
 const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
 

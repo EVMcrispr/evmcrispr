@@ -47,7 +47,10 @@ describe("Std > commands > sign > with wallet", () => {
   it("should sign a personal message and store the signature", async () => {
     const script = 'sign $sig "hello world"';
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
@@ -72,7 +75,10 @@ describe("Std > commands > sign > with wallet", () => {
     const script = `sign $sig "hello world"
 set $ok @sigValid(@me "hello world" $sig)`;
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
@@ -103,7 +109,10 @@ set $ok @sigValid(@me "hello world" $sig)`;
 
     const script = `sign $sig --typed '${typedData}'`;
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {
@@ -138,7 +147,10 @@ set $ok @sigValid(@me "hello world" $sig)`;
     const script = `sign $sig --typed '${typedData}'
 set $ok @sigValid(@me '${typedData}' $sig)`;
     const account = walletClient.account!;
-    const evm = new Interpreter(evml.registry, { account: account.address, transports: getTransports() });
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
     evm.switchChainId(gnosis.id);
 
     const actionCallback = async (action: Action) => {

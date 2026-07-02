@@ -8,7 +8,11 @@ import {
   encodeCalldata,
   Num,
 } from "@evmcrispr/sdk";
-import { expect, getPublicClient, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import {
+  expect,
+  getPublicClient,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import {
@@ -18,6 +22,7 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
+import { resolveApp } from "../../../src/dao";
 import { DAO, DAO2, DAO3 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import {
@@ -27,7 +32,6 @@ import {
   FEE_TOKEN_ADDRESS,
 } from "../../fixtures/mock-forwarders";
 import { server } from "../../setup";
-import { resolveApp } from "../../../src/dao";
 import {
   createTestAction,
   createTestPreTxAction,

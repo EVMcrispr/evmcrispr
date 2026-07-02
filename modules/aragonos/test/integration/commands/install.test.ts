@@ -13,11 +13,11 @@ const encodeActCall = (signature: string, params: any[] = []): string =>
 
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
+import { resolveApp } from "../../../src/dao";
 import { DAO, DAO2 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
-import { resolveApp } from "../../../src/dao";
 
 const {
   appId,

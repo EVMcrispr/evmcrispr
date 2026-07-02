@@ -5,6 +5,7 @@ import { keccak256, toHex } from "viem";
 
 import {
   cloneDao,
+  type DaoContext,
   getKernel,
   getPermission,
   getPermissionManager,
@@ -12,7 +13,6 @@ import {
   hasPermission,
   hasPermissionManager,
   resolveApp,
-  type DaoContext,
 } from "../../src/dao";
 import type {
   App,
@@ -150,8 +150,8 @@ describe("AragonOS > DAO helpers", () => {
 
     it("should return undefined for unknown addresses", () => {
       const { dao } = createMockDAO();
-      expect(resolveApp(dao, "0x9999999999999999999999999999999999999999"))
-        .to.be.undefined;
+      expect(resolveApp(dao, "0x9999999999999999999999999999999999999999")).to
+        .be.undefined;
     });
   });
 

@@ -231,16 +231,16 @@ function _encodeIfElse(
 }
 
 export {
+  and,
   arg,
   blockNumber,
-  timestamp,
-  oracle,
-  logic,
-  paramValue,
   encodeParams,
-  not,
-  and,
-  or,
-  xor,
   iif,
+  logic,
+  not,
+  or,
+  oracle,
+  paramValue,
+  timestamp,
+  xor,
 };

@@ -12,7 +12,7 @@ function corsHeaders(): Record<string, string> {
 }
 
 export async function startHttp(): Promise<void> {
-  const port = Number(process.env.PORT) || 3001;
+  const port = Number(process.env.PORT) || 3002;
   const host = process.env.HOST ?? "0.0.0.0";
 
   Bun.serve({

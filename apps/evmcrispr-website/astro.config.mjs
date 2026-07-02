@@ -32,13 +32,13 @@ function buildReferenceSidebar() {
     if (existsSync(commandsDir) && readdirSync(commandsDir).length > 0) {
       items.push({
         label: "Commands",
-        autogenerate: { directory: `reference/${mod}/commands` },
+        items: [{ autogenerate: { directory: `reference/${mod}/commands` } }],
       });
     }
     if (existsSync(helpersDir) && readdirSync(helpersDir).length > 0) {
       items.push({
         label: "Helpers",
-        autogenerate: { directory: `reference/${mod}/helpers` },
+        items: [{ autogenerate: { directory: `reference/${mod}/helpers` } }],
       });
     }
     return { label: mod, collapsed: true, items };

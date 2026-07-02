@@ -3,7 +3,7 @@ import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import { expect, getTransports } from "@evmcrispr/test-utils";
-import { evml, type EvmlWorkspace } from "@evmcrispr/test-utils/evml";
+import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
 import type { Address } from "viem";
 import { gnosis } from "viem/chains";
 
