@@ -88,6 +88,18 @@ export default defineConfig({
         __dirname,
         "../../packages/core/package.json",
       ),
+      "@evmcrispr/editor/styles/components.css": path.resolve(
+        __dirname,
+        "../../packages/editor/src/styles/components.css",
+      ),
+      "@evmcrispr/editor/monaco": path.resolve(
+        __dirname,
+        "../../packages/editor/src/editor/MonacoEditor.tsx",
+      ),
+      "@evmcrispr/editor": path.resolve(
+        __dirname,
+        "../../packages/editor/src/index.ts",
+      ),
       "@evmcrispr/core": path.resolve(
         __dirname,
         "../../packages/core/src/index.ts",

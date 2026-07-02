@@ -1,0 +1,144 @@
+/* ── @evmcrispr/editor standalone stylesheet ─────────────────────
+   Compiled with the Tailwind CLI into `dist/style.css`. Embedders do a
+   single `import "@evmcrispr/editor/style.css"`.
+
+   Tailwind's preflight is intentionally NOT imported — the host page's
+   element styles must stay untouched. Utilities are class-scoped and
+   the design tokens live on `.evmcrispr-root` (see components.css). */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "./components.css" layer(components);
+@plugin "@tailwindcss/typography";
+
+/* Only scan this package's own sources for class names. */
+@source "../";
+
+@theme {
+  --font-head: "Pixel Operator Mono", monospace;
+  --font-sans: "Ubuntu Mono", monospace;
+  --font-mono: "Pixel Operator Mono", monospace;
+  --font-clearer: "Ubuntu Mono", monospace;
+
+  --radius: 0px;
+
+  /* RetroUI-style flat shadows */
+  --shadow-xs: 1px 1px 0 0 var(--shadow-color);
+  --shadow-sm: 2px 2px 0 0 var(--shadow-color);
+  --shadow: 3px 3px 0 0 var(--shadow-color);
+  --shadow-md: 4px 4px 0 0 var(--shadow-color);
+  --shadow-lg: 6px 6px 0 0 var(--shadow-color);
+  --shadow-xl: 10px 10px 0 1px var(--shadow-color);
+  --shadow-2xl: 16px 16px 0 1px var(--shadow-color);
+
+  /* Semantic colors mapped from the CSS vars `.evmcrispr-root` defines */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--primary);
+  --color-border-secondary: var(--secondary);
+  --color-ring: var(--ring);
+
+  /* EVMcrispr custom palette */
+  --color-evm-green-50: #edfde7;
+  --color-evm-green-100: #cdfabc;
+  --color-evm-green-200: #acf791;
+  --color-evm-green-300: #8cf467;
+  --color-evm-green-400: #6cf13c;
+  --color-evm-green-500: #4bee11;
+  --color-evm-green-600: #3cbe0e;
+  --color-evm-green-700: #2d8f0a;
+  --color-evm-green-800: #1e5f07;
+  --color-evm-green-900: #0f3003;
+
+  --color-evm-blue-50: #e9e9fc;
+  --color-evm-blue-100: #c0c0f6;
+  --color-evm-blue-200: #9898f1;
+  --color-evm-blue-300: #7070eb;
+  --color-evm-blue-400: #4848e5;
+  --color-evm-blue-500: #1f1fe0;
+  --color-evm-blue-600: #1919b3;
+  --color-evm-blue-700: #131386;
+  --color-evm-blue-800: #0d0d59;
+  --color-evm-blue-900: #06062d;
+
+  --color-evm-yellow-50: #fafee7;
+  --color-evm-yellow-100: #f2fcba;
+  --color-evm-yellow-200: #eafa8e;
+  --color-evm-yellow-300: #e2f962;
+  --color-evm-yellow-400: #daf736;
+  --color-evm-yellow-500: #d2f50a;
+  --color-evm-yellow-600: #a8c408;
+  --color-evm-yellow-700: #7e9306;
+  --color-evm-yellow-800: #546204;
+  --color-evm-yellow-900: #2a3102;
+
+  --color-evm-pink-50: #fde7f6;
+  --color-evm-pink-100: #fabce5;
+  --color-evm-pink-200: #f791d5;
+  --color-evm-pink-300: #f467c4;
+  --color-evm-pink-400: #f13cb3;
+  --color-evm-pink-500: #ee11a3;
+  --color-evm-pink-600: #be0e82;
+  --color-evm-pink-700: #8f0a62;
+  --color-evm-pink-800: #5f0741;
+  --color-evm-pink-900: #300321;
+
+  --color-evm-gray-50: #f2f2f2;
+  --color-evm-gray-100: #dbdbdb;
+  --color-evm-gray-200: #c4c4c4;
+  --color-evm-gray-300: #adadad;
+  --color-evm-gray-400: #969696;
+  --color-evm-gray-500: #808080;
+  --color-evm-gray-600: #666666;
+  --color-evm-gray-700: #4d4d4d;
+  --color-evm-gray-800: #292929;
+  --color-evm-gray-900: #121212;
+
+  --color-evm-red-50: #ffe6e9;
+  --color-evm-red-100: #feb8c1;
+  --color-evm-red-200: #fe8b99;
+  --color-evm-red-300: #fd5d71;
+  --color-evm-red-400: #fd3049;
+  --color-evm-red-500: #fd0221;
+  --color-evm-red-600: #ca021a;
+  --color-evm-red-700: #980114;
+  --color-evm-red-800: #65010d;
+  --color-evm-red-900: #330007;
+
+  --color-evm-orange-50: #fdefe8;
+  --color-evm-orange-100: #f9d2bd;
+  --color-evm-orange-200: #f6b593;
+  --color-evm-orange-300: #f29869;
+  --color-evm-orange-400: #ef7c3e;
+  --color-evm-orange-500: #eb5f14;
+  --color-evm-orange-600: #bc4c10;
+  --color-evm-orange-700: #8d390c;
+  --color-evm-orange-800: #5e2608;
+  --color-evm-orange-900: #2f1304;
+
+  /* Fade-in animation for shared use */
+  --animate-fade-in: fade-in 0.4s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

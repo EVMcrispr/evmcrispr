@@ -1,6 +1,6 @@
+import { useDebounce } from "@evmcrispr/editor";
 import type { ChangeEventHandler } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useDebounce } from "../../hooks/useDebounce";
 import {
   terminalStoreActions,
   useTerminalStore,

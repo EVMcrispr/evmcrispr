@@ -1,5 +1,4 @@
 import type { HoverInfo } from "@evmcrispr/core";
-import { Popover } from "@repo/ui";
 import {
   type RefObject,
   useCallback,
@@ -10,7 +9,8 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { markdownComponents } from "../panel/MarkdownComponents";
+import { markdownComponents } from "../ui/MarkdownComponents";
+import { Popover } from "../ui/Popover";
 
 type Position = { line: number; col: number };
 

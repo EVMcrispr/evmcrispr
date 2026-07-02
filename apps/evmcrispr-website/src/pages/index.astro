@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import Card from "../components/Card.astro";
+import EmbeddedTerminal from "../components/EmbeddedTerminal.tsx";
 import Sponsors from "../components/Sponsors.astro";
 import Footer from "../components/Footer.astro";
 
@@ -48,6 +49,21 @@ const TERMINAL_URL = import.meta.env.PUBLIC_TERMINAL_URL || "/terminal/";
           Open Terminal
         </a>
       </div>
+    </div>
+
+    <!-- Live embedded terminal -->
+    <h1 class="pt-16 text-center text-2xl font-bold text-evm-green-300 font-head fade-in fade-in-delay-3">
+      Try it right here
+    </h1>
+    <p class="pt-2 text-center text-white/60 font-clearer">
+      Edit the script and hit Run — reads happen live, transactions are
+      decoded and shown without being sent.
+    </p>
+    <div class="pt-6 px-6 fade-in fade-in-delay-3">
+      <EmbeddedTerminal
+        client:only="react"
+        script={`print hello world\nprint @token(WETH)::{name()(string)}\n\n# Transactions are interpreted, not executed:\nexec @token(WETH) deposit() --value 1e18`}
+      />
     </div>
 
     <!-- Testimonials heading -->

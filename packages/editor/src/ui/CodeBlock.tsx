@@ -1,5 +1,5 @@
-import { useShiki } from "@evmcrispr/editor";
 import { useMemo } from "react";
+import { useShiki } from "../hooks/useShiki";
 
 export function CodeBlock({
   code,

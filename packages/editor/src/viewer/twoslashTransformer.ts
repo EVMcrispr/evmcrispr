@@ -15,7 +15,7 @@ type HastElement = {
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
 /** Grammar scopes whose tokens `evm.getHoverInfo` can resolve. Keep in
- *  sync with `packages/ui/src/grammars/evml.tmLanguage.json`. Scope
+ *  sync with `packages/editor/src/grammars/evml.tmLanguage.json`. Scope
  *  matching (rather than color or hard-coded keyword lists) means:
  *   - new keywords / module commands become hoverable automatically,
  *   - string / comment occurrences of the same literal text never

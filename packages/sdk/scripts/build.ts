@@ -1,16 +1,23 @@
 #!/usr/bin/env bun
-import { unlink, writeFile } from "node:fs/promises";
+import { readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 /**
  * Cross-platform build script for EVMcrispr packages.
  * Uses Bun Shell for OS-agnostic command execution.
  *
- * Usage: bun evmcrispr-build [entrypoint]
- *   entrypoint defaults to ./src/index.ts
+ * Usage: bun evmcrispr-build [entrypoints...] [--splitting] [--production]
+ *   entrypoints default to ./src/index.ts
+ *   --splitting enables code splitting (lazy chunks for dynamic imports)
+ *   --production builds with production semantics (required for JSX
+ *     packages: lowers to react/jsx-runtime instead of the dev transform)
  */
 import { $ } from "bun";
 
-const entrypoint = process.argv[2] || "./src/index.ts";
+const args = process.argv.slice(2);
+const splitting = args.includes("--splitting");
+const production = args.includes("--production");
+const entrypoints = args.filter((a) => !a.startsWith("--"));
+if (entrypoints.length === 0) entrypoints.push("./src/index.ts");
 const tempTsconfigPath = join(process.cwd(), ".tsconfig.build.tmp.json");
 const tempTsconfig = {
   extends: "./tsconfig.json",
@@ -28,7 +35,27 @@ const tempTsconfig = {
 
 await $`bun run ${import.meta.dir}/codegen.ts`;
 await $`rm -rf dist`;
-await $`bun build ${entrypoint} --outdir ./dist --format esm --sourcemap=linked --packages external`;
+
+// Bun's bundler applies the package's own `sideEffects` hint to its own
+// modules and tree-shakes re-exported module bodies away, emitting entry
+// files whose `export { ... }` bindings are never defined (broken ESM).
+// The hint is meant for downstream bundlers consuming the published
+// package, not for bundling the package itself — strip it while
+// `bun build` runs and restore it afterwards.
+const pkgJsonPath = join(process.cwd(), "package.json");
+const pkgJsonRaw = await readFile(pkgJsonPath, "utf-8");
+const pkgJson = JSON.parse(pkgJsonRaw);
+const hasSideEffectsHint = "sideEffects" in pkgJson;
+if (hasSideEffectsHint) {
+  delete pkgJson.sideEffects;
+  await writeFile(pkgJsonPath, `${JSON.stringify(pkgJson, null, 2)}\n`);
+}
+try {
+  await $`bun build ${entrypoints} --outdir ./dist --format esm --sourcemap=linked --packages external ${splitting ? "--splitting" : []} ${production ? "--production" : []}`;
+} finally {
+  if (hasSideEffectsHint) await writeFile(pkgJsonPath, pkgJsonRaw);
+}
+
 await writeFile(tempTsconfigPath, `${JSON.stringify(tempTsconfig, null, 2)}\n`);
 
 try {

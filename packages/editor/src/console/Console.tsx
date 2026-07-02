@@ -4,11 +4,10 @@ import {
   InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { Alert } from "@repo/ui";
-import { AlertCircle } from "@repo/ui/icons";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Alert } from "../ui/Alert";
 
 type LogStatus = "success" | "error" | "warning" | "info";
 
@@ -46,13 +45,18 @@ const statusIcon: Record<LogStatus, typeof XCircleIcon> = {
   info: InformationCircleIcon,
 };
 
-export function ConsoleTab({
-  logs,
-  errors,
-}: {
+export interface ConsoleProps {
   logs: string[];
   errors: string[];
-}) {
+  /** Shown when there are no logs or errors yet. */
+  placeholder?: string;
+}
+
+export function Console({
+  logs,
+  errors,
+  placeholder = "Console output will appear here during execution.",
+}: ConsoleProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export function ConsoleTab({
     <div className="flex flex-col h-full overflow-y-auto p-3 gap-2">
       {!hasContent && (
         <p className="text-foreground/40 font-head text-sm p-4">
-          Console output will appear here during execution.
+          {placeholder}
         </p>
       )}
       {logs.map((log, i) => {
@@ -103,7 +107,7 @@ export function ConsoleTab({
       {errors.map((e, i) => (
         <Alert key={`err-${i}`} status="error">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 shrink-0 text-white" />
+            <XCircleIcon className="w-5 h-5 shrink-0 text-white" />
             <Alert.Description className="break-all">{e}</Alert.Description>
           </div>
         </Alert>

@@ -12,7 +12,9 @@
   "dependencies": {
     "@astrojs/react": "^5.0.4",
     "@astrojs/starlight": "^0.38.4",
+    "@evmcrispr/editor": "*",
     "@fontsource/ubuntu-mono": "^5.2.8",
+    "viem": "^2.45.1",
     "@repo/ui": "*",
     "@tailwindcss/vite": "^4.2.4",
     "astro": "~6.1.9",

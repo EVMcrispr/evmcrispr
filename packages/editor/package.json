@@ -1,0 +1,68 @@
+{
+  "name": "@evmcrispr/editor",
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "description": "Embeddable EVMcrispr editor: Monaco editor, script viewer, console and no-wallet script interpretation for any React app",
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./monaco": {
+      "bun": "./src/editor/MonacoEditor.tsx",
+      "types": "./dist/editor/MonacoEditor.d.ts",
+      "import": "./dist/editor/MonacoEditor.js"
+    },
+    "./style.css": "./dist/style.css",
+    "./styles/components.css": "./src/styles/components.css",
+    "./grammars/evml": "./src/grammars/evml.tmLanguage.json",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@evmcrispr/core": "workspace:*",
+    "@heroicons/react": "^2.2.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@radix-ui/react-popover": "^1.1.15",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "monaco-editor": "^0.55.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.0",
+    "shiki": "^4.0.2",
+    "tailwind-merge": "^3.0.2"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "viem": "^2.29.4"
+  },
+  "devDependencies": {
+    "@evmcrispr/sdk": "workspace:*",
+    "@tailwindcss/cli": "^4.2.4",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/bun": "^1.3.10",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.9.3"
+  },
+  "files": [
+    "dist",
+    "src/grammars",
+    "src/styles",
+    "src/fonts"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsc --noEmit",
+    "build": "evmcrispr-build ./src/index.ts ./src/editor/MonacoEditor.tsx --splitting --production && bun scripts/build-css.ts"
+  }
+}

@@ -1,4 +1,3 @@
-import { useShiki } from "@repo/ui";
 import {
   type MouseEvent,
   useCallback,
@@ -6,38 +5,43 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useScriptAnalysis } from "../../hooks/useScriptAnalysis";
-import { useViewMode } from "../../hooks/useViewMode";
-import { useTerminalStore } from "../../stores/terminal-store";
+import { useScriptAnalysis } from "../hooks/useScriptAnalysis";
+import { useShiki } from "../hooks/useShiki";
 import { DiagnosticsChip } from "./DiagnosticsChip";
 import { HoverPopover } from "./HoverPopover";
 import { evmlTwoslashTransformer } from "./twoslashTransformer";
 
 const TRANSFORMERS = [evmlTwoslashTransformer()];
 
+export interface ViewerProps {
+  script: string;
+  /** 1-based line currently being executed — highlighted + scrolled into view. */
+  executingLine?: number | null;
+  /** Called when the user taps/clicks the script body (outside hover
+   *  targets and text selections). Hosts typically flip into edit mode. */
+  onActivateEdit?: () => void;
+}
+
 /**
- * Mobile-friendly, Monaco-free read view of the active script. Uses Shiki
+ * Mobile-friendly, Monaco-free read view of a script. Uses Shiki
  * (≈30 KB) for syntax highlighting, mirrors the editor's executing-line
  * indicator, and offers the same hover popovers (addresses, helpers,
  * variables) the editor exposes — without bringing the editor along.
  */
-export function ScriptViewer() {
-  const script = useTerminalStore((s) => s.script);
-  const executingLine = useTerminalStore((s) => s.executingLine);
-
+export function Viewer({ script, executingLine, onActivateEdit }: ViewerProps) {
   const highlighter = useShiki();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { diagnostics, getHoverInfo } = useScriptAnalysis(script);
-  const { setViewMode } = useViewMode();
 
   // Tapping anywhere on the rendered script (other than a hover token, or
-  // while the user is in the middle of a text-selection gesture) flips
-  // into the editor — the same effect as the toolbar's Edit button. This
-  // makes it cheap to reach for a quick tweak without hunting for a small
-  // icon, especially on mobile.
+  // while the user is in the middle of a text-selection gesture) notifies
+  // the host — the terminal flips into the editor. This makes it cheap to
+  // reach for a quick tweak without hunting for a small icon, especially
+  // on mobile.
   const handleViewerClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
+      if (!onActivateEdit) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest(".evml-hover-target")) return;
 
@@ -54,9 +58,9 @@ export function ScriptViewer() {
         return;
       }
 
-      setViewMode("edit");
+      onActivateEdit();
     },
-    [setViewMode],
+    [onActivateEdit],
   );
 
   const html = useMemo(() => {
@@ -77,8 +81,8 @@ export function ScriptViewer() {
   }, [highlighter, script]);
 
   // Apply / clear the executing-line highlight + autoscroll. Mirrors what
-  // TerminalEditor does via `decorationsRef` + `revealLineInCenter`. The
-  // `html` dep is intentional — when Shiki re-renders the script, the
+  // the Monaco editor does via `decorationsRef` + `revealLineInCenter`.
+  // The `html` dep is intentional — when Shiki re-renders the script, the
   // previous `.line` nodes are gone and we need to re-add the class.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
   useEffect(() => {
@@ -122,5 +126,3 @@ export function ScriptViewer() {
     </div>
   );
 }
-
-export default ScriptViewer;

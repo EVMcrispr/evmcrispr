@@ -1,0 +1,316 @@
+/* ── @evmcrispr/editor component styles ──────────────────────────
+   Plain CSS (no Tailwind directives) shared by the prebuilt
+   `@evmcrispr/editor/style.css` bundle and by apps that compile
+   Tailwind themselves (the terminal imports this file directly).
+
+   Everything is scoped under `.evmcrispr-root` — the wrapper class the
+   package components render — so embedding never touches the host
+   page's `:root`, `body` or element styles. Portaled surfaces (the
+   hover popover) re-apply `.evmcrispr-root` on themselves. */
+
+/* ── Pixel Operator Mono font ────────────────────────────────── */
+@font-face {
+  font-family: "Pixel Operator Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/PixelOperatorMono.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Pixel Operator Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/PixelOperatorMono-Bold.ttf") format("truetype");
+}
+
+/* ── Design tokens (scoped, not :root) ───────────────────────── */
+.evmcrispr-root {
+  --radius: 0px;
+  --background: #000000;
+  --foreground: #f5f5f5;
+  --card: #292929;
+  --card-foreground: #f5f5f5;
+  --primary: #8cf467;
+  --primary-hover: #4bee11;
+  --primary-foreground: #121212;
+  --secondary: #1919b3;
+  --secondary-foreground: #8cf467;
+  --muted: #4d4d4d;
+  --muted-foreground: #adadad;
+  --accent: #8cf467;
+  --accent-foreground: #121212;
+  --destructive: #f467c4;
+  --destructive-foreground: #ffffff;
+  --ring: #8cf467;
+  --shadow-color: rgba(140, 244, 103, 0.5);
+  --shadow-color-secondary: rgba(72, 72, 229, 0.5);
+
+  /* Editor / viewer / hover all share the same mono stack so that
+     toggling between view ↔ edit and opening a hover popover never
+     reflows. */
+  --terminal-font-mono:
+    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.evmcrispr-root,
+.evmcrispr-root *,
+.evmcrispr-root *::before,
+.evmcrispr-root *::after {
+  box-sizing: border-box;
+}
+
+/* Monaco executing-line decoration. Also reused by the Shiki-based
+   Viewer — applied directly to the `.line` span there, so the
+   `display: block` rule below makes the highlight stretch full-width. */
+.evmcrispr-root .executing-line-highlight {
+  background: rgba(15, 255, 80, 0.12);
+  border-left: 3px solid #0fff50;
+}
+
+/* ── Script viewer (Monaco-free read view) ─────────────────────── */
+/* Mirror the editor's typography: Ubuntu Mono at 22px is exactly what
+   the Monaco instance uses (see MonacoEditor.tsx editorOptions), so
+   toggling between view ↔ edit doesn't reflow the script. */
+.evmcrispr-root .evml-viewer {
+  counter-reset: evml-line;
+  font-family: var(--terminal-font-mono);
+  font-size: 22px;
+  line-height: 0.3;
+}
+
+@media (max-width: 640px) {
+  .evmcrispr-root .evml-viewer {
+    /* Slightly smaller on phones to keep typical lines from wrapping. */
+    font-size: 18px;
+  }
+}
+
+.evmcrispr-root .evml-viewer pre,
+.evmcrispr-root .evml-viewer code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.evmcrispr-root .evml-viewer pre {
+  margin: 0;
+  padding: 0.5rem 0;
+  /* Shiki applies the theme background as an inline style on the <pre>,
+     and `!important` is the only way to defeat that without a custom
+     fork of `codeToHtml`. */
+  /* biome-ignore lint/complexity/noImportantStyles: see comment above */
+  background: transparent !important;
+  /* Disable contextual ligatures so identifiers read like Monaco's. */
+  font-feature-settings:
+    "calt" 0,
+    "liga" 0;
+  font-variant-ligatures: none;
+}
+
+.evmcrispr-root .evml-viewer code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+
+.evmcrispr-root .evml-viewer code .line {
+  display: block;
+  position: relative;
+  padding: 0 0.75rem 0 3.25rem;
+  min-height: 1em;
+  counter-increment: evml-line;
+}
+
+.evmcrispr-root .evml-viewer code .line::before {
+  content: counter(evml-line);
+  position: absolute;
+  left: 0;
+  width: 2.5rem;
+  text-align: right;
+  padding-right: 0.5rem;
+  color: rgb(255 255 255 / 0.25);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Make the executing-line highlight survive Shiki's per-line wrapper */
+.evmcrispr-root .evml-viewer code .line.executing-line-highlight {
+  display: block;
+  background: rgba(15, 255, 80, 0.12);
+  border-left: 3px solid #0fff50;
+  padding-left: calc(3.25rem - 3px);
+}
+
+/* Hover targets — addresses, @helpers, $variables. Subtle dotted
+   underline so users discover them, but no color shift since Shiki
+   already paints the token. */
+.evmcrispr-root .evml-viewer .evml-hover-target {
+  cursor: help;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.evmcrispr-root .evml-viewer .evml-hover-target:hover,
+.evmcrispr-root .evml-viewer .evml-hover-target:focus-visible {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+/* Hover popover content. Portaled outside `.evml-viewer` (the content
+   element carries `.evmcrispr-root` itself), so the typography has to
+   be re-applied here. Ubuntu Mono everywhere keeps prose, code blocks,
+   and inline code visually consistent with the highlighted script
+   behind the popover. */
+.evml-hover-popover,
+.evml-hover-popover *,
+.evml-hover-popover code,
+.evml-hover-popover pre {
+  font-family: var(--terminal-font-mono);
+}
+
+/* Dark scrollbars for the viewer + popover + Monaco hover. The default
+   OS scrollbar (a bright grey on dark backgrounds) is jarring against
+   the black terminal aesthetic; this mirrors what Monaco renders
+   inside the editor view so toggling between view ↔ edit looks
+   consistent. */
+.evmcrispr-root .evml-viewer,
+.evml-hover-popover,
+.evmcrispr-root .monaco-editor .monaco-hover {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: thin;
+}
+
+.evmcrispr-root .evml-viewer::-webkit-scrollbar,
+.evml-hover-popover::-webkit-scrollbar,
+.evmcrispr-root .monaco-editor .monaco-hover::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.evmcrispr-root .evml-viewer::-webkit-scrollbar-track,
+.evml-hover-popover::-webkit-scrollbar-track,
+.evmcrispr-root .monaco-editor .monaco-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.evmcrispr-root .evml-viewer::-webkit-scrollbar-thumb,
+.evml-hover-popover::-webkit-scrollbar-thumb,
+.evmcrispr-root .monaco-editor .monaco-hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.evmcrispr-root .evml-viewer::-webkit-scrollbar-thumb:hover,
+.evml-hover-popover::-webkit-scrollbar-thumb:hover,
+.evmcrispr-root .monaco-editor .monaco-hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.evmcrispr-root .evml-viewer::-webkit-scrollbar-corner,
+.evml-hover-popover::-webkit-scrollbar-corner,
+.evmcrispr-root .monaco-editor .monaco-hover::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Monaco hover widget — match `.evml-hover-popover` ────────── */
+/* Monaco renders its hover widget into a portal at the editor root,
+   bypassing `.evml-viewer` styling entirely. Mirror the viewer popover
+   so toggling between view ↔ edit doesn't change how hover cards
+   look. The colour palette flows through the Monaco theme
+   (`editor/theme.ts` → editorHoverWidget.* + textLink.* +
+   textCodeBlock.background); these rules cover what the theme can't
+   reach: typography, RetroUI border + zero radius, padding inside
+   hover rows, and prose/markdown spacing. */
+.evmcrispr-root .monaco-editor .monaco-hover,
+.evmcrispr-root .monaco-editor .monaco-resizable-hover {
+  /* biome-ignore lint/complexity/noImportantStyles: Monaco's
+     hover.css is injected on editor mount (after our bundle), so a
+     same-specificity rule loses without `!important`. */
+  border-width: 2px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
+  border-radius: 0 !important;
+  max-width: min(92vw, 360px);
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover {
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
+  font-family: var(--terminal-font-mono) !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover .hover-row {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Boundary between the variable/helper card and the appended
+   address-info card. Bright green to match `.evml-hover-popover`'s
+   section divider so the visual break reads the same on both
+   surfaces (vs. the dim `hr` *inside* a single markdown card).
+
+   Monaco renders each `IMarkdownString` from a single hover provider
+   as its own `<div class="markdown-hover">` inside `.hover-contents`,
+   and groups providers as separate `.hover-row` elements — match
+   both so the rule fires regardless of which path is taken. */
+.evmcrispr-root .monaco-editor .monaco-hover .hover-row + .hover-row,
+.evmcrispr-root .monaco-editor .monaco-hover .markdown-hover + .markdown-hover,
+.evmcrispr-root
+  .monaco-editor
+  .monaco-hover
+  .hover-contents
+  > *:not(:first-child) {
+  border-top: 1px solid #8cf467;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover code,
+.evmcrispr-root .monaco-editor .monaco-hover pre {
+  font-family: inherit;
+}
+
+/* Inline `code` (not inside a code block). Monaco only sets
+   `background-color`; the orange text + tighter padding are ours. */
+.evmcrispr-root .monaco-editor .monaco-hover :not(pre) > code {
+  color: #f29869;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover hr {
+  border: none;
+  border-top: 1px solid rgba(245, 245, 245, 0.2);
+  margin: 0.5rem 0;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover p {
+  margin: 0.25rem 0;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: decimal;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover li {
+  color: rgba(245, 245, 245, 0.85);
+  /* Monaco's base stylesheet sets `list-style: none` on global lists.
+     Force the disc/decimal markers back so the cards match the
+     viewer popover, which renders bullets via Tailwind's prose. */
+  display: list-item;
+}
+
+.evmcrispr-root .monaco-editor .monaco-hover strong {
+  color: var(--foreground);
+}

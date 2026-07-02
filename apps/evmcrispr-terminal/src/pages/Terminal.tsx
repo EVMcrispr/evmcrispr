@@ -1,7 +1,7 @@
+import { Viewer } from "@evmcrispr/editor";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { ScrollRestoration } from "react-router";
 import { useConnection } from "wagmi";
-
 import TitleInput from "../components/editor/TitleInput";
 import ActionButtons from "../components/execution/ActionButtons";
 import ConfigureButton from "../components/execution/ConfigureButton";
@@ -11,11 +11,11 @@ import { SidePanel } from "../components/panel/SidePanel";
 import NewScriptButton from "../components/scripts/NewScriptButton";
 import ScriptNotFound from "../components/scripts/ScriptNotFound";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
-import { ScriptViewer } from "../components/viewer/ScriptViewer";
 import { ViewModeToggle } from "../components/viewer/ViewModeToggle";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
+import { useViewMode } from "../hooks/useViewMode";
 import { useWalletConnection } from "../hooks/useWalletConnection";
 import { useTerminalStore } from "../stores/terminal-store";
 
@@ -69,6 +69,8 @@ export default function Terminal() {
 
   const isSmallScreen = useIsSmallScreen();
   const viewMode = useTerminalStore((s) => s.viewMode);
+  const executingLine = useTerminalStore((s) => s.executingLine);
+  const { setViewMode } = useViewMode();
   const isViewing = viewMode === "view";
 
   return (
@@ -118,7 +120,11 @@ export default function Terminal() {
 
                 <div className="flex-1 min-h-0 px-4 pt-2 overflow-hidden animate-fade-in">
                   {isViewing ? (
-                    <ScriptViewer />
+                    <Viewer
+                      script={script}
+                      executingLine={executingLine}
+                      onActivateEdit={() => setViewMode("edit")}
+                    />
                   ) : (
                     <Suspense
                       fallback={

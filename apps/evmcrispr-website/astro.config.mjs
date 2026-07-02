@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
-import evmlGrammar from "@repo/ui/grammars/evml";
+import evmlGrammar from "@evmcrispr/editor/grammars/evml";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -88,5 +88,9 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss()],
+    // Share the repo-root .env (VITE_DRPC_API_KEY) with the embedded
+    // terminal island, same as the terminal app does.
+    envDir: resolve(import.meta.dirname, "../.."),
+    envPrefix: ["VITE_", "PUBLIC_"],
   },
 });

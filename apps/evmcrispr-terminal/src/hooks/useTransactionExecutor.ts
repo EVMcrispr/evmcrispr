@@ -1,12 +1,11 @@
 import type { ActionHandlers } from "@evmcrispr/core";
 import { evml } from "@evmcrispr/core";
+import { useExecutionLogs } from "@evmcrispr/editor";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
-
 import { transports } from "../config/wagmi";
 import { terminalStoreActions } from "../stores/terminal-store";
-import { useExecutionLogs } from "./useExecutionLogs";
 
 /** Safe apps can't use EIP-5792 batching — route batched actions through
  *  the Safe SDK instead. Non-Safe runs use the core default handler. */

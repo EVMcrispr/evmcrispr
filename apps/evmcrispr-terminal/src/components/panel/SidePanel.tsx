@@ -1,10 +1,10 @@
+import { Console } from "@evmcrispr/editor";
 import { Tabs } from "@repo/ui";
 import type { TerminalStoreState } from "../../stores/terminal-store";
 import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
-import { ConsoleTab } from "./ConsoleTab";
 import { LibraryTab } from "./LibraryTab";
 import { ReferenceTab } from "./ReferenceTab";
 
@@ -36,7 +36,7 @@ export function SidePanel({
         forceMount
         hidden={activeTab !== "console"}
       >
-        <ConsoleTab logs={logs} errors={errors} />
+        <Console logs={logs} errors={errors} />
       </Tabs.Content>
       <Tabs.Content
         value="library"

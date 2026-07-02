@@ -1,6 +1,6 @@
-import { evml, type ParseDiagnostic } from "@evmcrispr/core";
+import type { ParseDiagnostic } from "@evmcrispr/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { transports } from "../config/wagmi";
+import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { useDebounce } from "./useDebounce";
 
 const SCRIPT_DEBOUNCE_MS = 300;
@@ -8,29 +8,20 @@ const SCRIPT_DEBOUNCE_MS = 300;
 type Position = { line: number; col: number };
 
 /**
- * Read-only sibling of `useEditorState` for the viewer page. Maintains an
- * `EvmlWorkspace` instance bound to the active public client and prewarms it
- * whenever the (debounced) script changes — same pattern Monaco uses, so
+ * Read-only analysis session for the viewer. Maintains an `EvmlWorkspace`
+ * bound to the nearest provider's tag and prewarms it whenever the
+ * (debounced) script changes — same pattern the Monaco editor uses, so
  * hover lookups for `@helper` and `$variable` tokens progressively
  * upgrade from "name + signature" to "name + signature + resolved value
  * card" once the prewalk is done populating the helper / `set` cache.
  *
  * Important: `getHoverInfo` is fired-and-forwarded straight to
- * `evm.getHoverInfo` (not awaited on the prewarm promise). That mirrors
- * the editor's hover provider and means a slow / hung RPC inside
- * `prewarm` (e.g. an unreachable `switch <chain>` followed by `load`)
- * cannot freeze every hover. The first hover may show the basic info
- * card; once prewarm finishes its on-instance writes (`#scriptBindings`,
- * `#variableHistory`), subsequent hovers automatically render the rich
- * card without any extra plumbing.
- *
- * Returns:
- * - `evm`: shared instance for `getHoverInfo` calls
- * - `getHoverInfo(position)`: thin pass-through to `evm.getHoverInfo`
- * - `diagnostics`: parse-time errors (re-computed on debounced changes)
+ * `evm.getHoverInfo` (not awaited on the prewarm promise), so a slow /
+ * hung RPC inside `prewarm` cannot freeze every hover.
  */
 export function useScriptAnalysis(script: string) {
-  const evm = useMemo(() => evml.with({ transports }).workspace(), []);
+  const tag = useEvmlTag();
+  const evm = useMemo(() => tag.workspace(), [tag]);
 
   const debouncedScript = useDebounce(script, SCRIPT_DEBOUNCE_MS);
 

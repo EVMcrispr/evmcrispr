@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@evmcrispr/core": "*",
+    "@evmcrispr/editor": "*",
     "@evmcrispr/module-aragonos": "*",
     "@evmcrispr/module-assertions": "*",
     "@evmcrispr/module-ens": "*",

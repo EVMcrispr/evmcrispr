@@ -1,5 +1,7 @@
 import "@fontsource/ubuntu-mono";
 
+import { evml } from "@evmcrispr/core";
+import { EvmcrisprProvider } from "@evmcrispr/editor";
 import { Toaster, Tooltip } from "@repo/ui";
 import {
   createHashRouter,
@@ -8,6 +10,7 @@ import {
   Route,
   RouterProvider,
 } from "react-router";
+import { transports } from "./config/wagmi";
 import Terminal from "./pages/Terminal";
 import Wagmi from "./providers/Wagmi";
 
@@ -23,10 +26,12 @@ const router = createHashRouter(
 
 const App = () => {
   return (
-    <div className="App dark">
+    <div className="App dark evmcrispr-root">
       <Tooltip.Provider>
         <Wagmi>
-          <RouterProvider router={router} />
+          <EvmcrisprProvider evml={evml} transports={transports}>
+            <RouterProvider router={router} />
+          </EvmcrisprProvider>
         </Wagmi>
       </Tooltip.Provider>
       <Toaster />
