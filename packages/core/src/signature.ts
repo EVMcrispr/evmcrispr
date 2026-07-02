@@ -8,6 +8,7 @@ import type {
 import {
   type BindingsManager,
   BindingsSpace,
+  resolveArgDefIndex,
   resolveCommand,
 } from "@evmcrispr/sdk";
 
@@ -291,7 +292,14 @@ export async function getSignatureHelp(
       activeParam++;
     }
   }
-  // activeParam is now the number of args before cursor; clamp to valid range
+  // Map the positional index to its arg definition (optional special-typed
+  // defs may have been skipped), then clamp to valid range
+  const defIdx = resolveArgDefIndex(
+    command.argDefs,
+    commandNode.args,
+    activeParam,
+  );
+  activeParam = defIdx >= 0 ? defIdx : activeParam;
   activeParam = Math.min(activeParam, command.argDefs.length - 1);
   if (activeParam < 0) activeParam = 0;
 

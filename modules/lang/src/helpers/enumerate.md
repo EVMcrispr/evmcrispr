@@ -30,5 +30,5 @@ set $pairs @enumerate($items)
 
 ## See Also
 
-- [for](../../commands/for.md) — iterate over arrays
+- [loop](../../commands/loop.md) — iterate over arrays
 - [@zip](zip.md) — combine two arrays into pairs

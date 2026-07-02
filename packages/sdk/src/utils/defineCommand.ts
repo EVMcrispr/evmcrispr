@@ -11,6 +11,7 @@ import type {
   NodesInterpreters,
 } from "../types";
 import { NodeType } from "../types";
+import { isSpecialArgType as isSpecialType } from "./argAlignment";
 import {
   ComparisonType,
   checkArgsLength,
@@ -26,21 +27,8 @@ import {
   validateArgType,
 } from "./schema";
 
-const SPECIAL_TYPES = new Set([
-  "variable",
-  "command",
-  "helper",
-  "expression",
-  "block",
-]);
-
 function typeIncludes(type: ArgType, target: string): boolean {
   return Array.isArray(type) ? type.includes(target) : type === target;
-}
-
-function isSpecialType(type: ArgType): boolean {
-  if (Array.isArray(type)) return type.some((t) => SPECIAL_TYPES.has(t));
-  return SPECIAL_TYPES.has(type);
 }
 
 type ExtractResult = { ok: true; value: any } | { ok: false };
@@ -198,9 +186,13 @@ export function defineCommand<M extends Module>(
         );
       }
 
-      // 4. Interpret arguments by type
+      // 4. Interpret arguments by type. A cursor walks astArgs so optional
+      // special-typed defs whose node doesn't match are skipped without
+      // consuming it, letting later defs shift left (e.g.
+      // `loop [variable] <connector> <value> <block>`).
       const parsedArgs: Record<string, any> = {};
       let blockIdx = 0;
+      let cursor = 0;
       for (let i = 0; i < argDefs.length; i++) {
         const def = argDefs[i];
 
@@ -208,12 +200,20 @@ export function defineCommand<M extends Module>(
           const blockForThis = typeIncludes(def.type, "block")
             ? blockNodes[blockIdx++]
             : undefined;
-          const extracted = extractSpecialArg(def, astArgs[i], blockForThis);
+          const extracted = extractSpecialArg(
+            def,
+            astArgs[cursor],
+            blockForThis,
+          );
           if (extracted.ok) {
             parsedArgs[def.name] = extracted.value;
+            const fromBlock =
+              blockForThis !== undefined && extracted.value === blockForThis;
+            if (!fromBlock) cursor++;
             continue;
           }
-          if (!Array.isArray(def.type) && !def.optional) {
+          if (def.optional) continue;
+          if (!Array.isArray(def.type)) {
             const typeLabel = def.type === "variable" ? "$variable" : def.type;
             throw new ErrorException(`<${def.name}> must be a ${typeLabel}`);
           }
@@ -221,11 +221,19 @@ export function defineCommand<M extends Module>(
 
         // All other types (or unmatched union fallthrough): auto-interpret
         if (def.rest) {
-          const restNodes = astArgs.slice(i);
+          const restNodes = astArgs.slice(cursor);
           parsedArgs[def.name] = await interpretNodes(restNodes);
-        } else if (astArgs[i]) {
-          parsedArgs[def.name] = await interpretNode(astArgs[i]);
+          cursor = astArgs.length;
+        } else if (astArgs[cursor]) {
+          parsedArgs[def.name] = await interpretNode(astArgs[cursor]);
+          cursor++;
         }
+      }
+
+      if (cursor < astArgs.length) {
+        throw new ErrorException(
+          `too many arguments: expected at most ${cursor}, got ${astArgs.length}`,
+        );
       }
 
       // 5. Validate argument types (skip special types)

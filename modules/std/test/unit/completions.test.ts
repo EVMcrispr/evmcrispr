@@ -314,25 +314,43 @@ describe("Completions – std commands", () => {
   });
 
   // -------------------------------------------------------------------------
-  // for
+  // loop
   // -------------------------------------------------------------------------
 
-  describe("for", () => {
-    it('for $i <cursor> should show "of" (completion override)', async () => {
-      const script = "for $i ";
+  describe("loop", () => {
+    it('loop <cursor> should show "until" and variables (completion override)', async () => {
+      const script = "loop ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "until")).to.be.true;
+    });
+
+    it('loop $i <cursor> should show "of" (completion override)', async () => {
+      const script = "loop $i ";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "of")).to.be.true;
       expect(items).to.have.lengthOf(1);
     });
 
-    it("for $i of <cursor> should show helpers and variables", async () => {
-      const script = "for $i of ";
+    it("loop $i of <cursor> should show helpers and variables", async () => {
+      const script = "loop $i of ";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "@me")).to.be.true;
     });
 
-    it("for $i of $arr <cursor> should show block snippet", async () => {
-      const script = "for $i of $arr ";
+    it("loop until <cursor> should show helpers (skipped optional variable)", async () => {
+      const script = "loop until ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "@bool")).to.be.true;
+    });
+
+    it("loop $i of $arr <cursor> should show block snippet", async () => {
+      const script = "loop $i of $arr ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "( ... )")).to.be.true;
+    });
+
+    it("loop until @bool(1 > 0) <cursor> should show block snippet", async () => {
+      const script = "loop until @bool(1 > 0) ";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "( ... )")).to.be.true;
     });

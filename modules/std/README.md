@@ -10,10 +10,10 @@ The standard module is loaded by default. It provides core language constructs, 
 | [def](src/commands/def.md) | Define a user command or helper. |
 | [deploy](src/commands/deploy.md) | Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
-| [for](src/commands/for.md) | Iterate over an array, executing a block for each element. |
 | [halt](src/commands/halt.md) | Stop script execution immediately. |
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
 | [load](src/commands/load.md) | Load a module to make its commands and helpers available. |
+| [loop](src/commands/loop.md) | Repeat a block: iterate over an array (`loop $x of $arr`) or until a condition is true (`loop until <condition>`). |
 | [print](src/commands/print.md) | Log values to the console output. |
 | [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
@@ -21,7 +21,6 @@ The standard module is loaded by default. It provides core language constructs, 
 | [switch](src/commands/switch.md) | Switch the active chain by name or ID. |
 | [verify](src/commands/verify.md) | Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. |
 | [wait](src/commands/wait.md) | Wait for a duration before executing the next action (fork simulations advance the chain's clock instead). |
-| [while](src/commands/while.md) | Repeat a block while a condition is true. |
 
 ## Helpers
 

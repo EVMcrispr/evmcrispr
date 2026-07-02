@@ -7,14 +7,16 @@ Define a user command or helper.
 ## Syntax
 
 ```evml
-def <params>
+def <name> <params> <body>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
+| `name` | `command \| helper` |  |
 | `params` | `string` | Definition expression (see syntax variants below) |
+| `body` | `expression \| block` |  |
 
 ## Examples
 

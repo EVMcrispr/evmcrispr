@@ -34,4 +34,4 @@ set $doubled @map($nums @double)
 
 - [@filter](filter.md) — keep elements by predicate
 - [@reduce](reduce.md) — fold an array to a single value
-- [for](../../commands/for.md) — imperative iteration
+- [loop](../../commands/loop.md) — imperative iteration

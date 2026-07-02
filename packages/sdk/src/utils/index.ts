@@ -1,5 +1,6 @@
 export * from "./abis";
 export * from "./addresses";
+export * from "./argAlignment";
 export * from "./args";
 export * from "./ast";
 export * from "./contract-verification";

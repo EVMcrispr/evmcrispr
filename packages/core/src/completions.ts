@@ -22,6 +22,7 @@ import {
   NodeType,
   parseReadAbiParamTypes,
   parseSignatureParamTypes,
+  resolveArgDefIndex,
   variableItem,
 } from "@evmcrispr/sdk";
 import type { PublicClient, Transport } from "viem";
@@ -209,7 +210,14 @@ function isReturnTypeCompatible(
   expectedType: string | string[],
 ): boolean {
   const expected = toTypeArray(expectedType);
-  if (expected.includes("any") || expected.includes("string")) return true;
+  // Expression slots accept any value, including helper results
+  if (
+    expected.includes("any") ||
+    expected.includes("string") ||
+    expected.includes("expression")
+  ) {
+    return true;
+  }
   if (expected.every((t) => t === "variable" || t === "block")) return false;
   if (!expected.some((t) => isBuiltinType(t))) return false;
   const rt = toTypeArray(returnType);
@@ -643,8 +651,13 @@ export async function getCompletions(
         }
       }
 
+      const argDefIdx = resolveArgDefIndex(
+        command.argDefs,
+        currentCommandNode.args,
+        argIndex,
+      );
       const argDef =
-        command.argDefs[argIndex] ??
+        (argDefIdx >= 0 ? command.argDefs[argDefIdx] : undefined) ??
         (command.argDefs.at(-1)?.rest ? command.argDefs.at(-1) : undefined);
 
       if (argDef) {

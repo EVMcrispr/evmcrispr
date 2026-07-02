@@ -277,9 +277,9 @@ function parseArgObjects(block: string): ArgDef[] {
     }
     const objContent = block.slice(objStart + 1, j - 1);
     const nameMatch = objContent.match(/name:\s*"([^"]+)"/);
-    const typeMatch = objContent.match(/type:\s*"([^"]+)"/);
-    if (nameMatch && typeMatch) {
-      const arg: ArgDef = { name: nameMatch[1], type: typeMatch[1] };
+    const typeValue = parseTypeValue(objContent, "type");
+    if (nameMatch && typeValue) {
+      const arg: ArgDef = { name: nameMatch[1], type: typeValue };
       if (/optional:\s*true/.test(objContent)) arg.optional = true;
       if (/rest:\s*true/.test(objContent)) arg.rest = true;
       const description = extractStringProp(objContent, "description");

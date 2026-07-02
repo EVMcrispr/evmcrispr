@@ -87,7 +87,7 @@ batch (
   exec 0xB... "bar()"
 )
 
-for $i in @range(0 5) (
+loop $i of @arr(0 5) (
   print $i
 )
 
@@ -209,13 +209,13 @@ if @bool($balance > 0) (
 )
 
 # Loop over array
-for $item in @range(0 10) (
+loop $item of @arr(0 10) (
   print $item
 )
 
-# While loop
+# Loop until a condition is true
 set $i 0
-while @bool($i < 5) (
+loop until @bool($i >= 5) (
   print $i
   set $i @num($i + 1)
 )

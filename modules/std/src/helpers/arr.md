@@ -33,4 +33,4 @@ set $nums @arr(3 7)
 
 ## See Also
 
-- [for](../../commands/for.md) — iterate over arrays
+- [loop](../../commands/loop.md) — iterate over arrays
