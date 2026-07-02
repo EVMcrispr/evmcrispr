@@ -36,9 +36,9 @@ describe("MCP server", () => {
       const names = tools.map((t) => t.name).sort();
       expect(names).toEqual([
         "evmcrispr_create_link",
-        "evmcrispr_get_completions",
-        "evmcrispr_get_hover_info",
-        "evmcrispr_get_signature_help",
+        "evmcrispr_describe_module",
+        "evmcrispr_get_docs",
+        "evmcrispr_list_modules",
         "evmcrispr_simulate_evml",
         "evmcrispr_validate_evml",
       ]);
@@ -49,6 +49,77 @@ describe("MCP server", () => {
       for (const tool of tools) {
         expect(tool.description).toBeTruthy();
       }
+    });
+  });
+
+  describe("evmcrispr_list_modules tool", () => {
+    it("lists all modules with overviews", async () => {
+      const result = await client.callTool({
+        name: "evmcrispr_list_modules",
+        arguments: {},
+      });
+      const text = (result.content as { type: string; text: string }[])[0].text;
+      for (const mod of [
+        "std",
+        "lang",
+        "sim",
+        "assertions",
+        "aragonos",
+        "ens",
+        "giveth",
+        "http",
+      ]) {
+        expect(text).toContain(`**${mod}**`);
+      }
+      expect(text).not.toContain("(no overview available)");
+    });
+  });
+
+  describe("evmcrispr_describe_module tool", () => {
+    it("returns the module README with command/helper tables", async () => {
+      const result = await client.callTool({
+        name: "evmcrispr_describe_module",
+        arguments: { module: "aragonos" },
+      });
+      const text = (result.content as { type: string; text: string }[])[0].text;
+      expect(text).toContain("## Commands");
+      expect(text).toContain("## Helpers");
+      expect(text).toContain("aragonos:act");
+    });
+  });
+
+  describe("evmcrispr_get_docs tool", () => {
+    it("returns command docs", async () => {
+      const result = await client.callTool({
+        name: "evmcrispr_get_docs",
+        arguments: { module: "aragonos", name: "act" },
+      });
+      const text = (result.content as { type: string; text: string }[])[0].text;
+      expect(text).toContain("## Syntax");
+      expect(text).toContain("## Arguments");
+    });
+
+    it("returns helper docs, stripping @ and module prefix", async () => {
+      const result = await client.callTool({
+        name: "evmcrispr_get_docs",
+        arguments: {
+          module: "aragonos",
+          name: "@aragonos:app",
+          kind: "helper",
+        },
+      });
+      const text = (result.content as { type: string; text: string }[])[0].text;
+      expect(text).toContain("## Syntax");
+    });
+
+    it("errors on unknown name with a helpful message", async () => {
+      const result = await client.callTool({
+        name: "evmcrispr_get_docs",
+        arguments: { module: "std", name: "nonexistent" },
+      });
+      expect(result.isError).toBe(true);
+      const text = (result.content as { type: string; text: string }[])[0].text;
+      expect(text).toContain("evmcrispr_describe_module");
     });
   });
 

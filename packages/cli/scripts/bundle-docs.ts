@@ -5,11 +5,10 @@
  */
 import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { MODULES } from "../src/lib/docs-loader";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const OUT = resolve(import.meta.dirname, "../docs");
-
-const MODULES = ["std", "sim", "aragonos", "ens", "giveth", "http"];
 
 async function copyIfExists(src: string, dest: string): Promise<void> {
   try {

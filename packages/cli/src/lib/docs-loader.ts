@@ -7,7 +7,17 @@ const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
 // Monorepo root (fallback for local dev without building)
 const MONOREPO_ROOT = resolve(import.meta.dirname, "../../../..");
 
-const MODULES = ["std", "lang", "sim", "aragonos", "ens", "giveth", "http"];
+// Keep in sync with the canonical list in scripts/generate-docs.ts
+export const MODULES = [
+  "std",
+  "lang",
+  "sim",
+  "assertions",
+  "aragonos",
+  "ens",
+  "giveth",
+  "http",
+];
 
 let fullDocsCache: string | null = null;
 const moduleDocsCache = new Map<string, string>();
@@ -147,6 +157,27 @@ export async function loadHelperDocs(
 
 export async function listModules(): Promise<string[]> {
   return MODULES;
+}
+
+/**
+ * One-line overview of a module, extracted from the first paragraph of its
+ * README (the line right after the `# <name> module` heading).
+ */
+export async function getModuleOverview(
+  moduleName: string,
+): Promise<string | null> {
+  const readme = await loadModuleDocs(moduleName);
+  if (!readme) return null;
+
+  const lines = readme.split("\n");
+  const headingIdx = lines.findIndex((l) => l.startsWith("# "));
+  for (let i = headingIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === "") continue;
+    if (line.startsWith("#") || line.startsWith("```")) break;
+    return line;
+  }
+  return null;
 }
 
 export async function listModuleCommands(

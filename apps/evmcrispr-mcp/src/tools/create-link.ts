@@ -8,7 +8,7 @@ export function registerCreateLink(server: McpServer): void {
     {
       title: "Create Shareable EVML Link",
       description:
-        "Pin an EVML script to IPFS and return a shareable link. Requires VITE_PINATA_JWT env var.",
+        "Pin an EVML script to IPFS and return a shareable link the user can open in the EVMcrispr terminal to review and execute it. Use after a successful simulation. Requires VITE_PINATA_JWT env var.",
       inputSchema: {
         script: z.string().describe("The EVML script content"),
         title: z.string().describe("Title for the shared script"),
