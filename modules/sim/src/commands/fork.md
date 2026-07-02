@@ -42,6 +42,11 @@ sim:fork --using anvil (
 - The `ethereumjs` backend runs entirely in the browser — no external node needed
 - All commands inside the fork block execute against the simulated state
 - Changes do not affect the real chain
+- `batch (...)` inside a fork simulates an EIP-7702 batch: if the sender EOA
+  has no delegation yet, the fork installs a delegation to MetaMask's
+  EIP7702StatelessDeleGator (`0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B`) and
+  executes all batched calls atomically in a single self-call transaction. An
+  existing delegation on the EOA is reused as-is.
 
 ## See Also
 

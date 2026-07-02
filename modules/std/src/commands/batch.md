@@ -44,10 +44,15 @@ batch (...) -?!> Unauthorized() $reverted
 
 ## Notes
 
-- All commands in the batch are combined into a single multicall transaction
+- All commands in the batch are combined into a single atomic transaction
+  (EIP-5792 `wallet_sendCalls` for EOAs, batched Safe transaction for Safes)
 - If any command in the batch reverts, the entire batch reverts
 - Event captures (`->`) on a batch apply to the combined transaction receipt
 - Error captures (`-!>` / `-?!>`) on a batch catch the combined transaction revert
+- Inside a `sim:fork` block, the batch is simulated as an EIP-7702 transaction:
+  a delegation to MetaMask's EIP7702StatelessDeleGator is installed on the
+  sender EOA (if not already delegated) and the calls execute atomically
+  through it — mirroring how wallets fulfill `wallet_sendCalls`
 
 ## See Also
 

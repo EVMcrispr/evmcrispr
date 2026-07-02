@@ -4,6 +4,7 @@ import {
   type Chain,
   defineCommand,
   ErrorException,
+  isBatchedAction,
   isRpcAction,
   isTransactionAction,
   isWalletAction,
@@ -18,6 +19,13 @@ import {
   type WalletClient,
 } from "viem";
 import type Sim from "..";
+import {
+  DELEGATOR_ADDRESS,
+  DELEGATOR_BYTECODE,
+  delegationDesignator,
+  encodeBatchExecute,
+  parseDelegation,
+} from "../lib/delegate";
 import {
   createEthereumJSBackend,
   type EthereumJSBackend,
@@ -320,9 +328,55 @@ export default defineCommand<Sim>({
       }
     };
 
-    const simulateAction = async (action: Action) => {
+    const simulateAction = async (action: Action): Promise<unknown> => {
       if (isWalletAction(action)) {
         throw new ErrorException(`can't switch networks inside a fork command`);
+      }
+
+      if (isBatchedAction(action)) {
+        // Simulate an EIP-5792 batch the way wallets fulfill it: an EIP-7702
+        // delegation on the sender EOA plus a single self-call executing all
+        // batched calls atomically through the delegate.
+        const sender = action.from;
+        const senderCode = await publicClient.getCode({ address: sender });
+        const existingDelegate = parseDelegation(senderCode);
+
+        if (senderCode && senderCode !== "0x" && !existingDelegate) {
+          throw new ErrorException(
+            `can't simulate batch from ${sender}: account has contract code that is not an EIP-7702 delegation`,
+          );
+        }
+
+        if (!existingDelegate) {
+          // Seed the delegate contract on forks of chains where it isn't deployed
+          const delegatorCode = await publicClient.getCode({
+            address: DELEGATOR_ADDRESS,
+          });
+          if (!delegatorCode || delegatorCode === "0x") {
+            await simulateAction({
+              type: "rpc",
+              method: `${module.mode}_setCode`,
+              params: [DELEGATOR_ADDRESS, DELEGATOR_BYTECODE],
+            });
+          }
+          // Install the delegation designator on the EOA — the same code an
+          // actual type-4 (EIP-7702) transaction would set.
+          await simulateAction({
+            type: "rpc",
+            method: `${module.mode}_setCode`,
+            params: [sender, delegationDesignator(DELEGATOR_ADDRESS)],
+          });
+          module.context.log(
+            `Installed EIP-7702 delegation to ${DELEGATOR_ADDRESS} on ${sender}`,
+          );
+        }
+
+        return simulateAction({
+          from: sender,
+          to: sender,
+          data: encodeBatchExecute(action.actions),
+          chainId: action.chainId,
+        });
       }
 
       if (module.mode === "ethereumjs" && backend) {

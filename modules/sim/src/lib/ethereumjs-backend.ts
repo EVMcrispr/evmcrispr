@@ -35,7 +35,9 @@ export async function createEthereumJSBackend(
 ): Promise<EthereumJSBackend> {
   const { upstreamRpcUrl, chainId } = opts;
 
-  const common = new Common({ chain: Mainnet, hardfork: Hardfork.Cancun });
+  // Prague enables EIP-7702, so calls to EOAs carrying a 0xef0100 delegation
+  // designator resolve to the delegate's code (used for batch simulation).
+  const common = new Common({ chain: Mainnet, hardfork: Hardfork.Prague });
 
   const blockTag: bigint | "earliest" = opts.blockNumber
     ? BigInt(opts.blockNumber)
