@@ -68,6 +68,20 @@ describe("Completions – ens commands", () => {
   });
 
   // -------------------------------------------------------------------------
+  // set-fuses – custom `fuse` arg type completions
+  // -------------------------------------------------------------------------
+
+  describe("set-fuses", () => {
+    it("set-fuses <name> <cursor> should suggest fuse names", async () => {
+      const script = `${ENS}ens:set-fuses vault.mydao.eth `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "cannot-unwrap")).to.be.true;
+      expect(hasLabel(items, "cannot-transfer")).to.be.true;
+      expect(hasLabel(items, "parent-cannot-control")).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Cross-cutting: ens helper visibility
   // -------------------------------------------------------------------------
 
@@ -92,7 +106,27 @@ describe("Completions – ens helpers", () => {
     evm = evml.workspace();
   });
 
-  const ENS_HELPERS = ["@contenthash", "@ens.avatar", "@ens.name", "@ens.text"];
+  const ENS_HELPERS = [
+    "@cointype",
+    "@cointype.decode",
+    "@contenthash",
+    "@ens.addr",
+    "@ens.available",
+    "@ens.avatar",
+    "@ens.contenthash",
+    "@ens.expiry",
+    "@ens.fuses",
+    "@ens.fuses.decode",
+    "@ens.fuses.of",
+    "@ens.name",
+    "@ens.normalize",
+    "@ens.owner",
+    "@ens.rentPrice",
+    "@ens.resolver",
+    "@ens.text",
+    "@labelhash",
+    "@namehash",
+  ];
   const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
   const _BYTES32_HELPERS = STD_BYTES32_HELPERS;

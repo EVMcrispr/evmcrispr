@@ -742,16 +742,6 @@ describe("Completions – std helpers", () => {
       }
     });
 
-    // @namehash(string)  →  string-compatible helpers
-    it("@namehash(<cursor>) should show string-compatible completions", async () => {
-      const { script, position } = helperPos("set $x @namehash(", ")");
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of STRING_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-    });
-
     // @abi.encodeCall(write-abi, ...any)  →  first arg: write-abi (only "any"-returning helpers match)
     it("@abi.encodeCall(<cursor>) first arg should show only any-returning helpers", async () => {
       const { script, position } = helperPos("set $x @abi.encodeCall(", ")");

@@ -103,15 +103,14 @@ If an assertion fails, the script halts with an error.
 
 ## Advancing Time
 
-Use `wait` to move forward in time (useful for timelocks, vesting, etc.):
+Use the standard `wait` command to move forward in time (useful for
+timelocks, vesting, etc.). Inside a fork the wait is instant — the chain's
+clock is warped instead of sleeping:
 
 ```evml
 sim:fork (
   # Advance 1 day (86400 seconds)
-  sim:wait 86400
-
-  # Advance with a specific block period (seconds per block)
-  sim:wait 86400 12
+  wait 86400
 )
 ```
 

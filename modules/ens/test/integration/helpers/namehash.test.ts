@@ -6,6 +6,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@namehash",
   {
+    module: "ens",
     cases: [
       {
         name: "return the ENS node value",

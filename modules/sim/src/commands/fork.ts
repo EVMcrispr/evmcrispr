@@ -6,6 +6,7 @@ import {
   ErrorException,
   isBatchedAction,
   isRpcAction,
+  isTerminalAction,
   isTransactionAction,
   isWalletAction,
   RevertError,
@@ -30,6 +31,7 @@ import {
   createEthereumJSBackend,
   type EthereumJSBackend,
 } from "../lib/ethereumjs-backend";
+import { buildWaitActions } from "../lib/wait";
 
 /** Loose equality for RPC URLs that should be treated as the same node. */
 function isSameLocalRpc(a: string, b: string): boolean {
@@ -331,6 +333,17 @@ export default defineCommand<Sim>({
     const simulateAction = async (action: Action): Promise<unknown> => {
       if (isWalletAction(action)) {
         throw new ErrorException(`can't switch networks inside a fork command`);
+      }
+
+      if (isTerminalAction(action) && action.command === "wait") {
+        // Real-time waits are simulated by warping the fork's clock instead
+        // of sleeping.
+        const seconds = BigInt(Number(action.args.seconds ?? 0));
+        module.context.log(`Advancing fork time by ${seconds}s`);
+        for (const rpcAction of buildWaitActions(module, seconds)) {
+          await simulateAction(rpcAction);
+        }
+        return undefined;
       }
 
       if (isBatchedAction(action)) {

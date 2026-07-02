@@ -39,4 +39,4 @@ set $yesterday @date(2025-01-01 -1d)
 
 ## See Also
 
-- [sim:wait](../../../sim/src/commands/wait.md) — advance time in simulation
+- [wait](../commands/wait.md) — wait between actions (advances time in simulations)

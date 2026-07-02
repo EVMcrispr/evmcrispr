@@ -23,7 +23,6 @@ export const STD_ALL_HELPERS = [
   "@id",
   "@ipfs",
   "@me",
-  "@namehash",
   "@nonce",
   "@num",
   "@sigValid",
@@ -59,7 +58,6 @@ export const STD_BYTES32_HELPERS = [
   "@contract.storageAt",
   "@get",
   "@id",
-  "@namehash",
 ];
 
 export const STD_BOOL_HELPERS = ["@block", "@bool", "@get", "@sigValid"];

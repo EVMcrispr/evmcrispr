@@ -118,11 +118,11 @@ describe("EthereumJS backend – integration", () => {
 
   describe("C. Time travel", () => {
     it("wait advances time without error", async () => {
-      await run("  sim:wait 3600", client);
+      await run("  wait 3600", client);
     });
 
     it("multiple waits accumulate without error", async () => {
-      await run(["  sim:wait 3600", "  sim:wait 7200"].join("\n"), client);
+      await run(["  wait 3600", "  wait 7200"].join("\n"), client);
     });
   });
 
@@ -191,7 +191,7 @@ describe("EthereumJS backend – integration", () => {
       await run(
         [
           `  sim:set-balance ${ADDR} 10e18`,
-          "  sim:wait 86400",
+          "  wait 86400",
           `  sim:expect @bool(@token.balance(XDAI ${ADDR}) > 0)`,
         ].join("\n"),
         client,
@@ -204,9 +204,9 @@ describe("EthereumJS backend – integration", () => {
           `  sim:set-balance ${ADDR} 1000e18`,
           `  sim:expect @bool(@token.balance(XDAI ${ADDR}) > 0)`,
           `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
-          "  sim:wait 3600",
+          "  wait 3600",
           `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18 --from ${ADDR}`,
-          "  sim:wait 7200",
+          "  wait 7200",
           `  exec ${WXDAI} "deposit()" --value 5e18 --from ${ADDR}`,
           `  set $b @get(${WXDAI} "balanceOf(address)(uint256)" ${ADDR})`,
           "  sim:expect @bool($b == 5e18)",

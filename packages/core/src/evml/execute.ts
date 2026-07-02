@@ -80,6 +80,25 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+/** Abort-aware sleep for real-time `wait` terminal actions. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("Execution cancelled"));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new Error("Execution cancelled"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 function chainForId(chainId: number): Chain | undefined {
   return Object.values(viemChains).find((c) => (c as Chain).id === chainId) as
     | Chain
@@ -539,6 +558,12 @@ function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
     async terminal(action, ctx) {
       if (action.command === "halt") {
         throw new HaltExecution();
+      }
+      if (action.command === "wait") {
+        const seconds = Number(action.args.seconds ?? 0);
+        ctx.onLog(`Waiting ${seconds}s before the next action`);
+        await sleep(seconds * 1000, ctx.signal);
+        return;
       }
       ctx.onLog(
         `Terminal action: ${action.command} ${JSON.stringify(action.args)}`,

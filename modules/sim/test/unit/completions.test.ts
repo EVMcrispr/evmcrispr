@@ -88,29 +88,6 @@ describe("Completions – sim commands", () => {
   });
 
   // -------------------------------------------------------------------------
-  // wait
-  // -------------------------------------------------------------------------
-
-  describe("wait", () => {
-    it("wait <cursor> should show number-compatible items", async () => {
-      const script = `${SIM}sim:wait `;
-      const items = await evm.getCompletions(script, pos(script, 2));
-      // Number type: should include number-returning helpers
-      expect(hasLabel(items, "@date")).to.be.true;
-      // Should NOT include address-returning helpers
-      expect(hasLabel(items, "@me")).to.be.false;
-    });
-
-    it("wait 3600 <cursor> should show number-compatible items (optional period arg)", async () => {
-      const script = `${SIM}sim:wait 3600 `;
-      const items = await evm.getCompletions(script, pos(script, 2));
-      // Optional arg is "number" type
-      expect(hasLabel(items, "@date")).to.be.true;
-      expect(hasLabel(items, "@me")).to.be.false;
-    });
-  });
-
-  // -------------------------------------------------------------------------
   // set-code
   // -------------------------------------------------------------------------
 

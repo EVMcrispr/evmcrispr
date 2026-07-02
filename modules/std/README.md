@@ -20,6 +20,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
 | [switch](src/commands/switch.md) | Switch the active chain by name or ID. |
 | [verify](src/commands/verify.md) | Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. |
+| [wait](src/commands/wait.md) | Wait for a duration before executing the next action (fork simulations advance the chain's clock instead). |
 | [while](src/commands/while.md) | Repeat a block while a condition is true. |
 
 ## Helpers
@@ -44,7 +45,6 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@id](src/helpers/id.md) | `bytes32` | Compute the keccak256 hash of a string (first 4 bytes for selectors). |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
-| [@namehash](src/helpers/namehash.md) | `bytes32` | Compute the ENS namehash of a domain name. |
 | [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |

@@ -27,10 +27,11 @@ describeHelper(
       },
       {
         name: "should encode an IPNS content hash",
-        input: '@contenthash("ipns:k51qzi5uqu5dgccx524mfjv0x5hqgznkzq")',
+        input:
+          '@contenthash("ipns:k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8")',
         validate: (result) => {
           expect(result).to.be.a("string");
-          expect(result.startsWith("0x")).to.be.true;
+          expect(result.startsWith("0xe5010172")).to.be.true;
         },
       },
       {
@@ -40,7 +41,7 @@ describeHelper(
         validate: (result) => {
           expect(result).to.be.a("string");
           expect(result).to.be.equal(
-            "0x00000000000000000000516d52415142365961437969645033375564446e6a465935765175694272637164796f57314375446777786b4434",
+            "0xe3010170122029f2d17be6139079dc48696d1f582a8530eb9805b561eda517e22a892c7e3f1f",
           );
         },
       },
