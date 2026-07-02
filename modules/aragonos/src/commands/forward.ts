@@ -57,6 +57,12 @@ export default defineCommand<AragonOS>({
 
     const blockActions = (await interpretNode(block as BlockExpressionNode, {
       blockModule: module.contextualName,
+      // Inherit hasActions from any enclosing batch context: reads inside
+      // this block can't see the outer batch's actions either.
+      batchContext: {
+        name: "forward",
+        hasActions: interpreters.batchContext?.hasActions ?? false,
+      },
     })) as Action[];
 
     assertAllTransactionActions(blockActions, "forward");

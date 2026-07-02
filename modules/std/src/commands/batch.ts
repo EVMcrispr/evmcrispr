@@ -15,11 +15,13 @@ export default defineCommand<Std>({
   name: "batch",
   description: "Group multiple commands into a single transaction.",
   args: [{ name: "block", type: "block", description: "Block of commands" }],
+  batchable: false,
   async run(module, { block }, { interpreters }) {
     const { interpretNode } = interpreters;
 
     const blockActions = (await interpretNode(block as BlockExpressionNode, {
       blockModule: module.contextualName,
+      batchContext: { name: "batch", hasActions: false },
     })) as Action[];
 
     if (blockActions.find((a) => !isTransactionAction(a))) {
@@ -36,6 +38,15 @@ export default defineCommand<Std>({
 
     const chainId = await module.getChainId();
     const from = await module.getConnectedAccount();
+
+    const mismatch = txActions.find(
+      (a) => a.from && a.from.toLowerCase() !== from.toLowerCase(),
+    );
+    if (mismatch) {
+      throw new ErrorException(
+        `action from ${mismatch.from} does not match batch sender ${from}`,
+      );
+    }
 
     const batched: BatchedAction = {
       type: "batched",

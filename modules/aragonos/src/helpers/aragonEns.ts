@@ -18,6 +18,7 @@ export const _aragonEns = async (
 
 export default defineHelper<AragonOS>({
   name: "aragonEns",
+  batchable: false,
   description: "Resolve an Aragon ENS name to its address.",
   returnType: "address",
   args: [

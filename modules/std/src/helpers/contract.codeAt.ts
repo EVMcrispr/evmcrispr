@@ -3,6 +3,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "contract.codeAt",
+  batchable: false,
   description: "Return the deployed bytecode at an address.",
   returnType: "bytes",
   args: [

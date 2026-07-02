@@ -24,6 +24,8 @@ export type {
   ArrayExpressionNode,
   AST,
   BarewordNode,
+  BatchableSpec,
+  BatchContext,
   BatchedAction,
   Binding,
   BlockExpressionNode,

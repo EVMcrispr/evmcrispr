@@ -379,12 +379,12 @@ export async function observeTransaction(
 // Built-in action handlers
 // ---------------------------------------------------------------------------
 
-interface ExecutorEnv {
+export interface ExecutorEnv {
   account: Address | undefined;
   maximizeGasLimit: boolean;
 }
 
-function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
+export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
     async transaction(action, ctx) {
       const publicClient = ctx.getPublicClient(action.chainId);
@@ -493,12 +493,11 @@ function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         await ctx.walletClient.switchChain({ id: chainId });
       }
 
-      // Filter out contract deployments (no 'to' address) as they cannot
-      // be batched
-      const callableActions = actions.filter((a) => a.to !== undefined);
-      if (callableActions.length === 0) {
+      // Contract deployments (no 'to' address) cannot be batched — fail
+      // loudly instead of silently dropping them from the batch.
+      if (actions.some((a) => a.to === undefined)) {
         throw new Error(
-          "Contract deployments cannot be executed in batch mode",
+          "Contract deployments (no target address) cannot be executed in a batch",
         );
       }
 
@@ -506,7 +505,7 @@ function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         account: ctx.walletClient.account ?? action.from,
         chain: chain,
         forceAtomic: true,
-        calls: callableActions.map((a) => ({
+        calls: actions.map((a) => ({
           to: a.to!,
           data: a.data,
           value: BigInt(a.value || "0"),

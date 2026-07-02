@@ -27,14 +27,68 @@ describeCommand("batch", {
       },
     },
     {
-      name: "should propagate --from on inner exec commands",
+      name: "should batch a --create2 deployment (factory call has a target address)",
       script: `batch (
-  exec ${target} ${fnSig} ${spender} 500e18 --from ${spender}
+  deploy $addr 0x6080604052 --create2 0x0000000000000000000000000000000000000000000000000000000000000001
+  exec ${target} ${fnSig} ${spender} 100e18
 )`,
       validate: (actions) => {
         expect(actions).to.have.length(1);
         if (isBatchedAction(actions[0])) {
-          expect(actions[0].actions[0].from).to.equal(spender);
+          expect(actions[0].actions).to.have.length(2);
+          expect(actions[0].actions[0].to).to.exist;
+        }
+      },
+    },
+    {
+      name: "should allow batchable helpers like @me inside a batch",
+      script: `batch (
+  exec ${target} ${fnSig} @me 100e18
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        if (isBatchedAction(actions[0])) {
+          expect(actions[0].actions).to.have.length(1);
+        }
+      },
+    },
+    {
+      name: "should allow chain-state helpers at the beginning of the batch (before any action)",
+      script: `batch (
+  set $price @gas.price
+  exec ${target} ${fnSig} ${spender} $price
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        if (isBatchedAction(actions[0])) {
+          expect(actions[0].actions).to.have.length(1);
+        }
+      },
+    },
+    {
+      name: "should allow variables set from non-batchable helpers before the batch",
+      script: `set $price @gas.price
+batch (
+  exec ${target} ${fnSig} ${spender} $price
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        if (isBatchedAction(actions[0])) {
+          expect(actions[0].actions).to.have.length(1);
+        }
+      },
+    },
+    {
+      name: "should batch commands nested in transparent control-flow blocks",
+      script: `batch (
+  if true (
+    exec ${target} ${fnSig} ${spender} 100e18
+  )
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        if (isBatchedAction(actions[0])) {
+          expect(actions[0].actions).to.have.length(1);
         }
       },
     },
@@ -66,11 +120,81 @@ describeCommand("batch", {
   ],
   errorCases: [
     {
-      name: "should fail when batch contains a non-transaction action like switch",
+      name: "should fail when batch contains a non-batchable command like switch",
       script: `batch (
   switch 1
 )`,
-      error: "non-transaction actions",
+      error: 'command "switch" cannot be used inside batch',
+    },
+    {
+      name: "should fail when batch contains wait",
+      script: `batch (
+  exec ${target} ${fnSig} ${spender} 100e18
+  wait 60
+)`,
+      error: 'command "wait" cannot be used inside batch',
+    },
+    {
+      name: "should fail when batch contains halt",
+      script: `batch (
+  halt
+)`,
+      error: 'command "halt" cannot be used inside batch',
+    },
+    {
+      name: "should fail when batch contains load",
+      script: `batch (
+  load aragonos
+)`,
+      error: 'command "load" cannot be used inside batch',
+    },
+    {
+      name: "should fail on nested batches",
+      script: `batch (
+  batch (
+    exec ${target} ${fnSig} ${spender} 100e18
+  )
+)`,
+      error: 'command "batch" cannot be used inside batch',
+    },
+    {
+      name: "should fail on plain CREATE deployments inside a batch",
+      script: `batch (
+  deploy $addr 0x6080604052
+)`,
+      error: "plain CREATE deployments cannot be batched",
+    },
+    {
+      name: "should fail on non-batchable commands nested in control-flow blocks",
+      script: `batch (
+  if true (
+    switch 1
+  )
+)`,
+      error: 'command "switch" cannot be used inside batch',
+    },
+    {
+      name: "should fail when an inner action's --from differs from the batch sender",
+      script: `batch (
+  exec ${target} ${fnSig} ${spender} 500e18 --from ${spender}
+)`,
+      error: "does not match batch sender",
+    },
+    {
+      name: "should fail on chain-state-reading helpers after the batch has collected actions",
+      script: `batch (
+  exec ${target} ${fnSig} ${spender} 100e18
+  exec ${target} ${fnSig} ${spender} @gas.price
+)`,
+      error: "reads on-chain state at batch-build time",
+    },
+    {
+      name: "should fail on inline calls after the batch has collected actions",
+      script: `batch (
+  exec ${target} ${fnSig} ${spender} 100e18
+  exec ${target} ${fnSig} ${spender} ${target}::{decimals()(uint8)}
+)`,
+      error: "reads on-chain state at batch-build time",
     },
   ],
 });

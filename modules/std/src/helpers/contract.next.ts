@@ -3,6 +3,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "contract.next",
+  batchable: false,
   description: "Predict the next contract address deployed by a given account.",
   returnType: "address",
   args: [

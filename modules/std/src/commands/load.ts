@@ -4,6 +4,7 @@ import type Std from "..";
 export default defineCommand<Std>({
   name: "load",
   description: "Load a module to make its commands and helpers available.",
+  batchable: false,
   args: [
     {
       name: "moduleName",

@@ -7,6 +7,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "gas.estimate",
+  batchable: false,
   description: "Estimate the gas required for a contract call.",
   returnType: "number",
   args: [

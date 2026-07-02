@@ -5,6 +5,7 @@ import type Ens from "..";
 
 export default defineHelper<Ens>({
   name: "ens.name",
+  batchable: false,
   description: "Reverse-resolve an address to its primary ENS name.",
   returnType: "string",
   args: [

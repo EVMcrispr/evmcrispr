@@ -5,6 +5,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "ens",
+  batchable: false,
   description: "Resolve an ENS name to its address.",
   returnType: "address",
   args: [

@@ -39,6 +39,10 @@ export default defineCommand<Std>({
   name: "deploy",
   description:
     "Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan).",
+  batchable: (_args, opts) =>
+    opts.create2 !== undefined || opts.create3 !== undefined
+      ? true
+      : "plain CREATE deployments cannot be batched (use --create2 or --create3)",
   args: [
     {
       name: "variable",

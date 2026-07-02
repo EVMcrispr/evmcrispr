@@ -45,10 +45,25 @@ export interface ModuleContext {
   getAvailableModuleNames(): string[];
 }
 
+/** State of an enclosing atomic batch context (`batch`, `connect`,
+ *  `forward`). Non-batchable commands are rejected while it is set.
+ *  Chain-state reads (non-batchable helpers, inline `addr::fn()` calls)
+ *  are only rejected once the batch has collected actions: before that,
+ *  build-time state equals execution-time state, so reading it into
+ *  variables at the beginning of the batch is sound (and encouraged). */
+export interface BatchContext {
+  /** Name of the batch-like command, used in error messages. */
+  name: string;
+  /** Whether the batch has already collected transaction actions. */
+  hasActions: boolean;
+}
+
 export interface InterpretOptions {
   blockModule: string;
   blockInitializer?(): Promise<void>;
   actionCallback?(action: Action): Promise<unknown>;
+  /** The enclosing atomic batch context, if any. */
+  batchContext?: BatchContext;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
@@ -64,6 +79,8 @@ export type NodesInterpreters = {
   interpretNode: NodeInterpreter;
   interpretNodes: NodesInterpreter;
   actionCallback?(action: Action): Promise<unknown>;
+  /** The enclosing atomic batch context, if any. */
+  batchContext?: BatchContext;
 };
 
 export type CommandFunction<T extends Module = Module> = (
@@ -92,6 +109,16 @@ export type HelperFunctions<T extends Module = Module> = Record<
   HelperOrLoader<T>
 >;
 
+/** Whether a command may run inside an atomic batch context
+ *  (batch / connect / forward). Default true. A function receives the
+ *  parsed args and opts; return true, false, or a string reason. */
+export type BatchableSpec =
+  | boolean
+  | ((
+      args: Record<string, any>,
+      opts: Record<string, any>,
+    ) => boolean | string);
+
 export interface ICommand<M extends Module = Module> {
   run: CommandFunction<M>;
   argDefs: ArgDef[];
@@ -100,6 +127,8 @@ export interface ICommand<M extends Module = Module> {
   completions?: CompletionOverrides;
   /** Human-readable description shown in hover tooltips. */
   description?: string;
+  /** Whether this command may run inside an atomic batch context. */
+  batchable?: BatchableSpec;
 }
 
 /** Lazy loader: () => Promise<ICommand>. Resolved on first use. */

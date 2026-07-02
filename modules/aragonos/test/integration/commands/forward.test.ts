@@ -98,5 +98,10 @@ describeCommand("forward", {
       script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  forward non-defined-address (\n    grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE\n  )\n)`,
       error: "non-defined-address",
     },
+    {
+      name: "should fail on non-batchable commands inside the forward block",
+      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  forward @app(disputable-voting.open) (\n    switch 1\n  )\n)`,
+      error: 'command "switch" cannot be used inside forward',
+    },
   ],
 });

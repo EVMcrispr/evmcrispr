@@ -4,6 +4,7 @@ import type Sim from "..";
 export default defineCommand<Sim>({
   name: "set-storage-at",
   description: "Set a storage slot value at an address in a fork simulation.",
+  batchable: false,
   args: [
     {
       name: "address",

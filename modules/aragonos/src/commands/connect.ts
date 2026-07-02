@@ -84,6 +84,12 @@ export default defineCommand<AragonOS>({
         {
           blockModule: module.contextualName,
           blockInitializer: setDAOContext(module, dao),
+          // Inherit hasActions from any enclosing batch context: reads
+          // inside this block can't see the outer batch's actions either.
+          batchContext: {
+            name: "connect",
+            hasActions: interpreters.batchContext?.hasActions ?? false,
+          },
         },
       )) as Action[];
     } finally {

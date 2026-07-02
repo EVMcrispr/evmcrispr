@@ -2,6 +2,7 @@ import type {
   Action,
   ArrayExpressionNode,
   BarewordNode,
+  BatchContext,
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
@@ -83,6 +84,7 @@ export interface InterpretCtx {
   resolveHelper: (
     h: HelperFunctionNode,
     interpreters: NodesInterpreters,
+    options?: any,
   ) => Promise<any>;
 
   /** Resolve a command invocation. Required for execution; omit in prewarm
@@ -97,6 +99,7 @@ export interface InterpretCtx {
   resolveCallExpression?: (
     n: CallExpressionNode,
     interpreters: NodesInterpreters,
+    options?: any,
   ) => Promise<any>;
 
   /** Resolve a `BlockExpression`. Required when block bodies need to be
@@ -247,10 +250,11 @@ export function createInterpreter(ctx: InterpretCtx): NodesInterpreters {
           if (!ctx.resolveCallExpression) {
             return onUnsupported(n, ctx, "CallExpression");
           }
-          return await ctx.resolveCallExpression(n as CallExpressionNode, {
-            interpretNode,
-            interpretNodes,
-          });
+          return await ctx.resolveCallExpression(
+            n as CallExpressionNode,
+            { interpretNode, interpretNodes },
+            options,
+          );
         }
 
         case CommandExpression: {
@@ -266,10 +270,12 @@ export function createInterpreter(ctx: InterpretCtx): NodesInterpreters {
         }
 
         case HelperFunctionExpression:
-          return await interpretHelperFunction(n as HelperFunctionNode, ctx, {
-            interpretNode,
-            interpretNodes,
-          });
+          return await interpretHelperFunction(
+            n as HelperFunctionNode,
+            ctx,
+            { interpretNode, interpretNodes },
+            options,
+          );
 
         case Bareword:
           return (n as BarewordNode).value;
@@ -364,9 +370,11 @@ async function interpretHelperFunction(
   h: HelperFunctionNode,
   ctx: InterpretCtx,
   interpreters: NodesInterpreters,
+  options?: any,
 ): Promise<any> {
   // No cache: just dispatch. Execution path stays byte-identical.
-  if (!ctx.helperCache) return await ctx.resolveHelper(h, interpreters);
+  if (!ctx.helperCache)
+    return await ctx.resolveHelper(h, interpreters, options);
 
   // Cached path: try to pre-resolve args. If any arg is unresolvable
   // (variable not bound, helper that needs RPC during prewarm, ...) we skip
@@ -401,6 +409,29 @@ async function interpretHelperFunction(
 // Execution-mode resolver builders
 // ---------------------------------------------------------------------------
 
+/** Wrap interpreters so `batchContext` implicitly propagates into every
+ *  nested `interpretNode`/`interpretNodes` call (command args, helper args,
+ *  nested blocks). Explicit per-call options still take precedence, so a
+ *  nested batch-context opener (e.g. `connect` inside `batch`) can set its
+ *  own context name. */
+function withBatchContext(
+  interpreters: NodesInterpreters,
+  batchContext: BatchContext | undefined,
+): NodesInterpreters {
+  if (!batchContext) return interpreters;
+  return {
+    ...interpreters,
+    interpretNode: (n, options) =>
+      interpreters.interpretNode(n, { batchContext, ...options }),
+    interpretNodes: (nodes, sequentally, options) =>
+      interpreters.interpretNodes(nodes, sequentally, {
+        batchContext,
+        ...options,
+      }),
+    batchContext,
+  };
+}
+
 /** Inputs needed to resolve a helper / command / call against a live set
  *  of module instances (execution mode). All sources of state are getters
  *  so the resolvers see the latest `std` / modules across `interpret()`
@@ -423,9 +454,13 @@ export interface ExecutionResolversInput {
 export function makeExecutionResolveHelper(
   input: Pick<ExecutionResolversInput, "bindings" | "std" | "modules">,
 ): InterpretCtx["resolveHelper"] {
-  return async (h, interpreters) => {
+  return async (h, rawInterpreters, options) => {
     const helperName = h.name;
     const std = input.std();
+    const interpreters = withBatchContext(
+      rawInterpreters,
+      options?.batchContext,
+    );
 
     const defHelper = input.bindings.getBindingValue(
       `@${helperName}`,
@@ -485,10 +520,21 @@ export function makeExecutionResolveHelper(
 export function makeExecutionResolveCommand(
   input: ExecutionResolversInput,
 ): InterpretCtx["resolveCommand"] {
-  return async (c, interpreters, options) => {
+  return async (c, rawInterpreters, options) => {
     const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
       options?.actionCallback;
+    const batchContext: BatchContext | undefined = options?.batchContext;
+    const interpreters = withBatchContext(rawInterpreters, batchContext);
     const std = input.std();
+
+    // Once a command yields actions inside a batch, later chain-state reads
+    // (non-batchable helpers, inline calls) become misleading — flag it.
+    const trackBatchActions = (res: Action[] | void): Action[] | void => {
+      if (batchContext && Array.isArray(res) && res.length > 0) {
+        batchContext.hasActions = true;
+      }
+      return res;
+    };
 
     if (!c.module) {
       const defCmd = input.bindings.getBindingValue(
@@ -503,7 +549,9 @@ export function makeExecutionResolveCommand(
             ...interpreters,
             actionCallback,
           });
-          return await input.executeWithCaptures(c, res, actionCallback);
+          return trackBatchActions(
+            await input.executeWithCaptures(c, res, actionCallback),
+          );
         } catch (err) {
           if (err instanceof NodeError || err instanceof HaltExecution)
             throw err;
@@ -528,7 +576,9 @@ export function makeExecutionResolveCommand(
         ...interpreters,
         actionCallback,
       });
-      return await input.executeWithCaptures(c, res, actionCallback);
+      return trackBatchActions(
+        await input.executeWithCaptures(c, res, actionCallback),
+      );
     } catch (err) {
       if (err instanceof NodeError || err instanceof HaltExecution) throw err;
       panic(c, (err as Error).message);
@@ -562,7 +612,18 @@ function applyReturnLens(
 export function makeExecutionResolveCallExpression(
   input: Pick<ExecutionResolversInput, "bindings" | "getClient">,
 ): InterpretCtx["resolveCallExpression"] {
-  return async (n, interpreters) => {
+  return async (n, interpreters, options) => {
+    // Inline calls are read-only `eth_call`s: inside a batch they run at
+    // batch-build time and cannot observe earlier batch actions. Reads
+    // before the first action are still sound, so they stay allowed.
+    const batchContext: BatchContext | undefined = options?.batchContext;
+    if (batchContext?.hasActions) {
+      panic(
+        n,
+        `inline call ${n.target.value ?? "<target>"}::${n.method}() reads on-chain state at batch-build time and cannot observe the effects of earlier actions in the same ${batchContext.name}; read it into a variable with \`set\` at the beginning of the ${batchContext.name} and use the variable instead`,
+      );
+    }
+
     const [targetAddress, ...args] = await interpreters.interpretNodes([
       n.target,
       ...n.args,

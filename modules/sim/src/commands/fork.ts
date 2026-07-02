@@ -43,6 +43,7 @@ function isSameLocalRpc(a: string, b: string): boolean {
 export default defineCommand<Sim>({
   name: "fork",
   description: "Fork the blockchain and execute commands in a simulation.",
+  batchable: false,
   args: [
     {
       name: "block",

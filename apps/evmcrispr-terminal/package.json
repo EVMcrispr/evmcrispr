@@ -54,7 +54,7 @@
   },
   "scripts": {
     "dev": "vite --clearScreen false",
-    "build": "tsc && vite build",
+    "build": "tsgo && vite build",
     "type-check": "tsgo --noEmit",
     "preview": "vite preview --port 3000",
     "lint": "biome check src",

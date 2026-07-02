@@ -6,6 +6,7 @@ import type Ens from "..";
 
 export default defineHelper<Ens>({
   name: "ens.text",
+  batchable: false,
   description: "Read a text record from an ENS name.",
   returnType: "string",
   args: [

@@ -6,6 +6,7 @@ import type Ens from "..";
 
 export default defineHelper<Ens>({
   name: "ens.avatar",
+  batchable: false,
   description: "Get the avatar URI for an ENS name.",
   returnType: "string",
   args: [

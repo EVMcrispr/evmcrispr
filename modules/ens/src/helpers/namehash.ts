@@ -1,0 +1,21 @@
+import { defineHelper } from "@evmcrispr/sdk";
+import { namehash as _namehash } from "viem";
+import { normalize } from "viem/ens";
+import type Ens from "..";
+
+export default defineHelper<Ens>({
+  name: "namehash",
+  description: "Compute the ENS namehash of a domain name.",
+  returnType: "bytes32",
+  args: [{ name: "name", type: "string", description: "ENS domain name" }],
+  async run(_, { name }) {
+    try {
+      normalize(name);
+      return _namehash(name);
+    } catch (_e) {
+      throw new Error(
+        "Invalid ENS name. Please check the value you are passing to @namehash",
+      );
+    }
+  },
+});

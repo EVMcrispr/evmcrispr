@@ -29,6 +29,12 @@ export interface HelperConfig<M extends Module> {
   args: ArgDef[];
   /** Override type-driven completions for specific args by name. */
   completions?: CompletionOverrides;
+  /** Whether this helper may be evaluated inside an atomic batch context
+   *  (batch / connect / forward). Default true. Set to false for helpers
+   *  that read mutable chain state: inside a batch they evaluate at
+   *  batch-build time, so they can never observe the effects of earlier
+   *  actions in the same batch. */
+  batchable?: boolean;
   run(
     module: M,
     args: Record<string, any>,
@@ -47,6 +53,18 @@ export function defineHelper<M extends Module>(
   const totalFixed = argDefs.filter((a) => !a.rest).length;
 
   const fn: HelperFunction<M> = async (module, h, interpreters) => {
+    // 0. Enforce batch compatibility: a non-batchable helper reads state
+    // that the enclosing batch could change, but it would evaluate at
+    // batch-build time and only ever see pre-batch state. Before the batch
+    // collects its first action the read is still sound, so reading state
+    // into variables at the beginning of the batch is allowed.
+    if (interpreters.batchContext?.hasActions && config.batchable === false) {
+      const { name } = interpreters.batchContext;
+      throw new ErrorException(
+        `helper @${config.name} reads on-chain state at batch-build time and cannot observe the effects of earlier actions in the same ${name}; read it into a variable with \`set\` at the beginning of the ${name} and use the variable instead`,
+      );
+    }
+
     // 1. Check argument length
     if (hasRest) {
       checkArgsLength(h, {
@@ -184,6 +202,9 @@ export function defineHelper<M extends Module>(
 
   if (config.description) {
     (fn as any).description = config.description;
+  }
+  if (config.batchable !== undefined) {
+    (fn as any).batchable = config.batchable;
   }
 
   return fn;

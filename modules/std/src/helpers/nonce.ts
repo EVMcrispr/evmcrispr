@@ -3,6 +3,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "nonce",
+  batchable: false,
   description: "Get the transaction count (nonce) of an address.",
   returnType: "number",
   args: [{ name: "address", type: "address", description: "Account address" }],

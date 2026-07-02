@@ -2,6 +2,7 @@ import { ErrorException } from "../errors";
 import type { Module } from "../Module";
 import type {
   Action,
+  BatchableSpec,
   BlockExpressionNode,
   CommandExpressionNode,
   CompletionOverrides,
@@ -98,6 +99,10 @@ export interface CommandConfig<M extends Module> {
   /** Override type-driven completions for specific args or opts by name.
    *  Keys are matched against arg names first, then opt names. */
   completions?: CompletionOverrides;
+  /** Whether this command may run inside an atomic batch context
+   *  (batch / connect / forward). Default true. A function receives the
+   *  parsed args and opts; return true, false, or a string reason. */
+  batchable?: BatchableSpec;
 }
 
 export function defineCommand<M extends Module>(
@@ -271,7 +276,25 @@ export function defineCommand<M extends Module>(
         }
       }
 
-      // 8. Call user's run function
+      // 8. Enforce batch compatibility before the user's run function, so
+      // non-batchable commands can't mutate interpreter state (e.g. switch
+      // changing the active chain) before being rejected.
+      if (interpreters.batchContext) {
+        const batchable = config.batchable ?? true;
+        const verdict =
+          typeof batchable === "function"
+            ? batchable(parsedArgs, parsedOpts)
+            : batchable;
+        if (verdict !== true) {
+          throw new ErrorException(
+            typeof verdict === "string"
+              ? verdict
+              : `command "${config.name}" cannot be used inside ${interpreters.batchContext.name}`,
+          );
+        }
+      }
+
+      // 9. Call user's run function
       return run(module as M, parsedArgs, {
         opts: parsedOpts,
         node: c,
@@ -283,5 +306,6 @@ export function defineCommand<M extends Module>(
     optDefs,
     completions: config.completions,
     description: config.description,
+    batchable: config.batchable,
   };
 }

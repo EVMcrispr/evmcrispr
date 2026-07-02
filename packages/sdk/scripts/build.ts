@@ -59,7 +59,7 @@ try {
 await writeFile(tempTsconfigPath, `${JSON.stringify(tempTsconfig, null, 2)}\n`);
 
 try {
-  await $`tsc -p ${tempTsconfigPath}`;
+  await $`tsgo -p ${tempTsconfigPath}`;
 } finally {
   await unlink(tempTsconfigPath).catch(() => {});
 }

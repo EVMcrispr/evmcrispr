@@ -4,6 +4,7 @@ import type Std from "..";
 
 export default defineHelper<Std>({
   name: "contract.storageAt",
+  batchable: false,
   description: "Read a raw storage slot of a contract.",
   returnType: "bytes32",
   args: [

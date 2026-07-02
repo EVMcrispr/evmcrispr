@@ -6,6 +6,7 @@ import { resolveChainId } from "../argTypes";
 export default defineCommand<Std>({
   name: "switch",
   description: "Switch the active chain by name or ID.",
+  batchable: false,
   args: [
     {
       name: "networkNameOrId",

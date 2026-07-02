@@ -4,6 +4,7 @@ import type Sim from "..";
 export default defineCommand<Sim>({
   name: "set-code",
   description: "Set the bytecode at an address in a fork simulation.",
+  batchable: false,
   args: [
     {
       name: "address",

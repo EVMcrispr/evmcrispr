@@ -5,6 +5,7 @@ import type Sim from "..";
 export default defineCommand<Sim>({
   name: "set-balance",
   description: "Set the ETH balance of an account in a fork simulation.",
+  batchable: false,
   args: [
     {
       name: "address",

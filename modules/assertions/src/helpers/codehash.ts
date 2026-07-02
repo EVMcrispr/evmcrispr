@@ -4,6 +4,7 @@ import type Assertions from "..";
 
 export default defineHelper<Assertions>({
   name: "codehash",
+  batchable: false,
   description: "Read the keccak256 code hash of an address.",
   returnType: "bytes32",
   args: [{ name: "address", type: "address", description: "Address to read" }],

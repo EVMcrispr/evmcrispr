@@ -62,6 +62,21 @@ describeCommand("connect", {
       },
     },
     {
+      name: "should fail on non-batchable commands inside the connect block",
+      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  switch 1\n)`,
+      error: 'command "switch" cannot be used inside connect',
+    },
+    {
+      name: "should fail on wait inside the connect block",
+      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  wait 60\n)`,
+      error: 'command "wait" cannot be used inside connect',
+    },
+    {
+      name: "should fail on chain-state-reading helpers after the connect block has collected actions",
+      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me 1e18\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me @gas.price\n)`,
+      error: "reads on-chain state at batch-build time",
+    },
+    {
       name: "should fail when trying to connect to an already connected DAO",
       script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO.kernel} (\n\n  )\n)`,
       error: (interpreter) => {
