@@ -44,6 +44,8 @@
     "type-check": "tsgo --noEmit",
     "test:unit": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
-    "build": "evmcrispr-build"
+    "build": "evmcrispr-build --bundle",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
   }
 }

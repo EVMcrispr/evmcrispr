@@ -1,21 +1,27 @@
 {
   "$schema": "https://v2-9-7.turborepo.dev/schema.json",
   "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", "src/_generated.ts"]
+    "codegen": {
+      "outputs": ["src/_generated.ts"]
     },
-    "@evmcrispr/test-utils#build": {},
+    "types": {
+      "dependsOn": ["codegen", "^types"],
+      "outputs": ["dist/**/*.d.ts", "dist/**/*.d.ts.map"]
+    },
+    "build": {
+      "dependsOn": ["codegen", "types"],
+      "outputs": ["dist/**", "!dist/**/*.d.ts", "!dist/**/*.d.ts.map"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "type-check": {
       "dependsOn": [
-        "build",
-        "^build",
-        "@evmcrispr/core#build",
-        "@evmcrispr/module-std#build"
+        "codegen",
+        "^types",
+        "@evmcrispr/core#types",
+        "@evmcrispr/module-std#types"
       ]
     },
     "//#generate-docs": {
@@ -28,27 +34,30 @@
       "dependsOn": ["^build", "//#generate-docs"]
     },
     "evmcrispr-website#type-check": {
+      "dependsOn": ["^types"]
+    },
+    "evmcrispr-terminal#build": {
       "dependsOn": ["^build"]
     },
     "evmcrispr-terminal#type-check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^types"]
     },
     "evmcrispr-mcp#build": {
-      "dependsOn": ["evmcrispr#build", "^build"]
+      "dependsOn": ["codegen", "types", "evmcrispr#build", "^build"]
     },
     "evmcrispr-mcp#type-check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["codegen", "^types"]
     },
     "lint": {},
     "test:unit": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["codegen", "^codegen"]
     },
     "test:integration": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "^codegen"],
       "cache": false
     },
     "test:coverage": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "^codegen"],
       "cache": false
     }
   }

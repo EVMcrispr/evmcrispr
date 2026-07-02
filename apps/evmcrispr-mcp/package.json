@@ -21,9 +21,11 @@
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "build": "evmcrispr-build src/index.ts",
+    "build": "evmcrispr-build --bundle src/index.ts",
     "start": "bun src/index.ts",
     "type-check": "tsgo --noEmit",
-    "lint": "biome check src"
+    "lint": "biome check src",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
   }
 }

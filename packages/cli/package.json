@@ -50,9 +50,11 @@
   ],
   "scripts": {
     "prebuild": "bun scripts/bundle-docs.ts",
-    "build": "evmcrispr-build src/bin.ts",
+    "build": "evmcrispr-build --bundle src/bin.ts",
     "test:unit": "bun test",
     "type-check": "tsgo --noEmit",
-    "lint": "biome check src"
+    "lint": "biome check src",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
   }
 }

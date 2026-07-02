@@ -38,6 +38,8 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsgo -p tsconfig.json",
-    "build": "evmcrispr-build"
+    "build": "evmcrispr-build --bundle",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
   }
 }
