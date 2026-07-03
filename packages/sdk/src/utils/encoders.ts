@@ -88,6 +88,27 @@ function coerceAndValidateParams(
   return encodedParams;
 }
 
+/** Normalize a human-readable function signature to a parseable ABI form
+ *  ("transfer(address,uint256)" → "function transfer(address,uint256)"). */
+export const normalizeSignature = (signature: string): string =>
+  signature.startsWith("function") ? signature : `function ${signature}`;
+
+/**
+ * ABI-encode a `signature + params` call into calldata, like std exec does.
+ */
+export const encodeSignatureCall = (
+  signature: string,
+  params: Param[],
+): `0x${string}` => {
+  let fnABI: AbiFunction;
+  try {
+    fnABI = parseAbiItem(normalizeSignature(signature)) as AbiFunction;
+  } catch (_err) {
+    throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
+  }
+  return encodeCalldata(fnABI, params);
+};
+
 export const encodeAction = (
   target: Address,
   signature: string,
@@ -104,10 +125,7 @@ export const encodeAction = (
     if (opts?.abi) {
       fnABI = getAbiItem({ abi: opts.abi, name: signature }) as AbiFunction;
     } else {
-      const fullSignature = signature.startsWith("function")
-        ? signature
-        : `function ${signature}`;
-      fnABI = parseAbiItem(fullSignature) as AbiFunction;
+      fnABI = parseAbiItem(normalizeSignature(signature)) as AbiFunction;
     }
   } catch (_err) {
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);

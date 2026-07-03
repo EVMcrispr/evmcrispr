@@ -1,0 +1,46 @@
+---
+title: "access-control:set-target-function-role"
+---
+
+Map functions of a managed contract to the AccessManager role required to call them.
+
+## Syntax
+
+```evml
+access-control:set-target-function-role <manager> <target> <roleId> <signatures>
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `manager` | `address` | AccessManager address |
+| `target` | `address` | Managed contract address |
+| `roleId` | `number \| string` | Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `signatures` | `array` | Function signatures to gate |
+
+<!-- HAND-WRITTEN -->
+
+## Examples
+
+```evml
+load access-control
+
+# Require role 42 to mint or burn on the managed token
+access-control:set-target-function-role $manager $token 42 ["mint(address,uint256)" "burn(uint256)"]
+
+# Open a function to everyone
+access-control:set-target-function-role $manager $token PUBLIC_ROLE ["pause()"]
+```
+
+## Notes
+
+- Signatures are converted to 4-byte selectors before calling
+  `setTargetFunctionRole(address,bytes4[],uint64)`.
+- The target contract must be `AccessManaged` and point at this
+  AccessManager for the restriction to take effect.
+
+## See Also
+
+- [access-control:set-target-closed](set-target-closed.md) — block a target entirely
+- [@access-control.canCall](../helpers/access-control.canCall.md) — check the resulting permissions

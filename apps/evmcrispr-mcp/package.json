@@ -11,6 +11,11 @@
     "@evmcrispr/module-ens": "*",
     "@evmcrispr/module-giveth": "*",
     "@evmcrispr/module-http": "*",
+    "@evmcrispr/module-access-control": "*",
+    "@evmcrispr/module-governor": "*",
+    "@evmcrispr/module-proxies": "*",
+    "@evmcrispr/module-token": "*",
+    "@evmcrispr/module-safe": "*",
     "@evmcrispr/module-sim": "*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.3"

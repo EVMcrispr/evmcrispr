@@ -20,6 +20,11 @@ const PACKAGES_WITH_INTEGRATION_TESTS = [
   "modules/giveth",
   "modules/sim",
   "modules/ens",
+  "modules/safe",
+  "modules/token",
+  "modules/access-control",
+  "modules/governor",
+  "modules/proxies",
 ];
 
 await loadEnv();

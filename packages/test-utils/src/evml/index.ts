@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 // EVML test helpers (pre-bound to @evmcrispr/core)
 export {
   createEvml,

@@ -59,11 +59,48 @@ const MODULES: ModuleInfo[] = [
     overview: "ENS domain operations: renewal and content hash encoding.",
   },
   {
+    name: "token",
+    prefix: "token:",
+    dir: join(ROOT, "modules/token"),
+    overview: "Token operations: mint, burn, and approvals.",
+  },
+  {
+    name: "access-control",
+    prefix: "access-control:",
+    dir: join(ROOT, "modules/access-control"),
+    overview:
+      "Access control operations: Ownable ownership, AccessControl and " +
+      "AccessManager roles.",
+  },
+  {
+    name: "governor",
+    prefix: "governor:",
+    dir: join(ROOT, "modules/governor"),
+    overview:
+      "Governance operations: Governor proposals, voting, vote delegation, " +
+      "and TimelockController scheduling.",
+  },
+  {
+    name: "proxies",
+    prefix: "proxies:",
+    dir: join(ROOT, "modules/proxies"),
+    overview:
+      "Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.",
+  },
+  {
     name: "giveth",
     prefix: "giveth:",
     dir: join(ROOT, "modules/giveth"),
     overview:
       "Giveth protocol operations: donations, GIVbacks distribution, and project resolution.",
+  },
+  {
+    name: "safe",
+    prefix: "safe:",
+    dir: join(ROOT, "modules/safe"),
+    overview:
+      "Safe multisig operations: propose and execute transactions, manage owners and " +
+      "threshold, attach guards, and install Zodiac modules.",
   },
   {
     name: "http",

@@ -1,4 +1,8 @@
 import {
+  commands as accessControlCommands,
+  helpers as accessControlHelpers,
+} from "../../../../modules/access-control/src/_generated";
+import {
   commands as aragonosCommands,
   helpers as aragonosHelpers,
 } from "../../../../modules/aragonos/src/_generated";
@@ -14,12 +18,25 @@ import {
   commands as givethCommands,
   helpers as givethHelpers,
 } from "../../../../modules/giveth/src/_generated";
+import {
+  commands as governorCommands,
+  helpers as governorHelpers,
+} from "../../../../modules/governor/src/_generated";
 import { helpers as httpHelpers } from "../../../../modules/http/src/_generated";
+import {
+  commands as proxiesCommands,
+  helpers as proxiesHelpers,
+} from "../../../../modules/proxies/src/_generated";
+import {
+  commands as safeCommands,
+  helpers as safeHelpers,
+} from "../../../../modules/safe/src/_generated";
 import { commands as simCommands } from "../../../../modules/sim/src/_generated";
 import {
   commands as stdCommands,
   helpers as stdHelpers,
 } from "../../../../modules/std/src/_generated";
+import { commands as tokenCommands } from "../../../../modules/token/src/_generated";
 
 export type ReferenceEntry = {
   name: string;
@@ -60,6 +77,15 @@ const modules: ModuleDef[] = [
   { name: "sim", commands: simCommands, helpers: {} },
   { name: "http", commands: {}, helpers: httpHelpers },
   { name: "ens", commands: ensCommands, helpers: ensHelpers },
+  { name: "token", commands: tokenCommands, helpers: {} },
+  {
+    name: "access-control",
+    commands: accessControlCommands,
+    helpers: accessControlHelpers,
+  },
+  { name: "governor", commands: governorCommands, helpers: governorHelpers },
+  { name: "proxies", commands: proxiesCommands, helpers: proxiesHelpers },
+  { name: "safe", commands: safeCommands, helpers: safeHelpers },
   { name: "giveth", commands: givethCommands, helpers: givethHelpers },
   {
     name: "assertions",
@@ -92,6 +118,26 @@ const docImports: Record<
   ens: (name, kind) =>
     import(
       `../../../../modules/ens/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  token: (name, kind) =>
+    import(
+      `../../../../modules/token/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  "access-control": (name, kind) =>
+    import(
+      `../../../../modules/access-control/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  governor: (name, kind) =>
+    import(
+      `../../../../modules/governor/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  proxies: (name, kind) =>
+    import(
+      `../../../../modules/proxies/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  safe: (name, kind) =>
+    import(
+      `../../../../modules/safe/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
     ).then((m) => m.default),
   giveth: (name, kind) =>
     import(

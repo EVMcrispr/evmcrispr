@@ -1,0 +1,44 @@
+---
+title: "safe:install-delay"
+---
+
+Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module.
+
+## Syntax
+
+```evml
+safe:install-delay <cooldown> [expiration]
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `cooldown` | `number` | Seconds a queued transaction must wait before execution |
+| `[expiration]` | `number` | Seconds after the cooldown during which the transaction can be executed (0 = never expires) |
+
+## Options
+
+| Name | Type | Description |
+|------|------|-------------|
+| `--salt` | `number` | Deployment salt nonce (defaults to 0) |
+
+<!-- HAND-WRITTEN -->
+
+## Examples
+
+Install a 24-hour timelock in front of the Safe:
+
+```evml
+load safe
+
+safe:propose $mySafe (
+  safe:install-delay 86400
+)
+```
+
+The Delay modifier is deployed as a minimal proxy through the Zodiac
+ModuleProxyFactory and enabled as a module in the same transaction. Its
+address is deterministic and logged during execution.
+
+## See Also

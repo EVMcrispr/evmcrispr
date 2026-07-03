@@ -41,6 +41,12 @@ export interface TransactionAction {
    */
   nonce?: number;
   /**
+   * How the action must be executed: 0 = CALL (default), 1 = DELEGATECALL.
+   * Only meaningful inside execution contexts that support delegatecall
+   * (e.g. a Safe transaction); a plain EOA transaction cannot carry it.
+   */
+  operation?: 0 | 1;
+  /**
    * When executed standalone, run as a read-only `eth_call` instead of a write
    * transaction. The call must not revert for the action to succeed (used by
    * on-chain assertions, whose contracts revert on failure). Inside a batch the

@@ -17,6 +17,11 @@ export const MODULES = [
   "ens",
   "giveth",
   "http",
+  "safe",
+  "token",
+  "access-control",
+  "governor",
+  "proxies",
 ];
 
 let fullDocsCache: string | null = null;
