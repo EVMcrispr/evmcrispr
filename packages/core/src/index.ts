@@ -92,6 +92,7 @@ export {
   resolveCommand,
   resolveHelper,
 } from "@evmcrispr/sdk";
+export { getSemanticDiagnostics } from "./analysis";
 export type { ParseDiagnostic } from "./diagnostics";
 export { getDiagnostics, parseDiagnosticString } from "./diagnostics";
 export type { DocumentSymbol, DocumentSymbolKind } from "./documentSymbols";

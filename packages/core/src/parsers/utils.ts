@@ -201,9 +201,9 @@ export const linesParser = <T = Node>(
                 isError: true,
               },
               parserErrorType,
-              `Expecting closing ${
+              `Missing closing ${
                 endingChar ? `"${endingChar}"` : "character"
-              }, but got end of input`,
+              } — reached end of input before it was closed`,
             ),
           ),
         );

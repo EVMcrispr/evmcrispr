@@ -17,7 +17,11 @@ export const addressParser: EnclosingNodeParser<AddressLiteralNode> = (
       regex(/^0x[a-fA-F0-9]{40}/),
       enclosingLookaheadParser(enclosingParsers),
     ]).errorMap((err) =>
-      buildParserError(err, ADDRESS_PARSER_ERROR, "Expecting an address"),
+      buildParserError(
+        err,
+        ADDRESS_PARSER_ERROR,
+        'Expected an address: "0x" followed by 40 hex characters',
+      ),
     ),
     ({ data, index, result: [initialContext, [value]] }) => ({
       type: NodeType.AddressLiteral,

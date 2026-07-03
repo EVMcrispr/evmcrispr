@@ -25,7 +25,7 @@ export interface Comparison {
   maxValue?: number;
 }
 
-const checkComparisonError = (
+export const checkComparisonError = (
   value: number,
   { type, minValue, maxValue }: Comparison,
 ): boolean => {

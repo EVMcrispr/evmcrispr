@@ -32,7 +32,11 @@ const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
     char(")"),
   ]),
 ).errorMap((err) =>
-  buildParserError(err, HELPER_PARSER_ERROR, "Expecting a helper name"),
+  buildParserError(
+    err,
+    HELPER_PARSER_ERROR,
+    'Expected a helper name after "@" (e.g. @token(DAI) or @me)',
+  ),
 );
 
 export const helperFunctionParser: NodeParser<HelperFunctionNode> =

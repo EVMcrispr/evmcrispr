@@ -176,7 +176,7 @@ describe("Parsers - array", () => {
 
     expect(res.isError).to.be.true;
     expect((res as Err<string, any>).error).to.equals(
-      `ArrayParserError(1:15): Expecting character ']', but got end of input.`,
+      `ArrayParserError(1:15): Expected "]" to close the array, got end of input.`,
     );
   });
 

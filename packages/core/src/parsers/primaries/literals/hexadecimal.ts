@@ -20,7 +20,7 @@ export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
       buildParserError(
         err,
         HEXADECIMAL_PARSER_ERROR,
-        "Expecting a hexadecimal value",
+        'Expected a hex value: "0x" followed by hex characters (e.g. 0xdeadbeef)',
       ),
     ),
     ({ data, index, result: [initialContext, [value]] }) => ({

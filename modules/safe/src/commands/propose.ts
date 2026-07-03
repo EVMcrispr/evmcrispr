@@ -22,6 +22,7 @@ export default defineCommand<Safe>({
   description:
     "Propose a transaction to the Safe queue through the Safe Transaction Service, signed by the connected owner or delegate.",
   batchable: false,
+  createsBatchContext: true,
   args: [
     { name: "safe", type: "address", description: "Safe address" },
     {

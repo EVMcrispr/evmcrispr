@@ -48,7 +48,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
             buildParserError(
               err,
               NUMBER_PARSER_ERROR,
-              "Invalid decimal. Expecting digits",
+              "Invalid number: expected digits after the decimal point (e.g. 1.5)",
             ),
           ),
         );
@@ -68,7 +68,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
             buildParserError(
               err,
               "NumberParserError",
-              "Invalid exponent. Expecting digits",
+              'Invalid number: expected digits after "e" (e.g. 15e18)',
             ),
           ),
         );
@@ -82,7 +82,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
           buildParserError(
             err,
             "NumberParserError",
-            `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
+            "Invalid time unit. Valid units: s, m, h, d, w, mo, y (e.g. 30m, 2d)",
           ),
         ),
       );

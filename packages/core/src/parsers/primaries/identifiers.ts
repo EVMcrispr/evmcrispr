@@ -30,7 +30,11 @@ export const variableIdentifierParser: EnclosingNodeParser<
         regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/),
         enclosingLookaheadParser(enclosingParsers),
       ]).errorMap((err) =>
-        buildParserError(err, VARIABLE_PARSER_ERROR, "Expecting a variable"),
+        buildParserError(
+          err,
+          VARIABLE_PARSER_ERROR,
+          'Expected a variable: "$" followed by a name (e.g. $myToken)',
+        ),
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.VariableIdentifier,
@@ -93,7 +97,11 @@ export const barewordParser: EnclosingNodeParser<BarewordNode> = (
 
         return [parts.filter((v) => !!v).join("")];
       }).errorMap((err) =>
-        buildParserError(err, BAREWORD_PARSER_ERROR, "Expecting an identifier"),
+        buildParserError(
+          err,
+          BAREWORD_PARSER_ERROR,
+          "Expected an identifier (a bare word like token-manager)",
+        ),
       ),
       ({ data, index, result: [initialContext, [value]] }) => ({
         type: NodeType.Bareword,

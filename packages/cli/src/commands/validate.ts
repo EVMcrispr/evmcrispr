@@ -10,7 +10,7 @@ export async function runValidate(args: string[]): Promise<void> {
 
   const script = file === "-" ? readStdin() : readFileSync(file, "utf-8");
 
-  const result = validateEvml(script);
+  const result = await validateEvml(script);
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.valid ? 0 : 1);
 }

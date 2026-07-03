@@ -17,11 +17,7 @@ export const booleanParser: EnclosingNodeParser<BooleanLiteralNode> = (
       choice([str("true"), str("false")]),
       enclosingLookaheadParser(enclosingParsers),
     ]).errorMap((err) =>
-      buildParserError(
-        err,
-        BOOLEAN_PARSER_ERROR,
-        'Expecting "true" or "false"',
-      ),
+      buildParserError(err, BOOLEAN_PARSER_ERROR, 'Expected "true" or "false"'),
     ),
     ({ data, index, result: [initialContext, [value]] }) => ({
       type: NodeType.BoolLiteral,

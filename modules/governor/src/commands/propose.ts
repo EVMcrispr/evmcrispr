@@ -46,6 +46,7 @@ export default defineCommand<Governor>({
   name: "propose",
   description:
     "Create a Governor proposal from a block of commands: each action in the block becomes one of the proposal calls. Optionally binds the proposal id to a variable.",
+  createsBatchContext: true,
   args: [
     {
       name: "variable",

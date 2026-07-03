@@ -344,20 +344,42 @@ function Editor({
     const model = editorRef.current?.getModel();
     if (!model) return;
 
-    const diagnostics = evm.getDiagnostics(debouncedScript);
+    let cancelled = false;
 
+    const toMarker = (d: ParseDiagnostic) => ({
+      startLineNumber: d.line,
+      startColumn: d.col + 1,
+      endLineNumber: d.endLine ?? d.line,
+      endColumn:
+        d.endCol != null ? d.endCol + 1 : model.getLineLength(d.line) + 1,
+      message: d.message,
+      severity:
+        d.severity === "warning"
+          ? monaco.MarkerSeverity.Warning
+          : monaco.MarkerSeverity.Error,
+    });
+
+    // Show fast parse-only diagnostics immediately, then upgrade to the full
+    // set (parse + semantic) once the async analysis resolves.
     monaco.editor.setModelMarkers(
       model,
       "evml",
-      diagnostics.map((d: ParseDiagnostic) => ({
-        startLineNumber: d.line,
-        startColumn: d.col + 1,
-        endLineNumber: d.line,
-        endColumn: model.getLineLength(d.line) + 1,
-        message: d.message,
-        severity: monaco.MarkerSeverity.Error,
-      })),
+      evm.getDiagnostics(debouncedScript).map(toMarker),
     );
+
+    evm
+      .getFullDiagnostics(debouncedScript)
+      .then((diagnostics: ParseDiagnostic[]) => {
+        if (cancelled) return;
+        monaco.editor.setModelMarkers(model, "evml", diagnostics.map(toMarker));
+      })
+      .catch(() => {
+        /* semantic analysis never throws, but stay defensive */
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [monaco, evm, debouncedScript]);
 
   const handleBeforeMountEditor = useCallback((monaco: Monaco) => {

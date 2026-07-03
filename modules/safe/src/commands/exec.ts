@@ -19,6 +19,7 @@ export default defineCommand<Safe>({
   description:
     "Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash.",
   batchable: false,
+  createsBatchContext: true,
   args: [
     { name: "safe", type: "address", description: "Safe address" },
     {

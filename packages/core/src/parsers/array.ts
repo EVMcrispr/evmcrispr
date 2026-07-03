@@ -34,7 +34,13 @@ export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
 
         run(char("]"));
         return [elements];
-      }).errorMap((err) => buildParserError(err, ARRAY_PARSER_ERROR)),
+      }).errorMap((err) =>
+        buildParserError(
+          err,
+          ARRAY_PARSER_ERROR,
+          'Expected "]" to close the array',
+        ),
+      ),
       ({
         data: { line, offset },
         index,

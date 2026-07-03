@@ -8,6 +8,7 @@ export default defineCommand<Governor>({
   name: "timelock-execute",
   description:
     "Execute a ready TimelockController operation. Takes the same action block, predecessor and salt used in governor:timelock-schedule.",
+  createsBatchContext: true,
   args: [
     {
       name: "timelock",

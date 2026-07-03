@@ -1,10 +1,11 @@
 import { evml } from "@evmcrispr/core";
 
-export function validateEvml(script: string) {
+export async function validateEvml(script: string) {
   const s = evml.script(script);
-  const diagnostics = s.diagnostics;
   const symbols = s.symbols;
-  const valid = diagnostics.every((d) => d.severity !== "error");
+  // Full validation: syntactic parse errors + static semantic diagnostics
+  // (unknown commands/helpers/modules, arg counts, options, variables, …).
+  const { diagnostics, valid } = await s.validate();
 
   return { diagnostics, symbols, valid };
 }

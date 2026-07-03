@@ -13,12 +13,12 @@ import type {
 import { NodeType } from "../types";
 import { isSpecialArgType as isSpecialType } from "./argAlignment";
 import {
-  ComparisonType,
-  checkArgsLength,
+  buildArgsLengthErrorMsg,
   checkOpts,
   coerceBoolean,
   getOptValue,
 } from "./args";
+import { computeCommandArity, prepareCommandArity } from "./arity";
 import {
   type ArgDef,
   type ArgType,
@@ -91,6 +91,11 @@ export interface CommandConfig<M extends Module> {
    *  (batch / connect / forward). Default true. A function receives the
    *  parsed args and opts; return true, false, or a string reason. */
   batchable?: BatchableSpec;
+  /** Whether this command opens an atomic batch context around its block
+   *  body (`batch`, `connect`, `forward`). Commands nested in that block
+   *  with `batchable: false` are rejected. Used by the static analyzer to
+   *  find non-batchable commands without executing the script. */
+  createsBatchContext?: boolean;
 }
 
 export function defineCommand<M extends Module>(
@@ -98,84 +103,28 @@ export function defineCommand<M extends Module>(
 ): ICommand<M> {
   const { args: argDefs, opts: optDefs = [], run } = config;
 
-  const blockDefIndices: number[] = [];
-  for (let i = 0; i < argDefs.length; i++) {
-    if (typeIncludes(argDefs[i].type, "block")) blockDefIndices.push(i);
-  }
-  const hasBlocks = blockDefIndices.length > 0;
-  const lastBlockDef = hasBlocks ? argDefs[blockDefIndices.at(-1)!] : undefined;
-  const isBlockUnion = hasBlocks && Array.isArray(lastBlockDef!.type);
-  const nonBlockDefs = argDefs.filter((_, i) => !blockDefIndices.includes(i));
+  const arityMeta = prepareCommandArity(argDefs);
 
   return {
     async run(module, c, interpreters) {
       const { interpretNode, interpretNodes } = interpreters;
 
-      // 1. Extract trailing block(s) from AST args
-      let astArgs = c.args;
-      const blockNodes: (BlockExpressionNode | undefined)[] = [];
+      // 1-2. Extract trailing block(s) and check argument length. Shared with
+      // the static analyzer via `computeCommandArity` so both agree on arity.
+      const arity = computeCommandArity(argDefs, c.args, arityMeta);
+      const astArgs = arity.astArgs;
+      const blockNodes = arity.blockNodes;
 
-      if (hasBlocks) {
-        const extracted: BlockExpressionNode[] = [];
-        let endIdx = astArgs.length - 1;
-        while (
-          endIdx >= 0 &&
-          extracted.length < blockDefIndices.length &&
-          astArgs[endIdx]?.type === NodeType.BlockExpression
-        ) {
-          extracted.unshift(astArgs[endIdx] as BlockExpressionNode);
-          endIdx--;
-        }
-        astArgs = astArgs.slice(0, endIdx + 1);
-
-        for (let i = 0; i < blockDefIndices.length; i++) {
-          blockNodes.push(i < extracted.length ? extracted[i] : undefined);
-        }
-
-        if (extracted.length === 0 && !isBlockUnion) {
-          const firstRequired = blockDefIndices
-            .map((idx) => argDefs[idx])
-            .find((d) => !d.optional);
-          if (firstRequired) {
-            throw new ErrorException(
-              `<${firstRequired.name}> must be a block expression`,
-            );
-          }
-        }
+      if (arity.missingBlockName) {
+        throw new ErrorException(
+          `<${arity.missingBlockName}> must be a block expression`,
+        );
       }
 
-      // 2. Check argument length (against non-block args)
-      // When isBlockUnion and no block was extracted, the expression arg is
-      // a regular arg, so count against the full argDefs instead of nonBlockDefs.
-      const useFullDefs = isBlockUnion && blockNodes.every((b) => !b);
-      const countDefs = useFullDefs ? argDefs : nonBlockDefs;
-      const effRequired = countDefs.filter(
-        (a) => !a.optional && !a.rest,
-      ).length;
-      const effHasRest = countDefs.some((a) => a.rest);
-      const effHasOptional = countDefs.some((a) => a.optional);
-      const effTotalFixed = countDefs.filter((a) => !a.rest).length;
-
-      const effectiveNode =
-        hasBlocks && !useFullDefs
-          ? ({ ...c, args: astArgs } as CommandExpressionNode)
-          : c;
-      if (effHasRest) {
-        checkArgsLength(effectiveNode, {
-          type: ComparisonType.Greater,
-          minValue: effRequired,
-        });
-      } else if (effHasOptional) {
-        checkArgsLength(effectiveNode, {
-          type: ComparisonType.Between,
-          minValue: effRequired,
-          maxValue: effTotalFixed,
-        });
-      } else {
-        checkArgsLength(effectiveNode, {
-          type: ComparisonType.Equal,
-          minValue: effRequired,
-        });
+      if (arity.isError) {
+        throw new ErrorException(
+          buildArgsLengthErrorMsg(arity.effectiveArgCount, arity.comparison),
+        );
       }
 
       // 3. Check options
@@ -315,5 +264,6 @@ export function defineCommand<M extends Module>(
     completions: config.completions,
     description: config.description,
     batchable: config.batchable,
+    createsBatchContext: config.createsBatchContext,
   };
 }

@@ -131,7 +131,7 @@ export const helperParserDescribe = () =>
         helperFunctionParser,
         "@asd&$6",
         HELPER_PARSER_ERROR,
-        "Expecting a helper name",
+        'Expected a helper name after "@" (e.g. @token(DAI) or @me)',
       );
     });
 

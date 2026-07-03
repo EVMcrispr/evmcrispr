@@ -8,6 +8,7 @@ export default defineCommand<Governor>({
   name: "timelock-schedule",
   description:
     "Schedule a batch of actions on a TimelockController. Optionally binds the operation id to a variable for later state checks or cancellation.",
+  createsBatchContext: true,
   args: [
     {
       name: "variable",

@@ -6,6 +6,7 @@ export default defineCommand<Governor>({
   name: "queue",
   description:
     "Queue a succeeded Governor proposal into its timelock. Takes the same description and action block used in governor:propose.",
+  createsBatchContext: true,
   args: [
     { name: "governor", type: "address", description: "Governor address" },
     {

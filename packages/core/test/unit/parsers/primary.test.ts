@@ -61,7 +61,7 @@ describe("Parsers - primary", () => {
           addressParser(),
           "0xasdabmtbrtbrtgsdfsvbrty",
           ADDRESS_PARSER_ERROR,
-          "Expecting an address",
+          'Expected an address: "0x" followed by 40 hex characters',
         );
       });
     });
@@ -91,7 +91,7 @@ describe("Parsers - primary", () => {
           hexadecimalParser(),
           "0xasdadqlkerrtrtnrn",
           HEXADECIMAL_PARSER_ERROR,
-          "Expecting a hexadecimal value",
+          'Expected a hex value: "0x" followed by hex characters (e.g. 0xdeadbeef)',
         );
       });
     });
@@ -117,7 +117,7 @@ describe("Parsers - primary", () => {
           booleanParser(),
           "fals",
           BOOLEAN_PARSER_ERROR,
-          'Expecting "true" or "false"',
+          'Expected "true" or "false"',
         );
       });
     });
@@ -185,7 +185,7 @@ describe("Parsers - primary", () => {
           numberParser(),
           "123.e18",
           errorType,
-          "Invalid decimal. Expecting digits",
+          "Invalid number: expected digits after the decimal point (e.g. 1.5)",
         );
       });
 
@@ -195,7 +195,7 @@ describe("Parsers - primary", () => {
             numberParser(),
             "123.2ew",
             errorType,
-            "Invalid exponent. Expecting digits",
+            'Invalid number: expected digits after "e" (e.g. 15e18)',
           );
         };
       });
@@ -205,7 +205,7 @@ describe("Parsers - primary", () => {
           numberParser(),
           "123.45e13w34",
           errorType,
-          `Invalid time unit. Expected "s", "m", "h", "d", "w", "mo" or "y"`,
+          "Invalid time unit. Valid units: s, m, h, d, w, mo, y (e.g. 30m, 2d)",
         );
       });
     });
@@ -285,7 +285,7 @@ describe("Parsers - primary", () => {
         stringParser(),
         '"asdadasdasd',
         STRING_PARSER_ERROR,
-        "Expecting a quoted string",
+        "Expected a quoted string — did you forget the closing quote?",
       );
     });
 
@@ -368,7 +368,7 @@ describe("Parsers - primary", () => {
         barewordParser(),
         "asd([[))",
         BAREWORD_PARSER_ERROR,
-        "Expecting an identifier",
+        "Expected an identifier (a bare word like token-manager)",
       );
     });
 
@@ -393,7 +393,7 @@ describe("Parsers - primary", () => {
         variableIdentifierParser(),
         "$asd/()",
         VARIABLE_PARSER_ERROR,
-        "Expecting a variable",
+        'Expected a variable: "$" followed by a name (e.g. $myToken)',
       );
     });
   });

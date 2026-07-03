@@ -837,7 +837,7 @@ describe("Parsers - command expression", () => {
       commandExpressionParser,
       "my-command:",
       COMMAND_PARSER_ERROR,
-      "Expecting a valid command name",
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
     );
   });
 
@@ -846,7 +846,7 @@ describe("Parsers - command expression", () => {
       commandExpressionParser,
       "my-command:wer234",
       COMMAND_PARSER_ERROR,
-      "Expecting a valid command name",
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
     );
   });
 
@@ -855,7 +855,7 @@ describe("Parsers - command expression", () => {
       commandOptParser,
       "--asd$ asd",
       COMMAND_PARSER_ERROR,
-      "Expecting a valid option name",
+      'Expected an option name after "--" (e.g. --gas-limit 2e6)',
     );
   });
 });

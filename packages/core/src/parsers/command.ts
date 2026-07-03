@@ -51,7 +51,7 @@ const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
     buildParserError(
       err,
       COMMAND_PARSER_ERROR,
-      "Expecting a valid command name",
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
     ),
   )
   .map((value): CommandName => {
@@ -74,7 +74,7 @@ export const commandOptParser: NodeParser<CommandOptNode> = recursiveParser(
           buildParserError(
             err,
             COMMAND_PARSER_ERROR,
-            "Expecting a valid option name",
+            'Expected an option name after "--" (e.g. --gas-limit 2e6)',
           ),
         ),
         whitespace,

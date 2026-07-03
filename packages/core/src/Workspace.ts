@@ -24,7 +24,7 @@ import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
-
+import { getSemanticDiagnostics as getSemanticDiagnosticsImpl } from "./analysis";
 import {
   getCompletions as getCompletionsImpl,
   getKeywords as getKeywordsImpl,
@@ -448,6 +448,29 @@ export class EvmlWorkspace {
    *  This is synchronous and does not require module data. */
   getDiagnostics(script: string): ParseDiagnostic[] {
     return getDiagnosticsImpl(script);
+  }
+
+  /** Return the full diagnostic set (syntactic parse errors + static
+   *  semantic diagnostics: unknown commands/helpers/modules, wrong argument
+   *  counts, unknown options, undefined variables, type mismatches, …).
+   *  Loads the modules referenced by `load` into the cache first; fully
+   *  offline (no RPC). Never throws. */
+  async getFullDiagnostics(script: string): Promise<ParseDiagnostic[]> {
+    const parse = getDiagnosticsImpl(script);
+    let semantic: ParseDiagnostic[] = [];
+    try {
+      await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+      semantic = await getSemanticDiagnosticsImpl(
+        script,
+        this.#moduleCache,
+        this.registry.names(),
+      );
+    } catch {
+      semantic = [];
+    }
+    return [...parse, ...semantic].sort(
+      (a, b) => a.line - b.line || a.col - b.col,
+    );
   }
 
   /** Flush the helper result cache.  Call after a transaction is executed. */

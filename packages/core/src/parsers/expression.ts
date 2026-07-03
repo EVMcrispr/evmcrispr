@@ -5,7 +5,7 @@ import type {
   EnclosingNodeParser,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { getIncorrectReceivedValue, NodeType } from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
   char,
   choice,
@@ -31,6 +31,10 @@ import {
   optionalMultilineWhitespace,
 } from "./utils";
 
+export const EXPRESSION_PARSER_ERROR_MSG =
+  'Expected a value: a literal (1e18, 0x…, "text", true), $variable, ' +
+  "@helper(...), [array] or (block)";
+
 export const argumentExpressionParser: EnclosingNodeParser<
   ArgumentExpressionNode
 > = (enclosingParsers = []) =>
@@ -43,11 +47,13 @@ export const argumentExpressionParser: EnclosingNodeParser<
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),
       barewordParser(enclosingParsers),
-    ]).errorMap(({ data, error, index }) => {
-      return `ExpressionParserError(${data.line},${
-        index - data.offset
-      }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
-    }),
+    ]).errorMap((err) =>
+      buildParserError(
+        err,
+        "ExpressionParserError",
+        EXPRESSION_PARSER_ERROR_MSG,
+      ),
+    ),
   );
 
 export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
@@ -63,11 +69,13 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
       primaryParser(enclosingParsers),
       variableIdentifierParser(enclosingParsers),
       barewordParser(enclosingParsers),
-    ]).errorMap(({ data, error, index }) => {
-      return `ExpressionParserError(${data.line},${
-        index - data.offset
-      }): Expecting a valid expression${getIncorrectReceivedValue(error)}`;
-    }),
+    ]).errorMap((err) =>
+      buildParserError(
+        err,
+        "ExpressionParserError",
+        EXPRESSION_PARSER_ERROR_MSG,
+      ),
+    ),
   );
 
 const parenToken = (c: "(" | ")") =>

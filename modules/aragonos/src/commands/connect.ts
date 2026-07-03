@@ -55,6 +55,7 @@ export default defineCommand<AragonOS>({
   name: "connect",
   description:
     "Connect to an Aragon DAO and execute commands within its context.",
+  createsBatchContext: true,
   args: [
     {
       name: "daoName",

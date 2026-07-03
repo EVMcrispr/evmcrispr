@@ -6,6 +6,7 @@ export default defineCommand<Governor>({
   name: "cancel",
   description:
     "Cancel a pending Governor proposal (only its proposer, before voting starts). Takes the same description and action block used in governor:propose.",
+  createsBatchContext: true,
   args: [
     { name: "governor", type: "address", description: "Governor address" },
     {

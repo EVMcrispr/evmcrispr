@@ -9,6 +9,7 @@ import { type DocumentSymbol, getDocumentSymbols } from "../documentSymbols";
 import type { EvmlAST } from "../EvmlAST";
 import { Interpreter } from "../interpreter/Interpreter";
 import { parseScript } from "../parsers/script";
+import { EvmlWorkspace } from "../Workspace";
 import {
   type ExecuteOptions,
   type ExecutionResult,
@@ -73,6 +74,21 @@ export class EvmlScript {
   /** Document symbols for outline views. */
   get symbols(): DocumentSymbol[] {
     return getDocumentSymbols(this.source);
+  }
+
+  /** Full validation: syntactic parse diagnostics plus static semantic
+   *  diagnostics (unknown commands/helpers/modules, wrong argument counts,
+   *  unknown options, undefined variables, type mismatches, …). Loads the
+   *  modules the script `load`s to resolve their schemas; fully offline
+   *  (no RPC). Never throws. */
+  async validate(): Promise<{
+    diagnostics: ParseDiagnostic[];
+    valid: boolean;
+  }> {
+    const workspace = new EvmlWorkspace(this.#registry, this.#config);
+    const diagnostics = await workspace.getFullDiagnostics(this.source);
+    const valid = diagnostics.every((d) => d.severity !== "error");
+    return { diagnostics, valid };
   }
 
   /** Resolve the script into its list of actions (dry run: nothing is

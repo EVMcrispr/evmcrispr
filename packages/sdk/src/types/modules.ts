@@ -129,6 +129,9 @@ export interface ICommand<M extends Module = Module> {
   description?: string;
   /** Whether this command may run inside an atomic batch context. */
   batchable?: BatchableSpec;
+  /** Whether this command opens an atomic batch context around its block
+   *  body (`batch`, `connect`, `forward`). */
+  createsBatchContext?: boolean;
 }
 
 /** Lazy loader: () => Promise<ICommand>. Resolved on first use. */

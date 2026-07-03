@@ -84,7 +84,11 @@ export const stringParser: EnclosingNodeParser<StringLiteralNode> = (
       run(enclosingLookaheadParser(enclosingParsers));
       return [unescapeStringLiteral(raw)];
     }).errorMap((err) =>
-      buildParserError(err, STRING_PARSER_ERROR, "Expecting a quoted string"),
+      buildParserError(
+        err,
+        STRING_PARSER_ERROR,
+        "Expected a quoted string — did you forget the closing quote?",
+      ),
     ),
     ({ data, index, result: [initialContext, [value]] }) => {
       return {

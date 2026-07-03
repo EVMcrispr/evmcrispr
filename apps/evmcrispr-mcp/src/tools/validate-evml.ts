@@ -20,7 +20,7 @@ export function registerValidateEvml(server: McpServer): void {
       },
     },
     async ({ script }) => {
-      const result = validateEvml(script);
+      const result = await validateEvml(script);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };

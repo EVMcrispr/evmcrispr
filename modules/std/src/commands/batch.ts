@@ -16,6 +16,7 @@ export default defineCommand<Std>({
   description: "Group multiple commands into a single transaction.",
   args: [{ name: "block", type: "block", description: "Block of commands" }],
   batchable: false,
+  createsBatchContext: true,
   async run(module, { block }, { interpreters }) {
     const { interpretNode } = interpreters;
 

@@ -202,7 +202,7 @@ export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
             buildParserError(
               err,
               CAPTURE_PARSER_ERROR,
-              "Expecting an event name",
+              'Expected an event name after "->" (e.g. -> Transfer(address,address,uint256) [$from $to $amt])',
             ),
           ),
         );
@@ -228,7 +228,7 @@ export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
         buildParserError(
           err,
           CAPTURE_PARSER_ERROR,
-          "Expecting a valid event capture clause",
+          "Invalid event capture. Syntax: -> EventName(types)? #n? [$var _ …]",
         ),
       ),
       ({
@@ -325,7 +325,7 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
               buildParserError(
                 err,
                 CAPTURE_PARSER_ERROR,
-                "Expecting an error name, [captures], or $boolVar",
+                'Expected an error name, a [$var …] destructure, or a $boolVar after "-!>" (e.g. -!> Error(string) [$reason])',
               ),
             ),
           );
@@ -353,7 +353,7 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
         buildParserError(
           err,
           CAPTURE_PARSER_ERROR,
-          "Expecting a valid error capture clause",
+          "Invalid error capture. Syntax: -!> ErrorName(types)? ([$var …] | $boolVar)?",
         ),
       ),
       ({
