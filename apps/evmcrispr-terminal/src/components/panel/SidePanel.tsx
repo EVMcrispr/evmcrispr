@@ -5,6 +5,7 @@ import {
   terminalStoreActions,
   useTerminalStore,
 } from "../../stores/terminal-store";
+import { ChatPanel } from "./ChatPanel";
 import { LibraryTab } from "./LibraryTab";
 import { ReferenceTab } from "./ReferenceTab";
 
@@ -29,6 +30,7 @@ export function SidePanel({
         <Tabs.Trigger value="console">Console</Tabs.Trigger>
         <Tabs.Trigger value="library">Library</Tabs.Trigger>
         <Tabs.Trigger value="reference">Ref</Tabs.Trigger>
+        <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content
         value="console"
@@ -53,6 +55,14 @@ export function SidePanel({
         hidden={activeTab !== "reference"}
       >
         <ReferenceTab />
+      </Tabs.Content>
+      <Tabs.Content
+        value="chat"
+        className="flex-1 overflow-hidden"
+        forceMount
+        hidden={activeTab !== "chat"}
+      >
+        <ChatPanel />
       </Tabs.Content>
     </Tabs>
   );

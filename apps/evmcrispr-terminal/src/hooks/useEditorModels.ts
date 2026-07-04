@@ -1,6 +1,6 @@
 import type { Monaco } from "@monaco-editor/react";
 import type { editor, IDisposable } from "monaco-editor";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { SCRIPT_PLACEHOLDER } from "../stores/terminal-store";
 import type { EditLog, EditOp, StoredEdit } from "../types";
@@ -14,6 +14,8 @@ const UNDO_GROUP_GAP_MS = 300;
 
 const models = new Map<string, editor.ITextModel>();
 const listeners = new Map<string, IDisposable>();
+
+let activeEditor: editor.IStandaloneCodeEditor | null = null;
 
 /**
  * Per-script in-memory edit buffer.  Flushed to localStorage periodically by
@@ -129,6 +131,100 @@ export function flushEditBuffer(scriptId: string) {
 }
 
 /**
+ * The Monaco model currently displayed in the editor, if mounted.
+ */
+export function getActiveModel(): editor.ITextModel | null {
+  const model = activeEditor?.getModel();
+  return model && !model.isDisposed() ? model : null;
+}
+
+export type EditResult = { ok: true } | { ok: false; error: string };
+
+function withActiveEditor(
+  fn: (
+    ed: editor.IStandaloneCodeEditor,
+    model: editor.ITextModel,
+  ) => EditResult,
+): EditResult {
+  const ed = activeEditor;
+  const model = ed?.getModel();
+  if (!ed || !model) return { ok: false, error: "Editor is not mounted yet." };
+  return fn(ed, model);
+}
+
+/**
+ * Apply a str_replace-style edit to the active model. `oldStr` must match the
+ * current content exactly once. The edit goes through `executeEdits`, so it is
+ * captured by the edit log and undoable as a single step.
+ *
+ * Error messages are written for an LLM caller: they say what to do next.
+ */
+export function applyStrReplace(oldStr: string, newStr: string): EditResult {
+  return withActiveEditor((ed, model) => {
+    if (oldStr === "")
+      return {
+        ok: false,
+        error:
+          "old_string must not be empty. Use write_script to replace the whole script.",
+      };
+
+    const text = model.getValue();
+    let count = 0;
+    for (
+      let i = text.indexOf(oldStr);
+      i !== -1;
+      i = text.indexOf(oldStr, i + oldStr.length)
+    )
+      count++;
+    if (count === 0)
+      return {
+        ok: false,
+        error:
+          "old_string was not found in the script. It must match the current content exactly, including whitespace. Call get_script to re-read the current content.",
+      };
+    if (count > 1)
+      return {
+        ok: false,
+        error: `old_string matches ${count} times. Include more surrounding lines so it is unique.`,
+      };
+
+    const offset = text.indexOf(oldStr);
+    const start = model.getPositionAt(offset);
+    const end = model.getPositionAt(offset + oldStr.length);
+    model.pushStackElement();
+    ed.executeEdits("ai-chat", [
+      {
+        range: {
+          startLineNumber: start.lineNumber,
+          startColumn: start.column,
+          endLineNumber: end.lineNumber,
+          endColumn: end.column,
+        },
+        text: newStr,
+      },
+    ]);
+    model.pushStackElement();
+    return { ok: true };
+  });
+}
+
+/**
+ * Replace the entire script content. Uses `executeEdits` over the full range
+ * (not `setValue`, which would reset the undo stack), so the replacement is
+ * undoable as a single step.
+ */
+export function replaceScript(content: string): EditResult {
+  return withActiveEditor((ed, model) => {
+    model.pushStackElement();
+    ed.executeEdits("ai-chat", [
+      { range: model.getFullModelRange(), text: content },
+    ]);
+    model.pushStackElement();
+    return { ok: true };
+  });
+}
+
+/**
  * Dispose a model and clean up its edit buffer + listener.
  */
 export function disposeModel(scriptId: string) {
@@ -155,9 +251,19 @@ export function useEditorModels() {
     (ed: editor.IStandaloneCodeEditor, monaco: Monaco) => {
       editorRef.current = ed;
       monacoRef.current = monaco;
+      activeEditor = ed;
     },
     [],
   );
+
+  // The editor unmounts when the terminal switches to view mode — drop the
+  // module-level handle so `getActiveModel` doesn't return a disposed editor.
+  useEffect(() => {
+    return () => {
+      if (editorRef.current && activeEditor === editorRef.current)
+        activeEditor = null;
+    };
+  }, []);
 
   const getOrCreateModel = useCallback(
     (scriptId: string, content: string): editor.ITextModel | null => {

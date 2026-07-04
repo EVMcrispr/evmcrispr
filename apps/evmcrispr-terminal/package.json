@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
     "@evmcrispr/core": "*",
     "@evmcrispr/editor": "*",
     "@evmcrispr/module-aragonos": "*",
@@ -42,6 +43,7 @@
     "tailwindcss": "^4.3.2",
     "viem": "^2.54.1",
     "wagmi": "^3.6.21",
+    "zod": "^4.4.3",
     "zustand": "^5.0.14",
     "zustand-x": "^6.2.1"
   },

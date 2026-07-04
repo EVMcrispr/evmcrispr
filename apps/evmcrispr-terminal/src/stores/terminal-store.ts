@@ -20,7 +20,7 @@ export type TerminalStoreState = {
   script: string;
   isLoading: boolean;
   isSaving: boolean;
-  activeTab: "console" | "library" | "reference";
+  activeTab: "console" | "library" | "reference" | "chat";
   executingLine: number | null;
   cursorRef: CursorRef | null;
   viewMode: ViewMode;
