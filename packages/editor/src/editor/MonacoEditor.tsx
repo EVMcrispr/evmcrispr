@@ -3,7 +3,16 @@ import type {
   ParseDiagnostic,
 } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
-import MonacoEditorBase, { useMonaco } from "@monaco-editor/react";
+import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
+
+// Pin the CDN-loaded monaco to 0.52.2: the 0.53 input-handling rewrite
+// swallows the first keystroke typed over a selection (legacy textarea
+// path, still broken as of 0.55). Keep in sync with the monaco-editor
+// version in package.json. Re-test select+type before bumping.
+loader.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" },
+});
+
 import type { editor, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
