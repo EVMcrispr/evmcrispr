@@ -477,7 +477,7 @@ function Editor({
   const editorOptions = useMemo(
     () => ({
       fontSize: 22,
-      fontFamily: "Ubuntu Mono",
+      fontFamily: "JetBrains Mono",
       detectIndentation: false,
       quickSuggestionsDelay: 100,
       wordBasedSuggestions: "off" as const,

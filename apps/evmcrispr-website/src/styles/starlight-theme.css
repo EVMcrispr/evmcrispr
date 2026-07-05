@@ -1,5 +1,6 @@
 /* ── Load fonts (same as landing page) ─────────────────────── */
-@import "@fontsource/ubuntu-mono";
+@import "@fontsource/jetbrains-mono";
+@import "@fontsource/jetbrains-mono/700.css";
 @import "@repo/ui/styles/theme.css" layer(theme);
 
 /* ── Map Starlight CSS variables to EVMcrispr theme ────────── */
@@ -22,8 +23,8 @@
   --sl-color-accent-high: #8cf467;
 
   /* Fonts */
-  --sl-font: "Pixel Operator Mono", monospace;
-  --sl-font-mono: "Pixel Operator Mono", monospace;
+  --sl-font: "JetBrains Mono", monospace;
+  --sl-font-mono: "JetBrains Mono", monospace;
 
   /* Retro flat shadows */
   --sl-shadow-sm: 2px 2px 0 0 rgba(140, 244, 103, 0.3);

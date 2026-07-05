@@ -16,10 +16,10 @@
 @source "../";
 
 @theme {
-  --font-head: "Pixel Operator Mono", monospace;
-  --font-sans: "Ubuntu Mono", monospace;
-  --font-mono: "Pixel Operator Mono", monospace;
-  --font-clearer: "Ubuntu Mono", monospace;
+  --font-head: "JetBrains Mono", monospace;
+  --font-sans: "JetBrains Mono", monospace;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-clearer: "JetBrains Mono", monospace;
 
   --radius: 0px;
 

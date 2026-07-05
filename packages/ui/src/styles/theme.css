@@ -1,25 +1,9 @@
-/* ── Pixel Operator Mono font ────────────────────────────────── */
-@font-face {
-  font-family: "Pixel Operator Mono";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("../fonts/PixelOperatorMono.ttf") format("truetype");
-}
-@font-face {
-  font-family: "Pixel Operator Mono";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/PixelOperatorMono-Bold.ttf") format("truetype");
-}
-
 /* ── Tailwind v4 @theme ──────────────────────────────────────── */
 @theme {
-  --font-head: "Pixel Operator Mono", monospace;
-  --font-sans: "Ubuntu Mono", monospace;
-  --font-mono: "Pixel Operator Mono", monospace;
-  --font-clearer: "Ubuntu Mono", monospace;
+  --font-head: "JetBrains Mono", monospace;
+  --font-sans: "JetBrains Mono", monospace;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-clearer: "JetBrains Mono", monospace;
 
   --radius: 0px;
 
@@ -175,7 +159,7 @@ body {
   padding: 0;
 
   background: black;
-  font-family: "Pixel Operator Mono", monospace;
+  font-family: "JetBrains Mono", monospace;
   /* Firefox: prevent scrollbar gutter from reserving layout space */
   scrollbar-gutter: auto;
   scrollbar-width: none;

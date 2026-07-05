@@ -19,7 +19,7 @@
     "@evmcrispr/module-safe": "*",
     "@evmcrispr/module-lang": "*",
     "@evmcrispr/module-sim": "*",
-    "@fontsource/ubuntu-mono": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@heroicons/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",
     "@repo/ui": "*",

@@ -1,4 +1,5 @@
-import "@fontsource/ubuntu-mono";
+import "@fontsource/jetbrains-mono";
+import "@fontsource/jetbrains-mono/700.css";
 
 import { evml } from "@evmcrispr/core";
 import { EvmcrisprProvider } from "@evmcrispr/editor";

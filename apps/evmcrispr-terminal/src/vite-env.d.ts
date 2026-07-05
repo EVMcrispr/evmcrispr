@@ -6,6 +6,7 @@ declare module "*.md?raw" {
   export default content;
 }
 
-declare module "@fontsource/ubuntu-mono";
+declare module "@fontsource/jetbrains-mono";
+declare module "@fontsource/jetbrains-mono/700.css";
 
 declare module "virtual:evmcrispr-modules";

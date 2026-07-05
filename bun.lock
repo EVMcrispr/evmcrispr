@@ -62,7 +62,7 @@
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
         "@evmcrispr/module-token": "*",
-        "@fontsource/ubuntu-mono": "^5.2.8",
+        "@fontsource/jetbrains-mono": "^5.2.8",
         "@heroicons/react": "^2.2.0",
         "@monaco-editor/react": "^4.7.0",
         "@repo/ui": "*",
@@ -110,7 +110,7 @@
         "@astrojs/react": "^6.0.0",
         "@astrojs/starlight": "^0.41.2",
         "@evmcrispr/editor": "*",
-        "@fontsource/ubuntu-mono": "^5.2.8",
+        "@fontsource/jetbrains-mono": "^5.2.8",
         "@repo/ui": "*",
         "@tailwindcss/vite": "^4.3.2",
         "astro": "^7.0.5",
@@ -781,7 +781,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@fontsource/ubuntu-mono": ["@fontsource/ubuntu-mono@5.2.8", "", {}, "sha512-N4nT8+GYWWcDODVSBLU4f3PycZQH9YIF6SypDI0rti3HrLqcXFS9u6wMvAd9vx1FmjAQkYv7Ld9CZ8XYTEOD0A=="],
+    "@fontsource/jetbrains-mono": ["@fontsource/jetbrains-mono@5.2.8", "", {}, "sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ=="],
 
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@20.10.6", "", { "dependencies": { "@types/node": ">=20.0.0", "happy-dom": "^20.10.6" } }, "sha512-Nu/IjRkkNxmeG2ywWsyJSO4d1BrWTqVzxCPL+gXj0b97klhmjd6wLzt6Bx/laNpkZ3WLW7zNCqmtMIbIlahqug=="],
 

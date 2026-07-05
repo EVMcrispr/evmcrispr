@@ -8,22 +8,6 @@
    page's `:root`, `body` or element styles. Portaled surfaces (the
    hover popover) re-apply `.evmcrispr-root` on themselves. */
 
-/* ── Pixel Operator Mono font ────────────────────────────────── */
-@font-face {
-  font-family: "Pixel Operator Mono";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("../fonts/PixelOperatorMono.ttf") format("truetype");
-}
-@font-face {
-  font-family: "Pixel Operator Mono";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/PixelOperatorMono-Bold.ttf") format("truetype");
-}
-
 /* ── Design tokens (scoped, not :root) ───────────────────────── */
 .evmcrispr-root {
   --radius: 0px;
@@ -50,7 +34,7 @@
      toggling between view ↔ edit and opening a hover popover never
      reflows. */
   --terminal-font-mono:
-    "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .evmcrispr-root,
@@ -69,7 +53,7 @@
 }
 
 /* ── Script viewer (Monaco-free read view) ─────────────────────── */
-/* Mirror the editor's typography: Ubuntu Mono at 22px is exactly what
+/* Mirror the editor's typography: JetBrains Mono at 22px is exactly what
    the Monaco instance uses (see MonacoEditor.tsx editorOptions), so
    toggling between view ↔ edit doesn't reflow the script. */
 .evmcrispr-root .evml-viewer {
@@ -161,7 +145,7 @@
 
 /* Hover popover content. Portaled outside `.evml-viewer` (the content
    element carries `.evmcrispr-root` itself), so the typography has to
-   be re-applied here. Ubuntu Mono everywhere keeps prose, code blocks,
+   be re-applied here. JetBrains Mono everywhere keeps prose, code blocks,
    and inline code visually consistent with the highlighted script
    behind the popover. */
 .evml-hover-popover,
