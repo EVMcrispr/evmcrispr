@@ -12,6 +12,13 @@ import {
   terminalStoreActions,
   terminalStoreGet,
 } from "../stores/terminal-store";
+import {
+  getModuleOverview,
+  loadCommandDocs,
+  loadHelperDocs,
+  loadModuleDocs,
+  MODULES,
+} from "./docs";
 
 function currentScript(): string {
   // In view mode the Monaco editor is unmounted; the store holds the script.
@@ -150,5 +157,78 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  return [getScript, editScript, writeScript, validateScript, simulateScript];
+  const listModules = betaZodTool({
+    name: "list_modules",
+    description:
+      "List all EVML modules with a one-line overview of each. Modules other than std must be loaded with `load <module>` before their commands and helpers can be used.",
+    inputSchema: z.object({}),
+    run: async () => {
+      const lines = await Promise.all(
+        MODULES.map(
+          async (name) => `${name} — ${(await getModuleOverview(name)) ?? ""}`,
+        ),
+      );
+      return lines.join("\n");
+    },
+  });
+
+  const describeModule = betaZodTool({
+    name: "describe_module",
+    description:
+      "Get a module's README: what it does plus a table of all its commands and helpers with one-line descriptions. Use get_docs for the full documentation of a specific command or helper.",
+    inputSchema: z.object({
+      module: z.string().describe(`Module name, one of: ${MODULES.join(", ")}`),
+    }),
+    run: async ({ module }) => {
+      const docs = await loadModuleDocs(module);
+      if (!docs)
+        return `ERROR: Unknown module "${module}". Available modules: ${MODULES.join(", ")}.`;
+      return docs;
+    },
+  });
+
+  const getDocs = betaZodTool({
+    name: "get_docs",
+    description:
+      "Get the full documentation of an EVML command or helper: syntax, arguments, options, and examples. Use describe_module to discover available names. Look up syntax you are not sure about instead of guessing.",
+    inputSchema: z.object({
+      module: z
+        .string()
+        .describe(
+          `Module the command/helper belongs to, one of: ${MODULES.join(", ")}`,
+        ),
+      name: z
+        .string()
+        .describe(
+          "Command or helper name, e.g. 'exec', 'token.balance'. Module prefix and '@' are optional.",
+        ),
+      kind: z
+        .enum(["command", "helper"])
+        .optional()
+        .describe("Restrict lookup to commands or helpers"),
+    }),
+    run: async ({ module, name, kind }) => {
+      const bare = name.replace(new RegExp(`^@?(${module}:)?`), "");
+
+      let docs: string | null = null;
+      if (kind !== "helper") docs = await loadCommandDocs(module, bare);
+      if (!docs && kind !== "command")
+        docs = await loadHelperDocs(module, bare);
+
+      if (!docs)
+        return `ERROR: No ${kind ?? "command or helper"} named "${bare}" found in module "${module}". Call describe_module with module "${module}" to list available commands and helpers.`;
+      return docs;
+    },
+  });
+
+  return [
+    getScript,
+    editScript,
+    writeScript,
+    validateScript,
+    simulateScript,
+    listModules,
+    describeModule,
+    getDocs,
+  ];
 }
