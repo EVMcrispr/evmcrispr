@@ -93,6 +93,22 @@ export function createScript(title = "", script = ""): string {
   return id;
 }
 
+/**
+ * Return the id of an existing pristine script (untitled, content still the
+ * untouched placeholder), creating one only if none exists. Pristine
+ * duplicates accumulated from previous sessions are removed, keeping the
+ * most recent one.
+ */
+export function getOrCreatePristineScript(placeholder: string): string {
+  const pristine = getAllScripts().filter(
+    (s) => !s.title && s.script === placeholder,
+  );
+  for (const dup of pristine.slice(1)) {
+    removeScript(dup.id);
+  }
+  return pristine[0]?.id ?? createScript("", placeholder);
+}
+
 // ---------------------------------------------------------------------------
 // Per-script edit log (fine-grained undo history)
 // ---------------------------------------------------------------------------

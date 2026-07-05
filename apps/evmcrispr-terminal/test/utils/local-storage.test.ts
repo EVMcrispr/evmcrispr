@@ -5,6 +5,7 @@ import {
   getAllScripts,
   getEditLog,
   getLastViewedScript,
+  getOrCreatePristineScript,
   getScript,
   removeScript,
   saveEditLog,
@@ -152,6 +153,44 @@ describe("getAllScripts", () => {
     expect(all[0].id).toBe(id3);
     expect(all[1].id).toBe(id2);
     expect(all[2].id).toBe(id1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getOrCreatePristineScript
+// ---------------------------------------------------------------------------
+
+describe("getOrCreatePristineScript", () => {
+  const PLACEHOLDER = "## Example";
+
+  test("creates a script when none is pristine", () => {
+    createScript("Titled", PLACEHOLDER);
+    createScript("", "edited content");
+
+    const id = getOrCreatePristineScript(PLACEHOLDER);
+    const stored = getScript(id)!;
+    expect(stored.title).toBe("");
+    expect(stored.script).toBe(PLACEHOLDER);
+    expect(getAllScripts().length).toBe(3);
+  });
+
+  test("reuses an existing pristine script instead of creating one", () => {
+    const pristineId = createScript("", PLACEHOLDER);
+
+    expect(getOrCreatePristineScript(PLACEHOLDER)).toBe(pristineId);
+    expect(getAllScripts().length).toBe(1);
+  });
+
+  test("prunes duplicate pristine scripts, keeping the most recent", async () => {
+    const oldId = createScript("", PLACEHOLDER);
+    await Bun.sleep(5);
+    const newId = createScript("", PLACEHOLDER);
+    const keptId = createScript("Keep Me", PLACEHOLDER);
+
+    expect(getOrCreatePristineScript(PLACEHOLDER)).toBe(newId);
+    expect(getScript(oldId)).toBeUndefined();
+    expect(getScript(keptId)).toBeDefined();
+    expect(getAllScripts().length).toBe(2);
   });
 });
 

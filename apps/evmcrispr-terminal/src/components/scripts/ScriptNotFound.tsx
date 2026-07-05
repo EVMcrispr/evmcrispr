@@ -5,7 +5,7 @@ import {
   SCRIPT_PLACEHOLDER,
   terminalStoreActions,
 } from "../../stores/terminal-store";
-import { createScript, setLastViewedScript } from "../../utils";
+import { getOrCreatePristineScript, setLastViewedScript } from "../../utils";
 
 const DNA_HELIX = `    ╱╲
    ╱  ╲
@@ -59,7 +59,7 @@ export default function ScriptNotFound({
   const { title, art, lines } = variants[variant];
 
   function handleNewScript() {
-    const id = createScript("", SCRIPT_PLACEHOLDER);
+    const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
     terminalStoreActions("currentScriptId", id);
     terminalStoreActions("title", "");
     terminalStoreActions("script", SCRIPT_PLACEHOLDER);

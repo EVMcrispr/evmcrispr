@@ -7,7 +7,7 @@ import {
   SCRIPT_PLACEHOLDER,
   terminalStoreActions,
 } from "../../stores/terminal-store";
-import { createScript, setLastViewedScript } from "../../utils";
+import { getOrCreatePristineScript, setLastViewedScript } from "../../utils";
 
 export default function NewScriptButton() {
   const navigate = useNavigate();
@@ -15,7 +15,8 @@ export default function NewScriptButton() {
   function handleClick() {
     flushAutoSave();
 
-    const id = createScript("", SCRIPT_PLACEHOLDER);
+    // Reuse an existing untouched script instead of stacking up new ones
+    const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
     terminalStoreActions("currentScriptId", id);
     terminalStoreActions("title", "");
     terminalStoreActions("script", SCRIPT_PLACEHOLDER);

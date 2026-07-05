@@ -5,7 +5,12 @@ import {
   SCRIPT_PLACEHOLDER,
   terminalStoreActions,
 } from "../stores/terminal-store";
-import { createScript, getAllScripts, setLastViewedScript } from "../utils";
+import {
+  createScript,
+  getAllScripts,
+  getOrCreatePristineScript,
+  setLastViewedScript,
+} from "../utils";
 import { migrateFromLegacyStorage } from "../utils/migration";
 import { isCID, useScriptFromId } from "./useStoredScript";
 
@@ -74,7 +79,9 @@ export function useTerminalScript(): {
 
     // No URL or query params: start from a fresh script instead of restoring
     // the previous session. Existing scripts only load through their own URLs.
-    const id = createScript("", SCRIPT_PLACEHOLDER);
+    // Reuse a pristine script from a previous visit so untouched ones don't
+    // pile up in the library.
+    const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
     loadIntoStore(id, "", SCRIPT_PLACEHOLDER);
     navigate(`/${id}`, { replace: true });
   }, [params?.scriptId, navigate]);

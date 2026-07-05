@@ -46,6 +46,20 @@ describe("NewScriptButton", () => {
     expect(newScript!.script).toBe(SCRIPT_PLACEHOLDER);
   });
 
+  test("clicking reuses an existing pristine script instead of creating another", () => {
+    const oldId = createScript("Existing", "old code");
+    const pristineId = createScript("", SCRIPT_PLACEHOLDER);
+    terminalStoreActions("currentScriptId", oldId);
+    terminalStoreActions("title", "Existing");
+    terminalStoreActions("script", "old code");
+
+    renderWithRouter(<NewScriptButton />);
+    fireEvent.click(screen.getByRole("button", { name: "New script" }));
+
+    expect(getAllScripts().length).toBe(2);
+    expect(terminalStoreGet("currentScriptId")).toBe(pristineId);
+  });
+
   test("clicking resets the store to a new script", () => {
     const oldId = createScript("Existing", "old code");
     terminalStoreActions("currentScriptId", oldId);
