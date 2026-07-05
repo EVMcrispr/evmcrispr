@@ -51,4 +51,5 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@token](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
 | [@token.amount](src/helpers/token.amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |
 | [@token.balance](src/helpers/token.balance.md) | `number` | Fetch the token balance of an address in base units. |
+| [@token.format](src/helpers/token.format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
 

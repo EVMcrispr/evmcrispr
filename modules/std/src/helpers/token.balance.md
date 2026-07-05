@@ -32,4 +32,5 @@ set $bal @token.balance(DAI @token(DAI))
 
 - [@token](token.md) — resolve token address
 - [@token.amount](token.amount.md) — convert to base units
+- [@token.format](token.format.md) — format base units as a human-readable string
 - [@get](get.md) — generic contract reads
