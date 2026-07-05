@@ -122,16 +122,22 @@ export function createChatTools(tag: EvmlTag) {
   const simulateScript = betaZodTool({
     name: "simulate_script",
     description:
-      "Simulate the current editor script on a chain fork. Returns a success flag, per-action logs, and the resolved actions. Slow (can take several seconds); nothing is broadcast on-chain.",
+      "Simulate an EVML script on a chain fork: the current editor script, or `script` if given. Returns a success flag, per-action logs, and the resolved actions. `print` output appears in the logs, so a throwaway `print` script doubles as an on-chain read (balances, ENS names, any helper value) without touching the editor. Slow (can take several seconds); nothing is broadcast on-chain.",
     inputSchema: z.object({
+      script: z
+        .string()
+        .optional()
+        .describe(
+          "Script to simulate instead of the editor content (e.g. a `print` one-liner to read on-chain values)",
+        ),
       from: z
         .string()
         .optional()
         .describe("Address to simulate from (defaults to the fork default)"),
       blockNumber: z.number().optional().describe("Fork at this block number"),
     }),
-    run: async ({ from, blockNumber }) => {
-      const result = await tag.script(currentScript()).simulate({
+    run: async ({ script, from, blockNumber }) => {
+      const result = await tag.script(script ?? currentScript()).simulate({
         from: from as Address | undefined,
         blockNumber,
       });
