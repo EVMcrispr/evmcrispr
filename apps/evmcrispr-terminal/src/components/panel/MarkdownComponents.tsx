@@ -78,9 +78,41 @@ function Table({ children, ...props }: React.ComponentProps<"table">) {
   );
 }
 
-export const markdownComponents: Components = {
-  pre: Pre,
-  code: InlineCode,
-  a: Anchor,
-  table: Table,
-};
+/**
+ * How a markdown link should behave: a callback opens it inside the panel,
+ * "plain" renders non-clickable text (unresolvable doc link), and null falls
+ * back to a regular external link.
+ */
+export type DocLinkResolution = (() => void) | "plain" | null;
+
+export function createMarkdownComponents(
+  resolveDocLink?: (href: string) => DocLinkResolution,
+): Components {
+  return {
+    pre: Pre,
+    code: InlineCode,
+    a: ({ href, children, ...props }) => {
+      const resolution = href ? (resolveDocLink?.(href) ?? null) : null;
+      if (typeof resolution === "function") {
+        return (
+          <button
+            type="button"
+            onClick={resolution}
+            className="text-evm-green-300 underline"
+          >
+            {children}
+          </button>
+        );
+      }
+      if (resolution === "plain") return <span>{children}</span>;
+      return (
+        <Anchor href={href} {...props}>
+          {children}
+        </Anchor>
+      );
+    },
+    table: Table,
+  };
+}
+
+export const markdownComponents: Components = createMarkdownComponents();
