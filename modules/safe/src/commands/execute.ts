@@ -15,7 +15,7 @@ import {
 } from "../utils";
 
 export default defineCommand<Safe>({
-  name: "exec",
+  name: "execute",
   description:
     "Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash.",
   batchable: false,
@@ -84,7 +84,7 @@ export default defineCommand<Safe>({
       module,
       safe,
       proposal as BlockExpressionNode,
-      "safe:exec",
+      "safe:execute",
       interpreters,
     );
 

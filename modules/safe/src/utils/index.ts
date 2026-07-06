@@ -22,7 +22,7 @@ export const toBigInt = (value: unknown): bigint => {
 };
 
 /**
- * Interpret the trailing block of `safe:propose` / `safe:exec` with the
+ * Interpret the trailing block of `safe:propose` / `safe:execute` with the
  * target Safe pushed as the module's current Safe context, and collect the
  * inner transaction actions.
  */
@@ -37,10 +37,10 @@ export const interpretSafeBlock = async (
   let pushed = false;
   try {
     actions = (await interpreters.interpretNode(block, {
-      // Resolve unprefixed commands inside the block against std so that
-      // `exec`/`batch` keep their usual meaning (the module's own `exec`
-      // would shadow std's otherwise); safe commands take the `safe:` prefix.
-      blockModule: "std",
+      // Safe commands work unprefixed inside the block (like aragonos
+      // connect); std commands (`exec`, `batch`, …) resolve via the usual
+      // std fallback since no safe command shadows them.
+      blockModule: module.contextualName,
       blockInitializer: async () => {
         module.pushSafe(safe);
         pushed = true;

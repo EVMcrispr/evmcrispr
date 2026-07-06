@@ -4,7 +4,7 @@ import { commands, helpers } from "./_generated";
 
 export default class Safe extends defineModule("safe", commands, helpers) {
   /** Active nesting stack (push/pop). Tracks the Safe targeted by the
-   *  enclosing `safe:propose` / `safe:exec` block, if any. */
+   *  enclosing `safe:propose` / `safe:execute` block, if any. */
   #safeStack: Address[];
 
   constructor(context: ModuleContext, alias?: string) {

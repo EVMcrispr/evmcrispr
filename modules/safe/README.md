@@ -15,7 +15,7 @@ load safe
 | [safe:delegate-exec](src/commands/delegate-exec.md) | Call a contract function via DELEGATECALL from the Safe. The code runs in the storage context of the Safe — only use audited libraries you trust. |
 | [safe:disable-module](src/commands/disable-module.md) | Disable a module on the Safe. |
 | [safe:enable-module](src/commands/enable-module.md) | Enable a module on the Safe, allowing it to execute transactions without owner signatures (e.g. a Zodiac module). |
-| [safe:exec](src/commands/exec.md) | Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash. |
+| [safe:execute](src/commands/execute.md) | Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash. |
 | [safe:install-delay](src/commands/install-delay.md) | Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module. |
 | [safe:install-roles](src/commands/install-roles.md) | Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and enable it as a module. |
 | [safe:install-scope-guard](src/commands/install-scope-guard.md) | Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard of the Safe, limiting which targets and functions owners can call. |

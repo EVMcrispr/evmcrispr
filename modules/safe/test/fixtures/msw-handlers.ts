@@ -2,7 +2,7 @@ import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 
 /** Mutable in-memory Safe Transaction Service used by the tests: proposals
  *  POSTed by `safe:propose` land in `proposals`; queued transactions for
- *  `safe:exec <hash>` are seeded into `transactions`. */
+ *  `safe:execute <hash>` are seeded into `transactions`. */
 export const serviceState = {
   proposals: [] as any[],
   transactions: new Map<string, any>(),

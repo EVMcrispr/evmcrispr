@@ -338,12 +338,24 @@ describe("Analysis > semantic diagnostics", () => {
     });
 
     it("honors createsBatchContext on non-std commands", async () => {
-      // A module command (governor:propose, safe:exec, …) that opens its own
+      // A module command (governor:propose, safe:execute, …) that opens its own
       // batch context rejects non-batchable commands in its block too.
       const ds = await semantic("load stub\nstub:openbatch (\n  stub:nob\n)");
       const d = ds.find((x) => x.code === "not-batchable");
       expect(d).to.exist;
       expect(d!.message).to.match(/cannot be used inside stub:openbatch/);
+    });
+  });
+
+  describe("block body module scope", () => {
+    it("resolves unprefixed commands against the block command's module, with std fallback", async () => {
+      // Inside stub:blockcmd, `needtwo` is stub's command (unprefixed) and
+      // `wait` falls back to std since stub declares no `wait`. This mirrors
+      // the runtime scope-module resolution (safe:propose, connect, …).
+      const ds = await semantic(
+        "load stub\nstub:blockcmd (\n  needtwo a b\n  wait 60\n)",
+      );
+      expect(ds).to.deep.equal([]);
     });
   });
 

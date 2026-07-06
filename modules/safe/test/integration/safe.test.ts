@@ -186,7 +186,7 @@ describe("Safe > integration", () => {
   });
 
   it("executes a single-action block through execTransaction", async () => {
-    await run(`load safe\nsafe:exec ${safe} (\n  safe:add-owner ${ownerB}\n)`);
+    await run(`load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerB}\n)`);
 
     expect(await getOwners()).to.eql([ownerB, ownerA]);
     expect(await getThreshold()).to.equal(1n);
@@ -205,7 +205,7 @@ describe("Safe > integration", () => {
     delay = predictZodiacModuleAddress(mastercopy, initializer, 0n);
 
     await run(
-      `load safe\nsafe:exec ${safe} (\n  safe:add-owner ${ownerC}\n  safe:install-delay 3600\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerC}\n  safe:install-delay 3600\n)`,
     );
 
     expect(await getOwners()).to.eql([ownerC, ownerB, ownerA]);
@@ -229,7 +229,7 @@ describe("Safe > integration", () => {
 
   it("swaps an owner", async () => {
     await run(
-      `load safe\nsafe:exec ${safe} (\n  safe:swap-owner ${ownerC} ${ownerD}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:swap-owner ${ownerC} ${ownerD}\n)`,
     );
 
     expect(await getOwners()).to.eql([ownerD, ownerB, ownerA]);
@@ -237,7 +237,7 @@ describe("Safe > integration", () => {
 
   it("removes an owner", async () => {
     await run(
-      `load safe\nsafe:exec ${safe} (\n  safe:remove-owner ${ownerD}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:remove-owner ${ownerD}\n)`,
     );
 
     expect(await getOwners()).to.eql([ownerB, ownerA]);
@@ -245,7 +245,7 @@ describe("Safe > integration", () => {
 
   it("disables a module", async () => {
     await run(
-      `load safe\nsafe:exec ${safe} (\n  safe:disable-module ${delay}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:disable-module ${delay}\n)`,
     );
 
     expect(
@@ -332,11 +332,11 @@ describe("Safe > integration", () => {
 
   it("executes a fully-confirmed queued transaction by hash", async () => {
     // Raise the threshold to 2 so direct block execution is rejected...
-    await run(`load safe\nsafe:exec ${safe} (\n  safe:change-threshold 2\n)`);
+    await run(`load safe\nsafe:execute ${safe} (\n  safe:change-threshold 2\n)`);
     expect(await getThreshold()).to.equal(2n);
 
     const execError = await run(
-      `load safe\nsafe:exec ${safe} (\n  safe:remove-guard\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:remove-guard\n)`,
     ).then(
       () => null,
       (err) => err,
@@ -416,7 +416,7 @@ describe("Safe > integration", () => {
       ],
     });
 
-    await run(`load safe\nsafe:exec ${safe} ${safeTxHash}`);
+    await run(`load safe\nsafe:execute ${safe} ${safeTxHash}`);
 
     expect(await getThreshold()).to.equal(1n);
   });
@@ -429,7 +429,7 @@ describe("Safe > integration", () => {
       (err) => err,
     );
     expect(String(error?.message)).to.include(
-      "can only be used inside a safe:propose or safe:exec block",
+      "can only be used inside a safe:propose or safe:execute block",
     );
   });
 });

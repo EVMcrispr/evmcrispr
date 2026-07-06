@@ -26,7 +26,7 @@ export default defineCommand<Safe>({
   async run(module, { contractAddress, signature, params }) {
     if (!module.currentSafe) {
       throw new ErrorException(
-        "safe:delegate-exec can only be used inside a safe:propose or safe:exec block",
+        "safe:delegate-exec can only be used inside a safe:propose or safe:execute block",
       );
     }
 
