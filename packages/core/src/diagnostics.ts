@@ -46,14 +46,31 @@ export function parseDiagnosticString(error: string): ParseDiagnostic | null {
   };
 }
 
+/** Append a hint when a parse error sits on or right before a comma — the
+ *  most common EVML mistake is comma-separating arguments or array
+ *  elements, which the generic expression error does not explain. */
+function withCommaHint(d: ParseDiagnostic, lines: string[]): ParseDiagnostic {
+  if (d.source !== "parser") return d;
+  const rest = lines[d.line - 1]?.slice(d.col) ?? "";
+  // Token from the error column to the next whitespace or closer.
+  const token = rest.match(/^[^\s)\]]*/)?.[0] ?? "";
+  if (!token.includes(",") && !rest.trimStart().startsWith(",")) return d;
+  return {
+    ...d,
+    message: `${d.message}. Did you separate arguments with commas? EVML arguments are space-separated, e.g. @token.balance(DAI @me) or [1 2 3]`,
+  };
+}
+
 /** Return parse diagnostics (errors) for the given script.
  *  Synchronous; never throws. */
 export function getDiagnostics(script: string): ParseDiagnostic[] {
   try {
     const { errors } = parseScript(script);
+    const lines = script.split("\n");
     return errors
       .map(parseDiagnosticString)
-      .filter((d): d is ParseDiagnostic => d !== null);
+      .filter((d): d is ParseDiagnostic => d !== null)
+      .map((d) => withCommaHint(d, lines));
   } catch {
     return [];
   }

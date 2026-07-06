@@ -70,4 +70,36 @@ describe("Core > getDiagnostics", () => {
   it("never throws on broken input", () => {
     expect(getDiagnostics(")))((())?!@#$%")).to.be.an("array");
   });
+
+  describe("comma hint", () => {
+    it("hints when helper arguments are comma-separated", () => {
+      const ds = getDiagnostics("set $x @token.balance(DAI, @me)");
+      expect(ds.length).to.be.greaterThan(0);
+      expect(
+        ds.some((d) => /space-separated/.test(d.message)),
+        JSON.stringify(ds),
+      ).to.equal(true);
+    });
+
+    it("hints when array elements are comma-separated", () => {
+      const ds = getDiagnostics('set $x ["a", "b"]');
+      expect(
+        ds.some((d) => /space-separated/.test(d.message)),
+        JSON.stringify(ds),
+      ).to.equal(true);
+    });
+
+    it("does not hint on comma-free parse errors", () => {
+      const ds = getDiagnostics("set $x )");
+      expect(ds.some((d) => /space-separated/.test(d.message))).to.equal(false);
+    });
+
+    it("does not flag commas inside ABI signatures", () => {
+      // Commas inside signature barewords are valid Solidity syntax.
+      const ds = getDiagnostics(
+        "exec 0x44fA8E6f47987339850636F88629646662444217 transfer(address,uint256) @me 1",
+      );
+      expect(ds).to.deep.equal([]);
+    });
+  });
 });
