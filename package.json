@@ -19,6 +19,7 @@
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
     "generate-docs": "bun scripts/generate-docs.ts",
+    "validate-docs": "bun scripts/validate-docs.ts",
     "dev:website": "bun --filter evmcrispr-website dev",
     "dev:mcp": "bun --filter evmcrispr-mcp dev",
     "dev": "turbo run dev"

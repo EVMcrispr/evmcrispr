@@ -9,7 +9,7 @@ Admin role that controls a role: a bytes32 value on AccessControl contracts, a r
 ## Syntax
 
 ```evml
-@access-control:access-control.roleAdmin(target, role)
+@access-control:access-control.roleAdmin(target role)
 ```
 
 ## Arguments
@@ -25,6 +25,9 @@ Admin role that controls a role: a bytes32 value on AccessControl contracts, a r
 
 ```evml
 load access-control
+
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # bytes32 admin role of an AccessControl role
 print @access-control.roleAdmin($token MINTER_ROLE)

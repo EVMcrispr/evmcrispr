@@ -9,7 +9,7 @@ Sort an array using a comparator helper.
 ## Syntax
 
 ```evml
-@sort(arr, fn)
+@sort(arr fn)
 ```
 
 ## Arguments

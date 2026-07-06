@@ -9,7 +9,7 @@ Combine two arrays element-wise into an array of pairs.
 ## Syntax
 
 ```evml
-@zip(a, b)
+@zip(a b)
 ```
 
 ## Arguments

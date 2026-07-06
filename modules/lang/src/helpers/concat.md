@@ -9,7 +9,7 @@ Concatenate arrays together.
 ## Syntax
 
 ```evml
-@concat(first, ...rest)
+@concat(first ...rest)
 ```
 
 ## Arguments

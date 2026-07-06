@@ -9,7 +9,7 @@ Convert a value to its string representation, or decode hex bytes as UTF-8.
 ## Syntax
 
 ```evml
-@str(value, encoding?)
+@str(value encoding?)
 ```
 
 ## Arguments

@@ -9,7 +9,7 @@ Proposal id of a Governor proposal, derived from its targets, values, calldatas 
 ## Syntax
 
 ```evml
-@governor:governor.proposalId(governor, targets, values, calldatas, description)
+@governor:governor.proposalId(governor targets values calldatas description)
 ```
 
 ## Arguments
@@ -28,6 +28,9 @@ Proposal id of a Governor proposal, derived from its targets, values, calldatas 
 
 ```evml
 load governor
+
+set $governor 0x44fA8E6f47987339850636F88629646662444217
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 set $id @governor.proposalId($governor [$token] [0]
   [0xa9059cbb0000000000000000000000004f2083f5fbede34c2714affb3105539775f7fe640000000000000000000000000000000000000000000000056bc75e2d63100000]

@@ -24,6 +24,7 @@ token:burn <token> <amount>
 ```evml
 load token
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 token:burn $token 100e18
 ```
 

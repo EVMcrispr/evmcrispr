@@ -46,6 +46,9 @@ send 0x44fA8E6f47987339850636F88629646662444217 --value 1e18
 Like `exec`, `send` supports error captures (`-!>` / `-?!>`):
 
 ```evml
+set $contract 0x44fA8E6f47987339850636F88629646662444217
+set $calldata 0xa3fdfee3
+
 # Assert the call reverts with a specific error
 send $contract --data 0xa3fdfee3 -!> Unauthorized()
 

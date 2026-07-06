@@ -61,6 +61,8 @@ exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0
 Error captures (`-!>` / `-?!>`) catch transaction reverts and decode the error data into variables. Three forms are available after the error name: nothing (assertion only), destructure (`[...]`), or a boolean variable (`$var`).
 
 ```evml
+set $c 0x44fA8E6f47987339850636F88629646662444217
+
 # Assert a specific error without capturing data
 exec $c "deny()" -!> Unauthorized()
 

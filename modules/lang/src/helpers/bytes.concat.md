@@ -9,7 +9,7 @@ Concatenate bytes values together.
 ## Syntax
 
 ```evml
-@bytes.concat(first, ...rest)
+@bytes.concat(first ...rest)
 ```
 
 ## Arguments

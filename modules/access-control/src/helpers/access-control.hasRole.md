@@ -9,7 +9,7 @@ Whether an account holds a role on an AccessControl contract (string roles) or a
 ## Syntax
 
 ```evml
-@access-control:access-control.hasRole(target, role, account)
+@access-control:access-control.hasRole(target role account)
 ```
 
 ## Arguments
@@ -26,6 +26,9 @@ Whether an account holds a role on an AccessControl contract (string roles) or a
 
 ```evml
 load access-control
+
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # AccessControl role names are hashed automatically
 print @access-control.hasRole($token MINTER_ROLE @me)

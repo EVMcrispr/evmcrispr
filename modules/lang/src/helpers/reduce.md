@@ -9,7 +9,7 @@ Reduce an array to a single value by applying a helper.
 ## Syntax
 
 ```evml
-@reduce(arr, fn, initial)
+@reduce(arr fn initial)
 ```
 
 ## Arguments

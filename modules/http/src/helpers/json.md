@@ -9,7 +9,7 @@ Parse a JSON string and extract a value by path.
 ## Syntax
 
 ```evml
-@http:json(data, path)
+@http:json(data path)
 ```
 
 ## Arguments

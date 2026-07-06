@@ -9,7 +9,7 @@ Format a number with decimal places (like formatUnits).
 ## Syntax
 
 ```evml
-@num.format(value, decimals)
+@num.format(value decimals)
 ```
 
 ## Arguments

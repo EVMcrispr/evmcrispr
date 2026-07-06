@@ -9,7 +9,7 @@ Estimate the gas required for a contract call.
 ## Syntax
 
 ```evml
-@gas.estimate(address, signature, ...params)
+@gas.estimate(address signature ...params)
 ```
 
 ## Arguments

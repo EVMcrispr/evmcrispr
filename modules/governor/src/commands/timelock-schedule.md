@@ -34,6 +34,10 @@ governor:timelock-schedule [variable] <timelock> <delay> <actions>
 load governor
 load access-control
 
+set $timelock 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $grantee 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+
 # Schedule a batch and remember its operation id
 governor:timelock-schedule $opId $timelock 172800 (
   exec $token transfer(address,uint256) $grantee 100e18

@@ -25,6 +25,7 @@ Pending owner of an Ownable2Step contract (the zero address when no transfer is 
 ```evml
 load access-control
 
+set $contract 0x44fA8E6f47987339850636F88629646662444217
 print @access-control.pendingOwner($contract)
 ```
 

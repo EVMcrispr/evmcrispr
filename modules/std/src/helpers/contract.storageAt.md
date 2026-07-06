@@ -9,7 +9,7 @@ Read a raw storage slot of a contract.
 ## Syntax
 
 ```evml
-@contract.storageAt(address, slot)
+@contract.storageAt(address slot)
 ```
 
 ## Arguments

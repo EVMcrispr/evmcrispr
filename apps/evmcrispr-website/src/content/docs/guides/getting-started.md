@@ -66,9 +66,11 @@ print "Balance:" $balance
 Wrap multiple commands in `batch` to execute them as a single transaction:
 
 ```evml
+set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+
 batch (
-  exec @token(DAI) "approve(address,uint256)" 0xRouter... @token.amount(DAI 1000)
-  exec 0xRouter... "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+  exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
+  exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
 )
 ```
 
@@ -89,10 +91,12 @@ Test your scripts without spending gas by loading the `sim` module:
 ```evml
 load sim
 
-sim:fork 1 (
+set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+
+sim:fork (
   sim:set-balance @me 100e18
-  exec @token(DAI) "transfer(address,uint256)" 0x1234...abcd @token.amount(DAI 50)
-  sim:expect @bool(@get(@token(DAI) "balanceOf(address)(uint256)" 0x1234...abcd) > 0)
+  exec @token(DAI) "transfer(address,uint256)" $recipient @token.amount(DAI 50)
+  sim:expect @bool(@get(@token(DAI) "balanceOf(address)(uint256)" $recipient) > 0)
 )
 ```
 
@@ -102,8 +106,8 @@ sim:fork 1 (
 load aragonos
 
 aragonos:connect my-dao.aragonid.eth (
-  aragonos:grant @me voting CREATE_VOTES_ROLE
-  aragonos:install $agent agent:new
+  grant @me @app(voting) CREATE_VOTES_ROLE
+  install $agent agent:new-app
 )
 ```
 

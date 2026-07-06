@@ -25,6 +25,9 @@ token:set-approval-for-all <token> <operator> <approved>
 ```evml
 load token
 
+set $nft 0x22C1f6050E56d2876009903609a2cC3fEf83B415
+set $operator 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+
 token:set-approval-for-all $nft $operator true
 
 # Revoke the operator

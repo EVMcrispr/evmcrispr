@@ -9,7 +9,7 @@ Access a character by index in a string.
 ## Syntax
 
 ```evml
-@str.at(value, index)
+@str.at(value index)
 ```
 
 ## Arguments

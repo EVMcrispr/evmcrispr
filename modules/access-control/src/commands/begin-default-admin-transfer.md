@@ -24,6 +24,7 @@ access-control:begin-default-admin-transfer <contract> <newAdmin>
 ```evml
 load access-control
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 access-control:begin-default-admin-transfer $token 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 

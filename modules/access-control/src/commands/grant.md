@@ -31,6 +31,9 @@ access-control:grant <target> <role> <account>
 ```evml
 load access-control
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+
 # AccessControl: role names are hashed with keccak256
 access-control:grant $token MINTER_ROLE @me
 access-control:grant $token DEFAULT_ADMIN_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64

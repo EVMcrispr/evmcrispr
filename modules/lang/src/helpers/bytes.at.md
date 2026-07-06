@@ -9,7 +9,7 @@ Access a single byte by index in a bytes value.
 ## Syntax
 
 ```evml
-@bytes.at(value, index)
+@bytes.at(value index)
 ```
 
 ## Arguments

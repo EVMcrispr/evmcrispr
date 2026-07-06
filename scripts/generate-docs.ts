@@ -705,7 +705,7 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
       return a.name;
     });
     lines.push("```evml");
-    lines.push(`@${fullName}(${argParts.join(", ")})`);
+    lines.push(`@${fullName}(${argParts.join(" ")})`);
     lines.push("```");
   } else {
     lines.push("```evml");

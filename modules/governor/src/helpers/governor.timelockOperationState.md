@@ -9,7 +9,7 @@ State of a TimelockController operation: Unset, Waiting, Ready or Done.
 ## Syntax
 
 ```evml
-@governor:governor.timelockOperationState(timelock, operationId)
+@governor:governor.timelockOperationState(timelock operationId)
 ```
 
 ## Arguments
@@ -25,6 +25,9 @@ State of a TimelockController operation: Unset, Waiting, Ready or Done.
 
 ```evml
 load governor
+
+set $timelock 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+set $opId 0x83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1
 
 print @governor.timelockOperationState($timelock $opId)
 ```

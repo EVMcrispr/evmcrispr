@@ -9,7 +9,7 @@ Total price in wei to register or renew a .eth name for a duration.
 ## Syntax
 
 ```evml
-@ens:ens.rentPrice(name, duration)
+@ens:ens.rentPrice(name duration)
 ```
 
 ## Arguments

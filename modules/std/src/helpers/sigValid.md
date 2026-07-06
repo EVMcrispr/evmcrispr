@@ -9,7 +9,7 @@ Verify a signature against an expected signer address. Auto-detects EIP-712 type
 ## Syntax
 
 ```evml
-@sigValid(address, data, signature)
+@sigValid(address data signature)
 ```
 
 ## Arguments

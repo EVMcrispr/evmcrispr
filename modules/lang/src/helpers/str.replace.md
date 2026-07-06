@@ -9,7 +9,7 @@ Replace all occurrences of a substring.
 ## Syntax
 
 ```evml
-@str.replace(s, old, replacement)
+@str.replace(s old replacement)
 ```
 
 ## Arguments

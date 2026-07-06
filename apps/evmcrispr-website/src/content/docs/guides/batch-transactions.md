@@ -10,9 +10,11 @@ This guide covers how batching works and when to use it.
 Wrap commands in `batch` to combine them into one transaction:
 
 ```evml
+set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+
 batch (
-  exec @token(DAI) "approve(address,uint256)" 0xRouter... @token.amount(DAI 1000)
-  exec 0xRouter... "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+  exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
+  exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
 )
 ```
 
@@ -30,6 +32,8 @@ Both the approve and swap happen atomically — if either fails, both revert.
 You can capture events emitted during the entire batch:
 
 ```evml
+set $wxdai 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d
+
 batch (
   exec $wxdai "deposit()" --value 0.001e18
   exec $wxdai "withdraw(uint)" 0.001e18
@@ -42,6 +46,8 @@ You can capture revert errors from the entire batch. All three forms work:
 assertion only, destructure, or boolean variable.
 
 ```evml
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 # Destructure the error reason
 batch (
   exec $token "transfer(address,uint256)" @me 100e18
@@ -63,8 +69,10 @@ batch (
 Batches can contain control flow and other constructs:
 
 ```evml
+set $recipients [0x4F2083f5fBede34C2714aFfb3105539775f7FE64 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6]
+
 batch (
-  for $addr of $recipients (
+  loop $addr of $recipients (
     exec @token(DAI) "transfer(address,uint256)" $addr @token.amount(DAI 100)
   )
 )
@@ -76,8 +84,10 @@ By default, each `exec` command produces a separate transaction. Without
 `batch`, a script like:
 
 ```evml
-exec @token(DAI) "approve(address,uint256)" 0xRouter... @token.amount(DAI 1000)
-exec 0xRouter... "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+
+exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
+exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
 ```
 
 would submit two separate transactions — the second could fail independently

@@ -9,7 +9,7 @@ Convert a human-readable token amount to its base unit (applying decimals).
 ## Syntax
 
 ```evml
-@token.amount(tokenSymbolOrAddress, amount)
+@token.amount(tokenSymbolOrAddress amount)
 ```
 
 ## Arguments

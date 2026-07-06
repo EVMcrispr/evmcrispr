@@ -9,7 +9,7 @@ Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone 
 ## Syntax
 
 ```evml
-@proxies:proxies.predictClone(implementation, salt, deployer?)
+@proxies:proxies.predictClone(implementation salt deployer?)
 ```
 
 ## Arguments
@@ -26,6 +26,8 @@ Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone 
 
 ```evml
 load proxies
+
+set $implementation 0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9
 
 set $predicted @proxies.predictClone($implementation 0x0000000000000000000000000000000000000000000000000000000000000001)
 proxies:clone $clone $implementation --salt 0x0000000000000000000000000000000000000000000000000000000000000001

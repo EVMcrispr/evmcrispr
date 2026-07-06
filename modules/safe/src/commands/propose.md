@@ -33,6 +33,7 @@ Propose a token transfer to the Safe queue:
 ```evml
 load safe
 
+set $receiver 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 safe:propose @ens(mysafe.eth) (
   exec @token(DAI) transfer(address,uint256) $receiver 100e18
 )
@@ -43,6 +44,9 @@ manage the Safe itself from inside the block:
 
 ```evml
 load safe
+
+set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
+set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 safe:propose $mySafe (
   exec @token(DAI) approve(address,uint256) $spender 100e18

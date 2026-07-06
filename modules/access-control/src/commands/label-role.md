@@ -25,6 +25,7 @@ access-control:label-role <manager> <roleId> <label>
 ```evml
 load access-control
 
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 access-control:label-role $manager 42 "Treasury manager"
 ```
 

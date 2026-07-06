@@ -9,7 +9,7 @@ Generate an array of sequential integers from start (inclusive) to end (exclusiv
 ## Syntax
 
 ```evml
-@arr(start, end)
+@arr(start end)
 ```
 
 ## Arguments

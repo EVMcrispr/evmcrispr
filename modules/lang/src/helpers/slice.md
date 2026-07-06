@@ -9,7 +9,7 @@ Extract a section of an array.
 ## Syntax
 
 ```evml
-@slice(value, start, end?)
+@slice(value start end?)
 ```
 
 ## Arguments

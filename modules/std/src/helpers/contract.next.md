@@ -9,7 +9,7 @@ Predict the next contract address deployed by a given account.
 ## Syntax
 
 ```evml
-@contract.next(creator, offset?)
+@contract.next(creator offset?)
 ```
 
 ## Arguments

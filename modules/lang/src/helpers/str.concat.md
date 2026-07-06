@@ -9,7 +9,7 @@ Concatenate strings together.
 ## Syntax
 
 ```evml
-@str.concat(first, ...rest)
+@str.concat(first ...rest)
 ```
 
 ## Arguments

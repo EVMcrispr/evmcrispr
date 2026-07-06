@@ -25,6 +25,8 @@ access-control:set-role-admin <manager> <roleId> <adminRoleId>
 ```evml
 load access-control
 
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+
 # Let role 2 manage grants and revocations of role 42
 access-control:set-role-admin $manager 42 2
 ```

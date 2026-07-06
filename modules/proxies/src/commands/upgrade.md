@@ -26,6 +26,8 @@ proxies:upgrade <proxy> <implementation> [signature] [...params]
 ```evml
 load proxies
 
+set $proxy 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 # Plain upgrade (transparent or UUPS is detected automatically)
 proxies:upgrade $proxy 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 

@@ -33,13 +33,21 @@ batch (
 Error captures on a batch catch the combined transaction revert:
 
 ```evml
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 batch (
   exec $token "transfer(address,uint256)" @me 100e18
 ) -!> Error(string) [$reason]
 
-# Assertion only, boolean variable, and optional forms all work
-batch (...) -!> Unauthorized()
-batch (...) -?!> Unauthorized() $reverted
+# Assertion only: assert the batch reverts with a specific error
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -!> Unauthorized()
+
+# Optional form with a boolean variable ($reverted = "true"/"false")
+batch (
+  exec $token "transfer(address,uint256)" @me 100e18
+) -?!> Unauthorized() $reverted
 ```
 
 ## Notes

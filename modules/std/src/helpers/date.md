@@ -9,7 +9,7 @@ Parse a date string into a Unix timestamp, with an optional offset.
 ## Syntax
 
 ```evml
-@date(date, offset?)
+@date(date offset?)
 ```
 
 ## Arguments

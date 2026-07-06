@@ -24,6 +24,7 @@ proxies:upgrade-beacon <beacon> <implementation>
 ```evml
 load proxies
 
+set $beacon 0xabcdef0123456789abcdef0123456789abcdef01
 proxies:upgrade-beacon $beacon 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 

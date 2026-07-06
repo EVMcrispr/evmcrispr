@@ -24,6 +24,8 @@ access-control:change-default-admin-delay <contract> <delay>
 ```evml
 load access-control
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 # Move to a 5-day delay for future admin transfers
 access-control:change-default-admin-delay $token 432000
 ```

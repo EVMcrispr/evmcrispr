@@ -31,6 +31,9 @@ governor:vote <governor> <proposalId> <support>
 ```evml
 load governor
 
+set $governor 0x44fA8E6f47987339850636F88629646662444217
+set $proposalId 42
+
 governor:vote $governor $proposalId for
 governor:vote $governor $proposalId against --reason "Treasury impact is too high"
 governor:vote $governor $proposalId abstain

@@ -39,13 +39,16 @@ assertions:assert @token(WETH)::balanceOf(@me) >= @token.amount(WETH 10) "insuff
 assertions:assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token.amount(WETH 10) "insufficient bal"
 
 # Select a tuple element with a destructure lens ($ marks the element)
-assertions:assert @pool::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"
+set $pool 0x44fA8E6f47987339850636F88629646662444217
+assertions:assert $pool::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"
 
 # Approximate comparison with an allowed delta
-assertions:assert @oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out of range"
+set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
+assertions:assert $oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out of range"
 
 # Bare boolean assertion (asserts the return is true)
-assertions:assert @gov::{paused()(bool)}
+set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+assertions:assert $gov::{paused()(bool)}
 ```
 
 ## Notes

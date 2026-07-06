@@ -9,7 +9,7 @@ Return true if every element satisfies the predicate.
 ## Syntax
 
 ```evml
-@all(arr, fn)
+@all(arr fn)
 ```
 
 ## Arguments

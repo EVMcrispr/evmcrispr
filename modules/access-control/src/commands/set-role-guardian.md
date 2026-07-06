@@ -25,6 +25,8 @@ access-control:set-role-guardian <manager> <roleId> <guardianRoleId>
 ```evml
 load access-control
 
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+
 # Let role 3 cancel scheduled operations of role 42 members
 access-control:set-role-guardian $manager 42 3
 ```

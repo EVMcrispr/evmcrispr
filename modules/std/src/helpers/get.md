@@ -9,7 +9,7 @@ Call a read-only contract function and return its result.
 ## Syntax
 
 ```evml
-@get(address, abi, ...params)
+@get(address abi ...params)
 ```
 
 ## Arguments

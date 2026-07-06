@@ -9,7 +9,7 @@ Parse a decimal string with a given number of decimals (like parseUnits).
 ## Syntax
 
 ```evml
-@num.parse(value, decimals)
+@num.parse(value decimals)
 ```
 
 ## Arguments

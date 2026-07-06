@@ -24,6 +24,9 @@ access-control:renounce <target> <role>
 ```evml
 load access-control
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+
 access-control:renounce $token MINTER_ROLE
 access-control:renounce $manager 42
 ```

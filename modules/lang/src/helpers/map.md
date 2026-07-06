@@ -9,7 +9,7 @@ Transform each element of an array by applying a helper.
 ## Syntax
 
 ```evml
-@map(arr, fn)
+@map(arr fn)
 ```
 
 ## Arguments

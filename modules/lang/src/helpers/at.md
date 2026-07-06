@@ -9,7 +9,7 @@ Access an element by index in an array.
 ## Syntax
 
 ```evml
-@at(value, index)
+@at(value index)
 ```
 
 ## Arguments

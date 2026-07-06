@@ -26,6 +26,9 @@ access-control:set-target-function-role <manager> <target> <roleId> <signatures>
 ```evml
 load access-control
 
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 # Require role 42 to mint or burn on the managed token
 access-control:set-target-function-role $manager $token 42 ["mint(address,uint256)" "burn(uint256)"]
 

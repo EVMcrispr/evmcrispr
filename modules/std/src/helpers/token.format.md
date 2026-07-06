@@ -9,7 +9,7 @@ Format a base-unit token amount as a human-readable string with the token symbol
 ## Syntax
 
 ```evml
-@token.format(tokenSymbolOrAddress, amount)
+@token.format(tokenSymbolOrAddress amount)
 ```
 
 ## Arguments

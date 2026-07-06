@@ -9,7 +9,7 @@ Fetch a URL and return the response body as a string.
 ## Syntax
 
 ```evml
-@http:fetch(url, method?, body?, auth?)
+@http:fetch(url method? body? auth?)
 ```
 
 ## Arguments

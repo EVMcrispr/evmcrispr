@@ -9,7 +9,7 @@ Keep elements of an array for which a helper returns truthy.
 ## Syntax
 
 ```evml
-@filter(arr, fn)
+@filter(arr fn)
 ```
 
 ## Arguments

@@ -9,7 +9,7 @@ Check whether a string contains a substring.
 ## Syntax
 
 ```evml
-@str.includes(value, item)
+@str.includes(value item)
 ```
 
 ## Arguments

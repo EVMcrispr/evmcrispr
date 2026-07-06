@@ -9,7 +9,7 @@ Decode ABI-encoded bytes into values given a comma-separated type list.
 ## Syntax
 
 ```evml
-@abi.decode(types, data)
+@abi.decode(types data)
 ```
 
 ## Arguments

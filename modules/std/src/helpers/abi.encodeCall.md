@@ -9,7 +9,7 @@ ABI-encode a function call from its signature and arguments.
 ## Syntax
 
 ```evml
-@abi.encodeCall(signature, ...params)
+@abi.encodeCall(signature ...params)
 ```
 
 ## Arguments

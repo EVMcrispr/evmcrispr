@@ -22,6 +22,7 @@ wait <duration>
 
 ```evml
 # Wait a minute between two transactions
+set $contract 0x44fA8E6f47987339850636F88629646662444217
 exec $contract start()
 wait 60
 exec $contract finish()

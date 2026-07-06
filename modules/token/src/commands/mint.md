@@ -25,6 +25,7 @@ token:mint <token> <to> <amount>
 ```evml
 load token
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 token:mint $token @me 100e18
 ```
 

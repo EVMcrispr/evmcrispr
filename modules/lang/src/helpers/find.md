@@ -9,7 +9,7 @@ Return the first element that satisfies the predicate.
 ## Syntax
 
 ```evml
-@find(arr, fn)
+@find(arr fn)
 ```
 
 ## Arguments

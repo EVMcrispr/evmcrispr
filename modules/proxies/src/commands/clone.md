@@ -32,6 +32,8 @@ proxies:clone <variable> <implementation>
 ```evml
 load proxies
 
+set $vestingImplementation 0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9
+
 # Plain CREATE clone
 proxies:clone $vesting $vestingImplementation
 exec $vesting initialize(address,uint64) @me 1767225600

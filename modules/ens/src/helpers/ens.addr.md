@@ -9,7 +9,7 @@ Resolve an ENS name to an address, optionally per coin type.
 ## Syntax
 
 ```evml
-@ens:ens.addr(name, coinType?)
+@ens:ens.addr(name coinType?)
 ```
 
 ## Arguments

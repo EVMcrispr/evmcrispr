@@ -13,7 +13,7 @@ load sim
 sim:fork (
   # Everything inside runs on a simulated fork
   sim:set-balance @me 100e18
-  exec @token(DAI) "transfer(address,uint256)" 0x1234... @token.amount(DAI 50)
+  exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token.amount(DAI 50)
 )
 ```
 
@@ -29,6 +29,8 @@ EVMcrispr supports multiple simulation backends:
 | Tenderly | `--using tenderly` | Cloud-based, needs `--auth-token` |
 
 ```evml
+load sim
+
 # Use Anvil
 sim:fork --using anvil (
   sim:set-balance @me 100e18
@@ -43,6 +45,8 @@ sim:fork --using tenderly --auth-token "your-token" (
 ## Forking at a Specific Block
 
 ```evml
+load sim
+
 sim:fork --block-number 18000000 (
   print @get(@token(DAI) "totalSupply()(uint256)")
 )
@@ -53,7 +57,12 @@ sim:fork --block-number 18000000 (
 Use `--from` to simulate as a specific address:
 
 ```evml
-sim:fork --from 0xWhale... (
+load sim
+
+# A well-stocked account whose balance we borrow for the simulation
+set $whale 0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf
+
+sim:fork --from $whale (
   exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 1000)
 )
 ```
@@ -63,20 +72,32 @@ sim:fork --from 0xWhale... (
 ### Set ETH Balance
 
 ```evml
-sim:set-balance @me 100e18
-sim:set-balance 0x1234... 50e18
+load sim
+
+sim:fork (
+  sim:set-balance @me 100e18
+  sim:set-balance 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 50e18
+)
 ```
 
 ### Set Contract Bytecode
 
 ```evml
-sim:set-code 0xContract... 0x6080...
+load sim
+
+sim:fork (
+  sim:set-code 0x44fA8E6f47987339850636F88629646662444217 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe
+)
 ```
 
 ### Set Storage Slots
 
 ```evml
-sim:set-storage-at 0xContract... 0x00 0x01
+load sim
+
+sim:fork (
+  sim:set-storage-at 0x44fA8E6f47987339850636F88629646662444217 0x00 0x01
+)
 ```
 
 ## Assertions
@@ -84,6 +105,8 @@ sim:set-storage-at 0xContract... 0x00 0x01
 Use `expect` to verify conditions during simulation:
 
 ```evml
+load sim
+
 sim:fork (
   sim:set-balance @me 100e18
 
@@ -108,6 +131,8 @@ timelocks, vesting, etc.). Inside a fork the wait is instant — the chain's
 clock is warped instead of sleeping:
 
 ```evml
+load sim
+
 sim:fork (
   # Advance 1 day (86400 seconds)
   wait 86400
@@ -124,7 +149,7 @@ sim:fork (
   aragonos:connect my-dao.aragonid.eth (
     # Test a governance action
     grant @me @app(voting) CREATE_VOTES_ROLE
-    install $agent agent:new
+    install $agent agent:new-app
   )
 )
 ```

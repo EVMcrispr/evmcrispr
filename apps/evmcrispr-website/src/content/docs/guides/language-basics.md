@@ -20,10 +20,13 @@ Commands are the primary building blocks. They produce transactions or
 control program flow. Each command starts with its name followed by arguments:
 
 ```evml
-exec 0xAbC... "transfer(address,uint256)" @me 100e18
+exec 0x44fA8E6f47987339850636F88629646662444217 "transfer(address,uint256)" @me 100e18
 set $greeting "hello"
-print "The value is" $x
+print "The value is" $greeting
 ```
+
+Arguments are separated by **spaces, not commas** — this applies everywhere
+in EVML: command arguments, helper arguments, and array elements.
 
 Commands from non-default modules use a prefix:
 
@@ -39,10 +42,13 @@ aragonos:connect my-dao.aragonid.eth (
 Helpers are expressions that produce values. They are prefixed with `@`:
 
 ```evml
-@me                                           # No arguments
-@token(DAI)                                   # Single argument
-@get(0xAbC... "balanceOf(address)(uint256)" @me)  # Multiple arguments
+set $sender @me                # No arguments
+set $dai @token(DAI)           # Single argument
+set $bal @get($dai "balanceOf(address)(uint256)" @me)  # Multiple arguments, space-separated
 ```
+
+Helper arguments are space-separated: `@token.balance(DAI @me)` is correct,
+`@token.balance(DAI, @me)` is a parse error.
 
 Helpers can be nested and used as arguments to commands:
 
@@ -55,7 +61,7 @@ exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 100)
 Use `set` to assign values and `$name` to reference them:
 
 ```evml
-set $recipient 0x1234...
+set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 set $amount @token.amount(DAI 1000)
 exec @token(DAI) "transfer(address,uint256)" $recipient $amount
 ```
@@ -72,7 +78,7 @@ The DSL supports these value types:
 | `bool` | `true`, `false` | Boolean |
 | `bytes` | `0xdeadbeef` | Hex-encoded bytes |
 | `bytes32` | `0x00...001` | 32-byte value |
-| `array` | `[1 2 3]` | Ordered collection |
+| `array` | `[1 2 3]` | Ordered collection — elements are space-separated, never commas |
 
 Numbers support scientific notation with `e`: `100e18` means `100 * 10^18`.
 This is useful for token amounts with 18 decimals.
@@ -83,35 +89,44 @@ Some commands accept a block of sub-commands in parentheses:
 
 ```evml
 batch (
-  exec 0xA... "foo()"
-  exec 0xB... "bar()"
+  exec 0x44fA8E6f47987339850636F88629646662444217 "foo()"
+  exec 0x0102030405060708090a0b0c0d0e0f1011121314 "bar()"
 )
 
 loop $i of @arr(0 5) (
   print $i
 )
 
+set $x 10
 if @bool($x > 0) (
   print "positive"
-) else (
+) (
   print "non-positive"
 )
 ```
 
+Note there is no `else` keyword: `if` takes a condition, a then-block, and
+an optional second block that runs when the condition is false.
+
 ## ABI Signatures
 
-Contract function signatures follow Solidity syntax:
+Contract function signatures follow Solidity syntax. Inside a signature
+string the parameter types **are** comma-separated, exactly as in Solidity:
 
 ```evml
-# Write functions (for exec)
-"transfer(address,uint256)"
-"approve(address,uint256)"
+# Write functions (for exec): inputs only
+exec @token(DAI) "transfer(address,uint256)" @me 100e18
+exec @token(DAI) "approve(address,uint256)" @me 100e18
 
-# Read functions (for @get) — include (returnType) after inputs
-"balanceOf(address)(uint256)"
-"name()(string)"
-"getReserves()(uint112,uint112,uint32)"
+# Read functions (for @get): append (returnTypes) directly after the inputs
+set $bal @get(@token(DAI) "balanceOf(address)(uint256)" @me)
+set $name @get(@token(DAI) "name()(string)")
+set $reserves @get(0x44fA8E6f47987339850636F88629646662444217 "getReserves()(uint112,uint112,uint32)")
 ```
+
+The read format is `"name(inputTypes)(returnTypes)"` — two parenthesized
+lists back to back with **no colon or other separator** between them
+(`"name()(string)"`, not `"name():(string)"`).
 
 ## Modules
 
@@ -128,9 +143,9 @@ After loading, use their commands and helpers with the module prefix:
 
 ```evml
 load sim
-sim:fork 1 (
+sim:fork (
   sim:set-balance @me 100e18
-  exec 0xAbC... "foo()"
+  exec 0x44fA8E6f47987339850636F88629646662444217 "foo()"
 )
 ```
 
@@ -139,18 +154,21 @@ sim:fork 1 (
 Some commands accept options with `--name value`:
 
 ```evml
-exec 0xAbC... "foo()" --value 1e18
-exec 0xAbC... "foo()" --from 0x1234...
+exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --value 1e18
+exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --from 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 load aragonos --as dao
 ```
+
+A command and all of its options must be written on a single line — EVML
+has no `\` line continuation.
 
 ## Event Captures
 
 The `exec` command can capture events emitted by the transaction:
 
 ```evml
-exec 0xAbC... "createPool(address,uint24)" @token(DAI) 3000 -> Transfer [_ $pool]
+exec 0x44fA8E6f47987339850636F88629646662444217 "createPool(address,uint24)" @token(DAI) 3000 -> Transfer [_ $pool]
 ```
 
 ## Error Captures
@@ -159,6 +177,8 @@ Use `-!>` to catch and decode transaction reverts. After the error name you
 can add a destructure (`[...]`), a boolean variable (`$var`), or nothing:
 
 ```evml
+set $c 0x44fA8E6f47987339850636F88629646662444217
+
 # Assert a specific error (no data captured)
 exec $c "deny()" -!> Unauthorized()
 
@@ -181,6 +201,8 @@ With a boolean variable, `$e` is `"true"` on match, `"false"` on success or
 mismatched error:
 
 ```evml
+set $c 0x44fA8E6f47987339850636F88629646662444217
+
 exec $c "maybeRevert()" -?!> Error(string) [$reason]
 exec $c "maybeRevert()" -?!> Unauthorized() $e
 ```
@@ -196,7 +218,12 @@ Supported error types:
 Use `@num()` for arithmetic and `@bool()` for boolean logic:
 
 ```evml
+set $a 1
+set $b 2
 set $total @num($a + $b * 2)
+
+set $x 5
+set $y 50
 set $isValid @bool($x > 0 and $y < 100)
 ```
 
@@ -204,6 +231,7 @@ set $isValid @bool($x > 0 and $y < 100)
 
 ```evml
 # Conditional
+set $balance @token.balance(DAI @me)
 if @bool($balance > 0) (
   print "Has balance"
 )
@@ -226,17 +254,15 @@ loop until @bool($i >= 5) (
 Use `def` to define reusable commands and helpers:
 
 ```evml
-# Define a helper
-def @double "$x: number -> number" (
-  @num($x * 2)
-)
+# Define a helper — the body is a single expression, not a block
+def @double "$x: number -> number" @num($x * 2)
 
-# Define a command
-def transfer($token $to $amount) (
-  exec @token($token) "transfer(address,uint256)" $to @token.amount($token $amount)
+# Define a command — params live in the signature string, the body is a block
+def transfer "$token: address $to: address $amount: number" (
+  exec $token "transfer(address,uint256)" $to $amount
 )
 
 # Use them
 set $result @double(21)
-transfer DAI 0x1234... 100
+transfer @token(DAI) 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 100e18
 ```

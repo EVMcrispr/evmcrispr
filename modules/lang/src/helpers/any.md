@@ -9,7 +9,7 @@ Return true if at least one element satisfies the predicate.
 ## Syntax
 
 ```evml
-@any(arr, fn)
+@any(arr fn)
 ```
 
 ## Arguments

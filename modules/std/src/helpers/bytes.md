@@ -9,7 +9,7 @@ Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operati
 ## Syntax
 
 ```evml
-@bytes(a, b?, c?)
+@bytes(a b? c?)
 ```
 
 ## Arguments

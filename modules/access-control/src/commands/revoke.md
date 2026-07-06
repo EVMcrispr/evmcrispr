@@ -25,6 +25,9 @@ access-control:revoke <target> <role> <account>
 ```evml
 load access-control
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+
 # AccessControl
 access-control:revoke $token MINTER_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 

@@ -25,6 +25,9 @@ token:approve <token> <spender> <amount>
 ```evml
 load token
 
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+
 token:approve $token $spender 100e18
 
 # Revoke an allowance

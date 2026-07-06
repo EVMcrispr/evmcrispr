@@ -9,7 +9,7 @@ Extract a byte range from a bytes value.
 ## Syntax
 
 ```evml
-@bytes.slice(value, start, end?)
+@bytes.slice(value start end?)
 ```
 
 ## Arguments

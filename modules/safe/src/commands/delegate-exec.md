@@ -27,6 +27,7 @@ Sign a message on behalf of the Safe by delegatecalling SignMessageLib:
 ```evml
 load safe
 
+set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
 safe:propose $mySafe (
   safe:delegate-exec 0xd53cd0aB83D845Ac265BE939c57F53AD838012c9 signMessage(bytes) @bytes("hello")
 )

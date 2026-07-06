@@ -9,7 +9,7 @@ Extract a section of a string.
 ## Syntax
 
 ```evml
-@str.slice(value, start, end?)
+@str.slice(value start end?)
 ```
 
 ## Arguments

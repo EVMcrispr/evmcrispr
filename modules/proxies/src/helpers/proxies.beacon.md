@@ -25,6 +25,7 @@ Beacon address of an ERC-1967 beacon proxy.
 ```evml
 load proxies
 
+set $proxy 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 print @proxies.beacon($proxy)
 ```
 

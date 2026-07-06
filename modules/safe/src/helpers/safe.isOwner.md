@@ -9,7 +9,7 @@ Return whether an address is an owner of a Safe.
 ## Syntax
 
 ```evml
-@safe:safe.isOwner(owner, safe?)
+@safe:safe.isOwner(owner safe?)
 ```
 
 ## Arguments

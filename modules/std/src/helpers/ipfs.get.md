@@ -28,7 +28,7 @@ The terminal editor uses this helper automatically: pasting a hex string larger 
 
 ```evml
 # Deploy a contract whose creation bytecode is pinned on IPFS
-deploy $token @ipfs.get("QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB") --constructor constructor(string,string) --constructor-args ["My Token", "TKN"]
+deploy $token @ipfs.get("QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB") --constructor constructor(string,string) --constructor-args ["My Token" "TKN"]
 ```
 
 ```evml

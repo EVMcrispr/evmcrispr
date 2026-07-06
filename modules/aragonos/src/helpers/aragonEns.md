@@ -9,7 +9,7 @@ Resolve an Aragon ENS name to its address.
 ## Syntax
 
 ```evml
-@aragonos:aragonEns(ensName, extra?)
+@aragonos:aragonEns(ensName extra?)
 ```
 
 ## Arguments

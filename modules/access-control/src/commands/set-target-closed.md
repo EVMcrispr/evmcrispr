@@ -25,6 +25,9 @@ access-control:set-target-closed <manager> <target> <closed>
 ```evml
 load access-control
 
+set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
+set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
+
 # Emergency-stop every restricted function of the managed token
 access-control:set-target-closed $manager $token true
 

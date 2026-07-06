@@ -9,7 +9,7 @@ Construct a JSON string from a template and an array of values.
 ## Syntax
 
 ```evml
-@http:json.format(template, values)
+@http:json.format(template values)
 ```
 
 ## Arguments

@@ -9,7 +9,7 @@ ABI non-standard packed encoding, matching Solidity's abi.encodePacked.
 ## Syntax
 
 ```evml
-@abi.encodePacked(types, ...values)
+@abi.encodePacked(types ...values)
 ```
 
 ## Arguments

@@ -9,7 +9,7 @@ Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succe
 ## Syntax
 
 ```evml
-@governor:governor.proposalState(governor, proposalId)
+@governor:governor.proposalState(governor proposalId)
 ```
 
 ## Arguments
@@ -25,6 +25,9 @@ Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succe
 
 ```evml
 load governor
+
+set $governor 0x44fA8E6f47987339850636F88629646662444217
+set $proposalId 42
 
 print @governor.proposalState($governor $proposalId)
 ```

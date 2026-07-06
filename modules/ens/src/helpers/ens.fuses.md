@@ -9,7 +9,7 @@ Combine NameWrapper fuse names into their uint32 bitmap.
 ## Syntax
 
 ```evml
-@ens:ens.fuses(first, ...rest)
+@ens:ens.fuses(first ...rest)
 ```
 
 ## Arguments

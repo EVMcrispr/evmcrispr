@@ -9,7 +9,7 @@ Fetch the token balance of an address in base units.
 ## Syntax
 
 ```evml
-@token.balance(tokenSymbol, holder)
+@token.balance(tokenSymbol holder)
 ```
 
 ## Arguments

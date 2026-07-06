@@ -32,6 +32,7 @@ Install a 24-hour timelock in front of the Safe:
 ```evml
 load safe
 
+set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
 safe:propose $mySafe (
   safe:install-delay 86400
 )

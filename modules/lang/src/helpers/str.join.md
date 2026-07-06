@@ -9,7 +9,7 @@ Join array elements into a string with a delimiter.
 ## Syntax
 
 ```evml
-@str.join(arr, delim)
+@str.join(arr delim)
 ```
 
 ## Arguments

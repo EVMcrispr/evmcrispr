@@ -9,7 +9,7 @@ Split a string by a delimiter into an array of strings.
 ## Syntax
 
 ```evml
-@str.split(s, delim)
+@str.split(s delim)
 ```
 
 ## Arguments

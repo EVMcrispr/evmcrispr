@@ -9,7 +9,7 @@ Read a text record from an ENS name.
 ## Syntax
 
 ```evml
-@ens:ens.text(name, key)
+@ens:ens.text(name key)
 ```
 
 ## Arguments

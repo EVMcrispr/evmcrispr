@@ -9,7 +9,7 @@ Check whether an array contains an element.
 ## Syntax
 
 ```evml
-@includes(value, item)
+@includes(value item)
 ```
 
 ## Arguments
