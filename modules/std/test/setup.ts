@@ -10,8 +10,42 @@ import wxdaiAbi from "./fixtures/abis/wxdai.json";
 
 registerAllModules();
 
+// Fixtures served by the mocked IPFS gateway (see handler below)
+export const ipfsGatewayFixtures = {
+  rawHex: {
+    cid: "QmRawHexFixture11111111111111111111111111111111",
+    content: `0x${"ab".repeat(100)}`,
+  },
+  // Content pinned via pinJSONToIPFS (the @ipfs helper) is JSON-quoted
+  quoted: {
+    cid: "QmQuotedFixture2222222222222222222222222222222",
+    content: "0xdeadbeef",
+  },
+  missing: {
+    cid: "QmMissingFixture333333333333333333333333333333",
+  },
+};
+
 // Std-specific MSW handlers (ABI endpoint)
 const stdHandlers = [
+  http.get(
+    "https://ipfs.blossom.software/ipfs/:cid",
+    ({ params }: { params: { cid: string } }) => {
+      const { cid } = params;
+      if (cid === ipfsGatewayFixtures.rawHex.cid) {
+        return new HttpResponse(ipfsGatewayFixtures.rawHex.content, {
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+      if (cid === ipfsGatewayFixtures.quoted.cid) {
+        return HttpResponse.json(ipfsGatewayFixtures.quoted.content);
+      }
+      if (cid === ipfsGatewayFixtures.missing.cid) {
+        return new HttpResponse(null, { status: 404 });
+      }
+      return passthrough();
+    },
+  ),
   http.get(
     "https://api.evmcrispr.com/abi/:chainId/:address",
     ({ params }: { params: { address: string } }) => {

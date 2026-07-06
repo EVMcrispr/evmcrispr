@@ -11,6 +11,10 @@ import {
   terminalStoreGet,
   useTerminalStore,
 } from "../../stores/terminal-store";
+import {
+  offloadPastedHex,
+  trackOffloadBypassKeys,
+} from "../../utils/hex-offload";
 
 /**
  * Store glue around the embeddable `@evmcrispr/editor` Monaco component:
@@ -35,6 +39,7 @@ function TerminalEditor() {
   const handleMount = useCallback(
     (ed: editor.IStandaloneCodeEditor, monaco: Monaco) => {
       setEditor(ed, monaco);
+      trackOffloadBypassKeys(ed);
       const id = terminalStoreGet("currentScriptId");
       mountedScriptIdRef.current = id;
       switchToScript(id, terminalStoreGet("script"));
@@ -50,6 +55,13 @@ function TerminalEditor() {
     terminalStoreActions("cursorRef", ref);
   }, []);
 
+  const handleDidPaste = useCallback(
+    (e: editor.IPasteEvent, ed: editor.IStandaloneCodeEditor) => {
+      void offloadPastedHex(e, ed);
+    },
+    [],
+  );
+
   return (
     <MonacoEditor
       defaultValue={SCRIPT_PLACEHOLDER}
@@ -59,6 +71,7 @@ function TerminalEditor() {
       commandNames={commandNames}
       helperNames={helperNames}
       onMount={handleMount}
+      onDidPaste={handleDidPaste}
     />
   );
 }

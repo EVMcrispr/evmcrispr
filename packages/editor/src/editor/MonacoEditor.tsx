@@ -86,6 +86,11 @@ export interface EditorProps {
   /** Escape hatch for hosts that manage Monaco models themselves (the
    *  terminal's script switching). Runs after the internal wiring. */
   onMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
+  /** Fires after text is pasted, with the range the paste occupies. */
+  onDidPaste?: (
+    event: editor.IPasteEvent,
+    editor: editor.IStandaloneCodeEditor,
+  ) => void;
   /** Merged over the built-in editor options. */
   options?: editor.IStandaloneEditorConstructionOptions;
   readOnly?: boolean;
@@ -105,6 +110,7 @@ function Editor({
   commandNames,
   helperNames,
   onMount,
+  onDidPaste,
   options,
   readOnly,
   height = "100%",
@@ -432,6 +438,8 @@ function Editor({
   commandNamesRef.current = commandNames;
   const helperNamesRef = useRef(helperNames);
   helperNamesRef.current = helperNames;
+  const onDidPasteRef = useRef(onDidPaste);
+  onDidPasteRef.current = onDidPaste;
 
   const handleOnMountEditor = useCallback(
     (ed: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
@@ -467,6 +475,10 @@ function Editor({
           cursorRefRef.current = ref;
           onCursorRefRef.current(ref);
         }
+      });
+
+      ed.onDidPaste((e) => {
+        onDidPasteRef.current?.(e, ed);
       });
 
       onMount?.(ed, monacoInstance);

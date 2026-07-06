@@ -43,6 +43,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
 | [@id](src/helpers/id.md) | `bytes32` | Compute the keccak256 hash of a string (first 4 bytes for selectors). |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
+| [@ipfs.get](src/helpers/ipfs.get.md) | `any` | Fetch content from IPFS and return it as text. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
 | [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
