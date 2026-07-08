@@ -47,7 +47,6 @@ export function makeSafeBatchedHandler(
 
 export function useTransactionExecutor(
   address: `0x${string}` | undefined,
-  maximizeGasLimit: boolean,
   script: string,
   safeConnector?: any,
 ) {
@@ -94,7 +93,6 @@ export function useTransactionExecutor(
 
       await evmlScript.execute(walletClient, {
         signal: abortSignal,
-        maximizeGasLimit,
         onLog: logListener,
         handlers: safeConnector
           ? { batched: makeSafeBatchedHandler(safeConnector) }
@@ -127,7 +125,6 @@ export function useTransactionExecutor(
   }, [
     address,
     walletClient,
-    maximizeGasLimit,
     safeConnector,
     logListener,
     clearLogs,

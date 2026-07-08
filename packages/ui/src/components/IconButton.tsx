@@ -5,7 +5,7 @@ import { cn } from "../utils";
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
   className?: string;
-  variant?: "primary" | "outline" | "link";
+  variant?: "primary" | "outline" | "link" | "ghost";
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -25,6 +25,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       outline:
         "bg-transparent text-foreground border-2 border-border shadow-md hover:shadow active:shadow-none hover:translate-y-0.5 active:translate-y-1 transition-all",
       link: "bg-transparent text-primary hover:underline",
+      ghost:
+        "bg-transparent text-foreground/60 hover:text-foreground transition-colors",
     };
 
     return (

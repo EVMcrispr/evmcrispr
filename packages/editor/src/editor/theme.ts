@@ -44,7 +44,7 @@ export const theme = {
     "editor.lineHighlightBackground": "#333333",
     "editorCursor.foreground": "#FFFFFF",
     "editorWhitespace.foreground": "#404040",
-    "editorGutter.background": "#1a1a1a",
+    "editorGutter.background": "#000000",
 
     // Hover widget palette — kept in sync with the viewer's
     // `.evml-hover-popover` so the cards look identical on both

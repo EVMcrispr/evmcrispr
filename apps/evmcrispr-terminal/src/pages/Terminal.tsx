@@ -1,17 +1,15 @@
 import { Viewer } from "@evmcrispr/editor";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ScrollRestoration } from "react-router";
 import { useConnection } from "wagmi";
 import TitleInput from "../components/editor/TitleInput";
 import ActionButtons from "../components/execution/ActionButtons";
-import ConfigureButton from "../components/execution/ConfigureButton";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
 import { SidePanel } from "../components/panel/SidePanel";
 import NewScriptButton from "../components/scripts/NewScriptButton";
 import ScriptNotFound from "../components/scripts/ScriptNotFound";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
-import { ViewModeToggle } from "../components/viewer/ViewModeToggle";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
@@ -43,8 +41,6 @@ function useIsSmallScreen(breakpoint = 768) {
 }
 
 export default function Terminal() {
-  const [maximizeGasLimit, setMaximizeGasLimit] = useState(false);
-
   const { address } = useWalletConnection();
   const { scriptNotFound, ipfsError, ipfsLoading } = useTerminalScript();
   useAutoSave();
@@ -57,14 +53,8 @@ export default function Terminal() {
 
   const { executeScript, logs, errors, clearErrors } = useTransactionExecutor(
     address,
-    maximizeGasLimit,
     script,
     safeConnectorInstance,
-  );
-
-  const toggleMaximizeGasLimit = useCallback(
-    () => setMaximizeGasLimit((v) => !v),
-    [],
   );
 
   const isSmallScreen = useIsSmallScreen();
@@ -77,16 +67,16 @@ export default function Terminal() {
     <>
       <ScrollRestoration />
       <div className="flex flex-col h-screen overflow-hidden">
-        <div className="shrink-0 w-full bg-evm-gray-900 border-b border-border px-6 py-4">
+        <div className="shrink-0 w-full bg-evm-gray-900 px-6 py-6">
           <Header address={address} onDisconnect={clearErrors} />
         </div>
 
         <div
-          className="flex-1 min-h-0 overflow-hidden flex"
+          className="flex-1 min-h-0 overflow-hidden flex pl-2 bg-evm-gray-900"
           style={{ flexDirection: isSmallScreen ? "column" : "row" }}
         >
           <div
-            className="flex flex-col overflow-hidden bg-background"
+            className="flex flex-col overflow-hidden bg-[#000] pb-3"
             style={{ flex: isSmallScreen ? "0 0 60%" : "0 0 70%" }}
           >
             {scriptNotFound || ipfsError ? (
@@ -100,20 +90,13 @@ export default function Terminal() {
               </div>
             ) : (
               <>
-                <div className="px-4 py-3 shrink-0 bg-evm-gray-900/50">
+                <div className="px-4 py-3 shrink-0">
                   <div className="flex w-full">
                     <TitleInput />
                     <div className="flex-1" />
                     <div className="flex items-center gap-1">
-                      <ViewModeToggle />
                       <NewScriptButton />
                       <ShareScriptButton title={title} script={script} />
-                      <ConfigureButton
-                        setMaximizeGasLimit={{
-                          toggle: toggleMaximizeGasLimit,
-                        }}
-                        maximizeGasLimit={maximizeGasLimit}
-                      />
                     </div>
                   </div>
                 </div>
@@ -139,7 +122,7 @@ export default function Terminal() {
                 </div>
 
                 <div
-                  className="px-4 py-3 shrink-0 bg-evm-gray-900/50 animate-fade-in"
+                  className="px-4 py-3 shrink-0 animate-fade-in"
                   style={{ animationDelay: "0.1s" }}
                 >
                   <ActionButtons onExecute={executeScript} />
@@ -162,7 +145,7 @@ export default function Terminal() {
           </div>
         </div>
 
-        <div className="shrink-0 bg-evm-gray-900 border-t border-border">
+        <div className="shrink-0 bg-evm-gray-900">
           <Footer />
         </div>
       </div>

@@ -1,4 +1,10 @@
-import { Button, Input } from "@repo/ui";
+import {
+  ArrowLeftIcon,
+  Cog6ToothIcon,
+  PaperAirplaneIcon,
+  StopIcon,
+} from "@heroicons/react/24/solid";
+import { Button, IconButton, Input } from "@repo/ui";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,34 +13,54 @@ import { useChatAgent } from "../../ai/useChatAgent";
 import { markdownComponents } from "./MarkdownComponents";
 
 const PROSE_CLASSES =
-  "prose prose-invert prose-sm max-w-none prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-li:text-foreground/80";
+  "prose prose-invert prose-base max-w-none break-words prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:break-words prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-pre:overflow-x-auto prose-li:text-foreground/80";
 
-function ApiKeyForm({ onSave }: { onSave: (key: string) => void }) {
+function ApiKeyForm({
+  onSave,
+  onBack,
+}: {
+  onSave: (key: string) => void;
+  onBack?: () => void;
+}) {
   const [key, setKey] = useState("");
 
   return (
     <form
-      className="flex flex-col gap-3 p-4"
+      className="flex flex-col gap-3 px-2 py-4"
       onSubmit={(e) => {
         e.preventDefault();
         const trimmed = key.trim();
         if (trimmed) onSave(trimmed);
       }}
     >
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 text-sm text-foreground/60 hover:text-foreground transition-colors self-start"
+        >
+          <ArrowLeftIcon className="w-4 h-4" />
+          Back
+        </button>
+      )}
+      <h2 className="text-xl font-head text-foreground">Chat settings</h2>
       <p className="text-sm text-foreground/70">
         Enter your Anthropic API key to chat with an assistant that can read,
         edit, validate and simulate the script in the editor.
       </p>
-      <Input
-        type="password"
-        placeholder="sk-ant-..."
-        value={key}
-        onChange={(e) => setKey(e.target.value)}
-        autoComplete="off"
-      />
-      <Button type="submit" disabled={!key.trim()}>
-        Save key
-      </Button>
+      <div className="flex gap-2">
+        <Input
+          type="password"
+          placeholder="sk-ant-..."
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          autoComplete="off"
+          className="flex-1"
+        />
+        <Button type="submit" disabled={!key.trim()}>
+          Save
+        </Button>
+      </div>
       <p className="text-xs text-foreground/40">
         The key is stored only in your browser's localStorage and sent only to
         api.anthropic.com.
@@ -44,17 +70,10 @@ function ApiKeyForm({ onSave }: { onSave: (key: string) => void }) {
 }
 
 export function ChatPanel() {
-  const {
-    hasKey,
-    setApiKey,
-    clearApiKey,
-    items,
-    isRunning,
-    error,
-    send,
-    stop,
-  } = useChatAgent();
+  const { hasKey, setApiKey, items, isRunning, error, send, stop } =
+    useChatAgent();
   const [input, setInput] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -63,15 +82,36 @@ export function ChatPanel() {
     if (list) list.scrollTop = list.scrollHeight;
   }, [items]);
 
-  if (!hasKey) return <ApiKeyForm onSave={setApiKey} />;
+  if (!hasKey || showSettings)
+    return (
+      <ApiKeyForm
+        onSave={(key) => {
+          setApiKey(key);
+          setShowSettings(false);
+        }}
+        onBack={hasKey ? () => setShowSettings(false) : undefined}
+      />
+    );
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+      <div
+        ref={listRef}
+        className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-3"
+      >
         {items.length === 0 && (
-          <p className="text-sm text-foreground/40">
+          <p className="text-base text-foreground/40">
             Ask anything about the script in the editor — the assistant can
-            read, edit, validate and simulate it.
+            read, edit, validate and simulate it. Manage your API key in{" "}
+            <button
+              type="button"
+              onClick={() => setShowSettings(true)}
+              className="inline-flex items-center gap-1 align-baseline text-evm-green-300 hover:underline"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+              Chat Settings
+            </button>
+            .
           </p>
         )}
         {items.map((item, i) => {
@@ -79,7 +119,7 @@ export function ChatPanel() {
             return (
               <div
                 key={i}
-                className="text-sm text-foreground bg-foreground/10 rounded-md px-3 py-2 whitespace-pre-wrap"
+                className="text-base text-foreground bg-foreground/10 rounded-md px-3 py-2 whitespace-pre-wrap break-words"
               >
                 {item.text}
               </div>
@@ -87,7 +127,10 @@ export function ChatPanel() {
           }
           if (item.role === "tool") {
             return (
-              <div key={i} className="text-xs text-foreground/50 font-mono">
+              <div
+                key={i}
+                className="text-xs text-foreground/50 font-mono break-words"
+              >
                 ⚙ {item.text}
               </div>
             );
@@ -103,10 +146,10 @@ export function ChatPanel() {
             </div>
           );
         })}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-base text-red-400 break-words">{error}</p>}
       </div>
       <form
-        className="flex gap-2 p-2 border-t border-foreground/10 shrink-0"
+        className="flex gap-2 px-2 py-2 pb-5 border-t border-foreground/10 shrink-0"
         onSubmit={(e) => {
           e.preventDefault();
           const text = input.trim();
@@ -123,22 +166,26 @@ export function ChatPanel() {
           className="flex-1"
         />
         {isRunning ? (
-          <Button type="button" variant="outline" size="sm" onClick={stop}>
-            Stop
-          </Button>
+          <IconButton
+            type="button"
+            aria-label="Stop"
+            variant="outline"
+            size="md"
+            onClick={stop}
+          >
+            <StopIcon className="w-5 h-5" />
+          </IconButton>
         ) : (
-          <Button type="submit" size="sm" disabled={!input.trim()}>
-            Send
-          </Button>
+          <IconButton
+            type="submit"
+            aria-label="Send"
+            size="md"
+            disabled={!input.trim()}
+          >
+            <PaperAirplaneIcon className="w-5 h-5" />
+          </IconButton>
         )}
       </form>
-      <button
-        type="button"
-        onClick={clearApiKey}
-        className="text-xs text-foreground/30 hover:text-foreground/60 pb-1 self-center"
-      >
-        change API key
-      </button>
     </div>
   );
 }

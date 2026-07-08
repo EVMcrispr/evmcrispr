@@ -1,4 +1,4 @@
-import { ChevronRightIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { TrashIcon } from "@heroicons/react/24/solid";
 
 import { IconButton, Tooltip } from "@repo/ui";
 
@@ -60,7 +60,7 @@ export function SavedScript({
 
   return (
     <div
-      className={`cursor-pointer p-5 relative w-full transition-colors ${
+      className={`cursor-pointer p-5 relative transition-colors ${
         isActive
           ? "bg-evm-gray-700 border-l-3 border-evm-green-400"
           : "bg-evm-gray-800 hover:bg-evm-gray-700"
@@ -68,19 +68,16 @@ export function SavedScript({
       onClick={() => onItemClick(id)}
     >
       <div className="flex items-start gap-3">
-        {isActive && !isSaving && (
-          <ChevronRightIcon className="w-5 h-5 text-evm-green-400 mt-1 shrink-0" />
-        )}
         {isActive && isSaving && (
           <div className="mt-1.5">
             <SavingSpinner />
           </div>
         )}
         <div className="flex flex-col gap-3 items-start">
-          <h3 className="text-2xl text-evm-yellow-300 font-head font-bold">
+          <h3 className="text-xl text-evm-yellow-300 font-head font-bold">
             {displayTitle}
           </h3>
-          <span className="text-white font-head">
+          <span className="text-white font-head text-sm">
             Updated <span className="capitalize">{month} </span>
             {day}, {year}
           </span>
@@ -91,7 +88,7 @@ export function SavedScript({
           <IconButton
             aria-label="Remove saved script"
             variant="outline"
-            className="absolute right-2.5 bottom-2.5 border-evm-pink-300 text-evm-pink-300 hover:bg-evm-pink-300 hover:text-evm-gray-900 shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
+            className="absolute right-2.5 bottom-5 mr-[7px] border-evm-pink-300 text-evm-pink-300 hover:bg-evm-pink-300 hover:text-evm-gray-900 shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
             size="sm"
             onClick={(e) => {
               e.stopPropagation();

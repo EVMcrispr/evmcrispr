@@ -33,7 +33,7 @@ export function LibraryTab() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3">
+      <div className="px-2 py-4 shrink-0">
         <div className="relative">
           <Input
             placeholder="Search"

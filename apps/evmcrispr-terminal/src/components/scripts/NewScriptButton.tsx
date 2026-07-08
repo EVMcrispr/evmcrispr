@@ -29,7 +29,7 @@ export default function NewScriptButton() {
       <Tooltip.Trigger asChild>
         <IconButton
           aria-label="New script"
-          variant="outline"
+          variant="ghost"
           onClick={handleClick}
           size="md"
         >

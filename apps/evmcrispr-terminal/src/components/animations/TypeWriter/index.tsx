@@ -1,8 +1,14 @@
-export default function TypeWriter({ text }: { text: string }) {
+export default function TypeWriter({
+  text,
+  className = "text-white",
+}: {
+  text: string;
+  className?: string;
+}) {
   const duration = text.length / 10;
   return (
     <span
-      className="text-white text-sm font-clearer bg-transparent overflow-hidden border-r-[0.5em] border-r-transparent whitespace-nowrap tracking-[0.12em] inline-block"
+      className={`${className} text-sm leading-none font-clearer bg-transparent overflow-hidden border-r-[0.5em] border-r-transparent whitespace-nowrap tracking-[0.12em] inline-block`}
       style={{
         animation: `typing ${duration}s steps(40, end), blinkCaret ${duration}s step-end 1`,
       }}

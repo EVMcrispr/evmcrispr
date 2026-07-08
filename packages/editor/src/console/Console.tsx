@@ -66,9 +66,9 @@ export function Console({
   const hasContent = logs.length > 0 || errors.length > 0;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-3 gap-2">
+    <div className="flex flex-col h-full overflow-y-auto px-4 py-3 gap-2">
       {!hasContent && (
-        <p className="text-foreground/40 font-head text-sm p-4">
+        <p className="text-foreground/40 font-head text-base p-4">
           {placeholder}
         </p>
       )}
@@ -80,7 +80,7 @@ export function Console({
           <Alert key={`log-${i}`} status={_status} variant="solid">
             <div className="flex items-start gap-2">
               <IconComp className={`w-5 h-5 shrink-0 ${colorClass}`} />
-              <Alert.Description className="prose prose-invert prose-sm max-w-none">
+              <Alert.Description className="text-base prose prose-invert prose-base max-w-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -108,7 +108,9 @@ export function Console({
         <Alert key={`err-${i}`} status="error">
           <div className="flex items-start gap-2">
             <XCircleIcon className="w-5 h-5 shrink-0 text-white" />
-            <Alert.Description className="break-all">{e}</Alert.Description>
+            <Alert.Description className="break-all text-base">
+              {e}
+            </Alert.Description>
           </div>
         </Alert>
       ))}

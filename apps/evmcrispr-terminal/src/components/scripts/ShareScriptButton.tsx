@@ -57,7 +57,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
       <Tooltip.Trigger asChild>
         <IconButton
           aria-label="Share script"
-          variant="outline"
+          variant="ghost"
           onClick={handleShare}
           size="md"
           disabled={!!url || !title || isLoading}

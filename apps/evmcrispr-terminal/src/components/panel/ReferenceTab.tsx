@@ -147,7 +147,7 @@ export function ReferenceTab() {
   if (selectedItem) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-3 py-2 shrink-0">
+        <div className="px-2 py-2 shrink-0">
           <button
             type="button"
             onClick={handleBack}
@@ -157,7 +157,7 @@ export function ReferenceTab() {
             Back to list
           </button>
         </div>
-        <div className="px-4 py-2 shrink-0">
+        <div className="px-2 py-2 shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-mono text-lg text-foreground">
               {selectedItem.kind === "helper"
@@ -180,16 +180,16 @@ export function ReferenceTab() {
         </div>
         <div
           key={`${selectedItem.kind}:${selectedItem.module}:${selectedItem.name}`}
-          className="flex-1 overflow-y-auto px-4 pb-4"
+          className="flex-1 overflow-y-auto px-2 pb-4"
         >
           {markdownContent === null ? (
             <p className="text-foreground/40 text-sm">Loading...</p>
           ) : markdownContent === "" ? (
-            <p className="text-foreground/40 text-sm">
+            <p className="text-foreground/40 text-base">
               {selectedItem.description}
             </p>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-foreground prose-h1:text-base prose-h2:text-sm prose-h2:text-evm-green-300 prose-h2:border-b prose-h2:border-foreground/10 prose-h2:pb-1 prose-h3:text-sm prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-th:text-foreground/70 prose-td:text-foreground/80 prose-li:text-foreground/80 prose-hr:border-foreground/10">
+            <div className="prose prose-invert prose-base max-w-none leading-tight prose-p:leading-tight prose-li:leading-tight prose-headings:leading-tight prose-headings:text-foreground prose-h1:text-2xl prose-h2:text-xl prose-h2:text-evm-green-300 prose-h2:border-b prose-h2:border-foreground/10 prose-h2:pb-1 prose-h3:text-lg prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-th:text-foreground/70 prose-td:text-foreground/80 prose-li:text-foreground/80 prose-hr:border-foreground/10">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={detailMarkdownComponents}
@@ -206,7 +206,7 @@ export function ReferenceTab() {
   // List view
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 shrink-0">
+      <div className="px-2 py-4 shrink-0">
         <div className="relative">
           <Input
             placeholder="Search commands & helpers"
@@ -226,7 +226,7 @@ export function ReferenceTab() {
           </div>
         </div>
       </div>
-      <div className="overflow-y-auto flex-1 px-2">
+      <div className="overflow-y-auto overflow-x-hidden flex-1 px-2">
         {usedEntries.length > 0 && (
           <div className="mb-3">
             <h3 className="text-xs font-head uppercase text-evm-green-300 px-3 py-1">
