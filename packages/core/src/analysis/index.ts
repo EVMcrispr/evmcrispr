@@ -170,6 +170,31 @@ function collectCalls(node: Node, out: CallExpressionNode[]): void {
   }
 }
 
+/** Every bareword node reachable inside an argument expression. */
+function collectBarewords(node: Node, out: Node[]): void {
+  switch (node.type) {
+    case NodeType.Bareword:
+      out.push(node);
+      break;
+    case NodeType.ArrayExpression:
+      for (const el of (node as any).elements as Node[])
+        collectBarewords(el, out);
+      break;
+    case NodeType.HelperFunctionExpression:
+      for (const a of (node as HelperFunctionNode).args)
+        collectBarewords(a, out);
+      break;
+    case NodeType.CallExpression: {
+      const call = node as CallExpressionNode;
+      collectBarewords(call.target, out);
+      for (const a of call.args) collectBarewords(a, out);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
 function slotNames(slots: DestructureSlot[], out: string[]): void {
   for (const s of slots) {
     if (typeof s === "string") out.push(s);
@@ -412,6 +437,9 @@ class SemanticAnalyzer {
     // 7. Helpers anywhere in the args (module-agnostic resolution).
     await this.#checkHelpers(c, batchStack);
 
+    // 7b. Malformed hex/address literals anywhere in the args.
+    this.#checkMalformedHexLiterals(c);
+
     // 8. Return-capture markers in nested calls.
     this.#checkReturnCaptures(c);
 
@@ -504,6 +532,27 @@ class SemanticAnalyzer {
       } catch (e: any) {
         this.#diagnostics.push(diag(node, e.message, "literal-type-mismatch"));
       }
+    }
+  }
+
+  /** A bareword that starts with `0x` can never be a valid value: a real
+   *  address parses as an AddressLiteral and valid hex as a BytesLiteral, so
+   *  a surviving `0x…` bareword is a malformed literal (often a doc/example
+   *  placeholder like `0x1234...abcd`). */
+  #checkMalformedHexLiterals(c: CommandExpressionNode): void {
+    const barewords: Node[] = [];
+    for (const arg of c.args) collectBarewords(arg, barewords);
+    for (const opt of c.opts) collectBarewords(opt.value, barewords);
+    for (const bw of barewords) {
+      const value = bw.value as string;
+      if (!/^0x/.test(value)) continue;
+      this.#diagnostics.push(
+        diag(
+          bw,
+          `"${value}" is not a valid address or hex value. An address is 0x followed by 40 hex characters; a hex value is 0x followed by hex characters (e.g. 0xdeadbeef).`,
+          "malformed-hex-literal",
+        ),
+      );
     }
   }
 

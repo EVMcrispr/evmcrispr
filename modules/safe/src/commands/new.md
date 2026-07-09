@@ -32,7 +32,7 @@ Deploy a 2-of-3 Safe:
 ```evml
 load safe
 
-safe:new 0x6E3bcx... 0x8F94... 0xB3c1... --threshold 2
+safe:new 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 0x44fA8E6f47987339850636F88629646662444217 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb --threshold 2
 ```
 
 The address is deterministic (CREATE2 over the owners, threshold, and salt),

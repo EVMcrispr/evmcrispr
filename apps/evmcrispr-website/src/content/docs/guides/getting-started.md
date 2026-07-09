@@ -19,7 +19,7 @@ chain id) at the top of the script to run it on a different chain:
 ```evml
 switch gnosis
 
-exec @token(WXDAI) "transfer(address,uint256)" 0x1234...abcd 1e18
+exec @token(WXDAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 1e18
 ```
 
 Before execution the terminal scans every `switch` in your script and
@@ -41,14 +41,14 @@ A simple script that transfers tokens:
 
 ```evml
 # Transfer 100 DAI to an address
-exec @token(DAI) "transfer(address,uint256)" 0x1234...abcd @token.amount(DAI 100)
+exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token.amount(DAI 100)
 ```
 
 Breaking this down:
 - `exec` — the command that calls a contract function
 - `@token(DAI)` — resolves the DAI token symbol to its contract address
 - `"transfer(address,uint256)"` — the function signature
-- `0x1234...abcd` — the recipient address
+- `0x4F2083f5fBede34C2714aFfb3105539775f7FE64` — the recipient address
 - `@token.amount(DAI 100)` — converts 100 DAI to base units (100 * 10^18)
 
 ## Reading Contract State

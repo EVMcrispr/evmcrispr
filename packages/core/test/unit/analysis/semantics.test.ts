@@ -257,6 +257,37 @@ describe("Analysis > semantic diagnostics", () => {
     });
   });
 
+  describe("malformed-hex-literal", () => {
+    it("flags a truncated address placeholder", async () => {
+      const ds = await semantic("set $x 0x1234...abcd");
+      const d = ds.find((x) => x.code === "malformed-hex-literal");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/not a valid address or hex value/);
+    });
+
+    it("flags a 0x-prefixed bareword nested in a helper arg", async () => {
+      const ds = await semantic("set $x @get(0x8F94...)");
+      expect(codes(ds)).to.include("malformed-hex-literal");
+    });
+
+    it("does not flag a valid address literal", async () => {
+      const ds = await semantic(
+        "set $x 0x4F2083f5fBede34C2714aFfb3105539775f7FE64",
+      );
+      expect(codes(ds)).to.not.include("malformed-hex-literal");
+    });
+
+    it("does not flag a valid hex value (upper or lower case)", async () => {
+      const ds = await semantic("set $x 0xdeadBEEF");
+      expect(codes(ds)).to.not.include("malformed-hex-literal");
+    });
+
+    it("does not flag a plain identifier bareword", async () => {
+      const ds = await semantic("switch gnosis");
+      expect(codes(ds)).to.not.include("malformed-hex-literal");
+    });
+  });
+
   describe("undefined-variable", () => {
     it("errors on a never-defined variable", async () => {
       const ds = await semantic("load stub\nstub:needtwo $missing a");

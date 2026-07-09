@@ -14,7 +14,7 @@ export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
 ) =>
   locate<BytesLiteralNode>(
     sequenceOf([
-      regex(/^0x[0-9a-f]+/),
+      regex(/^0x[0-9a-fA-F]+/),
       enclosingLookaheadParser(enclosingParsers),
     ]).errorMap((err) =>
       buildParserError(
