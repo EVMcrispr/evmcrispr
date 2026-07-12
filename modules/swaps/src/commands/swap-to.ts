@@ -52,7 +52,7 @@ export default defineCommand<Swaps>({
       name: "using",
       type: "swap-venue",
       description:
-        "Venue: Delora, UniswapV3, UniswapV2, Honeyswap, SushiSwap, or CoWSwap (default: the best venue available on the chain)",
+        "Venue: Delora, UniswapV4, UniswapV3, UniswapV2, Honeyswap, SushiSwap, Balancer, or CoWSwap (default: the best venue available on the chain)",
     },
     {
       name: "to",

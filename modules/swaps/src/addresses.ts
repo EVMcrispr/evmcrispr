@@ -116,3 +116,66 @@ export const UNISWAP_V3: Record<number, V3Deployment> = {
 
 /** Standard V3 fee tiers scanned when quoting (in hundredths of a bip). */
 export const V3_FEE_TIERS = [100, 500, 3000, 10000] as const;
+
+/** Canonical Permit2, same address on every chain. */
+export const PERMIT2: Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+
+/** UniswapV4 deployment: PoolManager + UniversalRouter + V4Quoter. */
+export interface V4Deployment {
+  poolManager: Address;
+  universalRouter: Address;
+  quoter: Address;
+}
+
+// https://docs.uniswap.org/contracts/v4/deployments
+export const UNISWAP_V4: Record<number, V4Deployment> = {
+  1: {
+    poolManager: "0x000000000004444c5dc75cB358380D2e3dE08A90",
+    universalRouter: "0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+    quoter: "0x52f0e24d1c21c8a0cb1e5a5dd6198556bd9e1203",
+  },
+  10: {
+    poolManager: "0x9a13f98cb987694c9f086b1f5eb990eea8264ec3",
+    universalRouter: "0x851116d9223fabed8e56c0e6b8ad0c31d98b3507",
+    quoter: "0x1f3131a13296fb91c90870043742c3cdbff1a8d7",
+  },
+  137: {
+    poolManager: "0x67366782805870060151383f4bbff9dab53e5cd6",
+    universalRouter: "0x1095692a6237d83c6a72f3f5efedb9a670c49223",
+    quoter: "0xb3d5c3dfc3a7aebff71895a7191796bffc2c81b9",
+  },
+  8453: {
+    poolManager: "0x498581ff718922c3f8e6a244956af099b2652b2b",
+    universalRouter: "0x6ff5693b99212da76ad316178a184ab56d299b43",
+    quoter: "0x0d5e0f971ed27fbff6c2837bf31316121532048d",
+  },
+  42161: {
+    poolManager: "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+    universalRouter: "0xa51afafe0263b40edaef0df8781ea9aa03e381a3",
+    quoter: "0x3972c00f7ed4885e145823eb7c655375d275a1c5",
+  },
+};
+
+/** Hookless V4 pools use the canonical tick spacing of each fee tier. */
+export const V4_FEE_TIERS: ReadonlyArray<
+  readonly [fee: number, tickSpacing: number]
+> = [
+  [100, 1],
+  [500, 10],
+  [3000, 60],
+  [10000, 200],
+];
+
+/** Balancer V2 Vault, same address on every supported chain. */
+export const BALANCER_VAULT: Address =
+  "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
+
+/** Balancer API chain enum values (https://api-v3.balancer.fi). */
+export const BALANCER_CHAINS: Record<number, string> = {
+  1: "MAINNET",
+  10: "OPTIMISM",
+  100: "GNOSIS",
+  137: "POLYGON",
+  8453: "BASE",
+  42161: "ARBITRUM",
+};

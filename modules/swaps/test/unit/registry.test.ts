@@ -30,10 +30,12 @@ describe("Swaps > venues > registry", () => {
   it("exposes venues under lowercased names", () => {
     expect(Object.keys(VENUES)).to.have.members([
       "delora",
+      "uniswapv4",
       "uniswapv3",
       "uniswapv2",
       "honeyswap",
       "sushiswap",
+      "balancer",
       "cowswap",
     ]);
   });
@@ -79,6 +81,10 @@ describe("Swaps > venues > registry", () => {
     const venue = await resolveVenue(stubModule(100, "anvil"), undefined);
     expect(venue.name).to.eq("Honeyswap");
     expect(venue.kind).to.eq("onchain");
+    // Mainnet under sim falls through Delora to UniswapV4.
+    expect((await resolveVenue(stubModule(1, "anvil"), undefined)).name).to.eq(
+      "UniswapV4",
+    );
   });
 
   it("rejects explicitly selected off-chain venues under a sim fork", async () => {

@@ -25,7 +25,7 @@ swaps:swap <amount> <tokenIn> <to> <tokenOut>
 |------|------|-------------|
 | `--min` | `number` | Minimum output in base units (overrides --slippage) |
 | `--slippage` | `number` | Maximum slippage vs. the quote, in percent (default 0.5) |
-| `--using` | `swap-venue` | Venue: Delora, UniswapV3, UniswapV2, Honeyswap, SushiSwap, or CoWSwap (default: the best venue available on the chain) |
+| `--using` | `swap-venue` | Venue: Delora, UniswapV4, UniswapV3, UniswapV2, Honeyswap, SushiSwap, Balancer, or CoWSwap (default: the best venue available on the chain) |
 | `--to` | `address` | Recipient of the output (defaults to the connected account) |
 | `--deadline` | `number` | Unix timestamp after which the swap reverts (default: 20 minutes after the latest block) |
 | `--no-approve` | `bool` | Skip the automatic allowance check and approve action |

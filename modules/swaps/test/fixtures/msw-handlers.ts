@@ -1,5 +1,6 @@
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
-import { toHex, zeroAddress } from "viem";
+import { parseUnits, toHex, zeroAddress } from "viem";
+import { GNO, WXDAI } from "../fixtures";
 
 /** Fake Delora execution target returned by the mocked quotes. */
 export const DELORA_TARGET = "0x1111111111111111111111111111111111111111";
@@ -27,6 +28,18 @@ export const COW_MOCK_FEE = 10n ** 15n;
 export const COW_MOCK_BUY_AMOUNT = 770000000000000000n;
 export const COW_MOCK_SELL_AMOUNT = 130000000000000000000n;
 export const COW_MOCK_UID = `0x${"ab".repeat(56)}`;
+
+export const balancerState = {
+  queries: [] as string[],
+  reset() {
+    this.queries = [];
+  },
+};
+
+export const BALANCER_POOL_ID =
+  "0x8189c4c96826d016a99986394103dfa9ae41e7ee0002000000000000000000aa";
+/** Mocked Balancer SOR rate: returnAmount = amount * RATE (exact-in). */
+export const BALANCER_RATE = 3n;
 
 const ZERO_APP_DATA = `0x${"00".repeat(32)}`;
 
@@ -96,5 +109,37 @@ export const swapServiceHandlers = [
   http.post("https://api.cow.fi/xdai/api/v1/orders", async ({ request }) => {
     cowState.orders.push(await request.json());
     return HttpResponse.json(COW_MOCK_UID, { status: 201 });
+  }),
+
+  // Balancer SOR (GraphQL, arguments inlined in the query string).
+  http.post("https://api-v3.balancer.fi/", async ({ request }) => {
+    const { query } = (await request.json()) as { query: string };
+    balancerState.queries.push(query);
+
+    const human = query.match(/swapAmount: "([\d.]+)"/)?.[1] ?? "0";
+    const exactOut = query.includes("EXACT_OUT");
+    const raw = parseUnits(human, 18); // WXDAI and GNO both use 18 decimals
+    const returnAmount = exactOut ? raw / BALANCER_RATE : raw * BALANCER_RATE;
+
+    return HttpResponse.json({
+      data: {
+        sorGetSwapPaths: {
+          swapAmountRaw: raw.toString(),
+          returnAmountRaw: returnAmount.toString(),
+          swaps: [
+            {
+              // GIVEN_IN steps carry the input amount, GIVEN_OUT steps the
+              // output amount — both equal the exact (raw) side here.
+              poolId: BALANCER_POOL_ID,
+              assetInIndex: 0,
+              assetOutIndex: 1,
+              amount: raw.toString(),
+              userData: "0x",
+            },
+          ],
+          tokenAddresses: [WXDAI.toLowerCase(), GNO.toLowerCase()],
+        },
+      },
+    });
   }),
 ];
