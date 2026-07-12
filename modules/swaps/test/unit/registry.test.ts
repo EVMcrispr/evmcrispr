@@ -29,10 +29,12 @@ function stubModule(chainId: number, simMode: string | null = null): Module {
 describe("Swaps > venues > registry", () => {
   it("exposes venues under lowercased names", () => {
     expect(Object.keys(VENUES)).to.have.members([
+      "delora",
       "uniswapv3",
       "uniswapv2",
       "honeyswap",
       "sushiswap",
+      "cowswap",
     ]);
   });
 
@@ -41,14 +43,21 @@ describe("Swaps > venues > registry", () => {
     expect(venue.name).to.eq("Honeyswap");
   });
 
-  it("defaults to the first supported venue in preference order", async () => {
-    // Gnosis: UniswapV3/V2 unsupported, Honeyswap comes before SushiSwap.
+  it("defaults to the Delora aggregator where it serves the chain", async () => {
     expect((await resolveVenue(stubModule(100), undefined)).name).to.eq(
-      "Honeyswap",
+      "Delora",
     );
-    // Mainnet: UniswapV3 leads.
-    expect((await resolveVenue(stubModule(1), undefined)).name).to.eq(
-      "UniswapV3",
+    expect((await resolveVenue(stubModule(1), undefined)).name).to.eq("Delora");
+  });
+
+  it("never defaults to intent venues and skips venues without exact-out", async () => {
+    // Exact-out: Delora is skipped, Gnosis falls through to Honeyswap.
+    expect(
+      (await resolveVenue(stubModule(100), undefined, { exactOut: true })).name,
+    ).to.eq("Honeyswap");
+    await expectRejection(
+      () => resolveVenue(stubModule(100), "Delora", { exactOut: true }),
+      "does not support exact-output swaps",
     );
   });
 
@@ -66,9 +75,21 @@ describe("Swaps > venues > registry", () => {
     );
   });
 
-  it("still resolves on-chain venues under an active sim fork", async () => {
+  it("skips API venues and picks an on-chain venue under an active sim fork", async () => {
     const venue = await resolveVenue(stubModule(100, "anvil"), undefined);
+    expect(venue.name).to.eq("Honeyswap");
     expect(venue.kind).to.eq("onchain");
+  });
+
+  it("rejects explicitly selected off-chain venues under a sim fork", async () => {
+    await expectRejection(
+      () => resolveVenue(stubModule(100, "anvil"), "Delora"),
+      "not deterministic inside a simulation",
+    );
+    await expectRejection(
+      () => resolveVenue(stubModule(100, "anvil"), "CoWSwap"),
+      "not deterministic inside a simulation",
+    );
   });
 
   it("errors when no venue covers the chain", async () => {

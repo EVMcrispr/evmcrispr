@@ -16,6 +16,7 @@ import {
   WXDAI,
   ZERO_ADDRESS,
 } from "../../fixtures";
+import { DELORA_DATA, DELORA_TARGET } from "../../fixtures/msw-handlers";
 
 const routerAbi = parseAbi([
   "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[] amounts)",
@@ -86,10 +87,20 @@ describeCommand("swap", {
       },
     },
     {
-      name: "defaults to Honeyswap on Gnosis when no venue is given",
+      name: "defaults to the Delora aggregator when no venue is given",
       script: `swaps:swap 100e18 ${WXDAI} to ${GNO}`,
       validate: (actions) => {
-        expect((actions.at(-1) as any).to).to.eq(HONEYSWAP_ROUTER);
+        expect(actions).to.have.length(2);
+        const [approve, swap] = actions as any[];
+        const approval = decodeFunctionData({
+          abi: erc20Abi,
+          data: approve.data,
+        });
+        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+          DELORA_TARGET.toLowerCase(),
+        );
+        expect(swap.to).to.eq(DELORA_TARGET);
+        expect(swap.data).to.eq(DELORA_DATA);
       },
     },
     {

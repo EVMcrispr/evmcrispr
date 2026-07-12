@@ -1,6 +1,8 @@
 import type { Module } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import { activeSimMode } from "../utils/sim";
+import cowswap from "./cowswap";
+import delora from "./delora";
 import honeyswap from "./honeyswap";
 import sushiswap from "./sushiswap";
 import type { VenueAdapter } from "./types";
@@ -9,16 +11,18 @@ import uniswapV3 from "./uniswap-v3";
 
 /** All venues, keyed by lowercased name (--using is case-insensitive). */
 export const VENUES: Record<string, VenueAdapter> = Object.fromEntries(
-  [uniswapV3, uniswapV2, honeyswap, sushiswap].map((v) => [
+  [delora, uniswapV3, uniswapV2, honeyswap, sushiswap, cowswap].map((v) => [
     v.name.toLowerCase(),
     v,
   ]),
 );
 
-/** Preference order for implicit venue selection. Intent venues (CoWSwap)
+/** Preference order for implicit venue selection: the Delora aggregator
+ *  where it serves the chain, then on-chain venues. Intent venues (CoWSwap)
  *  are deliberately excluded: they sign and post orders, so the user must
  *  opt in with --using. */
 export const DEFAULT_ORDER: VenueAdapter[] = [
+  delora,
   uniswapV3,
   uniswapV2,
   honeyswap,

@@ -4,6 +4,7 @@ import { describeHelper } from "@evmcrispr/test-utils/evml";
 import type { Address } from "viem";
 import { parseAbi } from "viem";
 import { GNO, HONEYSWAP_ROUTER, WXDAI } from "../../fixtures";
+import { DELORA_RATE } from "../../fixtures/msw-handlers";
 
 const routerAbi = parseAbi([
   "function getAmountsOut(uint256 amountIn, address[] path) view returns (uint256[] amounts)",
@@ -39,15 +40,12 @@ describeHelper("@swaps.quote", {
       },
     },
     {
-      name: "quotes the chain default venue when none is given",
+      name: "quotes the default venue (mocked Delora) when none is given",
       input: `@swaps.quote(100e18 ${WXDAI} ${GNO})`,
       validate: async (result) => {
-        const expected = await quoteOut(
-          HONEYSWAP_ROUTER,
-          [WXDAI, GNO],
-          100n * 10n ** 18n,
+        expect(String(result)).to.eq(
+          (100n * 10n ** 18n * DELORA_RATE).toString(),
         );
-        expect(String(result)).to.eq(expected.toString());
       },
     },
   ],
