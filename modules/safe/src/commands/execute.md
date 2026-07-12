@@ -32,7 +32,7 @@ set $receiver 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 safe:execute $mySafe (
   exec @token(DAI) transfer(address,uint256) $receiver 100e18
-  change-threshold 2
+  safe:change-threshold 2
 )
 ```
 

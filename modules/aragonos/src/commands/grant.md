@@ -30,7 +30,7 @@ aragonos:grant <grantee> <app> <role> [permissionManager]
 ```evml
 # Grant a role to the connected wallet
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  grant @me @app(agent) TRANSFER_ROLE
+  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE
 )
 ```
 

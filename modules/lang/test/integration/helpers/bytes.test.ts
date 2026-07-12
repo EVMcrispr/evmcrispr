@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@bytes.not",
   {
-    module: "lang",
+    module: "lang [@bytes.at @bytes.concat @bytes.len @bytes.not @bytes.slice]",
     cases: [
       {
         name: "should return uint256 max for NOT of 0x00",
@@ -33,7 +33,7 @@ describeHelper(
 describeHelper(
   "@bytes.concat",
   {
-    module: "lang",
+    module: "lang [@bytes.at @bytes.concat @bytes.len @bytes.not @bytes.slice]",
     cases: [
       {
         name: "should concatenate two hex values",
@@ -54,7 +54,8 @@ describeHelper(
     docCases: [
       {
         description: "Concatenate bytes",
-        code: `set $c @bytes.concat(0xaa 0xbb)`,
+        code: `load lang [@bytes.concat]\nset $c @bytes.concat(0xaa 0xbb)`,
+        preamble: "",
       },
     ],
     sampleArgs: ["0x01"],
@@ -65,7 +66,7 @@ describeHelper(
 describeHelper(
   "@bytes.slice",
   {
-    module: "lang",
+    module: "lang [@bytes.at @bytes.concat @bytes.len @bytes.not @bytes.slice]",
     cases: [
       {
         name: "should extract a byte range",
@@ -86,7 +87,8 @@ describeHelper(
     docCases: [
       {
         description: "Slice bytes",
-        code: `set $mid @bytes.slice(0xaabbccdd 1 3)`,
+        code: `load lang [@bytes.slice]\nset $mid @bytes.slice(0xaabbccdd 1 3)`,
+        preamble: "",
       },
     ],
     sampleArgs: ["0x0102", "0", "1"],
@@ -97,7 +99,7 @@ describeHelper(
 describeHelper(
   "@bytes.at",
   {
-    module: "lang",
+    module: "lang [@bytes.at @bytes.concat @bytes.len @bytes.not @bytes.slice]",
     cases: [
       {
         name: "should access the first byte",
@@ -118,7 +120,8 @@ describeHelper(
     docCases: [
       {
         description: "Get byte at index",
-        code: `set $first @bytes.at(0xaabbcc 0)`,
+        code: `load lang [@bytes.at]\nset $first @bytes.at(0xaabbcc 0)`,
+        preamble: "",
       },
     ],
     errorCases: [
@@ -136,7 +139,7 @@ describeHelper(
 describeHelper(
   "@bytes.len",
   {
-    module: "lang",
+    module: "lang [@bytes.at @bytes.concat @bytes.len @bytes.not @bytes.slice]",
     cases: [
       {
         name: "should return byte count for multi-byte value",

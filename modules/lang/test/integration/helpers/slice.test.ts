@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@slice",
   {
-    module: "lang",
+    module: "lang [@slice]",
     cases: [
       {
         name: "should slice an array with start and end",
@@ -37,15 +37,18 @@ describeHelper(
     docCases: [
       {
         description: "Slice middle portion",
-        code: `set $arr [10 20 30 40 50]\nset $mid @slice($arr 1 3)`,
+        code: `load lang [@slice]\nset $arr [10 20 30 40 50]\nset $mid @slice($arr 1 3)`,
+        preamble: "",
       },
       {
         description: "Slice from offset to end",
-        code: `set $arr [10 20 30 40 50]\nset $tail @slice($arr 2)`,
+        code: `load lang [@slice]\nset $arr [10 20 30 40 50]\nset $tail @slice($arr 2)`,
+        preamble: "",
       },
       {
         description: "Negative index slice",
-        code: `set $arr [10 20 30 40 50]\nset $last2 @slice($arr -2)`,
+        code: `load lang [@slice]\nset $arr [10 20 30 40 50]\nset $last2 @slice($arr -2)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`, `0`, `1`],

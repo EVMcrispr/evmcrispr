@@ -81,7 +81,7 @@ function buildDef(
       );
     }
 
-    module.bindingsManager.enterScope(name);
+    module.bindingsManager.enterScope();
     try {
       for (let i = 0; i < paramDefs.length; i++) {
         const def = paramDefs[i];
@@ -171,7 +171,6 @@ function buildDef(
       }
 
       return (await interpretNode(bodyNode as BlockExpressionNode, {
-        blockModule: module.contextualName,
         actionCallback: interpreters.actionCallback,
       })) as Action[];
     } finally {
@@ -233,8 +232,15 @@ export default defineCommand<Std>({
       ? buildDef("helper", name, paramDefs, finalReturnType, body as Node)
       : buildDef("command", name, paramDefs, optDefs, body as Node);
 
+    const bindKey = isHelper ? `@${name}` : name;
+    if (module.bindingsManager.hasBinding(bindKey, BindingsSpace.IMPORT)) {
+      throw new ErrorException(
+        `${bindKey} is already bound by a load import list`,
+      );
+    }
+
     module.bindingsManager.setBinding(
-      isHelper ? `@${name}` : name,
+      bindKey,
       defValue,
       DEF,
       false,

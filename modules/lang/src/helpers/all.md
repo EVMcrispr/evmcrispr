@@ -1,5 +1,5 @@
 ---
-title: "@all"
+title: "@lang:all"
 ---
 
 Return true if every element satisfies the predicate.
@@ -9,7 +9,7 @@ Return true if every element satisfies the predicate.
 ## Syntax
 
 ```evml
-@all(arr fn)
+@lang:all(arr fn)
 ```
 
 ## Arguments
@@ -18,14 +18,6 @@ Return true if every element satisfies the predicate.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Predicate helper returning bool |
-
-## Examples
-
-```evml
-# Check all positive
-def @isPositive "$n: number -> bool" @bool($n > 0)
-print @all([1 2 3] @isPositive)
-```
 
 <!-- HAND-WRITTEN -->
 

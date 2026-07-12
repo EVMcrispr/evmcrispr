@@ -91,13 +91,11 @@ export interface BlockActions {
  * collects its actions.
  */
 export async function collectBlockActions(
-  contextualName: string,
   commandName: string,
   block: any,
   interpreters: NodesInterpreters,
 ): Promise<BlockActions> {
   const blockActions = (await interpreters.interpretNode(block, {
-    blockModule: contextualName,
     batchContext: { name: `governor:${commandName}`, hasActions: false },
   })) as Action[];
 

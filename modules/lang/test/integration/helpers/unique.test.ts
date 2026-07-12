@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@unique",
   {
-    module: "lang",
+    module: "lang [@unique]",
     cases: [
       {
         name: "should remove duplicate numbers",
@@ -35,7 +35,8 @@ describeHelper(
     docCases: [
       {
         description: "Remove duplicates",
-        code: `set $arr [1 2 2 3 1 3]\nset $uniq @unique($arr)`,
+        code: `load lang [@unique]\nset $arr [1 2 2 3 1 3]\nset $uniq @unique($arr)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

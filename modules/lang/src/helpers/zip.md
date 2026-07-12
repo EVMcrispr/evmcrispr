@@ -1,5 +1,5 @@
 ---
-title: "@zip"
+title: "@lang:zip"
 ---
 
 Combine two arrays element-wise into an array of pairs.
@@ -9,7 +9,7 @@ Combine two arrays element-wise into an array of pairs.
 ## Syntax
 
 ```evml
-@zip(a b)
+@lang:zip(a b)
 ```
 
 ## Arguments
@@ -18,15 +18,6 @@ Combine two arrays element-wise into an array of pairs.
 |------|------|-------------|
 | `a` | `array` | First array to zip |
 | `b` | `array` | Second array |
-
-## Examples
-
-```evml
-# Zip two arrays
-set $keys [1 2 3]
-set $vals ["a" "b" "c"]
-set $pairs @zip($keys $vals)
-```
 
 <!-- HAND-WRITTEN -->
 

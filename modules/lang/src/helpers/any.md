@@ -1,5 +1,5 @@
 ---
-title: "@any"
+title: "@lang:any"
 ---
 
 Return true if at least one element satisfies the predicate.
@@ -9,7 +9,7 @@ Return true if at least one element satisfies the predicate.
 ## Syntax
 
 ```evml
-@any(arr fn)
+@lang:any(arr fn)
 ```
 
 ## Arguments
@@ -18,14 +18,6 @@ Return true if at least one element satisfies the predicate.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Predicate helper returning bool |
-
-## Examples
-
-```evml
-# Check if any negative
-def @isNegative "$n: number -> bool" @bool($n < 0)
-print @any([1 -2 3] @isNegative)
-```
 
 <!-- HAND-WRITTEN -->
 

@@ -23,7 +23,7 @@ Resolve an app identifier to its proxy address within the connected DAO.
 ```evml
 # Resolve app address within a DAO
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  set $agent @app(agent)
+  set $agent @aragonos:app(agent)
   print $agent
 )
 ```

@@ -1,5 +1,5 @@
 ---
-title: "@filter"
+title: "@lang:filter"
 ---
 
 Keep elements of an array for which a helper returns truthy.
@@ -9,7 +9,7 @@ Keep elements of an array for which a helper returns truthy.
 ## Syntax
 
 ```evml
-@filter(arr fn)
+@lang:filter(arr fn)
 ```
 
 ## Arguments
@@ -18,15 +18,6 @@ Keep elements of an array for which a helper returns truthy.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Predicate helper returning bool |
-
-## Examples
-
-```evml
-# Filter positive numbers
-def @isPositive "$n: number -> bool" @bool($n > 0)
-set $nums [-1 2 -3 4]
-set $pos @filter($nums @isPositive)
-```
 
 <!-- HAND-WRITTEN -->
 

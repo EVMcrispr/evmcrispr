@@ -1,5 +1,5 @@
 ---
-title: "@find"
+title: "@lang:find"
 ---
 
 Return the first element that satisfies the predicate.
@@ -9,7 +9,7 @@ Return the first element that satisfies the predicate.
 ## Syntax
 
 ```evml
-@find(arr fn)
+@lang:find(arr fn)
 ```
 
 ## Arguments
@@ -18,15 +18,6 @@ Return the first element that satisfies the predicate.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Predicate helper returning bool |
-
-## Examples
-
-```evml
-# Find first even number
-def @isEven "$n: number -> bool" @bool(@num($n % 2) == 0)
-set $nums [1 3 4 6]
-set $first @find($nums @isEven)
-```
 
 <!-- HAND-WRITTEN -->
 

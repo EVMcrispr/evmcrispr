@@ -27,23 +27,23 @@ load ens
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
+| [@ens:addr](src/helpers/addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. |
+| [@ens:available](src/helpers/available.md) | `bool` | Check whether a .eth name is available for registration. |
+| [@ens:avatar](src/helpers/avatar.md) | `string` | Get the avatar URI for an ENS name. |
 | [@ens:cointype](src/helpers/cointype.md) | `number` | ENSIP-11 coin type of an EVM chain, for multichain address records. |
-| [@ens:cointype.decode](src/helpers/cointype.decode.md) | `string` | Chain name of an ENSIP-11 coin type (the inverse of @cointype). |
+| [@ens:cointype.decode](src/helpers/cointype.decode.md) | `string` | Chain name of an ENSIP-11 coin type (the inverse of @ens:cointype). |
 | [@ens:contenthash](src/helpers/contenthash.md) | `bytes` | Encode a content hash (ipfs, ipns, skynet) for ENS records. |
-| [@ens:ens.addr](src/helpers/ens.addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. |
-| [@ens:ens.available](src/helpers/ens.available.md) | `bool` | Check whether a .eth name is available for registration. |
-| [@ens:ens.avatar](src/helpers/ens.avatar.md) | `string` | Get the avatar URI for an ENS name. |
-| [@ens:ens.contenthash](src/helpers/ens.contenthash.md) | `string` | Read the decoded content hash of an ENS name (e.g. ipfs://…). |
-| [@ens:ens.expiry](src/helpers/ens.expiry.md) | `number` | Registration expiry timestamp of a .eth name. |
-| [@ens:ens.fuses](src/helpers/ens.fuses.md) | `number` | Combine NameWrapper fuse names into their uint32 bitmap. |
-| [@ens:ens.fuses.decode](src/helpers/ens.fuses.decode.md) | `array` | Decode a NameWrapper fuse bitmap into its fuse names. |
-| [@ens:ens.fuses.of](src/helpers/ens.fuses.of.md) | `array` | Get the burned fuse names of a wrapped ENS name. |
-| [@ens:ens.name](src/helpers/ens.name.md) | `string` | Reverse-resolve an address to its primary ENS name. |
-| [@ens:ens.normalize](src/helpers/ens.normalize.md) | `string` | Normalize an ENS name per ENSIP-15. |
-| [@ens:ens.owner](src/helpers/ens.owner.md) | `address` | Get the owner of an ENS name (the real owner when the name is wrapped). |
-| [@ens:ens.rentPrice](src/helpers/ens.rentPrice.md) | `number` | Total price in wei to register or renew a .eth name for a duration. |
-| [@ens:ens.resolver](src/helpers/ens.resolver.md) | `address` | Get the resolver contract address of an ENS name. |
-| [@ens:ens.text](src/helpers/ens.text.md) | `string` | Read a text record from an ENS name. |
+| [@ens:contenthash.of](src/helpers/contenthash.of.md) | `string` | Read the decoded content hash of an ENS name (e.g. ipfs://…). |
+| [@ens:expiry](src/helpers/expiry.md) | `number` | Registration expiry timestamp of a .eth name. |
+| [@ens:fuses](src/helpers/fuses.md) | `number` | Combine NameWrapper fuse names into their uint32 bitmap. |
+| [@ens:fuses.decode](src/helpers/fuses.decode.md) | `array` | Decode a NameWrapper fuse bitmap into its fuse names. |
+| [@ens:fuses.of](src/helpers/fuses.of.md) | `array` | Get the burned fuse names of a wrapped ENS name. |
 | [@ens:labelhash](src/helpers/labelhash.md) | `bytes32` | Compute the ENS labelhash of a single label. |
+| [@ens:name](src/helpers/name.md) | `string` | Reverse-resolve an address to its primary ENS name. |
 | [@ens:namehash](src/helpers/namehash.md) | `bytes32` | Compute the ENS namehash of a domain name. |
+| [@ens:normalize](src/helpers/normalize.md) | `string` | Normalize an ENS name per ENSIP-15. |
+| [@ens:owner](src/helpers/owner.md) | `address` | Get the owner of an ENS name (the real owner when the name is wrapped). |
+| [@ens:rentPrice](src/helpers/rentPrice.md) | `number` | Total price in wei to register or renew a .eth name for a duration. |
+| [@ens:resolver](src/helpers/resolver.md) | `address` | Get the resolver contract address of an ENS name. |
+| [@ens:text](src/helpers/text.md) | `string` | Read a text record from an ENS name. |
 

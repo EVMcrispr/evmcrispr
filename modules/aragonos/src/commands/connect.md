@@ -22,7 +22,7 @@ aragonos:connect <daoName> <block>
 ```evml
 # Connect to a DAO and grant a permission
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  grant @me @app(agent) TRANSFER_ROLE
+  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE
 )
 ```
 
@@ -30,9 +30,9 @@ aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
 
 ## Notes
 
-- Inside a `connect` block, commands like `grant`, `install`, `revoke` can be used without the `aragonos:` prefix
-- The `@app()` helper resolves app identifiers within the connected DAO context
-- Nested `connect` blocks allow cross-DAO operations
+- Inside a `connect` block, aragonos commands must be qualified (`aragonos:grant`) or imported through the load import list (`load aragonos [connect grant @app]`) to be used unqualified
+- The `@aragonos:app()` helper resolves app identifiers within the connected DAO context
+- Nested `connect` blocks allow cross-DAO operations (import `connect` to use it unqualified inside the block)
 
 ## See Also
 

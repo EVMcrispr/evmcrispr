@@ -352,7 +352,162 @@ function Editor({
     };
   }, [monaco, evm]);
 
+  // ── Auto-import: writing a qualified name normalizes it ──
+  // Typing (or pasting) `ens:renew` / `@ens:addr` rewrites the token to its
+  // unqualified spelling and records it in the module's load import list
+  // (creating `load ens [renew]` when missing). Only just-edited regions
+  // are considered, only names that resolve to a real export, and only
+  // when the unqualified spelling is free — Ctrl+Z restores the qualified
+  // form (undo/redo never re-trigger the rewrite).
+  const applyingAutoImportRef = useRef(false);
+  useEffect(() => {
+    if (!editorInstance || !monaco || readOnly) return;
+
+    const disposable = editorInstance.onDidChangeModelContent(async (e) => {
+      if (
+        applyingAutoImportRef.current ||
+        e.isFlush ||
+        e.isUndoing ||
+        e.isRedoing
+      ) {
+        return;
+      }
+      const model = editorInstance.getModel();
+      if (!model) return;
+
+      const regions = e.changes.map((c) => {
+        const inserted = c.text.split("\n");
+        const endLine = c.range.startLineNumber + inserted.length - 1;
+        const endCol =
+          inserted.length === 1
+            ? c.range.startColumn - 1 + c.text.length
+            : inserted[inserted.length - 1].length;
+        return {
+          startLine: c.range.startLineNumber,
+          startCol: c.range.startColumn - 1,
+          endLine,
+          endCol,
+        };
+      });
+
+      // Cheap pre-filter: a qualified token needs a ":" on a changed line.
+      const lineCount = model.getLineCount();
+      const touchesColon = regions.some((r) => {
+        for (let l = r.startLine; l <= Math.min(r.endLine, lineCount); l++) {
+          if (model.getLineContent(l).includes(":")) return true;
+        }
+        return false;
+      });
+      if (!touchesColon) return;
+
+      const version = model.getVersionId();
+      const edits = await evm.getAutoImportEdits(model.getValue(), regions);
+      if (
+        edits.length === 0 ||
+        model.getVersionId() !== version ||
+        editorRef.current !== editorInstance
+      ) {
+        return;
+      }
+
+      applyingAutoImportRef.current = true;
+      try {
+        editorInstance.executeEdits(
+          "evml-auto-import",
+          edits.map((ed) => ({
+            range: new monaco.Range(
+              ed.line,
+              ed.startCol + 1,
+              ed.line,
+              ed.endCol + 1,
+            ),
+            text: ed.newText,
+          })),
+        );
+      } finally {
+        applyingAutoImportRef.current = false;
+      }
+    });
+
+    return () => {
+      disposable.dispose();
+    };
+  }, [editorInstance, monaco, evm, readOnly]);
+
+  // ── Rename provider (F2 on imported names) ──
+  useEffect(() => {
+    if (!monaco) return;
+
+    const renameProvider = monaco.languages.registerRenameProvider("evml", {
+      resolveRenameLocation: (model, pos) => {
+        const range = evm.prepareRename(model.getValue(), {
+          line: pos.lineNumber,
+          col: pos.column - 1,
+        });
+        if (!range) {
+          return {
+            rejectReason:
+              "Only names bound by a load import list can be renamed.",
+            range: new monaco.Range(
+              pos.lineNumber,
+              pos.column,
+              pos.lineNumber,
+              pos.column,
+            ),
+            text: "",
+          };
+        }
+        return {
+          range: new monaco.Range(
+            range.line,
+            range.startCol + 1,
+            range.line,
+            range.endCol + 1,
+          ),
+          text: range.text,
+        };
+      },
+      provideRenameEdits: (model, pos, newName) => {
+        const result = evm.getRenameEdits(
+          model.getValue(),
+          { line: pos.lineNumber, col: pos.column - 1 },
+          newName,
+        );
+        if ("error" in result) {
+          return { edits: [], rejectReason: result.error };
+        }
+        return {
+          edits: result.edits.map((e) => ({
+            resource: model.uri,
+            versionId: undefined,
+            textEdit: {
+              range: new monaco.Range(
+                e.line,
+                e.startCol + 1,
+                e.line,
+                e.endCol + 1,
+              ),
+              text: e.newText,
+            },
+          })),
+        };
+      },
+    });
+
+    return () => {
+      renameProvider.dispose();
+    };
+  }, [monaco, evm]);
+
   // ── Inline diagnostics ──
+  // Diagnostics touching the cursor's line are withheld while editing: a
+  // half-typed command is an error until the line is finished, and flashing
+  // squiggles under the text being written is pure noise. The full set is
+  // re-applied as soon as the cursor leaves the line (see the cursor
+  // listener below).
+  const diagnosticsRef = useRef<ParseDiagnostic[]>([]);
+  const applyMarkersRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     if (!monaco) return;
 
@@ -374,19 +529,41 @@ function Editor({
           : monaco.MarkerSeverity.Error,
     });
 
+    const applyMarkers = () => {
+      if (model.isDisposed()) return;
+      // Only suppress while the editor is focused — an unfocused editor
+      // isn't being typed in, so its cursor line should show its errors.
+      const ed = editorRef.current;
+      const cursorLine =
+        readOnly || !ed?.hasTextFocus()
+          ? null
+          : (ed.getPosition()?.lineNumber ?? null);
+      // Diagnostics can be stale relative to the model (they're computed
+      // from the debounced script) — drop any that now point past the end
+      // so `getLineLength` in `toMarker` can't throw.
+      const lineCount = model.getLineCount();
+      const visible = diagnosticsRef.current.filter(
+        (d) =>
+          d.line <= lineCount &&
+          (cursorLine == null ||
+            cursorLine < d.line ||
+            cursorLine > (d.endLine ?? d.line)),
+      );
+      monaco.editor.setModelMarkers(model, "evml", visible.map(toMarker));
+    };
+    applyMarkersRef.current = applyMarkers;
+
     // Show fast parse-only diagnostics immediately, then upgrade to the full
     // set (parse + semantic) once the async analysis resolves.
-    monaco.editor.setModelMarkers(
-      model,
-      "evml",
-      evm.getDiagnostics(debouncedScript).map(toMarker),
-    );
+    diagnosticsRef.current = evm.getDiagnostics(debouncedScript);
+    applyMarkers();
 
     evm
       .getFullDiagnostics(debouncedScript)
       .then((diagnostics: ParseDiagnostic[]) => {
         if (cancelled) return;
-        monaco.editor.setModelMarkers(model, "evml", diagnostics.map(toMarker));
+        diagnosticsRef.current = diagnostics;
+        applyMarkers();
       })
       .catch(() => {
         /* semantic analysis never throws, but stay defensive */
@@ -395,7 +572,30 @@ function Editor({
     return () => {
       cancelled = true;
     };
-  }, [monaco, evm, debouncedScript]);
+  }, [monaco, evm, debouncedScript, readOnly]);
+
+  // Re-apply markers when the cursor moves to a different line, so
+  // diagnostics suppressed on the line being edited resurface once the
+  // user moves off it (and get hidden on the newly entered line), and on
+  // focus changes, so an unfocused editor shows its full diagnostics.
+  useEffect(() => {
+    if (!editorInstance || readOnly) return;
+
+    let lastLine = editorInstance.getPosition()?.lineNumber ?? null;
+    const disposables = [
+      editorInstance.onDidChangeCursorPosition((e) => {
+        if (e.position.lineNumber === lastLine) return;
+        lastLine = e.position.lineNumber;
+        applyMarkersRef.current();
+      }),
+      editorInstance.onDidFocusEditorText(() => applyMarkersRef.current()),
+      editorInstance.onDidBlurEditorText(() => applyMarkersRef.current()),
+    ];
+
+    return () => {
+      for (const d of disposables) d.dispose();
+    };
+  }, [editorInstance, readOnly]);
 
   const handleBeforeMountEditor = useCallback((monaco: Monaco) => {
     monaco.editor.defineTheme("evml-dark", theme);

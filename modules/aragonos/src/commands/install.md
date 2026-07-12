@@ -30,7 +30,7 @@ aragonos:install <variable> <identifier> [...params]
 ```evml
 # Install a token-manager app
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  install $tm token-manager:new-app @app(agent) false 1000e18
+  aragonos:install $tm token-manager:new-app @aragonos:app(agent) false 1000e18
 )
 ```
 

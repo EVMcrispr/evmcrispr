@@ -21,18 +21,6 @@ Fetch a URL and return the response body as a string.
 | `[body]` | `string` | Request body (JSON string) |
 | `[auth]` | `string` | Authorization header value |
 
-## Examples
-
-```evml
-# Simple GET request
-set $response @fetch("https://test.evmcrispr.local/hello")
-print $response
-
-# POST with a body
-set $response @fetch("https://test.evmcrispr.local/echo" POST "payload")
-print $response
-```
-
 <!-- HAND-WRITTEN -->
 
 ## See Also

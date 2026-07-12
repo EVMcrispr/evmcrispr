@@ -46,7 +46,7 @@ export type CompletionOverrides = Record<string, ArgCompletionFn>;
 
 /** Callback that executes a helper with pre-resolved arguments and returns its result. */
 export type HelperResolver = (
-  helperName: string,
+  helper: { module?: string; name: string },
   resolvedArgs: string[],
   chainId: number,
   client: PublicClient,

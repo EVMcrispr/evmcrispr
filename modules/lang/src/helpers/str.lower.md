@@ -1,5 +1,5 @@
 ---
-title: "@str.lower"
+title: "@lang:str.lower"
 ---
 
 Convert a string to lowercase.
@@ -9,7 +9,7 @@ Convert a string to lowercase.
 ## Syntax
 
 ```evml
-@str.lower(s)
+@lang:str.lower(s)
 ```
 
 ## Arguments
@@ -17,13 +17,6 @@ Convert a string to lowercase.
 | Name | Type | Description |
 |------|------|-------------|
 | `s` | `string` | Source string |
-
-## Examples
-
-```evml
-# Lowercase a string
-set $s @str.lower("Hello World")
-```
 
 <!-- HAND-WRITTEN -->
 

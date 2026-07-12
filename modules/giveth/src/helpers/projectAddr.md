@@ -18,14 +18,6 @@ Resolve a Giveth project slug to its contract address.
 |------|------|-------------|
 | `slug` | `string` | Giveth project slug |
 
-## Examples
-
-```evml
-# Resolve a project slug to its address
-set $addr @projectAddr("evmcrispr")
-print $addr
-```
-
 <!-- HAND-WRITTEN -->
 
 ## See Also

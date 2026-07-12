@@ -13,7 +13,7 @@ import {
   findAragonOSCommandNode,
 } from "../../test-helpers/aragonos";
 
-const preamble = `load aragonos --as ar\nar:connect ${DAO2.kernel} (`;
+const preamble = `load aragonos [upgrade]\naragonos:connect ${DAO2.kernel} (`;
 
 describeCommand("upgrade", {
   describeName:
@@ -23,7 +23,7 @@ describeCommand("upgrade", {
   docCases: [
     {
       description: "Upgrade to latest version",
-      code: "aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (\n  upgrade disputable-conviction-voting.open\n)",
+      code: "aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (\n  aragonos:upgrade disputable-conviction-voting.open\n)",
     },
   ],
   cases: [
@@ -112,7 +112,7 @@ describeCommand("upgrade", {
   cases: [
     {
       name: "should return a correct upgrade action given a different DAO",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    connect ${DAO3.kernel} (\n      upgrade _${DAO2.kernel}:disputable-conviction-voting.open\n    )\n  )\n)`,
+      script: `load aragonos [connect upgrade]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    connect ${DAO3.kernel} (\n      upgrade _${DAO2.kernel}:disputable-conviction-voting.open\n    )\n  )\n)`,
       validate: async (upgradeActions, interpreter) => {
         const client = getPublicClient();
         const repoAddress = await _aragonEns(
@@ -139,7 +139,7 @@ describeCommand("upgrade", {
   errorCases: [
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos --as ar\nar:upgrade voting`,
+      script: `load aragonos\naragonos:upgrade voting`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

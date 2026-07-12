@@ -24,8 +24,8 @@ load governor
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@governor:governor.proposalId](src/helpers/governor.proposalId.md) | `number` | Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. |
-| [@governor:governor.proposalState](src/helpers/governor.proposalState.md) | `string` | Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. |
-| [@governor:governor.timelockMinDelay](src/helpers/governor.timelockMinDelay.md) | `number` | Minimum delay in seconds a TimelockController enforces on new operations. |
-| [@governor:governor.timelockOperationState](src/helpers/governor.timelockOperationState.md) | `string` | State of a TimelockController operation: Unset, Waiting, Ready or Done. |
+| [@governor:proposalId](src/helpers/proposalId.md) | `number` | Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. |
+| [@governor:proposalState](src/helpers/proposalState.md) | `string` | Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. |
+| [@governor:timelockMinDelay](src/helpers/timelockMinDelay.md) | `number` | Minimum delay in seconds a TimelockController enforces on new operations. |
+| [@governor:timelockOperationState](src/helpers/timelockOperationState.md) | `string` | State of a TimelockController operation: Unset, Waiting, Ready or Done. |
 

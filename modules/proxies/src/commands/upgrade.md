@@ -49,5 +49,5 @@ proxies:upgrade $proxy 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 initializeV2(u
 ## See Also
 
 - [proxies:upgrade-beacon](upgrade-beacon.md) — upgrade beacon proxies
-- [@proxies.implementation](../helpers/proxies.implementation.md) — read the implementation
-- [@proxies.admin](../helpers/proxies.admin.md) — read the proxy admin
+- [@proxies:implementation](../helpers/implementation.md) — read the implementation
+- [@proxies:admin](../helpers/admin.md) — read the proxy admin

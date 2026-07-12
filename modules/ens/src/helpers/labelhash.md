@@ -22,7 +22,7 @@ Compute the ENS labelhash of a single label.
 
 ```evml
 # Hash a single ENS label
-set $label @labelhash("vitalik")
+set $label @ens:labelhash("vitalik")
 ```
 
 <!-- HAND-WRITTEN -->

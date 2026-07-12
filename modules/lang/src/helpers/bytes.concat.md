@@ -1,5 +1,5 @@
 ---
-title: "@bytes.concat"
+title: "@lang:bytes.concat"
 ---
 
 Concatenate bytes values together.
@@ -9,7 +9,7 @@ Concatenate bytes values together.
 ## Syntax
 
 ```evml
-@bytes.concat(first ...rest)
+@lang:bytes.concat(first ...rest)
 ```
 
 ## Arguments
@@ -18,13 +18,6 @@ Concatenate bytes values together.
 |------|------|-------------|
 | `first` | `bytes` | First bytes value |
 | `[...rest]` | `bytes` | Bytes values to append |
-
-## Examples
-
-```evml
-# Concatenate bytes
-set $c @bytes.concat(0xaa 0xbb)
-```
 
 <!-- HAND-WRITTEN -->
 

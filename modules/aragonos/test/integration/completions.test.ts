@@ -33,8 +33,9 @@ const pos = (script: string, line = 1) => ({
   col: script.split("\n")[line - 1]?.length ?? script.length,
 });
 
-// Prefix that loads aragonos module
-const AR = "load aragonos\n";
+// Prefix that loads aragonos module and imports the names used unqualified
+const AR =
+  "load aragonos [connect new-dao new-token grant revoke install upgrade act forward @app @aragonEns @nextApp]\n";
 
 // Wrap a command inside an aragonos:connect block for DAO context.
 // Returns the script and the line number where the command appears.
@@ -438,8 +439,19 @@ describe("Completions – aragonos helpers", () => {
     evm.switchChainId(gnosis.id);
   });
 
+  // Loaded modules expose their helpers/constants under qualified names;
+  // the load import list additionally exposes the imported ones unqualified.
+  const ARAGONOS_QUALIFIED_HELPERS = [
+    "@aragonos:app",
+    "@aragonos:aragonEns",
+    "@aragonos:nextApp",
+    "@aragonos:ANY_ENTITY",
+    "@aragonos:NO_ENTITY",
+    "@aragonos:BURN_ENTITY",
+  ];
   const ALL_HELPERS = [
     ...STD_ALL_HELPERS,
+    ...ARAGONOS_QUALIFIED_HELPERS,
     "@app",
     "@aragonEns",
     "@nextApp",
@@ -453,8 +465,8 @@ describe("Completions – aragonos helpers", () => {
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;
   const BYTES32_HELPERS = STD_BYTES32_HELPERS;
 
-  // Prefix that loads aragonos module
-  const AR = "load aragonos\n";
+  // Prefix that loads aragonos module and imports its helpers unqualified
+  const AR = "load aragonos [@app @aragonEns @nextApp]\n";
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering

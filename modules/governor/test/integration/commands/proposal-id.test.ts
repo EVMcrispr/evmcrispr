@@ -51,26 +51,26 @@ describeCommand("propose", {
 });
 
 describeHelper(
-  "@governor.proposalId",
+  "@governor:proposalId",
   {
     describeName:
-      "Governor > helpers > @governor.proposalId(governor targets values calldatas description)",
+      "Governor > helpers > @governor:proposalId(governor targets values calldatas description)",
     module: "governor",
     cases: [
       {
         name: "should derive the proposal id from the proposal arrays",
-        input: `@governor.proposalId(${GOVERNOR} [${GNO}] [0] [${transferData}] "${DESCRIPTION}")`,
+        input: `@governor:proposalId(${GOVERNOR} [${GNO}] [0] [${transferData}] "${DESCRIPTION}")`,
         expected: expectedId,
       },
     ],
     errorCases: [
       {
         name: "should fail when targets are not addresses",
-        input: `@governor.proposalId(${GOVERNOR} ["nope"] [0] [${transferData}] "${DESCRIPTION}")`,
+        input: `@governor:proposalId(${GOVERNOR} ["nope"] [0] [${transferData}] "${DESCRIPTION}")`,
         error: "must contain addresses",
       },
     ],
     sampleArgs: [GOVERNOR, `[${GNO}]`, "[0]", `[${transferData}]`, '"desc"'],
   },
-  helpers["governor.proposalId"].argDefs,
+  helpers.proposalId.argDefs,
 );

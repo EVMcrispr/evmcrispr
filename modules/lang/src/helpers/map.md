@@ -1,5 +1,5 @@
 ---
-title: "@map"
+title: "@lang:map"
 ---
 
 Transform each element of an array by applying a helper.
@@ -9,7 +9,7 @@ Transform each element of an array by applying a helper.
 ## Syntax
 
 ```evml
-@map(arr fn)
+@lang:map(arr fn)
 ```
 
 ## Arguments
@@ -18,15 +18,6 @@ Transform each element of an array by applying a helper.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Transform helper applied to each element |
-
-## Examples
-
-```evml
-# Double each element
-def @double "$n: number -> number" @num($n * 2)
-set $nums [1 2 3]
-set $doubled @map($nums @double)
-```
 
 <!-- HAND-WRITTEN -->
 

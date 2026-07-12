@@ -5,15 +5,15 @@ import { helpers } from "../../../src/_generated";
 // The pinned Gnosis fork has no TimelockController instance, so these read
 // helpers only get the auto-generated arg-length checks.
 const HELPERS: Record<string, string[] | undefined> = {
-  "governor.timelockMinDelay": undefined,
-  "governor.timelockOperationState": undefined,
+  timelockMinDelay: undefined,
+  timelockOperationState: undefined,
 };
 
 for (const [name, sampleArgs] of Object.entries(HELPERS)) {
   describeHelper(
-    `@${name}`,
+    `@governor:${name}`,
     {
-      describeName: `Governor > helpers > @${name}`,
+      describeName: `Governor > helpers > @governor:${name}`,
       module: "governor",
       sampleArgs,
     },

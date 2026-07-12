@@ -37,4 +37,4 @@ ens:transfer mydao.eth 0x1234567890abcdef1234567890abcdef12345678
 
 ## See Also
 
-- [@ens.owner](../helpers/ens.owner.md) — read the current owner
+- [@ens:owner](../helpers/owner.md) — read the current owner

@@ -1,5 +1,5 @@
 ---
-title: "@str.concat"
+title: "@lang:str.concat"
 ---
 
 Concatenate strings together.
@@ -9,7 +9,7 @@ Concatenate strings together.
 ## Syntax
 
 ```evml
-@str.concat(first ...rest)
+@lang:str.concat(first ...rest)
 ```
 
 ## Arguments
@@ -18,16 +18,6 @@ Concatenate strings together.
 |------|------|-------------|
 | `first` | `string` | First string segment |
 | `[...rest]` | `string` | Strings to append |
-
-## Examples
-
-```evml
-# Concatenate strings
-set $full @str.concat("hello" " " "world")
-
-# Concatenate with helper result
-set $greeting @str.concat("hi " @str(@me))
-```
 
 <!-- HAND-WRITTEN -->
 

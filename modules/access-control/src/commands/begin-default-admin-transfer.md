@@ -32,7 +32,7 @@ access-control:begin-default-admin-transfer $token 0x4F2083f5fBede34C2714aFfb310
 
 - Only the current default admin can start the transfer; the new admin can
   accept once the delay (see
-  [@access-control.defaultAdminDelay](../helpers/access-control.defaultAdminDelay.md)) has passed.
+  [@access-control:defaultAdminDelay](../helpers/defaultAdminDelay.md)) has passed.
 - Starting a new transfer overwrites a pending one.
 
 ## See Also

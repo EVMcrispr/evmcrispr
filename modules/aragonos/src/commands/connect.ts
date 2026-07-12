@@ -83,7 +83,6 @@ export default defineCommand<AragonOS>({
       actions = (await interpretNode(
         block as import("@evmcrispr/sdk").BlockExpressionNode,
         {
-          blockModule: module.contextualName,
           blockInitializer: setDAOContext(module, dao),
           // Inherit hasActions from any enclosing batch context: reads
           // inside this block can't see the outer batch's actions either.

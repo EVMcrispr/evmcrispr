@@ -1,5 +1,5 @@
 ---
-title: "@len"
+title: "@lang:len"
 ---
 
 Return the length of an array.
@@ -9,7 +9,7 @@ Return the length of an array.
 ## Syntax
 
 ```evml
-@len(value)
+@lang:len(value)
 ```
 
 ## Arguments
@@ -17,14 +17,6 @@ Return the length of an array.
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `array` | Input value |
-
-## Examples
-
-```evml
-# Get array length
-set $arr [10 20 30]
-print @len($arr)
-```
 
 <!-- HAND-WRITTEN -->
 

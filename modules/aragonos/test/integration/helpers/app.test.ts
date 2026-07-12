@@ -5,13 +5,13 @@ import { createInterpreter, describeHelper } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 import { DAO, DAO2 } from "../../fixtures";
 
-describeHelper("@app", {
+describeHelper("@aragonos:app", {
   module: "aragonos",
   describeName: "AragonOS > helpers > @app > doc examples",
   docCases: [
     {
       description: "Resolve app address within a DAO",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  set $agent @app(agent)\n  print $agent\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  set $agent @aragonos:app(agent)\n  print $agent\n)",
     },
   ],
 });
@@ -26,8 +26,8 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
   it("should resolve an app address within the current DAO", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
-      ar:connect ${DAO.kernel} (
+      load aragonos [@app]
+      aragonos:connect ${DAO.kernel} (
         set $addr @app(agent)
       )
       `,
@@ -39,8 +39,8 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
   it("should resolve an app with a DAO address prefix", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
-      ar:connect ${DAO.kernel} (
+      load aragonos [connect @app]
+      aragonos:connect ${DAO.kernel} (
         connect ${DAO2.kernel} (
           set $addr @app(_${DAO.kernel}:agent)
         )
@@ -54,8 +54,8 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
   it("should fail when the app does not exist in the DAO", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
-      ar:connect ${DAO.kernel} (
+      load aragonos [@app]
+      aragonos:connect ${DAO.kernel} (
         set $addr @app(nonexistent-app)
       )
       `,
@@ -74,8 +74,8 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
     const fakeDAO = "0x0000000000000000000000000000000000000001";
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
-      ar:connect ${DAO.kernel} (
+      load aragonos [@app]
+      aragonos:connect ${DAO.kernel} (
         set $addr @app(_${fakeDAO}:agent)
       )
       `,

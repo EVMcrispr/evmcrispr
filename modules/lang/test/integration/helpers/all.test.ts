@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@all",
   {
-    module: "lang",
+    module: "lang [@all]",
     preamble: `def @isTrue "$x: any -> bool" @bool($x)`,
     cases: [
       {
@@ -27,7 +27,8 @@ describeHelper(
     docCases: [
       {
         description: "Check all positive",
-        code: `def @isPositive "$n: number -> bool" @bool($n > 0)\nprint @all([1 2 3] @isPositive)`,
+        code: `load lang [@all]\ndef @isPositive "$n: number -> bool" @bool($n > 0)\nprint @all([1 2 3] @isPositive)`,
+        preamble: "",
       },
     ],
     errorCases: [

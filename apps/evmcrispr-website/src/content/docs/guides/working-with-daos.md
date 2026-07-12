@@ -7,11 +7,11 @@ This guide covers the most common DAO operations.
 
 ## Connecting to a DAO
 
-Use `connect` to establish a DAO context. All DAO commands run inside the
-connect block:
+Use `aragonos:connect` to establish a DAO context. All DAO commands run
+inside the connect block:
 
 ```evml
-load aragonos
+load aragonos [grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # DAO commands go here
@@ -22,24 +22,29 @@ aragonos:connect my-dao.aragonid.eth (
 You can connect by ENS name or by address:
 
 ```evml
-load aragonos
+load aragonos [@app]
 
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
   print @app(agent)
 )
 ```
 
-Inside a `connect` block, aragonos commands (`grant`, `install`, `revoke`,
-`act`, …) and the `@app()` helper are used without the `aragonos:` prefix.
-Outside of one they do not exist — every snippet below is therefore wrapped
-in its `connect` block.
+Loading a module makes its commands and helpers available in their
+qualified form (`aragonos:grant`, `@aragonos:app(...)`). To use them
+without the prefix, name them in the `load` line's import list:
+`load aragonos [grant @app]` imports the `grant` command and the `@app`
+helper for unqualified use. The import list is the only thing that decides
+what an unqualified name means — a block never changes name resolution, so
+a module update can never silently redefine a name you didn't import.
+DAO commands still only *work* inside a `connect` block (they need the DAO
+context) — every snippet below is therefore wrapped in its `connect` block.
 
 ## Managing Permissions
 
 ### Granting Roles
 
 ```evml
-load aragonos
+load aragonos [grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Grant a role to the connected wallet
@@ -56,7 +61,7 @@ aragonos:connect my-dao.aragonid.eth (
 ### Revoking Roles
 
 ```evml
-load aragonos
+load aragonos [revoke @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Revoke a permission
@@ -70,7 +75,7 @@ aragonos:connect my-dao.aragonid.eth (
 ## Installing Apps
 
 ```evml
-load aragonos
+load aragonos [install grant]
 
 aragonos:connect my-dao.aragonid.eth (
   # Install a new agent app
@@ -90,7 +95,7 @@ aragonos:connect my-dao.aragonid.eth (
 ## Upgrading Apps
 
 ```evml
-load aragonos
+load aragonos [upgrade]
 
 aragonos:connect my-dao.aragonid.eth (
   # Upgrade to the latest version
@@ -106,7 +111,7 @@ aragonos:connect my-dao.aragonid.eth (
 Use `act` to call external contracts through the DAO's agent:
 
 ```evml
-load aragonos
+load aragonos [act @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Transfer tokens from the DAO treasury
@@ -119,7 +124,7 @@ aragonos:connect my-dao.aragonid.eth (
 Use `forward` to route actions through voting or other forwarder apps:
 
 ```evml
-load aragonos
+load aragonos [forward grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   forward @app(voting) (
@@ -131,7 +136,7 @@ aragonos:connect my-dao.aragonid.eth (
 ## Resolving App Addresses
 
 ```evml
-load aragonos
+load aragonos [@app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Get the address of a DAO app
@@ -162,7 +167,7 @@ aragonos:new-token $token "My Token" "MTK" @me
 Test DAO operations before executing them on-chain:
 
 ```evml
-load aragonos
+load aragonos [grant install @app]
 load sim
 
 sim:fork (

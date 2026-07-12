@@ -37,4 +37,4 @@ proxies:upgrade-beacon $beacon 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ## See Also
 
 - [proxies:upgrade](upgrade.md) — upgrade transparent/UUPS proxies
-- [@proxies.beacon](../helpers/proxies.beacon.md) — find a proxy's beacon
+- [@proxies:beacon](../helpers/beacon.md) — find a proxy's beacon

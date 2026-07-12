@@ -109,7 +109,7 @@ export function defineHelper<M extends Module>(
         }
         const helperNode = cbNode as unknown as HelperFunctionNode;
         parsedArgs[def.name] = async (...callArgs: Param[]) => {
-          module.bindingsManager.enterScope(config.name);
+          module.bindingsManager.enterScope();
           try {
             const argNodes = callArgs.map((arg, idx) => {
               const tmpVar = `__cb_${idx}__`;

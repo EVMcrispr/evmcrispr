@@ -27,8 +27,8 @@ export default class AragonOS extends defineModule(
   /** Active nesting stack (push/pop). Tracks the current DAO scope. */
   #daoStack: DaoContext[];
 
-  constructor(context: ModuleContext, alias?: string) {
-    super(context, alias);
+  constructor(context: ModuleContext) {
+    super(context);
 
     this.#connectedDAOs = [];
     this.#daoStack = [];

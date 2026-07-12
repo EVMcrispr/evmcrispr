@@ -18,6 +18,7 @@ export enum BindingsSpace {
   MODULE = "MODULE",
   CACHE = "CACHE",
   DEF = "DEF",
+  IMPORT = "IMPORT",
 }
 
 export type Nullable<T> = T | null;
@@ -48,9 +49,9 @@ export type ModuleData = {
   helperDescriptions?: Record<string, string>;
   /** Human-readable descriptions for each command (keyed by command name). */
   commandDescriptions?: Record<string, string>;
+  /** Module constants (zero-arg `@NAME` values). */
+  constants?: Record<string, string>;
   types?: CustomArgTypes;
-  /** When a module is loaded with `--as`, the alias is stored here. */
-  alias?: string;
 };
 
 export interface AbiBinding extends IBinding<Abi> {
@@ -92,12 +93,28 @@ export interface DefBinding extends IBinding<DefValue> {
   type: BindingsSpace.DEF;
 }
 
+/** An unqualified name bound by a `load` import list. Identifiers are keyed
+ *  like DEF: `@name` for helpers/constants, bare `name` for commands. The
+ *  value records which module export the name is frozen to. */
+export type ImportValue = {
+  /** Real module name (namespaces are never aliased). */
+  module: string;
+  /** The export's local name on that module (before any `>` rename). */
+  name: string;
+  kind: "command" | "helper" | "constant";
+};
+
+export interface ImportBinding extends IBinding<ImportValue> {
+  type: BindingsSpace.IMPORT;
+}
+
 export type Binding =
   | AbiBinding
   | ModuleBinding
   | UserBinding
   | CacheBinding
-  | DefBinding;
+  | DefBinding
+  | ImportBinding;
 
 export type NullableBinding<B extends Binding = Binding> = Omit<B, "value"> & {
   value: null | B["value"];
@@ -114,7 +131,9 @@ export type RelativeBinding<B extends BindingsSpace> =
           ? CacheBinding
           : B extends BindingsSpace.DEF
             ? DefBinding
-            : unknown;
+            : B extends BindingsSpace.IMPORT
+              ? ImportBinding
+              : unknown;
 
 export type RelativeNullableBinding<B extends BindingsSpace> =
   B extends BindingsSpace.ABI
@@ -127,4 +146,6 @@ export type RelativeNullableBinding<B extends BindingsSpace> =
           ? NullableBinding<CacheBinding>
           : B extends BindingsSpace.DEF
             ? NullableBinding<DefBinding>
-            : any;
+            : B extends BindingsSpace.IMPORT
+              ? NullableBinding<ImportBinding>
+              : any;

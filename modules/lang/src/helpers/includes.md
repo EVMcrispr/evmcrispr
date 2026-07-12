@@ -1,5 +1,5 @@
 ---
-title: "@includes"
+title: "@lang:includes"
 ---
 
 Check whether an array contains an element.
@@ -9,7 +9,7 @@ Check whether an array contains an element.
 ## Syntax
 
 ```evml
-@includes(value item)
+@lang:includes(value item)
 ```
 
 ## Arguments
@@ -18,18 +18,6 @@ Check whether an array contains an element.
 |------|------|-------------|
 | `value` | `array` | Input value |
 | `item` | `any` | Element to search for |
-
-## Examples
-
-```evml
-# Check if array contains element
-set $arr [1 2 3]
-print @includes($arr 2)
-
-# Check for missing element
-set $arr [1 2 3]
-print @includes($arr 99)
-```
 
 <!-- HAND-WRITTEN -->
 

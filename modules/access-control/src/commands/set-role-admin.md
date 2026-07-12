@@ -39,4 +39,4 @@ access-control:set-role-admin $manager 42 2
 ## See Also
 
 - [access-control:set-role-guardian](set-role-guardian.md) — set the cancelling role
-- [@access-control.roleAdmin](../helpers/access-control.roleAdmin.md) — read the current admin role
+- [@access-control:roleAdmin](../helpers/roleAdmin.md) — read the current admin role

@@ -50,7 +50,6 @@ export default defineCommand<Governor>({
     { opts, interpreters },
   ) {
     const { targets, values, calldatas } = await collectBlockActions(
-      module.contextualName,
       "timelock-schedule",
       actions,
       interpreters,

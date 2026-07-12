@@ -5,7 +5,7 @@ import { chainNameOf } from "../argTypes";
 export default defineHelper<Ens>({
   name: "cointype.decode",
   description:
-    "Chain name of an ENSIP-11 coin type (the inverse of @cointype).",
+    "Chain name of an ENSIP-11 coin type (the inverse of @ens:cointype).",
   returnType: "string",
   args: [
     {

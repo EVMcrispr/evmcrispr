@@ -67,16 +67,30 @@ describe("Completions – std commands", () => {
       expect(hasLabel(fieldItems, "aragonos")).to.be.true;
     });
 
-    it("load aragonos <cursor> should show --as opt", async () => {
+    it("load aragonos <cursor> should not show --as (removed)", async () => {
       const script = "load aragonos ";
       const items = await evm.getCompletions(script, pos(script));
-      expect(hasLabel(items, "--as")).to.be.true;
+      expect(hasLabel(items, "--as")).to.be.false;
     });
 
-    it("load --<cursor> should show only --as", async () => {
+    it("load --<cursor> should show no opts (load has none)", async () => {
       const script = "load --";
       const items = await evm.getCompletions(script, pos(script));
-      expect(labels(items)).to.deep.equal(["--as"]);
+      expect(labels(items)).to.deep.equal([]);
+    });
+
+    it("after load aragonos, qualified helper labels should be offered", async () => {
+      const script = "load aragonos\nprint ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "@aragonos:aragonEns")).to.be.true;
+      // No unqualified module helpers without an import list
+      expect(hasLabel(items, "@aragonEns")).to.be.false;
+    });
+
+    it("import-list names should be offered unqualified", async () => {
+      const script = "load aragonos [@aragonEns]\nprint ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "@aragonEns")).to.be.true;
     });
   });
 
@@ -509,7 +523,7 @@ describe("Completions – std helpers", () => {
 
   describe("snippet metadata", () => {
     it("helpers with args should have isSnippet = true", async () => {
-      const NO_ARG_HELPERS = new Set(["@me", "@gas.price"]);
+      const NO_ARG_HELPERS = new Set(["@me", "@gas.price", "@ZERO_ADDRESS"]);
       const script = "print ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");
@@ -766,7 +780,7 @@ describe("Completions – std helpers", () => {
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of helperItems) {
-        expect(["@block", "@get"]).to.include(h.label);
+        expect(["@block", "@get", "@ipfs.get"]).to.include(h.label);
       }
     });
 

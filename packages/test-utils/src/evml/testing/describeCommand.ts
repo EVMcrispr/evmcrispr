@@ -31,9 +31,13 @@ export interface CommandErrorCase {
 }
 
 export interface CommandTestConfig {
-  /** Module to load (e.g. "giveth"). Omit for std commands (auto-loaded). */
+  /**
+   * Module to load (e.g. "giveth"). May include an import list
+   * (e.g. "safe [propose @nonce]") — it becomes the `load` line verbatim.
+   * Omit for std commands (auto-loaded).
+   */
   module?: string;
-  /** Script preamble prepended to every test case (e.g. "load aragonos --as ar"). */
+  /** Script preamble prepended to every test case (e.g. "load aragonos [connect grant]"). */
   preamble?: string;
   /** Happy-path test cases. */
   cases?: CommandTestCase[];
@@ -64,7 +68,7 @@ export function describeCommand(
 ): void {
   const label =
     config.describeName ??
-    `${config.module ? `${capitalize(config.module)} >` : "Std >"} commands > ${commandName}`;
+    `${config.module ? `${capitalize(moduleBaseName(config.module))} >` : "Std >"} commands > ${commandName}`;
 
   const describeFn = config.skip ? describe.skip : describe;
 
@@ -100,11 +104,10 @@ export function describeCommand(
     if (config.docCases) {
       for (const doc of config.docCases) {
         it(`[DOC] ${doc.description}`, async () => {
-          const fullScript = config.module
-            ? `load ${config.module}\n${doc.code}`
-            : config.preamble
-              ? `${config.preamble}\n${doc.code}`
-              : doc.code;
+          const preamble =
+            doc.preamble ??
+            (config.module ? `load ${config.module}` : config.preamble);
+          const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
           const interpreter = createInterpreter(fullScript, client);
           await interpreter.interpret();
         });
@@ -147,4 +150,9 @@ export function describeCommand(
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Strip an import list from a module spec ("lang [@map]" → "lang"). */
+export function moduleBaseName(moduleSpec: string): string {
+  return moduleSpec.split(/[\s[]/)[0];
 }

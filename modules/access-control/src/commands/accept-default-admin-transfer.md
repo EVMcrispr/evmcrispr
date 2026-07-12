@@ -36,4 +36,4 @@ access-control:accept-default-admin-transfer $token
 ## See Also
 
 - [access-control:begin-default-admin-transfer](begin-default-admin-transfer.md)
-- [@access-control.pendingDefaultAdmin](../helpers/access-control.pendingDefaultAdmin.md)
+- [@access-control:pendingDefaultAdmin](../helpers/pendingDefaultAdmin.md)

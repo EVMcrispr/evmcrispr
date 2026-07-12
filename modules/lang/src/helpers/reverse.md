@@ -1,5 +1,5 @@
 ---
-title: "@reverse"
+title: "@lang:reverse"
 ---
 
 Return a new array with elements in reverse order.
@@ -9,7 +9,7 @@ Return a new array with elements in reverse order.
 ## Syntax
 
 ```evml
-@reverse(arr)
+@lang:reverse(arr)
 ```
 
 ## Arguments
@@ -17,14 +17,6 @@ Return a new array with elements in reverse order.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
-
-## Examples
-
-```evml
-# Reverse an array
-set $arr [1 2 3]
-set $rev @reverse($arr)
-```
 
 <!-- HAND-WRITTEN -->
 

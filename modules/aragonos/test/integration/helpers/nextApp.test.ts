@@ -7,13 +7,13 @@ import type { PublicClient } from "viem";
 import { isAddress } from "viem";
 import { DAO } from "../../fixtures";
 
-describeHelper("@nextApp", {
+describeHelper("@aragonos:nextApp", {
   module: "aragonos",
   describeName: "AragonOS > helpers > @nextApp > doc examples",
   docCases: [
     {
       description: "Predict the next app address",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  set $next @nextApp\n  print $next\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  set $next @aragonos:nextApp\n  print $next\n)",
     },
   ],
 });
@@ -28,8 +28,8 @@ describe("AragonOS > helpers > @nextApp(offset?)", () => {
   it("should return a valid address for the next app", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
-      ar:connect ${DAO.kernel} (
+      load aragonos [@nextApp]
+      aragonos:connect ${DAO.kernel} (
         set $addr @nextApp
       )
       `,

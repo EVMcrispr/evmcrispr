@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@find",
   {
-    module: "lang",
+    module: "lang [@find]",
     preamble: `
 def @isThree "$x: number -> bool" @bool($x == 3)
 def @isTrue "$x: any -> bool" @bool($x)
@@ -33,7 +33,8 @@ def @isNeg "$x: number -> bool" @bool($x < 0)
     docCases: [
       {
         description: "Find first even number",
-        code: `def @isEven "$n: number -> bool" @bool(@num($n % 2) == 0)\nset $nums [1 3 4 6]\nset $first @find($nums @isEven)`,
+        code: `load lang [@find]\ndef @isEven "$n: number -> bool" @bool(@num($n % 2) == 0)\nset $nums [1 3 4 6]\nset $first @find($nums @isEven)`,
+        preamble: "",
       },
     ],
     errorCases: [

@@ -17,7 +17,7 @@ const validateVerifyGivbacks =
     const client = getPublicClient();
     const interpreter2 = createInterpreter(
       `
-      load aragonos
+      load aragonos [@app]
       aragonos:connect 0xA1514067E6fE7919FB239aF5259FfF120902b4f9 (
         exec @app(voting:1) vote(uint256,bool) ${voteId} true
       )`,

@@ -23,19 +23,44 @@ import {
 } from "./utils";
 
 export const HELPER_PARSER_ERROR = "HelperParserError";
-const helperNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
+
+/** Optional `module:` namespace followed by the helper's local name.
+ *  Module charset mirrors COMMAND_NAME_REGEX; `.` in the name is
+ *  intra-module hierarchy (e.g. @ens:fuses.decode). */
+const HELPER_NAME_REGEX =
+  /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-)):)?(?<name>(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.))/;
+
+const helperNameParser = takeLeft(regex(HELPER_NAME_REGEX))(
   enclosingLookaheadParser([
     char("("),
     char("]"),
     char("}"),
     callOperatorParser,
     char(")"),
+    char(">"),
   ]),
+)
+  .errorMap((err) =>
+    buildParserError(
+      err,
+      HELPER_PARSER_ERROR,
+      'Expected a helper name after "@" (e.g. @token(DAI), @me or @ens:addr(vitalik.eth))',
+    ),
+  )
+  .map((value: string | undefined) => {
+    const res = HELPER_NAME_REGEX.exec(value ?? "");
+    const { module, name } = res?.groups || {};
+    return { module, name };
+  });
+
+/** Rename target of an import-list entry: `@name>@newName`. */
+const renameNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
+  enclosingLookaheadParser([char("]"), char("}"), char(")")]),
 ).errorMap((err) =>
   buildParserError(
     err,
     HELPER_PARSER_ERROR,
-    'Expected a helper name after "@" (e.g. @token(DAI) or @me)',
+    'Expected "@" and a new name after ">" (e.g. @addr>@myAddr)',
   ),
 );
 
@@ -45,7 +70,25 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
       coroutine((run) => {
         run(char("@"));
 
-        const name: string | undefined = run(helperNameParser);
+        const { module, name } = run(helperNameParser) as {
+          module?: string;
+          name: string;
+        };
+
+        let rename: string | undefined;
+        if (run(possibly(lookAhead(char(">"))))) {
+          run(char(">"));
+          run(
+            char("@").errorMap((err) =>
+              buildParserError(
+                err,
+                HELPER_PARSER_ERROR,
+                'Expected "@" and a new name after ">" (e.g. @addr>@myAddr)',
+              ),
+            ),
+          );
+          rename = run(renameNameParser);
+        }
 
         let args: ArgumentExpressionNode[] = [];
 
@@ -57,11 +100,17 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
           );
         }
 
-        return [name, args];
+        return [module, name, rename, args];
       }),
-      ({ data, index, result: [initialContext, [name, args]] }) => ({
+      ({
+        data,
+        index,
+        result: [initialContext, [module, name, rename, args]],
+      }) => ({
         type: NodeType.HelperFunctionExpression,
+        ...(module ? { module: module as string } : {}),
         name: name as HelperFunctionNode["name"],
+        ...(rename ? { rename: rename as string } : {}),
         args: args as HelperFunctionNode["args"],
         loc: createNodeLocation(initialContext, {
           line: data.line,

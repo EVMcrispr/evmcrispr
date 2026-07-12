@@ -31,10 +31,10 @@ load safe
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@safe:safe.guard](src/helpers/safe.guard.md) | `address` | Return the transaction guard address of a Safe (the zero address when no guard is set). |
-| [@safe:safe.isOwner](src/helpers/safe.isOwner.md) | `bool` | Return whether an address is an owner of a Safe. |
-| [@safe:safe.modules](src/helpers/safe.modules.md) | `array` | Return the enabled module addresses of a Safe. |
-| [@safe:safe.nonce](src/helpers/safe.nonce.md) | `number` | Return the current on-chain nonce of a Safe. |
-| [@safe:safe.owners](src/helpers/safe.owners.md) | `array` | Return the owner addresses of a Safe. |
-| [@safe:safe.threshold](src/helpers/safe.threshold.md) | `number` | Return the signature threshold of a Safe. |
+| [@safe:guard](src/helpers/guard.md) | `address` | Return the transaction guard address of a Safe (the zero address when no guard is set). |
+| [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Return whether an address is an owner of a Safe. |
+| [@safe:modules](src/helpers/modules.md) | `array` | Return the enabled module addresses of a Safe. |
+| [@safe:nonce](src/helpers/nonce.md) | `number` | Return the current on-chain nonce of a Safe. |
+| [@safe:owners](src/helpers/owners.md) | `array` | Return the owner addresses of a Safe. |
+| [@safe:threshold](src/helpers/threshold.md) | `number` | Return the signature threshold of a Safe. |
 

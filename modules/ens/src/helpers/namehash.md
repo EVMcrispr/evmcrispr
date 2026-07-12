@@ -22,7 +22,7 @@ Compute the ENS namehash of a domain name.
 
 ```evml
 # Hash an ENS domain
-set $node @namehash("vitalik.eth")
+set $node @ens:namehash("vitalik.eth")
 ```
 
 <!-- HAND-WRITTEN -->

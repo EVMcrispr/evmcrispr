@@ -59,7 +59,6 @@ export interface BatchContext {
 }
 
 export interface InterpretOptions {
-  blockModule: string;
   blockInitializer?(): Promise<void>;
   actionCallback?(action: Action): Promise<unknown>;
   /** The enclosing atomic batch context, if any. */
@@ -207,7 +206,7 @@ export interface ModuleExports<T extends Module = Module> {
 }
 
 export interface IModuleConstructor {
-  new (context: ModuleContext, alias?: string): Module;
+  new (context: ModuleContext): Module;
   /** Module name as registered in the language (`load <moduleName>`). */
   readonly moduleName: string;
   /** Human-readable module description, surfaced in completions. */

@@ -16,32 +16,22 @@ const defaultOpts: AllBindingsOpts = {
 
 export class BindingsManager {
   #bindings: SymbolTable<Binding>;
-  #scopeModuleStack: string[];
   #metadata: Map<string, string>;
 
   constructor(initialBindings: Binding[] = []) {
     this.#bindings = new SymbolTable<Binding>((b) => b.identifier);
-    this.#scopeModuleStack = [];
     this.#metadata = new Map();
     initialBindings.forEach((b) => {
       this.setBinding(b.identifier, b.value, b.type, false);
     });
   }
 
-  enterScope(scopeModule?: string): void {
-    const moduleValue =
-      scopeModule ??
-      // Use parent's scope module when none was provided
-      this.getScopeModule() ??
-      "std";
-
+  enterScope(): void {
     this.#bindings.enterScope();
-    this.#scopeModuleStack.push(moduleValue);
   }
 
   exitScope(): void {
     this.#bindings.exitScope();
-    this.#scopeModuleStack.pop();
   }
 
   getBindingValue<BSpace extends BindingsSpace>(
@@ -94,10 +84,6 @@ export class BindingsManager {
     opts: AllBindingsOpts = defaultOpts,
   ): Binding["identifier"][] {
     return this.getAllBindings(opts).map((b) => b.identifier);
-  }
-
-  getScopeModule(): string | undefined {
-    return this.#scopeModuleStack.at(-1);
   }
 
   getMetadata(key: string): string | undefined {

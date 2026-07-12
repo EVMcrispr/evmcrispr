@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@num.parse",
   {
-    module: "lang",
+    module: "lang [@num.format @num.parse]",
     cases: [
       {
         name: "should parse with 18 decimals",
@@ -27,11 +27,13 @@ describeHelper(
     docCases: [
       {
         description: "Parse ETH to wei (18 decimals)",
-        code: `set $wei @num.parse("1.5" 18)`,
+        code: `load lang [@num.parse]\nset $wei @num.parse("1.5" 18)`,
+        preamble: "",
       },
       {
         description: "Parse USDC (6 decimals)",
-        code: `set $raw @num.parse("1.5" 6)`,
+        code: `load lang [@num.parse]\nset $raw @num.parse("1.5" 6)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`"1"`, "6"],
@@ -42,7 +44,7 @@ describeHelper(
 describeHelper(
   "@num.format",
   {
-    module: "lang",
+    module: "lang [@num.format @num.parse]",
     cases: [
       {
         name: "should format with 18 decimals",
@@ -68,11 +70,13 @@ describeHelper(
     docCases: [
       {
         description: "Format wei to ETH (18 decimals)",
-        code: `set $eth @num.format(1500000000000000000 18)`,
+        code: `load lang [@num.format]\nset $eth @num.format(1500000000000000000 18)`,
+        preamble: "",
       },
       {
         description: "Format USDC (6 decimals)",
-        code: `set $usd @num.format(1500000 6)`,
+        code: `load lang [@num.format]\nset $usd @num.format(1500000 6)`,
+        preamble: "",
       },
     ],
     sampleArgs: ["1000000", "6"],

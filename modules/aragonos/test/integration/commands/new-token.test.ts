@@ -110,9 +110,9 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
   it("should return a correct new token action given a different DAO", async () => {
     const interpreter = createInterpreter(
       `
-        load aragonos --as ar
+        load aragonos [connect new-token @nextApp]
 
-        ar:connect ${DAO.kernel} (
+        aragonos:connect ${DAO.kernel} (
           connect ${DAO2.kernel} (
             new-token $token "my-token" MT @nextApp
           )
@@ -165,8 +165,8 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
 
     const interpreter = createInterpreter(
       `
-        load aragonos --as ar
-        ar:new-token $token "my-token" MT ${controllerAddr}
+        load aragonos
+        aragonos:new-token $token "my-token" MT ${controllerAddr}
       `,
       client,
     );

@@ -24,12 +24,12 @@ async function quoteOut(
   return amounts[amounts.length - 1];
 }
 
-describeHelper("@swaps.quote", {
+describeHelper("@swaps:quote", {
   module: "swaps",
   cases: [
     {
       name: "matches the router quote on an explicit venue",
-      input: `@swaps.quote(100e18 ${WXDAI} ${GNO} Honeyswap)`,
+      input: `@swaps:quote(100e18 ${WXDAI} ${GNO} Honeyswap)`,
       validate: async (result) => {
         const expected = await quoteOut(
           HONEYSWAP_ROUTER,
@@ -41,7 +41,7 @@ describeHelper("@swaps.quote", {
     },
     {
       name: "quotes the default venue (mocked Delora) when none is given",
-      input: `@swaps.quote(100e18 ${WXDAI} ${GNO})`,
+      input: `@swaps:quote(100e18 ${WXDAI} ${GNO})`,
       validate: async (result) => {
         expect(String(result)).to.eq(
           (100n * 10n ** 18n * DELORA_RATE).toString(),
@@ -52,24 +52,24 @@ describeHelper("@swaps.quote", {
   errorCases: [
     {
       name: "should fail on venues missing from the chain",
-      input: `@swaps.quote(100e18 ${WXDAI} ${GNO} UniswapV2)`,
+      input: `@swaps:quote(100e18 ${WXDAI} ${GNO} UniswapV2)`,
       error: "UniswapV2 is not available on chain 100",
     },
   ],
   docCases: [
     {
       description: "Print the expected GNO output for 100 WXDAI (on Gnosis)",
-      code: 'print "GNO out:" @swaps.quote(100e18 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb)',
+      code: 'print "GNO out:" @swaps:quote(100e18 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb)',
     },
   ],
 });
 
-describeHelper("@swaps.price", {
+describeHelper("@swaps:price", {
   module: "swaps",
   cases: [
     {
       name: "prices 1 whole tokenA in base units of tokenB",
-      input: `@swaps.price(${WXDAI} ${GNO} Honeyswap)`,
+      input: `@swaps:price(${WXDAI} ${GNO} Honeyswap)`,
       validate: async (result) => {
         const expected = await quoteOut(
           HONEYSWAP_ROUTER,
@@ -83,7 +83,7 @@ describeHelper("@swaps.price", {
   docCases: [
     {
       description: "Print the GNO price of 1 WXDAI (on Gnosis)",
-      code: 'print "1 WXDAI in GNO:" @swaps.price(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb)',
+      code: 'print "1 WXDAI in GNO:" @swaps:price(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb)',
     },
   ],
 });

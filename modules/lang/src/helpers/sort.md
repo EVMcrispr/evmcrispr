@@ -1,5 +1,5 @@
 ---
-title: "@sort"
+title: "@lang:sort"
 ---
 
 Sort an array using a comparator helper.
@@ -9,7 +9,7 @@ Sort an array using a comparator helper.
 ## Syntax
 
 ```evml
-@sort(arr fn)
+@lang:sort(arr fn)
 ```
 
 ## Arguments
@@ -18,15 +18,6 @@ Sort an array using a comparator helper.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `fn` | `helper` | Comparator helper returning a number |
-
-## Examples
-
-```evml
-# Sort ascending
-def @cmpAsc "$a: number $b: number -> number" @num($a - $b)
-set $nums [3 1 4 1 5]
-set $sorted @sort($nums @cmpAsc)
-```
 
 <!-- HAND-WRITTEN -->
 

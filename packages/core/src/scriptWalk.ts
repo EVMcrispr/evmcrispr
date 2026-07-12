@@ -9,6 +9,7 @@ import type {
   EventCaptureNode,
   HelperResolver,
   ICommand,
+  ImportValue,
   ModuleBinding,
   Node,
   NoNullableBinding,
@@ -18,10 +19,10 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
-  hasCommandsBlock,
   isBuiltinType,
   isNum,
   NodeType,
+  parseImportList,
   resolveCommand,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
@@ -228,15 +229,98 @@ export function clientForChain(
 export async function resolveCommandNode(
   c: CommandExpressionNode,
   bindings: BindingsManager,
-  parentModule: string,
 ): Promise<ICommand | undefined> {
-  const moduleName = c.module ?? parentModule ?? "std";
+  let moduleName = c.module ?? "std";
+  let localName = c.name;
+
+  if (!c.module) {
+    const imported = bindings.getBindingValue(c.name, BindingsSpace.IMPORT) as
+      | ImportValue
+      | undefined;
+    if (imported?.kind === "command") {
+      moduleName = imported.module;
+      localName = imported.name;
+    }
+  }
+
   const moduleData = bindings.getBindingValue(moduleName, MODULE);
   if (!moduleData) return;
 
-  const commandOrLoader = moduleData.commands[c.name];
+  const commandOrLoader = moduleData.commands[localName];
   if (!commandOrLoader) return;
   return resolveCommand(commandOrLoader);
+}
+
+/** Parse a script's `load` lines and return its import map: bound name
+ *  (`@name` for helpers/constants, bare `name` for commands) → the module
+ *  export it is frozen to. Shape errors are skipped (the analyzer reports
+ *  them). Used by hover/signature, which don't run a full walk. */
+export function collectScriptImports(
+  script: string,
+): Map<string, { module: string; name: string }> {
+  const imports = new Map<string, { module: string; name: string }>();
+  let commands: CommandExpressionNode[];
+  try {
+    const { ast } = parseScript(script);
+    commands = ast.getAllCommandsUntilLine(Number.POSITIVE_INFINITY);
+  } catch {
+    return imports;
+  }
+  for (const c of commands) {
+    if ((c.module ?? "std") !== "std" || c.name !== "load") continue;
+    const moduleName = c.args[0]?.value as string | undefined;
+    const listNode = c.args[1];
+    if (!moduleName || listNode?.type !== NodeType.ArrayExpression) continue;
+    const { entries } = parseImportList(listNode as any);
+    for (const entry of entries) {
+      const key =
+        entry.kind === "command" ? entry.boundName : `@${entry.boundName}`;
+      imports.set(key, { module: moduleName, name: entry.sourceName });
+    }
+  }
+  return imports;
+}
+
+/** Record the IMPORT bindings a `load <mod> [imports]` line establishes.
+ *  Best-effort mirror of the runtime `load` command: shape errors and
+ *  unknown exports are skipped (the analyzer reports them), collisions
+ *  overwrite so a re-walk stays deterministic. */
+export function applyLoadImports(
+  c: CommandExpressionNode,
+  bindings: BindingsManager,
+): void {
+  if ((c.module ?? "std") !== "std" || c.name !== "load") return;
+  const moduleName = c.args[0]?.value as string | undefined;
+  const listNode = c.args[1];
+  if (!moduleName || listNode?.type !== NodeType.ArrayExpression) return;
+
+  const moduleData = bindings.getBindingValue(moduleName, MODULE);
+  const { entries } = parseImportList(listNode as any);
+  for (const entry of entries) {
+    let kind: ImportValue["kind"];
+    if (entry.kind === "command") {
+      if (moduleData && !moduleData.commands[entry.sourceName]) continue;
+      kind = "command";
+    } else if (moduleData?.helpers[entry.sourceName]) {
+      kind = "helper";
+    } else if (moduleData?.constants?.[entry.sourceName] !== undefined) {
+      kind = "constant";
+    } else if (moduleData) {
+      continue;
+    } else {
+      kind = "helper";
+    }
+    const key =
+      entry.kind === "command" ? entry.boundName : `@${entry.boundName}`;
+    bindings.setBinding(
+      key,
+      { module: moduleName, name: entry.sourceName, kind },
+      BindingsSpace.IMPORT,
+      false,
+      undefined,
+      true,
+    );
+  }
 }
 
 export function collectCustomTypes(bindings: BindingsManager) {
@@ -356,7 +440,7 @@ export function createNodeResolver(
       // call `getClient()`) and we swallow it via `onError: "undefined"`.
       const resolvedArgs = await interpreters.interpretNodes(h.args);
       return resolveHelper(
-        h.name,
+        { module: h.module, name: h.name },
         resolvedArgs.map(String),
         state.chainId,
         state.client as PublicClient,
@@ -614,16 +698,9 @@ export async function walkCommandsForBindings(
   resolveNode: (node: Node) => Promise<any>,
   history?: VariableHistory,
   onCommandDone?: (index: number, c: CommandExpressionNode) => void,
-  initialParentModule = "std",
 ): Promise<void> {
-  let parentModule = initialParentModule;
-
   for (let cIndex = 0; cIndex < commandNodes.length; cIndex++) {
     const c = commandNodes[cIndex];
-    if (hasCommandsBlock(c)) {
-      parentModule = c.module ?? parentModule;
-    }
-    const commandModule = c.module ?? parentModule;
 
     // Even when the command isn't registered (e.g. an aragonos command
     // before `load aragonos` has run, or a typo) the user can still
@@ -631,11 +708,15 @@ export async function walkCommandsForBindings(
     // the symbols even when the command resolution fails.
     seedCaptureBindings(c, bindings);
 
+    // Record IMPORT bindings so later unqualified commands/helpers in
+    // this walk resolve to their imported module exports.
+    applyLoadImports(c, bindings);
+
     // Apply `switch` BEFORE resolving this command's args so the switch
     // itself never runs on the previous chain.
     applySwitch(state, c, bindings);
 
-    const command = await resolveCommandNode(c, bindings, commandModule);
+    const command = await resolveCommandNode(c, bindings);
     if (!command) {
       // Still emit a checkpoint boundary so incremental prewarm stays
       // aligned with the command list.
@@ -748,7 +829,7 @@ export async function walkCommandsForBindings(
       | BlockExpressionNode
       | undefined;
     if (blockArg) {
-      bindings.enterScope(commandModule);
+      bindings.enterScope();
     }
 
     onCommandDone?.(cIndex, c);
@@ -903,17 +984,6 @@ export async function walkScript(
   };
   state.client = clientForChain(state.chainId, transports) ?? initialClient;
 
-  // `parentModule` is loop-carried through the whole command list; derive
-  // its value at the end of the replayed prefix so the suffix walk sees
-  // the same block context (e.g. inside a `connect (...)` body).
-  let parentModuleAfterPrefix = "std";
-  for (let i = 0; i < prefixLen; i++) {
-    const c = commandNodes[i];
-    if (hasCommandsBlock(c)) {
-      parentModuleAfterPrefix = c.module ?? parentModuleAfterPrefix;
-    }
-  }
-
   // Record the suffix walk: every bindings mutation goes into the current
   // command's checkpoint so the *next* walk can replay it.
   let currentDeltas: WalkDelta[] | undefined = [];
@@ -962,7 +1032,6 @@ export async function walkScript(
     resolveNode,
     variableHistory,
     onCommandDone,
-    parentModuleAfterPrefix,
   );
 
   // Stop recording — the helper-expression pass below memoizes into the

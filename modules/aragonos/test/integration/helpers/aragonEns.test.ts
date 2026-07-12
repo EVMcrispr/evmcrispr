@@ -3,26 +3,26 @@ import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(
-  "@aragonEns",
+  "@aragonos:aragonEns",
   {
     module: "aragonos",
     describeName: "AragonOS > helpers > @aragonEns()",
     docCases: [
       {
         description: "Resolve an Aragon ENS name",
-        code: `set $addr @aragonEns("test.aragonid.eth")\nprint $addr`,
+        code: `set $addr @aragonos:aragonEns("test.aragonid.eth")\nprint $addr`,
       },
     ],
     cases: [
       {
         name: "should resolve a repo ENS name to an address",
         input:
-          "@aragonEns(hooked-token-manager-no-controller.open.aragonpm.eth)",
+          "@aragonos:aragonEns(hooked-token-manager-no-controller.open.aragonpm.eth)",
         expected: "0x7762A148DeA89C5099c0B14c260a2e24bB3AD264",
       },
       {
         name: "should resolve a DAO ENS name to an address",
-        input: "@aragonEns(test.aragonid.eth)",
+        input: "@aragonos:aragonEns(test.aragonid.eth)",
         expected: "0x380498cF5C188BAD479EFbc0Ea1eC40d49D5C58d",
       },
     ],
@@ -30,7 +30,7 @@ describeHelper(
       {
         name: "should fail when ENS name cannot be resolved",
         input:
-          "@aragonEns(nonexistent-name-that-should-not-resolve.aragonid.eth)",
+          "@aragonos:aragonEns(nonexistent-name-that-should-not-resolve.aragonid.eth)",
         error: "couldn't be resolved",
       },
     ],

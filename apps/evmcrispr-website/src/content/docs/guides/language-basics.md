@@ -28,7 +28,7 @@ print "The value is" $greeting
 Arguments are separated by **spaces, not commas** — this applies everywhere
 in EVML: command arguments, helper arguments, and array elements.
 
-Commands from non-default modules use a prefix:
+Commands from non-default modules use the module name as a prefix:
 
 ```evml
 load aragonos
@@ -36,6 +36,9 @@ aragonos:connect my-dao.aragonid.eth (
   aragonos:grant @me voting CREATE_VOTES_ROLE
 )
 ```
+
+To drop the prefix, import the command on the `load` line (see
+[Modules](#modules) below).
 
 ## Helpers
 
@@ -130,7 +133,9 @@ lists back to back with **no colon or other separator** between them
 
 ## Modules
 
-The `std` module is loaded by default. Load additional modules with:
+The `std` module is loaded by default — its commands (`set`, `exec`,
+`print`, …) and helpers (`@me`, `@token(...)`, …) never need a prefix.
+Load additional modules with:
 
 ```evml
 load aragonos
@@ -139,7 +144,8 @@ load ens
 load http
 ```
 
-After loading, use their commands and helpers with the module prefix:
+After loading, use their commands and helpers with the module prefix
+(`mod:command`, `@mod:helper`):
 
 ```evml
 load sim
@@ -149,6 +155,46 @@ sim:fork (
 )
 ```
 
+### Import Lists
+
+To use module names without the prefix, list them on the `load` line.
+Barewords import commands; `@name` entries import helpers:
+
+```evml
+load sim [fork set-balance expect]
+load aragonos [grant @app]
+
+fork (
+  set-balance @me 100e18
+  expect @bool(1 == 1)
+)
+```
+
+The import list is the whole mechanism: an unqualified name resolves to an
+in-script `def`, a name imported on a `load` line, or the `std` prelude —
+nothing else. Blocks don't change resolution (being inside
+`aragonos:connect (...)` does not make bare `grant` mean `aragonos:grant`
+unless you imported it), so what a name means is always visible in the
+script itself, and a module update can never change it behind your back.
+
+### Renames
+
+Use `>` inside the import list to bind a module name to a different
+unqualified name — for example when it would collide with a `std` command
+or another import:
+
+```evml
+load sim [fork>simulate set-balance]
+
+simulate (
+  set-balance @me 100e18
+)
+```
+
+The qualified form is unaffected: `sim:fork` still works. Helper renames
+work the same way: `load aragonos [@app>@aragonApp]` makes the helper
+available as `@aragonApp(...)` (and still as `@aragonos:app(...)`).
+
 ## Options
 
 Some commands accept options with `--name value`:
@@ -156,8 +202,6 @@ Some commands accept options with `--name value`:
 ```evml
 exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --value 1e18
 exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --from 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
-
-load aragonos --as dao
 ```
 
 A command and all of its options must be written on a single line — EVML

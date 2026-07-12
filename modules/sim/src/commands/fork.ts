@@ -476,7 +476,6 @@ export default defineCommand<Sim>({
     };
 
     await interpretNode(blockExpressionNode, {
-      blockModule: module.contextualName,
       actionCallback: simulateAction,
     });
 

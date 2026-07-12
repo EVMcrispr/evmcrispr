@@ -150,6 +150,7 @@ export class Interpreter {
         helperArgDefs: this.#std.helperArgDefs,
         helperDescriptions: this.#std.helperDescriptions,
         commandDescriptions: this.#std.commandDescriptions,
+        constants: this.#std.constants,
         types: this.#std.types,
       },
     };
@@ -283,14 +284,12 @@ export class Interpreter {
     return this.bindingsManager.getBindingValue(name, memSpace);
   }
 
-  getModule(aliasOrName: string): Module | undefined {
-    if (aliasOrName === this.#std.name || aliasOrName === this.#std.alias) {
+  getModule(name: string): Module | undefined {
+    if (name === this.#std.name) {
       return this.#std;
     }
 
-    return this.#modules.find(
-      (m) => m.name === aliasOrName || m.alias === aliasOrName,
-    );
+    return this.#modules.find((m) => m.name === name);
   }
 
   getAllModules(): Module[] {

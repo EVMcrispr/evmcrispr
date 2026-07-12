@@ -43,13 +43,13 @@ governor:timelock-schedule $opId $timelock 172800 (
   exec $token transfer(address,uint256) $grantee 100e18
   access-control:grant $token MINTER_ROLE $grantee
 )
-print @governor.timelockOperationState($timelock $opId)
+print @governor:timelockOperationState($timelock $opId)
 ```
 
 ## Notes
 
 - Requires the PROPOSER_ROLE on the timelock; the delay must be at least
-  [@governor.timelockMinDelay](../helpers/governor.timelockMinDelay.md).
+  [@governor:timelockMinDelay](../helpers/timelockMinDelay.md).
 - The optional variable is bound to the operation id (hashOperationBatch),
   computed locally without a chain read.
 - Use `--salt` to schedule the same batch twice; `--predecessor` orders

@@ -1,5 +1,5 @@
 ---
-title: "@unique"
+title: "@lang:unique"
 ---
 
 Remove duplicates from an array, preserving first-occurrence order.
@@ -9,7 +9,7 @@ Remove duplicates from an array, preserving first-occurrence order.
 ## Syntax
 
 ```evml
-@unique(arr)
+@lang:unique(arr)
 ```
 
 ## Arguments
@@ -17,14 +17,6 @@ Remove duplicates from an array, preserving first-occurrence order.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
-
-## Examples
-
-```evml
-# Remove duplicates
-set $arr [1 2 2 3 1 3]
-set $uniq @unique($arr)
-```
 
 <!-- HAND-WRITTEN -->
 

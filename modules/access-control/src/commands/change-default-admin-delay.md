@@ -38,4 +38,4 @@ access-control:change-default-admin-delay $token 432000
 
 ## See Also
 
-- [@access-control.defaultAdminDelay](../helpers/access-control.defaultAdminDelay.md)
+- [@access-control:defaultAdminDelay](../helpers/defaultAdminDelay.md)

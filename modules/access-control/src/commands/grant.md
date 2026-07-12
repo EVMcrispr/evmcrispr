@@ -59,5 +59,5 @@ access-control:grant $manager 42 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 --de
 
 - [access-control:revoke](revoke.md) — remove a role
 - [access-control:renounce](renounce.md) — give up one of your own roles
-- [@access-control.hasRole](../helpers/access-control.hasRole.md) — check membership
-- [@access-control.roleAdmin](../helpers/access-control.roleAdmin.md) — find the admin role
+- [@access-control:hasRole](../helpers/hasRole.md) — check membership
+- [@access-control:roleAdmin](../helpers/roleAdmin.md) — find the admin role

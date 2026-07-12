@@ -20,14 +20,9 @@ export default defineCommand<Governor>({
       description: "Block of commands making up the proposal",
     },
   ],
-  async run(module, { governor, description, actions }, { interpreters }) {
+  async run(_module, { governor, description, actions }, { interpreters }) {
     const { targets, values, calldatas, totalValue } =
-      await collectBlockActions(
-        module.contextualName,
-        "execute",
-        actions,
-        interpreters,
-      );
+      await collectBlockActions("execute", actions, interpreters);
 
     const action = encodeAction(
       governor,

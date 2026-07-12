@@ -53,4 +53,4 @@ proxies:clone $vesting $vestingImplementation --salt 0x0000000000000000000000000
 
 ## See Also
 
-- [@proxies.predictClone](../helpers/proxies.predictClone.md) — predict without deploying
+- [@proxies:predictClone](../helpers/predictClone.md) — predict without deploying

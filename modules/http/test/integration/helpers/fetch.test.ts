@@ -30,15 +30,17 @@ describeHelper(
   "@fetch",
   {
     describeName: "Http > helpers > @fetch(url method? body?)",
-    module: "http",
+    module: "http [@fetch]",
     docCases: [
       {
         description: "Simple GET request",
-        code: `set $response @fetch("https://test.evmcrispr.local/hello")\nprint $response`,
+        code: `load http [@fetch]\nset $response @fetch("https://test.evmcrispr.local/hello")\nprint $response`,
+        preamble: "",
       },
       {
         description: "POST with a body",
         code: `set $response @fetch("https://test.evmcrispr.local/echo" POST "payload")\nprint $response`,
+        preamble: "load http [@fetch]",
       },
     ],
     cases: [
@@ -77,7 +79,7 @@ describeHelper(
 
 describeHelper("@fetch", {
   describeName: "Http > helpers > @fetch with auth argument",
-  module: "http",
+  module: "http [@fetch]",
   skipArgLengthCheck: true,
   cases: [
     {
@@ -93,7 +95,7 @@ describeHelper("@fetch", {
 
 describeHelper("@fetch + @json", {
   describeName: "Http > helpers > @fetch + @json composability",
-  module: "http",
+  module: "http [@fetch @json]",
   skipArgLengthCheck: true,
   cases: [
     {

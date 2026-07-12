@@ -28,7 +28,7 @@ function createModuleClass<M extends Module>(
   return class extends Module {
     static readonly moduleName = name;
 
-    constructor(context: ModuleContext, alias?: string) {
+    constructor(context: ModuleContext) {
       super(
         name,
         commands,
@@ -41,7 +41,6 @@ function createModuleClass<M extends Module>(
         constants,
         types,
         context,
-        alias,
       );
     }
   } as IModuleConstructor;

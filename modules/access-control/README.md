@@ -34,14 +34,14 @@ load access-control
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@access-control:access-control.canCall](src/helpers/access-control.canCall.md) | `bool` | Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. |
-| [@access-control:access-control.defaultAdmin](src/helpers/access-control.defaultAdmin.md) | `address` | Current default admin of an AccessControlDefaultAdminRules contract. |
-| [@access-control:access-control.defaultAdminDelay](src/helpers/access-control.defaultAdminDelay.md) | `number` | Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. |
-| [@access-control:access-control.hasRole](src/helpers/access-control.hasRole.md) | `bool` | Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). |
-| [@access-control:access-control.operationId](src/helpers/access-control.operationId.md) | `bytes32` | Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @access-control.operationSchedule. |
-| [@access-control:access-control.operationSchedule](src/helpers/access-control.operationSchedule.md) | `number` | Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). |
-| [@access-control:access-control.owner](src/helpers/access-control.owner.md) | `address` | Current owner of an Ownable contract. |
-| [@access-control:access-control.pendingDefaultAdmin](src/helpers/access-control.pendingDefaultAdmin.md) | `address` | Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). |
-| [@access-control:access-control.pendingOwner](src/helpers/access-control.pendingOwner.md) | `address` | Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). |
-| [@access-control:access-control.roleAdmin](src/helpers/access-control.roleAdmin.md) | `bytes32 \| number` | Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. |
+| [@access-control:canCall](src/helpers/canCall.md) | `bool` | Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. |
+| [@access-control:defaultAdmin](src/helpers/defaultAdmin.md) | `address` | Current default admin of an AccessControlDefaultAdminRules contract. |
+| [@access-control:defaultAdminDelay](src/helpers/defaultAdminDelay.md) | `number` | Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. |
+| [@access-control:hasRole](src/helpers/hasRole.md) | `bool` | Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). |
+| [@access-control:operationId](src/helpers/operationId.md) | `bytes32` | Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @access-control:operationSchedule. |
+| [@access-control:operationSchedule](src/helpers/operationSchedule.md) | `number` | Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). |
+| [@access-control:owner](src/helpers/owner.md) | `address` | Current owner of an Ownable contract. |
+| [@access-control:pendingDefaultAdmin](src/helpers/pendingDefaultAdmin.md) | `address` | Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). |
+| [@access-control:pendingOwner](src/helpers/pendingOwner.md) | `address` | Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). |
+| [@access-control:roleAdmin](src/helpers/roleAdmin.md) | `bytes32 \| number` | Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. |
 

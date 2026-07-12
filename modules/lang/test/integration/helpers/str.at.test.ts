@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.at",
   {
-    module: "lang",
+    module: "lang [@str.at]",
     cases: [
       {
         name: "should return character at index in string",
@@ -26,11 +26,13 @@ describeHelper(
     docCases: [
       {
         description: "Get the first character",
-        code: `set $s "hello"\nset $c @str.at($s 0)`,
+        code: `load lang [@str.at]\nset $s "hello"\nset $c @str.at($s 0)`,
+        preamble: "",
       },
       {
         description: "Get the last character (negative index)",
-        code: `set $s "hello"\nset $l @str.at($s -1)`,
+        code: `load lang [@str.at]\nset $s "hello"\nset $l @str.at($s -1)`,
+        preamble: "",
       },
     ],
     errorCases: [

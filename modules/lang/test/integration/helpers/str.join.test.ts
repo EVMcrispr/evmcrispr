@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.join",
   {
-    module: "lang",
+    module: "lang [@str.join]",
     cases: [
       {
         name: "should join an array with delimiter",
@@ -26,11 +26,13 @@ describeHelper(
     docCases: [
       {
         description: "Join array with comma",
-        code: `set $parts ["a" "b" "c"]\nset $csv @str.join($parts ",")`,
+        code: `load lang [@str.join]\nset $parts ["a" "b" "c"]\nset $csv @str.join($parts ",")`,
+        preamble: "",
       },
       {
         description: "Join with space",
-        code: `set $parts ["a" "b" "c"]\nset $spaced @str.join($parts " ")`,
+        code: `load lang [@str.join]\nset $parts ["a" "b" "c"]\nset $spaced @str.join($parts " ")`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1 2]`, `","`],

@@ -11,7 +11,7 @@ import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
-const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
+const preamble = `load aragonos [grant @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("grant", {
   describeName:
@@ -21,7 +21,7 @@ describeCommand("grant", {
   docCases: [
     {
       description: "Grant a role to the connected wallet",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  grant @me @app(agent) TRANSFER_ROLE\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE\n)`,
     },
   ],
   cases: [
@@ -203,7 +203,7 @@ describeCommand("grant", {
   cases: [
     {
       name: "should return a correct grant permission action from a different DAO app",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:disputable-voting.open) CREATE_VOTES_ROLE\n  )\n)`,
+      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:disputable-voting.open) CREATE_VOTES_ROLE\n  )\n)`,
       validate: async (grantActions) => {
         const expectedGrantActions = [
           createTestAction("grantPermission", DAO.acl, [
@@ -219,12 +219,12 @@ describeCommand("grant", {
   errorCases: [
     {
       name: "should fail when passing an invalid app DAO prefix",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(_${DAO.kernel}:disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
+      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(_${DAO.kernel}:disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
       error: "invalid-dao-prefix",
     },
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos --as ar\nar:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE`,
+      script: `load aragonos\naragonos:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

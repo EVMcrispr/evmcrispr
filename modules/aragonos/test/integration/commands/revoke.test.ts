@@ -10,7 +10,7 @@ import { DAO, DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
-const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
+const preamble = `load aragonos [revoke @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("revoke", {
   describeName:
@@ -20,7 +20,7 @@ describeCommand("revoke", {
   docCases: [
     {
       description: "Revoke a permission",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:revoke @aragonos:app(disputable-voting.open:0) @aragonos:app(acl:0) CREATE_PERMISSIONS_ROLE\n)",
     },
   ],
   cases: [
@@ -179,7 +179,7 @@ describeCommand("revoke", {
   cases: [
     {
       name: "should return a correct revoke permission action from a different DAO app",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO.kernel}:acl) CREATE_PERMISSIONS_ROLE\n  )\n)`,
+      script: `load aragonos [connect revoke @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO.kernel}:acl) CREATE_PERMISSIONS_ROLE\n  )\n)`,
       validate: async (revokeActions) => {
         const expectedRevokeActions = [
           createTestAction("revokePermission", DAO.acl, [
@@ -195,12 +195,12 @@ describeCommand("revoke", {
   errorCases: [
     {
       name: "should fail when passing an invalid DAO prefix",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
+      script: `load aragonos [connect revoke @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
       error: "invalid-dao-prefix",
     },
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos --as ar\nar:revoke ${DAO["disputable-voting.open"]} ${DAO.acl} CREATE_PERMISSIONS_ROLE`,
+      script: `load aragonos\naragonos:revoke ${DAO["disputable-voting.open"]} ${DAO.acl} CREATE_PERMISSIONS_ROLE`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

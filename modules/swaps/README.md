@@ -19,6 +19,6 @@ load swaps
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@swaps:swaps.price](src/helpers/swaps.price.md) | `number` | Spot price of 1 whole tokenA, expressed in base units of tokenB (the venue quote for selling 1 tokenA). Compare it against @token.amount(tokenB ...) values. |
-| [@swaps:swaps.quote](src/helpers/swaps.quote.md) | `number` | Expected output of an exact-in swap, in base units of tokenOut. Quotes the same venue swap would use (or the one given), so it feeds --min directly. |
+| [@swaps:price](src/helpers/price.md) | `number` | Spot price of 1 whole tokenA, expressed in base units of tokenB (the venue quote for selling 1 tokenA). Compare it against @token.amount(tokenB ...) values. |
+| [@swaps:quote](src/helpers/quote.md) | `number` | Expected output of an exact-in swap, in base units of tokenOut. Quotes the same venue swap would use (or the one given), so it feeds --min directly. |
 

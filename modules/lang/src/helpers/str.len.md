@@ -1,5 +1,5 @@
 ---
-title: "@str.len"
+title: "@lang:str.len"
 ---
 
 Return the length of a string.
@@ -9,7 +9,7 @@ Return the length of a string.
 ## Syntax
 
 ```evml
-@str.len(value)
+@lang:str.len(value)
 ```
 
 ## Arguments
@@ -17,17 +17,6 @@ Return the length of a string.
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `string` | Input value |
-
-## Examples
-
-```evml
-# Get string length
-set $s "hello"
-print @str.len($s)
-
-# Empty string length
-print @str.len("")
-```
 
 <!-- HAND-WRITTEN -->
 

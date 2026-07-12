@@ -21,7 +21,7 @@ import { isAddress } from "viem";
 import type { EvmlAST } from "../EvmlAST";
 import { createInterpreter, type InterpretCtx } from "../interpreter";
 import { parseScript } from "../parsers/script";
-import type { VariableHistory } from "../scriptWalk";
+import { collectScriptImports, type VariableHistory } from "../scriptWalk";
 import { getAddressHoverInfo } from "./address";
 import { getTokenAtCol } from "./tokens";
 import type { HoverInfo } from "./types";
@@ -90,7 +90,7 @@ function bindingsAsOf(
 // Module cache lookups
 // ---------------------------------------------------------------------------
 
-function getAllModules(moduleCache: BindingsManager) {
+function _getAllModules(moduleCache: BindingsManager) {
   return moduleCache.getAllBindings({
     spaceFilters: [MODULE],
     ignoreNullValues: true,
@@ -101,63 +101,71 @@ async function resolveCommandFromCache(
   commandName: string,
   moduleName: string | undefined,
   moduleCache: BindingsManager,
+  imports: Map<string, { module: string; name: string }>,
 ): Promise<{ command: ICommand; resolvedModule: string } | null> {
-  if (moduleName) {
-    const moduleData = moduleCache.getBindingValue(moduleName, MODULE);
-    if (!moduleData) return null;
-    const entry = moduleData.commands[commandName];
-    if (!entry) return null;
-    return {
-      command: await resolveCommand(entry),
-      resolvedModule: moduleName,
-    };
-  }
-
-  const allModules = getAllModules(moduleCache);
-
-  for (const { identifier, value: mod } of allModules) {
-    if (identifier === "std" && mod.commands[commandName]) {
-      return {
-        command: await resolveCommand(mod.commands[commandName]),
-        resolvedModule: "std",
-      };
+  // Same resolution order as the runtime: qualified module → the script's
+  // import list → std prelude. No cross-module search.
+  let owner = moduleName;
+  let localName = commandName;
+  if (!owner) {
+    const imported = imports.get(commandName);
+    if (imported) {
+      owner = imported.module;
+      localName = imported.name;
+    } else {
+      owner = "std";
     }
   }
 
-  for (const { identifier, value: mod } of allModules) {
-    if (identifier !== "std" && mod.commands[commandName]) {
-      return {
-        command: await resolveCommand(mod.commands[commandName]),
-        resolvedModule: identifier,
-      };
-    }
-  }
-
-  return null;
+  const moduleData = moduleCache.getBindingValue(owner, MODULE);
+  const entry = moduleData?.commands[localName];
+  if (!entry) return null;
+  return {
+    command: await resolveCommand(entry),
+    resolvedModule: owner,
+  };
 }
 
+/** Split a spelled helper token (`ens:addr` or `addr`) into module + name. */
+function splitHelperToken(spelled: string): {
+  module?: string;
+  name: string;
+} {
+  const m = /^(?:([\w-]+):)?(.+)$/.exec(spelled);
+  if (!m) return { name: spelled };
+  return { module: m[1], name: m[2] };
+}
+
+/** Resolve a spelled helper name the way the runtime does: qualified module
+ *  → the script's import list → std prelude. */
 function findHelperInCache(
-  helperName: string,
+  spelled: string,
   moduleCache: BindingsManager,
+  imports: Map<string, { module: string; name: string }>,
 ): {
   argDefs?: HelperArgDefEntry[];
   returnType?: string | string[];
   description?: string;
   moduleName: string;
 } | null {
-  const allModules = getAllModules(moduleCache);
-
-  for (const { identifier, value: mod } of allModules) {
-    if (mod.helpers[helperName]) {
-      return {
-        argDefs: mod.helperArgDefs?.[helperName],
-        returnType: mod.helperReturnTypes?.[helperName],
-        description: mod.helperDescriptions?.[helperName],
-        moduleName: identifier,
-      };
+  const { module, name } = splitHelperToken(spelled);
+  let owner = module ?? "std";
+  let localName = name;
+  if (!module) {
+    const imported = imports.get(`@${name}`);
+    if (imported) {
+      owner = imported.module;
+      localName = imported.name;
     }
   }
-  return null;
+  const mod = moduleCache.getBindingValue(owner, BindingsSpace.MODULE);
+  if (!mod?.helpers[localName]) return null;
+  return {
+    argDefs: mod.helperArgDefs?.[localName],
+    returnType: mod.helperReturnTypes?.[localName],
+    description: mod.helperDescriptions?.[localName],
+    moduleName: owner,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -307,14 +315,18 @@ export async function getHoverInfo(
     return getAddressHoverInfo(token.value as Address, ctx.client, ctx.chainId);
   }
 
-  // --- helper: @name ---
+  // --- helper: @name / @module:name ---
   if (token.kind === "helper") {
-    const name = token.value.slice(1);
-    const info = findHelperInCache(name, moduleCache);
+    const spelled = token.value.slice(1);
+    const info = findHelperInCache(
+      spelled,
+      moduleCache,
+      collectScriptImports(script),
+    );
     if (!info) return null;
 
     const baseContents = formatHelperHover(
-      name,
+      spelled,
       info.argDefs,
       info.returnType,
       info.description,
@@ -332,8 +344,13 @@ export async function getHoverInfo(
         return { contents: [baseContents] };
       }
 
+      const { module, name } = splitHelperToken(spelled);
       const helperNode = findHelperAtPosition(ast, position.line, position.col);
-      if (helperNode && helperNode.name === name) {
+      if (
+        helperNode &&
+        helperNode.name === name &&
+        helperNode.module === module
+      ) {
         const addressCard = await tryRenderAddressFromCache(
           helperNode,
           ctx,
@@ -408,6 +425,7 @@ export async function getHoverInfo(
       commandNode.name,
       commandNode.module,
       moduleCache,
+      collectScriptImports(script),
     );
     if (!resolved) return null;
 
@@ -437,6 +455,7 @@ export async function getHoverInfo(
       commandNode.name,
       commandNode.module,
       moduleCache,
+      collectScriptImports(script),
     );
     if (!resolved) return null;
     return {
@@ -514,6 +533,7 @@ interface AstLike {
   timeUnit?: string;
   args?: unknown[];
   elements?: unknown[];
+  module?: string;
   name?: string;
   loc?: {
     start: { line: number; col: number };
@@ -573,7 +593,8 @@ function renderAstNode(node: AstLike, scriptLines?: string[]): string | null {
     case NodeType.HelperFunctionExpression: {
       const args = node.args ?? [];
       const rendered = args.map((c) => renderAstChild(c, scriptLines));
-      return `@${node.name ?? ""}(${rendered.join(", ")})`;
+      const prefix = node.module ? `${node.module}:` : "";
+      return `@${prefix}${node.name ?? ""}(${rendered.join(", ")})`;
     }
 
     case NodeType.VariableIdentifier:

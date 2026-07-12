@@ -4,26 +4,26 @@ import { namehash } from "viem";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(
-  "@namehash",
+  "@ens:namehash",
   {
     module: "ens",
     cases: [
       {
         name: "return the ENS node value",
-        input: "@namehash(evmcrispr.eth)",
+        input: "@ens:namehash(evmcrispr.eth)",
         expected: namehash("evmcrispr.eth"),
       },
     ],
     docCases: [
       {
         description: "Hash an ENS domain",
-        code: `set $node @namehash("vitalik.eth")`,
+        code: `set $node @ens:namehash("vitalik.eth")`,
       },
     ],
     errorCases: [
       {
         name: "fails if the value is not an ENS domain",
-        input: "@namehash('not an ens domain')",
+        input: "@ens:namehash('not an ens domain')",
         error: "Invalid ENS name",
       },
     ],

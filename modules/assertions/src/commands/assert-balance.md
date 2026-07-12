@@ -1,5 +1,5 @@
 ---
-title: "assert-balance"
+title: "assertions:assert-balance"
 ---
 
 Assert the native balance of an account, on-chain.
@@ -7,7 +7,7 @@ Assert the native balance of an account, on-chain.
 ## Syntax
 
 ```evml
-assert-balance <account> <operator> <expected> [message]
+assertions:assert-balance <account> <operator> <expected> [message]
 ```
 
 ## Arguments

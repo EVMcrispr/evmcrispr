@@ -6,7 +6,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@map",
   {
-    module: "lang",
+    module: "lang [@map @str.upper]",
     cases: [
       {
         name: "should apply @str.upper to each element",
@@ -33,7 +33,8 @@ describeHelper(
     docCases: [
       {
         description: "Double each element",
-        code: `def @double "$n: number -> number" @num($n * 2)\nset $nums [1 2 3]\nset $doubled @map($nums @double)`,
+        code: `load lang [@map]\ndef @double "$n: number -> number" @num($n * 2)\nset $nums [1 2 3]\nset $doubled @map($nums @double)`,
+        preamble: "",
       },
     ],
     errorCases: [

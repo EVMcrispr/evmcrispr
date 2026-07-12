@@ -102,7 +102,8 @@ sim:fork (
 
 ## Assertions
 
-Use `expect` to verify conditions during simulation:
+Use `sim:expect` to verify conditions during simulation (or import it for
+unqualified use with `load sim [fork expect]`):
 
 ```evml
 load sim
@@ -142,7 +143,7 @@ sim:fork (
 ## Combining with DAO Operations
 
 ```evml
-load aragonos
+load aragonos [grant install @app]
 load sim
 
 sim:fork (

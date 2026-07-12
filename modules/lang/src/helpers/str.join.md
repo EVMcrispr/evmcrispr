@@ -1,5 +1,5 @@
 ---
-title: "@str.join"
+title: "@lang:str.join"
 ---
 
 Join array elements into a string with a delimiter.
@@ -9,7 +9,7 @@ Join array elements into a string with a delimiter.
 ## Syntax
 
 ```evml
-@str.join(arr delim)
+@lang:str.join(arr delim)
 ```
 
 ## Arguments
@@ -18,18 +18,6 @@ Join array elements into a string with a delimiter.
 |------|------|-------------|
 | `arr` | `array` | Source array |
 | `delim` | `string` | Delimiter string |
-
-## Examples
-
-```evml
-# Join array with comma
-set $parts ["a" "b" "c"]
-set $csv @str.join($parts ",")
-
-# Join with space
-set $parts ["a" "b" "c"]
-set $spaced @str.join($parts " ")
-```
 
 <!-- HAND-WRITTEN -->
 

@@ -58,5 +58,5 @@ ens:register mydao @me 31536000 --secret @id("my registration secret") --step on
 
 ## See Also
 
-- [@ens.rentPrice](../helpers/ens.rentPrice.md) — price a registration
-- [@ens.available](../helpers/ens.available.md) — check availability first
+- [@ens:rentPrice](../helpers/rentPrice.md) — price a registration
+- [@ens:available](../helpers/available.md) — check availability first

@@ -1,5 +1,5 @@
 ---
-title: "@bytes.not"
+title: "@lang:bytes.not"
 ---
 
 Bitwise NOT of a bytes value (256-bit complement).
@@ -9,7 +9,7 @@ Bitwise NOT of a bytes value (256-bit complement).
 ## Syntax
 
 ```evml
-@bytes.not(value)
+@lang:bytes.not(value)
 ```
 
 ## Arguments
@@ -17,13 +17,6 @@ Bitwise NOT of a bytes value (256-bit complement).
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `bytes` | Input value |
-
-## Examples
-
-```evml
-# Bitwise NOT
-set $b @bytes.not(0x00ff)
-```
 
 <!-- HAND-WRITTEN -->
 

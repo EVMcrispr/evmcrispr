@@ -1,5 +1,5 @@
 ---
-title: "@enumerate"
+title: "@lang:enumerate"
 ---
 
 Return an array of [index, element] pairs.
@@ -9,7 +9,7 @@ Return an array of [index, element] pairs.
 ## Syntax
 
 ```evml
-@enumerate(arr)
+@lang:enumerate(arr)
 ```
 
 ## Arguments
@@ -17,14 +17,6 @@ Return an array of [index, element] pairs.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
-
-## Examples
-
-```evml
-# Enumerate array elements
-set $items ["a" "b" "c"]
-set $pairs @enumerate($items)
-```
 
 <!-- HAND-WRITTEN -->
 

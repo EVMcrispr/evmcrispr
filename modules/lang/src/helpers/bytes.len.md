@@ -1,5 +1,5 @@
 ---
-title: "@bytes.len"
+title: "@lang:bytes.len"
 ---
 
 Return the byte length of a bytes value.
@@ -9,7 +9,7 @@ Return the byte length of a bytes value.
 ## Syntax
 
 ```evml
-@bytes.len(value)
+@lang:bytes.len(value)
 ```
 
 ## Arguments
@@ -17,13 +17,6 @@ Return the byte length of a bytes value.
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `bytes` | Input value |
-
-## Examples
-
-```evml
-# Get byte length
-print @bytes.len(0xaabbccdd)
-```
 
 <!-- HAND-WRITTEN -->
 

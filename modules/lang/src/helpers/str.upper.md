@@ -1,5 +1,5 @@
 ---
-title: "@str.upper"
+title: "@lang:str.upper"
 ---
 
 Convert a string to uppercase.
@@ -9,7 +9,7 @@ Convert a string to uppercase.
 ## Syntax
 
 ```evml
-@str.upper(s)
+@lang:str.upper(s)
 ```
 
 ## Arguments
@@ -17,13 +17,6 @@ Convert a string to uppercase.
 | Name | Type | Description |
 |------|------|-------------|
 | `s` | `string` | Source string |
-
-## Examples
-
-```evml
-# Uppercase a string
-set $s @str.upper("hello")
-```
 
 <!-- HAND-WRITTEN -->
 

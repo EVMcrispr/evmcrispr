@@ -1,5 +1,5 @@
 ---
-title: "@at"
+title: "@lang:at"
 ---
 
 Access an element by index in an array.
@@ -9,7 +9,7 @@ Access an element by index in an array.
 ## Syntax
 
 ```evml
-@at(value index)
+@lang:at(value index)
 ```
 
 ## Arguments
@@ -18,18 +18,6 @@ Access an element by index in an array.
 |------|------|-------------|
 | `value` | `array` | Input value |
 | `index` | `number` | Zero-based index (negative counts from end) |
-
-## Examples
-
-```evml
-# Access first element
-set $arr [10 20 30]
-set $first @at($arr 0)
-
-# Access last element (negative index)
-set $arr [10 20 30]
-set $last @at($arr -1)
-```
 
 <!-- HAND-WRITTEN -->
 

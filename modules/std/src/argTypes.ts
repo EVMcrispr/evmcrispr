@@ -206,22 +206,7 @@ export const types: CustomArgTypes = {
       const moduleData = ctx.cache.getBindingValue(rawValue, MODULE);
       if (!moduleData) return [];
 
-      const bindings: any[] = [
-        { type: MODULE, identifier: rawValue, value: moduleData },
-      ];
-
-      // Honor --as alias
-      const alias = ctx.commandNode?.opts.find((o) => o.name === "as")?.value
-        ?.value;
-      if (alias) {
-        bindings.push({
-          type: MODULE,
-          identifier: alias,
-          value: { ...moduleData, alias },
-        });
-      }
-
-      return bindings;
+      return [{ type: MODULE, identifier: rawValue, value: moduleData }];
     },
   },
 };

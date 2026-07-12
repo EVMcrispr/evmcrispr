@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@unzip",
   {
-    module: "lang",
+    module: "lang [@unzip @zip]",
     cases: [
       {
         name: "should transpose pairs into two arrays",
@@ -34,7 +34,8 @@ describeHelper(
     docCases: [
       {
         description: "Unzip pairs into arrays",
-        code: `set $pairs [[1 "a"] [2 "b"] [3 "c"]]\nset [$keys $vals] @unzip($pairs)`,
+        code: `load lang [@unzip]\nset $pairs [[1 "a"] [2 "b"] [3 "c"]]\nset [$keys $vals] @unzip($pairs)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[[1 2]]`],

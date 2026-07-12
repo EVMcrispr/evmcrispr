@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@includes",
   {
-    module: "lang",
+    module: "lang [@includes]",
     cases: [
       {
         name: "should return true when array contains element",
@@ -31,11 +31,13 @@ describeHelper(
     docCases: [
       {
         description: "Check if array contains element",
-        code: `set $arr [1 2 3]\nprint @includes($arr 2)`,
+        code: `load lang [@includes]\nset $arr [1 2 3]\nprint @includes($arr 2)`,
+        preamble: "",
       },
       {
         description: "Check for missing element",
-        code: `set $arr [1 2 3]\nprint @includes($arr 99)`,
+        code: `load lang [@includes]\nset $arr [1 2 3]\nprint @includes($arr 99)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`, `1`],

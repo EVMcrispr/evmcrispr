@@ -6,6 +6,7 @@ import type {
   HelperFunctionNode,
   HelperResolver,
   IModuleConstructor,
+  ImportValue,
   ModuleContext,
   ModuleData,
   Node,
@@ -26,6 +27,11 @@ import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
 import { getSemanticDiagnostics as getSemanticDiagnosticsImpl } from "./analysis";
 import {
+  collectQualifiedModules,
+  getAutoImportEdits as getAutoImportEditsImpl,
+  type NormalizationRegion,
+} from "./autoImport";
+import {
   getCompletions as getCompletionsImpl,
   getKeywords as getKeywordsImpl,
 } from "./completions";
@@ -41,6 +47,13 @@ import type { ModuleRegistry } from "./evml/registry";
 import type { EvmlConfig } from "./evml/types";
 import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
 import { parseScript } from "./parsers/script";
+import {
+  getRenameEdits as getRenameEditsImpl,
+  prepareRename as prepareRenameImpl,
+  type RenameEdit,
+  type RenameRange,
+  type RenameResult,
+} from "./rename";
 import {
   type PrewarmSnapshot,
   type VariableHistory,
@@ -119,6 +132,7 @@ export class EvmlWorkspace {
         helperArgDefs: this.#std.helperArgDefs,
         helperDescriptions: this.#std.helperDescriptions,
         commandDescriptions: this.#std.commandDescriptions,
+        constants: this.#std.constants,
         types: this.#std.types,
       },
     };
@@ -200,6 +214,7 @@ export class EvmlWorkspace {
             helperArgDefs: instance.helperArgDefs,
             helperDescriptions: instance.helperDescriptions,
             commandDescriptions: instance.commandDescriptions,
+            constants: instance.constants,
             types: instance.types,
           },
           BindingsSpace.MODULE,
@@ -217,30 +232,46 @@ export class EvmlWorkspace {
    */
   #createHelperResolver(): HelperResolver {
     return async (
-      helperName: string,
+      helper: { module?: string; name: string },
       resolvedArgs: string[],
       chainId: number,
       client: PublicClient,
       bindings: BindingsManager,
     ): Promise<Param> => {
-      // Find which module owns this helper
-      const moduleBindings = this.#moduleCache.getAllBindings({
-        spaceFilters: [BindingsSpace.MODULE],
-        ignoreNullValues: true,
-      });
+      // Same resolution order as execution: qualified module → import
+      // bindings (recorded by the walk) → std prelude.
+      let ownerModuleName: string;
+      let localName = helper.name;
 
-      let ownerModuleName: string | undefined;
-      for (const b of moduleBindings) {
-        const data = b.value as ModuleData;
-        if (data.helpers[helperName]) {
-          ownerModuleName = b.identifier;
-          break;
+      if (helper.module) {
+        ownerModuleName = helper.module;
+      } else {
+        const imported = bindings.getBindingValue(
+          `@${helper.name}`,
+          BindingsSpace.IMPORT,
+        ) as ImportValue | undefined;
+        if (imported && imported.kind !== "command") {
+          ownerModuleName = imported.module;
+          localName = imported.name;
+        } else {
+          ownerModuleName = "std";
         }
       }
 
-      if (!ownerModuleName) {
+      const data = this.#moduleCache.getBindingValue(
+        ownerModuleName,
+        BindingsSpace.MODULE,
+      ) as ModuleData | undefined;
+
+      if (!data?.helpers[localName]) {
+        if (
+          resolvedArgs.length === 0 &&
+          data?.constants?.[localName] !== undefined
+        ) {
+          return data.constants[localName];
+        }
         throw new ErrorException(
-          `helper @${helperName} not found on any module`,
+          `helper @${helper.module ? `${helper.module}:` : ""}${helper.name} not found`,
         );
       }
 
@@ -291,10 +322,11 @@ export class EvmlWorkspace {
 
       const instance = new Ctor(ctx);
 
-      // Build a synthetic HelperFunctionNode with StringLiteral args
+      // Build a synthetic HelperFunctionNode with StringLiteral args,
+      // dispatching on the module-local name.
       const syntheticNode: HelperFunctionNode = {
         type: NodeType.HelperFunctionExpression,
-        name: helperName,
+        name: localName,
         args: resolvedArgs.map((value) => ({
           type: NodeType.StringLiteral as any,
           value,
@@ -308,8 +340,8 @@ export class EvmlWorkspace {
           nodes.map((n) => (n as any).value),
       };
 
-      const helper = await resolveHelperFn(instance.helpers[helperName]);
-      return helper(instance, syntheticNode, interpreters);
+      const helperFn = await resolveHelperFn(instance.helpers[localName]);
+      return helperFn(instance, syntheticNode, interpreters);
     };
   }
 
@@ -442,6 +474,48 @@ export class EvmlWorkspace {
    *  This is synchronous and does not require module data. */
   getDocumentSymbols(script: string): DocumentSymbol[] {
     return getDocumentSymbolsImpl(script);
+  }
+
+  /** Edits that normalize qualified names written inside `regions` (whole
+   *  script when omitted) to unqualified spellings backed by load
+   *  import-list entries — auto-import for `ens:renew` → `renew` +
+   *  `load ens [renew]`. Only rewrites names that resolve and whose
+   *  unqualified spelling is free; returns [] otherwise. */
+  async getAutoImportEdits(
+    script: string,
+    regions?: NormalizationRegion[],
+  ): Promise<RenameEdit[]> {
+    await this.#ensureModulesInCache([
+      ...this.#extractLoadModuleNames(script),
+      ...collectQualifiedModules(script).filter(
+        (m) => this.registry.get(m) !== undefined,
+      ),
+    ]);
+    return getAutoImportEditsImpl(
+      script,
+      (name) =>
+        this.#moduleCache.getBindingValue(name, BindingsSpace.MODULE) as
+          | ModuleData
+          | undefined,
+      regions,
+    );
+  }
+
+  /** Range/text of the renameable imported name at `position`, or null.
+   *  Purely syntactic — no module data required. */
+  prepareRename(script: string, position: Position): RenameRange | null {
+    return prepareRenameImpl(script, position);
+  }
+
+  /** Workspace edits renaming the imported name at `position` to `newName`:
+   *  updates the load import-list entry (adding/updating its `>` rename)
+   *  plus every unqualified usage. */
+  getRenameEdits(
+    script: string,
+    position: Position,
+    newName: string,
+  ): RenameResult {
+    return getRenameEditsImpl(script, position, newName);
   }
 
   /** Return parse diagnostics (errors) for the given script.

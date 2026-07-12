@@ -24,9 +24,9 @@ export default defineCommand<Std>({
       optional: true,
     },
   ],
-  async run(module, { condition, thenBlock, elseBlock }, { interpreters }) {
+  async run(_module, { condition, thenBlock, elseBlock }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;
-    const blockOpts = { blockModule: module.contextualName, actionCallback };
+    const blockOpts = { actionCallback };
 
     if (condition) {
       return (await interpretNode(

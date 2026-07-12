@@ -46,7 +46,11 @@ export interface HelperErrorCase {
 }
 
 export interface HelperTestConfig {
-  /** Module to load (e.g. "giveth"). Omit for std helpers (auto-loaded). */
+  /**
+   * Module to load (e.g. "giveth"). May include an import list
+   * (e.g. "lang [@map @filter]") — it becomes the `load` line verbatim.
+   * Omit for std helpers (auto-loaded).
+   */
   module?: string;
   /** Script preamble prepended before the expression (e.g. "set $token.tokenlist ..."). */
   preamble?: string;
@@ -142,7 +146,7 @@ export function describeHelper(
   const label =
     config.describeName ??
     `${
-      config.module ? `${capitalize(config.module)} >` : "Std >"
+      config.module ? `${capitalize(moduleBaseName(config.module))} >` : "Std >"
     } helpers > ${atExpr}`;
 
   const describeFn = config.skip ? describe.skip : describe;
@@ -245,4 +249,9 @@ export function describeHelper(
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Strip an import list from a module spec ("lang [@map]" → "lang"). */
+function moduleBaseName(moduleSpec: string): string {
+  return moduleSpec.split(/[\s[]/)[0];
 }

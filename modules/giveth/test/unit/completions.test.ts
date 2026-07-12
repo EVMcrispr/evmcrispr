@@ -158,8 +158,17 @@ describe("Completions – giveth commands", () => {
   // -------------------------------------------------------------------------
 
   describe("giveth helpers", () => {
-    it("@projectAddr should appear in completions after loading giveth module", async () => {
+    it("@giveth:projectAddr should appear qualified after a plain load", async () => {
       const script = `${GIVETH}set $x `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      expect(hasLabel(helperItems, "@giveth:projectAddr")).to.be.true;
+      // Unqualified spelling requires an import list
+      expect(hasLabel(helperItems, "@projectAddr")).to.be.false;
+    });
+
+    it("@projectAddr should appear unqualified when imported", async () => {
+      const script = `load giveth [@projectAddr]\nset $x `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
       expect(hasLabel(helperItems, "@projectAddr")).to.be.true;
@@ -178,11 +187,21 @@ describe("Completions – giveth helpers", () => {
     evm = evml.workspace();
   });
 
-  const ALL_HELPERS = [...STD_ALL_HELPERS, "@projectAddr"].sort();
-  const ADDRESS_HELPERS = [...STD_ADDRESS_HELPERS, "@projectAddr"].sort();
+  // A loaded module offers its helpers qualified; the import list adds the
+  // unqualified spelling on top.
+  const ALL_HELPERS = [
+    ...STD_ALL_HELPERS,
+    "@projectAddr",
+    "@giveth:projectAddr",
+  ].sort();
+  const ADDRESS_HELPERS = [
+    ...STD_ADDRESS_HELPERS,
+    "@projectAddr",
+    "@giveth:projectAddr",
+  ].sort();
   const NUMBER_HELPERS = STD_NUMBER_HELPERS;
 
-  const GIVETH = "load giveth\n";
+  const GIVETH = "load giveth [@projectAddr]\n";
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering

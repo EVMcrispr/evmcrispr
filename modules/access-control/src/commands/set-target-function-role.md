@@ -46,4 +46,4 @@ access-control:set-target-function-role $manager $token PUBLIC_ROLE ["pause()"]
 ## See Also
 
 - [access-control:set-target-closed](set-target-closed.md) — block a target entirely
-- [@access-control.canCall](../helpers/access-control.canCall.md) — check the resulting permissions
+- [@access-control:canCall](../helpers/canCall.md) — check the resulting permissions

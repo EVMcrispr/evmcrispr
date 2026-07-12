@@ -16,6 +16,7 @@ import {
   computeCommandArity,
   isSpecialArgType,
   NodeType,
+  parseImportList,
   validateArgType,
 } from "@evmcrispr/sdk";
 
@@ -215,13 +216,25 @@ function isDefCommand(c: CommandExpressionNode): boolean {
   return (c.module ?? "std") === "std" && c.name === "def";
 }
 
+function isLoadCommand(c: CommandExpressionNode): boolean {
+  return (c.module ?? "std") === "std" && c.name === "load";
+}
+
 function isVariableDef(type: ArgType): boolean {
   return Array.isArray(type) ? type.includes("variable") : type === "variable";
 }
 
+interface ImportRef {
+  module: string;
+  /** The export's local name on the module (before any `>` rename). */
+  sourceName: string;
+}
+
 interface AnalyzerMeta {
-  /** script alias -> real module name (from `load x --as y`). */
-  aliases: Map<string, string>;
+  /** bound name -> module command import (from `load m [cmd cmd>bound]`). */
+  importedCommands: Map<string, ImportRef>;
+  /** bound name (without `@`) -> module helper/constant import. */
+  importedHelpers: Map<string, ImportRef>;
   /** user command names defined via `def`. */
   defCommands: Set<string>;
   /** user helper names (without `@`) defined via `def`. */
@@ -237,7 +250,8 @@ class SemanticAnalyzer {
    *  so cross-scope references stay lenient). */
   #definedSoFar = new Set<string>();
   #meta: AnalyzerMeta = {
-    aliases: new Map(),
+    importedCommands: new Map(),
+    importedHelpers: new Map(),
     defCommands: new Set(),
     defHelpers: new Set(),
     everDefined: new Set(),
@@ -247,32 +261,35 @@ class SemanticAnalyzer {
     this.#schemas = schemas;
   }
 
-  /** Translate a module reference (possibly an alias) to its real name. */
-  #realModule(name: string | undefined): string | undefined {
-    if (!name) return undefined;
-    return this.#meta.aliases.get(name) ?? name;
-  }
-
   async analyze(body: CommandExpressionNode[]): Promise<ParseDiagnostic[]> {
     await this.#collectMeta(body);
-    await this.#check(body, "std", []);
+    await this.#check(body, []);
     this.#diagnostics.sort((a, b) => a.line - b.line || a.col - b.col);
     return this.#diagnostics;
   }
 
-  // --- Pass 1: metadata (aliases, def names, all variable definitions) -----
+  // --- Pass 1: metadata (imports, def names, all variable definitions) -----
 
-  async #collectMeta(
-    body: CommandExpressionNode[],
-    parentModule = "std",
-  ): Promise<void> {
+  async #collectMeta(body: CommandExpressionNode[]): Promise<void> {
     for (const c of body) {
-      // Record `load x --as y` aliases.
-      if ((c.module ?? "std") === "std" && c.name === "load") {
-        const real = c.args[0]?.value as string | undefined;
-        const asOpt = c.opts.find((o) => o.name === "as");
-        const alias = asOpt?.value?.value as string | undefined;
-        if (real && alias) this.#meta.aliases.set(alias, real);
+      // Record `load m [imports]` bindings (validated in pass 2).
+      if (isLoadCommand(c)) {
+        const moduleName = c.args[0]?.value as string | undefined;
+        const listNode = c.args[1];
+        if (moduleName && listNode?.type === NodeType.ArrayExpression) {
+          const { entries } = parseImportList(listNode as any);
+          for (const entry of entries) {
+            const ref: ImportRef = {
+              module: moduleName,
+              sourceName: entry.sourceName,
+            };
+            if (entry.kind === "command") {
+              this.#meta.importedCommands.set(entry.boundName, ref);
+            } else {
+              this.#meta.importedHelpers.set(entry.boundName, ref);
+            }
+          }
+        }
       }
 
       // Record `def` command / helper names.
@@ -290,12 +307,12 @@ class SemanticAnalyzer {
       this.#collectCaptureDefs(c, this.#meta.everDefined);
 
       // Variable definitions from variable-typed argDefs.
-      const cmd = await this.#resolveCommand(c, parentModule);
+      const cmd = await this.#resolveCommand(c);
       if (cmd) this.#collectVariableDefs(c, cmd, this.#meta.everDefined);
 
-      // Recurse into block bodies with the block's owning module in scope.
+      // Recurse into block bodies.
       for (const blk of this.#blocks(c)) {
-        await this.#collectMeta(blk.body, c.module ?? parentModule);
+        await this.#collectMeta(blk.body);
       }
     }
   }
@@ -335,28 +352,147 @@ class SemanticAnalyzer {
 
   async #check(
     body: CommandExpressionNode[],
-    parentModule: string,
     batchStack: string[],
   ): Promise<void> {
     for (const c of body) {
       // def bodies are opaque to the checker (params may be $vars or
-      // @helpers we can't see) — validate the def command shape only.
-      if (isDefCommand(c)) continue;
+      // @helpers we can't see) — validate the def name for import
+      // collisions, nothing else.
+      if (isDefCommand(c)) {
+        this.#checkDefImportCollision(c);
+        continue;
+      }
 
-      await this.#checkCommand(c, parentModule, batchStack);
+      await this.#checkCommand(c, batchStack);
+    }
+  }
+
+  #checkDefImportCollision(c: CommandExpressionNode): void {
+    const nameNode = c.args[0];
+    if (nameNode?.type === NodeType.Bareword) {
+      const name = nameNode.value as string;
+      if (this.#meta.importedCommands.has(name)) {
+        this.#diagnostics.push(
+          diag(
+            nameNode,
+            `"${name}" is already bound by a load import list.`,
+            "import-collision",
+          ),
+        );
+      }
+    } else if (nameNode?.type === NodeType.HelperFunctionExpression) {
+      const name = (nameNode as HelperFunctionNode).name;
+      if (this.#meta.importedHelpers.has(name)) {
+        this.#diagnostics.push(
+          diag(
+            nameNode,
+            `"@${name}" is already bound by a load import list.`,
+            "import-collision",
+          ),
+        );
+      }
+    }
+  }
+
+  /** Validate a load command's import list: shape, unknown exports,
+   *  duplicates, and collisions with `def` names. */
+  #checkLoadImports(c: CommandExpressionNode): void {
+    const moduleName = c.args[0]?.value as string | undefined;
+    const listNode = c.args[1];
+    if (!listNode) return;
+
+    if (listNode.type !== NodeType.ArrayExpression) {
+      this.#diagnostics.push(
+        diag(
+          listNode,
+          "Import list must be a literal array (e.g. load ens [renew @addr]).",
+          "invalid-import",
+        ),
+      );
+      return;
+    }
+
+    const { entries, errors } = parseImportList(listNode as any);
+    for (const err of errors) {
+      this.#diagnostics.push(diag(err.node, err.message, "invalid-import"));
+    }
+
+    const seen = new Set<string>();
+    const moduleLoaded = !!moduleName && this.#schemas.isLoaded(moduleName);
+
+    for (const entry of entries) {
+      // Unknown export (only checkable when the module schema is available).
+      if (moduleLoaded && moduleName) {
+        if (entry.kind === "command") {
+          if (!this.#schemas.hasCommand(moduleName, entry.sourceName)) {
+            this.#diagnostics.push(
+              diag(
+                entry.node,
+                `Module "${moduleName}" has no command "${entry.sourceName}".${didYouMean(
+                  entry.sourceName,
+                  this.#schemas.commandNames(moduleName),
+                )}`,
+                "unknown-import",
+              ),
+            );
+          }
+        } else if (
+          !this.#schemas.hasHelper(moduleName, entry.sourceName) &&
+          !this.#schemas.hasConstant(moduleName, entry.sourceName)
+        ) {
+          this.#diagnostics.push(
+            diag(
+              entry.node,
+              `Module "${moduleName}" has no helper or constant "@${entry.sourceName}".${didYouMean(
+                entry.sourceName,
+                this.#schemas.helperNames(moduleName),
+              )}`,
+              "unknown-import",
+            ),
+          );
+        }
+      }
+
+      // Duplicates within this list.
+      const key =
+        entry.kind === "command" ? entry.boundName : `@${entry.boundName}`;
+      if (seen.has(key)) {
+        this.#diagnostics.push(
+          diag(entry.node, `Duplicate import ${key}.`, "duplicate-import"),
+        );
+      }
+      seen.add(key);
+
+      // Collision with a def-defined name.
+      const defSet =
+        entry.kind === "command"
+          ? this.#meta.defCommands
+          : this.#meta.defHelpers;
+      if (defSet.has(entry.boundName)) {
+        this.#diagnostics.push(
+          diag(
+            entry.node,
+            `Import ${key} collides with a def-defined name.`,
+            "import-collision",
+          ),
+        );
+      }
     }
   }
 
   async #checkCommand(
     c: CommandExpressionNode,
-    parentModule: string,
     batchStack: string[],
   ): Promise<void> {
-    const realModule = this.#realModule(c.module ?? parentModule) ?? "std";
-    const isDef = this.#meta.defCommands.has(c.name) && !c.module;
+    const isDef = !c.module && this.#meta.defCommands.has(c.name);
+    const imported = c.module
+      ? undefined
+      : this.#meta.importedCommands.get(c.name);
+    const owningModule = c.module ?? imported?.module ?? "std";
 
-    // 0. `load <module>` target must be a registered module.
-    if ((c.module ?? "std") === "std" && c.name === "load") {
+    // 0. `load <module>`: target must be registered; import list must be
+    //    well-formed and name real exports.
+    if (isLoadCommand(c)) {
       const target = c.args[0];
       const name = target?.value as string | undefined;
       if (
@@ -376,48 +512,54 @@ class SemanticAnalyzer {
           ),
         );
       }
+      this.#checkLoadImports(c);
     }
 
-    // 1. Module resolution diagnostics (module-prefixed commands).
-    if (c.module) {
-      const real = this.#realModule(c.module)!;
-      if (!this.#schemas.isLoaded(real)) {
-        if (this.#schemas.isRegistered(real)) {
-          this.#diagnostics.push(
-            diag(
-              c,
-              `Module "${real}" is registered but not loaded. Add "load ${real}" before this line.`,
-              "module-not-loaded",
-            ),
-          );
-        } else {
-          this.#diagnostics.push(
-            diag(
-              c,
-              `Module "${c.module}" is not registered.${didYouMean(
-                c.module,
-                this.#schemas.registeredNames(),
-              )}`,
-              "unknown-module",
-            ),
-          );
-        }
-        return;
+    // 1. Module resolution diagnostics (qualified commands and commands
+    //    resolving through an import).
+    if (owningModule !== "std" && !this.#schemas.isLoaded(owningModule)) {
+      if (this.#schemas.isRegistered(owningModule)) {
+        this.#diagnostics.push(
+          diag(
+            c,
+            `Module "${owningModule}" is registered but not loaded. Add "load ${owningModule}" before this line.`,
+            "module-not-loaded",
+          ),
+        );
+      } else {
+        this.#diagnostics.push(
+          diag(
+            c,
+            `Module "${owningModule}" is not registered.${didYouMean(
+              owningModule,
+              this.#schemas.registeredNames(),
+            )}`,
+            "unknown-module",
+          ),
+        );
       }
+      return;
     }
 
-    const cmd = await this.#resolveCommand(c, parentModule);
+    const cmd = await this.#resolveCommand(c);
 
     // 2. Unknown command (only when the owning module is loaded).
     if (!cmd && !isDef) {
-      if (this.#schemas.isLoaded(realModule)) {
-        const known = this.#schemas.commandNames(realModule);
+      if (this.#schemas.isLoaded(owningModule)) {
+        const known = [
+          ...this.#schemas.commandNames(c.module ?? "std"),
+          ...(c.module ? [] : this.#meta.importedCommands.keys()),
+        ];
         this.#diagnostics.push(
           diag(
             c,
             `Command "${this.#displayName(c)}" does not exist${
-              realModule === "std" ? "" : ` on module "${realModule}"`
-            }.${didYouMean(c.name, known)}`,
+              c.module ? ` on module "${c.module}"` : ""
+            }.${didYouMean(c.name, known)}${
+              c.module
+                ? ""
+                : " Qualify it as <module>:name or add it to the module's load import list."
+            }`,
             "unknown-command",
           ),
         );
@@ -453,7 +595,7 @@ class SemanticAnalyzer {
       const nextStack = opensBatch
         ? [...batchStack, this.#batchName(c)]
         : batchStack;
-      await this.#check(blk.body, c.module ?? parentModule, nextStack);
+      await this.#check(blk.body, nextStack);
     }
   }
 
@@ -621,30 +763,97 @@ class SemanticAnalyzer {
     batchStack: string[],
   ): Promise<void> {
     const helpers: HelperFunctionNode[] = [];
-    for (const arg of c.args) collectHelpers(arg, helpers);
+    // A load command's import list contains bare helper *names*, not
+    // invocations — skip it.
+    const skipNode = isLoadCommand(c) ? c.args[1] : undefined;
+    for (const arg of c.args) {
+      if (arg === skipNode) continue;
+      collectHelpers(arg, helpers);
+    }
     for (const opt of c.opts) collectHelpers(opt.value, helpers);
 
     for (const h of helpers) {
-      if (this.#meta.defHelpers.has(h.name)) continue;
-      if (!this.#schemas.hasHelper(h.name)) {
+      if (h.rename) {
         this.#diagnostics.push(
           diag(
             h,
-            `Helper @${h.name} does not exist on any loaded module.`,
+            `The >@${h.rename} rename suffix is only valid inside a load import list.`,
+            "invalid-rename",
+          ),
+        );
+      }
+
+      if (!h.module && this.#meta.defHelpers.has(h.name)) continue;
+
+      // Resolve the helper to its owning module + local name.
+      let owningModule: string;
+      let localName = h.name;
+      const imported = h.module
+        ? undefined
+        : this.#meta.importedHelpers.get(h.name);
+
+      if (h.module) {
+        owningModule = h.module;
+        if (!this.#schemas.isLoaded(owningModule)) {
+          this.#diagnostics.push(
+            this.#schemas.isRegistered(owningModule)
+              ? diag(
+                  h,
+                  `Module "${owningModule}" is registered but not loaded. Add "load ${owningModule}" before this line.`,
+                  "module-not-loaded",
+                )
+              : diag(
+                  h,
+                  `Module "${owningModule}" is not registered.${didYouMean(
+                    owningModule,
+                    this.#schemas.registeredNames(),
+                  )}`,
+                  "unknown-module",
+                ),
+          );
+          continue;
+        }
+      } else if (imported) {
+        owningModule = imported.module;
+        localName = imported.sourceName;
+        if (!this.#schemas.isLoaded(owningModule)) continue; // load line already flagged
+      } else {
+        owningModule = "std";
+      }
+
+      const exists =
+        this.#schemas.hasHelper(owningModule, localName) ||
+        this.#schemas.hasConstant(owningModule, localName);
+      if (!exists) {
+        const known = [
+          ...this.#schemas.helperNames(h.module ?? "std"),
+          ...(h.module ? [] : this.#meta.importedHelpers.keys()),
+        ];
+        this.#diagnostics.push(
+          diag(
+            h,
+            `Helper @${this.#displayHelperName(h)} does not exist${
+              h.module ? ` on module "${h.module}"` : ""
+            }.${didYouMean(h.name, known)}${
+              h.module
+                ? ""
+                : " Qualify it as @<module>:name or add it to the module's load import list."
+            }`,
             "unknown-helper",
           ),
         );
         continue;
       }
+
       // Helper arity, from statically-stored arg defs.
-      const argDefs = this.#schemas.getHelperArgDefs(h.name);
+      const argDefs = this.#schemas.getHelperArgDefs(owningModule, localName);
       if (argDefs) {
         const arity = computeCommandArity(argDefs as ArgDef[], h.args);
         if (arity.isError) {
           this.#diagnostics.push(
             diag(
               h,
-              `@${h.name}: ${buildArgsLengthErrorMsg(
+              `@${this.#displayHelperName(h)}: ${buildArgsLengthErrorMsg(
                 arity.effectiveArgCount,
                 arity.comparison,
               )}`,
@@ -655,12 +864,15 @@ class SemanticAnalyzer {
       }
       // Non-batchable helper inside a batch context.
       if (batchStack.length > 0) {
-        const batchable = await this.#schemas.getHelperBatchable(h.name);
+        const batchable = await this.#schemas.getHelperBatchable(
+          owningModule,
+          localName,
+        );
         if (batchable === false) {
           this.#diagnostics.push(
             diag(
               h,
-              `Helper @${h.name} reads on-chain state and cannot be used inside ${
+              `Helper @${this.#displayHelperName(h)} reads on-chain state and cannot be used inside ${
                 batchStack[batchStack.length - 1]
               }; read it into a variable with \`set\` first.`,
               "not-batchable",
@@ -669,6 +881,10 @@ class SemanticAnalyzer {
         }
       }
     }
+  }
+
+  #displayHelperName(h: HelperFunctionNode): string {
+    return h.module ? `${h.module}:${h.name}` : h.name;
   }
 
   #checkReturnCaptures(c: CommandExpressionNode): void {
@@ -704,12 +920,15 @@ class SemanticAnalyzer {
     return c.module ? `${c.module}:${c.name}` : c.name;
   }
 
-  #resolveCommand(
-    c: CommandExpressionNode,
-    parentModule: string,
-  ): Promise<ICommand | undefined> {
-    const real = this.#realModule(c.module ?? parentModule) ?? "std";
-    return this.#schemas.getCommand(real, c.name);
+  /** Resolve a command node to its schema: qualified module → import
+   *  binding → std prelude. Strict — no fallbacks between modules. */
+  #resolveCommand(c: CommandExpressionNode): Promise<ICommand | undefined> {
+    if (c.module) return this.#schemas.getCommand(c.module, c.name);
+    const imported = this.#meta.importedCommands.get(c.name);
+    if (imported) {
+      return this.#schemas.getCommand(imported.module, imported.sourceName);
+    }
+    return this.#schemas.getCommand("std", c.name);
   }
 }
 

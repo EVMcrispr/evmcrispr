@@ -21,7 +21,7 @@ ens:wrap <name>
 | Name | Type | Description |
 |------|------|-------------|
 | `--resolver` | `address` | Resolver of the wrapped name |
-| `--fuses` | `number` | Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens.fuses) |
+| `--fuses` | `number` | Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens:fuses) |
 
 <!-- HAND-WRITTEN -->
 
@@ -34,7 +34,7 @@ load ens
 ens:wrap mydao.eth
 
 # Wrap and burn fuses in one go
-ens:wrap mydao.eth --fuses @ens.fuses("cannot-unwrap" "cannot-transfer")
+ens:wrap mydao.eth --fuses @ens:fuses("cannot-unwrap" "cannot-transfer")
 
 # Wrap a subname (approves the NameWrapper, then wraps)
 ens:wrap vault.mydao.eth

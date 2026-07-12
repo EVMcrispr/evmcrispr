@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.len",
   {
-    module: "lang",
+    module: "lang [@str.len]",
     cases: [
       {
         name: "should return the length of a string",
@@ -28,7 +28,8 @@ describeHelper(
     docCases: [
       {
         description: "Get string length",
-        code: `set $s "hello"\nprint @str.len($s)`,
+        code: `load lang [@str.len]\nset $s "hello"\nprint @str.len($s)`,
+        preamble: "",
       },
       { description: "Empty string length", code: `print @str.len("")` },
     ],

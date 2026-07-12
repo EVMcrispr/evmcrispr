@@ -12,7 +12,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [halt](src/commands/halt.md) | Stop script execution immediately. |
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
-| [load](src/commands/load.md) | Load a module to make its commands and helpers available. |
+| [load](src/commands/load.md) | Load a module. Its commands and helpers become available qualified (`mod:cmd`, `@mod:helper`); an import list makes selected names available unqualified. |
 | [loop](src/commands/loop.md) | Repeat a block: iterate over an array (`loop $x of $arr`) or until a condition is true (`loop until <condition>`). |
 | [print](src/commands/print.md) | Log values to the console output. |
 | [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |

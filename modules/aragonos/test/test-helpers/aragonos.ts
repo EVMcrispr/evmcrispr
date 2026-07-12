@@ -40,8 +40,8 @@ export const createAragonScriptInterpreter =
   (commands: string[] = []): TestInterpreter => {
     return createInterpreter(
       `
-  load aragonos --as ar
-  ar:connect ${daoAddress} (
+  load aragonos [connect act forward grant revoke install upgrade new-dao new-token @app @aragonEns @nextApp]
+  connect ${daoAddress} (
     ${commands.join("\n")}
   )
 `,

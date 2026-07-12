@@ -49,9 +49,9 @@ describe("AragonOS > commands > new-dao <daoName>", () => {
     const daoName = "my-evmcrispr-dao";
     const interpreter = createInterpreter(
       `
-      load aragonos --as ar
+      load aragonos
 
-      ar:new-dao $dao ${daoName}
+      aragonos:new-dao $dao ${daoName}
     `,
       client,
     );
@@ -129,8 +129,8 @@ describe("AragonOS > commands > new-dao > event capture", () => {
     const actionCallback = createActionCallback(walletClient, client);
 
     await evm.interpret(
-      `load aragonos --as ar
-       ar:new-dao $dao "capture-test-dao" -> DeployDAO(address) [$daoAddr]`,
+      `load aragonos
+       aragonos:new-dao $dao "capture-test-dao" -> DeployDAO(address) [$daoAddr]`,
       actionCallback,
     );
 

@@ -32,7 +32,7 @@ export default defineCommand<Ens>({
       name: "fuses",
       type: "number",
       description:
-        "Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens.fuses)",
+        "Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens:fuses)",
     },
   ],
   async run(module, { name }, { opts }) {

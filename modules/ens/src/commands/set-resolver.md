@@ -35,4 +35,4 @@ ens:set-resolver mydao.eth 0xF29100983E058B709F3D539b0c765937B804AC15
 
 ## See Also
 
-- [@ens.resolver](../helpers/ens.resolver.md) — read the current resolver
+- [@ens:resolver](../helpers/resolver.md) — read the current resolver

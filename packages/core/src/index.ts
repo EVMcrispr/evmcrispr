@@ -93,6 +93,8 @@ export {
   resolveHelper,
 } from "@evmcrispr/sdk";
 export { getSemanticDiagnostics } from "./analysis";
+export type { NormalizationRegion } from "./autoImport";
+export { collectQualifiedModules, getAutoImportEdits } from "./autoImport";
 export type { ParseDiagnostic } from "./diagnostics";
 export { getDiagnostics, parseDiagnosticString } from "./diagnostics";
 export type { DocumentSymbol, DocumentSymbolKind } from "./documentSymbols";
@@ -129,6 +131,8 @@ export type { HoverInfo } from "./hover";
 export { Interpreter } from "./interpreter/Interpreter";
 export { parseScript, scriptParser } from "./parsers/script";
 export { createParserState } from "./parsers/utils";
+export type { RenameEdit, RenameRange, RenameResult } from "./rename";
+export { getRenameEdits, prepareRename } from "./rename";
 export type {
   PrewarmCheckpoint,
   PrewarmSnapshot,

@@ -1,5 +1,5 @@
 ---
-title: "assert-timestamp"
+title: "assertions:assert-timestamp"
 ---
 
 Assert the current block timestamp, on-chain.
@@ -7,7 +7,7 @@ Assert the current block timestamp, on-chain.
 ## Syntax
 
 ```evml
-assert-timestamp <operator> <expected> [message]
+assertions:assert-timestamp <operator> <expected> [message]
 ```
 
 ## Arguments

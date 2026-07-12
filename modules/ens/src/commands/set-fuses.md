@@ -51,5 +51,5 @@ ens:set-fuses vault.mydao.eth parent-cannot-control cannot-unwrap
 
 ## See Also
 
-- [@ens.fuses.of](../helpers/ens.fuses.of.md) — read burned fuses
-- [@ens.fuses](../helpers/ens.fuses.md) — build a fuse bitmap
+- [@ens:fuses.of](../helpers/fuses.of.md) — read burned fuses
+- [@ens:fuses](../helpers/fuses.md) — build a fuse bitmap

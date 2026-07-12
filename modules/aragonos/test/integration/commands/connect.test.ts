@@ -49,13 +49,13 @@ describeCommand("connect", {
   docCases: [
     {
       description: "Connect to a DAO and grant a permission",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  grant @me @app(agent) TRANSFER_ROLE\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE\n)`,
     },
   ],
   errorCases: [
     {
       name: "should fail when not passing a commands block",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel}`,
+      script: `load aragonos\naragonos:connect ${DAO.kernel}`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "connect")!;
         return new CommandError(c, "<block> must be a block expression");
@@ -63,22 +63,22 @@ describeCommand("connect", {
     },
     {
       name: "should fail on non-batchable commands inside the connect block",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  switch 1\n)`,
+      script: `load aragonos\naragonos:connect ${DAO.kernel} (\n  switch 1\n)`,
       error: 'command "switch" cannot be used inside connect',
     },
     {
       name: "should fail on wait inside the connect block",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  wait 60\n)`,
+      script: `load aragonos\naragonos:connect ${DAO.kernel} (\n  wait 60\n)`,
       error: 'command "wait" cannot be used inside connect',
     },
     {
       name: "should fail on chain-state-reading helpers after the connect block has collected actions",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me 1e18\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me @gas.price\n)`,
+      script: `load aragonos [act @app]\naragonos:connect ${DAO.kernel} (\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me 1e18\n  act @app(agent) @app(agent) "transfer(address,uint256)" @me @gas.price\n)`,
       error: "reads on-chain state at batch-build time",
     },
     {
       name: "should fail when trying to connect to an already connected DAO",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO.kernel} (\n\n  )\n)`,
+      script: `load aragonos [connect]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO.kernel} (\n\n  )\n)`,
       error: (interpreter) => {
         const connectNode = findAragonOSCommandNode(
           interpreter.ast,
@@ -101,7 +101,7 @@ describeCommand("connect", {
   cases: [
     {
       name: "should return the correct actions when defining a complete forwarding path via forward command",
-      script: `load aragonos --as ar\nar:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant @me @app(agent) TRANSFER_ROLE\n    grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)\n    revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager:new $token true 0\n    act @app(agent) @app(agent:1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
+      script: `load aragonos [forward grant revoke new-token install act @app @nextApp]\naragonos:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant @me @app(agent) TRANSFER_ROLE\n    grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)\n    revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager:new $token true 0\n    act @app(agent) @app(agent:1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
       validate: async (forwardingAction) => {
         const client = getPublicClient();
         const me = TEST_ACCOUNT_ADDRESS;
@@ -190,7 +190,7 @@ describeCommand("connect", {
     },
     {
       name: "should set connected DAO variable",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n)`,
+      script: `load aragonos\naragonos:connect ${DAO.kernel} (\n)`,
       validate: async (_actions, interpreter) => {
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const dao = aragonos.getConnectedDAO(DAO.kernel);
@@ -207,7 +207,7 @@ describeCommand("connect", {
     },
     {
       name: "should set all the connected DAOs properly with nested connect commands",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    std:set $var1 1\n    connect ${DAO3.kernel} (\n      std:set $var2 token-manager\n    )\n  )\n)`,
+      script: `load aragonos [connect]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    std:set $var1 1\n    connect ${DAO3.kernel} (\n      std:set $var2 token-manager\n    )\n  )\n)`,
       validate: async (_actions, interpreter) => {
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
         const daos = aragonos.connectedDAOs;
@@ -231,7 +231,7 @@ describeCommand("connect", {
     },
     {
       name: "should return the correct actions when using app identifiers from different DAOs",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:agent) TRANSFER_ROLE\n    connect ${DAO3.kernel} (\n      grant @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO2.kernel}:acl) CREATE_PERMISSIONS_ROLE\n    )\n  )\n)`,
+      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:agent) TRANSFER_ROLE\n    connect ${DAO3.kernel} (\n      grant @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO2.kernel}:acl) CREATE_PERMISSIONS_ROLE\n    )\n  )\n)`,
       validate: async (nestedActions) => {
         const expectedNestedActions = [
           createTestAction("grantPermission", DAO.acl, [
@@ -266,7 +266,7 @@ it("connect should keep apps connected when an implementation ABI is missing", a
 
   try {
     const interpreter = createInterpreter(
-      `load aragonos --as ar\nar:connect ${DAO3.kernel} (\n)`,
+      `load aragonos\naragonos:connect ${DAO3.kernel} (\n)`,
       getPublicClient(),
     );
     await interpreter.interpret();

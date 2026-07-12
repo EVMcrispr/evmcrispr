@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@reverse",
   {
-    module: "lang",
+    module: "lang [@reverse]",
     cases: [
       {
         name: "should reverse a numeric array",
@@ -35,7 +35,8 @@ describeHelper(
     docCases: [
       {
         description: "Reverse an array",
-        code: `set $arr [1 2 3]\nset $rev @reverse($arr)`,
+        code: `load lang [@reverse]\nset $arr [1 2 3]\nset $rev @reverse($arr)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

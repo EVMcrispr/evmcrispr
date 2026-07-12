@@ -24,7 +24,7 @@ aragonos:revoke <grantee> <app> <role> [removeManager]
 ```evml
 # Revoke a permission
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE
+  aragonos:revoke @aragonos:app(disputable-voting.open:0) @aragonos:app(acl:0) CREATE_PERMISSIONS_ROLE
 )
 ```
 

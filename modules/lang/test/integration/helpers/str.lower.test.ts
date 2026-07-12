@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.lower",
   {
-    module: "lang",
+    module: "lang [@str.lower]",
     cases: [
       {
         name: "should convert to lowercase",
@@ -26,7 +26,8 @@ describeHelper(
     docCases: [
       {
         description: "Lowercase a string",
-        code: `set $s @str.lower("Hello World")`,
+        code: `load lang [@str.lower]\nset $s @str.lower("Hello World")`,
+        preamble: "",
       },
     ],
   },

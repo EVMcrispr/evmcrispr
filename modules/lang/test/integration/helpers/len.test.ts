@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@len",
   {
-    module: "lang",
+    module: "lang [@len]",
     cases: [
       {
         name: "should return the length of an array",
@@ -28,7 +28,8 @@ describeHelper(
     docCases: [
       {
         description: "Get array length",
-        code: `set $arr [10 20 30]\nprint @len($arr)`,
+        code: `load lang [@len]\nset $arr [10 20 30]\nprint @len($arr)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

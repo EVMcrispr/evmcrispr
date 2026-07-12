@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@enumerate",
   {
-    module: "lang",
+    module: "lang [@enumerate]",
     cases: [
       {
         name: "should return index-element pairs",
@@ -33,7 +33,8 @@ describeHelper(
     docCases: [
       {
         description: "Enumerate array elements",
-        code: `set $items ["a" "b" "c"]\nset $pairs @enumerate($items)`,
+        code: `load lang [@enumerate]\nset $items ["a" "b" "c"]\nset $pairs @enumerate($items)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

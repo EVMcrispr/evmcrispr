@@ -6,6 +6,7 @@ import type {
   HelperFunctionNode,
   HelperResolver,
   ICommand,
+  ImportValue,
   ModuleBinding,
   NoNullableBinding,
   Position,
@@ -20,6 +21,7 @@ import {
   hasCommandsBlock,
   isBuiltinType,
   NodeType,
+  parseImportList,
   parseReadAbiParamTypes,
   parseSignatureParamTypes,
   resolveArgDefIndex,
@@ -31,6 +33,7 @@ import { mainnet } from "viem/chains";
 import type { EvmlAST } from "./EvmlAST";
 import { parseScript } from "./parsers/script";
 import {
+  applyLoadImports,
   clientForChain,
   collectCustomTypes,
   createNodeResolver,
@@ -64,6 +67,12 @@ const removePossibleFollowingBlock = (
 // Completion item builders
 // ---------------------------------------------------------------------------
 
+/** Canonical lookup key for a helper node: the spelling used in the script
+ *  (`ens:addr` for qualified, `addr` for imported/std names). Matches how
+ *  `buildModuleCompletionItems` keys `helperArgDefsMap`. */
+const helperNodeKey = (h: { module?: string; name: string }): string =>
+  h.module ? `${h.module}:${h.name}` : h.name;
+
 const buildModuleCompletionItems = (
   bindings: BindingsManager,
 ): {
@@ -71,67 +80,103 @@ const buildModuleCompletionItems = (
   helperItems: CompletionItem[];
   helperArgDefsMap: Record<string, HelperArgDefEntry[]>;
 } => {
-  const scopeModule = bindings.getScopeModule() ?? "std";
-
   const moduleBindings = bindings.getAllBindings({
     spaceFilters: [MODULE],
     ignoreNullValues: true,
   }) as NoNullableBinding<ModuleBinding>[];
 
-  const seen = new Set<object>();
+  const seenValues = new Set<object>();
   const dedupedBindings = moduleBindings.filter((b) => {
-    if (!b.value || seen.has(b.value)) return false;
-    seen.add(b.value);
+    if (!b.value || seenValues.has(b.value)) return false;
+    seenValues.add(b.value);
     return true;
   });
 
-  const moduleAliases = dedupedBindings.map(
-    ({ identifier, value }) => (value as any).alias ?? identifier,
-  );
+  const byName = new Map(dedupedBindings.map((b) => [b.identifier, b.value]));
 
+  const importBindings = bindings.getAllBindings({
+    spaceFilters: [BindingsSpace.IMPORT],
+    ignoreNullValues: true,
+  }) as { identifier: string; value: ImportValue }[];
+
+  const commandItems: CompletionItem[] = [];
+  const helperItems: CompletionItem[] = [];
   const helperArgDefsMap: Record<string, HelperArgDefEntry[]> = {};
-  for (const { value: mod } of dedupedBindings) {
-    if (mod.helperArgDefs) {
-      for (const [name, defs] of Object.entries(mod.helperArgDefs)) {
-        helperArgDefsMap[name] = defs;
-      }
+
+  const pushHelperItem = (
+    mod: (typeof dedupedBindings)[number]["value"],
+    localName: string,
+    spelled: string,
+  ) => {
+    const hasArgs = mod.helperHasArgs?.[localName] ?? false;
+    const returnType = mod.helperReturnTypes?.[localName];
+    helperItems.push({
+      label: `@${spelled}`,
+      insertText: hasArgs ? `@${spelled}($0)` : `@${spelled} `,
+      kind: "helper",
+      sortPriority: 3,
+      returnType,
+      isSnippet: hasArgs,
+      detail: returnType ? `→ ${returnType}` : undefined,
+      documentation: mod.helperDescriptions?.[localName],
+    });
+    if (mod.helperArgDefs?.[localName]) {
+      helperArgDefsMap[spelled] = mod.helperArgDefs[localName];
+    }
+  };
+
+  const pushConstantItem = (spelled: string, value: string) => {
+    helperItems.push({
+      label: `@${spelled}`,
+      insertText: `@${spelled} `,
+      kind: "helper",
+      sortPriority: 3,
+      detail: value,
+    });
+  };
+
+  for (const { identifier: moduleName, value: mod } of dedupedBindings) {
+    // std is the prelude — its names are unqualified. Everything else is
+    // offered under its module namespace; imports below add the
+    // unqualified spellings the script's load lines opted into.
+    const prefix = moduleName === "std" ? "" : `${moduleName}:`;
+
+    for (const commandName of Object.keys(mod.commands)) {
+      const label = `${prefix}${commandName}`;
+      commandItems.push({
+        label,
+        insertText: label,
+        kind: "command",
+        documentation: mod.commandDescriptions?.[commandName],
+      });
+    }
+    for (const helperName of Object.keys(mod.helpers)) {
+      pushHelperItem(mod, helperName, `${prefix}${helperName}`);
+    }
+    for (const [constName, constValue] of Object.entries(mod.constants ?? {})) {
+      pushConstantItem(`${prefix}${constName}`, constValue);
     }
   }
 
-  return {
-    commandItems: dedupedBindings.flatMap(({ value: mod }, index) => {
-      const moduleAlias = moduleAliases[index];
-      return Object.keys(mod.commands).map((commandName): CompletionItem => {
-        const prefix = scopeModule === moduleAlias ? "" : `${moduleAlias}:`;
-        const label = `${prefix}${commandName}`;
-        return {
-          label,
-          insertText: label,
-          kind: "command",
-          documentation: mod.commandDescriptions?.[commandName],
-        };
+  for (const { identifier, value: imp } of importBindings) {
+    const mod = byName.get(imp.module);
+    if (!mod) continue;
+    if (imp.kind === "command") {
+      commandItems.push({
+        label: identifier,
+        insertText: identifier,
+        kind: "command",
+        documentation: mod.commandDescriptions?.[imp.name],
       });
-    }),
+    } else if (imp.kind === "helper") {
+      // identifier is `@boundName`
+      pushHelperItem(mod, imp.name, identifier.slice(1));
+    } else if (mod.constants?.[imp.name] !== undefined) {
+      pushConstantItem(identifier.slice(1), mod.constants[imp.name]);
+    }
+  }
 
-    helperItems: dedupedBindings.flatMap(({ value: mod }) => {
-      return Object.keys(mod.helpers).map((helperName): CompletionItem => {
-        const hasArgs = mod.helperHasArgs?.[helperName] ?? false;
-        const returnType = mod.helperReturnTypes?.[helperName];
-        return {
-          label: `@${helperName}`,
-          insertText: hasArgs ? `@${helperName}($0)` : `@${helperName} `,
-          kind: "helper",
-          sortPriority: 3,
-          returnType,
-          isSnippet: hasArgs,
-          detail: returnType ? `→ ${returnType}` : undefined,
-          documentation: mod.helperDescriptions?.[helperName],
-        };
-      });
-    }),
-
-    helperArgDefsMap,
-  };
+  return { commandItems, helperItems, helperArgDefsMap };
 };
 
 const buildOptCompletionItems = (
@@ -389,8 +434,6 @@ export async function getCompletions(
   }
 
   // 2. Collect commands before cursor
-  let contextModuleName = "std";
-
   const commandNodes: CommandExpressionNode[] = (
     fullAST?.getCommandsUntilLine(position.line - 1, [
       "load",
@@ -401,24 +444,20 @@ export async function getCompletions(
     const itHasCommandsBlock = hasCommandsBlock(c);
     const loc = c.loc;
     const currentLine = position.line;
-    if (
+    return (
       !itHasCommandsBlock ||
-      (itHasCommandsBlock &&
-        loc &&
-        currentLine >= loc.start.line &&
-        currentLine <= loc.end.line)
-    ) {
-      if (itHasCommandsBlock) {
-        contextModuleName = c.module ?? contextModuleName;
-      }
-      return true;
-    }
-    return false;
+      (loc && currentLine >= loc.start.line && currentLine <= loc.end.line)
+    );
   });
 
   // 3. Seed bindings once, then walk commands to resolve bindings
   const bindings = new BindingsManager();
   seedBindings(bindings, moduleCache);
+
+  // Seed IMPORT bindings up front (the walk re-applies them, overwrite-safe):
+  // the string-literal suppression check below resolves helper names before
+  // the walk runs, and unqualified imported helpers must already resolve.
+  for (const c of commandNodes) applyLoadImports(c, bindings);
 
   // Deferred string literal suppression for helper args: now that bindings are
   // available, check whether the enclosing helper arg has a custom type with
@@ -427,7 +466,7 @@ export async function getCompletions(
     const helperNode = deepestResult.node as unknown as HelperFunctionNode;
     const { helperArgDefsMap: earlyHelperArgDefsMap } =
       buildModuleCompletionItems(bindings);
-    const argDefs = earlyHelperArgDefsMap[helperNode.name];
+    const argDefs = earlyHelperArgDefsMap[helperNodeKey(helperNode)];
     const argDef = argDefs?.[deepestResult.argIndex];
     if (argDef && !isBuiltinType(argDef.type)) {
       const customTypes = collectCustomTypes(bindings);
@@ -506,7 +545,7 @@ export async function getCompletions(
     (deepestResult.node as any).type === NodeType.HelperFunctionExpression
   ) {
     const helperNode = deepestResult.node as unknown as HelperFunctionNode;
-    const argDefs = helperArgDefsMap[helperNode.name];
+    const argDefs = helperArgDefsMap[helperNodeKey(helperNode)];
     if (argDefs) {
       const helperArgIndex = deepestResult.argIndex;
       const argDef =
@@ -597,11 +636,7 @@ export async function getCompletions(
   }
 
   if (currentCommandNode) {
-    const command = await resolveCommandNode(
-      currentCommandNode,
-      bindings,
-      contextModuleName,
-    );
+    const command = await resolveCommandNode(currentCommandNode, bindings);
 
     if (command) {
       const argIndex = calculateCurrentArgIndex(currentCommandNode, position);
@@ -785,7 +820,16 @@ export async function getKeywords(
       ])
     : [];
   const helpers: string[] = stdModuleData
-    ? Object.keys(stdModuleData.helpers).map((name) => `@${name}`)
+    ? [
+        ...Object.keys(stdModuleData.helpers).flatMap((name) => [
+          `@${name}`,
+          `@std:${name}`,
+        ]),
+        ...Object.keys(stdModuleData.constants ?? {}).flatMap((name) => [
+          `@${name}`,
+          `@std:${name}`,
+        ]),
+      ]
     : [];
 
   for (const c of commandNodes) {
@@ -807,20 +851,34 @@ export async function getKeywords(
     seenModules.add(moduleName);
 
     const moduleData = moduleCache.getBindingValue(moduleName, MODULE);
-    if (!moduleData) continue;
+    if (moduleData) {
+      commands.push(
+        ...Object.keys(moduleData.commands).map(
+          (name) => `${moduleName}:${name}`,
+        ),
+      );
+      helpers.push(
+        ...Object.keys(moduleData.helpers).map(
+          (name) => `@${moduleName}:${name}`,
+        ),
+        ...Object.keys(moduleData.constants ?? {}).map(
+          (name) => `@${moduleName}:${name}`,
+        ),
+      );
+    }
 
-    const asOpt = c.opts.find((o) => o.name === "as");
-    const displayName: string = asOpt?.value?.value ?? moduleName;
-
-    const commandNames = Object.keys(moduleData.commands).flatMap((name) => [
-      name,
-      `${displayName}:${name}`,
-    ]);
-    const helperNames = Object.keys(moduleData.helpers).map(
-      (name) => `@${name}`,
-    );
-    commands.push(...commandNames);
-    helpers.push(...helperNames);
+    // Unqualified spellings granted by the load line's import list.
+    const listNode = c.args[1];
+    if (listNode?.type === NodeType.ArrayExpression) {
+      const { entries } = parseImportList(listNode as any);
+      for (const entry of entries) {
+        if (entry.kind === "command") {
+          commands.push(entry.boundName);
+        } else {
+          helpers.push(`@${entry.boundName}`);
+        }
+      }
+    }
   }
 
   return { commands, helpers };

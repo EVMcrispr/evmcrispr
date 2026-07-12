@@ -28,7 +28,7 @@ const {
   initializeSignature,
 } = APP;
 const newAppIdentifier = `${appIdentifier}:new-app`;
-const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
+const preamble = `load aragonos [install @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("install", {
   describeName: "AragonOS > commands > install <$var> <repo> [initParams]",
@@ -37,7 +37,7 @@ describeCommand("install", {
   docCases: [
     {
       description: "Install a token-manager app",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  install $tm token-manager:new-app @app(agent) false 1000e18\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:install $tm token-manager:new-app @aragonos:app(agent) false 1000e18\n)",
     },
   ],
   cases: [
@@ -170,7 +170,7 @@ describeCommand("install", {
   cases: [
     {
       name: "should return a correct install action given a different DAO",
-      script: `load aragonos --as ar\nar:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")} --dao ${DAO.kernel}\n  )\n)`,
+      script: `load aragonos [connect install @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")} --dao ${DAO.kernel}\n  )\n)`,
       validate: async (installActions) => {
         const expectedInstallActions = [
           createTestAction("newAppInstance", DAO.kernel, [
@@ -190,7 +190,7 @@ describeCommand("install", {
   errorCases: [
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos --as ar\nar:install $app ${newAppIdentifier} 0x0000000000000000000000000000000000000001 false 1000e18`,
+      script: `load aragonos\naragonos:install $app ${newAppIdentifier} 0x0000000000000000000000000000000000000001 false 1000e18`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

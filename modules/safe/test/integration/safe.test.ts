@@ -186,7 +186,9 @@ describe("Safe > integration", () => {
   });
 
   it("executes a single-action block through execTransaction", async () => {
-    await run(`load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerB}\n)`);
+    await run(
+      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerB}\n)`,
+    );
 
     expect(await getOwners()).to.eql([ownerB, ownerA]);
     expect(await getThreshold()).to.equal(1n);
@@ -262,12 +264,12 @@ describe("Safe > integration", () => {
     const evm = await run(
       [
         "load safe",
-        `set $owners @safe.owners(${safe})`,
-        `set $threshold @safe.threshold(${safe})`,
-        `set $isOwner @safe.isOwner(${ownerB} ${safe})`,
-        `set $isNotOwner @safe.isOwner(${ownerD} ${safe})`,
-        `set $modules @safe.modules(${safe})`,
-        `set $guard @safe.guard(${safe})`,
+        `set $owners @safe:owners(${safe})`,
+        `set $threshold @safe:threshold(${safe})`,
+        `set $isOwner @safe:isOwner(${ownerB} ${safe})`,
+        `set $isNotOwner @safe:isOwner(${ownerD} ${safe})`,
+        `set $modules @safe:modules(${safe})`,
+        `set $guard @safe:guard(${safe})`,
       ].join("\n"),
     );
 
@@ -332,7 +334,9 @@ describe("Safe > integration", () => {
 
   it("executes a fully-confirmed queued transaction by hash", async () => {
     // Raise the threshold to 2 so direct block execution is rejected...
-    await run(`load safe\nsafe:execute ${safe} (\n  safe:change-threshold 2\n)`);
+    await run(
+      `load safe\nsafe:execute ${safe} (\n  safe:change-threshold 2\n)`,
+    );
     expect(await getThreshold()).to.equal(2n);
 
     const execError = await run(

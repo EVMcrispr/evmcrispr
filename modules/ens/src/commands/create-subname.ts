@@ -43,7 +43,7 @@ export default defineCommand<Ens>({
       name: "fuses",
       type: "number",
       description:
-        "Fuses to burn on the subname (wrapped parents only; use @ens.fuses)",
+        "Fuses to burn on the subname (wrapped parents only; use @ens:fuses)",
     },
     {
       name: "expiry",

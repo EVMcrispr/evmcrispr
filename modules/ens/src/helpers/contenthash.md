@@ -22,7 +22,7 @@ Encode a content hash (ipfs, ipns, skynet) for ENS records.
 
 ```evml
 # Encode an IPFS content hash
-set $hash @contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")
+set $hash @ens:contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")
 print $hash
 ```
 

@@ -27,7 +27,6 @@ export abstract class Module {
   readonly constants: Record<string, string>;
   readonly types: CustomArgTypes;
   readonly context: ModuleContext;
-  readonly alias?: string;
 
   constructor(
     name: string,
@@ -41,7 +40,6 @@ export abstract class Module {
     constants: Record<string, string>,
     types: CustomArgTypes,
     context: ModuleContext,
-    alias?: string,
   ) {
     this.name = name;
     this.commands = commands;
@@ -54,7 +52,6 @@ export abstract class Module {
     this.constants = constants;
     this.types = types;
     this.context = context;
-    this.alias = alias;
   }
 
   // --- Convenience accessors delegating to context ---
@@ -71,10 +68,6 @@ export abstract class Module {
     return this.context.ipfsResolver;
   }
 
-  get contextualName(): string {
-    return this.alias ?? this.name;
-  }
-
   buildConfigVar(name: string): string {
     return `$${this.name}:${name}`;
   }
@@ -86,9 +79,7 @@ export abstract class Module {
     const commandOrLoader = this.commands[c.name];
 
     if (!commandOrLoader) {
-      throw new ErrorException(
-        `command not found on module ${this.contextualName}`,
-      );
+      throw new ErrorException(`command not found on module ${this.name}`);
     }
 
     const command = await resolveCommand(commandOrLoader);
@@ -101,9 +92,7 @@ export abstract class Module {
   ): Promise<ReturnType<HelperFunction<this>>> {
     const helperOrLoader = this.helpers[h.name];
     if (!helperOrLoader) {
-      throw new ErrorException(
-        `helper not found on module ${this.contextualName}`,
-      );
+      throw new ErrorException(`helper not found on module ${this.name}`);
     }
     const helper = await resolveHelper(helperOrLoader);
     return helper(this, h, interpreters);

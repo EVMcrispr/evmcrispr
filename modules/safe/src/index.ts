@@ -7,8 +7,8 @@ export default class Safe extends defineModule("safe", commands, helpers) {
    *  enclosing `safe:propose` / `safe:execute` block, if any. */
   #safeStack: Address[];
 
-  constructor(context: ModuleContext, alias?: string) {
-    super(context, alias);
+  constructor(context: ModuleContext) {
+    super(context);
 
     this.#safeStack = [];
   }

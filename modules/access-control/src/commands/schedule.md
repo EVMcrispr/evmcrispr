@@ -52,4 +52,4 @@ access-control:schedule $manager $token "setDuration(uint256)" 31536000 --when 1
 
 - [access-control:execute-scheduled](execute-scheduled.md) — run it once ready
 - [access-control:cancel-scheduled](cancel-scheduled.md) — cancel it
-- [@access-control.operationSchedule](../helpers/access-control.operationSchedule.md) — check the timer
+- [@access-control:operationSchedule](../helpers/operationSchedule.md) — check the timer

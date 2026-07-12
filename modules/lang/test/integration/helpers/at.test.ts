@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@at",
   {
-    module: "lang",
+    module: "lang [@at]",
     cases: [
       {
         name: "should return element at index in array",
@@ -33,11 +33,13 @@ describeHelper(
     docCases: [
       {
         description: "Access first element",
-        code: `set $arr [10 20 30]\nset $first @at($arr 0)`,
+        code: `load lang [@at]\nset $arr [10 20 30]\nset $first @at($arr 0)`,
+        preamble: "",
       },
       {
         description: "Access last element (negative index)",
-        code: `set $arr [10 20 30]\nset $last @at($arr -1)`,
+        code: `load lang [@at]\nset $arr [10 20 30]\nset $last @at($arr -1)`,
+        preamble: "",
       },
     ],
     errorCases: [

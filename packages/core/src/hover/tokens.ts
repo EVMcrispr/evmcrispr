@@ -21,7 +21,8 @@ export interface Token {
  * recognised as an address rather than falling into the catch-all
  * identifier match.
  */
-const TOKEN_RE = /0x[a-fA-F0-9]{40}\b|@[\w.]+|\$[\w]+|--[\w-]+|[\w:-]+/g;
+const TOKEN_RE =
+  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w]+|--[\w-]+|[\w:-]+/g;
 
 export function getTokenAtCol(lineText: string, col: number): Token | null {
   TOKEN_RE.lastIndex = 0;

@@ -1,5 +1,5 @@
 ---
-title: "assert-block-number"
+title: "assertions:assert-block-number"
 ---
 
 Assert the current block number, on-chain.
@@ -7,7 +7,7 @@ Assert the current block number, on-chain.
 ## Syntax
 
 ```evml
-assert-block-number <operator> <expected> [message]
+assertions:assert-block-number <operator> <expected> [message]
 ```
 
 ## Arguments

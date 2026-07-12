@@ -1,5 +1,5 @@
 ---
-title: "@bytes.slice"
+title: "@lang:bytes.slice"
 ---
 
 Extract a byte range from a bytes value.
@@ -9,7 +9,7 @@ Extract a byte range from a bytes value.
 ## Syntax
 
 ```evml
-@bytes.slice(value start end?)
+@lang:bytes.slice(value start end?)
 ```
 
 ## Arguments
@@ -19,13 +19,6 @@ Extract a byte range from a bytes value.
 | `value` | `bytes` | Input value |
 | `start` | `number` | Start index (inclusive) |
 | `[end]` | `number` | End index (exclusive) |
-
-## Examples
-
-```evml
-# Slice bytes
-set $mid @bytes.slice(0xaabbccdd 1 3)
-```
 
 <!-- HAND-WRITTEN -->
 

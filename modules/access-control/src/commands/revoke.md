@@ -44,4 +44,4 @@ access-control:revoke $manager 42 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ## See Also
 
 - [access-control:grant](grant.md) — grant a role
-- [@access-control.hasRole](../helpers/access-control.hasRole.md) — check membership
+- [@access-control:hasRole](../helpers/hasRole.md) — check membership

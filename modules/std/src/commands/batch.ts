@@ -21,7 +21,6 @@ export default defineCommand<Std>({
     const { interpretNode } = interpreters;
 
     const blockActions = (await interpretNode(block as BlockExpressionNode, {
-      blockModule: module.contextualName,
       batchContext: { name: "batch", hasActions: false },
     })) as Action[];
 

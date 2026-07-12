@@ -51,4 +51,4 @@ governor:timelock-execute $timelock (
 
 ## See Also
 
-- [@governor.timelockOperationState](../helpers/governor.timelockOperationState.md) — wait for Ready
+- [@governor:timelockOperationState](../helpers/timelockOperationState.md) — wait for Ready

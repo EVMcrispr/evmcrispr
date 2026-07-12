@@ -64,19 +64,19 @@ describeCommand("clone", {
 });
 
 describeHelper(
-  "@proxies.predictClone",
+  "@proxies:predictClone",
   {
     describeName:
-      "Proxies > helpers > @proxies.predictClone(implementation salt [deployer])",
+      "Proxies > helpers > @proxies:predictClone(implementation salt [deployer])",
     module: "proxies",
     cases: [
       {
         name: "should predict the deterministic clone address",
-        input: `@proxies.predictClone(${GNO} ${SALT})`,
+        input: `@proxies:predictClone(${GNO} ${SALT})`,
         expected: PREDICTED,
       },
     ],
     sampleArgs: [GNO, SALT, ARACHNID_CREATE2],
   },
-  helpers["proxies.predictClone"].argDefs,
+  helpers.predictClone.argDefs,
 );

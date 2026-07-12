@@ -1,5 +1,5 @@
 ---
-title: "assert"
+title: "assertions:assert"
 ---
 
 Assert that a contract view return satisfies a comparison, on-chain.
@@ -7,7 +7,7 @@ Assert that a contract view return satisfies a comparison, on-chain.
 ## Syntax
 
 ```evml
-assert <call> [operator] [expected] [message]
+assertions:assert <call> [operator] [expected] [message]
 ```
 
 ## Arguments

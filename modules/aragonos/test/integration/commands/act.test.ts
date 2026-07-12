@@ -11,7 +11,7 @@ import {
 } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
-const preamble = `load aragonos --as ar\nar:connect ${DAO.kernel} (`;
+const preamble = `load aragonos [act @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("act", {
   describeName:
@@ -21,7 +21,7 @@ describeCommand("act", {
   docCases: [
     {
       description: "Execute a contract call through the DAO agent",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  act @app(agent) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:act @aragonos:app(agent) @aragonos:app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
     },
   ],
   cases: [

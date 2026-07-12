@@ -22,7 +22,7 @@ aragonos:upgrade <apmRepo> [newAppAddress]
 ```evml
 # Upgrade to latest version
 aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (
-  upgrade disputable-conviction-voting.open
+  aragonos:upgrade disputable-conviction-voting.open
 )
 ```
 

@@ -22,7 +22,7 @@ ENSIP-11 coin type of an EVM chain, for multichain address records.
 
 ```evml
 # Coin type for an L2 address record
-set $ct @cointype(optimism)
+set $ct @ens:cointype(optimism)
 print $ct
 ```
 

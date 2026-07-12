@@ -13,20 +13,23 @@ describeHelper(
   "@json",
   {
     describeName: "Http > helpers > @json(data path)",
-    module: "http",
+    module: "http [@json]",
     preamble: `set $data '${sampleJson}'`,
     docCases: [
       {
         description: "Parse JSON and extract a field",
-        code: `set $data '{"name":"Alice","age":30}'\nset $name @json($data "name")\nprint $name`,
+        code: `load http [@json]\nset $data '{"name":"Alice","age":30}'\nset $name @json($data "name")\nprint $name`,
+        preamble: "",
       },
       {
         description: "Nested path",
         code: `set $data '{"user":{"name":"Alice"}}'\nset $name @json($data "user.name")\nprint $name`,
+        preamble: "load http [@json]",
       },
       {
         description: "Array access",
         code: `set $data '{"items":[10,20,30]}'\nset $second @json($data "items[1]")\nprint $second`,
+        preamble: "load http [@json]",
       },
     ],
     cases: [
@@ -143,11 +146,12 @@ describeHelper(
   "@json.format",
   {
     describeName: "Http > helpers > @json.format(template values)",
-    module: "http",
+    module: "http [@json.format]",
     docCases: [
       {
         description: "Build a JSON object from values",
-        code: `set $body @json.format("{name, age}" ["Alice" 30])\nprint $body`,
+        code: `load http [@json.format]\nset $body @json.format("{name, age}" ["Alice" 30])\nprint $body`,
+        preamble: "",
       },
     ],
     cases: [

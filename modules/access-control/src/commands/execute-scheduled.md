@@ -47,4 +47,4 @@ access-control:execute-scheduled $manager $token "setDuration(uint256)" 31536000
 ## See Also
 
 - [access-control:schedule](schedule.md) — schedule the operation first
-- [@access-control.canCall](../helpers/access-control.canCall.md) — check if a delay applies
+- [@access-control:canCall](../helpers/canCall.md) — check if a delay applies

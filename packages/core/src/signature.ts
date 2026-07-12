@@ -1,10 +1,4 @@
-import type {
-  HelperArgDefEntry,
-  ICommand,
-  ModuleBinding,
-  NoNullableBinding,
-  Position,
-} from "@evmcrispr/sdk";
+import type { HelperArgDefEntry, ICommand, Position } from "@evmcrispr/sdk";
 import {
   type BindingsManager,
   BindingsSpace,
@@ -13,6 +7,7 @@ import {
 } from "@evmcrispr/sdk";
 
 import { parseScript } from "./parsers/script";
+import { collectScriptImports } from "./scriptWalk";
 
 const { MODULE } = BindingsSpace;
 
@@ -49,7 +44,7 @@ export type SignatureHelp = {
 function findEnclosingHelper(
   text: string,
   offset: number,
-): { name: string; activeParam: number } | null {
+): { module?: string; name: string; activeParam: number } | null {
   let depth = 0;
   let commas = 0;
 
@@ -59,11 +54,11 @@ function findEnclosingHelper(
       depth++;
     } else if (ch === "(") {
       if (depth === 0) {
-        // Found our opening paren — check if preceded by @helperName
+        // Found our opening paren — check if preceded by @[module:]helperName
         const before = text.slice(0, i);
-        const match = before.match(/@([\w.]+)$/);
+        const match = before.match(/@(?:([\w-]+):)?([\w.]+)$/);
         if (match) {
-          return { name: match[1], activeParam: commas };
+          return { module: match[1], name: match[2], activeParam: commas };
         }
         return null;
       }
@@ -92,72 +87,62 @@ function positionToOffset(text: string, pos: Position): number {
 // Module cache lookups  (shared pattern with hover.ts)
 // ---------------------------------------------------------------------------
 
-function getAllModules(moduleCache: BindingsManager) {
-  return moduleCache.getAllBindings({
-    spaceFilters: [MODULE],
-    ignoreNullValues: true,
-  }) as NoNullableBinding<ModuleBinding>[];
-}
-
 async function resolveCommandFromCache(
   commandName: string,
   moduleName: string | undefined,
   moduleCache: BindingsManager,
+  imports: Map<string, { module: string; name: string }>,
 ): Promise<{ command: ICommand; resolvedModule: string } | null> {
-  if (moduleName) {
-    const moduleData = moduleCache.getBindingValue(moduleName, MODULE);
-    if (!moduleData) return null;
-    const entry = moduleData.commands[commandName];
-    if (!entry) return null;
-    return {
-      command: await resolveCommand(entry),
-      resolvedModule: moduleName,
-    };
-  }
-
-  const allModules = getAllModules(moduleCache);
-
-  for (const { identifier, value: mod } of allModules) {
-    if (identifier === "std" && mod.commands[commandName]) {
-      return {
-        command: await resolveCommand(mod.commands[commandName]),
-        resolvedModule: "std",
-      };
+  // Same resolution order as the runtime: qualified module → the script's
+  // import list → std prelude. No cross-module search.
+  let owner = moduleName;
+  let localName = commandName;
+  if (!owner) {
+    const imported = imports.get(commandName);
+    if (imported) {
+      owner = imported.module;
+      localName = imported.name;
+    } else {
+      owner = "std";
     }
   }
 
-  for (const { identifier, value: mod } of allModules) {
-    if (identifier !== "std" && mod.commands[commandName]) {
-      return {
-        command: await resolveCommand(mod.commands[commandName]),
-        resolvedModule: identifier,
-      };
-    }
-  }
-
-  return null;
+  const moduleData = moduleCache.getBindingValue(owner, MODULE);
+  const entry = moduleData?.commands[localName];
+  if (!entry) return null;
+  return {
+    command: await resolveCommand(entry),
+    resolvedModule: owner,
+  };
 }
 
+/** Resolve a helper the way the runtime does: qualified module → the
+ *  script's import list → std prelude. */
 function findHelperInCache(
-  helperName: string,
+  helper: { module?: string; name: string },
   moduleCache: BindingsManager,
+  imports: Map<string, { module: string; name: string }>,
 ): {
   argDefs?: HelperArgDefEntry[];
   returnType?: string | string[];
   description?: string;
 } | null {
-  const allModules = getAllModules(moduleCache);
-
-  for (const { value: mod } of allModules) {
-    if (mod.helpers[helperName]) {
-      return {
-        argDefs: mod.helperArgDefs?.[helperName],
-        returnType: mod.helperReturnTypes?.[helperName],
-        description: mod.helperDescriptions?.[helperName],
-      };
+  let owner = helper.module ?? "std";
+  let localName = helper.name;
+  if (!helper.module) {
+    const imported = imports.get(`@${helper.name}`);
+    if (imported) {
+      owner = imported.module;
+      localName = imported.name;
     }
   }
-  return null;
+  const mod = moduleCache.getBindingValue(owner, BindingsSpace.MODULE);
+  if (!mod?.helpers[localName]) return null;
+  return {
+    argDefs: mod.helperArgDefs?.[localName],
+    returnType: mod.helperReturnTypes?.[localName],
+    description: mod.helperDescriptions?.[localName],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -233,10 +218,14 @@ export async function getSignatureHelp(
   //    incomplete input where the parser may not produce a node)
   const helper = findEnclosingHelper(script, offset);
   if (helper) {
-    const info = findHelperInCache(helper.name, moduleCache);
+    const info = findHelperInCache(
+      helper,
+      moduleCache,
+      collectScriptImports(script),
+    );
     if (info?.argDefs && info.argDefs.length > 0) {
       const sig = buildHelperSignature(
-        helper.name,
+        helper.module ? `${helper.module}:${helper.name}` : helper.name,
         info.argDefs,
         info.returnType,
         info.description,
@@ -267,6 +256,7 @@ export async function getSignatureHelp(
     commandNode.name,
     commandNode.module,
     moduleCache,
+    collectScriptImports(script),
   );
   if (!resolved) return null;
 

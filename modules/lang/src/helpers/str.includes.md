@@ -1,5 +1,5 @@
 ---
-title: "@str.includes"
+title: "@lang:str.includes"
 ---
 
 Check whether a string contains a substring.
@@ -9,7 +9,7 @@ Check whether a string contains a substring.
 ## Syntax
 
 ```evml
-@str.includes(value item)
+@lang:str.includes(value item)
 ```
 
 ## Arguments
@@ -18,16 +18,6 @@ Check whether a string contains a substring.
 |------|------|-------------|
 | `value` | `string` | Input value |
 | `item` | `string` | Substring to search for |
-
-## Examples
-
-```evml
-# Check if string contains substring
-print @str.includes("hello world" "world")
-
-# Check for missing substring
-print @str.includes("hello world" "xyz")
-```
 
 <!-- HAND-WRITTEN -->
 

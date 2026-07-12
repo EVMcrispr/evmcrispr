@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@flat",
   {
-    module: "lang",
+    module: "lang [@flat]",
     cases: [
       {
         name: "should flatten one level of nested arrays",
@@ -40,7 +40,8 @@ describeHelper(
     docCases: [
       {
         description: "Flatten nested arrays",
-        code: `set $nested [[1 2] [3 4] [5]]\nset $result @flat($nested)`,
+        code: `load lang [@flat]\nset $nested [[1 2] [3 4] [5]]\nset $result @flat($nested)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

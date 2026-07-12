@@ -34,4 +34,4 @@ access-control:accept-ownership 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72
 ## See Also
 
 - [access-control:transfer-ownership](transfer-ownership.md) — start the transfer
-- [@access-control.pendingOwner](../helpers/access-control.pendingOwner.md) — read the pending owner
+- [@access-control:pendingOwner](../helpers/pendingOwner.md) — read the pending owner

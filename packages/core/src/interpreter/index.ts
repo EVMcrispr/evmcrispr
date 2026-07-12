@@ -13,6 +13,7 @@ import type {
   EventCaptureNode,
   HelperFunctionNode,
   IModuleConstructor,
+  ImportValue,
   LiteralExpressionNode,
   Module,
   ModuleContext,
@@ -155,8 +156,10 @@ export function helperCacheKey(
   name: string,
   resolvedArgs: unknown[],
   chainId: number,
+  module?: string,
 ): string {
-  return `helper:${chainId}:${name}:${resolvedArgs.map(stableStringify).join(":")}`;
+  const qualified = module ? `${module}:${name}` : name;
+  return `helper:${chainId}:${qualified}:${resolvedArgs.map(stableStringify).join(":")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,9 +172,11 @@ export function helperCacheKey(
 export function syntheticHelperNode(
   name: string,
   resolvedArgs: unknown[],
+  module?: string,
 ): HelperFunctionNode {
   return {
     type: NodeType.HelperFunctionExpression,
+    ...(module ? { module } : {}),
     name,
     args: resolvedArgs.map(
       (value) =>
@@ -390,14 +395,14 @@ async function interpretHelperFunction(
     return await ctx.resolveHelper(h, interpreters);
   }
 
-  const key = helperCacheKey(h.name, resolvedArgs, ctx.chainId);
+  const key = helperCacheKey(h.name, resolvedArgs, ctx.chainId, h.module);
   const cached = ctx.helperCache.getBindingValue(key, CACHE);
   if (cached !== undefined) return cached;
 
   // Invoke helper with the pre-resolved args via the synthetic-node trick so
   // the helper's `interpretNode(arg)` calls just unwrap them — no double
   // execution of arg sub-trees.
-  const synthetic = syntheticHelperNode(h.name, resolvedArgs);
+  const synthetic = syntheticHelperNode(h.name, resolvedArgs, h.module);
   const result = await ctx.resolveHelper(synthetic, passthroughInterpreters);
   if (result !== undefined) {
     ctx.helperCache.setBinding(key, result, CACHE, false, undefined, true);
@@ -451,6 +456,28 @@ export interface ExecutionResolversInput {
   ) => Promise<Action[] | void>;
 }
 
+/** Dispatch a helper/constant invocation against one specific module.
+ *  Constants only apply to zero-arg invocations. */
+async function dispatchHelperOnModule(
+  m: Module,
+  h: HelperFunctionNode,
+  localName: string,
+  interpreters: NodesInterpreters,
+): Promise<any> {
+  if (h.args.length === 0 && m.constants[localName] !== undefined) {
+    return m.constants[localName];
+  }
+  if (!m.helpers[localName]) {
+    panic(
+      h,
+      `module ${m.name} has no helper${h.args.length === 0 ? " or constant" : ""} named ${localName}`,
+    );
+  }
+  // The module dispatches on the node's local name.
+  const localNode = localName === h.name ? h : { ...h, name: localName };
+  return m.interpretHelper(localNode, interpreters);
+}
+
 export function makeExecutionResolveHelper(
   input: Pick<ExecutionResolversInput, "bindings" | "std" | "modules">,
 ): InterpretCtx["resolveHelper"] {
@@ -462,54 +489,49 @@ export function makeExecutionResolveHelper(
       options?.batchContext,
     );
 
-    const defHelper = input.bindings.getBindingValue(
-      `@${helperName}`,
-      BindingsSpace.DEF,
-    ) as DefValue | undefined;
+    try {
+      // Qualified: @mod:name — strict, no fallback.
+      if (h.module) {
+        const m =
+          h.module === "std"
+            ? std
+            : input.modules().find((mod) => mod.name === h.module);
+        if (!m) panic(h, `module ${h.module} not loaded`);
+        return await dispatchHelperOnModule(m, h, helperName, interpreters);
+      }
 
-    if (defHelper && defHelper.kind === "helper") {
-      try {
+      // Unqualified: def → import → std prelude.
+      const defHelper = input.bindings.getBindingValue(
+        `@${helperName}`,
+        BindingsSpace.DEF,
+      ) as DefValue | undefined;
+
+      if (defHelper && defHelper.kind === "helper") {
         return await defHelper.run(std, h, interpreters);
-      } catch (err) {
-        if (err instanceof NodeError) throw err;
-        panic(h, (err as Error).message);
       }
-    }
 
-    if (h.args.length === 0) {
-      const constantModules = [...input.modules(), std].filter(
-        (m) => m.constants[helperName] !== undefined,
-      );
-      if (constantModules.length === 1) {
-        return constantModules[0].constants[helperName];
+      const imported = input.bindings.getBindingValue(
+        `@${helperName}`,
+        BindingsSpace.IMPORT,
+      ) as ImportValue | undefined;
+
+      if (imported) {
+        const m = input.modules().find((mod) => mod.name === imported.module);
+        if (!m) panic(h, `module ${imported.module} not loaded`);
+        return await dispatchHelperOnModule(m, h, imported.name, interpreters);
       }
-      if (constantModules.length > 1) {
-        panic(
-          h,
-          `constant name collision on modules ${constantModules
-            .map((m) => m.contextualName)
-            .join(", ")}`,
-        );
+
+      if (h.args.length === 0 && std.constants[helperName] !== undefined) {
+        return std.constants[helperName];
       }
-      // Not a constant — fall through to helper resolution
-    }
+      if (std.helpers[helperName]) {
+        return await std.interpretHelper(h, interpreters);
+      }
 
-    const filteredModules = [...input.modules(), std].filter(
-      (m) => !!m.helpers[helperName],
-    );
-
-    if (!filteredModules.length) {
-      panic(h, "helper not found on any module");
-    } else if (filteredModules.length > 1) {
       panic(
         h,
-        `name collisions found on modules ${filteredModules.join(", ")}`,
+        `helper @${helperName} not found — qualify it as @<module>:${helperName} or add it to the module's load import list`,
       );
-    }
-
-    const m = filteredModules[0];
-    try {
-      return await m.interpretHelper(h, interpreters);
     } catch (err) {
       if (err instanceof NodeError) throw err;
       panic(h, (err as Error).message);
@@ -560,19 +582,44 @@ export function makeExecutionResolveCommand(
       }
     }
 
-    let mod: Module | undefined = std;
-    const moduleName = c.module ?? input.bindings.getScopeModule();
+    let mod: Module = std;
+    let localName = c.name;
 
-    if (moduleName && moduleName !== "std") {
-      mod = input.modules().find((m) => m.contextualName === moduleName);
-      if (!mod) panic(c, `module ${moduleName} not found`);
-      if (!mod.commands[c.name] && std.commands[c.name]) {
-        mod = std;
+    if (c.module) {
+      // Qualified: mod:cmd — strict, no std fallback.
+      if (c.module !== "std") {
+        const m = input.modules().find((m) => m.name === c.module);
+        if (!m) panic(c, `module ${c.module} not loaded`);
+        mod = m;
+      }
+      if (!mod.commands[localName]) {
+        panic(c, `module ${mod.name} has no command named ${localName}`);
+      }
+    } else {
+      // Unqualified: import → std prelude (defs were handled above).
+      const imported = input.bindings.getBindingValue(
+        c.name,
+        BindingsSpace.IMPORT,
+      ) as ImportValue | undefined;
+
+      if (imported?.kind === "command") {
+        const m = input.modules().find((m) => m.name === imported.module);
+        if (!m) panic(c, `module ${imported.module} not loaded`);
+        mod = m;
+        localName = imported.name;
+      } else if (!std.commands[c.name]) {
+        panic(
+          c,
+          `command ${c.name} not found — qualify it as <module>:${c.name} or add it to the module's load import list`,
+        );
       }
     }
 
     try {
-      const res = await mod!.interpretCommand(c, {
+      // Modules dispatch on the node's name; renamed imports swap in the
+      // module-local name.
+      const localNode = localName === c.name ? c : { ...c, name: localName };
+      const res = await mod.interpretCommand(localNode, {
         ...interpreters,
         actionCallback,
       });
@@ -674,7 +721,7 @@ export function makeResolveBlockExpression(
   bindings: BindingsManager,
 ): InterpretCtx["resolveBlockExpression"] {
   return async (n, interpreters, options = {}) => {
-    bindings.enterScope(options.blockModule);
+    bindings.enterScope();
     if (options.blockInitializer) await options.blockInitializer();
     const results = await interpreters.interpretNodes(n.body, true, options);
     bindings.exitScope();
@@ -870,22 +917,35 @@ export function makePrewarmResolveHelper(
   input: PrewarmHelperInput,
 ): InterpretCtx["resolveHelper"] {
   return async (h, interpreters) => {
-    const moduleBindings = input.moduleCache.getAllBindings({
-      spaceFilters: [BindingsSpace.MODULE],
-      ignoreNullValues: true,
-    });
+    // Same resolution order as execution: qualified module wins, then
+    // import bindings recorded by the walk, then the std prelude.
+    let ownerModuleName: string;
+    let localName = h.name;
 
-    let ownerModuleName: string | undefined;
-    for (const b of moduleBindings) {
-      const data = b.value as ModuleData;
-      if (data.helpers[h.name]) {
-        ownerModuleName = b.identifier;
-        break;
+    if (h.module) {
+      ownerModuleName = h.module;
+    } else {
+      const imported = input.bindings.getBindingValue(
+        `@${h.name}`,
+        BindingsSpace.IMPORT,
+      ) as ImportValue | undefined;
+      if (imported && imported.kind !== "command") {
+        ownerModuleName = imported.module;
+        localName = imported.name;
+      } else {
+        ownerModuleName = "std";
       }
     }
 
-    if (!ownerModuleName) {
-      throw new ErrorException(`helper @${h.name} not found on any module`);
+    const data = input.moduleCache.getBindingValue(
+      ownerModuleName,
+      BindingsSpace.MODULE,
+    ) as ModuleData | undefined;
+
+    if (!data?.helpers[localName]) {
+      throw new ErrorException(
+        `helper @${h.module ? `${h.module}:` : ""}${h.name} not found`,
+      );
     }
 
     let Ctor: IModuleConstructor;
@@ -909,8 +969,9 @@ export function makePrewarmResolveHelper(
     );
     const instance = new Ctor(ctx);
 
-    const helper = await resolveHelperFn(instance.helpers[h.name]);
-    return helper(instance, h, interpreters) as Promise<Param>;
+    const localNode = localName === h.name ? h : { ...h, name: localName };
+    const helper = await resolveHelperFn(instance.helpers[localName]);
+    return helper(instance, localNode, interpreters) as Promise<Param>;
   };
 }
 

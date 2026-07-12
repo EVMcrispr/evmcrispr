@@ -119,15 +119,16 @@ const MODULES: ModuleInfo[] = [
   },
   {
     name: "lang",
-    prefix: "",
+    prefix: "lang:",
     dir: join(ROOT, "modules/lang"),
     overview:
       "Language primitives: string, number, bytes, array, and boolean helpers " +
-      "for data manipulation. Requires `load lang`.",
+      "for data manipulation. Requires `load lang` (import the helpers you " +
+      "use, e.g. `load lang [@map @filter]`, or qualify them as `@lang:map`).",
   },
   {
     name: "assertions",
-    prefix: "",
+    prefix: "assertions:",
     dir: join(ROOT, "modules/assertions"),
     overview:
       "On-chain assertions backed by the assertions.eth contract: verify view " +
@@ -686,7 +687,7 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
     mod.dir,
     "helpers",
     helper.name,
-    helper.name,
+    mod.prefix + helper.name,
   );
 
   const returnTypeStr = Array.isArray(helper.returnType)

@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@concat",
   {
-    module: "lang",
+    module: "lang [@concat]",
     cases: [
       {
         name: "should concatenate two arrays",
@@ -43,11 +43,13 @@ describeHelper(
     docCases: [
       {
         description: "Concatenate two arrays",
-        code: `set $a [1 2]\nset $b [3 4]\nset $merged @concat($a $b)`,
+        code: `load lang [@concat]\nset $a [1 2]\nset $b [3 4]\nset $merged @concat($a $b)`,
+        preamble: "",
       },
       {
         description: "Concatenate three arrays",
-        code: `set $triple @concat([1 2] [3 4] [5 6])`,
+        code: `load lang [@concat]\nset $triple @concat([1 2] [3 4] [5 6])`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`],

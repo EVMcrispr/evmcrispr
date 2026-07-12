@@ -60,7 +60,7 @@ deploy $token 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --cre
 verify $token --mirror-chain 1 --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
 
 # Explicit Standard JSON Input fetched from a URL
-load http
+load http [@fetch]
 set $src @fetch("https://gist.githubusercontent.com/me/abc/raw/input.json")
 verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/MyToken.sol:MyToken" --compiler "0.8.20+commit.a1b79de6"
 ```
@@ -114,7 +114,7 @@ practical patterns:
    non-trivial input:
 
 ```evml
-load http
+load http [@fetch]
 set $src @fetch("https://gist.githubusercontent.com/me/abc/raw/input.json")
 verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/Foo.sol:Foo" --compiler "0.8.20+commit.a1b79de6"
 ```

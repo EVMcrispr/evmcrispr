@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.concat",
   {
-    module: "lang",
+    module: "lang [@str.concat]",
     cases: [
       {
         name: "should concatenate two strings",
@@ -26,11 +26,13 @@ describeHelper(
     docCases: [
       {
         description: "Concatenate strings",
-        code: `set $full @str.concat("hello" " " "world")`,
+        code: `load lang [@str.concat]\nset $full @str.concat("hello" " " "world")`,
+        preamble: "",
       },
       {
         description: "Concatenate with helper result",
-        code: `set $greeting @str.concat("hi " @str(@me))`,
+        code: `load lang [@str.concat]\nset $greeting @str.concat("hi " @str(@me))`,
+        preamble: "",
       },
     ],
     sampleArgs: [`"a"`],

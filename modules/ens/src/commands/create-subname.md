@@ -23,7 +23,7 @@ ens:create-subname <parent> <label> <owner>
 | Name | Type | Description |
 |------|------|-------------|
 | `--resolver` | `address` | Resolver for the subname (defaults to the parent's) |
-| `--fuses` | `number` | Fuses to burn on the subname (wrapped parents only; use @ens.fuses) |
+| `--fuses` | `number` | Fuses to burn on the subname (wrapped parents only; use @ens:fuses) |
 | `--expiry` | `number` | Subname expiry timestamp (wrapped parents only) |
 
 <!-- HAND-WRITTEN -->
@@ -37,7 +37,7 @@ load ens
 ens:create-subname mydao.eth treasury 0x1234567890abcdef1234567890abcdef12345678
 
 # Wrapped parent: burn fuses so the subname is out of the parent's control
-ens:create-subname mydao.eth vault @me --fuses @ens.fuses("parent-cannot-control" "cannot-unwrap")
+ens:create-subname mydao.eth vault @me --fuses @ens:fuses("parent-cannot-control" "cannot-unwrap")
 ```
 
 ## Notes
@@ -48,5 +48,5 @@ ens:create-subname mydao.eth vault @me --fuses @ens.fuses("parent-cannot-control
 
 ## See Also
 
-- [@ens.fuses](../helpers/ens.fuses.md) — build a fuse bitmap
+- [@ens:fuses](../helpers/fuses.md) — build a fuse bitmap
 - [ens:wrap](wrap.md) — wrap a name

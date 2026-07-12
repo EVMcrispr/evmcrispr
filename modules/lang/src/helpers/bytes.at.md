@@ -1,5 +1,5 @@
 ---
-title: "@bytes.at"
+title: "@lang:bytes.at"
 ---
 
 Access a single byte by index in a bytes value.
@@ -9,7 +9,7 @@ Access a single byte by index in a bytes value.
 ## Syntax
 
 ```evml
-@bytes.at(value index)
+@lang:bytes.at(value index)
 ```
 
 ## Arguments
@@ -18,13 +18,6 @@ Access a single byte by index in a bytes value.
 |------|------|-------------|
 | `value` | `bytes` | Input value |
 | `index` | `number` | Zero-based byte index |
-
-## Examples
-
-```evml
-# Get byte at index
-set $first @bytes.at(0xaabbcc 0)
-```
 
 <!-- HAND-WRITTEN -->
 

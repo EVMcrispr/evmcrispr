@@ -72,7 +72,6 @@ export default defineCommand<Governor>({
     { interpreters },
   ) {
     const { targets, values, calldatas } = await collectBlockActions(
-      module.contextualName,
       "propose",
       actions,
       interpreters,

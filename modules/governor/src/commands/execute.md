@@ -45,4 +45,4 @@ governor:execute $governor "Fund the grants program" (
 ## See Also
 
 - [governor:queue](queue.md) — queue first on timelocked Governors
-- [@governor.proposalState](../helpers/governor.proposalState.md) — confirm it Succeeded/Queued
+- [@governor:proposalState](../helpers/proposalState.md) — confirm it Succeeded/Queued

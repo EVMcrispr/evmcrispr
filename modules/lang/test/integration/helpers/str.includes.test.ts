@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.includes",
   {
-    module: "lang",
+    module: "lang [@str.includes]",
     cases: [
       {
         name: "should return true when string contains substring",
@@ -31,11 +31,13 @@ describeHelper(
     docCases: [
       {
         description: "Check if string contains substring",
-        code: `print @str.includes("hello world" "world")`,
+        code: `load lang [@str.includes]\nprint @str.includes("hello world" "world")`,
+        preamble: "",
       },
       {
         description: "Check for missing substring",
-        code: `print @str.includes("hello world" "xyz")`,
+        code: `load lang [@str.includes]\nprint @str.includes("hello world" "xyz")`,
+        preamble: "",
       },
     ],
     sampleArgs: [`"a"`, `"b"`],

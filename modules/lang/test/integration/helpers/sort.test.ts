@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@sort",
   {
-    module: "lang",
+    module: "lang [@sort]",
     preamble: `
 def @cmpAsc "$a: number $b: number -> number" @num($a - $b)
 def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
@@ -47,7 +47,8 @@ def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
     docCases: [
       {
         description: "Sort ascending",
-        code: `def @cmpAsc "$a: number $b: number -> number" @num($a - $b)\nset $nums [3 1 4 1 5]\nset $sorted @sort($nums @cmpAsc)`,
+        code: `load lang [@sort]\ndef @cmpAsc "$a: number $b: number -> number" @num($a - $b)\nset $nums [3 1 4 1 5]\nset $sorted @sort($nums @cmpAsc)`,
+        preamble: "",
       },
     ],
     errorCases: [

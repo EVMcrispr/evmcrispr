@@ -55,8 +55,8 @@ describe("Completions – ens commands", () => {
       // "any" type shows all helpers
       expect(hasLabel(items, "@me")).to.be.true;
       expect(hasLabel(items, "@date")).to.be.true;
-      // Module-specific helper @contenthash should be available
-      expect(hasLabel(items, "@contenthash")).to.be.true;
+      // Module-specific helper @ens:contenthash should be available
+      expect(hasLabel(items, "@ens:contenthash")).to.be.true;
     });
 
     it("renew $domains <cursor> should show all helpers and variables (any type)", async () => {
@@ -86,11 +86,11 @@ describe("Completions – ens commands", () => {
   // -------------------------------------------------------------------------
 
   describe("ens helpers", () => {
-    it("@contenthash should appear in completions after loading ens module", async () => {
+    it("@ens:contenthash should appear in completions after loading ens module", async () => {
       const script = `${ENS}set $x `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
-      expect(hasLabel(helperItems, "@contenthash")).to.be.true;
+      expect(hasLabel(helperItems, "@ens:contenthash")).to.be.true;
     });
   });
 });
@@ -107,25 +107,25 @@ describe("Completions – ens helpers", () => {
   });
 
   const ENS_HELPERS = [
-    "@cointype",
-    "@cointype.decode",
-    "@contenthash",
-    "@ens.addr",
-    "@ens.available",
-    "@ens.avatar",
-    "@ens.contenthash",
-    "@ens.expiry",
-    "@ens.fuses",
-    "@ens.fuses.decode",
-    "@ens.fuses.of",
-    "@ens.name",
-    "@ens.normalize",
-    "@ens.owner",
-    "@ens.rentPrice",
-    "@ens.resolver",
-    "@ens.text",
-    "@labelhash",
-    "@namehash",
+    "@ens:cointype",
+    "@ens:cointype.decode",
+    "@ens:contenthash",
+    "@ens:addr",
+    "@ens:available",
+    "@ens:avatar",
+    "@ens:contenthash.of",
+    "@ens:expiry",
+    "@ens:fuses",
+    "@ens:fuses.decode",
+    "@ens:fuses.of",
+    "@ens:name",
+    "@ens:normalize",
+    "@ens:owner",
+    "@ens:rentPrice",
+    "@ens:resolver",
+    "@ens:text",
+    "@ens:labelhash",
+    "@ens:namehash",
   ];
   const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
   const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
@@ -149,11 +149,11 @@ describe("Completions – ens helpers", () => {
       expect(helperItems).to.have.lengthOf(ALL_HELPERS.length);
     });
 
-    it("exec $c f(bytes) <cursor> should include @contenthash", async () => {
+    it("exec $c f(bytes) <cursor> should include @ens:contenthash", async () => {
       const script = `${ENS}exec $c f(bytes) `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
-      const BYTES_HELPERS = [...STD_BYTES_HELPERS, "@contenthash"].sort();
+      const BYTES_HELPERS = [...STD_BYTES_HELPERS, "@ens:contenthash"].sort();
       for (const h of BYTES_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
@@ -161,24 +161,24 @@ describe("Completions – ens helpers", () => {
       expect(hasLabel(helperItems, "@date")).to.be.false;
     });
 
-    it("exec <cursor> (address context) should NOT include @contenthash", async () => {
+    it("exec <cursor> (address context) should NOT include @ens:contenthash", async () => {
       const script = `${ENS}set $c 0x0000000000000000000000000000000000000001\nexec `;
       const items = await evm.getCompletions(script, pos(script, 3));
       const helperItems = onlyKind(items, "helper");
       for (const h of ADDRESS_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
-      expect(hasLabel(helperItems, "@contenthash")).to.be.false;
+      expect(hasLabel(helperItems, "@ens:contenthash")).to.be.false;
     });
 
-    it("exec $c f(uint256) <cursor> (number context) should NOT include @contenthash", async () => {
+    it("exec $c f(uint256) <cursor> (number context) should NOT include @ens:contenthash", async () => {
       const script = `${ENS}exec $c f(uint256) `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
       for (const h of NUMBER_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
-      expect(hasLabel(helperItems, "@contenthash")).to.be.false;
+      expect(hasLabel(helperItems, "@ens:contenthash")).to.be.false;
     });
   });
 
@@ -187,15 +187,15 @@ describe("Completions – ens helpers", () => {
   // -------------------------------------------------------------------------
 
   describe("snippet metadata", () => {
-    it("@contenthash should have isSnippet = true and insertText with ($0)", async () => {
+    it("@ens:contenthash should have isSnippet = true and insertText with ($0)", async () => {
       const script = `${ENS}print `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const contenthash = items.find(
-        (i: CompletionItem) => i.label === "@contenthash",
+        (i: CompletionItem) => i.label === "@ens:contenthash",
       );
       expect(contenthash).to.exist;
       expect(contenthash!.isSnippet).to.be.true;
-      expect(contenthash!.insertText).to.equal("@contenthash($0)");
+      expect(contenthash!.insertText).to.equal("@ens:contenthash($0)");
     });
   });
 
@@ -213,9 +213,9 @@ describe("Completions – ens helpers", () => {
       position: { line: 2, col: before.length },
     });
 
-    // @contenthash(string) -> all helpers (string accepts all)
-    it("@contenthash(<cursor>) should show string-compatible completions", async () => {
-      const { script, position } = helperPos("set $x @contenthash(", ")");
+    // @ens:contenthash(string) -> all helpers (string accepts all)
+    it("@ens:contenthash(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @ens:contenthash(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of ALL_HELPERS) {
@@ -223,10 +223,10 @@ describe("Completions – ens helpers", () => {
       }
     });
 
-    // Unclosed parens: @contenthash without closing ")"
-    it("@contenthash(<cursor> (no closing paren) should still show string-compatible completions", async () => {
-      const script = `${ENS}set $x @contenthash(`;
-      const position = { line: 2, col: "set $x @contenthash(".length };
+    // Unclosed parens: @ens:contenthash without closing ")"
+    it("@ens:contenthash(<cursor> (no closing paren) should still show string-compatible completions", async () => {
+      const script = `${ENS}set $x @ens:contenthash(`;
+      const position = { line: 2, col: "set $x @ens:contenthash(".length };
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of ALL_HELPERS) {

@@ -34,9 +34,9 @@ ens:set-contenthash mydao.eth "ipns://k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46u
 ## Notes
 
 - Accepts `ipfs`, `ipns` and `skynet` URIs (`codec:hash` or `codec://hash`)
-  or already-encoded EIP-1577 `0x` bytes (e.g. from `@contenthash`).
+  or already-encoded EIP-1577 `0x` bytes (e.g. from `@ens:contenthash`).
 
 ## See Also
 
-- [@contenthash](../helpers/contenthash.md) — encode a content hash
-- [@ens.contenthash](../helpers/ens.contenthash.md) — read a content hash
+- [@ens:contenthash](../helpers/contenthash.md) — encode a content hash
+- [@ens:contenthash.of](../helpers/contenthash.of.md) — read a content hash

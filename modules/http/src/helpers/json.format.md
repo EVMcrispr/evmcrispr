@@ -19,14 +19,6 @@ Construct a JSON string from a template and an array of values.
 | `template` | `string` | Brace-wrapped template listing JSON object keys |
 | `values` | `array` | Values to substitute into template |
 
-## Examples
-
-```evml
-# Build a JSON object from values
-set $body @json.format("{name, age}" ["Alice" 30])
-print $body
-```
-
 <!-- HAND-WRITTEN -->
 
 ## See Also

@@ -1,5 +1,5 @@
 ---
-title: "@str.slice"
+title: "@lang:str.slice"
 ---
 
 Extract a section of a string.
@@ -9,7 +9,7 @@ Extract a section of a string.
 ## Syntax
 
 ```evml
-@str.slice(value start end?)
+@lang:str.slice(value start end?)
 ```
 
 ## Arguments
@@ -19,22 +19,6 @@ Extract a section of a string.
 | `value` | `string` | Input value |
 | `start` | `number` | Start index (inclusive) |
 | `[end]` | `number` | End index (exclusive) |
-
-## Examples
-
-```evml
-# Slice a prefix
-set $s "hello world"
-set $hello @str.slice($s 0 5)
-
-# Slice from offset to end
-set $s "hello world"
-set $world @str.slice($s 6)
-
-# Negative index slice
-set $s "hello world"
-set $last3 @str.slice($s -3)
-```
 
 <!-- HAND-WRITTEN -->
 

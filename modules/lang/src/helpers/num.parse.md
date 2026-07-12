@@ -1,5 +1,5 @@
 ---
-title: "@num.parse"
+title: "@lang:num.parse"
 ---
 
 Parse a decimal string with a given number of decimals (like parseUnits).
@@ -9,7 +9,7 @@ Parse a decimal string with a given number of decimals (like parseUnits).
 ## Syntax
 
 ```evml
-@num.parse(value decimals)
+@lang:num.parse(value decimals)
 ```
 
 ## Arguments
@@ -18,16 +18,6 @@ Parse a decimal string with a given number of decimals (like parseUnits).
 |------|------|-------------|
 | `value` | `any` | Input value |
 | `decimals` | `number` | Number of decimal places |
-
-## Examples
-
-```evml
-# Parse ETH to wei (18 decimals)
-set $wei @num.parse("1.5" 18)
-
-# Parse USDC (6 decimals)
-set $raw @num.parse("1.5" 6)
-```
 
 <!-- HAND-WRITTEN -->
 

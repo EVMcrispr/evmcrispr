@@ -1,5 +1,5 @@
 ---
-title: "@str.replace"
+title: "@lang:str.replace"
 ---
 
 Replace all occurrences of a substring.
@@ -9,7 +9,7 @@ Replace all occurrences of a substring.
 ## Syntax
 
 ```evml
-@str.replace(s old replacement)
+@lang:str.replace(s old replacement)
 ```
 
 ## Arguments
@@ -19,16 +19,6 @@ Replace all occurrences of a substring.
 | `s` | `string` | Source string |
 | `old` | `string` | Substring to match |
 | `replacement` | `string` | Replacement text |
-
-## Examples
-
-```evml
-# Replace all occurrences
-set $s @str.replace("foo-bar-baz" "-" "_")
-
-# Remove a substring
-set $s @str.replace("hello world" " world" "")
-```
 
 <!-- HAND-WRITTEN -->
 

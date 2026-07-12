@@ -1,5 +1,5 @@
 ---
-title: "assert-chainid"
+title: "assertions:assert-chainid"
 ---
 
 Assert the chain ID equals an expected value, on-chain.
@@ -7,7 +7,7 @@ Assert the chain ID equals an expected value, on-chain.
 ## Syntax
 
 ```evml
-assert-chainid <expected> [message]
+assertions:assert-chainid <expected> [message]
 ```
 
 ## Arguments

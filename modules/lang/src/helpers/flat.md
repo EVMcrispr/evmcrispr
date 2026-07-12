@@ -1,5 +1,5 @@
 ---
-title: "@flat"
+title: "@lang:flat"
 ---
 
 Flatten one level of nesting in an array.
@@ -9,7 +9,7 @@ Flatten one level of nesting in an array.
 ## Syntax
 
 ```evml
-@flat(arr)
+@lang:flat(arr)
 ```
 
 ## Arguments
@@ -17,14 +17,6 @@ Flatten one level of nesting in an array.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
-
-## Examples
-
-```evml
-# Flatten nested arrays
-set $nested [[1 2] [3 4] [5]]
-set $result @flat($nested)
-```
 
 <!-- HAND-WRITTEN -->
 

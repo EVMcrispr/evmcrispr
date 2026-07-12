@@ -1,5 +1,5 @@
 ---
-title: "@codehash"
+title: "@assertions:codehash"
 ---
 
 Read the keccak256 code hash of an address.
@@ -9,7 +9,7 @@ Read the keccak256 code hash of an address.
 ## Syntax
 
 ```evml
-@codehash(address)
+@assertions:codehash(address)
 ```
 
 ## Arguments
@@ -23,7 +23,7 @@ Read the keccak256 code hash of an address.
 ## Examples
 
 ```evml
-load assertions
+load assertions [@codehash]
 
 assertions:assert-codehash 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb @codehash(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) "implementation changed"
 ```

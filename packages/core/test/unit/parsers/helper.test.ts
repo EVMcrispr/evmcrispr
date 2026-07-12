@@ -152,6 +152,50 @@ export const helperParserDescribe = () =>
     });
   });
 
+describe("Parsers - helper function (module namespace)", () => {
+  it("parses a module-qualified helper", () => {
+    const result = runParser(helperFunctionParser, "@ens:addr(vitalik.eth)");
+    expect(result).to.deep.include({
+      type: "HelperFunctionExpression",
+      module: "ens",
+      name: "addr",
+    });
+    expect(result.args).to.have.lengthOf(1);
+  });
+
+  it("parses dotted local names under a namespace", () => {
+    const result = runParser(helperFunctionParser, "@ens:fuses.decode(5)");
+    expect(result).to.deep.include({ module: "ens", name: "fuses.decode" });
+  });
+
+  it("parses dashed module names", () => {
+    const result = runParser(
+      helperFunctionParser,
+      "@access-control:hasRole(0x01)",
+    );
+    expect(result).to.deep.include({
+      module: "access-control",
+      name: "hasRole",
+    });
+  });
+
+  it("keeps unqualified dotted names module-free", () => {
+    const result = runParser(helperFunctionParser, "@token.amount(DAI 1)");
+    expect(result.module).to.equal(undefined);
+    expect(result.name).to.equal("token.amount");
+  });
+
+  it("parses an import rename suffix", () => {
+    const result = runParser(helperFunctionParser, "@rentPrice>@price");
+    expect(result).to.deep.include({ name: "rentPrice", rename: "price" });
+    expect(result.args).to.have.lengthOf(0);
+  });
+
+  it("fails on a rename without the @ prefix", () => {
+    runErrorCase(helperFunctionParser, "@addr>myAddr", HELPER_PARSER_ERROR);
+  });
+});
+
 describe("Parsers - helper function (multiline)", () => {
   it("should parse a helper whose args span multiple lines", () => {
     const script = `@helper(

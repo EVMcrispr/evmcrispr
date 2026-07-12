@@ -23,7 +23,7 @@ Resolve an Aragon ENS name to its address.
 
 ```evml
 # Resolve an Aragon ENS name
-set $addr @aragonEns("test.aragonid.eth")
+set $addr @aragonos:aragonEns("test.aragonid.eth")
 print $addr
 ```
 

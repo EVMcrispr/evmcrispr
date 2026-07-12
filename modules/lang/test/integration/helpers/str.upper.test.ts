@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.upper",
   {
-    module: "lang",
+    module: "lang [@str.upper]",
     cases: [
       {
         name: "should convert to uppercase",

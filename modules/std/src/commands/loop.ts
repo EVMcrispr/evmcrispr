@@ -49,7 +49,7 @@ export default defineCommand<Std>({
   },
   async run(module, { variable, connector, value, block }, { interpreters }) {
     const { interpretNode, actionCallback } = interpreters;
-    const blockOpts = { blockModule: module.contextualName, actionCallback };
+    const blockOpts = { actionCallback };
     const actions: Action[] = [];
 
     if (connector !== "of" && connector !== "until") {
@@ -64,7 +64,7 @@ export default defineCommand<Std>({
         );
       }
 
-      module.bindingsManager.enterScope("loop");
+      module.bindingsManager.enterScope();
       try {
         let iterations = 0;
         while (true) {
@@ -101,7 +101,7 @@ export default defineCommand<Std>({
       throw new ErrorException(`<value> must be an array, got ${items}`);
     }
 
-    module.bindingsManager.enterScope("loop");
+    module.bindingsManager.enterScope();
     try {
       for (const item of items) {
         module.bindingsManager.setBinding(

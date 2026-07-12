@@ -38,4 +38,4 @@ ens:set-text mydao.eth description "Community-owned treasury"
 
 ## See Also
 
-- [@ens.text](../helpers/ens.text.md) — read a text record
+- [@ens:text](../helpers/text.md) — read a text record

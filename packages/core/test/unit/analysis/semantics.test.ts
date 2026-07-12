@@ -12,7 +12,7 @@ import { createEvml, type EvmlTag } from "../../../src";
 // referenced with the `stub:` prefix (bare module commands don't resolve at
 // top level — the interpreter only looks at std / the scope module).
 class StubModule extends Module {
-  constructor(context: ModuleContext, alias?: string) {
+  constructor(context: ModuleContext) {
     super(
       "stub",
       {
@@ -96,7 +96,6 @@ class StubModule extends Module {
       {},
       {},
       context,
-      alias,
     );
   }
 }
@@ -200,14 +199,14 @@ describe("Analysis > semantic diagnostics", () => {
     });
 
     it("flags wrong helper arity", async () => {
-      const ds = await semantic("load stub\nset $x @htwo(1)");
+      const ds = await semantic("load stub [@htwo]\nset $x @htwo(1)");
       const d = ds.find((x) => x.code === "arg-count");
       expect(d).to.exist;
       expect(d!.message).to.match(/@htwo/);
     });
 
     it("does not flag correct helper arity", async () => {
-      const ds = await semantic('load stub\nset $x @htwo(1 "two")');
+      const ds = await semantic('load stub [@htwo]\nset $x @htwo(1 "two")');
       expect(codes(ds)).to.not.include("arg-count");
     });
   });
@@ -352,7 +351,9 @@ describe("Analysis > semantic diagnostics", () => {
     });
 
     it("flags a non-batchable helper inside batch", async () => {
-      const ds = await semantic("load stub\nbatch (\n  set $x @hnob\n)");
+      const ds = await semantic(
+        "load stub [@hnob]\nbatch (\n  set $x @hnob\n)",
+      );
       const d = ds.find((x) => x.code === "not-batchable");
       expect(d).to.exist;
       expect(d!.message).to.match(/@hnob/);
@@ -378,15 +379,19 @@ describe("Analysis > semantic diagnostics", () => {
     });
   });
 
-  describe("block body module scope", () => {
-    it("resolves unprefixed commands against the block command's module, with std fallback", async () => {
-      // Inside stub:blockcmd, `needtwo` is stub's command (unprefixed) and
-      // `wait` falls back to std since stub declares no `wait`. This mirrors
-      // the runtime scope-module resolution (safe:propose, connect, …).
+  describe("block body resolution", () => {
+    it("resolves unprefixed commands inside blocks via imports and std only", async () => {
+      // Block scope no longer exists: inside stub:blockcmd, `needtwo` must
+      // be imported (or qualified) and `wait` resolves via the std prelude.
       const ds = await semantic(
-        "load stub\nstub:blockcmd (\n  needtwo a b\n  wait 60\n)",
+        "load stub [needtwo]\nstub:blockcmd (\n  needtwo a b\n  wait 60\n)",
       );
       expect(ds).to.deep.equal([]);
+
+      const unimported = await semantic(
+        "load stub\nstub:blockcmd (\n  needtwo a b\n)",
+      );
+      expect(unimported.map((d) => d.code)).to.include("unknown-command");
     });
   });
 

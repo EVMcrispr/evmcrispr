@@ -8,7 +8,7 @@ const fnSig = "approve(address,uint256)";
 
 describeCommand("def", {
   describeName: "Std > commands > def",
-  preamble: "load lang",
+  preamble: "load lang [@map @str.len @str.concat]",
   docCases: [
     {
       description: "Constant helper - returns a fixed address",
@@ -371,7 +371,7 @@ if true (
   def @scoped "number" 42
 )
 set $r @scoped`,
-      error: "helper not found",
+      error: "helper @scoped not found",
     },
     {
       name: "should fail when a non-helper is passed to a helper param",
@@ -389,7 +389,7 @@ if true (
   )
 )
 my-cmd`,
-      error: "command not found",
+      error: "command my-cmd not found",
     },
   ],
 });

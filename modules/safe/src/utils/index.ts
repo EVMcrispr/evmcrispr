@@ -40,7 +40,6 @@ export const interpretSafeBlock = async (
       // Safe commands work unprefixed inside the block (like aragonos
       // connect); std commands (`exec`, `batch`, …) resolve via the usual
       // std fallback since no safe command shadows them.
-      blockModule: module.contextualName,
       blockInitializer: async () => {
         module.pushSafe(safe);
         pushed = true;

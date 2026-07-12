@@ -1,5 +1,5 @@
 ---
-title: "assert-no-code"
+title: "assertions:assert-no-code"
 ---
 
 Assert an address has no deployed code, on-chain.
@@ -7,7 +7,7 @@ Assert an address has no deployed code, on-chain.
 ## Syntax
 
 ```evml
-assert-no-code <target> [message]
+assertions:assert-no-code <target> [message]
 ```
 
 ## Arguments

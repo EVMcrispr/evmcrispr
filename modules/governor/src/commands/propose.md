@@ -45,7 +45,7 @@ governor:propose $proposalId $governor "Fund the grants program" (
   the previous block.
 - The optional leading variable is bound to the proposal id (via
   `getProposalId`/`hashProposal`, with a local fallback), ready for
-  [governor:vote](vote.md) or [@governor.proposalState](../helpers/governor.proposalState.md).
+  [governor:vote](vote.md) or [@governor:proposalState](../helpers/proposalState.md).
 - Keep the description: `governor:queue`, `governor:execute` and `governor:cancel` need the
   exact same description and action block to derive the proposal id.
 
@@ -53,4 +53,4 @@ governor:propose $proposalId $governor "Fund the grants program" (
 
 - [governor:vote](vote.md) — vote on the proposal
 - [governor:queue](queue.md) / [governor:execute](execute.md) — run a passed proposal
-- [@governor.proposalState](../helpers/governor.proposalState.md) — track its lifecycle
+- [@governor:proposalState](../helpers/proposalState.md) — track its lifecycle

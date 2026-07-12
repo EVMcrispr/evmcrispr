@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@reduce",
   {
-    module: "lang",
+    module: "lang [@reduce @str.concat]",
     preamble: `
 def @add "$a: any $b: any -> number" @num($a + $b)
 def @cat "$a: string $b: string -> string" @str.concat($a $b)
@@ -38,7 +38,8 @@ def @cat "$a: string $b: string -> string" @str.concat($a $b)
     docCases: [
       {
         description: "Sum an array",
-        code: `def @add "$acc: number $n: number -> number" @num($acc + $n)\nset $nums [1 2 3 4]\nset $sum @reduce($nums @add 0)`,
+        code: `load lang [@reduce]\ndef @add "$acc: number $n: number -> number" @num($acc + $n)\nset $nums [1 2 3 4]\nset $sum @reduce($nums @add 0)`,
+        preamble: "",
       },
     ],
     errorCases: [

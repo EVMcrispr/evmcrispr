@@ -39,4 +39,4 @@ ens:renew ["domain1" "domain2" "domain3"] 31536000
 ## See Also
 
 - [@ens:contenthash](../helpers/contenthash.md) — encode content hashes
-- [@ens](../../../std/src/helpers/ens.md) — resolve ENS names
+- [@ens](../../../std/src/helpers/md) — resolve ENS names

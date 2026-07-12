@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@filter",
   {
-    module: "lang",
+    module: "lang [@filter]",
     cases: [
       {
         name: "should keep elements where helper returns true",
@@ -35,7 +35,8 @@ describeHelper(
     docCases: [
       {
         description: "Filter positive numbers",
-        code: `def @isPositive "$n: number -> bool" @bool($n > 0)\nset $nums [-1 2 -3 4]\nset $pos @filter($nums @isPositive)`,
+        code: `load lang [@filter]\ndef @isPositive "$n: number -> bool" @bool($n > 0)\nset $nums [-1 2 -3 4]\nset $pos @filter($nums @isPositive)`,
+        preamble: "",
       },
     ],
     errorCases: [

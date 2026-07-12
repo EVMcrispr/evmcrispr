@@ -62,6 +62,8 @@ export type {
   IBinding,
   ICommand,
   IModuleConstructor,
+  ImportBinding,
+  ImportValue,
   InterpretOptions,
   LiteralExpression,
   LiteralExpressionNode,

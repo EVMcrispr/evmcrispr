@@ -6,7 +6,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.split",
   {
-    module: "lang",
+    module: "lang [@str.split]",
     cases: [
       {
         name: "should split a string by delimiter",
@@ -33,11 +33,13 @@ describeHelper(
     docCases: [
       {
         description: "Split by comma",
-        code: `set $parts @str.split("a,b,c" ",")`,
+        code: `load lang [@str.split]\nset $parts @str.split("a,b,c" ",")`,
+        preamble: "",
       },
       {
         description: "Split by space",
-        code: `set $words @str.split("hello world" " ")`,
+        code: `load lang [@str.split]\nset $words @str.split("hello world" " ")`,
+        preamble: "",
       },
     ],
   },

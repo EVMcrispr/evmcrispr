@@ -5,7 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@str.replace",
   {
-    module: "lang",
+    module: "lang [@str.replace]",
     cases: [
       {
         name: "should replace a substring",
@@ -26,11 +26,13 @@ describeHelper(
     docCases: [
       {
         description: "Replace all occurrences",
-        code: `set $s @str.replace("foo-bar-baz" "-" "_")`,
+        code: `load lang [@str.replace]\nset $s @str.replace("foo-bar-baz" "-" "_")`,
+        preamble: "",
       },
       {
         description: "Remove a substring",
-        code: `set $s @str.replace("hello world" " world" "")`,
+        code: `load lang [@str.replace]\nset $s @str.replace("hello world" " world" "")`,
+        preamble: "",
       },
     ],
   },

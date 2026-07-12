@@ -4,21 +4,21 @@ import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(
-  "@contenthash",
+  "@ens:contenthash",
   {
-    describeName: "Ens > helpers > @contenthash(input)",
+    describeName: "Ens > helpers > @ens:contenthash(input)",
     module: "ens",
     docCases: [
       {
         description: "Encode an IPFS content hash",
-        code: `set $hash @contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")\nprint $hash`,
+        code: `set $hash @ens:contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")\nprint $hash`,
       },
     ],
     cases: [
       {
         name: "should encode an IPFS content hash",
         input:
-          '@contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")',
+          '@ens:contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")',
         validate: (result) => {
           expect(result).to.be.a("string");
           expect(result.startsWith("0x")).to.be.true;
@@ -28,7 +28,7 @@ describeHelper(
       {
         name: "should encode an IPNS content hash",
         input:
-          '@contenthash("ipns:k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8")',
+          '@ens:contenthash("ipns:k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8")',
         validate: (result) => {
           expect(result).to.be.a("string");
           expect(result.startsWith("0xe5010172")).to.be.true;
@@ -37,7 +37,7 @@ describeHelper(
       {
         name: "should produce deterministic output for the same input",
         input:
-          '@contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")',
+          '@ens:contenthash("ipfs:QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4")',
         validate: (result) => {
           expect(result).to.be.a("string");
           expect(result).to.be.equal(
@@ -49,17 +49,17 @@ describeHelper(
     errorCases: [
       {
         name: "should fail with an unsupported codec",
-        input: '@contenthash("arweave:abc123")',
+        input: '@ens:contenthash("arweave:abc123")',
         error: "Only ipfs, ipns and skynet are supported",
       },
       {
         name: "should fail when missing the colon separator",
-        input: '@contenthash("justahash")',
+        input: '@ens:contenthash("justahash")',
         error: "Only ipfs, ipns and skynet are supported",
       },
       {
         name: "should fail when hash is missing after the codec",
-        input: '@contenthash("ipfs:")',
+        input: '@ens:contenthash("ipfs:")',
         error: "The hash format should be <codec>:<hash>",
       },
     ],

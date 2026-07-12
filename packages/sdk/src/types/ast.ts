@@ -105,8 +105,13 @@ export interface CallExpressionNode extends Node {
 
 export interface HelperFunctionNode extends Node {
   type: NodeType.HelperFunctionExpression;
+  /** Module namespace from `@module:name(...)` syntax. Absent = unqualified. */
+  module?: string;
   name: string;
   args: ArgumentExpressionNode[];
+  /** Rename target from `@name>@newName` — only meaningful inside a `load`
+   *  import list; a semantic error anywhere else. */
+  rename?: string;
 }
 
 /** Recursive destructure slot: variable name, hole (null), or nested pattern. */

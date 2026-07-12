@@ -103,7 +103,7 @@ sim:fork (
 ## Working with Aragon DAOs
 
 ```evml
-load aragonos
+load aragonos [grant install @app]
 
 aragonos:connect my-dao.aragonid.eth (
   grant @me @app(voting) CREATE_VOTES_ROLE
@@ -121,6 +121,14 @@ load sim        # Chain simulation
 load ens        # ENS domains
 load giveth     # Giveth protocol
 load http       # HTTP + JSON
+```
+
+A loaded module's commands and helpers are used with the module prefix
+(`aragonos:grant`, `@ens:addr(...)`). Add an import list to the `load`
+line to use selected names without the prefix:
+
+```evml
+load aragonos [grant install @app]
 ```
 
 ## Next Steps

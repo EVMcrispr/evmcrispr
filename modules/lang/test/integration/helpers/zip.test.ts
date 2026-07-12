@@ -7,7 +7,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@zip",
   {
-    module: "lang",
+    module: "lang [@zip]",
     cases: [
       {
         name: "should pair elements from two arrays",
@@ -38,7 +38,8 @@ describeHelper(
     docCases: [
       {
         description: "Zip two arrays",
-        code: `set $keys [1 2 3]\nset $vals ["a" "b" "c"]\nset $pairs @zip($keys $vals)`,
+        code: `load lang [@zip]\nset $keys [1 2 3]\nset $vals ["a" "b" "c"]\nset $pairs @zip($keys $vals)`,
+        preamble: "",
       },
     ],
     sampleArgs: [`[1]`, `[2]`],

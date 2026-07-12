@@ -6,12 +6,13 @@ describeHelper(
   "@projectAddr",
   {
     skip: true,
-    module: "giveth",
+    module: "giveth [@projectAddr]",
     describeName: "Giveth > helpers > @projectAddr(slug)",
     docCases: [
       {
         description: "Resolve a project slug to its address",
-        code: `set $addr @projectAddr("evmcrispr")\nprint $addr`,
+        code: `load giveth [@projectAddr]\nset $addr @projectAddr("evmcrispr")\nprint $addr`,
+        preamble: "",
       },
     ],
     cases: [
