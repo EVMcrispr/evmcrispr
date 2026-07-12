@@ -5,6 +5,7 @@ const SIMULATION_MODES = [
   "anvil",
   "hardhat",
   "tenderly",
+  "tenderly-multichain",
   "ethereumjs",
 ] as const;
 

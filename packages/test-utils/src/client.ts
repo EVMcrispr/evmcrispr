@@ -1,7 +1,14 @@
 import type { Transport } from "viem";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
-import { gnosis, mainnet } from "viem/chains";
+import {
+  arbitrum,
+  base,
+  gnosis,
+  mainnet,
+  optimism,
+  polygon,
+} from "viem/chains";
 
 const transport = http("http://127.0.0.1:8545");
 
@@ -20,16 +27,22 @@ export function getPublicClient() {
  * token address ends up at the upstream factory's nonce instead of
  * anvil's, so the follow-up `changeController` reverts).
  *
- * Mainnet is for cross-chain helpers (e.g. `@ens` resolving). It uses
- * DRPC when a key is present, otherwise falls through to anvil so
- * unit tests stay offline-runnable.
+ * Mainnet and the L2s are for cross-chain helpers (`@ens` resolving,
+ * `bridges` destination-chain reads, multi-fork `sim` runs). They use
+ * DRPC when a key is present, otherwise fall through to anvil so unit
+ * tests stay offline-runnable.
  */
 export function getTransports(): Record<number, Transport> {
   const drpcKey = process.env.VITE_DRPC_API_KEY;
+  const drpc = (network: string) =>
+    drpcKey ? http(`https://lb.drpc.live/${network}/${drpcKey}`) : transport;
+
   return {
-    [mainnet.id]: drpcKey
-      ? http(`https://lb.drpc.live/ethereum/${drpcKey}`)
-      : transport,
+    [mainnet.id]: drpc("ethereum"),
+    [optimism.id]: drpc("optimism"),
+    [polygon.id]: drpc("polygon"),
+    [base.id]: drpc("base"),
+    [arbitrum.id]: drpc("arbitrum"),
     [gnosis.id]: transport,
   };
 }

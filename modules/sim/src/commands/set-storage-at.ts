@@ -1,5 +1,6 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Sim from "..";
+import { rpcPrefix } from "../lib/modes";
 
 export default defineCommand<Sim>({
   name: "set-storage-at",
@@ -24,7 +25,7 @@ export default defineCommand<Sim>({
     return [
       {
         type: "rpc",
-        method: `${module.mode}_setStorageAt`,
+        method: `${rpcPrefix(module.mode)}_setStorageAt`,
         params: [address, slot, value],
       },
     ];

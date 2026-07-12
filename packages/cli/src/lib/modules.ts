@@ -16,6 +16,7 @@ export function registerAllModules(): void {
     { name: "http", load: () => import("@evmcrispr/module-http") },
     { name: "safe", load: () => import("@evmcrispr/module-safe") },
     { name: "swaps", load: () => import("@evmcrispr/module-swaps") },
+    { name: "bridges", load: () => import("@evmcrispr/module-bridges") },
     { name: "lang", load: () => import("@evmcrispr/module-lang") },
     { name: "assertions", load: () => import("@evmcrispr/module-assertions") },
   );

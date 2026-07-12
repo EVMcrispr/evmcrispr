@@ -26,6 +26,7 @@
         "@evmcrispr/module-access-control": "*",
         "@evmcrispr/module-aragonos": "*",
         "@evmcrispr/module-assertions": "*",
+        "@evmcrispr/module-bridges": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-governor": "*",
@@ -54,6 +55,7 @@
         "@evmcrispr/module-access-control": "*",
         "@evmcrispr/module-aragonos": "*",
         "@evmcrispr/module-assertions": "*",
+        "@evmcrispr/module-bridges": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-governor": "*",
@@ -158,6 +160,19 @@
     },
     "modules/assertions": {
       "name": "@evmcrispr/module-assertions",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
+    "modules/bridges": {
+      "name": "@evmcrispr/module-bridges",
       "version": "0.1.0",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:*",
@@ -330,6 +345,7 @@
         "@evmcrispr/module-access-control": "*",
         "@evmcrispr/module-aragonos": "*",
         "@evmcrispr/module-assertions": "*",
+        "@evmcrispr/module-bridges": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-governor": "*",
@@ -756,6 +772,8 @@
     "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
 
     "@evmcrispr/module-assertions": ["@evmcrispr/module-assertions@workspace:modules/assertions"],
+
+    "@evmcrispr/module-bridges": ["@evmcrispr/module-bridges@workspace:modules/bridges"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
 

@@ -50,7 +50,9 @@ const MODULES: ModuleInfo[] = [
     dir: join(ROOT, "modules/sim"),
     overview:
       "Simulation module: fork chains and execute commands in a sandboxed environment " +
-      "using Anvil, Hardhat, Tenderly, or EthereumJS backends.",
+      "using Anvil, Hardhat, Tenderly, or EthereumJS backends. Forks are multichain: " +
+      "`switch` moves between one fork per chain, and bridge transfers are auto-relayed " +
+      "to the destination fork.",
   },
   {
     name: "ens",
@@ -109,6 +111,16 @@ const MODULES: ModuleInfo[] = [
     overview:
       "Token swaps across DEXes: exact-in and exact-out swaps with automatic " +
       "approvals, wrap/unwrap, quotes and prices, and venue selection via --using.",
+  },
+  {
+    name: "bridges",
+    prefix: "bridges:",
+    dir: join(ROOT, "modules/bridges"),
+    overview:
+      "Cross-chain bridging: send tokens to another chain over CCTP, Across, " +
+      "LayerZero, CCIP or the canonical bridge, with fees, transfer status and " +
+      "claims. Bridges auto-relay inside sim:fork, so a whole cross-chain " +
+      "script can be simulated end to end.",
   },
   {
     name: "http",

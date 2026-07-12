@@ -298,4 +298,36 @@ describe("EthereumJS Backend (unit)", () => {
       }),
     ).rejects.toThrow("Unsupported RPC method");
   });
+
+  // ---------------------------------------------------------------------------
+  // handleAction: synthetic receipts
+  // ---------------------------------------------------------------------------
+
+  it("returns a synthetic receipt with logs for transactions", async () => {
+    const { backend } = await makeBackend();
+    const emitter = "0x00000000000000000000000000000000000e1117";
+    const topic = `0x${"ab".repeat(32)}` as const;
+    // PUSH32 <topic> PUSH1 0 PUSH1 0 LOG1 STOP — emits one empty-data LOG1.
+    const bytecode = `0x7f${topic.slice(2)}60006000a100`;
+
+    const setCodeReceipt = await backend.handleAction({
+      type: "rpc",
+      method: "ethereumjs_setCode",
+      params: [emitter, bytecode],
+    });
+    expect(setCodeReceipt).toBeUndefined();
+
+    const receipt = await backend.handleAction({
+      from: ADDR,
+      to: emitter,
+      data: "0x",
+    } as Action);
+
+    expect(receipt).toBeDefined();
+    expect(receipt!.status).toBe("success");
+    expect(receipt!.logs).toHaveLength(1);
+    expect(receipt!.logs[0].address.toLowerCase()).toBe(emitter);
+    expect(receipt!.logs[0].topics).toEqual([topic]);
+    expect(receipt!.logs[0].data).toBe("0x");
+  });
 });

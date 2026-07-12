@@ -11,6 +11,10 @@ import {
   helpers as assertionsHelpers,
 } from "../../../../modules/assertions/src/_generated";
 import {
+  commands as bridgesCommands,
+  helpers as bridgesHelpers,
+} from "../../../../modules/bridges/src/_generated";
+import {
   commands as ensCommands,
   helpers as ensHelpers,
 } from "../../../../modules/ens/src/_generated";
@@ -93,6 +97,7 @@ const modules: ModuleDef[] = [
   { name: "proxies", commands: proxiesCommands, helpers: proxiesHelpers },
   { name: "safe", commands: safeCommands, helpers: safeHelpers },
   { name: "swaps", commands: swapsCommands, helpers: swapsHelpers },
+  { name: "bridges", commands: bridgesCommands, helpers: bridgesHelpers },
   { name: "giveth", commands: givethCommands, helpers: givethHelpers },
   {
     name: "assertions",
@@ -153,6 +158,10 @@ const docImports: Record<
   swaps: (name, kind) =>
     import(
       `../../../../modules/swaps/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  bridges: (name, kind) =>
+    import(
+      `../../../../modules/bridges/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
     ).then((m) => m.default),
   giveth: (name, kind) =>
     import(

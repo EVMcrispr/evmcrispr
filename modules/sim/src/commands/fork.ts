@@ -1,7 +1,6 @@
 import {
   type Action,
   type BlockExpressionNode,
-  type Chain,
   defineCommand,
   ErrorException,
   isBatchedAction,
@@ -12,14 +11,14 @@ import {
   RevertError,
 } from "@evmcrispr/sdk";
 import {
-  createPublicClient,
-  createWalletClient,
-  http,
-  type PublicClient,
+  type Address,
+  encodeAbiParameters,
+  keccak256,
+  numberToHex,
   toHex,
-  type WalletClient,
 } from "viem";
 import type Sim from "..";
+import type { SimMode } from "..";
 import {
   DELEGATOR_ADDRESS,
   DELEGATOR_BYTECODE,
@@ -28,17 +27,26 @@ import {
   parseDelegation,
 } from "../lib/delegate";
 import {
-  createEthereumJSBackend,
-  type EthereumJSBackend,
-} from "../lib/ethereumjs-backend";
+  collectSwitchTargets,
+  ForkManager,
+  type TenderlyAuth,
+} from "../lib/forks";
+import { rpcPrefix } from "../lib/modes";
+import { matchesSourceEvent, type ReceiptLog } from "../lib/relay";
 import { buildWaitActions } from "../lib/wait";
 
-/** Loose equality for RPC URLs that should be treated as the same node. */
-function isSameLocalRpc(a: string, b: string): boolean {
-  const normalize = (u: string) =>
-    u.toLowerCase().replace(/\/+$/, "").replace("://localhost", "://127.0.0.1");
-  return normalize(a) === normalize(b);
-}
+const BALANCE_OF_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+// How many storage slots to probe when locating a token's balance mapping.
+const DEAL_MAX_SLOT = 25;
 
 export default defineCommand<Sim>({
   name: "fork",
@@ -66,7 +74,8 @@ export default defineCommand<Sim>({
     {
       name: "using",
       type: "simulation-mode",
-      description: "Simulation backend (anvil, hardhat, tenderly, ethereumjs)",
+      description:
+        "Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs)",
     },
   ],
   async run(module, { block }, { opts, interpreters }) {
@@ -75,265 +84,276 @@ export default defineCommand<Sim>({
 
     const blockNumber = opts["block-number"];
     const from = opts.from;
-    const using = opts.using;
-    const tenderlyOpt = opts["auth-token"];
+    const using = opts.using as SimMode | undefined;
+    const tenderlyOpt = opts["auth-token"] as string | undefined;
 
     const chainId = await module.getChainId();
 
-    const chain = ((await module.getChain()) ?? {
-      id: chainId,
-      name: "Unknown",
-      nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [] } },
-    }) as Chain;
+    const mode: SimMode = using ?? (tenderlyOpt ? "tenderly" : "ethereumjs");
+    if (
+      ![
+        "anvil",
+        "hardhat",
+        "tenderly",
+        "tenderly-multichain",
+        "ethereumjs",
+      ].includes(mode)
+    ) {
+      throw new ErrorException(
+        `Unknown simulation backend: "${mode}". Supported: anvil, hardhat, tenderly, tenderly-multichain, ethereumjs`,
+      );
+    }
 
-    const upstreamTransport = module.getTransport(chainId);
-    const upstreamRpcUrl = (upstreamTransport({ chain }) as any).value?.url as
-      | string
-      | undefined;
-
-    let publicClient: PublicClient;
-    let walletClient: WalletClient;
-    let backend: EthereumJSBackend | undefined;
-    let onSuccess: (() => void) | undefined;
-    let onError: (() => void) | undefined;
-
-    if (using === "anvil" || using === "hardhat") {
-      // ── Anvil / Hardhat backend ──────────────────────────────────
-      const rpcUrl = "http://localhost:8545";
-
-      const backendName = using === "anvil" ? "Anvil" : "Hardhat";
-
-      publicClient = createPublicClient({
-        chain,
-        transport: http(rpcUrl),
-      });
-      walletClient = createWalletClient({
-        chain,
-        transport: http(rpcUrl),
-      });
-
-      // Resolve the URL we'll feed back into anvil/hardhat as the fork
-      // source. If the user-configured upstream points at the same node
-      // we're about to reset (e.g. test setups where the chain transport
-      // already targets the local anvil fork), asking it to fork from
-      // itself deadlocks. Query the node for its real upstream instead.
-      let forkingJsonRpcUrl: string | undefined = upstreamRpcUrl;
-      if (
-        using === "anvil" &&
-        forkingJsonRpcUrl &&
-        isSameLocalRpc(forkingJsonRpcUrl, rpcUrl)
-      ) {
-        try {
-          const nodeInfo = (await walletClient.request({
-            method: "anvil_nodeInfo" as any,
-            params: [] as any,
-          })) as { forkConfig?: { forkUrl?: string } } | undefined;
-          forkingJsonRpcUrl = nodeInfo?.forkConfig?.forkUrl;
-        } catch {
-          forkingJsonRpcUrl = undefined;
-        }
-      }
-
-      // Reset the node to fork from the upstream RPC at the desired block
-      const resetMethod = using === "anvil" ? "anvil_reset" : "hardhat_reset";
-      const resetParams: any[] = [];
-      if (forkingJsonRpcUrl) {
-        const forkingConfig: any = { jsonRpcUrl: forkingJsonRpcUrl };
-        if (blockNumber) {
-          forkingConfig.blockNumber = Number(blockNumber.toString());
-        }
-        resetParams.push({ forking: forkingConfig });
-      }
-
-      try {
-        await walletClient.request({
-          method: resetMethod as any,
-          params: resetParams as any,
-        });
-      } catch (e) {
-        throw new ErrorException(
-          `Failed to reset ${backendName} at ${rpcUrl}. Make sure ${backendName} is running: ${(e as Error).message}`,
-        );
-      }
-
-      module.mode = using;
-
-      onSuccess = () => {
-        module.context.log(
-          `:success: All transactions succeeded on ${backendName} fork.`,
-        );
-      };
-    } else if (using === "tenderly" || tenderlyOpt) {
-      // ── Tenderly backend ───────────────────────────────────────────
-      // set up your access-key, if you don't have one or you want to generate new one follow next link
-      // https://dashboard.tenderly.co/account/authorization
+    let auth: TenderlyAuth | undefined;
+    if (mode === "tenderly" || mode === "tenderly-multichain") {
+      // set up your access-key, if you don't have one or you want to generate
+      // a new one follow https://dashboard.tenderly.co/account/authorization
       if (!tenderlyOpt) {
         throw new ErrorException(
-          "--using tenderly requires --auth-token user/project/accessKey",
+          `--using ${mode} requires --auth-token user/project/accessKey`,
         );
       }
-
-      const [tenderlyUser, tenderlyProject, tenderlyAccessKey] =
-        (tenderlyOpt as string)?.split("/") || [];
-
-      if (!tenderlyAccessKey) {
+      const [user, project, accessKey] = tenderlyOpt.split("/") || [];
+      if (!accessKey) {
         throw new ErrorException(
           "Invalid --auth-token option. Expected format: user/project/accessKey",
         );
       }
-
-      // Create Virtual TestNet
-      const TENDERLY_VNET_API = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/vnets`;
-
-      const vnetBody: any = {
-        slug: `evmcrispr-${Date.now()}`,
-        display_name: `EVMcrispr Virtual TestNet`,
-        fork_config: {
-          network_id: chainId,
-          block_number: blockNumber
-            ? blockNumber.toString().startsWith("0x")
-              ? blockNumber.toString()
-              : `0x${Number(blockNumber).toString(16)}`
-            : "latest",
-        },
-        virtual_network_config: {
-          chain_config: {
-            chain_id: chainId,
-          },
-        },
-        rpc_config: {
-          rpc_name: "evmcrispr-fork",
-          persistence_config: {
-            methods: [
-              {
-                method: "tenderly_simulateTransaction",
-              },
-            ],
-          },
-        },
-        sync_state_config: {
-          enabled: false,
-        },
-        explorer_page_config: {
-          enabled: false,
-          verification_visibility: "bytecode",
-        },
-      };
-
-      if (blockNumber) {
-        vnetBody.fork_config.block_number = Number(blockNumber.toString());
-      }
-
-      const vnetOpts = {
-        method: "POST",
-        headers: {
-          "X-Access-Key": tenderlyAccessKey,
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(vnetBody),
-      };
-
-      const vnetResponse = await fetch(TENDERLY_VNET_API, vnetOpts).then(
-        (res) => res.json(),
-      );
-
-      if (!vnetResponse.id) {
-        throw new ErrorException(
-          `Failed to create Virtual TestNet: ${JSON.stringify(vnetResponse)}`,
-        );
-      }
-
-      const vnetId = vnetResponse.id;
-      const vnetRPC = vnetResponse.rpcs?.[0]?.url || vnetResponse.admin_rpc_url;
-
-      publicClient = createPublicClient({
-        chain,
-        transport: http(vnetRPC),
-      });
-      walletClient = createWalletClient({
-        chain,
-        transport: http(vnetRPC),
-      });
-
-      onError = () => {
-        module.context.log(
-          `:error: A transaction failed: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
-        );
-      };
-
-      module.mode = "tenderly";
-
-      onSuccess = () => {
-        module.context.log(
-          `:success: All transactions succeeded: [*Click here to watch on Tenderly*](https://dashboard.tenderly.co/${tenderlyUser}/${tenderlyProject}/testnet/${vnetId}).`,
-        );
-      };
-    } else if (using && using !== "ethereumjs") {
-      throw new ErrorException(
-        `Unknown simulation backend: "${using}". Supported: anvil, hardhat, ethereumjs`,
-      );
-    } else {
-      // ── EthereumJS in-browser backend (default) ──────────────────
-      if (!upstreamRpcUrl) {
-        throw new ErrorException(
-          "EthereumJS backend requires an upstream RPC URL. Make sure a transport is configured.",
-        );
-      }
-
-      backend = await createEthereumJSBackend({
-        upstreamRpcUrl,
-        blockNumber: blockNumber ? Number(blockNumber.toString()) : undefined,
-        chainId,
-      });
-
-      publicClient = createPublicClient({
-        chain,
-        transport: backend.transport,
-      });
-
-      walletClient = undefined as any;
-
-      module.mode = "ethereumjs";
-
-      onSuccess = () => {
-        module.context.log(
-          `:success: All transactions succeeded in-browser (EthereumJS).`,
-        );
-      };
+      auth = { user, project, accessKey };
     }
 
+    const forkManager = new ForkManager(module, mode, {
+      blockNumber: blockNumber ? Number(blockNumber.toString()) : undefined,
+      auth,
+      // The environments API needs every network at creation time, so scan
+      // the block for literal switch targets upfront.
+      multichainTargets:
+        mode === "tenderly-multichain"
+          ? collectSwitchTargets(blockExpressionNode)
+          : undefined,
+    });
+
+    await forkManager.init(chainId);
+    module.mode = mode;
+    module.activeChainId = chainId;
     if (from) {
       module.context.setConnectedAccount(from);
     }
-    module.context.setClient(publicClient);
+    module.context.setClient(forkManager.active.publicClient);
+
+    const prefix = rpcPrefix(mode);
+    let relaySeq = 0;
+
+    const logTenderlyLinks = (outcome: string) => {
+      for (const link of forkManager.tenderlyLinks) {
+        module.context.log(
+          `${outcome}: [*Click here to watch on Tenderly*](${link}).`,
+        );
+      }
+    };
+
+    const onError = () => {
+      if (mode === "tenderly" || mode === "tenderly-multichain") {
+        logTenderlyLinks(":error: A transaction failed");
+      }
+    };
 
     const withImpersonation = async <T>(
       sender: string,
       fn: () => Promise<T>,
     ): Promise<T> => {
-      if (module.mode === "anvil" || module.mode === "hardhat") {
-        await walletClient.request({
-          method: `${module.mode}_impersonateAccount` as any,
+      const walletClient = forkManager.active.walletClient;
+      if (mode === "anvil" || mode === "hardhat") {
+        await walletClient!.request({
+          method: `${mode}_impersonateAccount` as any,
           params: [sender] as any,
         });
       }
       try {
         return await fn();
       } finally {
-        if (module.mode === "anvil" || module.mode === "hardhat") {
-          await walletClient.request({
-            method: `${module.mode}_stopImpersonatingAccount` as any,
+        if (mode === "anvil" || mode === "hardhat") {
+          await walletClient!.request({
+            method: `${mode}_stopImpersonatingAccount` as any,
             params: [sender] as any,
           });
         }
       }
     };
 
-    const simulateAction = async (action: Action): Promise<unknown> => {
+    // ── Cross-chain relay ────────────────────────────────────────────────
+
+    const scanAndQueue = async (logs: ReceiptLog[]): Promise<void> => {
+      if (module.relayHandlers.length === 0 || logs.length === 0) return;
+      const srcChainId = forkManager.active.chainId;
+      for (const log of logs) {
+        for (const handler of module.relayHandlers) {
+          const events = handler.sourceEvents(srcChainId);
+          if (!events.some((event) => matchesSourceEvent(log, event))) {
+            continue;
+          }
+          const parsed = await handler.parse(log, { srcChainId, txLogs: logs });
+          if (!parsed) continue;
+          module.pendingDeliveries.push({
+            handlerId: handler.id,
+            srcChainId,
+            dstChainId: parsed.dstChainId,
+            log,
+            txLogs: logs,
+            seq: relaySeq++,
+            note: parsed.note,
+          });
+          module.context.log(
+            `Queued ${handler.id} transfer ${srcChainId} → ${parsed.dstChainId}` +
+              (parsed.note ? ` (${parsed.note})` : ""),
+          );
+        }
+      }
+    };
+
+    const drainDeliveries = async (dstChainId: number): Promise<void> => {
+      for (;;) {
+        const idx = module.pendingDeliveries.findIndex(
+          (d) => d.dstChainId === dstChainId,
+        );
+        if (idx === -1) return;
+        const [delivery] = module.pendingDeliveries.splice(idx, 1);
+        const handler = module.relayHandlers.find(
+          (h) => h.id === delivery.handlerId,
+        );
+        if (!handler) continue;
+        module.context.log(
+          `Delivering ${delivery.handlerId} transfer from chain ${delivery.srcChainId}`,
+        );
+        const actions = await handler.buildDelivery(module, delivery.log, {
+          srcChainId: delivery.srcChainId,
+          dstChainId,
+          txLogs: delivery.txLogs,
+        });
+        // Delivery receipts are deliberately not relay-scanned: a mocked
+        // destination leg that emits a watched event must not chain-relay.
+        for (const action of actions) {
+          await execAction(action, { relayScan: false });
+        }
+      }
+    };
+
+    const activateFork = async (dstChainId: number): Promise<void> => {
+      const handle = await forkManager.activate(dstChainId);
+      // `switch` already rebuilt the interpreter client against the real
+      // chain at interpret time — repair it to point at the fork.
+      module.context.setClient(handle.publicClient);
+      module.activeChainId = dstChainId;
+      await drainDeliveries(dstChainId);
+    };
+
+    // ── Virtual admin methods for relay deliveries ───────────────────────
+
+    const readTokenBalance = (token: Address, owner: Address) =>
+      forkManager.active.publicClient.readContract({
+        address: token,
+        abi: BALANCE_OF_ABI,
+        functionName: "balanceOf",
+        args: [owner],
+      }) as Promise<bigint>;
+
+    /** foundry-`deal` style: locate the balance slot by probing, then set it. */
+    const dealToken = async (
+      token: Address,
+      to: Address,
+      amountHex: `0x${string}`,
+    ): Promise<void> => {
+      const amount = BigInt(amountHex);
+      const current = await readTokenBalance(token, to);
+      if (current === amount) return;
+      const value32 = numberToHex(amount, { size: 32 });
+
+      for (let slot = 0; slot < DEAL_MAX_SLOT; slot++) {
+        const candidates = [
+          // Solidity: keccak256(abi.encode(holder, uint256(slot)))
+          keccak256(
+            encodeAbiParameters(
+              [{ type: "address" }, { type: "uint256" }],
+              [to, BigInt(slot)],
+            ),
+          ),
+          // Vyper: keccak256(abi.encode(uint256(slot), holder))
+          keccak256(
+            encodeAbiParameters(
+              [{ type: "uint256" }, { type: "address" }],
+              [BigInt(slot), to],
+            ),
+          ),
+        ];
+        for (const slotKey of candidates) {
+          const prev = await forkManager.active.publicClient.getStorageAt({
+            address: token,
+            slot: slotKey,
+          });
+          await execAction(
+            {
+              type: "rpc",
+              method: `${prefix}_setStorageAt`,
+              params: [token, slotKey, value32],
+            },
+            { relayScan: false },
+          );
+          const balance = await readTokenBalance(token, to).catch(() => null);
+          if (balance === amount) return;
+          await execAction(
+            {
+              type: "rpc",
+              method: `${prefix}_setStorageAt`,
+              params: [token, slotKey, prev ?? numberToHex(0n, { size: 32 })],
+            },
+            { relayScan: false },
+          );
+        }
+      }
+      throw new ErrorException(
+        `sim_dealToken: couldn't locate the balance storage slot for token ${token}`,
+      );
+    };
+
+    const addNativeBalance = async (
+      address: Address,
+      amountHex: `0x${string}`,
+    ): Promise<void> => {
+      const balance = await forkManager.active.publicClient.getBalance({
+        address,
+      });
+      await execAction(
+        {
+          type: "rpc",
+          method: `${prefix}_setBalance`,
+          params: [address, toHex(balance + BigInt(amountHex))],
+        },
+        { relayScan: false },
+      );
+    };
+
+    // ── Action execution ─────────────────────────────────────────────────
+
+    const execAction = async (
+      action: Action,
+      { relayScan }: { relayScan: boolean },
+    ): Promise<unknown> => {
       if (isWalletAction(action)) {
-        throw new ErrorException(`can't switch networks inside a fork command`);
+        if (action.method !== "wallet_switchEthereumChain") {
+          throw new ErrorException(
+            `can't handle wallet action ${action.method} inside a fork command`,
+          );
+        }
+        const target = (action.params as { chainId?: string | number }[])?.[0]
+          ?.chainId;
+        const dstChainId = Number(target);
+        if (!Number.isInteger(dstChainId) || dstChainId <= 0) {
+          throw new ErrorException(
+            `invalid switch target inside fork: ${String(target)}`,
+          );
+        }
+        await activateFork(dstChainId);
+        return undefined;
       }
 
       if (isTerminalAction(action) && action.command === "wait") {
@@ -342,7 +362,7 @@ export default defineCommand<Sim>({
         const seconds = BigInt(Number(action.args.seconds ?? 0));
         module.context.log(`Advancing fork time by ${seconds}s`);
         for (const rpcAction of buildWaitActions(module, seconds)) {
-          await simulateAction(rpcAction);
+          await execAction(rpcAction, { relayScan: false });
         }
         return undefined;
       }
@@ -351,6 +371,7 @@ export default defineCommand<Sim>({
         // Simulate an EIP-5792 batch the way wallets fulfill it: an EIP-7702
         // delegation on the sender EOA plus a single self-call executing all
         // batched calls atomically through the delegate.
+        const publicClient = forkManager.active.publicClient;
         const sender = action.from;
         const senderCode = await publicClient.getCode({ address: sender });
         const existingDelegate = parseDelegation(senderCode);
@@ -367,41 +388,83 @@ export default defineCommand<Sim>({
             address: DELEGATOR_ADDRESS,
           });
           if (!delegatorCode || delegatorCode === "0x") {
-            await simulateAction({
-              type: "rpc",
-              method: `${module.mode}_setCode`,
-              params: [DELEGATOR_ADDRESS, DELEGATOR_BYTECODE],
-            });
+            await execAction(
+              {
+                type: "rpc",
+                method: `${prefix}_setCode`,
+                params: [DELEGATOR_ADDRESS, DELEGATOR_BYTECODE],
+              },
+              { relayScan: false },
+            );
           }
           // Install the delegation designator on the EOA — the same code an
           // actual type-4 (EIP-7702) transaction would set.
-          await simulateAction({
-            type: "rpc",
-            method: `${module.mode}_setCode`,
-            params: [sender, delegationDesignator(DELEGATOR_ADDRESS)],
-          });
+          await execAction(
+            {
+              type: "rpc",
+              method: `${prefix}_setCode`,
+              params: [sender, delegationDesignator(DELEGATOR_ADDRESS)],
+            },
+            { relayScan: false },
+          );
           module.context.log(
             `Installed EIP-7702 delegation to ${DELEGATOR_ADDRESS} on ${sender}`,
           );
         }
 
-        return simulateAction({
-          from: sender,
-          to: sender,
-          data: encodeBatchExecute(action.actions),
-          chainId: action.chainId,
-        });
-      }
-
-      if (module.mode === "ethereumjs" && backend) {
-        if (isTransactionAction(action) && !action.from) {
-          action = { ...action, from: await module.getConnectedAccount() };
-        }
-        return backend.handleAction(action);
+        return execAction(
+          {
+            from: sender,
+            to: sender,
+            data: encodeBatchExecute(action.actions),
+            chainId: action.chainId,
+          },
+          { relayScan },
+        );
       }
 
       if (isRpcAction(action)) {
-        await walletClient.request({
+        // Virtual admin methods available to relay deliveries.
+        if (action.method === "sim_dealToken") {
+          const [token, to, amountHex] = action.params as [
+            Address,
+            Address,
+            `0x${string}`,
+          ];
+          await dealToken(token, to, amountHex);
+          return undefined;
+        }
+        if (action.method === "sim_addNativeBalance") {
+          const [address, amountHex] = action.params as [
+            Address,
+            `0x${string}`,
+          ];
+          await addNativeBalance(address, amountHex);
+          return undefined;
+        }
+        if (
+          action.method === "evm_increaseTime" &&
+          (mode === "anvil" || mode === "hardhat")
+        ) {
+          forkManager.noteTimeWarp(BigInt(action.params[0] as string));
+        }
+      }
+
+      if (mode === "ethereumjs") {
+        let resolved = action;
+        if (isTransactionAction(resolved) && !resolved.from) {
+          resolved = { ...resolved, from: await module.getConnectedAccount() };
+        }
+        const receipt =
+          await forkManager.active.backend!.handleAction(resolved);
+        if (relayScan && receipt?.logs?.length) {
+          await scanAndQueue(receipt.logs);
+        }
+        return receipt;
+      }
+
+      if (isRpcAction(action)) {
+        await forkManager.active.walletClient!.request({
           method: action.method as any,
           params: action.params as any,
         });
@@ -409,7 +472,8 @@ export default defineCommand<Sim>({
         const sender = action.from || (await module.getConnectedAccount());
 
         return withImpersonation(sender, async () => {
-          const tx = await walletClient.request({
+          const { publicClient, walletClient } = forkManager.active;
+          const tx = await walletClient!.request({
             method: "eth_sendTransaction",
             params: [
               {
@@ -434,7 +498,7 @@ export default defineCommand<Sim>({
             hash: tx,
           });
           if (receipt.status === "reverted") {
-            onError?.();
+            onError();
             // Replay via eth_call to extract revert data
             let revertData: `0x${string}` | undefined;
             try {
@@ -468,6 +532,9 @@ export default defineCommand<Sim>({
             }
             throw new RevertError(`Transaction failed.`, revertData);
           }
+          if (relayScan && receipt.logs.length > 0) {
+            await scanAndQueue(receipt.logs as unknown as ReceiptLog[]);
+          }
           return receipt;
         });
       }
@@ -475,20 +542,46 @@ export default defineCommand<Sim>({
       return undefined;
     };
 
-    await interpretNode(blockExpressionNode, {
-      actionCallback: simulateAction,
-    });
+    const simulateAction = (action: Action) =>
+      execAction(action, { relayScan: true });
 
-    module.mode = null;
-    // Restore the pre-fork chain so the rest of the script doesn't see the
-    // simulated client. `chainId` was captured at the top of `run()` from
-    // the script's chain at fork-entry time (preserves any preceding
-    // `switch` the script performed). `switchChainId` rebuilds the client
-    // from the configured transports for that chain.
-    module.context.switchChainId(chainId);
-    module.context.setConnectedAccount(undefined);
+    try {
+      await interpretNode(blockExpressionNode, {
+        actionCallback: simulateAction,
+      });
+    } finally {
+      if (module.pendingDeliveries.length > 0) {
+        const destinations = [
+          ...new Set(module.pendingDeliveries.map((d) => d.dstChainId)),
+        ].join(", ");
+        module.context.log(
+          `:warning: ${module.pendingDeliveries.length} bridge transfer(s) were never delivered — ` +
+            `the script did not switch to destination chain(s): ${destinations}`,
+        );
+        module.pendingDeliveries.length = 0;
+      }
+      module.mode = null;
+      module.activeChainId = null;
+      // Restore the pre-fork chain so the rest of the script doesn't see the
+      // simulated client. `chainId` was captured at the top of `run()` from
+      // the script's chain at fork-entry time (preserves any preceding
+      // `switch` the script performed). `switchChainId` rebuilds the client
+      // from the configured transports for that chain.
+      module.context.switchChainId(chainId);
+      module.context.setConnectedAccount(undefined);
+    }
 
-    onSuccess?.();
+    if (mode === "tenderly" || mode === "tenderly-multichain") {
+      logTenderlyLinks(":success: All transactions succeeded");
+    } else if (mode === "anvil" || mode === "hardhat") {
+      module.context.log(
+        `:success: All transactions succeeded on ${mode === "anvil" ? "Anvil" : "Hardhat"} fork.`,
+      );
+    } else {
+      module.context.log(
+        `:success: All transactions succeeded in-browser (EthereumJS).`,
+      );
+    }
 
     return [];
   },

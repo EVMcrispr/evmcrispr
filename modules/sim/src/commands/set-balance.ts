@@ -1,6 +1,7 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { numberToHex } from "viem";
 import type Sim from "..";
+import { rpcPrefix } from "../lib/modes";
 
 export default defineCommand<Sim>({
   name: "set-balance",
@@ -24,7 +25,7 @@ export default defineCommand<Sim>({
     return [
       {
         type: "rpc",
-        method: `${module.mode}_setBalance`,
+        method: `${rpcPrefix(module.mode)}_setBalance`,
         params: [address, numberToHex(BigInt(amount))],
       },
     ];

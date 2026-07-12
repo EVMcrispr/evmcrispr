@@ -17,6 +17,7 @@
     "@evmcrispr/module-proxies": "*",
     "@evmcrispr/module-token": "*",
     "@evmcrispr/module-safe": "*",
+    "@evmcrispr/module-bridges": "*",
     "@evmcrispr/module-swaps": "*",
     "@evmcrispr/module-lang": "*",
     "@evmcrispr/module-sim": "*",

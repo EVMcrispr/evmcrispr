@@ -75,14 +75,15 @@ describe("Completions – sim commands", () => {
       expect(items).to.have.lengthOf(4);
     });
 
-    it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat, tenderly, ethereumjs)", async () => {
+    it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs)", async () => {
       const script = `${SIM}sim:fork --using `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const fieldItems = onlyKind(items, "field");
-      expect(fieldItems.length).to.equal(4);
+      expect(fieldItems.length).to.equal(5);
       expect(hasLabel(fieldItems, "anvil")).to.be.true;
       expect(hasLabel(fieldItems, "hardhat")).to.be.true;
       expect(hasLabel(fieldItems, "tenderly")).to.be.true;
+      expect(hasLabel(fieldItems, "tenderly-multichain")).to.be.true;
       expect(hasLabel(fieldItems, "ethereumjs")).to.be.true;
     });
   });

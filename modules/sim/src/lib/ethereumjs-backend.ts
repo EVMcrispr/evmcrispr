@@ -25,9 +25,24 @@ export interface EthereumJSBackendOpts {
   chainId: number;
 }
 
+/**
+ * Minimal receipt for a transaction executed in the in-memory VM — enough
+ * for event captures and the fork's cross-chain relay scanner.
+ */
+export interface SyntheticReceipt {
+  status: "success";
+  blockNumber: bigint;
+  logs: {
+    address: `0x${string}`;
+    topics: `0x${string}`[];
+    data: `0x${string}`;
+    logIndex: number;
+  }[];
+}
+
 export interface EthereumJSBackend {
   transport: Transport;
-  handleAction(action: Action): Promise<void>;
+  handleAction(action: Action): Promise<SyntheticReceipt | undefined>;
 }
 
 export async function createEthereumJSBackend(
@@ -135,8 +150,10 @@ export async function createEthereumJSBackend(
     );
   }
 
-  async function handleTransactionAction(action: Action): Promise<void> {
-    if (!isTransactionAction(action)) return;
+  async function handleTransactionAction(
+    action: Action,
+  ): Promise<SyntheticReceipt | undefined> {
+    if (!isTransactionAction(action)) return undefined;
 
     const senderAddr = action.from
       ? createAddressFromString(action.from)
@@ -177,14 +194,32 @@ export async function createEthereumJSBackend(
         nonce: account.nonce + 1n,
       });
     }
+
+    return {
+      status: "success",
+      blockNumber: currentBlockNumber,
+      logs: (result.execResult.logs ?? []).map(
+        ([address, topics, data], logIndex) => ({
+          address: bytesToHex(address) as `0x${string}`,
+          topics: topics.map((t) => bytesToHex(t) as `0x${string}`),
+          data: bytesToHex(data) as `0x${string}`,
+          logIndex,
+        }),
+      ),
+    };
   }
 
-  async function handleAction(action: Action): Promise<void> {
+  async function handleAction(
+    action: Action,
+  ): Promise<SyntheticReceipt | undefined> {
     if (isRpcAction(action)) {
       await handleRpcAction(action.method, action.params);
-    } else if (isTransactionAction(action)) {
-      await handleTransactionAction(action);
+      return undefined;
     }
+    if (isTransactionAction(action)) {
+      return handleTransactionAction(action);
+    }
+    return undefined;
   }
 
   const transport = custom({

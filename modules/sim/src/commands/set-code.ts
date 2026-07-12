@@ -1,5 +1,6 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Sim from "..";
+import { rpcPrefix } from "../lib/modes";
 
 export default defineCommand<Sim>({
   name: "set-code",
@@ -21,7 +22,7 @@ export default defineCommand<Sim>({
     return [
       {
         type: "rpc",
-        method: `${module.mode}_setCode`,
+        method: `${rpcPrefix(module.mode)}_setCode`,
         params: [address, bytecode],
       },
     ];

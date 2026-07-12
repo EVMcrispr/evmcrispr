@@ -1,6 +1,7 @@
 import type { RpcAction } from "@evmcrispr/sdk";
 import { numberToHex } from "viem";
 import type Sim from "..";
+import { rpcPrefix } from "./modes";
 
 // Assumed seconds per block when deriving Tenderly's block-skip count.
 const BLOCK_PERIOD_SECONDS = 1n;
@@ -20,7 +21,7 @@ const BLOCK_PERIOD_SECONDS = 1n;
  *     2. `${mode}_mine` a single block to seal the new timestamp.
  */
 export function buildWaitActions(module: Sim, duration: bigint): RpcAction[] {
-  const mode = module.mode!;
+  const mode = rpcPrefix(module.mode!);
   const increaseTime: RpcAction = {
     type: "rpc",
     method: "evm_increaseTime",

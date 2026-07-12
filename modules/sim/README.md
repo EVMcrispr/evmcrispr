@@ -1,6 +1,6 @@
 # sim module
 
-Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, or EthereumJS backends.
+Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, or EthereumJS backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.
 
 ```evml
 load sim

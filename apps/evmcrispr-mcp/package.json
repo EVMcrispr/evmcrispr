@@ -16,6 +16,7 @@
     "@evmcrispr/module-proxies": "*",
     "@evmcrispr/module-token": "*",
     "@evmcrispr/module-safe": "*",
+    "@evmcrispr/module-bridges": "*",
     "@evmcrispr/module-swaps": "*",
     "@evmcrispr/module-sim": "*",
     "@modelcontextprotocol/sdk": "^1.29.0",
