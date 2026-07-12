@@ -132,6 +132,136 @@ describeHelper(
   helpers["token.format"].argDefs,
 );
 
+// GNO on the pinned Gnosis fork (not in the mocked tokenlist, so used by address)
+const GNO = "0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb";
+
+describeHelper(
+  "@token.allowance",
+  {
+    cases: [
+      {
+        name: "should return the allowance granted by an owner to a spender",
+        input: "@token.allowance(DAI @token(DAI) @token(DAI))",
+        expected: "0",
+      },
+    ],
+    docCases: [
+      {
+        description: "Query an allowance",
+        code: `set $allowance @token.allowance(DAI @me 0x4F2083f5fBede34C2714aFfb3105539775f7FE64)`,
+      },
+      {
+        description: "Top up an allowance only when it is too low",
+        code: `set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+if @bool(@token.allowance(DAI @me $spender) < @token.amount(DAI 100)) (
+  exec @token(DAI) "approve(address,uint256)" $spender @token.amount(DAI 100)
+)`,
+      },
+    ],
+    errorCases: [
+      {
+        name: "should fail for the native token",
+        input: "@token.allowance(XDAI @me @me)",
+        error: "native token has no allowances",
+      },
+    ],
+    sampleArgs: ["DAI", "@token(DAI)", "@token(DAI)"],
+  },
+  helpers["token.allowance"].argDefs,
+);
+
+describeHelper(
+  "@token.decimals",
+  {
+    cases: [
+      {
+        name: "should return the decimals of an ERC-20 token",
+        input: "@token.decimals(DAI)",
+        expected: "18",
+      },
+      {
+        name: "should return the native token decimals",
+        input: "@token.decimals(XDAI)",
+        expected: "18",
+      },
+    ],
+    docCases: [
+      {
+        description: "Read the decimals of a token",
+        code: `set $decimals @token.decimals(DAI)`,
+      },
+      {
+        description: "Scale an amount manually",
+        code: `set $base @num(25 * 10 ^ @token.decimals(DAI))`,
+      },
+    ],
+    sampleArgs: ["DAI"],
+  },
+  helpers["token.decimals"].argDefs,
+);
+
+describeHelper(
+  "@token.symbol",
+  {
+    cases: [
+      {
+        name: "should return the symbol of a token given by address",
+        input: `@token.symbol(${GNO})`,
+        expected: "GNO",
+      },
+      {
+        name: "should return the native token symbol",
+        input: "@token.symbol(XDAI)",
+        expected: "XDAI",
+      },
+    ],
+    docCases: [
+      {
+        description: "Read the symbol of a token by address",
+        code: `set $symbol @token.symbol(0x44fA8E6f47987339850636F88629646662444217)`,
+      },
+      {
+        description: "The native token symbol",
+        code: `print @token.symbol(0x0000000000000000000000000000000000000000)`,
+      },
+    ],
+    sampleArgs: [GNO],
+  },
+  helpers["token.symbol"].argDefs,
+);
+
+describeHelper(
+  "@token.totalSupply",
+  {
+    cases: [
+      {
+        name: "should return the total supply of an ERC-20 token",
+        input: `@token.totalSupply(${GNO})`,
+        expected: "1399145049388064783370246",
+      },
+    ],
+    docCases: [
+      {
+        description: "Query the total supply of a token",
+        code: `set $supply @token.totalSupply(DAI)`,
+      },
+      {
+        description: "Print the total supply in human-readable form",
+        code: `print @token.format(DAI @token.totalSupply(DAI))`,
+      },
+    ],
+    errorCases: [
+      {
+        name: "should fail for the native token",
+        input: "@token.totalSupply(XDAI)",
+        error: "native token has no total supply",
+      },
+    ],
+    sampleArgs: [GNO],
+  },
+  helpers["token.totalSupply"].argDefs,
+);
+
 describeHelper(
   "@token.amount",
   {
