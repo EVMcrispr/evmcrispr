@@ -2,7 +2,7 @@
   "name": "evmcrispr",
   "version": "0.1.0",
   "license": "AGPL-3.0-or-later",
-  "description": "CLI and MCP server for EVMcrispr — simulate, validate, and author EVML scripts",
+  "description": "CLI and MCP server for EVMcrispr \u2014 simulate, validate, and author EVML scripts",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -41,6 +41,7 @@
     "@evmcrispr/module-proxies": "*",
     "@evmcrispr/module-token": "*",
     "@evmcrispr/module-safe": "*",
+    "@evmcrispr/module-swaps": "*",
     "@evmcrispr/module-sim": "*",
     "viem": "^2.54.1",
     "zod": "^4.4.3"

@@ -17,6 +17,7 @@
     "@evmcrispr/module-proxies": "*",
     "@evmcrispr/module-token": "*",
     "@evmcrispr/module-safe": "*",
+    "@evmcrispr/module-swaps": "*",
     "@evmcrispr/module-lang": "*",
     "@evmcrispr/module-sim": "*",
     "@fontsource/jetbrains-mono": "^5.2.8",

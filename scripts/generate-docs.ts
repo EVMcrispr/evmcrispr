@@ -103,6 +103,14 @@ const MODULES: ModuleInfo[] = [
       "threshold, attach guards, and install Zodiac modules.",
   },
   {
+    name: "swaps",
+    prefix: "swaps:",
+    dir: join(ROOT, "modules/swaps"),
+    overview:
+      "Token swaps across DEXes: exact-in and exact-out swaps with automatic " +
+      "approvals, wrap/unwrap, quotes and prices, and venue selection via --using.",
+  },
+  {
     name: "http",
     prefix: "http:",
     dir: join(ROOT, "modules/http"),

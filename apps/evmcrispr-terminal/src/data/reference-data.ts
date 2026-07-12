@@ -37,6 +37,10 @@ import {
   commands as stdCommands,
   helpers as stdHelpers,
 } from "../../../../modules/std/src/_generated";
+import {
+  commands as swapsCommands,
+  helpers as swapsHelpers,
+} from "../../../../modules/swaps/src/_generated";
 import { commands as tokenCommands } from "../../../../modules/token/src/_generated";
 
 export type ReferenceEntry = {
@@ -88,6 +92,7 @@ const modules: ModuleDef[] = [
   { name: "governor", commands: governorCommands, helpers: governorHelpers },
   { name: "proxies", commands: proxiesCommands, helpers: proxiesHelpers },
   { name: "safe", commands: safeCommands, helpers: safeHelpers },
+  { name: "swaps", commands: swapsCommands, helpers: swapsHelpers },
   { name: "giveth", commands: givethCommands, helpers: givethHelpers },
   {
     name: "assertions",
@@ -144,6 +149,10 @@ const docImports: Record<
   safe: (name, kind) =>
     import(
       `../../../../modules/safe/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  swaps: (name, kind) =>
+    import(
+      `../../../../modules/swaps/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
     ).then((m) => m.default),
   giveth: (name, kind) =>
     import(

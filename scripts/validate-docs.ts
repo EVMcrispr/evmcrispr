@@ -40,6 +40,7 @@ const evml = createEvml().use(
   { name: "proxies", load: () => import("../modules/proxies/src") },
   { name: "http", load: () => import("../modules/http/src") },
   { name: "safe", load: () => import("../modules/safe/src") },
+  { name: "swaps", load: () => import("../modules/swaps/src") },
   { name: "lang", load: () => import("../modules/lang/src") },
   { name: "assertions", load: () => import("../modules/assertions/src") },
 );

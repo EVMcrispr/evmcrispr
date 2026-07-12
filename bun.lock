@@ -33,6 +33,7 @@
         "@evmcrispr/module-proxies": "*",
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
+        "@evmcrispr/module-swaps": "*",
         "@evmcrispr/module-token": "*",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "evmcrispr": "*",
@@ -61,6 +62,7 @@
         "@evmcrispr/module-proxies": "*",
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
+        "@evmcrispr/module-swaps": "*",
         "@evmcrispr/module-token": "*",
         "@fontsource/jetbrains-mono": "^5.2.8",
         "@heroicons/react": "^2.2.0",
@@ -291,6 +293,19 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/swaps": {
+      "name": "@evmcrispr/module-swaps",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/token": {
       "name": "@evmcrispr/module-token",
       "version": "0.1.0",
@@ -323,6 +338,7 @@
         "@evmcrispr/module-proxies": "*",
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
+        "@evmcrispr/module-swaps": "*",
         "@evmcrispr/module-token": "*",
         "viem": "^2.54.1",
         "zod": "^4.4.3",
@@ -758,6 +774,8 @@
     "@evmcrispr/module-sim": ["@evmcrispr/module-sim@workspace:modules/sim"],
 
     "@evmcrispr/module-std": ["@evmcrispr/module-std@workspace:modules/std"],
+
+    "@evmcrispr/module-swaps": ["@evmcrispr/module-swaps@workspace:modules/swaps"],
 
     "@evmcrispr/module-token": ["@evmcrispr/module-token@workspace:modules/token"],
 

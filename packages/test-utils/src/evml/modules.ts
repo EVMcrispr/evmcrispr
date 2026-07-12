@@ -21,6 +21,7 @@ export function registerAllModules(): void {
     { name: "proxies", load: () => loadModule("@evmcrispr/module-proxies") },
     { name: "http", load: () => loadModule("@evmcrispr/module-http") },
     { name: "safe", load: () => loadModule("@evmcrispr/module-safe") },
+    { name: "swaps", load: () => loadModule("@evmcrispr/module-swaps") },
     { name: "lang", load: () => loadModule("@evmcrispr/module-lang") },
     {
       name: "assertions",
