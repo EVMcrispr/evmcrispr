@@ -1,6 +1,7 @@
 import "../../setup";
-import { expect } from "@evmcrispr/test-utils";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import { describeHelper } from "@evmcrispr/test-utils/evml";
+import { parseAbi } from "viem";
 import { helpers } from "../../../src/_generated";
 
 describeHelper(
@@ -237,7 +238,18 @@ describeHelper(
       {
         name: "should return the total supply of an ERC-20 token",
         input: `@token.totalSupply(${GNO})`,
-        expected: "1399145049388064783370246",
+        // Compare against a direct eth_call instead of a pinned value:
+        // other suites sharing the anvil fork mint/burn tokens, so the
+        // supply is only deterministic on a fresh fork.
+        validate: async (result) => {
+          const supply = (await getPublicClient().readContract({
+            address: GNO,
+            abi: parseAbi(["function totalSupply() view returns (uint256)"]),
+            functionName: "totalSupply",
+          })) as bigint;
+          expect(String(result)).to.eq(String(supply));
+          expect(supply > 0n).to.be.true;
+        },
       },
     ],
     docCases: [

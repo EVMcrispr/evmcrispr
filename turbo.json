@@ -1,5 +1,6 @@
 {
   "$schema": "https://v2-9-7.turborepo.dev/schema.json",
+  "daemon": false,
   "tasks": {
     "codegen": {
       "outputs": ["src/_generated.ts"]

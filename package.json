@@ -14,7 +14,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "test": "bun run test:unit && bun run test:integration",
-    "test:unit": "turbo run test:unit",
+    "test:unit": "turbo run test:unit --continue",
     "test:integration": "bun scripts/run-integration-tests.ts",
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",
@@ -32,7 +32,7 @@
     "@typescript/native-preview": "^7.0.0-dev.20260702.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "turbo": "^2.10.2",
+    "turbo": "^2.10.4",
     "typescript": "^6.0.3"
   },
   "name": "evmcrispr-monorepo",
