@@ -531,6 +531,7 @@ interface AstLike {
   value?: unknown;
   power?: number;
   timeUnit?: string;
+  perTime?: boolean;
   args?: unknown[];
   elements?: unknown[];
   module?: string;
@@ -580,7 +581,11 @@ function renderAstNode(node: AstLike, scriptLines?: string[]): string | null {
       if (node.value == null) return null;
       const base = String(node.value);
       const power = node.power ? `e${node.power}` : "";
-      const unit = node.timeUnit ? ` ${node.timeUnit}` : "";
+      const unit = node.timeUnit
+        ? node.perTime
+          ? `/${node.timeUnit}`
+          : ` ${node.timeUnit}`
+        : "";
       return `${base}${power}${unit}`;
     }
 

@@ -154,6 +154,16 @@ describe("Interpreter - primaries", async () => {
           toNum(4.67, undefined, "y"),
           "Invalid number followed by year time unit match",
         ],
+        [
+          { ...node(1000, 18, "mo"), perTime: true },
+          toNum(1000, 18).div(Num.fromBigInt(BigInt(timeUnits.mo))),
+          "Invalid rate literal (per-month) match",
+        ],
+        [
+          { ...node(50, undefined, "s"), perTime: true },
+          toNum(50),
+          "Invalid rate literal (per-second) match",
+        ],
       ];
 
       await runInterpreterCases(cases, getClient);

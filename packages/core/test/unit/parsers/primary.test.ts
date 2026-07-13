@@ -170,6 +170,12 @@ describe("Parsers - primary", () => {
           ["-1e18", node(-1, 18)],
           ["-0.5eth", node(-0.5, 18, undefined, "-0.5eth")],
           ["-50s", node(-50, undefined, "s")],
+          [
+            "1000e18/mo",
+            { ...node(1000, 18, "mo", "1000e18/mo"), perTime: true },
+          ],
+          ["50/s", { ...node(50, undefined, "s", "50/s"), perTime: true }],
+          ["0.5eth/d", { ...node(0.5, 18, "d", "0.5eth/d"), perTime: true }],
         ];
 
         runCases(cases, numberParser());
@@ -206,6 +212,15 @@ describe("Parsers - primary", () => {
           "123.45e13w34",
           errorType,
           "Invalid time unit. Valid units: s, m, h, d, w, mo, y (e.g. 30m, 2d)",
+        );
+      });
+
+      it("should fail when a rate literal has no time unit after the slash", () => {
+        runErrorCase(
+          numberParser(),
+          "1000e18/x",
+          errorType,
+          'Invalid rate: expected a time unit after "/" (e.g. 1000e18/mo)',
         );
       });
     });

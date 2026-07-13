@@ -340,7 +340,8 @@ function interpretLiteral(n: LiteralExpressionNode): unknown {
       if (n.power) {
         r = r.mul(Num(10n ** BigInt(n.power), 1n));
       }
-      r = r.mul(Num.fromBigInt(BigInt(timeUnits[n.timeUnit ?? "s"])));
+      const seconds = Num.fromBigInt(BigInt(timeUnits[n.timeUnit ?? "s"]));
+      r = n.perTime ? r.div(seconds) : r.mul(seconds);
       return r;
     }
     default:

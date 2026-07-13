@@ -73,6 +73,8 @@ export interface NumericLiteralNode extends Node {
   value: string;
   power?: number;
   timeUnit?: string;
+  /** Rate literal (`1000e18/mo`): divide by the time unit instead of multiplying. */
+  perTime?: boolean;
 }
 
 export interface ArrayExpressionNode extends Node {

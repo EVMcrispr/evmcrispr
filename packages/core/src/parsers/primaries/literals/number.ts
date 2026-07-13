@@ -75,7 +75,22 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         power = parseInt(powerStr, 10);
       }
 
-      const timeUnit: string | null = run(possibly(timeUnitsParser));
+      let perTime = false;
+      let timeUnit: string | null;
+      if (run(possibly(char("/")))) {
+        perTime = true;
+        timeUnit = run(
+          timeUnitsParser.errorMap((err) =>
+            buildParserError(
+              err,
+              NUMBER_PARSER_ERROR,
+              'Invalid rate: expected a time unit after "/" (e.g. 1000e18/mo)',
+            ),
+          ),
+        );
+      } else {
+        timeUnit = run(possibly(timeUnitsParser));
+      }
 
       run(
         enclosingLookaheadParser(enclosingParsers).errorMap((err) =>
@@ -87,9 +102,13 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         ),
       );
 
-      return [value, power, timeUnit];
+      return [value, power, timeUnit, perTime];
     }),
-    ({ data, index, result: [initialContext, [value, power, timeUnit]] }) => {
+    ({
+      data,
+      index,
+      result: [initialContext, [value, power, timeUnit, perTime]],
+    }) => {
       return {
         type: NodeType.NumberLiteral,
         value: value as NumericLiteralNode["value"],
@@ -99,6 +118,7 @@ export const numberParser: EnclosingNodeParser<NumericLiteralNode> = (
         ...(timeUnit
           ? { timeUnit: timeUnit as NumericLiteralNode["timeUnit"] }
           : {}),
+        ...(perTime ? { perTime: true } : {}),
         loc: createNodeLocation(initialContext, {
           line: data.line,
           index,
