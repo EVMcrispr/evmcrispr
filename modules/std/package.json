@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-std",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Standard module for EVMcrispr",
+  "description": "The standard module is loaded by default. It provides core language constructs, contract interaction, control flow, and data manipulation.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

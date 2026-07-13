@@ -1,31 +1,14 @@
 import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { MODULE_NAMES } from "@evmcrispr/modules";
 
 // Bundled docs (exists after `prebuild` or in published npm package)
 const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
 // Monorepo root (fallback for local dev without building)
 const MONOREPO_ROOT = resolve(import.meta.dirname, "../../../..");
 
-// Keep in sync with the canonical list in scripts/generate-docs.ts
-export const MODULES = [
-  "std",
-  "lang",
-  "sim",
-  "assertions",
-  "aragonos",
-  "ens",
-  "giveth",
-  "http",
-  "safe",
-  "token",
-  "access-control",
-  "governor",
-  "proxies",
-  "swaps",
-  "bridges",
-  "lending",
-];
+export const MODULES: string[] = [...MODULE_NAMES];
 
 let fullDocsCache: string | null = null;
 const moduleDocsCache = new Map<string, string>();

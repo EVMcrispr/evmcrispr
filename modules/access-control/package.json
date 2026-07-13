@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-access-control",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "OpenZeppelin access control: Ownable ownership, AccessControl and AccessManager roles.",
+  "description": "Access control operations: Ownable ownership, AccessControl and AccessManager roles.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

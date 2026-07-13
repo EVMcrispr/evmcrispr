@@ -36,6 +36,10 @@ general smart contract interaction. Scripts run in a web terminal
 
 - **Add a command**: create `modules/<mod>/src/commands/<name>.ts`, run build
 - **Add a helper**: create `modules/<mod>/src/helpers/<name>.ts`, run build
+- **Add a module**: create `modules/<name>/` (copy an existing module as a
+  template; the package.json `description` doubles as the docs overview),
+  then `bun run sync-modules && bun install`. Everything else (CLI, MCP,
+  terminal reference panel, test registration, docs) auto-discovers it.
 - **Regenerate codegen**: `bun packages/sdk/scripts/codegen.ts` (from module dir)
 - **Regenerate docs**: `bun run scripts/generate-docs.ts`
 - **Run tests**: `bun test:unit` / `bun test:integration` (needs anvil)

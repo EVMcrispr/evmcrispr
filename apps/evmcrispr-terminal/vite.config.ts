@@ -22,7 +22,7 @@ function evmcrisprModules(modulesDir: string): Plugin {
   const aliases: Alias[] = [];
   const registrations: string[] = [];
 
-  for (const dir of readdirSync(modulesDir)) {
+  for (const dir of readdirSync(modulesDir).sort()) {
     const pkgPath = path.resolve(modulesDir, dir, "package.json");
     if (!existsSync(pkgPath)) continue;
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
@@ -103,6 +103,10 @@ export default defineConfig({
       "@evmcrispr/core": path.resolve(
         __dirname,
         "../../packages/core/src/index.ts",
+      ),
+      "@evmcrispr/modules/order": path.resolve(
+        __dirname,
+        "../../packages/modules/src/order.ts",
       ),
       "@evmcrispr/sdk": path.resolve(
         __dirname,

@@ -5,7 +5,7 @@ const USAGE = `Usage: evmcrispr <command> [options]
 
 Commands:
   simulate <file>                        Simulate an EVML script
-  validate <file>                        Validate an EVML script (parse only)
+  validate <file>                        Validate an EVML script (offline, no RPC)
   create-link <title> <file> [base-url]  Pin script to IPFS and print a shareable link
 
 Environment:

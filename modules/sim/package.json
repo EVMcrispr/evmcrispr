@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-sim",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Fork a chain locally, simulate transactions, set balances, and assert outcomes.",
+  "description": "Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, or EthereumJS backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

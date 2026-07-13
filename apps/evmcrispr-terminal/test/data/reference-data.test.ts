@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import {
-  referenceEntries,
-  resolveDocLinkEntry,
-} from "../../src/data/reference-data";
+import { resolveDocLinkEntry as resolve } from "../../src/data/reference-core";
+import { loadReferenceEntries } from "../utils/reference-entries";
+
+const referenceEntries = await loadReferenceEntries();
+
+const resolveDocLinkEntry = (href: string, currentModule?: string) =>
+  resolve(referenceEntries, href, currentModule);
 
 describe("resolveDocLinkEntry", () => {
   test("resolves a same-module relative helper link", () => {

@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-lang",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Language utilities module for EVMcrispr",
+  "description": "Language primitives: string, number, bytes, array, and boolean helpers for data manipulation. Requires `load lang` (import the helpers you use, e.g. `load lang [@map @filter]`, or qualify them as `@lang:map`).",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-swaps",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Token swaps across DEXes and aggregators: exact-in/exact-out swaps with auto-approval, wrap/unwrap, quotes and prices.",
+  "description": "Token swaps across DEXes: exact-in and exact-out swaps with automatic approvals, wrap/unwrap, quotes and prices, and venue selection via --using.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

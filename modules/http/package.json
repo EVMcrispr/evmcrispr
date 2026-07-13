@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-http",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "HTTP and JSON helpers for EVMcrispr.",
+  "description": "HTTP and JSON helpers: fetch URLs, parse JSON, and construct JSON strings.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,

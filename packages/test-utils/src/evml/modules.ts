@@ -1,33 +1,30 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { evml } from "@evmcrispr/core";
 
-const loadModule = (moduleName: string) => import(moduleName);
+const MODULES_DIR = resolve(import.meta.dirname, "../../../../modules");
+const PREFIX = "@evmcrispr/module-";
+
+// Dynamic-string import: resolves at load time without declaring the modules
+// as dependencies (which would create a turbo cycle — modules depend on
+// test-utils for their tests).
+const loadModule = (pkgName: string) => import(pkgName);
 
 /**
- * Register all available EVMcrispr modules on the shared `evml` tag.
- * Call once per test setup file.
+ * Register all modules discovered in the monorepo's modules/ directory on
+ * the shared `evml` tag. Call once per test setup file.
  */
 export function registerAllModules(): void {
-  evml.use(
-    { name: "aragonos", load: () => loadModule("@evmcrispr/module-aragonos") },
-    { name: "sim", load: () => loadModule("@evmcrispr/module-sim") },
-    { name: "giveth", load: () => loadModule("@evmcrispr/module-giveth") },
-    { name: "ens", load: () => loadModule("@evmcrispr/module-ens") },
-    { name: "token", load: () => loadModule("@evmcrispr/module-token") },
-    {
-      name: "access-control",
-      load: () => loadModule("@evmcrispr/module-access-control"),
-    },
-    { name: "governor", load: () => loadModule("@evmcrispr/module-governor") },
-    { name: "proxies", load: () => loadModule("@evmcrispr/module-proxies") },
-    { name: "http", load: () => loadModule("@evmcrispr/module-http") },
-    { name: "safe", load: () => loadModule("@evmcrispr/module-safe") },
-    { name: "swaps", load: () => loadModule("@evmcrispr/module-swaps") },
-    { name: "bridges", load: () => loadModule("@evmcrispr/module-bridges") },
-    { name: "lending", load: () => loadModule("@evmcrispr/module-lending") },
-    { name: "lang", load: () => loadModule("@evmcrispr/module-lang") },
-    {
-      name: "assertions",
-      load: () => loadModule("@evmcrispr/module-assertions"),
-    },
-  );
+  const entries = [];
+  for (const dir of readdirSync(MODULES_DIR)) {
+    const pkgPath = join(MODULES_DIR, dir, "package.json");
+    if (!existsSync(pkgPath)) continue;
+    const pkgName = JSON.parse(readFileSync(pkgPath, "utf-8")).name as string;
+    if (!pkgName?.startsWith(PREFIX)) continue;
+    const name = pkgName.slice(PREFIX.length);
+    // std is always loaded by @evmcrispr/core
+    if (name === "std") continue;
+    entries.push({ name, load: () => loadModule(pkgName) });
+  }
+  evml.use(...entries);
 }

@@ -16,6 +16,7 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { sortModuleNames } from "../packages/modules/src/order";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -28,135 +29,25 @@ interface ModuleInfo {
   overview: string;
 }
 
-const MODULES: ModuleInfo[] = [
-  {
-    name: "std",
-    prefix: "",
-    dir: join(ROOT, "modules/std"),
-    overview:
-      "The standard module is loaded by default. It provides core language constructs, " +
-      "contract interaction, control flow, and data manipulation.",
-  },
-  {
-    name: "aragonos",
-    prefix: "aragonos:",
-    dir: join(ROOT, "modules/aragonos"),
-    overview:
-      "Aragon DAO operations: connect to DAOs, manage permissions, install and upgrade apps.",
-  },
-  {
-    name: "sim",
-    prefix: "sim:",
-    dir: join(ROOT, "modules/sim"),
-    overview:
-      "Simulation module: fork chains and execute commands in a sandboxed environment " +
-      "using Anvil, Hardhat, Tenderly, or EthereumJS backends. Forks are multichain: " +
-      "`switch` moves between one fork per chain, and bridge transfers are auto-relayed " +
-      "to the destination fork.",
-  },
-  {
-    name: "ens",
-    prefix: "ens:",
-    dir: join(ROOT, "modules/ens"),
-    overview: "ENS domain operations: renewal and content hash encoding.",
-  },
-  {
-    name: "token",
-    prefix: "token:",
-    dir: join(ROOT, "modules/token"),
-    overview: "Token operations: mint, burn, and approvals.",
-  },
-  {
-    name: "access-control",
-    prefix: "access-control:",
-    dir: join(ROOT, "modules/access-control"),
-    overview:
-      "Access control operations: Ownable ownership, AccessControl and " +
-      "AccessManager roles.",
-  },
-  {
-    name: "governor",
-    prefix: "governor:",
-    dir: join(ROOT, "modules/governor"),
-    overview:
-      "Governance operations: Governor proposals, voting, vote delegation, " +
-      "and TimelockController scheduling.",
-  },
-  {
-    name: "proxies",
-    prefix: "proxies:",
-    dir: join(ROOT, "modules/proxies"),
-    overview:
-      "Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.",
-  },
-  {
-    name: "giveth",
-    prefix: "giveth:",
-    dir: join(ROOT, "modules/giveth"),
-    overview:
-      "Giveth protocol operations: donations, GIVbacks distribution, and project resolution.",
-  },
-  {
-    name: "safe",
-    prefix: "safe:",
-    dir: join(ROOT, "modules/safe"),
-    overview:
-      "Safe multisig operations: propose and execute transactions, manage owners and " +
-      "threshold, attach guards, and install Zodiac modules.",
-  },
-  {
-    name: "swaps",
-    prefix: "swaps:",
-    dir: join(ROOT, "modules/swaps"),
-    overview:
-      "Token swaps across DEXes: exact-in and exact-out swaps with automatic " +
-      "approvals, wrap/unwrap, quotes and prices, and venue selection via --using.",
-  },
-  {
-    name: "bridges",
-    prefix: "bridges:",
-    dir: join(ROOT, "modules/bridges"),
-    overview:
-      "Cross-chain bridging: send tokens to another chain over CCTP, Across, " +
-      "LayerZero, CCIP or the canonical bridge, with fees, transfer status and " +
-      "claims. Bridges auto-relay inside sim:fork, so a whole cross-chain " +
-      "script can be simulated end to end.",
-  },
-  {
-    name: "lending",
-    prefix: "lending:",
-    dir: join(ROOT, "modules/lending"),
-    overview:
-      "Lending markets: supply, withdraw, borrow and repay (with `max` sugar " +
-      "for dust-exact debt repayment) with automatic approvals, plus " +
-      "health-factor, APY, max-borrow and debt helpers. Protocol selection " +
-      "via --using (Aave v3, Spark, Compound v3).",
-  },
-  {
-    name: "http",
-    prefix: "http:",
-    dir: join(ROOT, "modules/http"),
-    overview:
-      "HTTP and JSON helpers: fetch URLs, parse JSON, and construct JSON strings.",
-  },
-  {
-    name: "lang",
-    prefix: "lang:",
-    dir: join(ROOT, "modules/lang"),
-    overview:
-      "Language primitives: string, number, bytes, array, and boolean helpers " +
-      "for data manipulation. Requires `load lang` (import the helpers you " +
-      "use, e.g. `load lang [@map @filter]`, or qualify them as `@lang:map`).",
-  },
-  {
-    name: "assertions",
-    prefix: "assertions:",
-    dir: join(ROOT, "modules/assertions"),
-    overview:
-      "On-chain assertions backed by the assertions.eth contract: verify view " +
-      "return values and chain state atomically. Requires `load assertions`.",
-  },
-];
+function discoverModules(): ModuleInfo[] {
+  const modulesRoot = join(ROOT, "modules");
+  const names = readdirSync(modulesRoot).filter((dir) =>
+    existsSync(join(modulesRoot, dir, "package.json")),
+  );
+  return sortModuleNames(names).map((name) => {
+    const pkg = JSON.parse(
+      readFileSync(join(modulesRoot, name, "package.json"), "utf-8"),
+    );
+    return {
+      name,
+      prefix: name === "std" ? "" : `${name}:`,
+      dir: join(modulesRoot, name),
+      overview: pkg.description ?? "",
+    };
+  });
+}
+
+const MODULES = discoverModules();
 
 // ── Types ────────────────────────────────────────────────────────────
 

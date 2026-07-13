@@ -26,25 +26,16 @@ import { createEvml } from "../packages/core/src";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
+const moduleNames = readdirSync(join(ROOT, "modules")).filter(
+  (dir) =>
+    dir !== "std" && existsSync(join(ROOT, "modules", dir, "src/index.ts")),
+);
+
 const evml = createEvml().use(
-  { name: "aragonos", load: () => import("../modules/aragonos/src") },
-  { name: "sim", load: () => import("../modules/sim/src") },
-  { name: "giveth", load: () => import("../modules/giveth/src") },
-  { name: "ens", load: () => import("../modules/ens/src") },
-  { name: "token", load: () => import("../modules/token/src") },
-  {
-    name: "access-control",
-    load: () => import("../modules/access-control/src"),
-  },
-  { name: "governor", load: () => import("../modules/governor/src") },
-  { name: "proxies", load: () => import("../modules/proxies/src") },
-  { name: "http", load: () => import("../modules/http/src") },
-  { name: "safe", load: () => import("../modules/safe/src") },
-  { name: "swaps", load: () => import("../modules/swaps/src") },
-  { name: "bridges", load: () => import("../modules/bridges/src") },
-  { name: "lending", load: () => import("../modules/lending/src") },
-  { name: "lang", load: () => import("../modules/lang/src") },
-  { name: "assertions", load: () => import("../modules/assertions/src") },
+  ...moduleNames.map((name) => ({
+    name,
+    load: () => import(join(ROOT, "modules", name, "src/index.ts")),
+  })),
 );
 
 // ── Collect doc files ────────────────────────────────────────────────
