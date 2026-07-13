@@ -1,0 +1,27 @@
+# vault module
+
+ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault — sDAI, Morpho (MetaMorpho), Yearn v3 and more.
+
+```evml
+load vault
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| [vault:deposit](src/commands/deposit.md) | Deposit an exact amount of the underlying asset into an ERC-4626 vault, approving the vault automatically when needed. Works with any 4626-compliant vault such as sDAI, Morpho or Yearn v3. |
+| [vault:mint](src/commands/mint.md) | Mint an exact amount of ERC-4626 vault shares, approving the vault for the required assets (previewMint, which rounds up) automatically when needed. |
+| [vault:redeem](src/commands/redeem.md) | Redeem an exact amount of ERC-4626 vault shares for the underlying asset. Pass `max` as the amount to redeem the full share balance. |
+| [vault:withdraw](src/commands/withdraw.md) | Withdraw an exact amount of the underlying asset from an ERC-4626 vault, burning the required shares. Pass `max` as the amount to withdraw everything available. |
+
+## Helpers
+
+| Helper | Returns | Description |
+|--------|---------|-------------|
+| [@vault:asset](src/helpers/asset.md) | `address` | Underlying asset token address of an ERC-4626 vault. |
+| [@vault:convertToAssets](src/helpers/convertToAssets.md) | `number` | Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset. |
+| [@vault:convertToShares](src/helpers/convertToShares.md) | `number` | Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token. |
+| [@vault:maxWithdraw](src/helpers/maxWithdraw.md) | `number` | Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset. |
+| [@vault:totalAssets](src/helpers/totalAssets.md) | `number` | Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset. |
+
