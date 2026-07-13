@@ -11,12 +11,12 @@ general smart contract interaction. Scripts run in a web terminal
 
 - `packages/core`: Parser, interpreter, AST, completions, hover docs
 - `packages/sdk`: Module SDK (`defineCommand`, `defineHelper`, `defineModule`)
-- `modules/std`: Default module (13 commands, 55 helpers) — always loaded
-- `modules/aragonos`: Aragon DAO operations (9 commands, 3 helpers)
-- `modules/sim`: Chain fork simulation — anvil, hardhat, tenderly, ethereumjs (6 commands)
-- `modules/ens`: ENS domain operations (1 command, 1 helper)
-- `modules/giveth`: Giveth protocol (4 commands, 1 helper)
-- `modules/http`: HTTP + JSON helpers (3 helpers)
+- `modules/std`: Default module — always loaded
+- `modules/aragonos`: Aragon DAO operations
+- `modules/sim`: Chain fork simulation — anvil, hardhat, tenderly, ethereumjs
+- `modules/ens`: ENS domain operations
+- `modules/giveth`: Giveth protocol
+- `modules/http`: HTTP + JSON helpers
 - `apps/evmcrispr-terminal`: React + Monaco + Wagmi terminal app
 - `apps/evmcrispr-website`: Astro landing page + docs
 
@@ -35,7 +35,9 @@ general smart contract interaction. Scripts run in a web terminal
 ## Common Tasks
 
 - **Add a command**: create `modules/<mod>/src/commands/<name>.ts`, run build
-- **Add a helper**: create `modules/<mod>/src/helpers/<name>.ts`, run build
+- **Add a helper**: create `modules/<mod>/src/helpers/<name>.ts`, run build.
+  Completion-test expectations derive automatically from `_generated.ts` via
+  `helperLabels` in test-utils — no lists to update.
 - **Add a module**: create `modules/<name>/` (copy an existing module as a
   template; the package.json `description` doubles as the docs overview),
   then `bun run sync-modules && bun install`. Everything else (CLI, MCP,

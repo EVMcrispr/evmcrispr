@@ -20,6 +20,7 @@
     "@ensdomains/content-hash": "^3.1.1"
   },
   "devDependencies": {
+    "@evmcrispr/module-std": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

@@ -25,6 +25,7 @@
     "@evmcrispr/module-aragonos": "workspace:*"
   },
   "devDependencies": {
+    "@evmcrispr/module-std": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

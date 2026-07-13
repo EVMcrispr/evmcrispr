@@ -1,14 +1,13 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-
-import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
-  expect,
-  STD_ADDRESS_HELPERS,
-  STD_ALL_HELPERS,
-  STD_NUMBER_HELPERS,
-} from "@evmcrispr/test-utils";
+  constants as stdConstants,
+  helpers as stdHelpers,
+} from "@evmcrispr/module-std";
+import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
+import { expect, helperLabels } from "@evmcrispr/test-utils";
 import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
+import { helpers as givethHelpers } from "../../src/_generated";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -188,20 +187,31 @@ describe("Completions – giveth helpers", () => {
   });
 
   // A loaded module offers its helpers qualified; the import list adds the
-  // unqualified spelling on top.
+  // unqualified spelling on top. Expected labels derive from each module's
+  // codegen data — adding a helper never requires updating a hand list.
+  const std = helperLabels(stdHelpers, { constants: stdConstants });
+  const gvQualified = helperLabels(givethHelpers, { module: "giveth" });
+  const gvUnqualified = helperLabels(givethHelpers);
   const ALL_HELPERS = [
-    ...STD_ALL_HELPERS,
-    "@projectAddr",
-    "@giveth:projectAddr",
+    ...std.all,
+    ...gvQualified.all,
+    ...gvUnqualified.all,
   ].sort();
   const ADDRESS_HELPERS = [
-    ...STD_ADDRESS_HELPERS,
-    "@projectAddr",
-    "@giveth:projectAddr",
+    ...std.address,
+    ...gvQualified.address,
+    ...gvUnqualified.address,
   ].sort();
-  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
+  const NUMBER_HELPERS = [
+    ...std.number,
+    ...gvQualified.number,
+    ...gvUnqualified.number,
+  ].sort();
 
-  const GIVETH = "load giveth [@projectAddr]\n";
+  // Import every giveth helper so the unqualified spellings exist.
+  const GIVETH = `load giveth [${Object.keys(givethHelpers)
+    .map((n) => `@${n}`)
+    .join(" ")}]\n`;
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering

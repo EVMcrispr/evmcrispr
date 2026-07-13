@@ -1,16 +1,13 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-
-import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
-  expect,
-  STD_ADDRESS_HELPERS,
-  STD_ALL_HELPERS,
-  STD_BYTES_HELPERS,
-  STD_BYTES32_HELPERS,
-  STD_NUMBER_HELPERS,
-} from "@evmcrispr/test-utils";
+  constants as stdConstants,
+  helpers as stdHelpers,
+} from "@evmcrispr/module-std";
+import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
+import { expect, helperLabels } from "@evmcrispr/test-utils";
 import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
+import { helpers as ensHelpers } from "../../src/_generated";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -106,31 +103,13 @@ describe("Completions – ens helpers", () => {
     evm = evml.workspace();
   });
 
-  const ENS_HELPERS = [
-    "@ens:cointype",
-    "@ens:cointype.decode",
-    "@ens:contenthash",
-    "@ens:addr",
-    "@ens:available",
-    "@ens:avatar",
-    "@ens:contenthash.of",
-    "@ens:expiry",
-    "@ens:fuses",
-    "@ens:fuses.decode",
-    "@ens:fuses.of",
-    "@ens:name",
-    "@ens:normalize",
-    "@ens:owner",
-    "@ens:rentPrice",
-    "@ens:resolver",
-    "@ens:text",
-    "@ens:labelhash",
-    "@ens:namehash",
-  ];
-  const ALL_HELPERS = [...STD_ALL_HELPERS, ...ENS_HELPERS].sort();
-  const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
-  const _BYTES32_HELPERS = STD_BYTES32_HELPERS;
-  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
+  // Expected labels derive from each module's codegen data — adding or
+  // removing a helper never requires updating a hand-written list.
+  const std = helperLabels(stdHelpers, { constants: stdConstants });
+  const ens = helperLabels(ensHelpers, { module: "ens" });
+  const ALL_HELPERS = [...std.all, ...ens.all].sort();
+  const ADDRESS_HELPERS = [...std.address, ...ens.address].sort();
+  const NUMBER_HELPERS = [...std.number, ...ens.number].sort();
 
   const ENS = "load ens\n";
 
@@ -153,7 +132,7 @@ describe("Completions – ens helpers", () => {
       const script = `${ENS}exec $c f(bytes) `;
       const items = await evm.getCompletions(script, pos(script, 2));
       const helperItems = onlyKind(items, "helper");
-      const BYTES_HELPERS = [...STD_BYTES_HELPERS, "@ens:contenthash"].sort();
+      const BYTES_HELPERS = [...std.bytes, ...ens.bytes].sort();
       for (const h of BYTES_HELPERS) {
         expect(hasLabel(helperItems, h)).to.be.true;
       }

@@ -11,16 +11,19 @@ export { decodeCallScript } from "./utils/evmscripts";
 // Re-export utils that are used by other modules
 export { batchForwarderActions } from "./utils/forwarders";
 
+export { commands, helpers };
+export const constants = {
+  ANY_ENTITY,
+  NO_ENTITY,
+  BURN_ENTITY,
+};
+
 export default class AragonOS extends defineModule(
   "aragonos",
   commands,
   helpers,
   types,
-  {
-    ANY_ENTITY,
-    NO_ENTITY,
-    BURN_ENTITY,
-  },
+  constants,
 ) {
   /** All DAOs ever connected (append-only). Used by getConnectedDAO and tests. */
   #connectedDAOs: DaoContext[];

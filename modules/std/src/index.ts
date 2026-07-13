@@ -4,9 +4,16 @@ import { zeroAddress } from "viem";
 import { commands, helpers } from "./_generated";
 import { types } from "./argTypes";
 
-export default class Std extends defineModule("std", commands, helpers, types, {
-  ZERO_ADDRESS: zeroAddress,
-}) {
+export { commands, helpers };
+export const constants = { ZERO_ADDRESS: zeroAddress };
+
+export default class Std extends defineModule(
+  "std",
+  commands,
+  helpers,
+  types,
+  constants,
+) {
   get modules(): Module[] {
     return this.context.modules;
   }

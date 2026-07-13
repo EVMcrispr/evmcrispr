@@ -1,17 +1,17 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-
-import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
 import {
-  expect,
-  getTransports,
-  STD_ADDRESS_HELPERS,
-  STD_ALL_HELPERS,
-  STD_BYTES32_HELPERS,
-  STD_NUMBER_HELPERS,
-} from "@evmcrispr/test-utils";
+  constants as stdConstants,
+  helpers as stdHelpers,
+} from "@evmcrispr/module-std";
+import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
+import { expect, getTransports, helperLabels } from "@evmcrispr/test-utils";
 import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
 import { gnosis } from "viem/chains";
+import {
+  constants as aragonosConstants,
+  helpers as aragonosHelpers,
+} from "../../src";
 import { DAO } from "../fixtures";
 
 // ---------------------------------------------------------------------------
@@ -440,33 +440,33 @@ describe("Completions – aragonos helpers", () => {
   });
 
   // Loaded modules expose their helpers/constants under qualified names;
-  // the load import list additionally exposes the imported ones unqualified.
-  const ARAGONOS_QUALIFIED_HELPERS = [
-    "@aragonos:app",
-    "@aragonos:aragonEns",
-    "@aragonos:nextApp",
-    "@aragonos:ANY_ENTITY",
-    "@aragonos:NO_ENTITY",
-    "@aragonos:BURN_ENTITY",
-  ];
+  // the load import list additionally exposes the imported ones unqualified
+  // (helpers only — constants are not imported below). Expected labels
+  // derive from each module's codegen data — adding a helper never requires
+  // updating a hand list.
+  const std = helperLabels(stdHelpers, { constants: stdConstants });
+  const arQualified = helperLabels(aragonosHelpers, {
+    module: "aragonos",
+    constants: aragonosConstants,
+  });
+  const arUnqualified = helperLabels(aragonosHelpers);
   const ALL_HELPERS = [
-    ...STD_ALL_HELPERS,
-    ...ARAGONOS_QUALIFIED_HELPERS,
-    "@app",
-    "@aragonEns",
-    "@nextApp",
+    ...std.all,
+    ...arQualified.all,
+    ...arUnqualified.all,
   ].sort();
   const ADDRESS_HELPERS = [
-    ...STD_ADDRESS_HELPERS,
-    "@app",
-    "@aragonEns",
-    "@nextApp",
+    ...std.address,
+    ...arQualified.address,
+    ...arUnqualified.address,
   ].sort();
-  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
-  const BYTES32_HELPERS = STD_BYTES32_HELPERS;
+  const NUMBER_HELPERS = [...std.number, ...arQualified.number].sort();
+  const BYTES32_HELPERS = [...std.bytes32, ...arQualified.bytes32].sort();
 
   // Prefix that loads aragonos module and imports its helpers unqualified
-  const AR = "load aragonos [@app @aragonEns @nextApp]\n";
+  const AR = `load aragonos [${Object.keys(aragonosHelpers)
+    .map((n) => `@${n}`)
+    .join(" ")}]\n`;
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering

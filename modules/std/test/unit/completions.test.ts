@@ -2,17 +2,10 @@ import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 
 import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
-import {
-  expect,
-  getTransports,
-  STD_ADDRESS_HELPERS,
-  STD_ALL_HELPERS,
-  STD_BOOL_HELPERS,
-  STD_BYTES_HELPERS,
-  STD_BYTES32_HELPERS,
-  STD_NUMBER_HELPERS,
-} from "@evmcrispr/test-utils";
+import { expect, getTransports, helperLabels } from "@evmcrispr/test-utils";
 import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
+import { constants as stdConstants } from "../../src";
+import { helpers as stdHelpers } from "../../src/_generated";
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -416,13 +409,14 @@ describe("Completions – std helpers", () => {
     evm = evml.with({ transports: getTransports() }).workspace();
   });
 
-  const ALL_HELPERS = STD_ALL_HELPERS;
+  const std = helperLabels(stdHelpers, { constants: stdConstants });
+  const ALL_HELPERS = std.all;
   const STRING_HELPERS = ALL_HELPERS.filter((h) => !["@bool"].includes(h));
-  const ADDRESS_HELPERS = STD_ADDRESS_HELPERS;
-  const NUMBER_HELPERS = STD_NUMBER_HELPERS;
-  const BOOL_HELPERS = STD_BOOL_HELPERS;
-  const BYTES32_HELPERS = STD_BYTES32_HELPERS;
-  const BYTES_HELPERS = STD_BYTES_HELPERS;
+  const ADDRESS_HELPERS = std.address;
+  const NUMBER_HELPERS = std.number;
+  const BOOL_HELPERS = std.bool;
+  const BYTES32_HELPERS = std.bytes32;
+  const BYTES_HELPERS = std.bytes;
 
   // -------------------------------------------------------------------------
   // Helpers as suggestions – type filtering
@@ -523,7 +517,7 @@ describe("Completions – std helpers", () => {
 
   describe("snippet metadata", () => {
     it("helpers with args should have isSnippet = true", async () => {
-      const NO_ARG_HELPERS = new Set(["@me", "@gas.price", "@ZERO_ADDRESS"]);
+      const NO_ARG_HELPERS = new Set(std.noArgs);
       const script = "print ";
       const items = await evm.getCompletions(script, pos(script));
       const helperItems = onlyKind(items, "helper");

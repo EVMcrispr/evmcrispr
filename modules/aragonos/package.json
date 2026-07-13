@@ -39,6 +39,7 @@
     "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@evmcrispr/module-std": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*",
     "is-ipfs": "^8.0.4"
   },
