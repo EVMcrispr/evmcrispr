@@ -123,6 +123,16 @@ const MODULES: ModuleInfo[] = [
       "script can be simulated end to end.",
   },
   {
+    name: "lending",
+    prefix: "lending:",
+    dir: join(ROOT, "modules/lending"),
+    overview:
+      "Lending markets: supply, withdraw, borrow and repay (with `max` sugar " +
+      "for dust-exact debt repayment) with automatic approvals, plus " +
+      "health-factor, APY, max-borrow and debt helpers. Protocol selection " +
+      "via --using (Aave v3, Spark, Compound v3).",
+  },
+  {
     name: "http",
     prefix: "http:",
     dir: join(ROOT, "modules/http"),

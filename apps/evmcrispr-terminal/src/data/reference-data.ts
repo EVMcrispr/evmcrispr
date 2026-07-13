@@ -29,6 +29,10 @@ import {
 import { helpers as httpHelpers } from "../../../../modules/http/src/_generated";
 import { helpers as langHelpers } from "../../../../modules/lang/src/_generated";
 import {
+  commands as lendingCommands,
+  helpers as lendingHelpers,
+} from "../../../../modules/lending/src/_generated";
+import {
   commands as proxiesCommands,
   helpers as proxiesHelpers,
 } from "../../../../modules/proxies/src/_generated";
@@ -98,6 +102,7 @@ const modules: ModuleDef[] = [
   { name: "safe", commands: safeCommands, helpers: safeHelpers },
   { name: "swaps", commands: swapsCommands, helpers: swapsHelpers },
   { name: "bridges", commands: bridgesCommands, helpers: bridgesHelpers },
+  { name: "lending", commands: lendingCommands, helpers: lendingHelpers },
   { name: "giveth", commands: givethCommands, helpers: givethHelpers },
   {
     name: "assertions",
@@ -162,6 +167,10 @@ const docImports: Record<
   bridges: (name, kind) =>
     import(
       `../../../../modules/bridges/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
+    ).then((m) => m.default),
+  lending: (name, kind) =>
+    import(
+      `../../../../modules/lending/src/${kind === "command" ? "commands" : "helpers"}/${name}.md?raw`
     ).then((m) => m.default),
   giveth: (name, kind) =>
     import(

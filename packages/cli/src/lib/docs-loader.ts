@@ -22,6 +22,9 @@ export const MODULES = [
   "access-control",
   "governor",
   "proxies",
+  "swaps",
+  "bridges",
+  "lending",
 ];
 
 let fullDocsCache: string | null = null;

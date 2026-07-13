@@ -42,6 +42,7 @@ const evml = createEvml().use(
   { name: "safe", load: () => import("../modules/safe/src") },
   { name: "swaps", load: () => import("../modules/swaps/src") },
   { name: "bridges", load: () => import("../modules/bridges/src") },
+  { name: "lending", load: () => import("../modules/lending/src") },
   { name: "lang", load: () => import("../modules/lang/src") },
   { name: "assertions", load: () => import("../modules/assertions/src") },
 );

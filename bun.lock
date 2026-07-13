@@ -252,6 +252,19 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/lending": {
+      "name": "@evmcrispr/module-lending",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/proxies": {
       "name": "@evmcrispr/module-proxies",
       "version": "0.1.0",
@@ -351,6 +364,7 @@
         "@evmcrispr/module-governor": "*",
         "@evmcrispr/module-http": "*",
         "@evmcrispr/module-lang": "*",
+        "@evmcrispr/module-lending": "*",
         "@evmcrispr/module-proxies": "*",
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
@@ -784,6 +798,8 @@
     "@evmcrispr/module-http": ["@evmcrispr/module-http@workspace:modules/http"],
 
     "@evmcrispr/module-lang": ["@evmcrispr/module-lang@workspace:modules/lang"],
+
+    "@evmcrispr/module-lending": ["@evmcrispr/module-lending@workspace:modules/lending"],
 
     "@evmcrispr/module-proxies": ["@evmcrispr/module-proxies@workspace:modules/proxies"],
 

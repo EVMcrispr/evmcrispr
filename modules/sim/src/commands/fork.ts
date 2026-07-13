@@ -473,6 +473,24 @@ export default defineCommand<Sim>({
 
         return withImpersonation(sender, async () => {
           const { publicClient, walletClient } = forkManager.active;
+          // The node estimates against the current timestamp, but mining
+          // advances it; time-dependent contracts (interest accrual...) can
+          // then consume more gas than estimated and die on an opaque inner
+          // out-of-gas. Estimate ourselves and add headroom.
+          let gas = action.gas;
+          if (gas === undefined) {
+            try {
+              const estimated = await publicClient.estimateGas({
+                account: sender as `0x${string}`,
+                to: action.to,
+                data: action.data,
+                value: action.value,
+              });
+              gas = (estimated * 125n) / 100n;
+            } catch {
+              // Let the node estimate and surface its own error instead.
+            }
+          }
           const tx = await walletClient!.request({
             method: "eth_sendTransaction",
             params: [
@@ -481,7 +499,7 @@ export default defineCommand<Sim>({
                 data: action.data,
                 from: sender,
                 value: toHex(action.value || 0n),
-                ...(action.gas !== undefined && { gas: toHex(action.gas) }),
+                ...(gas !== undefined && { gas: toHex(gas) }),
                 ...(action.maxFeePerGas !== undefined && {
                   maxFeePerGas: toHex(action.maxFeePerGas),
                 }),
