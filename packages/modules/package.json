@@ -37,6 +37,7 @@
     "@evmcrispr/module-safe": "*",
     "@evmcrispr/module-sim": "*",
     "@evmcrispr/module-std": "*",
+    "@evmcrispr/module-superfluid": "*",
     "@evmcrispr/module-swaps": "*",
     "@evmcrispr/module-token": "*",
     "@evmcrispr/module-vault": "*"

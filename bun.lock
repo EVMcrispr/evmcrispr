@@ -309,6 +309,19 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/superfluid": {
+      "name": "@evmcrispr/module-superfluid",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/swaps": {
       "name": "@evmcrispr/module-swaps",
       "version": "0.1.0",
@@ -440,6 +453,7 @@
         "@evmcrispr/module-safe": "*",
         "@evmcrispr/module-sim": "*",
         "@evmcrispr/module-std": "*",
+        "@evmcrispr/module-superfluid": "*",
         "@evmcrispr/module-swaps": "*",
         "@evmcrispr/module-token": "*",
         "@evmcrispr/module-vault": "*",
@@ -826,6 +840,8 @@
     "@evmcrispr/module-sim": ["@evmcrispr/module-sim@workspace:modules/sim"],
 
     "@evmcrispr/module-std": ["@evmcrispr/module-std@workspace:modules/std"],
+
+    "@evmcrispr/module-superfluid": ["@evmcrispr/module-superfluid@workspace:modules/superfluid"],
 
     "@evmcrispr/module-swaps": ["@evmcrispr/module-swaps@workspace:modules/swaps"],
 
