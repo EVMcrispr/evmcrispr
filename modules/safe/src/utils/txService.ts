@@ -148,6 +148,33 @@ export const getServiceTransaction = async (
 ): Promise<ServiceTransaction> =>
   serviceFetch(module, chainId, `/api/v1/multisig-transactions/${safeTxHash}/`);
 
+export const getServiceTransactionsByNonce = async (
+  module: Safe,
+  chainId: number,
+  safe: Address,
+  nonce: bigint,
+): Promise<ServiceTransaction[]> => {
+  const res = await serviceFetch(
+    module,
+    chainId,
+    `/api/v1/safes/${safe}/multisig-transactions/?nonce=${nonce}`,
+  );
+  return res?.results ?? [];
+};
+
+export const serviceTxToSafeTx = (serviceTx: ServiceTransaction): SafeTx => ({
+  to: serviceTx.to,
+  value: BigInt(serviceTx.value),
+  data: serviceTx.data ?? "0x",
+  operation: serviceTx.operation,
+  safeTxGas: BigInt(serviceTx.safeTxGas),
+  baseGas: BigInt(serviceTx.baseGas),
+  gasPrice: BigInt(serviceTx.gasPrice),
+  gasToken: serviceTx.gasToken,
+  refundReceiver: serviceTx.refundReceiver,
+  nonce: BigInt(serviceTx.nonce),
+});
+
 export const getQueueLink = (chainId: number, safe: Address): string =>
   `https://app.safe.global/transactions/queue?safe=${getChainShortName(
     chainId,

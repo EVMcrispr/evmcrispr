@@ -16,8 +16,27 @@ export const serviceState = {
 const BASE = "https://api.safe.global/tx-service/gno/api/v1";
 
 export const safeServiceHandlers = [
-  http.get(`${BASE}/safes/:safe/multisig-transactions/`, () =>
-    HttpResponse.json({ count: 0, results: [] }),
+  http.get(
+    `${BASE}/safes/:safe/multisig-transactions/`,
+    ({ request, params }) => {
+      const url = new URL(request.url);
+      let results = [...serviceState.transactions.values()].filter(
+        (t) => t.safe?.toLowerCase() === String(params.safe).toLowerCase(),
+      );
+      const nonce = url.searchParams.get("nonce");
+      if (nonce !== null) {
+        results = results.filter((t) => String(t.nonce) === nonce);
+      }
+      if (url.searchParams.get("executed") === "false") {
+        results = results.filter((t) => !t.isExecuted);
+      }
+      if (url.searchParams.get("ordering") === "-nonce") {
+        results.sort((a, b) => Number(b.nonce) - Number(a.nonce));
+      }
+      const limit = url.searchParams.get("limit");
+      if (limit) results = results.slice(0, Number(limit));
+      return HttpResponse.json({ count: results.length, results });
+    },
   ),
   http.post(
     `${BASE}/safes/:safe/multisig-transactions/`,

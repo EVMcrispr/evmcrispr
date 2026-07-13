@@ -26,6 +26,8 @@ load safe
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |
 | [safe:set-guard](src/commands/set-guard.md) | Set a transaction guard on the Safe: a contract that checks every transaction before and after execution (e.g. a Zodiac ScopeGuard). |
 | [safe:swap-owner](src/commands/swap-owner.md) | Replace an owner of the Safe with a new address. |
+| [safe:verify](src/commands/verify.md) | Recompute the EIP-712 domain, message and safeTxHash of a queued Safe transaction locally, check them against the Safe Transaction Service and flag dangerous fields, so signers can verify what their wallet displays. |
+| [safe:verify-message](src/commands/verify-message.md) | Compute the EIP-712 hashes of an off-chain Safe message (plain string or typed-data JSON) so signers can verify what their wallet displays. |
 
 ## Helpers
 
@@ -33,6 +35,7 @@ load safe
 |--------|---------|-------------|
 | [@safe:guard](src/helpers/guard.md) | `address` | Return the transaction guard address of a Safe (the zero address when no guard is set). |
 | [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Return whether an address is an owner of a Safe. |
+| [@safe:messageHash](src/helpers/messageHash.md) | `bytes32` | Return the SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib. |
 | [@safe:modules](src/helpers/modules.md) | `array` | Return the enabled module addresses of a Safe. |
 | [@safe:nonce](src/helpers/nonce.md) | `number` | Return the current on-chain nonce of a Safe. |
 | [@safe:owners](src/helpers/owners.md) | `array` | Return the owner addresses of a Safe. |

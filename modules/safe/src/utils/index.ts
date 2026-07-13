@@ -9,6 +9,7 @@ import { Num } from "@evmcrispr/sdk";
 import type Safe from "..";
 import { assertAllTransactionActions } from "./safeTx";
 
+export * from "./hashes";
 export * from "./multisend";
 export * from "./reads";
 export * from "./safeTx";

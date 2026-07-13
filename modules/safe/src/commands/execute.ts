@@ -2,16 +2,19 @@ import type { Address, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { isAddressEqual } from "viem";
 import type Safe from "..";
-import type { SafeTx } from "../utils";
 import {
   buildSafeTx,
+  collectSafeTxWarnings,
   encodeExecTransaction,
+  formatSafeTxHashesLog,
   getOwners,
   getSafeNonce,
+  getSafeTxHashes,
   getServiceTransaction,
   getThreshold,
   interpretSafeBlock,
   preValidatedSignature,
+  serviceTxToSafeTx,
 } from "../utils";
 
 export default defineCommand<Safe>({
@@ -36,6 +39,22 @@ export default defineCommand<Safe>({
     // Hash form: execute a queued transaction confirmed on the service.
     if (typeof proposal === "string") {
       const serviceTx = await getServiceTransaction(module, chainId, proposal);
+
+      if (!isAddressEqual(serviceTx.safe, safe)) {
+        throw new ErrorException(
+          `Safe transaction ${proposal} belongs to Safe ${serviceTx.safe}, not ${safe}`,
+        );
+      }
+
+      // Never trust the service's fields: they must hash back to the
+      // requested safeTxHash, or the signatures would cover different data.
+      const tx = serviceTxToSafeTx(serviceTx);
+      const hashes = getSafeTxHashes(chainId, safe, tx);
+      if (hashes.safeTxHash.toLowerCase() !== proposal.toLowerCase()) {
+        throw new ErrorException(
+          `the transaction data returned by the Safe Transaction Service hashes to ${hashes.safeTxHash}, not ${proposal}; refusing to execute possibly tampered data (note: only Safe >=1.3.0 is supported)`,
+        );
+      }
 
       if (serviceTx.isExecuted) {
         throw new ErrorException(
@@ -62,20 +81,17 @@ export default defineCommand<Safe>({
           "0x",
         );
 
-      const tx: SafeTx = {
-        to: serviceTx.to,
-        value: BigInt(serviceTx.value),
-        data: serviceTx.data ?? "0x",
-        operation: serviceTx.operation,
-        safeTxGas: BigInt(serviceTx.safeTxGas),
-        baseGas: BigInt(serviceTx.baseGas),
-        gasPrice: BigInt(serviceTx.gasPrice),
-        gasToken: serviceTx.gasToken,
-        refundReceiver: serviceTx.refundReceiver,
-        nonce: BigInt(serviceTx.nonce),
-      };
+      module.context.log(
+        formatSafeTxHashesLog(
+          safe,
+          chainId,
+          tx,
+          hashes,
+          collectSafeTxWarnings(tx),
+        ),
+      );
 
-      return [encodeExecTransaction(serviceTx.safe, tx, signatures)];
+      return [encodeExecTransaction(safe, tx, signatures)];
     }
 
     // Block form: build and execute directly with the sender's

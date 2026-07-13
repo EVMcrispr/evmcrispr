@@ -47,6 +47,35 @@ export const getSafeNonce = async (
 ): Promise<bigint> =>
   client.readContract({ address: safe, abi: safeAbi, functionName: "nonce" });
 
+export const getSafeVersion = async (
+  client: PublicClient,
+  safe: Address,
+): Promise<string> =>
+  client.readContract({ address: safe, abi: safeAbi, functionName: "VERSION" });
+
+/** Hash verification assumes the >=1.3.0 EIP-712 domain (chainId +
+ *  verifyingContract); older Safes would produce different hashes. */
+export const assertSafeVersion = async (
+  client: PublicClient,
+  safe: Address,
+): Promise<string> => {
+  let version: string;
+  try {
+    version = await getSafeVersion(client, safe);
+  } catch {
+    throw new ErrorException(
+      `${safe} does not look like a Safe contract (no VERSION())`,
+    );
+  }
+  const [major, minor] = version.split(".").map(Number);
+  if (!(major > 1 || (major === 1 && minor >= 3))) {
+    throw new ErrorException(
+      `Safe ${safe} is version ${version}; only Safe >=1.3.0 is supported (older versions use a chainId-less EIP-712 domain, so the computed hashes would not match)`,
+    );
+  }
+  return version;
+};
+
 export const getModules = async (
   client: PublicClient,
   safe: Address,

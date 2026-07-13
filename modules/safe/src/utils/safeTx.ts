@@ -79,33 +79,41 @@ export const buildSafeTx = (
   nonce,
 });
 
+/** EIP-712 domain of a Safe >=1.3.0 (older versions omit chainId). */
+export const SAFE_DOMAIN_TYPE = [
+  { name: "chainId", type: "uint256" },
+  { name: "verifyingContract", type: "address" },
+] as const;
+
+export const SAFE_TX_TYPE = [
+  { name: "to", type: "address" },
+  { name: "value", type: "uint256" },
+  { name: "data", type: "bytes" },
+  { name: "operation", type: "uint8" },
+  { name: "safeTxGas", type: "uint256" },
+  { name: "baseGas", type: "uint256" },
+  { name: "gasPrice", type: "uint256" },
+  { name: "gasToken", type: "address" },
+  { name: "refundReceiver", type: "address" },
+  { name: "nonce", type: "uint256" },
+] as const;
+
+export const getSafeDomain = (chainId: number, safe: Address) =>
+  ({ chainId: BigInt(chainId), verifyingContract: safe }) as const;
+
 export const getSafeTxTypedData = (
   chainId: number,
   safe: Address,
   tx: SafeTx,
 ) =>
   ({
-    domain: { chainId: BigInt(chainId), verifyingContract: safe },
+    domain: getSafeDomain(chainId, safe),
     types: {
       // Included explicitly because eth_signTypedData_v4 requires it in the
       // payload (viem's hashTypedData derives it from `domain` and allows
       // the redundant entry).
-      EIP712Domain: [
-        { name: "chainId", type: "uint256" },
-        { name: "verifyingContract", type: "address" },
-      ],
-      SafeTx: [
-        { name: "to", type: "address" },
-        { name: "value", type: "uint256" },
-        { name: "data", type: "bytes" },
-        { name: "operation", type: "uint8" },
-        { name: "safeTxGas", type: "uint256" },
-        { name: "baseGas", type: "uint256" },
-        { name: "gasPrice", type: "uint256" },
-        { name: "gasToken", type: "address" },
-        { name: "refundReceiver", type: "address" },
-        { name: "nonce", type: "uint256" },
-      ],
+      EIP712Domain: SAFE_DOMAIN_TYPE,
+      SafeTx: SAFE_TX_TYPE,
     },
     primaryType: "SafeTx" as const,
     message: { ...tx },

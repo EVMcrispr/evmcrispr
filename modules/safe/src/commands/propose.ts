@@ -3,10 +3,12 @@ import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Safe from "..";
 import {
   buildSafeTx,
+  collectSafeTxWarnings,
+  formatSafeTxHashesLog,
   getNextNonce,
   getQueueLink,
+  getSafeTxHashes,
   getSafeTxTypedData,
-  hashSafeTx,
   interpretSafeBlock,
   proposeTransaction,
   toBigInt,
@@ -72,8 +74,21 @@ export default defineCommand<Safe>({
         : await getNextNonce(module, client, chainId, safe);
 
     const tx = buildSafeTx(actions, nonce);
-    const safeTxHash = hashSafeTx(chainId, safe, tx);
+    const hashes = getSafeTxHashes(chainId, safe, tx);
+    const { safeTxHash } = hashes;
     const sender = await module.getConnectedAccount(true);
+
+    // Print the hashes before the wallet prompt so the signer can compare
+    // them against the hardware wallet display.
+    module.context.log(
+      formatSafeTxHashesLog(
+        safe,
+        chainId,
+        tx,
+        hashes,
+        collectSafeTxWarnings(tx),
+      ),
+    );
 
     const signature = (await actionCallback({
       type: "wallet",
