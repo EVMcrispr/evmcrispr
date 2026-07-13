@@ -17,6 +17,7 @@ const PACKAGES_WITH_INTEGRATION_TESTS = [
   "packages/sdk",
   "modules/std",
   "modules/aragonos",
+  "modules/aragonosx",
   "modules/giveth",
   "modules/sim",
   "modules/ens",

@@ -24,6 +24,7 @@
     "@evmcrispr/core": "*",
     "@evmcrispr/module-access-control": "*",
     "@evmcrispr/module-aragonos": "*",
+    "@evmcrispr/module-aragonosx": "*",
     "@evmcrispr/module-assertions": "*",
     "@evmcrispr/module-bridges": "*",
     "@evmcrispr/module-ens": "*",

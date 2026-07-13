@@ -133,6 +133,19 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/aragonosx": {
+      "name": "@evmcrispr/module-aragonosx",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/assertions": {
       "name": "@evmcrispr/module-assertions",
       "version": "0.1.0",
@@ -414,6 +427,7 @@
         "@evmcrispr/core": "*",
         "@evmcrispr/module-access-control": "*",
         "@evmcrispr/module-aragonos": "*",
+        "@evmcrispr/module-aragonosx": "*",
         "@evmcrispr/module-assertions": "*",
         "@evmcrispr/module-bridges": "*",
         "@evmcrispr/module-ens": "*",
@@ -786,6 +800,8 @@
     "@evmcrispr/module-access-control": ["@evmcrispr/module-access-control@workspace:modules/access-control"],
 
     "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
+
+    "@evmcrispr/module-aragonosx": ["@evmcrispr/module-aragonosx@workspace:modules/aragonosx"],
 
     "@evmcrispr/module-assertions": ["@evmcrispr/module-assertions@workspace:modules/assertions"],
 
