@@ -7,12 +7,13 @@ import {
 } from "@evmcrispr/sdk";
 import type Vault from "..";
 import { readVaultUint } from "../erc4626";
+import { isAsyncRedeemVault } from "../erc7540";
 import { parseAmountOrMax, rejectNative } from "../utils/amounts";
 
 export default defineCommand<Vault>({
   name: "withdraw",
   description:
-    "Withdraw an exact amount of the underlying asset from an ERC-4626 vault, burning the required shares. Pass `max` as the amount to withdraw everything available.",
+    "Withdraw an exact amount of the underlying asset from an ERC-4626 vault, burning the required shares. Pass `max` as the amount to withdraw everything available. For ERC-7540 asynchronous vaults use vault:request-redeem instead.",
   args: [
     {
       name: "assets",
@@ -44,6 +45,11 @@ export default defineCommand<Vault>({
       throw new ErrorException(`expected keyword "from", got "${from}"`);
     }
     rejectNative(vault);
+    if (await isAsyncRedeemVault(module, vault)) {
+      throw new ErrorException(
+        "this vault uses asynchronous redemptions (ERC-7540) — use vault:request-redeem / vault:claim-redeem",
+      );
+    }
     const parsed = parseAmountOrMax(assets);
     const owner = await module.getConnectedAccount(true);
     const receiver = opts.to ?? owner;

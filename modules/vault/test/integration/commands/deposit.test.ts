@@ -2,7 +2,13 @@ import "../../setup";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { decodeFunctionData, parseAbi } from "viem";
-import { SDAI, SOME_ADDRESS, WXDAI, ZERO_ADDRESS } from "../../fixtures";
+import {
+  CENTRIFUGE_JTRSY_VAULT,
+  SDAI,
+  SOME_ADDRESS,
+  WXDAI,
+  ZERO_ADDRESS,
+} from "../../fixtures";
 
 const vaultAbi = parseAbi([
   "function deposit(uint256 assets, address receiver) returns (uint256)",
@@ -107,6 +113,12 @@ sim:fork --using anvil (
       name: "should reject a wrong keyword",
       script: `vault:deposit 100e18 to ${SDAI}`,
       error: 'expected keyword "into"',
+    },
+    {
+      name: "should point to vault:request-deposit on ERC-7540 asynchronous vaults",
+      script: `switch mainnet
+vault:deposit 1000e6 into ${CENTRIFUGE_JTRSY_VAULT}`,
+      error: "use vault:request-deposit",
     },
   ],
   docCases: [

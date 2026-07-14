@@ -12,3 +12,15 @@ export const SOME_ADDRESS: Address =
 /** Steakhouse USDC MetaMorpho vault on Ethereum mainnet (docCases only). */
 export const STEAKHOUSE_USDC: Address =
   "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB";
+/**
+ * Centrifuge Janus Henderson Anemoy Treasury Fund (JTRSY) on Ethereum
+ * mainnet: a live ERC-7540 vault, asynchronous on both deposit and redeem.
+ */
+export const CENTRIFUGE_JTRSY_VAULT: Address =
+  "0xFE6920eB6C421f1179cA8c8d4170530CDBdfd77A";
+/** The JTRSY vault's external ERC-7575 share token. */
+export const JTRSY_SHARE: Address =
+  "0x8c213ee79581Ff4984583C6a801e5263418C4b86";
+/** USDC on Ethereum mainnet: the JTRSY vault's underlying asset(). */
+export const USDC_MAINNET: Address =
+  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";

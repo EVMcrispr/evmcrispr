@@ -2,7 +2,12 @@ import "../../setup";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { decodeFunctionData, parseAbi } from "viem";
-import { SDAI, SOME_ADDRESS, ZERO_ADDRESS } from "../../fixtures";
+import {
+  CENTRIFUGE_JTRSY_VAULT,
+  SDAI,
+  SOME_ADDRESS,
+  ZERO_ADDRESS,
+} from "../../fixtures";
 
 const vaultAbi = parseAbi([
   "function withdraw(uint256 assets, address receiver, address owner) returns (uint256)",
@@ -76,6 +81,12 @@ describeCommand("withdraw", {
       name: "should reject a wrong keyword",
       script: `vault:withdraw 50e18 of ${SDAI}`,
       error: 'expected keyword "from"',
+    },
+    {
+      name: "should point to vault:request-redeem on ERC-7540 asynchronous vaults",
+      script: `switch mainnet
+vault:withdraw 100e6 from ${CENTRIFUGE_JTRSY_VAULT}`,
+      error: "use vault:request-redeem",
     },
   ],
   docCases: [

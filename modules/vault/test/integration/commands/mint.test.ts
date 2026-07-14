@@ -2,7 +2,13 @@ import "../../setup";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { decodeFunctionData, parseAbi } from "viem";
-import { SDAI, SOME_ADDRESS, WXDAI, ZERO_ADDRESS } from "../../fixtures";
+import {
+  CENTRIFUGE_JTRSY_VAULT,
+  SDAI,
+  SOME_ADDRESS,
+  WXDAI,
+  ZERO_ADDRESS,
+} from "../../fixtures";
 
 const vaultAbi = parseAbi([
   "function mint(uint256 shares, address receiver) returns (uint256)",
@@ -97,6 +103,12 @@ describeCommand("mint", {
       name: "should reject a wrong keyword",
       script: `vault:mint 100e18 from ${SDAI}`,
       error: 'expected keyword "of"',
+    },
+    {
+      name: "should point to vault:request-deposit on ERC-7540 asynchronous vaults",
+      script: `switch mainnet
+vault:mint 1000e6 of ${CENTRIFUGE_JTRSY_VAULT}`,
+      error: "use vault:request-deposit",
     },
   ],
   docCases: [

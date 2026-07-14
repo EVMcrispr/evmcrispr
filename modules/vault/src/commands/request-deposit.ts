@@ -7,14 +7,14 @@ import {
 } from "@evmcrispr/sdk";
 import type Vault from "..";
 import { vaultAsset } from "../erc4626";
-import { isAsyncDepositVault } from "../erc7540";
+import { requireAsyncDeposit } from "../erc7540";
 import { parseAmount, rejectNative } from "../utils/amounts";
 import { withApproval } from "../utils/plan";
 
 export default defineCommand<Vault>({
-  name: "deposit",
+  name: "request-deposit",
   description:
-    "Deposit an exact amount of the underlying asset into an ERC-4626 vault, approving the vault automatically when needed. Works with any 4626-compliant vault such as sDAI, Morpho or Yearn v3. For ERC-7540 asynchronous vaults use vault:request-deposit instead.",
+    "Request a deposit into an ERC-7540 asynchronous vault, approving the vault automatically when needed. The assets are taken immediately; claim the shares with vault:claim-deposit once the request is fulfilled.",
   args: [
     {
       name: "assets",
@@ -26,15 +26,15 @@ export default defineCommand<Vault>({
     {
       name: "vault",
       type: "address",
-      description: "ERC-4626 vault address",
+      description: "ERC-7540 vault address",
     },
   ],
   opts: [
     {
-      name: "to",
+      name: "controller",
       type: "address",
       description:
-        "Receiver of the minted shares (defaults to the connected account)",
+        "Controller of the request, entitled to claim it (defaults to the connected account)",
     },
     {
       name: "no-approve",
@@ -50,19 +50,16 @@ export default defineCommand<Vault>({
       throw new ErrorException(`expected keyword "into", got "${into}"`);
     }
     rejectNative(vault);
-    if (await isAsyncDepositVault(module, vault)) {
-      throw new ErrorException(
-        "this vault uses asynchronous deposits (ERC-7540) — use vault:request-deposit / vault:claim-deposit",
-      );
-    }
     const amount = parseAmount(assets);
+    await requireAsyncDeposit(module, vault);
     const owner = await module.getConnectedAccount(true);
-    const receiver = opts.to ?? owner;
+    const controller = opts.controller ?? owner;
     const asset = await vaultAsset(module, vault);
-    const action = encodeAction(vault, "deposit(uint256,address)", [
-      Num.fromBigInt(amount),
-      receiver,
-    ]);
+    const action = encodeAction(
+      vault,
+      "requestDeposit(uint256,address,address)",
+      [Num.fromBigInt(amount), controller, owner],
+    );
     return withApproval(module, [action], asset, owner, vault, amount, opts);
   },
 });

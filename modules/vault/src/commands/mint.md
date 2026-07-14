@@ -2,7 +2,7 @@
 title: "vault:mint"
 ---
 
-Mint an exact amount of ERC-4626 vault shares, approving the vault for the required assets (previewMint, which rounds up) automatically when needed.
+Mint an exact amount of ERC-4626 vault shares, approving the vault for the required assets (previewMint, which rounds up) automatically when needed. For ERC-7540 asynchronous vaults use vault:request-deposit instead.
 
 ## Syntax
 
