@@ -7,11 +7,11 @@ describeCommand("donate", {
   skip: true,
   describeName: "Giveth > commands > donate <slug> <amount> <token>",
   module: "giveth",
-  preamble: "load giveth\nset $token.tokenlist https://tokens.honeyswap.org",
+  preamble: "load giveth\nset $std:tokenlist https://tokens.honeyswap.org",
   docCases: [
     {
       description: "Donate to a Giveth project",
-      code: `set $token.tokenlist https://tokens.honeyswap.org\ngiveth:donate evmcrispr @token.amount(HNY 1) @token(HNY)`,
+      code: `set $std:tokenlist https://tokens.honeyswap.org\ngiveth:donate evmcrispr @token.amount(HNY 1) @token(HNY)`,
     },
   ],
   cases: [
@@ -21,7 +21,7 @@ describeCommand("donate", {
       validate: async (result) => {
         const client = getPublicClient();
         const interpreter2 = createInterpreter(
-          `set $token.tokenlist https://tokens.honeyswap.org
+          `set $std:tokenlist https://tokens.honeyswap.org
         exec @token(HNY) approve(address,uint) ${givethDonationRelayer.get(
           100,
         )} 1e18

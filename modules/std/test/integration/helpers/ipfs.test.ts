@@ -10,7 +10,7 @@ describeHelper(
   {
     skip: !PINATA_JWT,
     describeName: "Std > helpers > @ipfs(text)",
-    preamble: PINATA_JWT ? `set $std:ipfs.jwt ${PINATA_JWT}` : undefined,
+    preamble: PINATA_JWT ? `set $std:ipfsJwt ${PINATA_JWT}` : undefined,
     cases: [
       {
         name: "should upload text to IPFS and return hash",
@@ -22,7 +22,7 @@ describeHelper(
       {
         description: "Upload text to IPFS",
         code: `set $cid @ipfs("hello world")`,
-        preamble: PINATA_JWT ? `set $std:ipfs.jwt ${PINATA_JWT}` : undefined,
+        preamble: PINATA_JWT ? `set $std:ipfsJwt ${PINATA_JWT}` : undefined,
       },
     ],
     sampleArgs: ["'This should be pinned in IPFS'"],
@@ -41,7 +41,7 @@ describeHelper("@ipfs", {
       error: (helperNode) =>
         new HelperFunctionError(
           helperNode,
-          "$std:ipfs.jwt is not defined. Go to pinata.cloud and obtain your API key, please",
+          "$std:ipfsJwt is not defined. Go to pinata.cloud and obtain your API key, please",
         ),
     },
   ],
@@ -50,7 +50,7 @@ describeHelper("@ipfs", {
 describeHelper("@ipfs", {
   skip: !PINATA_JWT,
   describeName: "Std > helpers > @ipfs(text) > error: invalid JWT",
-  preamble: 'set $std:ipfs.jwt "an invalid JWT"',
+  preamble: 'set $std:ipfsJwt "an invalid JWT"',
   skipArgLengthCheck: true,
   errorCases: [
     {

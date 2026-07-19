@@ -32,3 +32,24 @@ load aragonosx
 | [@aragonosx:plugin](src/helpers/plugin.md) | `address` | Resolve a plugin repo subdomain to its address within the connected DAO. |
 | [@aragonosx:repo](src/helpers/repo.md) | `address` | Resolve a plugin repo subdomain to its PluginRepo address. |
 
+## Configuration
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$aragonosx:daoFactory` | `address` | — | Override the OSx DAOFactory address. |
+| `$aragonosx:daoRegistry` | `address` | — | Override the OSx DAORegistry address. |
+| `$aragonosx:pluginSetupProcessor` | `address` | — | Override the OSx PluginSetupProcessor address. |
+| `$aragonosx:pluginSetupProcessorBlock` | `number` | — | Deployment block of the PluginSetupProcessor, used to bound event scans. |
+| `$aragonosx:pluginRepoFactory` | `address` | — | Override the OSx PluginRepoFactory address. |
+| `$aragonosx:pluginRepoRegistry` | `address` | — | Override the OSx PluginRepoRegistry address. |
+| `$aragonosx:managementDao` | `address` | — | Override the OSx management DAO address. |
+| `$aragonosx:daoEnsDomain` | `string` | — | Override the ENS domain DAO names are registered under. |
+| `$aragonosx:pluginEnsDomain` | `string` | — | Override the ENS domain plugin repos are registered under. |
+| `$aragonosx:subgraphUrl` | `string` | — | Override the OSx subgraph endpoint for the current chain. |
+| `$aragonosx:adminRepo` | `address` | — | Override the admin plugin repo address. |
+| `$aragonosx:multisigRepo` | `address` | — | Override the multisig plugin repo address. |
+| `$aragonosx:tokenVotingRepo` | `address` | — | Override the token-voting plugin repo address. |
+| `$aragonosx:stagedProposalProcessorRepo` | `address` | — | Override the staged-proposal-processor plugin repo address. |
+

@@ -60,6 +60,9 @@ export interface ArgDef {
   rest?: boolean;
   /** Human-readable description for documentation. */
   description?: string;
+  /** Allow a `variable`-typed arg to bind a config variable (`$mod:key`).
+   *  Only `set` declares this — config vars are set-only everywhere else. */
+  allowConfig?: boolean;
 }
 
 /**
@@ -104,6 +107,23 @@ export interface OptDef {
   type: ArgType;
   /** Human-readable description for documentation. */
   description?: string;
+}
+
+/**
+ * Declared module configuration variable, addressed as `$<module>:<name>`.
+ * Written only with `set`; read by the owning module via `getConfigBinding`.
+ * Declarations live in a module's `src/configs.ts` and must stay literal-only
+ * (docs generation parses them straight from source).
+ */
+export interface ConfigDef {
+  /** Key without the module prefix, e.g. `tokenlist`. Letters/digits only. */
+  name: string;
+  /** Builtin ArgType tag used to validate `set` values. */
+  type: ArgType;
+  /** Human-readable description for completions, hover and docs. */
+  description: string;
+  /** Default when unset. May contain a `{chainId}` placeholder. */
+  default?: string;
 }
 
 export function validateArgType(

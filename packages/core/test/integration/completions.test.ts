@@ -93,4 +93,53 @@ describe("Core > completions", () => {
       expect(result).to.be.an("array");
     });
   });
+
+  describe("config variable completions", () => {
+    it("offers declared configs of loaded modules in set's binding slot", async () => {
+      const script = "load coretest\nset ";
+      const items = await ctx.completions(script, { line: 2, col: 4 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.include("$std:tokenlist");
+      expect(labels).to.include("$coretest:endpoint");
+      // std declares them, so metadata rides along
+      const endpoint = items.find((c) => c.label === "$coretest:endpoint");
+      expect(endpoint?.detail).to.include("default: https://example.com");
+    });
+
+    it("does not offer configs of unloaded modules", async () => {
+      const script = "set ";
+      const items = await ctx.completions(script, { line: 1, col: 4 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.include("$std:tokenlist");
+      expect(labels).to.not.include("$coretest:endpoint");
+    });
+
+    it("offers config vars in read positions", async () => {
+      const script = "load coretest\nset $x ";
+      const items = await ctx.completions(script, { line: 2, col: 7 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.include("$coretest:endpoint");
+    });
+  });
+
+  describe("inline module completions", () => {
+    it("offers qualified spellings for inline module defs", async () => {
+      const script = `def module math (
+  def @double "$n: number -> number" @num($n * 2)
+  def show "$a: string" (
+    print $a
+  )
+)
+`;
+      const items = await ctx.completions(script, { line: 7, col: 0 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.include("math:show");
+      const helperItems = await ctx.completions(`${script}print `, {
+        line: 7,
+        col: 6,
+      });
+      const helperLabels = helperItems.map((c) => c.label);
+      expect(helperLabels).to.include("@math:double");
+    });
+  });
 });

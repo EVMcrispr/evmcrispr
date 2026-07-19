@@ -59,6 +59,6 @@ assertions:assert $gov::{paused()(bool)}
   standalone, the assertion is evaluated as a read-only `eth_call`.
 - Operators map to the contract functions by return type: `uint` supports
   `== != > < >= <= ~=`; `address`/`bool`/`bytes32` support `== !=`.
-- Set `$assertions.address` to override the resolved contract (forks / testing).
+- Set `$assertions:address` to override the resolved contract (forks / testing).
 
 ## See Also

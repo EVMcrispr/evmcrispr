@@ -7,6 +7,7 @@ import {
   parseImportList,
 } from "@evmcrispr/sdk";
 import type Std from "..";
+import { loadExternalEvmlModule } from "../utils/evmlModules";
 
 function resolveImportKind(
   mod: Module,
@@ -30,7 +31,8 @@ export default defineCommand<Std>({
     {
       name: "moduleName",
       type: "module",
-      description: "Module name (e.g. `aragonos`, `sim`)",
+      description:
+        "Module name (e.g. `aragonos`, `sim`); with --from, `name>alias` loads the module under a local alias",
     },
     {
       name: "imports",
@@ -40,19 +42,54 @@ export default defineCommand<Std>({
         "Import list: `[cmd cmd>renamed @helper @helper>@renamed]` — names usable without the module prefix",
     },
   ],
-  async run(module, { moduleName, imports }) {
+  opts: [
+    {
+      name: "from",
+      type: "string",
+      description:
+        "ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias)",
+    },
+  ],
+  async run(module, { moduleName: rawName, imports }, { opts, interpreters }) {
+    // `name>alias` renames an external module locally (only with --from —
+    // registry namespaces are never aliased).
+    const parts = String(rawName).split(">");
+    if (parts.length > 2 || parts.some((p) => !p.length)) {
+      throw new ErrorException(
+        `invalid module name "${rawName}" — expected name or name>alias`,
+      );
+    }
+    const [canonical, rename] = parts;
+    if (rename !== undefined && opts.from === undefined) {
+      throw new ErrorException(
+        `module renames (name>alias) are only supported with --from`,
+      );
+    }
+    const moduleName = rename ?? canonical;
+
     if (module.modules.find((m: any) => m.name === moduleName)) {
       throw new ErrorException(`module ${moduleName} already loaded`);
     }
 
-    let ModuleConstructor;
-    try {
-      ({ default: ModuleConstructor } =
-        await module.context.loadModule(moduleName));
-    } catch (_e) {
-      throw new ErrorException(`module ${moduleName} not found`);
+    let instance: Module;
+    if (opts.from !== undefined) {
+      instance = await loadExternalEvmlModule(
+        module,
+        canonical,
+        moduleName,
+        String(opts.from),
+        interpreters,
+      );
+    } else {
+      let ModuleConstructor;
+      try {
+        ({ default: ModuleConstructor } =
+          await module.context.loadModule(moduleName));
+      } catch (_e) {
+        throw new ErrorException(`module ${moduleName} not found`);
+      }
+      instance = new ModuleConstructor(module.context);
     }
-    const instance = new ModuleConstructor(module.context);
 
     if (imports !== undefined) {
       if (imports.type !== NodeType.ArrayExpression) {
@@ -117,6 +154,15 @@ export default defineCommand<Std>({
         );
       }
     }
+
+    // Publish the module's metadata so config-variable resolution (and any
+    // other MODULE-space consumer) works at execution time, mirroring std.
+    module.bindingsManager.setBinding(
+      moduleName,
+      instance.toModuleData(),
+      BindingsSpace.MODULE,
+      true,
+    );
 
     module.context.modules.push(instance);
   },

@@ -10,10 +10,12 @@ import type {
   HelperFunctionNode,
   HelperFunctions,
   ModuleContext,
+  ModuleData,
   NodesInterpreters,
 } from "./types";
 import { BindingsSpace, resolveCommand, resolveHelper } from "./types";
-import type { ArgType, CustomArgTypes } from "./utils/schema";
+import { substituteConfigDefault } from "./utils/configVars";
+import type { ArgType, ConfigDef, CustomArgTypes } from "./utils/schema";
 
 export abstract class Module {
   readonly name: string;
@@ -27,6 +29,7 @@ export abstract class Module {
   readonly constants: Record<string, string>;
   readonly types: CustomArgTypes;
   readonly context: ModuleContext;
+  readonly configs: ConfigDef[];
 
   constructor(
     name: string,
@@ -40,6 +43,7 @@ export abstract class Module {
     constants: Record<string, string>,
     types: CustomArgTypes,
     context: ModuleContext,
+    configs: ConfigDef[] = [],
   ) {
     this.name = name;
     this.commands = commands;
@@ -52,6 +56,7 @@ export abstract class Module {
     this.constants = constants;
     this.types = types;
     this.context = context;
+    this.configs = configs;
   }
 
   // --- Convenience accessors delegating to context ---
@@ -70,6 +75,23 @@ export abstract class Module {
 
   buildConfigVar(name: string): string {
     return `$${this.name}:${name}`;
+  }
+
+  /** Snapshot of this module's metadata for MODULE-space bindings (editor
+   *  cache and runtime config resolution). */
+  toModuleData(): ModuleData {
+    return {
+      commands: this.commands,
+      helpers: this.helpers,
+      helperReturnTypes: this.helperReturnTypes,
+      helperHasArgs: this.helperHasArgs,
+      helperArgDefs: this.helperArgDefs,
+      helperDescriptions: this.helperDescriptions,
+      commandDescriptions: this.commandDescriptions,
+      constants: this.constants,
+      types: this.types,
+      configs: this.configs,
+    };
   }
 
   async interpretCommand(
@@ -98,11 +120,24 @@ export abstract class Module {
     return helper(this, h, interpreters);
   }
 
-  getConfigBinding(name: string): any {
-    return this.bindingsManager.getBindingValue(
+  /** Read this module's own declared config variable: the `set` value if
+   *  present, otherwise the declared default (with `{chainId}`-style
+   *  placeholders substituted from `vars`). Throws on undeclared keys so
+   *  module-code typos surface immediately. */
+  getConfigBinding(name: string, vars?: Record<string, string | number>): any {
+    const def = this.configs.find((c) => c.name === name);
+    if (!def) {
+      throw new ErrorException(
+        `module ${this.name} declares no config variable "${name}" — declare it in src/configs.ts`,
+      );
+    }
+    const set = this.bindingsManager.getBindingValue(
       this.buildConfigVar(name),
       BindingsSpace.USER,
     );
+    if (set !== undefined && set !== null) return set;
+    if (def.default === undefined) return undefined;
+    return substituteConfigDefault(def.default, this.name, name, vars);
   }
 
   async getNonce(address: Address, chainId?: number): Promise<number> {

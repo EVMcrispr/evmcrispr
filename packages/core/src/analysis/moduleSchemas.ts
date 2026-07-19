@@ -1,5 +1,6 @@
 import type {
   BindingsManager,
+  ConfigDef,
   CustomArgTypes,
   HelperArgDefEntry,
   ICommand,
@@ -50,6 +51,43 @@ export class ModuleSchemaProvider {
   /** Whether a module is registered on the tag (available to `load`). */
   isRegistered(name: string): boolean {
     return this.#registered.has(name);
+  }
+
+  /** Whether a module is an opaque placeholder (external `--from` module
+   *  whose contents could not be fetched) — name/arity checks are
+   *  suppressed for it. */
+  isOpaque(name: string): boolean {
+    return !!this.#modules.get(name)?.opaque;
+  }
+
+  /** Register a script-derived module schema (inline `module` blocks and
+   *  `--from` placeholders). Never overwrites a real loaded schema; returns
+   *  false when the name is already taken by one. Synthetic/opaque entries
+   *  (e.g. seeded by the Workspace from the same script) may be replaced. */
+  addSyntheticModule(name: string, data: ModuleData): boolean {
+    const existing = this.#modules.get(name);
+    if (existing && !existing.synthetic && !existing.opaque) return false;
+    this.#modules.set(name, data);
+    return true;
+  }
+
+  /** Declared config variables of `moduleName` (empty when none/unknown). */
+  configDefs(moduleName: string): ConfigDef[] {
+    return this.#modules.get(moduleName)?.configs ?? [];
+  }
+
+  /** Whether `moduleName` declares config key `key`. */
+  hasConfig(moduleName: string, key: string): boolean {
+    return this.configDefs(moduleName).some((c) => c.name === key);
+  }
+
+  /** All loaded modules with declared configs, for near-miss suggestions. */
+  allDeclaredConfigs(): Map<string, ConfigDef[]> {
+    const out = new Map<string, ConfigDef[]>();
+    for (const [name, mod] of this.#modules) {
+      if (mod.configs?.length) out.set(name, mod.configs);
+    }
+    return out;
   }
 
   /** All module names registered on the tag (for suggestions). */

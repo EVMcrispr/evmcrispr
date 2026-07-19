@@ -188,13 +188,14 @@ export async function getDeployment(module: AragonOSx): Promise<OsxDeployment> {
   }
 
   const repoOverrides: Partial<Record<KnownRepo, Address>> = {};
-  for (const repo of [
-    "admin",
-    "multisig",
-    "token-voting",
-    "staged-proposal-processor",
-  ] as const) {
-    const value = module.getConfigBinding(`repo:${repo}`);
+  const repoConfigKeys = {
+    admin: "adminRepo",
+    multisig: "multisigRepo",
+    "token-voting": "tokenVotingRepo",
+    "staged-proposal-processor": "stagedProposalProcessorRepo",
+  } as const;
+  for (const repo of Object.keys(repoConfigKeys) as KnownRepo[]) {
+    const value = module.getConfigBinding(repoConfigKeys[repo]);
     if (value) repoOverrides[repo] = value as Address;
   }
 

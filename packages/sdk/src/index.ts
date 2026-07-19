@@ -1,4 +1,5 @@
 export { BindingsManager } from "./BindingsManager";
+export { EvmlModule } from "./EvmlModule";
 export type { ErrorOptions } from "./errors";
 export {
   CommandError,
@@ -52,6 +53,7 @@ export type {
   EnclosingNodeParser,
   ErrorCaptureNode,
   EventCaptureNode,
+  ExecutionOrigin,
   HelperArgDefEntry,
   HelperFunction,
   HelperFunctionNode,
@@ -107,6 +109,7 @@ export {
   NodeType,
   resolveCommand,
   resolveHelper,
+  USER_ORIGIN,
 } from "./types";
 export * from "./utils";
 export {

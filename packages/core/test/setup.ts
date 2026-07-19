@@ -17,7 +17,7 @@ import { evml } from "../src";
  * (`coretest-cmd`).
  */
 class CoreTestModule extends Module {
-  constructor(context: ModuleContext, alias?: string) {
+  constructor(context: ModuleContext) {
     super(
       "coretest",
       {
@@ -41,7 +41,24 @@ class CoreTestModule extends Module {
       {},
       {},
       context,
-      alias,
+      [
+        {
+          name: "serviceUrl",
+          type: "string",
+          description: "Stub config with no default.",
+        },
+        {
+          name: "endpoint",
+          type: "string",
+          description: "Stub config with a chain-dependent default.",
+          default: "https://example.com/{chainId}",
+        },
+        {
+          name: "target",
+          type: "address",
+          description: "Stub address-typed config.",
+        },
+      ],
     );
   }
 }
@@ -58,7 +75,30 @@ const contentToCid: Record<string, string> = {
     "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
 };
 
+// Served by the mocked IPFS gateway for `load --from` editor tests.
+export const remoteModuleFixture = {
+  cid: "QmCoreModuleFixture11111111111111111111111111",
+  content: `def module extlib (
+  def @twice "$n: number -> number" @num($n * 2)
+  def go "$a: string" (
+    print $a
+  )
+)`,
+};
+
 const coreHandlers = [
+  http.get(
+    "https://ipfs.blossom.software/ipfs/:cid",
+    ({ params }: { params: { cid: string } }) => {
+      if (params.cid === remoteModuleFixture.cid) {
+        return new HttpResponse(remoteModuleFixture.content, {
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+      // Unknown CIDs fail fast so --from degradation tests stay offline.
+      return new HttpResponse(null, { status: 404 });
+    },
+  ),
   http.get("https://api.evmcrispr.com/abi/:chainId/:address", ({ params }) => {
     const address = (params.address as string).toLowerCase();
     const data = blockscout[address as keyof typeof blockscout];

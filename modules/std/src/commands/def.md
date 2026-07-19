@@ -2,7 +2,7 @@
 title: "def"
 ---
 
-Define a user command or helper.
+Define a user command, helper, or module (`def module <name> ( ...defs )`).
 
 ## Syntax
 
@@ -37,6 +37,12 @@ set $result @isPositive(5)
 def @double "$n: number -> number" @num($n * 2)
 def @quadruple "$n: number -> number" @double(@double($n))
 set $result @quadruple(3)
+
+# Inline module - a def of defs, used as if the module was loaded
+def module math (
+  def @double "$n: number -> number" @num($n * 2)
+)
+set $result @math:double(21)
 ```
 
 <!-- HAND-WRITTEN -->
@@ -54,6 +60,14 @@ def @name "$param1: type $param2: type -> returnType" <expression>
 def commandName "$param1: type $param2: type" (
   ...
 )
+
+# Define an inline module (block may only contain defs)
+def module moduleName (
+  def @helperName "$n: type -> type" <expression>
+  def commandName "$param: type" (
+    ...
+  )
+)
 ```
 ## Notes
 
@@ -61,6 +75,24 @@ def commandName "$param1: type $param2: type" (
 - Parameters are prefixed with `$`, optional params wrapped in `[]`
 - Helpers defined inside blocks (e.g. `if`) are scoped to that block
 - Type inference: if the return type is omitted, it is inferred from the body
+
+## Modules
+
+`def module <name> ( ...defs )` groups defs into an inline module — using it
+is exactly like loading a module: its defs are available qualified as
+`name:cmd` and `@name:helper`, and never leak unqualified into the script.
+Inside the block, sibling defs resolve unqualified (shadowing same-named
+caller defs). Module defs run isolated: their `set` bindings are scope-local
+and they cannot read or write `$mod:key` config variables. `module` is a
+reserved def name — nested module definitions are not allowed.
+
+Module names shadow registered-but-unloaded modules (the editor warns, but
+the script still runs — so a name you pick today keeps working even if a
+future built-in module takes it). Only `std` is reserved, and defining a
+name that is actually loaded in the script is an error.
+
+A file containing exactly one `def module` command can be published to IPFS
+and loaded remotely — see [load](load.md#external-evml-modules---from).
 
 ## See Also
 

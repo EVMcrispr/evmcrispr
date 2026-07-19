@@ -7,7 +7,7 @@ The standard module is loaded by default. It provides core language constructs, 
 | Command | Description |
 |---------|-------------|
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
-| [def](src/commands/def.md) | Define a user command or helper. |
+| [def](src/commands/def.md) | Define a user command, helper, or module (`def module <name> ( ...defs )`). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [halt](src/commands/halt.md) | Stop script execution immediately. |
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
@@ -52,4 +52,13 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@token.format](src/helpers/token.format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
 | [@token.symbol](src/helpers/token.symbol.md) | `string` | Return the symbol of a token. |
 | [@token.totalSupply](src/helpers/token.totalSupply.md) | `number` | Fetch the total supply of a token in base units. |
+
+## Configuration
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$std:tokenlist` | `string` | `https://api.evmcrispr.com/tokenlist/{chainId}` | Tokenlist URL used to resolve token symbols (must be HTTPS). |
+| `$std:ipfsJwt` | `string` | — | Pinata JWT used by @ipfs to upload content. |
 

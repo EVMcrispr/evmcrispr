@@ -94,12 +94,14 @@ export class Interpreter {
     // Wire the unified interpreter. The ctx closes over `this`, so live
     // state (modules, client, ...) is read at call time — no rebuild
     // needed when modules load or chains switch.
+    const liveChainId = () => this.#chainId;
     const ctx: InterpretCtx = {
       bindings: this.bindingsManager,
-      // Execution mode never reads chainId/client from ctx (no helperCache);
-      // resolveCallExpression/resolveHelper read live state via closures.
+      // resolveCallExpression/resolveHelper read live state via closures;
+      // chainId is also live so config-var default templates substitute the
+      // active chain.
       get chainId() {
-        return 0;
+        return liveChainId();
       },
       get client() {
         return undefined;
@@ -142,17 +144,7 @@ export class Interpreter {
     return {
       type: BindingsSpace.MODULE,
       identifier: "std",
-      value: {
-        commands: this.#std.commands,
-        helpers: this.#std.helpers,
-        helperReturnTypes: this.#std.helperReturnTypes,
-        helperHasArgs: this.#std.helperHasArgs,
-        helperArgDefs: this.#std.helperArgDefs,
-        helperDescriptions: this.#std.helperDescriptions,
-        commandDescriptions: this.#std.commandDescriptions,
-        constants: this.#std.constants,
-        types: this.#std.types,
-      },
+      value: this.#std.toModuleData(),
     };
   }
 
@@ -178,6 +170,7 @@ export class Interpreter {
         return loader();
       },
       getAvailableModuleNames: () => this.registry.names(),
+      parseEvml: (script) => parseScript(script),
     };
   }
 

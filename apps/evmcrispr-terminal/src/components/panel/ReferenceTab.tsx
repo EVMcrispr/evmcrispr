@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
+  moduleConfigs,
   moduleNames,
   type ReferenceEntry,
   referenceEntries,
@@ -255,6 +256,32 @@ export function ReferenceTab() {
                 onClick={() => handleItemClick(e)}
               />
             ))}
+            {moduleConfigs.has(mod) &&
+              moduleConfigs.get(mod)!.map((c) => (
+                <div
+                  key={`${mod}-cfg-${c.name}`}
+                  className="px-3 py-2 leading-tight"
+                  title={
+                    c.default
+                      ? `${c.description} Default: ${c.default}`
+                      : c.description
+                  }
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-lg text-foreground truncate">
+                      ${mod}:{c.name}
+                    </span>
+                    <span className="text-sm text-evm-green-300">config</span>
+                    <span className="text-sm text-foreground/40">{c.type}</span>
+                    {mod !== "std" && (
+                      <span className="text-sm text-foreground/40">{mod}</span>
+                    )}
+                  </div>
+                  <p className="text-base text-foreground/60 truncate mt-0.5">
+                    {c.description}
+                  </p>
+                </div>
+              ))}
           </div>
         ))}
         {filteredEntries.length === 0 && (

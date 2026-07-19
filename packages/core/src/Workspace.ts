@@ -1,6 +1,7 @@
 import Std from "@evmcrispr/module-std";
 import type {
   Binding,
+  BlockExpressionNode,
   CommandExpressionNode,
   CompletionItem,
   HelperFunctionNode,
@@ -19,13 +20,17 @@ import {
   ErrorException,
   IPFSResolver,
   NodeType,
+  normalizeModuleSource,
   resolveHelper as resolveHelperFn,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
-import { getSemanticDiagnostics as getSemanticDiagnosticsImpl } from "./analysis";
+import {
+  getSemanticDiagnostics as getSemanticDiagnosticsImpl,
+  synthesizeModuleData,
+} from "./analysis";
 import {
   collectQualifiedModules,
   getAutoImportEdits as getAutoImportEditsImpl,
@@ -43,6 +48,7 @@ import {
   type DocumentSymbol,
   getDocumentSymbols as getDocumentSymbolsImpl,
 } from "./documentSymbols";
+import type { EvmlAST } from "./EvmlAST";
 import type { ModuleRegistry } from "./evml/registry";
 import type { EvmlConfig } from "./evml/types";
 import { getHoverInfo as getHoverInfoImpl, type HoverInfo } from "./hover";
@@ -82,6 +88,12 @@ export class EvmlWorkspace {
 
   /** Internal module cache for completions / keywords. */
   #moduleCache: BindingsManager;
+  /** Names currently bound from script-derived modules (inline `module`
+   *  blocks and `load --from` aliases) — refreshed per analysis call. */
+  #syntheticModuleNames = new Set<string>();
+  /** Fetched external module schemas keyed by CID (immutable → cached
+   *  forever; failures are never cached). */
+  #remoteModuleData = new Map<string, ModuleData>();
   /** USER bindings produced by the most recent `prewarm(script)` call. */
   #scriptBindings?: BindingsManager;
   /** Per-variable `(line, value)` history from the most recent
@@ -124,17 +136,7 @@ export class EvmlWorkspace {
     return {
       type: BindingsSpace.MODULE,
       identifier: "std",
-      value: {
-        commands: this.#std.commands,
-        helpers: this.#std.helpers,
-        helperReturnTypes: this.#std.helperReturnTypes,
-        helperHasArgs: this.#std.helperHasArgs,
-        helperArgDefs: this.#std.helperArgDefs,
-        helperDescriptions: this.#std.helperDescriptions,
-        commandDescriptions: this.#std.commandDescriptions,
-        constants: this.#std.constants,
-        types: this.#std.types,
-      },
+      value: this.#std.toModuleData(),
     };
   }
 
@@ -170,6 +172,7 @@ export class EvmlWorkspace {
         return loader();
       },
       getAvailableModuleNames: () => this.registry.names(),
+      parseEvml: (script) => parseScript(script),
     };
   }
 
@@ -183,7 +186,12 @@ export class EvmlWorkspace {
       const loadCommands = ast.getCommandsUntilLine(lines.length, ["load"]);
       return loadCommands
         .filter(
-          (c: CommandExpressionNode) => c.name === "load" && c.args[0]?.value,
+          (c: CommandExpressionNode) =>
+            c.name === "load" &&
+            c.args[0]?.value &&
+            // `--from` loads bind script-derived modules — the registry
+            // must not seed (and thereby shadow) those names.
+            !c.opts?.some((o) => o.name === "from"),
         )
         .map((c: CommandExpressionNode) => c.args[0].value as string);
     } catch {
@@ -195,10 +203,143 @@ export class EvmlWorkspace {
    * Populate the module cache with data for the given module names only.
    * Modules already in the cache are skipped.
    */
+  /** Refresh script-derived module schemas: inline `module` blocks
+   *  (synthesized from their def signatures) and `load <alias> --from`
+   *  externals (fetched by CID and cached forever — CIDs are immutable;
+   *  fetch failures bind an opaque placeholder and are NOT cached). Stale
+   *  synthetic names from earlier edits are nulled out. */
+  async #ensureScriptDerivedModules(script: string): Promise<void> {
+    let ast: EvmlAST;
+    try {
+      ({ ast } = parseScript(script));
+    } catch {
+      return;
+    }
+    const lines = script.split("\n");
+    const nodes = ast.getCommandsUntilLine(lines.length, ["load", "def"]);
+    const current = new Set<string>();
+
+    // Names the script binds via plain `load` — those keep the registry
+    // schema; every other script-derived name shadows the registry (local
+    // definitions win, so future built-ins never break existing scripts).
+    const plainLoaded = new Set<string>(
+      nodes
+        .filter(
+          (c) =>
+            c.name === "load" &&
+            c.args[0]?.value &&
+            !c.opts?.some((o) => o.name === "from"),
+        )
+        .map((c) => String(c.args[0].value)),
+    );
+
+    for (const c of nodes) {
+      if (
+        c.name === "def" &&
+        c.args[0]?.type === NodeType.Bareword &&
+        c.args[0].value === "module"
+      ) {
+        const nameArg = c.args[1];
+        const block = c.args.find((a) => a.type === NodeType.BlockExpression) as
+          | BlockExpressionNode
+          | undefined;
+        if (nameArg?.type !== NodeType.Bareword || !block) continue;
+        const name = nameArg.value as string;
+        if (plainLoaded.has(name)) continue;
+        current.add(name);
+        this.#moduleCache.setBinding(
+          name,
+          synthesizeModuleData(block),
+          BindingsSpace.MODULE,
+          false,
+          undefined,
+          true,
+        );
+        this.#syntheticModuleNames.add(name);
+      } else if (c.name === "load") {
+        const fromVal = c.opts?.find((o) => o.name === "from")?.value;
+        const aliasArg = c.args[0];
+        if (!fromVal || aliasArg?.type !== NodeType.Bareword) continue;
+        // `name>alias` renames bind under the alias.
+        const alias = String(aliasArg.value).split(">").pop() as string;
+        if (!alias) continue;
+        if (plainLoaded.has(alias)) continue;
+        current.add(alias);
+        const from = String((fromVal as any).value ?? "");
+        const cid = from.match(/^ipfs:\/\/([a-zA-Z0-9]+)$/)?.[1];
+        let data = cid ? this.#remoteModuleData.get(cid) : undefined;
+        if (!data && cid) {
+          data = await this.#fetchRemoteModule(cid);
+          if (data) this.#remoteModuleData.set(cid, data);
+        }
+        this.#moduleCache.setBinding(
+          alias,
+          data ?? { commands: {}, helpers: {}, opaque: true, synthetic: true },
+          BindingsSpace.MODULE,
+          false,
+          undefined,
+          true,
+        );
+        this.#syntheticModuleNames.add(alias);
+      }
+    }
+
+    for (const name of [...this.#syntheticModuleNames]) {
+      if (!current.has(name)) {
+        this.#moduleCache.setBinding(
+          name,
+          null,
+          BindingsSpace.MODULE,
+          false,
+          undefined,
+          true,
+        );
+        this.#syntheticModuleNames.delete(name);
+      }
+    }
+  }
+
+  /** Fetch + parse an external module file into a ModuleData schema.
+   *  Bounded by a timeout so headless validate never hangs; undefined on
+   *  any failure (offline, bad content, no module block). */
+  async #fetchRemoteModule(cid: string): Promise<ModuleData | undefined> {
+    try {
+      const raw = await Promise.race([
+        this.#ipfsResolver.text(cid),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 5_000),
+        ),
+      ]);
+      const source = normalizeModuleSource(raw);
+      const { ast } = parseScript(source);
+      const moduleNode = ast.body.find(
+        (n) =>
+          n?.type === NodeType.CommandExpression &&
+          n.name === "def" &&
+          n.args[0]?.type === NodeType.Bareword &&
+          n.args[0].value === "module",
+      );
+      const block = moduleNode?.args.find(
+        (a) => a.type === NodeType.BlockExpression,
+      ) as BlockExpressionNode | undefined;
+      if (!block) return undefined;
+      return synthesizeModuleData(block);
+    } catch {
+      return undefined;
+    }
+  }
+
   async #ensureModulesInCache(names: string[]): Promise<void> {
     const ctx = this.#createModuleContext();
     for (const name of names) {
-      if (this.#moduleCache.hasBinding(name, BindingsSpace.MODULE)) continue;
+      // Skip only when a real schema is cached: synthetic entries (from a
+      // previous edit's `def module` / `--from`) and nulled tombstones are
+      // replaced by the registry module now that the script plain-loads it.
+      const existing = this.#moduleCache.getBindingValue(
+        name,
+        BindingsSpace.MODULE,
+      );
+      if (existing && !existing.synthetic) continue;
       const loader = this.registry.get(name);
       if (!loader) continue;
       try {
@@ -206,19 +347,13 @@ export class EvmlWorkspace {
         const instance = new Ctor(ctx);
         this.#moduleCache.setBinding(
           name,
-          {
-            commands: instance.commands,
-            helpers: instance.helpers,
-            helperReturnTypes: instance.helperReturnTypes,
-            helperHasArgs: instance.helperHasArgs,
-            helperArgDefs: instance.helperArgDefs,
-            helperDescriptions: instance.helperDescriptions,
-            commandDescriptions: instance.commandDescriptions,
-            constants: instance.constants,
-            types: instance.types,
-          },
+          instance.toModuleData(),
           BindingsSpace.MODULE,
+          false,
+          undefined,
+          true,
         );
+        this.#syntheticModuleNames.delete(name);
       } catch {
         // Module failed to load — skip it
       }
@@ -318,6 +453,7 @@ export class EvmlWorkspace {
           return l();
         },
         getAvailableModuleNames: () => this.registry.names(),
+        parseEvml: (script) => parseScript(script),
       };
 
       const instance = new Ctor(ctx);
@@ -354,6 +490,7 @@ export class EvmlWorkspace {
     position: Position,
   ): Promise<CompletionItem[]> {
     await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+    await this.#ensureScriptDerivedModules(script);
 
     // Store the current list of available module names in the cache so
     // the `load` command can suggest them during autocompletion.
@@ -381,6 +518,7 @@ export class EvmlWorkspace {
     script: string,
   ): Promise<{ commands: string[]; helpers: string[] }> {
     await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+    await this.#ensureScriptDerivedModules(script);
     return getKeywordsImpl(script, this.#moduleCache);
   }
 
@@ -389,6 +527,7 @@ export class EvmlWorkspace {
     position: Position,
   ): Promise<HoverInfo | null> {
     await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+    await this.#ensureScriptDerivedModules(script);
     // Pair the chainId with the matching client so on-chain hover calls
     // (eth_getCode etc.) hit the same chain we report in the card. After a
     // `switch` in the script, `#scriptClient` points at the switched-to
@@ -421,6 +560,7 @@ export class EvmlWorkspace {
     const sequence = ++this.#prewarmSequence;
     try {
       await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+      await this.#ensureScriptDerivedModules(script);
       if (sequence !== this.#prewarmSequence) return;
 
       const {
@@ -467,6 +607,7 @@ export class EvmlWorkspace {
     position: Position,
   ): Promise<SignatureHelp | null> {
     await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+    await this.#ensureScriptDerivedModules(script);
     return getSignatureHelpImpl(script, position, this.#moduleCache);
   }
 
@@ -534,6 +675,7 @@ export class EvmlWorkspace {
     let semantic: ParseDiagnostic[] = [];
     try {
       await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
+      await this.#ensureScriptDerivedModules(script);
       semantic = await getSemanticDiagnosticsImpl(
         script,
         this.#moduleCache,

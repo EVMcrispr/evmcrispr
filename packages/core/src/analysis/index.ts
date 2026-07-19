@@ -9,6 +9,7 @@ import type {
   DestructureSlot,
   HelperFunctionNode,
   ICommand,
+  ModuleData,
   Node,
 } from "@evmcrispr/sdk";
 import {
@@ -16,7 +17,9 @@ import {
   computeCommandArity,
   isSpecialArgType,
   NodeType,
+  parseConfigVarName,
   parseImportList,
+  parseSignature,
   validateArgType,
 } from "@evmcrispr/sdk";
 
@@ -220,6 +223,87 @@ function isLoadCommand(c: CommandExpressionNode): boolean {
   return (c.module ?? "std") === "std" && c.name === "load";
 }
 
+/** `def module <name> ( ...defs )` — an inline EVML module definition. */
+function isModuleDef(c: CommandExpressionNode): boolean {
+  return (
+    isDefCommand(c) &&
+    c.args[0]?.type === NodeType.Bareword &&
+    c.args[0].value === "module"
+  );
+}
+
+function getFromOpt(c: CommandExpressionNode): Node | undefined {
+  return c.opts.find((o) => o.name === "from")?.value;
+}
+
+/** Split a load target `name` / `name>alias` into its parts (null when the
+ *  spelling is malformed). */
+function splitLoadTarget(
+  raw: string,
+): { canonical: string; alias?: string } | null {
+  const parts = raw.split(">");
+  if (parts.length > 2 || parts.some((p) => !p.length)) return null;
+  return { canonical: parts[0], alias: parts[1] };
+}
+
+const MODULE_NAME_RE = /^[a-zA-Z][a-zA-Z-]{0,62}$/;
+const IPFS_FROM_RE = /^ipfs:\/\/[a-zA-Z0-9]+$/;
+
+/** Barebones ICommand for a def inside a `module` block: enough for arity,
+ *  option and literal-type checks of `alias:cmd` call sites. */
+function defToCommandSchema(sig: string): ICommand | undefined {
+  try {
+    const { params, opts } = parseSignature(sig);
+    return { run: async () => [], argDefs: params, optDefs: opts };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Synthesize a ModuleData schema from an inline `module` block's defs so
+ *  qualified calls (`alias:cmd`, `@alias:helper`) validate like any loaded
+ *  module. Best-effort: malformed defs are skipped (they get their own
+ *  diagnostics in the check pass). Also used by the Workspace to seed the
+ *  editor cache for inline and external EVML modules. */
+export function synthesizeModuleData(block: BlockExpressionNode): ModuleData {
+  const data: ModuleData = {
+    commands: {},
+    helpers: {},
+    helperReturnTypes: {},
+    helperHasArgs: {},
+    helperArgDefs: {},
+    synthetic: true,
+  };
+  for (const node of block.body) {
+    if (!isDefCommand(node)) continue;
+    const nameNode = node.args[0];
+    const sigNode = node.args[1];
+    const sig =
+      sigNode?.type === NodeType.StringLiteral ? String(sigNode.value) : "";
+    if (nameNode?.type === NodeType.Bareword) {
+      const cmd = defToCommandSchema(sig);
+      if (cmd) data.commands[nameNode.value as string] = cmd;
+    } else if (nameNode?.type === NodeType.HelperFunctionExpression) {
+      const name = (nameNode as HelperFunctionNode).name;
+      try {
+        const { params, returnType } = parseSignature(sig);
+        data.helpers[name] = (async () => undefined) as any;
+        if (returnType) data.helperReturnTypes![name] = returnType;
+        data.helperHasArgs![name] = params.length > 0;
+        data.helperArgDefs![name] = params.map((p) => ({
+          name: p.name,
+          type: p.type,
+          ...(p.optional ? { optional: true } : {}),
+          ...(p.rest ? { rest: true } : {}),
+        }));
+      } catch {
+        // Malformed signature — diagnosed in the check pass.
+      }
+    }
+  }
+  return data;
+}
+
 function isVariableDef(type: ArgType): boolean {
   return Array.isArray(type) ? type.includes("variable") : type === "variable";
 }
@@ -241,6 +325,10 @@ interface AnalyzerMeta {
   defHelpers: Set<string>;
   /** every variable name defined anywhere in the script. */
   everDefined: Set<string>;
+  /** inline `module` names seen (for duplicate detection). */
+  inlineModules: Set<string>;
+  /** inline module names that collide with an already-loaded schema. */
+  collidingModules: Set<string>;
 }
 
 class SemanticAnalyzer {
@@ -255,6 +343,8 @@ class SemanticAnalyzer {
     defCommands: new Set(),
     defHelpers: new Set(),
     everDefined: new Set(),
+    inlineModules: new Set(),
+    collidingModules: new Set(),
   };
 
   constructor(schemas: ModuleSchemaProvider) {
@@ -272,9 +362,55 @@ class SemanticAnalyzer {
 
   async #collectMeta(body: CommandExpressionNode[]): Promise<void> {
     for (const c of body) {
+      // Inline `def module` blocks: synthesize a schema under the module
+      // name so qualified calls validate; don't descend (their defs are
+      // module-scoped, not script-level).
+      if (isModuleDef(c)) {
+        const nameNode = c.args[1];
+        const blockNode = c.args.find(
+          (a) => a.type === NodeType.BlockExpression,
+        ) as BlockExpressionNode | undefined;
+        if (nameNode?.type === NodeType.Bareword && blockNode) {
+          const name = nameNode.value as string;
+          if (this.#meta.inlineModules.has(name)) {
+            // duplicate — diagnosed in the check pass
+          } else if (
+            !this.#schemas.addSyntheticModule(
+              name,
+              synthesizeModuleData(blockNode),
+            )
+          ) {
+            this.#meta.collidingModules.add(name);
+          }
+          this.#meta.inlineModules.add(name);
+        }
+        continue;
+      }
+
       // Record `load m [imports]` bindings (validated in pass 2).
       if (isLoadCommand(c)) {
-        const moduleName = c.args[0]?.value as string | undefined;
+        // `load name[>alias] --from ipfs://…`: external module — without a
+        // fetched schema, register an opaque placeholder so qualified calls
+        // don't produce false diagnostics offline.
+        const fromVal = getFromOpt(c);
+        const targetNode = c.args[0];
+        if (fromVal && targetNode?.type === NodeType.Bareword) {
+          const target = splitLoadTarget(targetNode.value as string);
+          if (target) {
+            this.#schemas.addSyntheticModule(target.alias ?? target.canonical, {
+              commands: {},
+              helpers: {},
+              opaque: true,
+              synthetic: true,
+            });
+          }
+        }
+        const rawTarget = c.args[0]?.value as string | undefined;
+        const moduleName = rawTarget
+          ? (splitLoadTarget(rawTarget)?.alias ??
+            splitLoadTarget(rawTarget)?.canonical ??
+            rawTarget)
+          : undefined;
         const listNode = c.args[1];
         if (moduleName && listNode?.type === NodeType.ArrayExpression) {
           const { entries } = parseImportList(listNode as any);
@@ -355,6 +491,13 @@ class SemanticAnalyzer {
     batchStack: string[],
   ): Promise<void> {
     for (const c of body) {
+      // `def module` blocks get their own validation (and are NOT recursed
+      // into generically — their defs are module-scoped).
+      if (isModuleDef(c)) {
+        await this.#checkModuleCommand(c);
+        continue;
+      }
+
       // def bodies are opaque to the checker (params may be $vars or
       // @helpers we can't see) — validate the def name for import
       // collisions, nothing else.
@@ -364,6 +507,111 @@ class SemanticAnalyzer {
       }
 
       await this.#checkCommand(c, batchStack);
+    }
+  }
+
+  /** Validate a `def module <name> ( ... )` definition: name rules,
+   *  def-only block body and def signatures. */
+  async #checkModuleCommand(c: CommandExpressionNode): Promise<void> {
+    const cmd = await this.#resolveCommand(c);
+    if (cmd) {
+      this.#checkArity(c, cmd);
+      this.#checkOptions(c, cmd);
+    }
+
+    const nameNode = c.args[1];
+    if (nameNode?.type !== NodeType.Bareword) return;
+    const name = nameNode.value as string;
+
+    if (!MODULE_NAME_RE.test(name) || name.endsWith("-")) {
+      this.#diagnostics.push(
+        diag(
+          nameNode,
+          `Invalid module name "${name}" — use letters and dashes, starting with a letter.`,
+          "invalid-module-name",
+        ),
+      );
+    } else if (name === "std") {
+      this.#diagnostics.push(
+        diag(nameNode, `Module name "std" is reserved.`, "invalid-module-name"),
+      );
+    } else if (this.#meta.collidingModules.has(name)) {
+      this.#diagnostics.push(
+        diag(
+          nameNode,
+          `Module name "${name}" collides with a loaded module.`,
+          "module-name-collision",
+        ),
+      );
+    } else if (this.#schemas.isRegistered(name)) {
+      // Shadowing a registered-but-unloaded module is allowed (forwards
+      // compatibility: future built-ins must not break published scripts).
+      this.#diagnostics.push(
+        diag(
+          nameNode,
+          `Module "${name}" shadows the registered module of the same name — consider a different name.`,
+          "module-shadows-registered",
+          "warning",
+        ),
+      );
+    }
+
+    const blockNode = c.args.find((a) => a.type === NodeType.BlockExpression) as
+      | BlockExpressionNode
+      | undefined;
+    if (!blockNode) return;
+
+    const seenDefs = new Set<string>();
+    for (const node of blockNode.body) {
+      if (!isDefCommand(node)) {
+        this.#diagnostics.push(
+          diag(
+            node,
+            `Module blocks may only contain def commands (found "${node.module ? `${node.module}:` : ""}${node.name}").`,
+            "module-def-only",
+          ),
+        );
+        continue;
+      }
+      if (isModuleDef(node)) {
+        this.#diagnostics.push(
+          diag(
+            node,
+            `Nested module definitions are not allowed.`,
+            "module-def-only",
+          ),
+        );
+        continue;
+      }
+      const defName = node.args[0];
+      const key =
+        defName?.type === NodeType.Bareword
+          ? (defName.value as string)
+          : defName?.type === NodeType.HelperFunctionExpression
+            ? `@${(defName as HelperFunctionNode).name}`
+            : undefined;
+      if (key) {
+        if (seenDefs.has(key)) {
+          this.#diagnostics.push(
+            diag(
+              defName as Node,
+              `Duplicate def name ${key} in module ${name}.`,
+              "duplicate-def",
+            ),
+          );
+        }
+        seenDefs.add(key);
+      }
+      const sigNode = node.args[1];
+      if (sigNode?.type === NodeType.StringLiteral) {
+        try {
+          parseSignature(String(sigNode.value));
+        } catch (e: any) {
+          this.#diagnostics.push(
+            diag(sigNode, e.message, "invalid-def-signature"),
+          );
+        }
+      }
     }
   }
 
@@ -397,7 +645,9 @@ class SemanticAnalyzer {
   /** Validate a load command's import list: shape, unknown exports,
    *  duplicates, and collisions with `def` names. */
   #checkLoadImports(c: CommandExpressionNode): void {
-    const moduleName = c.args[0]?.value as string | undefined;
+    const rawTarget = c.args[0]?.value as string | undefined;
+    const target = rawTarget ? splitLoadTarget(rawTarget) : null;
+    const moduleName = target?.alias ?? target?.canonical ?? rawTarget;
     const listNode = c.args[1];
     if (!listNode) return;
 
@@ -418,7 +668,10 @@ class SemanticAnalyzer {
     }
 
     const seen = new Set<string>();
-    const moduleLoaded = !!moduleName && this.#schemas.isLoaded(moduleName);
+    const moduleLoaded =
+      !!moduleName &&
+      this.#schemas.isLoaded(moduleName) &&
+      !this.#schemas.isOpaque(moduleName);
 
     for (const entry of entries) {
       // Unknown export (only checkable when the module schema is available).
@@ -491,21 +744,66 @@ class SemanticAnalyzer {
     const owningModule = c.module ?? imported?.module ?? "std";
 
     // 0. `load <module>`: target must be registered; import list must be
-    //    well-formed and name real exports.
+    //    well-formed and name real exports. With `--from`, the first arg is
+    //    a local alias instead — validate the source URL, not the registry.
     if (isLoadCommand(c)) {
       const target = c.args[0];
-      const name = target?.value as string | undefined;
-      if (
+      const rawName = target?.value as string | undefined;
+      const parsedTarget = rawName ? splitLoadTarget(rawName) : null;
+      const fromVal = getFromOpt(c);
+      if (rawName && !parsedTarget) {
+        this.#diagnostics.push(
+          diag(
+            target,
+            `Invalid module name "${rawName}" — expected name or name>alias.`,
+            "invalid-module-name",
+          ),
+        );
+      } else if (fromVal) {
+        const from =
+          fromVal.type === NodeType.Bareword ||
+          fromVal.type === NodeType.StringLiteral
+            ? String(fromVal.value)
+            : undefined;
+        if (from !== undefined && !IPFS_FROM_RE.test(from)) {
+          this.#diagnostics.push(
+            diag(
+              fromVal,
+              `--from only supports ipfs://<cid> sources.`,
+              "invalid-module-source",
+            ),
+          );
+        }
+        const local = parsedTarget?.alias ?? parsedTarget?.canonical;
+        if (local && this.#schemas.isRegistered(local)) {
+          this.#diagnostics.push(
+            diag(
+              target,
+              `"${local}" shadows the registered module of the same name — rename it with ${parsedTarget?.canonical}>alias to keep both available.`,
+              "module-shadows-registered",
+              "warning",
+            ),
+          );
+        }
+      } else if (parsedTarget?.alias !== undefined) {
+        this.#diagnostics.push(
+          diag(
+            target,
+            `Module renames (name>alias) are only supported with --from.`,
+            "invalid-module-name",
+          ),
+        );
+      } else if (
         target?.type === NodeType.Bareword &&
-        name &&
-        !this.#schemas.isRegistered(name) &&
-        !this.#schemas.isLoaded(name)
+        rawName &&
+        !this.#schemas.isRegistered(rawName) &&
+        !this.#schemas.isLoaded(rawName)
       ) {
         this.#diagnostics.push(
           diag(
             target,
-            `Module "${name}" is not registered.${didYouMean(
-              name,
+            `Module "${rawName}" is not registered.${didYouMean(
+              rawName,
               this.#schemas.registeredNames(),
             )}`,
             "unknown-module",
@@ -543,9 +841,13 @@ class SemanticAnalyzer {
 
     const cmd = await this.#resolveCommand(c);
 
-    // 2. Unknown command (only when the owning module is loaded).
+    // 2. Unknown command (only when the owning module is loaded and not an
+    //    opaque external placeholder).
     if (!cmd && !isDef) {
-      if (this.#schemas.isLoaded(owningModule)) {
+      if (
+        this.#schemas.isLoaded(owningModule) &&
+        !this.#schemas.isOpaque(owningModule)
+      ) {
         const known = [
           ...this.#schemas.commandNames(c.module ?? "std"),
           ...(c.module ? [] : this.#meta.importedCommands.keys()),
@@ -574,6 +876,7 @@ class SemanticAnalyzer {
       this.#checkLiteralTypes(c, cmd);
       if (batchStack.length > 0) this.#checkBatchable(c, cmd, batchStack);
       this.#checkVariableUses(c, cmd);
+      this.#checkConfigDefPositions(c, cmd);
     }
 
     // 7. Helpers anywhere in the args (module-agnostic resolution).
@@ -731,8 +1034,14 @@ class SemanticAnalyzer {
   }
 
   #checkVariableName(name: string, at: Node): void {
-    // Skip module config vars ($mod:foo) and non-`$` internals.
-    if (!name.startsWith("$") || name.includes(":")) return;
+    if (!name.startsWith("$")) return;
+
+    // Config variables ($mod:key): declared-key validation.
+    if (name.includes(":")) {
+      this.#checkConfigVarUse(name, at);
+      return;
+    }
+
     if (this.#definedSoFar.has(name)) return;
     if (this.#meta.everDefined.has(name)) {
       // Defined later or in a sibling/inner scope — likely a use-before-set,
@@ -748,8 +1057,166 @@ class SemanticAnalyzer {
       return;
     }
     this.#diagnostics.push(
-      diag(at, `Variable ${name} is not defined.`, "undefined-variable"),
+      diag(
+        at,
+        `Variable ${name} is not defined.${this.#configNearMiss(name)}`,
+        "undefined-variable",
+      ),
     );
+  }
+
+  /** Validate a `$mod:key` config-variable read. */
+  #checkConfigVarUse(name: string, at: Node): void {
+    const cfg = parseConfigVarName(name);
+    if (!cfg) {
+      this.#diagnostics.push(
+        diag(
+          at,
+          `${name} is not a valid config variable name — expected $<module>:<key> with a letters-and-digits key.${this.#configNearMiss(name)}`,
+          "invalid-config-var",
+        ),
+      );
+      return;
+    }
+    if (!this.#schemas.isLoaded(cfg.module)) {
+      this.#diagnostics.push(
+        this.#schemas.isRegistered(cfg.module)
+          ? diag(
+              at,
+              `Module "${cfg.module}" is registered but not loaded. Add "load ${cfg.module}" before this line.`,
+              "module-not-loaded",
+            )
+          : diag(
+              at,
+              `Module "${cfg.module}" is not registered.${didYouMean(
+                cfg.module,
+                this.#schemas.registeredNames(),
+              )}`,
+              "unknown-module",
+            ),
+      );
+      return;
+    }
+    if (this.#schemas.isOpaque(cfg.module)) return;
+    const def = this.#schemas
+      .configDefs(cfg.module)
+      .find((d) => d.name === cfg.key);
+    if (!def) {
+      this.#diagnostics.push(
+        diag(
+          at,
+          `Unknown config variable ${name}.${didYouMean(
+            cfg.key,
+            this.#schemas.configDefs(cfg.module).map((d) => d.name),
+          )}`,
+          "unknown-config",
+        ),
+      );
+      return;
+    }
+    if (
+      def.default === undefined &&
+      !this.#definedSoFar.has(name) &&
+      !this.#meta.everDefined.has(name)
+    ) {
+      this.#diagnostics.push(
+        diag(
+          at,
+          `${name} is never set and has no default.`,
+          "unset-config",
+          "warning",
+        ),
+      );
+    }
+  }
+
+  /** Suggestion when a plain/legacy variable name matches a declared config
+   *  key of a loaded module (e.g. `$token.tokenlist` → `$std:tokenlist`). */
+  #configNearMiss(name: string): string {
+    const bare = name.slice(1); // strip $
+    const key = bare.includes(".")
+      ? bare.slice(bare.lastIndexOf(".") + 1)
+      : bare.includes(":")
+        ? bare.slice(bare.lastIndexOf(":") + 1)
+        : bare;
+    for (const [mod, defs] of this.#schemas.allDeclaredConfigs()) {
+      for (const d of defs) {
+        if (d.name === key || d.name.toLowerCase() === key.toLowerCase()) {
+          return ` Did you mean $${mod}:${d.name}?`;
+        }
+      }
+    }
+    return "";
+  }
+
+  /** Colon-named variables in binding (definition) positions: only `set`
+   *  (allowConfig) may bind config vars; there they get declared-key and
+   *  literal type validation. Plain names that match a declared config key
+   *  get a near-miss hint (silent no-op otherwise). */
+  #checkConfigDefPositions(c: CommandExpressionNode, cmd: ICommand): void {
+    for (let i = 0; i < cmd.argDefs.length; i++) {
+      const def = cmd.argDefs[i];
+      if (!isVariableDef(def.type)) continue;
+      const node = c.args[i];
+      if (node?.type !== NodeType.VariableIdentifier) continue;
+      const name = node.value as string;
+
+      if (!name.includes(":")) {
+        // `set $tokenlist …` while a loaded module declares `tokenlist` —
+        // almost certainly meant the config var.
+        if (def.allowConfig) {
+          const hint = this.#configNearMiss(name);
+          if (hint) {
+            this.#diagnostics.push(
+              diag(
+                node,
+                `${name} is a plain variable.${hint}`,
+                "config-near-miss",
+                "warning",
+              ),
+            );
+          }
+        }
+        continue;
+      }
+
+      if (!def.allowConfig) {
+        this.#diagnostics.push(
+          diag(
+            node,
+            `Config variables can only be assigned with set.`,
+            "config-set-only",
+          ),
+        );
+        continue;
+      }
+
+      // set's config-write position: declared-key checks…
+      this.#checkConfigVarUse(name, node);
+
+      // …and literal type validation of the assigned value.
+      const cfg = parseConfigVarName(name);
+      if (!cfg) continue;
+      const configDef = this.#schemas
+        .configDefs(cfg.module)
+        .find((d) => d.name === cfg.key);
+      const valueNode = c.args[i + 1];
+      if (
+        configDef &&
+        valueNode &&
+        LITERAL_NODE_TYPES.has(valueNode.type) &&
+        !Array.isArray(configDef.type) &&
+        CHECKABLE_LITERAL_TYPES.has(configDef.type)
+      ) {
+        try {
+          validateArgType(name, valueNode.value, configDef.type);
+        } catch (e: any) {
+          this.#diagnostics.push(
+            diag(valueNode, e.message, "literal-type-mismatch"),
+          );
+        }
+      }
+    }
   }
 
   /** Add a command's variable + capture definitions to `definedSoFar`. */
@@ -820,6 +1287,8 @@ class SemanticAnalyzer {
       } else {
         owningModule = "std";
       }
+
+      if (this.#schemas.isOpaque(owningModule)) continue;
 
       const exists =
         this.#schemas.hasHelper(owningModule, localName) ||

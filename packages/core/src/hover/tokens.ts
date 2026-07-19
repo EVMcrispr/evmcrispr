@@ -22,7 +22,7 @@ export interface Token {
  * identifier match.
  */
 const TOKEN_RE =
-  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w]+|--[\w-]+|[\w:-]+/g;
+  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w-]+(?::\w+)?|--[\w-]+|[\w:-]+/g;
 
 export function getTokenAtCol(lineText: string, col: number): Token | null {
   TOKEN_RE.lastIndex = 0;

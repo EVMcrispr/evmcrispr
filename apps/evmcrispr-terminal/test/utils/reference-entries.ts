@@ -1,7 +1,9 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  buildModuleConfigs,
   buildReferenceEntries,
+  type ConfigEntry,
   type ModuleDef,
   type ReferenceEntry,
   sortModules,
@@ -23,7 +25,25 @@ export async function loadReferenceEntries(): Promise<ReferenceEntry[]> {
       name: dir,
       commands: mod.commands ?? {},
       helpers: mod.helpers ?? {},
+      configs: mod.configs ?? [],
     });
   }
   return buildReferenceEntries(sortModules(modules), async () => "");
+}
+
+/** Bun-test replacement for reference-data's `moduleConfigs`. */
+export async function loadModuleConfigs(): Promise<Map<string, ConfigEntry[]>> {
+  const modules: ModuleDef[] = [];
+  for (const dir of readdirSync(MODULES_DIR)) {
+    const generated = join(MODULES_DIR, dir, "src/_generated.ts");
+    if (!existsSync(generated)) continue;
+    const mod = await import(generated);
+    modules.push({
+      name: dir,
+      commands: mod.commands ?? {},
+      helpers: mod.helpers ?? {},
+      configs: mod.configs ?? [],
+    });
+  }
+  return buildModuleConfigs(sortModules(modules));
 }

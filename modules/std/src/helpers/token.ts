@@ -1,23 +1,18 @@
-import type { Address, BindingsManager, Chain, Module } from "@evmcrispr/sdk";
-import { BindingsSpace, defineHelper, ErrorException } from "@evmcrispr/sdk";
+import type { Address, Chain, Module } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import type Std from "..";
 
-const ENV_TOKENLIST = "$token.tokenlist";
-
 const getTokenList = async (
-  bindingsManager: BindingsManager,
+  module: Module,
   chainId: number,
 ): Promise<string> => {
-  const tokenList = String(
-    bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      `https://api.evmcrispr.com/tokenlist/${chainId}`,
-  );
+  const tokenList = String(module.getConfigBinding("tokenlist", { chainId }));
 
   // Always check user data inputs:
   if (!tokenList.startsWith("https://")) {
     throw new ErrorException(
-      `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${tokenList}`,
+      `$std:tokenlist must be a valid HTTPS URL, got ${tokenList}`,
     );
   }
   return tokenList;
@@ -53,7 +48,7 @@ export const resolveToken = async (
   ) {
     return zeroAddress;
   }
-  const tokenList = await getTokenList(module.bindingsManager, chainId);
+  const tokenList = await getTokenList(module, chainId);
   const {
     tokens,
   }: { tokens: { symbol: string; chainId: number; address: string }[] } =

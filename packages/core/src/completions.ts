@@ -1,4 +1,5 @@
 import type {
+  BlockExpressionNode,
   CommandExpressionNode,
   CompletionContext,
   CompletionItem,
@@ -196,6 +197,35 @@ const buildOptCompletionItems = (
     );
 };
 
+/** One item per declared config variable of every loaded module
+ *  (`$safe:serviceUrl` etc.), with type/default/description metadata. */
+const buildConfigVarItems = (bindings: BindingsManager): CompletionItem[] => {
+  const moduleBindings = bindings.getAllBindings({
+    spaceFilters: [MODULE],
+    ignoreNullValues: true,
+  }) as NoNullableBinding<ModuleBinding>[];
+
+  const items: CompletionItem[] = [];
+  const seen = new Set<string>();
+  for (const { identifier: moduleName, value: mod } of moduleBindings) {
+    if (seen.has(moduleName)) continue;
+    seen.add(moduleName);
+    for (const cfg of mod.configs ?? []) {
+      const label = `$${moduleName}:${cfg.name}`;
+      const type = Array.isArray(cfg.type) ? cfg.type.join(" | ") : cfg.type;
+      items.push({
+        label,
+        insertText: label,
+        kind: "variable",
+        sortPriority: 2,
+        detail: cfg.default ? `${type} · default: ${cfg.default}` : type,
+        documentation: cfg.description,
+      });
+    }
+  }
+  return items;
+};
+
 const buildVarCompletionItems = (
   bindings: BindingsManager,
   currentCommandNode?: CommandExpressionNode,
@@ -211,7 +241,9 @@ const buildVarCompletionItems = (
       currentPos,
     );
     if (currentArgIndex === 0) {
-      return [];
+      // Binding position: offer the declared config variables of loaded
+      // modules (set is the only command that may bind them).
+      return buildConfigVarItems(bindings);
     }
     if (currentArgIndex === 1) {
       const currentVarName = currentCommandNode.args[0]?.value;
@@ -221,7 +253,16 @@ const buildVarCompletionItems = (
     }
   }
 
-  return varNames.map((name: string) => variableItem(name));
+  // Read positions: plain variables plus declared configs not already set
+  // (set ones appear in USER space with the same spelling).
+  const setNames = new Set(varNames);
+  const configItems = buildConfigVarItems(bindings).filter(
+    (item) => !setNames.has(item.label),
+  );
+  return [
+    ...varNames.map((name: string) => variableItem(name)),
+    ...configItems,
+  ];
 };
 
 // ---------------------------------------------------------------------------
@@ -789,8 +830,15 @@ export async function getCompletions(
           }
         }
 
+        // Binding positions that accept config vars (set's variable arg)
+        // additionally offer every declared config of the loaded modules.
+        const configItems = argDef.allowConfig
+          ? buildConfigVarItems(bindings)
+          : [];
+
         return [
           ...typeDrivenItems,
+          ...configItems,
           ...filteredHelpers,
           ...filteredVars,
           ...(showOpts ? optItems : []),
@@ -836,6 +884,12 @@ export async function getKeywords(
   const loadNodes = commandNodes.filter(
     (c: CommandExpressionNode) => c.name === "load",
   );
+  const moduleNodes = commandNodes.filter(
+    (c: CommandExpressionNode) =>
+      c.name === "def" &&
+      c.args[0]?.type === NodeType.Bareword &&
+      c.args[0].value === "module",
+  );
 
   const stdModuleData = moduleCache.getBindingValue("std", MODULE);
   const commands: string[] = stdModuleData
@@ -861,9 +915,30 @@ export async function getKeywords(
     if (c.name !== "def" || !c.args.length) continue;
     const nameArg = c.args[0];
     if (nameArg.type === NodeType.Bareword) {
+      if (nameArg.value === "module") continue; // handled below
       commands.push(nameArg.value as string);
     } else if (nameArg.type === NodeType.HelperFunctionExpression) {
       helpers.push(`@${(nameArg as HelperFunctionNode).name}`);
+    }
+  }
+
+  // Inline `def module` blocks: qualified spellings for the block's defs.
+  for (const c of moduleNodes) {
+    const nameArg = c.args[1];
+    if (nameArg?.type !== NodeType.Bareword) continue;
+    const alias = nameArg.value as string;
+    const blockNode = c.args.find((a) => a.type === NodeType.BlockExpression) as
+      | BlockExpressionNode
+      | undefined;
+    if (!blockNode) continue;
+    for (const defNode of blockNode.body) {
+      if (defNode.name !== "def" || !defNode.args.length) continue;
+      const defName = defNode.args[0];
+      if (defName.type === NodeType.Bareword) {
+        commands.push(`${alias}:${defName.value as string}`);
+      } else if (defName.type === NodeType.HelperFunctionExpression) {
+        helpers.push(`@${alias}:${(defName as HelperFunctionNode).name}`);
+      }
     }
   }
 
@@ -871,7 +946,10 @@ export async function getKeywords(
 
   for (const c of loadNodes) {
     if (!c.args.length) continue;
-    const moduleName: string = c.args[0].value;
+    // `name>alias` (--from renames) bind under the alias.
+    const moduleName: string = String(c.args[0].value ?? "")
+      .split(">")
+      .pop() as string;
     if (!moduleName || seenModules.has(moduleName)) continue;
     seenModules.add(moduleName);
 

@@ -15,6 +15,13 @@ export type ReferenceEntry = {
   loadDocs: () => Promise<string>;
 };
 
+export type ConfigEntry = {
+  name: string;
+  type: string;
+  description: string;
+  default?: string;
+};
+
 export type ModuleDef = {
   name: string;
   commands: Record<string, { description?: string }>;
@@ -31,7 +38,33 @@ export type ModuleDef = {
       }>;
     }
   >;
+  configs?: Array<{
+    name: string;
+    type: string | string[];
+    description: string;
+    default?: string;
+  }>;
 };
+
+/** Declared config variables per module, in display order. */
+export function buildModuleConfigs(
+  modules: ModuleDef[],
+): Map<string, ConfigEntry[]> {
+  const map = new Map<string, ConfigEntry[]>();
+  for (const mod of modules) {
+    if (!mod.configs?.length) continue;
+    map.set(
+      mod.name,
+      mod.configs.map((c) => ({
+        name: c.name,
+        type: Array.isArray(c.type) ? c.type.join(" | ") : c.type,
+        description: c.description,
+        default: c.default,
+      })),
+    );
+  }
+  return map;
+}
 
 /** Sort modules into display order: core modules first, rest alphabetical. */
 export function sortModules(modules: ModuleDef[]): ModuleDef[] {

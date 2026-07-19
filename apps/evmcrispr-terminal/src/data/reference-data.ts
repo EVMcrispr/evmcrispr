@@ -2,6 +2,7 @@
 // module requires no edits here. Vite-only — bun tests must import
 // reference-core.ts instead (import.meta.glob is a Vite macro).
 import {
+  buildModuleConfigs,
   buildReferenceEntries,
   type ModuleDef,
   type ReferenceEntry,
@@ -9,13 +10,17 @@ import {
   sortModules,
 } from "./reference-core";
 
-export type { ReferenceEntry } from "./reference-core";
+export type { ConfigEntry, ReferenceEntry } from "./reference-core";
 
 const generated = import.meta.glob("../../../../modules/*/src/_generated.ts", {
   eager: true,
 }) as Record<
   string,
-  { commands?: ModuleDef["commands"]; helpers?: ModuleDef["helpers"] }
+  {
+    commands?: ModuleDef["commands"];
+    helpers?: ModuleDef["helpers"];
+    configs?: ModuleDef["configs"];
+  }
 >;
 
 const docFiles = import.meta.glob(
@@ -28,8 +33,12 @@ const modules: ModuleDef[] = sortModules(
     name: path.match(/modules\/([^/]+)\//)?.[1] ?? "",
     commands: mod.commands ?? {},
     helpers: mod.helpers ?? {},
+    configs: mod.configs ?? [],
   })),
 );
+
+/** Declared config variables per module (`$mod:key`), in display order. */
+export const moduleConfigs = buildModuleConfigs(modules);
 
 function loadDoc(
   module: string,

@@ -20,25 +20,19 @@ import { mainnet } from "viem/chains";
 /** ENS name the assertions contract is published under (Ethereum mainnet). */
 const ASSERTIONS_ENS = "assertions.eth";
 
-/** User binding to override the resolved contract address (testing / forks). */
-const ADDRESS_BINDING = "$assertions.address";
-
 /**
- * Resolve the assertions contract address. Honours the `$assertions.address`
+ * Resolve the assertions contract address. Honours the `$assertions:address`
  * override when set, otherwise forward-resolves `assertions.eth` on mainnet.
  */
 export async function resolveAssertionsContract(
   module: Module,
 ): Promise<Address> {
-  const override = module.bindingsManager.getBindingValue(
-    ADDRESS_BINDING,
-    BindingsSpace.USER,
-  );
+  const override = module.getConfigBinding("address");
   if (override !== undefined && override !== null) {
     const addr = String(override);
     if (!isAddress(addr)) {
       throw new ErrorException(
-        `${ADDRESS_BINDING} must be a valid address, got ${addr}`,
+        `$assertions:address must be a valid address, got ${addr}`,
       );
     }
     return getAddress(addr);

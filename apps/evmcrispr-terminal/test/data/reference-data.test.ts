@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { resolveDocLinkEntry as resolve } from "../../src/data/reference-core";
-import { loadReferenceEntries } from "../utils/reference-entries";
+import {
+  loadModuleConfigs,
+  loadReferenceEntries,
+} from "../utils/reference-entries";
 
 const referenceEntries = await loadReferenceEntries();
 
@@ -67,5 +70,25 @@ describe("resolveDocLinkEntry", () => {
     const langEntries = referenceEntries.filter((e) => e.module === "lang");
     expect(langEntries.length).toBeGreaterThan(0);
     expect(langEntries.some((e) => e.name === "map")).toBe(true);
+  });
+});
+
+describe("module configs", () => {
+  test("declared config variables flow through to the reference data", async () => {
+    const configs = await loadModuleConfigs();
+    const std = configs.get("std");
+    expect(std).toBeDefined();
+    expect(std!.some((c) => c.name === "tokenlist")).toBe(true);
+    expect(std!.find((c) => c.name === "tokenlist")!.default).toContain(
+      "{chainId}",
+    );
+    expect(
+      configs
+        .get("safe")!
+        .map((c) => c.name)
+        .sort(),
+    ).toEqual(["apiKey", "serviceUrl"]);
+    // Modules without declarations have no entry.
+    expect(configs.has("lang")).toBe(false);
   });
 });

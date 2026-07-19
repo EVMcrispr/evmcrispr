@@ -31,6 +31,37 @@ export const ipfsGatewayFixtures = {
   missing: {
     cid: "QmMissingFixture333333333333333333333333333333",
   },
+  // Plain EVML module file (with a leading comment) for `load --from`
+  moduleFile: {
+    cid: "QmModuleFixture444444444444444444444444444444",
+    content: `# a math library
+def module math (
+  def @double "$n: number -> number" @num($n * 2)
+  def pause "$n: number" (
+    wait $n
+  )
+)`,
+  },
+  // Same module but pinned via pinJSONToIPFS (JSON-quoted string)
+  moduleQuoted: {
+    cid: "QmModuleQuoted55555555555555555555555555555555",
+    content: `def module math (
+  def @triple "$n: number -> number" @num($n * 3)
+)`,
+  },
+  // Invalid module file: more than one top-level command
+  moduleTwoCommands: {
+    cid: "QmModuleTwoCmds66666666666666666666666666666666",
+    content: `def module math (
+  def @double "$n: number -> number" @num($n * 2)
+)
+print "extra"`,
+  },
+  // Encrypted share envelope (share links are not module files)
+  encryptedPin: {
+    cid: "QmEncryptedPin7777777777777777777777777777777777",
+    content: { encrypted: true, iv: "AAAA", data: "BBBB" },
+  },
 };
 
 // Std-specific MSW handlers (ABI endpoint)
@@ -49,6 +80,22 @@ const stdHandlers = [
       }
       if (cid === ipfsGatewayFixtures.missing.cid) {
         return new HttpResponse(null, { status: 404 });
+      }
+      if (cid === ipfsGatewayFixtures.moduleFile.cid) {
+        return new HttpResponse(ipfsGatewayFixtures.moduleFile.content, {
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+      if (cid === ipfsGatewayFixtures.moduleQuoted.cid) {
+        return HttpResponse.json(ipfsGatewayFixtures.moduleQuoted.content);
+      }
+      if (cid === ipfsGatewayFixtures.moduleTwoCommands.cid) {
+        return new HttpResponse(ipfsGatewayFixtures.moduleTwoCommands.content, {
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+      if (cid === ipfsGatewayFixtures.encryptedPin.cid) {
+        return HttpResponse.json(ipfsGatewayFixtures.encryptedPin.content);
       }
       return passthrough();
     },

@@ -96,6 +96,16 @@ class StubModule extends Module {
       {},
       {},
       context,
+      [
+        { name: "svc", type: "string", description: "Service URL." },
+        { name: "target", type: "address", description: "Address config." },
+        {
+          name: "endpoint",
+          type: "string",
+          description: "Config with a default.",
+          default: "https://example.com",
+        },
+      ],
     );
   }
 }
@@ -446,6 +456,172 @@ describe("Analysis > semantic diagnostics", () => {
         "load stub\nset $x 1\nstub:needtwo $x two\nstub:optone --foo a",
       );
       expect(ds).to.have.length(0);
+    });
+  });
+
+  describe("config variables", () => {
+    it("accepts declared config sets and reads", async () => {
+      const ds = await semantic(
+        'load stub\nset $stub:svc "https://x"\nprint $stub:svc',
+      );
+      expect(ds).to.have.length(0);
+    });
+
+    it("flags unknown config keys with a suggestion", async () => {
+      const ds = await semantic('load stub\nset $stub:scv "https://x"');
+      expect(codes(ds)).to.include("unknown-config");
+      expect(ds[0].message).to.include('Did you mean "svc"');
+    });
+
+    it("flags config vars of unloaded/unregistered modules", async () => {
+      expect(codes(await semantic('set $other:svc "x"'))).to.include(
+        "module-not-loaded",
+      );
+      expect(codes(await semantic('set $ghost:svc "x"'))).to.include(
+        "unknown-module",
+      );
+    });
+
+    it("warns when reading a config that is never set and has no default", async () => {
+      const ds = await semantic("load stub\nprint $stub:svc");
+      expect(codes(ds)).to.include("unset-config");
+      expect(ds[0].severity).to.equal("warning");
+    });
+
+    it("does not warn when a default exists or the config is set", async () => {
+      expect(await semantic("load stub\nprint $stub:endpoint")).to.have.length(
+        0,
+      );
+      expect(
+        await semantic('load stub\nset $stub:svc "x"\nprint $stub:svc'),
+      ).to.have.length(0);
+    });
+
+    it("rejects config vars in non-set binding positions", async () => {
+      const ds = await semantic("load stub\nstub:setv $stub:svc 1");
+      expect(codes(ds)).to.include("config-set-only");
+    });
+
+    it("type-checks literal config values", async () => {
+      const ds = await semantic("load stub\nset $stub:target 42");
+      expect(codes(ds)).to.include("literal-type-mismatch");
+    });
+
+    it("flags malformed colon names", async () => {
+      const ds = await semantic('load stub\nset $stub:bad.key "x"');
+      expect(codes(ds)).to.include("invalid-config-var");
+    });
+
+    it("hints legacy dotted names toward the declared config", async () => {
+      const ds = await semantic('load stub\nset $token.svc "x"');
+      expect(codes(ds)).to.include("config-near-miss");
+      expect(ds[0].message).to.include("$stub:svc");
+    });
+  });
+
+  describe("inline module blocks", () => {
+    it("validates qualified calls against the synthesized schema", async () => {
+      const clean = await semantic(
+        `def module m (
+  def @double "$n: number -> number" @num($n * 2)
+  def show "$a: string $b: string" (
+    print $a
+  )
+)
+print @m:double(2)
+m:show one two`,
+      );
+      expect(clean).to.have.length(0);
+
+      const wrongArity = await semantic(
+        `def module m (
+  def show "$a: string $b: string" (
+    print $a
+  )
+)
+m:show one`,
+      );
+      expect(codes(wrongArity)).to.include("arg-count");
+
+      const unknown = await semantic(
+        `def module m (
+  def @double "$n: number -> number" @num($n * 2)
+)
+print @m:nope(1)`,
+      );
+      expect(codes(unknown)).to.include("unknown-helper");
+    });
+
+    it("flags non-def commands inside module blocks", async () => {
+      const ds = await semantic(
+        `def module m (
+  set $x 1
+)`,
+      );
+      expect(codes(ds)).to.include("module-def-only");
+    });
+
+    it("flags duplicate defs and invalid names", async () => {
+      expect(
+        codes(
+          await semantic(
+            `def module m (
+  def @x "number" 1
+  def @x "number" 2
+)`,
+          ),
+        ),
+      ).to.include("duplicate-def");
+
+      expect(
+        codes(
+          await semantic(
+            `def module std (
+  def @x "number" 1
+)`,
+          ),
+        ),
+      ).to.include("invalid-module-name");
+
+      const shadow = await semantic(
+        `def module stub (
+  def @x "number" 1
+)`,
+      );
+      expect(codes(shadow)).to.include("module-shadows-registered");
+      expect(shadow[0].severity).to.equal("warning");
+
+      // Actually loaded name → hard collision.
+      expect(
+        codes(
+          await semantic(
+            `load stub
+def module stub (
+  def @x "number" 1
+)`,
+          ),
+        ),
+      ).to.include("module-name-collision");
+    });
+  });
+
+  describe("load --from", () => {
+    it("treats external modules as opaque (zero diagnostics offline)", async () => {
+      const ds = await semantic(
+        `load x --from ipfs://QmSomeCid
+x:anything 1 2 3
+print @x:whatever(5)`,
+      );
+      expect(ds).to.have.length(0);
+    });
+
+    it("validates the source scheme and warns on registry shadowing", async () => {
+      expect(
+        codes(await semantic("load x --from https://example.com/lib.evml")),
+      ).to.include("invalid-module-source");
+      const shadow = await semantic("load stub --from ipfs://QmSomeCid");
+      expect(codes(shadow)).to.include("module-shadows-registered");
+      expect(shadow[0].severity).to.equal("warning");
     });
   });
 });

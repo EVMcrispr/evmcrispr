@@ -52,7 +52,7 @@ export interface HelperTestConfig {
    * Omit for std helpers (auto-loaded).
    */
   module?: string;
-  /** Script preamble prepended before the expression (e.g. "set $token.tokenlist ..."). */
+  /** Script preamble prepended before the expression (e.g. "set $std:tokenlist ..."). */
   preamble?: string;
   /** Happy-path test cases. */
   cases?: HelperTestCase[];

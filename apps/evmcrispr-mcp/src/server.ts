@@ -6,6 +6,7 @@ import { registerCreateLink } from "./tools/create-link.js";
 import { registerDescribeModule } from "./tools/describe-module.js";
 import { registerGetDocs } from "./tools/get-docs.js";
 import { registerListModules } from "./tools/list-modules.js";
+import { registerPublishModule } from "./tools/publish-module.js";
 import { registerSimulateEvml } from "./tools/simulate-evml.js";
 import { registerValidateEvml } from "./tools/validate-evml.js";
 
@@ -22,6 +23,7 @@ export function createMcpServer(): McpServer {
   registerSimulateEvml(server);
   registerValidateEvml(server);
   registerCreateLink(server);
+  registerPublishModule(server);
 
   // Resources
   registerDocResources(server);

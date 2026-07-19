@@ -697,6 +697,26 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
   return `${lines.join("\n")}\n`;
 }
 
+interface ConfigMeta {
+  name: string;
+  type: string | string[];
+  description: string;
+  default?: string;
+}
+
+/** Load a module's declared config variables from its literal-only
+ *  `src/configs.ts` (imported directly — bun resolves TS). */
+function extractConfigs(mod: ModuleInfo): ConfigMeta[] {
+  const configsPath = join(mod.dir, "src/configs.ts");
+  if (!existsSync(configsPath)) return [];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return (require(configsPath).configs ?? []) as ConfigMeta[];
+  } catch {
+    return [];
+  }
+}
+
 function generateModuleIndex(
   mod: ModuleInfo,
   commands: CommandMeta[],
@@ -738,6 +758,26 @@ function generateModuleIndex(
         : h.returnType;
       const link = `[@${mod.prefix}${h.name}](src/helpers/${h.name}.md)`;
       lines.push(`| ${link} | \`${returnTypeStr}\` | ${h.description} |`);
+    }
+    lines.push("");
+  }
+
+  const configs = extractConfigs(mod);
+  if (configs.length > 0) {
+    lines.push("## Configuration");
+    lines.push("");
+    lines.push(
+      "Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.",
+    );
+    lines.push("");
+    lines.push("| Variable | Type | Default | Description |");
+    lines.push("|----------|------|---------|-------------|");
+    for (const c of configs) {
+      const type = Array.isArray(c.type) ? c.type.join(" \\| ") : c.type;
+      const def = c.default !== undefined ? `\`${c.default}\`` : "—";
+      lines.push(
+        `| \`$${mod.name}:${c.name}\` | \`${type}\` | ${def} | ${c.description} |`,
+      );
     }
     lines.push("");
   }

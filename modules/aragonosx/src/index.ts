@@ -1,6 +1,6 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import { defineModule, ErrorException } from "@evmcrispr/sdk";
-import { commands, helpers } from "./_generated";
+import { commands, configs, helpers } from "./_generated";
 import { types } from "./argTypes";
 import { countPlugins, resolvePluginInfo } from "./dao";
 import type { DaoContext, PluginInfo } from "./types";
@@ -14,6 +14,7 @@ export default class AragonOSx extends defineModule(
   helpers,
   types,
   { ANY_ENTITY },
+  configs,
 ) {
   /** The DAO of the enclosing `connect` block, if any. */
   #currentDAO?: DaoContext;

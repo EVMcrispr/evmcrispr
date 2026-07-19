@@ -14,6 +14,7 @@ import type {
   HelperFunctionNode,
   IModuleConstructor,
   ImportValue,
+  InterpretOptions,
   LiteralExpressionNode,
   Module,
   ModuleContext,
@@ -30,6 +31,7 @@ import {
   type BindingsManager,
   BindingsSpace,
   CommandError,
+  checkConfigAccess,
   ErrorException,
   ExpressionError,
   HaltExecution,
@@ -39,6 +41,8 @@ import {
   NodeError,
   NodeType,
   Num,
+  parseConfigVarName,
+  readConfigValue,
   resolveErrorCaptures,
   resolveEventCaptures,
   resolveHelper as resolveHelperFn,
@@ -286,7 +290,11 @@ export function createInterpreter(ctx: InterpretCtx): NodesInterpreters {
           return (n as BarewordNode).value;
 
         case VariableIdentifier:
-          return interpretVariableIdentifier(n as VariableIdentifierNode, ctx);
+          return interpretVariableIdentifier(
+            n as VariableIdentifierNode,
+            ctx,
+            options,
+          );
 
         default:
           return onUnsupported(n, ctx, n.type);
@@ -366,7 +374,30 @@ async function interpretDestructurePattern(
 function interpretVariableIdentifier(
   n: VariableIdentifierNode,
   ctx: InterpretCtx,
+  options?: InterpretOptions,
 ): unknown {
+  // Config variables (`$mod:key`): declared-key + access checks, then the
+  // set value or the declared default.
+  const cfg = parseConfigVarName(n.value);
+  if (cfg) {
+    try {
+      checkConfigAccess(
+        ctx.bindings,
+        cfg.module,
+        cfg.key,
+        options?.origin,
+        "read",
+      );
+      const value = readConfigValue(ctx.bindings, cfg.module, cfg.key, {
+        chainId: ctx.chainId,
+      });
+      if (value !== undefined) return value;
+    } catch (err) {
+      panic(n, (err as Error).message);
+    }
+    panic(n, `${n.value} is not set and has no default`);
+  }
+
   const binding = ctx.bindings.getBindingValue(n.value, USER);
   if (binding !== undefined) return binding;
   panic(n, `${n.value} not defined`);
@@ -415,26 +446,31 @@ async function interpretHelperFunction(
 // Execution-mode resolver builders
 // ---------------------------------------------------------------------------
 
-/** Wrap interpreters so `batchContext` implicitly propagates into every
- *  nested `interpretNode`/`interpretNodes` call (command args, helper args,
- *  nested blocks). Explicit per-call options still take precedence, so a
- *  nested batch-context opener (e.g. `connect` inside `batch`) can set its
- *  own context name. */
-function withBatchContext(
+/** Wrap interpreters so `batchContext` and `origin` implicitly propagate
+ *  into every nested `interpretNode`/`interpretNodes` call (command args,
+ *  helper args, nested blocks). Explicit per-call options still take
+ *  precedence, so a nested batch-context opener (e.g. `connect` inside
+ *  `batch`) or a module-def entry can set its own values. */
+function withInheritedOptions(
   interpreters: NodesInterpreters,
-  batchContext: BatchContext | undefined,
+  options: Pick<InterpretOptions, "batchContext" | "origin"> | undefined,
 ): NodesInterpreters {
-  if (!batchContext) return interpreters;
+  const batchContext = options?.batchContext;
+  const origin = options?.origin;
+  if (!batchContext && !origin) return interpreters;
+  const inherited: Pick<InterpretOptions, "batchContext" | "origin"> = {};
+  if (batchContext) inherited.batchContext = batchContext;
+  if (origin) inherited.origin = origin;
   return {
     ...interpreters,
     interpretNode: (n, options) =>
-      interpreters.interpretNode(n, { batchContext, ...options }),
+      interpreters.interpretNode(n, { ...inherited, ...options }),
     interpretNodes: (nodes, sequentally, options) =>
       interpreters.interpretNodes(nodes, sequentally, {
-        batchContext,
+        ...inherited,
         ...options,
       }),
-    batchContext,
+    ...inherited,
   };
 }
 
@@ -485,10 +521,7 @@ export function makeExecutionResolveHelper(
   return async (h, rawInterpreters, options) => {
     const helperName = h.name;
     const std = input.std();
-    const interpreters = withBatchContext(
-      rawInterpreters,
-      options?.batchContext,
-    );
+    const interpreters = withInheritedOptions(rawInterpreters, options);
 
     try {
       // Qualified: @mod:name — strict, no fallback.
@@ -547,7 +580,7 @@ export function makeExecutionResolveCommand(
     const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
       options?.actionCallback;
     const batchContext: BatchContext | undefined = options?.batchContext;
-    const interpreters = withBatchContext(rawInterpreters, batchContext);
+    const interpreters = withInheritedOptions(rawInterpreters, options);
     const std = input.std();
 
     // Once a command yields actions inside a batch, later chain-state reads

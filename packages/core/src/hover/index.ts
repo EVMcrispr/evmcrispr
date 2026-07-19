@@ -13,6 +13,7 @@ import {
   BindingsManager,
   BindingsSpace,
   NodeType,
+  parseConfigVarName,
   resolveCommand,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -367,6 +368,35 @@ export async function getHoverInfo(
 
   // --- variable: $name ---
   if (token.kind === "variable") {
+    // Config variables ($mod:key): render the declaration card.
+    const cfg = parseConfigVarName(token.value);
+    if (cfg) {
+      const moduleData = moduleCache.getBindingValue(cfg.module, MODULE);
+      const def = moduleData?.configs?.find(
+        (d: { name: string }) => d.name === cfg.key,
+      );
+      if (def) {
+        const type = Array.isArray(def.type) ? def.type.join(" | ") : def.type;
+        const current = (
+          positionBindings ?? ctx.scriptBindings
+        )?.getBindingValue(token.value, USER);
+        const sections = [
+          `**Config** \`${token.value}: ${type}\``,
+          def.description,
+        ];
+        if (current != null) {
+          sections.push(
+            `Current: ${formatVariableValue(current, scriptLines) ?? String(current)}`,
+          );
+        } else if (def.default !== undefined) {
+          sections.push(`Default: \`${def.default}\``);
+        }
+        return { contents: sections };
+      }
+      // Unknown/undeclared config var — fall through to the plain-variable
+      // rendering (diagnostics already flag it).
+    }
+
     // Variable bindings are keyed with the `$` prefix in the BindingsManager
     // (matches what `set` writes and what the unified interpreter reads).
     // Use the position-aware snapshot when available so a redefinition like

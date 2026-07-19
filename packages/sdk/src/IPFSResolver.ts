@@ -3,6 +3,32 @@ import { ErrorConnection, ErrorUnexpectedResult } from "./errors";
 export const IPFS_GATEWAY = "https://ipfs.blossom.software/ipfs/"; // "https://gateway.pinata.cloud/ipfs/";
 
 export class IPFSResolver {
+  /** Successful text fetches keyed by cid — CIDs are immutable, so entries
+   *  never expire. Failures are not cached. */
+  #textCache = new Map<string, string>();
+
+  /** Fetch a CID's raw text content (used for EVML module files). */
+  async text(cid: string, ipfsGateway?: string): Promise<string> {
+    const cached = this.#textCache.get(cid);
+    if (cached !== undefined) return cached;
+
+    const url = await this.url(cid, undefined, ipfsGateway);
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (_) {
+      throw new ErrorConnection(`Couldn't fetch ${url}.`);
+    }
+    if (!response.ok) {
+      throw new ErrorConnection(
+        `Couldn't fetch ${url} (${response.status} ${response.statusText}).`,
+      );
+    }
+    const text = await response.text();
+    this.#textCache.set(cid, text);
+    return text;
+  }
+
   async json(
     cid: string,
     path?: string,

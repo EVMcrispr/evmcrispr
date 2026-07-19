@@ -1,8 +1,15 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
-import { commands, helpers } from "./_generated";
+import { commands, configs, helpers } from "./_generated";
 
-export default class Safe extends defineModule("safe", commands, helpers) {
+export default class Safe extends defineModule(
+  "safe",
+  commands,
+  helpers,
+  undefined,
+  undefined,
+  configs,
+) {
   /** Active nesting stack (push/pop). Tracks the Safe targeted by the
    *  enclosing `safe:propose` / `safe:execute` block, if any. */
   #safeStack: Address[];

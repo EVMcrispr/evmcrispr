@@ -1,13 +1,16 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, chainArgType, ErrorException } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  chainArgType,
+  ErrorException,
+  readConfigValue,
+} from "@evmcrispr/sdk";
 import type { Chain } from "viem";
 import * as viemChains from "viem/chains";
 
 export { resolveChainId } from "@evmcrispr/sdk";
 
-const { MODULE, USER, CACHE } = BindingsSpace;
-
-const ENV_TOKENLIST = "$token.tokenlist";
+const { MODULE, CACHE } = BindingsSpace;
 
 type TokenEntry = {
   symbol: string;
@@ -45,8 +48,9 @@ export const types: CustomArgTypes = {
       }
 
       const tokenListUrl = String(
-        ctx.bindings.getBindingValue(ENV_TOKENLIST, USER) ??
-          `https://api.evmcrispr.com/tokenlist/${ctx.chainId}`,
+        readConfigValue(ctx.bindings, "std", "tokenlist", {
+          chainId: ctx.chainId,
+        }) ?? `https://api.evmcrispr.com/tokenlist/${ctx.chainId}`,
       );
       if (!tokenListUrl.startsWith("https://")) return [];
 

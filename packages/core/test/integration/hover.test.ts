@@ -494,4 +494,36 @@ describe("Core > hover", () => {
       expect(result).to.be.null;
     });
   });
+
+  describe("over config variables", () => {
+    it("renders the declaration card with the default", async () => {
+      const script = "set $std:tokenlist https://tokens.honeyswap.org";
+      const result = await ctx.hover(script, { line: 1, col: 8 });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("**Config**");
+      expect(text).to.include("$std:tokenlist");
+      expect(text).to.include("Tokenlist URL");
+    });
+
+    it("shows the default when the config is unset", async () => {
+      const script = "print $std:tokenlist";
+      const result = await ctx.hover(script, { line: 1, col: 10 });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("Default:");
+      expect(text).to.include("api.evmcrispr.com/tokenlist/{chainId}");
+    });
+  });
+
+  describe("over external module defs (load --from)", () => {
+    it("fetches the module file and resolves its schema", async () => {
+      // remoteModuleFixture in ../setup serves this CID via MSW.
+      const script = `load extlib --from ipfs://QmCoreModuleFixture11111111111111111111111111
+print @extlib:twice(2)`;
+      const result = await ctx.hover(script, { line: 2, col: 12 });
+      expect(result).to.not.be.null;
+      expect(result!.contents.join("\n")).to.include("twice");
+    });
+  });
 });

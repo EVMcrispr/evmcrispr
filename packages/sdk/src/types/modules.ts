@@ -5,7 +5,12 @@ import type { Module } from "../Module";
 import type { Param } from "../utils/encoders";
 import type { ArgDef, ArgType, OptDef } from "../utils/schema";
 import type { Action } from "./actions";
-import type { CommandExpressionNode, HelperFunctionNode, Node } from "./ast";
+import type {
+  AST,
+  CommandExpressionNode,
+  HelperFunctionNode,
+  Node,
+} from "./ast";
 import type { CompletionOverrides } from "./completions";
 
 /**
@@ -43,7 +48,20 @@ export interface ModuleContext {
   loadModule(name: string): Promise<{ default: IModuleConstructor }>;
   /** List available (registered) module names for autocompletion. */
   getAvailableModuleNames(): string[];
+
+  /** Parse EVML source into an AST. Provided by the runtime; used by
+   *  `load --from` to parse external module files. */
+  parseEvml(script: string): { ast: AST; errors: string[] };
 }
+
+/** Who is executing the current nodes: the user's script (default) or a
+ *  def body of an EVML-defined module. Controls config-var access and the
+ *  scope `set` binds into. */
+export type ExecutionOrigin =
+  | { kind: "user" }
+  | { kind: "module"; module: string };
+
+export const USER_ORIGIN: ExecutionOrigin = { kind: "user" };
 
 /** State of an enclosing atomic batch context (`batch`, `connect`,
  *  `forward`). Non-batchable commands are rejected while it is set.
@@ -63,6 +81,8 @@ export interface InterpretOptions {
   actionCallback?(action: Action): Promise<unknown>;
   /** The enclosing atomic batch context, if any. */
   batchContext?: BatchContext;
+  /** Execution origin of the nodes being interpreted (defaults to user). */
+  origin?: ExecutionOrigin;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
@@ -80,6 +100,8 @@ export type NodesInterpreters = {
   actionCallback?(action: Action): Promise<unknown>;
   /** The enclosing atomic batch context, if any. */
   batchContext?: BatchContext;
+  /** Execution origin of the running command/helper (defaults to user). */
+  origin?: ExecutionOrigin;
 };
 
 export type CommandFunction<T extends Module = Module> = (

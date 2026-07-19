@@ -17,6 +17,11 @@ import {
   NodeType,
 } from "@evmcrispr/sdk";
 import type Std from "..";
+import {
+  buildEvmlModule,
+  checkEvmlModuleName,
+  registerEvmlModule,
+} from "../utils/evmlModules";
 import { inferTypes } from "../utils/inferTypes";
 import { parseSignature } from "../utils/parseSignature";
 
@@ -190,7 +195,8 @@ function buildDef(
 
 export default defineCommand<Std>({
   name: "def",
-  description: "Define a user command or helper.",
+  description:
+    "Define a user command, helper, or module (`def module <name> ( ...defs )`).",
   args: [
     { name: "name", type: ["command", "helper"] },
     {
@@ -200,7 +206,31 @@ export default defineCommand<Std>({
     },
     { name: "body", type: ["expression", "block"] },
   ],
-  async run(module, { name, params, body }, { node }) {
+  async run(module, { name, params, body }, { node, interpreters }) {
+    // `def module <name> ( ...defs )` defines an inline EVML module: its
+    // defs become available as `name:cmd` / `@name:helper`, as if the
+    // module was loaded.
+    if (name === "module") {
+      if (
+        node.args[1]?.type !== NodeType.Bareword ||
+        body?.type !== NodeType.BlockExpression
+      ) {
+        throw new ErrorException(
+          '"module" is reserved — def module <name> ( ...defs ) defines a module',
+        );
+      }
+      checkEvmlModuleName(module, params);
+      const instance = await buildEvmlModule(
+        module,
+        body as BlockExpressionNode,
+        params,
+        params,
+        interpreters,
+      );
+      registerEvmlModule(module, instance);
+      return;
+    }
+
     const {
       params: paramDefs,
       opts: optDefs,

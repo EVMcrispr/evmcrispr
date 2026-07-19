@@ -8,7 +8,7 @@ const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const HOLDER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 
-const preamble = `load assertions\nset $assertions.address ${ASSERTIONS}`;
+const preamble = `load assertions\nset $assertions:address ${ASSERTIONS}`;
 
 function selectorOf(signature: string): string {
   return toFunctionSelector(`function ${signature}`);

@@ -14,8 +14,14 @@ load <moduleName> [imports]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `moduleName` | `module` | Module name (e.g. `aragonos`, `sim`) |
+| `moduleName` | `module` | Module name (e.g. `aragonos`, `sim`); with --from, `name>alias` loads the module under a local alias |
 | `[imports]` | `expression` | Import list: `[cmd cmd>renamed @helper @helper>@renamed]` — names usable without the module prefix |
+
+## Options
+
+| Name | Type | Description |
+|------|------|-------------|
+| `--from` | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias) |
 
 ## Examples
 
@@ -59,6 +65,39 @@ fork --using anvil (
   expect @bool(@token.balance(ETH @me) > 0)
 )
 ```
+
+## External EVML Modules (`--from`)
+
+`load <name> --from ipfs://<cid>` fetches an EVML module file from IPFS. The
+file must contain exactly one [`def module`](def.md) command, and the name
+it declares must match the name written in the load line — so the load line
+always documents which module you are pulling in. Add `>alias` to bind it
+under a different local name (e.g. when two libraries picked the same name):
+
+```evml novalidate
+load math --from ipfs://QmYourModuleCid
+set $x @math:double(21)
+
+# Load under a local alias — the canonical name stays unbound
+load math>mylib --from ipfs://QmYourModuleCid
+
+# Import lists work the same as with registered modules
+load math --from ipfs://QmYourModuleCid [@double>@dbl]
+```
+
+- Only `ipfs://<cid>` sources are supported — content-addressing pins the
+  exact code you audited, forever.
+- The file must be plain text (publish with the `evmcrispr_publish_module`
+  MCP tool or by uploading the file in the terminal). Encrypted share links
+  produced by `create-link` are *not* module files and are rejected.
+- `name>alias` renames are only valid together with `--from` — registered
+  module namespaces are never aliased.
+- External modules may shadow registered-but-unloaded module names (the
+  editor warns; rename with `>alias` to keep both available). This keeps
+  published scripts working when future built-in modules take the same
+  name. Loading the same local name twice is always an error.
+- Module defs run isolated: their `set` bindings are scope-local and they
+  cannot read or write `$mod:key` config variables.
 
 ## Rules
 

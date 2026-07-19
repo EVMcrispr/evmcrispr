@@ -22,7 +22,7 @@ giveth:donate <slug> <amount> <tokenAddr>
 
 ```evml
 # Donate to a Giveth project
-set $token.tokenlist https://tokens.honeyswap.org
+set $std:tokenlist https://tokens.honeyswap.org
 giveth:donate evmcrispr @token.amount(HNY 1) @token(HNY)
 ```
 

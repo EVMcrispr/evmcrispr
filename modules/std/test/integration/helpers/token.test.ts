@@ -50,7 +50,7 @@ describeHelper(
 
 describeHelper("@token", {
   describeName: "Std > helpers > @token > tokenlist validation",
-  preamble: 'set $token.tokenlist "http://evil.example.com"',
+  preamble: 'set $std:tokenlist "http://evil.example.com"',
   skipArgLengthCheck: true,
   errorCases: [
     {

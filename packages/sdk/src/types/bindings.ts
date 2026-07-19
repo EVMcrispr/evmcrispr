@@ -1,7 +1,13 @@
 import type { AstSymbol } from "jsymbol";
 
 import type { Param } from "../utils/encoders";
-import type { ArgDef, ArgType, CustomArgTypes, OptDef } from "../utils/schema";
+import type {
+  ArgDef,
+  ArgType,
+  ConfigDef,
+  CustomArgTypes,
+  OptDef,
+} from "../utils/schema";
 import type { Abi } from ".";
 import type { Node } from "./ast";
 import type {
@@ -52,6 +58,14 @@ export type ModuleData = {
   /** Module constants (zero-arg `@NAME` values). */
   constants?: Record<string, string>;
   types?: CustomArgTypes;
+  /** Declared config variables (`$<module>:<name>`). */
+  configs?: ConfigDef[];
+  /** External module whose contents could not be fetched during analysis;
+   *  unknown-name/arity/import checks are suppressed for it. */
+  opaque?: boolean;
+  /** Script-derived schema (inline `module` block or `load --from`) — not a
+   *  real registry-loaded module; may be freely re-synthesized. */
+  synthetic?: boolean;
 };
 
 export interface AbiBinding extends IBinding<Abi> {

@@ -66,10 +66,10 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "--as")).to.be.false;
     });
 
-    it("load --<cursor> should show no opts (load has none)", async () => {
+    it("load --<cursor> should offer the from opt", async () => {
       const script = "load --";
       const items = await evm.getCompletions(script, pos(script));
-      expect(labels(items)).to.deep.equal([]);
+      expect(labels(items)).to.deep.equal(["--from"]);
     });
 
     it("after load aragonos, qualified helper labels should be offered", async () => {
@@ -92,18 +92,23 @@ describe("Completions – std commands", () => {
   // -------------------------------------------------------------------------
 
   describe("set", () => {
-    it("set <cursor> should return empty when no user variables exist", async () => {
+    it("set <cursor> should offer declared config vars when no user variables exist", async () => {
       const script = "set ";
       const items = await evm.getCompletions(script, pos(script));
-      expect(items).to.have.lengthOf(0);
+      // std's declared configs are always available in the binding slot.
+      expect(hasLabel(items, "$std:tokenlist")).to.be.true;
+      expect(hasLabel(items, "$std:ipfsJwt")).to.be.true;
+      expect(items.every((i) => i.label.includes(":"))).to.be.true;
     });
 
     it("set <cursor> should show existing user variables", async () => {
       const script = "set $myVar 123\nset ";
       const items = await evm.getCompletions(script, pos(script, 2));
       expect(hasLabel(items, "$myVar")).to.be.true;
-      const varItems = onlyKind(items, "variable");
-      expect(varItems).to.have.lengthOf(1);
+      const plainVarItems = onlyKind(items, "variable").filter(
+        (i) => !i.label.includes(":"),
+      );
+      expect(plainVarItems).to.have.lengthOf(1);
     });
 
     it("set $x <cursor> should show helpers and variables", async () => {

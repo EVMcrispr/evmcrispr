@@ -57,6 +57,11 @@ function extractSpecialArg(
   }
   if (types.includes("variable")) {
     if (astNode?.type === NodeType.VariableIdentifier) {
+      if (!def.allowConfig && String(astNode.value).includes(":")) {
+        throw new ErrorException(
+          `${astNode.value}: config variables can only be assigned with set`,
+        );
+      }
       return { ok: true, value: astNode.value };
     }
     if (astNode?.type === NodeType.DestructurePattern) {

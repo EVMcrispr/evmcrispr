@@ -1,10 +1,9 @@
 import type { CompletionItem, CustomArgTypes } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
+import { BindingsSpace, ErrorException, readConfigValue } from "@evmcrispr/sdk";
 import { SUPERFLUID_TOKENLIST_URL } from "./addresses";
 import type { SuperTokenEntry } from "./utils/supertoken";
-import { ENV_TOKENLIST } from "./utils/supertoken";
 
-const { USER, CACHE } = BindingsSpace;
+const { CACHE } = BindingsSpace;
 
 function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}..${addr.slice(-4)}`;
@@ -34,7 +33,7 @@ export const types: CustomArgTypes = {
       }
 
       const url = String(
-        ctx.bindings.getBindingValue(ENV_TOKENLIST, USER) ??
+        readConfigValue(ctx.bindings, "superfluid", "tokenlist") ??
           SUPERFLUID_TOKENLIST_URL,
       );
       if (!url.startsWith("https://")) return [];

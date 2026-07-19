@@ -1,11 +1,9 @@
 import type { Module } from "@evmcrispr/sdk";
-import { BindingsSpace, ErrorException } from "@evmcrispr/sdk";
+import { ErrorException } from "@evmcrispr/sdk";
 import type { Abi, Address } from "viem";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import { erc20Abi, superTokenAbi } from "../abis";
-import { NATIVE_SUPERTOKEN, SUPERFLUID_TOKENLIST_URL } from "../addresses";
-
-export const ENV_TOKENLIST = "$superfluid.tokenlist";
+import { NATIVE_SUPERTOKEN } from "../addresses";
 
 export interface SuperTokenEntry {
   symbol: string;
@@ -21,13 +19,10 @@ export interface SuperTokenEntry {
 }
 
 export function tokenListUrl(module: Module): string {
-  const url = String(
-    module.bindingsManager.getBindingValue(ENV_TOKENLIST, BindingsSpace.USER) ??
-      SUPERFLUID_TOKENLIST_URL,
-  );
+  const url = String(module.getConfigBinding("tokenlist"));
   if (!url.startsWith("https://")) {
     throw new ErrorException(
-      `${ENV_TOKENLIST} must be a valid HTTPS URL, got ${url}`,
+      `$superfluid:tokenlist must be a valid HTTPS URL, got ${url}`,
     );
   }
   return url;

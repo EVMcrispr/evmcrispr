@@ -1,5 +1,5 @@
 import { defineModule } from "@evmcrispr/sdk";
-import { commands, helpers } from "./_generated";
+import { commands, configs, helpers } from "./_generated";
 import { types } from "./argTypes";
 
 export default class Superfluid extends defineModule(
@@ -7,4 +7,6 @@ export default class Superfluid extends defineModule(
   commands,
   helpers,
   types,
+  undefined,
+  configs,
 ) {}

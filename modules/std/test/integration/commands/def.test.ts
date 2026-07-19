@@ -26,6 +26,14 @@ describeCommand("def", {
       description: "Composition",
       code: `def @double "$n: number -> number" @num($n * 2)\ndef @quadruple "$n: number -> number" @double(@double($n))\nset $result @quadruple(3)`,
     },
+    {
+      description:
+        "Inline module - a def of defs, used as if the module was loaded",
+      code: `def module math (
+  def @double "$n: number -> number" @num($n * 2)
+)
+set $result @math:double(21)`,
+    },
   ],
   cases: [
     // ── Helper definitions ──

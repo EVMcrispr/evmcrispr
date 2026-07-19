@@ -28,3 +28,11 @@ load aragonos
 | [@aragonos:aragonEns](src/helpers/aragonEns.md) | `address` | Resolve an Aragon ENS name to its address. |
 | [@aragonos:nextApp](src/helpers/nextApp.md) | `address` | Predict the address of the next app to be installed in the DAO. |
 
+## Configuration
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$aragonos:ensResolver` | `address` | — | Custom aragonID ENS resolver used to resolve DAO names (forks / testing). |
+

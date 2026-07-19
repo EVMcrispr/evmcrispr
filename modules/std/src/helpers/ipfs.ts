@@ -1,7 +1,7 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type Std from "..";
 
-const IPFS_VAR_NAME = "ipfs.jwt";
+const IPFS_VAR_NAME = "ipfsJwt";
 
 export default defineHelper<Std>({
   name: "ipfs",
