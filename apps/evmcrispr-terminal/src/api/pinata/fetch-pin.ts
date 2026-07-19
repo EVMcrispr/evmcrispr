@@ -1,9 +1,7 @@
-import type { BareScript } from "../../types/index";
-
 const fetchPin = async (
   pinataUrl: string,
   hashId?: string,
-): Promise<BareScript | undefined> => {
+): Promise<unknown> => {
   if (!hashId) return undefined;
 
   const url = `${pinataUrl}/ipfs/${hashId}`;

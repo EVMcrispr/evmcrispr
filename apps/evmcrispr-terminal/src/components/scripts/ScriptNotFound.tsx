@@ -31,6 +31,17 @@ const BROKEN_VIAL = `    ┌──┐
    ╱   ╲
   ~ ~ ~ ~`;
 
+const SEALED_VIAL = `    ┌──┐
+   ┌┤××├┐
+   ││  ││
+   ││~~││
+   ││~~││
+   ││  ││
+   └┴──┴┘
+    ╔══╗
+    ║ ○║
+    ╚══╝`;
+
 const variants = {
   uuid: {
     title: "404: Alien DNA Detected",
@@ -48,12 +59,38 @@ const variants = {
       "The IPFS link may be expired or the gateway unreachable.",
     ],
   },
+  "encrypted-missing-key": {
+    title: "Sealed Vial Detected",
+    art: SEALED_VIAL,
+    lines: [
+      "This script is encrypted, but the link is missing its decryption key.",
+      "Ask the sender for the full link, including the part after the last #.",
+    ],
+  },
+  "encrypted-invalid-key": {
+    title: "Key Rejected",
+    art: SEALED_VIAL,
+    lines: [
+      "The decryption key in this link doesn't match the sealed script.",
+      "The link may have been truncated or altered — ask the sender to reshare it.",
+    ],
+  },
+  "encrypted-needs-upgrade": {
+    title: "Future Formula Detected",
+    art: SEALED_VIAL,
+    lines: [
+      "This script was sealed with a newer version of EVMcrispr.",
+      "Update to EVMcrispr >= 0.11.0 to open it.",
+    ],
+  },
 } as const;
+
+export type ScriptNotFoundVariant = keyof typeof variants;
 
 export default function ScriptNotFound({
   variant,
 }: {
-  variant: "uuid" | "ipfs";
+  variant: ScriptNotFoundVariant;
 }) {
   const navigate = useNavigate();
   const { title, art, lines } = variants[variant];

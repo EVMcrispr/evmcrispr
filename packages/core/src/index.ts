@@ -146,5 +146,15 @@ export {
   switchArgForChainId,
   walkScript,
 } from "./scriptWalk";
+export type {
+  EncryptedScriptEnvelope,
+  ShareableScript,
+} from "./shareEnvelope";
+export {
+  decryptScript,
+  encryptScript,
+  isEncryptedEnvelope,
+  SHARE_MIN_VERSION,
+} from "./shareEnvelope";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";
 export { EvmlWorkspace } from "./Workspace";

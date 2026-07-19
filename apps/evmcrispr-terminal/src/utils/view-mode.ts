@@ -5,7 +5,9 @@ const SMALL_SCREEN_BREAKPOINT = 768;
 
 function readUrlMode(): ViewMode | null {
   if (typeof window === "undefined") return null;
-  const query = window.location.hash.split("?")[1];
+  // The decryption key of encrypted share links trails the query as a second
+  // `#` segment (#/<cid>?mode=view#<key>) — strip it before parsing params.
+  const query = window.location.hash.split("?")[1]?.split("#")[0];
   if (!query) return null;
   const value = new URLSearchParams(query).get("mode");
   if (value === "view" || value === "edit") return value;

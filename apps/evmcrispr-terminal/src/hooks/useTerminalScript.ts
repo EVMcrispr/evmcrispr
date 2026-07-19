@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { useLibraryStore } from "../stores/library-store";
 import {
   SCRIPT_PLACEHOLDER,
@@ -12,6 +12,7 @@ import {
   setLastViewedScript,
 } from "../utils";
 import { migrateFromLegacyStorage } from "../utils/migration";
+import type { EncryptedReason } from "./useStoredScript";
 import { isCID, useScriptFromId } from "./useStoredScript";
 
 function loadIntoStore(id: string, title: string, script: string) {
@@ -29,16 +30,24 @@ export function useTerminalScript(): {
   scriptNotFound: boolean;
   ipfsError: boolean;
   ipfsLoading: boolean;
+  encryptedError: EncryptedReason | undefined;
 } {
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const initialized = useRef(false);
 
-  const result = useScriptFromId(params?.scriptId);
+  // Share links carry the decryption key as the last fragment segment
+  // (#/<cid>?mode=view#<key>) — react-router surfaces it as location.hash.
+  const decryptionKey = location.hash ? location.hash.slice(1) : undefined;
+
+  const result = useScriptFromId(params?.scriptId, decryptionKey);
 
   const scriptNotFound = result?.status === "not-found";
   const ipfsError = result?.status === "error";
   const ipfsLoading = result?.status === "loading";
+  const encryptedError =
+    result?.status === "encrypted" ? result.reason : undefined;
 
   const found = result?.status === "found" ? result.data : undefined;
   const titleFromId = found?.title;
@@ -66,7 +75,7 @@ export function useTerminalScript(): {
 
     // Check for hash query params (e.g. Safe app: ?title=...&script=...)
     const encodedParams = new URLSearchParams(
-      window.location.hash.split("?")[1],
+      window.location.hash.split("?")[1]?.split("#")[0],
     );
     const encodedTitle = encodedParams.get("title");
     const encodedScript = encodedParams.get("script");
@@ -111,5 +120,5 @@ export function useTerminalScript(): {
     }
   }, [found, titleFromId, scriptFromId, idFromUrl, params?.scriptId, navigate]);
 
-  return { scriptNotFound, ipfsError, ipfsLoading };
+  return { scriptNotFound, ipfsError, ipfsLoading, encryptedError };
 }

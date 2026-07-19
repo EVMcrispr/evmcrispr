@@ -42,7 +42,8 @@ function useIsSmallScreen(breakpoint = 768) {
 
 export default function Terminal() {
   const { address } = useWalletConnection();
-  const { scriptNotFound, ipfsError, ipfsLoading } = useTerminalScript();
+  const { scriptNotFound, ipfsError, ipfsLoading, encryptedError } =
+    useTerminalScript();
   useAutoSave();
   const script = useTerminalStore((s) => s.script);
   const title = useTerminalStore((s) => s.title);
@@ -79,7 +80,9 @@ export default function Terminal() {
             className="flex flex-col overflow-hidden bg-[#000] pb-3"
             style={{ flex: isSmallScreen ? "0 0 60%" : "0 0 70%" }}
           >
-            {scriptNotFound || ipfsError ? (
+            {encryptedError ? (
+              <ScriptNotFound variant={`encrypted-${encryptedError}`} />
+            ) : scriptNotFound || ipfsError ? (
               <ScriptNotFound variant={ipfsError ? "ipfs" : "uuid"} />
             ) : ipfsLoading ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 select-none animate-fade-in">
