@@ -50,8 +50,9 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
     await interpreter.interpret();
 
     const aragonos = interpreter.getModule("aragonos");
+    expect(aragonos).to.not.be.undefined;
     expect(
-      aragonos.bindingsManager.getBindingValue("$addr", BindingsSpace.USER),
+      aragonos!.bindingsManager.getBindingValue("$addr", BindingsSpace.USER),
     ).to.equal(DAO["agent:2"]);
   });
 
