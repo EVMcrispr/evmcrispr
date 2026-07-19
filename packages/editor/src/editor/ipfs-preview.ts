@@ -77,6 +77,17 @@ async function fetchPreview(cid: string): Promise<string | null> {
     return `${title}\n\n---\n\n![preview](${url}|height=${PREVIEW_IMAGE_HEIGHT})`;
   }
 
+  // Directories surface as text/html (a generated listing, or a contained
+  // index.html); the dag-json probe tells them apart from real HTML files.
+  if (type === "text/html" || type === "") {
+    const listing = await dirListing(cid);
+    if (listing) {
+      response.body?.cancel();
+      const dirTitle = `**IPFS folder** · [\`${shortenCid(cid)}\`](${url}) · ${listing.count} ${listing.count === 1 ? "entry" : "entries"}`;
+      return `${dirTitle}\n\n---\n\n${listing.markdown}`;
+    }
+  }
+
   const maybeText =
     type.startsWith("text/") ||
     type.includes("json") ||
@@ -95,6 +106,82 @@ async function fetchPreview(cid: string): Promise<string | null> {
 
   response.body?.cancel();
   return title;
+}
+
+/** Recursion depth below the root shown in a folder preview. */
+const MAX_DIR_DEPTH = 2;
+/** Entries rendered per directory before truncating with `…`. */
+const MAX_DIR_ENTRIES = 20;
+
+type DagLink = { name: string; cid: string };
+
+const dagDirCache = new Map<string, Promise<DagLink[] | null>>();
+
+/**
+ * Named links of a UnixFS directory node via the gateway's dag-json
+ * endpoint, or null when the CID is not a plain directory.
+ */
+function fetchDagDir(cid: string): Promise<DagLink[] | null> {
+  let links = dagDirCache.get(cid);
+  if (!links) {
+    links = (async () => {
+      const response = await fetch(`${IPFS_GATEWAY}${cid}?format=dag-json`, {
+        signal: AbortSignal.timeout(PREVIEW_FETCH_TIMEOUT_MS),
+      });
+      if (!response.ok) return null;
+      const dag = await response.json();
+      // UnixFS Data starts with 0x08 0x01 (Type = Directory).
+      const data = atob(dag?.Data?.["/"]?.bytes ?? "");
+      if (data.charCodeAt(0) !== 0x08 || data.charCodeAt(1) !== 0x01) {
+        return null;
+      }
+      const raw: { Name?: string; Hash?: { "/"?: string } }[] =
+        dag?.Links ?? [];
+      return raw
+        .filter((l) => l.Name && l.Hash?.["/"])
+        .map((l) => ({ name: l.Name as string, cid: l.Hash?.["/"] as string }));
+    })().catch(() => null);
+    dagDirCache.set(cid, links);
+    links.then((value) => {
+      if (value === null) dagDirCache.delete(cid);
+    });
+  }
+  return links;
+}
+
+/**
+ * Markdown tree of a directory CID: entries link to their gateway path
+ * under the root CID, subdirectories expand up to `MAX_DIR_DEPTH`.
+ */
+async function dirListing(
+  cid: string,
+): Promise<{ markdown: string; count: number } | null> {
+  const links = await fetchDagDir(cid);
+  if (!links) return null;
+  const lines: string[] = [];
+  await renderDirEntries(cid, "", links, 0, lines);
+  return { markdown: lines.join("\n"), count: links.length };
+}
+
+async function renderDirEntries(
+  rootCid: string,
+  basePath: string,
+  links: DagLink[],
+  depth: number,
+  lines: string[],
+): Promise<void> {
+  const indent = "  ".repeat(depth);
+  for (const link of links.slice(0, MAX_DIR_ENTRIES)) {
+    const path = basePath ? `${basePath}/${link.name}` : link.name;
+    const href = `${IPFS_GATEWAY}${rootCid}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    const children = await fetchDagDir(link.cid);
+    const label = link.name.replace(/([[\]\\])/g, "\\$1");
+    lines.push(`${indent}- ${children ? "📁" : "📄"} [${label}](${href})`);
+    if (children && depth < MAX_DIR_DEPTH) {
+      await renderDirEntries(rootCid, path, children, depth + 1, lines);
+    }
+  }
+  if (links.length > MAX_DIR_ENTRIES) lines.push(`${indent}- …`);
 }
 
 const SOLIDITY_HINT =
