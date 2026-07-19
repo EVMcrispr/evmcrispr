@@ -6,6 +6,14 @@ Aragon DAO operations: connect to DAOs, manage permissions, install and upgrade 
 load aragonos
 ```
 
+## Configuration variables
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$aragonos:ensResolver` | `address` | — | Custom aragonID ENS resolver used to resolve DAO names (forks / testing). |
+
 ## Commands
 
 | Command | Description |
@@ -27,12 +35,4 @@ load aragonos
 | [@aragonos:app](src/helpers/app.md) | `address` | Resolve an app name to its proxy address within the connected DAO. |
 | [@aragonos:aragonEns](src/helpers/aragonEns.md) | `address` | Resolve an Aragon ENS name to its address. |
 | [@aragonos:nextApp](src/helpers/nextApp.md) | `address` | Predict the address of the next app to be installed in the DAO. |
-
-## Configuration
-
-Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `$aragonos:ensResolver` | `address` | — | Custom aragonID ENS resolver used to resolve DAO names (forks / testing). |
 

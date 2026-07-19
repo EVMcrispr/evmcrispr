@@ -2,6 +2,15 @@
 
 The standard module is loaded by default. It provides core language constructs, contract interaction, control flow, and data manipulation.
 
+## Configuration variables
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$std:tokenlist` | `string` | `https://api.evmcrispr.com/tokenlist/{chainId}` | Tokenlist URL used to resolve token symbols (must be HTTPS). |
+| `$std:ipfsJwt` | `string` | — | Pinata JWT used by @ipfs to upload content. |
+
 ## Commands
 
 | Command | Description |
@@ -52,13 +61,4 @@ The standard module is loaded by default. It provides core language constructs, 
 | [@token.format](src/helpers/token.format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
 | [@token.symbol](src/helpers/token.symbol.md) | `string` | Return the symbol of a token. |
 | [@token.totalSupply](src/helpers/token.totalSupply.md) | `number` | Fetch the total supply of a token in base units. |
-
-## Configuration
-
-Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `$std:tokenlist` | `string` | `https://api.evmcrispr.com/tokenlist/{chainId}` | Tokenlist URL used to resolve token symbols (must be HTTPS). |
-| `$std:ipfsJwt` | `string` | — | Pinata JWT used by @ipfs to upload content. |
 

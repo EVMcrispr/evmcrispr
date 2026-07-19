@@ -6,6 +6,14 @@ Superfluid streaming payments: open, update and stop money streams (CFA) with na
 load superfluid
 ```
 
+## Configuration variables
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$superfluid:tokenlist` | `string` | `https://tokenlist.superfluid.org/superfluid.extended.tokenlist.json` | Superfluid extended tokenlist URL used to resolve SuperToken symbols (must be HTTPS). |
+
 ## Commands
 
 | Command | Description |
@@ -46,12 +54,4 @@ load superfluid
 | [@superfluid:totalUnits](src/helpers/totalUnits.md) | `number` | Total units across all members of a GDA pool. |
 | [@superfluid:underlying](src/helpers/underlying.md) | `address` | Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx). |
 | [@superfluid:units](src/helpers/units.md) | `number` | A member's share units in a GDA pool. |
-
-## Configuration
-
-Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `$superfluid:tokenlist` | `string` | `https://tokenlist.superfluid.org/superfluid.extended.tokenlist.json` | Superfluid extended tokenlist URL used to resolve SuperToken symbols (must be HTTPS). |
 

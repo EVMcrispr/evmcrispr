@@ -6,6 +6,15 @@ Safe multisig operations: propose and execute transactions, manage owners and th
 load safe
 ```
 
+## Configuration variables
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$safe:serviceUrl` | `string` | — | Custom Safe transaction-service endpoint for the current chain. |
+| `$safe:apiKey` | `string` | — | API key sent to the Safe transaction service. |
+
 ## Commands
 
 | Command | Description |
@@ -40,13 +49,4 @@ load safe
 | [@safe:nonce](src/helpers/nonce.md) | `number` | Return the current on-chain nonce of a Safe. |
 | [@safe:owners](src/helpers/owners.md) | `array` | Return the owner addresses of a Safe. |
 | [@safe:threshold](src/helpers/threshold.md) | `number` | Return the signature threshold of a Safe. |
-
-## Configuration
-
-Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `$safe:serviceUrl` | `string` | — | Custom Safe transaction-service endpoint for the current chain. |
-| `$safe:apiKey` | `string` | — | API key sent to the Safe transaction service. |
 

@@ -27,6 +27,9 @@ function buildReferenceSidebar() {
 
   return sorted.map((mod) => {
     const items = [];
+    if (existsSync(resolve(REFERENCE_DIR, mod, "index.md"))) {
+      items.push({ label: "Overview", link: `/reference/${mod}/` });
+    }
     const commandsDir = resolve(REFERENCE_DIR, mod, "commands");
     const helpersDir = resolve(REFERENCE_DIR, mod, "helpers");
     if (existsSync(commandsDir) && readdirSync(commandsDir).length > 0) {

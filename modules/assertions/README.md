@@ -6,6 +6,14 @@ On-chain assertions backed by the assertions.eth contract: verify view return va
 load assertions
 ```
 
+## Configuration variables
+
+Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `$assertions:address` | `address` | — | Override the resolved assertions contract address (forks / testing). |
+
 ## Commands
 
 | Command | Description |
@@ -24,12 +32,4 @@ load assertions
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the keccak256 code hash of an address. |
-
-## Configuration
-
-Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `$assertions:address` | `address` | — | Override the resolved assertions contract address (forks / testing). |
 

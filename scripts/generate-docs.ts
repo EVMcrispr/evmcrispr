@@ -717,13 +717,36 @@ function extractConfigs(mod: ModuleInfo): ConfigMeta[] {
   }
 }
 
+/** Starlight page slug for a doc file name: lowercased, dots stripped
+ *  (e.g. `abi.decode` → `abidecode`). */
+function starlightSlug(name: string): string {
+  return name.toLowerCase().replace(/\./g, "");
+}
+
 function generateModuleIndex(
   mod: ModuleInfo,
   commands: CommandMeta[],
   helpers: HelperMeta[],
+  target: "repo" | "website" = "repo",
 ): string {
+  const website = target === "website";
+  const commandLink = (name: string) =>
+    website
+      ? `/reference/${mod.name}/commands/${starlightSlug(name)}/`
+      : `src/commands/${name}.md`;
+  const helperLink = (name: string) =>
+    website
+      ? `/reference/${mod.name}/helpers/${starlightSlug(name)}/`
+      : `src/helpers/${name}.md`;
+
   const lines: string[] = [];
-  lines.push(`# ${mod.name} module`);
+  if (website) {
+    lines.push("---");
+    lines.push(`title: "${mod.name}"`);
+    lines.push("---");
+  } else {
+    lines.push(`# ${mod.name} module`);
+  }
   lines.push("");
   lines.push(mod.overview);
   lines.push("");
@@ -735,13 +758,33 @@ function generateModuleIndex(
     lines.push("");
   }
 
+  const configs = extractConfigs(mod);
+  if (configs.length > 0) {
+    lines.push("## Configuration variables");
+    lines.push("");
+    lines.push(
+      "Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.",
+    );
+    lines.push("");
+    lines.push("| Variable | Type | Default | Description |");
+    lines.push("|----------|------|---------|-------------|");
+    for (const c of configs) {
+      const type = Array.isArray(c.type) ? c.type.join(" \\| ") : c.type;
+      const def = c.default !== undefined ? `\`${c.default}\`` : "—";
+      lines.push(
+        `| \`$${mod.name}:${c.name}\` | \`${type}\` | ${def} | ${c.description} |`,
+      );
+    }
+    lines.push("");
+  }
+
   if (commands.length > 0) {
     lines.push("## Commands");
     lines.push("");
     lines.push("| Command | Description |");
     lines.push("|---------|-------------|");
     for (const cmd of commands) {
-      const link = `[${mod.prefix}${cmd.name}](src/commands/${cmd.name}.md)`;
+      const link = `[${mod.prefix}${cmd.name}](${commandLink(cmd.name)})`;
       lines.push(`| ${link} | ${cmd.description} |`);
     }
     lines.push("");
@@ -756,28 +799,8 @@ function generateModuleIndex(
       const returnTypeStr = Array.isArray(h.returnType)
         ? h.returnType.join(" \\| ")
         : h.returnType;
-      const link = `[@${mod.prefix}${h.name}](src/helpers/${h.name}.md)`;
+      const link = `[@${mod.prefix}${h.name}](${helperLink(h.name)})`;
       lines.push(`| ${link} | \`${returnTypeStr}\` | ${h.description} |`);
-    }
-    lines.push("");
-  }
-
-  const configs = extractConfigs(mod);
-  if (configs.length > 0) {
-    lines.push("## Configuration");
-    lines.push("");
-    lines.push(
-      "Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.",
-    );
-    lines.push("");
-    lines.push("| Variable | Type | Default | Description |");
-    lines.push("|----------|------|---------|-------------|");
-    for (const c of configs) {
-      const type = Array.isArray(c.type) ? c.type.join(" \\| ") : c.type;
-      const def = c.default !== undefined ? `\`${c.default}\`` : "—";
-      lines.push(
-        `| \`$${mod.name}:${c.name}\` | \`${type}\` | ${def} | ${c.description} |`,
-      );
     }
     lines.push("");
   }
@@ -841,6 +864,16 @@ for (const mod of MODULES) {
   cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "commands"));
   cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "helpers"));
 
+  // Write module index (repo README + website landing page)
+  const indexDoc = generateModuleIndex(mod, commands, helpers);
+  writeIfChanged(join(mod.dir, "README.md"), indexDoc);
+  allDocs.push(indexDoc);
+  mkdirSync(join(WEBSITE_DOCS, mod.name), { recursive: true });
+  writeIfChanged(
+    join(WEBSITE_DOCS, mod.name, "index.md"),
+    generateModuleIndex(mod, commands, helpers, "website"),
+  );
+
   // Write command docs
   for (const cmd of commands) {
     const doc = generateCommandDoc(mod, cmd);
@@ -869,10 +902,6 @@ for (const mod of MODULES) {
     );
     ensureSymlink(outPath, webPath);
   }
-
-  // Write module index
-  const indexDoc = generateModuleIndex(mod, commands, helpers);
-  writeIfChanged(join(mod.dir, "README.md"), indexDoc);
 }
 
 // Generate llms-full.txt in website public/
