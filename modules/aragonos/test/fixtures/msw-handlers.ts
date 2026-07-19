@@ -52,10 +52,6 @@ export const aragonosHandlers = [
     handleSubgraphRequest,
   ),
   http.post(
-    "https://api.thegraph.com/subgraphs/name/aragon/aragon-goerli",
-    handleSubgraphRequest,
-  ),
-  http.post(
     "https://gateway-arbitrum.network.thegraph.com/api/458055b0bdee8336f889084f8378d7fa/subgraphs/id/GHtDCXqSdwYPgXSigMA21yRpAWDwiAxqsfYsEw7NLMPk",
     handleSubgraphRequest,
   ),

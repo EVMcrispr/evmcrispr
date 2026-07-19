@@ -8,6 +8,7 @@ export const DAO: Record<string, Address> = {
   "evm-script-registry": "0x0d33a5ca7149d24628efd43564f577ced33dd34b",
   agent: "0x4ba7362f9189572cbb1216819a45aba0d0b2d1cb",
   "agreement.open": "0x59a15718992a42082ab2306bc6cbd662958a178c",
+  "superfluid.open": "0x602a48a53a425521c9923708d277dc7430e3c749",
   "brightid-register.open": "0x7714eb44754cb9db6d65b61f3352df12600dc593",
   "dynamic-issuance.open": "0x783da66eea5a93f46f386806fce49ce18937f861",
   kernel: "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
@@ -18,4 +19,4 @@ export const DAO: Record<string, Address> = {
 };
 
 // Needed to build the MockEVMcrispr cache
-export const KERNEL_TRANSACTION_COUNT = 10;
+export const KERNEL_TRANSACTION_COUNT = 11;

@@ -112,11 +112,23 @@
           },
           "roles": [
             {
+              "roleHash": "0x0a1ad7b87f5846153c6d5a1f761d71c7d0cfd122384f56066cd33239b7933694",
+              "manager": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a",
+              "grantees": [
+                {
+                  "granteeAddress": "0x602a48a53a425521c9923708d277dc7430e3c749"
+                }
+              ]
+            },
+            {
               "roleHash": "0x8502233096d909befbda0999bb8ea2f3a6be3c138b9fbf003752a4c8bce86f6c",
               "manager": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a",
               "grantees": [
                 {
                   "granteeAddress": "0x0b21081c6f8b1990f53fc76279cc41ba22d7afe2"
+                },
+                {
+                  "granteeAddress": "0x602a48a53a425521c9923708d277dc7430e3c749"
                 }
               ]
             },
@@ -188,6 +200,55 @@
           "version": {
             "codeAddress": "0xe2b44f206f4ce313c6d3b85496a7f85194ec10fb",
             "contentUri": "ipfs:QmXeaqu2CDFor6Xa1azzAzskb1y4kgmuVdL4WDWK5zcmRi"
+          }
+        },
+        {
+          "address": "0x602a48a53a425521c9923708d277dc7430e3c749",
+          "appId": "0xa9018c6bf815a34270ddb31e49fa0acc1f51e6c50b9ab47b0bd14cd9fd65b059",
+          "repo": {
+            "name": "superfluid",
+            "registry": {
+              "name": "open.aragonpm.eth"
+            }
+          },
+          "roles": [
+            {
+              "roleHash": "0x56c3496db27efc6d83ab1a24218f016191aab8835d442bc0fa8502f327132cbe",
+              "manager": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a",
+              "grantees": [
+                {
+                  "granteeAddress": "0x856d17d5323794a7db0ba17f59d4b88fd402d321"
+                },
+                {
+                  "granteeAddress": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xc3785b41f0ebb77bd89636ecae52c950cee1cd359f0a1e5fababbcb5a0bfcb97",
+              "manager": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a",
+              "grantees": [
+                {
+                  "granteeAddress": "0x856d17d5323794a7db0ba17f59d4b88fd402d321"
+                },
+                {
+                  "granteeAddress": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a"
+                }
+              ]
+            },
+            {
+              "roleHash": "0xf57d195c0663dd0e8a2210bb519e2b7de35301795015198efff16e9a2be238c8",
+              "manager": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a",
+              "grantees": [
+                {
+                  "granteeAddress": "0xfbd0b2726070a9d6aff6d7216c9e9340eae68b2a"
+                }
+              ]
+            }
+          ],
+          "version": {
+            "codeAddress": "0xb1c83cdece395e1cd8883e05648f9aa1e37b9a98",
+            "contentUri": "ipfs:QmUKWdy4feZ7jqPWqE471xZuukTTapMZRy9jZr4TKceUvr"
           }
         },
         {

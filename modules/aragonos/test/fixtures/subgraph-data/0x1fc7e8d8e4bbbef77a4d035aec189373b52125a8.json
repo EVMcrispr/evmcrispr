@@ -117,6 +117,9 @@
               "manager": "0x9126f1e7e3ab7414b921fb09ac2c2eb9e8e27061",
               "grantees": [
                 {
+                  "granteeAddress": "0x9126f1e7e3ab7414b921fb09ac2c2eb9e8e27061"
+                },
+                {
                   "granteeAddress": "0xd6050a1de5bae9ec0098afd46f44dce9837385ff"
                 }
               ]
