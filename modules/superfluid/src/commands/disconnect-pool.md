@@ -28,4 +28,3 @@ superfluid:disconnect-pool $rewards
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

@@ -27,4 +27,3 @@ superfluid:connect-pool $rewards
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

@@ -37,4 +37,3 @@ superfluid:wrap 100e6 into USDCx
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

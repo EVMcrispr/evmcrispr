@@ -26,4 +26,3 @@ superfluid:stop-auto-wrap USDCx
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

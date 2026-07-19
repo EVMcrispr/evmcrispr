@@ -37,4 +37,3 @@ superfluid:distribute 400e18 xDAIx to $rewards
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

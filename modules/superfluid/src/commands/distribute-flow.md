@@ -37,4 +37,3 @@ superfluid:distribute-flow 1000e18/mo xDAIx to $rewards
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

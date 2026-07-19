@@ -29,4 +29,3 @@ print "Buffer:" @superfluid:buffer(xDAIx 1000e18/mo)
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

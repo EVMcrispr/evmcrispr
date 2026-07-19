@@ -39,4 +39,3 @@ superfluid:auto-wrap USDCx --allowance 5000e6 --lower 3d --upper 8d
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

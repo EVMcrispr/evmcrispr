@@ -28,4 +28,3 @@ print "Underlying:" @superfluid:underlying(USDCx)
 <!-- HAND-WRITTEN -->
 
 ## See Also
-
