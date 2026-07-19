@@ -32,5 +32,5 @@ set $native @token(XDAI)
 
 ## See Also
 
-- [@token.amount](../token.amount.md) — convert human amounts to base units
-- [@token.balance](../token.balance.md) — query token balance
+- [@token.amount](token.amount.md) — convert human amounts to base units
+- [@token.balance](token.balance.md) — query token balance

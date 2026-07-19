@@ -22,4 +22,4 @@ Bitwise NOT of a bytes value (256-bit complement).
 
 ## See Also
 
-- [@bytes](bytes.md) — bitwise AND, OR, shift
+- [@bytes](../../../std/src/helpers/bytes.md) — bitwise AND, OR, shift

@@ -37,4 +37,4 @@ sim:expect @bool($a == 42)
 ## See Also
 
 - [fork](fork.md) — simulate on a forked chain
-- [@bool](../../std/src/helpers/bool.md) — boolean expressions
+- [@bool](../../../std/src/helpers/bool.md) — boolean expressions

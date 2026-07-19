@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import evmlGrammar from "@evmcrispr/editor/grammars/evml";
@@ -48,7 +48,46 @@ function buildReferenceSidebar() {
   });
 }
 
+// Rewrite relative .md links (kept relative so they work when browsing the
+// repo on GitHub) into site page URLs. Handles links within the reference
+// content tree and repo-style cross-module links (../../../<mod>/src/...).
+const DOCS_DIR = resolve(import.meta.dirname, "src/content/docs");
+const CROSS_MODULE_RE = /(?:^|\/)([\w-]+)\/src\/(commands|helpers)\/([^/]+)\.md$/;
+
+// Starlight page slug: lowercased, dots stripped (abi.decode → abidecode).
+function pageSlug(segment) {
+  return segment.toLowerCase().replace(/\./g, "");
+}
+
+function remarkRewriteMdLinks() {
+  return (tree, file) => {
+    const visit = (node) => {
+      if (node.type === "link" && node.url && !/^([a-z]+:|\/|#)/i.test(node.url)) {
+        const hashIdx = node.url.indexOf("#");
+        const path = hashIdx === -1 ? node.url : node.url.slice(0, hashIdx);
+        const hash = hashIdx === -1 ? "" : node.url.slice(hashIdx);
+        if (path.endsWith(".md")) {
+          const cross = CROSS_MODULE_RE.exec(path);
+          const rel = relative(DOCS_DIR, resolve(dirname(file.path), path));
+          if (cross) {
+            node.url = `/reference/${cross[1]}/${cross[2]}/${pageSlug(cross[3])}/${hash}`;
+          } else if (!rel.startsWith("..")) {
+            const segments = rel.replace(/\.md$/, "").split("/");
+            if (segments.at(-1) === "index") segments.pop();
+            node.url = `/${segments.map(pageSlug).join("/")}/${hash}`;
+          }
+        }
+      }
+      for (const child of node.children ?? []) visit(child);
+    };
+    visit(tree);
+  };
+}
+
 export default defineConfig({
+  markdown: {
+    remarkPlugins: [remarkRewriteMdLinks],
+  },
   integrations: [
     starlight({
       components: {

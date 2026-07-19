@@ -29,5 +29,5 @@ set $sel @id("transfer(address,uint256)")
 
 ## See Also
 
-- [@namehash](namehash.md) — ENS namehash
+- [@namehash](../../../ens/src/helpers/namehash.md) — ENS namehash
 - [@abi.encodeCall](abi.encodeCall.md) — encode a full function call

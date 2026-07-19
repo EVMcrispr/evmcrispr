@@ -29,5 +29,5 @@ set $addr @ens("vitalik.eth")
 
 ## See Also
 
-- [@namehash](namehash.md) — compute ENS namehash
+- [@namehash](../../../ens/src/helpers/namehash.md) — compute ENS namehash
 - [@token](token.md) — resolve token addresses

@@ -25,4 +25,4 @@ Transform each element of an array by applying a helper.
 
 - [@filter](filter.md) — keep elements by predicate
 - [@reduce](reduce.md) — fold an array to a single value
-- [loop](../../commands/loop.md) — imperative iteration
+- [loop](../../../std/src/commands/loop.md) — imperative iteration

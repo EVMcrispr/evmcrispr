@@ -37,6 +37,6 @@ set $b @bytes(0x01 "<<" 8)
 
 ## See Also
 
-- [@bytes.not](bytes.not.md) — bitwise NOT
-- [@bytes.concat](bytes.concat.md) — concatenate bytes
-- [@bytes.slice](bytes.slice.md) — extract a byte range
+- [@bytes.not](../../../lang/src/helpers/bytes.not.md) — bitwise NOT
+- [@bytes.concat](../../../lang/src/helpers/bytes.concat.md) — concatenate bytes
+- [@bytes.slice](../../../lang/src/helpers/bytes.slice.md) — extract a byte range

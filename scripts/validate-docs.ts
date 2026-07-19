@@ -169,7 +169,31 @@ for (const file of files) {
   }
 }
 
+// ── Validate relative .md links ──────────────────────────────────────
+// Relative links are kept repo-browsable and rewritten to page URLs by the
+// website build, so every one of them must resolve to a real file on disk.
+
+const LINK_RE = /\]\(([^)#\s]+\.md)(#[^)]*)?\)/g;
+let linksChecked = 0;
+let brokenLinks = 0;
+
+for (const file of files) {
+  const content = readFileSync(file, "utf-8");
+  for (const m of content.matchAll(LINK_RE)) {
+    const url = m[1];
+    if (/^([a-z]+:|\/)/i.test(url)) continue;
+    linksChecked++;
+    const target = resolve(join(file, ".."), url);
+    if (!existsSync(target)) {
+      brokenLinks++;
+      const line = content.slice(0, m.index).split("\n").length;
+      console.log(`\n✗ ${relative(ROOT, file)}:${line} broken link: ${url}`);
+    }
+  }
+}
+
 console.log(
-  `\nvalidate-docs: ${checked} blocks checked, ${skipped} skipped, ${failures} with errors`,
+  `\nvalidate-docs: ${checked} blocks checked, ${skipped} skipped, ${failures} with errors; ` +
+    `${linksChecked} relative links checked, ${brokenLinks} broken`,
 );
-if (failures > 0) process.exit(1);
+if (failures > 0 || brokenLinks > 0) process.exit(1);

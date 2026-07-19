@@ -40,5 +40,5 @@ set $h @bool($x > 0 and $x < 100)
 
 ## See Also
 
-- [if](../../commands/if.md) — conditional execution
-- [loop](../../commands/loop.md) — condition-based loop
+- [if](../commands/if.md) — conditional execution
+- [loop](../commands/loop.md) — condition-based loop

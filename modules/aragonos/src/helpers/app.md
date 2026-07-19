@@ -33,5 +33,5 @@ aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
 
 ## See Also
 
-- [connect](../../commands/connect.md) — connect to a DAO
+- [connect](../commands/connect.md) — connect to a DAO
 - [@nextApp](nextApp.md) — predict next app address

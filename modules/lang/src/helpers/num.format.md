@@ -24,4 +24,4 @@ Format a number with decimal places (like formatUnits).
 ## See Also
 
 - [@num.parse](num.parse.md) — inverse: parse a decimal string
-- [@token.amount](token.amount.md) — token-aware unit conversion
+- [@token.amount](../../../std/src/helpers/token.amount.md) — token-aware unit conversion

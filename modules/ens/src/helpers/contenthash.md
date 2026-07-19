@@ -35,5 +35,5 @@ print $hash
 
 ## See Also
 
-- [ens:renew](../../commands/renew.md) — renew ENS domains
+- [ens:renew](../commands/renew.md) — renew ENS domains
 - [@ipfs](../../../std/src/helpers/ipfs.md) — upload content to IPFS

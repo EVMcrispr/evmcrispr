@@ -32,5 +32,5 @@ aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
 
 ## See Also
 
-- [install](../../commands/install.md) — install apps in a DAO
+- [install](../commands/install.md) — install apps in a DAO
 - [@app](app.md) — resolve existing app addresses

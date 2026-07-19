@@ -65,11 +65,11 @@ send $contract --data $calldata -?!> Unauthorized() $e
   no-op and is rejected.
 - Omitting `<to>` while supplying `--data` produces a CREATE-style
   deployment transaction. For deployments where you also want the predicted
-  contract address bound to a variable, use the [deploy](deploy.md) command
+  contract address bound to a variable, use the [deploy](../../../contracts/src/commands/deploy.md) command
   instead.
 
 ## See Also
 
 - [exec](exec.md) — call a contract by signature (auto-encodes)
-- [deploy](deploy.md) — deploy a contract from raw creation bytecode
+- [deploy](../../../contracts/src/commands/deploy.md) — deploy a contract from raw creation bytecode
 - [@abi.encodeCall](../helpers/abi.encodeCall.md) — encode calldata from a signature

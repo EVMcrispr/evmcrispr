@@ -40,6 +40,6 @@ set $n @num("42")
 
 ## See Also
 
-- [@num.format](num.format.md) — format with decimals (like `formatUnits`)
-- [@num.parse](num.parse.md) — parse a decimal string (like `parseUnits`)
+- [@num.format](../../../lang/src/helpers/num.format.md) — format with decimals (like `formatUnits`)
+- [@num.parse](../../../lang/src/helpers/num.parse.md) — parse a decimal string (like `parseUnits`)
 - [@bool](bool.md) — boolean expressions

@@ -81,4 +81,4 @@ Limitations: secondary chains fork at their latest block (`--block-number` pins 
 
 - [set-balance](set-balance.md) — set account ETH balances
 - [expect](expect.md) — assert conditions
-- [wait](wait.md) — advance time
+- [wait](../../../std/src/commands/wait.md) — advance time

@@ -22,5 +22,5 @@ Return an array of [index, element] pairs.
 
 ## See Also
 
-- [loop](../../commands/loop.md) — iterate over arrays
+- [loop](../../../std/src/commands/loop.md) — iterate over arrays
 - [@zip](zip.md) — combine two arrays into pairs

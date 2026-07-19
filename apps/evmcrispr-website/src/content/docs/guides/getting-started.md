@@ -134,4 +134,4 @@ load aragonos [grant install @app]
 ## Next Steps
 
 - [Language Basics](language-basics.md) — full syntax reference
-- [Module Reference](../../modules/std/README.md) — all commands and helpers
+- [Module Reference](/reference/std/) — all commands and helpers

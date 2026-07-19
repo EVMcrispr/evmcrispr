@@ -22,4 +22,4 @@ Resolve a Giveth project slug to its contract address.
 
 ## See Also
 
-- [giveth:donate](../../commands/donate.md) — donate to a project
+- [giveth:donate](../commands/donate.md) — donate to a project
