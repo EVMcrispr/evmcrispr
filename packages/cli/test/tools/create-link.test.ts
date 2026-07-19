@@ -36,6 +36,11 @@ describe("createLink", () => {
 
     expect(result.success).toBe(true);
     expect(isEncryptedEnvelope(pinnedBody.pinataContent)).toBe(true);
+    // Fallback fields keep old clients functional (they read {title, script})
+    expect(pinnedBody.pinataContent.title).toBe("Encrypted script");
+    expect(pinnedBody.pinataContent.script).toBe(
+      "Use v0.11.0 or above to decrypt the link",
+    );
     expect(pinnedBody.pinataMetadata.name).toBe("EVMcrispr - encrypted script");
     expect(pinnedBody.pinataMetadata.keyvalues.version).toBe("0.11");
 

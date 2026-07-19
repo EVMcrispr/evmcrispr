@@ -7,6 +7,8 @@ import {
   decryptScript,
   encryptScript,
   isEncryptedEnvelope,
+  SHARE_FALLBACK_SCRIPT,
+  SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
 } from "../../src";
 
@@ -50,6 +52,12 @@ describe("shareEnvelope", () => {
     const json = JSON.stringify(envelope);
     expect(json).to.not.include("token:transfer");
     expect(json).to.not.include(CONTENT.title);
+  });
+
+  it("carries fallback title/script for pre-0.11.0 clients", async () => {
+    const { envelope } = await encryptScript(CONTENT);
+    expect(envelope.title).to.equal(SHARE_FALLBACK_TITLE);
+    expect(envelope.script).to.equal(SHARE_FALLBACK_SCRIPT);
   });
 
   it("uses a fresh key and iv per call", async () => {

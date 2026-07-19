@@ -154,6 +154,8 @@ export {
   decryptScript,
   encryptScript,
   isEncryptedEnvelope,
+  SHARE_FALLBACK_SCRIPT,
+  SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
 } from "./shareEnvelope";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";

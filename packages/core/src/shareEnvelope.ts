@@ -14,7 +14,19 @@ export interface ShareableScript {
   script: string;
 }
 
+/**
+ * Plaintext fallback fields baked into every envelope so pre-0.11.0 clients
+ * (which read `{title, script}` directly) show a hint instead of an empty
+ * script.
+ */
+export const SHARE_FALLBACK_TITLE = "Encrypted script";
+export const SHARE_FALLBACK_SCRIPT = "Use v0.11.0 or above to decrypt the link";
+
 export interface EncryptedScriptEnvelope {
+  /** Fallback shown by pre-0.11.0 clients; not the real title. */
+  title: string;
+  /** Fallback shown by pre-0.11.0 clients; not the real script. */
+  script: string;
   encrypted: true;
   /** Minimum evmcrispr version able to read this envelope format. */
   minVersion: string;
@@ -83,6 +95,8 @@ export async function encryptScript(
 
   return {
     envelope: {
+      title: SHARE_FALLBACK_TITLE,
+      script: SHARE_FALLBACK_SCRIPT,
       encrypted: true,
       minVersion: SHARE_MIN_VERSION,
       alg: "A256GCM",
