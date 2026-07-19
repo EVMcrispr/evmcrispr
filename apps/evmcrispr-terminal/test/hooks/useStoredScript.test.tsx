@@ -12,7 +12,7 @@ const originalFetch = globalThis.fetch;
 function mockPinResponse(body: unknown) {
   globalThis.fetch = mock(async () => ({
     status: 200,
-    json: async () => body,
+    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
   })) as unknown as typeof fetch;
 }
 
@@ -25,13 +25,26 @@ afterEach(() => {
 });
 
 describe("useScriptFromId (IPFS)", () => {
-  test("loads a legacy plaintext pin", async () => {
+  test("loads a bare {title, script} pin", async () => {
     mockPinResponse(CONTENT);
 
     const { result } = renderHook(() => useScriptFromId(CID));
 
     await waitFor(() => expect(result.current?.status).toBe("found"));
     expect(result.current).toEqual({ status: "found", data: CONTENT });
+  });
+
+  test("loads a plain-text pin with an empty title", async () => {
+    const text = "load token\nprint @me";
+    mockPinResponse(text);
+
+    const { result } = renderHook(() => useScriptFromId(CID));
+
+    await waitFor(() => expect(result.current?.status).toBe("found"));
+    expect(result.current).toEqual({
+      status: "found",
+      data: { title: "", script: text },
+    });
   });
 
   test("decrypts an encrypted pin with the correct key", async () => {

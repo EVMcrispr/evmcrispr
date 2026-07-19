@@ -28,19 +28,6 @@ export default defineHelper<Std>({
       throw new ErrorException(`@ipfs.get: ${res.status} ${res.statusText}`);
     }
 
-    const text = (await res.text()).trim();
-
-    // Content pinned by @ipfs goes through pinJSONToIPFS, so plain text is
-    // stored JSON-quoted; unwrap it so @ipfs.get(@ipfs(text)) round-trips.
-    if (text.startsWith('"')) {
-      try {
-        const parsed = JSON.parse(text);
-        if (typeof parsed === "string") return parsed;
-      } catch {
-        // not JSON – fall through to the raw text
-      }
-    }
-
-    return text;
+    return res.text();
   },
 });

@@ -21,7 +21,7 @@ load <moduleName> [imports]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--from` | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias) |
+| `--from` | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>" |
 
 ## Examples
 
@@ -85,11 +85,14 @@ load math>mylib --from ipfs://QmYourModuleCid
 load math --from ipfs://QmYourModuleCid [@double>@dbl]
 ```
 
-- Only `ipfs://<cid>` sources are supported — content-addressing pins the
-  exact code you audited, forever.
-- The file must be plain text (publish with the `evmcrispr_publish_module`
-  MCP tool or by uploading the file in the terminal). Encrypted share links
-  produced by `create-link` are *not* module files and are rejected.
+- Only `ipfs://<cid>` (and `"ipfs://<cid>#<key>"`) sources are supported —
+  content-addressing pins the exact code you audited, forever.
+- The pin must be plain text (publish with the `evmcrispr_publish_module`
+  MCP tool or by uploading the file in the terminal) or a share pin whose
+  script is a module file. Encrypted share links produced by `create-link`
+  need their key appended and the source quoted
+  (`--from "ipfs://<cid>#<key>"` — `#` starts a comment outside quotes);
+  without the key they are rejected.
 - `name>alias` renames are only valid together with `--from` — registered
   module namespaces are never aliased.
 - External modules may shadow registered-but-unloaded module names (the

@@ -68,13 +68,6 @@ evml.use({
   load: async () => ({ default: CoreTestModule }),
 });
 
-const PINATA_AUTH = `Bearer ${process.env.VITE_PINATA_JWT}`;
-
-const contentToCid: Record<string, string> = {
-  "This should be pinned in IPFS":
-    "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
-};
-
 // Served by the mocked IPFS gateway for `load --from` editor tests.
 export const remoteModuleFixture = {
   cid: "QmCoreModuleFixture11111111111111111111111111",
@@ -106,27 +99,6 @@ const coreHandlers = [
       return new HttpResponse(null, { status: 404 });
     }
     return HttpResponse.json(JSON.parse(data.result));
-  }),
-  http.post<
-    Record<string, never>,
-    { pinataContent: string },
-    { IpfsHash: string } | { error: { reason: string; details: string } }
-  >("https://api.pinata.cloud/pinning/pinJSONToIPFS", async ({ request }) => {
-    const auth = request.headers.get("authorization");
-    if (!auth || auth !== PINATA_AUTH) {
-      return HttpResponse.json({
-        error: {
-          reason: "INVALID_CREDENTIALS",
-          details: "Invalid/expired credentials",
-        },
-      });
-    }
-    const { pinataContent: content } = (await request.json()) as {
-      pinataContent: string;
-    };
-    return HttpResponse.json({
-      IpfsHash: contentToCid[content] ?? "",
-    });
   }),
 ];
 

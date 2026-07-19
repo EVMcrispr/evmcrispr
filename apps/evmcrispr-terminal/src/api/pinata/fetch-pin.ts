@@ -1,7 +1,7 @@
 const fetchPin = async (
   pinataUrl: string,
   hashId?: string,
-): Promise<unknown> => {
+): Promise<string | undefined> => {
   if (!hashId) return undefined;
 
   const url = `${pinataUrl}/ipfs/${hashId}`;
@@ -13,7 +13,7 @@ const fetchPin = async (
       throw new Error("Bad response from server");
     }
 
-    return response.json();
+    return response.text();
   } catch (_e) {
     throw new Error("Bad response from server");
   }

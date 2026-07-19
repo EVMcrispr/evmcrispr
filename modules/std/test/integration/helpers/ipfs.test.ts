@@ -15,7 +15,7 @@ describeHelper(
       {
         name: "should upload text to IPFS and return hash",
         input: "@ipfs('This should be pinned in IPFS')",
-        expected: "QmeA34sMpR2EZfVdPsxYk7TMLxmQxhcgNer67UyTkiwKns",
+        expected: "QmaZBp193dECwXkSZ9ZSf97ZrqfC2LqRXDGkN2YhEKxNgd",
       },
     ],
     docCases: [

@@ -24,6 +24,7 @@ export type {
   DestructurePatternNode,
   DestructureSlot,
   EnclosingNodeParser,
+  EncryptedScriptEnvelope,
   ErrorOptions,
   EventCaptureNode,
   HelperFunction,
@@ -57,6 +58,7 @@ export type {
   RelativeBinding,
   RelativeNullableBinding,
   RpcAction,
+  ShareableScript,
   StringLiteralNode,
   TerminalAction,
   TransactionAction,
@@ -71,10 +73,12 @@ export {
   BindingsSpace,
   CommandError,
   calculateCurrentArgIndex,
+  decryptScript,
   ErrorException,
   ErrorInvalid,
   ErrorNotFound,
   ExpressionError,
+  encryptScript,
   getDeepestNodeWithArgs,
   HaltExecution,
   HelperFunctionError,
@@ -82,6 +86,7 @@ export {
   IPFS_GATEWAY,
   IPFSResolver,
   isBatchedAction,
+  isEncryptedEnvelope,
   isRpcAction,
   isTerminalAction,
   isTransactionAction,
@@ -91,6 +96,10 @@ export {
   NodeType,
   resolveCommand,
   resolveHelper,
+  SHARE_FALLBACK_SCRIPT,
+  SHARE_FALLBACK_TITLE,
+  SHARE_MIN_VERSION,
+  unsupportedMinVersion,
 } from "@evmcrispr/sdk";
 export { getSemanticDiagnostics } from "./analysis";
 export type { NormalizationRegion } from "./autoImport";
@@ -146,18 +155,5 @@ export {
   switchArgForChainId,
   walkScript,
 } from "./scriptWalk";
-export type {
-  EncryptedScriptEnvelope,
-  ShareableScript,
-} from "./shareEnvelope";
-export {
-  decryptScript,
-  encryptScript,
-  isEncryptedEnvelope,
-  SHARE_FALLBACK_SCRIPT,
-  SHARE_FALLBACK_TITLE,
-  SHARE_MIN_VERSION,
-  unsupportedMinVersion,
-} from "./shareEnvelope";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";
 export { EvmlWorkspace } from "./Workspace";

@@ -1,9 +1,9 @@
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
-import { ipfsGatewayFixtures } from "../../setup";
+import { encryptedModule, ipfsGatewayFixtures } from "../../setup";
 
 const MODULE_CID = ipfsGatewayFixtures.moduleFile.cid;
-const QUOTED_CID = ipfsGatewayFixtures.moduleQuoted.cid;
+const BARE_PIN_CID = ipfsGatewayFixtures.moduleBarePin.cid;
 const TWO_CMDS_CID = ipfsGatewayFixtures.moduleTwoCommands.cid;
 const ENCRYPTED_CID = ipfsGatewayFixtures.encryptedPin.cid;
 const MISSING_CID = ipfsGatewayFixtures.missing.cid;
@@ -46,11 +46,19 @@ set $x @str(@dbl(5))`,
       },
     },
     {
-      name: "should unwrap JSON-quoted module pins",
-      script: `load math>q --from ipfs://${QUOTED_CID}
+      name: "should load modules from bare {title, script} share pins",
+      script: `load math>q --from ipfs://${BARE_PIN_CID}
 set $x @str(@q:triple(4))`,
       validate: (_actions, interpreter) => {
         expect(interpreter.getBinding("$x", "USER" as any)).to.equal("12");
+      },
+    },
+    {
+      name: "should decrypt encrypted share pins given the link key",
+      script: `load math>enc --from "ipfs://${encryptedModule.cid}#${encryptedModule.key}"
+set $x @str(@enc:quadruple(4))`,
+      validate: (_actions, interpreter) => {
+        expect(interpreter.getBinding("$x", "USER" as any)).to.equal("16");
       },
     },
     {
@@ -93,7 +101,7 @@ set $x @math:double(2)`,
     {
       name: "should reject non-ipfs sources",
       script: "load x --from https://example.com/lib.evml",
-      error: "--from only supports ipfs://<cid> sources",
+      error: "--from only supports",
     },
     {
       name: "should reject files with more than one top-level command",
@@ -101,9 +109,14 @@ set $x @math:double(2)`,
       error: "must contain exactly one def module command",
     },
     {
-      name: "should reject encrypted share pins with a targeted error",
+      name: "should reject encrypted share pins without a key",
       script: `load x --from ipfs://${ENCRYPTED_CID}`,
       error: "encrypted share link",
+    },
+    {
+      name: "should reject encrypted share pins with a wrong key",
+      script: `load math --from "ipfs://${encryptedModule.cid}#${"A".repeat(43)}"`,
+      error: "Invalid decryption key",
     },
     {
       name: "should surface fetch failures",

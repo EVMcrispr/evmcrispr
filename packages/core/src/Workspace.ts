@@ -20,8 +20,8 @@ import {
   ErrorException,
   IPFSResolver,
   NodeType,
-  normalizeModuleSource,
   resolveHelper as resolveHelperFn,
+  resolveModuleSource,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
@@ -266,10 +266,11 @@ export class EvmlWorkspace {
         if (plainLoaded.has(alias)) continue;
         current.add(alias);
         const from = String((fromVal as any).value ?? "");
-        const cid = from.match(/^ipfs:\/\/([a-zA-Z0-9]+)$/)?.[1];
+        const m = from.match(/^ipfs:\/\/([a-zA-Z0-9]+)(?:#([A-Za-z0-9_-]+))?$/);
+        const cid = m?.[1];
         let data = cid ? this.#remoteModuleData.get(cid) : undefined;
         if (!data && cid) {
-          data = await this.#fetchRemoteModule(cid);
+          data = await this.#fetchRemoteModule(cid, m?.[2]);
           if (data) this.#remoteModuleData.set(cid, data);
         }
         this.#moduleCache.setBinding(
@@ -302,7 +303,10 @@ export class EvmlWorkspace {
   /** Fetch + parse an external module file into a ModuleData schema.
    *  Bounded by a timeout so headless validate never hangs; undefined on
    *  any failure (offline, bad content, no module block). */
-  async #fetchRemoteModule(cid: string): Promise<ModuleData | undefined> {
+  async #fetchRemoteModule(
+    cid: string,
+    decryptionKey?: string,
+  ): Promise<ModuleData | undefined> {
     try {
       const raw = await Promise.race([
         this.#ipfsResolver.text(cid),
@@ -310,7 +314,7 @@ export class EvmlWorkspace {
           setTimeout(() => reject(new Error("timeout")), 5_000),
         ),
       ]);
-      const source = normalizeModuleSource(raw);
+      const source = await resolveModuleSource(raw, { decryptionKey });
       const { ast } = parseScript(source);
       const moduleNode = ast.body.find(
         (n) =>

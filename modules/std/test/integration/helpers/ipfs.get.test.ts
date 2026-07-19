@@ -12,11 +12,6 @@ describeHelper(
         input: `@ipfs.get("${ipfsGatewayFixtures.rawHex.cid}")`,
         expected: ipfsGatewayFixtures.rawHex.content,
       },
-      {
-        name: "should unwrap JSON-quoted content pinned by @ipfs",
-        input: `@ipfs.get("${ipfsGatewayFixtures.quoted.cid}")`,
-        expected: ipfsGatewayFixtures.quoted.content,
-      },
     ],
     errorCases: [
       {

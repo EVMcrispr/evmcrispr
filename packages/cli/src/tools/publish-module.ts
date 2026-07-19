@@ -1,12 +1,11 @@
 import { evml, NodeType, parseScript } from "@evmcrispr/core";
 
-const PINATA_URL = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
+const PINATA_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 
 /**
- * Validate and pin a plain (unencrypted) EVML module file to IPFS, so it
- * can be loaded with `load <alias> --from ipfs://<cid>`. Unlike share
- * links (create-link), module files are published as plain text — `--from`
- * intentionally refuses encrypted share envelopes.
+ * Validate and pin a plain (unencrypted) EVML module file to IPFS byte-exact,
+ * so it can be loaded with `load <alias> --from ipfs://<cid>`. Encrypted
+ * share links (create-link) require their key: `--from "ipfs://<cid>#<key>"`.
  */
 export async function publishModule(args: { source: string }): Promise<{
   success: boolean;
@@ -68,22 +67,27 @@ export async function publishModule(args: { source: string }): Promise<{
   }
 
   try {
+    const body = new FormData();
+    body.append(
+      "file",
+      new Blob([args.source], { type: "text/plain" }),
+      `${moduleName}.evml`,
+    );
+    body.append("pinataOptions", JSON.stringify({ cidVersion: 0 }));
+    body.append(
+      "pinataMetadata",
+      JSON.stringify({
+        name: `EVMcrispr module - ${moduleName}`,
+        keyvalues: { type: "evmcrispr/module", version: "2" },
+      }),
+    );
+
     const res = await fetch(PINATA_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${jwt}`,
       },
-      body: JSON.stringify({
-        pinataOptions: { cidVersion: 0 },
-        pinataMetadata: {
-          name: `EVMcrispr module - ${moduleName}`,
-          keyvalues: { type: "evmcrispr/module", version: "1" },
-        },
-        // Plain JSON-quoted text: `normalizeModuleSource` unwraps it, same
-        // convention as the @ipfs helper.
-        pinataContent: args.source,
-      }),
+      body,
     });
 
     if (!res.ok) {

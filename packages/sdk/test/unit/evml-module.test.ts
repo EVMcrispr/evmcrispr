@@ -8,7 +8,8 @@ import type {
   NodesInterpreters,
 } from "../../src/types";
 import { BindingsSpace, resolveHelper } from "../../src/types";
-import { normalizeModuleSource } from "../../src/utils/moduleSource";
+import { resolveModuleSource } from "../../src/utils/moduleSource";
+import { encryptScript } from "../../src/utils/shareEnvelope";
 
 function fakeContext(): ModuleContext {
   const bm = new BindingsManager();
@@ -166,31 +167,52 @@ describe("EvmlModule", () => {
   });
 });
 
-describe("normalizeModuleSource", () => {
-  it("passes plain EVML text through", () => {
+describe("resolveModuleSource", () => {
+  it("passes plain EVML text through", async () => {
     const src = "module m (\n  def greet () (\n    print 'hi'\n  )\n)";
-    expect(normalizeModuleSource(src)).toBe(src);
+    expect(await resolveModuleSource(src)).toBe(src);
   });
 
-  it("unwraps JSON-quoted strings (pinJSONToIPFS convention)", () => {
-    expect(normalizeModuleSource('"module m (\\n)"')).toBe("module m (\n)");
+  it("returns quote-leading content verbatim (no JSON-string unwrapping)", async () => {
+    const quoted = '"module m (\\n)"';
+    expect(await resolveModuleSource(quoted)).toBe(quoted);
   });
 
-  it("uses the script field of unencrypted share pins", () => {
+  it("uses the script field of unencrypted share pins", async () => {
     expect(
-      normalizeModuleSource('{"title":"t","script":"module m (\\n)"}'),
+      await resolveModuleSource('{"title":"t","script":"module m (\\n)"}'),
     ).toBe("module m (\n)");
   });
 
-  it("rejects encrypted share envelopes with a targeted error", () => {
-    expect(() =>
-      normalizeModuleSource('{"encrypted":true,"iv":"...","data":"..."}'),
-    ).toThrow(/encrypted share link/);
+  it("rejects encrypted share envelopes without a key", async () => {
+    await expect(
+      resolveModuleSource('{"encrypted":true,"iv":"...","data":"..."}'),
+    ).rejects.toThrow(/encrypted share link.*#<key>/);
   });
 
-  it("returns raw text when it merely looks like JSON", () => {
+  it("decrypts encrypted share envelopes with the link key", async () => {
+    const script = "module m (\n)";
+    const { envelope, key } = await encryptScript({ title: "t", script });
+    expect(
+      await resolveModuleSource(JSON.stringify(envelope), {
+        decryptionKey: key,
+      }),
+    ).toBe(script);
+  });
+
+  it("rejects encrypted share envelopes with a wrong key", async () => {
+    const { envelope } = await encryptScript({ title: "t", script: "x" });
+    const wrongKey = "A".repeat(43); // valid base64url, wrong 32-byte key
+    await expect(
+      resolveModuleSource(JSON.stringify(envelope), {
+        decryptionKey: wrongKey,
+      }),
+    ).rejects.toThrow(/Invalid decryption key/);
+  });
+
+  it("returns raw text when it merely looks like JSON", async () => {
     const notJson = "{ this is not json }";
-    expect(normalizeModuleSource(notJson)).toBe(notJson);
+    expect(await resolveModuleSource(notJson)).toBe(notJson);
   });
 });
 

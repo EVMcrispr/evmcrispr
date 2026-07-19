@@ -1,20 +1,23 @@
 import { ErrorException } from "../errors";
+import { decryptScript, isEncryptedEnvelope } from "./shareEnvelope";
 
 /**
- * Normalize content fetched from IPFS into EVML module source text.
+ * Resolve content fetched from IPFS into EVML module source text.
  *
  * Accepted shapes:
- * - plain EVML text
- * - a JSON-quoted string (the `@ipfs` helper / Pinata `pinJSONToIPFS`
- *   convention wraps text content in JSON quotes)
+ * - plain EVML text (returned verbatim)
  * - an unencrypted share pin `{ title?, script }` → the `script` field
+ * - an encrypted share envelope, when `decryptionKey` (the base64url key
+ *   from the share link fragment) is provided → the decrypted `script`
  *
- * Encrypted share envelopes (`encrypted: true`) are rejected with a
- * targeted error — share links are not module files.
+ * Encrypted envelopes without a key are rejected with a targeted error.
  */
-export function normalizeModuleSource(raw: string): string {
+export async function resolveModuleSource(
+  raw: string,
+  opts?: { decryptionKey?: string },
+): Promise<string> {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith('"') && !trimmed.startsWith("{")) return raw;
+  if (!trimmed.startsWith("{")) return raw;
 
   let parsed: unknown;
   try {
@@ -23,15 +26,16 @@ export function normalizeModuleSource(raw: string): string {
     return raw;
   }
 
-  if (typeof parsed === "string") return parsed;
-
   if (parsed && typeof parsed === "object") {
-    const obj = parsed as Record<string, unknown>;
-    if (obj.encrypted === true) {
+    if (isEncryptedEnvelope(parsed)) {
+      if (opts?.decryptionKey) {
+        return (await decryptScript(parsed, opts.decryptionKey)).script;
+      }
       throw new ErrorException(
-        "this CID is an encrypted share link, not a module file — publish the module as plain text",
+        'this CID is an encrypted share link — append its key to load it: --from "ipfs://<cid>#<key>"',
       );
     }
+    const obj = parsed as Record<string, unknown>;
     if (typeof obj.script === "string") return obj.script;
   }
 

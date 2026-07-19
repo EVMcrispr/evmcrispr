@@ -11,7 +11,7 @@ import {
   ErrorException,
   EvmlModule,
   NodeType,
-  normalizeModuleSource,
+  resolveModuleSource,
 } from "@evmcrispr/sdk";
 
 const MODULE_NAME_RE = /^[a-zA-Z][a-zA-Z-]{0,62}$/;
@@ -110,7 +110,7 @@ function commandLabel(node: CommandExpressionNode): string {
   return node.module ? `${node.module}:${node.name}` : node.name;
 }
 
-const IPFS_FROM_RE = /^ipfs:\/\/([a-zA-Z0-9]+)$/;
+const IPFS_FROM_RE = /^ipfs:\/\/([a-zA-Z0-9]+)(?:#([A-Za-z0-9_-]+))?$/;
 
 /** Whether a command node is a `def module <name> ( ... )` definition. */
 export function isModuleDefNode(node: CommandExpressionNode): boolean {
@@ -140,12 +140,12 @@ export async function loadExternalEvmlModule(
   const m = from.match(IPFS_FROM_RE);
   if (!m) {
     throw new ErrorException(
-      `--from only supports ipfs://<cid> sources, got ${from}`,
+      `--from only supports ipfs://<cid> or ipfs://<cid>#<key> sources, got ${from}`,
     );
   }
 
   const raw = await module.ipfsResolver.text(m[1]);
-  const source = normalizeModuleSource(raw);
+  const source = await resolveModuleSource(raw, { decryptionKey: m[2] });
 
   let ast: AST;
   let errors: string[];

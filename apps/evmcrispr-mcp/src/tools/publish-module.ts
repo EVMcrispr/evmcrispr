@@ -8,7 +8,7 @@ export function registerPublishModule(server: McpServer): void {
     {
       title: "Publish EVML Module",
       description:
-        "Validate an EVML module file (exactly one `module <name> ( ...defs )` command) and pin it to IPFS as PLAIN text, returning the `load <name> --from ipfs://<cid>` line. Note: this is different from evmcrispr_create_link, whose pins are encrypted share links and cannot be loaded with --from.",
+        'Validate an EVML module file (exactly one `module <name> ( ...defs )` command) and pin it to IPFS as PLAIN text, returning the `load <name> --from ipfs://<cid>` line. Note: this is different from evmcrispr_create_link, whose pins are encrypted share links and can only be loaded with --from by appending the link\'s key and quoting: "ipfs://<cid>#<key>".',
       inputSchema: {
         source: z
           .string()

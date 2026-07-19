@@ -1,5 +1,3 @@
-import "../setup";
-
 import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 

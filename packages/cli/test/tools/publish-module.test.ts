@@ -15,13 +15,16 @@ const MODULE_SOURCE = `def module math (
 const originalFetch = globalThis.fetch;
 const originalJwt = process.env.VITE_PINATA_JWT;
 
-let pinnedBody: any;
+let pinnedUrl: string | undefined;
+let pinnedBody: FormData | undefined;
 
 beforeEach(() => {
   process.env.VITE_PINATA_JWT = "test-jwt";
+  pinnedUrl = undefined;
   pinnedBody = undefined;
-  globalThis.fetch = mock(async (_url: any, init: any) => {
-    pinnedBody = JSON.parse(init.body);
+  globalThis.fetch = mock(async (url: any, init: any) => {
+    pinnedUrl = String(url);
+    pinnedBody = init.body;
     return {
       ok: true,
       json: async () => ({ IpfsHash: CID }),
@@ -43,8 +46,12 @@ describe("publishModule", () => {
     expect(result.uri).toBe(`ipfs://${CID}`);
     expect(result.moduleName).toBe("math");
     expect(result.loadLine).toBe(`load math --from ipfs://${CID}`);
-    // Plain text, not an encrypted envelope.
-    expect(pinnedBody.pinataContent).toBe(MODULE_SOURCE);
+    // Byte-exact plain text via pinFileToIPFS, not JSON-encoded.
+    expect(pinnedUrl).toContain("pinFileToIPFS");
+    const file = pinnedBody?.get("file") as Blob;
+    expect(await file.text()).toBe(MODULE_SOURCE);
+    const metadata = JSON.parse(pinnedBody?.get("pinataMetadata") as string);
+    expect(metadata.keyvalues.type).toBe("evmcrispr/module");
   });
 
   it("rejects files without exactly one module command", async () => {

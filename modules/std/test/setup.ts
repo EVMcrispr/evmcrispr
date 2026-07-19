@@ -1,3 +1,4 @@
+import { encryptScript } from "@evmcrispr/sdk";
 import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
 import {
   createTestServer,
@@ -23,11 +24,6 @@ export const ipfsGatewayFixtures = {
     cid: "QmRawHexFixture11111111111111111111111111111111",
     content: `0x${"ab".repeat(100)}`,
   },
-  // Content pinned via pinJSONToIPFS (the @ipfs helper) is JSON-quoted
-  quoted: {
-    cid: "QmQuotedFixture2222222222222222222222222222222",
-    content: "0xdeadbeef",
-  },
   missing: {
     cid: "QmMissingFixture333333333333333333333333333333",
   },
@@ -42,12 +38,15 @@ def module math (
   )
 )`,
   },
-  // Same module but pinned via pinJSONToIPFS (JSON-quoted string)
-  moduleQuoted: {
-    cid: "QmModuleQuoted55555555555555555555555555555555",
-    content: `def module math (
+  // Bare (unencrypted) share pin wrapping a module file
+  moduleBarePin: {
+    cid: "QmModuleBarePin5555555555555555555555555555555",
+    content: {
+      title: "math",
+      script: `def module math (
   def @triple "$n: number -> number" @num($n * 3)
 )`,
+    },
   },
   // Invalid module file: more than one top-level command
   moduleTwoCommands: {
@@ -57,11 +56,23 @@ def module math (
 )
 print "extra"`,
   },
-  // Encrypted share envelope (share links are not module files)
+  // Encrypted share envelope with an unknown key (missing-key error path)
   encryptedPin: {
     cid: "QmEncryptedPin7777777777777777777777777777777777",
     content: { encrypted: true, iv: "AAAA", data: "BBBB" },
   },
+};
+
+// Real encrypted share envelope wrapping a module file, for the
+// `load --from ipfs://<cid>#<key>` decryption path.
+const encryptedModuleScript = `def module math (
+  def @quadruple "$n: number -> number" @num($n * 4)
+)`;
+const { envelope: encryptedModuleEnvelope, key: encryptedModuleKey } =
+  await encryptScript({ title: "math", script: encryptedModuleScript });
+export const encryptedModule = {
+  cid: "QmEncryptedModule888888888888888888888888888888",
+  key: encryptedModuleKey,
 };
 
 // Std-specific MSW handlers (ABI endpoint)
@@ -75,9 +86,6 @@ const stdHandlers = [
           headers: { "Content-Type": "text/plain" },
         });
       }
-      if (cid === ipfsGatewayFixtures.quoted.cid) {
-        return HttpResponse.json(ipfsGatewayFixtures.quoted.content);
-      }
       if (cid === ipfsGatewayFixtures.missing.cid) {
         return new HttpResponse(null, { status: 404 });
       }
@@ -86,8 +94,8 @@ const stdHandlers = [
           headers: { "Content-Type": "text/plain" },
         });
       }
-      if (cid === ipfsGatewayFixtures.moduleQuoted.cid) {
-        return HttpResponse.json(ipfsGatewayFixtures.moduleQuoted.content);
+      if (cid === ipfsGatewayFixtures.moduleBarePin.cid) {
+        return HttpResponse.json(ipfsGatewayFixtures.moduleBarePin.content);
       }
       if (cid === ipfsGatewayFixtures.moduleTwoCommands.cid) {
         return new HttpResponse(ipfsGatewayFixtures.moduleTwoCommands.content, {
@@ -96,6 +104,9 @@ const stdHandlers = [
       }
       if (cid === ipfsGatewayFixtures.encryptedPin.cid) {
         return HttpResponse.json(ipfsGatewayFixtures.encryptedPin.content);
+      }
+      if (cid === encryptedModule.cid) {
+        return HttpResponse.json(encryptedModuleEnvelope);
       }
       return passthrough();
     },

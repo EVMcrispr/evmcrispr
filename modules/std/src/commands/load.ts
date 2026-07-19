@@ -47,7 +47,7 @@ export default defineCommand<Std>({
       name: "from",
       type: "string",
       description:
-        "ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias)",
+        'ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>"',
     },
   ],
   async run(module, { moduleName: rawName, imports }, { opts, interpreters }) {

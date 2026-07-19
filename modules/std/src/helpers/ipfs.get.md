@@ -20,7 +20,7 @@ Fetch content from IPFS and return it as text.
 
 <!-- HAND-WRITTEN -->
 
-Content pinned with `@ipfs` is stored JSON-quoted; `@ipfs.get` unwraps it, so `@ipfs.get(@ipfs("hello"))` returns `hello`.
+Content is pinned and returned byte-exact, so `@ipfs.get(@ipfs("hello"))` returns `hello`.
 
 The terminal editor uses this helper automatically: pasting a hex string larger than 64 bytes pins it to IPFS and replaces it with an `@ipfs.get` call. Paste with `Ctrl+Shift+V` (`Cmd+Shift+V` on Mac) to keep the raw hex instead.
 

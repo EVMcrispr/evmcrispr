@@ -27,6 +27,10 @@ set $cid @ipfs("hello world")
 
 <!-- HAND-WRITTEN -->
 
+Content is pinned byte-exact as plain text, so the CID addresses exactly the
+text you uploaded — a pinned module file can be loaded directly with
+[`load --from`](../commands/load.md).
+
 ## See Also
 
 - [@ens:contenthash](../../../ens/src/helpers/contenthash.md) — encode IPFS hash for ENS
