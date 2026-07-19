@@ -11,10 +11,12 @@ import {
   terminalStoreGet,
   useTerminalStore,
 } from "../../stores/terminal-store";
+import { interceptImagePaste } from "../../utils/file-upload";
 import {
   offloadPastedHex,
   trackOffloadBypassKeys,
 } from "../../utils/hex-offload";
+import EditorDropZone from "./EditorDropZone";
 
 /**
  * Store glue around the embeddable `@evmcrispr/editor` Monaco component:
@@ -28,6 +30,7 @@ function TerminalEditor() {
 
   const { setEditor, switchToScript } = useEditorModels();
   const mountedScriptIdRef = useRef<string | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   // When currentScriptId changes (script switch), swap the model
   useEffect(() => {
@@ -38,8 +41,10 @@ function TerminalEditor() {
 
   const handleMount = useCallback(
     (ed: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+      editorRef.current = ed;
       setEditor(ed, monaco);
       trackOffloadBypassKeys(ed);
+      interceptImagePaste(ed);
       const id = terminalStoreGet("currentScriptId");
       mountedScriptIdRef.current = id;
       switchToScript(id, terminalStoreGet("script"));
@@ -63,16 +68,18 @@ function TerminalEditor() {
   );
 
   return (
-    <MonacoEditor
-      defaultValue={SCRIPT_PLACEHOLDER}
-      onChange={handleChange}
-      executingLine={executingLine}
-      onCursorRef={handleCursorRef}
-      commandNames={commandNames}
-      helperNames={helperNames}
-      onMount={handleMount}
-      onDidPaste={handleDidPaste}
-    />
+    <EditorDropZone getEditor={() => editorRef.current}>
+      <MonacoEditor
+        defaultValue={SCRIPT_PLACEHOLDER}
+        onChange={handleChange}
+        executingLine={executingLine}
+        onCursorRef={handleCursorRef}
+        commandNames={commandNames}
+        helperNames={helperNames}
+        onMount={handleMount}
+        onDidPaste={handleDidPaste}
+      />
+    </EditorDropZone>
   );
 }
 
