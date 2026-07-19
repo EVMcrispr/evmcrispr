@@ -1,7 +1,12 @@
 import { describe, it } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
 import { isTransactionAction } from "@evmcrispr/sdk";
-import { expect } from "@evmcrispr/test-utils";
+import {
+  expect,
+  getTransports,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
+import { gnosis } from "viem/chains";
 import { createEvml } from "../../../src/evml/tag";
 
 describe("evml > script", () => {
@@ -37,10 +42,15 @@ print $x`;
   });
 
   it("supports the onAction escape hatch", async () => {
-    const evml = createEvml();
+    // Point the run at the local anvil fork — with no transports the
+    // interpreter falls back to viem's default public mainnet RPC.
+    const evml = createEvml().with({
+      account: TEST_ACCOUNT_ADDRESS as `0x${string}`,
+      chainId: gnosis.id,
+      transports: getTransports(),
+    });
     const seen: Action[] = [];
     const script = evml`exec 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 transfer(address,uint256) 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 1`;
-    // exec produces a transaction action without needing RPC (raw signature)
     await script.interpret({
       onAction: async (action) => {
         seen.push(action);

@@ -109,7 +109,7 @@ describe("Parsers - command expression", () => {
         "invalid `load` command match",
       ],
       [
-        "load aragonos --as ar",
+        "load aragonos [connect grant>grantPerm]",
         {
           type: "CommandExpression",
           name: "load",
@@ -118,28 +118,73 @@ describe("Parsers - command expression", () => {
               type: "Bareword",
               value: "aragonos",
               loc: {
-                start: { line: 1, col: 5 },
-                end: { line: 1, col: 13 },
-              },
-            },
-          ],
-          opts: [
-            {
-              type: "CommandOpt",
-              name: "as",
-              value: {
-                type: "Bareword",
-                value: "ar",
-                loc: {
-                  start: { line: 1, col: 19 },
-                  end: { line: 1, col: 21 },
+                start: {
+                  line: 1,
+                  col: 5,
+                },
+                end: {
+                  line: 1,
+                  col: 13,
                 },
               },
-              loc: { start: { line: 1, col: 14 }, end: { line: 1, col: 21 } },
+            },
+            {
+              type: "ArrayExpression",
+              elements: [
+                {
+                  type: "Bareword",
+                  value: "connect",
+                  loc: {
+                    start: {
+                      line: 1,
+                      col: 15,
+                    },
+                    end: {
+                      line: 1,
+                      col: 22,
+                    },
+                  },
+                },
+                {
+                  type: "Bareword",
+                  value: "grant>grantPerm",
+                  loc: {
+                    start: {
+                      line: 1,
+                      col: 23,
+                    },
+                    end: {
+                      line: 1,
+                      col: 38,
+                    },
+                  },
+                },
+              ],
+              loc: {
+                start: {
+                  line: 1,
+                  col: 14,
+                },
+                end: {
+                  line: 1,
+                  col: 39,
+                },
+              },
             },
           ],
-          loc: { start: { line: 1, col: 0 }, end: { line: 1, col: 21 } },
+          opts: [],
+          loc: {
+            start: {
+              line: 1,
+              col: 0,
+            },
+            end: {
+              line: 1,
+              col: 39,
+            },
+          },
         },
+        "invalid `load` command with import list match",
       ],
       [
         `switch gnosis`,

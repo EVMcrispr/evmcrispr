@@ -69,8 +69,8 @@ describe("Core > Interpreter", () => {
     it("should return loaded modules after interpret", async () => {
       // Uses the `coretest` stub registered in test/setup.ts.
       const evm = createEvm();
-      await evm.interpret("load coretest --as ct\nset $x 1");
-      const stub = evm.getModule("ct");
+      await evm.interpret("load coretest\nset $x 1");
+      const stub = evm.getModule("coretest");
       expect(stub).to.not.be.undefined;
       expect(stub!.name).to.equal("coretest");
     });
@@ -210,8 +210,8 @@ describe("Core > Interpreter", () => {
     it("should include module commands after load", async () => {
       // Uses the `coretest` stub registered in test/setup.ts.
       const ws = createWs();
-      const result = await ws.getKeywords("load coretest --as ct\nset $x 1");
-      expect(result.commands).to.include("coretest-cmd");
+      const result = await ws.getKeywords("load coretest\nset $x 1");
+      expect(result.commands).to.include("coretest:coretest-cmd");
     });
   });
 });

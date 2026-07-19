@@ -16,7 +16,7 @@ describe("Core > hover", () => {
     });
 
     it("should return hover info for 'load'", async () => {
-      const script = "load aragonos --as ar";
+      const script = "load aragonos";
       const result = await ctx.hover(script, { line: 1, col: 0 });
       expect(result).to.not.be.null;
       expect(result!.contents.join("\n")).to.include("load");
@@ -125,17 +125,17 @@ describe("Core > hover", () => {
       // command's own argDefs to decide what to bind, so any
       // `type: "variable"` argDef on any command participates in
       // prewarm automatically.
-      const script = "deploy $myContract Foo.sol\nprint $myContract";
+      const script = 'sign $sig "hello"\nprint $sig';
       const evm = ctx.createWorkspace();
       await evm.prewarm(script);
       const result = await evm.getHoverInfo(script, { line: 2, col: 8 });
       expect(result).to.not.be.null;
       const c = result!.contents.join("\n");
       expect(c).to.include("**Variable**");
-      expect(c).to.include("$myContract");
+      expect(c).to.include("$sig");
       // Placeholder bindings (value === name) shouldn't render as
-      // `$myContract = $myContract` — that's noise.
-      expect(c).to.not.include("= $myContract");
+      // `$sig = $sig` — that's noise.
+      expect(c).to.not.include("= $sig");
     });
 
     it("seeds variable bindings for event-capture slots", async () => {
@@ -229,7 +229,7 @@ describe("Core > hover", () => {
 
       const evm = ctx.createWorkspace();
       const script = [
-        "load chainprobe",
+        "load chainprobe [@chainProbe]",
         "switch 1",
         "set $a @chainProbe()",
         "switch 100",
@@ -330,8 +330,8 @@ describe("Core > hover", () => {
       });
 
       const evm = ctx.createWorkspace();
-      const oldScript = "load prewarmrace\nset $x @raceValue(old)";
-      const newScript = "load prewarmrace\nset $x @raceValue(new)";
+      const oldScript = "load prewarmrace [@raceValue]\nset $x @raceValue(old)";
+      const newScript = "load prewarmrace [@raceValue]\nset $x @raceValue(new)";
 
       const oldPrewarm = evm.prewarm(oldScript);
       await oldStarted;

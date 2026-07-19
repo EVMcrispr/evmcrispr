@@ -15,7 +15,7 @@ import { parseScript } from "./parsers/script";
 export type DocumentSymbolKind = "command" | "block" | "variable";
 
 export interface DocumentSymbol {
-  /** Display name (e.g. "load aragon --as ar", "set $foo"). */
+  /** Display name (e.g. "load aragonos [connect]", "set $foo"). */
   name: string;
   /** Optional detail string (e.g. module prefix). */
   detail?: string;

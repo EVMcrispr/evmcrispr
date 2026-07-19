@@ -7,7 +7,7 @@ describe("Parsers - comment", () => {
     const c: Case = [
       `
         # a comment here
-        load aragonos --as ar
+        load aragonos [connect]
 
         # another one here
         set $var1 1e18
@@ -25,30 +25,57 @@ describe("Parsers - comment", () => {
                 type: "Bareword",
                 value: "aragonos",
                 loc: {
-                  start: { line: 3, col: 13 },
-                  end: { line: 3, col: 21 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "ar",
-                  loc: {
-                    start: { line: 3, col: 27 },
-                    end: { line: 3, col: 29 },
+                  start: {
+                    line: 3,
+                    col: 13,
+                  },
+                  end: {
+                    line: 3,
+                    col: 21,
                   },
                 },
+              },
+              {
+                type: "ArrayExpression",
+                elements: [
+                  {
+                    type: "Bareword",
+                    value: "connect",
+                    loc: {
+                      start: {
+                        line: 3,
+                        col: 23,
+                      },
+                      end: {
+                        line: 3,
+                        col: 30,
+                      },
+                    },
+                  },
+                ],
                 loc: {
-                  start: { line: 3, col: 22 },
-                  end: { line: 3, col: 29 },
+                  start: {
+                    line: 3,
+                    col: 22,
+                  },
+                  end: {
+                    line: 3,
+                    col: 31,
+                  },
                 },
               },
             ],
-            loc: { start: { line: 3, col: 8 }, end: { line: 3, col: 29 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 3,
+                col: 8,
+              },
+              end: {
+                line: 3,
+                col: 31,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -58,8 +85,14 @@ describe("Parsers - comment", () => {
                 type: "VariableIdentifier",
                 value: "$var1",
                 loc: {
-                  start: { line: 6, col: 12 },
-                  end: { line: 6, col: 17 },
+                  start: {
+                    line: 6,
+                    col: 12,
+                  },
+                  end: {
+                    line: 6,
+                    col: 17,
+                  },
                 },
               },
               {
@@ -67,13 +100,28 @@ describe("Parsers - comment", () => {
                 value: "1",
                 power: 18,
                 loc: {
-                  start: { line: 6, col: 18 },
-                  end: { line: 6, col: 22 },
+                  start: {
+                    line: 6,
+                    col: 18,
+                  },
+                  end: {
+                    line: 6,
+                    col: 22,
+                  },
                 },
               },
             ],
             opts: [],
-            loc: { start: { line: 6, col: 8 }, end: { line: 6, col: 22 } },
+            loc: {
+              start: {
+                line: 6,
+                col: 8,
+              },
+              end: {
+                line: 6,
+                col: 22,
+              },
+            },
           },
         ],
       },
@@ -85,7 +133,7 @@ describe("Parsers - comment", () => {
   it("should parse an inline comment", () => {
     const c: Case = [
       `
-          load aragonos --as ar # this is an inline comment
+          load aragonos [connect] # this is an inline comment
           set $var1 1e18 # another one
         `,
       {
@@ -99,30 +147,57 @@ describe("Parsers - comment", () => {
                 type: "Bareword",
                 value: "aragonos",
                 loc: {
-                  start: { line: 2, col: 15 },
-                  end: { line: 2, col: 23 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "ar",
-                  loc: {
-                    start: { line: 2, col: 29 },
-                    end: { line: 2, col: 31 },
+                  start: {
+                    line: 2,
+                    col: 15,
+                  },
+                  end: {
+                    line: 2,
+                    col: 23,
                   },
                 },
+              },
+              {
+                type: "ArrayExpression",
+                elements: [
+                  {
+                    type: "Bareword",
+                    value: "connect",
+                    loc: {
+                      start: {
+                        line: 2,
+                        col: 25,
+                      },
+                      end: {
+                        line: 2,
+                        col: 32,
+                      },
+                    },
+                  },
+                ],
                 loc: {
-                  start: { line: 2, col: 24 },
-                  end: { line: 2, col: 31 },
+                  start: {
+                    line: 2,
+                    col: 24,
+                  },
+                  end: {
+                    line: 2,
+                    col: 33,
+                  },
                 },
               },
             ],
-            loc: { start: { line: 2, col: 10 }, end: { line: 2, col: 31 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 2,
+                col: 10,
+              },
+              end: {
+                line: 2,
+                col: 33,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -132,8 +207,14 @@ describe("Parsers - comment", () => {
                 type: "VariableIdentifier",
                 value: "$var1",
                 loc: {
-                  start: { line: 3, col: 14 },
-                  end: { line: 3, col: 19 },
+                  start: {
+                    line: 3,
+                    col: 14,
+                  },
+                  end: {
+                    line: 3,
+                    col: 19,
+                  },
                 },
               },
               {
@@ -141,13 +222,28 @@ describe("Parsers - comment", () => {
                 value: "1",
                 power: 18,
                 loc: {
-                  start: { line: 3, col: 20 },
-                  end: { line: 3, col: 24 },
+                  start: {
+                    line: 3,
+                    col: 20,
+                  },
+                  end: {
+                    line: 3,
+                    col: 24,
+                  },
                 },
               },
             ],
             opts: [],
-            loc: { start: { line: 3, col: 10 }, end: { line: 3, col: 24 } },
+            loc: {
+              start: {
+                line: 3,
+                col: 10,
+              },
+              end: {
+                line: 3,
+                col: 24,
+              },
+            },
           },
         ],
       },

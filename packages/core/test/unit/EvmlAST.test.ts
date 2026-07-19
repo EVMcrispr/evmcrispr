@@ -6,10 +6,10 @@ import { parseScript } from "../../src/parsers/script";
 
 describe("EvmlAST", () => {
   const script = `
-    load aragonos --as ar
-    load giveth --as giv
+    load aragonos
+    load giveth
 
-    ar:connect ${DAO.kernel} (
+    aragonos:connect ${DAO.kernel} (
       set $dao1Variable agent
       connect ${DAO2.kernel} (
         set $dao2Variable vault
@@ -17,7 +17,7 @@ describe("EvmlAST", () => {
       )
     )
 
-    ar:connect ${DAO3} (
+    aragonos:connect ${DAO3} (
       revoke voting token-manager MINT_ROLE
     )
 
@@ -38,11 +38,29 @@ describe("EvmlAST", () => {
           {
             type: "Bareword",
             value: "vault:new",
-            loc: { start: { line: 9, col: 16 }, end: { line: 9, col: 25 } },
+            loc: {
+              start: {
+                line: 9,
+                col: 16,
+              },
+              end: {
+                line: 9,
+                col: 25,
+              },
+            },
           },
         ],
         opts: [],
-        loc: { start: { line: 9, col: 8 }, end: { line: 9, col: 25 } },
+        loc: {
+          start: {
+            line: 9,
+            col: 8,
+          },
+          end: {
+            line: 9,
+            col: 25,
+          },
+        },
       });
     });
 
@@ -69,22 +87,29 @@ describe("EvmlAST", () => {
             {
               type: "Bareword",
               value: "aragonos",
-              loc: { start: { line: 2, col: 9 }, end: { line: 2, col: 17 } },
-            },
-          ],
-          opts: [
-            {
-              type: "CommandOpt",
-              name: "as",
-              value: {
-                type: "Bareword",
-                value: "ar",
-                loc: { start: { line: 2, col: 23 }, end: { line: 2, col: 25 } },
+              loc: {
+                start: {
+                  line: 2,
+                  col: 9,
+                },
+                end: {
+                  line: 2,
+                  col: 17,
+                },
               },
-              loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
             },
           ],
-          loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
+          opts: [],
+          loc: {
+            start: {
+              line: 2,
+              col: 4,
+            },
+            end: {
+              line: 2,
+              col: 17,
+            },
+          },
         },
         {
           type: "CommandExpression",
@@ -93,32 +118,48 @@ describe("EvmlAST", () => {
             {
               type: "Bareword",
               value: "giveth",
-              loc: { start: { line: 3, col: 9 }, end: { line: 3, col: 15 } },
-            },
-          ],
-          opts: [
-            {
-              type: "CommandOpt",
-              name: "as",
-              value: {
-                type: "Bareword",
-                value: "giv",
-                loc: { start: { line: 3, col: 21 }, end: { line: 3, col: 24 } },
+              loc: {
+                start: {
+                  line: 3,
+                  col: 9,
+                },
+                end: {
+                  line: 3,
+                  col: 15,
+                },
               },
-              loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
             },
           ],
-          loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
+          opts: [],
+          loc: {
+            start: {
+              line: 3,
+              col: 4,
+            },
+            end: {
+              line: 3,
+              col: 15,
+            },
+          },
         },
         {
           type: "CommandExpression",
-          module: "ar",
+          module: "aragonos",
           name: "connect",
           args: [
             {
               type: "AddressLiteral",
               value: "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
-              loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
+              loc: {
+                start: {
+                  line: 5,
+                  col: 21,
+                },
+                end: {
+                  line: 5,
+                  col: 63,
+                },
+              },
             },
             {
               type: "BlockExpression",
@@ -131,23 +172,41 @@ describe("EvmlAST", () => {
                       type: "VariableIdentifier",
                       value: "$dao1Variable",
                       loc: {
-                        start: { line: 6, col: 10 },
-                        end: { line: 6, col: 23 },
+                        start: {
+                          line: 6,
+                          col: 10,
+                        },
+                        end: {
+                          line: 6,
+                          col: 23,
+                        },
                       },
                     },
                     {
                       type: "Bareword",
                       value: "agent",
                       loc: {
-                        start: { line: 6, col: 24 },
-                        end: { line: 6, col: 29 },
+                        start: {
+                          line: 6,
+                          col: 24,
+                        },
+                        end: {
+                          line: 6,
+                          col: 29,
+                        },
                       },
                     },
                   ],
                   opts: [],
                   loc: {
-                    start: { line: 6, col: 6 },
-                    end: { line: 6, col: 29 },
+                    start: {
+                      line: 6,
+                      col: 6,
+                    },
+                    end: {
+                      line: 6,
+                      col: 29,
+                    },
                   },
                 },
                 {
@@ -158,8 +217,14 @@ describe("EvmlAST", () => {
                       type: "AddressLiteral",
                       value: "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
                       loc: {
-                        start: { line: 7, col: 14 },
-                        end: { line: 7, col: 56 },
+                        start: {
+                          line: 7,
+                          col: 14,
+                        },
+                        end: {
+                          line: 7,
+                          col: 56,
+                        },
                       },
                     },
                     {
@@ -173,23 +238,41 @@ describe("EvmlAST", () => {
                               type: "VariableIdentifier",
                               value: "$dao2Variable",
                               loc: {
-                                start: { line: 8, col: 12 },
-                                end: { line: 8, col: 25 },
+                                start: {
+                                  line: 8,
+                                  col: 12,
+                                },
+                                end: {
+                                  line: 8,
+                                  col: 25,
+                                },
                               },
                             },
                             {
                               type: "Bareword",
                               value: "vault",
                               loc: {
-                                start: { line: 8, col: 26 },
-                                end: { line: 8, col: 31 },
+                                start: {
+                                  line: 8,
+                                  col: 26,
+                                },
+                                end: {
+                                  line: 8,
+                                  col: 31,
+                                },
                               },
                             },
                           ],
                           opts: [],
                           loc: {
-                            start: { line: 8, col: 8 },
-                            end: { line: 8, col: 31 },
+                            start: {
+                              line: 8,
+                              col: 8,
+                            },
+                            end: {
+                              line: 8,
+                              col: 31,
+                            },
                           },
                         },
                         {
@@ -200,36 +283,78 @@ describe("EvmlAST", () => {
                               type: "Bareword",
                               value: "vault:new",
                               loc: {
-                                start: { line: 9, col: 16 },
-                                end: { line: 9, col: 25 },
+                                start: {
+                                  line: 9,
+                                  col: 16,
+                                },
+                                end: {
+                                  line: 9,
+                                  col: 25,
+                                },
                               },
                             },
                           ],
                           opts: [],
                           loc: {
-                            start: { line: 9, col: 8 },
-                            end: { line: 9, col: 25 },
+                            start: {
+                              line: 9,
+                              col: 8,
+                            },
+                            end: {
+                              line: 9,
+                              col: 25,
+                            },
                           },
                         },
                       ],
                       loc: {
-                        start: { line: 7, col: 57 },
-                        end: { line: 10, col: 7 },
+                        start: {
+                          line: 7,
+                          col: 57,
+                        },
+                        end: {
+                          line: 10,
+                          col: 7,
+                        },
                       },
                     },
                   ],
                   opts: [],
                   loc: {
-                    start: { line: 7, col: 6 },
-                    end: { line: 10, col: 7 },
+                    start: {
+                      line: 7,
+                      col: 6,
+                    },
+                    end: {
+                      line: 10,
+                      col: 7,
+                    },
                   },
                 },
               ],
-              loc: { start: { line: 5, col: 58 }, end: { line: 11, col: 5 } },
+              loc: {
+                start: {
+                  line: 5,
+                  col: 64,
+                },
+                end: {
+                  line: 11,
+                  col: 5,
+                },
+              },
             },
           ],
           opts: [],
-          loc: { start: { line: 5, col: 4 }, end: { line: 11, col: 5 } },
+          loc: {
+            start: {
+              line: 5,
+              col: 4,
+            },
+            end: {
+              line: 11,
+              col: 5,
+            },
+          },
         },
       ]);
     });
@@ -244,27 +369,28 @@ describe("EvmlAST", () => {
                 type: "Bareword",
                 value: "aragonos",
                 loc: {
-                  start: { line: 2, col: 9 },
-                  end: { line: 2, col: 17 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "ar",
-                  loc: {
-                    start: { line: 2, col: 23 },
-                    end: { line: 2, col: 25 },
+                  start: {
+                    line: 2,
+                    col: 9,
+                  },
+                  end: {
+                    line: 2,
+                    col: 17,
                   },
                 },
-                loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
               },
             ],
-            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 2,
+                col: 4,
+              },
+              end: {
+                line: 2,
+                col: 17,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -274,37 +400,47 @@ describe("EvmlAST", () => {
                 type: "Bareword",
                 value: "giveth",
                 loc: {
-                  start: { line: 3, col: 9 },
-                  end: { line: 3, col: 15 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "giv",
-                  loc: {
-                    start: { line: 3, col: 21 },
-                    end: { line: 3, col: 24 },
+                  start: {
+                    line: 3,
+                    col: 9,
+                  },
+                  end: {
+                    line: 3,
+                    col: 15,
                   },
                 },
-                loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
               },
             ],
-            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 3,
+                col: 4,
+              },
+              end: {
+                line: 3,
+                col: 15,
+              },
+            },
           },
           {
             type: "CommandExpression",
-            module: "ar",
+            module: "aragonos",
             name: "connect",
             args: [
               {
                 type: "AddressLiteral",
                 value: "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
-                loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
+                loc: {
+                  start: {
+                    line: 5,
+                    col: 21,
+                  },
+                  end: {
+                    line: 5,
+                    col: 63,
+                  },
+                },
               },
               {
                 type: "BlockExpression",
@@ -317,23 +453,41 @@ describe("EvmlAST", () => {
                         type: "VariableIdentifier",
                         value: "$dao1Variable",
                         loc: {
-                          start: { line: 6, col: 10 },
-                          end: { line: 6, col: 23 },
+                          start: {
+                            line: 6,
+                            col: 10,
+                          },
+                          end: {
+                            line: 6,
+                            col: 23,
+                          },
                         },
                       },
                       {
                         type: "Bareword",
                         value: "agent",
                         loc: {
-                          start: { line: 6, col: 24 },
-                          end: { line: 6, col: 29 },
+                          start: {
+                            line: 6,
+                            col: 24,
+                          },
+                          end: {
+                            line: 6,
+                            col: 29,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 6, col: 6 },
-                      end: { line: 6, col: 29 },
+                      start: {
+                        line: 6,
+                        col: 6,
+                      },
+                      end: {
+                        line: 6,
+                        col: 29,
+                      },
                     },
                   },
                   {
@@ -344,8 +498,14 @@ describe("EvmlAST", () => {
                         type: "AddressLiteral",
                         value: "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
                         loc: {
-                          start: { line: 7, col: 14 },
-                          end: { line: 7, col: 56 },
+                          start: {
+                            line: 7,
+                            col: 14,
+                          },
+                          end: {
+                            line: 7,
+                            col: 56,
+                          },
                         },
                       },
                       {
@@ -359,23 +519,41 @@ describe("EvmlAST", () => {
                                 type: "VariableIdentifier",
                                 value: "$dao2Variable",
                                 loc: {
-                                  start: { line: 8, col: 12 },
-                                  end: { line: 8, col: 25 },
+                                  start: {
+                                    line: 8,
+                                    col: 12,
+                                  },
+                                  end: {
+                                    line: 8,
+                                    col: 25,
+                                  },
                                 },
                               },
                               {
                                 type: "Bareword",
                                 value: "vault",
                                 loc: {
-                                  start: { line: 8, col: 26 },
-                                  end: { line: 8, col: 31 },
+                                  start: {
+                                    line: 8,
+                                    col: 26,
+                                  },
+                                  end: {
+                                    line: 8,
+                                    col: 31,
+                                  },
                                 },
                               },
                             ],
                             opts: [],
                             loc: {
-                              start: { line: 8, col: 8 },
-                              end: { line: 8, col: 31 },
+                              start: {
+                                line: 8,
+                                col: 8,
+                              },
+                              end: {
+                                line: 8,
+                                col: 31,
+                              },
                             },
                           },
                           {
@@ -386,36 +564,78 @@ describe("EvmlAST", () => {
                                 type: "Bareword",
                                 value: "vault:new",
                                 loc: {
-                                  start: { line: 9, col: 16 },
-                                  end: { line: 9, col: 25 },
+                                  start: {
+                                    line: 9,
+                                    col: 16,
+                                  },
+                                  end: {
+                                    line: 9,
+                                    col: 25,
+                                  },
                                 },
                               },
                             ],
                             opts: [],
                             loc: {
-                              start: { line: 9, col: 8 },
-                              end: { line: 9, col: 25 },
+                              start: {
+                                line: 9,
+                                col: 8,
+                              },
+                              end: {
+                                line: 9,
+                                col: 25,
+                              },
                             },
                           },
                         ],
                         loc: {
-                          start: { line: 7, col: 57 },
-                          end: { line: 10, col: 7 },
+                          start: {
+                            line: 7,
+                            col: 57,
+                          },
+                          end: {
+                            line: 10,
+                            col: 7,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 7, col: 6 },
-                      end: { line: 10, col: 7 },
+                      start: {
+                        line: 7,
+                        col: 6,
+                      },
+                      end: {
+                        line: 10,
+                        col: 7,
+                      },
                     },
                   },
                 ],
-                loc: { start: { line: 5, col: 58 }, end: { line: 11, col: 5 } },
+                loc: {
+                  start: {
+                    line: 5,
+                    col: 64,
+                  },
+                  end: {
+                    line: 11,
+                    col: 5,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 5, col: 4 }, end: { line: 11, col: 5 } },
+            loc: {
+              start: {
+                line: 5,
+                col: 4,
+              },
+              end: {
+                line: 11,
+                col: 5,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -424,16 +644,43 @@ describe("EvmlAST", () => {
               {
                 type: "VariableIdentifier",
                 value: "$dao1Variable",
-                loc: { start: { line: 6, col: 10 }, end: { line: 6, col: 23 } },
+                loc: {
+                  start: {
+                    line: 6,
+                    col: 10,
+                  },
+                  end: {
+                    line: 6,
+                    col: 23,
+                  },
+                },
               },
               {
                 type: "Bareword",
                 value: "agent",
-                loc: { start: { line: 6, col: 24 }, end: { line: 6, col: 29 } },
+                loc: {
+                  start: {
+                    line: 6,
+                    col: 24,
+                  },
+                  end: {
+                    line: 6,
+                    col: 29,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 6, col: 6 }, end: { line: 6, col: 29 } },
+            loc: {
+              start: {
+                line: 6,
+                col: 6,
+              },
+              end: {
+                line: 6,
+                col: 29,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -442,7 +689,16 @@ describe("EvmlAST", () => {
               {
                 type: "AddressLiteral",
                 value: "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
-                loc: { start: { line: 7, col: 14 }, end: { line: 7, col: 56 } },
+                loc: {
+                  start: {
+                    line: 7,
+                    col: 14,
+                  },
+                  end: {
+                    line: 7,
+                    col: 56,
+                  },
+                },
               },
               {
                 type: "BlockExpression",
@@ -455,23 +711,41 @@ describe("EvmlAST", () => {
                         type: "VariableIdentifier",
                         value: "$dao2Variable",
                         loc: {
-                          start: { line: 8, col: 12 },
-                          end: { line: 8, col: 25 },
+                          start: {
+                            line: 8,
+                            col: 12,
+                          },
+                          end: {
+                            line: 8,
+                            col: 25,
+                          },
                         },
                       },
                       {
                         type: "Bareword",
                         value: "vault",
                         loc: {
-                          start: { line: 8, col: 26 },
-                          end: { line: 8, col: 31 },
+                          start: {
+                            line: 8,
+                            col: 26,
+                          },
+                          end: {
+                            line: 8,
+                            col: 31,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 8, col: 8 },
-                      end: { line: 8, col: 31 },
+                      start: {
+                        line: 8,
+                        col: 8,
+                      },
+                      end: {
+                        line: 8,
+                        col: 31,
+                      },
                     },
                   },
                   {
@@ -482,23 +756,53 @@ describe("EvmlAST", () => {
                         type: "Bareword",
                         value: "vault:new",
                         loc: {
-                          start: { line: 9, col: 16 },
-                          end: { line: 9, col: 25 },
+                          start: {
+                            line: 9,
+                            col: 16,
+                          },
+                          end: {
+                            line: 9,
+                            col: 25,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 9, col: 8 },
-                      end: { line: 9, col: 25 },
+                      start: {
+                        line: 9,
+                        col: 8,
+                      },
+                      end: {
+                        line: 9,
+                        col: 25,
+                      },
                     },
                   },
                 ],
-                loc: { start: { line: 7, col: 57 }, end: { line: 10, col: 7 } },
+                loc: {
+                  start: {
+                    line: 7,
+                    col: 57,
+                  },
+                  end: {
+                    line: 10,
+                    col: 7,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 7, col: 6 }, end: { line: 10, col: 7 } },
+            loc: {
+              start: {
+                line: 7,
+                col: 6,
+              },
+              end: {
+                line: 10,
+                col: 7,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -507,16 +811,43 @@ describe("EvmlAST", () => {
               {
                 type: "VariableIdentifier",
                 value: "$dao2Variable",
-                loc: { start: { line: 8, col: 12 }, end: { line: 8, col: 25 } },
+                loc: {
+                  start: {
+                    line: 8,
+                    col: 12,
+                  },
+                  end: {
+                    line: 8,
+                    col: 25,
+                  },
+                },
               },
               {
                 type: "Bareword",
                 value: "vault",
-                loc: { start: { line: 8, col: 26 }, end: { line: 8, col: 31 } },
+                loc: {
+                  start: {
+                    line: 8,
+                    col: 26,
+                  },
+                  end: {
+                    line: 8,
+                    col: 31,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 8, col: 8 }, end: { line: 8, col: 31 } },
+            loc: {
+              start: {
+                line: 8,
+                col: 8,
+              },
+              end: {
+                line: 8,
+                col: 31,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -525,11 +856,29 @@ describe("EvmlAST", () => {
               {
                 type: "Bareword",
                 value: "vault:new",
-                loc: { start: { line: 9, col: 16 }, end: { line: 9, col: 25 } },
+                loc: {
+                  start: {
+                    line: 9,
+                    col: 16,
+                  },
+                  end: {
+                    line: 9,
+                    col: 25,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 9, col: 8 }, end: { line: 9, col: 25 } },
+            loc: {
+              start: {
+                line: 9,
+                col: 8,
+              },
+              end: {
+                line: 9,
+                col: 25,
+              },
+            },
           },
         ]);
       });
@@ -544,27 +893,28 @@ describe("EvmlAST", () => {
                 type: "Bareword",
                 value: "aragonos",
                 loc: {
-                  start: { line: 2, col: 9 },
-                  end: { line: 2, col: 17 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "ar",
-                  loc: {
-                    start: { line: 2, col: 23 },
-                    end: { line: 2, col: 25 },
+                  start: {
+                    line: 2,
+                    col: 9,
+                  },
+                  end: {
+                    line: 2,
+                    col: 17,
                   },
                 },
-                loc: { start: { line: 2, col: 18 }, end: { line: 2, col: 25 } },
               },
             ],
-            loc: { start: { line: 2, col: 4 }, end: { line: 2, col: 25 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 2,
+                col: 4,
+              },
+              end: {
+                line: 2,
+                col: 17,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -574,37 +924,47 @@ describe("EvmlAST", () => {
                 type: "Bareword",
                 value: "giveth",
                 loc: {
-                  start: { line: 3, col: 9 },
-                  end: { line: 3, col: 15 },
-                },
-              },
-            ],
-            opts: [
-              {
-                type: "CommandOpt",
-                name: "as",
-                value: {
-                  type: "Bareword",
-                  value: "giv",
-                  loc: {
-                    start: { line: 3, col: 21 },
-                    end: { line: 3, col: 24 },
+                  start: {
+                    line: 3,
+                    col: 9,
+                  },
+                  end: {
+                    line: 3,
+                    col: 15,
                   },
                 },
-                loc: { start: { line: 3, col: 16 }, end: { line: 3, col: 24 } },
               },
             ],
-            loc: { start: { line: 3, col: 4 }, end: { line: 3, col: 24 } },
+            opts: [],
+            loc: {
+              start: {
+                line: 3,
+                col: 4,
+              },
+              end: {
+                line: 3,
+                col: 15,
+              },
+            },
           },
           {
             type: "CommandExpression",
-            module: "ar",
+            module: "aragonos",
             name: "connect",
             args: [
               {
                 type: "AddressLiteral",
                 value: "0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8",
-                loc: { start: { line: 5, col: 15 }, end: { line: 5, col: 57 } },
+                loc: {
+                  start: {
+                    line: 5,
+                    col: 21,
+                  },
+                  end: {
+                    line: 5,
+                    col: 63,
+                  },
+                },
               },
               {
                 type: "BlockExpression",
@@ -617,23 +977,41 @@ describe("EvmlAST", () => {
                         type: "VariableIdentifier",
                         value: "$dao1Variable",
                         loc: {
-                          start: { line: 6, col: 10 },
-                          end: { line: 6, col: 23 },
+                          start: {
+                            line: 6,
+                            col: 10,
+                          },
+                          end: {
+                            line: 6,
+                            col: 23,
+                          },
                         },
                       },
                       {
                         type: "Bareword",
                         value: "agent",
                         loc: {
-                          start: { line: 6, col: 24 },
-                          end: { line: 6, col: 29 },
+                          start: {
+                            line: 6,
+                            col: 24,
+                          },
+                          end: {
+                            line: 6,
+                            col: 29,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 6, col: 6 },
-                      end: { line: 6, col: 29 },
+                      start: {
+                        line: 6,
+                        col: 6,
+                      },
+                      end: {
+                        line: 6,
+                        col: 29,
+                      },
                     },
                   },
                   {
@@ -644,8 +1022,14 @@ describe("EvmlAST", () => {
                         type: "AddressLiteral",
                         value: "0x8ccbeab14b5ac4a431fffc39f4bec4089020a155",
                         loc: {
-                          start: { line: 7, col: 14 },
-                          end: { line: 7, col: 56 },
+                          start: {
+                            line: 7,
+                            col: 14,
+                          },
+                          end: {
+                            line: 7,
+                            col: 56,
+                          },
                         },
                       },
                       {
@@ -659,23 +1043,41 @@ describe("EvmlAST", () => {
                                 type: "VariableIdentifier",
                                 value: "$dao2Variable",
                                 loc: {
-                                  start: { line: 8, col: 12 },
-                                  end: { line: 8, col: 25 },
+                                  start: {
+                                    line: 8,
+                                    col: 12,
+                                  },
+                                  end: {
+                                    line: 8,
+                                    col: 25,
+                                  },
                                 },
                               },
                               {
                                 type: "Bareword",
                                 value: "vault",
                                 loc: {
-                                  start: { line: 8, col: 26 },
-                                  end: { line: 8, col: 31 },
+                                  start: {
+                                    line: 8,
+                                    col: 26,
+                                  },
+                                  end: {
+                                    line: 8,
+                                    col: 31,
+                                  },
                                 },
                               },
                             ],
                             opts: [],
                             loc: {
-                              start: { line: 8, col: 8 },
-                              end: { line: 8, col: 31 },
+                              start: {
+                                line: 8,
+                                col: 8,
+                              },
+                              end: {
+                                line: 8,
+                                col: 31,
+                              },
                             },
                           },
                           {
@@ -686,36 +1088,78 @@ describe("EvmlAST", () => {
                                 type: "Bareword",
                                 value: "vault:new",
                                 loc: {
-                                  start: { line: 9, col: 16 },
-                                  end: { line: 9, col: 25 },
+                                  start: {
+                                    line: 9,
+                                    col: 16,
+                                  },
+                                  end: {
+                                    line: 9,
+                                    col: 25,
+                                  },
                                 },
                               },
                             ],
                             opts: [],
                             loc: {
-                              start: { line: 9, col: 8 },
-                              end: { line: 9, col: 25 },
+                              start: {
+                                line: 9,
+                                col: 8,
+                              },
+                              end: {
+                                line: 9,
+                                col: 25,
+                              },
                             },
                           },
                         ],
                         loc: {
-                          start: { line: 7, col: 57 },
-                          end: { line: 10, col: 7 },
+                          start: {
+                            line: 7,
+                            col: 57,
+                          },
+                          end: {
+                            line: 10,
+                            col: 7,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 7, col: 6 },
-                      end: { line: 10, col: 7 },
+                      start: {
+                        line: 7,
+                        col: 6,
+                      },
+                      end: {
+                        line: 10,
+                        col: 7,
+                      },
                     },
                   },
                 ],
-                loc: { start: { line: 5, col: 58 }, end: { line: 11, col: 5 } },
+                loc: {
+                  start: {
+                    line: 5,
+                    col: 64,
+                  },
+                  end: {
+                    line: 11,
+                    col: 5,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 5, col: 4 }, end: { line: 11, col: 5 } },
+            loc: {
+              start: {
+                line: 5,
+                col: 4,
+              },
+              end: {
+                line: 11,
+                col: 5,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -724,16 +1168,43 @@ describe("EvmlAST", () => {
               {
                 type: "VariableIdentifier",
                 value: "$dao1Variable",
-                loc: { start: { line: 6, col: 10 }, end: { line: 6, col: 23 } },
+                loc: {
+                  start: {
+                    line: 6,
+                    col: 10,
+                  },
+                  end: {
+                    line: 6,
+                    col: 23,
+                  },
+                },
               },
               {
                 type: "Bareword",
                 value: "agent",
-                loc: { start: { line: 6, col: 24 }, end: { line: 6, col: 29 } },
+                loc: {
+                  start: {
+                    line: 6,
+                    col: 24,
+                  },
+                  end: {
+                    line: 6,
+                    col: 29,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 6, col: 6 }, end: { line: 6, col: 29 } },
+            loc: {
+              start: {
+                line: 6,
+                col: 6,
+              },
+              end: {
+                line: 6,
+                col: 29,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -742,20 +1213,47 @@ describe("EvmlAST", () => {
               {
                 type: "VariableIdentifier",
                 value: "$dao2Variable",
-                loc: { start: { line: 8, col: 12 }, end: { line: 8, col: 25 } },
+                loc: {
+                  start: {
+                    line: 8,
+                    col: 12,
+                  },
+                  end: {
+                    line: 8,
+                    col: 25,
+                  },
+                },
               },
               {
                 type: "Bareword",
                 value: "vault",
-                loc: { start: { line: 8, col: 26 }, end: { line: 8, col: 31 } },
+                loc: {
+                  start: {
+                    line: 8,
+                    col: 26,
+                  },
+                  end: {
+                    line: 8,
+                    col: 31,
+                  },
+                },
               },
             ],
             opts: [],
-            loc: { start: { line: 8, col: 8 }, end: { line: 8, col: 31 } },
+            loc: {
+              start: {
+                line: 8,
+                col: 8,
+              },
+              end: {
+                line: 8,
+                col: 31,
+              },
+            },
           },
           {
             type: "CommandExpression",
-            module: "ar",
+            module: "aragonos",
             name: "connect",
             args: [
               {
@@ -765,22 +1263,40 @@ describe("EvmlAST", () => {
                     type: "Bareword",
                     value: "object",
                     loc: {
-                      start: { line: 13, col: 16 },
-                      end: { line: 13, col: 22 },
+                      start: {
+                        line: 13,
+                        col: 22,
+                      },
+                      end: {
+                        line: 13,
+                        col: 28,
+                      },
                     },
                   },
                   {
                     type: "Bareword",
                     value: "Object",
                     loc: {
-                      start: { line: 13, col: 23 },
-                      end: { line: 13, col: 29 },
+                      start: {
+                        line: 13,
+                        col: 29,
+                      },
+                      end: {
+                        line: 13,
+                        col: 35,
+                      },
                     },
                   },
                 ],
                 loc: {
-                  start: { line: 13, col: 15 },
-                  end: { line: 13, col: 30 },
+                  start: {
+                    line: 13,
+                    col: 21,
+                  },
+                  end: {
+                    line: 13,
+                    col: 36,
+                  },
                 },
               },
               {
@@ -794,42 +1310,81 @@ describe("EvmlAST", () => {
                         type: "Bareword",
                         value: "voting",
                         loc: {
-                          start: { line: 14, col: 13 },
-                          end: { line: 14, col: 19 },
+                          start: {
+                            line: 14,
+                            col: 13,
+                          },
+                          end: {
+                            line: 14,
+                            col: 19,
+                          },
                         },
                       },
                       {
                         type: "Bareword",
                         value: "token-manager",
                         loc: {
-                          start: { line: 14, col: 20 },
-                          end: { line: 14, col: 33 },
+                          start: {
+                            line: 14,
+                            col: 20,
+                          },
+                          end: {
+                            line: 14,
+                            col: 33,
+                          },
                         },
                       },
                       {
                         type: "Bareword",
                         value: "MINT_ROLE",
                         loc: {
-                          start: { line: 14, col: 34 },
-                          end: { line: 14, col: 43 },
+                          start: {
+                            line: 14,
+                            col: 34,
+                          },
+                          end: {
+                            line: 14,
+                            col: 43,
+                          },
                         },
                       },
                     ],
                     opts: [],
                     loc: {
-                      start: { line: 14, col: 6 },
-                      end: { line: 14, col: 43 },
+                      start: {
+                        line: 14,
+                        col: 6,
+                      },
+                      end: {
+                        line: 14,
+                        col: 43,
+                      },
                     },
                   },
                 ],
                 loc: {
-                  start: { line: 13, col: 31 },
-                  end: { line: 15, col: 5 },
+                  start: {
+                    line: 13,
+                    col: 37,
+                  },
+                  end: {
+                    line: 15,
+                    col: 5,
+                  },
                 },
               },
             ],
             opts: [],
-            loc: { start: { line: 13, col: 4 }, end: { line: 15, col: 5 } },
+            loc: {
+              start: {
+                line: 13,
+                col: 4,
+              },
+              end: {
+                line: 15,
+                col: 5,
+              },
+            },
           },
           {
             type: "CommandExpression",
@@ -839,21 +1394,42 @@ describe("EvmlAST", () => {
                 type: "VariableIdentifier",
                 value: "$globalScopeVariable",
                 loc: {
-                  start: { line: 17, col: 8 },
-                  end: { line: 17, col: 28 },
+                  start: {
+                    line: 17,
+                    col: 8,
+                  },
+                  end: {
+                    line: 17,
+                    col: 28,
+                  },
                 },
               },
               {
                 type: "StringLiteral",
                 value: "test",
                 loc: {
-                  start: { line: 17, col: 29 },
-                  end: { line: 17, col: 35 },
+                  start: {
+                    line: 17,
+                    col: 29,
+                  },
+                  end: {
+                    line: 17,
+                    col: 35,
+                  },
                 },
               },
             ],
             opts: [],
-            loc: { start: { line: 17, col: 4 }, end: { line: 17, col: 35 } },
+            loc: {
+              start: {
+                line: 17,
+                col: 4,
+              },
+              end: {
+                line: 17,
+                col: 35,
+              },
+            },
           },
         ]);
       });

@@ -24,6 +24,16 @@ describe("Core > completions", () => {
       const labels = result.map((c) => c.label);
       expect(labels).to.include("set");
     });
+
+    it("should suppress completions inside a heredoc block", async () => {
+      const script =
+        "set $src <<<SOL\npragma solidity 0.8.26;\ncon\nSOL\nprint $src";
+      const inside = await ctx.completions(script, { line: 3, col: 3 });
+      expect(inside).to.eql([]);
+      // …but lines after the closing sentinel complete normally again.
+      const after = await ctx.completions(script, { line: 5, col: 5 });
+      expect(after).to.be.an("array");
+    });
   });
 
   describe("helper completions", () => {
@@ -56,11 +66,19 @@ describe("Core > completions", () => {
   });
 
   describe("cross-module completions", () => {
-    it("should include helpers from a loaded module", async () => {
+    it("should include helpers from a loaded module (qualified)", async () => {
       // Uses the `coretest` stub registered in test/setup.ts so the
       // assertion verifies the cross-module loading machinery itself
       // without coupling the core package to any concrete module.
-      const script = "load coretest --as ct\nset $x @";
+      const script = "load coretest\nset $x @";
+      const result = await ctx.completions(script, { line: 2, col: 8 });
+      expect(result).to.be.an("array");
+      const labels = result.map((c) => c.label);
+      expect(labels).to.include("@coretest:coretest-helper");
+    });
+
+    it("should offer the unqualified spelling for import-listed helpers", async () => {
+      const script = "load coretest [@coretest-helper]\nset $x @";
       const result = await ctx.completions(script, { line: 2, col: 8 });
       expect(result).to.be.an("array");
       const labels = result.map((c) => c.label);

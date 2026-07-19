@@ -17,8 +17,8 @@ describe("Core > documentSymbols", () => {
   });
 
   it("should return block symbols for commands with blocks", () => {
-    const script = `load aragonos --as ar
-ar:connect 0x1234567890abcdef1234567890abcdef12345678 (
+    const script = `load aragonos
+aragonos:connect 0x1234567890abcdef1234567890abcdef12345678 (
   set $x 1
 )`;
     const result = symbols(script);
@@ -55,8 +55,8 @@ ar:connect 0x1234567890abcdef1234567890abcdef12345678 (
   });
 
   it("should handle nested blocks", () => {
-    const script = `load aragonos --as ar
-ar:connect 0x1234567890abcdef1234567890abcdef12345678 (
+    const script = `load aragonos
+aragonos:connect 0x1234567890abcdef1234567890abcdef12345678 (
   connect 0xabcdefabcdefabcdefabcdefabcdefabcdefabcd (
     set $inner 1
   )
@@ -71,7 +71,9 @@ ar:connect 0x1234567890abcdef1234567890abcdef12345678 (
   });
 
   it("should include command options in labels", () => {
-    const result = symbols("load aragonos --as ar");
-    expect(result[0].name).to.include("--as");
+    const result = symbols(
+      "send 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d --value 1",
+    );
+    expect(result[0].name).to.include("--value");
   });
 });
