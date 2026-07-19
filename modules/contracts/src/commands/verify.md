@@ -2,7 +2,7 @@
 title: "contracts:verify"
 ---
 
-Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.
+Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. Inside sim:fork this becomes a local dry-run: the source is compiled and checked against the fork's deployed bytecode instead of being sent to Etherscan.
 
 ## Syntax
 
@@ -33,6 +33,35 @@ contracts:verify <address>
 | `--poll-interval` | `number` | Seconds between status polls. Defaults to 3. |
 
 <!-- HAND-WRITTEN -->
+
+## Simulation dry-run
+
+Inside `sim:fork`, `verify` never talks to Etherscan. It performs a local
+dry-run instead: the Standard JSON Input is compiled with the pinned
+compiler and diffed against the bytecode deployed on the fork (metadata
+hashes and immutable values are ignored, exactly like a verifier would).
+A match logs `would verify on Etherscan`; a mismatch aborts the simulation
+naming the reason (wrong optimizer runs and a missing `via-ir` are the
+usual suspects). No `VITE_ETHERSCAN_API_KEY` is needed for the dry-run —
+mirror mode still needs one, since it reads the source from Etherscan.
+
+```evml
+load sim
+load contracts
+sim:fork (
+  set $src <<<SOL
+pragma solidity 0.8.26;
+contract Counter {
+  uint256 public n;
+  function inc() public { n++; }
+}
+SOL
+  contracts:deploy $counter @contracts:solidity($src)
+  contracts:verify $counter --source @contracts:solidity.standardJson($src) --contract-name @contracts:solidity.contract($src) --compiler @contracts:solidity.compiler($src)
+)
+```
+
+`verify` cannot be used inside `batch` — verification is not a transaction.
 
 ## Examples
 

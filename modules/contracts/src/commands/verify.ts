@@ -9,6 +9,13 @@ import {
 } from "@evmcrispr/sdk";
 import { getAddress, isAddressEqual } from "viem";
 import type Contracts from "..";
+import {
+  activeSimChainId,
+  compileStandardJson,
+  matchesDeployedBytecode,
+  selectVerifyTarget,
+  withDeployedBytecodeSelection,
+} from "../utils/verification";
 
 const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
 
@@ -237,7 +244,8 @@ async function pollVerification(
 export default defineCommand<Contracts>({
   name: "verify",
   description:
-    "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.",
+    "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. Inside sim:fork this becomes a local dry-run: the source is compiled and checked against the fork's deployed bytecode instead of being sent to Etherscan.",
+  batchable: false,
   args: [
     {
       name: "address",
@@ -313,12 +321,11 @@ export default defineCommand<Contracts>({
     },
   ],
   async run(module, { address }, { opts }) {
+    // Inside a sim:fork block verification becomes a local dry-run, which
+    // needs no Etherscan API key (mirror mode still does — it reads the
+    // source from Etherscan).
+    const simChainId = activeSimChainId(module);
     const apiKey = readEtherscanApiKey();
-    if (!apiKey) {
-      throw new ErrorException(
-        "verify: VITE_ETHERSCAN_API_KEY env var is required",
-      );
-    }
 
     const targetAddress = getAddress(address as `0x${string}`);
     const targetChainId = await module.getChainId();
@@ -358,6 +365,12 @@ export default defineCommand<Contracts>({
       | undefined;
     const isMirror =
       mirrorChainOpt !== undefined || mirrorAddressOpt !== undefined;
+
+    if (isMirror && !apiKey) {
+      throw new ErrorException(
+        "verify: VITE_ETHERSCAN_API_KEY env var is required",
+      );
+    }
 
     let sourceCode: string;
     let contractName: string;
@@ -449,6 +462,51 @@ export default defineCommand<Contracts>({
         : encoded;
     } else if (isMirror) {
       constructorArgsHex = mirrorCtorArgsHex;
+    }
+
+    if (simChainId !== undefined) {
+      // ── sim:fork dry-run: compile locally and diff against fork code ──
+      if (simChainId !== null && targetChainId !== simChainId) {
+        throw new ErrorException(
+          `verify: targets chain ${targetChainId} but the fork is on chain ${simChainId} — switch chains before verifying`,
+        );
+      }
+      const bareVersion = compilerVersion.replace(/^v/, "");
+      module.context.log(
+        `verify (dry-run): compiling ${contractName} with solc v${bareVersion}…`,
+      );
+      const output = await compileStandardJson(
+        withDeployedBytecodeSelection(sourceCode),
+        bareVersion,
+        (m) => module.context.log(m),
+      );
+      const target = selectVerifyTarget(output, contractName);
+      const client = await module.getClient();
+      const onchain = await client.getCode({ address: targetAddress });
+      if (!onchain || onchain === "0x") {
+        throw new ErrorException(
+          `verify: no deployed code at ${targetAddress} on the fork`,
+        );
+      }
+      const result = matchesDeployedBytecode(onchain, target.deployedBytecode, {
+        immutableReferences: target.immutableReferences,
+        linkReferences: target.linkReferences,
+      });
+      if (!result.match) {
+        throw new ErrorException(
+          `verify: deployed bytecode at ${targetAddress} does not match ${contractName} compiled with solc v${bareVersion} — ${result.reason}`,
+        );
+      }
+      module.context.log(
+        `:success: verify (dry-run): ${targetAddress} matches ${contractName} — would verify on Etherscan`,
+      );
+      return [];
+    }
+
+    if (!apiKey) {
+      throw new ErrorException(
+        "verify: VITE_ETHERSCAN_API_KEY env var is required",
+      );
     }
 
     // Etherscan V2 requires `apikey`, `chainid`, `module`, and `action`

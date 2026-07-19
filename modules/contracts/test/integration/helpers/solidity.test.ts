@@ -114,7 +114,8 @@ SOL
 contracts:deploy $counter @contracts:solidity($src)`,
       },
       {
-        description: "Compile a contract hosted at a URL with custom compiler options",
+        description:
+          "Compile a contract hosted at a URL with custom compiler options",
         code: `set $url 'https://sources.example.com/Counter.sol'
 contracts:deploy $counter @contracts:solidity($url 'runs:1000' 'via-ir')`,
       },

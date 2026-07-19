@@ -556,6 +556,13 @@ describeCommand("verify", {
   describeName: "Contracts > commands > verify validation",
   errorCases: [
     {
+      name: "should be rejected inside batch (batchable: false)",
+      script: `batch (
+  contracts:verify ${VERIFIED_ADDR} --mirror-chain 1
+)`,
+      error: 'command "verify" cannot be used inside batch',
+    },
+    {
       name: "explicit mode requires --source/--contract-name/--compiler",
       script: `contracts:verify ${VERIFIED_ADDR}`,
       error: "explicit mode requires",

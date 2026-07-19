@@ -83,7 +83,9 @@ describe("Contracts > utils > solc", () => {
     });
 
     it("never selects releases below the 0.6.0 floor", () => {
-      expect(() => selectVersion("^0.5.0", releases)).toThrow(/no solc release/);
+      expect(() => selectVersion("^0.5.0", releases)).toThrow(
+        /no solc release/,
+      );
     });
 
     it("throws when nothing satisfies", () => {
