@@ -7,6 +7,7 @@ import { choice, recursiveParser } from "arcsecond";
 import {
   addressParser,
   booleanParser,
+  heredocParser,
   hexadecimalParser,
   numberParser,
   stringParser,
@@ -22,6 +23,7 @@ export const primaryParser: EnclosingNodeParser<PrimaryExpressionNode> = (
       booleanParser(enclosingParsers),
       numberParser(enclosingParsers),
       stringParser(enclosingParsers),
+      heredocParser(enclosingParsers),
     ]),
   );
 

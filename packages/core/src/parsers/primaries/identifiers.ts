@@ -48,8 +48,10 @@ export const variableIdentifierParser: EnclosingNodeParser<
     ),
   );
 
+// `<<<` opens a heredoc literal; keeping it out of barewords makes an
+// unterminated heredoc a parse error instead of a silent bareword.
 const identifierRegexParser = regex(
-  /^(?:(?!::|--|#|,|\(|\[|\)|\]|@|\s|"|').)+/,
+  /^(?:(?!::|--|#|,|\(|\[|\)|\]|@|\s|"|'|<<<).)+/,
 );
 const encloseIdentifierRegexParser = regex(
   /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s|'|").)+/,

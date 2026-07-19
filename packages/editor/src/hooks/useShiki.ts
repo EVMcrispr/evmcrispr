@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
+import solidityGrammar from "shiki/langs/solidity.mjs";
 import evmlGrammar from "../grammars/evml.tmLanguage.json";
 import { evmlTheme } from "../grammars/evml-theme";
 
@@ -11,7 +12,9 @@ function getHighlighter() {
   if (!highlighterPromise) {
     highlighterPromise = createHighlighterCore({
       themes: [evmlTheme],
-      langs: [evmlGrammar as LanguageRegistration],
+      // solidity backs the embedded `<<<SOL … SOL` heredoc blocks
+      // (source.solidity is included from the evml grammar).
+      langs: [...solidityGrammar, evmlGrammar as LanguageRegistration],
       engine: createOnigurumaEngine(import("shiki/wasm")),
     });
   }

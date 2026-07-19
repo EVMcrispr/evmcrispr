@@ -54,5 +54,23 @@ export const evmlTheme: ThemeRegistrationRaw = {
       scope: ["constant.character.escape"],
       settings: { foreground: "#72bcd4" },
     },
+    // Generic scopes for embedded languages (Solidity inside <<<SOL
+    // heredocs); specific EVML scopes above still win where they overlap.
+    {
+      scope: ["keyword"],
+      settings: { foreground: "#0FFF50" },
+    },
+    {
+      scope: ["storage.type", "support.type", "entity.name.type"],
+      settings: { foreground: "#4169E1" },
+    },
+    {
+      scope: ["entity.name.function"],
+      settings: { foreground: "#cccc00" },
+    },
+    {
+      scope: ["punctuation.definition.heredoc"],
+      settings: { foreground: "#9933cc" },
+    },
   ],
 };

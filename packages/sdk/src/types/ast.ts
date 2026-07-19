@@ -61,6 +61,9 @@ export interface BytesLiteralNode extends Node {
 export interface StringLiteralNode extends Node {
   type: NodeType.StringLiteral;
   value: string;
+  /** Sentinel of the heredoc form (`<<<SOL … SOL`) the literal was written
+   *  in, when it was; content is raw (no escape processing). */
+  heredoc?: string;
 }
 
 export interface BooleanLiteralNode extends Node {

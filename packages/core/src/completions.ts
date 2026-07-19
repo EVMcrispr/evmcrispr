@@ -274,6 +274,27 @@ function isReturnTypeCompatible(
 // Main completion function
 // ---------------------------------------------------------------------------
 
+/**
+ * True when the (1-indexed) cursor line sits inside an unclosed `<<<TAG`
+ * heredoc block. Line-based on purpose: completions work over raw text and
+ * the block content is not EVML.
+ */
+function isInsideHeredoc(lines: string[], cursorLine: number): boolean {
+  let sentinel: string | null = null;
+  for (let i = 0; i < cursorLine - 1 && i < lines.length; i++) {
+    const line = lines[i];
+    if (sentinel) {
+      if (new RegExp(`^${sentinel}(?![A-Za-z0-9_])`).test(line)) {
+        sentinel = null;
+      }
+    } else {
+      const m = line.match(/<<<([A-Z][A-Z0-9]*)\b/);
+      if (m) sentinel = m[1];
+    }
+  }
+  return sentinel !== null;
+}
+
 export async function getCompletions(
   script: string,
   position: Position,
@@ -295,6 +316,10 @@ export async function getCompletions(
   // 1. Parse the full script
   const scriptLines = script.split("\n");
   const currentLineContent = scriptLines[position.line - 1] ?? "";
+
+  // Inside an open <<<TAG heredoc block the content is foreign code
+  // (e.g. Solidity) — EVML suggestions there are pure noise.
+  if (isInsideHeredoc(scriptLines, position.line)) return [];
 
   let fullAST: EvmlAST | undefined;
   try {

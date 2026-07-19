@@ -377,7 +377,7 @@ export async function getHoverInfo(
     );
     const formatted = formatVariableValue(value, scriptLines);
 
-    // Commands like `deploy`, `new-dao`, `new-token`, `install`, `sign`
+    // Commands like `contracts:deploy`, `new-dao`, `new-token`, `install`, `sign`
     // and `for` produce a runtime value the prewarm walker can't
     // predict; it seeds the binding with the variable's own name as a
     // placeholder so subsequent hovers know the symbol is defined.
@@ -532,6 +532,7 @@ interface AstLike {
   power?: number;
   timeUnit?: string;
   perTime?: boolean;
+  heredoc?: string;
   args?: unknown[];
   elements?: unknown[];
   module?: string;
@@ -567,9 +568,16 @@ function renderAstNode(node: AstLike, scriptLines?: string[]): string | null {
   if (fromSource != null) return fromSource;
 
   switch (node.type) {
-    case NodeType.StringLiteral:
+    case NodeType.StringLiteral: {
+      if (typeof node.value !== "string") return null;
+      // Render heredoc blocks compactly instead of dumping the content.
+      if (node.heredoc) {
+        const lines = node.value === "" ? 0 : node.value.split("\n").length;
+        return `<<<${node.heredoc} (${lines} line${lines === 1 ? "" : "s"})`;
+      }
       // Preserve quoting so the displayed value is unambiguous.
-      return typeof node.value === "string" ? JSON.stringify(node.value) : null;
+      return JSON.stringify(node.value);
+    }
 
     case NodeType.AddressLiteral:
     case NodeType.BytesLiteral:

@@ -20,6 +20,7 @@ import {
   BOOLEAN_PARSER_ERROR,
   barewordParser,
   booleanParser,
+  heredocParser,
   hexadecimalParser,
   numberParser,
   STRING_PARSER_ERROR,
@@ -27,6 +28,7 @@ import {
   VARIABLE_PARSER_ERROR,
   variableIdentifierParser,
 } from "../../../src/parsers/primaries";
+import { HEREDOC_PARSER_ERROR } from "../../../src/parsers/primaries/literals/heredoc";
 import { HEXADECIMAL_PARSER_ERROR } from "../../../src/parsers/primaries/literals/hexadecimal";
 
 const buildLocation = (value: string): Location => ({
@@ -336,6 +338,72 @@ describe("Parsers - primary", () => {
           start: { line: 2, col: 3 },
           end: { line: 2, col: 5 },
         });
+      });
+    });
+
+    describe("when parsing heredoc values", () => {
+      it("should parse a <<<SOL heredoc into a raw string with the sentinel flag", () => {
+        const result = runParser(
+          heredocParser(),
+          "<<<SOL\npragma solidity 0.8.26;\ncontract A {}\nSOL",
+        );
+        expect(result).to.deep.include({
+          type: NodeType.StringLiteral,
+          value: "pragma solidity 0.8.26;\ncontract A {}",
+          heredoc: "SOL",
+        });
+      });
+
+      it("should accept any uppercase sentinel and an empty body", () => {
+        const result = runParser(heredocParser(), '<<<JSON\n{"a": 1}\nJSON');
+        expect(result).to.deep.include({
+          value: '{"a": 1}',
+          heredoc: "JSON",
+        });
+        const empty = runParser(heredocParser(), "<<<TXT\nTXT");
+        expect(empty).to.deep.include({ value: "", heredoc: "TXT" });
+      });
+
+      it("should not process escape sequences (raw content)", () => {
+        const result = runParser(heredocParser(), "<<<TXT\na\\nb\nTXT");
+        expect(result.value).to.equal("a\\nb");
+      });
+
+      it("should not close on lines merely starting with the sentinel", () => {
+        const result = runParser(
+          heredocParser(),
+          "<<<SOL\nSOLIDITY rocks\nSOL",
+        );
+        expect(result.value).to.equal("SOLIDITY rocks");
+      });
+
+      it("should advance line/col so subsequent tokens have correct loc", () => {
+        const result = runParser(
+          arrayExpressionParser,
+          "<<<TXT\na\nb\nTXT 42]".replace("<<<", "[<<<"),
+        );
+        expect(result.elements).to.have.lengthOf(2);
+        expect(result.elements[0]).to.deep.include({
+          type: NodeType.StringLiteral,
+          value: "a\nb",
+        });
+        expect(result.elements[0].loc).to.eql({
+          start: { line: 1, col: 1 },
+          end: { line: 4, col: 3 },
+        });
+        expect(result.elements[1].loc).to.eql({
+          start: { line: 4, col: 4 },
+          end: { line: 4, col: 6 },
+        });
+      });
+
+      it("should fail on an unterminated heredoc instead of falling back to a bareword", () => {
+        runErrorCase(
+          heredocParser(),
+          "<<<SOL\ncontract A {}",
+          HEREDOC_PARSER_ERROR,
+          "Expected a terminated heredoc — close <<<TAG with a line containing only TAG",
+        );
       });
     });
   });

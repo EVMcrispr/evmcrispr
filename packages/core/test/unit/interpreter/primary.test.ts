@@ -182,6 +182,21 @@ describe("Interpreter - primaries", async () => {
 
       await runInterpreterCases(cases, getClient);
     });
+
+    it("should interpret a heredoc string node as its raw content", async () => {
+      const cases: InterpreterCase[] = [
+        [
+          {
+            type: NodeType.StringLiteral,
+            value: "pragma solidity 0.8.26;\ncontract A {}",
+            heredoc: "SOL",
+          },
+          "pragma solidity 0.8.26;\ncontract A {}",
+        ],
+      ];
+
+      await runInterpreterCases(cases, getClient);
+    });
   });
 
   describe("when intepreting an identifier node", () => {
