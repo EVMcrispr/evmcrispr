@@ -298,3 +298,22 @@
 .evmcrispr-root .monaco-editor .monaco-hover strong {
   color: var(--foreground);
 }
+
+/* Size hover code blocks (the IPFS file preview and doc examples)
+   below the editor's 22px. `.monaco-tokenized-source` is the wrapper
+   around every tokenized code fence, so all token spans inherit. */
+.evmcrispr-root .monaco-editor
+  .monaco-hover
+  .hover-contents
+  .monaco-tokenized-source,
+.evmcrispr-root
+  .monaco-editor
+  .monaco-hover
+  .hover-contents
+  .monaco-tokenized-source
+  * {
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Monaco's inline editor-font styles on token spans */
+  font-size: 16px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: see above */
+  line-height: 1.4 !important;
+}

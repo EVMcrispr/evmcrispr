@@ -18,6 +18,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { toMonacoCompletionItem } from "./autocompletion";
 import { conf, contribution, createLanguage } from "./evml";
+import { findIpfsGetCallAt, getIpfsPreview } from "./ipfs-preview";
 import { theme } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
@@ -264,6 +265,39 @@ function Editor({
       hoverProvider.dispose();
     };
   }, [monaco, evm]);
+
+  // ── IPFS preview on hover ──
+  // A second hover provider (Monaco merges results): hovering anywhere on an
+  // `@ipfs.get("<cid>")` call shows a preview of the pinned file fetched from
+  // the public gateway.
+  useEffect(() => {
+    if (!monaco) return;
+
+    const ipfsHoverProvider = monaco.languages.registerHoverProvider("evml", {
+      provideHover: async (model, pos) => {
+        const call = findIpfsGetCallAt(
+          model.getLineContent(pos.lineNumber),
+          pos.column,
+        );
+        if (!call) return null;
+        const preview = await getIpfsPreview(call.cid);
+        if (!preview) return null;
+        return {
+          range: new monaco.Range(
+            pos.lineNumber,
+            call.startColumn,
+            pos.lineNumber,
+            call.endColumn,
+          ),
+          contents: [{ value: preview }],
+        };
+      },
+    });
+
+    return () => {
+      ipfsHoverProvider.dispose();
+    };
+  }, [monaco]);
 
   // ── Signature help ──
   useEffect(() => {
