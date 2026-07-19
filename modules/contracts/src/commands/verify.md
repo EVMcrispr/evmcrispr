@@ -1,5 +1,5 @@
 ---
-title: "verify"
+title: "contracts:verify"
 ---
 
 Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.
@@ -7,7 +7,7 @@ Submit Solidity Standard JSON Input source code to Etherscan V2 for verification
 ## Syntax
 
 ```evml
-verify <address>
+contracts:verify <address>
 ```
 
 ## Arguments
@@ -37,32 +37,34 @@ verify <address>
 ## Examples
 
 ```evml
+load contracts
+
 # Mirror SAME address from a DIFFERENT chain (the canonical cross-chain re-verify)
-verify 0x44fA8E6f47987339850636F88629646662444217 --mirror-chain 1
+contracts:verify 0x44fA8E6f47987339850636F88629646662444217 --mirror-chain 1
 
 # Mirror a DIFFERENT address on the SAME chain
 # (e.g. clone an already-verified implementation onto a freshly deployed copy)
 set $newDeploy 0x0102030405060708090a0b0c0d0e0f1011121314
 set $alreadyVerified 0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9
-verify $newDeploy --mirror-address $alreadyVerified
+contracts:verify $newDeploy --mirror-address $alreadyVerified
 
 # Mirror a DIFFERENT address on a DIFFERENT chain
 set $mainnetSibling 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-verify $newDeploy --mirror-chain 1 --mirror-address $mainnetSibling
+contracts:verify $newDeploy --mirror-chain 1 --mirror-address $mainnetSibling
 
 # Mirror with overridden constructor arguments
 # (typical when an immutable like `owner` differs across chains)
 set $myToken 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
-verify $myToken --mirror-chain 1 --constructor "constructor(address)" --constructor-args [@me]
+contracts:verify $myToken --mirror-chain 1 --constructor "constructor(address)" --constructor-args [@me]
 
 # Pair with deploy: same source, deterministic CREATE2 address on a new chain
-deploy $token 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001 --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
-verify $token --mirror-chain 1 --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
+contracts:deploy $token 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001 --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
+contracts:verify $token --mirror-chain 1 --constructor "constructor(string,uint8)" --constructor-args ["MyToken" 18]
 
 # Explicit Standard JSON Input fetched from a URL
 load http [@fetch]
 set $src @fetch("https://gist.githubusercontent.com/me/abc/raw/input.json")
-verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/MyToken.sol:MyToken" --compiler "0.8.20+commit.a1b79de6"
+contracts:verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/MyToken.sol:MyToken" --compiler "0.8.20+commit.a1b79de6"
 ```
 
 ## Modes
@@ -114,16 +116,18 @@ practical patterns:
    non-trivial input:
 
 ```evml
+load contracts
 load http [@fetch]
 set $src @fetch("https://gist.githubusercontent.com/me/abc/raw/input.json")
-verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/Foo.sol:Foo" --compiler "0.8.20+commit.a1b79de6"
+contracts:verify 0x44fA8E6f47987339850636F88629646662444217 --source $src --contract-name "src/Foo.sol:Foo" --compiler "0.8.20+commit.a1b79de6"
 ```
 
 2. Inline single-quoted multi-line literal — fine for tiny payloads,
    provided no `'` appears anywhere inside the JSON:
 
 ```evml
-verify 0x44fA8E6f47987339850636F88629646662444217 --source '{
+load contracts
+contracts:verify 0x44fA8E6f47987339850636F88629646662444217 --source '{
   "language": "Solidity",
   "sources": { "Foo.sol": { "content": "// SPDX ..." } },
   "settings": { "optimizer": { "enabled": true, "runs": 200 } }

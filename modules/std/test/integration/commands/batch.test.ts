@@ -28,8 +28,9 @@ describeCommand("batch", {
     },
     {
       name: "should batch a --create2 deployment (factory call has a target address)",
-      script: `batch (
-  deploy $addr 0x6080604052 --create2 0x0000000000000000000000000000000000000000000000000000000000000001
+      script: `load contracts
+batch (
+  contracts:deploy $addr 0x6080604052 --create2 0x0000000000000000000000000000000000000000000000000000000000000001
   exec ${target} ${fnSig} ${spender} 100e18
 )`,
       validate: (actions) => {
@@ -159,8 +160,9 @@ batch (
     },
     {
       name: "should fail on plain CREATE deployments inside a batch",
-      script: `batch (
-  deploy $addr 0x6080604052
+      script: `load contracts
+batch (
+  contracts:deploy $addr 0x6080604052
 )`,
       error: "plain CREATE deployments cannot be batched",
     },

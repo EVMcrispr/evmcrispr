@@ -1,8 +1,8 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import type Std from "..";
+import type Contracts from "..";
 
-export default defineHelper<Std>({
-  name: "contract.codeAt",
+export default defineHelper<Contracts>({
+  name: "codeAt",
   batchable: false,
   description: "Return the deployed bytecode at an address.",
   returnType: "bytes",

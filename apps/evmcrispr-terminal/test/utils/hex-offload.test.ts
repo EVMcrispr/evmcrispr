@@ -29,7 +29,9 @@ describe("isOffloadableHex", () => {
 
   test("rejects non-hex and embedded hex", () => {
     expect(isOffloadableHex("hello")).toBe(false);
-    expect(isOffloadableHex(`deploy $c ${hexOfBytes(100)}`)).toBe(false);
+    expect(isOffloadableHex(`contracts:deploy $c ${hexOfBytes(100)}`)).toBe(
+      false,
+    );
     expect(isOffloadableHex(`0x${"zz".repeat(100)}`)).toBe(false);
     expect(isOffloadableHex(`${"ab".repeat(100)}`)).toBe(false);
   });

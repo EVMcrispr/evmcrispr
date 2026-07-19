@@ -32,4 +32,4 @@ sim:fork --using anvil (
 
 - [set-storage-at](set-storage-at.md) — override a storage slot
 - [fork](fork.md) — fork the chain
-- [@contract.codeAt](../../../std/src/helpers/contract.codeAt.md) — read bytecode
+- [@contracts:codeAt](../../../contracts/src/helpers/codeAt.md) — read bytecode

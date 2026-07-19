@@ -24,7 +24,7 @@ export async function readSlotAddress(
   return getAddress(`0x${word.slice(-40)}`);
 }
 
-/** Arachnid deterministic CREATE2 deployer (same default as std deploy). */
+/** Arachnid deterministic CREATE2 deployer (same default as contracts:deploy). */
 export const ARACHNID_CREATE2: Address =
   "0x4e59b44847b379578588920ca78fbf26c0b4956c";
 

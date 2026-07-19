@@ -1,9 +1,9 @@
 import { defineHelper } from "@evmcrispr/sdk";
 import { pad } from "viem";
-import type Std from "..";
+import type Contracts from "..";
 
-export default defineHelper<Std>({
-  name: "contract.storageAt",
+export default defineHelper<Contracts>({
+  name: "storageAt",
   batchable: false,
   description: "Read a raw storage slot of a contract.",
   returnType: "bytes32",

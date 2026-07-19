@@ -16,7 +16,7 @@ const BLOCK = FORK_BLOCK_NUMBER;
 const FORK_OPTS = `--using ethereumjs --block-number ${BLOCK}`;
 
 function script(body: string): string {
-  return `load sim\nsim:fork ${FORK_OPTS} (\n${body}\n)`;
+  return `load sim\nload contracts\nsim:fork ${FORK_OPTS} (\n${body}\n)`;
 }
 
 function run(body: string, client: PublicClient) {
@@ -84,19 +84,19 @@ describe("EthereumJS backend – integration", () => {
       );
     });
 
-    it("set-code and verify via @contract.codeAt", async () => {
+    it("set-code and verify via @contracts:codeAt", async () => {
       const bytecode = "0x600160005260206000f3";
       await run(
         [
           `  sim:set-code ${ADDR} ${bytecode}`,
-          `  set $code @contract.codeAt(${ADDR})`,
+          `  set $code @contracts:codeAt(${ADDR})`,
           `  sim:expect @bool(@str($code) == @str("${bytecode}"))`,
         ].join("\n"),
         client,
       );
     });
 
-    it("set-storage-at and verify via @contract.storageAt", async () => {
+    it("set-storage-at and verify via @contracts:storageAt", async () => {
       const slot =
         "0x0000000000000000000000000000000000000000000000000000000000000001";
       const value =
@@ -104,7 +104,7 @@ describe("EthereumJS backend – integration", () => {
       await run(
         [
           `  sim:set-storage-at ${ADDR} ${slot} ${value}`,
-          `  set $val @contract.storageAt(${ADDR} ${slot})`,
+          `  set $val @contracts:storageAt(${ADDR} ${slot})`,
           `  sim:expect @bool(@str($val) == @str("${value}"))`,
         ].join("\n"),
         client,

@@ -5,10 +5,10 @@ import {
   encodeConstructorParams,
   fetchVerifiedContractFull,
   readEtherscanApiKey,
+  resolveChainId,
 } from "@evmcrispr/sdk";
 import { getAddress, isAddressEqual } from "viem";
-import type Std from "..";
-import { resolveChainId } from "../argTypes";
+import type Contracts from "..";
 
 const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
 
@@ -234,7 +234,7 @@ async function pollVerification(
   );
 }
 
-export default defineCommand<Std>({
+export default defineCommand<Contracts>({
   name: "verify",
   description:
     "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source.",

@@ -4,6 +4,7 @@ export * from "./argAlignment";
 export * from "./args";
 export * from "./arity";
 export * from "./ast";
+export * from "./chainArgType";
 export * from "./contract-verification";
 export * from "./contracts";
 export * from "./defineCommand";

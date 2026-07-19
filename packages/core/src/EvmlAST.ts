@@ -43,7 +43,7 @@ export class EvmlAST implements AST {
    * descending into every block expression regardless of whether it
    * encloses `line`. Returns a flat list in DFS pre-order (parent
    * before its block's children). Used by the prewarm walker so that
-   * hover sees bindings produced by any command — `set`, `deploy`,
+   * hover sees bindings produced by any command — `set`, `contracts:deploy`,
    * `new-dao`, `install`, `for`, `sign`, command-with-event/error
    * captures, ... — without having to enumerate command names by hand.
    */

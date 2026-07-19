@@ -23,6 +23,7 @@
     "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@evmcrispr/module-contracts": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

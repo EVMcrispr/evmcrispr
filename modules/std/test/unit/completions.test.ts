@@ -713,9 +713,9 @@ describe("Completions – std helpers", () => {
       expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
     });
 
-    // @contract.next(address, number?)  →  first arg: address
-    it("@contract.next(<cursor>) first arg should show address-compatible completions", async () => {
-      const { script, position } = helperPos("set $x @contract.next(", ")");
+    // @nonce(address)  →  first arg: address
+    it("@nonce(<cursor>) first arg should show address-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @nonce(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of ADDRESS_HELPERS) {
@@ -724,12 +724,9 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@date")).to.be.false;
     });
 
-    // @contract.next(address, number?)  →  second arg: number
-    it("@contract.next($addr <cursor>) second arg should show number-compatible completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @contract.next($addr ",
-        ")",
-      );
+    // @arr(number, number)  →  second arg: number
+    it("@arr(1 <cursor>) second arg should show number-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @arr(1 ", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of NUMBER_HELPERS) {

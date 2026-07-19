@@ -63,11 +63,14 @@ function predictCreate3(
 }
 
 describeCommand("deploy", {
-  describeName: "Std > commands > deploy <$variable> [bytecode] [opts...]",
+  module: "contracts",
+  preamble: "load contracts",
+  describeName:
+    "Contracts > commands > deploy <$variable> [bytecode] [opts...]",
   cases: [
     {
       name: "plain CREATE: emits a deployment action without `to` and binds the predicted address",
-      script: `deploy $addr ${BYTECODE}`,
+      script: `contracts:deploy $addr ${BYTECODE}`,
       expectedActions: [{ data: BYTECODE, from: FROM }],
       validate: (_actions, interpreter) => {
         const expected = getContractAddress({ from: FROM, nonce: 0n });
@@ -78,7 +81,7 @@ describeCommand("deploy", {
     },
     {
       name: "plain CREATE: nonce increments across consecutive deploys",
-      script: `deploy $a ${BYTECODE}\ndeploy $b ${BYTECODE}`,
+      script: `contracts:deploy $a ${BYTECODE}\ncontracts:deploy $b ${BYTECODE}`,
       expectedActions: [
         { data: BYTECODE, from: FROM },
         { data: BYTECODE, from: FROM },
@@ -94,7 +97,7 @@ describeCommand("deploy", {
     },
     {
       name: "plain CREATE with --from: uses the provided sender for prediction",
-      script: `deploy $addr ${BYTECODE} --from 0x000000000000000000000000000000000000beef`,
+      script: `contracts:deploy $addr ${BYTECODE} --from 0x000000000000000000000000000000000000beef`,
       expectedActions: [
         {
           data: BYTECODE,
@@ -113,7 +116,7 @@ describeCommand("deploy", {
     },
     {
       name: "plain CREATE forwards tx opts (value/gas/maxFee/nonce)",
-      script: `deploy $addr ${BYTECODE} --value 1e18 --gas 5000000 --max-fee-per-gas 20e9 --max-priority-fee-per-gas 2e9 --nonce 7`,
+      script: `contracts:deploy $addr ${BYTECODE} --value 1e18 --gas 5000000 --max-fee-per-gas 20e9 --max-priority-fee-per-gas 2e9 --nonce 7`,
       expectedActions: [
         {
           data: BYTECODE,
@@ -128,7 +131,7 @@ describeCommand("deploy", {
     },
     {
       name: "--constructor + --constructor-args: appends ABI-encoded args to bytecode",
-      script: `deploy $addr ${BYTECODE} --constructor "constructor(uint256,address)" --constructor-args [1e18 0x000000000000000000000000000000000000beef]`,
+      script: `contracts:deploy $addr ${BYTECODE} --constructor "constructor(uint256,address)" --constructor-args [1e18 0x000000000000000000000000000000000000beef]`,
       validate: (actions, interpreter) => {
         const encoded = encodeAbiParameters(
           [{ type: "uint256" }, { type: "address" }],
@@ -150,7 +153,7 @@ describeCommand("deploy", {
     },
     {
       name: "--create2: sends salt || initCode to the Arachnid deployer and predicts via CREATE2",
-      script: `deploy $addr ${BYTECODE} --create2 ${SALT_1}`,
+      script: `contracts:deploy $addr ${BYTECODE} --create2 ${SALT_1}`,
       expectedActions: [
         {
           to: ARACHNID_CREATE2,
@@ -172,7 +175,7 @@ describeCommand("deploy", {
     },
     {
       name: "--create2 with --via: routes calldata to the custom factory",
-      script: `deploy $addr ${BYTECODE} --create2 ${SALT_2} --via 0x000000000000000000000000000000000000cafe`,
+      script: `contracts:deploy $addr ${BYTECODE} --create2 ${SALT_2} --via 0x000000000000000000000000000000000000cafe`,
       expectedActions: [
         {
           to: "0x000000000000000000000000000000000000cafe",
@@ -194,7 +197,7 @@ describeCommand("deploy", {
     },
     {
       name: "--create3: encodes deployCreate3 calldata for the CreateX factory and predicts via the proxy CREATE",
-      script: `deploy $addr ${BYTECODE} --create3 ${SALT_1}`,
+      script: `contracts:deploy $addr ${BYTECODE} --create3 ${SALT_1}`,
       expectedActions: [
         {
           to: CREATEX,
@@ -215,7 +218,7 @@ describeCommand("deploy", {
     },
     {
       name: "--create3 with --via: targets the custom factory but keeps the same calldata convention",
-      script: `deploy $addr ${BYTECODE} --create3 ${SALT_2} --via 0x000000000000000000000000000000000000c2c2`,
+      script: `contracts:deploy $addr ${BYTECODE} --create3 ${SALT_2} --via 0x000000000000000000000000000000000000c2c2`,
       validate: (actions, interpreter) => {
         const expected = predictCreate3(
           "0x000000000000000000000000000000000000c2c2",
@@ -242,78 +245,78 @@ describeCommand("deploy", {
   errorCases: [
     {
       name: "should fail when the first argument is not a variable identifier",
-      script: `deploy notavar ${BYTECODE}`,
+      script: `contracts:deploy notavar ${BYTECODE}`,
       error: "<variable> must be a $variable",
     },
     {
       name: "should fail when bytecode is not a hex string",
-      script: `deploy $addr nothex`,
+      script: `contracts:deploy $addr nothex`,
       error: "[bytecode] must be a hex string",
     },
     {
       name: "should fail when bytecode is empty",
-      script: `deploy $addr 0x`,
+      script: `contracts:deploy $addr 0x`,
       error: "deploy: bytecode must be non-empty",
     },
     {
       name: "should fail when neither bytecode nor --mirror-address is provided",
-      script: `deploy $addr`,
+      script: `contracts:deploy $addr`,
       error: "deploy: <bytecode> is required",
     },
     {
       name: "should fail when --constructor is set without --constructor-args",
-      script: `deploy $addr ${BYTECODE} --constructor "constructor(uint256)"`,
+      script: `contracts:deploy $addr ${BYTECODE} --constructor "constructor(uint256)"`,
       error: "deploy --constructor requires --constructor-args",
     },
     {
       name: "should fail when --constructor-args is set without --constructor",
-      script: `deploy $addr ${BYTECODE} --constructor-args [1e18]`,
+      script: `contracts:deploy $addr ${BYTECODE} --constructor-args [1e18]`,
       error: "deploy --constructor-args requires --constructor",
     },
     {
       name: "should fail when constructor arg count mismatches the signature",
-      script: `deploy $addr ${BYTECODE} --constructor "constructor(uint256,address)" --constructor-args [1e18]`,
+      script: `contracts:deploy $addr ${BYTECODE} --constructor "constructor(uint256,address)" --constructor-args [1e18]`,
       error: "constructor expects 2 argument(s), got 1",
     },
     {
       name: "should fail when both --create2 and --create3 are set",
-      script: `deploy $addr ${BYTECODE} --create2 ${SALT_1} --create3 ${SALT_2}`,
+      script: `contracts:deploy $addr ${BYTECODE} --create2 ${SALT_1} --create3 ${SALT_2}`,
       error: "--create2 and --create3 are mutually exclusive",
     },
     {
       name: "should fail when --via is set without --create2 or --create3",
-      script: `deploy $addr ${BYTECODE} --via 0x000000000000000000000000000000000000beef`,
+      script: `contracts:deploy $addr ${BYTECODE} --via 0x000000000000000000000000000000000000beef`,
       error: "--via requires --create2 or --create3",
     },
     {
       name: "should reject permissioned CREATE3 salts (first 20 bytes match --from)",
-      script: `deploy $addr ${BYTECODE} --create3 ${pad(FROM, { size: 32, dir: "right" })}`,
+      script: `contracts:deploy $addr ${BYTECODE} --create3 ${pad(FROM, { size: 32, dir: "right" })}`,
       error: "permissioned salts are not supported",
     },
     {
       name: "should reject zero-prefixed CREATE3 salts with cross-chain byte 0x01",
-      script: `deploy $addr ${BYTECODE} --create3 ${`0x${"00".repeat(20)}01${"00".repeat(11)}` as `0x${string}`}`,
+      script: `contracts:deploy $addr ${BYTECODE} --create3 ${`0x${"00".repeat(20)}01${"00".repeat(11)}` as `0x${string}`}`,
       error: "permissioned salts are not supported",
     },
     {
       name: "should fail when --mirror-chain is set without --mirror-address",
-      script: `deploy $addr --mirror-chain 1`,
+      script: `contracts:deploy $addr --mirror-chain 1`,
       error: "deploy: --mirror-chain requires --mirror-address",
     },
     {
       name: "should fail when both <bytecode> and --mirror-address are provided",
-      script: `deploy $addr ${BYTECODE} --mirror-address ${SOURCE_ADDR}`,
+      script: `contracts:deploy $addr ${BYTECODE} --mirror-address ${SOURCE_ADDR}`,
       error: "mutually exclusive",
     },
     {
       name: "should fail when --constructor is combined with --mirror-address",
-      script: `deploy $addr --mirror-address ${SOURCE_ADDR} --constructor "constructor(uint256)" --constructor-args [1e18]`,
+      script: `contracts:deploy $addr --mirror-address ${SOURCE_ADDR} --constructor "constructor(uint256)" --constructor-args [1e18]`,
       error:
         "--constructor / --constructor-args are not allowed with --mirror-address",
     },
     {
       name: "--mirror-chain rejects unknown chain names with a clear error",
-      script: `deploy $addr --mirror-chain notarealchain --mirror-address ${SOURCE_ADDR}`,
+      script: `contracts:deploy $addr --mirror-chain notarealchain --mirror-address ${SOURCE_ADDR}`,
       error: "must be a chain id or a known chain name",
     },
   ],
@@ -321,7 +324,7 @@ describeCommand("deploy", {
 
 // ── --mirror-chain / --mirror-address (mirror an existing deployment) ───
 
-describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
+describe("Contracts > commands > deploy --mirror-chain/--mirror-address", () => {
   let client: PublicClient;
 
   beforeAll(() => {
@@ -363,7 +366,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
     // Optimism = chain id 10. The Etherscan MSW only keys creation
     // fixtures by address, so the assertion is that the name resolves
     // and the command pulls + uses the bytecode without throwing.
-    const script = `deploy $addr --mirror-chain optimism --mirror-address ${SOURCE_ADDR}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-chain optimism --mirror-address ${SOURCE_ADDR}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -373,7 +376,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
   });
 
   it("plain CREATE mirror: uses the fetched creationBytecode as init code and predicts via --from + nonce", async () => {
-    const script = `deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -392,7 +395,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
     // when --mirror-chain is omitted the helper still hits Etherscan
     // with the *current* chain id (gnosis = 100). The MSW handler is
     // chain-agnostic, so we just need the fixture to be present.
-    const script = `deploy $addr --mirror-address ${SOURCE_ADDR}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-address ${SOURCE_ADDR}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
     expect(actions).to.have.length(1);
@@ -401,7 +404,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
   });
 
   it("CREATE2 mirror: feeds the fetched bytecode through the Arachnid factory and predicts via CREATE2", async () => {
-    const script = `deploy $addr --mirror-address ${SOURCE_ADDR} --create2 ${SALT_1}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-address ${SOURCE_ADDR} --create2 ${SALT_1}`;
     const interp = createInterpreter(script, client);
     const actions = await interp.interpret();
 
@@ -421,7 +424,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
 
   it("mirror: throws when Etherscan has no creation record for the source address", async () => {
     const UNKNOWN = "0x000000000000000000000000000000000000bbbb";
-    const script = `deploy $addr --mirror-chain 1 --mirror-address ${UNKNOWN}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-chain 1 --mirror-address ${UNKNOWN}`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -446,7 +449,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
       // creationBytecode intentionally omitted (older Etherscan
       // snapshots don't include it).
     };
-    const script = `deploy $addr --mirror-chain 1 --mirror-address ${getAddress(NO_BYTECODE_LOWER as `0x${string}`)}`;
+    const script = `load contracts\ncontracts:deploy $addr --mirror-chain 1 --mirror-address ${getAddress(NO_BYTECODE_LOWER as `0x${string}`)}`;
     const interp = createInterpreter(script, client);
     let caught: Error | undefined;
     try {
@@ -461,7 +464,7 @@ describe("Std > commands > deploy --mirror-chain/--mirror-address", () => {
   it("mirror: throws a clear error when VITE_ETHERSCAN_API_KEY is unset", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
     try {
-      const script = `deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
+      const script = `load contracts\ncontracts:deploy $addr --mirror-chain 1 --mirror-address ${SOURCE_ADDR}`;
       const interp = createInterpreter(script, client);
       let caught: Error | undefined;
       try {

@@ -1,5 +1,5 @@
 ---
-title: "deploy"
+title: "contracts:deploy"
 ---
 
 Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan).
@@ -7,7 +7,7 @@ Deploy a contract from raw creation bytecode. Binds the predicted address to <va
 ## Syntax
 
 ```evml
-deploy <variable> [bytecode]
+contracts:deploy <variable> [bytecode]
 ```
 
 ## Arguments
@@ -40,29 +40,31 @@ deploy <variable> [bytecode]
 ## Examples
 
 ```evml
+load contracts
+
 # Plain CREATE deployment from raw bytecode
-deploy $addr 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe
+contracts:deploy $addr 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe
 
 # Deploy with constructor arguments
-deploy $token 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --constructor "constructor(string,string,uint8)" --constructor-args ["My Token" "MTK" 18]
+contracts:deploy $token 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --constructor "constructor(string,string,uint8)" --constructor-args ["My Token" "MTK" 18]
 
 # CREATE2 via the Arachnid deterministic deployer (default)
-deploy $vault 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001
+contracts:deploy $vault 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001
 
 # CREATE2 via a custom factory (must accept salt || initCode calldata)
-deploy $vault2 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001 --via 0x4e59b44847b379578588920ca78fbf26c0b4956c
+contracts:deploy $vault2 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create2 0x0000000000000000000000000000000000000000000000000000000000000001 --via 0x4e59b44847b379578588920ca78fbf26c0b4956c
 
 # CREATE3 via the CreateX factory (default)
-deploy $proxy 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create3 0x0000000000000000000000000000000000000000000000000000000000000002 --constructor "constructor(address)" --constructor-args [@me]
+contracts:deploy $proxy 0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe --create3 0x0000000000000000000000000000000000000000000000000000000000000002 --constructor "constructor(address)" --constructor-args [@me]
 
 # Mirror an existing deployment from another chain — fetches the
 # original creation bytecode (with constructor args already baked in)
 # from Etherscan and replays it byte-for-byte on the current chain.
-deploy $clone --mirror-chain 1 --mirror-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+contracts:deploy $clone --mirror-chain 1 --mirror-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 
 # Same flow, deterministically pinned to a CREATE2 address so the
 # clone lands at the same address on every chain that runs this script.
-deploy $clone2 --mirror-chain 1 --mirror-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 --create2 0x0000000000000000000000000000000000000000000000000000000000000003
+contracts:deploy $clone2 --mirror-chain 1 --mirror-address 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 --create2 0x0000000000000000000000000000000000000000000000000000000000000003
 
 # Use the bound address in subsequent calls
 exec $token "transfer(address,uint256)" @me 1e18
@@ -103,6 +105,6 @@ exec $token "transfer(address,uint256)" @me 1e18
 
 ## See Also
 
-- [@contract.next](../helpers/contract.next.md) — predict the next CREATE address for an account
+- [@contracts:next](../helpers/next.md) — predict the next CREATE address for an account
 - [exec](exec.md) — call a contract function on the deployed address
 - [send](send.md) — send a pre-encoded transaction or value transfer to an existing address

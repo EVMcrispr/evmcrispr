@@ -1,0 +1,32 @@
+---
+title: "@contracts:solidity.compiler"
+---
+
+Compile Solidity source (inline text or a http/ipfs URL) and return the long compiler version (`0.8.26+commit.8a97fa7a`), ready for `verify --compiler`. Pass the same options as the matching @solidity call so the cached compile is reused.
+
+**Returns**: `string`
+
+## Syntax
+
+```evml
+@contracts:solidity.compiler(source ...options)
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `source` | `string` | Solidity source code, or a URL to fetch it from |
+| `[...options]` | `string` | Compiler options, e.g. `version:0.8.26`, `runs:1000`, `via-ir` |
+
+## Examples
+
+```evml
+# Get the compiler version string for verification
+set $compiler @contracts:solidity.compiler('https://sources.example.com/Counter.sol')
+print $compiler
+```
+
+<!-- HAND-WRITTEN -->
+
+## See Also

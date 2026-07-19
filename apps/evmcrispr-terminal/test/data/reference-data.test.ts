@@ -9,10 +9,10 @@ const resolveDocLinkEntry = (href: string, currentModule?: string) =>
 
 describe("resolveDocLinkEntry", () => {
   test("resolves a same-module relative helper link", () => {
-    const entry = resolveDocLinkEntry("../helpers/contract.next.md", "std");
+    const entry = resolveDocLinkEntry("../helpers/ipfs.get.md", "std");
     expect(entry).not.toBeNull();
     expect(entry).not.toBe("unresolved");
-    expect((entry as { name: string }).name).toBe("contract.next");
+    expect((entry as { name: string }).name).toBe("ipfs.get");
     expect((entry as { kind: string }).kind).toBe("helper");
     expect((entry as { module: string }).module).toBe("std");
   });
@@ -23,12 +23,14 @@ describe("resolveDocLinkEntry", () => {
   });
 
   test("resolves a cross-module link to the right module", () => {
+    // Mirrors the real link in sim's set-code.md since the contract read
+    // helpers moved into the contracts module.
     const entry = resolveDocLinkEntry(
-      "../../../std/src/helpers/contract.codeAt.md",
+      "../../../contracts/src/helpers/codeAt.md",
       "sim",
     );
-    expect((entry as { name: string }).name).toBe("contract.codeAt");
-    expect((entry as { module: string }).module).toBe("std");
+    expect((entry as { name: string }).name).toBe("codeAt");
+    expect((entry as { module: string }).module).toBe("contracts");
   });
 
   test("resolves lang helper links", () => {

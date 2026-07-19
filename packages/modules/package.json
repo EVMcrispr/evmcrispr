@@ -27,6 +27,7 @@
     "@evmcrispr/module-aragonosx": "*",
     "@evmcrispr/module-assertions": "*",
     "@evmcrispr/module-bridges": "*",
+    "@evmcrispr/module-contracts": "*",
     "@evmcrispr/module-crypto": "*",
     "@evmcrispr/module-ens": "*",
     "@evmcrispr/module-giveth": "*",

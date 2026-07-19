@@ -1,5 +1,5 @@
 ---
-title: "@contract.next"
+title: "@contracts:next"
 ---
 
 Predict the next contract address deployed by a given account.
@@ -9,7 +9,7 @@ Predict the next contract address deployed by a given account.
 ## Syntax
 
 ```evml
-@contract.next(creator offset?)
+@contracts:next(creator offset?)
 ```
 
 ## Arguments
@@ -19,15 +19,8 @@ Predict the next contract address deployed by a given account.
 | `creator` | `address` | Deployer address |
 | `[offset]` | `number` | Nonce offset from current |
 
-## Examples
-
-```evml
-# Predict next contract address
-set $next @contract.next(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)
-```
-
 <!-- HAND-WRITTEN -->
 
 ## See Also
 
-- [@contract.codeAt](contract.codeAt.md) — read deployed bytecode
+- [@contracts:codeAt](codeAt.md) — read deployed bytecode

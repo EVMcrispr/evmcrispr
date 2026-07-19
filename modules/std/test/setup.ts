@@ -1,4 +1,4 @@
-import { registerAllModules } from "@evmcrispr/test-utils/evml";
+import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
 import {
   createTestServer,
   HttpResponse,
@@ -9,6 +9,13 @@ import daiAbi from "./fixtures/abis/dai.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
 
 registerAllModules();
+// Re-register contracts with a local loader: the registry's own dynamic
+// import resolves from test-utils, whose isolated node_modules doesn't
+// link that package. Needed by cross-module batch deploy tests.
+evml.use({
+  name: "contracts",
+  load: () => import("@evmcrispr/module-contracts"),
+});
 
 // Fixtures served by the mocked IPFS gateway (see handler below)
 export const ipfsGatewayFixtures = {

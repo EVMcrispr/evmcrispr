@@ -173,6 +173,19 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/contracts": {
+      "name": "@evmcrispr/module-contracts",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/crypto": {
       "name": "@evmcrispr/module-crypto",
       "version": "0.1.0",
@@ -307,6 +320,7 @@
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -320,6 +334,7 @@
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -372,6 +387,7 @@
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -460,6 +476,7 @@
         "@evmcrispr/module-aragonosx": "*",
         "@evmcrispr/module-assertions": "*",
         "@evmcrispr/module-bridges": "*",
+        "@evmcrispr/module-contracts": "*",
         "@evmcrispr/module-crypto": "*",
         "@evmcrispr/module-ens": "*",
         "@evmcrispr/module-giveth": "*",
@@ -838,6 +855,8 @@
     "@evmcrispr/module-assertions": ["@evmcrispr/module-assertions@workspace:modules/assertions"],
 
     "@evmcrispr/module-bridges": ["@evmcrispr/module-bridges@workspace:modules/bridges"],
+
+    "@evmcrispr/module-contracts": ["@evmcrispr/module-contracts@workspace:modules/contracts"],
 
     "@evmcrispr/module-crypto": ["@evmcrispr/module-crypto@workspace:modules/crypto"],
 

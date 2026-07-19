@@ -125,7 +125,7 @@ const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
  *  every numeric field as a string, so we deliberately keep them as such
  *  here and parse on demand.
  *
- *  This type is exported because the `verify` command in `@evmcrispr/std`
+ *  This type is exported because the `verify` command in `@evmcrispr/module-contracts`
  *  needs the **full** payload (source code, constructor args, EVM
  *  version, libraries, license) to mirror an existing verification to
  *  another chain. The slim `VerifiedContractInfo` is a subset of these
@@ -259,7 +259,7 @@ export async function fetchVerifiedContract(
 }
 
 // ---------------------------------------------------------------------------
-// Full payload fetch — used by `std:verify` to mirror an existing
+// Full payload fetch — used by `contracts:verify` to mirror an existing
 // verification onto another chain.
 // ---------------------------------------------------------------------------
 
@@ -311,7 +311,7 @@ export async function fetchVerifiedContractFull(
 }
 
 // ---------------------------------------------------------------------------
-// Contract creation payload — used by `std:deploy` to mirror an existing
+// Contract creation payload — used by `contracts:deploy` to mirror an existing
 // deployment onto another chain.
 // ---------------------------------------------------------------------------
 

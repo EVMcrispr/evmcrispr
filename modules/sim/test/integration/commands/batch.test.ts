@@ -37,7 +37,7 @@ for (const backend of BACKENDS) {
     function run(body: string) {
       // Fund the sender first — anvil still charges impersonated accounts
       // for gas, unlike the ethereumjs backend (skipBalance).
-      const script = `load sim\nsim:fork ${backend.forkOpts} --from ${SENDER} (\n  sim:set-balance ${SENDER} 10e18\n${body}\n)`;
+      const script = `load sim\nload contracts\nsim:fork ${backend.forkOpts} --from ${SENDER} (\n  sim:set-balance ${SENDER} 10e18\n${body}\n)`;
       return createInterpreter(script, client).interpret();
     }
 
@@ -62,7 +62,7 @@ for (const backend of BACKENDS) {
           "  batch (",
           `    exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18`,
           "  )",
-          `  set $code @contract.codeAt(${SENDER})`,
+          `  set $code @contracts:codeAt(${SENDER})`,
           `  sim:expect @bool(@str($code) == @str("${DESIGNATOR}"))`,
         ].join("\n"),
       );

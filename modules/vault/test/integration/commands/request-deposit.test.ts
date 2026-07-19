@@ -107,10 +107,11 @@ vault:request-deposit 1000e6 into ${CENTRIFUGE_JTRSY_VAULT} --no-approve true`,
     {
       name: "runs a full request/fulfill/claim lifecycle against a mock ERC-7540 vault inside sim:fork",
       script: `load sim
+load contracts
 sim:fork --using anvil (
   sim:set-balance @me 20000e18
-  deploy $share ${MOCK_SHARE_BYTECODE}
-  deploy $vault ${MOCK_ERC7540_BYTECODE} --constructor constructor(address,address) --constructor-args [${WXDAI} $share]
+  contracts:deploy $share ${MOCK_SHARE_BYTECODE}
+  contracts:deploy $vault ${MOCK_ERC7540_BYTECODE} --constructor constructor(address,address) --constructor-args [${WXDAI} $share]
   exec ${WXDAI} deposit() --value 10000e18
   vault:request-deposit 5000e18 into $vault
   sim:expect @bool(@vault:pendingDeposit($vault) == 5000e18)
