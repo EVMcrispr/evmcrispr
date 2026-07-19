@@ -74,6 +74,18 @@ function isNewerVersion(version: string, than: string): boolean {
   return false;
 }
 
+/**
+ * Returns the pin's declared `minVersion` when it is newer than what this
+ * client supports (i.e. the pin uses a future share format), else undefined.
+ * Works on any fetched pin shape, not just recognized envelopes.
+ */
+export function unsupportedMinVersion(x: unknown): string | undefined {
+  if (typeof x !== "object" || x === null) return undefined;
+  const minVersion = (x as { minVersion?: unknown }).minVersion;
+  if (typeof minVersion !== "string") return undefined;
+  return isNewerVersion(minVersion, SHARE_MIN_VERSION) ? minVersion : undefined;
+}
+
 export async function encryptScript(
   content: ShareableScript,
 ): Promise<{ envelope: EncryptedScriptEnvelope; key: string }> {

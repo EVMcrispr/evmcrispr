@@ -80,7 +80,7 @@ const variants = {
     art: SEALED_VIAL,
     lines: [
       "This script was sealed with a newer version of EVMcrispr.",
-      "Update to EVMcrispr >= 0.11.0 to open it.",
+      "Update EVMcrispr to open it.",
     ],
   },
 } as const;
@@ -89,11 +89,20 @@ export type ScriptNotFoundVariant = keyof typeof variants;
 
 export default function ScriptNotFound({
   variant,
+  requiredVersion,
 }: {
   variant: ScriptNotFoundVariant;
+  requiredVersion?: string;
 }) {
   const navigate = useNavigate();
-  const { title, art, lines } = variants[variant];
+  const { title, art, lines: defaultLines } = variants[variant];
+  const lines: readonly string[] =
+    variant === "encrypted-needs-upgrade" && requiredVersion
+      ? [
+          defaultLines[0],
+          `Update to EVMcrispr >= ${requiredVersion} to open it.`,
+        ]
+      : defaultLines;
 
   function handleNewScript() {
     const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);

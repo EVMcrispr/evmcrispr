@@ -42,8 +42,13 @@ function useIsSmallScreen(breakpoint = 768) {
 
 export default function Terminal() {
   const { address } = useWalletConnection();
-  const { scriptNotFound, ipfsError, ipfsLoading, encryptedError } =
-    useTerminalScript();
+  const {
+    scriptNotFound,
+    ipfsError,
+    ipfsLoading,
+    encryptedError,
+    requiredVersion,
+  } = useTerminalScript();
   useAutoSave();
   const script = useTerminalStore((s) => s.script);
   const title = useTerminalStore((s) => s.title);
@@ -81,7 +86,10 @@ export default function Terminal() {
             style={{ flex: isSmallScreen ? "0 0 60%" : "0 0 70%" }}
           >
             {encryptedError ? (
-              <ScriptNotFound variant={`encrypted-${encryptedError}`} />
+              <ScriptNotFound
+                variant={`encrypted-${encryptedError}`}
+                requiredVersion={requiredVersion}
+              />
             ) : scriptNotFound || ipfsError ? (
               <ScriptNotFound variant={ipfsError ? "ipfs" : "uuid"} />
             ) : ipfsLoading ? (

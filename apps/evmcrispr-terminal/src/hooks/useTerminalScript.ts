@@ -31,6 +31,7 @@ export function useTerminalScript(): {
   ipfsError: boolean;
   ipfsLoading: boolean;
   encryptedError: EncryptedReason | undefined;
+  requiredVersion: string | undefined;
 } {
   const params = useParams();
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ export function useTerminalScript(): {
   const ipfsLoading = result?.status === "loading";
   const encryptedError =
     result?.status === "encrypted" ? result.reason : undefined;
+  const requiredVersion =
+    result?.status === "encrypted" ? result.requiredVersion : undefined;
 
   const found = result?.status === "found" ? result.data : undefined;
   const titleFromId = found?.title;
@@ -120,5 +123,11 @@ export function useTerminalScript(): {
     }
   }, [found, titleFromId, scriptFromId, idFromUrl, params?.scriptId, navigate]);
 
-  return { scriptNotFound, ipfsError, ipfsLoading, encryptedError };
+  return {
+    scriptNotFound,
+    ipfsError,
+    ipfsLoading,
+    encryptedError,
+    requiredVersion,
+  };
 }

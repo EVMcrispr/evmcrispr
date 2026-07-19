@@ -1,4 +1,8 @@
-import { decryptScript, isEncryptedEnvelope } from "@evmcrispr/core";
+import {
+  decryptScript,
+  isEncryptedEnvelope,
+  unsupportedMinVersion,
+} from "@evmcrispr/core";
 import { cid } from "is-ipfs";
 import { useEffect, useState } from "react";
 
@@ -17,7 +21,7 @@ export type ScriptResult =
   | { status: "found"; data: BareScript & { id?: string } }
   | { status: "not-found" }
   | { status: "error"; error: string }
-  | { status: "encrypted"; reason: EncryptedReason };
+  | { status: "encrypted"; reason: EncryptedReason; requiredVersion?: string };
 
 function isBareScript(x: unknown): x is BareScript {
   return (
@@ -56,7 +60,17 @@ export function useScriptFromId(
             "https://ipfs.blossom.software",
             scriptId,
           );
-          if (isEncryptedEnvelope(data)) {
+          // A pin from a future share format (any shape) — check before the
+          // shape branches so it's reported even without a key or when the
+          // future envelope isn't recognizable at all.
+          const requiredVersion = unsupportedMinVersion(data);
+          if (requiredVersion) {
+            setResult({
+              status: "encrypted",
+              reason: "needs-upgrade",
+              requiredVersion,
+            });
+          } else if (isEncryptedEnvelope(data)) {
             if (!decryptionKey) {
               setResult({ status: "encrypted", reason: "missing-key" });
               return;
@@ -64,13 +78,8 @@ export function useScriptFromId(
             try {
               const decrypted = await decryptScript(data, decryptionKey);
               setResult({ status: "found", data: decrypted });
-            } catch (e) {
-              const needsUpgrade =
-                e instanceof Error && e.message.includes("newer version");
-              setResult({
-                status: "encrypted",
-                reason: needsUpgrade ? "needs-upgrade" : "invalid-key",
-              });
+            } catch {
+              setResult({ status: "encrypted", reason: "invalid-key" });
             }
           } else if (isBareScript(data)) {
             setResult({ status: "found", data });

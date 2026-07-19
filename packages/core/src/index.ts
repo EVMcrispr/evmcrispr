@@ -157,6 +157,7 @@ export {
   SHARE_FALLBACK_SCRIPT,
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
+  unsupportedMinVersion,
 } from "./shareEnvelope";
 export type { ParameterInfo, SignatureHelp, SignatureInfo } from "./signature";
 export { EvmlWorkspace } from "./Workspace";

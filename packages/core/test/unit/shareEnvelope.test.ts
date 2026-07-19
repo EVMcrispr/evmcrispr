@@ -10,6 +10,7 @@ import {
   SHARE_FALLBACK_SCRIPT,
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
+  unsupportedMinVersion,
 } from "../../src";
 
 const BASE64URL = /^[A-Za-z0-9_-]+$/;
@@ -107,6 +108,22 @@ describe("shareEnvelope", () => {
       decryptScript({ ...envelope, minVersion: "99.0.0" }, key),
       "newer version",
     );
+  });
+
+  it("detects pins requiring a newer version, regardless of shape", async () => {
+    const { envelope } = await encryptScript(CONTENT);
+    expect(unsupportedMinVersion(envelope)).to.equal(undefined);
+    expect(
+      unsupportedMinVersion({ ...envelope, minVersion: "99.0.0" }),
+    ).to.equal("99.0.0");
+    expect(
+      unsupportedMinVersion({ minVersion: "99.0.0", unknownFutureField: 1 }),
+    ).to.equal("99.0.0");
+    expect(unsupportedMinVersion({ minVersion: SHARE_MIN_VERSION })).to.equal(
+      undefined,
+    );
+    expect(unsupportedMinVersion(CONTENT)).to.equal(undefined);
+    expect(unsupportedMinVersion(null)).to.equal(undefined);
   });
 
   it("discriminates envelopes from legacy plaintext pins", async () => {

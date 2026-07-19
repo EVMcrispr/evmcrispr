@@ -81,6 +81,20 @@ describe("useScriptFromId (IPFS)", () => {
     expect(result.current).toEqual({
       status: "encrypted",
       reason: "needs-upgrade",
+      requiredVersion: "99.0.0",
+    });
+  });
+
+  test("reports needs-upgrade even without a key or a recognizable shape", async () => {
+    mockPinResponse({ minVersion: "99.0.0", unknownFutureField: true });
+
+    const { result } = renderHook(() => useScriptFromId(CID));
+
+    await waitFor(() => expect(result.current?.status).toBe("encrypted"));
+    expect(result.current).toEqual({
+      status: "encrypted",
+      reason: "needs-upgrade",
+      requiredVersion: "99.0.0",
     });
   });
 
