@@ -2,21 +2,22 @@
 title: "@aragonosx:plugin"
 ---
 
-Resolve a plugin identifier to its address within the connected DAO.
+Resolve a plugin repo subdomain to its address within the connected DAO.
 
 **Returns**: `address`
 
 ## Syntax
 
 ```evml
-@aragonosx:plugin(pluginIdentifier)
+@aragonosx:plugin(pluginName index?)
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `pluginIdentifier` | `string` | Plugin identifier (e.g. `token-voting`, `multisig:1`), or `_dao:plugin` for cross-DAO lookup |
+| `pluginName` | `string` | Plugin repo subdomain (e.g. `token-voting`, `multisig`) |
+| `[index]` | `number` | Instance index when multiple plugins share a subdomain (0 = first) |
 
 ## Examples
 

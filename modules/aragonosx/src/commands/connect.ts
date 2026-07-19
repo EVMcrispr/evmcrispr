@@ -1,6 +1,5 @@
 import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
-import { isAddressEqual } from "viem";
 import type AragonOSx from "..";
 import { loadDao } from "../dao";
 
@@ -25,24 +24,19 @@ export default defineCommand<AragonOSx>({
   async run(module, { dao: daoAddressOrName, block }, { interpreters }) {
     const { interpretNode } = interpreters;
 
-    const currentDAO = module.currentDAO;
-    const dao = await loadDao(
-      module,
-      daoAddressOrName,
-      currentDAO ? currentDAO.nestingIndex + 1 : 1,
-    );
-
-    if (currentDAO && isAddressEqual(currentDAO.address, dao.address)) {
+    if (module.currentDAO) {
       throw new ErrorException(
-        `trying to connect to an already connected DAO (${dao.address})`,
+        'nested "connect" commands are not supported; use sequential top-level connect blocks and `set $var` to share values',
       );
     }
+
+    const dao = await loadDao(module, daoAddressOrName);
 
     let actions: Action[];
     try {
       actions = (await interpretNode(block as BlockExpressionNode, {
         blockInitializer: async () => {
-          module.pushDAO(dao);
+          module.setCurrentDAO(dao);
         },
         // Inherit hasActions from any enclosing batch context: reads
         // inside this block can't see the outer batch's actions either.
@@ -52,7 +46,7 @@ export default defineCommand<AragonOSx>({
         },
       })) as Action[];
     } finally {
-      module.popDAO();
+      module.clearCurrentDAO();
     }
 
     return actions;

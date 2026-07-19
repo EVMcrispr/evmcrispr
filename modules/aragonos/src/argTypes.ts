@@ -7,20 +7,13 @@ import { _aragonEns } from "./helpers/aragonEns";
 import {
   buildAbiBindings,
   getDAOAppIdentifiers,
-  isAppIdentifier,
-  isLabeledAppIdentifier,
-  parsePrefixedDAOIdentifier,
+  isRepoIdentifier,
 } from "./utils";
 import {
   getCachedDAO,
-  pushCompletionDAO,
   setCachedDAO,
+  setCompletionDAO,
 } from "./utils/completion";
-
-const isRepoIdentifier = (value: string): boolean => {
-  const [, rest] = parsePrefixedDAOIdentifier(value);
-  return isAppIdentifier(rest) || isLabeledAppIdentifier(rest);
-};
 
 export const types: CustomArgTypes = {
   dao: {
@@ -37,7 +30,7 @@ export const types: CustomArgTypes = {
       const cached = getCachedDAO(ctx.cache, rawValue);
       if (cached) {
         const clonedDAO = cloneDao(cached);
-        pushCompletionDAO(ctx.bindings, clonedDAO);
+        setCompletionDAO(ctx.bindings, clonedDAO);
         return buildAbiBindings(clonedDAO, chainId);
       }
 
@@ -56,7 +49,6 @@ export const types: CustomArgTypes = {
         const dao = await loadDao(
           daoAddress,
           ctx.client,
-          1,
           !isAddress(rawValue) ? rawValue : undefined,
         );
 
@@ -64,7 +56,7 @@ export const types: CustomArgTypes = {
         setCachedDAO(ctx.cache, rawValue, cloneDao(dao));
 
         // Track DAO for completions
-        pushCompletionDAO(ctx.bindings, dao);
+        setCompletionDAO(ctx.bindings, dao);
 
         return buildAbiBindings(dao, chainId);
       } catch {

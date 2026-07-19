@@ -1,12 +1,10 @@
 import "../../setup";
 
-import type AragonOS from "@evmcrispr/module-aragonos";
 import { CommandError } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { keccak256, parseUnits, toHex } from "viem";
-import { resolveApp } from "../../../src/dao";
-import { DAO, DAO2 } from "../../fixtures";
+import { DAO } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
@@ -20,14 +18,14 @@ describeCommand("revoke", {
   docCases: [
     {
       description: "Revoke a permission",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:revoke @aragonos:app(disputable-voting.open:0) @aragonos:app(acl:0) CREATE_PERMISSIONS_ROLE\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:revoke @aragonos:app(disputable-voting.open) @aragonos:app(acl) CREATE_PERMISSIONS_ROLE\n)",
     },
   ],
   cases: [
     {
       name: "should return a correct revoke permission action",
-      script: `revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE\n)`,
-      validate: async (revokePermissionActions, interpreter) => {
+      script: `revoke @app(disputable-voting.open) @app(acl) CREATE_PERMISSIONS_ROLE\n)`,
+      validate: async (revokePermissionActions) => {
         const role = keccak256(toHex("CREATE_PERMISSIONS_ROLE"));
         const expectedRevokePermissionActions = [
           createTestAction("revokePermission", DAO.acl, [
@@ -37,15 +35,6 @@ describeCommand("revoke", {
           ]),
         ];
 
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao ? resolveApp(dao, "acl") : undefined;
-        const appPermission = app?.permissions.get(role);
-
-        expect(
-          appPermission?.grantees,
-          "Grantee still exists on DAO app's permission",
-        ).to.not.have.key(DAO["disputable-voting.open"]);
         expect(revokePermissionActions, "Returned actions mismatch").to.eql(
           expectedRevokePermissionActions,
         );
@@ -53,8 +42,8 @@ describeCommand("revoke", {
     },
     {
       name: "should return a correct revoke and revoke manager action",
-      script: `revoke @app(disputable-voting.open:0) @app(acl:0) CREATE_PERMISSIONS_ROLE true\n)`,
-      validate: async (revokePermissionActions, interpreter) => {
+      script: `revoke @app(disputable-voting.open) @app(acl) CREATE_PERMISSIONS_ROLE true\n)`,
+      validate: async (revokePermissionActions) => {
         const rawRole = "CREATE_PERMISSIONS_ROLE";
         const role = keccak256(toHex(rawRole));
         const expectedRevokePermissionActions = [
@@ -66,19 +55,6 @@ describeCommand("revoke", {
           createTestAction("removePermissionManager", DAO.acl, [DAO.acl, role]),
         ];
 
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao ? resolveApp(dao, DAO.acl) : undefined;
-        const appPermission = app?.permissions.get(role);
-
-        expect(
-          appPermission?.grantees,
-          "Grantee still exists on DAO app's permission",
-        ).to.not.have.key(DAO["disputable-voting.open"]);
-        expect(
-          appPermission?.manager,
-          "Permission manager still exists on DAO app's permission",
-        ).to.not.exist;
         expect(revokePermissionActions, "Returned actions mismatch").to.eql(
           expectedRevokePermissionActions,
         );
@@ -176,28 +152,7 @@ describeCommand("revoke", {
 describeCommand("revoke", {
   describeName: "AragonOS > commands > revoke > special cases",
   module: "aragonos",
-  cases: [
-    {
-      name: "should return a correct revoke permission action from a different DAO app",
-      script: `load aragonos [connect revoke @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO.kernel}:acl) CREATE_PERMISSIONS_ROLE\n  )\n)`,
-      validate: async (revokeActions) => {
-        const expectedRevokeActions = [
-          createTestAction("revokePermission", DAO.acl, [
-            DAO["disputable-voting.open"],
-            DAO.acl,
-            keccak256(toHex("CREATE_PERMISSIONS_ROLE")),
-          ]),
-        ];
-        expect(revokeActions).to.eql(expectedRevokeActions);
-      },
-    },
-  ],
   errorCases: [
-    {
-      name: "should fail when passing an invalid DAO prefix",
-      script: `load aragonos [connect revoke @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    revoke @app(disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
-      error: "invalid-dao-prefix",
-    },
     {
       name: 'should fail when executing it outside a "connect" command',
       script: `load aragonos\naragonos:revoke ${DAO["disputable-voting.open"]} ${DAO.acl} CREATE_PERMISSIONS_ROLE`,

@@ -2,8 +2,8 @@ import "../../setup";
 import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { encodeFunctionData } from "viem";
-import { DAO_ABI } from "../../../src/abis";
 import { ANY_ENTITY } from "../../../src";
+import { DAO_ABI } from "../../../src/abis";
 import { permissionId } from "../../../src/utils/permissions";
 import {
   DAO_ADDRESS,
@@ -35,8 +35,8 @@ describeCommand("grant", {
       ],
     },
     {
-      name: "grants a permission on an indexed plugin identifier",
-      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} multisig:1 UPDATE_MULTISIG_SETTINGS\n)`,
+      name: "grants a permission on a repeated install resolved via @plugin",
+      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} @aragonosx:plugin(multisig 1) UPDATE_MULTISIG_SETTINGS\n)`,
       expectedActions: [
         grantAction([
           MULTISIG_PLUGIN_2,

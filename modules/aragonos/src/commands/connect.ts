@@ -1,15 +1,14 @@
 import type { Action, Address, Nullable } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { isAddress, isAddressEqual } from "viem";
+import { isAddress } from "viem";
 import type AragonOS from "..";
-import { type DaoContext, getKernel, loadDao } from "../dao";
+import { type DaoContext, loadDao } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
 import { buildAbiBindings } from "../utils";
 
 const createDAO = async (
   daoAddressOrName: Address | string,
-  currentDao: DaoContext | undefined,
   client: PublicClient,
   ensResolver?: Nullable<Address>,
 ): Promise<DaoContext> => {
@@ -30,22 +29,14 @@ const createDAO = async (
     daoAddress = res;
   }
 
-  if (currentDao && isAddressEqual(getKernel(currentDao).address, daoAddress)) {
-    throw new ErrorException(
-      `trying to connect to an already connected DAO (${daoAddress})`,
-    );
-  }
-
-  const nextNestingIndex = currentDao ? currentDao.nestingIndex + 1 : 1;
-
   const daoName = !isAddress(daoAddressOrName) ? daoAddressOrName : undefined;
 
-  return loadDao(daoAddress, client, nextNestingIndex, daoName);
+  return loadDao(daoAddress, client, daoName);
 };
 
 const setDAOContext = (aragonos: AragonOS, dao: DaoContext) => {
   return async () => {
-    aragonos.pushDAO(dao);
+    aragonos.setCurrentDAO(dao);
     const chainId = await aragonos.getChainId();
     aragonos.bindingsManager.trySetBindings(buildAbiBindings(dao, chainId));
   };
@@ -71,9 +62,14 @@ export default defineCommand<AragonOS>({
   async run(module, { daoName, block }, { interpreters }) {
     const { interpretNode } = interpreters;
 
+    if (module.currentDAO) {
+      throw new ErrorException(
+        'nested "connect" commands are not supported; use sequential top-level connect blocks and `set $var` to share values',
+      );
+    }
+
     const dao = await createDAO(
       daoName,
-      module.currentDAO,
       await module.getClient(),
       module.getConfigBinding("ensResolver"),
     );
@@ -93,7 +89,7 @@ export default defineCommand<AragonOS>({
         },
       )) as Action[];
     } finally {
-      module.popDAO();
+      module.clearCurrentDAO();
     }
 
     return actions;

@@ -1,24 +1,14 @@
 import "../../setup";
 import { describeHelper } from "@evmcrispr/test-utils/evml";
-import {
-  DAO_ADDRESS,
-  DAO_SUBDOMAIN,
-  PREAMBLE,
-  SET_BINDINGS,
-} from "../../fixtures";
+import { DAO_ADDRESS, PREAMBLE, SET_BINDINGS } from "../../fixtures";
 
 describeHelper("@aragonosx:dao", {
   module: "aragonosx",
-  preamble: `${SET_BINDINGS}\naragonosx:connect ${DAO_ADDRESS} (\nset $current @aragonosx:dao()\nset $byName @aragonosx:dao("${DAO_SUBDOMAIN}")\n)`,
+  preamble: `${SET_BINDINGS}\naragonosx:connect ${DAO_ADDRESS} (\nset $current @aragonosx:dao()\n)`,
   cases: [
     {
       name: "resolves the connected DAO",
       input: "$current",
-      expected: DAO_ADDRESS,
-    },
-    {
-      name: "resolves a connected DAO by subdomain",
-      input: "$byName",
       expected: DAO_ADDRESS,
     },
   ],

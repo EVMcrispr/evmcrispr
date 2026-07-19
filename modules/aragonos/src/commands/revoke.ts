@@ -14,16 +14,11 @@ import {
   getPermissions,
   hasPermission,
   hasPermissionManager,
-  resolveApp,
 } from "../dao";
-import {
-  formatAppIdentifier,
-  getAppRoles,
-  getDAOs,
-  normalizeRole,
-} from "../utils";
+import { getAppRoles, getCompletionDAO, normalizeRole } from "../utils";
 import {
   getDAO,
+  getModuleDAO,
   isPermission,
   resolvePermissionContext,
 } from "../utils/commands";
@@ -105,15 +100,12 @@ export default defineCommand<AragonOS>({
   completions: {
     grantee: (ctx) => {
       const granteeAddresses = new AddressSet();
-      const daosAppsPermissions = getDAOs(ctx.bindings).map((dao) =>
-        getPermissions(dao),
-      );
+      const dao = getCompletionDAO(ctx.bindings);
+      if (!dao) return [];
 
-      daosAppsPermissions.forEach((daoAppsPermissions) => {
-        daoAppsPermissions.forEach(([, appPermissions]) => {
-          [...appPermissions.values()].forEach((role) => {
-            role.grantees.forEach(granteeAddresses.add, granteeAddresses);
-          });
+      getPermissions(dao).forEach(([, appPermissions]) => {
+        [...appPermissions.values()].forEach((role) => {
+          role.grantees.forEach(granteeAddresses.add, granteeAddresses);
         });
       });
 
@@ -124,23 +116,19 @@ export default defineCommand<AragonOS>({
       const revokeeAddress = ctx.nodeArgs[0]
         ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
-      const daosAppsPermissions = getDAOs(ctx.bindings).map((dao) =>
-        getPermissions(dao),
-      );
+      const dao = getCompletionDAO(ctx.bindings);
 
-      if (!revokeeAddress || !isAddress(revokeeAddress)) {
+      if (!dao || !revokeeAddress || !isAddress(revokeeAddress)) {
         return [];
       }
 
       const granteeApps = new Set<string>();
 
-      daosAppsPermissions.forEach((daoAppsPermissions) => {
-        daoAppsPermissions.forEach(([appIdentifier, appPermissions]) => {
-          [...appPermissions.values()].forEach((role) => {
-            if (role.grantees.has(revokeeAddress)) {
-              granteeApps.add(formatAppIdentifier(appIdentifier));
-            }
-          });
+      getPermissions(dao).forEach(([appIdentifier, appPermissions]) => {
+        [...appPermissions.values()].forEach((role) => {
+          if (role.grantees.has(revokeeAddress)) {
+            granteeApps.add(appIdentifier);
+          }
         });
       });
       return [...granteeApps].map(fieldItem);
@@ -153,8 +141,7 @@ export default defineCommand<AragonOS>({
       const appAddress = ctx.nodeArgs[1]
         ? await ctx.resolveNode(ctx.nodeArgs[1])
         : undefined;
-      const appNode = ctx.nodeArgs[1];
-      const dao = getDAO(ctx.bindings, appNode);
+      const dao = getDAO(ctx.bindings);
 
       if (
         !revokeeAddress ||
@@ -181,9 +168,8 @@ export default defineCommand<AragonOS>({
         return [];
       }
 
-      const appNode = ctx.nodeArgs[1];
       const roleHash = normalizeRole(role);
-      const dao = getDAO(ctx.bindings, appNode);
+      const dao = getDAO(ctx.bindings);
       const hasManager = hasPermissionManager(dao, appAddress, roleHash);
 
       return hasManager ? [fieldItem("true")] : [];
@@ -191,17 +177,7 @@ export default defineCommand<AragonOS>({
   },
   async run(module, { grantee, app, role, removeManager }) {
     const args = [grantee, app, role, removeManager];
-
-    const appAddress = app;
-
-    const dao = isAddress(appAddress)
-      ? (module.connectedDAOs.find((dao) => resolveApp(dao, appAddress)) ??
-        module.currentDAO)
-      : module.currentDAO;
-
-    if (!dao) {
-      throw new ErrorException('must be used within a "connect" command');
-    }
+    const dao = getModuleDAO(module);
 
     return _revoke(dao, args);
   },

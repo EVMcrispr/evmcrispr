@@ -1,8 +1,8 @@
 import "../../setup";
 
 import type AragonOS from "@evmcrispr/module-aragonos";
-import { type Action, CommandError } from "@evmcrispr/sdk";
-import { encodeFunctionData, isAddressEqual, parseAbiItem } from "viem";
+import { type Action, BindingsSpace, CommandError } from "@evmcrispr/sdk";
+import { encodeFunctionData, isAddress, parseAbiItem } from "viem";
 
 const encodeActCall = (signature: string, params: any[] = []): string =>
   encodeFunctionData({
@@ -13,8 +13,7 @@ const encodeActCall = (signature: string, params: any[] = []): string =>
 
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
-import { resolveApp } from "../../../src/dao";
-import { DAO, DAO2 } from "../../fixtures";
+import { DAO } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
@@ -27,7 +26,6 @@ const {
   initializeUnresolvedParams,
   initializeSignature,
 } = APP;
-const newAppIdentifier = `${appIdentifier}:new-app`;
 const preamble = `load aragonos [install @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("install", {
@@ -37,13 +35,13 @@ describeCommand("install", {
   docCases: [
     {
       description: "Install a token-manager app",
-      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:install $tm token-manager:new-app @aragonos:app(agent) false 1000e18\n)",
+      code: "aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:install $tm token-manager @aragonos:app(agent) false 1000e18\n)",
     },
   ],
   cases: [
     {
       name: "should return a correct install action",
-      script: `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}\n)`,
+      script: `install $app ${appIdentifier} ${initializeUnresolvedParams.join(" ")}\n)`,
       validate: async (installationActions, interpreter) => {
         const expectedInstallationActions: Action[] = [
           createTestAction("newAppInstance", DAO.kernel, [
@@ -54,14 +52,13 @@ describeCommand("install", {
           ]),
         ];
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.connectedDAOs[0];
-        const installedApp = resolveApp(dao, newAppIdentifier);
+        const installedAddress = aragonos.bindingsManager.getBindingValue(
+          "$app",
+          BindingsSpace.USER,
+        );
 
-        expect(installedApp, "DAO does not have installed app").to.exist;
-        expect(
-          isAddressEqual(installedApp!.codeAddress, codeAddress),
-          "wrong installed app version",
-        ).to.be.true;
+        expect(installedAddress, "install variable not bound").to.exist;
+        expect(isAddress(installedAddress as string)).to.be.true;
         expect(installationActions, "installation actions mismatch").to.eql(
           expectedInstallationActions,
         );
@@ -69,14 +66,11 @@ describeCommand("install", {
     },
     {
       name: "should return a correct install action given a specific version",
-      script: `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(
+      script: `install $app ${appIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )} --version 1.0.1\n)`,
       validate: async (installationActions, interpreter) => {
         const specificVersion = "0x714c925ede405687752c4ad32078137c4f179538";
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel)!;
-        const installedApp = resolveApp(dao, newAppIdentifier);
 
         const expectedInstallationActions = [
           createTestAction("newAppInstance", DAO.kernel, [
@@ -87,13 +81,25 @@ describeCommand("install", {
           ]),
         ];
 
-        expect(installedApp, " DAO does not have installed app").to.exist;
-        expect(
-          isAddressEqual(installedApp!.codeAddress, specificVersion),
-          "wrong installed app version",
-        ).to.be.true;
         expect(installationActions, "installation actions mismatch").to.eql(
           expectedInstallationActions,
+        );
+      },
+    },
+    {
+      name: "should install a second instance of an already installed app",
+      script: `install $app1 ${appIdentifier} ${initializeUnresolvedParams.join(" ")}\ninstall $app2 ${appIdentifier} ${initializeUnresolvedParams.join(" ")}\nset $resolved1 @app(${appIdentifier})\nset $resolved2 @app(${appIdentifier} 1)\n)`,
+      validate: async (installationActions, interpreter) => {
+        const aragonos = interpreter.getModule("aragonos") as AragonOS;
+        const binding = (name: string) =>
+          aragonos.bindingsManager.getBindingValue(name, BindingsSpace.USER);
+
+        expect(installationActions).to.have.lengthOf(2);
+        expect(binding("$app1"), "first install variable mismatch").to.equal(
+          binding("$resolved1"),
+        );
+        expect(binding("$app2"), "second install variable mismatch").to.equal(
+          binding("$resolved2"),
         );
       },
     },
@@ -101,18 +107,18 @@ describeCommand("install", {
   errorCases: [
     {
       name: "should fail passing an invalid repo identifier",
-      script: `install $app missing-label-repo ${initializeUnresolvedParams.join(" ")}\n)`,
+      script: `install $app Invalid-Repo ${initializeUnresolvedParams.join(" ")}\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "install")!;
         return new CommandError(
           c,
-          `invalid labeled identifier missing-label-repo`,
+          `<identifier> must be a valid repo identifier, got Invalid-Repo`,
         );
       },
     },
     {
       name: "should fail when passing a repo that can not be resolved",
-      script: `install $app non-existent-repo:new-app ${initializeUnresolvedParams.join(" ")}\n)`,
+      script: `install $app non-existent-repo ${initializeUnresolvedParams.join(" ")}\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "install")!;
         return new CommandError(
@@ -123,7 +129,7 @@ describeCommand("install", {
     },
     {
       name: "should fail when passing an invalid --version option",
-      script: `install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(
+      script: `install $app ${appIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )} --version 1e18\n)`,
       error: (interpreter) => {
@@ -135,19 +141,8 @@ describeCommand("install", {
       },
     },
     {
-      name: "should fail when installing an app with an identifier previously used",
-      script: `install $app1 ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}\ninstall $app2 ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")}\n)`,
-      error: (interpreter) => {
-        const c = findAragonOSCommandNode(interpreter.ast, "install", 0, 1)!;
-        return new CommandError(
-          c,
-          `identifier ${newAppIdentifier} is already in use.`,
-        );
-      },
-    },
-    {
       name: "should fail when passing invalid initialize params",
-      script: `install $app ${newAppIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false\n)`,
+      script: `install $app ${appIdentifier} 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a 1e18 false\n)`,
       error: (interpreter) => {
         const paramsErrors = [
           '-param _token of type address: Address "0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a',
@@ -167,30 +162,10 @@ describeCommand("install", {
 describeCommand("install", {
   describeName: "AragonOS > commands > install > special cases",
   module: "aragonos",
-  cases: [
-    {
-      name: "should return a correct install action given a different DAO",
-      script: `load aragonos [connect install @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    install $app ${newAppIdentifier} ${initializeUnresolvedParams.join(" ")} --dao ${DAO.kernel}\n  )\n)`,
-      validate: async (installActions) => {
-        const expectedInstallActions = [
-          createTestAction("newAppInstance", DAO.kernel, [
-            appId,
-            codeAddress,
-            encodeActCall(initializeSignature, [
-              DAO2.agent,
-              ...initializeParams.slice(1, initializeParams.length),
-            ]),
-            false,
-          ]),
-        ];
-        expect(installActions).to.eql(expectedInstallActions);
-      },
-    },
-  ],
   errorCases: [
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos\naragonos:install $app ${newAppIdentifier} 0x0000000000000000000000000000000000000001 false 1000e18`,
+      script: `load aragonos\naragonos:install $app ${appIdentifier} 0x0000000000000000000000000000000000000001 false 1000e18`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

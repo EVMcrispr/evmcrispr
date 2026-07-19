@@ -1,5 +1,5 @@
 import type { Address, AddressSet } from "@evmcrispr/sdk";
-import type { AppIdentifier, LabeledAppIdentifier } from "./app";
+import type { AppIdentifier } from "./app";
 
 /**
  * An array which follows the format `[<Grantee>, <App>, <Role>, <Manager>]`
@@ -19,9 +19,9 @@ export type CompletePermission = [
 ];
 
 /**
- * A string which can be a [[AppIdentifier]], [[LabeledAppIdentifier]] or [[Address]].
+ * A string which can be an [[AppIdentifier]] or an [[Address]].
  */
-export type Entity = AppIdentifier | LabeledAppIdentifier | Address;
+export type Entity = AppIdentifier | Address;
 
 /**
  * The role's keccak256 hash.

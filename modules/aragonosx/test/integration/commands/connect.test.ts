@@ -1,7 +1,7 @@
 import "../../setup";
+import { BindingsSpace } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
-import { BindingsSpace } from "@evmcrispr/sdk";
 import { encodeFunctionData } from "viem";
 import { DAO_ABI } from "../../../src/abis";
 import { permissionId } from "../../../src/utils/permissions";
@@ -40,26 +40,29 @@ describeCommand("connect", {
       expectedActions: [GRANT_ACTION],
     },
     {
-      name: "resolves plugins cross-DAO with the _dao: prefix",
+      name: "shares values between sequential connect blocks via set",
       script: `aragonosx:connect ${DAO_ADDRESS} (
-  set $plugin @aragonosx:plugin("_${DAO_SUBDOMAIN}:token-voting")
+  set $plugin @aragonosx:plugin("token-voting")
+)
+aragonosx:connect ${DAO_ADDRESS} (
+  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} $plugin EXECUTE
 )`,
       validate: (_, interpreter) => {
-        expect(
-          interpreter.getBinding("$plugin", BindingsSpace.USER),
-        ).to.equal(TOKEN_VOTING_PLUGIN);
+        expect(interpreter.getBinding("$plugin", BindingsSpace.USER)).to.equal(
+          TOKEN_VOTING_PLUGIN,
+        );
       },
     },
   ],
   errorCases: [
     {
-      name: "fails when reconnecting to the same DAO",
+      name: "fails when nesting connect commands",
       script: `aragonosx:connect ${DAO_ADDRESS} (
   aragonosx:connect ${DAO_ADDRESS} (
     aragonosx:grant ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE
   )
 )`,
-      error: "already connected",
+      error: 'nested "connect" commands are not supported',
     },
     {
       name: "fails on an unknown DAO name",

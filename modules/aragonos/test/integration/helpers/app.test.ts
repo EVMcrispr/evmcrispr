@@ -1,9 +1,10 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
+import { BindingsSpace } from "@evmcrispr/sdk";
 import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter, describeHelper } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
-import { DAO, DAO2 } from "../../fixtures";
+import { DAO } from "../../fixtures";
 
 describeHelper("@aragonos:app", {
   module: "aragonos",
@@ -36,19 +37,22 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
     await interpreter.interpret();
   });
 
-  it("should resolve an app with a DAO address prefix", async () => {
+  it("should resolve a later instance with an index argument", async () => {
     const interpreter = createInterpreter(
       `
-      load aragonos [connect @app]
+      load aragonos [@app]
       aragonos:connect ${DAO.kernel} (
-        connect ${DAO2.kernel} (
-          set $addr @app(_${DAO.kernel}:agent)
-        )
+        set $addr @app(agent 2)
       )
       `,
       client,
     );
     await interpreter.interpret();
+
+    const aragonos = interpreter.getModule("aragonos");
+    expect(
+      aragonos.bindingsManager.getBindingValue("$addr", BindingsSpace.USER),
+    ).to.equal(DAO["agent:2"]);
   });
 
   it("should fail when the app does not exist in the DAO", async () => {
@@ -70,13 +74,12 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
     }
   });
 
-  it("should fail when the DAO prefix does not match any connected DAO", async () => {
-    const fakeDAO = "0x0000000000000000000000000000000000000001";
+  it("should fail when the index is out of range", async () => {
     const interpreter = createInterpreter(
       `
       load aragonos [@app]
       aragonos:connect ${DAO.kernel} (
-        set $addr @app(_${fakeDAO}:agent)
+        set $addr @app(agent 9)
       )
       `,
       client,
@@ -86,7 +89,7 @@ describe("AragonOS > helpers > @app(appIdentifier)", () => {
       await interpreter.interpret();
       throw new Error("Expected interpret to throw");
     } catch (err: any) {
-      expect(err.message).to.include("not found");
+      expect(err.message).to.include("instance");
     }
   });
 });

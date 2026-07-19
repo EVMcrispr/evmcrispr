@@ -2,21 +2,15 @@
 title: "@aragonosx:dao"
 ---
 
-Resolve the connected DAO (or a named one) to its address.
+Resolve the connected DAO to its address.
 
 **Returns**: `address`
 
 ## Syntax
 
 ```evml
-@aragonosx:dao(daoIdentifier?)
+@aragonosx:dao
 ```
-
-## Arguments
-
-| Name | Type | Description |
-|------|------|-------------|
-| `[daoIdentifier]` | `string` | Subdomain or address of a connected DAO |
 
 ## Examples
 

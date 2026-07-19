@@ -2,21 +2,22 @@
 title: "@aragonos:app"
 ---
 
-Resolve an app identifier to its proxy address within the connected DAO.
+Resolve an app name to its proxy address within the connected DAO.
 
 **Returns**: `address`
 
 ## Syntax
 
 ```evml
-@aragonos:app(appIdentifier)
+@aragonos:app(appName index?)
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `appIdentifier` | `string` | App name, or `dao:app` for cross-DAO lookup |
+| `appName` | `string` | App name (e.g. `vault`, `voting.open`) |
+| `[index]` | `number` | Instance index when multiple apps share a name (0 = first) |
 
 ## Examples
 

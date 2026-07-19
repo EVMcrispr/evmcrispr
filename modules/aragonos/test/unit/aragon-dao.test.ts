@@ -1,10 +1,11 @@
 import { describe, it } from "bun:test";
-import { AddressMap, AddressSet } from "@evmcrispr/sdk";
+import { AddressSet } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
 
 import {
   cloneDao,
+  countApps,
   type DaoContext,
   getKernel,
   getPermission,
@@ -14,13 +15,7 @@ import {
   hasPermissionManager,
   resolveApp,
 } from "../../src/dao";
-import type {
-  App,
-  AppCache,
-  AppResourceCache,
-  PermissionMap,
-  Role,
-} from "../../src/types";
+import type { App, PermissionMap, Role } from "../../src/types";
 
 function createMockApp(
   name: string,
@@ -42,6 +37,7 @@ function createMockDAO(): {
   dao: DaoContext;
   kernelAddr: string;
   agentAddr: string;
+  agent2Addr: string;
   vaultAddr: string;
   roleHash: string;
   grantee: `0x${string}`;
@@ -49,6 +45,7 @@ function createMockDAO(): {
 } {
   const kernelAddr = "0x1111111111111111111111111111111111111111";
   const agentAddr = "0x2222222222222222222222222222222222222222";
+  const agent2Addr = "0x6666666666666666666666666666666666666666";
   const vaultAddr = "0x3333333333333333333333333333333333333333";
   const roleHash = keccak256(toHex("TRANSFER_ROLE"));
   const grantee = "0x4444444444444444444444444444444444444444" as `0x${string}`;
@@ -66,25 +63,17 @@ function createMockDAO(): {
 
   const kernel = createMockApp("kernel", kernelAddr);
   const agent = createMockApp("agent", agentAddr, agentPermissions);
+  const agent2 = createMockApp("agent", agent2Addr);
   const vault = createMockApp("vault", vaultAddr);
-
-  const appCache: AppCache = new Map([
-    ["kernel:0", kernel],
-    ["agent:0", agent],
-    ["vault:0", vault],
-  ]);
-
-  const appResourceCache: AppResourceCache = new AddressMap();
 
   return {
     dao: {
-      appCache,
-      appResourceCache,
-      nestingIndex: 1,
+      apps: [kernel, agent, agent2, vault],
       name: "test-dao",
     },
     kernelAddr,
     agentAddr,
+    agent2Addr,
     vaultAddr,
     roleHash,
     grantee,
@@ -105,35 +94,25 @@ describe("AragonOS > DAO helpers", () => {
       expect(dao.name).to.equal("test-dao");
     });
 
-    it("should return the nesting index", () => {
+    it("should expose the apps list", () => {
       const { dao } = createMockDAO();
-      expect(dao.nestingIndex).to.equal(1);
-    });
-
-    it("should expose the app cache", () => {
-      const { dao } = createMockDAO();
-      expect(dao.appCache.size).to.equal(3);
-    });
-
-    it("should expose the app resource cache", () => {
-      const { dao } = createMockDAO();
-      expect(dao.appResourceCache).to.be.instanceOf(AddressMap);
+      expect(dao.apps).to.have.lengthOf(4);
     });
   });
 
   describe("resolveApp()", () => {
-    it("should resolve by name identifier", () => {
-      const { dao } = createMockDAO();
-      const app = resolveApp(dao, "agent:0");
-      expect(app).to.not.be.undefined;
-      expect(app!.name).to.equal("agent");
-    });
-
-    it("should resolve by identifier without index (appends :0)", () => {
-      const { dao } = createMockDAO();
+    it("should resolve by name", () => {
+      const { dao, agentAddr } = createMockDAO();
       const app = resolveApp(dao, "agent");
       expect(app).to.not.be.undefined;
-      expect(app!.name).to.equal("agent");
+      expect(app!.address).to.equal(agentAddr);
+    });
+
+    it("should resolve a later instance by index", () => {
+      const { dao, agent2Addr } = createMockDAO();
+      const app = resolveApp(dao, "agent", 1);
+      expect(app).to.not.be.undefined;
+      expect(app!.address).to.equal(agent2Addr);
     });
 
     it("should resolve by address", () => {
@@ -143,9 +122,14 @@ describe("AragonOS > DAO helpers", () => {
       expect(app!.name).to.equal("agent");
     });
 
-    it("should return undefined for unknown identifiers", () => {
+    it("should return undefined for out-of-range indexes", () => {
       const { dao } = createMockDAO();
-      expect(resolveApp(dao, "nonexistent:0")).to.be.undefined;
+      expect(resolveApp(dao, "agent", 2)).to.be.undefined;
+    });
+
+    it("should return undefined for unknown names", () => {
+      const { dao } = createMockDAO();
+      expect(resolveApp(dao, "nonexistent")).to.be.undefined;
     });
 
     it("should return undefined for unknown addresses", () => {
@@ -155,68 +139,80 @@ describe("AragonOS > DAO helpers", () => {
     });
   });
 
+  describe("countApps()", () => {
+    it("should count instances sharing a name", () => {
+      const { dao } = createMockDAO();
+      expect(countApps(dao, "agent")).to.equal(2);
+      expect(countApps(dao, "vault")).to.equal(1);
+      expect(countApps(dao, "nonexistent")).to.equal(0);
+    });
+  });
+
   describe("permissions", () => {
     it("getPermission() should return the role for an app", () => {
       const { dao, roleHash } = createMockDAO();
-      const role = getPermission(dao, "agent:0", "TRANSFER_ROLE");
+      const role = getPermission(dao, "agent", "TRANSFER_ROLE");
       expect(role).to.not.be.undefined;
-      expect(role).to.equal(getPermission(dao, "agent:0", roleHash));
+      expect(role).to.equal(getPermission(dao, "agent", roleHash));
     });
 
     it("getPermission() should return undefined for non-existent role", () => {
       const { dao } = createMockDAO();
-      expect(getPermission(dao, "agent:0", "NON_EXISTENT")).to.be.undefined;
+      expect(getPermission(dao, "agent", "NON_EXISTENT")).to.be.undefined;
     });
 
     it("getPermission() should return undefined for non-existent app", () => {
       const { dao } = createMockDAO();
-      expect(getPermission(dao, "nonexistent:0", "TRANSFER_ROLE")).to.be
+      expect(getPermission(dao, "nonexistent", "TRANSFER_ROLE")).to.be
         .undefined;
     });
 
     it("hasPermission() should return true when grantee has the role", () => {
       const { dao, grantee } = createMockDAO();
-      expect(hasPermission(dao, grantee, "agent:0", "TRANSFER_ROLE")).to.be
-        .true;
+      expect(hasPermission(dao, grantee, "agent", "TRANSFER_ROLE")).to.be.true;
     });
 
     it("hasPermission() should return false for unknown grantees", () => {
       const { dao } = createMockDAO();
       const unknown =
         "0x9999999999999999999999999999999999999999" as `0x${string}`;
-      expect(hasPermission(dao, unknown, "agent:0", "TRANSFER_ROLE")).to.be
-        .false;
+      expect(hasPermission(dao, unknown, "agent", "TRANSFER_ROLE")).to.be.false;
     });
 
     it("hasPermissionManager() should return true when manager exists", () => {
       const { dao } = createMockDAO();
-      expect(hasPermissionManager(dao, "agent:0", "TRANSFER_ROLE")).to.be.true;
+      expect(hasPermissionManager(dao, "agent", "TRANSFER_ROLE")).to.be.true;
     });
 
     it("hasPermissionManager() should return false for non-existent role", () => {
       const { dao } = createMockDAO();
-      expect(hasPermissionManager(dao, "agent:0", "UNKNOWN_ROLE")).to.be.false;
+      expect(hasPermissionManager(dao, "agent", "UNKNOWN_ROLE")).to.be.false;
     });
 
     it("getPermissionManager() should return the manager address", () => {
       const { dao, manager } = createMockDAO();
-      expect(getPermissionManager(dao, "agent:0", "TRANSFER_ROLE")).to.equal(
+      expect(getPermissionManager(dao, "agent", "TRANSFER_ROLE")).to.equal(
         manager,
       );
     });
 
     it("getPermissionManager() should return undefined for non-existent role", () => {
       const { dao } = createMockDAO();
-      expect(getPermissionManager(dao, "agent:0", "UNKNOWN_ROLE")).to.be
+      expect(getPermissionManager(dao, "agent", "UNKNOWN_ROLE")).to.be
         .undefined;
     });
 
-    it("getPermissions() should list all app permissions", () => {
+    it("getPermissions() should list permissions with display-ready identifiers", () => {
       const { dao } = createMockDAO();
       const perms = getPermissions(dao);
-      expect(perms).to.have.lengthOf(3);
-      const agentPerms = perms.find(([name]) => name === "agent:0");
-      expect(agentPerms).to.not.be.undefined;
+      expect(perms).to.have.lengthOf(4);
+      expect(perms.map(([name]) => name)).to.eql([
+        "kernel",
+        "agent",
+        "agent 1",
+        "vault",
+      ]);
+      const agentPerms = perms.find(([name]) => name === "agent");
       expect(agentPerms![1].size).to.equal(1);
     });
   });
@@ -227,20 +223,13 @@ describe("AragonOS > DAO helpers", () => {
       const cloned = cloneDao(dao);
       expect(cloned).to.not.equal(dao);
       expect(cloned.name).to.equal(dao.name);
-      expect(cloned.nestingIndex).to.equal(dao.nestingIndex);
     });
 
-    it("should have independent app caches", () => {
+    it("should have independent app lists", () => {
       const { dao } = createMockDAO();
       const cloned = cloneDao(dao);
-      expect(cloned.appCache).to.not.equal(dao.appCache);
-      expect(cloned.appCache.size).to.equal(dao.appCache.size);
-    });
-
-    it("should share the resource cache (by design)", () => {
-      const { dao } = createMockDAO();
-      const cloned = cloneDao(dao);
-      expect(cloned.appResourceCache).to.equal(dao.appResourceCache);
+      expect(cloned.apps).to.not.equal(dao.apps);
+      expect(cloned.apps).to.have.lengthOf(dao.apps.length);
     });
   });
 });

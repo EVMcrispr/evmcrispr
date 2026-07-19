@@ -107,7 +107,7 @@ load aragonos [grant install @app]
 
 aragonos:connect my-dao.aragonid.eth (
   grant @me @app(voting) CREATE_VOTES_ROLE
-  install $agent agent:new-app
+  install $agent agent
 )
 ```
 

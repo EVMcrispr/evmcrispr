@@ -24,7 +24,7 @@ load aragonos
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@aragonos:app](src/helpers/app.md) | `address` | Resolve an app identifier to its proxy address within the connected DAO. |
+| [@aragonos:app](src/helpers/app.md) | `address` | Resolve an app name to its proxy address within the connected DAO. |
 | [@aragonos:aragonEns](src/helpers/aragonEns.md) | `address` | Resolve an Aragon ENS name to its address. |
 | [@aragonos:nextApp](src/helpers/nextApp.md) | `address` | Predict the address of the next app to be installed in the DAO. |
 

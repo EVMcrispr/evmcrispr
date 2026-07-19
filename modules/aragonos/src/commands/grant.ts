@@ -8,10 +8,14 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
-import { type DaoContext, hasPermission, resolveApp } from "../dao";
+import { type DaoContext, hasPermission } from "../dao";
 import type { CompletePermission, Params } from "../types";
 import { getAppRoles } from "../utils";
-import { getDAO, resolvePermissionContext } from "../utils/commands";
+import {
+  getDAO,
+  getModuleDAO,
+  resolvePermissionContext,
+} from "../utils/commands";
 
 const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -119,7 +123,7 @@ export default defineCommand<AragonOS>({
       const grantee = await ctx.resolveNode(ctx.nodeArgs[0]);
       const app = await ctx.resolveNode(ctx.nodeArgs[1]);
       if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
-      const dao = getDAO(ctx.bindings, ctx.nodeArgs[1]);
+      const dao = getDAO(ctx.bindings);
       return getAppRoles(ctx.bindings, app, ctx.chainId)
         .filter((role) => !hasPermission(dao, grantee, app, role))
         .map(fieldItem);
@@ -143,14 +147,7 @@ export default defineCommand<AragonOS>({
       params,
     ];
 
-    const dao = isAddress(app)
-      ? (module.connectedDAOs.find((dao) => resolveApp(dao, app)) ??
-        module.currentDAO)
-      : module.currentDAO;
-
-    if (!dao) {
-      throw new ErrorException('must be used within a "connect" command');
-    }
+    const dao = getModuleDAO(module);
 
     return _grant(dao, permission);
   },

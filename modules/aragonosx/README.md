@@ -27,8 +27,8 @@ load aragonosx
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@aragonosx:dao](src/helpers/dao.md) | `address` | Resolve the connected DAO (or a named one) to its address. |
+| [@aragonosx:dao](src/helpers/dao.md) | `address` | Resolve the connected DAO to its address. |
 | [@aragonosx:permission](src/helpers/permission.md) | `bytes32` | Compute the bytes32 id of a permission name (keccak256 of e.g. EXECUTE_PERMISSION). |
-| [@aragonosx:plugin](src/helpers/plugin.md) | `address` | Resolve a plugin identifier to its address within the connected DAO. |
+| [@aragonosx:plugin](src/helpers/plugin.md) | `address` | Resolve a plugin repo subdomain to its address within the connected DAO. |
 | [@aragonosx:repo](src/helpers/repo.md) | `address` | Resolve a plugin repo subdomain to its PluginRepo address. |
 

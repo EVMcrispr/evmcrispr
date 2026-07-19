@@ -21,13 +21,13 @@ describeCommand("act", {
   docCases: [
     {
       description: "Execute a contract call through the DAO agent",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:act @aragonos:app(agent) @aragonos:app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:act @aragonos:app(agent) @aragonos:app(agent 2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
     },
   ],
   cases: [
     {
       name: "should return a correct act action",
-      script: `act @app(agent:1) @app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
+      script: `act @app(agent 1) @app(agent 2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]\n)`,
       validate: async (actActions) => {
         const expectedActActions = [
           createTestScriptEncodedAction(
@@ -106,7 +106,7 @@ describeCommand("act", {
     },
     {
       name: "should fail when receiving invalid function params",
-      script: `act @app(agent) @app(agent:2) "deposit(address,uint256)" 1e18\n)`,
+      script: `act @app(agent) @app(agent 2) "deposit(address,uint256)" 1e18\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -127,7 +127,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature without parenthesis (mint)",
-      script: `act @app(agent) @app(agent:2) "mint"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -138,7 +138,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with only left parenthesis (mint()",
-      script: `act @app(agent) @app(agent:2) "mint("\n)`,
+      script: `act @app(agent) @app(agent 2) "mint("\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -149,7 +149,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with only right parenthesis (mint))",
-      script: `act @app(agent) @app(agent:2) "mint)"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint)"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -160,7 +160,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with right comma (mint(uint,))",
-      script: `act @app(agent) @app(agent:2) "mint(uint,)"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint(uint,)"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -171,7 +171,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with left comma (mint(,uint))",
-      script: `act @app(agent) @app(agent:2) "mint(,uint)"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint(,uint)"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -182,7 +182,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with empty tuple (mint(uint,uint,()))",
-      script: `act @app(agent) @app(agent:2) "mint(uint,uint,())"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint(uint,uint,())"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -193,7 +193,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with right comma in tuple (mint(uint,uint,(uint,)))",
-      script: `act @app(agent) @app(agent:2) "mint(uint,uint,(uint,))"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint(uint,uint,(uint,))"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(
@@ -204,7 +204,7 @@ describeCommand("act", {
     },
     {
       name: "should fail for signature with left comma in tuple (mint(uint,uint,(,uint)))",
-      script: `act @app(agent) @app(agent:2) "mint(uint,uint,(,uint))"\n)`,
+      script: `act @app(agent) @app(agent 2) "mint(uint,uint,(,uint))"\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "act")!;
         return new CommandError(

@@ -3,7 +3,7 @@ import { getAddress, isAddress, zeroAddress } from "viem";
 import type AragonOSx from "..";
 import { DAO_FACTORY_ABI } from "../abis";
 import { getDeployment, type KnownRepo } from "../addresses";
-import { buildPluginInfos } from "../dao";
+
 import { abiAction } from "../utils/encode";
 import { toMetadataBytes } from "../utils/metadata";
 import {
@@ -107,16 +107,13 @@ export default defineCommand<AragonOSx>({
     module.setCachedDao(await module.getChainId(), daoAddress, {
       address: getAddress(daoAddress),
       subdomain: opts.subdomain,
-      plugins: buildPluginInfos(
-        installedPlugins.map((installed) => ({
-          address: getAddress(installed.plugin),
-          repoSubdomain,
-          repoAddress,
-          versionTag: version.tag,
-          helpers: [...installed.preparedSetupData.helpers],
-        })),
-      ),
-      nestingIndex: 0,
+      plugins: installedPlugins.map((installed) => ({
+        address: getAddress(installed.plugin),
+        repoSubdomain,
+        repoAddress,
+        versionTag: version.tag,
+        helpers: [...installed.preparedSetupData.helpers],
+      })),
     });
 
     return [

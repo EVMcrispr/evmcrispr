@@ -1,5 +1,10 @@
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
-import { DAO_ADDRESS, DAO_SUBDOMAIN, SUBGRAPH_DAO, SUBGRAPH_URL } from "../fixtures";
+import {
+  DAO_ADDRESS,
+  DAO_SUBDOMAIN,
+  SUBGRAPH_DAO,
+  SUBGRAPH_URL,
+} from "../fixtures";
 
 export const aragonosxHandlers = [
   http.post(SUBGRAPH_URL, async ({ request }) => {
@@ -22,9 +27,7 @@ export const aragonosxHandlers = [
       return HttpResponse.json({
         data: {
           daos:
-            variables.subdomain === DAO_SUBDOMAIN
-              ? [{ id: DAO_ADDRESS }]
-              : [],
+            variables.subdomain === DAO_SUBDOMAIN ? [{ id: DAO_ADDRESS }] : [],
         },
       });
     }

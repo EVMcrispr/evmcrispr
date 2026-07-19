@@ -79,13 +79,13 @@ load aragonos [install grant]
 
 aragonos:connect my-dao.aragonid.eth (
   # Install a new agent app
-  install $agent agent:new-app
+  install $agent agent
 
   # Install with initialization parameters
-  install $tm token-manager:new-app @token(ANT) false 1e18
+  install $tm token-manager @token(ANT) false 1e18
 
   # Install a specific version
-  install $vault vault:new-app --version 2.0.0
+  install $vault vault --version 2.0.0
 
   # Use the installed app
   grant @me $tm MINT_ROLE
@@ -142,11 +142,23 @@ aragonos:connect my-dao.aragonid.eth (
   # Get the address of a DAO app
   set $agent @app(agent)
 
-  # With index for multiple instances
-  set $agent2 @app(agent:1)
+  # With index for multiple instances (0 = first)
+  set $agent2 @app(agent 1)
+)
+```
 
-  # Cross-DAO reference: dao:app
-  set $otherAgent @app(other-dao.aragonid.eth:agent)
+To reference apps from another DAO, use sequential `connect` blocks — variables
+set inside a block persist after it ends:
+
+```evml
+load aragonos [@app]
+
+aragonos:connect other-dao.aragonid.eth (
+  set $otherAgent @app(agent)
+)
+
+aragonos:connect my-dao.aragonid.eth (
+  exec $otherAgent "transfer(address,address,uint256)" @token(ANT) @me 1e18
 )
 ```
 
@@ -173,8 +185,8 @@ load sim
 sim:fork (
   aragonos:connect my-dao.aragonid.eth (
     grant @me @app(voting) CREATE_VOTES_ROLE
-    install $agent agent:new
-    sim:expect @bool(@app(agent:1) != 0x0000000000000000000000000000000000000000)
+    install $agent agent
+    sim:expect @bool($agent != 0x0000000000000000000000000000000000000000)
   )
 )
 ```

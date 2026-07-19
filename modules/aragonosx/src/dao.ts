@@ -9,54 +9,38 @@ import { fetchDaoPluginsOnchain } from "./onchain";
 import { fetchDaoAddressBySubdomain, fetchDaoFromSubgraph } from "./subgraph";
 import type { DaoContext, PluginInfo, RawPlugin } from "./types";
 
-/** `[_dao:]subdomain[:index]` — `_mydao:token-voting:1` targets another connected DAO. */
-const PLUGIN_IDENTIFIER_REGEX =
-  /^(?:_([a-zA-Z0-9.-]+|0x[0-9a-fA-F]{40}):)?((?!-)[a-z0-9-]+(?<!-))(?::(\d+))?$/;
+/** A plugin repo subdomain (e.g. `token-voting`). */
+const PLUGIN_IDENTIFIER_REGEX = /^((?!-)[a-z0-9-]+(?<!-))$/;
 
-export function parsePluginIdentifier(
-  identifier: string,
-): { daoPrefix?: string; subdomain: string; index: number } | undefined {
-  const match = PLUGIN_IDENTIFIER_REGEX.exec(identifier);
-  if (!match) return undefined;
-  const [, daoPrefix, subdomain, index] = match;
-  return { daoPrefix, subdomain, index: index ? Number(index) : 0 };
+export function isPluginSubdomain(identifier: string): boolean {
+  return PLUGIN_IDENTIFIER_REGEX.test(identifier);
 }
 
-/** Assign `subdomain[:n]` identifiers, numbering repeated installs. */
-export function buildPluginInfos(rawPlugins: RawPlugin[]): PluginInfo[] {
-  const counters = new Map<string, number>();
-  return rawPlugins.map((plugin) => {
-    if (!plugin.repoSubdomain) {
-      return { ...plugin, identifier: plugin.address.toLowerCase() };
-    }
-    const count = counters.get(plugin.repoSubdomain) ?? 0;
-    counters.set(plugin.repoSubdomain, count + 1);
-    const identifier =
-      count === 0 ? plugin.repoSubdomain : `${plugin.repoSubdomain}:${count}`;
-    return { ...plugin, identifier };
-  });
+/** Display name of a plugin: its repo subdomain, or its address for unknown repos. */
+export function pluginDisplayName(plugin: PluginInfo): string {
+  return plugin.repoSubdomain ?? plugin.address.toLowerCase();
 }
 
-/** Find a plugin by identifier (without DAO prefix) or address. */
+/** Number of installed plugins from the given repo subdomain. */
+export function countPlugins(dao: DaoContext, subdomain: string): number {
+  return dao.plugins.filter((p) => p.repoSubdomain === subdomain).length;
+}
+
+/** Find a plugin by repo subdomain (and instance index) or address. */
 export function resolvePluginInfo(
   dao: DaoContext,
   identifierOrAddress: string,
+  index = 0,
 ): PluginInfo | undefined {
   if (isAddress(identifierOrAddress)) {
     return dao.plugins.find((p) =>
       isAddressEqual(p.address, identifierOrAddress as Address),
     );
   }
-  const parsed = parsePluginIdentifier(identifierOrAddress);
-  if (!parsed) return undefined;
-  return dao.plugins.find(
-    (p) =>
-      p.repoSubdomain === parsed.subdomain &&
-      p.identifier ===
-        (parsed.index === 0
-          ? parsed.subdomain
-          : `${parsed.subdomain}:${parsed.index}`),
-  );
+  if (!isPluginSubdomain(identifierOrAddress)) return undefined;
+  return dao.plugins.filter((p) => p.repoSubdomain === identifierOrAddress)[
+    index
+  ];
 }
 
 /** Resolve a DAO name to its address: subgraph subdomain lookup, then ENS. */
@@ -97,7 +81,6 @@ export async function resolveDaoAddress(
 export async function loadDao(
   module: AragonOSx,
   daoAddressOrName: string,
-  nestingIndex: number,
 ): Promise<DaoContext> {
   const deployment = await getDeployment(module);
   const client = (await module.getClient()) as PublicClient;
@@ -114,7 +97,7 @@ export async function loadDao(
 
   const cached = module.getCachedDao(chainId, daoAddress);
   if (cached) {
-    return { ...cached, nestingIndex };
+    return cached;
   }
 
   let rawPlugins: RawPlugin[] | undefined;
@@ -150,8 +133,7 @@ export async function loadDao(
   const dao: DaoContext = {
     address: daoAddress,
     subdomain,
-    plugins: buildPluginInfos(rawPlugins),
-    nestingIndex,
+    plugins: rawPlugins.map((plugin) => ({ ...plugin })),
   };
 
   module.setCachedDao(chainId, daoAddress, dao);

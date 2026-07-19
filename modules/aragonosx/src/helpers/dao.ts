@@ -3,26 +3,15 @@ import type AragonOSx from "..";
 
 export default defineHelper<AragonOSx>({
   name: "dao",
-  description: "Resolve the connected DAO (or a named one) to its address.",
+  description: "Resolve the connected DAO to its address.",
   returnType: "address",
-  args: [
-    {
-      name: "daoIdentifier",
-      type: "string",
-      description: "Subdomain or address of a connected DAO",
-      optional: true,
-    },
-  ],
-  async run(module, { daoIdentifier }) {
-    const dao = daoIdentifier
-      ? module.findDAO(daoIdentifier)
-      : module.currentDAO;
+  args: [],
+  async run(module) {
+    const dao = module.currentDAO;
 
     if (!dao) {
       throw new ErrorException(
-        daoIdentifier
-          ? `DAO "${daoIdentifier}" is not connected`
-          : '@dao() must be used within a "connect" command',
+        '@dao() must be used within a "connect" command',
       );
     }
 

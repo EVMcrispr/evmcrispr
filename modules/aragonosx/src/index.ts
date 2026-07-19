@@ -1,9 +1,8 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import { defineModule, ErrorException } from "@evmcrispr/sdk";
-import { isAddress, isAddressEqual } from "viem";
 import { commands, helpers } from "./_generated";
 import { types } from "./argTypes";
-import { parsePluginIdentifier, resolvePluginInfo } from "./dao";
+import { countPlugins, resolvePluginInfo } from "./dao";
 import type { DaoContext, PluginInfo } from "./types";
 
 /** `address(type(uint160).max)` — OSx wildcard for `who`/`where`. */
@@ -16,45 +15,27 @@ export default class AragonOSx extends defineModule(
   types,
   { ANY_ENTITY },
 ) {
-  /** All DAOs ever connected (append-only). */
-  #connectedDAOs: DaoContext[];
-  /** Active nesting stack (push/pop). Tracks the current DAO scope. */
-  #daoStack: DaoContext[];
+  /** The DAO of the enclosing `connect` block, if any. */
+  #currentDAO?: DaoContext;
   /** Discovery cache: `chainId:address` → loaded DAO. */
   #daoCache: Map<string, DaoContext>;
 
   constructor(context: ModuleContext) {
     super(context);
 
-    this.#connectedDAOs = [];
-    this.#daoStack = [];
     this.#daoCache = new Map();
   }
 
-  get connectedDAOs(): DaoContext[] {
-    return this.#connectedDAOs;
-  }
-
   get currentDAO(): DaoContext | undefined {
-    return this.#daoStack.at(-1);
+    return this.#currentDAO;
   }
 
-  pushDAO(dao: DaoContext): void {
-    this.#connectedDAOs.push(dao);
-    this.#daoStack.push(dao);
+  setCurrentDAO(dao: DaoContext): void {
+    this.#currentDAO = dao;
   }
 
-  popDAO(): void {
-    this.#daoStack.pop();
-  }
-
-  /** Find a connected DAO by subdomain or address. */
-  findDAO(identifier: string): DaoContext | undefined {
-    return this.#connectedDAOs.find(
-      (d) =>
-        d.subdomain === identifier ||
-        (isAddress(identifier) && isAddressEqual(d.address, identifier)),
-    );
+  clearCurrentDAO(): void {
+    this.#currentDAO = undefined;
   }
 
   /** The current DAO, or throw when used outside a `connect` block. */
@@ -69,35 +50,28 @@ export default class AragonOSx extends defineModule(
   }
 
   /**
-   * Resolve a plugin reference: an identifier (`token-voting:1`, optionally
-   * `_dao:`-prefixed to target another connected DAO) or a plugin address.
+   * Resolve a plugin reference: a repo subdomain (`token-voting`, with an
+   * optional instance index for repeated installs) or a plugin address.
    */
   resolvePlugin(
     identifierOrAddress: string,
     commandName: string,
+    index = 0,
   ): { dao: DaoContext; plugin: PluginInfo } {
-    const parsed = isAddress(identifierOrAddress)
-      ? undefined
-      : parsePluginIdentifier(identifierOrAddress);
+    const dao = this.requireCurrentDAO(commandName);
 
-    const dao = parsed?.daoPrefix
-      ? this.findDAO(parsed.daoPrefix)
-      : this.currentDAO;
-
-    if (!dao) {
-      throw new ErrorException(
-        parsed?.daoPrefix
-          ? `DAO "${parsed.daoPrefix}" not found for identifier "${identifierOrAddress}"`
-          : `${commandName} must be used within a "connect" command`,
-      );
-    }
-
-    const plugin = resolvePluginInfo(dao, identifierOrAddress);
+    const plugin = resolvePluginInfo(dao, identifierOrAddress, index);
     if (!plugin) {
+      const daoLabel = dao.subdomain ?? dao.address;
+      const count = countPlugins(dao, identifierOrAddress);
+
+      if (count > 0) {
+        throw new ErrorException(
+          `plugin "${identifierOrAddress}" has only ${count} instance(s) in DAO ${daoLabel} (requested index ${index})`,
+        );
+      }
       throw new ErrorException(
-        `plugin "${identifierOrAddress}" not found in DAO ${
-          dao.subdomain ?? dao.address
-        }`,
+        `plugin "${identifierOrAddress}" not found in DAO ${daoLabel}`,
       );
     }
 

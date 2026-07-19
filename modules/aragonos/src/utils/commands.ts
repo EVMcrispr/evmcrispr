@@ -1,43 +1,16 @@
-import type {
-  Address,
-  BindingsManager,
-  CommandExpressionNode,
-  Node,
-  NodeInterpreter,
-} from "@evmcrispr/sdk";
-import {
-  ErrorException,
-  getOptValue,
-  listItems,
-  NodeType,
-} from "@evmcrispr/sdk";
+import type { Address, BindingsManager } from "@evmcrispr/sdk";
+import { ErrorException, listItems } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
 import { type DaoContext, resolveApp } from "../dao";
 import type { App, CompletePermission, PermissionMap, Role } from "../types";
-import { findCompletionDAO, getDAOs } from "./completion";
-import {
-  optionalLabeledAppIdentifierRegex,
-  parsePrefixedDAOIdentifier,
-} from "./identifiers";
+import { getCompletionDAO } from "./completion";
 import { normalizeRole } from "./normalizers";
-
-export const DAO_OPT_NAME = "dao";
-
-export const parseDaoPrefixedIdentifier = (
-  identifier: string,
-): [string | undefined, string] | undefined => {
-  const [daoName, rest] = parsePrefixedDAOIdentifier(identifier);
-  if (!optionalLabeledAppIdentifierRegex.test(rest)) {
-    return undefined;
-  }
-  return [daoName, rest];
-};
 
 // --- Runtime path: uses module instance ---
 
 /**
- * Get DAO from the module's stack. Used by runtime (run) functions.
+ * Get DAO from the module's current connect block. Used by runtime (run) functions.
  */
 export const getModuleDAO = (module: AragonOS): DaoContext => {
   const dao = module.currentDAO;
@@ -47,93 +20,13 @@ export const getModuleDAO = (module: AragonOS): DaoContext => {
   return dao;
 };
 
-/**
- * Get DAO from --dao option or current DAO on the module's stack.
- * Used by runtime (run) functions.
- */
-export const getModuleDAOByOption = async (
-  c: CommandExpressionNode,
-  module: AragonOS,
-  interpretNode: NodeInterpreter,
-): Promise<DaoContext> => {
-  let daoIdentifier = await getOptValue(c, "dao", interpretNode);
+// --- Completions / eager execution path: uses WeakMap-backed DAO slot ---
 
-  if (!daoIdentifier) {
-    const dao = module.currentDAO;
-    if (!dao) {
-      throw new ErrorException('must be used within a "connect" command');
-    }
-    return dao;
-  }
-
-  daoIdentifier = daoIdentifier.toString
-    ? daoIdentifier.toString()
-    : daoIdentifier;
-  const dao = module.findDAO(daoIdentifier);
-  if (!dao) {
-    throw new ErrorException(
-      `--dao option error. No DAO found for identifier ${daoIdentifier}`,
-    );
-  }
-  return dao;
-};
-
-// --- Completions / eager execution path: uses WeakMap-backed DAO stack ---
-
-export const getDAO = (
-  bindingsManager: BindingsManager,
-  appNode: Node,
-): DaoContext => {
-  const daos = getDAOs(bindingsManager);
-  let dao: DaoContext | undefined = daos[0];
-
-  if (appNode.type === NodeType.Bareword) {
-    const res = parseDaoPrefixedIdentifier(appNode.value);
-
-    if (res?.[0]) {
-      const [daoIdentifier] = res;
-
-      dao = findCompletionDAO(bindingsManager, daoIdentifier);
-      if (!dao) {
-        throw new ErrorException(
-          `couldn't found a DAO for ${daoIdentifier} on given identifier ${appNode.value}`,
-        );
-      }
-    }
-  }
+export const getDAO = (bindingsManager: BindingsManager): DaoContext => {
+  const dao = getCompletionDAO(bindingsManager);
 
   if (!dao) {
     throw new ErrorException('must be used within a "connect" command');
-  }
-
-  return dao;
-};
-
-export const getDAOByOption = async (
-  c: CommandExpressionNode,
-  bindingsManager: BindingsManager,
-  interpretNode: NodeInterpreter,
-): Promise<DaoContext> => {
-  let daoIdentifier = await getOptValue(c, "dao", interpretNode);
-
-  let dao: DaoContext | undefined;
-
-  if (!daoIdentifier) {
-    const daos = getDAOs(bindingsManager);
-    dao = daos[0];
-    if (!dao) {
-      throw new ErrorException(`must be used within a "connect" command`);
-    }
-  } else {
-    daoIdentifier = daoIdentifier.toString
-      ? daoIdentifier.toString()
-      : daoIdentifier;
-    dao = findCompletionDAO(bindingsManager, daoIdentifier);
-    if (!dao) {
-      throw new ErrorException(
-        `--dao option error. No DAO found for identifier ${daoIdentifier}`,
-      );
-    }
   }
 
   return dao;

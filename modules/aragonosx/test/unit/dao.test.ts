@@ -1,8 +1,9 @@
 import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 import {
-  buildPluginInfos,
-  parsePluginIdentifier,
+  countPlugins,
+  isPluginSubdomain,
+  pluginDisplayName,
   resolvePluginInfo,
 } from "../../src/dao";
 import type { DaoContext } from "../../src/types";
@@ -15,7 +16,7 @@ import {
   TOKEN_VOTING_REPO,
 } from "../fixtures";
 
-const RAW_PLUGINS = [
+const PLUGINS = [
   {
     address: TOKEN_VOTING_PLUGIN,
     repoSubdomain: "token-voting",
@@ -40,52 +41,46 @@ const RAW_PLUGINS = [
   },
 ];
 
+const DAO: DaoContext = {
+  address: DAO_ADDRESS,
+  plugins: PLUGINS,
+};
+
 describe("AragonOSx > dao", () => {
-  it("parses plugin identifiers", () => {
-    expect(parsePluginIdentifier("token-voting")).to.eql({
-      daoPrefix: undefined,
-      subdomain: "token-voting",
-      index: 0,
-    });
-    expect(parsePluginIdentifier("multisig:1")).to.eql({
-      daoPrefix: undefined,
-      subdomain: "multisig",
-      index: 1,
-    });
-    expect(parsePluginIdentifier("_mydao:multisig:1")).to.eql({
-      daoPrefix: "mydao",
-      subdomain: "multisig",
-      index: 1,
-    });
-    expect(parsePluginIdentifier("-bad-")).to.equal(undefined);
+  it("recognizes plugin subdomains", () => {
+    expect(isPluginSubdomain("token-voting")).to.be.true;
+    expect(isPluginSubdomain("multisig")).to.be.true;
+    expect(isPluginSubdomain("multisig:1")).to.be.false;
+    expect(isPluginSubdomain("_mydao:multisig")).to.be.false;
+    expect(isPluginSubdomain("-bad-")).to.be.false;
   });
 
-  it("numbers repeated installs and falls back to addresses", () => {
-    const infos = buildPluginInfos(RAW_PLUGINS);
-    expect(infos.map((p) => p.identifier)).to.eql([
+  it("derives display names from subdomains, falling back to addresses", () => {
+    expect(DAO.plugins.map(pluginDisplayName)).to.eql([
       "token-voting",
       "multisig",
-      "multisig:1",
+      "multisig",
       "0x9999999999999999999999999999999999999999",
     ]);
   });
 
-  it("resolves plugins by identifier and address", () => {
-    const dao: DaoContext = {
-      address: DAO_ADDRESS,
-      plugins: buildPluginInfos(RAW_PLUGINS),
-      nestingIndex: 1,
-    };
+  it("counts plugins per subdomain", () => {
+    expect(countPlugins(DAO, "multisig")).to.equal(2);
+    expect(countPlugins(DAO, "token-voting")).to.equal(1);
+    expect(countPlugins(DAO, "unknown")).to.equal(0);
+  });
 
-    expect(resolvePluginInfo(dao, "multisig")?.address).to.equal(
+  it("resolves plugins by subdomain, index, and address", () => {
+    expect(resolvePluginInfo(DAO, "multisig")?.address).to.equal(
       MULTISIG_PLUGIN,
     );
-    expect(resolvePluginInfo(dao, "multisig:1")?.address).to.equal(
+    expect(resolvePluginInfo(DAO, "multisig", 1)?.address).to.equal(
       MULTISIG_PLUGIN_2,
     );
-    expect(resolvePluginInfo(dao, TOKEN_VOTING_PLUGIN)?.identifier).to.equal(
+    expect(resolvePluginInfo(DAO, "multisig", 2)).to.equal(undefined);
+    expect(resolvePluginInfo(DAO, TOKEN_VOTING_PLUGIN)?.repoSubdomain).to.equal(
       "token-voting",
     );
-    expect(resolvePluginInfo(dao, "unknown")).to.equal(undefined);
+    expect(resolvePluginInfo(DAO, "unknown")).to.equal(undefined);
   });
 });

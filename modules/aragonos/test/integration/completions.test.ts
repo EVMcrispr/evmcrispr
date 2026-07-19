@@ -251,19 +251,20 @@ describe("Completions – aragonos commands", () => {
       expect(items).to.be.an("array");
     });
 
-    it("install $app repo:thing <cursor> should show items for rest params", async () => {
-      const { script, line } = inConnect("install $app repo:thing ");
+    it("install $app token-manager <cursor> should show items for rest params", async () => {
+      const { script, line } = inConnect("install $app token-manager ");
       const items = await evm.getCompletions(script, pos(script, line));
       expect(items).to.be.an("array");
     });
 
-    it("install $app repo:thing $param --<cursor> should show --dao and --version opts", async () => {
-      const { script, line } = inConnect("install $app repo:thing $param --");
+    it("install $app token-manager $param --<cursor> should show the --version opt", async () => {
+      const { script, line } = inConnect(
+        "install $app token-manager $param --",
+      );
       const items = await evm.getCompletions(script, pos(script, line));
       const optLabels = labels(items);
-      expect(optLabels).to.include("--dao");
       expect(optLabels).to.include("--version");
-      expect(items).to.have.lengthOf(2);
+      expect(items).to.have.lengthOf(1);
     });
   });
 

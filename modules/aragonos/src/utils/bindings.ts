@@ -11,7 +11,7 @@ export const buildAbiBindings = (
   const bindings: Binding[] = [];
   const seen = new Set<string>();
 
-  dao.appCache.forEach((app) => {
+  dao.apps.forEach((app) => {
     const addrKey = abiBindingKey(chainId, app.address);
     if (!seen.has(addrKey)) {
       seen.add(addrKey);

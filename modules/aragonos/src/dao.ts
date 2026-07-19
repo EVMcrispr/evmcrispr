@@ -1,31 +1,26 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
 import { AddressMap, fetchAbi } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { getContractAddress, isAddress } from "viem";
+import { getContractAddress, isAddress, isAddressEqual } from "viem";
 import { organizationApps } from "./subgraph";
 import type {
   App,
-  AppCache,
   AppResourceCache,
   Entity,
-  LabeledAppIdentifier,
   ParsedApp,
   PermissionMap,
   Role,
 } from "./types";
 import {
+  appDisplayName,
   buildApp,
-  buildAppIdentifier,
   buildAppResource,
-  INITIAL_APP_INDEX,
   normalizeRole,
-  resolveIdentifier,
 } from "./utils";
 
 export interface DaoContext {
-  appCache: AppCache;
-  appResourceCache: AppResourceCache;
-  nestingIndex: number;
+  /** The DAO's apps in chronological installation order. */
+  apps: App[];
   name?: string;
 }
 
@@ -61,12 +56,9 @@ async function buildAppResourceCache(
   return appResourceCache;
 }
 
-async function buildAppCache(apps: App[]): Promise<AppCache> {
-  const appCache: AppCache = new Map();
-  const appCounter = new Map();
-
+function sortAppsByCreation(apps: App[]): App[] {
   const kernel = apps.find((app) => app.name.toLowerCase() === "kernel")!;
-  const sortedParsedApps = [kernel];
+  const sortedApps = [kernel];
 
   const addressToApp = apps.reduce((accumulator, app) => {
     accumulator.set(app.address, app);
@@ -81,32 +73,21 @@ async function buildAppCache(apps: App[]): Promise<AppCache> {
     });
 
     if (addressToApp.has(address.toLowerCase())) {
-      sortedParsedApps.push(addressToApp.get(address.toLowerCase()));
+      sortedApps.push(addressToApp.get(address.toLowerCase()));
     }
   }
 
-  // Create app cache
-  for (const app of sortedParsedApps) {
-    const { name } = app;
-    const counter = appCounter.has(name)
-      ? appCounter.get(name)
-      : Number(INITIAL_APP_INDEX[1]);
-    const appIdentifier = buildAppIdentifier(app, counter);
-
-    appCache.set(appIdentifier, app);
-    appCounter.set(name, counter + 1);
-  }
-
-  return appCache;
+  return sortedApps;
 }
 
 export async function loadDao(
   daoAddress: Address,
   client: PublicClient,
-  nestingIndex: number,
   name?: string,
 ): Promise<DaoContext> {
   const parsedApps = await organizationApps(client, daoAddress);
+  // Local dedupe of ABI fetches per implementation address; ABIs are cached
+  // globally in the ABI bindings space, not on the DAO context.
   const appResourceCache = await buildAppResourceCache(parsedApps, client);
   const apps = (
     await Promise.all(
@@ -115,33 +96,48 @@ export async function loadDao(
       ),
     )
   ).filter((app: App | null) => !!app);
-  const appCache = await buildAppCache(apps as App[]);
 
-  return { appCache, appResourceCache, nestingIndex, name };
+  return { apps: sortAppsByCreation(apps as App[]), name };
 }
 
 export function getKernel(dao: DaoContext): App {
-  return resolveApp(dao, `kernel${INITIAL_APP_INDEX}`)!;
+  return resolveApp(dao, "kernel")!;
 }
 
-export function resolveApp(dao: DaoContext, entity: Entity): App | undefined {
+export function resolveApp(
+  dao: DaoContext,
+  entity: Entity,
+  index = 0,
+): App | undefined {
   if (isAddress(entity)) {
-    const app = [...dao.appCache.entries()].find(
-      ([, app]) => app.address === entity,
-    );
-
-    return app ? app[1] : undefined;
+    return dao.apps.find((app) => isAddressEqual(app.address, entity));
   }
-  const resolvedIdentifier = resolveIdentifier(entity);
 
-  return dao.appCache.get(resolvedIdentifier);
+  return dao.apps.filter(
+    (app) => appDisplayName(app.name, app.registryName) === entity,
+  )[index];
 }
 
+/** Number of installed apps sharing the given display name. */
+export function countApps(dao: DaoContext, name: string): number {
+  return dao.apps.filter(
+    (app) => appDisplayName(app.name, app.registryName) === name,
+  ).length;
+}
+
+/**
+ * The DAO's permissions indexed by a display-ready app identifier
+ * (`name` for the first instance, `name <index>` for later ones).
+ */
 export function getPermissions(dao: DaoContext): [string, PermissionMap][] {
-  return [...dao.appCache.entries()].map(([appName, app]) => [
-    appName,
-    app.permissions,
-  ]);
+  const counters = new Map<string, number>();
+
+  return dao.apps.map((app) => {
+    const name = appDisplayName(app.name, app.registryName);
+    const index = counters.get(name) ?? 0;
+    counters.set(name, index + 1);
+    return [index === 0 ? name : `${name} ${index}`, app.permissions];
+  });
 }
 
 export function getPermission(
@@ -162,7 +158,7 @@ export function getPermission(
 export function hasPermission(
   dao: DaoContext,
   entity: Address,
-  appIdentifier: LabeledAppIdentifier,
+  appIdentifier: Entity,
   roleNameOrHash: string,
 ): boolean {
   const role = getPermission(dao, appIdentifier, roleNameOrHash);
@@ -200,9 +196,7 @@ export function getPermissionManager(
 
 export function cloneDao(dao: DaoContext): DaoContext {
   return {
-    appCache: structuredClone(dao.appCache),
-    appResourceCache: dao.appResourceCache,
-    nestingIndex: dao.nestingIndex,
+    apps: structuredClone(dao.apps),
     name: dao.name,
   };
 }

@@ -83,22 +83,14 @@ export default defineCommand<AragonOSx>({
     );
 
     // Register the predicted plugin so later commands in the same script can
-    // reference it by identifier.
+    // reference it by subdomain (and instance index).
     const repoSubdomain = isAddress(repo)
       ? Object.entries(deployment.repos ?? {}).find(
           ([, address]) => address.toLowerCase() === repo.toLowerCase(),
         )?.[0]
       : repo;
-    const count = dao.plugins.filter(
-      (p) => p.repoSubdomain === repoSubdomain,
-    ).length;
     dao.plugins.push({
       address: getAddress(pluginAddress),
-      identifier: repoSubdomain
-        ? count === 0
-          ? repoSubdomain
-          : `${repoSubdomain}:${count}`
-        : pluginAddress.toLowerCase(),
       repoSubdomain: repoSubdomain as KnownRepo | undefined,
       repoAddress,
       versionTag: version.tag,

@@ -2,6 +2,7 @@ import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type AragonOSx from "..";
 import { DAO_ABI } from "../abis";
 import { getDeployment } from "../addresses";
+import { pluginDisplayName } from "../dao";
 import { abiAction } from "../utils/encode";
 import {
   encodeSetupData,
@@ -53,7 +54,7 @@ export default defineCommand<AragonOSx>({
 
     if (!plugin.repoAddress || !plugin.versionTag) {
       throw new ErrorException(
-        `plugin ${plugin.identifier} comes from an unknown repo and can't be upgraded with this command`,
+        `plugin ${pluginDisplayName(plugin)} comes from an unknown repo and can't be upgraded with this command`,
       );
     }
 
@@ -74,7 +75,7 @@ export default defineCommand<AragonOSx>({
     }
     if (newVersion.tag.build <= plugin.versionTag.build) {
       throw new ErrorException(
-        `plugin ${plugin.identifier} is already on build ${plugin.versionTag.build} (target: ${newVersion.tag.build})`,
+        `plugin ${pluginDisplayName(plugin)} is already on build ${plugin.versionTag.build} (target: ${newVersion.tag.build})`,
       );
     }
 

@@ -1,43 +1,54 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type AragonOS from "..";
-import { getKernel, resolveApp } from "../dao";
-import { parsePrefixedDAOIdentifier } from "../utils";
+import { countApps, getKernel, resolveApp } from "../dao";
 
 export default defineHelper<AragonOS>({
   name: "app",
   description:
-    "Resolve an app identifier to its proxy address within the connected DAO.",
+    "Resolve an app name to its proxy address within the connected DAO.",
   returnType: "address",
   args: [
     {
-      name: "appIdentifier",
+      name: "appName",
       type: "string",
-      description: "App name, or `dao:app` for cross-DAO lookup",
+      description: "App name (e.g. `vault`, `voting.open`)",
+    },
+    {
+      name: "index",
+      type: "number",
+      optional: true,
+      description: "Instance index when multiple apps share a name (0 = first)",
     },
   ],
-  async run(module, { appIdentifier }) {
-    const [daoPrefix, rest] = parsePrefixedDAOIdentifier(appIdentifier);
-
-    const dao = daoPrefix
-      ? module.connectedDAOs.find(
-          (d) =>
-            getKernel(d).address.toLowerCase() === daoPrefix.toLowerCase() ||
-            d.name === daoPrefix,
-        )
-      : module.currentDAO;
+  async run(module, { appName, index: rawIndex }) {
+    const dao = module.currentDAO;
 
     if (!dao) {
       throw new ErrorException(
-        daoPrefix
-          ? `DAO "${daoPrefix}" not found for identifier "${appIdentifier}"`
-          : '@app() must be used within a "connect" command',
+        '@app() must be used within a "connect" command',
       );
     }
 
-    const app = resolveApp(dao, rest);
-    if (!app) {
+    const index = rawIndex === undefined ? 0 : Number(rawIndex);
+    if (!Number.isInteger(index) || index < 0) {
       throw new ErrorException(
-        `app "${rest}" not found in DAO ${dao.name ?? getKernel(dao).address}`,
+        `@app() index must be a non-negative integer, got ${rawIndex}`,
+      );
+    }
+
+    const app = resolveApp(dao, appName, index);
+    if (!app) {
+      const daoLabel = dao.name ?? getKernel(dao).address;
+      const count = countApps(dao, appName);
+
+      if (count === 0) {
+        throw new ErrorException(
+          `app "${appName}" not found in DAO ${daoLabel}`,
+        );
+      }
+
+      throw new ErrorException(
+        `app "${appName}" has only ${count} instance(s) in DAO ${daoLabel} (requested index ${index})`,
       );
     }
 

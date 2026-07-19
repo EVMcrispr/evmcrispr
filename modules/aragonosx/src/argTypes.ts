@@ -1,7 +1,7 @@
 import type { CustomArgTypes } from "@evmcrispr/sdk";
 import { ErrorException, fieldItem } from "@evmcrispr/sdk";
 import { isAddress } from "viem";
-import { parsePluginIdentifier } from "./dao";
+import { isPluginSubdomain } from "./dao";
 import { DAO_PERMISSIONS } from "./utils/permissions";
 
 export const types: CustomArgTypes = {
@@ -19,7 +19,7 @@ export const types: CustomArgTypes = {
       if (typeof value !== "string") {
         throw new ErrorException(`${name} must be a string, got ${value}`);
       }
-      if (!isAddress(value) && !parsePluginIdentifier(value)) {
+      if (!isAddress(value) && !isPluginSubdomain(value)) {
         throw new ErrorException(
           `${name} must be a plugin identifier or address, got ${value}`,
         );

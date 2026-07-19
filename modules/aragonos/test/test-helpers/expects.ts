@@ -1,7 +1,5 @@
 import type { ParsedApp } from "@evmcrispr/module-aragonos/types";
-import { ErrorInvalid } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
-import { expectThrowAsync } from "@evmcrispr/test-utils/evml";
 import { multihash } from "is-ipfs";
 import { isAddress } from "viem";
 
@@ -9,64 +7,6 @@ const HASH_REGEX = /^0x[a-zA-Z0-9]{64}$/;
 
 export const expectHash = (hash: string, message?: string): void => {
   expect(HASH_REGEX.test(hash), message).to.be.true;
-};
-
-export const isValidIdentifier = (
-  evmcrisprMethod: (invalidIdentifier: string) => any,
-  checkLabeledAppIdentifier = false,
-  checkAppIdentifier = false,
-): (() => Promise<void>) => {
-  return async () => {
-    const expectedError = new ErrorInvalid("", {
-      name: "ErrorInvalidIdentifier",
-    });
-
-    await expectThrowAsync(
-      evmcrisprMethod(""),
-      expectedError,
-      "Empty identifier",
-    );
-
-    await expectThrowAsync(
-      evmcrisprMethod("Vault"),
-      expectedError,
-      "Uppercase letter in identifier",
-    );
-
-    await expectThrowAsync(
-      evmcrisprMethod("vault:"),
-      expectedError,
-      "Incomplete identifier",
-    );
-
-    await expectThrowAsync(
-      evmcrisprMethod("vault%"),
-      expectedError,
-      "Invalid character in identifier",
-    );
-
-    await expectThrowAsync(
-      evmcrisprMethod("vault."),
-      expectedError,
-      "Incomplete repository in identifier",
-    );
-
-    if (checkLabeledAppIdentifier) {
-      await expectThrowAsync(
-        evmcrisprMethod("vault:new-vau/lt"),
-        expectedError,
-        "Label containing invalid character",
-      );
-    }
-
-    if (checkAppIdentifier) {
-      await expectThrowAsync(
-        evmcrisprMethod("vault:2new"),
-        expectedError,
-        "Index containing non-numeric character",
-      );
-    }
-  };
 };
 
 export const isValidParsedApp = (app: ParsedApp): void => {

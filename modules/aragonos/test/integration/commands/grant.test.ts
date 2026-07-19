@@ -1,13 +1,11 @@
 import "../../setup";
 
-import type AragonOS from "@evmcrispr/module-aragonos";
 import { oracle } from "@evmcrispr/module-aragonos/utils";
 import { type Action, CommandError } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { keccak256, toHex } from "viem";
-import { resolveApp } from "../../../src/dao";
-import { DAO, DAO2 } from "../../fixtures";
+import { DAO } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
 
@@ -28,7 +26,7 @@ describeCommand("grant", {
     {
       name: "should return a correct grant permission action",
       script: `grant @me @app(agent) TRANSFER_ROLE\n)`,
-      validate: async (granteeActions, interpreter) => {
+      validate: async (granteeActions) => {
         const expectedGranteeActions = [
           createTestAction("grantPermission", DAO.acl, [
             TEST_ACCOUNT_ADDRESS,
@@ -36,26 +34,15 @@ describeCommand("grant", {
             keccak256(toHex("TRANSFER_ROLE")),
           ]),
         ];
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao ? resolveApp(dao, "agent") : undefined;
-        const grantees = app?.permissions?.get(
-          keccak256(toHex("TRANSFER_ROLE")),
-        )?.grantees;
-
         expect(granteeActions, "Returned actions mismatch").to.eqls(
           expectedGranteeActions,
         );
-        expect(
-          grantees,
-          "Grantee wasn't found on DAO app's permissions",
-        ).to.include(TEST_ACCOUNT_ADDRESS);
       },
     },
     {
       name: "should return a correct create permission action",
       script: `grant @app(disputable-voting.open) @app(wrappable-hooked-token-manager.open) WRAP_TOKEN_ROLE @me\n)`,
-      validate: async (createPermissionAction, interpreter) => {
+      validate: async (createPermissionAction) => {
         const expectedPermissionManager = TEST_ACCOUNT_ADDRESS;
         const expectedCreatePermissionActions = [
           createTestAction("createPermission", DAO.acl, [
@@ -65,26 +52,9 @@ describeCommand("grant", {
             expectedPermissionManager,
           ]),
         ];
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel);
-        const app = dao
-          ? resolveApp(dao, "wrappable-hooked-token-manager.open")
-          : undefined;
-        const permission = app?.permissions?.get(
-          keccak256(toHex("WRAP_TOKEN_ROLE")),
-        );
-
         expect(createPermissionAction, "Returned actions mismatch").to.eql(
           expectedCreatePermissionActions,
         );
-        expect(
-          permission?.grantees,
-          "Grantee wasn't found on DAO app's permission",
-        ).to.have.key(DAO["disputable-voting.open"]);
-        expect(
-          permission?.manager,
-          "DAO app's permission manager mismatch",
-        ).to.equals(expectedPermissionManager);
       },
     },
     {
@@ -200,28 +170,7 @@ describeCommand("grant", {
 describeCommand("grant", {
   describeName: "AragonOS > commands > grant > special cases",
   module: "aragonos",
-  cases: [
-    {
-      name: "should return a correct grant permission action from a different DAO app",
-      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:disputable-voting.open) CREATE_VOTES_ROLE\n  )\n)`,
-      validate: async (grantActions) => {
-        const expectedGrantActions = [
-          createTestAction("grantPermission", DAO.acl, [
-            DAO2["disputable-voting.open"],
-            DAO["disputable-voting.open"],
-            keccak256(toHex("CREATE_VOTES_ROLE")),
-          ]),
-        ];
-        expect(grantActions).to.eql(expectedGrantActions);
-      },
-    },
-  ],
   errorCases: [
-    {
-      name: "should fail when passing an invalid app DAO prefix",
-      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(_${DAO.kernel}:disputable-voting.open) @app(_invalid-dao-prefix:token-manager) SOME_ROLE\n  )\n)`,
-      error: "invalid-dao-prefix",
-    },
     {
       name: 'should fail when executing it outside a "connect" command',
       script: `load aragonos\naragonos:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE`,

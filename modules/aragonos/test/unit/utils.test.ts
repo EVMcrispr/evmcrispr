@@ -1,18 +1,13 @@
 import { describe, it } from "bun:test";
 import { subgraphUrlFromChainId } from "@evmcrispr/module-aragonos/subgraph";
 import {
-  buildAppIdentifier,
-  createDaoPrefixedIdentifier,
+  appDisplayName,
   decodeCallScript,
   encodeCallScript,
-  formatAppIdentifier,
-  isAppIdentifier,
   isCallScript,
-  isLabeledAppIdentifier,
+  isRepoIdentifier,
   normalizeRole,
-  parseLabeledAppIdentifier,
-  parsePrefixedDAOIdentifier,
-  resolveIdentifier,
+  parseRepoIdentifier,
 } from "@evmcrispr/module-aragonos/utils";
 import { expect } from "@evmcrispr/test-utils";
 import { keccak256, toHex } from "viem";
@@ -76,100 +71,50 @@ describe("AragonOS > utils > evmscripts", () => {
 });
 
 describe("AragonOS > utils > identifiers", () => {
-  describe("isAppIdentifier()", () => {
-    it("should recognize valid app identifiers", () => {
-      expect(isAppIdentifier("agent")).to.be.true;
-      expect(isAppIdentifier("token-manager")).to.be.true;
-      expect(isAppIdentifier("vault:1")).to.be.true;
-      expect(isAppIdentifier("voting.open:0")).to.be.true;
+  describe("isRepoIdentifier()", () => {
+    it("should recognize valid repo identifiers", () => {
+      expect(isRepoIdentifier("agent")).to.be.true;
+      expect(isRepoIdentifier("token-manager")).to.be.true;
+      expect(isRepoIdentifier("voting.open")).to.be.true;
     });
 
     it("should reject invalid identifiers", () => {
-      expect(isAppIdentifier("")).to.be.false;
-      expect(isAppIdentifier("$var")).to.be.false;
+      expect(isRepoIdentifier("")).to.be.false;
+      expect(isRepoIdentifier("$var")).to.be.false;
+      expect(isRepoIdentifier("vault:1")).to.be.false;
+      expect(isRepoIdentifier("agent:new")).to.be.false;
+      expect(isRepoIdentifier("_mydao:agent")).to.be.false;
+      expect(isRepoIdentifier("Vault")).to.be.false;
     });
   });
 
-  describe("isLabeledAppIdentifier()", () => {
-    it("should recognize labeled identifiers", () => {
-      expect(isLabeledAppIdentifier("agent:new")).to.be.true;
-      expect(isLabeledAppIdentifier("vault.open:main")).to.be.true;
-      expect(isLabeledAppIdentifier("agent:0")).to.be.true;
-      expect(isLabeledAppIdentifier("_mydao:agent:0")).to.be.true;
-    });
-  });
-
-  describe("resolveIdentifier()", () => {
-    it("should append :0 to bare identifiers", () => {
-      expect(resolveIdentifier("agent")).to.equal("agent:0");
-    });
-
-    it("should keep identifiers with explicit index", () => {
-      expect(resolveIdentifier("agent:1")).to.equal("agent:1");
-    });
-
-    it("should handle labeled identifiers", () => {
-      expect(resolveIdentifier("_dao:agent:0")).to.equal("_dao:agent:0");
-    });
-
-    it("should throw for invalid identifiers", () => {
-      expect(() => resolveIdentifier("$invalid")).to.throw();
-    });
-  });
-
-  describe("buildAppIdentifier()", () => {
-    it("should build an identifier from app name and counter", () => {
-      const app = { name: "agent", registryName: "aragonpm.eth" } as any;
-      expect(buildAppIdentifier(app, 0)).to.equal("agent:0");
-    });
-
-    it("should include non-default registry", () => {
-      const app = { name: "vault", registryName: "open.aragonpm.eth" } as any;
-      expect(buildAppIdentifier(app, 1)).to.equal("vault.open:1");
-    });
-  });
-
-  describe("parseLabeledAppIdentifier()", () => {
-    it("should parse a simple labeled identifier", () => {
-      const [name, registry, label] = parseLabeledAppIdentifier("agent:0");
+  describe("parseRepoIdentifier()", () => {
+    it("should parse a bare repo name", () => {
+      const [name, registry] = parseRepoIdentifier("agent");
       expect(name).to.equal("agent");
-      expect(label).to.equal("0");
       expect(registry).to.equal("aragonpm.eth");
     });
 
-    it("should throw for invalid labeled identifiers", () => {
-      expect(() => parseLabeledAppIdentifier("$invalid")).to.throw();
+    it("should parse a registry-qualified repo name", () => {
+      const [name, registry] = parseRepoIdentifier("vault.open");
+      expect(name).to.equal("vault");
+      expect(registry).to.equal("open.aragonpm.eth");
+    });
+
+    it("should throw for invalid identifiers", () => {
+      expect(() => parseRepoIdentifier("$invalid")).to.throw();
+      expect(() => parseRepoIdentifier("vault:new")).to.throw();
     });
   });
 
-  describe("formatAppIdentifier()", () => {
-    it("should strip :0 suffix", () => {
-      expect(formatAppIdentifier("agent:0")).to.equal("agent");
+  describe("appDisplayName()", () => {
+    it("should return the bare name for default-registry apps", () => {
+      expect(appDisplayName("agent", "aragonpm.eth")).to.equal("agent");
     });
 
-    it("should keep non-zero indexes", () => {
-      expect(formatAppIdentifier("agent:1")).to.equal("agent:1");
-    });
-  });
-
-  describe("parsePrefixedDAOIdentifier()", () => {
-    it("should parse a DAO-prefixed identifier", () => {
-      const [dao, appId] = parsePrefixedDAOIdentifier("_myDao:agent");
-      expect(dao).to.equal("myDao");
-      expect(appId).to.equal("agent");
-    });
-
-    it("should return undefined DAO for unprefixed identifiers", () => {
-      const [dao, appId] = parsePrefixedDAOIdentifier("agent");
-      expect(dao).to.be.undefined;
-      expect(appId).to.equal("agent");
-    });
-  });
-
-  describe("createDaoPrefixedIdentifier()", () => {
-    it("should create a DAO-prefixed identifier", () => {
-      expect(createDaoPrefixedIdentifier("agent:0", "myDao")).to.equal(
-        "_myDao:agent:0",
+    it("should qualify non-default registries", () => {
+      expect(appDisplayName("vault", "open.aragonpm.eth")).to.equal(
+        "vault.open",
       );
     });
   });

@@ -6,7 +6,7 @@ import { CommandError } from "@evmcrispr/sdk";
 import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { getContract, keccak256, namehash, toHex } from "viem";
-import { DAO, DAO2, DAO3 } from "../../fixtures";
+import { DAO2 } from "../../fixtures";
 import { createTestAction } from "../../test-helpers/actions";
 import {
   _aragonEns,
@@ -109,33 +109,6 @@ describeCommand("upgrade", {
 describeCommand("upgrade", {
   describeName: "AragonOS > commands > upgrade > special cases",
   module: "aragonos",
-  cases: [
-    {
-      name: "should return a correct upgrade action given a different DAO",
-      script: `load aragonos [connect upgrade]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    connect ${DAO3.kernel} (\n      upgrade _${DAO2.kernel}:disputable-conviction-voting.open\n    )\n  )\n)`,
-      validate: async (upgradeActions, interpreter) => {
-        const client = getPublicClient();
-        const repoAddress = await _aragonEns(
-          "disputable-conviction-voting.open.aragonpm.eth",
-          interpreter.getModule("aragonos") as AragonOS,
-        );
-        const repo = getContract({
-          address: repoAddress!,
-          abi: REPO_ABI,
-          client,
-        });
-        const [, latestImplementationAddress] = await repo.read.getLatest();
-        const expectedUpgradeActions = [
-          createTestAction("setApp", DAO2.kernel, [
-            keccak256(toHex("base")),
-            namehash("disputable-conviction-voting.open.aragonpm.eth"),
-            latestImplementationAddress,
-          ]),
-        ];
-        expect(upgradeActions).to.eql(expectedUpgradeActions);
-      },
-    },
-  ],
   errorCases: [
     {
       name: 'should fail when executing it outside a "connect" command',

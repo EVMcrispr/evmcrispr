@@ -8,12 +8,6 @@ export interface VersionTag {
 /** An installed plugin instance of a connected DAO. */
 export interface PluginInfo {
   address: Address;
-  /**
-   * Identifier within the DAO: the repo subdomain, suffixed with `:<n>` for
-   * repeated installs (`token-voting`, `token-voting:1`). Plugins from
-   * unknown repos are identified by their lowercase address.
-   */
-  identifier: string;
   repoSubdomain?: string;
   repoAddress?: Address;
   versionTag?: VersionTag;
@@ -26,8 +20,8 @@ export interface DaoContext {
   address: Address;
   /** ENS subdomain the DAO was registered with, when known. */
   subdomain?: string;
+  /** Installed plugins in chronological installation order. */
   plugins: PluginInfo[];
-  nestingIndex: number;
 }
 
 /** Discovery result before identifiers are assigned. */

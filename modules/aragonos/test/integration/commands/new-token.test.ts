@@ -112,10 +112,8 @@ describe("AragonOS > commands > new-token <$var> <name> <symbol> <controller> [d
       `
         load aragonos [connect new-token @nextApp]
 
-        aragonos:connect ${DAO.kernel} (
-          connect ${DAO2.kernel} (
-            new-token $token "my-token" MT @nextApp
-          )
+        aragonos:connect ${DAO2.kernel} (
+          new-token $token "my-token" MT @nextApp
         )
       `,
       client,

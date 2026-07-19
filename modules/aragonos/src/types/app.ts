@@ -51,20 +51,9 @@ export interface AppResource {
 }
 
 /**
- * A string that follows the format `<AppName>[:<Index>]` (e.g. `vault:0`):
- *
- * - **AppName**: Name of the app as it appears in the APM excluding the ens registry name. For example: the
- * app name of `voting.aragonpm.eth` is `voting`.
- * - **Index**: A numeric value starting at 0 used when more than one app of the same type is installed. It
- * follows a chronological installation order (e.g. `app:0` was installed before `app:1`).
- * When the index is omitted, EVMcrispr assumes you're referencing the app with index zero.
+ * The name of an app as it appears in the APM excluding the default registry ens name,
+ * optionally qualified by a non-default registry prefix (e.g. `vault`, `voting.open`).
+ * When several apps share a name, they are addressed by their chronological installation
+ * index through `@app(<name> <index>)`.
  */
 export type AppIdentifier = string;
-
-/**
- * A string similar to [[AppIdentifier]] that follows the format `<AppName>:<Label>` (e.g. `vault:main-org-reserve`):
- *
- * - **AppName**: Same as the one defined on [[AppIdentifier]].
- * - **Label**: A non-numeric string that identifies a new installed app.
- */
-export type LabeledAppIdentifier = string;

@@ -1,4 +1,4 @@
-import type { Address, BindingsManager } from "@evmcrispr/sdk";
+import type { Abi, Address, BindingsManager } from "@evmcrispr/sdk";
 import {
   abiBindingKey,
   BindingsSpace,
@@ -14,15 +14,15 @@ import { getAbiItem, hexToString, namehash } from "viem";
 import type AragonOS from "..";
 import { type DaoContext, getKernel } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
-import type { App, AppResource } from "../types";
+import type { App } from "../types";
 import {
   buildAppPermissions,
   buildAppResource,
-  parseLabeledAppIdentifier,
+  parseRepoIdentifier,
   REPO_ABI,
   SEMANTIC_VERSION_REGEX,
 } from "../utils";
-import { DAO_OPT_NAME, getModuleDAOByOption } from "../utils/commands";
+import { getModuleDAO } from "../utils/commands";
 
 const { ABI } = BindingsSpace;
 
@@ -72,12 +72,10 @@ const fetchRepoData = async (
 const setApp = (
   dao: DaoContext,
   app: App,
-  resource: AppResource,
   bindingsManager: BindingsManager,
   chainId: number,
 ): void => {
-  dao.appResourceCache.set(app.codeAddress, resource);
-  dao.appCache.set(app.name, app);
+  dao.apps.push(app);
 
   bindingsManager.setBinding(
     abiBindingKey(chainId, app.codeAddress),
@@ -116,11 +114,6 @@ export default defineCommand<AragonOS>({
   ],
   opts: [
     {
-      name: DAO_OPT_NAME,
-      type: "any",
-      description: "DAO address or name to install into",
-    },
-    {
       name: "version",
       type: "any",
       description: "Specific app version to install",
@@ -133,14 +126,10 @@ export default defineCommand<AragonOS>({
   ) {
     const { interpretNode } = interpreters;
 
-    const dao = await getModuleDAOByOption(node, module, interpretNode);
+    const dao = getModuleDAO(module);
 
     const version = await getOptValue(node, "version", interpretNode);
-    const [appName, registry] = parseLabeledAppIdentifier(identifier);
-
-    if (dao.appCache.has(identifier)) {
-      throw new ErrorException(`identifier ${identifier} is already in use.`);
-    }
+    const [appName, registry] = parseRepoIdentifier(identifier);
 
     const client = await module.getClient();
     const { codeAddress, contentUri } = await fetchRepoData(
@@ -151,20 +140,21 @@ export default defineCommand<AragonOS>({
       module.getConfigBinding("ensResolver"),
     );
 
-    const daos = module.allDAOs;
-    const selectedDAOResources = daos
-      .filter((dao) => dao.appResourceCache.has(codeAddress))
-      .map((dao) => dao.appResourceCache.get(codeAddress)!);
-    let resource: AppResource;
+    const chainId = await module.getChainId();
+    // ABIs are cached globally in the ABI bindings space, keyed by chain and address.
+    const cachedAbi = module.bindingsManager.getBindingValue(
+      abiBindingKey(chainId, codeAddress),
+      ABI,
+    ) as Abi | undefined;
 
-    if (!selectedDAOResources.length) {
-      const [, abi] = await fetchAbi(codeAddress, client);
-      resource = buildAppResource(appName, registry, abi);
+    let abi: Abi;
+    if (cachedAbi) {
+      abi = cachedAbi;
     } else {
-      resource = selectedDAOResources[0];
+      [, abi] = await fetchAbi(codeAddress, client);
     }
 
-    const { abi, roles } = resource;
+    const { roles } = buildAppResource(appName, registry, abi);
     const kernel = getKernel(dao);
     const initParams = params as any[];
 
@@ -183,7 +173,6 @@ export default defineCommand<AragonOS>({
 
     const appId = namehash(`${appName}.${registry}`);
     const proxyContractAddress = await module.registerNextProxyAddress(
-      identifier,
       kernel.address,
     );
 
@@ -196,7 +185,6 @@ export default defineCommand<AragonOS>({
       true,
     );
 
-    const chainId = await module.getChainId();
     setApp(
       dao,
       {
@@ -204,11 +192,10 @@ export default defineCommand<AragonOS>({
         address: proxyContractAddress,
         codeAddress,
         contentUri,
-        name: identifier,
+        name: appName,
         permissions: buildAppPermissions(roles, []),
         registryName: registry,
       },
-      resource,
       module.bindingsManager,
       chainId,
     );

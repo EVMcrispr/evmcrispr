@@ -1,60 +1,32 @@
 import type { BindingsManager } from "@evmcrispr/sdk";
 import { abiBindingKey, BindingsSpace } from "@evmcrispr/sdk";
-import { type DaoContext, getKernel, resolveApp } from "../dao";
+import { type DaoContext, resolveApp } from "../dao";
 import type { AppIdentifier } from "../types";
 import { extractRoleNames } from "./apps";
-import {
-  createDaoPrefixedIdentifier,
-  formatAppIdentifier,
-} from "./identifiers";
+import { appDisplayName } from "./identifiers";
 
 // ---------------------------------------------------------------------------
 // WeakMap-backed DAO tracking for the completions / eager-execution path.
 // Each BindingsManager instance (created fresh per completion request) gets
-// its own DAO stack.  This replaces the old DATA_PROVIDER binding approach.
+// its own DAO slot.
 // ---------------------------------------------------------------------------
 
-const completionDAOStacks = new WeakMap<BindingsManager, DaoContext[]>();
+const completionDAOs = new WeakMap<BindingsManager, DaoContext>();
 const daoCaches = new WeakMap<BindingsManager, Map<string, DaoContext>>();
 
-/** Push a DAO onto the completions stack for the given bindings context. */
-export function pushCompletionDAO(
+/** Set the DAO for the given bindings context (last connect wins). */
+export function setCompletionDAO(
   bindings: BindingsManager,
   dao: DaoContext,
 ): void {
-  let stack = completionDAOStacks.get(bindings);
-  if (!stack) {
-    stack = [];
-    completionDAOStacks.set(bindings, stack);
-  }
-  stack.push(dao);
+  completionDAOs.set(bindings, dao);
 }
 
-/** Get all DAOs on the completions stack (most-recent first). */
-export const getDAOs = (bindingsManager: BindingsManager): DaoContext[] => {
-  const stack = completionDAOStacks.get(bindingsManager);
-  if (!stack || stack.length === 0) return [];
-  return [...stack].reverse();
-};
-
-/** Find a specific DAO on the completions stack by name or address. */
-export function findCompletionDAO(
+/** Get the DAO for the given bindings context, if any. */
+export function getCompletionDAO(
   bindings: BindingsManager,
-  identifier: string,
 ): DaoContext | undefined {
-  const stack = completionDAOStacks.get(bindings);
-  if (!stack) return undefined;
-  const lower = identifier.toLowerCase();
-  for (let i = stack.length - 1; i >= 0; i--) {
-    const dao = stack[i];
-    if (
-      dao.name === identifier ||
-      getKernel(dao).address.toLowerCase() === lower
-    ) {
-      return dao;
-    }
-  }
-  return undefined;
+  return completionDAOs.get(bindings);
 }
 
 /** Cache a DAO object for the given cache BindingsManager. */
@@ -82,20 +54,14 @@ export function getCachedDAO(
 export const getDAOAppIdentifiers = (
   bindingsManager: BindingsManager,
 ): string[] => {
-  const daos = getDAOs(bindingsManager);
+  const dao = getCompletionDAO(bindingsManager);
+  if (!dao) return [];
 
-  return daos.flatMap((dao, i) => {
-    const firstDAO = i === 0;
-    return [...dao.appCache.keys()].map((appIdentifier) => {
-      const formattedIdentifier = formatAppIdentifier(appIdentifier);
-      return firstDAO
-        ? formattedIdentifier
-        : createDaoPrefixedIdentifier(
-            formattedIdentifier,
-            dao.name ?? getKernel(dao).address,
-          );
-    });
-  });
+  return [
+    ...new Set(
+      dao.apps.map((app) => appDisplayName(app.name, app.registryName)),
+    ),
+  ];
 };
 
 export const getAppRoles = (
@@ -103,11 +69,10 @@ export const getAppRoles = (
   appAddressOrIdentifier: AppIdentifier,
   chainId: number,
 ): string[] => {
-  const daos = getDAOs(bindingsManager);
+  const dao = getCompletionDAO(bindingsManager);
 
-  const appDao = daos.find((dao) => resolveApp(dao, appAddressOrIdentifier));
-  const appCodeAddress = appDao
-    ? resolveApp(appDao, appAddressOrIdentifier)?.codeAddress
+  const appCodeAddress = dao
+    ? resolveApp(dao, appAddressOrIdentifier)?.codeAddress
     : undefined;
   const appAbi = appCodeAddress
     ? bindingsManager.getBindingValue(

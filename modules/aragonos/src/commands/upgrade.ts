@@ -11,7 +11,7 @@ import type AragonOS from "..";
 import { getKernel } from "../dao";
 import { _aragonEns } from "../helpers/aragonEns";
 import { REPO_ABI, SEMANTIC_VERSION_REGEX } from "../utils";
-import { getModuleDAO, parseDaoPrefixedIdentifier } from "../utils/commands";
+import { getModuleDAO } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
   name: "upgrade",
@@ -34,21 +34,10 @@ export default defineCommand<AragonOS>({
 
     let newAppAddress = rawNewAppAddress;
 
-    const parserRes = parseDaoPrefixedIdentifier(rawApmRepo);
-    let dao;
-    if (parserRes?.[0]) {
-      dao = module.findDAO(parserRes[0]);
-      if (!dao) {
-        throw new ErrorException(
-          `couldn't find a DAO for ${parserRes[0]} on given identifier ${rawApmRepo}`,
-        );
-      }
-    } else {
-      dao = getModuleDAO(module);
-    }
+    const dao = getModuleDAO(module);
 
     const kernel = getKernel(dao);
-    let apmRepo = parserRes ? parserRes[1] : rawApmRepo;
+    let apmRepo = rawApmRepo;
 
     if (
       !apmRepo.endsWith("aragonpm.eth") &&

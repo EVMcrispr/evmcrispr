@@ -22,7 +22,6 @@ aragonos:install <variable> <identifier> [...params]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--dao` | `any` | DAO address or name to install into |
 | `--version` | `any` | Specific app version to install |
 
 ## Examples
@@ -30,7 +29,7 @@ aragonos:install <variable> <identifier> [...params]
 ```evml
 # Install a token-manager app
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  aragonos:install $tm token-manager:new-app @aragonos:app(agent) false 1000e18
+  aragonos:install $tm token-manager @aragonos:app(agent) false 1000e18
 )
 ```
 

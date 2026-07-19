@@ -3,6 +3,7 @@ import type AragonOS from "@evmcrispr/module-aragonos";
 import { MINIME_TOKEN_FACTORIES } from "@evmcrispr/module-aragonos/utils";
 import { buildNonceForAddress } from "@evmcrispr/module-aragonos/utils/nonces";
 import {
+  BindingsSpace,
   CommandError,
   encodeAction,
   encodeCalldata,
@@ -22,7 +23,6 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
-import { resolveApp } from "../../../src/dao";
 import { DAO, DAO2, DAO3 } from "../../fixtures";
 import { APP } from "../../fixtures/mock-app";
 import {
@@ -39,8 +39,6 @@ import {
   toCallScriptAction,
 } from "../../test-helpers/actions";
 import { findAragonOSCommandNode } from "../../test-helpers/aragonos";
-
-const DAOs = [DAO, DAO2, DAO3];
 
 describeCommand("connect", {
   describeName:
@@ -77,8 +75,8 @@ describeCommand("connect", {
       error: "reads on-chain state at batch-build time",
     },
     {
-      name: "should fail when trying to connect to an already connected DAO",
-      script: `load aragonos [connect]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO.kernel} (\n\n  )\n)`,
+      name: "should fail when nesting connect commands",
+      script: `load aragonos [connect]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n\n  )\n)`,
       error: (interpreter) => {
         const connectNode = findAragonOSCommandNode(
           interpreter.ast,
@@ -87,7 +85,7 @@ describeCommand("connect", {
         )!;
         return new CommandError(
           connectNode,
-          `trying to connect to an already connected DAO (${DAO.kernel})`,
+          'nested "connect" commands are not supported; use sequential top-level connect blocks and `set $var` to share values',
         );
       },
     },
@@ -101,7 +99,7 @@ describeCommand("connect", {
   cases: [
     {
       name: "should return the correct actions when defining a complete forwarding path via forward command",
-      script: `load aragonos [forward grant revoke new-token install act @app @nextApp]\naragonos:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant @me @app(agent) TRANSFER_ROLE\n    grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)\n    revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager:new $token true 0\n    act @app(agent) @app(agent:1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
+      script: `load aragonos [forward grant revoke new-token install act @app @nextApp]\naragonos:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant @me @app(agent) TRANSFER_ROLE\n    grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)\n    revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager $token true 0\n    act @app(agent) @app(agent 1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
       validate: async (forwardingAction) => {
         const client = getPublicClient();
         const me = TEST_ACCOUNT_ADDRESS;
@@ -189,64 +187,41 @@ describeCommand("connect", {
       },
     },
     {
-      name: "should set connected DAO variable",
-      script: `load aragonos\naragonos:connect ${DAO.kernel} (\n)`,
+      name: "should resolve every fixture app inside the connect block",
+      script: `load aragonos [@app]\naragonos:connect ${DAO.kernel} (\n${Object.keys(
+        DAO,
+      )
+        .map((key, i) => {
+          const [name, index] = key.split(":");
+          return `  set $app${i} @app(${name}${index ? ` ${index}` : ""})`;
+        })
+        .join("\n")}\n)`,
       validate: async (_actions, interpreter) => {
         const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const dao = aragonos.getConnectedDAO(DAO.kernel);
-
-        expect(dao).to.not.be.null;
-        expect(dao!.nestingIndex, "DAO nested index mismatch").to.equals(1);
-        Object.entries(DAO).forEach(([appIdentifier, appAddress]) => {
+        Object.entries(DAO).forEach(([appIdentifier, appAddress], i) => {
           expect(
-            resolveApp(dao!, appIdentifier)!.address,
+            aragonos.bindingsManager.getBindingValue(
+              `$app${i}`,
+              BindingsSpace.USER,
+            ),
             `${appIdentifier} binding mismatch`,
-          ).equals(appAddress);
+          ).to.equal(appAddress);
         });
       },
     },
     {
-      name: "should set all the connected DAOs properly with nested connect commands",
-      script: `load aragonos [connect]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    std:set $var1 1\n    connect ${DAO3.kernel} (\n      std:set $var2 token-manager\n    )\n  )\n)`,
-      validate: async (_actions, interpreter) => {
-        const aragonos = interpreter.getModule("aragonos") as AragonOS;
-        const daos = aragonos.connectedDAOs;
-
-        expect(daos, "connected DAOs length mismatch").to.be.lengthOf(3);
-
-        let i = 0;
-        for (const dao of daos) {
-          expect(dao.nestingIndex, `DAO ${i} nesting index mismatch`).to.equals(
-            i + 1,
-          );
-          Object.entries(DAOs[i]).forEach(([appIdentifier, appAddress]) => {
-            expect(
-              resolveApp(dao!, appIdentifier)!.address,
-              `DAO ${i} ${appIdentifier} binding mismatch`,
-            ).equals(appAddress);
-          });
-          i++;
-        }
-      },
-    },
-    {
-      name: "should return the correct actions when using app identifiers from different DAOs",
-      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO.kernel} (\n  connect ${DAO2.kernel} (\n    grant @app(disputable-voting.open) @app(_${DAO.kernel}:agent) TRANSFER_ROLE\n    connect ${DAO3.kernel} (\n      grant @app(_${DAO.kernel}:disputable-voting.open) @app(_${DAO2.kernel}:acl) CREATE_PERMISSIONS_ROLE\n    )\n  )\n)`,
-      validate: async (nestedActions) => {
-        const expectedNestedActions = [
+      name: "should share values between sequential connect blocks via set",
+      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO2.kernel} (\n  std:set $dv2 @app(disputable-voting.open)\n)\naragonos:connect ${DAO.kernel} (\n  grant $dv2 @app(disputable-voting.open) CREATE_VOTES_ROLE\n)`,
+      validate: async (actions) => {
+        const expectedActions = [
           createTestAction("grantPermission", DAO.acl, [
             DAO2["disputable-voting.open"],
-            DAO.agent,
-            keccak256(toHex("TRANSFER_ROLE")),
-          ]),
-          createTestAction("grantPermission", DAO2.acl, [
             DAO["disputable-voting.open"],
-            DAO2.acl,
-            keccak256(toHex("CREATE_PERMISSIONS_ROLE")),
+            keccak256(toHex("CREATE_VOTES_ROLE")),
           ]),
         ];
 
-        expect(nestedActions).to.eql(expectedNestedActions);
+        expect(actions).to.eql(expectedActions);
       },
     },
   ],
@@ -266,18 +241,15 @@ it("connect should keep apps connected when an implementation ABI is missing", a
 
   try {
     const interpreter = createInterpreter(
-      `load aragonos\naragonos:connect ${DAO3.kernel} (\n)`,
+      `load aragonos [@app]\naragonos:connect ${DAO3.kernel} (\n  set $addr @app(${APP.appIdentifier})\n)`,
       getPublicClient(),
     );
     await interpreter.interpret();
 
     const aragonos = interpreter.getModule("aragonos") as AragonOS;
-    const dao = aragonos.getConnectedDAO(DAO3.kernel);
-    const app = resolveApp(dao!, APP.appIdentifier);
-
-    expect(app).to.not.be.undefined;
-    expect(app!.address).to.equal(DAO3[APP.appIdentifier]);
-    expect(app!.abi).to.eql([]);
+    expect(
+      aragonos.bindingsManager.getBindingValue("$addr", BindingsSpace.USER),
+    ).to.equal(DAO3[APP.appIdentifier]);
   } finally {
     server.resetHandlers();
   }

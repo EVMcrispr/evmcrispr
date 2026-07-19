@@ -10,7 +10,7 @@ import {
 
 describeHelper("@aragonosx:plugin", {
   module: "aragonosx",
-  preamble: `${SET_BINDINGS}\naragonosx:connect ${DAO_ADDRESS} (\nset $tv @aragonosx:plugin("token-voting")\nset $ms @aragonosx:plugin("multisig:1")\n)`,
+  preamble: `${SET_BINDINGS}\naragonosx:connect ${DAO_ADDRESS} (\nset $tv @aragonosx:plugin("token-voting")\nset $ms @aragonosx:plugin(multisig 1)\n)`,
   cases: [
     {
       name: "resolves a plugin identifier within the connected DAO",
@@ -18,7 +18,7 @@ describeHelper("@aragonosx:plugin", {
       expected: TOKEN_VOTING_PLUGIN,
     },
     {
-      name: "resolves indexed identifiers for repeated installs",
+      name: "resolves repeated installs with an index argument",
       input: "$ms",
       expected: MULTISIG_PLUGIN_2,
     },

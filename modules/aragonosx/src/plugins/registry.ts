@@ -1,4 +1,5 @@
 import { ErrorNotFound } from "@evmcrispr/sdk";
+import { pluginDisplayName } from "../dao";
 import type { PluginInfo } from "../types";
 import admin from "./admin";
 import multisig from "./multisig";
@@ -23,7 +24,7 @@ export function resolveAdapter(plugin: PluginInfo): GovernanceAdapter {
   if (!adapter) {
     const known = ADAPTERS.map((a) => a.id).join(", ");
     throw new ErrorNotFound(
-      `no governance adapter for plugin ${plugin.identifier}${
+      `no governance adapter for plugin ${pluginDisplayName(plugin)}${
         plugin.repoSubdomain ? ` (repo: ${plugin.repoSubdomain})` : ""
       }; supported: ${known}`,
     );

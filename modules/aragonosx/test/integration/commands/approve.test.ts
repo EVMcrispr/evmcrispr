@@ -32,7 +32,8 @@ describeCommand("approve", {
   ],
   docCases: [
     {
-      description: "Approve a pending multisig proposal and execute it if it passes",
+      description:
+        "Approve a pending multisig proposal and execute it if it passes",
       preamble: PREAMBLE,
       code: `aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:approve multisig 5 --try-execution true

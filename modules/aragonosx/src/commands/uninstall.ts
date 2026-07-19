@@ -1,6 +1,7 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type AragonOSx from "..";
 import { getDeployment } from "../addresses";
+import { pluginDisplayName } from "../dao";
 import { abiAction } from "../utils/encode";
 import {
   encodeSetupData,
@@ -43,7 +44,7 @@ export default defineCommand<AragonOSx>({
 
     if (!plugin.repoAddress || !plugin.versionTag) {
       throw new ErrorException(
-        `plugin ${plugin.identifier} comes from an unknown repo and can't be uninstalled with this command`,
+        `plugin ${pluginDisplayName(plugin)} comes from an unknown repo and can't be uninstalled with this command`,
       );
     }
 

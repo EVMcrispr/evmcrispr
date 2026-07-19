@@ -24,7 +24,7 @@ aragonos:act <agent> <target> <signature> [...params]
 ```evml
 # Execute a contract call through the DAO agent
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  aragonos:act @aragonos:app(agent) @aragonos:app(agent:2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]
+  aragonos:act @aragonos:app(agent) @aragonos:app(agent 2) "deposit((uint256,int256),uint256[][])" [1 -2] [[2 3] [4 5]]
 )
 ```
 
