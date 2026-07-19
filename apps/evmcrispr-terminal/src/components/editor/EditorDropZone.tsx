@@ -1,9 +1,9 @@
 import type { editor } from "monaco-editor";
 import { type ReactNode, useRef, useState } from "react";
 import {
+  collectDroppedUploads,
   dragHasFiles,
-  extractDroppedFiles,
-  uploadFilesAt,
+  uploadAt,
 } from "../../utils/file-upload";
 
 /**
@@ -56,13 +56,15 @@ function EditorDropZone({
 
     const ed = getEditor();
     if (!ed) return;
-    const files = extractDroppedFiles(e.dataTransfer);
+    // Must run synchronously: the DataTransfer is invalidated after the
+    // drop handler yields (see collectDroppedUploads).
+    const uploads = collectDroppedUploads(e.dataTransfer);
     const position =
       ed.getTargetAtClientPoint(e.clientX, e.clientY)?.position ??
       ed.getPosition() ??
       ed.getModel()?.getFullModelRange().getEndPosition();
     if (!position) return;
-    void uploadFilesAt(files, position, ed);
+    void uploads.then((items) => uploadAt(items, position, ed));
   };
 
   return (

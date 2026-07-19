@@ -3,6 +3,7 @@ import {
   buildFileRef,
   dragHasFiles,
   extractPastedImages,
+  flattenEntry,
   isFileTooLarge,
   MAX_UPLOAD_BYTES,
 } from "../../src/utils/file-upload";
@@ -62,6 +63,61 @@ describe("extractPastedImages", () => {
 
   test("handles a null clipboard", () => {
     expect(extractPastedImages(null)).toEqual([]);
+  });
+});
+
+describe("flattenEntry", () => {
+  const fileEntry = (fullPath: string, file: File): FileSystemFileEntry =>
+    ({
+      isFile: true,
+      isDirectory: false,
+      fullPath,
+      name: fullPath.split("/").pop(),
+      file: (resolve: (f: File) => void) => resolve(file),
+    }) as unknown as FileSystemFileEntry;
+
+  const dirEntry = (
+    fullPath: string,
+    children: FileSystemEntry[],
+  ): FileSystemDirectoryEntry => {
+    // readEntries drains in batches: return everything once, then [].
+    let drained = false;
+    return {
+      isFile: false,
+      isDirectory: true,
+      fullPath,
+      name: fullPath.split("/").pop(),
+      createReader: () => ({
+        readEntries: (resolve: (entries: FileSystemEntry[]) => void) => {
+          const batch = drained ? [] : children;
+          drained = true;
+          resolve(batch);
+        },
+      }),
+    } as unknown as FileSystemDirectoryEntry;
+  };
+
+  test("collects nested files with root-relative paths", async () => {
+    const a = new File(["a"], "a.txt");
+    const b = new File(["b"], "b.sol");
+    const root = dirEntry("/pkg", [
+      fileEntry("/pkg/a.txt", a),
+      dirEntry("/pkg/src", [fileEntry("/pkg/src/b.sol", b)]),
+    ]);
+
+    const out: { file: File; path: string }[] = [];
+    await flattenEntry(root, out);
+    expect(out).toEqual([
+      { file: a, path: "pkg/a.txt" },
+      { file: b, path: "pkg/src/b.sol" },
+    ]);
+  });
+
+  test("a lone file entry keeps its name as the path", async () => {
+    const f = new File(["x"], "x.txt");
+    const out: { file: File; path: string }[] = [];
+    await flattenEntry(fileEntry("/x.txt", f), out);
+    expect(out).toEqual([{ file: f, path: "x.txt" }]);
   });
 });
 
