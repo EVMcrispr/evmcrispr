@@ -18,7 +18,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { toMonacoCompletionItem } from "./autocompletion";
 import { conf, contribution, createLanguage } from "./evml";
-import { findIpfsGetCallAt, getIpfsPreview } from "./ipfs-preview";
+import {
+  findIpfsGetCallAt,
+  getIpfsPreview,
+  loadingPreview,
+  peekIpfsPreview,
+} from "./ipfs-preview";
 import { theme } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
@@ -269,35 +274,80 @@ function Editor({
   // ── IPFS preview on hover ──
   // A second hover provider (Monaco merges results): hovering anywhere on an
   // `@ipfs.get("<cid>")` call shows a preview of the pinned file fetched from
-  // the public gateway.
+  // the public gateway. The first hover answers instantly with a loading
+  // placeholder; when the preview resolves, the hover is re-opened in place
+  // (only if the mouse is still on the call).
   useEffect(() => {
     if (!monaco) return;
 
+    let lastMousePos: { lineNumber: number; column: number } | null = null;
+    const mouseMove = editorInstance?.onMouseMove((e) => {
+      lastMousePos = e.target.position ?? null;
+    });
+
     const ipfsHoverProvider = monaco.languages.registerHoverProvider("evml", {
-      provideHover: async (model, pos) => {
+      provideHover: (model, pos) => {
         const call = findIpfsGetCallAt(
           model.getLineContent(pos.lineNumber),
           pos.column,
         );
         if (!call) return null;
-        const preview = await getIpfsPreview(call.cid);
-        if (!preview) return null;
-        return {
-          range: new monaco.Range(
-            pos.lineNumber,
-            call.startColumn,
-            pos.lineNumber,
-            call.endColumn,
-          ),
-          contents: [{ value: preview }],
-        };
+        const range = new monaco.Range(
+          pos.lineNumber,
+          call.startColumn,
+          pos.lineNumber,
+          call.endColumn,
+        );
+
+        const pending = getIpfsPreview(call.cid);
+        const ready = peekIpfsPreview(call.cid);
+        if (ready !== undefined) {
+          return ready ? { range, contents: [{ value: ready }] } : null;
+        }
+
+        pending.then((value) => {
+          const ed = editorInstance;
+          if (!value || !ed || model.isDisposed() || ed.getModel() !== model)
+            return;
+          const p = lastMousePos;
+          const stillOnCall =
+            p?.lineNumber === pos.lineNumber &&
+            p.column >= call.startColumn &&
+            p.column <= call.endColumn;
+          if (!stillOnCall) return;
+          // Undocumented but stable on the pinned monaco 0.52.2; on
+          // failure the user simply re-hovers to see the full preview.
+          try {
+            const contrib = ed.getContribution(
+              "editor.contrib.contentHover",
+            ) as unknown as {
+              showContentHover?: (
+                range: unknown,
+                mode: number,
+                source: number,
+                focus: boolean,
+              ) => void;
+            } | null;
+            contrib?.showContentHover?.(
+              range,
+              1, // HoverStartMode.Immediate
+              0, // HoverStartSource.Mouse
+              false,
+            );
+          } catch (_e) {
+            // Preview stays cached; the next hover shows it.
+          }
+        });
+
+        return { range, contents: [{ value: loadingPreview(call.cid) }] };
       },
     });
 
     return () => {
+      mouseMove?.dispose();
       ipfsHoverProvider.dispose();
     };
-  }, [monaco]);
+  }, [monaco, editorInstance]);
 
   // ── Signature help ──
   useEffect(() => {

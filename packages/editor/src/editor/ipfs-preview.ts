@@ -38,6 +38,22 @@ export function findIpfsGetCallAt(
 }
 
 const previewCache = new Map<string, Promise<string | null>>();
+const readyPreviews = new Map<string, string | null>();
+
+/**
+ * The resolved preview for a CID, `undefined` while it's still loading.
+ * Lets the hover provider answer synchronously and show a placeholder
+ * instead of blocking the hover on gateway round-trips.
+ */
+export function peekIpfsPreview(cid: string): string | null | undefined {
+  return readyPreviews.get(cid);
+}
+
+/** Placeholder hover shown while the preview is being fetched. */
+export function loadingPreview(cid: string): string {
+  const url = `${IPFS_GATEWAY}${cid}`;
+  return `**IPFS** · [\`${shortenCid(cid)}\`](${url}) · loading preview…`;
+}
 
 /**
  * Markdown preview of the file behind a CID: the image itself for images, a
@@ -51,6 +67,7 @@ export function getIpfsPreview(cid: string): Promise<string | null> {
     preview = fetchPreview(cid).catch(() => null);
     previewCache.set(cid, preview);
     preview.then((value) => {
+      readyPreviews.set(cid, value);
       if (value === null) previewCache.delete(cid);
     });
   }
@@ -129,12 +146,32 @@ function fetchDagDir(cid: string): Promise<DagLink[] | null> {
         signal: AbortSignal.timeout(PREVIEW_FETCH_TIMEOUT_MS),
       });
       if (!response.ok) return null;
-      const dag = await response.json();
-      // UnixFS Data starts with 0x08 0x01 (Type = Directory).
-      const data = atob(dag?.Data?.["/"]?.bytes ?? "");
-      if (data.charCodeAt(0) !== 0x08 || data.charCodeAt(1) !== 0x01) {
+      const reader = response.body?.getReader();
+      if (!reader) return null;
+
+      // DAG-JSON keys are sorted, so `Data` always precedes `Links`. A
+      // UnixFS directory's Data is exactly 0x08 0x01 ("CAE" in base64) —
+      // sniff the stream head and bail early for files, whose dag-json
+      // would otherwise inline their whole content.
+      const decoder = new TextDecoder();
+      let text = "";
+      while (text.length < 512) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+      }
+      if (!text.includes('"bytes":"CAE"')) {
+        reader.cancel().catch(() => {});
         return null;
       }
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+      }
+      text += decoder.decode();
+
+      const dag = JSON.parse(text);
       const raw: { Name?: string; Hash?: { "/"?: string } }[] =
         dag?.Links ?? [];
       return raw
@@ -171,15 +208,26 @@ async function renderDirEntries(
   lines: string[],
 ): Promise<void> {
   const indent = "  ".repeat(depth);
-  for (const link of links.slice(0, MAX_DIR_ENTRIES)) {
-    const path = basePath ? `${basePath}/${link.name}` : link.name;
+  const shown = links.slice(0, MAX_DIR_ENTRIES);
+  // All entries of a directory (and their subtrees) resolve concurrently;
+  // only the final line assembly is ordered.
+  const subtrees = await Promise.all(
+    shown.map(async (link) => {
+      const path = basePath ? `${basePath}/${link.name}` : link.name;
+      const children = await fetchDagDir(link.cid);
+      const subLines: string[] = [];
+      if (children && depth < MAX_DIR_DEPTH) {
+        await renderDirEntries(rootCid, path, children, depth + 1, subLines);
+      }
+      return { path, isDir: children !== null, subLines };
+    }),
+  );
+  for (const [i, link] of shown.entries()) {
+    const { path, isDir, subLines } = subtrees[i];
     const href = `${IPFS_GATEWAY}${rootCid}/${path.split("/").map(encodeURIComponent).join("/")}`;
-    const children = await fetchDagDir(link.cid);
     const label = link.name.replace(/([[\]\\])/g, "\\$1");
-    lines.push(`${indent}- ${children ? "📁" : "📄"} [${label}](${href})`);
-    if (children && depth < MAX_DIR_DEPTH) {
-      await renderDirEntries(rootCid, path, children, depth + 1, lines);
-    }
+    lines.push(`${indent}- ${isDir ? "📁" : "📄"} [${label}](${href})`);
+    lines.push(...subLines);
   }
   if (links.length > MAX_DIR_ENTRIES) lines.push(`${indent}- …`);
 }
