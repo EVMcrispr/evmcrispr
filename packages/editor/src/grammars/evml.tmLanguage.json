@@ -11,6 +11,9 @@
       "include": "#heredoc-solidity"
     },
     {
+      "include": "#heredoc-json"
+    },
+    {
       "include": "#heredoc"
     },
     {
@@ -66,6 +69,26 @@
       "patterns": [
         {
           "include": "source.solidity"
+        }
+      ]
+    },
+    "heredoc-json": {
+      "begin": "<<<(JSON)\\b[ \\t]*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.heredoc.begin.evml"
+        }
+      },
+      "end": "^(JSON)\\b",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.heredoc.end.evml"
+        }
+      },
+      "contentName": "meta.embedded.block.json",
+      "patterns": [
+        {
+          "include": "source.json"
         }
       ]
     },

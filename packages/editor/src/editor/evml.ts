@@ -92,13 +92,24 @@ export const createLanguage: (
       { regex: `#.*$`, action: { token: "comment" } },
     ],
 
-    // <<<SOL heredocs embed monaco's built-in Solidity tokenizer (the CDN
-    // `min/vs` build lazy-loads it as language id "sol"). Other sentinels
-    // tokenize as a plain string; Monarch parametrized states ($S2 holds
-    // the sentinel) match the closing line.
+    // <<<SOL / <<<JSON heredocs embed monaco's built-in tokenizers (the CDN
+    // `min/vs` build lazy-loads them as language ids "sol" and "json").
+    // Other sentinels tokenize as a plain string; Monarch parametrized
+    // states ($S2 holds the sentinel) match the closing line.
     solHeredoc: [
       {
         regex: /^SOL\b/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@pop",
+          nextEmbedded: "@pop",
+        },
+      },
+    ],
+
+    jsonHeredoc: [
+      {
+        regex: /^JSON\b/,
         action: {
           token: "string.heredoc.delimiter",
           next: "@pop",
@@ -130,6 +141,14 @@ export const createLanguage: (
           token: "string.heredoc.delimiter",
           next: "@solHeredoc",
           nextEmbedded: "sol",
+        },
+      },
+      {
+        regex: /<<<JSON\b[ \t]*$/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@jsonHeredoc",
+          nextEmbedded: "json",
         },
       },
       {

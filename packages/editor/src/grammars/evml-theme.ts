@@ -54,11 +54,16 @@ export const evmlTheme: ThemeRegistrationRaw = {
       scope: ["constant.character.escape"],
       settings: { foreground: "#72bcd4" },
     },
-    // Generic scopes for embedded languages (Solidity inside <<<SOL
-    // heredocs); specific EVML scopes above still win where they overlap.
+    // Generic scopes for embedded languages (Solidity/JSON inside <<<SOL
+    // and <<<JSON heredocs); specific EVML scopes above still win where
+    // they overlap.
     {
       scope: ["keyword"],
       settings: { foreground: "#0FFF50" },
+    },
+    {
+      scope: ["constant.language"],
+      settings: { foreground: "#4169E1" },
     },
     {
       scope: ["storage.type", "support.type", "entity.name.type"],
