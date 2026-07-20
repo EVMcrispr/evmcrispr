@@ -1,10 +1,19 @@
+import { collectScriptUsage, type ScriptUsage } from "@evmcrispr/core";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { IconButton, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
+  type ConfigEntry,
   moduleConfigs,
   moduleNames,
   type ReferenceEntry,
@@ -21,20 +30,37 @@ import {
 } from "./MarkdownComponents";
 import { ReferenceItem } from "./ReferenceItem";
 
-function isUsedInScript(entry: ReferenceEntry, script: string): boolean {
-  if (entry.kind === "command") {
-    return new RegExp(`(^|\\s)${escapeRegExp(entry.name)}(\\s|$)`, "m").test(
-      script,
-    );
-  }
-  // helper: @helperName( or @helperName followed by space/end
-  return new RegExp(`@${escapeRegExp(entry.name)}(\\(|\\s|$)`, "m").test(
-    script,
-  );
-}
+const EMPTY_USAGE: ScriptUsage = {
+  commands: new Set(),
+  helpers: new Set(),
+  configVars: new Set(),
+};
 
-function escapeRegExp(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {
+  return (
+    <div
+      className="px-3 py-2 leading-tight"
+      title={
+        entry.default
+          ? `${entry.description} Default: ${entry.default}`
+          : entry.description
+      }
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-mono text-lg text-foreground truncate">
+          ${mod}:{entry.name}
+        </span>
+        <span className="text-sm text-evm-green-300">config</span>
+        <span className="text-sm text-foreground/40">{entry.type}</span>
+        {mod !== "std" && (
+          <span className="text-sm text-foreground/40">{mod}</span>
+        )}
+      </div>
+      <p className="text-base text-foreground/60 truncate mt-0.5">
+        {entry.description}
+      </p>
+    </div>
+  );
 }
 
 /** Lookup map: (kind + name) -> ReferenceEntry. */
@@ -61,10 +87,37 @@ export function ReferenceTab() {
     );
   }, [query]);
 
+  // AST-based usage: parse the (deferred) script and keep the last result
+  // that parsed, so the Used section doesn't flicker on mid-edit breakage.
+  const deferredScript = useDeferredValue(script);
+  const lastGoodUsage = useRef<ScriptUsage>(EMPTY_USAGE);
+  const usage = useMemo(() => {
+    const u = collectScriptUsage(deferredScript);
+    if (u) lastGoodUsage.current = u;
+    return lastGoodUsage.current;
+  }, [deferredScript]);
+
   const usedEntries = useMemo(
-    () => filteredEntries.filter((e) => isUsedInScript(e, script)),
-    [filteredEntries, script],
+    () =>
+      filteredEntries.filter((e) =>
+        (e.kind === "command" ? usage.commands : usage.helpers).has(
+          `${e.module}:${e.name}`,
+        ),
+      ),
+    [filteredEntries, usage],
   );
+
+  const usedConfigs = useMemo(() => {
+    const out: Array<{ mod: string; entry: ConfigEntry }> = [];
+    for (const [mod, cfgs] of moduleConfigs) {
+      for (const c of cfgs) {
+        if (usage.configVars.has(`${mod}:${c.name}`)) {
+          out.push({ mod, entry: c });
+        }
+      }
+    }
+    return out;
+  }, [usage]);
 
   const entriesByModule = useMemo(() => {
     const map = new Map<string, ReferenceEntry[]>();
@@ -228,7 +281,7 @@ export function ReferenceTab() {
         </div>
       </div>
       <div className="overflow-y-auto overflow-x-hidden flex-1 px-2">
-        {usedEntries.length > 0 && (
+        {(usedEntries.length > 0 || usedConfigs.length > 0) && (
           <div className="mb-3">
             <h3 className="text-xs font-head uppercase text-evm-green-300 px-3 py-1">
               Used in Script
@@ -239,6 +292,13 @@ export function ReferenceTab() {
                   key={`used-${e.module}-${e.name}`}
                   entry={e}
                   onClick={() => handleItemClick(e)}
+                />
+              ))}
+              {usedConfigs.map(({ mod, entry }) => (
+                <ConfigRow
+                  key={`used-${mod}-cfg-${entry.name}`}
+                  mod={mod}
+                  entry={entry}
                 />
               ))}
             </div>
@@ -257,31 +317,11 @@ export function ReferenceTab() {
               />
             ))}
             {moduleConfigs.has(mod) &&
-              moduleConfigs.get(mod)!.map((c) => (
-                <div
-                  key={`${mod}-cfg-${c.name}`}
-                  className="px-3 py-2 leading-tight"
-                  title={
-                    c.default
-                      ? `${c.description} Default: ${c.default}`
-                      : c.description
-                  }
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-lg text-foreground truncate">
-                      ${mod}:{c.name}
-                    </span>
-                    <span className="text-sm text-evm-green-300">config</span>
-                    <span className="text-sm text-foreground/40">{c.type}</span>
-                    {mod !== "std" && (
-                      <span className="text-sm text-foreground/40">{mod}</span>
-                    )}
-                  </div>
-                  <p className="text-base text-foreground/60 truncate mt-0.5">
-                    {c.description}
-                  </p>
-                </div>
-              ))}
+              moduleConfigs
+                .get(mod)!
+                .map((c) => (
+                  <ConfigRow key={`${mod}-cfg-${c.name}`} mod={mod} entry={c} />
+                ))}
           </div>
         ))}
         {filteredEntries.length === 0 && (

@@ -142,6 +142,8 @@ export { parseScript, scriptParser } from "./parsers/script";
 export { createParserState } from "./parsers/utils";
 export type { RenameEdit, RenameRange, RenameResult } from "./rename";
 export { getRenameEdits, prepareRename } from "./rename";
+export type { ScriptUsage } from "./scriptUsage";
+export { collectScriptUsage } from "./scriptUsage";
 export type {
   PrewarmCheckpoint,
   PrewarmSnapshot,
