@@ -24,6 +24,7 @@ import {
   loadingPreview,
   peekIpfsPreview,
 } from "./ipfs-preview";
+import { patchEmbeddedSolidity } from "./solidity-patch";
 import { theme } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
@@ -685,6 +686,7 @@ function Editor({
     monaco.editor.defineTheme("evml-dark", theme);
     monaco.languages.register(contribution);
     monaco.languages.setLanguageConfiguration("evml", conf);
+    patchEmbeddedSolidity(monaco);
   }, []);
 
   // ── Line highlighting during execution ──
