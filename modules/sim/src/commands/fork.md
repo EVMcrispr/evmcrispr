@@ -57,7 +57,7 @@ load sim
 load bridges
 
 sim:fork --using anvil (
-  bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 base --using CCTPv2
+  bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 to base --using CCTPv2
   switch base
   set $balance @get(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 "balanceOf(address)(uint256)" @me)
   sim:expect @bool($balance > 0)

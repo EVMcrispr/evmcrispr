@@ -12,7 +12,7 @@ describeCommand("batch", {
     {
       name: "should reject access-control read helpers after actions in a batch",
       script: `batch (
-  access-control:transfer-ownership ${GNO} ${SOME_ADDRESS}
+  access-control:transfer-ownership of ${GNO} to ${SOME_ADDRESS}
   set $owner @access-control:owner(${GNO})
 )`,
       error: "reads on-chain state at batch-build time",

@@ -7,16 +7,17 @@ Approve a spender for an ERC20 token allowance.
 ## Syntax
 
 ```evml
-token:approve <token> <spender> <amount>
+token:approve <amount> <token> <for> <spender>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `address` | Token address |
-| `spender` | `address` | Spender address |
 | `amount` | `number` | Allowance in token units (wei) |
+| `token` | `address` | Token address |
+| `for` | `command` | Keyword `for` |
+| `spender` | `address` | Spender address |
 
 <!-- HAND-WRITTEN -->
 
@@ -28,10 +29,10 @@ load token
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
-token:approve $token $spender 100e18
+token:approve 100e18 $token for $spender
 
 # Revoke an allowance
-token:approve $token $spender 0
+token:approve 0 $token for $spender
 ```
 
 ## See Also

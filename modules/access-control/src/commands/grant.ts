@@ -2,6 +2,7 @@ import {
   defineCommand,
   ErrorException,
   encodeAction,
+  fieldItem,
   Num,
 } from "@evmcrispr/sdk";
 import type AccessControl from "..";
@@ -13,16 +14,18 @@ export default defineCommand<AccessControl>({
     "Grant a role on an AccessControl contract (string roles, hashed with keccak256) or an AccessManager (numeric role ids).",
   args: [
     {
-      name: "target",
-      type: "address",
-      description: "AccessControl contract or AccessManager address",
-    },
-    {
       name: "role",
       type: ["number", "string"],
       description:
         "Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id",
     },
+    { name: "on", type: "command", description: "Keyword `on`" },
+    {
+      name: "target",
+      type: "address",
+      description: "AccessControl contract or AccessManager address",
+    },
+    { name: "to", type: "command", description: "Keyword `to`" },
     { name: "account", type: "address", description: "Account to grant to" },
   ],
   opts: [
@@ -33,7 +36,17 @@ export default defineCommand<AccessControl>({
         "Execution delay in seconds for the grantee (AccessManager role ids only)",
     },
   ],
-  async run(_module, { target, role, account }, { opts }) {
+  completions: {
+    on: () => [fieldItem("on")],
+    to: () => [fieldItem("to")],
+  },
+  async run(_module, { role, on, target, to, account }, { opts }) {
+    if (on !== "on") {
+      throw new ErrorException(`expected keyword "on", got "${on}"`);
+    }
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
     const resolved = resolveRole(role);
 
     if (resolved.system === "access-control") {

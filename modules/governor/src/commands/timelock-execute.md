@@ -38,7 +38,7 @@ set $grantee 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 governor:timelock-execute $timelock (
   exec $token transfer(address,uint256) $grantee 100e18
-  access-control:grant $token MINTER_ROLE $grantee
+  access-control:grant MINTER_ROLE on $token to $grantee
 )
 ```
 

@@ -29,7 +29,7 @@ aragonosx:act <block>
 # Execute directly through the DAO when the caller holds EXECUTE_PERMISSION
 aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:act (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f dao ROOT
+    aragonosx:grant ROOT on dao to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )
 ```

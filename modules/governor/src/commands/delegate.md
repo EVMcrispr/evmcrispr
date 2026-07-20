@@ -7,7 +7,7 @@ Delegate the voting power the connected account holds in an ERC20Votes/ERC721Vot
 ## Syntax
 
 ```evml
-governor:delegate <token> <delegatee>
+governor:delegate <token> <to> <delegatee>
 ```
 
 ## Arguments
@@ -15,6 +15,7 @@ governor:delegate <token> <delegatee>
 | Name | Type | Description |
 |------|------|-------------|
 | `token` | `address` | Votes token address |
+| `to` | `command` | Keyword `to` |
 | `delegatee` | `address` | Account receiving the voting power |
 
 <!-- HAND-WRITTEN -->
@@ -25,10 +26,10 @@ governor:delegate <token> <delegatee>
 load governor
 
 # Self-delegate to activate your own voting power
-governor:delegate 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 @me
+governor:delegate 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 to @me
 
 # Or delegate to a steward
-governor:delegate 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+governor:delegate 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 
 ## Notes

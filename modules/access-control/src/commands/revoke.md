@@ -7,15 +7,17 @@ Revoke a role on an AccessControl contract (string roles, hashed with keccak256)
 ## Syntax
 
 ```evml
-access-control:revoke <target> <role> <account>
+access-control:revoke <role> <on> <target> <from> <account>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `target` | `address` | AccessControl contract or AccessManager address |
 | `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Keyword `on` |
+| `target` | `address` | AccessControl contract or AccessManager address |
+| `from` | `command` | Keyword `from` |
 | `account` | `address` | Account to revoke from |
 
 <!-- HAND-WRITTEN -->
@@ -29,10 +31,10 @@ set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # AccessControl
-access-control:revoke $token MINTER_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+access-control:revoke MINTER_ROLE on $token from 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 # AccessManager
-access-control:revoke $manager 42 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+access-control:revoke 42 on $manager from 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 
 ## Notes

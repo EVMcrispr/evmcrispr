@@ -15,7 +15,7 @@ load aragonos [grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # DAO commands go here
-  grant @me @app(voting) CREATE_VOTES_ROLE
+  grant CREATE_VOTES_ROLE on @app(voting) to @me
 )
 ```
 
@@ -48,13 +48,13 @@ load aragonos [grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Grant a role to the connected wallet
-  grant @me @app(voting) CREATE_VOTES_ROLE
+  grant CREATE_VOTES_ROLE on @app(voting) to @me
 
   # Grant with a specific permission manager
-  grant @app(voting) @app(token-manager) MINT_ROLE @app(voting)
+  grant MINT_ROLE on @app(token-manager) to @app(voting) @app(voting)
 
   # Grant with an oracle contract
-  grant @app(voting) @app(finance) CREATE_PAYMENTS_ROLE --oracle 0x44fA8E6f47987339850636F88629646662444217
+  grant CREATE_PAYMENTS_ROLE on @app(finance) to @app(voting) --oracle 0x44fA8E6f47987339850636F88629646662444217
 )
 ```
 
@@ -65,10 +65,10 @@ load aragonos [revoke @app]
 
 aragonos:connect my-dao.aragonid.eth (
   # Revoke a permission
-  revoke @app(voting) @app(acl) CREATE_PERMISSIONS_ROLE
+  revoke CREATE_PERMISSIONS_ROLE on @app(acl) from @app(voting)
 
   # Revoke and remove the permission manager
-  revoke @app(voting) @app(acl) CREATE_PERMISSIONS_ROLE true
+  revoke CREATE_PERMISSIONS_ROLE on @app(acl) from @app(voting) true
 )
 ```
 
@@ -88,7 +88,7 @@ aragonos:connect my-dao.aragonid.eth (
   install $vault vault --version 2.0.0
 
   # Use the installed app
-  grant @me $tm MINT_ROLE
+  grant MINT_ROLE on $tm to @me
 )
 ```
 
@@ -128,7 +128,7 @@ load aragonos [forward grant @app]
 
 aragonos:connect my-dao.aragonid.eth (
   forward @app(voting) (
-    grant @app(voting) @app(finance) CREATE_PAYMENTS_ROLE @app(voting)
+    grant CREATE_PAYMENTS_ROLE on @app(finance) to @app(voting) @app(voting)
   ) --context "Add payment permission"
 )
 ```
@@ -184,7 +184,7 @@ load sim
 
 sim:fork (
   aragonos:connect my-dao.aragonid.eth (
-    grant @me @app(voting) CREATE_VOTES_ROLE
+    grant CREATE_VOTES_ROLE on @app(voting) to @me
     install $agent agent
     sim:expect @bool($agent != 0x0000000000000000000000000000000000000000)
   )

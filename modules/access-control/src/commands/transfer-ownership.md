@@ -7,14 +7,16 @@ Transfer ownership of an Ownable contract. On Ownable2Step contracts this stages
 ## Syntax
 
 ```evml
-access-control:transfer-ownership <contract> <newOwner>
+access-control:transfer-ownership <of> <contract> <to> <newOwner>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
+| `of` | `command` | Keyword `of` |
 | `contract` | `address` | Ownable contract address |
+| `to` | `command` | Keyword `to` |
 | `newOwner` | `address` | New owner address |
 
 <!-- HAND-WRITTEN -->
@@ -25,7 +27,7 @@ access-control:transfer-ownership <contract> <newOwner>
 load access-control
 
 # Hand over a token contract to the DAO treasury
-access-control:transfer-ownership 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+access-control:transfer-ownership of 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72 to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 
 ## Notes

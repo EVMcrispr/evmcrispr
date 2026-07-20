@@ -7,13 +7,14 @@ import { SOME_ADDRESS, TOKEN_DISTRO } from "../../fixtures";
 const MANAGER = "0x1111111111111111111111111111111111111111";
 
 describeCommand("revoke", {
-  describeName: "AccessControl > commands > revoke <target> <role> <account>",
+  describeName:
+    "AccessControl > commands > revoke <role> on <target> from <account>",
   module: "access-control",
   preamble: "load access-control",
   cases: [
     {
       name: "should encode an AccessControl revokeRole for string roles",
-      script: `access-control:revoke ${TOKEN_DISTRO} DISTRIBUTOR_ROLE ${SOME_ADDRESS}`,
+      script: `access-control:revoke DISTRIBUTOR_ROLE on ${TOKEN_DISTRO} from ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(TOKEN_DISTRO, "revokeRole(bytes32,address)", [
           keccak256(toHex("DISTRIBUTOR_ROLE")),
@@ -23,7 +24,7 @@ describeCommand("revoke", {
     },
     {
       name: "should encode an AccessManager revokeRole for numeric roles",
-      script: `access-control:revoke ${MANAGER} 42 ${SOME_ADDRESS}`,
+      script: `access-control:revoke 42 on ${MANAGER} from ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(MANAGER, "revokeRole(uint64,address)", [
           Num(42n),

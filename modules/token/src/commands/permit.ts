@@ -2,6 +2,7 @@ import {
   defineCommand,
   ErrorException,
   encodeAction,
+  fieldItem,
   Num,
 } from "@evmcrispr/sdk";
 import type { Address, PublicClient } from "viem";
@@ -87,13 +88,14 @@ export default defineCommand<Token>({
   description:
     "Approve a spender through an EIP-2612 permit signed by the connected wallet, encoded as a permit() call anyone can submit.",
   args: [
-    { name: "token", type: "address", description: "Token address" },
-    { name: "spender", type: "address", description: "Spender address" },
     {
       name: "amount",
       type: "number",
       description: "Allowance in token units (wei)",
     },
+    { name: "token", type: "address", description: "Token address" },
+    { name: "for", type: "command", description: "Keyword `for`" },
+    { name: "spender", type: "address", description: "Spender address" },
   ],
   opts: [
     {
@@ -102,7 +104,15 @@ export default defineCommand<Token>({
       description: "Permit expiry as a Unix timestamp (defaults to no expiry)",
     },
   ],
-  async run(module, { token, spender, amount }, { opts, interpreters }) {
+  completions: { for: () => [fieldItem("for")] },
+  async run(
+    module,
+    { amount, token, for: forKeyword, spender },
+    { opts, interpreters },
+  ) {
+    if (forKeyword !== "for") {
+      throw new ErrorException(`expected keyword "for", got "${forKeyword}"`);
+    }
     const { actionCallback } = interpreters;
     if (!actionCallback) {
       throw new ErrorException(

@@ -2,14 +2,14 @@ import "../../setup";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 
 describeCommand("transfer", {
-  describeName: "Ens > commands > transfer <name> <newOwner>",
+  describeName: "Ens > commands > transfer <name> to <newOwner>",
   module: "ens",
   preamble: "load ens",
   errorCases: [
     {
       name: "should fail on unsupported chains",
       script:
-        "ens:transfer mydao.eth 0x1234567890abcdef1234567890abcdef12345678",
+        "ens:transfer mydao.eth to 0x1234567890abcdef1234567890abcdef12345678",
       error: "not available on chain",
     },
     {

@@ -41,7 +41,7 @@ describeCommand("bridge --using NativeBridge", {
   cases: [
     {
       name: "is the default adapter for ETH to an OP Stack L2",
-      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} optimism`,
+      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} to optimism`,
       validate: (actions) => {
         const [deposit] = txs(actions);
         expect(txs(actions)).to.have.length(1); // native token: no approval
@@ -57,14 +57,14 @@ describeCommand("bridge --using NativeBridge", {
     },
     {
       name: "deposits ETH into Base through its own L1 bridge",
-      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} base`,
+      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} to base`,
       validate: (actions) => {
         expect(txs(actions)[0].to).to.eq(BASE_L1_BRIDGE);
       },
     },
     {
       name: "deposits a paired ERC-20 with its L2 counterpart",
-      script: `bridges:bridge 1000e18 ${DAI_MAINNET} optimism --using NativeBridge`,
+      script: `bridges:bridge 1000e18 ${DAI_MAINNET} to optimism --using NativeBridge`,
       validate: (actions) => {
         const [approve, deposit] = txs(actions);
         expect(approve.to).to.eq(DAI_MAINNET);
@@ -81,7 +81,7 @@ describeCommand("bridge --using NativeBridge", {
     },
     {
       name: "takes the L2 token from --remote-token when the pair is unknown",
-      script: `bridges:bridge 100e6 ${USDC_MAINNET} optimism --using NativeBridge --remote-token 0x0B2C639c533813F4aA9D7837CAce96CB60775848`,
+      script: `bridges:bridge 100e6 ${USDC_MAINNET} to optimism --using NativeBridge --remote-token 0x0B2C639c533813F4aA9D7837CAce96CB60775848`,
       validate: (actions) => {
         const call = decodeFunctionData({
           abi: bridgeAbi,
@@ -94,7 +94,7 @@ describeCommand("bridge --using NativeBridge", {
     },
     {
       name: "deposits ETH into Arbitrum through the Inbox",
-      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} arbitrum --using NativeBridge`,
+      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} to arbitrum --using NativeBridge`,
       validate: (actions) => {
         const [deposit] = txs(actions);
         expect(deposit.to).to.eq(ARB_INBOX_ADDR);
@@ -107,7 +107,7 @@ describeCommand("bridge --using NativeBridge", {
     },
     {
       name: "deposits an ERC-20 into Arbitrum with retryable fees, approving the gateway",
-      script: `bridges:bridge 1e18 ${WETH_MAINNET} arbitrum --using NativeBridge`,
+      script: `bridges:bridge 1e18 ${WETH_MAINNET} to arbitrum --using NativeBridge`,
       validate: (actions) => {
         const [approve, deposit] = txs(actions);
         // The gateway (not the router) pulls the tokens.
@@ -129,17 +129,17 @@ describeCommand("bridge --using NativeBridge", {
   errorCases: [
     {
       name: "asks for --remote-token when the ERC-20 pair is unknown",
-      script: `bridges:bridge 100e6 ${USDC_MAINNET} optimism --using NativeBridge`,
+      script: `bridges:bridge 100e6 ${USDC_MAINNET} to optimism --using NativeBridge`,
       error: "pass --remote-token",
     },
     {
       name: "rejects an Arbitrum ETH deposit to another recipient",
-      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} arbitrum --using NativeBridge --to 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9`,
+      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} to arbitrum --using NativeBridge --receiver 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9`,
       error: "Arbitrum ETH deposits credit the sender",
     },
     {
       name: "rejects a lane with no canonical bridge",
-      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} gnosis --using NativeBridge`,
+      script: `bridges:bridge ${ONE_ETH} ${ZERO_ADDRESS} to gnosis --using NativeBridge`,
       error: "NativeBridge doesn't bridge",
     },
   ],

@@ -18,7 +18,7 @@ import {
 } from "../../fixtures";
 
 /** The proposal payload used in every case: grant EXECUTE on the DAO. */
-const INNER_SCRIPT = `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} dao EXECUTE`;
+const INNER_SCRIPT = `aragonosx:grant EXECUTE on dao to ${TEST_ACCOUNT_ADDRESS}`;
 const INNER_ACTIONS = [
   {
     to: DAO_ADDRESS,

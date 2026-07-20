@@ -36,7 +36,7 @@ aragonosx:new-dao <variable> <plugin> [...params]
 aragonosx:new-dao $dao admin @me [0x0000000000000000000000000000000000000000 0]
 aragonosx:connect $dao (
   aragonosx:propose admin (
-    aragonosx:grant @me dao ROOT
+    aragonosx:grant ROOT on dao to @me
   )
 )
 ```

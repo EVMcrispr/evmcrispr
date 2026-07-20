@@ -13,7 +13,7 @@ describeCommand("revoke", {
     {
       name: "revokes a permission on a plugin",
       script: `aragonosx:connect ${DAO_ADDRESS} (
-  aragonosx:revoke ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE_PROPOSAL
+  aragonosx:revoke EXECUTE_PROPOSAL on token-voting from ${TEST_ACCOUNT_ADDRESS}
 )`,
       expectedActions: [
         {
@@ -34,7 +34,7 @@ describeCommand("revoke", {
   errorCases: [
     {
       name: "fails outside a connect block",
-      script: `aragonosx:revoke ${TEST_ACCOUNT_ADDRESS} dao EXECUTE`,
+      script: `aragonosx:revoke EXECUTE on dao from ${TEST_ACCOUNT_ADDRESS}`,
       error: 'used within a "connect" command',
     },
   ],
@@ -44,7 +44,7 @@ describeCommand("revoke", {
       preamble: PREAMBLE,
       code: `aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:propose token-voting (
-    aragonosx:revoke 0xc125218F4Df091eE40624784caF7F47B9738086f dao EXECUTE
+    aragonosx:revoke EXECUTE on dao from 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )`,
     },

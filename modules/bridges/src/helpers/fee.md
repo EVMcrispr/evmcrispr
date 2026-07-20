@@ -35,7 +35,7 @@ load bridges
 
 switch mainnet
 if @bool(@bridges:fee(1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimism) < 5e18) (
-  bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimism
+  bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F to optimism
 )
 ```
 

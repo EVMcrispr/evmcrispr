@@ -33,7 +33,7 @@ Commands from non-default modules use the module name as a prefix:
 ```evml
 load aragonos
 aragonos:connect my-dao.aragonid.eth (
-  aragonos:grant @me voting CREATE_VOTES_ROLE
+  aragonos:grant CREATE_VOTES_ROLE on voting to @me
 )
 ```
 

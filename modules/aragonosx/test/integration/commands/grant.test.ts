@@ -25,7 +25,7 @@ describeCommand("grant", {
   cases: [
     {
       name: "grants a permission on the DAO itself",
-      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} dao EXECUTE\n)`,
+      script: `aragonosx:grant EXECUTE on dao to ${TEST_ACCOUNT_ADDRESS}\n)`,
       expectedActions: [
         grantAction([
           DAO_ADDRESS,
@@ -36,7 +36,7 @@ describeCommand("grant", {
     },
     {
       name: "grants a permission on a repeated install resolved via @plugin",
-      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} @aragonosx:plugin(multisig 1) UPDATE_MULTISIG_SETTINGS\n)`,
+      script: `aragonosx:grant UPDATE_MULTISIG_SETTINGS on @aragonosx:plugin(multisig 1) to ${TEST_ACCOUNT_ADDRESS}\n)`,
       expectedActions: [
         grantAction([
           MULTISIG_PLUGIN_2,
@@ -47,7 +47,7 @@ describeCommand("grant", {
     },
     {
       name: "grants to ANY_ENTITY with a condition contract",
-      script: `aragonosx:grant @aragonosx:ANY_ENTITY token-voting CREATE_PROPOSAL --condition ${CONDITION}\n)`,
+      script: `aragonosx:grant CREATE_PROPOSAL on token-voting to @aragonosx:ANY_ENTITY --condition ${CONDITION}\n)`,
       expectedActions: [
         {
           to: DAO_ADDRESS,
@@ -66,7 +66,7 @@ describeCommand("grant", {
     },
     {
       name: "accepts a raw bytes32 permission id",
-      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} dao ${permissionId("EXECUTE")}\n)`,
+      script: `aragonosx:grant ${permissionId("EXECUTE")} on dao to ${TEST_ACCOUNT_ADDRESS}\n)`,
       expectedActions: [
         grantAction([
           DAO_ADDRESS,
@@ -79,7 +79,7 @@ describeCommand("grant", {
   errorCases: [
     {
       name: "fails on an unknown plugin",
-      script: `aragonosx:grant ${TEST_ACCOUNT_ADDRESS} governance EXECUTE\n)`,
+      script: `aragonosx:grant EXECUTE on governance to ${TEST_ACCOUNT_ADDRESS}\n)`,
       error: 'plugin "governance" not found',
     },
   ],
@@ -89,7 +89,7 @@ describeCommand("grant", {
       preamble: PREAMBLE,
       code: `aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:propose multisig --approve true (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f token-voting CREATE_PROPOSAL
+    aragonosx:grant CREATE_PROPOSAL on token-voting to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )`,
     },

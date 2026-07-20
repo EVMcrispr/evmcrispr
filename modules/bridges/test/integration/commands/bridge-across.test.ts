@@ -44,7 +44,7 @@ describeCommand("bridge --using Across", {
   cases: [
     {
       name: "is the default adapter for a non-USDC ERC-20 and deposits into the SpokePool",
-      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} optimism`,
+      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} to optimism`,
       validate: (actions) => {
         const [approve, deposit] = txs(actions);
         expect(txs(actions)).to.have.length(2);
@@ -85,7 +85,7 @@ describeCommand("bridge --using Across", {
     },
     {
       name: "bridges USDC through Across when asked explicitly",
-      script: `bridges:bridge 100e6 ${USDC_MAINNET} base --using Across`,
+      script: `bridges:bridge 100e6 ${USDC_MAINNET} to base --using Across`,
       validate: (actions) => {
         const call = decodeFunctionData({
           abi: spokeAbi,
@@ -102,17 +102,17 @@ describeCommand("bridge --using Across", {
   errorCases: [
     {
       name: "aborts when the fee exceeds --max-fee",
-      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} optimism --max-fee 1`,
+      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} to optimism --max-fee 1`,
       error: "--max-fee is 1",
     },
     {
       name: "refuses to bridge the native token",
-      script: `bridges:bridge 1e18 ${ZERO_ADDRESS} optimism --using Across`,
+      script: `bridges:bridge 1e18 ${ZERO_ADDRESS} to optimism --using Across`,
       error: "Across doesn't bridge",
     },
     {
       name: "rejects a lane Across does not serve",
-      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} gnosis --using Across`,
+      script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} to gnosis --using Across`,
       error: "Across doesn't bridge",
     },
   ],

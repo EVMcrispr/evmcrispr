@@ -20,13 +20,13 @@ const PERMIT_ABI = parseAbi([
 
 describeCommand("permit", {
   describeName:
-    "Token > commands > permit <token> <spender> <amount> [--deadline <ts>]",
+    "Token > commands > permit <amount> <token> for <spender> [--deadline <ts>]",
   module: "token",
   preamble: "load token",
   errorCases: [
     {
       name: "should fail when no execution context is available",
-      script: `token:permit ${GNO} ${SOME_ADDRESS} 100e18`,
+      script: `token:permit 100e18 ${GNO} for ${SOME_ADDRESS}`,
       error: "requires an execution context with wallet access",
     },
   ],
@@ -78,7 +78,7 @@ describe("Token > commands > permit > with wallet", () => {
 
     const actions = await evm.interpret(
       `load token
-token:permit ${GNO} ${SOME_ADDRESS} 100e18 --deadline 1800000000`,
+token:permit 100e18 ${GNO} for ${SOME_ADDRESS} --deadline 1800000000`,
       actionCallback,
     );
 
@@ -126,7 +126,7 @@ token:permit ${GNO} ${SOME_ADDRESS} 100e18 --deadline 1800000000`,
 
     const actions = await evm.interpret(
       `load token
-token:permit ${GNO} ${SOME_ADDRESS} 100e18`,
+token:permit 100e18 ${GNO} for ${SOME_ADDRESS}`,
       actionCallback,
     );
 
@@ -142,7 +142,7 @@ token:permit ${GNO} ${SOME_ADDRESS} 100e18`,
 
     const actions = await evm.interpret(
       `load token
-token:permit ${SDAI} ${SOME_ADDRESS} 100e18`,
+token:permit 100e18 ${SDAI} for ${SOME_ADDRESS}`,
       actionCallback,
     );
 
@@ -163,7 +163,7 @@ token:permit ${SDAI} ${SOME_ADDRESS} 100e18`,
     try {
       await evm.interpret(
         `load token
-token:permit ${WXDAI} ${SOME_ADDRESS} 100e18`,
+token:permit 100e18 ${WXDAI} for ${SOME_ADDRESS}`,
         actionCallback,
       );
     } catch (err) {

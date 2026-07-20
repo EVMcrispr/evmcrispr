@@ -7,15 +7,17 @@ Grant a role on an AccessControl contract (string roles, hashed with keccak256) 
 ## Syntax
 
 ```evml
-access-control:grant <target> <role> <account>
+access-control:grant <role> <on> <target> <to> <account>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `target` | `address` | AccessControl contract or AccessManager address |
 | `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Keyword `on` |
+| `target` | `address` | AccessControl contract or AccessManager address |
+| `to` | `command` | Keyword `to` |
 | `account` | `address` | Account to grant to |
 
 ## Options
@@ -35,12 +37,12 @@ set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # AccessControl: role names are hashed with keccak256
-access-control:grant $token MINTER_ROLE @me
-access-control:grant $token DEFAULT_ADMIN_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+access-control:grant MINTER_ROLE on $token to @me
+access-control:grant DEFAULT_ADMIN_ROLE on $token to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 # AccessManager: numeric role ids, optionally with an execution delay
-access-control:grant $manager 1 @me
-access-control:grant $manager 42 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 --delay 86400
+access-control:grant 1 on $manager to @me
+access-control:grant 42 on $manager to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 --delay 86400
 ```
 
 ## Notes

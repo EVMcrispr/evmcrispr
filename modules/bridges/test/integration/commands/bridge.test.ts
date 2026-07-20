@@ -43,7 +43,7 @@ describeCommand("bridge", {
       code: `load bridges
 
 switch mainnet
-bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 base --using CCTPv2`,
+bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 to base --using CCTPv2`,
       preamble: "",
     },
     {
@@ -51,7 +51,7 @@ bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 base --using CCT
       code: `load bridges
 
 switch mainnet
-bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimism --to 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9`,
+bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F to optimism --receiver 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9`,
       preamble: "",
     },
     {
@@ -59,14 +59,14 @@ bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimism --to 
       code: `load bridges
 
 switch mainnet
-bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using NativeBridge`,
+bridges:bridge 1e18 0x0000000000000000000000000000000000000000 to optimism --using NativeBridge`,
       preamble: "",
     },
   ],
   cases: [
     {
       name: "approves the TokenMessenger and burns USDC for the destination domain",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} base`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base`,
       validate: (actions) => {
         const [approve, burn] = txs(actions);
         expect(txs(actions)).to.have.length(2);
@@ -104,8 +104,8 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using 
       },
     },
     {
-      name: "sends to --to when given",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} base --to ${RECIPIENT}`,
+      name: "sends to --receiver when given",
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --receiver ${RECIPIENT}`,
       validate: (actions) => {
         const call = decodeFunctionData({
           abi: depositForBurnAbi,
@@ -118,7 +118,7 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using 
     },
     {
       name: "skips the approval with --no-approve true",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} base --no-approve true`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --no-approve true`,
       validate: (actions) => {
         expect(txs(actions)).to.have.length(1);
         expect(txs(actions)[0].to).to.eq(CCTP_TOKEN_MESSENGER);
@@ -126,7 +126,7 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using 
     },
     {
       name: "routes optimism through the CCTP domain map",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} optimism --using CCTPv2`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to optimism --using CCTPv2`,
       validate: (actions) => {
         const call = decodeFunctionData({
           abi: depositForBurnAbi,
@@ -139,33 +139,33 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using 
   errorCases: [
     {
       name: "rejects bridging to the current chain",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} mainnet`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to mainnet`,
       error: "already on chain 1; there is nothing to bridge",
     },
     {
       name: "rejects a zero amount",
-      script: `bridges:bridge 0 ${USDC_MAINNET} base`,
+      script: `bridges:bridge 0 ${USDC_MAINNET} to base`,
       error: "<amount> must be greater than zero",
     },
     {
       name: "rejects CCTPv2 for a token that is not native USDC",
-      script: `bridges:bridge 1e18 ${DAI_MAINNET} base --using CCTPv2`,
+      script: `bridges:bridge 1e18 ${DAI_MAINNET} to base --using CCTPv2`,
       error: "CCTPv2 doesn't bridge",
     },
     {
       name: "rejects an unknown adapter",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} base --using Hop`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using Hop`,
       error:
         "--using must be one of CCTPv2, Across, NativeBridge, LayerZero, CCIP",
     },
     {
       name: "rejects an unknown chain",
-      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} narnia`,
+      script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to narnia`,
       error: "must be a chain id or a known chain name",
     },
     {
       name: "rejects the native token on a CCTP lane",
-      script: `bridges:bridge 1e18 ${ZERO_ADDRESS} base --using CCTPv2`,
+      script: `bridges:bridge 1e18 ${ZERO_ADDRESS} to base --using CCTPv2`,
       error: "CCTPv2 doesn't bridge",
     },
   ],

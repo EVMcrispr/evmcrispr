@@ -22,7 +22,7 @@ aragonos:connect <daoName> <block>
 ```evml
 # Connect to a DAO and grant a permission
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE
+  aragonos:grant TRANSFER_ROLE on @aragonos:app(agent) to @me
 )
 ```
 

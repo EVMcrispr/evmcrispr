@@ -7,16 +7,17 @@ Transfer ERC20 tokens from the connected account to a recipient.
 ## Syntax
 
 ```evml
-token:transfer <token> <to> <amount>
+token:transfer <amount> <token> <to> <recipient>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `address` | Token address |
-| `to` | `address` | Recipient |
 | `amount` | `number` | Amount in token units (wei) |
+| `token` | `address` | Token address |
+| `to` | `command` | Keyword `to` |
+| `recipient` | `address` | Recipient |
 
 <!-- HAND-WRITTEN -->
 
@@ -28,10 +29,10 @@ load token
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
-token:transfer $token $recipient 100e18
+token:transfer 100e18 $token to $recipient
 
 # Transfer using a human-readable amount
-token:transfer @token(DAI) $recipient @token.amount(DAI 50)
+token:transfer @token.amount(DAI 50) @token(DAI) to $recipient
 ```
 
 ## See Also

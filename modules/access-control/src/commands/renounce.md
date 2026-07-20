@@ -7,15 +7,16 @@ Renounce a role held by the connected account on an AccessControl contract or an
 ## Syntax
 
 ```evml
-access-control:renounce <target> <role>
+access-control:renounce <role> <on> <target>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `target` | `address` | AccessControl contract or AccessManager address |
 | `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Keyword `on` |
+| `target` | `address` | AccessControl contract or AccessManager address |
 
 <!-- HAND-WRITTEN -->
 
@@ -27,8 +28,8 @@ load access-control
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $manager 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
-access-control:renounce $token MINTER_ROLE
-access-control:renounce $manager 42
+access-control:renounce MINTER_ROLE on $token
+access-control:renounce 42 on $manager
 ```
 
 ## Notes

@@ -7,16 +7,18 @@ Grant a permission on a DAO app to an entity, with an optional oracle.
 ## Syntax
 
 ```evml
-aragonos:grant <grantee> <app> <role> [permissionManager]
+aragonos:grant <role> <on> <app> <to> <grantee> [permissionManager]
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `grantee` | `address` | Address to grant the permission to |
-| `app` | `app` | Target app |
 | `role` | `permission` | Permission identifier |
+| `on` | `command` | Keyword `on` |
+| `app` | `app` | Target app |
+| `to` | `command` | Keyword `to` |
+| `grantee` | `address` | Address to grant the permission to |
 | `[permissionManager]` | `app` | Entity managing this permission |
 
 ## Options
@@ -30,7 +32,7 @@ aragonos:grant <grantee> <app> <role> [permissionManager]
 ```evml
 # Grant a role to the connected wallet
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
-  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE
+  aragonos:grant TRANSFER_ROLE on @aragonos:app(agent) to @me
 )
 ```
 

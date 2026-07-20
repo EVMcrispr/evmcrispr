@@ -7,16 +7,17 @@ Mint tokens to an account. Calls the mint(address,uint256) function commonly exp
 ## Syntax
 
 ```evml
-token:mint <token> <to> <amount>
+token:mint <amount> <token> <to> <account>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `address` | Token address |
-| `to` | `address` | Recipient |
 | `amount` | `number` | Amount in token units (wei) |
+| `token` | `address` | Token address |
+| `to` | `command` | Keyword `to` |
+| `account` | `address` | Recipient |
 
 <!-- HAND-WRITTEN -->
 
@@ -26,7 +27,7 @@ token:mint <token> <to> <amount>
 load token
 
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
-token:mint $token @me 100e18
+token:mint 100e18 $token to @me
 ```
 
 ## Notes

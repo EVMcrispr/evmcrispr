@@ -8,14 +8,10 @@ import {
 } from "@evmcrispr/sdk";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
-import { type DaoContext, hasPermission } from "../dao";
+import type { DaoContext } from "../dao";
 import type { CompletePermission, Params } from "../types";
-import { getAppRoles } from "../utils";
-import {
-  getDAO,
-  getModuleDAO,
-  resolvePermissionContext,
-} from "../utils/commands";
+import { getAppRoles, getCompletionDAO } from "../utils";
+import { getModuleDAO, resolvePermissionContext } from "../utils/commands";
 
 const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
   const [granteeAddress, appAddress, role, permissionManager, params = []] =
@@ -96,13 +92,15 @@ export default defineCommand<AragonOS>({
   description:
     "Grant a permission on a DAO app to an entity, with an optional oracle.",
   args: [
+    { name: "role", type: "permission", description: "Permission identifier" },
+    { name: "on", type: "command", description: "Keyword `on`" },
+    { name: "app", type: "app", description: "Target app" },
+    { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "grantee",
       type: "address",
       description: "Address to grant the permission to",
     },
-    { name: "app", type: "app", description: "Target app" },
-    { name: "role", type: "permission", description: "Permission identifier" },
     {
       name: "permissionManager",
       type: "app",
@@ -118,18 +116,35 @@ export default defineCommand<AragonOS>({
     },
   ],
   completions: {
-    role: async (ctx) => {
-      if (!ctx.resolveNode) return [];
-      const grantee = await ctx.resolveNode(ctx.nodeArgs[0]);
-      const app = await ctx.resolveNode(ctx.nodeArgs[1]);
-      if (!grantee || !isAddress(grantee) || !app || !isAddress(app)) return [];
-      const dao = getDAO(ctx.bindings);
-      return getAppRoles(ctx.bindings, app, ctx.chainId)
-        .filter((role) => !hasPermission(dao, grantee, app, role))
-        .map(fieldItem);
+    role: (ctx) => {
+      const dao = getCompletionDAO(ctx.bindings);
+      if (!dao) return [];
+      const roles = new Set<string>();
+      for (const app of dao.apps) {
+        for (const role of getAppRoles(
+          ctx.bindings,
+          app.address,
+          ctx.chainId,
+        )) {
+          roles.add(role);
+        }
+      }
+      return [...roles].map(fieldItem);
     },
+    on: () => [fieldItem("on")],
+    to: () => [fieldItem("to")],
   },
-  async run(module, { grantee, app, role, permissionManager }, { opts }) {
+  async run(
+    module,
+    { role, on, app, to, grantee, permissionManager },
+    { opts },
+  ) {
+    if (on !== "on") {
+      throw new ErrorException(`expected keyword "on", got "${on}"`);
+    }
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
     const oracleOpt = opts.oracle;
 
     let params: ReturnType<Params> = [];

@@ -12,12 +12,11 @@ import type AragonOS from "..";
 import {
   type DaoContext,
   getPermissions,
-  hasPermission,
   hasPermissionManager,
+  resolveApp,
 } from "../dao";
 import { getAppRoles, getCompletionDAO, normalizeRole } from "../utils";
 import {
-  getDAO,
   getModuleDAO,
   isPermission,
   resolvePermissionContext,
@@ -83,13 +82,15 @@ export default defineCommand<AragonOS>({
   description:
     "Revoke a permission from an entity on a DAO app, optionally removing the manager.",
   args: [
+    { name: "role", type: "permission", description: "Permission to revoke" },
+    { name: "on", type: "command", description: "Keyword `on`" },
+    { name: "app", type: "app", description: "Target app" },
+    { name: "from", type: "command", description: "Keyword `from`" },
     {
       name: "grantee",
       type: "address",
       description: "Address whose permission is revoked",
     },
-    { name: "app", type: "app", description: "Target app" },
-    { name: "role", type: "permission", description: "Permission to revoke" },
     {
       name: "removeManager",
       type: "bool",
@@ -98,84 +99,93 @@ export default defineCommand<AragonOS>({
     },
   ],
   completions: {
-    grantee: (ctx) => {
-      const granteeAddresses = new AddressSet();
+    role: (ctx) => {
       const dao = getCompletionDAO(ctx.bindings);
       if (!dao) return [];
-
-      getPermissions(dao).forEach(([, appPermissions]) => {
-        [...appPermissions.values()].forEach((role) => {
-          role.grantees.forEach(granteeAddresses.add, granteeAddresses);
-        });
-      });
-
-      return [...granteeAddresses].map(fieldItem);
+      const grantedRoles = new Set<string>();
+      for (const app of dao.apps) {
+        for (const role of getAppRoles(
+          ctx.bindings,
+          app.address,
+          ctx.chainId,
+        )) {
+          if (app.permissions.get(normalizeRole(role))?.grantees.size) {
+            grantedRoles.add(role);
+          }
+        }
+      }
+      return [...grantedRoles].map(fieldItem);
     },
+    on: () => [fieldItem("on")],
     app: async (ctx) => {
       if (!ctx.resolveNode) return [];
-      const revokeeAddress = ctx.nodeArgs[0]
+      const role = ctx.nodeArgs[0]
         ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
       const dao = getCompletionDAO(ctx.bindings);
+      if (!dao || !role) return [];
 
-      if (!dao || !revokeeAddress || !isAddress(revokeeAddress)) {
-        return [];
-      }
-
-      const granteeApps = new Set<string>();
-
-      getPermissions(dao).forEach(([appIdentifier, appPermissions]) => {
-        [...appPermissions.values()].forEach((role) => {
-          if (role.grantees.has(revokeeAddress)) {
-            granteeApps.add(appIdentifier);
-          }
-        });
-      });
-      return [...granteeApps].map(fieldItem);
+      const roleHash = normalizeRole(role);
+      return getPermissions(dao)
+        .filter(
+          ([, appPermissions]) => appPermissions.get(roleHash)?.grantees.size,
+        )
+        .map(([appIdentifier]) => fieldItem(appIdentifier));
     },
-    role: async (ctx) => {
+    from: () => [fieldItem("from")],
+    grantee: async (ctx) => {
       if (!ctx.resolveNode) return [];
-      const revokeeAddress = ctx.nodeArgs[0]
+      const role = ctx.nodeArgs[0]
         ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
-      const appAddress = ctx.nodeArgs[1]
-        ? await ctx.resolveNode(ctx.nodeArgs[1])
+      const appAddress = ctx.nodeArgs[2]
+        ? await ctx.resolveNode(ctx.nodeArgs[2])
         : undefined;
-      const dao = getDAO(ctx.bindings);
+      const dao = getCompletionDAO(ctx.bindings);
+      if (!dao || !role) return [];
 
-      if (
-        !revokeeAddress ||
-        !isAddress(revokeeAddress) ||
-        !appAddress ||
-        !isAddress(appAddress)
-      ) {
-        return [];
-      }
-      return getAppRoles(ctx.bindings, appAddress, ctx.chainId)
-        .filter((role) => hasPermission(dao, revokeeAddress, appAddress, role))
-        .map(fieldItem);
+      const granteeAddresses = new AddressSet();
+      const roleHash = normalizeRole(role);
+      const apps =
+        appAddress && isAddress(appAddress)
+          ? [resolveApp(dao, appAddress)].filter(
+              (app): app is NonNullable<typeof app> => app !== undefined,
+            )
+          : dao.apps;
+      apps.forEach((app) => {
+        app.permissions
+          .get(roleHash)
+          ?.grantees.forEach(granteeAddresses.add, granteeAddresses);
+      });
+      return [...granteeAddresses].map(fieldItem);
     },
     removeManager: async (ctx) => {
       if (!ctx.resolveNode) return [];
-      const appAddress = ctx.nodeArgs[1]
-        ? await ctx.resolveNode(ctx.nodeArgs[1])
+      const role = ctx.nodeArgs[0]
+        ? await ctx.resolveNode(ctx.nodeArgs[0])
         : undefined;
-      const role = ctx.nodeArgs[2]
+      const appAddress = ctx.nodeArgs[2]
         ? await ctx.resolveNode(ctx.nodeArgs[2])
         : undefined;
+      const dao = getCompletionDAO(ctx.bindings);
 
-      if (!role || !appAddress || !isAddress(appAddress)) {
+      if (!dao || !role || !appAddress || !isAddress(appAddress)) {
         return [];
       }
 
       const roleHash = normalizeRole(role);
-      const dao = getDAO(ctx.bindings);
       const hasManager = hasPermissionManager(dao, appAddress, roleHash);
 
       return hasManager ? [fieldItem("true")] : [];
     },
   },
-  async run(module, { grantee, app, role, removeManager }) {
+  async run(module, { role, on, app, from, grantee, removeManager }) {
+    if (on !== "on") {
+      throw new ErrorException(`expected keyword "on", got "${on}"`);
+    }
+    if (from !== "from") {
+      throw new ErrorException(`expected keyword "from", got "${from}"`);
+    }
     const args = [grantee, app, role, removeManager];
     const dao = getModuleDAO(module);
 

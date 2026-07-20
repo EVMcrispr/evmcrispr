@@ -26,7 +26,7 @@ describeCommand("act", {
       name: "wraps block actions into a direct dao.execute",
       script: `aragonosx:connect ${DAO_ADDRESS} (
   aragonosx:act --call-id "evmcrispr" (
-    aragonosx:grant ${TEST_ACCOUNT_ADDRESS} dao EXECUTE
+    aragonosx:grant EXECUTE on dao to ${TEST_ACCOUNT_ADDRESS}
   )
 )`,
       expectedActions: [
@@ -45,7 +45,7 @@ describeCommand("act", {
     {
       name: "fails outside a connect block",
       script: `aragonosx:act (
-  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} dao EXECUTE
+  aragonosx:grant EXECUTE on dao to ${TEST_ACCOUNT_ADDRESS}
 )`,
       error: 'used within a "connect" command',
     },
@@ -57,7 +57,7 @@ describeCommand("act", {
       preamble: PREAMBLE,
       code: `aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:act (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f dao ROOT
+    aragonosx:grant ROOT on dao to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )`,
     },

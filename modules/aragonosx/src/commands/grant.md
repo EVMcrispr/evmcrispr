@@ -7,16 +7,18 @@ Grant a permission on the DAO or one of its plugins to an entity, optionally gat
 ## Syntax
 
 ```evml
-aragonosx:grant <who> <where> <permission>
+aragonosx:grant <permission> <on> <where> <to> <who>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `who` | `address` | Address receiving the permission (or ANY_ENTITY) |
-| `where` | `plugin` | Target: `dao`, a plugin identifier, or an address |
 | `permission` | `permission` | Permission name (e.g. EXECUTE) or bytes32 id |
+| `on` | `command` | Keyword `on` |
+| `where` | `plugin` | Target: `dao`, a plugin identifier, or an address |
+| `to` | `command` | Keyword `to` |
+| `who` | `address` | Address receiving the permission (or ANY_ENTITY) |
 
 ## Options
 
@@ -30,7 +32,7 @@ aragonosx:grant <who> <where> <permission>
 # Allow an address to create token-voting proposals
 aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:propose multisig --approve true (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f token-voting CREATE_PROPOSAL
+    aragonosx:grant CREATE_PROPOSAL on token-voting to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )
 ```

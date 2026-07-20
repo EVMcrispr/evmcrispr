@@ -23,7 +23,7 @@ aragonosx:connect <dao> <block>
 # Connect to a DAO and grant a permission through its token-voting plugin
 aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:propose token-voting --metadata "ipfs://QmMetadata" (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f token-voting EXECUTE
+    aragonosx:grant EXECUTE on token-voting to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )
 ```

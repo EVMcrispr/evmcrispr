@@ -7,7 +7,7 @@ Upgrade an UpgradeableBeacon to a new implementation, upgrading every beacon pro
 ## Syntax
 
 ```evml
-proxies:upgrade-beacon <beacon> <implementation>
+proxies:upgrade-beacon <beacon> <to> <implementation>
 ```
 
 ## Arguments
@@ -15,6 +15,7 @@ proxies:upgrade-beacon <beacon> <implementation>
 | Name | Type | Description |
 |------|------|-------------|
 | `beacon` | `address` | UpgradeableBeacon address |
+| `to` | `command` | Keyword `to` |
 | `implementation` | `address` | New implementation address |
 
 <!-- HAND-WRITTEN -->
@@ -25,7 +26,7 @@ proxies:upgrade-beacon <beacon> <implementation>
 load proxies
 
 set $beacon 0xabcdef0123456789abcdef0123456789abcdef01
-proxies:upgrade-beacon $beacon 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+proxies:upgrade-beacon $beacon to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 ```
 
 ## Notes

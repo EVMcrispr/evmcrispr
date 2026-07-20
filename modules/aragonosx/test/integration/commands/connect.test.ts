@@ -28,14 +28,14 @@ describeCommand("connect", {
     {
       name: "connects to a DAO by address and returns the block actions",
       script: `aragonosx:connect ${DAO_ADDRESS} (
-  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE
+  aragonosx:grant EXECUTE on token-voting to ${TEST_ACCOUNT_ADDRESS}
 )`,
       expectedActions: [GRANT_ACTION],
     },
     {
       name: "connects to a DAO by its ENS subdomain",
       script: `aragonosx:connect ${DAO_SUBDOMAIN} (
-  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE
+  aragonosx:grant EXECUTE on token-voting to ${TEST_ACCOUNT_ADDRESS}
 )`,
       expectedActions: [GRANT_ACTION],
     },
@@ -45,7 +45,7 @@ describeCommand("connect", {
   set $plugin @aragonosx:plugin("token-voting")
 )
 aragonosx:connect ${DAO_ADDRESS} (
-  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} $plugin EXECUTE
+  aragonosx:grant EXECUTE on $plugin to ${TEST_ACCOUNT_ADDRESS}
 )`,
       validate: (_, interpreter) => {
         expect(interpreter.getBinding("$plugin", BindingsSpace.USER)).to.equal(
@@ -59,7 +59,7 @@ aragonosx:connect ${DAO_ADDRESS} (
       name: "fails when nesting connect commands",
       script: `aragonosx:connect ${DAO_ADDRESS} (
   aragonosx:connect ${DAO_ADDRESS} (
-    aragonosx:grant ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE
+    aragonosx:grant EXECUTE on token-voting to ${TEST_ACCOUNT_ADDRESS}
   )
 )`,
       error: 'nested "connect" commands are not supported',
@@ -67,7 +67,7 @@ aragonosx:connect ${DAO_ADDRESS} (
     {
       name: "fails on an unknown DAO name",
       script: `aragonosx:connect not-a-dao (
-  aragonosx:grant ${TEST_ACCOUNT_ADDRESS} token-voting EXECUTE
+  aragonosx:grant EXECUTE on token-voting to ${TEST_ACCOUNT_ADDRESS}
 )`,
       error: "couldn't be resolved",
     },
@@ -79,7 +79,7 @@ aragonosx:connect ${DAO_ADDRESS} (
       preamble: PREAMBLE,
       code: `aragonosx:connect 0x2222222222222222222222222222222222222222 (
   aragonosx:propose token-voting --metadata "ipfs://QmMetadata" (
-    aragonosx:grant 0xc125218F4Df091eE40624784caF7F47B9738086f token-voting EXECUTE
+    aragonosx:grant EXECUTE on token-voting to 0xc125218F4Df091eE40624784caF7F47B9738086f
   )
 )`,
     },

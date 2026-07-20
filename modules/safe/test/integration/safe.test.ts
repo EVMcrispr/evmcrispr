@@ -237,7 +237,7 @@ describe("Safe > integration", () => {
 
   it("swaps an owner", async () => {
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:swap-owner ${ownerC} ${ownerD}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:swap-owner ${ownerC} for ${ownerD}\n)`,
     );
 
     expect(await getOwners()).to.eql([ownerD, ownerB, ownerA]);

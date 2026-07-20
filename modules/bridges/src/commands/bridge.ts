@@ -3,6 +3,7 @@ import {
   coerceBoolean,
   defineCommand,
   ErrorException,
+  fieldItem,
   Num,
 } from "@evmcrispr/sdk";
 import { zeroAddress } from "viem";
@@ -29,6 +30,7 @@ export default defineCommand<Bridges>({
       description:
         "Token to bridge (use @token(SYM); the native token resolves to the zero address)",
     },
+    { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "destChain",
       type: "chain",
@@ -37,7 +39,7 @@ export default defineCommand<Bridges>({
   ],
   opts: [
     {
-      name: "to",
+      name: "receiver",
       type: "address",
       description:
         "Recipient on the destination chain (defaults to the connected account)",
@@ -67,7 +69,11 @@ export default defineCommand<Bridges>({
     },
   ],
   batchable: true,
-  async run(module, { amount, token, destChain }, { opts, interpreters }) {
+  completions: { to: () => [fieldItem("to")] },
+  async run(module, { amount, token, to, destChain }, { opts, interpreters }) {
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
     const srcChainId = await module.getChainId();
     const dstChainId = resolveChainId(destChain);
     if (srcChainId === dstChainId) {
@@ -82,7 +88,7 @@ export default defineCommand<Bridges>({
     }
 
     const owner = await module.getConnectedAccount(true);
-    const recipient = opts.to ?? owner;
+    const recipient = opts.receiver ?? owner;
     const adapter = await resolveAdapter(module, opts.using, {
       srcChainId,
       dstChainId,

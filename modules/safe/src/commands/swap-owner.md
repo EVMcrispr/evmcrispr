@@ -7,7 +7,7 @@ Replace an owner of the Safe with a new address.
 ## Syntax
 
 ```evml
-safe:swap-owner <oldOwner> <newOwner>
+safe:swap-owner <oldOwner> <for> <newOwner>
 ```
 
 ## Arguments
@@ -15,6 +15,7 @@ safe:swap-owner <oldOwner> <newOwner>
 | Name | Type | Description |
 |------|------|-------------|
 | `oldOwner` | `address` | Owner to replace |
+| `for` | `command` | Keyword `for` |
 | `newOwner` | `address` | New owner address |
 
 <!-- HAND-WRITTEN -->

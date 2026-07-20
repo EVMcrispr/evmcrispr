@@ -3,6 +3,7 @@ import {
   ErrorException,
   encodeAction,
   encodeSignatureCall,
+  fieldItem,
 } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import type Proxies from "..";
@@ -14,6 +15,7 @@ export default defineCommand<Proxies>({
     "Upgrade an ERC-1967 proxy to a new implementation, detecting whether it is a transparent proxy (upgraded through its ProxyAdmin) or a UUPS proxy (upgraded through itself). Optionally calls an initializer on the new implementation.",
   args: [
     { name: "proxy", type: "address", description: "Proxy address" },
+    { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "implementation",
       type: "address",
@@ -33,7 +35,11 @@ export default defineCommand<Proxies>({
       rest: true,
     },
   ],
-  async run(module, { proxy, implementation, signature, params }) {
+  completions: { to: () => [fieldItem("to")] },
+  async run(module, { proxy, to, implementation, signature, params }) {
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
     const data: Hex = signature
       ? encodeSignatureCall(signature, params ?? [])
       : "0x";

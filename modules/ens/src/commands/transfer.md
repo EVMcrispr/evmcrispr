@@ -7,7 +7,7 @@ Transfer ownership of an ENS name.
 ## Syntax
 
 ```evml
-ens:transfer <name> <newOwner>
+ens:transfer <name> <to> <newOwner>
 ```
 
 ## Arguments
@@ -15,6 +15,7 @@ ens:transfer <name> <newOwner>
 | Name | Type | Description |
 |------|------|-------------|
 | `name` | `string` | ENS name (e.g. mydao.eth) |
+| `to` | `command` | Keyword `to` |
 | `newOwner` | `address` | New owner address |
 
 <!-- HAND-WRITTEN -->
@@ -25,7 +26,7 @@ ens:transfer <name> <newOwner>
 load ens
 
 # Hand a name over to the DAO agent
-ens:transfer mydao.eth 0x1234567890abcdef1234567890abcdef12345678
+ens:transfer mydao.eth to 0x1234567890abcdef1234567890abcdef12345678
 ```
 
 ## Notes

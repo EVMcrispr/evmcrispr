@@ -31,7 +31,7 @@ set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 governor:queue $governor "Fund the grants program" (
   exec $token transfer(address,uint256) 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 100e18
-  access-control:grant $token MINTER_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+  access-control:grant MINTER_ROLE on $token to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 )
 ```
 

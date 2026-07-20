@@ -44,7 +44,7 @@ describe("Bridges > cross-chain simulation", () => {
     await evm.interpret(`load sim
 load bridges
 sim:fork --using anvil --from ${USDC_WHALE} (
-  bridges:bridge ${AMOUNT} ${USDC_MAINNET} base --using CCTPv2 --to ${recipient}
+  bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2 --receiver ${recipient}
   switch base
   set $balance @get(${USDC_BASE} "balanceOf(address)(uint256)" ${recipient})
   sim:expect @bool($balance == ${AMOUNT})
@@ -66,7 +66,7 @@ sim:fork --using anvil --from ${USDC_WHALE} (
     await evm.interpret(`load sim
 load bridges
 sim:fork --using anvil --from ${USDC_WHALE} (
-  bridges:bridge ${AMOUNT} ${USDC_MAINNET} base --using CCTPv2
+  bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2
 )`);
 
     expect(

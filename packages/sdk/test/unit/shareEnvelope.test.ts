@@ -25,7 +25,7 @@ async function expectRejection(promise: Promise<unknown>, message: string) {
 
 const CONTENT = {
   title: "My script — ünïcödé ✨",
-  script: 'load token\ntoken:transfer @token(DAI) @me 100e18 # "quoted"',
+  script: 'load token\ntoken:transfer 100e18 @token(DAI) to @me # "quoted"',
 };
 
 describe("shareEnvelope", () => {

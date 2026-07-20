@@ -21,7 +21,7 @@ describeCommand("forward", {
   docCases: [
     {
       description: "Forward through voting to modify permissions",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:forward @aragonos:app(disputable-voting.open) (\n    aragonos:grant @aragonos:app(disputable-voting.open) @aragonos:app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @aragonos:app(disputable-voting.open)\n  ) --context "Modify permissions"\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:forward @aragonos:app(disputable-voting.open) (\n    aragonos:grant PAUSE_CONTRACT_ROLE on @aragonos:app(disputable-conviction-voting.open) to @aragonos:app(disputable-voting.open) @aragonos:app(disputable-voting.open)\n  ) --context "Modify permissions"\n)`,
     },
   ],
   cases: [
@@ -29,8 +29,8 @@ describeCommand("forward", {
       name: "should return a correct forward action",
       script: `
       forward @app(disputable-voting.open) (
-        grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)
-        revoke @ANY_ENTITY @app(disputable-conviction-voting.open) CREATE_PROPOSALS_ROLE true
+        grant PAUSE_CONTRACT_ROLE on @app(disputable-conviction-voting.open) to @app(disputable-voting.open) @app(disputable-voting.open)
+        revoke CREATE_PROPOSALS_ROLE on @app(disputable-conviction-voting.open) from @ANY_ENTITY true
       ) --context "test"
     \n)`,
       validate: async (forwardActions) => {
@@ -66,7 +66,7 @@ describeCommand("forward", {
     {
       name: "should fail when forwarding actions through invalid forwarder addresses",
       script: `forward false 0xab123cd1231255ab45323de234223422a12312321abaceff (
-      grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE
+      grant CREATE_PAYMENTS_ROLE on @app(finance) to @app(tollgate.open)
     )\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
@@ -79,7 +79,7 @@ describeCommand("forward", {
     {
       name: "should fail when forwarding actions through non-forwarder entities",
       script: `forward @app(acl) (
-    grant @app(disputable-voting.open) @app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @app(disputable-voting.open)
+    grant PAUSE_CONTRACT_ROLE on @app(disputable-conviction-voting.open) to @app(disputable-voting.open) @app(disputable-voting.open)
   )\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "forward")!;
@@ -95,7 +95,7 @@ describeCommand("forward", {
   errorCases: [
     {
       name: "should fail when receiving non-defined forwarder identifiers",
-      script: `load aragonos [forward grant @app]\naragonos:connect ${DAO.kernel} (\n  forward non-defined-address (\n    grant @app(tollgate.open) @app(finance) CREATE_PAYMENTS_ROLE\n  )\n)`,
+      script: `load aragonos [forward grant @app]\naragonos:connect ${DAO.kernel} (\n  forward non-defined-address (\n    grant CREATE_PAYMENTS_ROLE on @app(finance) to @app(tollgate.open)\n  )\n)`,
       error: "non-defined-address",
     },
     {

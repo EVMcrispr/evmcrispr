@@ -260,7 +260,7 @@ const native: BridgeAdapter = {
         if (isNative) {
           if (req.recipient.toLowerCase() !== req.from.toLowerCase()) {
             throw new ErrorException(
-              "Arbitrum ETH deposits credit the sender's own address; drop --to, or bridge WETH with --using Across",
+              "Arbitrum ETH deposits credit the sender's own address; drop --receiver, or bridge WETH with --using Across",
             );
           }
           return {

@@ -30,7 +30,7 @@ aragonos:forward [...forwarders] <block>
 # Forward through voting to modify permissions
 aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (
   aragonos:forward @aragonos:app(disputable-voting.open) (
-    aragonos:grant @aragonos:app(disputable-voting.open) @aragonos:app(disputable-conviction-voting.open) PAUSE_CONTRACT_ROLE @aragonos:app(disputable-voting.open)
+    aragonos:grant PAUSE_CONTRACT_ROLE on @aragonos:app(disputable-conviction-voting.open) to @aragonos:app(disputable-voting.open) @aragonos:app(disputable-voting.open)
   ) --context "Modify permissions"
 )
 ```

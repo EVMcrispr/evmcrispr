@@ -149,7 +149,7 @@ load sim
 sim:fork (
   aragonos:connect my-dao.aragonid.eth (
     # Test a governance action
-    grant @me @app(voting) CREATE_VOTES_ROLE
+    grant CREATE_VOTES_ROLE on @app(voting) to @me
     install $agent agent
   )
 )

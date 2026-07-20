@@ -5,7 +5,7 @@ import { createLink } from "../../src/tools/create-link.js";
 const CID = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 const ARGS = {
   title: "Treasury payout",
-  script: "load token\ntoken:transfer DAI @me 100e18",
+  script: "load token\ntoken:transfer 100e18 DAI to @me",
 };
 
 const originalFetch = globalThis.fetch;

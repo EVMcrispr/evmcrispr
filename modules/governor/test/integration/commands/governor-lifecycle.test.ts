@@ -144,7 +144,7 @@ describeCommand("delegate", {
   cases: [
     {
       name: "should encode a delegate action",
-      script: `governor:delegate ${GNO} ${SOME_ADDRESS}`,
+      script: `governor:delegate ${GNO} to ${SOME_ADDRESS}`,
       expectedActions: [encodeAction(GNO, "delegate(address)", [SOME_ADDRESS])],
     },
   ],

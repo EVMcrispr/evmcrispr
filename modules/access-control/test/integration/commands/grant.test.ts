@@ -10,13 +10,13 @@ const MANAGER = "0x1111111111111111111111111111111111111111";
 
 describeCommand("grant", {
   describeName:
-    "AccessControl > commands > grant <target> <role> <account> [--delay]",
+    "AccessControl > commands > grant <role> on <target> to <account> [--delay]",
   module: "access-control",
   preamble: "load access-control",
   cases: [
     {
       name: "should hash string roles and encode an AccessControl grantRole",
-      script: `access-control:grant ${TOKEN_DISTRO} MINTER_ROLE ${SOME_ADDRESS}`,
+      script: `access-control:grant MINTER_ROLE on ${TOKEN_DISTRO} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(TOKEN_DISTRO, "grantRole(bytes32,address)", [
           MINTER_ROLE,
@@ -26,7 +26,7 @@ describeCommand("grant", {
     },
     {
       name: "should map DEFAULT_ADMIN_ROLE to bytes32 zero",
-      script: `access-control:grant ${TOKEN_DISTRO} DEFAULT_ADMIN_ROLE ${SOME_ADDRESS}`,
+      script: `access-control:grant DEFAULT_ADMIN_ROLE on ${TOKEN_DISTRO} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(TOKEN_DISTRO, "grantRole(bytes32,address)", [
           ZERO_BYTES32,
@@ -36,7 +36,7 @@ describeCommand("grant", {
     },
     {
       name: "should pass bytes32 roles through untouched",
-      script: `access-control:grant ${TOKEN_DISTRO} ${MINTER_ROLE} ${SOME_ADDRESS}`,
+      script: `access-control:grant ${MINTER_ROLE} on ${TOKEN_DISTRO} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(TOKEN_DISTRO, "grantRole(bytes32,address)", [
           MINTER_ROLE,
@@ -46,7 +46,7 @@ describeCommand("grant", {
     },
     {
       name: "should encode an AccessManager grantRole for numeric roles",
-      script: `access-control:grant ${MANAGER} 42 ${SOME_ADDRESS}`,
+      script: `access-control:grant 42 on ${MANAGER} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(MANAGER, "grantRole(uint64,address,uint32)", [
           Num(42n),
@@ -57,7 +57,7 @@ describeCommand("grant", {
     },
     {
       name: "should encode the execution delay for AccessManager roles",
-      script: `access-control:grant ${MANAGER} 42 ${SOME_ADDRESS} --delay 86400`,
+      script: `access-control:grant 42 on ${MANAGER} to ${SOME_ADDRESS} --delay 86400`,
       expectedActions: [
         encodeAction(MANAGER, "grantRole(uint64,address,uint32)", [
           Num(42n),
@@ -68,7 +68,7 @@ describeCommand("grant", {
     },
     {
       name: "should accept the ADMIN_ROLE and PUBLIC_ROLE aliases",
-      script: `access-control:grant ${MANAGER} ADMIN_ROLE ${SOME_ADDRESS}`,
+      script: `access-control:grant ADMIN_ROLE on ${MANAGER} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(MANAGER, "grantRole(uint64,address,uint32)", [
           Num(0n),
@@ -81,17 +81,17 @@ describeCommand("grant", {
   errorCases: [
     {
       name: "should fail when --delay is used with an AccessControl role",
-      script: `access-control:grant ${TOKEN_DISTRO} MINTER_ROLE ${SOME_ADDRESS} --delay 3600`,
+      script: `access-control:grant MINTER_ROLE on ${TOKEN_DISTRO} to ${SOME_ADDRESS} --delay 3600`,
       error: "--delay only applies to AccessManager",
     },
     {
       name: "should fail for role ids above uint64",
-      script: `access-control:grant ${MANAGER} 18446744073709551616 ${SOME_ADDRESS}`,
+      script: `access-control:grant 18446744073709551616 on ${MANAGER} to ${SOME_ADDRESS}`,
       error: "role ids must be integers",
     },
     {
       name: "should fail for malformed hex roles",
-      script: `access-control:grant ${TOKEN_DISTRO} 0xabcd ${SOME_ADDRESS}`,
+      script: `access-control:grant 0xabcd on ${TOKEN_DISTRO} to ${SOME_ADDRESS}`,
       error: "hex roles must be 32 bytes",
     },
   ],

@@ -7,16 +7,17 @@ Approve a spender through an EIP-2612 permit signed by the connected wallet, enc
 ## Syntax
 
 ```evml
-token:permit <token> <spender> <amount>
+token:permit <amount> <token> <for> <spender>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `address` | Token address |
-| `spender` | `address` | Spender address |
 | `amount` | `number` | Allowance in token units (wei) |
+| `token` | `address` | Token address |
+| `for` | `command` | Keyword `for` |
+| `spender` | `address` | Spender address |
 
 ## Options
 
@@ -44,10 +45,10 @@ set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 # Approve via signature instead of an approve transaction
-token:permit $token $spender 100e18
+token:permit 100e18 $token for $spender
 
 # Permit that expires in one day
-token:permit $token $spender 100e18 --deadline @date(now +1d)
+token:permit 100e18 $token for $spender --deadline @date(now +1d)
 ```
 
 ## See Also

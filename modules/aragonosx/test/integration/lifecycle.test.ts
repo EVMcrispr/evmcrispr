@@ -38,7 +38,7 @@ sim:fork --using anvil (
   aragonosx:new-dao $dao admin @me [0x0000000000000000000000000000000000000000 0]
   aragonosx:connect $dao (
     aragonosx:propose admin --metadata "created by evmcrispr" (
-      aragonosx:grant @me dao EXECUTE
+      aragonosx:grant EXECUTE on dao to @me
     )
   )
   sim:expect @get($dao "hasPermission(address,address,bytes32,bytes)(bool)" $dao @me @aragonosx:permission("EXECUTE") 0x)

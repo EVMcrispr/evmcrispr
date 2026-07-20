@@ -33,7 +33,7 @@ set $token 0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72
 # Bind the proposal id for voting later in the same script
 governor:propose $proposalId $governor "Fund the grants program" (
   exec $token transfer(address,uint256) 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 100e18
-  access-control:grant $token MINTER_ROLE 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+  access-control:grant MINTER_ROLE on $token to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 )
 ```
 

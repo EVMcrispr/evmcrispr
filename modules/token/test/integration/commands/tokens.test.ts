@@ -4,13 +4,13 @@ import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { GNO, OTHER_ADDRESS, SOME_ADDRESS } from "../../fixtures";
 
 describeCommand("mint", {
-  describeName: "Token > commands > mint <token> <to> <amount>",
+  describeName: "Token > commands > mint <amount> <token> to <account>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode a mint action",
-      script: `token:mint ${GNO} ${SOME_ADDRESS} 100e18`,
+      script: `token:mint 100e18 ${GNO} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(GNO, "mint(address,uint256)", [
           SOME_ADDRESS,
@@ -22,13 +22,13 @@ describeCommand("mint", {
 });
 
 describeCommand("burn", {
-  describeName: "Token > commands > burn <token> <amount>",
+  describeName: "Token > commands > burn <amount> <token>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode a burn action",
-      script: `token:burn ${GNO} 100e18`,
+      script: `token:burn 100e18 ${GNO}`,
       expectedActions: [
         encodeAction(GNO, "burn(uint256)", [Num(100000000000000000000n)]),
       ],
@@ -37,13 +37,13 @@ describeCommand("burn", {
 });
 
 describeCommand("burn-from", {
-  describeName: "Token > commands > burn-from <token> <from> <amount>",
+  describeName: "Token > commands > burn-from <amount> <token> from <account>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode a burnFrom action",
-      script: `token:burn-from ${GNO} ${SOME_ADDRESS} 100e18`,
+      script: `token:burn-from 100e18 ${GNO} from ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(GNO, "burnFrom(address,uint256)", [
           SOME_ADDRESS,
@@ -55,13 +55,13 @@ describeCommand("burn-from", {
 });
 
 describeCommand("approve", {
-  describeName: "Token > commands > approve <token> <spender> <amount>",
+  describeName: "Token > commands > approve <amount> <token> for <spender>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode an approve action",
-      script: `token:approve ${GNO} ${SOME_ADDRESS} 100e18`,
+      script: `token:approve 100e18 ${GNO} for ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(GNO, "approve(address,uint256)", [
           SOME_ADDRESS,
@@ -73,13 +73,13 @@ describeCommand("approve", {
 });
 
 describeCommand("transfer", {
-  describeName: "Token > commands > transfer <token> <to> <amount>",
+  describeName: "Token > commands > transfer <amount> <token> to <recipient>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode a transfer action",
-      script: `token:transfer ${GNO} ${SOME_ADDRESS} 100e18`,
+      script: `token:transfer 100e18 ${GNO} to ${SOME_ADDRESS}`,
       expectedActions: [
         encodeAction(GNO, "transfer(address,uint256)", [
           SOME_ADDRESS,
@@ -91,13 +91,14 @@ describeCommand("transfer", {
 });
 
 describeCommand("transfer-from", {
-  describeName: "Token > commands > transfer-from <token> <from> <to> <amount>",
+  describeName:
+    "Token > commands > transfer-from <amount> <token> from <owner> to <recipient>",
   module: "token",
   preamble: "load token",
   cases: [
     {
       name: "should encode a transferFrom action",
-      script: `token:transfer-from ${GNO} ${SOME_ADDRESS} ${OTHER_ADDRESS} 100e18`,
+      script: `token:transfer-from 100e18 ${GNO} from ${SOME_ADDRESS} to ${OTHER_ADDRESS}`,
       expectedActions: [
         encodeAction(GNO, "transferFrom(address,address,uint256)", [
           SOME_ADDRESS,

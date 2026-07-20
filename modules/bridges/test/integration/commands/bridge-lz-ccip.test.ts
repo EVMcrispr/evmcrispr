@@ -46,7 +46,7 @@ describeCommand("bridge --using LayerZero", {
   cases: [
     {
       name: "quotes the OFT and sends it with the messaging fee attached",
-      script: `bridges:bridge 1000000 ${USDT_OFT_ADAPTER} arbitrum --using LayerZero`,
+      script: `bridges:bridge 1000000 ${USDT_OFT_ADAPTER} to arbitrum --using LayerZero`,
       validate: (actions) => {
         const [approve, send] = txs(actions);
         // The adapter escrows real USDT, so the allowance is on USDT itself
@@ -77,7 +77,7 @@ describeCommand("bridge --using LayerZero", {
   errorCases: [
     {
       name: "rejects a token that is not an OFT",
-      script: `bridges:bridge 1e18 ${DAI_MAINNET} arbitrum --using LayerZero`,
+      script: `bridges:bridge 1e18 ${DAI_MAINNET} to arbitrum --using LayerZero`,
       error: "is not a LayerZero OFT",
     },
   ],
@@ -90,7 +90,7 @@ describeCommand("bridge --using CCIP", {
   cases: [
     {
       name: "approves the router and sends the token through it with the CCIP fee",
-      script: `bridges:bridge 1e18 ${LINK_MAINNET} arbitrum --using CCIP`,
+      script: `bridges:bridge 1e18 ${LINK_MAINNET} to arbitrum --using CCIP`,
       validate: (actions) => {
         const [approve, send] = txs(actions);
         expect(approve.to).to.eq(LINK_MAINNET);
@@ -122,7 +122,7 @@ describeCommand("bridge --using CCIP", {
     {
       name: "reports when a token has no CCIP pool on the lane",
       // USDC has a Gnosis pool; DAI does not, so getFee reverts.
-      script: `bridges:bridge 1e18 ${DAI_MAINNET} gnosis --using CCIP`,
+      script: `bridges:bridge 1e18 ${DAI_MAINNET} to gnosis --using CCIP`,
       error: "CCIP can't route",
     },
   ],

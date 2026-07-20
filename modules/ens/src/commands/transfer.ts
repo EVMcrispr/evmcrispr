@@ -1,4 +1,9 @@
-import { defineCommand, encodeAction } from "@evmcrispr/sdk";
+import {
+  defineCommand,
+  ErrorException,
+  encodeAction,
+  fieldItem,
+} from "@evmcrispr/sdk";
 import { labelhash, parseAbi } from "viem";
 import type Ens from "..";
 import {
@@ -21,9 +26,14 @@ export default defineCommand<Ens>({
   description: "Transfer ownership of an ENS name.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
+    { name: "to", type: "command", description: "Keyword `to`" },
     { name: "newOwner", type: "address", description: "New owner address" },
   ],
-  async run(module, { name, newOwner }) {
+  completions: { to: () => [fieldItem("to")] },
+  async run(module, { name, to, newOwner }) {
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
     const client = await module.getClient();

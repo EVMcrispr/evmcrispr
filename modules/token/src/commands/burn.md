@@ -7,15 +7,15 @@ Burn tokens from the connected account (ERC20Burnable burn function).
 ## Syntax
 
 ```evml
-token:burn <token> <amount>
+token:burn <amount> <token>
 ```
 
 ## Arguments
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `address` | Token address |
 | `amount` | `number` | Amount in token units (wei) |
+| `token` | `address` | Token address |
 
 <!-- HAND-WRITTEN -->
 
@@ -25,7 +25,7 @@ token:burn <token> <amount>
 load token
 
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
-token:burn $token 100e18
+token:burn 100e18 $token
 ```
 
 ## Notes

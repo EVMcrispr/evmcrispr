@@ -6,14 +6,14 @@ export default defineCommand<Token>({
   description:
     "Burn tokens from the connected account (ERC20Burnable burn function).",
   args: [
-    { name: "token", type: "address", description: "Token address" },
     {
       name: "amount",
       type: "number",
       description: "Amount in token units (wei)",
     },
+    { name: "token", type: "address", description: "Token address" },
   ],
-  async run(_module, { token, amount }) {
+  async run(_module, { amount, token }) {
     return [encodeAction(token, "burn(uint256)", [amount])];
   },
 });

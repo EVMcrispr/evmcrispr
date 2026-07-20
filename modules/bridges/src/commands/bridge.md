@@ -7,7 +7,7 @@ Send tokens from the current chain to another chain, approving the bridge automa
 ## Syntax
 
 ```evml
-bridges:bridge <amount> <token> <destChain>
+bridges:bridge <amount> <token> <to> <destChain>
 ```
 
 ## Arguments
@@ -16,13 +16,14 @@ bridges:bridge <amount> <token> <destChain>
 |------|------|-------------|
 | `amount` | `number` | Amount to bridge, in base units (wei) |
 | `token` | `address` | Token to bridge (use @token(SYM); the native token resolves to the zero address) |
+| `to` | `command` | Keyword `to` |
 | `destChain` | `chain` | Destination chain name or id (e.g. optimism, base, 8453) |
 
 ## Options
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--to` | `address` | Recipient on the destination chain (defaults to the connected account) |
+| `--receiver` | `address` | Recipient on the destination chain (defaults to the connected account) |
 | `--using` | `bridge-adapter` | Adapter: CCTPv2, Across, NativeBridge, LayerZero or CCIP (default: the best adapter for the token and lane) |
 | `--max-fee` | `number` | Abort when the bridge fee, in base units of <token>, exceeds this bound |
 | `--remote-token` | `address` | Destination-chain address of <token> (NativeBridge ERC-20 transfers only) |
@@ -35,19 +36,19 @@ bridges:bridge <amount> <token> <destChain>
 load bridges
 
 switch mainnet
-bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 base --using CCTPv2
+bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 to base --using CCTPv2
 
 # Bridge 1000 DAI to Optimism, paying out to someone else
 load bridges
 
 switch mainnet
-bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimism --to 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9
+bridges:bridge 1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F to optimism --receiver 0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9
 
 # Move 1 ETH to Optimism through the canonical bridge
 load bridges
 
 switch mainnet
-bridges:bridge 1e18 0x0000000000000000000000000000000000000000 optimism --using NativeBridge
+bridges:bridge 1e18 0x0000000000000000000000000000000000000000 to optimism --using NativeBridge
 ```
 
 <!-- HAND-WRITTEN -->
@@ -85,7 +86,7 @@ load bridges
 load sim
 
 sim:fork --using anvil (
-  bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 base --using CCTPv2
+  bridges:bridge 100e6 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 to base --using CCTPv2
   switch base
   set $balance @get(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 "balanceOf(address)(uint256)" @me)
   sim:expect @bool($balance > 0)

@@ -47,7 +47,7 @@ describeCommand("connect", {
   docCases: [
     {
       description: "Connect to a DAO and grant a permission",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant TRANSFER_ROLE on @aragonos:app(agent) to @me\n)`,
     },
   ],
   errorCases: [
@@ -99,7 +99,7 @@ describeCommand("connect", {
   cases: [
     {
       name: "should return the correct actions when defining a complete forwarding path via forward command",
-      script: `load aragonos [forward grant revoke new-token install act @app @nextApp]\naragonos:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant @me @app(agent) TRANSFER_ROLE\n    grant @app(dandelion-voting.1hive) @app(token-manager) ISSUE_ROLE @app(dandelion-voting.1hive)\n    revoke @app(dandelion-voting.1hive) @app(tollgate.1hive) CHANGE_AMOUNT_ROLE true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager $token true 0\n    act @app(agent) @app(agent 1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
+      script: `load aragonos [forward grant revoke new-token install act @app @nextApp]\naragonos:connect ${DAO3.kernel} (\n  forward ${COMPLETE_FORWARDER_PATH.map((f) => `@app(${f})`).join(" ")} (\n    grant TRANSFER_ROLE on @app(agent) to @me\n    grant ISSUE_ROLE on @app(token-manager) to @app(dandelion-voting.1hive) @app(dandelion-voting.1hive)\n    revoke CHANGE_AMOUNT_ROLE on @app(tollgate.1hive) from @app(dandelion-voting.1hive) true\n    new-token $token "Other Token" OT @nextApp\n    install $tm token-manager $token true 0\n    act @app(agent) @app(agent 1) "transfer(address,address,uint256)" @token(DAI) @me 10.50e18\n  )\n)`,
       validate: async (forwardingAction) => {
         const client = getPublicClient();
         const me = TEST_ACCOUNT_ADDRESS;
@@ -211,7 +211,7 @@ describeCommand("connect", {
     },
     {
       name: "should share values between sequential connect blocks via set",
-      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO2.kernel} (\n  std:set $dv2 @app(disputable-voting.open)\n)\naragonos:connect ${DAO.kernel} (\n  grant $dv2 @app(disputable-voting.open) CREATE_VOTES_ROLE\n)`,
+      script: `load aragonos [connect grant @app]\naragonos:connect ${DAO2.kernel} (\n  std:set $dv2 @app(disputable-voting.open)\n)\naragonos:connect ${DAO.kernel} (\n  grant CREATE_VOTES_ROLE on @app(disputable-voting.open) to $dv2\n)`,
       validate: async (actions) => {
         const expectedActions = [
           createTestAction("grantPermission", DAO.acl, [

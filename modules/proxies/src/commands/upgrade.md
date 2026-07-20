@@ -7,7 +7,7 @@ Upgrade an ERC-1967 proxy to a new implementation, detecting whether it is a tra
 ## Syntax
 
 ```evml
-proxies:upgrade <proxy> <implementation> [signature] [...params]
+proxies:upgrade <proxy> <to> <implementation> [signature] [...params]
 ```
 
 ## Arguments
@@ -15,6 +15,7 @@ proxies:upgrade <proxy> <implementation> [signature] [...params]
 | Name | Type | Description |
 |------|------|-------------|
 | `proxy` | `address` | Proxy address |
+| `to` | `command` | Keyword `to` |
 | `implementation` | `address` | New implementation address |
 | `[signature]` | `write-abi` | Function to call on the new implementation after upgrading (e.g. a reinitializer) |
 | `[...params]` | `any` | Arguments matching the signature types |
@@ -29,10 +30,10 @@ load proxies
 set $proxy 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 # Plain upgrade (transparent or UUPS is detected automatically)
-proxies:upgrade $proxy 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+proxies:upgrade $proxy to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 # Upgrade and call a reinitializer on the new implementation
-proxies:upgrade $proxy 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 initializeV2(uint256) 42
+proxies:upgrade $proxy to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 initializeV2(uint256) 42
 ```
 
 ## Notes

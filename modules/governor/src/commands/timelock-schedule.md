@@ -41,7 +41,7 @@ set $grantee 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 # Schedule a batch and remember its operation id
 governor:timelock-schedule $opId $timelock 172800 (
   exec $token transfer(address,uint256) $grantee 100e18
-  access-control:grant $token MINTER_ROLE $grantee
+  access-control:grant MINTER_ROLE on $token to $grantee
 )
 print @governor:timelockOperationState($timelock $opId)
 ```

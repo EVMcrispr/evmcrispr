@@ -13,19 +13,19 @@ const preamble = `load aragonos [grant @app]\naragonos:connect ${DAO.kernel} (`;
 
 describeCommand("grant", {
   describeName:
-    "AragonOS > commands > grant <entity> <app> <role> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]",
+    "AragonOS > commands > grant <role> on <app> to <entity> [permissionManager] [--params <acl params> | --oracle <aclOracleAddress>]",
   module: "aragonos",
   preamble,
   docCases: [
     {
       description: "Grant a role to the connected wallet",
-      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant @me @aragonos:app(agent) TRANSFER_ROLE\n)`,
+      code: `aragonos:connect 0x1fc7e8d8e4bbbef77a4d035aec189373b52125a8 (\n  aragonos:grant TRANSFER_ROLE on @aragonos:app(agent) to @me\n)`,
     },
   ],
   cases: [
     {
       name: "should return a correct grant permission action",
-      script: `grant @me @app(agent) TRANSFER_ROLE\n)`,
+      script: `grant TRANSFER_ROLE on @app(agent) to @me\n)`,
       validate: async (granteeActions) => {
         const expectedGranteeActions = [
           createTestAction("grantPermission", DAO.acl, [
@@ -41,7 +41,7 @@ describeCommand("grant", {
     },
     {
       name: "should return a correct create permission action",
-      script: `grant @app(disputable-voting.open) @app(wrappable-hooked-token-manager.open) WRAP_TOKEN_ROLE @me\n)`,
+      script: `grant WRAP_TOKEN_ROLE on @app(wrappable-hooked-token-manager.open) to @app(disputable-voting.open) @me\n)`,
       validate: async (createPermissionAction) => {
         const expectedPermissionManager = TEST_ACCOUNT_ADDRESS;
         const expectedCreatePermissionActions = [
@@ -59,7 +59,7 @@ describeCommand("grant", {
     },
     {
       name: "should return a correct parametric permission action when receiving an oracle option",
-      script: `grant @app(disputable-voting.open) @app(wrappable-hooked-token-manager.open) WRAP_TOKEN_ROLE @app(disputable-voting.open) --oracle @app(wrappable-hooked-token-manager.open)\n)`,
+      script: `grant WRAP_TOKEN_ROLE on @app(wrappable-hooked-token-manager.open) to @app(disputable-voting.open) @app(disputable-voting.open) --oracle @app(wrappable-hooked-token-manager.open)\n)`,
       validate: async (grantPActions) => {
         const expectedActions: Action[] = [
           createTestAction("createPermission", DAO.acl, [
@@ -82,7 +82,7 @@ describeCommand("grant", {
   errorCases: [
     {
       name: "should fail when providing an invalid oracle option",
-      script: `grant @app(disputable-voting.open) @app(wrappable-hooked-token-manager.open) REVOKE_VESTINGS_ROLE @app(disputable-voting.open) --oracle invalid-oracle\n)`,
+      script: `grant REVOKE_VESTINGS_ROLE on @app(wrappable-hooked-token-manager.open) to @app(disputable-voting.open) @app(disputable-voting.open) --oracle invalid-oracle\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -93,7 +93,7 @@ describeCommand("grant", {
     },
     {
       name: "should fail when granting a parametric permission to an existent grantee",
-      script: `grant @app(augmented-bonding-curve.open) @app(wrappable-hooked-token-manager.open) MINT_ROLE --oracle @app(wrappable-hooked-token-manager.open)\n)`,
+      script: `grant MINT_ROLE on @app(wrappable-hooked-token-manager.open) to @app(augmented-bonding-curve.open) --oracle @app(wrappable-hooked-token-manager.open)\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -104,7 +104,7 @@ describeCommand("grant", {
     },
     {
       name: "should fail when granting a permission to an address that already has it",
-      script: `grant @app(augmented-bonding-curve.open) @app(wrappable-hooked-token-manager.open) MINT_ROLE\n)`,
+      script: `grant MINT_ROLE on @app(wrappable-hooked-token-manager.open) to @app(augmented-bonding-curve.open)\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -115,17 +115,17 @@ describeCommand("grant", {
     },
     {
       name: "should fail when receiving a non-defined grantee identifier",
-      script: `grant non-defined-address @app(acl) CREATE_PERMISSIONS_ROLE\n)`,
+      script: `grant CREATE_PERMISSIONS_ROLE on @app(acl) to non-defined-address\n)`,
       error: "non-defined-address",
     },
     {
       name: "should fail when receiving a non-defined app identifier",
-      script: `grant @app(kernel) non-defined-address CREATE_PERMISSIONS_ROLE\n)`,
+      script: `grant CREATE_PERMISSIONS_ROLE on non-defined-address to @app(kernel)\n)`,
       error: "non-defined-address",
     },
     {
       name: "should fail when receiving an invalid grantee address",
-      script: `grant false @app(acl) CREATE_PERMISSIONS_ROLE\n)`,
+      script: `grant CREATE_PERMISSIONS_ROLE on @app(acl) to false\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -136,7 +136,7 @@ describeCommand("grant", {
     },
     {
       name: "should fail when receiving an invalid app address",
-      script: `grant @app(kernel) false CREATE_PERMISSIONS_ROLE\n)`,
+      script: `grant CREATE_PERMISSIONS_ROLE on false to @app(kernel)\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(c, "<app> must be a valid address, got false");
@@ -144,7 +144,7 @@ describeCommand("grant", {
     },
     {
       name: "should fail when receiving a non-existent role",
-      script: `grant @app(kernel) @app(acl) NON_EXISTENT_ROLE\n)`,
+      script: `grant NON_EXISTENT_ROLE on @app(acl) to @app(kernel)\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -155,7 +155,7 @@ describeCommand("grant", {
     },
     {
       name: "should fail when receiving an invalid hash role",
-      script: `grant @app(kernel) @app(acl) 0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366\n)`,
+      script: `grant 0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c366 on @app(acl) to @app(kernel)\n)`,
       error: (interpreter) => {
         const c = findAragonOSCommandNode(interpreter.ast, "grant")!;
         return new CommandError(
@@ -173,7 +173,7 @@ describeCommand("grant", {
   errorCases: [
     {
       name: 'should fail when executing it outside a "connect" command',
-      script: `load aragonos\naragonos:grant 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f 0x1c06257469514574c0868fdcb83c5509b5513870 TRANSFER_ROLE`,
+      script: `load aragonos\naragonos:grant TRANSFER_ROLE on 0x1c06257469514574c0868fdcb83c5509b5513870 to 0xc59d4acea08cf51974dfeb422964e6c2d7eb906f`,
       error: (interpreter) => {
         const c = interpreter.ast.body[1];
         return new CommandError(c, 'must be used within a "connect" command');

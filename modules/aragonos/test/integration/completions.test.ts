@@ -151,16 +151,23 @@ describe("Completions – aragonos commands", () => {
   // -------------------------------------------------------------------------
 
   describe("grant", () => {
-    it("grant <cursor> should show address-compatible items for grantee", async () => {
+    it("grant <cursor> should show DAO roles for role", async () => {
       const { script, line } = inConnect("grant ");
       const items = await evm.getCompletions(script, pos(script, line));
-      expect(hasLabel(items, "@me")).to.be.true;
-      expect(hasLabel(items, "@ens")).to.be.true;
-      expect(hasLabel(items, "@date")).to.be.false;
+      // role has a completions override listing every role of the DAO's apps
+      const fieldItems = onlyKind(items, "field");
+      expect(fieldItems.length).to.be.greaterThan(0);
+      expect(hasLabel(fieldItems, "CREATE_PERMISSIONS_ROLE")).to.be.true;
     });
 
-    it("grant $grantee <cursor> should show DAO app identifiers (app type)", async () => {
-      const { script, line } = inConnect("grant $grantee ");
+    it("grant ROLE <cursor> should suggest the `on` keyword", async () => {
+      const { script, line } = inConnect("grant ROLE ");
+      const items = await evm.getCompletions(script, pos(script, line));
+      expect(hasLabel(items, "on")).to.be.true;
+    });
+
+    it("grant ROLE on <cursor> should show DAO app identifiers (app type)", async () => {
+      const { script, line } = inConnect("grant ROLE on ");
       const items = await evm.getCompletions(script, pos(script, line));
       // "app" type has custom completions that return DAO app identifiers
       const fieldItems = onlyKind(items, "field");
@@ -169,16 +176,18 @@ describe("Completions – aragonos commands", () => {
       expect(hasLabel(fieldItems, "acl")).to.be.true;
     });
 
-    it("grant $grantee @app(acl) <cursor> should show permission type items for role", async () => {
-      const { script, line } = inConnect("grant $grantee @app(acl) ");
+    it("grant ROLE on @app(acl) to <cursor> should show address-compatible items for grantee", async () => {
+      const { script, line } = inConnect("grant ROLE on @app(acl) to ");
       const items = await evm.getCompletions(script, pos(script, line));
-      // "permission" is a custom type without custom completions;
-      // should at least not crash and show some items
-      expect(items).to.be.an("array");
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@ens")).to.be.true;
+      expect(hasLabel(items, "@date")).to.be.false;
     });
 
-    it("grant $grantee @app(acl) ROLE $mgr <cursor> should show --oracle opt", async () => {
-      const { script, line } = inConnect("grant $grantee @app(acl) ROLE $mgr ");
+    it("grant ROLE on @app(acl) to $grantee $mgr <cursor> should show --oracle opt", async () => {
+      const { script, line } = inConnect(
+        "grant ROLE on @app(acl) to $grantee $mgr ",
+      );
       const items = await evm.getCompletions(script, pos(script, line));
       expect(hasLabel(items, "--oracle")).to.be.true;
     });
@@ -189,9 +198,9 @@ describe("Completions – aragonos commands", () => {
       expect(labels(items)).to.deep.equal(["--oracle"]);
     });
 
-    it("grant $grantee @app(acl) ROLE $mgr --oracle <cursor> should show address items", async () => {
+    it("grant ROLE on @app(acl) to $grantee $mgr --oracle <cursor> should show address items", async () => {
       const { script, line } = inConnect(
-        "grant $grantee @app(acl) ROLE $mgr --oracle ",
+        "grant ROLE on @app(acl) to $grantee $mgr --oracle ",
       );
       const items = await evm.getCompletions(script, pos(script, line));
       expect(hasLabel(items, "@me")).to.be.true;
@@ -205,30 +214,30 @@ describe("Completions – aragonos commands", () => {
   // -------------------------------------------------------------------------
 
   describe("revoke", () => {
-    it("revoke <cursor> should use grantee completion override (DAO-aware)", async () => {
+    it("revoke <cursor> should use role completion override (DAO-aware)", async () => {
       const { script, line } = inConnect("revoke ");
       const items = await evm.getCompletions(script, pos(script, line));
-      // revoke has a completions override for grantee that returns known
-      // grantee addresses from the connected DAO's permissions. The override
-      // is exclusive, so generic address helpers are NOT shown.
+      // revoke has a completions override for role that returns roles with at
+      // least one grantee in the connected DAO. The override is exclusive, so
+      // generic helpers are NOT shown.
       expect(items).to.be.an("array");
-      // All returned items should be field kind (addresses from DAO permissions)
+      // All returned items should be field kind (roles from DAO permissions)
       for (const item of items) {
         expect(item.kind).to.equal("field");
       }
     });
 
-    it("revoke $grantee <cursor> should use app completion override (DAO-aware)", async () => {
-      const { script, line } = inConnect("revoke $grantee ");
+    it("revoke ROLE on <cursor> should use app completion override (DAO-aware)", async () => {
+      const { script, line } = inConnect("revoke ROLE on ");
       const items = await evm.getCompletions(script, pos(script, line));
-      // revoke has an app override that shows apps where the grantee has permissions
+      // revoke has an app override that shows apps where the role is granted
       expect(items).to.be.an("array");
     });
 
-    it("revoke $grantee @app(acl) <cursor> should use role completion override", async () => {
-      const { script, line } = inConnect("revoke $grantee @app(acl) ");
+    it("revoke ROLE on @app(acl) from <cursor> should use grantee completion override", async () => {
+      const { script, line } = inConnect("revoke ROLE on @app(acl) from ");
       const items = await evm.getCompletions(script, pos(script, line));
-      // revoke has a role override that shows roles the grantee has on the app
+      // revoke has a grantee override that shows accounts holding the role
       expect(items).to.be.an("array");
     });
   });
