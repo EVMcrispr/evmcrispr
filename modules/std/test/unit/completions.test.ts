@@ -300,14 +300,12 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "@date")).to.be.true;
     });
 
-    it('print "hello" <cursor> should show completions but no opts (print has none)', async () => {
+    it('print "hello" <cursor> should show completions and the --table opt', async () => {
       const script = 'print "hello" ';
       const items = await evm.getCompletions(script, pos(script));
       // Should still show helpers/vars for the rest arg
       expect(hasLabel(items, "@me")).to.be.true;
-      // No opts defined for print
-      const optItems = items.filter((i) => i.label.startsWith("--"));
-      expect(optItems).to.have.lengthOf(0);
+      expect(hasLabel(items, "--table")).to.be.true;
     });
   });
 

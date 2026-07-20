@@ -13,6 +13,10 @@ describeCommand("print", {
       description: "Print variables",
       code: `set $name "world"\nprint "hello" $name`,
     },
+    {
+      description: "Print column arrays as a table",
+      code: `print [[alice bob] [10 20]] --table [Name Score]`,
+    },
   ],
 });
 
@@ -102,5 +106,78 @@ describe("Std > commands > print <...values>", () => {
     expect(logs[0]).to.equal("line1");
     expect(logs[1]).to.equal("line2");
     expect(logs[2]).to.equal("line3");
+  });
+
+  it("should render a markdown table with --table", async () => {
+    const logs: string[] = [];
+    const interpreter = createInterpreter(
+      "print [[a c] [b d]] --table [First Second]",
+      client,
+    );
+    interpreter.registerLogListener((msg) => logs.push(msg));
+    await interpreter.interpret();
+
+    expect(logs).to.have.length(1);
+    expect(logs[0]).to.equal(
+      "| First | Second |\n| --- | --- |\n| a | b |\n| c | d |",
+    );
+  });
+
+  it("should treat each printed array as a column with --table", async () => {
+    const logs: string[] = [];
+    const interpreter = createInterpreter(
+      "print [a c] [b d] --table [First Second]",
+      client,
+    );
+    interpreter.registerLogListener((msg) => logs.push(msg));
+    await interpreter.interpret();
+
+    expect(logs).to.have.length(1);
+    expect(logs[0]).to.equal(
+      "| First | Second |\n| --- | --- |\n| a | b |\n| c | d |",
+    );
+  });
+
+  it("should pad shorter columns with empty cells", async () => {
+    const logs: string[] = [];
+    const interpreter = createInterpreter(
+      "print [[a c] [b]] --table [First Second]",
+      client,
+    );
+    interpreter.registerLogListener((msg) => logs.push(msg));
+    await interpreter.interpret();
+
+    expect(logs).to.have.length(1);
+    expect(logs[0]).to.equal(
+      "| First | Second |\n| --- | --- |\n| a | b |\n| c |  |",
+    );
+  });
+
+  it("should fail when --table names a different number of columns", async () => {
+    const interpreter = createInterpreter(
+      "print [[a c] [b d]] --table [First]",
+      client,
+    );
+    try {
+      await interpreter.interpret();
+      throw new Error("Expected interpret to throw");
+    } catch (err: any) {
+      expect(err.message).to.include(
+        "--table names 1 column but 2 were printed",
+      );
+    }
+  });
+
+  it("should fail when --table values are not arrays", async () => {
+    const interpreter = createInterpreter(
+      'print "hello" --table [First]',
+      client,
+    );
+    try {
+      await interpreter.interpret();
+      throw new Error("Expected interpret to throw");
+    } catch (err: any) {
+      expect(err.message).to.include("--table expects an array per column");
+    }
   });
 });

@@ -35,5 +35,9 @@ describeHelper("@giveth:boostedBy", {
       description: "Print the projects you are boosting and their percentages",
       code: "print @giveth:boostedBy(@me)",
     },
+    {
+      description: "Show your boosts as a table",
+      code: "print @giveth:boostedBy(@me) --table [Project Percentage]",
+    },
   ],
 });

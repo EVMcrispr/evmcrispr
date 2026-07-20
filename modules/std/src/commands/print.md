@@ -16,6 +16,12 @@ print [...values]
 |------|------|-------------|
 | `[...values]` | `any` | Values to output, space-separated |
 
+## Options
+
+| Name | Type | Description |
+|------|------|-------------|
+| `--table` | `array` | Column headers; renders the printed arrays as a table, one array per column |
+
 ## Examples
 
 ```evml
@@ -28,6 +34,9 @@ print "count:" 42
 # Print variables
 set $name "world"
 print "hello" $name
+
+# Print column arrays as a table
+print [[alice bob] [10 20]] --table [Name Score]
 ```
 
 <!-- HAND-WRITTEN -->

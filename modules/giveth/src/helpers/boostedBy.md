@@ -23,6 +23,9 @@ Projects an account boosts with its GIVpower, as a pair of same-length arrays [s
 ```evml
 # Print the projects you are boosting and their percentages
 print @giveth:boostedBy(@me)
+
+# Show your boosts as a table
+print @giveth:boostedBy(@me) --table [Project Percentage]
 ```
 
 <!-- HAND-WRITTEN -->
