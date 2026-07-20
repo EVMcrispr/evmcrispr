@@ -70,8 +70,16 @@ function ApiKeyForm({
 }
 
 export function ChatPanel() {
-  const { hasKey, setApiKey, items, isRunning, error, send, stop } =
-    useChatAgent();
+  const {
+    hasKey,
+    setApiKey,
+    items,
+    isRunning,
+    error,
+    isAuthError,
+    send,
+    stop,
+  } = useChatAgent();
   const [input, setInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -146,7 +154,26 @@ export function ChatPanel() {
             </div>
           );
         })}
-        {error && <p className="text-base text-red-400 break-words">{error}</p>}
+        {error && (
+          <p className="text-base text-red-400 break-words">
+            {error}
+            {isAuthError && (
+              <>
+                {" "}
+                Update it in{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(true)}
+                  className="inline-flex items-center gap-1 align-baseline text-evm-green-300 hover:underline"
+                >
+                  <Cog6ToothIcon className="w-4 h-4" />
+                  Chat Settings
+                </button>
+                .
+              </>
+            )}
+          </p>
+        )}
       </div>
       <form
         className="flex gap-2 px-2 py-2 pb-5 border-t border-foreground/10 shrink-0"

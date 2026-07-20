@@ -32,6 +32,7 @@ export function useChatAgent() {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthError, setIsAuthError] = useState(false);
 
   const historyRef = useRef<Anthropic.Beta.BetaMessageParam[]>([]);
   const streamRef = useRef<BetaMessageStream | null>(null);
@@ -48,6 +49,7 @@ export function useChatAgent() {
     saveAnthropicApiKey(key);
     setApiKeyState(key);
     setError(null);
+    setIsAuthError(false);
   }, []);
 
   const clearApiKey = useCallback(() => {
@@ -60,6 +62,7 @@ export function useChatAgent() {
       if (!client || isRunning || !text.trim()) return;
 
       setError(null);
+      setIsAuthError(false);
       setIsRunning(true);
       stoppedRef.current = false;
       setItems((prev) => [...prev, { role: "user", text }]);
@@ -121,9 +124,8 @@ export function useChatAgent() {
       } catch (e) {
         if (!stoppedRef.current) {
           if (e instanceof Anthropic.AuthenticationError) {
-            setError(
-              "Invalid API key. Enter a valid Anthropic API key to continue.",
-            );
+            setError("Invalid API key.");
+            setIsAuthError(true);
           } else {
             setError(e instanceof Error ? e.message : String(e));
           }
@@ -148,6 +150,7 @@ export function useChatAgent() {
     items,
     isRunning,
     error,
+    isAuthError,
     send,
     stop,
   };
