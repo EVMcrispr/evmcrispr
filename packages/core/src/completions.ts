@@ -768,13 +768,26 @@ export async function getCompletions(
           resolveNode,
         };
 
-        // Completion override → return ONLY override results
+        // Completion override. For a pure keyword slot (`command` type, or
+        // any single-typed arg) it fully replaces the suggestions; on a
+        // union type it only covers the `command` member (e.g. `max`) and
+        // the remaining members keep their type-driven completions
+        // (number helpers, variables, ...).
+        let overrideItems: CompletionItem[] = [];
+        let overrideType: string | string[] | undefined;
         if (command.completions?.[argDef.name]) {
-          return command.completions[argDef.name](ctx);
+          overrideItems = await command.completions[argDef.name](ctx);
+          const nonCommand = Array.isArray(argDef.type)
+            ? argDef.type.filter((t) => t !== "command")
+            : [];
+          if (nonCommand.length === 0) {
+            return overrideItems;
+          }
+          overrideType = nonCommand.length === 1 ? nonCommand[0] : nonCommand;
         }
 
         // Resolve effective type — auto-detect ABI arg for rest params
-        let effectiveType: string | string[] = argDef.type;
+        let effectiveType: string | string[] = overrideType ?? argDef.type;
         if (argDef.rest) {
           const restDefIndex = command.argDefs.indexOf(argDef);
           const abiInfo = findAbiArgForRest(command.argDefs, restDefIndex);
@@ -831,6 +844,7 @@ export async function getCompletions(
           : [];
 
         return [
+          ...overrideItems,
           ...typeDrivenItems,
           ...configItems,
           ...filteredHelpers,
