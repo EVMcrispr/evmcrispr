@@ -28,4 +28,6 @@ load giveth
 | [@giveth:givpower](src/helpers/givpower.md) | `number` | GIVpower balance of an account: staked GIV plus the extra power gained from locking. |
 | [@giveth:project](src/helpers/project.md) | `address` | Resolve a Giveth project slug to its donation recipient address on the current chain. |
 | [@giveth:round](src/helpers/round.md) | `number` | The current GIVpower round number (rounds last 2 weeks; locks unlock when their round is over). |
+| [@giveth:staked](src/helpers/staked.md) | `number` | Raw GIV an account has staked for GIVpower: the gGIV balance on Gnosis, the deposit balance on Optimism and Polygon zkEVM. Includes locked GIV (see @giveth:unstakable). |
+| [@giveth:unstakable](src/helpers/unstakable.md) | `number` | GIV an account can unstake at the current chain time: staked GIV minus the locks whose GIVpower round hasn't finished yet. Locks whose round has ended count as unstakable — unlocking is permissionless — but still need a giveth:unlock before giveth:unstake accepts them. Time-aware inside sim:fork: after a wait, ended locks drop out of the locked amount. |
 

@@ -41,6 +41,14 @@ export interface GivpowerDeployment {
   kind: "garden" | "unipool";
   /** GIVpower liquidity-mining contract: lock/unlock/rounds/rewards. */
   lm: Address;
+  /** Storage slot of `mapping(address => UserLock) userLocks` on the lm.
+   *  The per-round lock amounts live in a mapping inside the struct with no
+   *  view exposing them, so `@giveth:unstakable` reads them straight from
+   *  storage. Probed on-chain 2026-07-20 by matching `userLocks(account)`
+   *  against `keccak(account . slot)` for accounts with active locks; the
+   *  per-round layout (base+1 mapping, amount word first) was verified to
+   *  sum to `totalAmountLocked` on both flavors. */
+  userLocksSlot: bigint;
   /** Gnosis only: GIVgarden HookedTokenManager (wrap/unwrap). */
   garden?: Address;
   /** Gnosis only: gGIV token, balance = raw staked GIV. */
@@ -48,14 +56,24 @@ export interface GivpowerDeployment {
 }
 
 export const GIVPOWER: Record<number, GivpowerDeployment> = {
-  10: { kind: "unipool", lm: "0x301C739CF6bfb6B47A74878BdEB13f92F13Ae5E7" },
+  10: {
+    kind: "unipool",
+    lm: "0x301C739CF6bfb6B47A74878BdEB13f92F13Ae5E7",
+    userLocksSlot: 112n,
+  },
   100: {
     kind: "garden",
     lm: "0xD93d3bDBa18ebcB3317a57119ea44ed2Cf41C2F2",
+    userLocksSlot: 112n,
     garden: "0x24F2d06446AF8D6E89fEbC205e7936a602a87b60",
     gGiv: "0xfFBAbEb49be77E5254333d5fdfF72920B989425f",
   },
-  1101: { kind: "unipool", lm: "0xc790f82bF6F8709aa4A56dc11afaD7aF7C2a9867" },
+  // Same UnipoolGIVpower implementation as Optimism → same storage layout.
+  1101: {
+    kind: "unipool",
+    lm: "0xc790f82bF6F8709aa4A56dc11afaD7aF7C2a9867",
+    userLocksSlot: 112n,
+  },
 };
 
 export const GIVETH_GRAPHQL_URL = "https://mainnet.serve.giveth.io/graphql";

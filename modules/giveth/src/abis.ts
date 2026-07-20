@@ -11,6 +11,8 @@ export const givpowerAbi = parseAbi([
   "function roundEndsIn() view returns (uint256)",
   "function calculatePower(uint256 amount, uint256 rounds) pure returns (uint256)",
   "function earned(address account) view returns (uint256)",
+  // Total locked GIV (public struct getter: only the non-mapping field)
+  "function userLocks(address account) view returns (uint256)",
   // UnipoolGIVpower only: raw GIV staked (garden tracks it as gGIV balance)
   "function depositTokenBalance(address account) view returns (uint256)",
 ]);
