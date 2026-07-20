@@ -836,6 +836,14 @@ export function makeExecuteWithCaptures(
     }
   };
 
+  // Actions already sent through the callback. Block commands (`if`,
+  // `loop`, def bodies) thread the callback into their block — where each
+  // inner command's actions execute — and then return those same action
+  // objects as their own result, which lands here a second time at the
+  // outer command's boundary. Executing only unseen actions keeps the
+  // bubbling (callers still receive the actions) without re-sending them.
+  const executed = new WeakSet<Action>();
+
   return async (c, res, actionCallback) => {
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
@@ -847,6 +855,8 @@ export function makeExecuteWithCaptures(
     if (!hasEventCaptures && !hasErrorCaptures) {
       if (res && actionCallback) {
         for (const action of res) {
+          if (executed.has(action)) continue;
+          executed.add(action);
           await actionCallback(action);
         }
       }
