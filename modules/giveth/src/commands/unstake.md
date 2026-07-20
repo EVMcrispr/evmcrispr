@@ -2,7 +2,7 @@
 title: "giveth:unstake"
 ---
 
-Unstake GIV from GIVpower: unwrap gGIV on Gnosis, withdraw from the staking contract on Optimism and Polygon zkEVM. Pass `max` as the amount to unstake the full staked balance. Locked GIV cannot be unstaked until it is unlocked.
+Unstake GIV from GIVpower: unwrap gGIV on Gnosis, withdraw from the staking contract on Optimism and Polygon zkEVM. Pass `max` as the amount to unstake everything the contract allows right now — staked GIV minus locks, where locks whose round already ended still count until giveth:unlock frees them (see @giveth:unlockable). A zero amount does nothing.
 
 ## Syntax
 
@@ -14,7 +14,7 @@ giveth:unstake <amount>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `amount` | `command \| number` | Amount of GIV to unstake in base units (wei), or the keyword `max` for the full staked balance |
+| `amount` | `command \| number` | Amount of GIV to unstake in base units (wei), or the keyword `max` for everything not locked |
 
 ## Examples
 

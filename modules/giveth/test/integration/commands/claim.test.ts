@@ -1,8 +1,19 @@
 import "../../setup";
-import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { afterAll } from "bun:test";
+import {
+  expect,
+  resetAnvil,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { encodeAbiParameters, keccak256, numberToHex } from "viem";
 import { TOKEN_DISTRO } from "../../fixtures";
+
+// The sim:fork claim case leaves its state (a GIVstream allocation for the
+// test account) on the shared anvil node; restore the pinned-block fork.
+afterAll(async () => {
+  await resetAnvil();
+});
 
 // TokenDistro on Gnosis keeps its balances mapping at slot 201 (probed
 // on-chain by matching keccak(holder, slot) storage against
@@ -22,6 +33,13 @@ describeCommand("claim", {
   preamble: "load giveth",
   cases: [
     {
+      name: "does nothing when there is nothing to claim",
+      script: "giveth:claim",
+      validate: (actions) => {
+        expect(actions).to.have.length(0);
+      },
+    },
+    {
       name: "claims a GIVstream allocation inside sim:fork",
       timeout: 30000,
       script: `load sim
@@ -39,11 +57,6 @@ sim:fork --using anvil (
     },
   ],
   errorCases: [
-    {
-      name: "should fail when there is nothing to claim",
-      script: "giveth:claim",
-      error: "nothing to claim",
-    },
     {
       name: "should fail on chains without a GIVstream deployment",
       script: "switch base\ngiveth:claim",

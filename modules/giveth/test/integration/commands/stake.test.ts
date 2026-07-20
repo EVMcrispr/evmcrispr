@@ -1,5 +1,10 @@
 import "../../setup";
-import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { afterAll } from "bun:test";
+import {
+  expect,
+  resetAnvil,
+  TEST_ACCOUNT_ADDRESS,
+} from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import {
   decodeFunctionData,
@@ -24,6 +29,12 @@ const erc20Abi = parseAbi([
 ]);
 
 const AMOUNT = 100n * 10n ** 18n;
+
+// The sim:fork lifecycle case leaves its state on the shared anvil node;
+// restore the pinned-block fork for later test files.
+afterAll(async () => {
+  await resetAnvil();
+});
 
 // GIV on Gnosis keeps its balances mapping at slot 3 (probed on-chain by
 // matching keccak(holder, slot) storage against balanceOf, 2026-07-20).
@@ -72,6 +83,69 @@ describeCommand("stake", {
       },
     },
     {
+      name: "does nothing on a zero amount",
+      script: "giveth:stake 0",
+      validate: (actions) => {
+        expect(actions).to.have.length(0);
+      },
+    },
+    {
+      name: "resolves `max` against pending actions earlier in the script",
+      // The test account holds no GIV, but the unstake credits 100 GIV to
+      // its virtual wallet balance — `max` must pick that up.
+      script: "giveth:unstake 100e18\ngiveth:stake max",
+      validate: (actions) => {
+        expect(actions).to.have.length(3);
+        const [, approve, wrap] = actions as any[];
+        expect(approve.to).to.eq(GIV);
+        const approval = decodeFunctionData({
+          abi: erc20Abi,
+          data: approve.data,
+        });
+        expect(approval.args).to.eql([GARDEN, AMOUNT]);
+        expect(wrap.to).to.eq(GARDEN);
+        const { functionName, args } = decodeFunctionData({
+          abi: stakingAbi,
+          data: wrap.data,
+        });
+        expect(functionName).to.eq("wrap");
+        expect(args).to.eql([AMOUNT]);
+      },
+    },
+    {
+      name: "counts pending actions of the same batch for `max`",
+      script: `batch (
+  giveth:stake 500e18 --no-approve true
+  giveth:lock max 26
+)`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        const batched = actions[0] as any;
+        expect(batched.type).to.eq("batched");
+        expect(batched.actions).to.have.length(2);
+        const lock = decodeFunctionData({
+          abi: parseAbi(["function lock(uint256 amount, uint256 rounds)"]),
+          data: batched.actions[1].data,
+        });
+        expect(lock.args).to.eql([500n * 10n ** 18n, 26n]);
+      },
+    },
+    {
+      name: "keeps batch deltas scoped to their batch",
+      // In a live run the batch executes at its boundary, so commands after
+      // it must not double-count its deltas on top of fresh chain reads.
+      // The cost is that a plain (non-executing) interpretation like this
+      // one under-counts across the boundary — max resolves to zero here.
+      script: `batch (
+  giveth:stake 500e18 --no-approve true
+)
+giveth:lock max 26`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+        expect((actions[0] as any).type).to.eq("batched");
+      },
+    },
+    {
       name: "runs a full stake/lock/unlock/unstake lifecycle inside sim:fork",
       timeout: 30000,
       script: `load sim
@@ -104,15 +178,19 @@ sim:fork --using anvil (
       error: "GIVpower is not deployed on chain 1",
     },
     {
-      name: "should fail on a zero amount",
-      script: "giveth:stake 0",
-      error: "greater than zero",
+      name: "should fail on a negative amount",
+      script: "giveth:stake -1",
+      error: "must not be negative",
     },
   ],
   docCases: [
     {
       description: "Stake 100 GIV for GIVpower (auto-approves)",
       code: "giveth:stake 100e18",
+    },
+    {
+      description: "Stake every GIV in the wallet",
+      code: "giveth:stake max",
     },
   ],
 });

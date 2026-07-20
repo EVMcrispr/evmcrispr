@@ -1,7 +1,8 @@
 import { defineCommand, encodeAction, Num } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import type Giveth from "..";
-import { requireGivpower } from "../utils/givpower";
+import { requireGivpower, roundLockedAmount } from "../utils/givpower";
+import { recordVirtual } from "../utils/ledger";
 
 export default defineCommand<Giveth>({
   name: "unlock",
@@ -21,12 +22,30 @@ export default defineCommand<Giveth>({
       description: "Accounts to unlock (defaults to the connected account)",
     },
   ],
-  async run(module, { round, account }) {
-    const { deployment } = await requireGivpower(module);
+  async run(module, { round, account }, { interpreters }) {
+    const { chainId, deployment } = await requireGivpower(module);
+    const connected = await module.getConnectedAccount(true);
     const accounts: Address[] =
-      account && account.length > 0
-        ? account
-        : [await module.getConnectedAccount(true)];
+      account && account.length > 0 ? account : [connected];
+
+    // Virtual accounting only tracks the connected account (the one whose
+    // balances gate later max amounts in the same script).
+    if (
+      !interpreters.actionCallback &&
+      accounts.some((a) => a.toLowerCase() === connected.toLowerCase())
+    ) {
+      const freed = await roundLockedAmount(
+        module,
+        deployment,
+        connected,
+        Num(round).toBigInt(),
+      );
+      recordVirtual(module, interpreters, chainId, connected, {
+        locked: -freed,
+        unlocked: freed,
+      });
+    }
+
     return [
       encodeAction(deployment.lm, "unlock(address[],uint256)", [
         accounts,

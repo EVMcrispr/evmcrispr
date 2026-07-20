@@ -1,21 +1,18 @@
-import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
+import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Giveth from "..";
 import { givpowerAbi, tokenDistroAbi } from "../abis";
-import { GIVPOWER, TOKEN_DISTRO } from "../addresses";
+import { GIVPOWER } from "../addresses";
+import { requireDistro } from "../utils/givpower";
+import { recordVirtual } from "../utils/ledger";
 
 export default defineCommand<Giveth>({
   name: "claim",
   description:
-    "Harvest GIV rewards: collect the accrued GIVpower staking rewards into the GIVstream (when the chain has a staking contract) and claim the GIV the GIVstream has already released.",
+    "Harvest GIV rewards: collect the accrued GIVpower staking rewards into the GIVstream (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.",
   args: [],
-  async run(module) {
+  async run(module, _, { interpreters }) {
+    const distro = await requireDistro(module);
     const chainId = await module.getChainId();
-    const distro = TOKEN_DISTRO[chainId];
-    if (!distro) {
-      throw new ErrorException(
-        `the GIVstream is not deployed on chain ${chainId} (available on Mainnet, Gnosis, Optimism and Polygon zkEVM)`,
-      );
-    }
     const account = await module.getConnectedAccount(true);
     const client = await module.getClient();
 
@@ -44,9 +41,13 @@ export default defineCommand<Giveth>({
       actions.push(encodeAction(distro, "claim()", []));
     }
 
-    if (actions.length === 0) {
-      throw new ErrorException("nothing to claim");
-    }
+    // The wallet also receives the slice of `earned` the GIVstream releases
+    // on harvest; only the already-released `claimable` is recorded, so the
+    // virtual balances underestimate — the safe direction for `max`.
+    recordVirtual(module, interpreters, chainId, account, {
+      claimed: claimable,
+      giv: claimable,
+    });
     return actions;
   },
 });

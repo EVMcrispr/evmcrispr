@@ -2,7 +2,7 @@
 title: "giveth:lock"
 ---
 
-Lock staked GIV for a number of GIVpower rounds (2 weeks each) to multiply its GIVpower. Locked GIV cannot be unstaked until the last round ends and it is unlocked.
+Lock staked GIV for a number of GIVpower rounds (2 weeks each) to multiply its GIVpower. Pass `max` as the amount to lock all staked GIV that is not already locked; a zero amount does nothing. Locked GIV cannot be unstaked until the last round ends and it is unlocked.
 
 ## Syntax
 
@@ -14,7 +14,7 @@ giveth:lock <amount> <rounds>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `amount` | `number` | Amount of staked GIV to lock, in base units (wei) |
+| `amount` | `command \| number` | Amount of staked GIV to lock in base units (wei), or the keyword `max` for all staked GIV not already locked (see @giveth:lockable) |
 | `rounds` | `number` | Number of rounds to lock for (each round lasts 2 weeks) |
 
 ## Examples
@@ -22,6 +22,9 @@ giveth:lock <amount> <rounds>
 ```evml
 # Lock 100 staked GIV for 26 rounds (a year) to multiply its GIVpower
 giveth:lock 100e18 26
+
+# Lock all staked GIV that is not already locked
+giveth:lock max 26
 ```
 
 <!-- HAND-WRITTEN -->

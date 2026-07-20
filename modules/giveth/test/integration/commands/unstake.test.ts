@@ -32,18 +32,32 @@ describeCommand("unstake", {
       },
     },
     {
-      name: "resolves `max` to the full staked balance",
+      name: "does nothing on `max` with nothing staked",
       script: "giveth:unstake max",
       validate: (actions) => {
         // The test account has nothing staked at the pinned block, so max
-        // resolves to zero — the point is that the read path works.
-        expect(actions).to.have.length(1);
+        // resolves to zero and the command no-ops.
+        expect(actions).to.have.length(0);
+      },
+    },
+    {
+      name: "does nothing on a zero amount",
+      script: "giveth:unstake 0",
+      validate: (actions) => {
+        expect(actions).to.have.length(0);
+      },
+    },
+    {
+      name: "resolves `max` against pending stakes earlier in the script",
+      script: "giveth:stake 100e18 --no-approve true\ngiveth:unstake max",
+      validate: (actions) => {
+        expect(actions).to.have.length(2);
         const { functionName, args } = decodeFunctionData({
           abi: stakingAbi,
-          data: (actions[0] as any).data,
+          data: (actions[1] as any).data,
         });
         expect(functionName).to.eq("unwrap");
-        expect(args).to.eql([0n]);
+        expect(args).to.eql([AMOUNT]);
       },
     },
   ],
@@ -52,11 +66,6 @@ describeCommand("unstake", {
       name: "should fail on chains without a GIVpower deployment",
       script: "switch mainnet\ngiveth:unstake 100e18",
       error: "GIVpower is not deployed on chain 1",
-    },
-    {
-      name: "should fail on a zero amount",
-      script: "giveth:unstake 0",
-      error: "greater than zero",
     },
   ],
   docCases: [

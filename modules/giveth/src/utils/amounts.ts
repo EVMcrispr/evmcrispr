@@ -2,8 +2,9 @@ import { ErrorException, Num } from "@evmcrispr/sdk";
 
 /**
  * Parse an amount arg declared as ["command", "number"]: the bareword `max`
- * arrives as the raw string, anything else must interpret as a positive
- * number.
+ * arrives as the raw string, anything else must interpret as a non-negative
+ * number. Zero is allowed so commands can no-op on it — scripts like
+ * `stake @giveth:claimable()` shouldn't need an `if` guard around them.
  */
 export function parseAmountOrMax(value: unknown): bigint | "max" {
   if (value === "max") return "max";
@@ -15,8 +16,8 @@ export function parseAmountOrMax(value: unknown): bigint | "max" {
       `<amount> must be a number or the keyword \`max\`, got ${value}`,
     );
   }
-  if (amount <= 0n) {
-    throw new ErrorException("<amount> must be greater than zero");
+  if (amount < 0n) {
+    throw new ErrorException("<amount> must not be negative");
   }
   return amount;
 }
