@@ -13,7 +13,8 @@ import {
 } from "../../fixtures/msw-handlers";
 
 describeCommand("boost", {
-  describeName: "Giveth > commands > boost <projects> [--with <percentages>]",
+  describeName:
+    "Giveth > commands > boost <projects> [--with <percentages>] [--by <changes>]",
   module: "giveth",
   preamble: "load giveth",
   errorCases: [
@@ -52,6 +53,22 @@ describeCommand("boost", {
       script: "giveth:boost [evmcrispr wayback-machine] --with [70 30]",
       error: "boost requires an execution context with wallet access",
     },
+    {
+      name: "fails when --with and --by are combined",
+      script:
+        "giveth:boost [evmcrispr wayback-machine] --with [50 50] --by [1 -1]",
+      error: "--with and --by cannot be combined",
+    },
+    {
+      name: "fails when --by length does not match the projects",
+      script: "giveth:boost [evmcrispr wayback-machine] --by [20]",
+      error: "--by length (1) does not match <projects> length (2)",
+    },
+    {
+      name: "fails on zero --by changes",
+      script: "giveth:boost [evmcrispr wayback-machine] --by [0 0]",
+      error: "--by changes must be non-zero numbers between -100 and 100",
+    },
   ],
 });
 
@@ -67,8 +84,9 @@ describe("Giveth > commands > boost > with wallet", () => {
     recordedLogins.length = 0;
   });
 
-  const runBoost = async (script: string) => {
-    const account = walletClient.account!;
+  const runBoost = async (script: string, client?: WalletClient) => {
+    const wallet = client ?? walletClient;
+    const account = wallet.account!;
     const evm = new Interpreter(evml.registry, {
       account: account.address,
       transports: getTransports(),
@@ -77,7 +95,7 @@ describe("Giveth > commands > boost > with wallet", () => {
 
     const actionCallback = async (action: Action) => {
       if (isWalletAction(action) && action.method === "personal_sign") {
-        return walletClient.signMessage({
+        return wallet.signMessage({
           account,
           message: action.params[0],
         });
@@ -124,5 +142,132 @@ describe("Giveth > commands > boost > with wallet", () => {
     );
     expect(recordedBoosts).to.have.length(1);
     expect(recordedBoosts[0].percentages).to.eql([33.34, 33.33, 33.33]);
+  });
+
+  it("simulates inside sim:fork without signing in or updating Giveth", async () => {
+    const account = walletClient.account!;
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
+    evm.switchChainId(gnosis.id);
+
+    // No outer actionCallback: sim:fork supplies its own fork executor.
+    await evm.interpret(`load giveth
+load sim
+sim:fork --using anvil (
+  giveth:boost [evmcrispr wayback-machine] --with [70 30]
+)`);
+
+    expect(recordedLogins).to.have.length(0);
+    expect(recordedBoosts).to.have.length(0);
+  }, 30000);
+
+  // Existing allocation fixture (user 25): wayback-machine 30, evmcrispr 70.
+  it("shifts GIVpower between projects with --by", async () => {
+    await runBoost("giveth:boost [evmcrispr wayback-machine] --by [20 -20]");
+    expect(recordedBoosts).to.eql([
+      { projectIds: [2000, 1350], percentages: [10, 90], authVersion: "2" },
+    ]);
+  });
+
+  it("drops projects decremented to zero", async () => {
+    await runBoost("giveth:boost [evmcrispr wayback-machine] --by [30 -30]");
+    expect(recordedBoosts).to.eql([
+      { projectIds: [1350], percentages: [100], authVersion: "2" },
+    ]);
+  });
+
+  it("adds unboosted projects funded by decrements, keeping the rest", async () => {
+    await runBoost(
+      "giveth:boost [the-giveth-community-of-makers evmcrispr] --by [20 -20]",
+    );
+    expect(recordedBoosts).to.eql([
+      {
+        projectIds: [2000, 1350, 1],
+        percentages: [30, 50, 20],
+        authVersion: "2",
+      },
+    ]);
+  });
+
+  it("shrinks the other boosted projects proportionally on a net increase", async () => {
+    await runBoost("giveth:boost [the-giveth-community-of-makers] --by [20]");
+    expect(recordedBoosts).to.eql([
+      {
+        projectIds: [2000, 1350, 1],
+        percentages: [24, 56, 20],
+        authVersion: "2",
+      },
+    ]);
+  });
+
+  it("grows the other boosted projects proportionally on a net decrease", async () => {
+    await runBoost("giveth:boost [wayback-machine] --by [-10]");
+    expect(recordedBoosts).to.eql([
+      { projectIds: [2000, 1350], percentages: [20, 80], authVersion: "2" },
+    ]);
+  });
+
+  it("fails when the net increase exceeds what the other projects have", async () => {
+    const error = await runBoost(
+      "giveth:boost [the-giveth-community-of-makers gnosis-only-project] --by [60 60]",
+    ).then(
+      () => null,
+      (e: Error) => e.message,
+    );
+    expect(error).to.include(
+      "the changes take 120% from the other boosted projects, which only have 100% boosted",
+    );
+    expect(recordedBoosts).to.have.length(0);
+  });
+
+  it("fails when all boosted projects are listed and the changes unbalance the total", async () => {
+    const error = await runBoost(
+      "giveth:boost [evmcrispr wayback-machine] --by [20 -10]",
+    ).then(
+      () => null,
+      (e: Error) => e.message,
+    );
+    expect(error).to.include(
+      "the changes leave the allocation at 110%, not 100",
+    );
+    expect(recordedBoosts).to.have.length(0);
+  });
+
+  it("fails when decreasing a project by more than it has", async () => {
+    const error = await runBoost(
+      "giveth:boost [evmcrispr wayback-machine] --by [40 -40]",
+    ).then(
+      () => null,
+      (e: Error) => e.message,
+    );
+    expect(error).to.include(
+      "cannot decrease wayback-machine by 40: it only has 30% boosted",
+    );
+    expect(recordedBoosts).to.have.length(0);
+  });
+
+  it("fails --by decreases for accounts with no existing boosts", async () => {
+    const error = await runBoost(
+      "giveth:boost [evmcrispr wayback-machine] --by [20 -20]",
+      getWalletClients()[1],
+    ).then(
+      () => null,
+      (e: Error) => e.message,
+    );
+    expect(error).to.include(
+      "cannot decrease wayback-machine by 20: it only has 0% boosted",
+    );
+  });
+
+  it("starts a fresh allocation with --by when the changes sum to 100", async () => {
+    await runBoost(
+      "giveth:boost [evmcrispr wayback-machine] --by [60 40]",
+      getWalletClients()[1],
+    );
+    expect(recordedBoosts).to.eql([
+      { projectIds: [1350, 2000], percentages: [60, 40], authVersion: "2" },
+    ]);
   });
 });

@@ -122,6 +122,7 @@ query GetPowerBoosting($userId: Int!) {
     powerBoostings {
       percentage
       project {
+        id
         slug
       }
     }
@@ -131,7 +132,7 @@ query GetPowerBoosting($userId: Int!) {
 
 export interface PowerBoosting {
   percentage: number;
-  project: { slug: string };
+  project: { id: number; slug: string };
 }
 
 export async function fetchPowerBoostings(
@@ -139,7 +140,61 @@ export async function fetchPowerBoostings(
   userId: number,
 ): Promise<PowerBoosting[]> {
   const data = await postGraphql(module, BOOSTINGS_QUERY, { userId });
-  return data?.getPowerBoosting?.powerBoostings ?? [];
+  const boostings = data?.getPowerBoosting?.powerBoostings ?? [];
+  return boostings.map((b: any) => ({
+    percentage: b.percentage,
+    project: { id: Number(b.project?.id), slug: b.project?.slug },
+  }));
+}
+
+// The production impact-graph takes flat args (the input-object form is the
+// separate v6 backend) and returns the donation id as a bare Float.
+const CREATE_DONATION_MUTATION = `
+mutation CreateDonation($transactionId: String, $transactionNetworkId: Float!, $amount: Float!, $token: String!, $projectId: Float!, $tokenAddress: String, $anonymous: Boolean, $useDonationBox: Boolean, $relevantDonationTxHash: String) {
+  createDonation(transactionId: $transactionId, transactionNetworkId: $transactionNetworkId, amount: $amount, token: $token, projectId: $projectId, tokenAddress: $tokenAddress, anonymous: $anonymous, useDonationBox: $useDonationBox, relevantDonationTxHash: $relevantDonationTxHash)
+}
+`;
+
+export interface DonationRecord {
+  txHash: string;
+  chainId: number;
+  /** Human units (not wei) — the API stores donation amounts as floats. */
+  amount: number;
+  tokenSymbol: string;
+  tokenAddress: Address;
+  projectId: number;
+  anonymous: boolean;
+  useDonationBox?: boolean;
+  relevantDonationTxHash?: string;
+}
+
+/** Persist a sent donation in Giveth's database (requires a SIWE JWT). */
+export async function recordDonation(
+  module: Module,
+  jwt: string,
+  record: DonationRecord,
+): Promise<number> {
+  const data = await postGraphql(
+    module,
+    CREATE_DONATION_MUTATION,
+    {
+      transactionId: record.txHash,
+      transactionNetworkId: record.chainId,
+      amount: record.amount,
+      token: record.tokenSymbol,
+      projectId: record.projectId,
+      tokenAddress: record.tokenAddress,
+      anonymous: record.anonymous,
+      useDonationBox: record.useDonationBox,
+      relevantDonationTxHash: record.relevantDonationTxHash,
+    },
+    { Authorization: `Bearer ${jwt}`, authVersion: "2" },
+  );
+  const id = data?.createDonation;
+  if (id == null) {
+    throw new ErrorException("Giveth didn't confirm the donation record");
+  }
+  return Number(id);
 }
 
 const SET_BOOSTINGS_MUTATION = `

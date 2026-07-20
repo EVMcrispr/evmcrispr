@@ -11,6 +11,8 @@ export interface CommandTestCase {
   name: string;
   script: string;
   expectedActions?: Action[];
+  /** Per-test timeout in ms (e.g. sim:fork cases outlive bun's 5s default). */
+  timeout?: number;
   /** Run before interpretation to capture pre-test state. Return value is passed to `validate`. */
   setup?: (client: PublicClient) => Promise<any> | any;
   validate?: (
@@ -81,7 +83,7 @@ export function describeCommand(
 
     if (config.cases) {
       for (const c of config.cases) {
-        it(c.name, async () => {
+        const testCase = async () => {
           let setupData: any;
           if (c.setup) setupData = await c.setup(client);
 
@@ -97,7 +99,9 @@ export function describeCommand(
           if (c.validate) {
             await c.validate(actions, interpreter, setupData);
           }
-        });
+        };
+        if (c.timeout !== undefined) it(c.name, testCase, c.timeout);
+        else it(c.name, testCase);
       }
     }
 

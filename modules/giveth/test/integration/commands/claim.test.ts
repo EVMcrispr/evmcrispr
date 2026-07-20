@@ -23,6 +23,7 @@ describeCommand("claim", {
   cases: [
     {
       name: "claims a GIVstream allocation inside sim:fork",
+      timeout: 30000,
       script: `load sim
 sim:fork --using anvil (
   sim:set-balance @me 1e18

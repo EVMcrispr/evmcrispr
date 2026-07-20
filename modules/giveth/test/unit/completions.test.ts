@@ -72,7 +72,11 @@ describe("Completions – giveth commands", () => {
     it("donate 100 $token to evmcrispr --<cursor> should show the opts", async () => {
       const script = `${GIVETH}giveth:donate 100 $token to evmcrispr --`;
       const items = await evm.getCompletions(script, pos(script, 2));
-      expect(labels(items).sort()).to.deep.equal(["--no-approve", "--tip"]);
+      expect(labels(items).sort()).to.deep.equal([
+        "--anonymous",
+        "--no-approve",
+        "--tip",
+      ]);
     });
   });
 

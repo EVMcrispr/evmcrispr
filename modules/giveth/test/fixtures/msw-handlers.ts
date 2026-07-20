@@ -72,18 +72,20 @@ const projects: Record<string, unknown> = {
   },
 };
 
-/** userByAddress fixtures: lowercase address → user. */
+/** userByAddress fixtures: lowercase address → user. Anvil mnemonic
+ *  account #0 (the signing wallet in boost tests) shares the profile. */
 const users: Record<string, { id: string }> = {
   [TEST_ACCOUNT_ADDRESS.toLowerCase()]: { id: "25" },
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": { id: "25" },
 };
 
 /** getPowerBoosting fixtures: userId → powerBoostings (zero-percentage rows
  *  mirror how the live API keeps dropped boosts around). */
 const boostings: Record<string, unknown[]> = {
   "25": [
-    { percentage: 30, project: { slug: "wayback-machine" } },
-    { percentage: 70, project: { slug: "evmcrispr" } },
-    { percentage: 0, project: { slug: "gnosis-only-project" } },
+    { percentage: 30, project: { id: "2000", slug: "wayback-machine" } },
+    { percentage: 70, project: { id: "1350", slug: "evmcrispr" } },
+    { percentage: 0, project: { id: "9999", slug: "gnosis-only-project" } },
   ],
 };
 
@@ -103,6 +105,9 @@ export const recordedBoosts: {
   percentages: number[];
   authVersion: string | null;
 }[] = [];
+
+/** createDonation calls received by the mocked API (raw variables). */
+export const recordedDonations: Record<string, any>[] = [];
 
 const resolveGraphql = async (request: Request) => {
   const body = (await request.json()) as {
@@ -132,6 +137,15 @@ const resolveGraphql = async (request: Request) => {
           powerBoostings: boostings[String(variables.userId)] ?? [],
         },
       },
+    });
+  }
+  if (query.includes("createDonation")) {
+    if (request.headers.get("authorization") !== `Bearer ${TEST_JWT}`) {
+      return HttpResponse.json({ errors: [{ message: "unAuthorized" }] });
+    }
+    recordedDonations.push(variables);
+    return HttpResponse.json({
+      data: { createDonation: recordedDonations.length },
     });
   }
   if (query.includes("setMultiplePowerBoosting")) {

@@ -73,6 +73,7 @@ describeCommand("stake", {
     },
     {
       name: "runs a full stake/lock/unlock/unstake lifecycle inside sim:fork",
+      timeout: 30000,
       script: `load sim
 sim:fork --using anvil (
   sim:set-balance @me 10e18
