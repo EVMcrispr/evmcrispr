@@ -114,9 +114,17 @@ describe("Core > completions", () => {
       expect(labels).to.not.include("$coretest:endpoint");
     });
 
-    it("offers config vars in read positions", async () => {
+    it("does not offer unset config vars in read positions", async () => {
       const script = "load coretest\nset $x ";
       const items = await ctx.completions(script, { line: 2, col: 7 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.not.include("$coretest:endpoint");
+    });
+
+    it("offers a config var in read positions once it has been set", async () => {
+      const script =
+        'load coretest\nset $coretest:endpoint "https://x"\nset $y ';
+      const items = await ctx.completions(script, { line: 3, col: 7 });
       const labels = items.map((c) => c.label);
       expect(labels).to.include("$coretest:endpoint");
     });

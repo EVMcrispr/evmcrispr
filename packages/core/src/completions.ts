@@ -253,16 +253,10 @@ const buildVarCompletionItems = (
     }
   }
 
-  // Read positions: plain variables plus declared configs not already set
-  // (set ones appear in USER space with the same spelling).
-  const setNames = new Set(varNames);
-  const configItems = buildConfigVarItems(bindings).filter(
-    (item) => !setNames.has(item.label),
-  );
-  return [
-    ...varNames.map((name: string) => variableItem(name)),
-    ...configItems,
-  ];
+  // Read positions: plain variables only. Declared-but-unset module configs
+  // are offered exclusively in set's binding slot (configs that were set
+  // appear in USER space with the same spelling, so they show up here).
+  return varNames.map((name: string) => variableItem(name));
 };
 
 // ---------------------------------------------------------------------------
