@@ -69,11 +69,13 @@ The project must have a recipient address on the current chain (see
 on Mainnet, Gnosis, Polygon, Optimism, Arbitrum, Base and Celo, while
 direct donations work on any chain the project has an address for.
 
-For recurring donations, stream to the project's anchor contract instead —
-see [@giveth:anchor](../helpers/anchor.md).
+For recurring donations, use
+[giveth:donate-recurring](donate-recurring.md), which streams to the
+project's anchor contract and records the stream in Giveth's database.
 
 ## See Also
 
 - [@giveth:project](../helpers/project.md)
 - [@giveth:anchor](../helpers/anchor.md)
+- [giveth:donate-recurring](donate-recurring.md)
 - [giveth:boost](boost.md)

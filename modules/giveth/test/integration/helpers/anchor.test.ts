@@ -38,7 +38,7 @@ describeHelper("@giveth:anchor", {
   errorCases: [
     {
       name: "fails on chains without anchor contracts",
-      input: "@giveth:anchor(evmcrispr)",
+      input: "@giveth:anchor(wayback-machine)",
       error: "recurring donations are only available on Optimism and Base",
     },
   ],

@@ -1,11 +1,16 @@
 import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import {
+  GIV_OPTIMISM,
   PROJECT_ANCHOR_BASE,
+  PROJECT_ANCHOR_GNOSIS,
   PROJECT_ANCHOR_OPTIMISM,
   PROJECT_RECIPIENT,
   PROJECT_RECIPIENT_L2,
+  TIP_ANCHOR_GNOSIS,
   TIP_RECIPIENT,
+  USDC,
+  USDCX,
 } from "../fixtures";
 
 // Mocked projectBySlug responses mirroring the live impact-graph shape
@@ -31,6 +36,7 @@ const projects: Record<string, unknown> = {
     anchorContracts: [
       { address: PROJECT_ANCHOR_OPTIMISM, networkId: 10, isActive: true },
       { address: PROJECT_ANCHOR_BASE, networkId: 8453, isActive: true },
+      { address: PROJECT_ANCHOR_GNOSIS, networkId: 100, isActive: true },
     ],
   },
   "wayback-machine": {
@@ -68,7 +74,9 @@ const projects: Record<string, unknown> = {
       isRecipient: true,
       chainType: "EVM",
     })),
-    anchorContracts: [],
+    anchorContracts: [
+      { address: TIP_ANCHOR_GNOSIS, networkId: 100, isActive: true },
+    ],
   },
 };
 
@@ -109,6 +117,15 @@ export const recordedBoosts: {
 /** createDonation calls received by the mocked API (raw variables). */
 export const recordedDonations: Record<string, any>[] = [];
 
+/** createRecurringDonation calls received by the mocked API. */
+export const recordedRecurringDonations: Record<string, any>[] = [];
+
+/** updateRecurringDonationParams calls received by the mocked API. */
+export const recordedRecurringUpdates: Record<string, any>[] = [];
+
+/** updateRecurringDonationStatus calls received by the mocked API. */
+export const recordedRecurringStatusUpdates: Record<string, any>[] = [];
+
 const resolveGraphql = async (request: Request) => {
   const body = (await request.json()) as {
     query?: string;
@@ -135,6 +152,57 @@ const resolveGraphql = async (request: Request) => {
       data: {
         getPowerBoosting: {
           powerBoostings: boostings[String(variables.userId)] ?? [],
+        },
+      },
+    });
+  }
+  if (query.includes("createRecurringDonation")) {
+    if (request.headers.get("authorization") !== `Bearer ${TEST_JWT}`) {
+      return HttpResponse.json({ errors: [{ message: "unAuthorized" }] });
+    }
+    recordedRecurringDonations.push(variables);
+    return HttpResponse.json({
+      data: {
+        createRecurringDonation: {
+          id: String(recordedRecurringDonations.length),
+        },
+      },
+    });
+  }
+  if (query.includes("updateRecurringDonationStatus")) {
+    if (request.headers.get("authorization") !== `Bearer ${TEST_JWT}`) {
+      return HttpResponse.json({ errors: [{ message: "unAuthorized" }] });
+    }
+    recordedRecurringStatusUpdates.push(variables);
+    return HttpResponse.json({
+      data: {
+        updateRecurringDonationStatus: { id: String(variables.donationId) },
+      },
+    });
+  }
+  if (query.includes("updateRecurringDonationParams")) {
+    if (request.headers.get("authorization") !== `Bearer ${TEST_JWT}`) {
+      return HttpResponse.json({ errors: [{ message: "unAuthorized" }] });
+    }
+    // Like the live backend, updates only succeed for streams Giveth already
+    // knows about — a create recorded since the last reset. This is what
+    // exercises the update→create fallback in tests.
+    const known = recordedRecurringDonations.some(
+      (d) =>
+        d.projectId === variables.projectId &&
+        d.networkId === variables.networkId &&
+        d.currency === variables.currency,
+    );
+    if (!known) {
+      return HttpResponse.json({
+        errors: [{ message: "Recurring donation not found." }],
+      });
+    }
+    recordedRecurringUpdates.push(variables);
+    return HttpResponse.json({
+      data: {
+        updateRecurringDonationParams: {
+          id: String(recordedRecurringUpdates.length),
         },
       },
     });
@@ -170,9 +238,42 @@ const resolveGraphql = async (request: Request) => {
   return HttpResponse.json({ errors: [{ message: "Unmocked query" }] });
 };
 
+// Minimal Superfluid extended tokenlist: the underlying→SuperToken lookup
+// donate-recurring performs for non-SuperToken inputs (Gnosis USDC→USDCx),
+// plus the Optimism GIVx entry the anchor helper's superfluid docCase
+// resolves by symbol (this mock replaces the real list for every test).
+const superfluidTokenlist = {
+  tokens: [
+    {
+      symbol: "USDCx",
+      name: "Super USDC",
+      chainId: 100,
+      address: USDCX,
+      extensions: {
+        superTokenInfo: { type: "Wrapper", underlyingTokenAddress: USDC },
+      },
+    },
+    {
+      symbol: "GIVx",
+      name: "Super GIV",
+      chainId: 10,
+      address: "0x4cab5b9930210e2edc6a905b9c75d615872a1a7e",
+      extensions: {
+        superTokenInfo: {
+          type: "Wrapper",
+          underlyingTokenAddress: GIV_OPTIMISM,
+        },
+      },
+    },
+  ],
+};
+
 // RegExp matchers throughout: the CORS-proxied spelling nests "https://" in
 // the path, which MSW's string route parser cannot represent.
 export const givethGraphqlHandlers = [
+  http.get(/tokenlist\.superfluid\.org/, () =>
+    HttpResponse.json(superfluidTokenlist),
+  ),
   http.post(/mainnet\.serve\.giveth\.io\/graphql/, ({ request }) =>
     resolveGraphql(request),
   ),

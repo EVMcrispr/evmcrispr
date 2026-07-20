@@ -197,6 +197,139 @@ export async function recordDonation(
   return Number(id);
 }
 
+// Recurring donations (Superfluid streams to anchor contracts) have their
+// own mutation family; the backend keys a stream on (projectId, networkId,
+// currency), where currency is the UNDERLYING token's symbol, and takes the
+// flow rate as a wei-per-second string.
+const CREATE_RECURRING_DONATION_MUTATION = `
+mutation CreateRecurringDonation($projectId: Int!, $networkId: Int!, $txHash: String!, $flowRate: String!, $currency: String!, $anonymous: Boolean, $isBatch: Boolean) {
+  createRecurringDonation(projectId: $projectId, networkId: $networkId, txHash: $txHash, flowRate: $flowRate, currency: $currency, anonymous: $anonymous, isBatch: $isBatch) {
+    id
+  }
+}
+`;
+
+const UPDATE_RECURRING_DONATION_MUTATION = `
+mutation UpdateRecurringDonation($projectId: Int!, $networkId: Int!, $currency: String!, $txHash: String, $flowRate: String, $anonymous: Boolean, $status: String) {
+  updateRecurringDonationParams(projectId: $projectId, networkId: $networkId, currency: $currency, txHash: $txHash, flowRate: $flowRate, anonymous: $anonymous, status: $status) {
+    id
+  }
+}
+`;
+
+const UPDATE_RECURRING_DONATION_STATUS_MUTATION = `
+mutation UpdateRecurringDonationStatus($donationId: Float!, $status: String) {
+  updateRecurringDonationStatus(donationId: $donationId, status: $status) {
+    id
+  }
+}
+`;
+
+export interface RecurringDonationRecord {
+  txHash: string;
+  chainId: number;
+  /** Flow rate in wei/second. */
+  flowRate: bigint;
+  /** Underlying token symbol (native currency symbol for ETHx-style tokens). */
+  currency: string;
+  projectId: number;
+  anonymous: boolean;
+}
+
+/** Record a new recurring donation; returns its id for status updates. */
+export async function createRecurringDonation(
+  module: Module,
+  jwt: string,
+  record: RecurringDonationRecord,
+): Promise<number> {
+  const data = await postGraphql(
+    module,
+    CREATE_RECURRING_DONATION_MUTATION,
+    {
+      projectId: record.projectId,
+      networkId: record.chainId,
+      txHash: record.txHash,
+      flowRate: record.flowRate.toString(),
+      currency: record.currency,
+      anonymous: record.anonymous,
+      isBatch: false,
+    },
+    { Authorization: `Bearer ${jwt}`, authVersion: "2" },
+  );
+  const id = data?.createRecurringDonation?.id;
+  if (id == null) {
+    throw new ErrorException(
+      "Giveth didn't confirm the recurring donation record",
+    );
+  }
+  return Number(id);
+}
+
+/**
+ * Update an existing recurring donation's rate, or end it with
+ * `status: "ended"`. Falls back to creating the record when Giveth doesn't
+ * know the stream (same recovery the Giveth UI performs).
+ */
+export async function updateRecurringDonation(
+  module: Module,
+  jwt: string,
+  record: RecurringDonationRecord,
+  status?: "ended",
+): Promise<number> {
+  let data: any;
+  try {
+    data = await postGraphql(
+      module,
+      UPDATE_RECURRING_DONATION_MUTATION,
+      {
+        projectId: record.projectId,
+        networkId: record.chainId,
+        currency: record.currency,
+        txHash: record.txHash,
+        flowRate: record.flowRate.toString(),
+        anonymous: record.anonymous,
+        status,
+      },
+      { Authorization: `Bearer ${jwt}`, authVersion: "2" },
+    );
+  } catch (err: any) {
+    const message = String(err?.message ?? err).toLowerCase();
+    if (
+      status === undefined &&
+      message.includes("recurring donation not found")
+    ) {
+      return createRecurringDonation(module, jwt, record);
+    }
+    throw err;
+  }
+  const id = data?.updateRecurringDonationParams?.id;
+  if (id == null) {
+    throw new ErrorException(
+      "Giveth didn't confirm the recurring donation update",
+    );
+  }
+  return Number(id);
+}
+
+/** Mark a recurring donation verified once its transaction has confirmed. */
+export async function verifyRecurringDonation(
+  module: Module,
+  jwt: string,
+  donationId: number,
+): Promise<void> {
+  const data = await postGraphql(
+    module,
+    UPDATE_RECURRING_DONATION_STATUS_MUTATION,
+    { donationId, status: "verified" },
+    { Authorization: `Bearer ${jwt}`, authVersion: "2" },
+  );
+  if (data?.updateRecurringDonationStatus?.id == null) {
+    throw new ErrorException(
+      "Giveth didn't confirm the recurring donation status update",
+    );
+  }
+}
+
 const SET_BOOSTINGS_MUTATION = `
 mutation SetMultiplePowerBoosting($projectIds: [Int!]!, $percentages: [Float!]!) {
   setMultiplePowerBoosting(projectIds: $projectIds, percentages: $percentages) {

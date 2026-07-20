@@ -1,4 +1,4 @@
-import type { Action, TransactionAction } from "@evmcrispr/sdk";
+import type { TransactionAction } from "@evmcrispr/sdk";
 import {
   coerceBoolean,
   defineCommand,
@@ -20,6 +20,7 @@ import {
   getRecipientAddress,
   recordDonation,
 } from "../utils/graphql";
+import { executeTx } from "../utils/tx";
 
 const erc20MetaAbi = parseAbi([
   "function symbol() view returns (string)",
@@ -37,23 +38,6 @@ function parseAmounts(value: unknown, count: number): bigint[] {
   }
   const amount = parseAmount(value);
   return Array.from({ length: count }, () => amount);
-}
-
-async function executeTx(
-  actionCallback: (action: Action) => Promise<unknown>,
-  action: TransactionAction,
-  chainId: number,
-): Promise<string> {
-  action.chainId = chainId;
-  const result = await actionCallback(action);
-  const hash =
-    typeof result === "string" ? result : (result as any)?.transactionHash;
-  if (typeof hash !== "string") {
-    throw new ErrorException(
-      "couldn't obtain the transaction hash from the wallet",
-    );
-  }
-  return hash;
 }
 
 export default defineCommand<Giveth>({

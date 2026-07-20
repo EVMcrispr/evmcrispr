@@ -34,19 +34,16 @@ superfluid:stream 100e18/mo GIVx to @giveth:anchor(evmcrispr)
 
 Giveth's recurring donations are Superfluid streams paid into the project's
 anchor contract, which exists on Optimism and Base for projects that enabled
-them. Combine this helper with the superfluid module to open one:
-
-```evml
-load giveth
-load superfluid
-
-switch optimism
-superfluid:stream 100e18/mo GIVx to @giveth:anchor(evmcrispr)
-```
-
-Stop it again with `superfluid:stream 0 GIVx to @giveth:anchor(evmcrispr)`.
+them. Prefer [giveth:donate-recurring](../commands/donate-recurring.md),
+which opens the stream **and** records it in Giveth's database — a bare
+superfluid stream to the anchor (as above) moves the funds but never shows
+up in project totals or GIVbacks, because nothing indexes the chain on its
+own. This helper remains useful for reading the anchor address or for
+advanced stream setups (operators, scheduled flows) that
+`donate-recurring` doesn't cover.
 
 ## See Also
 
+- [giveth:donate-recurring](../commands/donate-recurring.md)
 - [giveth:donate](../commands/donate.md)
 - [@giveth:project](project.md)
