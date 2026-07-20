@@ -2,7 +2,7 @@
 title: "print"
 ---
 
-Log values to the console output.
+Log values to the console output. Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array.
 
 ## Syntax
 
@@ -20,7 +20,7 @@ print [...values]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--table` | `array` | Column headers; renders the printed arrays as a table, one array per column |
+| `--headers` | `array` | Column headers; renders the printed arrays as a table, one array per column |
 
 ## Examples
 
@@ -35,8 +35,14 @@ print "count:" 42
 set $name "world"
 print "hello" $name
 
+# Print an array as a one-row table
+print [1 2 3]
+
+# Print an array of arrays as table rows
+print [[alice 10] [bob 20]]
+
 # Print column arrays as a table
-print [[alice bob] [10 20]] --table [Name Score]
+print [[alice bob] [10 20]] --headers [Name Score]
 ```
 
 <!-- HAND-WRITTEN -->

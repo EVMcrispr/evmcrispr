@@ -30,3 +30,9 @@
 *::after {
   box-sizing: border-box;
 }
+
+/* `print` emits headerless tables with an all-empty header row (GFM
+   tables require one) — hide that row. */
+.prose thead tr:not(:has(th:not(:empty))) {
+  display: none;
+}

@@ -300,12 +300,12 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "@date")).to.be.true;
     });
 
-    it('print "hello" <cursor> should show completions and the --table opt', async () => {
+    it('print "hello" <cursor> should show completions and the --headers opt', async () => {
       const script = 'print "hello" ';
       const items = await evm.getCompletions(script, pos(script));
       // Should still show helpers/vars for the rest arg
       expect(hasLabel(items, "@me")).to.be.true;
-      expect(hasLabel(items, "--table")).to.be.true;
+      expect(hasLabel(items, "--headers")).to.be.true;
     });
   });
 

@@ -22,7 +22,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
 | [load](src/commands/load.md) | Load a module. Its commands and helpers become available qualified (`mod:cmd`, `@mod:helper`); an import list makes selected names available unqualified. |
 | [loop](src/commands/loop.md) | Repeat a block: iterate over an array (`loop $x of $arr`) or until a condition is true (`loop until <condition>`). |
-| [print](src/commands/print.md) | Log values to the console output. |
+| [print](src/commands/print.md) | Log values to the console output. Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array. |
 | [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
