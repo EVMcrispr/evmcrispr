@@ -33,7 +33,7 @@ export default defineCommand<AccessControl>({
       name: "delay",
       type: "number",
       description:
-        "Execution delay in seconds for the grantee (AccessManager role ids only)",
+        "Execution delay for the grantee, in time units (e.g. 1d; AccessManager role ids only)",
     },
   ],
   completions: {

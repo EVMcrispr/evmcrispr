@@ -24,7 +24,8 @@ export default defineCommand<Governor>({
     {
       name: "delay",
       type: "number",
-      description: "Delay in seconds (at least the timelock minimum delay)",
+      description:
+        "Delay, in time units (e.g. 2d; at least the timelock minimum delay)",
     },
     {
       name: "actions",

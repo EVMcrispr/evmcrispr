@@ -20,7 +20,7 @@ describeHelper(
     docCases: [
       {
         description: "Price of one year of registration",
-        code: `set $price @ens:rentPrice("mydao.eth" 31536000)\nprint $price`,
+        code: `set $price @ens:rentPrice("mydao.eth" 1y)\nprint $price`,
       },
     ],
     sampleArgs: ['"vitalik.eth"', "31536000"],

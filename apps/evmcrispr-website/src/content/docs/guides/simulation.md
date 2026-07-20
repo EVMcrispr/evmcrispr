@@ -135,8 +135,8 @@ clock is warped instead of sleeping:
 load sim
 
 sim:fork (
-  # Advance 1 day (86400 seconds)
-  wait 86400
+  # Advance 1 day
+  wait 1d
 )
 ```
 

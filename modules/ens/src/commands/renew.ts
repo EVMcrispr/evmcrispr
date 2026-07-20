@@ -17,7 +17,7 @@ export default defineCommand<Ens>({
     {
       name: "duration",
       type: "any",
-      description: "Renewal duration in seconds",
+      description: "Renewal duration, in time units (e.g. 1y)",
     },
   ],
   async run(module, { domains, duration }) {

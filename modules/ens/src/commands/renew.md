@@ -15,7 +15,7 @@ ens:renew <domains> <duration>
 | Name | Type | Description |
 |------|------|-------------|
 | `domains` | `any` | ENS label(s) or names to renew |
-| `duration` | `any` | Renewal duration in seconds |
+| `duration` | `any` | Renewal duration, in time units (e.g. 1y) |
 
 <!-- HAND-WRITTEN -->
 
@@ -24,11 +24,11 @@ ens:renew <domains> <duration>
 ```
 load ens
 
-# Renew a single domain for one year (in seconds)
-ens:renew "mydomain" 31536000
+# Renew a single domain for one year
+ens:renew "mydomain" 1y
 
 # Renew multiple domains at once
-ens:renew ["domain1" "domain2" "domain3"] 31536000
+ens:renew ["domain1" "domain2" "domain3"] 1y
 ```
 
 ## Notes

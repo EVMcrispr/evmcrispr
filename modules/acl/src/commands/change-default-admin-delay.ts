@@ -11,7 +11,11 @@ export default defineCommand<AccessControl>({
       type: "address",
       description: "AccessControlDefaultAdminRules contract address",
     },
-    { name: "delay", type: "number", description: "New delay in seconds" },
+    {
+      name: "delay",
+      type: "number",
+      description: "New delay, in time units (e.g. 5d)",
+    },
   ],
   async run(_module, { contract, delay }) {
     return [encodeAction(contract, "changeDefaultAdminDelay(uint48)", [delay])];

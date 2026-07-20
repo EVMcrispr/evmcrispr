@@ -25,7 +25,7 @@ export default defineHelper<Ens>({
     {
       name: "duration",
       type: "number",
-      description: "Duration in seconds",
+      description: "Duration, in time units (e.g. 1y)",
     },
   ],
   async run(module, { name, duration }) {

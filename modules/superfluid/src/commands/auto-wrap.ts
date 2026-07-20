@@ -24,7 +24,7 @@ const DEFAULT_EXPIRY = 32503680000n;
 export default defineCommand<Superfluid>({
   name: "auto-wrap",
   description:
-    "Keep a SuperToken balance topped up automatically: when the balance falls below --lower seconds of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper seconds. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance.",
+    "Keep a SuperToken balance topped up automatically: when the balance falls below --lower of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance.",
   args: [
     {
       name: "token",

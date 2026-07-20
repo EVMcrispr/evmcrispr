@@ -17,14 +17,15 @@ export default defineCommand<Safe>({
     {
       name: "cooldown",
       type: "number",
-      description: "Seconds a queued transaction must wait before execution",
+      description:
+        "Time a queued transaction must wait before execution, in time units (e.g. 1d)",
     },
     {
       name: "expiration",
       type: "number",
       optional: true,
       description:
-        "Seconds after the cooldown during which the transaction can be executed (0 = never expires)",
+        "Time after the cooldown during which the transaction can be executed, in time units (0 = never expires)",
     },
   ],
   opts: [

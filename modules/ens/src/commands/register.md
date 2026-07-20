@@ -16,7 +16,7 @@ ens:register <name> <owner> <duration>
 |------|------|-------------|
 | `name` | `string` | .eth name or label (e.g. mydao.eth or mydao) |
 | `owner` | `address` | Owner of the name |
-| `duration` | `number` | Registration duration in seconds |
+| `duration` | `number` | Registration duration, in time units (e.g. 1y) |
 
 ## Options
 
@@ -35,11 +35,11 @@ ens:register <name> <owner> <duration>
 load ens
 
 # Commit, wait ~60s and reveal in one script (default)
-ens:register mydao @me 31536000 --secret @id("my registration secret") --resolver 0xF29100983E058B709F3D539b0c765937B804AC15 --reverse-record true
+ens:register mydao @me 1y --secret @id("my registration secret") --resolver 0xF29100983E058B709F3D539b0c765937B804AC15 --reverse-record true
 
 # Split the flow across two scripts (e.g. two DAO votes)
-ens:register mydao @me 31536000 --secret @id("my registration secret") --step only-commit
-ens:register mydao @me 31536000 --secret @id("my registration secret") --step only-reveal
+ens:register mydao @me 1y --secret @id("my registration secret") --step only-commit
+ens:register mydao @me 1y --secret @id("my registration secret") --step only-reveal
 ```
 
 ## Notes

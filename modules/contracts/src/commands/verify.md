@@ -29,8 +29,8 @@ contracts:verify <address>
 | `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. |
 | `--constructor-args` | `array` | Constructor arguments as an array literal, e.g. [100e18 @me]. Requires --constructor. |
 | `--constructor-args-hex` | `bytes` | Pre-encoded ABI constructor arguments as hex. Mutually exclusive with --constructor / --constructor-args. |
-| `--timeout` | `number` | Maximum seconds to wait for verification to complete. Defaults to 60. |
-| `--poll-interval` | `number` | Seconds between status polls. Defaults to 3. |
+| `--timeout` | `number` | Maximum time to wait for verification to complete, in time units (default 60s). |
+| `--poll-interval` | `number` | Time between status polls, in time units (default 3s). |
 
 <!-- HAND-WRITTEN -->
 

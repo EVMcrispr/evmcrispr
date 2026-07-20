@@ -18,7 +18,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Command | Description |
 |---------|-------------|
-| [superfluid:auto-wrap](src/commands/auto-wrap.md) | Keep a SuperToken balance topped up automatically: when the balance falls below --lower seconds of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper seconds. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance. |
+| [superfluid:auto-wrap](src/commands/auto-wrap.md) | Keep a SuperToken balance topped up automatically: when the balance falls below --lower of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance. |
 | [superfluid:claim](src/commands/claim.md) | Claim all accrued earnings from a GDA pool without connecting to it. Anyone can trigger the claim; the tokens always go to the member. |
 | [superfluid:connect-pool](src/commands/connect-pool.md) | Connect the sender to a GDA pool so pool earnings count toward the real-time balance automatically. Disconnected members still accrue but must claim explicitly. |
 | [superfluid:create-pool](src/commands/create-pool.md) | Create a GDA distribution pool for a SuperToken and bind the predicted pool address to <variable>. Members hold units and every distribution splits pro-rata to units. The prediction reads the pool factory's account nonce, so it assumes no other pool is created on the chain between planning and execution. |

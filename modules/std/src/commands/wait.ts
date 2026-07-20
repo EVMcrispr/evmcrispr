@@ -10,7 +10,7 @@ export default defineCommand<Std>({
     {
       name: "duration",
       type: "number",
-      description: "Time to wait, in seconds",
+      description: "Time to wait, in time units (e.g. 30s, 1d)",
     },
   ],
   async run(_, { duration }) {

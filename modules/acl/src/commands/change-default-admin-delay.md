@@ -15,7 +15,7 @@ acl:change-default-admin-delay <contract> <delay>
 | Name | Type | Description |
 |------|------|-------------|
 | `contract` | `address` | AccessControlDefaultAdminRules contract address |
-| `delay` | `number` | New delay in seconds |
+| `delay` | `number` | New delay, in time units (e.g. 5d) |
 
 <!-- HAND-WRITTEN -->
 
@@ -27,7 +27,7 @@ load acl
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 # Move to a 5-day delay for future admin transfers
-acl:change-default-admin-delay $token 432000
+acl:change-default-admin-delay $token 5d
 ```
 
 ## Notes

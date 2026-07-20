@@ -16,7 +16,7 @@ governor:timelock-schedule [variable] <timelock> <delay> <actions>
 |------|------|-------------|
 | `[variable]` | `variable` | Variable to bind the operation id to |
 | `timelock` | `address` | TimelockController address |
-| `delay` | `number` | Delay in seconds (at least the timelock minimum delay) |
+| `delay` | `number` | Delay, in time units (e.g. 2d; at least the timelock minimum delay) |
 | `actions` | `block` | Block of commands making up the operation |
 
 ## Options
@@ -39,7 +39,7 @@ set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 set $grantee 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 # Schedule a batch and remember its operation id
-governor:timelock-schedule $opId $timelock 172800 (
+governor:timelock-schedule $opId $timelock 2d (
   exec $token transfer(address,uint256) $grantee 100e18
   acl:grant MINTER_ROLE on $token to $grantee
 )

@@ -311,12 +311,12 @@ export default defineCommand<Contracts>({
       name: "timeout",
       type: "number",
       description:
-        "Maximum seconds to wait for verification to complete. Defaults to 60.",
+        "Maximum time to wait for verification to complete, in time units (default 60s).",
     },
     {
       name: "poll-interval",
       type: "number",
-      description: "Seconds between status polls. Defaults to 3.",
+      description: "Time between status polls, in time units (default 3s).",
     },
   ],
   async run(module, { address }, { opts, interpreters }) {

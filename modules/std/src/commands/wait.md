@@ -14,7 +14,7 @@ wait <duration>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `duration` | `number` | Time to wait, in seconds |
+| `duration` | `number` | Time to wait, in time units (e.g. 30s, 1d) |
 
 <!-- HAND-WRITTEN -->
 
@@ -24,7 +24,7 @@ wait <duration>
 # Wait a minute between two transactions
 set $contract 0x44fA8E6f47987339850636F88629646662444217
 exec $contract start()
-wait 60
+wait 1m
 exec $contract finish()
 ```
 
@@ -32,7 +32,7 @@ exec $contract finish()
 # Inside a fork simulation the wait is instant: the chain's clock is warped
 load sim
 sim:fork (
-  wait 86400
+  wait 1d
 )
 ```
 

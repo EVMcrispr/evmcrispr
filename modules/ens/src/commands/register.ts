@@ -43,7 +43,7 @@ export default defineCommand<Ens>({
     {
       name: "duration",
       type: "number",
-      description: "Registration duration in seconds",
+      description: "Registration duration, in time units (e.g. 1y)",
     },
   ],
   opts: [

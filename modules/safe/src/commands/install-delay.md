@@ -14,8 +14,8 @@ safe:install-delay <cooldown> [expiration]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `cooldown` | `number` | Seconds a queued transaction must wait before execution |
-| `[expiration]` | `number` | Seconds after the cooldown during which the transaction can be executed (0 = never expires) |
+| `cooldown` | `number` | Time a queued transaction must wait before execution, in time units (e.g. 1d) |
+| `[expiration]` | `number` | Time after the cooldown during which the transaction can be executed, in time units (0 = never expires) |
 
 ## Options
 
@@ -34,7 +34,7 @@ load safe
 
 set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
 safe:propose $mySafe (
-  safe:install-delay 86400
+  safe:install-delay 1d
 )
 ```
 
