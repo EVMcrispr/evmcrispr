@@ -453,14 +453,21 @@ async function interpretHelperFunction(
  *  `batch`) or a module-def entry can set its own values. */
 function withInheritedOptions(
   interpreters: NodesInterpreters,
-  options: Pick<InterpretOptions, "batchContext" | "origin"> | undefined,
+  options:
+    | Pick<InterpretOptions, "batchContext" | "origin" | "simulation">
+    | undefined,
 ): NodesInterpreters {
   const batchContext = options?.batchContext;
   const origin = options?.origin;
-  if (!batchContext && !origin) return interpreters;
-  const inherited: Pick<InterpretOptions, "batchContext" | "origin"> = {};
+  const simulation = options?.simulation;
+  if (!batchContext && !origin && !simulation) return interpreters;
+  const inherited: Pick<
+    InterpretOptions,
+    "batchContext" | "origin" | "simulation"
+  > = {};
   if (batchContext) inherited.batchContext = batchContext;
   if (origin) inherited.origin = origin;
+  if (simulation) inherited.simulation = simulation;
   return {
     ...interpreters,
     interpretNode: (n, options) =>

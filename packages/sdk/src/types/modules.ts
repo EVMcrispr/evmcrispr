@@ -83,6 +83,10 @@ export interface InterpretOptions {
   batchContext?: BatchContext;
   /** Execution origin of the nodes being interpreted (defaults to user). */
   origin?: ExecutionOrigin;
+  /** True when the nodes run inside a simulated fork (`sim:fork`). Commands
+   *  with off-chain side effects (API writes, wallet signatures) must skip
+   *  them when set — the chain is fake but the side effects would be real. */
+  simulation?: boolean;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
@@ -102,6 +106,9 @@ export type NodesInterpreters = {
   batchContext?: BatchContext;
   /** Execution origin of the running command/helper (defaults to user). */
   origin?: ExecutionOrigin;
+  /** True inside a simulated fork (`sim:fork`) — skip real-world side
+   *  effects (API writes, wallet signatures). */
+  simulation?: boolean;
 };
 
 export type CommandFunction<T extends Module = Module> = (

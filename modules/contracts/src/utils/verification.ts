@@ -1,4 +1,3 @@
-import type { Module } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import { bytesToHex, hexToBytes } from "viem";
 import { loadCompiler } from "./solcLoader";
@@ -29,20 +28,6 @@ export interface SolcVerifyContractOutput {
 export interface SolcStandardOutput {
   errors?: { severity: string; formattedMessage?: string; message: string }[];
   contracts?: Record<string, Record<string, SolcVerifyContractOutput>>;
-}
-
-/**
- * When a sim:fork block is running, return its active fork chain id
- * (`null` when unknown); `undefined` when no simulation is active. The sim
- * module instance is reachable through the shared module list and exposes
- * `mode`/`activeChainId` for the duration of the fork block.
- */
-export function activeSimChainId(module: Module): number | null | undefined {
-  const sim = module.context.modules.find((m) => m.name === "sim") as
-    | (Module & { mode?: unknown; activeChainId?: number | null })
-    | undefined;
-  if (!sim || sim.mode == null) return undefined;
-  return sim.activeChainId ?? null;
 }
 
 /**

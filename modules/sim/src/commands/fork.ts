@@ -566,6 +566,7 @@ export default defineCommand<Sim>({
     try {
       await interpretNode(blockExpressionNode, {
         actionCallback: simulateAction,
+        simulation: true,
       });
     } finally {
       if (module.pendingDeliveries.length > 0) {

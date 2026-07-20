@@ -10,7 +10,6 @@ import {
 import { getAddress, isAddressEqual } from "viem";
 import type Contracts from "..";
 import {
-  activeSimChainId,
   compileStandardJson,
   matchesDeployedBytecode,
   selectVerifyTarget,
@@ -320,11 +319,11 @@ export default defineCommand<Contracts>({
       description: "Seconds between status polls. Defaults to 3.",
     },
   ],
-  async run(module, { address }, { opts }) {
+  async run(module, { address }, { opts, interpreters }) {
     // Inside a sim:fork block verification becomes a local dry-run, which
     // needs no Etherscan API key (mirror mode still does — it reads the
     // source from Etherscan).
-    const simChainId = activeSimChainId(module);
+    const simulation = interpreters.simulation === true;
     const apiKey = readEtherscanApiKey();
 
     const targetAddress = getAddress(address as `0x${string}`);
@@ -464,13 +463,8 @@ export default defineCommand<Contracts>({
       constructorArgsHex = mirrorCtorArgsHex;
     }
 
-    if (simChainId !== undefined) {
+    if (simulation) {
       // ── sim:fork dry-run: compile locally and diff against fork code ──
-      if (simChainId !== null && targetChainId !== simChainId) {
-        throw new ErrorException(
-          `verify: targets chain ${targetChainId} but the fork is on chain ${simChainId} — switch chains before verifying`,
-        );
-      }
       const bareVersion = compilerVersion.replace(/^v/, "");
       module.context.log(
         `verify (dry-run): compiling ${contractName} with solc v${bareVersion}…`,
