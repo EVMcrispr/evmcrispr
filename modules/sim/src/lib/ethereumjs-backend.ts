@@ -1,11 +1,12 @@
 import { Common, Hardfork, Mainnet } from "@ethereumjs/common";
 import { RPCBlockChain, RPCStateManager } from "@ethereumjs/statemanager";
+import type { Account, Address as EthjsAddress } from "@ethereumjs/util";
 import {
   bigIntToHex,
   bytesToHex,
+  createAccount,
   createAddressFromString,
   createZeroAddress,
-  fetchFromProvider,
   hexToBytes,
 } from "@ethereumjs/util";
 import type { VM } from "@ethereumjs/vm";
@@ -17,7 +18,7 @@ import {
   isTransactionAction,
   RevertError,
 } from "@evmcrispr/sdk";
-import { custom, type Transport } from "viem";
+import { custom, keccak256, type Transport } from "viem";
 
 export interface EthereumJSBackendOpts {
   upstreamRpcUrl: string;
@@ -45,6 +46,61 @@ export interface EthereumJSBackend {
   handleAction(action: Action): Promise<SyntheticReceipt | undefined>;
 }
 
+/**
+ * JSON-RPC fetch that surfaces `error` responses — @ethereumjs/util's
+ * fetchFromProvider returns `json.result` without checking `json.error`,
+ * turning upstream RPC failures into cryptic undefined-dereference
+ * TypeErrors deep inside the VM.
+ */
+async function rpcFetch(
+  url: string,
+  method: string,
+  params: unknown[],
+): Promise<any> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  if (!res.ok) {
+    throw new ErrorException(
+      `upstream RPC returned HTTP ${res.status} for ${method}`,
+    );
+  }
+  const json = await res.json();
+  if (json.error) {
+    throw new ErrorException(
+      `upstream RPC rejected ${method}: ${json.error.message} (code ${json.error.code})`,
+    );
+  }
+  return json.result;
+}
+
+/**
+ * RPCStateManager fetches accounts via eth_getProof, which load-balanced
+ * providers reject once the pinned fork block falls more than a few blocks
+ * behind head ("distance to target block exceeds maximum proof window" on
+ * DRPC Optimism, seconds after forking). The VM never verifies the proof,
+ * so fetch balance/nonce/code directly instead.
+ */
+class ProofFreeStateManager extends RPCStateManager {
+  override async getAccountFromProvider(
+    address: EthjsAddress,
+  ): Promise<Account> {
+    const params = [address.toString(), this._blockTag];
+    const [balance, nonce, code] = await Promise.all([
+      rpcFetch(this._provider, "eth_getBalance", params),
+      rpcFetch(this._provider, "eth_getTransactionCount", params),
+      rpcFetch(this._provider, "eth_getCode", params),
+    ]);
+    return createAccount({
+      balance: BigInt(balance),
+      nonce: BigInt(nonce),
+      codeHash: hexToBytes(keccak256(code as `0x${string}`)),
+    });
+  }
+}
+
 export async function createEthereumJSBackend(
   opts: EthereumJSBackendOpts,
 ): Promise<EthereumJSBackend> {
@@ -58,7 +114,7 @@ export async function createEthereumJSBackend(
     ? BigInt(opts.blockNumber)
     : await resolveLatestBlockNumber(upstreamRpcUrl);
 
-  const stateManager = new RPCStateManager({
+  const stateManager = new ProofFreeStateManager({
     provider: upstreamRpcUrl,
     blockTag,
     common,
@@ -239,10 +295,7 @@ export async function createEthereumJSBackend(
         case "eth_chainId":
           return bigIntToHex(BigInt(chainId));
         default:
-          return await fetchFromProvider(upstreamRpcUrl, {
-            method,
-            params: p,
-          });
+          return await rpcFetch(upstreamRpcUrl, method, p);
       }
     },
   });
@@ -315,10 +368,7 @@ function padToBytes32(input: Uint8Array): Uint8Array {
 }
 
 async function resolveLatestBlockNumber(rpcUrl: string): Promise<bigint> {
-  const result = await fetchFromProvider(rpcUrl, {
-    method: "eth_blockNumber",
-    params: [],
-  });
+  const result = await rpcFetch(rpcUrl, "eth_blockNumber", []);
   return BigInt(result);
 }
 
@@ -326,10 +376,10 @@ async function fetchBlockTimestamp(
   rpcUrl: string,
   blockNumber: bigint,
 ): Promise<bigint> {
-  const block = await fetchFromProvider(rpcUrl, {
-    method: "eth_getBlockByNumber",
-    params: [bigIntToHex(blockNumber), false],
-  });
+  const block = await rpcFetch(rpcUrl, "eth_getBlockByNumber", [
+    bigIntToHex(blockNumber),
+    false,
+  ]);
   if (block == null) {
     throw new ErrorException(
       `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +
