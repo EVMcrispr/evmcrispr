@@ -1,4 +1,5 @@
 import "../../setup";
+import { expect } from "@evmcrispr/test-utils";
 import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { helpers } from "../../../src/_generated";
 
@@ -10,7 +11,16 @@ describeHelper(
   {
     describeName: "Std > helpers > @date(date, offset?)",
     cases: [
-      { name: "current date (now)", input: "@date(now)", expected: ts() },
+      {
+        name: "current date (now)",
+        input: "@date(now)",
+        // `now` is evaluated inside the helper, so compare against the
+        // assertion-time clock with a small tolerance instead of pinning
+        // a timestamp captured at file load.
+        validate: (result) => {
+          expect(Number(result)).to.be.closeTo(Date.now() / 1000, 5);
+        },
+      },
       { name: "only year", input: "@date(2015)", expected: ts("2015") },
       {
         name: "year and month",
