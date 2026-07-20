@@ -97,7 +97,7 @@ export default defineCommand<Giveth>({
   args: [
     {
       name: "projects",
-      type: "array",
+      type: ["array", "giveth-project"],
       description: "Giveth project URL slugs",
     },
   ],

@@ -17,7 +17,7 @@ giveth:donate <amount> <token> <to> <projects>
 | `amount` | `array \| number` | Donation amount in token base units, or one amount per project (a single amount with several projects donates that amount to each) |
 | `token` | `address` | Token to donate (use @token(SYM); the native token resolves to the zero address) |
 | `to` | `command` | Keyword `to` |
-| `projects` | `array \| string` | Giveth project URL slug, or several slugs |
+| `projects` | `array \| giveth-project` | Giveth project URL slug, or several slugs |
 
 ## Options
 

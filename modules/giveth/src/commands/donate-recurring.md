@@ -18,7 +18,7 @@ giveth:donate-recurring <rate> <token> <mode> <to> <project>
 | `token` | `address` | Token to stream: underlying token, its SuperToken, or the zero address for the native token |
 | `mode` | `command` | Keyword `total` (set the absolute rate; 0 stops), `more` or `less` (adjust the existing stream by <rate>) |
 | `to` | `command` | Keyword `to` |
-| `project` | `string` | Giveth project URL slug |
+| `project` | `giveth-project` | Giveth project URL slug |
 
 ## Options
 

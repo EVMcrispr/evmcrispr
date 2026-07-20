@@ -134,6 +134,17 @@ const resolveGraphql = async (request: Request) => {
   const query = body?.query ?? "";
   const variables = body?.variables ?? {};
 
+  if (query.includes("allProjects")) {
+    return HttpResponse.json({
+      data: {
+        allProjects: {
+          projects: Object.keys(projects)
+            .slice(0, Number(variables.limit ?? Object.keys(projects).length))
+            .map((slug) => ({ title: slug.replace(/-/g, " "), slug })),
+        },
+      },
+    });
+  }
   if (query.includes("projectBySlug")) {
     return HttpResponse.json({
       data: { projectBySlug: projects[variables.slug ?? ""] ?? null },

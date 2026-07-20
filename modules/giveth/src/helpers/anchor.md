@@ -16,7 +16,7 @@ Resolve a Giveth project slug to its anchor contract on the current chain — th
 
 | Name | Type | Description |
 |------|------|-------------|
-| `slug` | `string` | Giveth project slug |
+| `slug` | `giveth-project` | Giveth project slug |
 
 ## Examples
 

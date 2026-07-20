@@ -16,7 +16,7 @@ Resolve a Giveth project slug to its donation recipient address on the current c
 
 | Name | Type | Description |
 |------|------|-------------|
-| `slug` | `string` | Giveth project slug |
+| `slug` | `giveth-project` | Giveth project slug |
 
 ## Examples
 

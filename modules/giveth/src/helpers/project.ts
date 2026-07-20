@@ -7,7 +7,13 @@ export default defineHelper<Giveth>({
   description:
     "Resolve a Giveth project slug to its donation recipient address on the current chain.",
   returnType: "address",
-  args: [{ name: "slug", type: "string", description: "Giveth project slug" }],
+  args: [
+    {
+      name: "slug",
+      type: "giveth-project",
+      description: "Giveth project slug",
+    },
+  ],
   async run(module, { slug }) {
     const project = await fetchProject(module, slug);
     return getRecipientAddress(project, await module.getChainId());

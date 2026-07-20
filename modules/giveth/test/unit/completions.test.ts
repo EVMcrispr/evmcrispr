@@ -69,6 +69,26 @@ describe("Completions – giveth commands", () => {
       expect(hasLabel(items, "to")).to.be.true;
     });
 
+    it("donate 100 $token to <cursor> should suggest project slugs", async () => {
+      const script = `${GIVETH}giveth:donate 100 $token to `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "evmcrispr")).to.be.true;
+      const project = items.find((i) => i.label === "wayback-machine");
+      expect(project).to.exist;
+      expect(project!.detail).to.equal("wayback machine");
+    });
+
+    it("donate [100 50] $token to [<cursor> should suggest slugs inside the array", async () => {
+      const before = "giveth:donate [100 50] $token to [";
+      const script = `${GIVETH}${before}]`;
+      const items = await evm.getCompletions(script, {
+        line: 2,
+        col: before.length,
+      });
+      expect(hasLabel(items, "evmcrispr")).to.be.true;
+      expect(hasLabel(items, "wayback-machine")).to.be.true;
+    });
+
     it("donate 100 $token to evmcrispr --<cursor> should show the opts", async () => {
       const script = `${GIVETH}giveth:donate 100 $token to evmcrispr --`;
       const items = await evm.getCompletions(script, pos(script, 2));
@@ -77,6 +97,31 @@ describe("Completions – giveth commands", () => {
         "--no-approve",
         "--tip",
       ]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // boost / donate-recurring — project slug completions
+  // -------------------------------------------------------------------------
+
+  describe("boost", () => {
+    it("boost [<cursor> should suggest project slugs inside the array", async () => {
+      const before = "giveth:boost [";
+      const script = `${GIVETH}${before}]`;
+      const items = await evm.getCompletions(script, {
+        line: 2,
+        col: before.length,
+      });
+      expect(hasLabel(items, "evmcrispr")).to.be.true;
+      expect(hasLabel(items, "gnosis-only-project")).to.be.true;
+    });
+  });
+
+  describe("donate-recurring", () => {
+    it("donate-recurring 100e18/mo $token total to <cursor> should suggest project slugs", async () => {
+      const script = `${GIVETH}giveth:donate-recurring 100e18/mo $token total to `;
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "evmcrispr")).to.be.true;
     });
   });
 
@@ -270,25 +315,24 @@ describe("Completions – giveth helpers", () => {
       position: { line: 2, col: before.length },
     });
 
-    // @project(string) -> all helpers (string accepts all)
-    it("@project(<cursor>) should show string-compatible completions", async () => {
+    // @project(giveth-project) -> top project slugs fetched from the API
+    it("@project(<cursor>) should suggest project slugs", async () => {
       const { script, position } = helperPos("set $x @project(", ")");
       const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
+      const fields = onlyKind(items, "field");
+      expect(hasLabel(fields, "evmcrispr")).to.be.true;
+      expect(hasLabel(fields, "wayback-machine")).to.be.true;
+      // The slug slot is typed, so untyped helpers are no longer offered
+      expect(onlyKind(items, "helper")).to.have.lengthOf(0);
     });
 
     // Unclosed parens: @project without closing ")"
-    it("@project(<cursor> (no closing paren) should still show string-compatible completions", async () => {
+    it("@project(<cursor> (no closing paren) should still suggest project slugs", async () => {
       const script = `${GIVETH}set $x @project(`;
       const position = { line: 2, col: "set $x @project(".length };
       const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ALL_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
+      const fields = onlyKind(items, "field");
+      expect(hasLabel(fields, "evmcrispr")).to.be.true;
     });
   });
 });

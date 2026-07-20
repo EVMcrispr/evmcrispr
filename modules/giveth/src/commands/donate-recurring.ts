@@ -76,7 +76,7 @@ export default defineCommand<Giveth>({
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "project",
-      type: "string",
+      type: "giveth-project",
       description: "Giveth project URL slug",
     },
   ],

@@ -14,7 +14,7 @@ giveth:boost <projects>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `projects` | `array` | Giveth project URL slugs |
+| `projects` | `array \| giveth-project` | Giveth project URL slugs |
 
 ## Options
 
