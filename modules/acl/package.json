@@ -1,8 +1,8 @@
 {
-  "name": "@evmcrispr/module-governor",
+  "name": "@evmcrispr/module-acl",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Governance operations: Governor proposals, voting, vote delegation, and TimelockController scheduling.",
+  "description": "Access control operations: Ownable ownership, AccessControl and AccessManager roles.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -19,8 +19,7 @@
     "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
-    "@evmcrispr/test-utils": "workspace:*",
-    "@evmcrispr/module-acl": "workspace:*"
+    "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {
     "viem": "^2.54.1"

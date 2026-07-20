@@ -24,14 +24,14 @@ governor:cancel <governor> <description> <actions>
 
 ```evml
 load governor
-load access-control
+load acl
 
 set $governor 0x44fA8E6f47987339850636F88629646662444217
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 governor:cancel $governor "Fund the grants program" (
   exec $token transfer(address,uint256) 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 100e18
-  access-control:grant MINTER_ROLE on $token to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+  acl:grant MINTER_ROLE on $token to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 )
 ```
 

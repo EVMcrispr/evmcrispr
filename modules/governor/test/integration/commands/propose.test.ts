@@ -17,7 +17,7 @@ describeCommand("propose", {
   describeName:
     "Governor > commands > propose <governor> <description> <block>",
   module: "governor",
-  preamble: "load governor\nload access-control",
+  preamble: "load governor\nload acl",
   cases: [
     {
       name: "should collect block actions into a propose action",
@@ -51,7 +51,7 @@ describeCommand("propose", {
     {
       name: "should support commands from other modules inside the block",
       script: `governor:propose ${GOVERNOR} "New owner" (
-  access-control:transfer-ownership ${GNO} ${SOME_ADDRESS}
+  acl:transfer-ownership of ${GNO} to ${SOME_ADDRESS}
 )`,
       expectedActions: [
         encodeAction(GOVERNOR, "propose(address[],uint256[],bytes[],string)", [

@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@evmcrispr/core": "*",
-    "@evmcrispr/module-access-control": "*",
+    "@evmcrispr/module-acl": "*",
     "@evmcrispr/module-aragonos": "*",
     "@evmcrispr/module-aragonosx": "*",
     "@evmcrispr/module-assertions": "*",

@@ -106,8 +106,8 @@
         "vite": "^8.1.3",
       },
     },
-    "modules/access-control": {
-      "name": "@evmcrispr/module-access-control",
+    "modules/acl": {
+      "name": "@evmcrispr/module-acl",
       "version": "0.1.0",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:*",
@@ -237,7 +237,7 @@
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@evmcrispr/module-access-control": "workspace:*",
+        "@evmcrispr/module-acl": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -471,7 +471,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@evmcrispr/core": "*",
-        "@evmcrispr/module-access-control": "*",
+        "@evmcrispr/module-acl": "*",
         "@evmcrispr/module-aragonos": "*",
         "@evmcrispr/module-aragonosx": "*",
         "@evmcrispr/module-assertions": "*",
@@ -846,7 +846,7 @@
 
     "@evmcrispr/editor": ["@evmcrispr/editor@workspace:packages/editor"],
 
-    "@evmcrispr/module-access-control": ["@evmcrispr/module-access-control@workspace:modules/access-control"],
+    "@evmcrispr/module-acl": ["@evmcrispr/module-acl@workspace:modules/acl"],
 
     "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
 

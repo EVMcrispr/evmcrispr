@@ -30,7 +30,7 @@ governor:timelock-execute <timelock> <actions>
 
 ```evml
 load governor
-load access-control
+load acl
 
 set $timelock 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
@@ -38,7 +38,7 @@ set $grantee 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 governor:timelock-execute $timelock (
   exec $token transfer(address,uint256) $grantee 100e18
-  access-control:grant MINTER_ROLE on $token to $grantee
+  acl:grant MINTER_ROLE on $token to $grantee
 )
 ```
 

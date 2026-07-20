@@ -38,5 +38,5 @@ token:mint 100e18 $token to @me
 
 ## See Also
 
-- [access-control:grant](../../../access-control/src/commands/grant.md) — grant MINTER_ROLE first
+- [acl:grant](../../../acl/src/commands/grant.md) — grant MINTER_ROLE first
 - [token:burn](burn.md)

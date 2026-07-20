@@ -1,7 +1,7 @@
 # Module ideas: what's missing for the common blockchain user
 
 A survey of modules, commands, and helpers EVMcrispr could add. The current surface
-(std, lang, sim, assertions, http, aragonos, safe, token, ens, giveth, access-control,
+(std, lang, sim, assertions, http, aragonos, safe, token, ens, giveth, acl,
 governor, proxies) covers *governance and admin* work very well, but the everyday
 things a normal user does on-chain — swap, bridge, lend, stake, get paid — still
 require hand-writing `exec` calls against protocol ABIs.
