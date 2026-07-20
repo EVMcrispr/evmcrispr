@@ -87,6 +87,9 @@ function remarkRewriteMdLinks() {
 export default defineConfig({
   site: "https://next-docs.evmcrispr.com",
   markdown: {
+    // Keep -- as typed (e.g. command --options) instead of SmartyPants
+    // turning it into an en dash.
+    smartypants: false,
     remarkPlugins: [remarkRewriteMdLinks],
   },
   integrations: [
