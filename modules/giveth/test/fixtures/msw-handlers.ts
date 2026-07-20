@@ -88,11 +88,12 @@ const users: Record<string, { id: string }> = {
 };
 
 /** getPowerBoosting fixtures: userId → powerBoostings (zero-percentage rows
- *  mirror how the live API keeps dropped boosts around). */
+ *  mirror how the live API keeps dropped boosts around; the -0 slug mirrors
+ *  its dedup suffixing, which callers are expected to strip). */
 const boostings: Record<string, unknown[]> = {
   "25": [
     { percentage: 30, project: { id: "2000", slug: "wayback-machine" } },
-    { percentage: 70, project: { id: "1350", slug: "evmcrispr" } },
+    { percentage: 70, project: { id: "1350", slug: "evmcrispr-0" } },
     { percentage: 0, project: { id: "9999", slug: "gnosis-only-project" } },
   ],
 };

@@ -5,6 +5,7 @@ import type {
 } from "@evmcrispr/sdk";
 import { ErrorException, isNum, isString } from "@evmcrispr/sdk";
 import { CORS_PROXY_PREFIX, GIVETH_GRAPHQL_URL } from "./addresses";
+import { cleanSlug } from "./utils/graphql";
 
 /** How many top-ranked projects to offer as completions (of thousands).
  *  impact-graph rejects allProjects limits above 50 with an
@@ -39,9 +40,7 @@ async function fetchTopProjects(): Promise<CompletionItem[]> {
   return projects
     .filter((p) => typeof p.slug === "string" && p.slug)
     .map((p) => {
-      // impact-graph resolves old spellings via slug history, so offer the
-      // clean slug instead of the dedup-suffixed one.
-      const slug = p.slug === "evmcrispr-0" ? "evmcrispr" : p.slug!;
+      const slug = cleanSlug(p.slug!);
       return {
         label: slug,
         insertText: slug,

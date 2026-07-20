@@ -19,6 +19,13 @@ export interface GivethProject {
   }[];
 }
 
+/** impact-graph dedup-suffixes slugs (evmcrispr-0, giveth-matching-pool-0)
+ *  and resolves the clean spelling via slug history, so strip the suffix
+ *  wherever a slug is handed back. */
+export function cleanSlug(slug: string): string {
+  return slug.replace(/-0$/, "");
+}
+
 export async function postGraphql(
   _module: Module,
   query: string,
@@ -68,6 +75,7 @@ export async function fetchProject(
   return {
     ...project,
     id: Number(project.id),
+    slug: cleanSlug(project.slug),
     addresses: project.addresses ?? [],
     anchorContracts: project.anchorContracts ?? [],
   };
@@ -143,7 +151,10 @@ export async function fetchPowerBoostings(
   const boostings = data?.getPowerBoosting?.powerBoostings ?? [];
   return boostings.map((b: any) => ({
     percentage: b.percentage,
-    project: { id: Number(b.project?.id), slug: b.project?.slug },
+    project: {
+      id: Number(b.project?.id),
+      slug: cleanSlug(b.project?.slug ?? ""),
+    },
   }));
 }
 
