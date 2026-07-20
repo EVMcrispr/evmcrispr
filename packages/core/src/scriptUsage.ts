@@ -14,6 +14,11 @@ export interface ScriptUsage {
   helpers: Set<string>;
   /** `module:key` of every `$mod:key` read or write. */
   configVars: Set<string>;
+  /** Load-import bindings: local (possibly `>`-renamed) command name →
+   *  canonical module + source name. */
+  commandBindings: Map<string, { module: string; name: string }>;
+  /** Load-import bindings for helpers, same shape as `commandBindings`. */
+  helperBindings: Map<string, { module: string; name: string }>;
 }
 
 function isLoadCommand(c: CommandExpressionNode): boolean {
@@ -99,6 +104,8 @@ export function collectScriptUsage(script: string): ScriptUsage | null {
     commands: new Set(),
     helpers: new Set(),
     configVars: new Set(),
+    commandBindings: importedCommands,
+    helperBindings: importedHelpers,
   };
 
   const visit = (node: Node): void => {

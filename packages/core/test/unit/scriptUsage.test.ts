@@ -61,6 +61,18 @@ describe("collectScriptUsage", () => {
     expect(u.commands.has("std:dep")).to.be.false;
   });
 
+  it("exposes load-import bindings, honoring renames", () => {
+    const u = usage("load lending [deposit>dep @apy]\ndep 1");
+    expect(u.commandBindings.get("dep")).to.deep.equal({
+      module: "lending",
+      name: "deposit",
+    });
+    expect(u.helperBindings.get("apy")).to.deep.equal({
+      module: "lending",
+      name: "apy",
+    });
+  });
+
   it("resolves helpers bound via a load import list", () => {
     const u = usage("load lending [@apy]\nprint @apy(aave-v3 DAI)");
     expect(u.helpers.has("lending:apy")).to.be.true;

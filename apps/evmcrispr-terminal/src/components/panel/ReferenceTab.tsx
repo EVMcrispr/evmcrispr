@@ -1,4 +1,5 @@
 import { collectScriptUsage, type ScriptUsage } from "@evmcrispr/core";
+import type { CursorRef } from "@evmcrispr/editor";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { IconButton, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
@@ -34,6 +35,8 @@ const EMPTY_USAGE: ScriptUsage = {
   commands: new Set(),
   helpers: new Set(),
   configVars: new Set(),
+  commandBindings: new Map(),
+  helperBindings: new Map(),
 };
 
 function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {
@@ -63,10 +66,30 @@ function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {
   );
 }
 
-/** Lookup map: (kind + name) -> ReferenceEntry. */
+/** Lookup map: (kind + module + name) -> ReferenceEntry. */
 const entryByKey = new Map<string, ReferenceEntry>(
-  referenceEntries.map((e) => [`${e.kind}:${e.name}`, e]),
+  referenceEntries.map((e) => [`${e.kind}:${e.module}:${e.name}`, e]),
 );
+
+/** Resolve a cursor ref to its entry: explicit `mod:` prefix wins, then the
+ *  script's load-import bindings (honoring `>` renames), then std — the same
+ *  order the semantic analyzer uses. Falls back to any module defining the
+ *  name so a bare match still opens something while the load line is absent
+ *  or mid-edit. */
+function resolveCursorEntry(
+  ref: CursorRef,
+  usage: ScriptUsage,
+): ReferenceEntry | undefined {
+  const bindings =
+    ref.kind === "command" ? usage.commandBindings : usage.helperBindings;
+  const bound = ref.module
+    ? { module: ref.module, name: ref.name }
+    : (bindings.get(ref.name) ?? { module: "std", name: ref.name });
+  return (
+    entryByKey.get(`${ref.kind}:${bound.module}:${bound.name}`) ??
+    referenceEntries.find((e) => e.kind === ref.kind && e.name === ref.name)
+  );
+}
 
 export function ReferenceTab() {
   const { script, cursorRef } = useTerminalStore();
@@ -178,24 +201,23 @@ export function ReferenceTab() {
 
   // Auto-open detail when cursor moves to a recognized command/helper
   useEffect(() => {
-    const cursorKey = cursorRef ? `${cursorRef.kind}:${cursorRef.name}` : null;
-
     // Cursor moved away from any entry
-    if (!cursorKey) {
+    if (!cursorRef) {
       lastCursorKeyRef.current = null;
       return;
     }
 
+    const entry = resolveCursorEntry(cursorRef, usage);
+    if (!entry) return;
+
+    const cursorKey = `${entry.kind}:${entry.module}:${entry.name}`;
     // Same entry as before — don't re-trigger
     if (cursorKey === lastCursorKeyRef.current) return;
 
-    const entry = entryByKey.get(cursorKey);
-    if (entry) {
-      lastCursorKeyRef.current = cursorKey;
-      terminalStoreActions("activeTab", "reference");
-      openEntry(entry);
-    }
-  }, [cursorRef, openEntry]);
+    lastCursorKeyRef.current = cursorKey;
+    terminalStoreActions("activeTab", "reference");
+    openEntry(entry);
+  }, [cursorRef, usage, openEntry]);
 
   // Detail view
   if (selectedItem) {

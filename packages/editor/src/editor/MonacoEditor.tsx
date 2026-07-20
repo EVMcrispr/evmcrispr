@@ -33,6 +33,9 @@ const CHANGE_DEBOUNCE_MS = 150;
 export type CursorRef = {
   name: string;
   kind: "command" | "helper";
+  /** Explicit module prefix at the cursor (`giveth:claim`, `@giveth:project`),
+   *  when spelled out. Unprefixed names need AST resolution by the host. */
+  module?: string;
 };
 
 /** Detect whether the cursor is on a known command or @helper name. */
@@ -42,33 +45,27 @@ function detectCursorRef(
   commandNames: ReadonlySet<string>,
   helperNames: ReadonlySet<string>,
 ): CursorRef | null {
-  // Check for @helper: find @identifier spanning the cursor
-  const helperMatch = line.match(/@([\w.]+)/g);
-  if (helperMatch) {
-    let offset = 0;
-    for (const m of helperMatch) {
-      const idx = line.indexOf(m, offset);
-      const end = idx + m.length;
-      if (col >= idx && col <= end) {
-        const name = m.slice(1); // strip @
-        if (helperNames.has(name)) {
-          return { name, kind: "helper" };
-        }
+  // Check for @helper: find @[module:]identifier spanning the cursor
+  for (const m of line.matchAll(/@(?:([\w-]+):)?([\w.]+)/g)) {
+    const idx = m.index;
+    const end = idx + m[0].length;
+    if (col >= idx && col <= end) {
+      const name = m[2];
+      if (helperNames.has(name)) {
+        return { name, kind: "helper", module: m[1] };
       }
-      offset = end;
     }
   }
 
   // Check for command: first word on the line (after optional whitespace,
   // and optionally after a module prefix like "ar:")
-  const cmdMatch = line.match(/^\s*(?:[\w-]+:)?([\w-]+)/);
+  const cmdMatch = line.match(/^(\s*)(?:([\w-]+):)?([\w-]+)/);
   if (cmdMatch) {
-    const name = cmdMatch[1];
-    const fullMatchStart = line.indexOf(cmdMatch[0]);
-    const nameStart = fullMatchStart + cmdMatch[0].length - name.length;
-    const nameEnd = nameStart + name.length;
-    if (col >= nameStart && col <= nameEnd && commandNames.has(name)) {
-      return { name, kind: "command" };
+    const name = cmdMatch[3];
+    const start = cmdMatch[1].length;
+    const end = start + (cmdMatch[0].length - cmdMatch[1].length);
+    if (col >= start && col <= end && commandNames.has(name)) {
+      return { name, kind: "command", module: cmdMatch[2] };
     }
   }
 
@@ -757,7 +754,11 @@ function Editor({
           helperNamesRef.current ?? new Set(keywordsRef.current.helpers),
         );
         const prev = cursorRefRef.current;
-        if (prev?.name !== ref?.name || prev?.kind !== ref?.kind) {
+        if (
+          prev?.name !== ref?.name ||
+          prev?.kind !== ref?.kind ||
+          prev?.module !== ref?.module
+        ) {
           cursorRefRef.current = ref;
           onCursorRefRef.current(ref);
         }
