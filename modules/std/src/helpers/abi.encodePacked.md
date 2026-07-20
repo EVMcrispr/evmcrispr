@@ -31,5 +31,6 @@ print $packed
 
 ## See Also
 
+- [@abi.encode](abi.encode.md) — standard ABI encoding
 - [@abi.encodeCall](abi.encodeCall.md) — ABI-encode a function call
 - [@abi.decode](abi.decode.md) — decode ABI-encoded data

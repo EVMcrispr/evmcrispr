@@ -35,5 +35,6 @@ print $values
 
 ## See Also
 
+- [@abi.encode](abi.encode.md) — the inverse: ABI-encode values
 - [@abi.encodeCall](abi.encodeCall.md) — ABI-encode a function call
 - [@abi.encodePacked](abi.encodePacked.md) — packed encoding

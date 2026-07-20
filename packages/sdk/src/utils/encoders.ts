@@ -201,11 +201,24 @@ export const encodeConstructorParams = (
     );
   }
 
-  const encodedParams = coerceAndValidateParams(
-    inputs,
-    params,
-    "constructor params",
-  );
+  return encodeParams(inputs, params, "constructor params");
+};
 
+/**
+ * ABI-encode standalone parameters (no function selector), like Solidity's
+ * `abi.encode`. Shares the same per-param coercion as calldata encoding
+ * (Num → bigint, non-hex strings → bytes).
+ */
+export const encodeParams = (
+  inputs: readonly AbiParameter[],
+  params: Param[],
+  contextLabel = "params",
+): `0x${string}` => {
+  if (inputs.length !== params.length) {
+    throw new ErrorInvalid(
+      `expected ${inputs.length} value(s), got ${params.length}`,
+    );
+  }
+  const encodedParams = coerceAndValidateParams(inputs, params, contextLabel);
   return encodeAbiParameters(inputs as AbiParameter[], encodedParams);
 };

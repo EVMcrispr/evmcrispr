@@ -25,5 +25,6 @@ export * from "./parseSignature";
 export * from "./proxies";
 export * from "./schema";
 export * from "./shareEnvelope";
+export * from "./signatures";
 export * from "./time";
 export * from "./web3";

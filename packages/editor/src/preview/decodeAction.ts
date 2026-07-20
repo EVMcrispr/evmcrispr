@@ -1,4 +1,5 @@
 import type { TransactionAction } from "@evmcrispr/core";
+import { lookupFunctionSignature } from "@evmcrispr/sdk";
 import { type AbiFunction, decodeFunctionData, parseAbiItem } from "viem";
 
 export interface DecodedArg {
@@ -18,32 +19,6 @@ export interface DecodedAction {
   /** Raw calldata, kept for the hex fallback view. */
   data?: `0x${string}`;
   isDeployment: boolean;
-}
-
-const OPENCHAIN_LOOKUP =
-  "https://api.openchain.xyz/signature-database/v1/lookup";
-
-/** selector → signature (null = looked up, not found). Failures are not
- *  cached so a flaky network can recover on the next render. */
-const signatureCache = new Map<string, string | null>();
-
-async function lookupSelector(selector: string): Promise<string | null> {
-  const cached = signatureCache.get(selector);
-  if (cached !== undefined) return cached;
-  try {
-    const res = await fetch(
-      `${OPENCHAIN_LOOKUP}?function=${selector}&filter=true`,
-    );
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      result?: { function?: Record<string, { name: string }[] | null> };
-    };
-    const signature = json.result?.function?.[selector]?.[0]?.name ?? null;
-    signatureCache.set(selector, signature);
-    return signature;
-  } catch {
-    return null;
-  }
 }
 
 function stringifyArg(value: unknown): string {
@@ -77,7 +52,7 @@ export async function decodeAction(
   if (base.isDeployment || !data || data.length < 10) return base;
 
   const selector = data.slice(0, 10);
-  const signature = await lookupSelector(selector);
+  const signature = await lookupFunctionSignature(selector);
   if (!signature) return base;
 
   try {

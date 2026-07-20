@@ -18,6 +18,10 @@ evml.use({
   load: () => import("@evmcrispr/module-contracts"),
 });
 
+// Contract with no verified ABI (the ABI endpoint 404s), used to exercise
+// @abi.decodeCall's openchain fallback path.
+export const unverifiedContract = "0x00000000000000000000000000000000deadbeef";
+
 // Fixtures served by the mocked IPFS gateway (see handler below)
 export const ipfsGatewayFixtures = {
   rawHex: {
@@ -121,7 +125,29 @@ const stdHandlers = [
       if (address === "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9") {
         return HttpResponse.json(daiAbi);
       }
+      if (address === unverifiedContract.toLowerCase()) {
+        return new HttpResponse(null, { status: 404 });
+      }
       return passthrough();
+    },
+  ),
+  // Openchain signature database, mocked unconditionally so decodeCall's
+  // fallback path is deterministic and never rate-limited in tests.
+  http.get(
+    "https://api.openchain.xyz/signature-database/v1/lookup",
+    ({ request }) => {
+      const selector = new URL(request.url).searchParams.get("function");
+      const known: Record<string, string> = {
+        "0xa9059cbb": "transfer(address,uint256)",
+      };
+      const signature = selector ? known[selector] : undefined;
+      return HttpResponse.json({
+        result: {
+          function: signature
+            ? { [selector as string]: [{ name: signature }] }
+            : {},
+        },
+      });
     },
   ),
 ];

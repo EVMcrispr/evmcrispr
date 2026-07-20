@@ -30,6 +30,7 @@ set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F8
 
 ## See Also
 
+- [@abi.decodeCall](abi.decodeCall.md) — the inverse: decode calldata into `[contract sig [args]]`
 - [send](../commands/send.md) — send pre-encoded calldata
 - [exec](../commands/exec.md) — call by signature (auto-encodes)
 - [@id](id.md) — compute a function selector
