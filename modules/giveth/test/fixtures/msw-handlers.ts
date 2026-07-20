@@ -1,3 +1,4 @@
+import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import {
   PROJECT_ANCHOR_BASE,
@@ -32,6 +33,19 @@ const projects: Record<string, unknown> = {
       { address: PROJECT_ANCHOR_BASE, networkId: 8453, isActive: true },
     ],
   },
+  "wayback-machine": {
+    id: "2000",
+    slug: "wayback-machine",
+    addresses: [
+      {
+        address: PROJECT_RECIPIENT,
+        networkId: 100,
+        isRecipient: true,
+        chainType: "EVM",
+      },
+    ],
+    anchorContracts: [],
+  },
   "gnosis-only-project": {
     id: "9999",
     slug: "gnosis-only-project",
@@ -58,18 +72,116 @@ const projects: Record<string, unknown> = {
   },
 };
 
-const resolveProject = async (request: Request) => {
-  const body = (await request.json()) as { variables?: { slug?: string } };
-  const slug = body?.variables?.slug ?? "";
-  return HttpResponse.json({
-    data: { projectBySlug: projects[slug] ?? null },
-  });
+/** userByAddress fixtures: lowercase address → user. */
+const users: Record<string, { id: string }> = {
+  [TEST_ACCOUNT_ADDRESS.toLowerCase()]: { id: "25" },
 };
 
-// A RegExp matcher: the CORS-proxied spelling nests "https://" in the path,
-// which MSW's string route parser cannot represent.
+/** getPowerBoosting fixtures: userId → powerBoostings (zero-percentage rows
+ *  mirror how the live API keeps dropped boosts around). */
+const boostings: Record<string, unknown[]> = {
+  "25": [
+    { percentage: 30, project: { slug: "wayback-machine" } },
+    { percentage: 70, project: { slug: "evmcrispr" } },
+    { percentage: 0, project: { slug: "gnosis-only-project" } },
+  ],
+};
+
+export const TEST_NONCE = "AbCdEfGh12345678";
+export const TEST_JWT = "test.giveth.jwt";
+
+/** Bodies of successful /authentication POSTs, for test assertions. */
+export const recordedLogins: {
+  message: string;
+  signature: string;
+  nonce: string;
+}[] = [];
+
+/** setMultiplePowerBoosting calls received by the mocked API. */
+export const recordedBoosts: {
+  projectIds: number[];
+  percentages: number[];
+  authVersion: string | null;
+}[] = [];
+
+const resolveGraphql = async (request: Request) => {
+  const body = (await request.json()) as {
+    query?: string;
+    variables?: Record<string, any>;
+  };
+  const query = body?.query ?? "";
+  const variables = body?.variables ?? {};
+
+  if (query.includes("projectBySlug")) {
+    return HttpResponse.json({
+      data: { projectBySlug: projects[variables.slug ?? ""] ?? null },
+    });
+  }
+  if (query.includes("userByAddress")) {
+    return HttpResponse.json({
+      data: {
+        userByAddress:
+          users[String(variables.address ?? "").toLowerCase()] ?? null,
+      },
+    });
+  }
+  if (query.includes("getPowerBoosting")) {
+    return HttpResponse.json({
+      data: {
+        getPowerBoosting: {
+          powerBoostings: boostings[String(variables.userId)] ?? [],
+        },
+      },
+    });
+  }
+  if (query.includes("setMultiplePowerBoosting")) {
+    if (request.headers.get("authorization") !== `Bearer ${TEST_JWT}`) {
+      return HttpResponse.json({
+        errors: [{ message: "Authentication required." }],
+      });
+    }
+    recordedBoosts.push({
+      projectIds: variables.projectIds,
+      percentages: variables.percentages,
+      authVersion: request.headers.get("authversion"),
+    });
+    return HttpResponse.json({
+      data: {
+        setMultiplePowerBoosting: variables.projectIds.map(
+          (_: number, i: number) => ({ id: String(i + 1) }),
+        ),
+      },
+    });
+  }
+  return HttpResponse.json({ errors: [{ message: "Unmocked query" }] });
+};
+
+// RegExp matchers throughout: the CORS-proxied spelling nests "https://" in
+// the path, which MSW's string route parser cannot represent.
 export const givethGraphqlHandlers = [
   http.post(/mainnet\.serve\.giveth\.io\/graphql/, ({ request }) =>
-    resolveProject(request),
+    resolveGraphql(request),
   ),
+  http.get(/auth\.giveth\.io\/v1\/nonce/, () =>
+    HttpResponse.json({ message: TEST_NONCE }),
+  ),
+  http.post(/auth\.giveth\.io\/v1\/authentication/, async ({ request }) => {
+    const body = (await request.json()) as {
+      message?: string;
+      signature?: string;
+      nonce?: string;
+    };
+    if (!body?.message || !body?.signature || body?.nonce !== TEST_NONCE) {
+      return HttpResponse.json(
+        { message: "Invalid signature or nonce" },
+        { status: 400 },
+      );
+    }
+    recordedLogins.push(body as (typeof recordedLogins)[number]);
+    return HttpResponse.json({
+      jwt: TEST_JWT,
+      expiration: 1999999999999,
+      publicAddress: TEST_ACCOUNT_ADDRESS.toLowerCase(),
+    });
+  }),
 ];

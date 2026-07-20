@@ -59,6 +59,7 @@ export const GIVPOWER: Record<number, GivpowerDeployment> = {
 };
 
 export const GIVETH_GRAPHQL_URL = "https://mainnet.serve.giveth.io/graphql";
+export const GIVETH_AUTH_URL = "https://auth.giveth.io/v1";
 export const CORS_PROXY_PREFIX = "https://api.evmcrispr.com/cors-proxy/";
 
 /** The Giveth project itself — recipient of `giveth:donate --tip` (verified

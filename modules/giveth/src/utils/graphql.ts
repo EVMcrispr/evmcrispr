@@ -19,6 +19,23 @@ export interface GivethProject {
   }[];
 }
 
+export async function postGraphql(
+  _module: Module,
+  query: string,
+  variables: Record<string, unknown>,
+  headers: Record<string, string> = {},
+): Promise<any> {
+  const res = await fetch(CORS_PROXY_PREFIX + GIVETH_GRAPHQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify({ query, variables }),
+  }).then((r) => r.json() as Promise<any>);
+  if (res?.errors?.length) {
+    throw new ErrorException(`Giveth API error: ${res.errors[0].message}`);
+  }
+  return res?.data;
+}
+
 const PROJECT_QUERY = `
 query GetProject($slug: String!) {
   projectBySlug(slug: $slug) {
@@ -40,16 +57,11 @@ query GetProject($slug: String!) {
 `;
 
 export async function fetchProject(
-  _module: Module,
+  module: Module,
   slug: string,
 ): Promise<GivethProject> {
-  const res = await fetch(CORS_PROXY_PREFIX + GIVETH_GRAPHQL_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: PROJECT_QUERY, variables: { slug } }),
-  }).then((r) => r.json() as Promise<any>);
-
-  const project = res?.data?.projectBySlug;
+  const data = await postGraphql(module, PROJECT_QUERY, { slug });
+  const project = data?.projectBySlug;
   if (!project) {
     throw new ErrorException("Project not found");
   }
@@ -84,4 +96,73 @@ export function getAnchor(project: GivethProject, chainId: number): Address {
     );
   }
   return getAddress(entry.address);
+}
+
+const USER_QUERY = `
+query GetUser($address: String!) {
+  userByAddress(address: $address) {
+    id
+  }
+}
+`;
+
+/** Giveth user id for a wallet address, or undefined for unknown accounts. */
+export async function fetchUserId(
+  module: Module,
+  address: string,
+): Promise<number | undefined> {
+  const data = await postGraphql(module, USER_QUERY, { address });
+  const id = data?.userByAddress?.id;
+  return id == null ? undefined : Number(id);
+}
+
+const BOOSTINGS_QUERY = `
+query GetPowerBoosting($userId: Int!) {
+  getPowerBoosting(userId: $userId, take: 25) {
+    powerBoostings {
+      percentage
+      project {
+        slug
+      }
+    }
+  }
+}
+`;
+
+export interface PowerBoosting {
+  percentage: number;
+  project: { slug: string };
+}
+
+export async function fetchPowerBoostings(
+  module: Module,
+  userId: number,
+): Promise<PowerBoosting[]> {
+  const data = await postGraphql(module, BOOSTINGS_QUERY, { userId });
+  return data?.getPowerBoosting?.powerBoostings ?? [];
+}
+
+const SET_BOOSTINGS_MUTATION = `
+mutation SetMultiplePowerBoosting($projectIds: [Int!]!, $percentages: [Float!]!) {
+  setMultiplePowerBoosting(projectIds: $projectIds, percentages: $percentages) {
+    id
+  }
+}
+`;
+
+export async function setPowerBoostings(
+  module: Module,
+  jwt: string,
+  projectIds: number[],
+  percentages: number[],
+): Promise<void> {
+  const data = await postGraphql(
+    module,
+    SET_BOOSTINGS_MUTATION,
+    { projectIds, percentages },
+    { Authorization: `Bearer ${jwt}`, authVersion: "2" },
+  );
+  if (!data?.setMultiplePowerBoosting) {
+    throw new ErrorException("Giveth didn't confirm the boost update");
+  }
 }
