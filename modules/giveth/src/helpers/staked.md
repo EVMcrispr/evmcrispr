@@ -2,7 +2,7 @@
 title: "@giveth:staked"
 ---
 
-Raw GIV an account has staked for GIVpower: the gGIV balance on Gnosis, the deposit balance on Optimism and Polygon zkEVM. Includes locked GIV (see @giveth:unstakable).
+Raw GIV an account has staked for GIVpower: the gGIV balance on Gnosis, the deposit balance on Optimism and Polygon zkEVM. Includes locked GIV (see @giveth:unstakable) and counts pending giveth:stake/giveth:unstake actions earlier in the script.
 
 **Returns**: `number`
 

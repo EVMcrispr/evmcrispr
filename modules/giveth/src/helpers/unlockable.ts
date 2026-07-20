@@ -1,12 +1,12 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
 import type Giveth from "..";
-import { requireGivpower, unstakableBalance } from "../utils/givpower";
+import { requireGivpower, unlockableBalance } from "../utils/givpower";
 
 export default defineHelper<Giveth>({
-  name: "unstakable",
+  name: "unlockable",
   batchable: false,
   description:
-    "GIV an account can unstake at the current chain time: staked GIV minus the locks whose GIVpower round hasn't finished yet. Locks whose round has ended count as unstakable — unlocking is permissionless — but still need a giveth:unlock before giveth:unstake accepts them. Time-aware inside sim:fork: after a wait, ended locks drop out of the locked amount. Counts pending stake/unstake/lock actions earlier in the script.",
+    "GIV in locks whose GIVpower round has ended but that giveth:unlock hasn't freed yet. Until unlocked, the GIVpower contract still counts it as locked, so it can be neither locked again nor unstaked. Time-aware inside sim:fork: after a wait, newly ended locks show up here.",
   returnType: "number",
   args: [
     {
@@ -20,7 +20,7 @@ export default defineHelper<Giveth>({
     const { chainId, deployment } = await requireGivpower(module);
     const owner = account ?? (await module.getConnectedAccount(true));
     return Num.fromBigInt(
-      await unstakableBalance(
+      await unlockableBalance(
         module,
         interpreters.batchContext,
         chainId,

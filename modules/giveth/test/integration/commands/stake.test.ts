@@ -146,6 +146,28 @@ giveth:lock max 26`,
       },
     },
     {
+      name: "maxes out GIVpower with claim/stake max/lock max inside sim:fork",
+      timeout: 30000,
+      // The executing path: each command runs on the fork before the next,
+      // so `max` resolves from real chain state instead of the ledger.
+      script: `load sim
+sim:fork --using anvil (
+  sim:set-balance @me 10e18
+  sim:set-storage-at ${GIV} ${givBalanceSlot} ${THOUSAND_GIV}
+  giveth:claim
+  giveth:stake max
+  giveth:lock max 26
+  sim:expect @bool(@giveth:staked() == 1000e18)
+  sim:expect @bool(@giveth:stakable() == 0)
+  sim:expect @bool(@giveth:lockable() == 0)
+  sim:expect @bool(@giveth:givpower(@me) > 1000e18)
+)`,
+      validate: () => {
+        // Reaching this point means the guardless max-out script staked and
+        // locked the full balance on the fork without reverting.
+      },
+    },
+    {
       name: "runs a full stake/lock/unlock/unstake lifecycle inside sim:fork",
       timeout: 30000,
       script: `load sim

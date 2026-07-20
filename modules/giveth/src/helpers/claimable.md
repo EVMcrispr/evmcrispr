@@ -2,7 +2,7 @@
 title: "@giveth:claimable"
 ---
 
-GIV an account can claim from the GIVstream right now (see giveth:claim).
+GIV an account can claim from the GIVstream right now (see giveth:claim). Counts a pending giveth:claim earlier in the script as already claimed.
 
 **Returns**: `number`
 
