@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-giveth",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Giveth protocol operations: donations, GIVbacks distribution, and project resolution.",
+  "description": "Giveth protocol operations: donations, GIVpower staking, and GIVstream claims.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -21,11 +21,11 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*",
-    "@evmcrispr/module-aragonos": "workspace:*"
+    "@evmcrispr/sdk": "workspace:*"
   },
   "devDependencies": {
     "@evmcrispr/module-std": "workspace:*",
+    "@evmcrispr/module-superfluid": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

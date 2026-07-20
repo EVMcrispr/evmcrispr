@@ -219,11 +219,11 @@
       "name": "@evmcrispr/module-giveth",
       "version": "0.1.0",
       "dependencies": {
-        "@evmcrispr/module-aragonos": "workspace:*",
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
         "@evmcrispr/module-std": "workspace:*",
+        "@evmcrispr/module-superfluid": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
