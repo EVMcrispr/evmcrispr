@@ -949,4 +949,45 @@ print @helper(
       end: { line: 6, col: 13 },
     });
   });
+
+  describe("comma hint", () => {
+    const HINT = "arguments are space-separated in EVML";
+
+    const hinted = (script: string) =>
+      parseScript(script).errors.filter((e) => e.includes(HINT));
+
+    it("hints on commas in helper arguments", () => {
+      expect(hinted("set $t @get(a,b)")).to.have.lengthOf(1);
+    });
+
+    it("hints on commas in command arguments", () => {
+      expect(hinted("print a, b")).to.have.lengthOf(1);
+      expect(hinted("print @token(DAI), 1")).to.have.lengthOf(1);
+    });
+
+    it("hints on commas in array elements", () => {
+      expect(hinted("set $t [1, 2]")).to.have.lengthOf(1);
+      expect(hinted("set $t [DAI, WETH]")).to.have.lengthOf(1);
+      expect(hinted("set $t [@me, @num(1)]")).to.have.lengthOf(1);
+    });
+
+    it("does not hint on commas inside quoted strings", () => {
+      expect(parseScript('print "a, b"').errors).to.have.lengthOf(0);
+      expect(
+        parseScript(
+          'exec 0x4444444444444444444444444444444444444444 "transfer(address,uint256)" @me 1',
+        ).errors,
+      ).to.have.lengthOf(0);
+    });
+
+    it("does not hint on an unclosed quoted string containing a comma", () => {
+      expect(hinted('print "a, b')).to.have.lengthOf(0);
+    });
+
+    it("does not hint on comma-free parse errors", () => {
+      const { errors } = parseScript("set $t ((");
+      expect(errors.length).to.be.greaterThan(0);
+      expect(errors.filter((e) => e.includes(HINT))).to.have.lengthOf(0);
+    });
+  });
 });
