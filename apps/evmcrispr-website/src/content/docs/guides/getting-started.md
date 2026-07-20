@@ -7,7 +7,7 @@ You can use it in the web terminal or programmatically.
 
 ## Web Terminal
 
-Visit [evmcrispr.com](https://evmcrispr.com) to open the web terminal.
+Visit [next.evmcrispr.com](https://next.evmcrispr.com) to open the web terminal.
 Connect your wallet, write a script, and click Execute.
 
 ## Active Chain

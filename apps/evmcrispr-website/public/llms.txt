@@ -3,7 +3,7 @@
 > A domain-specific language for encoding and executing batched EVM
 > transactions targeting smart contracts, Aragon DAOs, ENS, and DeFi protocols.
 
-EVMcrispr scripts run in a web terminal (evmcrispr.com) or programmatically
+EVMcrispr scripts run in a web terminal (next.evmcrispr.com) or programmatically
 via @evmcrispr/core. The DSL is modular: `std` is loaded by default, others
 are loaded with `load <module>`.
 

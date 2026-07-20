@@ -85,6 +85,7 @@ function remarkRewriteMdLinks() {
 }
 
 export default defineConfig({
+  site: "https://next-docs.evmcrispr.com",
   markdown: {
     remarkPlugins: [remarkRewriteMdLinks],
   },

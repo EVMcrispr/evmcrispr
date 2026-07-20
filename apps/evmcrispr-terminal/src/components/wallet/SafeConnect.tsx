@@ -21,7 +21,7 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
   const url =
     `https://app.safe.global/apps/open?safe=${safeAddress}&appUrl=` +
     encodeURIComponent(
-      `https://evmcrispr.com/#/terminal?title=${encodeURIComponent(title)}&script=${encodeURIComponent(script)}`,
+      `${window.location.origin}/#/?title=${encodeURIComponent(title)}&script=${encodeURIComponent(script)}`,
     );
   return (
     <>
