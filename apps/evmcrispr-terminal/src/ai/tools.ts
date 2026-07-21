@@ -1,7 +1,10 @@
 import type { EvmlTag } from "@evmcrispr/core";
+import { getConnection } from "@wagmi/core";
 import { type ToolSet, tool } from "ai";
 import type { Address } from "viem";
 import { z } from "zod";
+
+import { config as wagmiConfig } from "../config/wagmi";
 
 import {
   applyStrReplace,
@@ -135,12 +138,15 @@ export function createChatTools(tag: EvmlTag): ToolSet {
       from: z
         .string()
         .optional()
-        .describe("Address to simulate from (defaults to the fork default)"),
+        .describe(
+          "Address to simulate from (defaults to the connected wallet account)",
+        ),
       blockNumber: z.number().optional().describe("Fork at this block number"),
     }),
     execute: async ({ script, from, blockNumber }) => {
       const result = await tag.script(script ?? currentScript()).simulate({
-        from: from as Address | undefined,
+        from:
+          (from as Address | undefined) ?? getConnection(wagmiConfig).address,
         blockNumber,
       });
       return json({
