@@ -52,10 +52,12 @@ describe("Auto-import > qualified name normalization", () => {
     ]);
   });
 
-  it("appends to an existing import list", () => {
-    expect(edits("load ens [@addr]\nens:renew vitalik.eth 1y")).to.deep.equal([
+  it("merges into an existing import list, commands before helpers", () => {
+    expect(
+      edits("load ens [@addr]\nens:renew vitalik.eth 1y\nprint @addr(a.eth)"),
+    ).to.deep.equal([
       { line: 2, startCol: 0, endCol: 9, newText: "renew" },
-      { line: 1, startCol: 15, endCol: 15, newText: " renew" },
+      { line: 1, startCol: 9, endCol: 16, newText: "[renew @addr]" },
     ]);
   });
 
@@ -230,6 +232,70 @@ describe("Auto-import > qualified name normalization", () => {
     expect(edits("load aragonos\nens:renew a 1y")).to.deep.equal([
       { line: 2, startCol: 0, endCol: 9, newText: "renew" },
       { line: 2, startCol: 0, endCol: 0, newText: "load ens [renew]\n" },
+    ]);
+  });
+});
+
+describe("Auto-import > import-list maintenance", () => {
+  it("sorts new entries alphabetically, commands before helpers", () => {
+    expect(
+      edits(
+        "load ens\nens:set-addr a b\nens:renew a 1y\nprint @ens:namehash(x)\nprint @ens:addr(y)",
+      ),
+    ).to.deep.equal([
+      { line: 2, startCol: 0, endCol: 12, newText: "set-addr" },
+      { line: 3, startCol: 0, endCol: 9, newText: "renew" },
+      { line: 4, startCol: 6, endCol: 19, newText: "@namehash" },
+      { line: 5, startCol: 6, endCol: 15, newText: "@addr" },
+      {
+        line: 1,
+        startCol: 8,
+        endCol: 8,
+        newText: " [renew set-addr @addr @namehash]",
+      },
+    ]);
+  });
+
+  it("prunes an entry whose usage disappeared", () => {
+    expect(edits("load ens [renew @addr]\nrenew a 1y")).to.deep.equal([
+      { line: 1, startCol: 9, endCol: 22, newText: "[renew]" },
+    ]);
+  });
+
+  it("removes the whole list when nothing remains used", () => {
+    expect(edits("load ens [renew]\nprint hola")).to.deep.equal([
+      { line: 1, startCol: 8, endCol: 16, newText: "" },
+    ]);
+  });
+
+  it("re-imports a bare name that a loaded module exports", () => {
+    expect(edits("load ens [renew]\nrenew a 1y\nregister b c")).to.deep.equal([
+      { line: 1, startCol: 9, endCol: 16, newText: "[register renew]" },
+    ]);
+  });
+
+  it("does not re-import names exported by more than one loaded module", () => {
+    expect(
+      edits("load ens\nload other\nregister a", undefined, {
+        other: {
+          commands: { register: noop },
+          helpers: {},
+          constants: {},
+        },
+      }),
+    ).to.deep.equal([]);
+  });
+
+  it("leaves an unsorted list untouched when membership is unchanged", () => {
+    expect(
+      edits("load ens [@addr renew]\nrenew a 1y\nprint @addr(x)"),
+    ).to.deep.equal([]);
+  });
+
+  it("fills an empty [] list instead of appending a second one", () => {
+    expect(edits("load ens []\nens:renew a 1y")).to.deep.equal([
+      { line: 2, startCol: 0, endCol: 9, newText: "renew" },
+      { line: 1, startCol: 9, endCol: 11, newText: "[renew]" },
     ]);
   });
 });

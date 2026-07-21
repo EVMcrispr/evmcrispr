@@ -440,7 +440,10 @@ function Editor({
   // (creating `load ens [renew]` when missing). Only just-edited regions
   // are considered, only names that resolve to a real export, and only
   // when the unqualified spelling is free — Ctrl+Z restores the qualified
-  // form (undo/redo never re-trigger the rewrite).
+  // form (undo/redo never re-trigger the rewrite). Import lists also track
+  // usage: entries whose usages were deleted are pruned, bare names a
+  // loaded module exports are (re-)imported, and changed lists come back
+  // sorted — so the pass runs on any edit while a load command exists.
   const applyingAutoImportRef = useRef(false);
   useEffect(() => {
     if (!editorInstance || !monaco || readOnly) return;
@@ -472,7 +475,8 @@ function Editor({
         };
       });
 
-      // Cheap pre-filter: a qualified token needs a ":" on a changed line.
+      // Cheap pre-filter: a qualified token needs a ":" on a changed line;
+      // list pruning / re-imports need a load command somewhere.
       const lineCount = model.getLineCount();
       const touchesColon = regions.some((r) => {
         for (let l = r.startLine; l <= Math.min(r.endLine, lineCount); l++) {
@@ -480,7 +484,7 @@ function Editor({
         }
         return false;
       });
-      if (!touchesColon) return;
+      if (!touchesColon && !/^\s*load\s/m.test(model.getValue())) return;
 
       const version = model.getVersionId();
       const edits = await evm.getAutoImportEdits(model.getValue(), regions);

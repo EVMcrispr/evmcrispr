@@ -27,6 +27,15 @@ import type { RenameEdit } from "./rename";
 //   stays qualified;
 // - when an import for that export already exists (possibly renamed), the
 //   token rewrites to its bound name and the list is left alone.
+//
+// Beyond token rewrites, each import list is kept as a mirror of usage
+// (regardless of `regions`):
+// - entries whose bound name is no longer used anywhere are removed;
+// - a bare unqualified name that exactly one loaded module exports (and
+//   that nothing else binds) re-enters that module's list — so deleting a
+//   usage and retyping/pasting it round-trips;
+// - whenever a list changes, it is rewritten sorted: commands first, then
+//   helpers, each alphabetically. Untouched lists keep their spelling.
 // ---------------------------------------------------------------------------
 
 /** 1-indexed lines, 0-indexed cols, end-inclusive on touch. */
@@ -131,7 +140,9 @@ export function getAutoImportEdits(
   // ---- current bindings: imports (per load line), defs -------------------
   interface LoadInfo {
     node: CommandExpressionNode;
-    listNode?: ArrayExpressionNode;
+    /** Span of the `[...]` list. An empty `[]` parses as a destructure
+     *  pattern, not an array — both count as a present list. */
+    listLoc?: Node["loc"];
     entries: {
       kind: "command" | "helper";
       sourceName: string;
@@ -147,13 +158,19 @@ export function getAutoImportEdits(
     if (isLoadCommand(c)) {
       const moduleName = c.args[0]?.value as string | undefined;
       if (!moduleName) continue;
+      const listArg = c.args[1];
       const listNode =
-        c.args[1]?.type === NodeType.ArrayExpression
-          ? (c.args[1] as ArrayExpressionNode)
+        listArg?.type === NodeType.ArrayExpression
+          ? (listArg as ArrayExpressionNode)
           : undefined;
       if (listNode) importListNodes.add(listNode);
+      const listLoc =
+        listNode?.loc ??
+        (listArg?.type === NodeType.DestructurePattern
+          ? listArg.loc
+          : undefined);
       const entries = listNode ? parseImportList(listNode).entries : [];
-      loads.set(moduleName, { node: c, listNode, entries });
+      loads.set(moduleName, { node: c, listLoc, entries });
     } else if (isDefCommand(c)) {
       const nameNode = c.args[0];
       if (nameNode?.type === NodeType.Bareword) {
@@ -162,6 +179,35 @@ export function getAutoImportEdits(
         defHelpers.add((nameNode as HelperFunctionNode).name);
       }
     }
+  }
+
+  // ---- unqualified usages (what the import lists must keep supporting) ----
+  const usedCommands = new Set<string>();
+  const usedHelpers = new Set<string>();
+
+  const collectHelperUsages = (node: Node): void => {
+    if (importListNodes.has(node)) return;
+    if (node.type === NodeType.HelperFunctionExpression) {
+      const h = node as HelperFunctionNode;
+      if (!h.module) usedHelpers.add(h.name);
+      for (const a of h.args) collectHelperUsages(a);
+    } else if (node.type === NodeType.ArrayExpression) {
+      for (const el of (node as ArrayExpressionNode).elements) {
+        collectHelperUsages(el);
+      }
+    } else if (node.type === NodeType.CallExpression) {
+      const call = node as any;
+      collectHelperUsages(call.target);
+      for (const a of call.args) collectHelperUsages(a);
+    }
+  };
+
+  for (const c of commands) {
+    if (!c.module) usedCommands.add(c.name);
+    for (const arg of c.args) {
+      if (arg.type !== NodeType.BlockExpression) collectHelperUsages(arg);
+    }
+    for (const opt of c.opts) collectHelperUsages(opt.value);
   }
 
   const boundNameTaken = (
@@ -237,10 +283,14 @@ export function getAutoImportEdits(
   }
 
   // ---- decide rewrites -----------------------------------------------------
+  interface ListEntry {
+    kind: "command" | "helper";
+    sourceName: string;
+    boundName: string;
+  }
   const edits: RenameEdit[] = [];
-  /** module → import-list entry texts to append, in encounter order
-   *  (`renew`, `act>actAragonos`, `@addr`, `@projectAddr>@projectAddrGiveth`). */
-  const additions = new Map<string, string[]>();
+  /** module → import-list entries to merge in. */
+  const additions = new Map<string, ListEntry[]>();
   /** Bound names claimed by additions queued in this pass, per kind. */
   const queuedBound = { command: new Set<string>(), helper: new Set<string>() };
   /** module → source name → bound name queued in this pass (for dedupe). */
@@ -303,6 +353,9 @@ export function getAutoImportEdits(
         endCol: cand.token.endCol,
         newText: cand.kind === "helper" ? `@${bound}` : bound,
       });
+      // The rewritten token is a usage of the bound name — the prune pass
+      // below must see the script as it stands after these edits.
+      (cand.kind === "helper" ? usedHelpers : usedCommands).add(bound);
       continue;
     }
 
@@ -323,17 +376,10 @@ export function getAutoImportEdits(
       endCol: cand.token.endCol,
       newText: cand.kind === "helper" ? `@${boundName}` : boundName,
     });
+    (cand.kind === "helper" ? usedHelpers : usedCommands).add(boundName);
 
-    const entry =
-      boundName === cand.name
-        ? cand.kind === "helper"
-          ? `@${cand.name}`
-          : cand.name
-        : cand.kind === "helper"
-          ? `@${cand.name}>@${boundName}`
-          : `${cand.name}>${boundName}`;
     const queued = additions.get(cand.module) ?? [];
-    queued.push(entry);
+    queued.push({ kind: cand.kind, sourceName: cand.name, boundName });
     additions.set(cand.module, queued);
     queuedBound[cand.kind].add(boundName);
     const perModule = queuedByModule.get(cand.module) ?? new Map();
@@ -341,7 +387,46 @@ export function getAutoImportEdits(
     queuedByModule.set(cand.module, perModule);
   }
 
+  // ---- re-imports for bare unqualified usages ------------------------------
+  // Deleting a usage prunes its list entry (below); typing or pasting the
+  // bare name again must restore it. Any used unqualified name that nothing
+  // binds (std, an import, a `def`, or an addition queued above) and that
+  // exactly one loaded module exports re-enters that module's list.
+  const loadedExporters = (
+    kind: "command" | "helper",
+    name: string,
+  ): string[] =>
+    [...loads.keys()].filter((m) => {
+      const d = moduleData(m);
+      return kind === "command"
+        ? !!d?.commands[name]
+        : !!d?.helpers[name] || d?.constants?.[name] !== undefined;
+    });
+
+  for (const kind of ["command", "helper"] as const) {
+    const used = kind === "command" ? usedCommands : usedHelpers;
+    for (const name of used) {
+      if (
+        stdHas(kind, name) ||
+        boundNameTaken(kind, name) ||
+        queuedBound[kind].has(name)
+      ) {
+        continue;
+      }
+      const exporters = loadedExporters(kind, name);
+      if (exporters.length !== 1) continue;
+      const queued = additions.get(exporters[0]) ?? [];
+      queued.push({ kind, sourceName: name, boundName: name });
+      additions.set(exporters[0], queued);
+      queuedBound[kind].add(name);
+    }
+  }
+
   // ---- import-list edits ----------------------------------------------------
+  // Each list mirrors usage: entries whose bound name is no longer used are
+  // dropped, queued additions are merged in, and a changed list is rewritten
+  // sorted — commands first, then helpers, each alphabetically. Lists whose
+  // membership didn't change keep their spelling untouched.
   let lastTopLevelLoadLine = 0;
   for (const c of commands) {
     if (isLoadCommand(c) && c.loc) {
@@ -349,9 +434,38 @@ export function getAutoImportEdits(
     }
   }
 
-  for (const [module, names] of additions) {
+  const entryText = (e: ListEntry): string => {
+    const rename = e.boundName !== e.sourceName;
+    return e.kind === "command"
+      ? rename
+        ? `${e.sourceName}>${e.boundName}`
+        : e.sourceName
+      : rename
+        ? `@${e.sourceName}>@${e.boundName}`
+        : `@${e.sourceName}`;
+  };
+  const byKindThenName = (a: ListEntry, b: ListEntry): number =>
+    a.kind !== b.kind
+      ? a.kind === "command"
+        ? -1
+        : 1
+      : a.sourceName.localeCompare(b.sourceName) ||
+        a.boundName.localeCompare(b.boundName);
+
+  for (const module of new Set([...loads.keys(), ...additions.keys()])) {
     const info = loads.get(module);
-    const joined = names.join(" ");
+    const adds = additions.get(module) ?? [];
+    const kept = (info?.entries ?? []).filter((e) =>
+      (e.kind === "command" ? usedCommands : usedHelpers).has(e.boundName),
+    );
+    const removed = (info?.entries.length ?? 0) - kept.length;
+    if (!adds.length && removed === 0) continue;
+
+    const joined = [...kept, ...adds]
+      .sort(byKindThenName)
+      .map(entryText)
+      .join(" ");
+
     if (!info) {
       // No load line at all: create one after the last load (or at the top).
       const line = lastTopLevelLoadLine + 1;
@@ -363,16 +477,28 @@ export function getAutoImportEdits(
       });
       continue;
     }
-    if (info.listNode?.loc) {
-      const end = info.listNode.loc.end;
-      const lead = info.listNode.elements.length > 0 ? " " : "";
-      edits.push({
-        line: end.line,
-        startCol: end.col - 1,
-        endCol: end.col - 1,
-        newText: `${lead}${joined}`,
-      });
-    } else if (info.node.loc) {
+    const listLoc = info.listLoc;
+    if (listLoc && listLoc.start.line === listLoc.end.line) {
+      if (joined) {
+        edits.push({
+          line: listLoc.start.line,
+          startCol: listLoc.start.col,
+          endCol: listLoc.end.col,
+          newText: `[${joined}]`,
+        });
+      } else {
+        // Nothing left: drop the list with its preceding whitespace.
+        const lineText = script.split("\n")[listLoc.start.line - 1] ?? "";
+        let startCol = listLoc.start.col;
+        while (startCol > 0 && /\s/.test(lineText[startCol - 1])) startCol--;
+        edits.push({
+          line: listLoc.start.line,
+          startCol,
+          endCol: listLoc.end.col,
+          newText: "",
+        });
+      }
+    } else if (!listLoc && info.node.loc && joined) {
       const end = info.node.loc.end;
       edits.push({
         line: end.line,
@@ -381,6 +507,7 @@ export function getAutoImportEdits(
         newText: ` [${joined}]`,
       });
     }
+    // Multi-line lists are left untouched (edits are single-line).
   }
 
   return edits;
