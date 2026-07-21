@@ -8,7 +8,7 @@ import { recordVirtual } from "../utils/ledger";
 export default defineCommand<Giveth>({
   name: "claim",
   description:
-    "Harvest GIV rewards: collect the accrued GIVpower staking rewards into the GIVstream (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.",
+    "Harvest GIV rewards: collect the accrued GIVpower staking rewards (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.",
   args: [],
   async run(module, _, { interpreters }) {
     const distro = await requireDistro(module);
@@ -37,7 +37,11 @@ export default defineCommand<Giveth>({
       functionName: "claimableNow",
       args: [account],
     });
-    if (claimable > 0n || earned > 0n) {
+    // When there are staking rewards, `getReward()` already claims: the
+    // unipool allocates with the claim flag set and TokenDistro sweeps the
+    // whole claimable balance in the same transaction, so a follow-up
+    // `claim()` would revert with NOT_ENOUGH_TOKENS_TO_CLAIM.
+    if (claimable > 0n && earned === 0n) {
       actions.push(encodeAction(distro, "claim()", []));
     }
 

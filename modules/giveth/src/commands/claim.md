@@ -2,7 +2,7 @@
 title: "giveth:claim"
 ---
 
-Harvest GIV rewards: collect the accrued GIVpower staking rewards into the GIVstream (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.
+Harvest GIV rewards: collect the accrued GIVpower staking rewards (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.
 
 ## Syntax
 
@@ -20,12 +20,14 @@ load giveth
 giveth:claim
 ```
 
-The command reads your position first: it appends a `getReward()` call only
-when staking rewards have accrued, and a `TokenDistro.claim()` only when the
-GIVstream has released something — and does nothing when both are empty, so
-no `if` guard is needed. Staking rewards do not arrive as liquid GIV:
-harvesting assigns them to your GIVstream, which releases them gradually
-until December 2026.
+The command reads your position first and emits at most one transaction —
+and none when there is nothing to claim, so no `if` guard is needed. When
+staking rewards have accrued it emits a single `getReward()`: harvesting
+assigns the rewards to your GIVstream, and the GIVstream immediately pays
+out everything it has released so far (the rest keeps streaming until
+December 2026), so a separate `TokenDistro.claim()` would find nothing left
+and revert. Only when no staking rewards are pending does the command claim
+the released GIVstream balance directly.
 
 ## See Also
 
