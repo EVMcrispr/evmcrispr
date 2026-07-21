@@ -255,7 +255,12 @@ export function getRenameEdits(
   const cleanName = newName.startsWith("@") ? newName.slice(1) : newName;
   const nameRe = target.kind === "command" ? COMMAND_NAME_RE : HELPER_NAME_RE;
   if (!nameRe.test(cleanName) || cleanName.endsWith("-")) {
-    return { error: `"${newName}" is not a valid ${target.kind} name.` };
+    return {
+      error:
+        target.kind === "command"
+          ? `"${newName}" is not a valid command name (letters and dashes only).`
+          : `"${newName}" is not a valid helper name (letters, digits, ".", "_" and dashes).`,
+    };
   }
   const collides = index.entries.some(
     (e) => e !== target && e.kind === target.kind && e.boundName === cleanName,

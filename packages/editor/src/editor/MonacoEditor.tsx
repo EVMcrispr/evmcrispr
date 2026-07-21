@@ -13,7 +13,7 @@ loader.config({
   paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" },
 });
 
-import type { editor, languages } from "monaco-editor";
+import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { toMonacoCompletionItem } from "./autocompletion";
@@ -560,6 +560,16 @@ function Editor({
           newName,
         );
         if ("error" in result) {
+          // Monaco shows resolveRenameLocation rejections inline at the
+          // cursor, but a rejectReason from here only goes to the (absent
+          // in standalone) notification service — surface it through the
+          // same inline message controller for a consistent look.
+          const messageController = editorRef.current?.getContribution(
+            "editor.contrib.messageController",
+          ) as {
+            showMessage?: (message: string, position: IPosition) => void;
+          } | null;
+          messageController?.showMessage?.(result.error, pos);
           return { edits: [], rejectReason: result.error };
         }
         return {
