@@ -1,14 +1,25 @@
-import Anthropic from "@anthropic-ai/sdk";
-import type { BetaMessageStream } from "@anthropic-ai/sdk/lib/BetaMessageStream";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useEvmlTag } from "@evmcrispr/editor";
+import { APICallError, type ModelMessage, stepCountIs, streamText } from "ai";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import {
-  clearAnthropicApiKey,
-  getAnthropicApiKey,
-  saveAnthropicApiKey,
-} from "../utils";
+import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
 import { createChatTools } from "./tools";
+
+const NEXUS_BASE_URL = "https://nexus-api.dappnode.com/v1";
+const MODEL = "moonshotai/kimi-k3";
+
+// Nexus's CORS preflight allows only these request headers; the SDK also
+// sets a (non-safelisted) user-agent, which makes browsers fail the whole
+// preflight, so strip anything else before sending.
+const ALLOWED_HEADERS = ["authorization", "content-type", "x-request-id"];
+// Cast: bun's fetch type carries an extra preconnect property.
+const corsSafeFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const headers = new Headers(init?.headers);
+  for (const name of [...headers.keys()])
+    if (!ALLOWED_HEADERS.includes(name)) headers.delete(name);
+  return fetch(input, { ...init, headers });
+}) as typeof fetch;
 
 const SYSTEM_PROMPT = `You are an assistant embedded in the EVMcrispr terminal, a web editor for EVML — a scripting language for batching EVM transactions. EVML scripts are line-based: commands like "switch <chain>", "load <module>", "set $var <value>", "exec <target> <signature> <args...>", module commands like "token:transfer", and inline helpers like @token(WETH), @me, @date(now). Comments start with #.
 
@@ -27,39 +38,46 @@ export function useChatAgent() {
   const tag = useEvmlTag();
 
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
-    getAnthropicApiKey(),
+    getNexusApiKey(),
   );
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthError, setIsAuthError] = useState(false);
 
-  const historyRef = useRef<Anthropic.Beta.BetaMessageParam[]>([]);
-  const streamRef = useRef<BetaMessageStream | null>(null);
+  const historyRef = useRef<ModelMessage[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
 
-  const client = useMemo(
+  const model = useMemo(
     () =>
-      apiKey ? new Anthropic({ apiKey, dangerouslyAllowBrowser: true }) : null,
+      apiKey
+        ? createOpenAICompatible({
+            name: "nexus",
+            baseURL: NEXUS_BASE_URL,
+            apiKey,
+            fetch: corsSafeFetch,
+          })(MODEL)
+        : null,
     [apiKey],
   );
   const tools = useMemo(() => createChatTools(tag), [tag]);
 
   const setApiKey = useCallback((key: string) => {
-    saveAnthropicApiKey(key);
+    saveNexusApiKey(key);
     setApiKeyState(key);
     setError(null);
     setIsAuthError(false);
   }, []);
 
   const clearApiKey = useCallback(() => {
-    clearAnthropicApiKey();
+    clearNexusApiKey();
     setApiKeyState(null);
   }, []);
 
   const send = useCallback(
     async (text: string) => {
-      if (!client || isRunning || !text.trim()) return;
+      if (!model || isRunning || !text.trim()) return;
 
       setError(null);
       setIsAuthError(false);
@@ -68,62 +86,60 @@ export function useChatAgent() {
       setItems((prev) => [...prev, { role: "user", text }]);
       historyRef.current.push({ role: "user", content: text });
 
-      const runner = client.beta.messages.toolRunner({
-        model: "claude-opus-4-8",
-        max_tokens: 64000,
-        max_iterations: 25,
-        thinking: { type: "adaptive" },
+      const abort = new AbortController();
+      abortRef.current = abort;
+
+      const result = streamText({
+        model,
         system: SYSTEM_PROMPT,
-        tools,
         messages: historyRef.current,
-        stream: true,
+        tools,
+        // Nexus reserves the full max_tokens cost upfront and rejects the
+        // request with insufficient_balance when the cap exceeds the
+        // account balance, so an explicit modest cap is required.
+        maxOutputTokens: 16384,
+        stopWhen: stepCountIs(25),
+        abortSignal: abort.signal,
       });
 
       try {
-        for await (const messageStream of runner) {
-          streamRef.current = messageStream;
-          let started = false;
-          for await (const event of messageStream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              const delta = event.delta.text;
-              if (!started) {
-                started = true;
-                setItems((prev) => [
-                  ...prev,
-                  { role: "assistant", text: delta },
-                ]);
-              } else {
-                setItems((prev) => {
-                  const next = [...prev];
-                  const last = next[next.length - 1];
-                  if (last?.role === "assistant")
-                    next[next.length - 1] = {
-                      role: "assistant",
-                      text: last.text + delta,
-                    };
-                  return next;
-                });
-              }
-            } else if (
-              event.type === "content_block_start" &&
-              event.content_block.type === "tool_use"
-            ) {
-              started = false;
-              const toolName = event.content_block.name;
-              setItems((prev) => [...prev, { role: "tool", text: toolName }]);
+        let started = false;
+        for await (const part of result.fullStream) {
+          if (part.type === "text-delta") {
+            const delta = part.text;
+            if (!started) {
+              started = true;
+              setItems((prev) => [...prev, { role: "assistant", text: delta }]);
+            } else {
+              setItems((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last?.role === "assistant")
+                  next[next.length - 1] = {
+                    role: "assistant",
+                    text: last.text + delta,
+                  };
+                return next;
+              });
             }
+          } else if (part.type === "tool-call") {
+            started = false;
+            setItems((prev) => [
+              ...prev,
+              { role: "tool", text: part.toolName },
+            ]);
+          } else if (part.type === "error") {
+            throw part.error;
           }
-          if (stoppedRef.current) break;
         }
-        // The runner accumulates assistant turns and tool results into its
-        // params as it executes; carry that over for the next user message.
-        historyRef.current = [...runner.params.messages];
+        // Carry the assistant and tool turns over for the next user message.
+        // (result.response only covers the final step; responseMessages
+        // flattens every step's assistant/tool messages.)
+        historyRef.current.push(...(await result.responseMessages));
       } catch (e) {
+        console.error("[chat] agent error", e);
         if (!stoppedRef.current) {
-          if (e instanceof Anthropic.AuthenticationError) {
+          if (APICallError.isInstance(e) && e.statusCode === 401) {
             setError("Invalid API key.");
             setIsAuthError(true);
           } else {
@@ -131,16 +147,16 @@ export function useChatAgent() {
           }
         }
       } finally {
-        streamRef.current = null;
+        abortRef.current = null;
         setIsRunning(false);
       }
     },
-    [client, isRunning, tools],
+    [model, isRunning, tools],
   );
 
   const stop = useCallback(() => {
     stoppedRef.current = true;
-    streamRef.current?.abort();
+    abortRef.current?.abort();
   }, []);
 
   return {

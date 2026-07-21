@@ -4,7 +4,7 @@ import type { EditLog, StoredScript } from "../types/index";
 const SCRIPTS_KEY = "evmcrispr:scripts";
 const EDITS_PREFIX = "evmcrispr:edits:";
 const LAST_SCRIPT_KEY = "evmcrispr:lastScript";
-const ANTHROPIC_API_KEY = "evmcrispr:anthropicApiKey";
+const NEXUS_API_KEY = "evmcrispr:nexusApiKey";
 const MAX_EDIT_OPS = 500;
 
 export function slug(title: string) {
@@ -15,19 +15,19 @@ export function slug(title: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Anthropic API key (for the AI chat panel)
+// Dappnode Nexus API key (for the AI chat panel)
 // ---------------------------------------------------------------------------
 
-export function getAnthropicApiKey(): string | null {
-  return localStorage.getItem(ANTHROPIC_API_KEY);
+export function getNexusApiKey(): string | null {
+  return localStorage.getItem(NEXUS_API_KEY);
 }
 
-export function saveAnthropicApiKey(key: string) {
-  localStorage.setItem(ANTHROPIC_API_KEY, key);
+export function saveNexusApiKey(key: string) {
+  localStorage.setItem(NEXUS_API_KEY, key);
 }
 
-export function clearAnthropicApiKey() {
-  localStorage.removeItem(ANTHROPIC_API_KEY);
+export function clearNexusApiKey() {
+  localStorage.removeItem(NEXUS_API_KEY);
 }
 
 // ---------------------------------------------------------------------------

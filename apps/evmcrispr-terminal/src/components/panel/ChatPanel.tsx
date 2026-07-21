@@ -45,13 +45,25 @@ function ApiKeyForm({
       )}
       <h2 className="text-xl font-head text-foreground">Chat settings</h2>
       <p className="text-sm text-foreground/70">
-        Enter your Anthropic API key to chat with an assistant that can read,
-        edit, validate and simulate the script in the editor.
+        Enter your Dappnode Nexus API key to chat with an assistant that can
+        read, edit, validate and simulate the script in the editor.
+      </p>
+      <p className="text-sm text-foreground/70">
+        New to Nexus? You have 5€ in free AI tokens waiting —{" "}
+        <a
+          href="https://nexus.dappnode.com/?promo=TRYNEXUS&utm_source=evmcrispr&utm_medium=referral&utm_campaign=nexus-chat-launch-2026-06&utm_content=chat-settings&utm_term=trynexuschat-promo"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-evm-green-300 hover:underline"
+        >
+          claim them here
+        </a>
+        .
       </p>
       <div className="flex gap-2">
         <Input
           type="password"
-          placeholder="sk-ant-..."
+          placeholder="Nexus API key"
           value={key}
           onChange={(e) => setKey(e.target.value)}
           autoComplete="off"
@@ -63,7 +75,7 @@ function ApiKeyForm({
       </div>
       <p className="text-xs text-foreground/40">
         The key is stored only in your browser's localStorage and sent only to
-        api.anthropic.com.
+        nexus-api.dappnode.com.
       </p>
     </form>
   );

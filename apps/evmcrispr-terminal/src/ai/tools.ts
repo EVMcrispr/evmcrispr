@@ -1,5 +1,5 @@
-import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { EvmlTag } from "@evmcrispr/core";
+import { type ToolSet, tool } from "ai";
 import type { Address } from "viem";
 import { z } from "zod";
 
@@ -76,17 +76,15 @@ async function validateCurrent(tag: EvmlTag) {
  * Tools the chat assistant can use against the editor and the evml tag.
  * Factory so the (React-context-provided) tag reaches non-React closures.
  */
-export function createChatTools(tag: EvmlTag) {
-  const getScript = betaZodTool({
-    name: "get_script",
+export function createChatTools(tag: EvmlTag): ToolSet {
+  const getScript = tool({
     description:
       "Read the current EVML script in the editor. Returns the content with line numbers (tab-separated). Always read the script before editing it.",
     inputSchema: z.object({}),
-    run: async () => numbered(currentScript()),
+    execute: async () => numbered(currentScript()),
   });
 
-  const editScript = betaZodTool({
-    name: "edit_script",
+  const editScript = tool({
     description:
       "Edit the script by exact string replacement. old_string must match the current script content exactly once (raw text, without line numbers). The result includes validation diagnostics for the script after the edit — fix any errors before finishing.",
     inputSchema: z.object({
@@ -95,7 +93,7 @@ export function createChatTools(tag: EvmlTag) {
         .describe("Exact text to replace (must be unique in the script)"),
       new_string: z.string().describe("Replacement text"),
     }),
-    run: async ({ old_string, new_string }) => {
+    execute: async ({ old_string, new_string }) => {
       if (!(await ensureEditorMounted())) return EDITOR_UNAVAILABLE;
       const res = applyStrReplace(old_string, new_string);
       if (!res.ok) return `ERROR: ${res.error}`;
@@ -103,14 +101,13 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  const writeScript = betaZodTool({
-    name: "write_script",
+  const writeScript = tool({
     description:
       "Replace the entire script. Prefer edit_script for small changes. The result includes validation diagnostics for the new script.",
     inputSchema: z.object({
       content: z.string().describe("The full new script content"),
     }),
-    run: async ({ content }) => {
+    execute: async ({ content }) => {
       if (!(await ensureEditorMounted())) return EDITOR_UNAVAILABLE;
       const res = replaceScript(content);
       if (!res.ok) return `ERROR: ${res.error}`;
@@ -118,16 +115,14 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  const validateScript = betaZodTool({
-    name: "validate_script",
+  const validateScript = tool({
     description:
       "Validate the current editor script (syntax and static semantics). Runs offline; sends no transactions.",
     inputSchema: z.object({}),
-    run: async () => json(await validateCurrent(tag)),
+    execute: async () => json(await validateCurrent(tag)),
   });
 
-  const simulateScript = betaZodTool({
-    name: "simulate_script",
+  const simulateScript = tool({
     description:
       "Simulate an EVML script on a chain fork: the current editor script, or `script` if given. Returns a success flag, per-action logs, and the resolved actions. `print` output appears in the logs, so a throwaway `print` script doubles as an on-chain read (balances, ENS names, any helper value) without touching the editor. Slow (can take several seconds); nothing is broadcast on-chain.",
     inputSchema: z.object({
@@ -143,7 +138,7 @@ export function createChatTools(tag: EvmlTag) {
         .describe("Address to simulate from (defaults to the fork default)"),
       blockNumber: z.number().optional().describe("Fork at this block number"),
     }),
-    run: async ({ script, from, blockNumber }) => {
+    execute: async ({ script, from, blockNumber }) => {
       const result = await tag.script(script ?? currentScript()).simulate({
         from: from as Address | undefined,
         blockNumber,
@@ -157,12 +152,11 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  const listModules = betaZodTool({
-    name: "list_modules",
+  const listModules = tool({
     description:
       "List all EVML modules with a one-line overview of each. Modules other than std must be loaded with `load <module>` before their commands and helpers can be used.",
     inputSchema: z.object({}),
-    run: async () => {
+    execute: async () => {
       const lines = await Promise.all(
         MODULES.map(
           async (name) => `${name} — ${(await getModuleOverview(name)) ?? ""}`,
@@ -172,14 +166,13 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  const describeModule = betaZodTool({
-    name: "describe_module",
+  const describeModule = tool({
     description:
       "Get a module's README: what it does plus a table of all its commands and helpers with one-line descriptions. Use get_docs for the full documentation of a specific command or helper.",
     inputSchema: z.object({
       module: z.string().describe(`Module name, one of: ${MODULES.join(", ")}`),
     }),
-    run: async ({ module }) => {
+    execute: async ({ module }) => {
       const docs = await loadModuleDocs(module);
       if (!docs)
         return `ERROR: Unknown module "${module}". Available modules: ${MODULES.join(", ")}.`;
@@ -187,8 +180,7 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  const getDocs = betaZodTool({
-    name: "get_docs",
+  const getDocs = tool({
     description:
       "Get the full documentation of an EVML command or helper: syntax, arguments, options, and examples. Use describe_module to discover available names. Look up syntax you are not sure about instead of guessing.",
     inputSchema: z.object({
@@ -207,7 +199,7 @@ export function createChatTools(tag: EvmlTag) {
         .optional()
         .describe("Restrict lookup to commands or helpers"),
     }),
-    run: async ({ module, name, kind }) => {
+    execute: async ({ module, name, kind }) => {
       const bare = name.replace(new RegExp(`^@?(${module}:)?`), "");
 
       let docs: string | null = null;
@@ -221,14 +213,14 @@ export function createChatTools(tag: EvmlTag) {
     },
   });
 
-  return [
-    getScript,
-    editScript,
-    writeScript,
-    validateScript,
-    simulateScript,
-    listModules,
-    describeModule,
-    getDocs,
-  ];
+  return {
+    get_script: getScript,
+    edit_script: editScript,
+    write_script: writeScript,
+    validate_script: validateScript,
+    simulate_script: simulateScript,
+    list_modules: listModules,
+    describe_module: describeModule,
+    get_docs: getDocs,
+  };
 }
