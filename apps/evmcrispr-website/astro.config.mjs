@@ -120,6 +120,7 @@ export default defineConfig({
             { label: "Simulation", slug: "guides/simulation" },
             { label: "Batch Transactions", slug: "guides/batch-transactions" },
             { label: "Custom Modules", slug: "guides/custom-modules" },
+            { label: "MCP Server", slug: "guides/mcp" },
             { label: "Architecture", slug: "architecture" },
             { label: "Contributing", slug: "contributing" },
           ],
