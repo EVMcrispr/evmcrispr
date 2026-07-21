@@ -60,6 +60,19 @@ function ApiKeyForm({
         </a>
         .
       </p>
+      <p className="text-sm text-foreground/70">
+        Prefer your own AI assistant? Connect ChatGPT, Claude, or Cursor to
+        EVMcrispr with the{" "}
+        <a
+          href="https://next-docs.evmcrispr.com/guides/mcp/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-evm-green-300 hover:underline"
+        >
+          MCP guide
+        </a>
+        .
+      </p>
       <div className="flex gap-2">
         <Input
           type="password"
@@ -131,6 +144,15 @@ export function ChatPanel() {
               <Cog6ToothIcon className="w-4 h-4" />
               Chat Settings
             </button>
+            , or connect your own AI assistant with the{" "}
+            <a
+              href="https://next-docs.evmcrispr.com/guides/mcp/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-evm-green-300 hover:underline"
+            >
+              MCP guide
+            </a>
             .
           </p>
         )}
