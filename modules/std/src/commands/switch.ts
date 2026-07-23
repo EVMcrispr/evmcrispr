@@ -11,7 +11,8 @@ export default defineCommand<Std>({
     {
       name: "networkNameOrId",
       type: "chain",
-      description: "Chain name (e.g. `ethereum`) or numeric chain ID",
+      description:
+        "Chain name in camelCase as exported by viem (e.g. `mainnet`, `gnosis`, `baseSepolia`, `polygonZkEvm`) or numeric chain ID",
     },
   ],
   async run(module, { networkNameOrId }): Promise<WalletAction[]> {

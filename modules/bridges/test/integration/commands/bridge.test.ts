@@ -161,7 +161,7 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 to optimism --usi
     {
       name: "rejects an unknown chain",
       script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to narnia`,
-      error: "must be a chain id or a known chain name",
+      error: "must be a chain id or a camelCase viem chain name",
     },
     {
       name: "rejects the native token on a CCTP lane",

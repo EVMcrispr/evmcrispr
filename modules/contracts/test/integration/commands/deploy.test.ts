@@ -317,7 +317,7 @@ describeCommand("deploy", {
     {
       name: "--mirror-chain rejects unknown chain names with a clear error",
       script: `contracts:deploy $addr --mirror-chain notarealchain --mirror-address ${SOURCE_ADDR}`,
-      error: "must be a chain id or a known chain name",
+      error: "must be a chain id or a camelCase viem chain name",
     },
   ],
 });

@@ -585,7 +585,7 @@ describeCommand("verify", {
     {
       name: "--mirror-chain rejects unknown chain names with a clear error",
       script: `contracts:verify ${VERIFIED_ADDR} --mirror-chain notarealchain --poll-interval 0`,
-      error: "must be a chain id or a known chain name",
+      error: "must be a chain id or a camelCase viem chain name",
     },
   ],
 });

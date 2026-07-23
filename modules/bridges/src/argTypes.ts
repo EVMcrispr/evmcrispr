@@ -31,7 +31,7 @@ export function resolveChainId(value: unknown): number {
     return chainNameToId[value];
   }
   throw new ErrorException(
-    `unknown chain "${String(value)}" — pass a numeric chain id or a viem chain name (e.g. mainnet, optimism, base)`,
+    `unknown chain "${String(value)}" — pass a numeric chain id or a camelCase viem chain name (e.g. mainnet, baseSepolia, polygonZkEvm)`,
   );
 }
 
@@ -46,7 +46,7 @@ export const types: CustomArgTypes = {
         return;
       }
       throw new ErrorException(
-        `${name} must be a chain id or a known chain name (e.g. mainnet, optimism, base), got ${value}`,
+        `${name} must be a chain id or a camelCase viem chain name (e.g. mainnet, baseSepolia, polygonZkEvm), got ${value}`,
       );
     },
     completions() {

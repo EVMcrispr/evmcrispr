@@ -39,7 +39,7 @@ describeHelper(
       {
         name: "fails on unknown chain names",
         input: "@ens:cointype(notachain)",
-        error: "must be a chain id or a known chain name",
+        error: "must be a chain id or a camelCase viem chain name",
       },
     ],
     sampleArgs: ["mainnet"],

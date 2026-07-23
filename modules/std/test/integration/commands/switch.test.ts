@@ -27,6 +27,11 @@ describeCommand("switch", {
       expectedActions: [walletAction("0x1")],
     },
     {
+      name: "should resolve a camelCase chain name",
+      script: "switch polygonZkEvm",
+      expectedActions: [walletAction("0x44d")],
+    },
+    {
       name: "should work with numeric chain ID as string",
       script: "switch 1",
       expectedActions: [walletAction("0x1")],
@@ -38,6 +43,10 @@ describeCommand("switch", {
       code: `switch gnosis`,
     },
     {
+      description: "Testnets and multi-word chains use camelCase viem names",
+      code: `switch baseSepolia`,
+    },
+    {
       description: "Switch by chain ID",
       code: `switch 137`,
     },
@@ -46,7 +55,7 @@ describeCommand("switch", {
     {
       name: "should fail when receiving an unknown chain name",
       script: "switch fakechainname",
-      error: "must be a chain id or a known chain name",
+      error: "must be a chain id or a camelCase viem chain name",
     },
   ],
 });
