@@ -46,21 +46,20 @@ describe("Completions – ens commands", () => {
   // -------------------------------------------------------------------------
 
   describe("renew", () => {
-    it("renew <cursor> should show all helpers and variables (any type)", async () => {
+    it("renew <cursor> should show string and array helpers (string | array type)", async () => {
       const script = `${ENS}ens:renew `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      // "any" type shows all helpers
       expect(hasLabel(items, "@me")).to.be.true;
       expect(hasLabel(items, "@date")).to.be.true;
       // Module-specific helper @ens:contenthash should be available
       expect(hasLabel(items, "@ens:contenthash")).to.be.true;
     });
 
-    it("renew $domains <cursor> should show all helpers and variables (any type)", async () => {
+    it("renew $domains <cursor> should suggest number helpers (number type)", async () => {
       const script = `${ENS}ens:renew $domains `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      expect(hasLabel(items, "@me")).to.be.true;
       expect(hasLabel(items, "@date")).to.be.true;
+      expect(hasLabel(items, "@me")).to.be.false;
     });
   });
 

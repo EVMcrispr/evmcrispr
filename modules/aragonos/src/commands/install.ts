@@ -115,7 +115,7 @@ export default defineCommand<AragonOS>({
   opts: [
     {
       name: "version",
-      type: "any",
+      type: "string",
       description: "Specific app version to install",
     },
   ],

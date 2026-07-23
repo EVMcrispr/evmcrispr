@@ -8,7 +8,7 @@ export default defineHelper<Lang>({
     "Parse a decimal string with a given number of decimals (like parseUnits).",
   returnType: "number",
   args: [
-    { name: "value", type: "any", description: "Input value" },
+    { name: "value", type: ["string", "number"], description: "Input value" },
     {
       name: "decimals",
       type: "number",

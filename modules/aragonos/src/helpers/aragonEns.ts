@@ -29,7 +29,7 @@ export default defineHelper<AragonOS>({
     },
     {
       name: "extra",
-      type: "any",
+      type: "string",
       description: "Additional ENS path segment",
       optional: true,
     },

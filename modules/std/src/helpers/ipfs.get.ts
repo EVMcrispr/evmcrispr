@@ -4,7 +4,7 @@ import type Std from "..";
 export default defineHelper<Std>({
   name: "ipfs.get",
   description: "Fetch content from IPFS and return it as text.",
-  returnType: "any",
+  returnType: "string",
   args: [
     {
       name: "cid",

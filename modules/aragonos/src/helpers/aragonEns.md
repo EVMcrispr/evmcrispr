@@ -17,7 +17,7 @@ Resolve an Aragon ENS name to its address.
 | Name | Type | Description |
 |------|------|-------------|
 | `ensName` | `string` | ENS name to resolve to an address |
-| `[extra]` | `any` | Additional ENS path segment |
+| `[extra]` | `string` | Additional ENS path segment |
 
 ## Examples
 

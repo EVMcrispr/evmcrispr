@@ -5,7 +5,7 @@ export default defineHelper<Std>({
   name: "block",
   batchable: false,
   description: "Return [number, timestamp] of the latest or a specific block.",
-  returnType: "any",
+  returnType: "array",
   args: [
     {
       name: "blockNumber",

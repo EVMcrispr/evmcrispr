@@ -16,7 +16,7 @@ Parse a decimal string with a given number of decimals (like parseUnits).
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `any` | Input value |
+| `value` | `string \| number` | Input value |
 | `decimals` | `number` | Number of decimal places |
 
 <!-- HAND-WRITTEN -->

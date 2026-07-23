@@ -4,7 +4,7 @@ title: "@ipfs.get"
 
 Fetch content from IPFS and return it as text.
 
-**Returns**: `any`
+**Returns**: `string`
 
 ## Syntax
 

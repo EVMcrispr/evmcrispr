@@ -22,7 +22,7 @@ aragonos:install <variable> <identifier> [...params]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--version` | `any` | Specific app version to install |
+| `--version` | `string` | Specific app version to install |
 
 ## Examples
 

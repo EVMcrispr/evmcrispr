@@ -4,7 +4,7 @@ title: "@block"
 
 Return [number, timestamp] of the latest or a specific block.
 
-**Returns**: `any`
+**Returns**: `array`
 
 ## Syntax
 

@@ -15,7 +15,7 @@ aragonos:upgrade <apmRepo> [newAppAddress]
 | Name | Type | Description |
 |------|------|-------------|
 | `apmRepo` | `repo` | APM repository name for the app package |
-| `[newAppAddress]` | `any` | Specific implementation address |
+| `[newAppAddress]` | `address \| string` | Implementation address or semantic version (e.g. 1.2.0) |
 
 ## Examples
 

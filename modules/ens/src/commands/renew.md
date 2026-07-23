@@ -14,8 +14,8 @@ ens:renew <domains> <duration>
 
 | Name | Type | Description |
 |------|------|-------------|
-| `domains` | `any` | ENS label(s) or names to renew |
-| `duration` | `any` | Renewal duration, in time units (e.g. 1y) |
+| `domains` | `string \| array` | ENS label(s) or names to renew |
+| `duration` | `number` | Renewal duration, in time units (e.g. 1y) |
 
 <!-- HAND-WRITTEN -->
 

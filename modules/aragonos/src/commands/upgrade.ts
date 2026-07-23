@@ -24,8 +24,8 @@ export default defineCommand<AragonOS>({
     },
     {
       name: "newAppAddress",
-      type: "any",
-      description: "Specific implementation address",
+      type: ["address", "string"],
+      description: "Implementation address or semantic version (e.g. 1.2.0)",
       optional: true,
     },
   ],
