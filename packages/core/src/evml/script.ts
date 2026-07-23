@@ -27,6 +27,8 @@ export interface InterpretOptions {
   /** Escape hatch: receive every resolved action as the run progresses
    *  (e.g. to send transactions with custom logic). */
   onAction?: (action: Action) => Promise<unknown>;
+  /** Cancels the run between nodes (and inside abort-aware commands). */
+  signal?: AbortSignal;
 }
 
 /**
@@ -95,7 +97,9 @@ export class EvmlScript {
    *  sent anywhere unless `onAction` does so). */
   async interpret(options: InterpretOptions = {}): Promise<Action[]> {
     const interpreter = new Interpreter(this.#registry, this.#config);
-    return interpreter.interpret(this.source, options.onAction);
+    return interpreter.interpret(this.source, options.onAction, {
+      signal: options.signal,
+    });
   }
 
   /** Run the script inside a `sim:fork` fork. Requires the `sim` module

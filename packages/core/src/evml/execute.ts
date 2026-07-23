@@ -25,11 +25,34 @@ import type { EvmlConfig } from "./types";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Runs the interpretation half of `executeScript`, feeding each resolved
+ * action to `dispatch` and awaiting its result. The default runner uses a
+ * local `Interpreter`; a worker-backed runner can interpret elsewhere and
+ * proxy actions/logs across, as long as it honors the same contract.
+ */
+export type InterpretRunner = (
+  source: string,
+  dispatch: (action: Action) => Promise<unknown>,
+  hooks: {
+    /** Sender account resolved from the config or wallet. */
+    account?: Address;
+    /** Feed script log output into the execution's log stream. */
+    onLog(message: string): void;
+    /** Feed line progress to the config's line listener. */
+    onLine(line: number | null): void;
+    signal?: AbortSignal;
+  },
+) => Promise<void>;
+
 export interface ExecuteOptions {
   /** Client used for calls/receipts on the current chain. Defaults to a
    *  client derived from the config's transports per action chainId. */
   publicClient?: PublicClient;
   signal?: AbortSignal;
+  /** Advanced: replace the local interpretation step (e.g. run it in a
+   *  Web Worker). Action handling stays on the caller's side. */
+  interpretRunner?: InterpretRunner;
   /** Status updates (":success:...", ":waiting:..." conventions). Defaults
    *  to the interpreter's log stream (i.e. the tag's `onLog`). */
   onLog?: (message: string) => void;
@@ -667,8 +690,19 @@ export async function executeScript(
     await prepareChainsForScript(walletClient, source);
   }
 
+  const runInterpret: InterpretRunner =
+    options.interpretRunner ??
+    (async (src, dispatchFn, hooks) => {
+      await interpreter.interpret(src, dispatchFn, { signal: hooks.signal });
+    });
+
   try {
-    await interpreter.interpret(source, dispatch);
+    await runInterpret(source, dispatch, {
+      account,
+      onLog: (message) => interpreter.log(message),
+      onLine: (line) => config.onLine?.(line),
+      signal: options.signal,
+    });
     return { executed, halted: false, logs };
   } catch (err) {
     if (err instanceof HaltExecution) {

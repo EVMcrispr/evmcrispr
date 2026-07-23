@@ -57,11 +57,8 @@ export default function Terminal() {
   const isSafe = activeConnector?.id === "safe";
   const safeConnectorInstance = isSafe ? activeConnector : undefined;
 
-  const { executeScript, logs, errors, clearErrors } = useTransactionExecutor(
-    address,
-    script,
-    safeConnectorInstance,
-  );
+  const { executeScript, cancelExecution, logs, errors, clearErrors } =
+    useTransactionExecutor(address, script, safeConnectorInstance);
 
   const isSmallScreen = useIsSmallScreen();
   const viewMode = useTerminalStore((s) => s.viewMode);
@@ -136,7 +133,10 @@ export default function Terminal() {
                   className="px-4 py-3 shrink-0 animate-fade-in"
                   style={{ animationDelay: "0.1s" }}
                 >
-                  <ActionButtons onExecute={executeScript} />
+                  <ActionButtons
+                    onExecute={executeScript}
+                    onCancel={cancelExecution}
+                  />
                 </div>
               </>
             )}

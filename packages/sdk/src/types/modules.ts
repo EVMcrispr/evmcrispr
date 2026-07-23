@@ -43,6 +43,10 @@ export interface ModuleContext {
   // Logging
   log(message: string): void;
 
+  /** Abort signal for the current run, when the caller provided one.
+   *  Long-running commands should check it between steps. */
+  readonly signal?: AbortSignal;
+
   // Module registry (implemented by the runtime)
   /** Load a module by name from the pluggable registry. */
   loadModule(name: string): Promise<{ default: IModuleConstructor }>;

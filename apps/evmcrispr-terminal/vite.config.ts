@@ -100,6 +100,15 @@ export default defineConfig({
         __dirname,
         "../../packages/editor/src/index.ts",
       ),
+      // Sub-path exports before the base alias so they match first
+      "@evmcrispr/core/worker-client": path.resolve(
+        __dirname,
+        "../../packages/core/src/worker/client.ts",
+      ),
+      "@evmcrispr/core/worker": path.resolve(
+        __dirname,
+        "../../packages/core/src/worker/expose.ts",
+      ),
       "@evmcrispr/core": path.resolve(
         __dirname,
         "../../packages/core/src/index.ts",
@@ -175,6 +184,25 @@ export default defineConfig({
         // chunks with a circular dependency, causing sha256 to be undefined
         // when secp256k1 initialises at module evaluation time.
         // See: https://github.com/rolldown/rolldown/issues/9225
+        manualChunks(id) {
+          if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
+            return "noble-crypto";
+          }
+        },
+      },
+    },
+  },
+  worker: {
+    // The module registrations are dynamic imports; the default iife
+    // format forbids code splitting.
+    format: "es",
+    // Worker builds get their own plugin pipeline — the virtual
+    // `virtual:evmcrispr-modules` module must resolve there too (aliases
+    // are shared via the root `resolve` config).
+    plugins: () => [evmcrisprModules(path.resolve(__dirname, "../../modules"))],
+    rollupOptions: {
+      output: {
+        // Same rolldown circular-chunk workaround as the main build.
         manualChunks(id) {
           if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
             return "noble-crypto";

@@ -24,6 +24,8 @@ export interface EthereumJSBackendOpts {
   upstreamRpcUrl: string;
   blockNumber?: number;
   chainId: number;
+  /** Aborts in-flight upstream RPC fetches when the run is cancelled. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -46,6 +48,10 @@ export interface EthereumJSBackend {
   handleAction(action: Action): Promise<SyntheticReceipt | undefined>;
 }
 
+/** A stalled upstream (rate limiter that never responds, dead connection)
+ *  would otherwise hang the simulation forever. */
+const RPC_TIMEOUT_MS = 30_000;
+
 /**
  * JSON-RPC fetch that surfaces `error` responses — @ethereumjs/util's
  * fetchFromProvider returns `json.result` without checking `json.error`,
@@ -56,12 +62,28 @@ async function rpcFetch(
   url: string,
   method: string,
   params: unknown[],
+  signal?: AbortSignal,
 ): Promise<any> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
+  const timeout = AbortSignal.timeout(RPC_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      signal: signal ? AbortSignal.any([timeout, signal]) : timeout,
+    });
+  } catch (err) {
+    if (signal?.aborted) {
+      throw new ErrorException("Execution cancelled");
+    }
+    if (timeout.aborted) {
+      throw new ErrorException(
+        `upstream RPC timed out after ${RPC_TIMEOUT_MS / 1000}s for ${method}`,
+      );
+    }
+    throw err;
+  }
   if (!res.ok) {
     throw new ErrorException(
       `upstream RPC returned HTTP ${res.status} for ${method}`,
@@ -84,14 +106,16 @@ async function rpcFetch(
  * so fetch balance/nonce/code directly instead.
  */
 class ProofFreeStateManager extends RPCStateManager {
+  signal?: AbortSignal;
+
   override async getAccountFromProvider(
     address: EthjsAddress,
   ): Promise<Account> {
     const params = [address.toString(), this._blockTag];
     const [balance, nonce, code] = await Promise.all([
-      rpcFetch(this._provider, "eth_getBalance", params),
-      rpcFetch(this._provider, "eth_getTransactionCount", params),
-      rpcFetch(this._provider, "eth_getCode", params),
+      rpcFetch(this._provider, "eth_getBalance", params, this.signal),
+      rpcFetch(this._provider, "eth_getTransactionCount", params, this.signal),
+      rpcFetch(this._provider, "eth_getCode", params, this.signal),
     ]);
     return createAccount({
       balance: BigInt(balance),
@@ -104,7 +128,7 @@ class ProofFreeStateManager extends RPCStateManager {
 export async function createEthereumJSBackend(
   opts: EthereumJSBackendOpts,
 ): Promise<EthereumJSBackend> {
-  const { upstreamRpcUrl, chainId } = opts;
+  const { upstreamRpcUrl, chainId, signal } = opts;
 
   // Prague enables EIP-7702, so calls to EOAs carrying a 0xef0100 delegation
   // designator resolve to the delegate's code (used for batch simulation).
@@ -112,13 +136,14 @@ export async function createEthereumJSBackend(
 
   const blockTag: bigint | "earliest" = opts.blockNumber
     ? BigInt(opts.blockNumber)
-    : await resolveLatestBlockNumber(upstreamRpcUrl);
+    : await resolveLatestBlockNumber(upstreamRpcUrl, signal);
 
   const stateManager = new ProofFreeStateManager({
     provider: upstreamRpcUrl,
     blockTag,
     common,
   });
+  stateManager.signal = signal;
 
   const rpcBlockChain = new RPCBlockChain(upstreamRpcUrl);
   type MockBlockchain = {
@@ -142,6 +167,7 @@ export async function createEthereumJSBackend(
   const baseTimestamp = await fetchBlockTimestamp(
     upstreamRpcUrl,
     currentBlockNumber,
+    signal,
   );
 
   function getCurrentTimestamp(): bigint {
@@ -295,7 +321,7 @@ export async function createEthereumJSBackend(
         case "eth_chainId":
           return bigIntToHex(BigInt(chainId));
         default:
-          return await rpcFetch(upstreamRpcUrl, method, p);
+          return await rpcFetch(upstreamRpcUrl, method, p, signal);
       }
     },
   });
@@ -367,19 +393,25 @@ function padToBytes32(input: Uint8Array): Uint8Array {
   return padded;
 }
 
-async function resolveLatestBlockNumber(rpcUrl: string): Promise<bigint> {
-  const result = await rpcFetch(rpcUrl, "eth_blockNumber", []);
+async function resolveLatestBlockNumber(
+  rpcUrl: string,
+  signal?: AbortSignal,
+): Promise<bigint> {
+  const result = await rpcFetch(rpcUrl, "eth_blockNumber", [], signal);
   return BigInt(result);
 }
 
 async function fetchBlockTimestamp(
   rpcUrl: string,
   blockNumber: bigint,
+  signal?: AbortSignal,
 ): Promise<bigint> {
-  const block = await rpcFetch(rpcUrl, "eth_getBlockByNumber", [
-    bigIntToHex(blockNumber),
-    false,
-  ]);
+  const block = await rpcFetch(
+    rpcUrl,
+    "eth_getBlockByNumber",
+    [bigIntToHex(blockNumber), false],
+    signal,
+  );
   if (block == null) {
     throw new ErrorException(
       `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +

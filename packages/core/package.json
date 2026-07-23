@@ -15,6 +15,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./worker": {
+      "bun": "./src/worker/expose.ts",
+      "types": "./dist/worker/expose.d.ts",
+      "import": "./dist/worker/expose.js"
+    },
+    "./worker-client": {
+      "bun": "./src/worker/client.ts",
+      "types": "./dist/worker/client.d.ts",
+      "import": "./dist/worker/client.js"
+    },
     "./package.json": "./package.json"
   },
   "devDependencies": {
@@ -44,7 +54,7 @@
     "type-check": "tsgo --noEmit",
     "test:unit": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files",
-    "build": "evmcrispr-build --bundle",
+    "build": "evmcrispr-build --bundle --splitting src/index.ts src/worker/expose.ts src/worker/client.ts",
     "codegen": "evmcrispr-build --codegen",
     "types": "evmcrispr-build --types"
   }

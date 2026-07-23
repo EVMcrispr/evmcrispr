@@ -5,6 +5,7 @@ import type { Address } from "viem";
 import { z } from "zod";
 
 import { config as wagmiConfig } from "../config/wagmi";
+import { workerEvml } from "../evml/workerEvml";
 
 import {
   applyStrReplace,
@@ -144,11 +145,15 @@ export function createChatTools(tag: EvmlTag): ToolSet {
       blockNumber: z.number().optional().describe("Fork at this block number"),
     }),
     execute: async ({ script, from, blockNumber }) => {
-      const result = await tag.script(script ?? currentScript()).simulate({
-        from:
-          (from as Address | undefined) ?? getConnection(wagmiConfig).address,
-        blockNumber,
-      });
+      // Runs in the EVML worker so a heavy fork simulation (ethereumjs VM)
+      // can't freeze the UI while the chat waits on it.
+      const result = await workerEvml
+        .script(script ?? currentScript())
+        .simulate({
+          from:
+            (from as Address | undefined) ?? getConnection(wagmiConfig).address,
+          blockNumber,
+        });
       return json({
         success: result.success,
         error: result.error,

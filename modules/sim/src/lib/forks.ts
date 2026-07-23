@@ -251,6 +251,7 @@ export class ForkManager {
       upstreamRpcUrl,
       blockNumber,
       chainId,
+      signal: this.#module.context.signal,
     });
     const publicClient = createPublicClient({
       chain,

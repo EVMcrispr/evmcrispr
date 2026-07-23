@@ -338,6 +338,9 @@ export default defineCommand<Sim>({
       action: Action,
       { relayScan }: { relayScan: boolean },
     ): Promise<unknown> => {
+      if (module.context.signal?.aborted) {
+        throw new ErrorException("Execution cancelled");
+      }
       if (isWalletAction(action)) {
         if (action.method !== "wallet_switchEthereumChain") {
           throw new ErrorException(

@@ -13,6 +13,8 @@ export interface SimulateOptions {
   using?: "anvil" | "hardhat" | "tenderly" | "ethereumjs";
   /** Auth token passed as `sim:fork --auth-token <token>` (tenderly). */
   authToken?: string;
+  /** Cancels the simulation between actions and aborts fork RPC fetches. */
+  signal?: AbortSignal;
 }
 
 export interface SimulationResult {
@@ -78,7 +80,9 @@ export async function simulateScript(
   const script = needsSimWrap(source) ? wrapScript(source, options) : source;
 
   try {
-    const actions = await interpreter.interpret(script);
+    const actions = await interpreter.interpret(script, undefined, {
+      signal: options.signal,
+    });
     return { success: true, logs, actions };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

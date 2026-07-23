@@ -1,10 +1,9 @@
 import type { ActionHandlers } from "@evmcrispr/core";
-import { evml } from "@evmcrispr/core";
 import { useExecutionLogs } from "@evmcrispr/editor";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
-import { transports } from "../config/wagmi";
+import { workerEvml } from "../evml/workerEvml";
 import { terminalStoreActions } from "../stores/terminal-store";
 
 /** Safe apps can't use EIP-5792 batching — route batched actions through
@@ -81,10 +80,9 @@ export function useTransactionExecutor(
         );
       }
 
-      const evmlScript = evml
+      const evmlScript = workerEvml
         .with({
           account: address,
-          transports,
           onLog: logListener,
           onLine: (line: number | null) =>
             terminalStoreActions("executingLine", line),
@@ -100,7 +98,10 @@ export function useTransactionExecutor(
       });
     } catch (err: any) {
       const e = err as Error;
-      if (e.message === "Observation cancelled") {
+      if (
+        e.message === "Observation cancelled" ||
+        e.message === "Execution cancelled"
+      ) {
         setErrors(["Script execution cancelled"]);
       } else {
         console.error(e);

@@ -59,6 +59,7 @@ export class Interpreter {
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #lineListeners: ((line: number | null) => void)[];
   #prevMessages: string[];
+  #signal?: AbortSignal;
 
   #client: PublicClient | undefined;
 
@@ -119,7 +120,13 @@ export class Interpreter {
       }),
       // resolveCommand depends on executeWithCaptures, which depends on
       // interpretNode. Wire it up after we've built the interpreters.
-      notifyLine: (line) => this.#notifyLine(line),
+      // Line notification doubles as the per-node abort checkpoint.
+      notifyLine: (line) => {
+        if (this.#signal?.aborted) {
+          throw new ErrorException("Execution cancelled");
+        }
+        this.#notifyLine(line);
+      },
     };
     const interpreters = createInterpreter(ctx);
     this.interpretNode = interpreters.interpretNode;
@@ -149,7 +156,11 @@ export class Interpreter {
   }
 
   #createModuleContext(): ModuleContext {
+    const self = this;
     return {
+      get signal() {
+        return self.#signal;
+      },
       bindingsManager: this.bindingsManager,
       nonces: this.#nonces,
       ipfsResolver: this.#ipfsResolver,
@@ -185,7 +196,9 @@ export class Interpreter {
   async interpret(
     script: string,
     actionCallback?: (action: Action) => Promise<unknown>,
+    options: { signal?: AbortSignal } = {},
   ): Promise<Action[]> {
+    this.#signal = options.signal;
     const { ast, errors } = parseScript(script);
 
     if (errors.length) {
