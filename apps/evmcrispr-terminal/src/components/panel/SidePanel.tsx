@@ -32,21 +32,33 @@ export function SidePanel({
       }
       className="h-full flex flex-col"
     >
-      <Tabs.List className="w-full shrink-0 px-2 border-b-0">
-        <Tabs.Trigger value="console" className="text-xl">
-          <CommandLineIcon className="w-5 h-5" />
+      <Tabs.List className="@container w-full shrink-0 px-3 border-b-0">
+        <Tabs.Trigger
+          value="console"
+          className="flex-1 min-w-0 px-0 gap-1 @lg:gap-1.5 text-xs @md:text-base @lg:text-xl"
+        >
+          <CommandLineIcon className="w-3.5 h-3.5 @md:w-4 @md:h-4 @lg:w-5 @lg:h-5 shrink-0" />
           Console
         </Tabs.Trigger>
-        <Tabs.Trigger value="library" className="text-xl">
-          <BookOpenIcon className="w-5 h-5" />
+        <Tabs.Trigger
+          value="library"
+          className="flex-1 min-w-0 px-0 gap-1 @lg:gap-1.5 text-xs @md:text-base @lg:text-xl"
+        >
+          <BookOpenIcon className="w-3.5 h-3.5 @md:w-4 @md:h-4 @lg:w-5 @lg:h-5 shrink-0" />
           Library
         </Tabs.Trigger>
-        <Tabs.Trigger value="reference" className="text-xl">
-          <DocumentTextIcon className="w-5 h-5" />
-          Ref
+        <Tabs.Trigger
+          value="reference"
+          className="flex-1 min-w-0 px-0 gap-1 @lg:gap-1.5 text-xs @md:text-base @lg:text-xl"
+        >
+          <DocumentTextIcon className="w-3.5 h-3.5 @md:w-4 @md:h-4 @lg:w-5 @lg:h-5 shrink-0" />
+          Reference
         </Tabs.Trigger>
-        <Tabs.Trigger value="chat" className="text-xl">
-          <ChatBubbleLeftRightIcon className="w-5 h-5" />
+        <Tabs.Trigger
+          value="chat"
+          className="flex-1 min-w-0 px-0 gap-1 @lg:gap-1.5 text-xs @md:text-base @lg:text-xl"
+        >
+          <ChatBubbleLeftRightIcon className="w-3.5 h-3.5 @md:w-4 @md:h-4 @lg:w-5 @lg:h-5 shrink-0" />
           Chat
         </Tabs.Trigger>
       </Tabs.List>
