@@ -5,10 +5,16 @@ import {
   StopIcon,
 } from "@heroicons/react/24/solid";
 import { Button, IconButton, Input } from "@repo/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import {
+  fetchNexusBalance,
+  loginWithNexus,
+  logoutNexus,
+} from "../../ai/nexus-auth";
 import { useChatAgent } from "../../ai/useChatAgent";
 import { markdownComponents } from "./MarkdownComponents";
 
@@ -30,17 +36,39 @@ const WORKING_STATUSES = [
   "BUIDLing...",
 ];
 
+const NEXUS_URL =
+  "https://nexus.dappnode.com/?utm_source=evmcrispr2026-07&utm_medium=referral";
+const RECHARGE_URL =
+  "https://nexus.dappnode.com/billing?utm_source=evmcrispr2026-07&utm_medium=referral";
+
 const PROSE_CLASSES =
   "prose prose-invert prose-base max-w-none break-words prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:break-words prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-pre:overflow-x-auto prose-li:text-foreground/80";
 
 function ApiKeyForm({
   onSave,
   onBack,
+  onDisconnect,
+  balanceCents,
 }: {
   onSave: (key: string) => void;
   onBack?: () => void;
+  onDisconnect?: () => void;
+  balanceCents?: number | null;
 }) {
-  const [key, setKey] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const login = async () => {
+    setLoginError(null);
+    setLoggingIn(true);
+    try {
+      onSave(await loginWithNexus());
+    } catch (e) {
+      setLoginError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoggingIn(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5 overflow-y-auto">
@@ -63,45 +91,62 @@ function ApiKeyForm({
         </h3>
         <p className="text-sm text-foreground/70">
           Chat with a built-in assistant that can read, edit, validate and
-          simulate the script in the editor — powered by your DappNode Nexus API
-          key.
-        </p>
-        <p className="text-sm text-foreground/70">
-          New to DappNode Nexus? You have 5€ in free AI tokens waiting —{" "}
+          simulate the script in the editor — powered by your{" "}
           <a
-            href="https://nexus.dappnode.com/?promo=TRYNEXUS&utm_source=evmcrispr&utm_medium=referral&utm_campaign=nexus-chat-launch-2026-06&utm_content=chat-settings&utm_term=trynexuschat-promo"
+            href={NEXUS_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-evm-green-300 hover:underline"
           >
-            claim them here
+            DappNode Nexus account
           </a>
           .
         </p>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const trimmed = key.trim();
-            if (trimmed) onSave(trimmed);
-          }}
-        >
-          <Input
-            type="password"
-            placeholder="DappNode Nexus API key"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            autoComplete="off"
-            className="flex-1"
-          />
-          <Button type="submit" disabled={!key.trim()}>
-            Save
-          </Button>
-        </form>
-        <p className="text-xs text-foreground/40">
-          The key is stored only in your browser's localStorage and sent only to
-          nexus-api.dappnode.com.
-        </p>
+        {onDisconnect ? (
+          <>
+            {balanceCents != null && (
+              <p className="text-sm text-foreground/70">
+                Balance: €{(balanceCents / 100).toFixed(2)}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button asChild size="sm">
+                <a
+                  href={RECHARGE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Recharge
+                </a>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onDisconnect}
+              >
+                Disconnect
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-foreground/70">
+              New to DappNode Nexus? Sign up through the login and you get 5€ in
+              free AI tokens.
+            </p>
+            <Button
+              type="button"
+              onClick={login}
+              disabled={loggingIn}
+              className="self-start"
+            >
+              <img src="/dappnode-logo.svg" alt="" className="w-5 h-5" />
+              {loggingIn ? "Waiting for login..." : "Login with Dappnode Nexus"}
+            </Button>
+            {loginError && <p className="text-sm text-red-400">{loginError}</p>}
+          </>
+        )}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -131,6 +176,7 @@ export function ChatPanel() {
   const {
     hasKey,
     setApiKey,
+    clearApiKey,
     items,
     isRunning,
     error,
@@ -142,6 +188,14 @@ export function ChatPanel() {
   const [showSettings, setShowSettings] = useState(false);
   const [statusIdx, setStatusIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // Refetches after each completed run (runs cost credits): re-enabling the
+  // query when isRunning drops back to false refreshes the stale balance.
+  const { data: balanceCents } = useQuery({
+    queryKey: ["nexus-balance"],
+    queryFn: fetchNexusBalance,
+    enabled: hasKey && !isRunning,
+  });
 
   useEffect(() => {
     if (!isRunning) return;
@@ -167,11 +221,46 @@ export function ChatPanel() {
           setShowSettings(false);
         }}
         onBack={hasKey ? () => setShowSettings(false) : undefined}
+        balanceCents={balanceCents}
+        onDisconnect={
+          hasKey
+            ? () => {
+                void logoutNexus();
+                clearApiKey();
+                setShowSettings(false);
+              }
+            : undefined
+        }
       />
     );
 
   return (
     <div className="flex flex-col h-full">
+      {balanceCents != null && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/10 text-sm text-foreground/60 shrink-0">
+          <img src="/dappnode-logo.svg" alt="" className="w-5 h-5" />
+          <a
+            href={NEXUS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground/80 hover:underline"
+          >
+            DappNode Nexus
+          </a>
+          <span className="ml-auto rounded-full bg-foreground/10 px-2.5 py-0.5 tabular-nums">
+            €{(balanceCents / 100).toFixed(2)}
+          </span>
+          <IconButton
+            type="button"
+            aria-label="Chat settings"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSettings(true)}
+          >
+            <Cog6ToothIcon className="w-4 h-4" />
+          </IconButton>
+        </div>
+      )}
       <div
         ref={listRef}
         className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-3"
@@ -179,25 +268,7 @@ export function ChatPanel() {
         {items.length === 0 && (
           <p className="text-base text-foreground/40">
             Ask anything about the script in the editor — the assistant can
-            read, edit, validate and simulate it. Manage your API key in{" "}
-            <button
-              type="button"
-              onClick={() => setShowSettings(true)}
-              className="inline-flex items-center gap-1 align-baseline text-evm-green-300 hover:underline"
-            >
-              <Cog6ToothIcon className="w-4 h-4" />
-              Chat Settings
-            </button>
-            , or connect your own AI assistant with the{" "}
-            <a
-              href="https://next-docs.evmcrispr.com/guides/mcp/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-evm-green-300 hover:underline"
-            >
-              MCP guide
-            </a>
-            .
+            read, edit, validate and simulate it.
           </p>
         )}
         {items.map((item, i) => {

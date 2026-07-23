@@ -149,6 +149,20 @@ export default defineConfig({
         }
       },
     },
+    // Serve the static OAuth callback page at its extensionless registered
+    // redirect URI (Vite's public-dir middleware doesn't resolve directory
+    // indexes, so the request would otherwise fall through to the SPA).
+    {
+      name: "nexus-auth-callback",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const path = req.url?.split("?")[0].replace(/\/$/, "");
+          if (path === "/auth/nexus/callback")
+            req.url = "/auth/nexus/callback/index.html";
+          next();
+        });
+      },
+    },
     react(),
     tailwindcss(),
   ],
