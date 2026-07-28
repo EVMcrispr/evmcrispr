@@ -23,7 +23,8 @@ import {
 
 export default defineCommand<Ens>({
   name: "transfer",
-  description: "Transfer ownership of an ENS name.",
+  description:
+    "Transfer ownership of an ENS name. For unwrapped .eth names this hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
     { name: "to", type: "command", description: "Keyword `to`" },
@@ -65,15 +66,26 @@ export default defineCommand<Ens>({
         functionName: "ownerOf",
         args: [tokenId],
       });
-      // Transfers the registrant NFT; the new owner can reclaim() to also
-      // become the registry controller.
-      return [
-        encodeAction(
-          baseRegistrar,
-          "safeTransferFrom(address,address,uint256)",
-          [registrant, newOwner, tokenId],
-        ),
+      // The registrant may reclaim() before transferring, so hand over both
+      // roles: the Registry controller first, then the registrant NFT.
+      // Transferring to the current registrant is a pure reclaim — the NFT
+      // hop is skipped.
+      const actions = [
+        encodeAction(baseRegistrar, "reclaim(uint256,address)", [
+          tokenId,
+          newOwner,
+        ]),
       ];
+      if (String(newOwner).toLowerCase() !== registrant.toLowerCase()) {
+        actions.push(
+          encodeAction(
+            baseRegistrar,
+            "safeTransferFrom(address,address,uint256)",
+            [registrant, newOwner, tokenId],
+          ),
+        );
+      }
+      return actions;
     }
 
     return [
