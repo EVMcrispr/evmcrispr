@@ -177,6 +177,10 @@
         {
           "match": "=>",
           "name": "keyword.operator.arrow.evml"
+        },
+        {
+          "match": "(?<=\\s)\\$\\*?>(?=\\s)",
+          "name": "keyword.operator.arrow.evml"
         }
       ]
     },

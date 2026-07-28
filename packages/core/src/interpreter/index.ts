@@ -24,6 +24,7 @@ import type {
   NodesInterpreter,
   NodesInterpreters,
   Param,
+  TxCaptureNode,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
 import {
@@ -864,25 +865,44 @@ export function makeExecuteWithCaptures(
   // objects as their own result, which lands here a second time at the
   // outer command's boundary. Executing only unseen actions keeps the
   // bubbling (callers still receive the actions) without re-sending them.
+  // Receipts are recorded per action so a capture at an outer boundary
+  // (`if`/`loop`/def commands) can read them without re-executing.
   const executed = new WeakSet<Action>();
+  const receiptByAction = new WeakMap<Action, unknown>();
+
+  const executeOnce = async (
+    action: Action,
+    actionCallback: (action: Action) => Promise<unknown>,
+  ): Promise<unknown> => {
+    if (executed.has(action)) return receiptByAction.get(action);
+    executed.add(action);
+    const receipt = await actionCallback(action);
+    receiptByAction.set(action, receipt);
+    return receipt;
+  };
 
   return async (c, res, actionCallback) => {
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
     const hasErrorCaptures =
       c.errorCaptures != null && c.errorCaptures.length > 0;
+    const hasTxCaptures = c.txCaptures != null && c.txCaptures.length > 0;
 
     if (actionCallback) await stampChainId(res);
 
-    if (!hasEventCaptures && !hasErrorCaptures) {
+    if (!hasEventCaptures && !hasErrorCaptures && !hasTxCaptures) {
       if (res && actionCallback) {
         for (const action of res) {
-          if (executed.has(action)) continue;
-          executed.add(action);
-          await actionCallback(action);
+          await executeOnce(action, actionCallback);
         }
       }
       return res;
+    }
+
+    if (hasTxCaptures && hasErrorCaptures) {
+      throw new ErrorException(
+        "tx captures ($>, $*>) cannot be combined with error captures (-!>, -?!>) — a reverted transaction has no meaningful hash to capture",
+      );
     }
 
     if (!actionCallback) {
@@ -905,31 +925,78 @@ export function makeExecuteWithCaptures(
       }
     }
 
-    if (hasEventCaptures) {
-      const allLogs: any[] = [];
+    if (hasEventCaptures || hasTxCaptures) {
+      // Actions bubbled out of `if`/`loop`/def bodies already executed at
+      // an inner boundary — their recorded receipts are reused so every
+      // transaction is sent exactly once.
+      const receipts: any[] = [];
       for (const action of res) {
-        const receipt = await actionCallback(action);
-        if (receipt && typeof receipt === "object" && "logs" in receipt) {
-          allLogs.push(...(receipt as { logs: any[] }).logs);
-        }
+        receipts.push(await executeOnce(action, actionCallback));
       }
 
-      const abi = await tryLookupAbi(res);
-      await resolveEventCaptures(
-        { logs: allLogs },
-        abi,
-        c.eventCaptures as EventCaptureNode[],
-        bindings,
-        interpretNode,
-      );
+      if (hasEventCaptures) {
+        const allLogs: any[] = [];
+        for (const receipt of receipts) {
+          if (receipt && typeof receipt === "object" && "logs" in receipt) {
+            allLogs.push(...(receipt as { logs: any[] }).logs);
+          }
+        }
+        const abi = await tryLookupAbi(res);
+        await resolveEventCaptures(
+          { logs: allLogs },
+          abi,
+          c.eventCaptures as EventCaptureNode[],
+          bindings,
+          interpretNode,
+        );
+      }
+
+      if (hasTxCaptures) {
+        const hashes = receipts
+          .map((receipt) =>
+            receipt && typeof receipt === "object"
+              ? (receipt as { transactionHash?: string }).transactionHash
+              : undefined,
+          )
+          .filter((hash): hash is string => typeof hash === "string");
+        if (hashes.length === 0) {
+          throw new ErrorException(
+            "tx capture: the execution context returned no transaction receipts",
+          );
+        }
+        for (const capture of c.txCaptures as TxCaptureNode[]) {
+          // `$> $var` binds the last (primary) tx's hash; `$*> $var`
+          // binds every hash as an array.
+          bindings.setBinding(
+            `$${capture.variable}`,
+            capture.all ? hashes : hashes[hashes.length - 1],
+            BindingsSpace.USER,
+            true,
+            undefined,
+            true,
+          );
+        }
+      }
 
       return [];
     }
 
     // Error captures
+    // Error captures observe the send itself, so they can't apply to
+    // actions that already executed inside an `if`/`loop`/def body — a
+    // revert there would have propagated before reaching this boundary.
+    for (const action of res) {
+      if (executed.has(action)) {
+        throw new ErrorException(
+          "error captures are not supported on block commands (if/loop/def) — their transactions execute inside the block; capture on the inner commands instead",
+        );
+      }
+    }
+
     const abi = await tryLookupAbi(res);
     try {
       for (const action of res) {
+        executed.add(action);
         await actionCallback(action);
       }
       const required = (c.errorCaptures as ErrorCaptureNode[]).find(

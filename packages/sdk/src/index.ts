@@ -99,6 +99,7 @@ export type {
   StringLiteralNode,
   TerminalAction,
   TransactionAction,
+  TxCaptureNode,
   UserBinding,
   VariableIdentifierNode,
   WalletAction,

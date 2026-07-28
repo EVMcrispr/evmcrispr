@@ -346,6 +346,14 @@ describe("Analysis > semantic diagnostics", () => {
       expect(undef).to.have.length(0);
     });
 
+    it("does not flag a tx-capture variable used later", async () => {
+      const ds = await semantic(
+        "load stub\nstub:needtwo a b $> $tx $*> $txs\nprint $tx $txs",
+      );
+      const undef = ds.filter((d) => d.code === "undefined-variable");
+      expect(undef).to.have.length(0);
+    });
+
     it("does not flag module config variables", async () => {
       const ds = await semantic("print $stub:someconfig");
       expect(codes(ds)).to.not.include("undefined-variable");
@@ -705,6 +713,49 @@ print @x:whatever(5)`,
       const shadow = await semantic("load stub --from ipfs://QmSomeCid");
       expect(codes(shadow)).to.include("module-shadows-registered");
       expect(shadow[0].severity).to.equal("warning");
+    });
+  });
+  describe("capture structure", () => {
+    it("allows tx and event captures on if/loop", async () => {
+      const ifDs = await semantic("if true (\n  set $x 5\n) $> $tx");
+      expect(codes(ifDs)).to.not.include("capture-on-block-command");
+
+      const evDs = await semantic(
+        "loop 2 (\n  set $x 5\n) -> Transfer(address) [$to]",
+      );
+      expect(codes(evDs)).to.not.include("capture-on-block-command");
+    });
+
+    it("flags error captures on if/loop and def commands", async () => {
+      const ifDs = await semantic("if true (\n  set $x 5\n) -!> [$reason]");
+      expect(codes(ifDs)).to.include("capture-on-block-command");
+
+      const defDs = await semantic(
+        'def go "()" (\n  set $x 5\n)\ngo -!> [$reason]',
+      );
+      expect(codes(defDs)).to.include("capture-on-block-command");
+    });
+
+    it("does not flag captures on batch", async () => {
+      const ds = await semantic(
+        "load stub\nbatch (\n  stub:needtwo a b\n) $> $tx",
+      );
+      expect(codes(ds)).to.not.include("capture-on-block-command");
+    });
+
+    it("flags tx captures combined with error captures", async () => {
+      const ds = await semantic(
+        "load stub\nstub:needtwo a b $> $tx -!> [$reason]",
+      );
+      expect(codes(ds)).to.include("tx-capture-with-error-capture");
+    });
+
+    it("flags duplicate tx-capture forms", async () => {
+      const ds = await semantic("load stub\nstub:needtwo a b $> $a $> $b");
+      expect(codes(ds)).to.include("duplicate-tx-capture");
+
+      const ok = await semantic("load stub\nstub:needtwo a b $> $a $*> $b");
+      expect(codes(ok)).to.not.include("duplicate-tx-capture");
     });
   });
 });

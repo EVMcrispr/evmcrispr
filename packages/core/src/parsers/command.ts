@@ -6,6 +6,7 @@ import type {
   EventCaptureNode,
   Node,
   NodeParser,
+  TxCaptureNode,
 } from "@evmcrispr/sdk";
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
@@ -21,7 +22,11 @@ import {
   sequenceOf,
   str,
 } from "arcsecond";
-import { errorCaptureParser, eventCaptureParser } from "./capture";
+import {
+  errorCaptureParser,
+  eventCaptureParser,
+  txCaptureParser,
+} from "./capture";
 import { commentParser } from "./comment";
 
 import { argumentExpressionParser, expressionParser } from "./expression";
@@ -101,6 +106,10 @@ const errorCaptureArrowLookahead = lookAhead(
   sequenceOf([whitespace, choice([str("-?!>"), str("-!>")]), whitespace]),
 );
 
+const txCaptureArrowLookahead = lookAhead(
+  sequenceOf([whitespace, choice([str("$*>"), str("$>")]), whitespace]),
+);
+
 const isLastParameter = possibly(
   lookAhead(sequenceOf([optionalWhitespace, choice([endOfLine, endOfInput])])),
 );
@@ -148,7 +157,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               ),
             )
           ) {
-            return [module, name, [], [], [], []];
+            return [module, name, [], [], [], [], []];
           }
 
           do {
@@ -161,13 +170,16 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             }
 
             /**
-             * Check if there's a capture arrow (->, -!>, -?!>) ahead.
-             * If so, stop parsing args and move to capture parsing.
+             * Check if there's a capture arrow (->, -!>, -?!>, $>, $*>)
+             * ahead. If so, stop parsing args and move to capture parsing.
              */
             if (run(possibly(captureArrowLookahead))) {
               break;
             }
             if (run(possibly(errorCaptureArrowLookahead))) {
+              break;
+            }
+            if (run(possibly(txCaptureArrowLookahead))) {
               break;
             }
 
@@ -186,30 +198,50 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             }
           } while (!run(isLastParameter));
 
-          // Parse event capture clauses (-> EventName ...)
+          // Parse capture clauses in any textual order:
+          //   -> EventName ...   (event captures)
+          //   -!> / -?!> ...     (error captures)
+          //   $> $var / $*> $var (tx-hash captures)
           const eventCaptures: EventCaptureNode[] = [];
-          while (
-            run(possibly(lookAhead(sequenceOf([whitespace, str("->")]))))
-          ) {
-            run(whitespace);
-            const capture: EventCaptureNode = run(eventCaptureParser);
-            eventCaptures.push(capture);
-          }
-
-          // Parse error capture clauses (-!> or -?!> ErrorName ...)
           const errorCaptures: ErrorCaptureNode[] = [];
-          while (
-            run(
-              possibly(
-                lookAhead(
-                  sequenceOf([whitespace, choice([str("-?!>"), str("-!>")])]),
+          const txCaptures: TxCaptureNode[] = [];
+          for (;;) {
+            if (run(possibly(lookAhead(sequenceOf([whitespace, str("->")]))))) {
+              run(whitespace);
+              eventCaptures.push(run(eventCaptureParser));
+              continue;
+            }
+            if (
+              run(
+                possibly(
+                  lookAhead(
+                    sequenceOf([whitespace, choice([str("-?!>"), str("-!>")])]),
+                  ),
                 ),
-              ),
-            )
-          ) {
-            run(whitespace);
-            const capture: ErrorCaptureNode = run(errorCaptureParser);
-            errorCaptures.push(capture);
+              )
+            ) {
+              run(whitespace);
+              errorCaptures.push(run(errorCaptureParser));
+              continue;
+            }
+            if (
+              run(
+                possibly(
+                  lookAhead(
+                    sequenceOf([
+                      whitespace,
+                      choice([str("$*>"), str("$>")]),
+                      whitespace,
+                    ]),
+                  ),
+                ),
+              )
+            ) {
+              run(whitespace);
+              txCaptures.push(run(txCaptureParser));
+              continue;
+            }
+            break;
           }
 
           const args = commandArgsAndOpts.filter(
@@ -220,14 +252,30 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             (cArg) => cArg.type === NodeType.CommandOpt,
           ) as CommandOptNode[];
 
-          return [module, name, args, opts, eventCaptures, errorCaptures];
+          return [
+            module,
+            name,
+            args,
+            opts,
+            eventCaptures,
+            errorCaptures,
+            txCaptures,
+          ];
         }),
         ({
           data,
           index,
           result: [
             initialContext,
-            [module, name, args, opts, eventCaptures, errorCaptures],
+            [
+              module,
+              name,
+              args,
+              opts,
+              eventCaptures,
+              errorCaptures,
+              txCaptures,
+            ],
           ],
         }) => {
           const node: CommandExpressionNode = {
@@ -249,6 +297,10 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           const errCaptures = errorCaptures as ErrorCaptureNode[];
           if (errCaptures && errCaptures.length > 0) {
             node.errorCaptures = errCaptures;
+          }
+          const hashCaptures = txCaptures as TxCaptureNode[];
+          if (hashCaptures && hashCaptures.length > 0) {
+            node.txCaptures = hashCaptures;
           }
           return node;
         },

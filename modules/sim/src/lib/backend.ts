@@ -1,5 +1,6 @@
 import { type Action, ErrorException } from "@evmcrispr/sdk";
 import type { Transport } from "viem";
+import { keccak256, toHex } from "viem";
 
 export interface SimBackendOpts {
   upstreamRpcUrl: string;
@@ -16,6 +17,10 @@ export interface SimBackendOpts {
 export interface SyntheticReceipt {
   status: "success";
   blockNumber: bigint;
+  /** Deterministic pseudo-hash of the simulated transaction. Nothing is
+   * broadcast in-process, so this is an opaque identifier for tx captures
+   * (`> $var`) — it does not resolve on any RPC. */
+  transactionHash: `0x${string}`;
   logs: {
     address: `0x${string}`;
     topics: `0x${string}`[];
@@ -116,4 +121,32 @@ export async function fetchBlockTimestamp(
     );
   }
   return BigInt(block.timestamp);
+}
+
+/**
+ * Pseudo transaction hash for an in-process execution: keccak of the
+ * action fields plus a per-run counter, so repeated identical actions in
+ * one simulation still get distinct hashes.
+ */
+export function syntheticTxHash(
+  action: Action,
+  counter: number,
+): `0x${string}` {
+  const a = action as {
+    from?: string;
+    to?: string;
+    data?: string;
+    value?: bigint;
+  };
+  return keccak256(
+    toHex(
+      JSON.stringify({
+        from: a.from,
+        to: a.to,
+        data: a.data,
+        value: a.value !== undefined ? String(a.value) : undefined,
+        counter,
+      }),
+    ),
+  );
 }

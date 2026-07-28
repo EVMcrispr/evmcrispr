@@ -4,6 +4,7 @@ import type {
   EventCaptureNode,
   Node,
   NodeParser,
+  TxCaptureNode,
 } from "@evmcrispr/sdk";
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
 import {
@@ -388,4 +389,62 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
         return node;
       },
     ),
+);
+
+// ── Transaction-hash capture parsers ─────────────────────────────────
+
+/**
+ * Look-ahead that checks for a tx-capture arrow (`$>` or `$*>`) followed
+ * by whitespace, without consuming. The `$` prefix keeps every other use
+ * of `>` intact: the no-whitespace import rename (`@addr>@myAddr`) and
+ * infix comparison args like `assertions:assert-balance @me > 1e18`.
+ */
+export const txCaptureArrowLookahead = lookAhead(
+  sequenceOf([choice([str("$*>"), str("$>")]), whitespace]),
+);
+
+/**
+ * Matches a complete transaction-hash capture clause:
+ *   `$> $var`  — bind the LAST transaction's hash (the command's primary tx)
+ *   `$*> $var` — bind EVERY transaction hash as an array
+ *
+ * Examples:
+ *   `exec @token(DAI) transfer(@me 1e18) $> $tx`
+ *   `ens:register myname.eth @me 1y $*> $txs`
+ */
+export const txCaptureParser: NodeParser<TxCaptureNode> = locate<TxCaptureNode>(
+  coroutine((run) => {
+    const all: boolean = run(
+      choice([str("$*>").map(() => true), str("$>").map(() => false)]),
+    );
+    run(whitespace);
+
+    const variable: string = run(
+      captureVariableParser.errorMap((err) =>
+        buildParserError(
+          err,
+          CAPTURE_PARSER_ERROR,
+          "Expected a variable after the tx-capture arrow (e.g. $> $tx or $*> $txs)",
+        ),
+      ),
+    );
+
+    return [all, variable];
+  }).errorMap((err) =>
+    buildParserError(
+      err,
+      CAPTURE_PARSER_ERROR,
+      "Invalid tx capture. Syntax: $> $var (last tx hash) or $*> $var (all tx hashes)",
+    ),
+  ),
+  ({ data, index, result: [initialContext, [all, variable]] }) => ({
+    type: NodeType.TxCapture,
+    variable: variable as string,
+    all: all as boolean,
+    loc: createNodeLocation(initialContext, {
+      line: data.line,
+      index,
+      offset: data.offset,
+    }),
+  }),
 );

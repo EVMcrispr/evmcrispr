@@ -79,6 +79,18 @@ batch (
 ) -> Deposit(address indexed, uint) [_ $amount]
 ```
 
+A batch executes as one transaction, so a [tx capture](captures.md) on
+it binds a single hash for the whole bundle:
+
+```evml
+set $wxdai 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d
+
+batch (
+  exec $wxdai "deposit()" --value 0.001e18
+  exec $wxdai "withdraw(uint)" 0.001e18
+) $> $tx
+```
+
 ## Error Captures on Batches
 
 You can capture revert errors from the entire batch. All three forms from

@@ -5,6 +5,7 @@ import { runParser } from "@evmcrispr/test-utils/evml";
 import {
   errorCaptureParser,
   eventCaptureParser,
+  txCaptureParser,
 } from "../../../src/parsers/capture";
 import { commandExpressionParser } from "../../../src/parsers/command";
 import { parseScript } from "../../../src/parsers/script";
@@ -626,6 +627,109 @@ describe("Parsers - error capture", () => {
         boolVar: "reverted",
       });
       expect(result.errorCaptures[0].errorName).to.be.undefined;
+    });
+  });
+});
+
+describe("Parsers - tx capture", () => {
+  describe("txCaptureParser", () => {
+    it("should parse a last-hash capture", () => {
+      const result = runParser(txCaptureParser, "$> $tx");
+      expect(result).to.deep.include({
+        type: "TxCapture",
+        variable: "tx",
+        all: false,
+      });
+    });
+
+    it("should parse an all-hashes capture", () => {
+      const result = runParser(txCaptureParser, "$*> $txs");
+      expect(result).to.deep.include({
+        type: "TxCapture",
+        variable: "txs",
+        all: true,
+      });
+    });
+
+    it("should allow dashes and underscores in the variable", () => {
+      const result = runParser(txCaptureParser, "$> $my-tx_hash");
+      expect(result).to.deep.include({ variable: "my-tx_hash", all: false });
+    });
+
+    it("should fail without a variable", () => {
+      const result = runParser(txCaptureParser, "$> 5");
+      expect(String(result)).to.include("Invalid tx capture");
+    });
+  });
+
+  describe("command integration", () => {
+    it("should attach a tx capture to a command", () => {
+      const command = runParser(
+        commandExpressionParser,
+        "exec 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d deposit() $> $tx",
+      ) as CommandExpressionNode;
+      expect(command.txCaptures).to.have.length(1);
+      expect(command.txCaptures?.[0]).to.deep.include({
+        variable: "tx",
+        all: false,
+      });
+      expect(command.eventCaptures).to.be.undefined;
+    });
+
+    it("should parse tx and event captures in either order", () => {
+      for (const tail of [
+        "$> $tx -> Transfer(address) [$to]",
+        "-> Transfer(address) [$to] $> $tx",
+      ]) {
+        const command = runParser(
+          commandExpressionParser,
+          `exec 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d deposit() ${tail}`,
+        ) as CommandExpressionNode;
+        expect(command.txCaptures?.[0]).to.deep.include({
+          variable: "tx",
+          all: false,
+        });
+        expect(command.eventCaptures?.[0]?.eventName).to.equal("Transfer");
+      }
+    });
+
+    it("should parse both capture forms on one command", () => {
+      const command = runParser(
+        commandExpressionParser,
+        "exec 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d deposit() $> $tx $*> $txs",
+      ) as CommandExpressionNode;
+      expect(command.txCaptures).to.have.length(2);
+      expect(command.txCaptures?.map((t) => t.all)).to.deep.equal([
+        false,
+        true,
+      ]);
+    });
+
+    it("should not confuse import renames with tx captures", () => {
+      const { ast, errors } = parseScript("load ens [@addr>@myAddr]");
+      expect(errors).to.have.length(0);
+      const load = ast.body[0] as CommandExpressionNode;
+      expect(load.txCaptures).to.be.undefined;
+    });
+
+    it("should keep comparison operators as command arguments", () => {
+      // assertions-style infix comparison: the operand after `>` is a
+      // value, not a `$variable`, so it must stay an argument.
+      const { ast, errors } = parseScript(
+        'load assertions\nassertions:assert-balance @me > 1e18 "needs ETH"',
+      );
+      expect(errors).to.have.length(0);
+      const cmd = ast.body[1] as CommandExpressionNode;
+      expect(cmd.txCaptures).to.be.undefined;
+      expect(cmd.args).to.have.length(4);
+    });
+
+    it("should keep > inside helper parens as expression content", () => {
+      const { ast, errors } = parseScript("if @bool(1 > 0) (\n  set $x 5\n)");
+      expect(errors).to.have.length(0);
+      const cmd = ast.body[0] as CommandExpressionNode;
+      expect(cmd.name).to.equal("if");
+      expect(cmd.txCaptures).to.be.undefined;
     });
   });
 });

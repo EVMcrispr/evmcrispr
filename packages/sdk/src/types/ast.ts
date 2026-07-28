@@ -23,6 +23,7 @@ export enum NodeType {
   CommandOpt = "CommandOpt",
   EventCapture = "EventCapture",
   ErrorCapture = "ErrorCapture",
+  TxCapture = "TxCapture",
 }
 
 export type LiteralExpression =
@@ -156,6 +157,15 @@ export interface ErrorCaptureNode extends Node {
   boolVar?: string;
 }
 
+export interface TxCaptureNode extends Node {
+  type: NodeType.TxCapture;
+  /** Variable name (without $) the hash(es) bind to. */
+  variable: string;
+  /** `$*> $var` — capture every tx hash as an array. `$> $var` binds
+   *  the last (primary) transaction's hash only. */
+  all: boolean;
+}
+
 export interface CommandExpressionNode extends Node {
   type: NodeType.CommandExpression;
   module?: string;
@@ -164,6 +174,7 @@ export interface CommandExpressionNode extends Node {
   opts: CommandOptNode[];
   eventCaptures?: EventCaptureNode[];
   errorCaptures?: ErrorCaptureNode[];
+  txCaptures?: TxCaptureNode[];
 }
 
 export interface CommandOptNode extends Node {

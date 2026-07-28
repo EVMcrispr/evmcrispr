@@ -500,6 +500,9 @@ class SemanticAnalyzer {
       for (const n of names) into.add(`$${n}`);
       if ("boolVar" in cap && cap.boolVar) into.add(`$${cap.boolVar}`);
     }
+    for (const cap of c.txCaptures ?? []) {
+      into.add(`$${cap.variable}`);
+    }
   }
 
   #collectVariableDefs(
@@ -780,6 +783,8 @@ class SemanticAnalyzer {
       ? undefined
       : this.#meta.importedCommands.get(c.name);
     const owningModule = c.module ?? imported?.module ?? "std";
+
+    this.#checkCaptures(c, owningModule);
 
     // 0. `load <module>`: target must be registered; import list must be
     //    well-formed and name real exports. With `--from`, the first arg is
@@ -1603,6 +1608,59 @@ class SemanticAnalyzer {
   }
 
   // --- Shared helpers ------------------------------------------------------
+
+  /** Structural validation shared by all capture kinds (`->`, `-!>`, `$>`, `$*>`). */
+  #checkCaptures(c: CommandExpressionNode, owningModule: string): void {
+    const txCaps = c.txCaptures ?? [];
+    const hasCaptures =
+      (c.eventCaptures?.length ?? 0) > 0 ||
+      (c.errorCaptures?.length ?? 0) > 0 ||
+      txCaps.length > 0;
+    if (!hasCaptures) return;
+
+    // `if`/`loop` (and def commands) execute their inner transactions
+    // while interpreting the block. Event and tx captures still work —
+    // the interpreter reuses the recorded receipts — but error captures
+    // observe the send itself, which already happened: an inner revert
+    // propagates before the outer boundary is reached.
+    const isBlockish =
+      (owningModule === "std" &&
+        (c.name === "if" || c.name === "loop") &&
+        this.#blocks(c).length > 0) ||
+      (!c.module && this.#meta.defCommands.has(c.name));
+    if (isBlockish && (c.errorCaptures?.length ?? 0) > 0) {
+      this.#diagnostics.push(
+        diag(
+          c.errorCaptures?.[0] ?? c,
+          `Error captures are not supported on "${c.name}" — its transactions execute inside the block; capture on the inner commands instead.`,
+          "capture-on-block-command",
+        ),
+      );
+    }
+
+    if (txCaps.length > 0 && (c.errorCaptures?.length ?? 0) > 0) {
+      this.#diagnostics.push(
+        diag(
+          txCaps[0],
+          "Tx captures ($>, $*>) cannot be combined with error captures (-!>, -?!>) — a reverted transaction has no meaningful hash to capture.",
+          "tx-capture-with-error-capture",
+        ),
+      );
+    }
+
+    for (const all of [false, true]) {
+      const sameForm = txCaps.filter((t) => t.all === all);
+      if (sameForm.length > 1) {
+        this.#diagnostics.push(
+          diag(
+            sameForm[1],
+            `Duplicate "${all ? "$*>" : "$>"}" capture — each tx-capture form may appear at most once per command.`,
+            "duplicate-tx-capture",
+          ),
+        );
+      }
+    }
+  }
 
   #blocks(c: CommandExpressionNode): BlockExpressionNode[] {
     return c.args.filter(

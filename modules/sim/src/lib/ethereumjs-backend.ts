@@ -27,6 +27,7 @@ import {
   type SimBackend,
   type SimBackendOpts,
   type SyntheticReceipt,
+  syntheticTxHash,
 } from "./backend";
 
 /**
@@ -163,6 +164,8 @@ export async function createEthereumJSBackend(
     );
   }
 
+  let txCounter = 0;
+
   async function handleTransactionAction(
     action: Action,
   ): Promise<SyntheticReceipt | undefined> {
@@ -211,6 +214,7 @@ export async function createEthereumJSBackend(
     return {
       status: "success",
       blockNumber: currentBlockNumber,
+      transactionHash: syntheticTxHash(action, txCounter++),
       logs: (result.execResult.logs ?? []).map(
         ([address, topics, data], logIndex) => ({
           address: bytesToHex(address) as `0x${string}`,

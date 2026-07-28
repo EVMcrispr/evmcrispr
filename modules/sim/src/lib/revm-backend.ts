@@ -13,6 +13,7 @@ import {
   type SimBackend,
   type SimBackendOpts,
   type SyntheticReceipt,
+  syntheticTxHash,
 } from "./backend";
 import { loadRevm } from "./revm/load";
 
@@ -198,6 +199,8 @@ export async function createRevmBackend(
     throw new ErrorException(`Unsupported RPC method in revm mode: ${method}`);
   }
 
+  let txCounter = 0;
+
   async function handleTransactionAction(
     action: Action,
   ): Promise<SyntheticReceipt | undefined> {
@@ -229,6 +232,7 @@ export async function createRevmBackend(
     return {
       status: "success",
       blockNumber: fork.blockNumber(),
+      transactionHash: syntheticTxHash(action, txCounter++),
       logs: env.logs.map((log, logIndex) => ({ ...log, logIndex })),
     };
   }
