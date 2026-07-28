@@ -513,7 +513,7 @@ describe("Contracts > commands > verify", () => {
     expect(caught!.message).to.include("Daily rate limit exceeded");
   });
 
-  it("missing API key: throws a clear error before contacting Etherscan", async () => {
+  it("missing API key: mirror fetch works keyless (Blockscout) but submission throws a clear error", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
     try {
       const script = `load contracts\ncontracts:verify ${VERIFIED_ADDR} --mirror-chain 1`;

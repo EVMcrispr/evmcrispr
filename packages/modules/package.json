@@ -30,6 +30,7 @@
     "@evmcrispr/module-contracts": "*",
     "@evmcrispr/module-crypto": "*",
     "@evmcrispr/module-ens": "*",
+    "@evmcrispr/module-explorer": "*",
     "@evmcrispr/module-giveth": "*",
     "@evmcrispr/module-governor": "*",
     "@evmcrispr/module-http": "*",

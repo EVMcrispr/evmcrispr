@@ -321,8 +321,9 @@ export default defineCommand<Contracts>({
   ],
   async run(module, { address }, { opts, interpreters }) {
     // Inside a sim:fork block verification becomes a local dry-run, which
-    // needs no Etherscan API key (mirror mode still does — it reads the
-    // source from Etherscan).
+    // needs no Etherscan API key. Mirror-mode *fetching* is also keyless
+    // now (Blockscout fallback); only the real Etherscan submission needs
+    // the key.
     const simulation = interpreters.simulation === true;
     const apiKey = readEtherscanApiKey();
 
@@ -364,12 +365,6 @@ export default defineCommand<Contracts>({
       | undefined;
     const isMirror =
       mirrorChainOpt !== undefined || mirrorAddressOpt !== undefined;
-
-    if (isMirror && !apiKey) {
-      throw new ErrorException(
-        "verify: VITE_ETHERSCAN_API_KEY env var is required",
-      );
-    }
 
     let sourceCode: string;
     let contractName: string;

@@ -150,7 +150,7 @@ const cctp: BridgeAdapter = {
 
     const dstChainId = CCTP_DOMAIN_TO_CHAIN[decoded.destinationDomain];
     if (dstChainId === undefined) return "unknown";
-    const { clientFor } = await import("../utils/clients");
+    const { clientFor } = await import("@evmcrispr/sdk");
     const dstClient = await clientFor(module, dstChainId);
     const used = await dstClient.readContract({
       address: CCTP_MESSAGE_TRANSMITTER_V2,

@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   encodeFunctionData,
@@ -14,7 +14,6 @@ import {
   LZ_ENDPOINT_V2,
   OFT_BOOK,
 } from "../addresses";
-import { clientFor } from "../utils/clients";
 import {
   bytes32ToAddress,
   decodeLzPacket,

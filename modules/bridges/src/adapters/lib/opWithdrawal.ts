@@ -1,11 +1,10 @@
 import type { Action, Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex, PublicClient, TransactionReceipt } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 import { publicActionsL1, publicActionsL2 } from "viem/op-stack";
 import { OP_ROUTES } from "../../addresses";
-import { clientFor } from "../../utils/clients";
 
 /**
  * OP Stack L2 → L1 withdrawals: prove then finalize, using viem's op-stack

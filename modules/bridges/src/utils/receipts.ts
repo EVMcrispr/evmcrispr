@@ -1,8 +1,11 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import {
+  assertTxHash as assertHash,
+  clientFor,
+  ErrorException,
+} from "@evmcrispr/sdk";
 import type { Hex, Log } from "viem";
 import { SUPPORTED_CHAINS } from "../addresses";
-import { clientFor } from "./clients";
 
 export interface SourceTx {
   chainId: number;
@@ -11,12 +14,10 @@ export interface SourceTx {
 }
 
 export function assertTxHash(value: string): Hex {
-  if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
-    throw new ErrorException(
-      `<transferId> must be the source-chain transaction hash of the bridge (0x + 64 hex chars), got ${value}`,
-    );
-  }
-  return value as Hex;
+  return assertHash(
+    value,
+    "<transferId> must be the source-chain transaction hash of the bridge",
+  );
 }
 
 /**

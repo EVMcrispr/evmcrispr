@@ -1,5 +1,5 @@
 import type { Action, Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Hex, Log } from "viem";
 import {
   decodeEventLog,
@@ -9,7 +9,6 @@ import {
 } from "viem";
 import { arbitrum, mainnet } from "viem/chains";
 import { ARB_NODE_INTERFACE, ARB_OUTBOX } from "../../addresses";
-import { clientFor } from "../../utils/clients";
 
 /**
  * Arbitrum L2 → L1 withdrawals: build the outbox merkle proof through the

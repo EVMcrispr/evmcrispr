@@ -1,6 +1,7 @@
 import { getAddress } from "viem";
 
 import type { Address } from "../types";
+import { fetchBlockscoutSource } from "./blockscout";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,9 +14,10 @@ import type { Address } from "../types";
  * Sourced from Etherscan's V2 unified API (`https://api.etherscan.io/v2`),
  * which covers all supported chains via a single `chainid` parameter and
  * requires an API key (free tier: 5 req/s, 100k req/day). The key is
- * read from `VITE_ETHERSCAN_API_KEY` — when it isn't set, this module
- * silently returns `null` for every lookup so unverified UI degrades
- * gracefully.
+ * read from `VITE_ETHERSCAN_API_KEY`. When it isn't set — or Etherscan
+ * comes up empty — the chain's Blockscout instance (keyless, see
+ * `blockscout.ts`) is tried as a fallback; lookups only return `null`
+ * when both sources miss, so unverified UI degrades gracefully.
  */
 export interface VerifiedContractInfo {
   /** Contract name as published to Etherscan. */
@@ -165,18 +167,23 @@ function normalizeLicense(raw: string | undefined): string | undefined {
   return raw;
 }
 
-function parseEtherscan(
+/** Pull the single verified entry out of a `getsourcecode` envelope, or
+ * `null` for unverified contracts (status "1" but `ABI === "Contract
+ * source code not verified"` and no `ContractName`). */
+function extractEntry(
   res: EtherscanSourceResponse,
-): VerifiedContractInfo | null {
+): EtherscanSourceResult | null {
   if (res.status !== "1" || !Array.isArray(res.result) || !res.result[0]) {
     return null;
   }
   const entry = res.result[0];
-  const name = entry.ContractName?.trim();
-  // Unverified contracts come back with status "1" but ABI === "Contract
-  // source code not verified" and no ContractName.
-  if (!name || entry.ABI === "Contract source code not verified") return null;
+  if (!entry.ContractName?.trim()) return null;
+  if (entry.ABI === "Contract source code not verified") return null;
+  return entry;
+}
 
+function entryToInfo(entry: EtherscanSourceResult): VerifiedContractInfo {
+  const name = entry.ContractName?.trim() ?? "";
   const optimizationUsed = entry.OptimizationUsed === "1";
   const runs = optimizationUsed ? Number(entry.Runs ?? 0) || 0 : 0;
   const isProxy = entry.Proxy === "1";
@@ -202,26 +209,60 @@ function parseEtherscan(
   };
 }
 
+/** Fetch a verified entry from Etherscan V2. Returns `null` when the key
+ * is unset, the contract is unverified, the chain is unsupported, or the
+ * request failed — callers fall back to Blockscout. */
+async function fetchEtherscanEntry(
+  chainId: number,
+  address: Address,
+): Promise<EtherscanSourceResult | null> {
+  const apiKey = readEtherscanApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(ETHERSCAN_V2_URL);
+    url.searchParams.set("chainid", String(chainId));
+    url.searchParams.set("module", "contract");
+    url.searchParams.set("action", "getsourcecode");
+    url.searchParams.set("address", getAddress(address));
+    url.searchParams.set("apikey", apiKey);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const json = (await res.json()) as EtherscanSourceResponse;
+    return extractEntry(json);
+  } catch {
+    return null;
+  }
+}
+
+/** Etherscan first (when a key is configured), then the chain's Blockscout
+ * instance — both normalized to the Etherscan result shape. */
+async function fetchVerifiedEntry(
+  chainId: number,
+  address: Address,
+): Promise<EtherscanSourceResult | null> {
+  return (
+    (await fetchEtherscanEntry(chainId, address)) ??
+    fetchBlockscoutSource(chainId, getAddress(address))
+  );
+}
+
 /**
  * Fetch verified-contract metadata for the given chain.
  *
- * Uses Etherscan's V2 unified endpoint and the `VITE_ETHERSCAN_API_KEY`
- * env var. Successful and `null` responses are cached in-memory for
- * a few minutes, and concurrent calls for the same `(chainId, address)`
- * are deduped.
+ * Tries Etherscan's V2 unified endpoint (with `VITE_ETHERSCAN_API_KEY`),
+ * falling back to the chain's Blockscout instance, which needs no key.
+ * Successful and `null` responses are cached in-memory for a few minutes,
+ * and concurrent calls for the same `(chainId, address)` are deduped.
  *
- * Returns `null` when:
- *  - `VITE_ETHERSCAN_API_KEY` is not set.
- *  - The contract is not verified on Etherscan.
- *  - Etherscan doesn't support the chain or rate-limited the request.
+ * Returns `null` when the contract is verified on neither source (or
+ * neither source is reachable/configured for the chain).
  */
 export async function fetchVerifiedContract(
   chainId: number,
   address: Address,
 ): Promise<VerifiedContractInfo | null> {
-  const apiKey = readEtherscanApiKey();
-  if (!apiKey) return null;
-
   const key = makeKey(chainId, address);
 
   const cached = readCache(key);
@@ -231,21 +272,8 @@ export async function fetchVerifiedContract(
   if (existing) return existing;
 
   const promise = (async (): Promise<VerifiedContractInfo | null> => {
-    try {
-      const url = new URL(ETHERSCAN_V2_URL);
-      url.searchParams.set("chainid", String(chainId));
-      url.searchParams.set("module", "contract");
-      url.searchParams.set("action", "getsourcecode");
-      url.searchParams.set("address", getAddress(address));
-      url.searchParams.set("apikey", apiKey);
-
-      const res = await fetch(url.toString());
-      if (!res.ok) return null;
-      const json = (await res.json()) as EtherscanSourceResponse;
-      return parseEtherscan(json);
-    } catch {
-      return null;
-    }
+    const entry = await fetchVerifiedEntry(chainId, address);
+    return entry ? entryToInfo(entry) : null;
   })();
 
   inflight.set(key, promise);
@@ -265,49 +293,23 @@ export async function fetchVerifiedContract(
 
 /**
  * Fetch the **complete** verified-contract payload for the given chain
- * and address. Returns the raw `EtherscanSourceResult` Etherscan ships
- * back, including `SourceCode`, `ConstructorArguments`, `EVMVersion`,
- * `Library`, and `LicenseType` — fields the slim `fetchVerifiedContract`
- * doesn't expose.
+ * and address. Returns the raw `EtherscanSourceResult` shape, including
+ * `SourceCode`, `ConstructorArguments`, `EVMVersion`, `Library`, and
+ * `LicenseType` — fields the slim `fetchVerifiedContract` doesn't expose.
+ * Tries Etherscan first, then the chain's Blockscout instance (whose
+ * response is normalized into the same shape, multi-file sources
+ * included).
  *
- * Returns `null` under the same conditions as `fetchVerifiedContract`
- * (no API key, contract not verified, network error, etc.). This call
- * is **uncached** because the response can be large (full source code)
- * and is typically only read once, when a user explicitly invokes
+ * Returns `null` when neither source has the contract. This call is
+ * **uncached** because the response can be large (full source code) and
+ * is typically only read once, when a user explicitly invokes
  * `verify --mirror-chain ...`.
  */
 export async function fetchVerifiedContractFull(
   chainId: number,
   address: Address,
 ): Promise<EtherscanSourceResult | null> {
-  const apiKey = readEtherscanApiKey();
-  if (!apiKey) return null;
-
-  try {
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", "getsourcecode");
-    url.searchParams.set("address", getAddress(address));
-    url.searchParams.set("apikey", apiKey);
-
-    const res = await fetch(url.toString());
-    if (!res.ok) return null;
-    const json = (await res.json()) as EtherscanSourceResponse;
-    if (json.status !== "1" || !Array.isArray(json.result) || !json.result[0]) {
-      return null;
-    }
-    const entry = json.result[0];
-    if (
-      !entry.ContractName ||
-      entry.ABI === "Contract source code not verified"
-    ) {
-      return null;
-    }
-    return entry;
-  } catch {
-    return null;
-  }
+  return fetchVerifiedEntry(chainId, address);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   decodeEventLog,
@@ -15,7 +15,6 @@ import {
   CCIP_SELECTOR_TO_CHAIN,
   CCIP_SELECTORS,
 } from "../addresses";
-import { clientFor } from "../utils/clients";
 import type { SourceTx } from "../utils/receipts";
 import type {
   BridgeAdapter,

@@ -1,7 +1,8 @@
-import type { Address, Param } from "@evmcrispr/sdk";
 import type { AbiParameter, PublicClient } from "viem";
 import { createPublicClient, getAddress } from "viem";
 import { mainnet } from "viem/chains";
+import type { Address } from "../types";
+import type { Param } from "./encoders";
 
 /**
  * Render a bigint as an EVML number literal, compacting only to the eth
