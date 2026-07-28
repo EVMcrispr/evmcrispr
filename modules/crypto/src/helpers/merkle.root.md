@@ -44,7 +44,7 @@ print "Transfer root:" @crypto:merkle.root([$transferId] "unsorted")
 - **`unsorted` mode** hashes pairs positionally (left ++ right) and pairs a
   trailing odd node with itself; verification folds the leaf index one bit per
   sibling, like Optimism/Hop `Lib_MerkleTree.verify`.
-- The leaves are used as-is: hash them first (e.g. with `@id` or
+- The leaves are used as-is: hash them first (e.g. with `@hash` or
   `@abi.encodePacked`) if they are not already bytes32 digests.
 
 ## See Also

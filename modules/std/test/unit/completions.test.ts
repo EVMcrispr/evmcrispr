@@ -454,7 +454,7 @@ describe("Completions – std helpers", () => {
       }
       // Non-address helpers should be excluded
       expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
+      expect(hasLabel(helperItems, "@hash")).to.be.false;
       expect(hasLabel(helperItems, "@ipfs")).to.be.false;
       expect(hasLabel(helperItems, "@abi.encodeCall")).to.be.false;
     });
@@ -491,7 +491,7 @@ describe("Completions – std helpers", () => {
       }
       expect(hasLabel(helperItems, "@me")).to.be.false;
       expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
+      expect(hasLabel(helperItems, "@hash")).to.be.false;
     });
 
     it("exec $c f(bool) <cursor> should show bool-compatible helpers", async () => {
@@ -758,9 +758,9 @@ describe("Completions – std helpers", () => {
       }
     });
 
-    // @id(string)  →  string-compatible helpers
-    it("@id(<cursor>) should show string-compatible completions", async () => {
-      const { script, position } = helperPos("set $x @id(", ")");
+    // @hash(string)  →  string-compatible helpers
+    it("@hash(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @hash(", ")");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of STRING_HELPERS) {

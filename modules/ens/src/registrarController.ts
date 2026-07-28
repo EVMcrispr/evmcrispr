@@ -41,7 +41,7 @@ export function buildRegistration(
   const secret = opts.secret;
   if (!secret) {
     throw new ErrorException(
-      'missing --secret; generate one once (e.g. @id("my secret phrase")) and reuse the same value across the commit and reveal steps',
+      'missing --secret; generate one once (e.g. @hash("my secret phrase")) and reuse the same value across the commit and reveal steps',
     );
   }
   return {

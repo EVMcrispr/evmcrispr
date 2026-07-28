@@ -501,7 +501,7 @@ describe("Completions – aragonos helpers", () => {
         expect(hasLabel(helperItems, h)).to.be.true;
       }
       expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
+      expect(hasLabel(helperItems, "@hash")).to.be.false;
     });
 
     it("exec $c f(uint256) <cursor> (number context) should NOT include aragonos helpers", async () => {

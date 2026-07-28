@@ -44,7 +44,7 @@ load lang
 load ens
 sim:fork --using anvil (
   sim:set-balance @me 100e18
-  ens:register ${NAME}.eth @me 1y --secret @id("transfer fork test")
+  ens:register ${NAME}.eth @me 1y --secret @hash("transfer fork test")
   set $node @ens:namehash("${NAME}.eth")
   set $tokenId @num(@ens:labelhash("${NAME}"))
   set $controller @get(${REGISTRY} "owner(bytes32)(address)" $node)

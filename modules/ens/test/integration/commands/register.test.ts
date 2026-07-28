@@ -9,7 +9,7 @@ describeCommand("register", {
     {
       name: "should fail on unsupported chains",
       script:
-        'ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @id("my secret")',
+        'ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret")',
       error: "not available on chain",
     },
     {
@@ -20,19 +20,19 @@ describeCommand("register", {
     {
       name: "should fail on invalid --step values",
       script:
-        'ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @id("my secret") --step only-dance',
+        'ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret") --step only-dance',
       error: "invalid --step",
     },
     {
       name: "should not be batchable with the default commit-wait-reveal flow",
       script:
-        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @id("my secret")\n)',
+        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret")\n)',
       error: "includes a wait step and cannot be batched",
     },
     {
       name: "should not be batchable with --step only-commit-and-wait",
       script:
-        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @id("my secret") --step only-commit-and-wait\n)',
+        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret") --step only-commit-and-wait\n)',
       error: "includes a wait step and cannot be batched",
     },
     {
@@ -40,7 +40,7 @@ describeCommand("register", {
       // fails on the unsupported test chain instead of the batch error.
       name: "should pass the batchable gate with --step only-commit",
       script:
-        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @id("my secret") --step only-commit\n)',
+        'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret") --step only-commit\n)',
       error: "not available on chain",
     },
   ],

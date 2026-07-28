@@ -49,7 +49,7 @@ acl:grant 42 on $manager to 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 --delay 1
 
 - String roles target AccessControl `grantRole(bytes32,address)`: the name is
   hashed with keccak256 (so `MINTER_ROLE` becomes
-  `@id(MINTER_ROLE)`), `DEFAULT_ADMIN_ROLE` maps to `0x00…00`, and a `0x…`
+  `@hash(MINTER_ROLE)`), `DEFAULT_ADMIN_ROLE` maps to `0x00…00`, and a `0x…`
   bytes32 value passes through untouched.
 - Numeric roles target AccessManager `grantRole(uint64,address,uint32)`.
   `ADMIN_ROLE` and `PUBLIC_ROLE` are accepted as aliases for `0` and
