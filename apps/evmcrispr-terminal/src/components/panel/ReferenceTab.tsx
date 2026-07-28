@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   type ConfigEntry,
+  experimentalModules,
   moduleConfigs,
   moduleNames,
   type ReferenceEntry,
@@ -330,6 +331,9 @@ export function ReferenceTab() {
           <div key={mod} className="mb-3">
             <h3 className="text-xs font-head uppercase text-foreground/40 px-3 py-1">
               {mod}
+              {experimentalModules.has(mod) && (
+                <span title="Experimental"> ⚗️</span>
+              )}
             </h3>
             {entries.map((e) => (
               <ReferenceItem

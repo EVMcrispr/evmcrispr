@@ -1,11 +1,13 @@
 ---
 title: "@ens:fuses.decode"
 experimental: true
+sidebar:
+  label: "@ens:fuses.decode ⚗️"
 ---
 
 Decode a NameWrapper fuse bitmap into its fuse names.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `array`
 

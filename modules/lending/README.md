@@ -2,7 +2,7 @@
 
 Lending markets: supply, withdraw, borrow and repay (with `max` sugar for dust-exact debt repayment) with automatic approvals, plus health-factor, APY, max-borrow and debt helpers. Protocol selection via --using (Aave v3, Spark, Compound v3).
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load lending

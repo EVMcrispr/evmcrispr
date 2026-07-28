@@ -1,11 +1,13 @@
 ---
 title: "ens:unwrap"
 experimental: true
+sidebar:
+  label: "ens:unwrap ⚗️"
 ---
 
 Unwrap an ENS name from the NameWrapper.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ## Syntax
 

@@ -103,6 +103,7 @@ export {
   SHARE_FALLBACK_SCRIPT,
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
+  transformExperimentalMd,
   unsupportedMinVersion,
 } from "@evmcrispr/sdk";
 export { getSemanticDiagnostics } from "./analysis";

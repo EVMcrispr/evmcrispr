@@ -2,7 +2,7 @@
 
 Interact with Aragon OSx DAOs: connect to a DAO, manage permissions, route actions through governance plugins (Admin, Multisig, Token Voting, Staged Proposal Processor) as proposals, install, upgrade and uninstall plugins via the Plugin Setup Processor, and create new DAOs.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load aragonosx

@@ -17,6 +17,7 @@ export function ReferenceItem({
         <span className="font-mono text-lg text-foreground truncate">
           {entry.kind === "helper" ? `@${entry.name}` : entry.name}
         </span>
+        {entry.experimental && <span title="Experimental">⚗️</span>}
         <span
           className={`text-sm ${entry.kind === "command" ? "text-evm-blue-300" : "text-evm-orange-300"}`}
         >

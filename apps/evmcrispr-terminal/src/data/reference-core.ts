@@ -5,6 +5,8 @@ export type ReferenceEntry = {
   kind: "command" | "helper";
   module: string;
   description: string;
+  /** Item-level experimental flag (module-level is marked on the group). */
+  experimental?: boolean;
   returnType?: string;
   argDefs?: Array<{
     name: string;
@@ -94,6 +96,7 @@ export function buildReferenceEntries(
         kind: "command" as const,
         module: moduleName,
         description: entry.description ?? "",
+        experimental: entry.experimental || undefined,
         loadDocs: () => loadDoc(moduleName, "command", name).catch(() => ""),
       }));
 
@@ -104,6 +107,7 @@ export function buildReferenceEntries(
         kind: "helper" as const,
         module: moduleName,
         description: entry.description ?? "",
+        experimental: entry.experimental || undefined,
         returnType: Array.isArray(entry.returnType)
           ? entry.returnType.join(" | ")
           : entry.returnType,

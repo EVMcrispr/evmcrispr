@@ -1,11 +1,13 @@
 ---
 title: "@contracts:solidity.contract"
 experimental: true
+sidebar:
+  label: "@contracts:solidity.contract ⚗️"
 ---
 
 Compile Solidity source (inline text or a http/ipfs URL) and return the qualified contract name (`File.sol:Contract`), ready for `verify --contract-name`. Pass the same options as the matching @solidity call so the cached compile is reused.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `string`
 

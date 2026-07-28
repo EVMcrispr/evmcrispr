@@ -2,7 +2,7 @@
 
 Token swaps across DEXes: exact-in and exact-out swaps with automatic approvals, wrap/unwrap, quotes and prices, and venue selection via --using.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load swaps

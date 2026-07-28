@@ -2,7 +2,7 @@
 
 Cross-chain bridging: send tokens to another chain over CCTP, Across, LayerZero, CCIP or the canonical bridge, with fees, transfer status and claims. Bridges auto-relay inside sim:fork, so a whole cross-chain script can be simulated end to end.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load bridges

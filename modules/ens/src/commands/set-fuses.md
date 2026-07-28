@@ -1,11 +1,13 @@
 ---
 title: "ens:set-fuses"
 experimental: true
+sidebar:
+  label: "ens:set-fuses ⚗️"
 ---
 
 Burn NameWrapper fuses on a wrapped ENS name.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ## Syntax
 

@@ -1,11 +1,13 @@
 ---
 title: "@ens:fuses"
 experimental: true
+sidebar:
+  label: "@ens:fuses ⚗️"
 ---
 
 Combine NameWrapper fuse names into their uint32 bitmap.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `number`
 

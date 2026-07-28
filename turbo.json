@@ -40,6 +40,12 @@
       "env": ["VITE_PUBLIC_EXPERIMENTAL"],
       "dependsOn": ["^build", "//#generate-docs"]
     },
+    "evmcrispr-website#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "dependsOn": ["//#generate-docs"]
+    },
     "evmcrispr-website#type-check": {
       "dependsOn": ["^types"]
     },

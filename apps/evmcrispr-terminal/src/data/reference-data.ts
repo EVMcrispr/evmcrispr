@@ -1,6 +1,7 @@
 // Auto-discovers every module in modules/ via import.meta.glob, so adding a
 // module requires no edits here. Vite-only — bun tests must import
 // reference-core.ts instead (import.meta.glob is a Vite macro).
+import { transformExperimentalMd } from "@evmcrispr/core";
 import {
   buildModuleConfigs,
   buildReferenceEntries,
@@ -55,7 +56,13 @@ function loadDoc(
 ): Promise<string> {
   const dir = kind === "command" ? "commands" : "helpers";
   const key = `../../../../modules/${module}/src/${dir}/${name}.md`;
-  return docFiles[key]?.() ?? Promise.resolve("");
+  // Committed docs are always full; resolve `:::experimental` blocks and
+  // drop ⚗️-marked table rows (experimental options) for stable builds.
+  return (
+    docFiles[key]?.().then((md) =>
+      transformExperimentalMd(md, experimentalOn),
+    ) ?? Promise.resolve("")
+  );
 }
 
 export const referenceEntries: ReferenceEntry[] = buildReferenceEntries(
@@ -66,6 +73,11 @@ export const referenceEntries: ReferenceEntry[] = buildReferenceEntries(
 
 /** All unique module names, in display order. */
 export const moduleNames = modules.map((m) => m.name);
+
+/** Modules that are experimental as a whole (marked ⚗️ in the panel). */
+export const experimentalModules = new Set(
+  modules.filter((m) => m.experimental === true).map((m) => m.name),
+);
 
 /** Fast lookup sets for cursor detection. */
 export const commandNames = new Set(

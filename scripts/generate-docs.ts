@@ -17,6 +17,11 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { sortModuleNames } from "../packages/modules/src/order";
+import {
+  EXPERIMENTAL_BADGE,
+  EXPERIMENTAL_MARKER,
+  transformExperimentalMd,
+} from "../packages/sdk/src/utils/experimental";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -26,9 +31,6 @@ const ROOT = resolve(import.meta.dirname, "..");
 const EXPERIMENTAL_ON =
   process.env.VITE_PUBLIC_EXPERIMENTAL === "true" ||
   process.env.VITE_PUBLIC_EXPERIMENTAL === "1";
-
-const EXPERIMENTAL_BADGE =
-  "**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.";
 
 // ── Module registry ──────────────────────────────────────────────────
 
@@ -519,6 +521,24 @@ function stripExamplesSection(handWritten: string): string {
 
 const HAND_WRITTEN_MARKER = "<!-- HAND-WRITTEN -->";
 
+/** Experimental marker appended to names in sidebar labels and tables. */
+const EXP_CHIP = ` ${EXPERIMENTAL_MARKER}`;
+
+/** Frontmatter for a command/helper page: experimental items get the marker
+ *  in their sidebar label (inside an experimental module the group label
+ *  already carries it, so entry labels stay clean). */
+function titleFrontmatter(label: string, itemExperimental: boolean): string[] {
+  const lines = [`title: "${label}"`];
+  if (itemExperimental) {
+    lines.push(
+      "experimental: true",
+      "sidebar:",
+      `  label: "${label}${EXP_CHIP}"`,
+    );
+  }
+  return lines;
+}
+
 function preserveHandWritten(existingPath: string): string {
   if (!existsSync(existingPath)) return "";
   const content = readFileSync(existingPath, "utf-8");
@@ -535,8 +555,7 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
 
   const lines: string[] = [];
   lines.push(`---`);
-  lines.push(`title: "${fullName}"`);
-  if (cmd.experimental) lines.push("experimental: true");
+  lines.push(...titleFrontmatter(fullName, cmd.experimental));
   lines.push(`---`);
   lines.push("");
   lines.push(cmd.description || "*No description available.*");
@@ -586,9 +605,9 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("| Name | Type | Description |");
     lines.push("|------|------|-------------|");
     for (const opt of cmd.optDefs) {
-      const suffix = opt.experimental ? " *(experimental)*" : "";
+      const chip = opt.experimental ? EXP_CHIP : "";
       lines.push(
-        `| \`--${opt.name}\` | \`${opt.type}\` | ${opt.description ?? ""}${suffix} |`,
+        `| \`--${opt.name}\`${chip} | \`${opt.type}\` | ${opt.description ?? ""} |`,
       );
     }
     lines.push("");
@@ -653,8 +672,7 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
 
   const lines: string[] = [];
   lines.push(`---`);
-  lines.push(`title: "@${fullName}"`);
-  if (helper.experimental) lines.push("experimental: true");
+  lines.push(...titleFrontmatter(`@${fullName}`, helper.experimental));
   lines.push(`---`);
   lines.push("");
   lines.push(helper.description || "*No description available.*");
@@ -838,8 +856,8 @@ function generateModuleIndex(
     lines.push("|---------|-------------|");
     for (const cmd of commands) {
       const link = `[${mod.prefix}${cmd.name}](${commandLink(cmd.name)})`;
-      const suffix = cmd.experimental ? " *(experimental)*" : "";
-      lines.push(`| ${link} | ${cmd.description}${suffix} |`);
+      const chip = cmd.experimental ? EXP_CHIP : "";
+      lines.push(`| ${link}${chip} | ${cmd.description} |`);
     }
     lines.push("");
   }
@@ -854,9 +872,9 @@ function generateModuleIndex(
         ? h.returnType.join(" \\| ")
         : h.returnType;
       const link = `[@${mod.prefix}${h.name}](${helperLink(h.name)})`;
-      const suffix = h.experimental ? " *(experimental)*" : "";
+      const chip = h.experimental ? EXP_CHIP : "";
       lines.push(
-        `| ${link} | \`${returnTypeStr}\` | ${h.description}${suffix} |`,
+        `| ${link}${chip} | \`${returnTypeStr}\` | ${h.description} |`,
       );
     }
     lines.push("");
@@ -993,9 +1011,13 @@ function rmIfExists(path: string): void {
   } catch {}
 }
 
-// Generate llms-full.txt in website public/
+// Generate llms-full.txt in website public/. Committed docs keep their
+// `:::experimental` blocks verbatim; this env-dependent artifact resolves
+// them (strip when off, badge when on) via the shared sdk transform.
 const WEBSITE_PUBLIC = join(ROOT, "apps/evmcrispr-website/public");
-const llmsFull = allDocs.join("\n---\n\n");
+const llmsFull = allDocs
+  .map((doc) => transformExperimentalMd(doc, EXPERIMENTAL_ON))
+  .join("\n---\n\n");
 writeIfChanged(join(WEBSITE_PUBLIC, "llms-full.txt"), llmsFull);
 
 console.log(

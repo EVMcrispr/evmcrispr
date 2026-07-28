@@ -2,7 +2,7 @@
 
 Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load proxies

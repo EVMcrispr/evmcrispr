@@ -2,7 +2,7 @@
 
 Safe multisig operations: propose and execute transactions, manage owners and threshold, attach guards, and install Zodiac modules.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load safe

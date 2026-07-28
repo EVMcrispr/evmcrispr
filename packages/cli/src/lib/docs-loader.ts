@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { EXPERIMENTAL_MODULE_NAMES, MODULE_NAMES } from "@evmcrispr/modules";
-import { isExperimentalEnabled } from "@evmcrispr/sdk";
+import { isExperimentalEnabled, transformExperimentalMd } from "@evmcrispr/sdk";
 
 // Bundled docs (exists after `prebuild` or in published npm package)
 const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
@@ -102,10 +102,19 @@ function helpersDir(moduleName: string): string {
 
 // --- Public API ---
 
+/** Resolve `:::experimental` prose blocks for the current env. Bundled docs
+ *  carry them verbatim, so they must be stripped (or badge-annotated) at
+ *  read time. */
+function resolveExperimentalBlocks(content: string): string {
+  return transformExperimentalMd(content, isExperimentalEnabled());
+}
+
 export async function loadFullDocs(): Promise<string> {
   if (fullDocsCache) return fullDocsCache;
 
-  fullDocsCache = await readFile(fullDocsPath(), "utf-8");
+  fullDocsCache = resolveExperimentalBlocks(
+    await readFile(fullDocsPath(), "utf-8"),
+  );
   return fullDocsCache;
 }
 
@@ -116,7 +125,9 @@ export async function loadModuleDocs(
   if (moduleDocsCache.has(moduleName)) return moduleDocsCache.get(moduleName)!;
 
   try {
-    const content = await readFile(moduleDocsPath(moduleName), "utf-8");
+    const content = resolveExperimentalBlocks(
+      await readFile(moduleDocsPath(moduleName), "utf-8"),
+    );
     moduleDocsCache.set(moduleName, content);
     return content;
   } catch {
@@ -132,11 +143,12 @@ export async function loadCommandDocs(
   if (commandDocsCache.has(key)) return commandDocsCache.get(key)!;
 
   try {
-    const content = await readFile(
+    const raw = await readFile(
       commandDocsPath(moduleName, commandName),
       "utf-8",
     );
-    if (isHiddenDoc(content)) return null;
+    if (isHiddenDoc(raw)) return null;
+    const content = resolveExperimentalBlocks(raw);
     commandDocsCache.set(key, content);
     return content;
   } catch {
@@ -152,11 +164,9 @@ export async function loadHelperDocs(
   if (helperDocsCache.has(key)) return helperDocsCache.get(key)!;
 
   try {
-    const content = await readFile(
-      helperDocsPath(moduleName, helperName),
-      "utf-8",
-    );
-    if (isHiddenDoc(content)) return null;
+    const raw = await readFile(helperDocsPath(moduleName, helperName), "utf-8");
+    if (isHiddenDoc(raw)) return null;
+    const content = resolveExperimentalBlocks(raw);
     helperDocsCache.set(key, content);
     return content;
   } catch {

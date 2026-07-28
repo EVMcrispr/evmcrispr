@@ -4,7 +4,11 @@ import type { CommandExpressionNode, NodesInterpreters } from "../../src/types";
 import { defineCommand } from "../../src/utils/defineCommand";
 import { defineHelper } from "../../src/utils/defineHelper";
 import { defineModule } from "../../src/utils/defineModule";
-import { isExperimentalEnabled } from "../../src/utils/experimental";
+import {
+  EXPERIMENTAL_BADGE,
+  isExperimentalEnabled,
+  transformExperimentalMd,
+} from "../../src/utils/experimental";
 
 const savedEnv = process.env.VITE_PUBLIC_EXPERIMENTAL;
 const setEnv = (value: string | undefined) => {
@@ -139,5 +143,60 @@ describe("defineModule experimental filtering", () => {
     expect(Object.keys(mod.helpers).sort()).toEqual(["secret", "visible"]);
     expect(mod.experimentalCommands).toEqual([]);
     expect(mod.experimentalHelpers).toEqual([]);
+  });
+});
+
+describe("transformExperimentalMd", () => {
+  const md = [
+    "intro",
+    "",
+    ":::experimental",
+    "secret prose",
+    "",
+    "```evml",
+    "load secret",
+    "```",
+    ":::",
+    "",
+    "outro",
+  ].join("\n");
+
+  it("strips blocks (fences and content) when disabled", () => {
+    const out = transformExperimentalMd(md, false);
+    expect(out).not.toContain("secret");
+    expect(out).not.toContain(":::");
+    expect(out).toContain("intro");
+    expect(out).toContain("outro");
+  });
+
+  it("replaces the fences with the badge when enabled", () => {
+    const out = transformExperimentalMd(md, true);
+    expect(out).toContain(EXPERIMENTAL_BADGE);
+    expect(out).toContain("secret prose");
+    expect(out).toContain("load secret");
+    expect(out).not.toContain(":::");
+  });
+
+  it("ignores ::: markers inside code fences", () => {
+    const code = "```\n:::experimental\nnot a fence\n:::\n```";
+    expect(transformExperimentalMd(code, false)).toBe(code);
+    expect(transformExperimentalMd(code, true)).toBe(code);
+  });
+
+  it("drops ⚗️-marked table rows only when disabled", () => {
+    const table = [
+      "| Name | Description |",
+      "|------|-------------|",
+      "| `--stable` | Always available |",
+      "| `--from` ⚗️ | Experimental option |",
+    ].join("\n");
+    const off = transformExperimentalMd(table, false);
+    expect(off).toContain("--stable");
+    expect(off).not.toContain("--from");
+    expect(transformExperimentalMd(table, true)).toBe(table);
+  });
+
+  it("leaves markdown without blocks untouched", () => {
+    expect(transformExperimentalMd("plain\ntext", false)).toBe("plain\ntext");
   });
 });

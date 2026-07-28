@@ -2,7 +2,7 @@
 
 Superfluid streaming payments: open, update and stop money streams (CFA) with native rate literals like 1000e18/mo, distribute to many receivers at once through GDA pools, wrap and unwrap SuperTokens, and automate with scheduled flows, vesting schedules and auto-wrap — approvals and flow-operator permissions handled automatically.
 
-**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load superfluid
