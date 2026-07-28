@@ -1,3 +1,4 @@
+import type { SimulateOptions } from "@evmcrispr/core";
 import type { Address } from "viem";
 import { createEvmlTag } from "../lib/evmcrispr-factory.js";
 
@@ -7,6 +8,7 @@ export async function simulateEvml(args: {
   blockNumber?: number;
   from?: string;
   rpcUrl?: string;
+  using?: SimulateOptions["using"];
 }): Promise<{
   success: boolean;
   logs: string[];
@@ -23,6 +25,7 @@ export async function simulateEvml(args: {
   const { success, logs, error } = await tag.script(args.script).simulate({
     blockNumber: args.blockNumber,
     from,
+    using: args.using,
   });
 
   return error === undefined ? { success, logs } : { success, logs, error };

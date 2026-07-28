@@ -8,7 +8,7 @@ export function registerSimulateEvml(server: McpServer): void {
     {
       title: "Simulate EVML Script",
       description:
-        "Execute an EVML script in a simulated fork (EthereumJS backend). This is how you run any EVML command or helper discovered via evmcrispr_list_modules / evmcrispr_describe_module: write a script using them (with `load <module>` for non-std modules) and simulate it. Returns execution logs and success status. If the script doesn't contain `load sim` and `sim:fork`, it will be auto-wrapped.",
+        "Execute an EVML script in a simulated fork (Revm/WASM backend). This is how you run any EVML command or helper discovered via evmcrispr_list_modules / evmcrispr_describe_module: write a script using them (with `load <module>` for non-std modules) and simulate it. Returns execution logs and success status. If the script doesn't contain `load sim` and `sim:fork`, it will be auto-wrapped.",
       inputSchema: {
         script: z.string().describe("The EVML script to simulate"),
         chainId: z
@@ -36,7 +36,7 @@ export function registerSimulateEvml(server: McpServer): void {
       },
     },
     async (args) => {
-      const result = await simulateEvml(args);
+      const result = await simulateEvml({ ...args, using: "revm" });
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
