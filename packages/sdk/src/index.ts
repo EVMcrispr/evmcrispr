@@ -2,15 +2,19 @@ export { BindingsManager } from "./BindingsManager";
 export { EvmlModule } from "./EvmlModule";
 export type { ErrorOptions } from "./errors";
 export {
+  BreakSignal,
   CommandError,
+  ContinueSignal,
+  ControlFlowSignal,
   ErrorException,
   ErrorInvalid,
   ErrorNotFound,
+  ExitSignal,
   ExperimentalDisabledError,
   ExpressionError,
-  HaltExecution,
   HelperFunctionError,
   NodeError,
+  ReturnSignal,
   RevertError,
 } from "./errors";
 export { IPFS_GATEWAY, IPFSResolver } from "./IPFSResolver";

@@ -62,6 +62,14 @@ export async function buildEvmlModule(
         `nested module definitions are not allowed (in module ${canonicalName})`,
       );
     }
+    if (
+      node.args[0]?.type === NodeType.Bareword &&
+      node.args[0].value === "return"
+    ) {
+      throw new ErrorException(
+        `"def return" can only be used inside a def command body (in module ${canonicalName})`,
+      );
+    }
   }
 
   const bm = module.bindingsManager;

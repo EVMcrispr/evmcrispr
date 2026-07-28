@@ -34,6 +34,17 @@ describeCommand("def", {
 )
 set $result @math:double(21)`,
     },
+    {
+      description: "Guard clause - def return exits the command body early",
+      code: `def maybe-print "$n: number" (
+  if @bool($n == 0) (
+    def return
+  )
+  print $n
+)
+maybe-print 0
+maybe-print 5`,
+    },
   ],
   cases: [
     // ── Helper definitions ──
@@ -118,6 +129,36 @@ def approve-with-opt "[$amount: number] [--target: address]" (
   exec ${target} ${fnSig} ${target} 1e18
 )
 approve-with-opt 50e18 --target ${target}`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should return early from a command body with def return",
+      script: `
+def guarded-approve "$amount: number" (
+  if @bool($amount == 0) (
+    def return
+  )
+  exec ${target} ${fnSig} ${target} $amount
+)
+guarded-approve 0
+guarded-approve 1e18`,
+      validate: (actions) => {
+        expect(actions).to.have.length(1);
+      },
+    },
+    {
+      name: "should let def return exit the command body from inside a loop",
+      script: `
+def approve-first "$amounts: array" (
+  loop $amount of $amounts (
+    exec ${target} ${fnSig} ${target} $amount
+    def return
+  )
+  exec ${target} ${fnSig} ${target} 999e18
+)
+approve-first [1e18 2e18 3e18]`,
       validate: (actions) => {
         expect(actions).to.have.length(1);
       },
@@ -398,6 +439,28 @@ if true (
 )
 my-cmd`,
       error: "command my-cmd not found",
+    },
+    {
+      name: "should fail on def return outside a def command body",
+      script: "def return",
+      error: '"def return" can only be used inside a def command body',
+    },
+    {
+      name: "should fail when def return has extra arguments",
+      script: `
+def noisy "" (
+  def return "now"
+)
+noisy`,
+      error: '"def return" takes no arguments',
+    },
+    {
+      name: "should fail on def return directly inside a module block",
+      script: `
+def module m (
+  def return
+)`,
+      error: '"def return" can only be used inside a def command body',
     },
   ],
 });

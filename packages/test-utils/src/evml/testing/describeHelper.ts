@@ -6,6 +6,7 @@ import type { PublicClient } from "viem";
 import { getPublicClient } from "../../client";
 import {
   createInterpreter,
+  interpretDoc,
   itChecksInvalidArgsLength,
   preparingExpression,
 } from "../evml";
@@ -226,7 +227,7 @@ export function describeHelper(
             (config.module ? `load ${config.module}` : undefined);
           const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
           const interpreter = createInterpreter(fullScript, client);
-          await interpreter.interpret();
+          await interpretDoc(interpreter);
         });
       }
     }

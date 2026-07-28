@@ -136,11 +136,11 @@ batch (
       error: 'command "wait" cannot be used inside batch',
     },
     {
-      name: "should fail when batch contains halt",
+      name: "should fail when batch contains exit",
       script: `batch (
-  halt
+  exit
 )`,
-      error: 'command "halt" cannot be used inside batch',
+      error: 'command "exit" cannot be used inside batch',
     },
     {
       name: "should fail when batch contains load",

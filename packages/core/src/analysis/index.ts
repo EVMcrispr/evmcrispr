@@ -244,6 +244,28 @@ function isModuleDef(c: CommandExpressionNode): boolean {
   );
 }
 
+/** `def return` — early exit from a def command body. */
+function isReturnDef(c: CommandExpressionNode): boolean {
+  return (
+    isDefCommand(c) &&
+    c.args[0]?.type === NodeType.Bareword &&
+    c.args[0].value === "return"
+  );
+}
+
+function isLoopCommand(c: CommandExpressionNode): boolean {
+  return (c.module ?? "std") === "std" && c.name === "loop";
+}
+
+/** The loop connector keyword (`of` / `until` / `break` / `continue`),
+ *  read from the first bareword among the leading args. */
+function loopConnector(c: CommandExpressionNode): string | undefined {
+  for (const a of c.args.slice(0, 2)) {
+    if (a.type === NodeType.Bareword) return a.value as string;
+  }
+  return undefined;
+}
+
 function getFromOpt(c: CommandExpressionNode): Node | undefined {
   return c.opts.find((o) => o.name === "from")?.value;
 }
@@ -293,6 +315,7 @@ export function synthesizeModuleData(block: BlockExpressionNode): ModuleData {
     const sig =
       sigNode?.type === NodeType.StringLiteral ? String(sigNode.value) : "";
     if (nameNode?.type === NodeType.Bareword) {
+      if (nameNode.value === "return") continue; // `def return` is control flow
       const cmd = defToCommandSchema(sig);
       if (cmd) data.commands[nameNode.value as string] = cmd;
     } else if (nameNode?.type === NodeType.HelperFunctionExpression) {
@@ -366,6 +389,7 @@ class SemanticAnalyzer {
   async analyze(body: CommandExpressionNode[]): Promise<ParseDiagnostic[]> {
     await this.#collectMeta(body);
     await this.#check(body, []);
+    await this.#checkControlFlow(body, { loopDepth: 0, inDefBody: false });
     this.#diagnostics.sort((a, b) => a.line - b.line || a.col - b.col);
     return this.#diagnostics;
   }
@@ -440,10 +464,11 @@ class SemanticAnalyzer {
         }
       }
 
-      // Record `def` command / helper names.
+      // Record `def` command / helper names. `def return` is control flow,
+      // not a definition — it never binds a name.
       if (isDefCommand(c)) {
         const nameNode = c.args[0];
-        if (nameNode?.type === NodeType.Bareword) {
+        if (nameNode?.type === NodeType.Bareword && !isReturnDef(c)) {
           this.#meta.defCommands.add(nameNode.value as string);
         } else if (nameNode?.type === NodeType.HelperFunctionExpression) {
           this.#meta.defHelpers.add((nameNode as HelperFunctionNode).name);
@@ -512,9 +537,10 @@ class SemanticAnalyzer {
 
       // def bodies are opaque to the checker (params may be $vars or
       // @helpers we can't see) — validate the def name for import
-      // collisions, nothing else.
+      // collisions, nothing else. (`def return` placement is validated by
+      // the control-flow pass.)
       if (isDefCommand(c)) {
-        this.#checkDefImportCollision(c);
+        if (!isReturnDef(c)) this.#checkDefImportCollision(c);
         continue;
       }
 
@@ -1415,6 +1441,162 @@ class SemanticAnalyzer {
             "Return destructure has no $ capture marker (use $ to mark which value to keep).",
             "return-capture-marker",
           ),
+        );
+      }
+    }
+  }
+
+  // --- Pass 3: control-flow placement --------------------------------------
+  //
+  // `loop break` / `loop continue` must sit inside a loop block and
+  // `def return` inside a def command body. This is a dedicated walk (not
+  // part of pass 2) because it must descend into def bodies, which pass 2
+  // deliberately treats as opaque. It also owns the loop form checks that
+  // the generic arity check lost when <value>/<block> became optional.
+
+  async #checkControlFlow(
+    body: CommandExpressionNode[],
+    state: {
+      loopDepth: number;
+      inDefBody: boolean;
+      /** Batch-context name crossed since the nearest enclosing loop. */
+      boundary?: string;
+    },
+  ): Promise<void> {
+    for (const c of body) {
+      if (isDefCommand(c)) {
+        if (isReturnDef(c)) {
+          if (!state.inDefBody) {
+            this.#diagnostics.push(
+              diag(
+                c,
+                `"def return" can only be used inside a def command body.`,
+                "control-flow-placement",
+              ),
+            );
+          }
+          if (c.args.length > 1) {
+            this.#diagnostics.push(
+              diag(c, `"def return" takes no arguments.`, "arg-count"),
+            );
+          }
+          continue;
+        }
+        // Descend into command-def bodies (directly or inside a `def
+        // module` block): each is a fresh def-body context — loop signals
+        // never cross a def boundary.
+        const defs = isModuleDef(c)
+          ? ((this.#blocks(c)[0]?.body ?? []).filter(
+              isDefCommand,
+            ) as CommandExpressionNode[])
+          : [c];
+        for (const d of defs) {
+          if (isReturnDef(d)) {
+            this.#diagnostics.push(
+              diag(
+                d,
+                `"def return" can only be used inside a def command body.`,
+                "control-flow-placement",
+              ),
+            );
+            continue;
+          }
+          if (d.args[0]?.type !== NodeType.Bareword || isModuleDef(d)) continue;
+          const blk = this.#blocks(d)[0];
+          if (blk) {
+            await this.#checkControlFlow(blk.body, {
+              loopDepth: 0,
+              inDefBody: true,
+            });
+          }
+        }
+        continue;
+      }
+
+      if (isLoopCommand(c)) {
+        const kw = loopConnector(c);
+
+        if (kw === "break" || kw === "continue") {
+          if (state.loopDepth === 0) {
+            this.#diagnostics.push(
+              diag(
+                c,
+                state.boundary
+                  ? `"loop ${kw}" cannot cross the ${state.boundary} boundary.`
+                  : `"loop ${kw}" can only be used inside a loop block.`,
+                "control-flow-placement",
+              ),
+            );
+          }
+          if (c.args.length > 1) {
+            this.#diagnostics.push(
+              diag(c, `"loop ${kw}" takes no arguments.`, "arg-count"),
+            );
+          }
+          continue;
+        }
+
+        if (kw === "of" || kw === "until") {
+          const nonBlockArgs = c.args.filter(
+            (a) => a.type !== NodeType.BlockExpression,
+          ).length;
+          const expected = kw === "of" ? 3 : 2;
+          if (nonBlockArgs !== expected) {
+            this.#diagnostics.push(
+              diag(
+                c,
+                kw === "of"
+                  ? `"loop of" expects a loop variable and an array: loop $x of <array> ( ... ).`
+                  : `"loop until" expects a condition: loop until <condition> ( ... ).`,
+                "arg-count",
+              ),
+            );
+          }
+          if (this.#blocks(c).length === 0) {
+            this.#diagnostics.push(
+              diag(
+                c,
+                `"loop" requires a ( ... ) block for <block>.`,
+                "missing-block",
+              ),
+            );
+          }
+        } else {
+          this.#diagnostics.push(
+            diag(
+              c,
+              `"loop" expects "of", "until", "break" or "continue".`,
+              "unknown-loop-form",
+            ),
+          );
+        }
+
+        for (const blk of this.#blocks(c)) {
+          await this.#checkControlFlow(blk.body, {
+            ...state,
+            loopDepth: state.loopDepth + 1,
+            boundary: undefined,
+          });
+        }
+        continue;
+      }
+
+      // Batch-context openers (batch / connect / ...) are a boundary loop
+      // signals cannot cross: a break inside would silently drop the
+      // partially-built batch.
+      const cmd = await this.#resolveCommand(c);
+      const opensBatch = !!cmd?.createsBatchContext;
+      for (const blk of this.#blocks(c)) {
+        await this.#checkControlFlow(
+          blk.body,
+          opensBatch
+            ? {
+                loopDepth: 0,
+                inDefBody: state.inDefBody,
+                boundary:
+                  state.loopDepth > 0 ? this.#displayName(c) : state.boundary,
+              }
+            : state,
         );
       }
     }

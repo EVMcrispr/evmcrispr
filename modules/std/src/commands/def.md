@@ -2,12 +2,12 @@
 title: "def"
 ---
 
-Define a user command, helper, or module (`def module <name> ( ...defs )`).
+Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).
 
 ## Syntax
 
 ```evml
-def <name> <params> <body>
+def <name> [params] [body]
 ```
 
 ## Arguments
@@ -15,8 +15,8 @@ def <name> <params> <body>
 | Name | Type | Description |
 |------|------|-------------|
 | `name` | `command \| helper` |  |
-| `params` | `string` | Definition expression (see syntax variants below) |
-| `body` | `expression \| block` |  |
+| `[params]` | `string` | Definition expression (see syntax variants below) |
+| `[body]` | `expression \| block` |  |
 
 ## Examples
 
@@ -43,6 +43,16 @@ def module math (
   def @double "$n: number -> number" @num($n * 2)
 )
 set $result @math:double(21)
+
+# Guard clause - def return exits the command body early
+def maybe-print "$n: number" (
+  if @bool($n == 0) (
+    def return
+  )
+  print $n
+)
+maybe-print 0
+maybe-print 5
 ```
 
 <!-- HAND-WRITTEN -->
@@ -68,6 +78,9 @@ def module moduleName (
     ...
   )
 )
+
+# Return early from a command body
+def return
 ```
 ## Notes
 
@@ -75,6 +88,26 @@ def module moduleName (
 - Parameters are prefixed with `$`, optional params wrapped in `[]`
 - Helpers defined inside blocks (e.g. `if`) are scoped to that block
 - Type inference: if the return type is omitted, it is inferred from the body
+
+## Early return
+
+Inside a command body, `def return` stops executing the body — typically as
+a guard clause:
+
+```evml
+def approve-if-any "$amount: number" (
+  if @bool($amount == 0) (
+    def return
+  )
+  print "approving" $amount
+)
+approve-if-any 0
+```
+
+Actions produced before the `def return` still execute. `return` and
+`module` are reserved def names. A `def return` also exits from inside a
+loop within the body; use [`loop break`](loop.md) to leave only the loop,
+or [`exit`](exit.md) to stop the whole script.
 
 ## Modules
 
@@ -97,3 +130,5 @@ and loaded remotely — see [load](load.md#external-evml-modules---from).
 ## See Also
 
 - [set](set.md) — assign values to variables
+- [loop](loop.md) — `loop break` / `loop continue`
+- [exit](exit.md) — stop the whole script

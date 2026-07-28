@@ -16,12 +16,12 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Command | Description |
 |---------|-------------|
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
-| [def](src/commands/def.md) | Define a user command, helper, or module (`def module <name> ( ...defs )`). |
+| [def](src/commands/def.md) | Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
-| [halt](src/commands/halt.md) | Stop script execution immediately. |
+| [exit](src/commands/exit.md) | Stop script execution immediately. |
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |
 | [load](src/commands/load.md) | Load a module. Its commands and helpers become available qualified (`mod:cmd`, `@mod:helper`); an import list makes selected names available unqualified. |
-| [loop](src/commands/loop.md) | Repeat a block: iterate over an array (`loop $x of $arr`) or until a condition is true (`loop until <condition>`). |
+| [loop](src/commands/loop.md) | Repeat a block: iterate over an array (`loop $x of $arr`), repeat until a condition is true (`loop until <condition>`), or exit/skip an iteration from inside the block (`loop break`, `loop continue`). |
 | [print](src/commands/print.md) | Log values to the console output. Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array. |
 | [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |

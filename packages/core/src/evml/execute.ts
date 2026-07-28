@@ -6,7 +6,7 @@ import type {
   TransactionAction,
   WalletAction,
 } from "@evmcrispr/sdk";
-import { HaltExecution, isTransactionAction } from "@evmcrispr/sdk";
+import { ExitSignal, isTransactionAction } from "@evmcrispr/sdk";
 import type { Address, Chain, Hash, PublicClient, WalletClient } from "viem";
 import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
@@ -89,9 +89,9 @@ export type ActionHandlers = {
 
 export interface ExecutionResult {
   executed: { action: Action; result?: unknown }[];
-  /** True when the script stopped via the `halt` command — a clean stop,
+  /** True when the script stopped via the `exit` command — a clean stop,
    *  not an error. */
-  halted: boolean;
+  exited: boolean;
   logs: string[];
 }
 
@@ -578,9 +578,6 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
     },
 
     async terminal(action, ctx) {
-      if (action.command === "halt") {
-        throw new HaltExecution();
-      }
       if (action.command === "wait") {
         const seconds = Number(action.args.seconds ?? 0);
         ctx.onLog(`Waiting ${seconds}s before the next action`);
@@ -703,10 +700,10 @@ export async function executeScript(
       onLine: (line) => config.onLine?.(line),
       signal: options.signal,
     });
-    return { executed, halted: false, logs };
+    return { executed, exited: false, logs };
   } catch (err) {
-    if (err instanceof HaltExecution) {
-      return { executed, halted: true, logs };
+    if (err instanceof ExitSignal) {
+      return { executed, exited: true, logs };
     }
     throw err;
   }

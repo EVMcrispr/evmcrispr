@@ -1,4 +1,9 @@
-import type { CommandExpressionNode, HelperFunctionNode, Node } from "./types";
+import type {
+  Action,
+  CommandExpressionNode,
+  HelperFunctionNode,
+  Node,
+} from "./types";
 
 function defineNonEnumerable(
   instance: Record<string, any>,
@@ -167,15 +172,78 @@ export class RevertError extends ErrorException {
 }
 
 /**
- * Thrown to cleanly halt script execution (e.g. by the `halt` command).
- * Not an error — signals an intentional early stop.
+ * Base class for interpreter control-flow signals (`exit`, `loop break`,
+ * `loop continue`, `def return`). Not errors — they unwind interpretation
+ * to the construct that handles them. The interpreter re-throws them
+ * untouched instead of wrapping them in a `CommandError`.
  * @category Error
  */
-export class HaltExecution extends ErrorException {
+export class ControlFlowSignal extends ErrorException {
+  /** Actions the interrupted block(s) produced before the signal, collected
+   *  while unwinding so the construct that catches the signal can still
+   *  return them (execution mode has already streamed them through the
+   *  action callback; collection mode would otherwise lose them). */
+  actions: Action[] = [];
+}
+
+/**
+ * Thrown by the `exit` command to cleanly stop script execution.
+ * Signals an intentional early stop, never caught by loops or defs.
+ * @category Error
+ */
+export class ExitSignal extends ControlFlowSignal {
   constructor(
     message?: string,
-    { code = "HaltExecution", name = "HaltExecution" }: ErrorOptions = {},
+    { code = "ExitSignal", name = "ExitSignal" }: ErrorOptions = {},
   ) {
-    super(message ?? "Script execution halted.", { code, name });
+    super(message ?? "Script execution stopped by exit.", { code, name });
+  }
+}
+
+/**
+ * Thrown by `loop break`; caught by the nearest enclosing `loop`.
+ * @category Error
+ */
+export class BreakSignal extends ControlFlowSignal {
+  constructor(
+    message?: string,
+    { code = "BreakSignal", name = "BreakSignal" }: ErrorOptions = {},
+  ) {
+    super(message ?? '"loop break" can only be used inside a loop block', {
+      code,
+      name,
+    });
+  }
+}
+
+/**
+ * Thrown by `loop continue`; caught by the nearest enclosing `loop`.
+ * @category Error
+ */
+export class ContinueSignal extends ControlFlowSignal {
+  constructor(
+    message?: string,
+    { code = "ContinueSignal", name = "ContinueSignal" }: ErrorOptions = {},
+  ) {
+    super(message ?? '"loop continue" can only be used inside a loop block', {
+      code,
+      name,
+    });
+  }
+}
+
+/**
+ * Thrown by `def return`; caught by the enclosing def command body.
+ * @category Error
+ */
+export class ReturnSignal extends ControlFlowSignal {
+  constructor(
+    message?: string,
+    { code = "ReturnSignal", name = "ReturnSignal" }: ErrorOptions = {},
+  ) {
+    super(
+      message ?? '"def return" can only be used inside a def command body',
+      { code, name },
+    );
   }
 }

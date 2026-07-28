@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { ErrorException, HaltExecution, RevertError } from "@evmcrispr/sdk";
+import { ErrorException, ExitSignal, RevertError } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 
 import type { SimulateOptions } from "../evml/simulate";
@@ -71,8 +71,8 @@ export function serializeError(err: unknown): SerializedError {
   if (err instanceof RevertError) {
     return { name: "RevertError", message: err.message, data: err.revertData };
   }
-  if (err instanceof HaltExecution) {
-    return { name: "HaltExecution", message: err.message };
+  if (err instanceof ExitSignal) {
+    return { name: "ExitSignal", message: err.message };
   }
   if (err instanceof ErrorException) {
     return { name: "ErrorException", message: err.message };
@@ -84,13 +84,13 @@ export function serializeError(err: unknown): SerializedError {
 }
 
 /** Rehydrate to the matching error class so `instanceof` checks (e.g.
- *  `HaltExecution` in `executeScript`) survive the boundary. */
+ *  `ExitSignal` in `executeScript`) survive the boundary. */
 export function deserializeError(e: SerializedError): Error {
   switch (e.name) {
     case "RevertError":
       return new RevertError(e.message, e.data);
-    case "HaltExecution":
-      return new HaltExecution(e.message);
+    case "ExitSignal":
+      return new ExitSignal(e.message);
     case "ErrorException":
       return new ErrorException(e.message);
     default: {

@@ -328,10 +328,12 @@ describe("Completions – std commands", () => {
   // -------------------------------------------------------------------------
 
   describe("loop", () => {
-    it('loop <cursor> should show "until" and variables (completion override)', async () => {
+    it('loop <cursor> should show "until", "break", "continue" and variables (completion override)', async () => {
       const script = "loop ";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "until")).to.be.true;
+      expect(hasLabel(items, "break")).to.be.true;
+      expect(hasLabel(items, "continue")).to.be.true;
     });
 
     it('loop $i <cursor> should show "of" (completion override)', async () => {
@@ -367,12 +369,12 @@ describe("Completions – std commands", () => {
   });
 
   // -------------------------------------------------------------------------
-  // halt
+  // exit
   // -------------------------------------------------------------------------
 
-  describe("halt", () => {
-    it("halt <cursor> should return empty (no args, no opts)", async () => {
-      const script = "halt ";
+  describe("exit", () => {
+    it("exit <cursor> should return empty (no args, no opts)", async () => {
+      const script = "exit ";
       const items = await evm.getCompletions(script, pos(script));
       expect(items).to.have.lengthOf(0);
     });

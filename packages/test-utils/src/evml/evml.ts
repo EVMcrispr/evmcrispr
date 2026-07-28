@@ -23,6 +23,7 @@ import {
   buildParserError,
   CommandError,
   ComparisonType,
+  ExitSignal,
   HelperFunctionError,
   NodeType,
   Num,
@@ -171,6 +172,18 @@ export const createInterpreter = (
     registerLogListener: evm.registerLogListener.bind(evm),
     bindingsManager: evm.bindingsManager,
   };
+};
+
+/** Run a doc example to completion: a script stopping via `exit` is a
+ *  clean stop, not a test failure. */
+export const interpretDoc = async (
+  interpreter: TestInterpreter,
+): Promise<void> => {
+  try {
+    await interpreter.interpret();
+  } catch (err) {
+    if (!(err instanceof ExitSignal)) throw err;
+  }
 };
 
 export const preparingExpression = async (

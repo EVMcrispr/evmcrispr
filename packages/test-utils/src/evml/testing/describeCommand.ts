@@ -3,7 +3,7 @@ import type { Action, ErrorException } from "@evmcrispr/sdk";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
 import { getPublicClient } from "../../client";
-import { createInterpreter, type TestInterpreter } from "../evml";
+import { createInterpreter, interpretDoc, type TestInterpreter } from "../evml";
 import { expectThrowAsync } from "../expects";
 import type { DocExample } from "./describeHelper";
 
@@ -113,7 +113,7 @@ export function describeCommand(
             (config.module ? `load ${config.module}` : config.preamble);
           const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
           const interpreter = createInterpreter(fullScript, client);
-          await interpreter.interpret();
+          await interpretDoc(interpreter);
         });
       }
     }

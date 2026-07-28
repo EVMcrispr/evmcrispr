@@ -11,7 +11,9 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
+  ControlFlowSignal,
   ErrorException,
+  ExitSignal,
   ExperimentalDisabledError,
   experimentalDisabledMessage,
   IPFSResolver,
@@ -220,13 +222,23 @@ export class Interpreter {
     this.#initStd();
     this.bindingsManager.setBindings(this.#buildStdBinding());
 
-    const results = await this.interpretNodes(ast.body, true, {
-      actionCallback,
-    });
-
-    this.#notifyLine(null);
-
-    return results.flat().filter((result) => typeof result !== "undefined");
+    try {
+      const results = await this.interpretNodes(ast.body, true, {
+        actionCallback,
+      });
+      return results.flat().filter((result) => typeof result !== "undefined");
+    } catch (err) {
+      // A `loop break` / `loop continue` / `def return` that reached the
+      // top level was used outside its construct — surface it as a plain
+      // error (its default message says where it belongs). `ExitSignal`
+      // keeps propagating: it's the clean-stop mechanism callers handle.
+      if (err instanceof ControlFlowSignal && !(err instanceof ExitSignal)) {
+        throw new ErrorException(err.message);
+      }
+      throw err;
+    } finally {
+      this.#notifyLine(null);
+    }
   }
 
   // ---------------------------------------------------------------------------

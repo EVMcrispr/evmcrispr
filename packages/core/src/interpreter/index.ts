@@ -31,10 +31,10 @@ import {
   type BindingsManager,
   BindingsSpace,
   CommandError,
+  ControlFlowSignal,
   checkConfigAccess,
   ErrorException,
   ExpressionError,
-  HaltExecution,
   HelperFunctionError,
   isBatchedAction,
   isTransactionAction,
@@ -616,7 +616,7 @@ export function makeExecutionResolveCommand(
             await input.executeWithCaptures(c, res, actionCallback),
           );
         } catch (err) {
-          if (err instanceof NodeError || err instanceof HaltExecution)
+          if (err instanceof NodeError || err instanceof ControlFlowSignal)
             throw err;
           panic(c, (err as Error).message);
         }
@@ -668,7 +668,8 @@ export function makeExecutionResolveCommand(
         await input.executeWithCaptures(c, res, actionCallback),
       );
     } catch (err) {
-      if (err instanceof NodeError || err instanceof HaltExecution) throw err;
+      if (err instanceof NodeError || err instanceof ControlFlowSignal)
+        throw err;
       panic(c, (err as Error).message);
     }
   };
@@ -763,10 +764,31 @@ export function makeResolveBlockExpression(
 ): InterpretCtx["resolveBlockExpression"] {
   return async (n, interpreters, options = {}) => {
     bindings.enterScope();
-    if (options.blockInitializer) await options.blockInitializer();
-    const results = await interpreters.interpretNodes(n.body, true, options);
-    bindings.exitScope();
-    return results.filter((r) => !!r);
+    const results: any[] = [];
+    try {
+      if (options.blockInitializer) await options.blockInitializer();
+      for (const node of n.body) {
+        const r = await interpreters.interpretNode(node, options);
+        if (Array.isArray(r)) results.push(...r);
+        else results.push(r);
+      }
+      return results.filter((r) => !!r);
+    } catch (err) {
+      // A control-flow signal (`loop break`, `def return`, …) interrupts
+      // the block mid-way. Prepend what this block already produced so the
+      // construct that catches the signal can still return those actions
+      // (in execution mode they were already streamed; in collection mode
+      // this is the only copy).
+      if (err instanceof ControlFlowSignal) {
+        err.actions = [...results.filter((r) => !!r), ...err.actions];
+      }
+      throw err;
+    } finally {
+      // finally, not fall-through: signals unwind through here and are
+      // caught upstream, so the scope must exit even on throw or scopes
+      // would go unbalanced.
+      bindings.exitScope();
+    }
   };
 }
 

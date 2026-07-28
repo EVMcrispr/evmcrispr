@@ -12,9 +12,12 @@ import type {
 } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
+  BreakSignal,
+  ContinueSignal,
   defineCommand,
   ErrorException,
   NodeType,
+  ReturnSignal,
 } from "@evmcrispr/sdk";
 import type Std from "..";
 import {
@@ -175,9 +178,21 @@ function buildDef(
         return await interpretNode(bodyNode);
       }
 
-      return (await interpretNode(bodyNode as BlockExpressionNode, {
-        actionCallback: interpreters.actionCallback,
-      })) as Action[];
+      try {
+        return (await interpretNode(bodyNode as BlockExpressionNode, {
+          actionCallback: interpreters.actionCallback,
+        })) as Action[];
+      } catch (err) {
+        // `def return` exits this command body; the signal carries the
+        // actions the body produced before it.
+        if (err instanceof ReturnSignal) return err.actions as Action[];
+        // A def body is a boundary for loop signals: a `loop break` inside
+        // the body must not escape into a loop at the call site.
+        if (err instanceof BreakSignal || err instanceof ContinueSignal) {
+          throw new ErrorException(err.message);
+        }
+        throw err;
+      }
     } finally {
       module.bindingsManager.exitScope();
     }
@@ -196,17 +211,27 @@ function buildDef(
 export default defineCommand<Std>({
   name: "def",
   description:
-    "Define a user command, helper, or module (`def module <name> ( ...defs )`).",
+    "Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).",
   args: [
     { name: "name", type: ["command", "helper"] },
     {
       name: "params",
       type: "string",
+      optional: true,
       description: "Definition expression (see syntax variants below)",
     },
-    { name: "body", type: ["expression", "block"] },
+    { name: "body", type: ["expression", "block"], optional: true },
   ],
   async run(module, { name, params, body }, { node, interpreters }) {
+    // `def return` — exit the enclosing def command body early. The signal
+    // is caught by the command-body runner in `buildDef`.
+    if (name === "return" && node.args[0].type === NodeType.Bareword) {
+      if (params !== undefined || body !== undefined) {
+        throw new ErrorException('"def return" takes no arguments');
+      }
+      throw new ReturnSignal();
+    }
+
     // `def module <name> ( ...defs )` defines an inline EVML module: its
     // defs become available as `name:cmd` / `@name:helper`, as if the
     // module was loaded.
@@ -229,6 +254,15 @@ export default defineCommand<Std>({
       );
       registerEvmlModule(module, instance);
       return;
+    }
+
+    // `params` and `body` are optional in the arg schema only so the
+    // argument-less `def return` form passes the shared arity check —
+    // every definition form still requires both.
+    if (params === undefined || body === undefined) {
+      throw new ErrorException(
+        "def expects <name> <params> <body> (or `def return` inside a command body)",
+      );
     }
 
     const {

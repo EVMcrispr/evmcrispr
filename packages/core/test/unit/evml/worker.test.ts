@@ -1,5 +1,5 @@
 import { afterAll, describe, it } from "bun:test";
-import { ErrorException, HaltExecution, RevertError } from "@evmcrispr/sdk";
+import { ErrorException, ExitSignal, RevertError } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import type { WalletClient } from "viem";
 import { createWorkerEvml } from "../../../src/worker/client";
@@ -31,8 +31,8 @@ describe("evml > worker", () => {
       expect((revert as RevertError).revertData).to.equal("0xdeadbeef");
 
       expect(
-        deserializeError(serializeError(new HaltExecution())),
-      ).to.be.instanceOf(HaltExecution);
+        deserializeError(serializeError(new ExitSignal())),
+      ).to.be.instanceOf(ExitSignal);
       expect(
         deserializeError(serializeError(new ErrorException("nope"))),
       ).to.be.instanceOf(ErrorException);
@@ -66,7 +66,7 @@ describe("evml > worker", () => {
           },
         });
 
-      expect(result.halted).to.be.false;
+      expect(result.exited).to.be.false;
       expect(result.executed.length).to.equal(1);
       const [{ action, result: handlerResult }] = result.executed;
       expect((action as { to?: string }).to).to.equal(
@@ -87,6 +87,13 @@ describe("evml > worker", () => {
       } catch (err) {
         expect((err as Error).message).to.match(/notarealcommand/);
       }
+    });
+
+    it("reports a clean stop when the script exits", async () => {
+      const result = await workerEvml
+        .script('print "before"\nexit\nprint "after"')
+        .execute(stubWallet, { prepareChains: false });
+      expect(result.exited).to.be.true;
     });
 
     it("rejects immediately when the signal is already aborted", async () => {

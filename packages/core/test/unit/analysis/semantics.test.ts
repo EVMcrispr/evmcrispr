@@ -417,6 +417,89 @@ describe("Analysis > semantic diagnostics", () => {
     });
   });
 
+  describe("control-flow placement", () => {
+    it("flags loop break outside a loop", async () => {
+      const ds = await semantic("loop break");
+      expect(codes(ds)).to.include("control-flow-placement");
+      expect(ds[0].message).to.match(/inside a loop block/);
+    });
+
+    it("flags loop continue outside a loop", async () => {
+      const ds = await semantic("loop continue");
+      expect(codes(ds)).to.include("control-flow-placement");
+    });
+
+    it("accepts loop break nested under if inside a loop", async () => {
+      const ds = await semantic(
+        "loop $i of [1 2] (\n  if @bool($i == 1) (\n    loop break\n  )\n)",
+      );
+      expect(codes(ds)).to.not.include("control-flow-placement");
+    });
+
+    it("flags loop break with extra arguments", async () => {
+      const ds = await semantic("loop $i of [1 2] (\n  loop break now\n)");
+      expect(codes(ds)).to.include("arg-count");
+    });
+
+    it("flags a def body as a boundary for loop break", async () => {
+      const ds = await semantic(
+        'def leaky "" (\n  loop break\n)\nloop $i of [1 2] (\n  leaky\n)',
+      );
+      expect(codes(ds)).to.include("control-flow-placement");
+    });
+
+    it("accepts loop break in a loop inside a def body", async () => {
+      const ds = await semantic(
+        'def fine "" (\n  loop $i of [1 2] (\n    loop break\n  )\n)\nfine',
+      );
+      expect(codes(ds)).to.not.include("control-flow-placement");
+    });
+
+    it("flags a loop break crossing a batch boundary", async () => {
+      const ds = await semantic(
+        "load stub\nloop $i of [1 2] (\n  stub:openbatch (\n    loop break\n  )\n)",
+      );
+      const d = ds.find((x) => x.code === "control-flow-placement");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/cannot cross the stub:openbatch boundary/);
+    });
+
+    it("flags def return outside a def command body", async () => {
+      const ds = await semantic("def return");
+      expect(codes(ds)).to.include("control-flow-placement");
+      expect(ds[0].message).to.match(/inside a def command body/);
+    });
+
+    it("accepts def return inside a def command body", async () => {
+      const ds = await semantic(
+        'def guarded "" (\n  if true (\n    def return\n  )\n  set $x 1\n)\nguarded',
+      );
+      expect(codes(ds)).to.not.include("control-flow-placement");
+    });
+
+    it("flags def return directly inside a module block", async () => {
+      const ds = await semantic("def module m (\n  def return\n)");
+      expect(codes(ds)).to.include("control-flow-placement");
+    });
+
+    it("accepts def return in a command def inside a module block", async () => {
+      const ds = await semantic(
+        'def module m (\n  def early "" (\n    def return\n  )\n)',
+      );
+      expect(codes(ds)).to.not.include("control-flow-placement");
+    });
+
+    it("flags a loop of form without a block", async () => {
+      const ds = await semantic("loop $i of [1 2]");
+      expect(codes(ds)).to.include("missing-block");
+    });
+
+    it("flags an unknown loop form", async () => {
+      const ds = await semantic("loop $i (\n  set $x 1\n)");
+      expect(codes(ds)).to.include("unknown-loop-form");
+    });
+  });
+
   describe("return-capture-marker", () => {
     it("flags a return destructure without a $ marker", async () => {
       const ds = await semantic("set $x $dao::getInfo()[_ _]\nset $dao 1");
