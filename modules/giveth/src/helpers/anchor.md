@@ -1,8 +1,11 @@
 ---
 title: "@giveth:anchor"
+experimental: true
 ---
 
 Resolve a Giveth project slug to its anchor contract on the current chain — the receiver of recurring donations, streamed with the superfluid module. Anchor contracts exist on Optimism and Base only.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `address`
 

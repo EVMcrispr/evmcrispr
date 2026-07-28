@@ -51,6 +51,7 @@ function setFlowrateAction(
 
 export default defineCommand<Giveth>({
   name: "donate-recurring",
+  experimental: true,
   description:
     "Start, adjust, or stop a recurring Giveth donation: a Superfluid stream of the token to the anchor contract of the project (Optimism and Base only), recorded in the Giveth database. `total` sets the absolute rate (0 stops the donation), `more`/`less` adjust an existing one by a delta. The token is the underlying (use @token(SYM); the zero address streams the native SuperToken) or a SuperToken address; --wrap converts underlying into the SuperToken first. Signs you in to Giveth (SIWE) and sends the transactions immediately, so it cannot be batched.",
   batchable: false,
