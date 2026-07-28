@@ -160,6 +160,9 @@ body {
 
   background: black;
   font-family: "JetBrains Mono", monospace;
+  /* JetBrains Mono's contextual ligatures render -> as an arrow glyph
+     (and => != etc. similarly); keep punctuation as typed. */
+  font-variant-ligatures: no-contextual;
   /* Firefox: prevent scrollbar gutter from reserving layout space */
   scrollbar-gutter: auto;
   scrollbar-width: none;
