@@ -3,7 +3,8 @@ title: Getting Started
 ---
 
 EVMcrispr is a DSL for encoding and executing batched EVM transactions.
-You can use it in the web terminal or programmatically.
+This page walks you through your first scripts in the web terminal — see
+[Running Scripts](running-scripts.md) for the CLI and AI-assistant surfaces.
 
 ## Web Terminal
 
@@ -59,8 +60,19 @@ Use `@get` to read data from contracts:
 
 ```evml
 # Check your DAI balance
-set $balance @get(@token(DAI) "balanceOf(address)(uint256)" @me)
-print "Balance:" $balance
+print "Balance: " @get(@token(DAI) "balanceOf(address)(uint256)" @me)
+```
+
+## Working with Variables
+
+```evml
+load token
+
+set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+set $amount @token:amount(DAI 100)
+
+exec @token(DAI) "approve(address,uint256)" $router $amount
+exec $router "swapExactTokensForTokens(uint256,uint256,address[],address,uint256)" $amount 0 [@token(DAI) @token(WETH)] @me @date("2025-12-31")
 ```
 
 ## Batching Transactions
@@ -76,18 +88,6 @@ batch (
   exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
   exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
 )
-```
-
-## Working with Variables
-
-```evml
-load token
-
-set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-set $amount @token:amount(DAI 100)
-
-exec @token(DAI) "approve(address,uint256)" $router $amount
-exec $router "swapExactTokensForTokens(uint256,uint256,address[],address,uint256)" $amount 0 [@token(DAI) @token(WETH)] @me @date("2025-12-31")
 ```
 
 ## Simulation
@@ -140,5 +140,7 @@ load aragonos [grant install @app]
 
 ## Next Steps
 
-- [Language Basics](language-basics.md) — full syntax reference
+- [Running Scripts](running-scripts.md) — the CLI and AI-assistant surfaces
+- [How EVMcrispr Works](what-is-evmcrispr.md) — the mental model behind scripts
+- [The EVML Language](../language/syntax.md) — the full language manual
 - [Module Reference](/reference/std/) — all commands and helpers

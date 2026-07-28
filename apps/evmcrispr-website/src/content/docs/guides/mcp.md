@@ -100,6 +100,6 @@ Once connected, ask your assistant things like:
 
 ## Next Steps
 
-- [Getting Started](getting-started.md) — the terminal and your first script
-- [Language Basics](language-basics.md) — full syntax reference
+- [Getting Started](../intro/getting-started.md) — the terminal and your first script
+- [The EVML Language](../language/syntax.md) — the full language manual
 - [Simulation](simulation.md) — how forked-chain simulation works

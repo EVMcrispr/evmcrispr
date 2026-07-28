@@ -1,9 +1,12 @@
 ---
-title: Custom Modules
+title: Writing a Module
 ---
 
-EVMcrispr is extensible through modules. This guide covers how to build
-your own module using the SDK.
+EVMcrispr is extensible through modules. This guide covers how to build a
+**TypeScript module** with the SDK — the kind that ships with EVMcrispr
+itself and appears in the [Reference](/reference/std/) section. To publish
+reusable commands written in EVML itself, see
+[Publishing Modules](../guides/publishing-modules.md) instead.
 
 ## Module Structure
 
@@ -120,6 +123,16 @@ export default defineHelper<MyModule>({
   rest: true,       // Collects remaining arguments as an array
 }
 ```
+
+## Marking Things Experimental
+
+Set `"experimental": true` in the module's `package.json` to gate the whole
+module, or `experimental: true` in a `defineCommand`/`defineHelper` config
+(or on a single option definition) to gate one entry. Experimental items
+are excluded from execution, completions, and docs unless the build sets
+`VITE_PUBLIC_EXPERIMENTAL=true`. In hand-written docs, wrap prose about an
+experimental feature in an `:::experimental` block — it is stripped from
+builds that don't enable the flag.
 
 ## Running Codegen
 

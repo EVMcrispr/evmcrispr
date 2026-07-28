@@ -1,13 +1,50 @@
 ---
-title: Batch Transactions
+title: Blocks & Batching
 ---
 
-EVMcrispr can bundle multiple operations into a single atomic transaction.
-This guide covers how batching works and when to use it.
+## Blocks
 
-## Basic Batching
+Some commands accept a block of sub-commands in parentheses:
 
-Wrap commands in `batch` to combine them into one transaction:
+```evml
+batch (
+  exec 0x44fA8E6f47987339850636F88629646662444217 "foo()"
+  exec 0x0102030405060708090a0b0c0d0e0f1011121314 "bar()"
+)
+
+loop $i of @arr(0 5) (
+  print $i
+)
+
+set $x 10
+if @bool($x > 0) (
+  print "positive"
+) (
+  print "non-positive"
+)
+```
+
+A block does not change name resolution — what a command name means is
+decided by `load` import lists and `def`s alone, never by the block it
+appears in (see [Modules & Imports](modules.md)).
+
+## Batching
+
+By default, each `exec` command produces a separate transaction. A script
+like:
+
+```evml
+load token
+
+set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+
+exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
+exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
+```
+
+submits two separate transactions — the second could fail independently of
+the first. Wrap commands in `batch` to combine them into one atomic
+transaction:
 
 ```evml
 load token
@@ -44,8 +81,9 @@ batch (
 
 ## Error Captures on Batches
 
-You can capture revert errors from the entire batch. All three forms work:
-assertion only, destructure, or boolean variable.
+You can capture revert errors from the entire batch. All three forms from
+[Event & Error Captures](captures.md) work: assertion only, destructure, or
+boolean variable.
 
 ```evml
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
@@ -81,20 +119,3 @@ batch (
   )
 )
 ```
-
-## Without Batch
-
-By default, each `exec` command produces a separate transaction. Without
-`batch`, a script like:
-
-```evml
-load token
-
-set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-
-exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
-exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
-```
-
-would submit two separate transactions — the second could fail independently
-of the first.

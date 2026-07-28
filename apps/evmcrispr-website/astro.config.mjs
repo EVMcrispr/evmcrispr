@@ -1,4 +1,11 @@
-import { existsSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
@@ -13,6 +20,50 @@ const REFERENCE_DIR = resolve(
   "src/content/docs/reference",
 );
 const PRIORITY = ["std", "lang"]; // shown first, in this order
+
+// Same convention as scripts/generate-docs.ts: the flag is read from the
+// shell env (turbo declares it on the website build task).
+const EXPERIMENTAL_ON =
+  process.env.VITE_PUBLIC_EXPERIMENTAL === "true" ||
+  process.env.VITE_PUBLIC_EXPERIMENTAL === "1";
+
+// Astro's content-layer cache is keyed on file contents only, so flipping
+// the experimental flag would otherwise serve remark output processed under
+// the previous flag state. Bust the cache whenever the flag changes.
+const FLAG_MARKER = resolve(import.meta.dirname, ".astro/experimental-flag");
+if (
+  !existsSync(FLAG_MARKER) ||
+  readFileSync(FLAG_MARKER, "utf-8") !== String(EXPERIMENTAL_ON)
+) {
+  // Dev and build keep separate stores.
+  rmSync(resolve(import.meta.dirname, ".astro/data-store.json"), {
+    force: true,
+  });
+  rmSync(resolve(import.meta.dirname, "node_modules/.astro/data-store.json"), {
+    force: true,
+  });
+  mkdirSync(dirname(FLAG_MARKER), { recursive: true });
+  writeFileSync(FLAG_MARKER, String(EXPERIMENTAL_ON));
+}
+
+// Experimental marker appended to sidebar labels (same one generate-docs.ts
+// uses in generated pages and tables).
+const EXP_CHIP = " ⚗️";
+
+// Experimental status comes from the module's package.json in the repo
+// modules/ tree (same source generate-docs.ts reads).
+const MODULES_DIR = resolve(import.meta.dirname, "../../modules");
+function moduleIsExperimental(mod) {
+  try {
+    return (
+      JSON.parse(
+        readFileSync(resolve(MODULES_DIR, mod, "package.json"), "utf-8"),
+      ).experimental === true
+    );
+  } catch {
+    return false;
+  }
+}
 
 function buildReferenceSidebar() {
   if (!existsSync(REFERENCE_DIR)) return [];
@@ -44,7 +95,11 @@ function buildReferenceSidebar() {
         items: [{ autogenerate: { directory: `reference/${mod}/helpers` } }],
       });
     }
-    return { label: mod, collapsed: true, items };
+    return {
+      label: moduleIsExperimental(mod) ? mod + EXP_CHIP : mod,
+      collapsed: true,
+      items,
+    };
   });
 }
 
@@ -52,7 +107,8 @@ function buildReferenceSidebar() {
 // repo on GitHub) into site page URLs. Handles links within the reference
 // content tree and repo-style cross-module links (../../../<mod>/src/...).
 const DOCS_DIR = resolve(import.meta.dirname, "src/content/docs");
-const CROSS_MODULE_RE = /(?:^|\/)([\w-]+)\/src\/(commands|helpers)\/([^/]+)\.md$/;
+const CROSS_MODULE_RE =
+  /(?:^|\/)([\w-]+)\/src\/(commands|helpers)\/([^/]+)\.md$/;
 
 // Starlight page slug: lowercased, dots stripped (abi.decode → abidecode).
 function pageSlug(segment) {
@@ -62,7 +118,11 @@ function pageSlug(segment) {
 function remarkRewriteMdLinks() {
   return (tree, file) => {
     const visit = (node) => {
-      if (node.type === "link" && node.url && !/^([a-z]+:|\/|#)/i.test(node.url)) {
+      if (
+        node.type === "link" &&
+        node.url &&
+        !/^([a-z]+:|\/|#)/i.test(node.url)
+      ) {
         const hashIdx = node.url.indexOf("#");
         const path = hashIdx === -1 ? node.url : node.url.slice(0, hashIdx);
         const hash = hashIdx === -1 ? "" : node.url.slice(hashIdx);
@@ -84,13 +144,132 @@ function remarkRewriteMdLinks() {
   };
 }
 
+// Resolve experimental gating at build time — no client-side JS involved.
+// (The text-level twin of this transform lives in
+// packages/sdk/src/utils/experimental.ts and serves llms-full.txt and the
+// CLI docs loader; this plugin is the mdast rendering of the same blocks.)
+//
+//  - `:::experimental` container blocks (parsed by remark-directive, which
+//    Starlight registers for its own asides): removed when the flag is off,
+//    rendered as a Starlight "caution" aside titled "Experimental" when on.
+//  - Pages with `experimental: true` frontmatter: body replaced by a stub
+//    when the flag is off (the sidebar link is dropped separately below).
+// mdast for the experimental badge line (the website twin of
+// EXPERIMENTAL_BADGE in packages/sdk/src/utils/experimental.ts).
+function experimentalBadgeNode() {
+  return {
+    type: "paragraph",
+    children: [
+      { type: "text", value: "⚗️ " },
+      { type: "strong", children: [{ type: "text", value: "Experimental" }] },
+      { type: "text", value: " — available at " },
+      {
+        type: "link",
+        url: "https://next.evmcrispr.com",
+        children: [{ type: "text", value: "next.evmcrispr.com" }],
+      },
+      { type: "text", value: "." },
+    ],
+  };
+}
+
+/** Whether the page body already carries the badge (generated reference
+ *  pages embed EXPERIMENTAL_BADGE in their markdown). */
+function hasExperimentalBadge(tree) {
+  return tree.children.some(
+    (n) =>
+      n.type === "paragraph" &&
+      n.children?.[0]?.type === "text" &&
+      n.children[0].value.startsWith("⚗️"),
+  );
+}
+
+function remarkExperimental() {
+  return (tree, file) => {
+    const frontmatter = file.data.astro?.frontmatter;
+    if (frontmatter?.experimental === true && EXPERIMENTAL_ON) {
+      if (!hasExperimentalBadge(tree)) {
+        tree.children.unshift(experimentalBadgeNode());
+      }
+    }
+    if (frontmatter?.experimental === true && !EXPERIMENTAL_ON) {
+      tree.children = [
+        {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value:
+                "⚗️ This page documents an experimental feature — available at ",
+            },
+            {
+              type: "link",
+              url: "https://next.evmcrispr.com",
+              children: [{ type: "text", value: "next.evmcrispr.com" }],
+            },
+            { type: "text", value: "." },
+          ],
+        },
+      ];
+      return;
+    }
+    const visit = (node) => {
+      const children = node.children ?? [];
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (
+          child.type === "containerDirective" &&
+          child.name === "experimental"
+        ) {
+          if (!EXPERIMENTAL_ON) {
+            children.splice(i, 1);
+            continue;
+          }
+          // Hand the node to Starlight's aside transformer (it runs after
+          // user plugins) as :::caution[Experimental].
+          child.name = "caution";
+          child.children.unshift({
+            type: "paragraph",
+            data: { directiveLabel: true },
+            children: [{ type: "text", value: "⚗️ Experimental" }],
+          });
+        }
+        visit(child);
+      }
+    };
+    visit(tree);
+  };
+}
+
+/** Sidebar item for a hand-written doc page; null when the page is
+ *  experimental and this build has the flag off, tagged when it's on. */
+function docItem(label, slug) {
+  const path = resolve(DOCS_DIR, `${slug}.md`);
+  if (existsSync(path)) {
+    const head = readFileSync(path, "utf-8").slice(0, 500);
+    if (/^experimental:\s*true$/m.test(head)) {
+      return EXPERIMENTAL_ON ? { label: label + EXP_CHIP, slug } : null;
+    }
+  }
+  return { label, slug };
+}
+
 export default defineConfig({
   site: "https://next-docs.evmcrispr.com",
+  redirects: {
+    // Pre-restructure URLs (Guides mixed user and contributor docs).
+    "/guides/getting-started": "/intro/getting-started",
+    "/guides/language-basics": "/language/syntax",
+    "/guides/batch-transactions": "/language/blocks-and-batching",
+    "/guides/custom-modules": "/contribute/writing-a-module",
+    "/architecture": "/contribute/architecture",
+    "/contributing": "/contribute/contributing",
+  },
   markdown: {
     // Keep -- as typed (e.g. command --options) instead of SmartyPants
     // turning it into an en dash.
     smartypants: false,
-    remarkPlugins: [remarkRewriteMdLinks],
+    remarkPlugins: [remarkRewriteMdLinks, remarkExperimental],
   },
   integrations: [
     starlight({
@@ -102,6 +281,15 @@ export default defineConfig({
         shiki: { langs: [evmlGrammar] },
       },
       favicon: "/favicon.ico",
+      head: [
+        {
+          // The ⚗️ experimental marker lands in escaped contexts (page
+          // titles, sidebar labels, table cells) where markdown/HTML can't
+          // attach a tooltip — set it globally instead.
+          tag: "script",
+          content: `document.addEventListener("DOMContentLoaded",()=>{const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const els=new Set();while(w.nextNode())if(w.currentNode.nodeValue.includes("\\u2697\\uFE0F"))els.add(w.currentNode.parentElement);for(const el of els)el.title="Experimental"});`,
+        },
+      ],
       title: "EVMcrispr",
       social: [
         {
@@ -112,22 +300,47 @@ export default defineConfig({
       ],
       sidebar: [
         {
+          label: "Introduction",
+          items: [
+            docItem("Getting Started", "intro/getting-started"),
+            docItem("Running Scripts", "intro/running-scripts"),
+            docItem("How EVMcrispr Works", "intro/what-is-evmcrispr"),
+          ].filter(Boolean),
+        },
+        {
+          label: "The EVML Language",
+          items: [
+            docItem("Syntax", "language/syntax"),
+            docItem("Values & Variables", "language/values-and-variables"),
+            docItem("ABI Signatures", "language/abi-signatures"),
+            docItem("Control Flow", "language/control-flow"),
+            docItem("Blocks & Batching", "language/blocks-and-batching"),
+            docItem("Event & Error Captures", "language/captures"),
+            docItem("Modules & Imports", "language/modules"),
+          ].filter(Boolean),
+        },
+        {
           label: "Guides",
           items: [
-            { label: "Getting Started", slug: "guides/getting-started" },
-            { label: "Language Basics", slug: "guides/language-basics" },
-            { label: "Working with DAOs", slug: "guides/working-with-daos" },
-            { label: "Simulation", slug: "guides/simulation" },
-            { label: "Batch Transactions", slug: "guides/batch-transactions" },
-            { label: "Custom Modules", slug: "guides/custom-modules" },
-            { label: "MCP Server", slug: "guides/mcp" },
-            { label: "Architecture", slug: "architecture" },
-            { label: "Contributing", slug: "contributing" },
-          ],
+            docItem("Simulation", "guides/simulation"),
+            docItem("Working with DAOs", "guides/working-with-daos"),
+            docItem("Sharing Scripts", "guides/sharing-scripts"),
+            docItem("Publishing Modules", "guides/publishing-modules"),
+            docItem("MCP Server", "guides/mcp"),
+          ].filter(Boolean),
         },
         {
           label: "Reference",
           items: buildReferenceSidebar(),
+        },
+        {
+          label: "Contributing",
+          collapsed: true,
+          items: [
+            docItem("Architecture", "contribute/architecture"),
+            docItem("Writing a Module", "contribute/writing-a-module"),
+            docItem("Development", "contribute/contributing"),
+          ].filter(Boolean),
         },
       ],
     }),

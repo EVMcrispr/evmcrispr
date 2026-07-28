@@ -77,8 +77,8 @@ biome check .         # Lint
 
 ## Documentation
 
-- [Getting Started](apps/evmcrispr-website/src/content/docs/guides/getting-started.md)
-- [Language Basics](apps/evmcrispr-website/src/content/docs/guides/language-basics.md)
+- [Getting Started](apps/evmcrispr-website/src/content/docs/intro/getting-started.md)
+- [The EVML Language](apps/evmcrispr-website/src/content/docs/language/syntax.md)
 - [Full Reference](https://evmcrispr.com/llms-full.txt)
 
 ## License
