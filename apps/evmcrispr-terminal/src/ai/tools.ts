@@ -16,6 +16,7 @@ import {
   terminalStoreActions,
   terminalStoreGet,
 } from "../stores/terminal-store";
+import { createContractTools } from "./contract-tools";
 import {
   getModuleOverview,
   loadCommandDocs,
@@ -234,6 +235,7 @@ export function createChatTools(tag: EvmlTag): ToolSet {
     list_modules: listModules,
     describe_module: describeModule,
     get_docs: getDocs,
+    ...createContractTools(),
     ...createWebTools(),
   };
 }

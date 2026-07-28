@@ -8,6 +8,7 @@
     "@evmcrispr/core": "*",
     "@evmcrispr/editor": "*",
     "@evmcrispr/modules": "*",
+    "@evmcrispr/sdk": "*",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@heroicons/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",

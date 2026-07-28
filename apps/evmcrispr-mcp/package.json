@@ -7,6 +7,7 @@
     "evmcrispr": "*",
     "@evmcrispr/core": "*",
     "@evmcrispr/modules": "*",
+    "@evmcrispr/sdk": "*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.3"
   },

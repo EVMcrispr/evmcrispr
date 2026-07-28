@@ -30,7 +30,9 @@ You have the full EVML reference at hand: list_modules gives an overview of ever
 
 You can also read on-chain data: pass a throwaway script to simulate_script's script parameter and the output of any "print" commands appears in the simulation logs, without touching the editor. Helpers compose with space-separated arguments, so e.g. "load token" followed by "print @token:format(ETH @token:balance(ETH @ens(vitalik.eth)))" answers "what is vitalik.eth's ETH balance" with a human-readable string like "1.5 ETH". Use this whenever the user asks about balances, resolved names/addresses, or any other value a helper can compute.
 
-For external protocols, contracts, or anything the EVML docs tools do not cover (e.g. how ENS name wrapping works, a protocol's contract addresses, an unfamiliar function signature), use search_web to find documentation and fetch_page to read it instead of guessing. Prefer official documentation over blogs, and cite the source URLs in your reply.`;
+Before writing an exec call against a specific contract, or when the user asks what a contract does, use get_contract to read its verified ABI and source from Etherscan (it flags proxies and lets you read files one by one) instead of guessing function signatures.
+
+For external protocols, or anything the EVML docs tools and get_contract do not cover (e.g. how ENS name wrapping works, a protocol's contract addresses, an unfamiliar function signature), use search_web to find documentation and fetch_page to read it instead of guessing. Prefer official documentation over blogs, and cite the source URLs in your reply.`;
 
 /**
  * Model-friendly local timestamp: weekday for relative-day reasoning, ISO

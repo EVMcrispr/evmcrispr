@@ -24,6 +24,7 @@
       "dependencies": {
         "@evmcrispr/core": "*",
         "@evmcrispr/modules": "*",
+        "@evmcrispr/sdk": "*",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "evmcrispr": "*",
         "zod": "^4.4.3",
@@ -41,6 +42,7 @@
         "@evmcrispr/core": "*",
         "@evmcrispr/editor": "*",
         "@evmcrispr/modules": "*",
+        "@evmcrispr/sdk": "*",
         "@fontsource/jetbrains-mono": "^5.2.8",
         "@heroicons/react": "^2.2.0",
         "@monaco-editor/react": "^4.7.0",
