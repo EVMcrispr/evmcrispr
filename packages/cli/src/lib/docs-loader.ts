@@ -1,14 +1,29 @@
 import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { MODULE_NAMES } from "@evmcrispr/modules";
+import { EXPERIMENTAL_MODULE_NAMES, MODULE_NAMES } from "@evmcrispr/modules";
+import { isExperimentalEnabled } from "@evmcrispr/sdk";
 
 // Bundled docs (exists after `prebuild` or in published npm package)
 const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
 // Monorepo root (fallback for local dev without building)
 const MONOREPO_ROOT = resolve(import.meta.dirname, "../../../..");
 
-export const MODULES: string[] = [...MODULE_NAMES];
+export const MODULES: string[] = isExperimentalEnabled()
+  ? [...MODULE_NAMES]
+  : MODULE_NAMES.filter((n) => !EXPERIMENTAL_MODULE_NAMES.includes(n));
+
+/** Docs of experimental commands/helpers carry an `experimental: true`
+ *  frontmatter key; hide them unless the env enables experimental. */
+function isHiddenDoc(content: string): boolean {
+  if (isExperimentalEnabled()) return false;
+  const fmEnd = content.indexOf("---", 3);
+  return (
+    content.startsWith("---") &&
+    fmEnd !== -1 &&
+    /^experimental:\s*true$/m.test(content.slice(0, fmEnd))
+  );
+}
 
 let fullDocsCache: string | null = null;
 const moduleDocsCache = new Map<string, string>();
@@ -97,6 +112,7 @@ export async function loadFullDocs(): Promise<string> {
 export async function loadModuleDocs(
   moduleName: string,
 ): Promise<string | null> {
+  if (!MODULES.includes(moduleName)) return null;
   if (moduleDocsCache.has(moduleName)) return moduleDocsCache.get(moduleName)!;
 
   try {
@@ -120,6 +136,7 @@ export async function loadCommandDocs(
       commandDocsPath(moduleName, commandName),
       "utf-8",
     );
+    if (isHiddenDoc(content)) return null;
     commandDocsCache.set(key, content);
     return content;
   } catch {
@@ -139,6 +156,7 @@ export async function loadHelperDocs(
       helperDocsPath(moduleName, helperName),
       "utf-8",
     );
+    if (isHiddenDoc(content)) return null;
     helperDocsCache.set(key, content);
     return content;
   } catch {
@@ -174,23 +192,40 @@ export async function getModuleOverview(
 export async function listModuleCommands(
   moduleName: string,
 ): Promise<string[]> {
+  if (!MODULES.includes(moduleName)) return [];
   try {
     const entries = await readdir(commandsDir(moduleName));
-    return entries
+    const names = entries
       .filter((e) => e.endsWith(".md"))
       .map((e) => e.replace(/\.md$/, ""));
+    return filterHidden(names, (n) => loadCommandDocs(moduleName, n));
   } catch {
     return [];
   }
 }
 
 export async function listModuleHelpers(moduleName: string): Promise<string[]> {
+  if (!MODULES.includes(moduleName)) return [];
   try {
     const entries = await readdir(helpersDir(moduleName));
-    return entries
+    const names = entries
       .filter((e) => e.endsWith(".md"))
       .map((e) => e.replace(/\.md$/, ""));
+    return filterHidden(names, (n) => loadHelperDocs(moduleName, n));
   } catch {
     return [];
   }
+}
+
+/** Keep only names whose docs are readable (not hidden as experimental). */
+async function filterHidden(
+  names: string[],
+  load: (name: string) => Promise<string | null>,
+): Promise<string[]> {
+  if (isExperimentalEnabled()) return names;
+  const kept: string[] = [];
+  for (const n of names) {
+    if ((await load(n)) !== null) kept.push(n);
+  }
+  return kept;
 }

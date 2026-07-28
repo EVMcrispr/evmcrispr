@@ -1,8 +1,11 @@
 ---
 title: "ens:set-fuses"
+experimental: true
 ---
 
 Burn NameWrapper fuses on a wrapped ENS name.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 ## Syntax
 

@@ -18,7 +18,10 @@ import {
   BindingsManager,
   BindingsSpace,
   ErrorException,
+  ExperimentalDisabledError,
+  experimentalDisabledMessage,
   IPFSResolver,
+  isExperimentalEnabled,
   NodeType,
   resolveHelper as resolveHelperFn,
   resolveModuleSource,
@@ -167,6 +170,11 @@ export class EvmlWorkspace {
       setConnectedAccount: () => {},
       log: () => {},
       loadModule: async (name) => {
+        if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
+          throw new ExperimentalDisabledError(
+            experimentalDisabledMessage("module", name),
+          );
+        }
         const loader = this.registry.get(name);
         if (!loader) throw new ErrorException(`Module ${name} not found`);
         return loader();
@@ -684,6 +692,7 @@ export class EvmlWorkspace {
         script,
         this.#moduleCache,
         this.registry.names(),
+        this.registry.experimentalNames(),
       );
     } catch {
       semantic = [];

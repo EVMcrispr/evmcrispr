@@ -1,5 +1,6 @@
+import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
-import { describeCommand } from "@evmcrispr/test-utils/evml";
+import { createInterpreter, describeCommand } from "@evmcrispr/test-utils/evml";
 import { encryptedModule, ipfsGatewayFixtures } from "../../setup";
 
 const MODULE_CID = ipfsGatewayFixtures.moduleFile.cid;
@@ -130,4 +131,28 @@ load math>safe --from ipfs://${MODULE_CID}`,
       error: "module safe already loaded",
     },
   ],
+});
+
+// --from is experimental: the suite above runs with the flag on (test
+// preload); this checks the runtime guard with the flag off.
+describe("Std > commands > load --from experimental gating", () => {
+  it("rejects --from when VITE_PUBLIC_EXPERIMENTAL is off", async () => {
+    const saved = process.env.VITE_PUBLIC_EXPERIMENTAL;
+    delete process.env.VITE_PUBLIC_EXPERIMENTAL;
+    try {
+      const interpreter = createInterpreter(
+        `load math --from ipfs://${MODULE_CID}`,
+        null as any,
+      );
+      let error: Error | undefined;
+      try {
+        await interpreter.interpret();
+      } catch (e) {
+        error = e as Error;
+      }
+      expect(error?.message).to.match(/--from.*experimental/);
+    } finally {
+      process.env.VITE_PUBLIC_EXPERIMENTAL = saved;
+    }
+  });
 });

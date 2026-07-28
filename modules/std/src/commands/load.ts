@@ -3,6 +3,7 @@ import {
   BindingsSpace,
   defineCommand,
   ErrorException,
+  ExperimentalDisabledError,
   NodeType,
   parseImportList,
 } from "@evmcrispr/sdk";
@@ -46,6 +47,7 @@ export default defineCommand<Std>({
     {
       name: "from",
       type: "string",
+      experimental: true,
       description:
         'ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>"',
     },
@@ -85,7 +87,8 @@ export default defineCommand<Std>({
       try {
         ({ default: ModuleConstructor } =
           await module.context.loadModule(moduleName));
-      } catch (_e) {
+      } catch (e) {
+        if (e instanceof ExperimentalDisabledError) throw e;
         throw new ErrorException(`module ${moduleName} not found`);
       }
       instance = new ModuleConstructor(module.context);

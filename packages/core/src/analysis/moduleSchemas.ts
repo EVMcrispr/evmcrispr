@@ -26,8 +26,13 @@ export class ModuleSchemaProvider {
   #commandCache = new Map<string, ICommand | undefined>();
   #helperBatchableCache = new Map<string, boolean | undefined>();
   readonly #registered: Set<string>;
+  readonly #experimentalModules: Set<string>;
 
-  constructor(moduleCache: BindingsManager, registeredNames: string[]) {
+  constructor(
+    moduleCache: BindingsManager,
+    registeredNames: string[],
+    experimentalModuleNames: string[] = [],
+  ) {
     const bindings = moduleCache.getAllBindings({
       spaceFilters: [MODULE],
       ignoreNullValues: true,
@@ -36,6 +41,26 @@ export class ModuleSchemaProvider {
       this.#modules.set(identifier, value);
     }
     this.#registered = new Set(registeredNames);
+    this.#experimentalModules = new Set(experimentalModuleNames);
+  }
+
+  /** Whether `name` is a registered module hidden because it is
+   *  experimental and `VITE_PUBLIC_EXPERIMENTAL` is not enabled. */
+  isExperimentalModule(name: string): boolean {
+    return this.#experimentalModules.has(name) && !this.#registered.has(name);
+  }
+
+  /** Whether `moduleName` declares `cmdName` but hides it as experimental. */
+  isExperimentalCommand(moduleName: string, cmdName: string): boolean {
+    return !!this.#modules
+      .get(moduleName)
+      ?.experimentalCommands?.includes(cmdName);
+  }
+
+  /** Whether `moduleName` declares helper `name` but hides it as
+   *  experimental. */
+  isExperimentalHelper(moduleName: string, name: string): boolean {
+    return !!this.#modules.get(moduleName)?.experimentalHelpers?.includes(name);
   }
 
   /** Real module names currently loaded into the cache (includes `std`). */

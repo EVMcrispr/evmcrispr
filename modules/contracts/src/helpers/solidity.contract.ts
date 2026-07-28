@@ -7,6 +7,7 @@ export default defineHelper<Contracts>({
   description:
     "Compile Solidity source (inline text or a http/ipfs URL) and return the qualified contract name (`File.sol:Contract`), ready for `verify --contract-name`. Pass the same options as the matching @solidity call so the cached compile is reused.",
   returnType: "string",
+  experimental: true,
   args: [
     {
       name: "source",

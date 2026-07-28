@@ -48,7 +48,12 @@ function registerModule(registry: ModuleRegistry, input: ModuleInput): void {
     );
     return;
   }
-  registry.register(input.name, input.load, input.description);
+  registry.register(
+    input.name,
+    input.load,
+    input.description,
+    input.experimental,
+  );
 }
 
 /**

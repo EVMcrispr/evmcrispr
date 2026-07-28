@@ -18,6 +18,7 @@ import {
 
 export default defineCommand<Ens>({
   name: "set-fuses",
+  experimental: true,
   description: "Burn NameWrapper fuses on a wrapped ENS name.",
   args: [
     {

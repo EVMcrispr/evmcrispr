@@ -1,4 +1,4 @@
-import { ErrorException } from "../errors";
+import { ErrorException, ExperimentalDisabledError } from "../errors";
 import type { Module } from "../Module";
 import type {
   CompletionOverrides,
@@ -9,6 +9,10 @@ import type {
 import { BindingsSpace, NodeType } from "../types";
 import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
 import type { Param } from "./encoders";
+import {
+  experimentalDisabledMessage,
+  isExperimentalEnabled,
+} from "./experimental";
 import {
   type ArgDef,
   type ArgType,
@@ -35,6 +39,8 @@ export interface HelperConfig<M extends Module> {
    *  batch-build time, so they can never observe the effects of earlier
    *  actions in the same batch. */
   batchable?: boolean;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
   run(
     module: M,
     args: Record<string, any>,
@@ -53,6 +59,12 @@ export function defineHelper<M extends Module>(
   const totalFixed = argDefs.filter((a) => !a.rest).length;
 
   const fn: HelperFunction<M> = async (module, h, interpreters) => {
+    if (config.experimental && !isExperimentalEnabled()) {
+      throw new ExperimentalDisabledError(
+        experimentalDisabledMessage("helper", config.name),
+      );
+    }
+
     // 0. Enforce batch compatibility: a non-batchable helper reads state
     // that the enclosing batch could change, but it would evaluate at
     // batch-build time and only ever see pre-batch state. Before the batch
@@ -205,6 +217,9 @@ export function defineHelper<M extends Module>(
   }
   if (config.batchable !== undefined) {
     (fn as any).batchable = config.batchable;
+  }
+  if (config.experimental !== undefined) {
+    (fn as any).experimental = config.experimental;
   }
 
   return fn;

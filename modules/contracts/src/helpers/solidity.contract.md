@@ -1,8 +1,11 @@
 ---
 title: "@contracts:solidity.contract"
+experimental: true
 ---
 
 Compile Solidity source (inline text or a http/ipfs URL) and return the qualified contract name (`File.sol:Contract`), ready for `verify --contract-name`. Pass the same options as the matching @solidity call so the cached compile is reused.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `string`
 

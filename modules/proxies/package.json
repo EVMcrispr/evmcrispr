@@ -2,6 +2,7 @@
   "name": "@evmcrispr/module-proxies",
   "version": "0.1.0",
   "license": "GPL-3.0",
+  "experimental": true,
   "description": "Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.",
   "author": "Blossom Labs",
   "type": "module",

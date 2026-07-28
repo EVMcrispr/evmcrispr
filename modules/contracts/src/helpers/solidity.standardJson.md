@@ -1,8 +1,11 @@
 ---
 title: "@contracts:solidity.standardJson"
+experimental: true
 ---
 
 Compile Solidity source (inline text or a http/ipfs URL) and return the exact solc Standard JSON Input text, ready for `verify --source`. Pass the same options as the matching @solidity call so the cached compile is reused.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `string`
 

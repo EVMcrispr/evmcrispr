@@ -1,8 +1,11 @@
 ---
 title: "ens:wrap"
+experimental: true
 ---
 
 Wrap an ENS name in the NameWrapper.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 ## Syntax
 

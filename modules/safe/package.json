@@ -2,6 +2,7 @@
   "name": "@evmcrispr/module-safe",
   "version": "0.1.0",
   "license": "GPL-3.0",
+  "experimental": true,
   "description": "Safe multisig operations: propose and execute transactions, manage owners and threshold, attach guards, and install Zodiac modules.",
   "author": "Blossom Labs",
   "type": "module",

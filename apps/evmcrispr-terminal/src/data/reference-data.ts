@@ -12,6 +12,10 @@ import {
 
 export type { ConfigEntry, ReferenceEntry } from "./reference-core";
 
+const experimentalOn =
+  import.meta.env.VITE_PUBLIC_EXPERIMENTAL === "true" ||
+  import.meta.env.VITE_PUBLIC_EXPERIMENTAL === "1";
+
 const generated = import.meta.glob("../../../../modules/*/src/_generated.ts", {
   eager: true,
 }) as Record<
@@ -20,6 +24,7 @@ const generated = import.meta.glob("../../../../modules/*/src/_generated.ts", {
     commands?: ModuleDef["commands"];
     helpers?: ModuleDef["helpers"];
     configs?: ModuleDef["configs"];
+    experimental?: boolean;
   }
 >;
 
@@ -29,12 +34,15 @@ const docFiles = import.meta.glob(
 ) as Record<string, () => Promise<string>>;
 
 const modules: ModuleDef[] = sortModules(
-  Object.entries(generated).map(([path, mod]) => ({
-    name: path.match(/modules\/([^/]+)\//)?.[1] ?? "",
-    commands: mod.commands ?? {},
-    helpers: mod.helpers ?? {},
-    configs: mod.configs ?? [],
-  })),
+  Object.entries(generated)
+    .filter(([, mod]) => experimentalOn || mod.experimental !== true)
+    .map(([path, mod]) => ({
+      name: path.match(/modules\/([^/]+)\//)?.[1] ?? "",
+      commands: mod.commands ?? {},
+      helpers: mod.helpers ?? {},
+      configs: mod.configs ?? [],
+      experimental: mod.experimental,
+    })),
 );
 
 /** Declared config variables per module (`$mod:key`), in display order. */
@@ -53,6 +61,7 @@ function loadDoc(
 export const referenceEntries: ReferenceEntry[] = buildReferenceEntries(
   modules,
   loadDoc,
+  experimentalOn,
 );
 
 /** All unique module names, in display order. */

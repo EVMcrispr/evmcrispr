@@ -1,5 +1,5 @@
 import type { Chain, PublicClient, Transport } from "viem";
-import { ErrorException } from "./errors";
+import { ErrorException, ExperimentalDisabledError } from "./errors";
 import type {
   Address,
   CommandExpressionNode,
@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import { BindingsSpace, resolveCommand, resolveHelper } from "./types";
 import { substituteConfigDefault } from "./utils/configVars";
+import { experimentalDisabledMessage } from "./utils/experimental";
 import type { ArgType, ConfigDef, CustomArgTypes } from "./utils/schema";
 
 export abstract class Module {
@@ -30,6 +31,11 @@ export abstract class Module {
   readonly types: CustomArgTypes;
   readonly context: ModuleContext;
   readonly configs: ConfigDef[];
+  /** Command names hidden because they are experimental and
+   *  `VITE_PUBLIC_EXPERIMENTAL` is not enabled. */
+  readonly experimentalCommands: string[];
+  /** Helper names hidden for the same reason. */
+  readonly experimentalHelpers: string[];
 
   constructor(
     name: string,
@@ -44,6 +50,8 @@ export abstract class Module {
     types: CustomArgTypes,
     context: ModuleContext,
     configs: ConfigDef[] = [],
+    experimentalCommands: string[] = [],
+    experimentalHelpers: string[] = [],
   ) {
     this.name = name;
     this.commands = commands;
@@ -57,6 +65,8 @@ export abstract class Module {
     this.types = types;
     this.context = context;
     this.configs = configs;
+    this.experimentalCommands = experimentalCommands;
+    this.experimentalHelpers = experimentalHelpers;
   }
 
   // --- Convenience accessors delegating to context ---
@@ -91,6 +101,8 @@ export abstract class Module {
       constants: this.constants,
       types: this.types,
       configs: this.configs,
+      experimentalCommands: this.experimentalCommands,
+      experimentalHelpers: this.experimentalHelpers,
     };
   }
 
@@ -101,6 +113,11 @@ export abstract class Module {
     const commandOrLoader = this.commands[c.name];
 
     if (!commandOrLoader) {
+      if (this.experimentalCommands.includes(c.name)) {
+        throw new ExperimentalDisabledError(
+          experimentalDisabledMessage("command", c.name),
+        );
+      }
       throw new ErrorException(`command not found on module ${this.name}`);
     }
 
@@ -114,6 +131,11 @@ export abstract class Module {
   ): Promise<ReturnType<HelperFunction<this>>> {
     const helperOrLoader = this.helpers[h.name];
     if (!helperOrLoader) {
+      if (this.experimentalHelpers.includes(h.name)) {
+        throw new ExperimentalDisabledError(
+          experimentalDisabledMessage("helper", h.name),
+        );
+      }
       throw new ErrorException(`helper not found on module ${this.name}`);
     }
     const helper = await resolveHelper(helperOrLoader);

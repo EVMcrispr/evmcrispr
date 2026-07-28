@@ -22,6 +22,10 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
+// Docs are always generated in full, so experimental modules/commands/
+// helpers must validate too. Set before the core/sdk imports below read it.
+process.env.VITE_PUBLIC_EXPERIMENTAL = "true";
+
 import { createEvml } from "../packages/core/src";
 
 const ROOT = resolve(import.meta.dirname, "..");

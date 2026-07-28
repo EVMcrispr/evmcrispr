@@ -12,7 +12,10 @@ import {
   BindingsManager,
   BindingsSpace,
   ErrorException,
+  ExperimentalDisabledError,
+  experimentalDisabledMessage,
   IPFSResolver,
+  isExperimentalEnabled,
 } from "@evmcrispr/sdk";
 import type { Address, Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
@@ -176,6 +179,11 @@ export class Interpreter {
       setConnectedAccount: (account) => this.setConnectedAccount(account),
       log: (message) => this.log(message),
       loadModule: async (name) => {
+        if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
+          throw new ExperimentalDisabledError(
+            experimentalDisabledMessage("module", name),
+          );
+        }
         const loader = this.registry.get(name);
         if (!loader) throw new ErrorException(`Module ${name} not found`);
         return loader();

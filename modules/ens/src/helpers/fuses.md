@@ -1,8 +1,11 @@
 ---
 title: "@ens:fuses"
+experimental: true
 ---
 
 Combine NameWrapper fuse names into their uint32 bitmap.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `number`
 

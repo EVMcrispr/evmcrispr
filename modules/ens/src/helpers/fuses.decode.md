@@ -1,8 +1,11 @@
 ---
 title: "@ens:fuses.decode"
+experimental: true
 ---
 
 Decode a NameWrapper fuse bitmap into its fuse names.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `array`
 

@@ -1,4 +1,4 @@
-import { ErrorException } from "../errors";
+import { ErrorException, ExperimentalDisabledError } from "../errors";
 import type { Module } from "../Module";
 import type {
   Action,
@@ -19,6 +19,10 @@ import {
   getOptValue,
 } from "./args";
 import { computeCommandArity, prepareCommandArity } from "./arity";
+import {
+  experimentalDisabledMessage,
+  isExperimentalEnabled,
+} from "./experimental";
 import {
   type ArgDef,
   type ArgType,
@@ -101,6 +105,8 @@ export interface CommandConfig<M extends Module> {
    *  with `batchable: false` are rejected. Used by the static analyzer to
    *  find non-batchable commands without executing the script. */
   createsBatchContext?: boolean;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
 }
 
 export function defineCommand<M extends Module>(
@@ -112,6 +118,12 @@ export function defineCommand<M extends Module>(
 
   return {
     async run(module, c, interpreters) {
+      if (config.experimental && !isExperimentalEnabled()) {
+        throw new ExperimentalDisabledError(
+          experimentalDisabledMessage("command", config.name),
+        );
+      }
+
       const { interpretNode, interpretNodes } = interpreters;
 
       // 1-2. Extract trailing block(s) and check argument length. Shared with
@@ -132,7 +144,18 @@ export function defineCommand<M extends Module>(
         );
       }
 
-      // 3. Check options
+      // 3. Check options. Experimental opts stay in the valid list so the
+      // dedicated error below fires instead of "unknown option".
+      if (!isExperimentalEnabled()) {
+        const usedExperimental = optDefs.find(
+          (o) => o.experimental && c.opts?.some((op) => op.name === o.name),
+        );
+        if (usedExperimental) {
+          throw new ExperimentalDisabledError(
+            experimentalDisabledMessage("option", usedExperimental.name),
+          );
+        }
+      }
       if (optDefs.length > 0) {
         checkOpts(
           c,
@@ -270,5 +293,6 @@ export function defineCommand<M extends Module>(
     description: config.description,
     batchable: config.batchable,
     createsBatchContext: config.createsBatchContext,
+    experimental: config.experimental,
   };
 }

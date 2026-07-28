@@ -18,6 +18,7 @@ import { assertSupportedChain, eth2LDLabel, isEth2LD } from "../utils";
 
 export default defineCommand<Ens>({
   name: "wrap",
+  experimental: true,
   description: "Wrap an ENS name in the NameWrapper.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },

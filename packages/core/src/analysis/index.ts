@@ -15,6 +15,8 @@ import type {
 import {
   buildArgsLengthErrorMsg,
   computeCommandArity,
+  experimentalDisabledMessage,
+  isExperimentalEnabled,
   isSpecialArgType,
   NodeType,
   parseConfigVarName,
@@ -93,6 +95,16 @@ function suggest(
     }
   }
   return best;
+}
+
+/** Diagnostic for a registered-but-hidden experimental module. Used instead
+ *  of "unknown-module" so no `didYouMean` suggests the hidden name. */
+function experimentalModuleDiag(name: string, node: Node): ParseDiagnostic {
+  return diag(
+    node,
+    experimentalDisabledMessage("module", name),
+    "experimental-disabled",
+  );
 }
 
 function didYouMean(word: string, candidates: Iterable<string>): string {
@@ -800,14 +812,16 @@ class SemanticAnalyzer {
         !this.#schemas.isLoaded(rawName)
       ) {
         this.#diagnostics.push(
-          diag(
-            target,
-            `Module "${rawName}" is not registered.${didYouMean(
-              rawName,
-              this.#schemas.registeredNames(),
-            )}`,
-            "unknown-module",
-          ),
+          this.#schemas.isExperimentalModule(rawName)
+            ? experimentalModuleDiag(rawName, target)
+            : diag(
+                target,
+                `Module "${rawName}" is not registered.${didYouMean(
+                  rawName,
+                  this.#schemas.registeredNames(),
+                )}`,
+                "unknown-module",
+              ),
         );
       }
       this.#checkLoadImports(c);
@@ -826,14 +840,16 @@ class SemanticAnalyzer {
         );
       } else {
         this.#diagnostics.push(
-          diag(
-            c,
-            `Module "${owningModule}" is not registered.${didYouMean(
-              owningModule,
-              this.#schemas.registeredNames(),
-            )}`,
-            "unknown-module",
-          ),
+          this.#schemas.isExperimentalModule(owningModule)
+            ? experimentalModuleDiag(owningModule, c)
+            : diag(
+                c,
+                `Module "${owningModule}" is not registered.${didYouMean(
+                  owningModule,
+                  this.#schemas.registeredNames(),
+                )}`,
+                "unknown-module",
+              ),
         );
       }
       return;
@@ -853,17 +869,23 @@ class SemanticAnalyzer {
           ...(c.module ? [] : this.#meta.importedCommands.keys()),
         ];
         this.#diagnostics.push(
-          diag(
-            c,
-            `Command "${this.#displayName(c)}" does not exist${
-              c.module ? ` on module "${c.module}"` : ""
-            }.${didYouMean(c.name, known)}${
-              c.module
-                ? ""
-                : " Qualify it as <module>:name or add it to the module's load import list."
-            }`,
-            "unknown-command",
-          ),
+          this.#schemas.isExperimentalCommand(c.module ?? "std", c.name)
+            ? diag(
+                c,
+                experimentalDisabledMessage("command", c.name),
+                "experimental-disabled",
+              )
+            : diag(
+                c,
+                `Command "${this.#displayName(c)}" does not exist${
+                  c.module ? ` on module "${c.module}"` : ""
+                }.${didYouMean(c.name, known)}${
+                  c.module
+                    ? ""
+                    : " Qualify it as <module>:name or add it to the module's load import list."
+                }`,
+                "unknown-command",
+              ),
         );
       }
       // Still check helpers / variables inside its args below.
@@ -930,8 +952,23 @@ class SemanticAnalyzer {
 
   #checkOptions(c: CommandExpressionNode, cmd: ICommand): void {
     const valid = new Set(cmd.optDefs.map((o) => o.name));
+    const experimentalOff = !isExperimentalEnabled();
     const seen = new Set<string>();
     for (const opt of c.opts) {
+      if (
+        experimentalOff &&
+        cmd.optDefs.find((o) => o.name === opt.name)?.experimental
+      ) {
+        this.#diagnostics.push(
+          diag(
+            opt,
+            experimentalDisabledMessage("option", opt.name),
+            "experimental-disabled",
+          ),
+        );
+        seen.add(opt.name);
+        continue;
+      }
       if (!valid.has(opt.name)) {
         this.#diagnostics.push(
           diag(
@@ -1086,14 +1123,16 @@ class SemanticAnalyzer {
               `Module "${cfg.module}" is registered but not loaded. Add "load ${cfg.module}" before this line.`,
               "module-not-loaded",
             )
-          : diag(
-              at,
-              `Module "${cfg.module}" is not registered.${didYouMean(
-                cfg.module,
-                this.#schemas.registeredNames(),
-              )}`,
-              "unknown-module",
-            ),
+          : this.#schemas.isExperimentalModule(cfg.module)
+            ? experimentalModuleDiag(cfg.module, at)
+            : diag(
+                at,
+                `Module "${cfg.module}" is not registered.${didYouMean(
+                  cfg.module,
+                  this.#schemas.registeredNames(),
+                )}`,
+                "unknown-module",
+              ),
       );
       return;
     }
@@ -1269,14 +1308,16 @@ class SemanticAnalyzer {
                   `Module "${owningModule}" is registered but not loaded. Add "load ${owningModule}" before this line.`,
                   "module-not-loaded",
                 )
-              : diag(
-                  h,
-                  `Module "${owningModule}" is not registered.${didYouMean(
-                    owningModule,
-                    this.#schemas.registeredNames(),
-                  )}`,
-                  "unknown-module",
-                ),
+              : this.#schemas.isExperimentalModule(owningModule)
+                ? experimentalModuleDiag(owningModule, h)
+                : diag(
+                    h,
+                    `Module "${owningModule}" is not registered.${didYouMean(
+                      owningModule,
+                      this.#schemas.registeredNames(),
+                    )}`,
+                    "unknown-module",
+                  ),
           );
           continue;
         }
@@ -1299,17 +1340,23 @@ class SemanticAnalyzer {
           ...(h.module ? [] : this.#meta.importedHelpers.keys()),
         ];
         this.#diagnostics.push(
-          diag(
-            h,
-            `Helper @${this.#displayHelperName(h)} does not exist${
-              h.module ? ` on module "${h.module}"` : ""
-            }.${didYouMean(h.name, known)}${
-              h.module
-                ? ""
-                : " Qualify it as @<module>:name or add it to the module's load import list."
-            }`,
-            "unknown-helper",
-          ),
+          this.#schemas.isExperimentalHelper(owningModule, localName)
+            ? diag(
+                h,
+                experimentalDisabledMessage("helper", localName),
+                "experimental-disabled",
+              )
+            : diag(
+                h,
+                `Helper @${this.#displayHelperName(h)} does not exist${
+                  h.module ? ` on module "${h.module}"` : ""
+                }.${didYouMean(h.name, known)}${
+                  h.module
+                    ? ""
+                    : " Qualify it as @<module>:name or add it to the module's load import list."
+                }`,
+                "unknown-helper",
+              ),
         );
         continue;
       }
@@ -1414,6 +1461,7 @@ export async function getSemanticDiagnostics(
   script: string,
   moduleCache: BindingsManager,
   registeredModuleNames: string[],
+  experimentalModuleNames: string[] = [],
 ): Promise<ParseDiagnostic[]> {
   let body: CommandExpressionNode[];
   try {
@@ -1425,6 +1473,7 @@ export async function getSemanticDiagnostics(
     const schemas = new ModuleSchemaProvider(
       moduleCache,
       registeredModuleNames,
+      experimentalModuleNames,
     );
     return await new SemanticAnalyzer(schemas).analyze(body);
   } catch {

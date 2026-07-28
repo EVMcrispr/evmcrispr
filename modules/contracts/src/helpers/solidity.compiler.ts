@@ -7,6 +7,7 @@ export default defineHelper<Contracts>({
   description:
     "Compile Solidity source (inline text or a http/ipfs URL) and return the long compiler version (`0.8.26+commit.8a97fa7a`), ready for `verify --compiler`. Pass the same options as the matching @solidity call so the cached compile is reused.",
   returnType: "string",
+  experimental: true,
   args: [
     {
       name: "source",

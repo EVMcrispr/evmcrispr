@@ -1,8 +1,11 @@
 ---
 title: "@ens:fuses.of"
+experimental: true
 ---
 
 Get the burned fuse names of a wrapped ENS name.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 **Returns**: `array`
 

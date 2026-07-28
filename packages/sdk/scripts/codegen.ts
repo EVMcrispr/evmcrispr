@@ -36,6 +36,7 @@ interface HelperMeta {
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
   description: string | null;
+  experimental: boolean;
 }
 
 /** Parse a type value from source: either `"string"` or `["string", "array"]`. */
@@ -55,9 +56,9 @@ function parseTypeValue(text: string, prop: string): string | string[] | null {
   return null;
 }
 
-/** Extract the bracket-balanced content of `args: [ ... ]` from source text. */
-function extractArgsBlock(content: string): string | null {
-  const start = content.search(/args:\s*\[/);
+/** Extract the bracket-balanced content of `<prop>: [ ... ]` from source text. */
+function extractArrayBlock(content: string, prop: string): string | null {
+  const start = content.search(new RegExp(`${prop}:\\s*\\[`));
   if (start === -1) return null;
   const openIdx = content.indexOf("[", start);
   let depth = 1;
@@ -69,6 +70,22 @@ function extractArgsBlock(content: string): string | null {
   }
   if (depth !== 0) return null;
   return content.slice(openIdx + 1, i - 1);
+}
+
+function extractArgsBlock(content: string): string | null {
+  return extractArrayBlock(content, "args");
+}
+
+/** Whether the config object has a top-level `experimental: true`, ignoring
+ *  occurrences inside the `args`/`opts` arrays (an experimental *option* must
+ *  not mark the whole command experimental). */
+function hasTopLevelExperimental(content: string): boolean {
+  let stripped = content;
+  for (const prop of ["args", "opts"]) {
+    const block = extractArrayBlock(stripped, prop);
+    if (block) stripped = stripped.replace(block, "");
+  }
+  return /\bexperimental:\s*true/.test(stripped);
 }
 
 function extractArgDefs(content: string): ArgDefMeta[] {
@@ -98,7 +115,13 @@ function extractArgDefs(content: string): ArgDefMeta[] {
 function extractHelperMeta(dir: string, name: string): HelperMeta {
   const filePath = join(dir, `${name}.ts`);
   if (!existsSync(filePath))
-    return { returnType: null, hasArgs: false, argDefs: [], description: null };
+    return {
+      returnType: null,
+      hasArgs: false,
+      argDefs: [],
+      description: null,
+      experimental: false,
+    };
   const content = readFileSync(filePath, "utf-8");
   const returnType = parseTypeValue(content, "returnType");
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
@@ -109,15 +132,22 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
     hasArgs,
     argDefs,
     description: descMatch?.[1] ?? null,
+    experimental: hasTopLevelExperimental(content),
   };
 }
 
-function extractCommandDescription(dir: string, name: string): string | null {
+function extractCommandMeta(
+  dir: string,
+  name: string,
+): { description: string | null; experimental: boolean } {
   const filePath = join(dir, `${name}.ts`);
-  if (!existsSync(filePath)) return null;
+  if (!existsSync(filePath)) return { description: null, experimental: false };
   const content = readFileSync(filePath, "utf-8");
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
-  return descMatch?.[1] ?? null;
+  return {
+    description: descMatch?.[1] ?? null,
+    experimental: hasTopLevelExperimental(content),
+  };
 }
 
 const commandNames = getNames(commandsDir);
@@ -141,9 +171,11 @@ lines.push("");
 if (commandNames.length > 0) {
   lines.push("export const commands: CommandImportMap = {");
   for (const name of commandNames) {
-    const desc = extractCommandDescription(commandsDir, name);
+    const meta = extractCommandMeta(commandsDir, name);
     const parts: string[] = [`load: () => import("./commands/${name}")`];
-    if (desc) parts.push(`description: ${JSON.stringify(desc)}`);
+    if (meta.description)
+      parts.push(`description: ${JSON.stringify(meta.description)}`);
+    if (meta.experimental) parts.push("experimental: true");
     lines.push(`  ${JSON.stringify(name)}: { ${parts.join(", ")} },`);
   }
   lines.push("};");
@@ -179,6 +211,7 @@ if (helperNames.length > 0) {
     }
     if (meta.description)
       parts.push(`description: ${JSON.stringify(meta.description)}`);
+    if (meta.experimental) parts.push("experimental: true");
     lines.push(
       `  ${JSON.stringify(name)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
     );
@@ -196,6 +229,21 @@ if (hasConfigs) {
   // Untyped on purpose: packages without configs may not depend on the sdk.
   lines.push("export const configs = [];");
 }
+
+lines.push("");
+
+// Module-level experimental flag, read from the module's package.json.
+let moduleExperimental = false;
+const pkgPath = join(srcDir, "..", "package.json");
+if (existsSync(pkgPath)) {
+  try {
+    moduleExperimental =
+      JSON.parse(readFileSync(pkgPath, "utf-8")).experimental === true;
+  } catch {
+    /* unreadable package.json — treat as stable */
+  }
+}
+lines.push(`export const experimental = ${moduleExperimental};`);
 
 lines.push(""); // trailing newline
 

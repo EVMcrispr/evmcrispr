@@ -2,6 +2,7 @@
   "name": "@evmcrispr/module-lending",
   "version": "0.1.0",
   "license": "GPL-3.0",
+  "experimental": true,
   "description": "Lending markets: supply, withdraw, borrow and repay (with `max` sugar for dust-exact debt repayment) with automatic approvals, plus health-factor, APY, max-borrow and debt helpers. Protocol selection via --using (Aave v3, Spark, Compound v3).",
   "author": "Blossom Labs",
   "type": "module",

@@ -21,7 +21,7 @@ load <moduleName> [imports]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--from` | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>" |
+| `--from` | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>" *(experimental)* |
 
 ## Examples
 

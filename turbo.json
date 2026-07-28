@@ -5,6 +5,10 @@
     "codegen": {
       "outputs": ["src/_generated.ts"]
     },
+    "@evmcrispr/modules#codegen": {
+      "inputs": ["$TURBO_DEFAULT$", "../../modules/*/package.json"],
+      "outputs": ["src/_generated.ts"]
+    },
     "types": {
       "dependsOn": ["codegen", "^types"],
       "outputs": ["dist/**/*.d.ts", "dist/**/*.d.ts.map"]
@@ -26,24 +30,29 @@
       ]
     },
     "//#generate-docs": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
       "outputs": [
         "apps/evmcrispr-website/src/content/docs/reference/**",
         "apps/evmcrispr-website/public/llms-full.txt"
       ]
     },
     "evmcrispr-website#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
       "dependsOn": ["^build", "//#generate-docs"]
     },
     "evmcrispr-website#type-check": {
       "dependsOn": ["^types"]
     },
     "evmcrispr-terminal#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "inputs": ["$TURBO_DEFAULT$", "../../modules/*/package.json"],
       "dependsOn": ["^build"]
     },
     "evmcrispr-terminal#type-check": {
       "dependsOn": ["^types"]
     },
     "evmcrispr-mcp#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
       "dependsOn": ["codegen", "types", "evmcrispr#build", "^build"]
     },
     "evmcrispr-mcp#type-check": {

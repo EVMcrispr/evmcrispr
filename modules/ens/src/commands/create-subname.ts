@@ -19,6 +19,7 @@ import {
 
 export default defineCommand<Ens>({
   name: "create-subname",
+  experimental: true,
   description: "Create a subname under an ENS name you own.",
   args: [
     {

@@ -1,8 +1,11 @@
 ---
 title: "ens:create-subname"
+experimental: true
 ---
 
 Create a subname under an ENS name you own.
+
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
 
 ## Syntax
 

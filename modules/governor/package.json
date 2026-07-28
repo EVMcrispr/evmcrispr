@@ -2,6 +2,7 @@
   "name": "@evmcrispr/module-governor",
   "version": "0.1.0",
   "license": "GPL-3.0",
+  "experimental": true,
   "description": "Governance operations: Governor proposals, voting, vote delegation, and TimelockController scheduling.",
   "author": "Blossom Labs",
   "type": "module",

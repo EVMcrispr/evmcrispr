@@ -66,6 +66,11 @@ export type ModuleData = {
   /** Script-derived schema (inline `module` block or `load --from`) — not a
    *  real registry-loaded module; may be freely re-synthesized. */
   synthetic?: boolean;
+  /** Command names omitted from `commands` because they are experimental
+   *  and `VITE_PUBLIC_EXPERIMENTAL` is not enabled. */
+  experimentalCommands?: string[];
+  /** Helper names omitted from `helpers` for the same reason. */
+  experimentalHelpers?: string[];
 };
 
 export interface AbiBinding extends IBinding<Abi> {

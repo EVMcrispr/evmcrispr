@@ -66,6 +66,23 @@ export class ErrorNotFound extends ErrorException {
   }
 }
 
+/**
+ * The requested module/command/helper/option is experimental and
+ * `VITE_PUBLIC_EXPERIMENTAL` is not enabled.
+ * @category Error
+ */
+export class ExperimentalDisabledError extends ErrorException {
+  constructor(
+    message = "This feature is experimental and not enabled.",
+    {
+      code = "ExperimentalDisabledError",
+      name = "ExperimentalDisabledError",
+    }: ErrorOptions = {},
+  ) {
+    super(message, { code, name });
+  }
+}
+
 export class ErrorConnection extends ErrorException {
   constructor(
     message = "An error happened while communicating with a remote server.",

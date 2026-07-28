@@ -19,12 +19,17 @@ export function registerAllModules(): void {
   for (const dir of readdirSync(MODULES_DIR)) {
     const pkgPath = join(MODULES_DIR, dir, "package.json");
     if (!existsSync(pkgPath)) continue;
-    const pkgName = JSON.parse(readFileSync(pkgPath, "utf-8")).name as string;
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+    const pkgName = pkg.name as string;
     if (!pkgName?.startsWith(PREFIX)) continue;
     const name = pkgName.slice(PREFIX.length);
     // std is always loaded by @evmcrispr/core
     if (name === "std") continue;
-    entries.push({ name, load: () => loadModule(pkgName) });
+    entries.push({
+      name,
+      load: () => loadModule(pkgName),
+      experimental: pkg.experimental === true,
+    });
   }
   evml.use(...entries);
 }

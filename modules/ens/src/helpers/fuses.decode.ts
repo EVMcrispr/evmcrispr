@@ -4,6 +4,7 @@ import { decodeFuses } from "../fuses";
 
 export default defineHelper<Ens>({
   name: "fuses.decode",
+  experimental: true,
   description: "Decode a NameWrapper fuse bitmap into its fuse names.",
   returnType: "array",
   args: [

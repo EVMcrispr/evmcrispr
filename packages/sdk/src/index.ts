@@ -6,6 +6,7 @@ export {
   ErrorException,
   ErrorInvalid,
   ErrorNotFound,
+  ExperimentalDisabledError,
   ExpressionError,
   HaltExecution,
   HelperFunctionError,

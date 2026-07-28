@@ -2,6 +2,7 @@
   "name": "@evmcrispr/module-crypto",
   "version": "0.1.0",
   "license": "GPL-3.0",
+  "experimental": true,
   "description": "Cryptographic helpers for EVML scripts: Merkle tree utilities to compute roots, generate inclusion proofs and verify them over raw bytes32 leaves, supporting both the OpenZeppelin sorted-pair convention and positional (unsorted) trees such as Hop transfer roots.",
   "author": "Blossom Labs",
   "type": "module",

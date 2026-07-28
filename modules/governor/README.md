@@ -2,6 +2,8 @@
 
 Governance operations: Governor proposals, voting, vote delegation, and TimelockController scheduling.
 
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+
 ```evml
 load governor
 ```

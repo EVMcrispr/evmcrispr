@@ -31,4 +31,10 @@ export type ModuleLoader = () => Promise<{ default: IModuleConstructor }>;
  */
 export type ModuleInput =
   | IModuleConstructor
-  | { name: string; load: ModuleLoader; description?: string };
+  | {
+      name: string;
+      load: ModuleLoader;
+      description?: string;
+      /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+      experimental?: boolean;
+    };

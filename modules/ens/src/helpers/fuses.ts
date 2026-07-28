@@ -4,6 +4,7 @@ import { encodeFuses } from "../fuses";
 
 export default defineHelper<Ens>({
   name: "fuses",
+  experimental: true,
   description: "Combine NameWrapper fuse names into their uint32 bitmap.",
   returnType: "number",
   args: [

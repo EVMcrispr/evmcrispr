@@ -7,6 +7,7 @@ export default defineHelper<Contracts>({
   description:
     "Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:off, via-ir, evm:<version>, contract:<Name>.",
   returnType: "bytes",
+  experimental: true,
   args: [
     {
       name: "source",

@@ -7,6 +7,7 @@ export default defineHelper<Contracts>({
   description:
     "Compile Solidity source (inline text or a http/ipfs URL) and return the exact solc Standard JSON Input text, ready for `verify --source`. Pass the same options as the matching @solidity call so the cached compile is reused.",
   returnType: "string",
+  experimental: true,
   args: [
     {
       name: "source",

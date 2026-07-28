@@ -15,6 +15,10 @@ import { ensureAnvil, loadEnv } from "./anvil-config";
 
 await loadEnv();
 
+// Module suites exercise experimental modules/commands/helpers, so tests run
+// with experimental enabled by default. Gating-off tests override locally.
+process.env.VITE_PUBLIC_EXPERIMENTAL ??= "true";
+
 // Reuses a live anvil, replaces a wedged one, or starts a fresh one. When no
 // API key is configured it does nothing: unit tests still work fine and
 // integration tests fail with a clear connection error.

@@ -6,6 +6,7 @@ import { assertSupportedChain, eth2LDLabel, getNode, isEth2LD } from "../utils";
 
 export default defineCommand<Ens>({
   name: "unwrap",
+  experimental: true,
   description: "Unwrap an ENS name from the NameWrapper.",
   args: [
     {

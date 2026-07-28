@@ -20,6 +20,16 @@ import { sortModuleNames } from "../packages/modules/src/order";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
+/** Whether experimental items are included in the env-dependent build
+ *  artifacts (website reference tree, llms-full.txt). The committed
+ *  in-tree markdown is always generated in full. */
+const EXPERIMENTAL_ON =
+  process.env.VITE_PUBLIC_EXPERIMENTAL === "true" ||
+  process.env.VITE_PUBLIC_EXPERIMENTAL === "1";
+
+const EXPERIMENTAL_BADGE =
+  "**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.";
+
 // ── Module registry ──────────────────────────────────────────────────
 
 interface ModuleInfo {
@@ -27,6 +37,7 @@ interface ModuleInfo {
   prefix: string; // e.g. "aragonos:" or "" for std
   dir: string; // absolute path to modules/<mod>
   overview: string;
+  experimental: boolean;
 }
 
 function discoverModules(): ModuleInfo[] {
@@ -43,6 +54,7 @@ function discoverModules(): ModuleInfo[] {
       prefix: name === "std" ? "" : `${name}:`,
       dir: join(modulesRoot, name),
       overview: pkg.description ?? "",
+      experimental: pkg.experimental === true,
     };
   });
 }
@@ -63,6 +75,7 @@ interface OptDef {
   name: string;
   type: string;
   description?: string;
+  experimental?: boolean;
 }
 
 interface CommandMeta {
@@ -70,6 +83,7 @@ interface CommandMeta {
   description: string;
   argDefs: ArgDef[];
   optDefs: OptDef[];
+  experimental: boolean;
 }
 
 interface HelperMeta {
@@ -78,6 +92,7 @@ interface HelperMeta {
   returnType: string | string[];
   hasArgs: boolean;
   argDefs: ArgDef[];
+  experimental: boolean;
 }
 
 // ── Parse metadata directly from source .ts files ────────────────────
@@ -115,6 +130,7 @@ function extractCommandMeta(modDir: string, name: string): CommandMeta {
     description: extractStringProp(content, "description") ?? "",
     argDefs: extractArgs(content),
     optDefs: extractOpts(content, modDir, filePath),
+    experimental: hasTopLevelExperimental(content),
   };
 }
 
@@ -129,7 +145,28 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
     returnType,
     hasArgs: argDefs.length > 0,
     argDefs,
+    experimental: hasTopLevelExperimental(content),
   };
+}
+
+/** Whether the config object has a top-level `experimental: true`, ignoring
+ *  occurrences inside the `args`/`opts` arrays (an experimental *option* must
+ *  not mark the whole command experimental). */
+function hasTopLevelExperimental(content: string): boolean {
+  const defMatch = content.match(
+    /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
+  );
+  if (!defMatch) return false;
+  const configStart = content.indexOf(
+    "{",
+    defMatch.index! + defMatch[0].length - 1,
+  );
+  let stripped = content;
+  for (const key of ["args", "opts"]) {
+    const block = extractArrayBlock(stripped, configStart, key);
+    if (block) stripped = stripped.replace(block, "");
+  }
+  return /\bexperimental:\s*true/.test(stripped);
 }
 
 /** Parse a type value: either `"string"` or `["string", "array"]`. */
@@ -195,6 +232,7 @@ function extractOpts(
         name: optName,
         type: typeMatch[1],
         description: extractStringProp(m[1], "description") ?? undefined,
+        experimental: /\bexperimental:\s*true/.test(m[1]) || undefined,
       });
     }
   }
@@ -498,10 +536,15 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
   const lines: string[] = [];
   lines.push(`---`);
   lines.push(`title: "${fullName}"`);
+  if (cmd.experimental) lines.push("experimental: true");
   lines.push(`---`);
   lines.push("");
   lines.push(cmd.description || "*No description available.*");
   lines.push("");
+  if (cmd.experimental) {
+    lines.push(EXPERIMENTAL_BADGE);
+    lines.push("");
+  }
 
   // Syntax
   lines.push("## Syntax");
@@ -543,8 +586,9 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("| Name | Type | Description |");
     lines.push("|------|------|-------------|");
     for (const opt of cmd.optDefs) {
+      const suffix = opt.experimental ? " *(experimental)*" : "";
       lines.push(
-        `| \`--${opt.name}\` | \`${opt.type}\` | ${opt.description ?? ""} |`,
+        `| \`--${opt.name}\` | \`${opt.type}\` | ${opt.description ?? ""}${suffix} |`,
       );
     }
     lines.push("");
@@ -610,10 +654,15 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
   const lines: string[] = [];
   lines.push(`---`);
   lines.push(`title: "@${fullName}"`);
+  if (helper.experimental) lines.push("experimental: true");
   lines.push(`---`);
   lines.push("");
   lines.push(helper.description || "*No description available.*");
   lines.push("");
+  if (helper.experimental) {
+    lines.push(EXPERIMENTAL_BADGE);
+    lines.push("");
+  }
   lines.push(`**Returns**: \`${returnTypeStr}\``);
   lines.push("");
 
@@ -750,6 +799,10 @@ function generateModuleIndex(
   lines.push("");
   lines.push(mod.overview);
   lines.push("");
+  if (mod.experimental) {
+    lines.push(EXPERIMENTAL_BADGE);
+    lines.push("");
+  }
 
   if (mod.name !== "std") {
     lines.push("```evml");
@@ -785,7 +838,8 @@ function generateModuleIndex(
     lines.push("|---------|-------------|");
     for (const cmd of commands) {
       const link = `[${mod.prefix}${cmd.name}](${commandLink(cmd.name)})`;
-      lines.push(`| ${link} | ${cmd.description} |`);
+      const suffix = cmd.experimental ? " *(experimental)*" : "";
+      lines.push(`| ${link} | ${cmd.description}${suffix} |`);
     }
     lines.push("");
   }
@@ -800,7 +854,10 @@ function generateModuleIndex(
         ? h.returnType.join(" \\| ")
         : h.returnType;
       const link = `[@${mod.prefix}${h.name}](${helperLink(h.name)})`;
-      lines.push(`| ${link} | \`${returnTypeStr}\` | ${h.description} |`);
+      const suffix = h.experimental ? " *(experimental)*" : "";
+      lines.push(
+        `| ${link} | \`${returnTypeStr}\` | ${h.description}${suffix} |`,
+      );
     }
     lines.push("");
   }
@@ -810,7 +867,8 @@ function generateModuleIndex(
 
 // ── Website symlinks ─────────────────────────────────────────────────
 
-const { mkdirSync, symlinkSync, lstatSync, unlinkSync } = require("node:fs");
+const { mkdirSync, symlinkSync, lstatSync, unlinkSync, rmSync } =
+  require("node:fs");
 const { dirname, relative } = require("node:path");
 
 const WEBSITE_DOCS = join(
@@ -860,6 +918,17 @@ for (const mod of MODULES) {
   totalCommands += commands.length;
   totalHelpers += helpers.length;
 
+  // The committed in-tree markdown (README + src/**/*.md) is always full;
+  // the website tree and llms-full.txt only include what the current env
+  // exposes.
+  const moduleHidden = mod.experimental && !EXPERIMENTAL_ON;
+  const visibleCommands = EXPERIMENTAL_ON
+    ? commands
+    : commands.filter((c) => !c.experimental);
+  const visibleHelpers = EXPERIMENTAL_ON
+    ? helpers
+    : helpers.filter((h) => !h.experimental);
+
   // Clean up stale symlinks from previous runs
   cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "commands"));
   cleanBrokenSymlinks(join(WEBSITE_DOCS, mod.name, "helpers"));
@@ -867,22 +936,32 @@ for (const mod of MODULES) {
   // Write module index (repo README + website landing page)
   const indexDoc = generateModuleIndex(mod, commands, helpers);
   writeIfChanged(join(mod.dir, "README.md"), indexDoc);
-  allDocs.push(indexDoc);
-  mkdirSync(join(WEBSITE_DOCS, mod.name), { recursive: true });
-  writeIfChanged(
-    join(WEBSITE_DOCS, mod.name, "index.md"),
-    generateModuleIndex(mod, commands, helpers, "website"),
-  );
+  if (moduleHidden) {
+    // Remove any stale website tree from a previous flag-enabled run — the
+    // sidebar and Starlight pages are driven purely by directory presence.
+    rmSync(join(WEBSITE_DOCS, mod.name), { recursive: true, force: true });
+  } else {
+    allDocs.push(generateModuleIndex(mod, visibleCommands, visibleHelpers));
+    mkdirSync(join(WEBSITE_DOCS, mod.name), { recursive: true });
+    writeIfChanged(
+      join(WEBSITE_DOCS, mod.name, "index.md"),
+      generateModuleIndex(mod, visibleCommands, visibleHelpers, "website"),
+    );
+  }
 
   // Write command docs
   for (const cmd of commands) {
     const doc = generateCommandDoc(mod, cmd);
     const outPath = join(mod.dir, "src/commands", `${cmd.name}.md`);
     writeIfChanged(outPath, doc);
-    allDocs.push(doc);
 
-    // Symlink into website
     const webPath = join(WEBSITE_DOCS, mod.name, "commands", `${cmd.name}.md`);
+    if (moduleHidden || !visibleCommands.includes(cmd)) {
+      // Hidden item in a visible module: drop its (valid) website symlink.
+      if (!moduleHidden) rmIfExists(webPath);
+      continue;
+    }
+    allDocs.push(doc);
     ensureSymlink(outPath, webPath);
   }
 
@@ -891,17 +970,27 @@ for (const mod of MODULES) {
     const doc = generateHelperDoc(mod, helper);
     const outPath = join(mod.dir, "src/helpers", `${helper.name}.md`);
     writeIfChanged(outPath, doc);
-    allDocs.push(doc);
 
-    // Symlink into website
     const webPath = join(
       WEBSITE_DOCS,
       mod.name,
       "helpers",
       `${helper.name}.md`,
     );
+    if (moduleHidden || !visibleHelpers.includes(helper)) {
+      if (!moduleHidden) rmIfExists(webPath);
+      continue;
+    }
+    allDocs.push(doc);
     ensureSymlink(outPath, webPath);
   }
+}
+
+function rmIfExists(path: string): void {
+  try {
+    lstatSync(path);
+    unlinkSync(path);
+  } catch {}
 }
 
 // Generate llms-full.txt in website public/

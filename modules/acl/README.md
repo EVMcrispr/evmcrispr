@@ -2,6 +2,8 @@
 
 Access control operations: Ownable ownership, AccessControl and AccessManager roles.
 
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+
 ```evml
 load acl
 ```

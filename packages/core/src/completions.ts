@@ -21,6 +21,7 @@ import {
   getDeepestNodeWithArgs,
   hasCommandsBlock,
   isBuiltinType,
+  isExperimentalEnabled,
   NodeType,
   parseImportList,
   parseReadAbiParamTypes,
@@ -187,6 +188,7 @@ const buildOptCompletionItems = (
   const usedOpts = new Set(currentCommandNode.opts.map((o) => o.name));
   return command.optDefs
     .filter((o) => !usedOpts.has(o.name))
+    .filter((o) => !o.experimental || isExperimentalEnabled())
     .map(
       (o): CompletionItem => ({
         label: `--${o.name}`,

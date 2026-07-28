@@ -2,6 +2,8 @@
 
 Cryptographic helpers for EVML scripts: Merkle tree utilities to compute roots, generate inclusion proofs and verify them over raw bytes32 leaves, supporting both the OpenZeppelin sorted-pair convention and positional (unsorted) trees such as Hop transfer roots.
 
+**Experimental** — requires `VITE_PUBLIC_EXPERIMENTAL=true`.
+
 ```evml
 load crypto
 ```

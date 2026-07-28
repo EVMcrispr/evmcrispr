@@ -107,6 +107,8 @@ export interface OptDef {
   type: ArgType;
   /** Human-readable description for documentation. */
   description?: string;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
 }
 
 /**

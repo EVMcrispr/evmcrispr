@@ -24,11 +24,14 @@ export type ConfigEntry = {
 
 export type ModuleDef = {
   name: string;
-  commands: Record<string, { description?: string }>;
+  /** Whole module only available when VITE_PUBLIC_EXPERIMENTAL is enabled. */
+  experimental?: boolean;
+  commands: Record<string, { description?: string; experimental?: boolean }>;
   helpers: Record<
     string,
     {
       description?: string;
+      experimental?: boolean;
       returnType?: string | string[];
       argDefs?: Array<{
         name: string;
@@ -81,20 +84,22 @@ export function buildReferenceEntries(
     kind: "command" | "helper",
     name: string,
   ) => Promise<string>,
+  includeExperimental = true,
 ): ReferenceEntry[] {
   return modules.flatMap(({ name: moduleName, commands, helpers }) => {
-    const cmdEntries: ReferenceEntry[] = Object.entries(commands).map(
-      ([name, entry]) => ({
+    const cmdEntries: ReferenceEntry[] = Object.entries(commands)
+      .filter(([, entry]) => includeExperimental || !entry.experimental)
+      .map(([name, entry]) => ({
         name,
         kind: "command" as const,
         module: moduleName,
         description: entry.description ?? "",
         loadDocs: () => loadDoc(moduleName, "command", name).catch(() => ""),
-      }),
-    );
+      }));
 
-    const helperEntries: ReferenceEntry[] = Object.entries(helpers).map(
-      ([name, entry]) => ({
+    const helperEntries: ReferenceEntry[] = Object.entries(helpers)
+      .filter(([, entry]) => includeExperimental || !entry.experimental)
+      .map(([name, entry]) => ({
         name,
         kind: "helper" as const,
         module: moduleName,
@@ -109,8 +114,7 @@ export function buildReferenceEntries(
           rest: a.rest,
         })),
         loadDocs: () => loadDoc(moduleName, "helper", name).catch(() => ""),
-      }),
-    );
+      }));
 
     return [...cmdEntries, ...helperEntries];
   });

@@ -6,6 +6,7 @@ import { getNode, getWrappedData, isWrapped, mainnetClient } from "../utils";
 
 export default defineHelper<Ens>({
   name: "fuses.of",
+  experimental: true,
   batchable: false,
   description: "Get the burned fuse names of a wrapped ENS name.",
   returnType: "array",

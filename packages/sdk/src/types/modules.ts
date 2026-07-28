@@ -164,6 +164,8 @@ export interface ICommand<M extends Module = Module> {
   /** Whether this command opens an atomic batch context around its block
    *  body (`batch`, `connect`, `forward`). */
   createsBatchContext?: boolean;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
 }
 
 /** Lazy loader: () => Promise<ICommand>. Resolved on first use. */
@@ -204,6 +206,8 @@ export type CommandImportEntry = {
   load: () => Promise<{ default: ICommand<any> }>;
   /** Human-readable description shown in completions and hover tooltips. */
   description?: string;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
 };
 
 /** Map of name -> command import entry (loader + optional metadata). */
@@ -227,6 +231,8 @@ export type HelperImportEntry = {
   argDefs?: HelperArgDefEntry[];
   /** Human-readable description shown in hover tooltips. */
   description?: string;
+  /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
+  experimental?: boolean;
 };
 
 /** Map of name -> helper import entry (loader + return type). */
