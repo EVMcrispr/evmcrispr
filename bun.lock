@@ -99,7 +99,6 @@
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
         "tailwindcss": "^4.3.2",
-        "viem": "^2.54.1",
       },
       "devDependencies": {
         "@astrojs/check": "^0.9.9",
@@ -208,6 +207,20 @@
       "version": "0.1.0",
       "dependencies": {
         "@ensdomains/content-hash": "^3.1.1",
+        "@evmcrispr/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@evmcrispr/module-std": "workspace:*",
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
+    "modules/explorer": {
+      "name": "@evmcrispr/module-explorer",
+      "version": "0.1.0",
+      "dependencies": {
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {
@@ -486,6 +499,7 @@
         "@evmcrispr/module-contracts": "*",
         "@evmcrispr/module-crypto": "*",
         "@evmcrispr/module-ens": "*",
+        "@evmcrispr/module-explorer": "*",
         "@evmcrispr/module-giveth": "*",
         "@evmcrispr/module-governor": "*",
         "@evmcrispr/module-http": "*",
@@ -874,6 +888,8 @@
     "@evmcrispr/module-crypto": ["@evmcrispr/module-crypto@workspace:modules/crypto"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
+
+    "@evmcrispr/module-explorer": ["@evmcrispr/module-explorer@workspace:modules/explorer"],
 
     "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
 

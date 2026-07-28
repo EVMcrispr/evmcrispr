@@ -348,9 +348,5 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss()],
-    // Share the repo-root .env (VITE_DRPC_API_KEY) with the embedded
-    // terminal island, same as the terminal app does.
-    envDir: resolve(import.meta.dirname, "../.."),
-    envPrefix: ["VITE_", "PUBLIC_"],
   },
 });

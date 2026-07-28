@@ -1,7 +1,13 @@
 @import "tailwindcss";
 @import "@repo/ui/styles/theme.css";
+@import "@fontsource/jetbrains-mono";
+@import "@fontsource/jetbrains-mono/700.css";
 
 @source "../../../../packages/ui/src";
+
+@theme {
+  --font-mono: "JetBrains Mono", monospace;
+}
 
 #root {
   height: 100%;

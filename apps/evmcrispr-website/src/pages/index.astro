@@ -2,7 +2,6 @@
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import Card from "../components/Card.astro";
-import EmbeddedTerminal from "../components/EmbeddedTerminal.tsx";
 import Sponsors from "../components/Sponsors.astro";
 import Footer from "../components/Footer.astro";
 
@@ -24,13 +23,12 @@ const TERMINAL_URL =
     <div class="pt-16 pb-8 px-6 fade-in fade-in-delay-1">
       <p class="font-clearer text-white text-center text-2xl">
         <strong class="font-clearer text-evm-green-300">EVMcrispr</strong> is a
-        powerful tool utilising a domain-specific language for batching
-        interactions with EVM chains. Leveraging new Ethereum capabilities
-        introduced by the Pectra upgrade, it allows you to{" "}
+        scripting language for Ethereum. Describe what you want to happen
+        on-chain in a few readable lines, simulate it before it touches your
+        wallet, and{" "}
         <strong class="font-clearer text-evm-green-300">
-          bundle many operations into a single, atomic transaction
-        </strong>{" "}
-        submitted directly from your wallet.
+          share scripts anyone can read, review and run
+        </strong>.
       </p>
     </div>
 
@@ -52,19 +50,33 @@ const TERMINAL_URL =
       </div>
     </div>
 
-    <!-- Live embedded terminal -->
-    <h1 class="pt-16 text-center text-2xl font-bold text-evm-green-300 font-head fade-in fade-in-delay-3">
-      Try it right here
-    </h1>
-    <p class="pt-2 text-center text-white/60 font-clearer">
-      Edit the script and hit Run — reads happen live, transactions are
-      decoded and shown without being sent.
-    </p>
-    <div class="pt-6 px-6 fade-in fade-in-delay-3">
-      <EmbeddedTerminal
-        client:only="react"
-        script={`print hello world\nprint @token(WETH)::{name()(string)}\n\n# Transactions are interpreted, not executed:\nexec @token(WETH) deposit() --value 1e18`}
-      />
+    <!-- MCP notification banner -->
+    <div class="flex justify-center px-6 mt-20 mb-8 fade-in fade-in-delay-3">
+      <div
+        class="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 border border-evm-yellow-300/50 bg-evm-yellow-300/5 px-7 py-4 font-mono text-base lg:text-lg text-white/80 shadow-md"
+      >
+        <span class="flex items-center gap-3">
+          <span class="relative flex size-3">
+            <span
+              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-evm-green-300 opacity-75"
+            ></span>
+            <span
+              class="relative inline-flex size-3 rounded-full bg-evm-green-300"
+            ></span>
+          </span>
+          <span class="font-bold text-evm-green-300">NEW</span>
+        </span>
+        <span class="text-center">
+          EVMcrispr now works with{" "}
+          <strong class="font-bold text-evm-green-300">AI agents</strong> via MCP
+        </span>
+        <a
+          href="/guides/mcp/"
+          class="whitespace-nowrap border border-evm-green-300 px-3 py-1 text-sm text-evm-green-300 hover:bg-accent hover:text-accent-foreground"
+        >
+          Connect →
+        </a>
+      </div>
     </div>
 
     <!-- Testimonials heading -->
@@ -75,25 +87,25 @@ const TERMINAL_URL =
     <!-- Testimonial cards -->
     <div class="flex flex-col lg:flex-row justify-center items-center pt-8 mb-28 w-full gap-16 pr-4 md:pr-0">
       <Card
+        image={michael}
+        name="Michael Egorov"
+        info="Founder of Curve"
+        description={`"We had an important upgrade of CurveDAO (based on Aragon) which had to be very well tested given that the DAO controls parameters of a platform which holds more than $20B USD worth of assets. EVMcrispr helped to get this upgrade done safely."`}
+        animationClass="card-reveal card-reveal-delay-1"
+      />
+      <Card
+        image={griff}
+        name="Griff Green"
+        info="TheDAO curator"
+        description={`"As a non-dev Ethereum power user, I would be lost without EVMcrispr. I use it nearly every day — to mint NFTs, to build reusable payroll scripts, to craft complex atomic transactions. The best part? I can hand a script to anyone to review, and they actually understand it."`}
+        animationClass="card-reveal card-reveal-delay-2"
+      />
+      <Card
         image={brett}
         height={150}
         name="Brett Sun"
         info="Former Aragon CTO"
         description={`"EVMCrispr is the tool every aragonOS DAO has been waiting for. It presents a step change in DAO operations that enables everyone to invoke complex proposals—not just those brave enough to write complex transaction-generating code."`}
-        animationClass="card-reveal card-reveal-delay-1"
-      />
-      <Card
-        image={michael}
-        name="Michael Egorov"
-        info="Founder of Curve"
-        description={`"We had an important upgrade of CurveDAO (based on Aragon) which had to be very well tested given that the DAO controls parameters of a platform which holds more than $20B USD worth of assets. EVMcrispr helped to get this upgrade done safely."`}
-        animationClass="card-reveal card-reveal-delay-2"
-      />
-      <Card
-        image={griff}
-        name="Griff Green"
-        info="Co-founder of Giveth, Commons Stack & DAppNode"
-        description={`"EVMcrispr is what Aragon always needed and it finally has. Through it DAOs can evolve transparently at the speed of the community without the need to trust a technocracy."`}
         animationClass="card-reveal card-reveal-delay-3"
       />
     </div>
