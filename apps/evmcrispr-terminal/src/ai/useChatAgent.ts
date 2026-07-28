@@ -4,6 +4,7 @@ import { APICallError, type ModelMessage, stepCountIs, streamText } from "ai";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
+import { deriveTitle, getChat, removeChat, saveChat } from "./chat-store";
 import { createChatTools } from "./tools";
 
 const NEXUS_BASE_URL = "https://nexus-api.dappnode.com/v1";
@@ -27,7 +28,32 @@ The user's script lives in the Monaco editor next to this chat; you do not recei
 
 You have the full EVML reference at hand: list_modules gives an overview of every module, describe_module lists a module's commands and helpers, and get_docs returns the full documentation of one command or helper (syntax, arguments, options, examples). Look up anything you are not certain about instead of guessing — especially before using a module command's options or a helper's argument order.
 
-You can also read on-chain data: pass a throwaway script to simulate_script's script parameter and the output of any "print" commands appears in the simulation logs, without touching the editor. Helpers compose with space-separated arguments, so e.g. "load token" followed by "print @token:format(ETH @token:balance(ETH @ens(vitalik.eth)))" answers "what is vitalik.eth's ETH balance" with a human-readable string like "1.5 ETH". Use this whenever the user asks about balances, resolved names/addresses, or any other value a helper can compute.`;
+You can also read on-chain data: pass a throwaway script to simulate_script's script parameter and the output of any "print" commands appears in the simulation logs, without touching the editor. Helpers compose with space-separated arguments, so e.g. "load token" followed by "print @token:format(ETH @token:balance(ETH @ens(vitalik.eth)))" answers "what is vitalik.eth's ETH balance" with a human-readable string like "1.5 ETH". Use this whenever the user asks about balances, resolved names/addresses, or any other value a helper can compute.
+
+For external protocols, contracts, or anything the EVML docs tools do not cover (e.g. how ENS name wrapping works, a protocol's contract addresses, an unfamiliar function signature), use search_web to find documentation and fetch_page to read it instead of guessing. Prefer official documentation over blogs, and cite the source URLs in your reply.`;
+
+/**
+ * Model-friendly local timestamp: weekday for relative-day reasoning, ISO
+ * date to avoid day/month ambiguity, 24h time with an explicit UTC offset.
+ * E.g. "Tuesday, 2026-07-28 19:55 (UTC+01:00)".
+ */
+function formatNow(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const offsetMin = -now.getTimezoneOffset();
+  const sign = offsetMin < 0 ? "-" : "+";
+  const abs = Math.abs(offsetMin);
+  const offset = `UTC${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+  return `${weekday}, ${date} ${time} (${offset})`;
+}
+
+/** Computed per run so long-lived tabs don't drift. */
+function systemPrompt(): string {
+  return `${SYSTEM_PROMPT}\n\nThe current date and time is ${formatNow()}.`;
+}
 
 export type ChatItem =
   | { role: "user"; text: string }
@@ -44,10 +70,40 @@ export function useChatAgent() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthError, setIsAuthError] = useState(false);
+  // Each page load starts a fresh conversation; old ones live in the history.
+  const [conversationId, setConversationId] = useState<string>(() =>
+    crypto.randomUUID(),
+  );
 
   const historyRef = useRef<ModelMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
+  // Mirrors `items` so async persistence sees the latest render list.
+  const itemsRef = useRef<ChatItem[]>([]);
+  const conversationIdRef = useRef(conversationId);
+
+  const updateItems = useCallback(
+    (updater: (prev: ChatItem[]) => ChatItem[]) => {
+      setItems((prev) => {
+        const next = updater(prev);
+        itemsRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+
+  const persist = useCallback(() => {
+    const current = itemsRef.current;
+    const firstUser = current.find((i) => i.role === "user");
+    if (!firstUser) return;
+    saveChat(
+      conversationIdRef.current,
+      deriveTitle(firstUser.text),
+      current,
+      historyRef.current,
+    );
+  }, []);
 
   const model = useMemo(
     () =>
@@ -83,15 +139,17 @@ export function useChatAgent() {
       setIsAuthError(false);
       setIsRunning(true);
       stoppedRef.current = false;
-      setItems((prev) => [...prev, { role: "user", text }]);
+      updateItems((prev) => [...prev, { role: "user", text }]);
       historyRef.current.push({ role: "user", content: text });
+      // Persist now so an aborted or failed run still keeps the user message.
+      persist();
 
       const abort = new AbortController();
       abortRef.current = abort;
 
       const result = streamText({
         model,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt(),
         messages: historyRef.current,
         tools,
         // Nexus reserves the full max_tokens cost upfront and rejects the
@@ -109,9 +167,12 @@ export function useChatAgent() {
             const delta = part.text;
             if (!started) {
               started = true;
-              setItems((prev) => [...prev, { role: "assistant", text: delta }]);
+              updateItems((prev) => [
+                ...prev,
+                { role: "assistant", text: delta },
+              ]);
             } else {
-              setItems((prev) => {
+              updateItems((prev) => {
                 const next = [...prev];
                 const last = next[next.length - 1];
                 if (last?.role === "assistant")
@@ -124,7 +185,7 @@ export function useChatAgent() {
             }
           } else if (part.type === "tool-call") {
             started = false;
-            setItems((prev) => [
+            updateItems((prev) => [
               ...prev,
               { role: "tool", text: part.toolName },
             ]);
@@ -149,15 +210,74 @@ export function useChatAgent() {
       } finally {
         abortRef.current = null;
         setIsRunning(false);
+        persist();
       }
     },
-    [model, isRunning, tools],
+    [model, isRunning, tools, updateItems, persist],
   );
 
   const stop = useCallback(() => {
     stoppedRef.current = true;
     abortRef.current?.abort();
   }, []);
+
+  const newChat = useCallback(() => {
+    if (isRunning) return;
+    const id = crypto.randomUUID();
+    conversationIdRef.current = id;
+    setConversationId(id);
+    historyRef.current = [];
+    itemsRef.current = [];
+    setItems([]);
+    setError(null);
+    setIsAuthError(false);
+  }, [isRunning]);
+
+  const openChat = useCallback(
+    (id: string) => {
+      if (isRunning) return;
+      const stored = getChat(id);
+      if (!stored) return;
+      conversationIdRef.current = id;
+      setConversationId(id);
+      historyRef.current = stored.messages;
+      itemsRef.current = stored.items;
+      setItems(stored.items);
+      setError(null);
+      setIsAuthError(false);
+    },
+    [isRunning],
+  );
+
+  const deleteChat = useCallback(
+    (id: string) => {
+      if (isRunning && id === conversationIdRef.current) return;
+      removeChat(id);
+      if (id === conversationIdRef.current) newChat();
+    },
+    [isRunning, newChat],
+  );
+
+  /** Rewind to the last user message and run it again. */
+  const regenerate = useCallback(() => {
+    if (isRunning) return;
+    const current = itemsRef.current;
+    const lastUserIdx = current.map((i) => i.role).lastIndexOf("user");
+    if (lastUserIdx === -1) return;
+    const text = current[lastUserIdx].text;
+
+    const history = historyRef.current;
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (history[i].role === "user") {
+        historyRef.current = history.slice(0, i);
+        break;
+      }
+    }
+    const trimmed = current.slice(0, lastUserIdx);
+    itemsRef.current = trimmed;
+    setItems(trimmed);
+    void send(text);
+  }, [isRunning, send]);
 
   return {
     hasKey: apiKey !== null,
@@ -169,5 +289,10 @@ export function useChatAgent() {
     isAuthError,
     send,
     stop,
+    conversationId,
+    newChat,
+    openChat,
+    deleteChat,
+    regenerate,
   };
 }

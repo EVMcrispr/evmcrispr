@@ -23,6 +23,7 @@ import {
   loadModuleDocs,
   MODULES,
 } from "./docs";
+import { createWebTools } from "./web-tools";
 
 function currentScript(): string {
   // In view mode the Monaco editor is unmounted; the store holds the script.
@@ -233,5 +234,6 @@ export function createChatTools(tag: EvmlTag): ToolSet {
     list_modules: listModules,
     describe_module: describeModule,
     get_docs: getDocs,
+    ...createWebTools(),
   };
 }

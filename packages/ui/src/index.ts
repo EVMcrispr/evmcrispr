@@ -12,5 +12,6 @@ export { Popover } from "./components/Popover";
 export { Toaster, toast } from "./components/Sonner";
 export { Switch } from "./components/Switch";
 export { Tabs, tabsListVariants } from "./components/Tabs";
+export { Textarea } from "./components/Textarea";
 export { Tooltip } from "./components/Tooltip";
 export { cn } from "./utils";
