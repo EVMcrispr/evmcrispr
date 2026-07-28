@@ -225,6 +225,7 @@
       "devDependencies": {
         "@evmcrispr/module-std": "workspace:*",
         "@evmcrispr/module-superfluid": "workspace:*",
+        "@evmcrispr/module-token": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -322,6 +323,7 @@
       },
       "devDependencies": {
         "@evmcrispr/module-contracts": "workspace:*",
+        "@evmcrispr/module-token": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -372,6 +374,7 @@
       "name": "@evmcrispr/module-token",
       "version": "0.1.0",
       "dependencies": {
+        "@evmcrispr/module-std": "workspace:*",
         "@evmcrispr/sdk": "workspace:*",
       },
       "devDependencies": {

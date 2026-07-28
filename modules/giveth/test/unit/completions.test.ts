@@ -49,7 +49,7 @@ describe("Completions – giveth commands", () => {
       const script = `${GIVETH}giveth:donate `;
       const items = await evm.getCompletions(script, pos(script, 2));
       expect(hasLabel(items, "@date")).to.be.true;
-      expect(hasLabel(items, "@token.amount")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
       // Should NOT include address-returning helpers
       expect(hasLabel(items, "@me")).to.be.false;
     });
@@ -133,7 +133,7 @@ describe("Completions – giveth commands", () => {
     it("stake <cursor> should show number-compatible items for amount", async () => {
       const script = `${GIVETH}giveth:stake `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      expect(hasLabel(items, "@token.amount")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
       expect(hasLabel(items, "@me")).to.be.false;
     });
 
@@ -160,7 +160,7 @@ describe("Completions – giveth commands", () => {
     it("lock <cursor> should show number-compatible items for amount", async () => {
       const script = `${GIVETH}giveth:lock `;
       const items = await evm.getCompletions(script, pos(script, 2));
-      expect(hasLabel(items, "@token.amount")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
       expect(hasLabel(items, "@me")).to.be.false;
     });
 

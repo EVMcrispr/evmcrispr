@@ -155,7 +155,7 @@ describe("Completions – sim commands", () => {
       const script = `${SIM}sim:set-balance $addr `;
       const items = await evm.getCompletions(script, pos(script, 2));
       expect(hasLabel(items, "@date")).to.be.true;
-      expect(hasLabel(items, "@token.amount")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
       expect(hasLabel(items, "@me")).to.be.false;
     });
   });

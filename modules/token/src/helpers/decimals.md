@@ -1,5 +1,5 @@
 ---
-title: "@token.decimals"
+title: "@token:decimals"
 ---
 
 Return the number of decimals of a token.
@@ -9,7 +9,7 @@ Return the number of decimals of a token.
 ## Syntax
 
 ```evml
-@token.decimals(tokenSymbol)
+@token:decimals(tokenSymbol)
 ```
 
 ## Arguments
@@ -22,15 +22,15 @@ Return the number of decimals of a token.
 
 ```evml
 # Read the decimals of a token
-set $decimals @token.decimals(DAI)
+set $decimals @token:decimals(DAI)
 
 # Scale an amount manually
-set $base @num(25 * 10 ^ @token.decimals(DAI))
+set $base @num(25 * 10 ^ @token:decimals(DAI))
 ```
 
 <!-- HAND-WRITTEN -->
 
 ## See Also
 
-- [@token.amount](token.amount.md) — convert to base units applying decimals
-- [@token.format](token.format.md) — format base units as a human-readable string
+- [@token:amount](amount.md) — convert to base units applying decimals
+- [@token:format](format.md) — format base units as a human-readable string

@@ -1,10 +1,10 @@
+import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper } from "@evmcrispr/sdk";
 import { parseAbiItem, zeroAddress } from "viem";
-import type Std from "..";
-import { getChainNativeCurrency, resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.decimals",
+export default defineHelper<Token>({
+  name: "decimals",
   description: "Return the number of decimals of a token.",
   returnType: "number",
   args: [

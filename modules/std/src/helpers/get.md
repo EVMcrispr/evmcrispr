@@ -43,4 +43,4 @@ set $info @get(0xdDCbf776dF3dE60163066A5ddDF2277cB445E0F3 "poolInfo(uint256)(uin
 ## See Also
 
 - [exec](../commands/exec.md) — write (state-changing) contract calls
-- [@token.balance](token.balance.md) — shortcut for ERC-20 balance queries
+- [@token:balance](../../../token/src/helpers/balance.md) — shortcut for ERC-20 balance queries

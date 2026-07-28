@@ -1,5 +1,5 @@
 ---
-title: "@token.totalSupply"
+title: "@token:totalSupply"
 ---
 
 Fetch the total supply of a token in base units.
@@ -9,7 +9,7 @@ Fetch the total supply of a token in base units.
 ## Syntax
 
 ```evml
-@token.totalSupply(tokenSymbol)
+@token:totalSupply(tokenSymbol)
 ```
 
 ## Arguments
@@ -22,15 +22,15 @@ Fetch the total supply of a token in base units.
 
 ```evml
 # Query the total supply of a token
-set $supply @token.totalSupply(DAI)
+set $supply @token:totalSupply(DAI)
 
 # Print the total supply in human-readable form
-print @token.format(DAI @token.totalSupply(DAI))
+print @token:format(DAI @token:totalSupply(DAI))
 ```
 
 <!-- HAND-WRITTEN -->
 
 ## See Also
 
-- [@token.balance](token.balance.md)
-- [@token.format](token.format.md)
+- [@token:balance](balance.md)
+- [@token:format](format.md)

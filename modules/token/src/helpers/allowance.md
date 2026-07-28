@@ -1,5 +1,5 @@
 ---
-title: "@token.allowance"
+title: "@token:allowance"
 ---
 
 Fetch the allowance an owner has granted to a spender, in base units.
@@ -9,7 +9,7 @@ Fetch the allowance an owner has granted to a spender, in base units.
 ## Syntax
 
 ```evml
-@token.allowance(tokenSymbol owner spender)
+@token:allowance(tokenSymbol owner spender)
 ```
 
 ## Arguments
@@ -24,12 +24,12 @@ Fetch the allowance an owner has granted to a spender, in base units.
 
 ```evml
 # Query an allowance
-set $allowance @token.allowance(DAI @me 0x4F2083f5fBede34C2714aFfb3105539775f7FE64)
+set $allowance @token:allowance(DAI @me 0x4F2083f5fBede34C2714aFfb3105539775f7FE64)
 
 # Top up an allowance only when it is too low
 set $spender 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
-if @bool(@token.allowance(DAI @me $spender) < @token.amount(DAI 100)) (
-  exec @token(DAI) "approve(address,uint256)" $spender @token.amount(DAI 100)
+if @bool(@token:allowance(DAI @me $spender) < @token:amount(DAI 100)) (
+  token:approve @token:amount(DAI 100) @token(DAI) for $spender
 )
 ```
 
@@ -37,5 +37,6 @@ if @bool(@token.allowance(DAI @me $spender) < @token.amount(DAI 100)) (
 
 ## See Also
 
-- [@token.balance](token.balance.md) — token balance of an address
-- [@token.amount](token.amount.md) — convert to base units
+- [@token:balance](balance.md) — token balance of an address
+- [@token:amount](amount.md) — convert to base units
+- [token:approve](../commands/approve.md) — grant an allowance

@@ -77,12 +77,13 @@ sim:fork --using anvil (
       // timestamp (on-chain it only survives by claiming the dust released
       // between the two transactions).
       script: `load sim
+load token
 sim:fork --using anvil (
   sim:set-balance @me 1e18
   sim:set-storage-at ${GIVPOWER_LM} ${rewardsSlot} ${THOUSAND_GIV}
   sim:expect @bool(@giveth:claimable(@me) == 0)
   giveth:claim
-  sim:expect @bool(@token.balance(${GIV} @me) > 0)
+  sim:expect @bool(@token:balance(${GIV} @me) > 0)
 )`,
       validate: () => {
         // Reaching this point means the harvest ran as a single getReward()

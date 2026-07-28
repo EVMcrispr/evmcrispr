@@ -10,11 +10,13 @@ This guide covers how batching works and when to use it.
 Wrap commands in `batch` to combine them into one transaction:
 
 ```evml
+load token
+
 set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
 
 batch (
-  exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
-  exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+  exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
+  exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
 )
 ```
 
@@ -69,11 +71,13 @@ batch (
 Batches can contain control flow and other constructs:
 
 ```evml
+load token
+
 set $recipients [0x4F2083f5fBede34C2714aFfb3105539775f7FE64 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6]
 
 batch (
   loop $addr of $recipients (
-    exec @token(DAI) "transfer(address,uint256)" $addr @token.amount(DAI 100)
+    exec @token(DAI) "transfer(address,uint256)" $addr @token:amount(DAI 100)
   )
 )
 ```
@@ -84,10 +88,12 @@ By default, each `exec` command produces a separate transaction. Without
 `batch`, a script like:
 
 ```evml
+load token
+
 set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
 
-exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
-exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
+exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
 ```
 
 would submit two separate transactions — the second could fail independently

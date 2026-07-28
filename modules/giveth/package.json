@@ -26,6 +26,7 @@
   "devDependencies": {
     "@evmcrispr/module-std": "workspace:*",
     "@evmcrispr/module-superfluid": "workspace:*",
+    "@evmcrispr/module-token": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

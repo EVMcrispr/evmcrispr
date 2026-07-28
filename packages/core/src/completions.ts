@@ -414,7 +414,7 @@ export async function getCompletions(
   }
 
   // Fallback: if the cursor follows a trailing comma inside helper/call parens
-  // (e.g. "@token.amount(WXDAI, )"), the parser produces an empty AST. Inject
+  // (e.g. "@arr(1, )"), the parser produces an empty AST. Inject
   // a placeholder bareword at the cursor position so the parser succeeds.
   if (!currentCommandNode) {
     const textBeforeCursor = currentLineContent.slice(0, position.col);

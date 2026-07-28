@@ -1,10 +1,10 @@
+import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { formatUnits, parseAbiItem, zeroAddress } from "viem";
-import type Std from "..";
-import { getChainNativeCurrency, resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.format",
+export default defineHelper<Token>({
+  name: "format",
   description:
     "Format a base-unit token amount as a human-readable string with the token symbol.",
   returnType: "string",

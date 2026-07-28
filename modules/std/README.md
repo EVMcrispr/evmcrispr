@@ -56,11 +56,4 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@token](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
-| [@token.allowance](src/helpers/token.allowance.md) | `number` | Fetch the allowance an owner has granted to a spender, in base units. |
-| [@token.amount](src/helpers/token.amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |
-| [@token.balance](src/helpers/token.balance.md) | `number` | Fetch the token balance of an address in base units. |
-| [@token.decimals](src/helpers/token.decimals.md) | `number` | Return the number of decimals of a token. |
-| [@token.format](src/helpers/token.format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
-| [@token.symbol](src/helpers/token.symbol.md) | `string` | Return the symbol of a token. |
-| [@token.totalSupply](src/helpers/token.totalSupply.md) | `number` | Fetch the total supply of a token in base units. |
 

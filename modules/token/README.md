@@ -20,3 +20,15 @@ load token
 | [token:transfer](src/commands/transfer.md) | Transfer ERC20 tokens from the connected account to a recipient. |
 | [token:transfer-from](src/commands/transfer-from.md) | Transfer ERC20 tokens from one account to another, consuming the sender allowance. |
 
+## Helpers
+
+| Helper | Returns | Description |
+|--------|---------|-------------|
+| [@token:allowance](src/helpers/allowance.md) | `number` | Fetch the allowance an owner has granted to a spender, in base units. |
+| [@token:amount](src/helpers/amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |
+| [@token:balance](src/helpers/balance.md) | `number` | Fetch the token balance of an address in base units. |
+| [@token:decimals](src/helpers/decimals.md) | `number` | Return the number of decimals of a token. |
+| [@token:format](src/helpers/format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
+| [@token:symbol](src/helpers/symbol.md) | `string` | Return the symbol of a token. |
+| [@token:totalSupply](src/helpers/totalSupply.md) | `number` | Fetch the total supply of a token in base units. |
+

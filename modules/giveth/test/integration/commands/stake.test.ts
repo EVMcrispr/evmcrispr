@@ -171,6 +171,7 @@ sim:fork --using anvil (
       name: "runs a full stake/lock/unlock/unstake lifecycle inside sim:fork",
       timeout: 30000,
       script: `load sim
+load token
 sim:fork --using anvil (
   sim:set-balance @me 10e18
   sim:set-storage-at ${GIV} ${givBalanceSlot} ${THOUSAND_GIV}
@@ -183,7 +184,7 @@ sim:fork --using anvil (
   wait 2419200
   giveth:unlock $lockRound
   giveth:unstake max
-  sim:expect @bool(@token.balance(${GIV} @me) >= 1000e18)
+  sim:expect @bool(@token:balance(${GIV} @me) >= 1000e18)
 )`,
       validate: () => {
         // Reaching this point means approve, wrap, lock, unlock, unwrap and

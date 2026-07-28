@@ -50,13 +50,15 @@ set $dai @token(DAI)           # Single argument
 set $bal @get($dai "balanceOf(address)(uint256)" @me)  # Multiple arguments, space-separated
 ```
 
-Helper arguments are space-separated: `@token.balance(DAI @me)` is correct,
-`@token.balance(DAI, @me)` is a parse error.
+Helper arguments are space-separated: `@token:balance(DAI @me)` is correct,
+`@token:balance(DAI, @me)` is a parse error.
 
 Helpers can be nested and used as arguments to commands:
 
 ```evml
-exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 100)
+load token
+
+exec @token(DAI) "transfer(address,uint256)" @me @token:amount(DAI 100)
 ```
 
 ## Variables
@@ -64,8 +66,10 @@ exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 100)
 Use `set` to assign values and `$name` to reference them:
 
 ```evml
+load token
+
 set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
-set $amount @token.amount(DAI 1000)
+set $amount @token:amount(DAI 1000)
 exec @token(DAI) "transfer(address,uint256)" $recipient $amount
 ```
 
@@ -274,8 +278,10 @@ set $isValid @bool($x > 0 and $y < 100)
 ## Control Flow
 
 ```evml
+load token
+
 # Conditional
-set $balance @token.balance(DAI @me)
+set $balance @token:balance(DAI @me)
 if @bool($balance > 0) (
   print "Has balance"
 )

@@ -57,7 +57,7 @@ function withCommaHint(d: ParseDiagnostic, lines: string[]): ParseDiagnostic {
   if (!token.includes(",") && !rest.trimStart().startsWith(",")) return d;
   return {
     ...d,
-    message: `${d.message}. Did you separate arguments with commas? EVML arguments are space-separated, e.g. @token.balance(DAI @me) or [1 2 3]`,
+    message: `${d.message}. Did you separate arguments with commas? EVML arguments are space-separated, e.g. @token:balance(DAI @me) or [1 2 3]`,
   };
 }
 

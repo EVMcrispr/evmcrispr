@@ -1,10 +1,10 @@
+import { resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { parseAbiItem, zeroAddress } from "viem";
-import type Std from "..";
-import { resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.totalSupply",
+export default defineHelper<Token>({
+  name: "totalSupply",
   batchable: false,
   description: "Fetch the total supply of a token in base units.",
   returnType: "number",

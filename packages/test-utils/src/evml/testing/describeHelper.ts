@@ -128,7 +128,7 @@ function computeComparison(argDefs: HelperArgDefEntry[]) {
  * - `it` blocks for each error case
  * - Arg-length validation test derived from the helper's `argDefs`
  *
- * @param helperExpr - The helper name with `@` prefix, e.g. `"@token"` or `"@token.balance"`
+ * @param helperExpr - The helper name with `@` prefix, e.g. `"@token"` or `"@token:balance"`
  * @param config - Test configuration
  * @param argDefs - Arg definitions from the helper's metadata (from `_generated.ts`).
  *                  If provided, auto-generates arg-length validation.

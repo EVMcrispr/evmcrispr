@@ -132,7 +132,7 @@ export default defineCommand<Assertions>({
     const node = call as Node;
     if (node.type !== NodeType.CallExpression) {
       throw new ErrorException(
-        "assert expects a call expression as its first argument, e.g. `assert @token(WETH)::balanceOf(@me) >= @token.amount(WETH 10)`",
+        "assert expects a call expression as its first argument, e.g. `assert @token(WETH)::balanceOf(@me) >= @token:amount(WETH 10)`",
       );
     }
     const n = node as CallExpressionNode;

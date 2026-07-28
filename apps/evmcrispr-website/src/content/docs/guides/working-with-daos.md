@@ -112,10 +112,11 @@ Use `act` to call external contracts through the DAO's agent:
 
 ```evml
 load aragonos [act @app]
+load token
 
 aragonos:connect my-dao.aragonid.eth (
   # Transfer tokens from the DAO treasury
-  act @app(agent) @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 100)
+  act @app(agent) @token(DAI) "transfer(address,uint256)" @me @token:amount(DAI 100)
 )
 ```
 

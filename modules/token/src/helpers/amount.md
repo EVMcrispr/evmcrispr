@@ -1,5 +1,5 @@
 ---
-title: "@token.amount"
+title: "@token:amount"
 ---
 
 Convert a human-readable token amount to its base unit (applying decimals).
@@ -9,7 +9,7 @@ Convert a human-readable token amount to its base unit (applying decimals).
 ## Syntax
 
 ```evml
-@token.amount(tokenSymbolOrAddress amount)
+@token:amount(tokenSymbolOrAddress amount)
 ```
 
 ## Arguments
@@ -23,14 +23,14 @@ Convert a human-readable token amount to its base unit (applying decimals).
 
 ```evml
 # Convert 100 DAI to base units
-set $amount @token.amount(DAI 100)
+set $amount @token:amount(DAI 100)
 ```
 
 <!-- HAND-WRITTEN -->
 
 ## See Also
 
-- [@token](token.md) — resolve token address
-- [@token.balance](token.balance.md) — query token balance
-- [@token.format](token.format.md) — format base units as a human-readable string
+- [@token](../../../std/src/helpers/token.md) — resolve a token symbol to its address
+- [@token:balance](balance.md) — query token balance
+- [@token:format](format.md) — format base units as a human-readable string
 - [@num.parse](../../../lang/src/helpers/num.parse.md) — generic decimal parsing

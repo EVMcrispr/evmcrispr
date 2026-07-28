@@ -40,8 +40,10 @@ submitted:
 A simple script that transfers tokens:
 
 ```evml
+load token
+
 # Transfer 100 DAI to an address
-exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token.amount(DAI 100)
+exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token:amount(DAI 100)
 ```
 
 Breaking this down:
@@ -49,7 +51,7 @@ Breaking this down:
 - `@token(DAI)` — resolves the DAI token symbol to its contract address
 - `"transfer(address,uint256)"` — the function signature
 - `0x4F2083f5fBede34C2714aFfb3105539775f7FE64` — the recipient address
-- `@token.amount(DAI 100)` — converts 100 DAI to base units (100 * 10^18)
+- `@token:amount(DAI 100)` — converts 100 DAI to base units (100 * 10^18); helpers from loaded modules are used with a `module:` prefix
 
 ## Reading Contract State
 
@@ -66,19 +68,23 @@ print "Balance:" $balance
 Wrap multiple commands in `batch` to execute them as a single transaction:
 
 ```evml
+load token
+
 set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
 
 batch (
-  exec @token(DAI) "approve(address,uint256)" $router @token.amount(DAI 1000)
-  exec $router "swap(address,uint256)" @token(DAI) @token.amount(DAI 1000)
+  exec @token(DAI) "approve(address,uint256)" $router @token:amount(DAI 1000)
+  exec $router "swap(address,uint256)" @token(DAI) @token:amount(DAI 1000)
 )
 ```
 
 ## Working with Variables
 
 ```evml
+load token
+
 set $router 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-set $amount @token.amount(DAI 100)
+set $amount @token:amount(DAI 100)
 
 exec @token(DAI) "approve(address,uint256)" $router $amount
 exec $router "swapExactTokensForTokens(uint256,uint256,address[],address,uint256)" $amount 0 [@token(DAI) @token(WETH)] @me @date("2025-12-31")
@@ -90,12 +96,13 @@ Test your scripts without spending gas by loading the `sim` module:
 
 ```evml
 load sim
+load token
 
 set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 
 sim:fork (
   sim:set-balance @me 100e18
-  exec @token(DAI) "transfer(address,uint256)" $recipient @token.amount(DAI 50)
+  exec @token(DAI) "transfer(address,uint256)" $recipient @token:amount(DAI 50)
   sim:expect @bool(@get(@token(DAI) "balanceOf(address)(uint256)" $recipient) > 0)
 )
 ```

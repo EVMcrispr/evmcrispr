@@ -58,11 +58,12 @@ prefix:
 
 ```evml
 load sim [fork expect]
+load token [@balance]
 
-# Imported commands work unqualified, including inside blocks
+# Imported commands and helpers work unqualified, including inside blocks
 fork --using anvil (
   sim:set-balance @me 1e18
-  expect @bool(@token.balance(ETH @me) > 0)
+  expect @bool(@balance(ETH @me) > 0)
 )
 ```
 

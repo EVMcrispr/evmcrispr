@@ -9,6 +9,11 @@ evml.use({
   name: "contracts",
   load: () => import("@evmcrispr/module-contracts"),
 });
+// token (a devDependency) backs the @token:balance checks in backend tests.
+evml.use({
+  name: "token",
+  load: () => import("@evmcrispr/module-token"),
+});
 
 // Create and start MSW server
 export const server = createTestServer();

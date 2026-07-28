@@ -1,10 +1,10 @@
+import { resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { parseAbiItem, zeroAddress } from "viem";
-import type Std from "..";
-import { resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.allowance",
+export default defineHelper<Token>({
+  name: "allowance",
   batchable: false,
   description:
     "Fetch the allowance an owner has granted to a spender, in base units.",

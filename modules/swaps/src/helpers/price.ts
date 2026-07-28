@@ -10,7 +10,7 @@ export default defineHelper<Swaps>({
   name: "price",
   batchable: false,
   description:
-    "Spot price of 1 whole tokenA, expressed in base units of tokenB (the venue quote for selling 1 tokenA). Compare it against @token.amount(tokenB ...) values.",
+    "Spot price of 1 whole tokenA, expressed in base units of tokenB (the venue quote for selling 1 tokenA). Compare it against @token:amount(tokenB ...) values.",
   returnType: "number",
   args: [
     { name: "tokenA", type: "address", description: "Token being priced" },

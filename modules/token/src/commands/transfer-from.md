@@ -38,4 +38,4 @@ token:transfer-from 100e18 $token from $from to @me
 ## See Also
 
 - [token:transfer](transfer.md) / [token:approve](approve.md)
-- [@token.allowance](../../../std/src/helpers/token.allowance.md)
+- [@token:allowance](../helpers/allowance.md)

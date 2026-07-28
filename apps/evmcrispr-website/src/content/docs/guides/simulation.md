@@ -9,11 +9,12 @@ gas or affecting real state.
 
 ```evml
 load sim
+load token
 
 sim:fork (
   # Everything inside runs on a simulated fork
   sim:set-balance @me 100e18
-  exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token.amount(DAI 50)
+  exec @token(DAI) "transfer(address,uint256)" 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 @token:amount(DAI 50)
 )
 ```
 
@@ -58,12 +59,13 @@ Use `--from` to simulate as a specific address:
 
 ```evml
 load sim
+load token
 
 # A well-stocked account whose balance we borrow for the simulation
 set $whale 0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf
 
 sim:fork --from $whale (
-  exec @token(DAI) "transfer(address,uint256)" @me @token.amount(DAI 1000)
+  exec @token(DAI) "transfer(address,uint256)" @me @token:amount(DAI 1000)
 )
 ```
 

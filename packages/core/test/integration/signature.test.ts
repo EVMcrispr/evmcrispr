@@ -41,9 +41,9 @@ describe("Core > signatureHelp", () => {
       expect(result!.signatures[0].label).to.include("@token");
     });
 
-    it("should track active parameter inside @token.amount()", async () => {
-      const script = "set $x @token.amount(DAI, 100)";
-      const result = await ctx.signatureHelp(script, { line: 1, col: 26 });
+    it("should track active parameter inside @arr()", async () => {
+      const script = "set $x @arr(1, 100)";
+      const result = await ctx.signatureHelp(script, { line: 1, col: 17 });
       expect(result).to.not.be.null;
       expect(result!.activeParameter).to.equal(1);
     });

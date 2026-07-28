@@ -1,10 +1,10 @@
+import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper } from "@evmcrispr/sdk";
 import { parseAbiItem, parseUnits, zeroAddress } from "viem";
-import type Std from "..";
-import { getChainNativeCurrency, resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.amount",
+export default defineHelper<Token>({
+  name: "amount",
   description:
     "Convert a human-readable token amount to its base unit (applying decimals).",
   returnType: "number",

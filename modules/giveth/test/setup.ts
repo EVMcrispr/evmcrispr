@@ -12,6 +12,12 @@ evml.use({
   name: "superfluid",
   load: () => import("@evmcrispr/module-superfluid"),
 });
+// token (a devDependency) backs the @token:balance assertions in sim:fork
+// lifecycle tests.
+evml.use({
+  name: "token",
+  load: () => import("@evmcrispr/module-token"),
+});
 
 // Create and start MSW server with shared + Giveth GraphQL handlers
 export const server = createTestServer(...givethGraphqlHandlers);

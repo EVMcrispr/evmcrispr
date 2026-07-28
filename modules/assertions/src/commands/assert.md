@@ -31,12 +31,13 @@ assertions:assert <call> [operator] [expected] [message]
 
 ```evml
 load assertions
+load token
 
 # Compare a view return against a value (named method; ABI fetched automatically)
-assertions:assert @token(WETH)::balanceOf(@me) >= @token.amount(WETH 10) "insufficient bal"
+assertions:assert @token(WETH)::balanceOf(@me) >= @token:amount(WETH 10) "insufficient bal"
 
 # Inline ABI when the return type must be explicit (no ABI lookup)
-assertions:assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token.amount(WETH 10) "insufficient bal"
+assertions:assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token:amount(WETH 10) "insufficient bal"
 
 # Select a tuple element with a destructure lens ($ marks the element)
 set $pool 0x44fA8E6f47987339850636F88629646662444217

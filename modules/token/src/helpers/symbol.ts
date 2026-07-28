@@ -1,10 +1,10 @@
+import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper } from "@evmcrispr/sdk";
 import { parseAbiItem, zeroAddress } from "viem";
-import type Std from "..";
-import { getChainNativeCurrency, resolveToken } from "./token";
+import type Token from "..";
 
-export default defineHelper<Std>({
-  name: "token.symbol",
+export default defineHelper<Token>({
+  name: "symbol",
   description: "Return the symbol of a token.",
   returnType: "string",
   args: [

@@ -1,5 +1,5 @@
 import type { Address, Chain, Module } from "@evmcrispr/sdk";
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, readConfigValue } from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import type Std from "..";
 
@@ -7,7 +7,11 @@ const getTokenList = async (
   module: Module,
   chainId: number,
 ): Promise<string> => {
-  const tokenList = String(module.getConfigBinding("tokenlist", { chainId }));
+  // Always read std's $std:tokenlist, even when called from another module
+  // (the token module's helpers resolve symbols through this function).
+  const tokenList = String(
+    readConfigValue(module.bindingsManager, "std", "tokenlist", { chainId }),
+  );
 
   // Always check user data inputs:
   if (!tokenList.startsWith("https://")) {

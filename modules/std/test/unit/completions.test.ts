@@ -179,8 +179,8 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "false")).to.be.false;
       // Should include number-returning helpers
       expect(hasLabel(items, "@date")).to.be.true;
-      expect(hasLabel(items, "@token.amount")).to.be.true;
-      expect(hasLabel(items, "@token.balance")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
+      expect(hasLabel(items, "@nonce")).to.be.true;
       // Should NOT include address-returning helpers
       expect(hasLabel(items, "@me")).to.be.false;
       expect(hasLabel(items, "@ens")).to.be.false;
@@ -577,44 +577,6 @@ describe("Completions – std helpers", () => {
       expect(helperItems).to.have.lengthOf(0);
     });
 
-    // @token.balance(token-symbol, address)  →  first arg: custom type, no helpers
-    it("@token.balance(<cursor>) first arg should show no helper completions (custom type)", async () => {
-      const { script, position } = helperPos("set $x @token.balance(", ")");
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      expect(helperItems).to.have.lengthOf(0);
-    });
-
-    // @token.balance(string, address)  →  second arg: address helpers only
-    it("@token.balance(WXDAI <cursor>) second arg should show address-compatible completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI ",
-        ")",
-      );
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ADDRESS_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-      expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
-    });
-
-    // @token.amount(string, number)  →  second arg: number helpers only
-    it("@token.amount(WXDAI <cursor>) second arg should show number-compatible completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.amount(WXDAI ",
-        ")",
-      );
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of NUMBER_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-      expect(hasLabel(helperItems, "@me")).to.be.false;
-      expect(hasLabel(helperItems, "@token")).to.be.false;
-    });
-
     // @get(address, read-abi, ...any)  →  first arg: address helpers
     it("@get(<cursor>) first arg should show address-compatible completions", async () => {
       const { script, position } = helperPos("set $x @get(", ")");
@@ -789,23 +751,23 @@ describe("Completions – std helpers", () => {
     });
 
     // Variables should be included for non-bool/non-block types
-    it("@token.balance(WXDAI <cursor>) should include address-valued variables only", async () => {
+    it("@nonce(<cursor>) should include address-valued variables only", async () => {
       const before =
-        "set $addr 0x0000000000000000000000000000000000000001\nset $x @token.balance(WXDAI ";
+        "set $addr 0x0000000000000000000000000000000000000001\nset $x @nonce(";
       const after = ")";
       const script = before + after;
-      const position = { line: 2, col: "set $x @token.balance(WXDAI ".length };
+      const position = { line: 2, col: "set $x @nonce(".length };
       const items = await evm.getCompletions(script, position);
       const varItems = onlyKind(items, "variable");
       expect(hasLabel(varItems, "$addr")).to.be.true;
     });
 
-    it("@token.balance($c <cursor>) should show only address variable and address helpers, no duplicates", async () => {
+    it("@nonce(<cursor>) should show only address variable and address helpers, no duplicates", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const before = `set $a 1\nset $c ${addr}\nexec $c @token.balance($c `;
+      const before = `set $a 1\nset $c ${addr}\nexec $c @nonce(`;
       const after = ")";
       const script = before + after;
-      const position = { line: 3, col: `exec $c @token.balance($c `.length };
+      const position = { line: 3, col: `exec $c @nonce(`.length };
       const items = await evm.getCompletions(script, position);
       // $c should appear exactly once (address variable)
       const cItems = items.filter((i) => i.label === "$c");
@@ -820,12 +782,12 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "@date")).to.be.false;
     });
 
-    it("@token.amount($c <cursor>) should show only number variable, not address variable", async () => {
+    it("@arr(1 <cursor>) should show only number variable, not address variable", async () => {
       const addr = "0x0000000000000000000000000000000000000001";
-      const before = `set $a 1\nset $c ${addr}\nexec $c @token.amount($c `;
+      const before = `set $a 1\nset $c ${addr}\nexec $c @arr(1 `;
       const after = ")";
       const script = before + after;
-      const position = { line: 3, col: `exec $c @token.amount($c `.length };
+      const position = { line: 3, col: `exec $c @arr(1 `.length };
       const items = await evm.getCompletions(script, position);
       // $a should appear (value is 1, a number)
       expect(hasLabel(items, "$a")).to.be.true;
@@ -833,7 +795,7 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(items, "$c")).to.be.false;
       // Number-returning helpers should be present
       expect(hasLabel(items, "@date")).to.be.true;
-      expect(hasLabel(items, "@token.amount")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
       // Address-returning helpers should NOT be present
       expect(hasLabel(items, "@me")).to.be.false;
       expect(hasLabel(items, "@ens")).to.be.false;
@@ -850,39 +812,8 @@ describe("Completions – std helpers", () => {
       position: { line: 1, col: before.length },
     });
 
-    it("@token.balance(WXDAI <cursor>@me) gap between args should show address completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI ",
-        "@me)",
-      );
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ADDRESS_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-      expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
-    });
-
-    it("@token.balance(WXDAI <cursor>@me) at arg start mid-line should show address completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.balance(WXDAI ",
-        "@me)",
-      );
-      const items = await evm.getCompletions(script, position);
-      const helperItems = onlyKind(items, "helper");
-      for (const h of ADDRESS_HELPERS) {
-        expect(hasLabel(helperItems, h)).to.be.true;
-      }
-      expect(hasLabel(helperItems, "@date")).to.be.false;
-      expect(hasLabel(helperItems, "@id")).to.be.false;
-    });
-
-    it("@token.amount(WXDAI <cursor>@me) mid-line should show number completions", async () => {
-      const { script, position } = helperPos(
-        "set $x @token.amount(WXDAI ",
-        "@me)",
-      );
+    it("@arr(1 <cursor>@me) mid-line should show number completions", async () => {
+      const { script, position } = helperPos("set $x @arr(1 ", "@me)");
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of NUMBER_HELPERS) {
@@ -892,11 +823,11 @@ describe("Completions – std helpers", () => {
       expect(hasLabel(helperItems, "@token")).to.be.false;
     });
 
-    it("multiline: @token.amount(WXDAI <cursor>@me) mid-line should show number completions", async () => {
-      const script = "set $a 1\nset $x @token.amount(WXDAI @me)";
+    it("multiline: @arr(1 <cursor>@me) mid-line should show number completions", async () => {
+      const script = "set $a 1\nset $x @arr(1 @me)";
       const position = {
         line: 2,
-        col: "set $x @token.amount(WXDAI ".length,
+        col: "set $x @arr(1 ".length,
       };
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");

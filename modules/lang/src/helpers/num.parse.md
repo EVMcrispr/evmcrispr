@@ -24,4 +24,4 @@ Parse a decimal string with a given number of decimals (like parseUnits).
 ## See Also
 
 - [@num.format](num.format.md) — inverse: format an integer with decimals
-- [@token.amount](../../../std/src/helpers/token.amount.md) — token-aware unit conversion
+- [@token:amount](../../../token/src/helpers/amount.md) — token-aware unit conversion

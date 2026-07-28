@@ -32,10 +32,10 @@ set $recipient 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 token:transfer 100e18 $token to $recipient
 
 # Transfer using a human-readable amount
-token:transfer @token.amount(DAI 50) @token(DAI) to $recipient
+token:transfer @token:amount(DAI 50) @token(DAI) to $recipient
 ```
 
 ## See Also
 
 - [token:transfer-from](transfer-from.md) / [token:disperse](disperse.md)
-- [@token.balance](../../../std/src/helpers/token.balance.md)
+- [@token:balance](../helpers/balance.md)
