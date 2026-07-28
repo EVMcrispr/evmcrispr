@@ -21,8 +21,8 @@ describe("resolveDocLinkEntry", () => {
   });
 
   test("resolves a bare sibling link by name", () => {
-    const entry = resolveDocLinkEntry("token.amount.md", "std");
-    expect((entry as { name: string }).name).toBe("token.amount");
+    const entry = resolveDocLinkEntry("gas.price.md", "std");
+    expect((entry as { name: string }).name).toBe("gas.price");
   });
 
   test("resolves a cross-module link to the right module", () => {
