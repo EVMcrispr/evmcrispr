@@ -1,4 +1,4 @@
-import { codename, version } from "@evmcrispr/core/package.json";
+import { version as baseVersion, codename } from "@evmcrispr/core/package.json";
 import { Button } from "@repo/ui";
 import makeBlockie from "ethereum-blockies-base64";
 import { useState } from "react";
@@ -9,6 +9,11 @@ import { useConnect, useConnectors, useDisconnect } from "wagmi";
 import logo from "../../assets/logo.svg";
 import TypeWriter from "../animations/TypeWriter";
 import SelectWalletModal from "../wallet/SelectWalletModal";
+
+const experimentalOn =
+  import.meta.env.VITE_PUBLIC_EXPERIMENTAL === "true" ||
+  import.meta.env.VITE_PUBLIC_EXPERIMENTAL === "1";
+const version = experimentalOn ? `${baseVersion}-experimental` : baseVersion;
 
 export default function TerminalHeader({
   address,
