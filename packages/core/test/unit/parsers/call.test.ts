@@ -296,6 +296,24 @@ export const callParserDescribe = () =>
       });
     });
 
+    it("should parse inline ABI call with a variable arg before the closing brace", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$dao::{balanceOf(address)(uint256) $holder}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "balanceOf",
+        inputTypes: "(address)",
+        outputTypes: "(uint256)",
+      });
+      expect(result.args).to.have.lengthOf(1);
+      expect(result.args[0]).to.deep.include({
+        type: "VariableIdentifier",
+        value: "$holder",
+      });
+    });
+
     it("should parse inline ABI call with tuple output types", () => {
       const result = runParser(
         callExpressionParser,
