@@ -10,7 +10,13 @@ export interface SimulateOptions {
   blockNumber?: number;
   from?: Address;
   /** Fork backend passed as `sim:fork --using <backend>`. */
-  using?: "anvil" | "hardhat" | "tenderly" | "ethereumjs";
+  using?:
+    | "anvil"
+    | "hardhat"
+    | "tenderly"
+    | "tenderly-multichain"
+    | "ethereumjs"
+    | "revm";
   /** Auth token passed as `sim:fork --auth-token <token>` (tenderly). */
   authToken?: string;
   /** Cancels the simulation between actions and aborts fork RPC fetches. */

@@ -2,7 +2,7 @@
   "name": "@evmcrispr/module-sim",
   "version": "0.1.0",
   "license": "GPL-3.0",
-  "description": "Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, or EthereumJS backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.",
+  "description": "Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, EthereumJS or Revm (WASM) backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -36,11 +36,13 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsgo -p tsconfig.json",
-    "build": "evmcrispr-build --bundle",
+    "build": "evmcrispr-build --bundle --assets=src/lib/revm/pkg:pkg",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
-    "types": "evmcrispr-build --types"
+    "types": "evmcrispr-build --types",
+    "build:wasm": "bun ../../scripts/build-wasm.ts",
+    "test:rust": "cargo test --manifest-path rust/Cargo.toml"
   }
 }

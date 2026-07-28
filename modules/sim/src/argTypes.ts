@@ -1,12 +1,13 @@
 import type { CustomArgTypes } from "@evmcrispr/sdk";
 import { ErrorException, fieldItem } from "@evmcrispr/sdk";
 
-const SIMULATION_MODES = [
+export const SIMULATION_MODES = [
   "anvil",
   "hardhat",
   "tenderly",
   "tenderly-multichain",
   "ethereumjs",
+  "revm",
 ] as const;
 
 export const types: CustomArgTypes = {

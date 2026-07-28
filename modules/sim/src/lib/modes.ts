@@ -7,6 +7,6 @@ import type { SimMode } from "..";
  */
 export function rpcPrefix(
   mode: SimMode,
-): "anvil" | "hardhat" | "tenderly" | "ethereumjs" {
+): "anvil" | "hardhat" | "tenderly" | "ethereumjs" | "revm" {
   return mode === "tenderly-multichain" ? "tenderly" : mode;
 }

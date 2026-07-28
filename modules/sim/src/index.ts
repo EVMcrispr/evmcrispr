@@ -1,14 +1,9 @@
 import { defineModule } from "@evmcrispr/sdk";
 import { commands } from "./_generated";
-import { types } from "./argTypes";
+import { SIMULATION_MODES, types } from "./argTypes";
 import type { PendingDelivery, RelayHandler } from "./lib/relay";
 
-export type SimMode =
-  | "anvil"
-  | "hardhat"
-  | "tenderly"
-  | "tenderly-multichain"
-  | "ethereumjs";
+export type SimMode = (typeof SIMULATION_MODES)[number];
 
 export type {
   PendingDelivery,

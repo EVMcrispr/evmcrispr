@@ -11,7 +11,8 @@
       "!**/generated",
       "!**/_generated.ts",
       "!**/*.astro",
-      "!**/editor/evml.ts"
+      "!**/editor/evml.ts",
+      "!**/lib/revm/pkg"
     ]
   },
   "formatter": {

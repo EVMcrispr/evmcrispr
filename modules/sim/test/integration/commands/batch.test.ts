@@ -20,9 +20,13 @@ const BACKENDS = [
   { name: "anvil", forkOpts: "--using anvil" },
   {
     name: "ethereumjs",
-    // Pin to the anvil fork block — the EthereumJS backend forks from the
+    // Pin to the anvil fork block — the in-process backends fork from the
     // local anvil over RPC, which only serves the block it was launched at.
     forkOpts: `--using ethereumjs --block-number ${FORK_BLOCK_NUMBER}`,
+  },
+  {
+    name: "revm",
+    forkOpts: `--using revm --block-number ${FORK_BLOCK_NUMBER}`,
   },
 ] as const;
 

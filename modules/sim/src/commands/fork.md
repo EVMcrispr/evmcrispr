@@ -23,7 +23,7 @@ sim:fork <block>
 | `--block-number` | `number` | Block number to fork from |
 | `--from` | `address` | Default sender address |
 | `--auth-token` | `string` | RPC provider authentication token |
-| `--using` | `simulation-mode` | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs) |
+| `--using` | `simulation-mode` | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm) |
 
 ## Examples
 
@@ -38,8 +38,11 @@ sim:fork --using anvil (
 
 ## Notes
 
-- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs` (default)
-- The `ethereumjs` backend runs entirely in the browser — no external node needed
+- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs` (default), `revm`
+- The `ethereumjs` and `revm` backends run entirely in the browser — no external node needed
+- `revm` executes on the Rust EVM compiled to WebAssembly: much faster opcode
+  execution than `ethereumjs` on compute-heavy simulations, with identical
+  semantics (state still streams lazily from the upstream RPC)
 - All commands inside the fork block execute against the simulated state
 - Changes do not affect the real chain
 - `batch (...)` inside a fork simulates an EIP-7702 batch: if the sender EOA
@@ -71,6 +74,7 @@ Each backend hosts the extra chains differently:
 | Backend | How it goes multichain |
 |---------|------------------------|
 | `ethereumjs` (default) | One in-memory fork per chain, created on the first `switch` |
+| `revm` | Same as `ethereumjs`: one in-memory (WASM) fork per chain |
 | `tenderly` | One Virtual TestNet per chain |
 | `tenderly-multichain` | A single multichain Virtual Environment holding every chain the script switches to (one dashboard, one teardown). Its networks are attached when the environment is created, so `switch` targets must be literal |
 | `anvil` / `hardhat` | The single local node is re-forked on each switch, saving and restoring each chain's state (needs `dumpState`/`loadState`, which Anvil supports) |

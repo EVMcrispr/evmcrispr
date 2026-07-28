@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync } from "node:fs";
-import { readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { cp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 /**
  * Cross-platform build script for EVMcrispr packages.
@@ -15,6 +15,9 @@ import { join } from "node:path";
  *   --splitting enables code splitting (lazy chunks for dynamic imports)
  *   --production builds with production semantics (required for JSX
  *     packages: lowers to react/jsx-runtime instead of the dev transform)
+ *   --assets=<from:to> copies a static asset directory into dist/<to> after
+ *     bundling (e.g. wasm artifacts referenced via `new URL`, which `bun
+ *     build` does not emit)
  */
 import { $, Glob } from "bun";
 
@@ -74,6 +77,15 @@ if (bundleOnly || full) {
     await $`bun build ${entrypoints} --outdir ./dist --format esm --sourcemap=linked --packages external ${splitting ? "--splitting" : []} ${production ? "--production" : []}`;
   } finally {
     if (hasSideEffectsHint) await writeFile(pkgJsonPath, pkgJsonRaw);
+  }
+
+  // Bundling flattens modules into dist root, so an asset referenced as
+  // `new URL("./pkg/x.wasm", import.meta.url)` must land at dist/pkg/x.wasm.
+  for (const spec of args.filter((a) => a.startsWith("--assets="))) {
+    const [from, to] = spec.slice("--assets=".length).split(":");
+    await cp(join(process.cwd(), from), join(distDir, to ?? from), {
+      recursive: true,
+    });
   }
 }
 

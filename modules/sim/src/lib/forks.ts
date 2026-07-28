@@ -15,10 +15,7 @@ import {
 import * as viemChains from "viem/chains";
 import type Sim from "..";
 import type { SimMode } from "..";
-import {
-  createEthereumJSBackend,
-  type EthereumJSBackend,
-} from "./ethereumjs-backend";
+import type { SimBackend } from "./backend";
 import { rpcPrefix } from "./modes";
 
 const LOCAL_RPC = "http://localhost:8545";
@@ -104,10 +101,10 @@ export interface ForkHandle {
   chainId: number;
   chain: Chain;
   publicClient: PublicClient;
-  /** Present for anvil/hardhat/tenderly modes; ethereumjs has no wallet. */
+  /** Present for anvil/hardhat/tenderly modes; in-process modes have no wallet. */
   walletClient?: WalletClient;
-  /** Present in ethereumjs mode. */
-  backend?: EthereumJSBackend;
+  /** Present for the in-process modes (ethereumjs, revm). */
+  backend?: SimBackend;
 }
 
 export interface ForkManagerOptions {
@@ -159,7 +156,8 @@ export class ForkManager {
   async init(chainId: number): Promise<ForkHandle> {
     switch (this.mode) {
       case "ethereumjs":
-        this.#active = await this.#createEthereumJS(
+      case "revm":
+        this.#active = await this.#createInProcess(
           chainId,
           this.#opts.blockNumber,
         );
@@ -203,8 +201,8 @@ export class ForkManager {
         );
       }
       handle =
-        this.mode === "ethereumjs"
-          ? await this.#createEthereumJS(chainId)
+        this.mode === "ethereumjs" || this.mode === "revm"
+          ? await this.#createInProcess(chainId)
           : await this.#createTenderlyVnet(chainId);
       this.#handles.set(chainId, handle);
     }
@@ -233,9 +231,9 @@ export class ForkManager {
     return this.#opts.auth;
   }
 
-  // ── ethereumjs ─────────────────────────────────────────────────────────
+  // ── in-process backends (ethereumjs, revm) ─────────────────────────────
 
-  async #createEthereumJS(
+  async #createInProcess(
     chainId: number,
     blockNumber?: number,
   ): Promise<ForkHandle> {
@@ -243,11 +241,17 @@ export class ForkManager {
     const upstreamRpcUrl = this.#upstreamRpcUrl(chainId, chain);
     if (!upstreamRpcUrl) {
       throw new ErrorException(
-        "EthereumJS backend requires an upstream RPC URL. Make sure a " +
+        `The ${this.mode} backend requires an upstream RPC URL. Make sure a ` +
           `transport is configured for chain ${chainId}.`,
       );
     }
-    const backend = await createEthereumJSBackend({
+    // Dynamic imports keep each backend (and the revm wasm asset) in its own
+    // lazy chunk — users who never fork download neither.
+    const createBackend =
+      this.mode === "revm"
+        ? (await import("./revm-backend")).createRevmBackend
+        : (await import("./ethereumjs-backend")).createEthereumJSBackend;
+    const backend = await createBackend({
       upstreamRpcUrl,
       blockNumber,
       chainId,

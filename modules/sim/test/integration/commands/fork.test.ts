@@ -25,7 +25,7 @@ describeCommand("fork", {
   print "inside"
 )`,
       error:
-        "--using must be one of anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, got unknown-backend",
+        "--using must be one of anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm, got unknown-backend",
     },
   ],
 });

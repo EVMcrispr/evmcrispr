@@ -3,12 +3,11 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
-
+import { FORK_BLOCK_NUMBER } from "../../../../../scripts/anvil-config";
 import {
   fetchReleaseList,
   loadCompiler,
 } from "../../../../contracts/src/utils/solcLoader";
-import { FORK_BLOCK_NUMBER } from "../../../../../scripts/anvil-config";
 
 const SRC =
   "pragma solidity 0.8.26; contract Counter { uint256 public n; function inc() public { n++; } }";

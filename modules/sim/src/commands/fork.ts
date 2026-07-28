@@ -19,6 +19,7 @@ import {
 } from "viem";
 import type Sim from "..";
 import type { SimMode } from "..";
+import { SIMULATION_MODES } from "../argTypes";
 import {
   DELEGATOR_ADDRESS,
   DELEGATOR_BYTECODE,
@@ -75,7 +76,7 @@ export default defineCommand<Sim>({
       name: "using",
       type: "simulation-mode",
       description:
-        "Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs)",
+        "Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm)",
     },
   ],
   async run(module, { block }, { opts, interpreters }) {
@@ -90,17 +91,9 @@ export default defineCommand<Sim>({
     const chainId = await module.getChainId();
 
     const mode: SimMode = using ?? (tenderlyOpt ? "tenderly" : "ethereumjs");
-    if (
-      ![
-        "anvil",
-        "hardhat",
-        "tenderly",
-        "tenderly-multichain",
-        "ethereumjs",
-      ].includes(mode)
-    ) {
+    if (!SIMULATION_MODES.includes(mode)) {
       throw new ErrorException(
-        `Unknown simulation backend: "${mode}". Supported: anvil, hardhat, tenderly, tenderly-multichain, ethereumjs`,
+        `Unknown simulation backend: "${mode}". Supported: ${SIMULATION_MODES.join(", ")}`,
       );
     }
 
@@ -453,13 +446,13 @@ export default defineCommand<Sim>({
         }
       }
 
-      if (mode === "ethereumjs") {
+      const backend = forkManager.active.backend;
+      if (backend) {
         let resolved = action;
         if (isTransactionAction(resolved) && !resolved.from) {
           resolved = { ...resolved, from: await module.getConnectedAccount() };
         }
-        const receipt =
-          await forkManager.active.backend!.handleAction(resolved);
+        const receipt = await backend.handleAction(resolved);
         if (relayScan && receipt?.logs?.length) {
           await scanAndQueue(receipt.logs);
         }
@@ -601,7 +594,7 @@ export default defineCommand<Sim>({
       );
     } else {
       module.context.log(
-        `:success: All transactions succeeded in-browser (EthereumJS).`,
+        `:success: All transactions succeeded in-browser (${mode === "revm" ? "Revm/WASM" : "EthereumJS"}).`,
       );
     }
 

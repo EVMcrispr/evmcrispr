@@ -18,85 +18,16 @@ import {
   isTransactionAction,
   RevertError,
 } from "@evmcrispr/sdk";
-import { custom, keccak256, type Transport } from "viem";
-
-export interface EthereumJSBackendOpts {
-  upstreamRpcUrl: string;
-  blockNumber?: number;
-  chainId: number;
-  /** Aborts in-flight upstream RPC fetches when the run is cancelled. */
-  signal?: AbortSignal;
-}
-
-/**
- * Minimal receipt for a transaction executed in the in-memory VM — enough
- * for event captures and the fork's cross-chain relay scanner.
- */
-export interface SyntheticReceipt {
-  status: "success";
-  blockNumber: bigint;
-  logs: {
-    address: `0x${string}`;
-    topics: `0x${string}`[];
-    data: `0x${string}`;
-    logIndex: number;
-  }[];
-}
-
-export interface EthereumJSBackend {
-  transport: Transport;
-  handleAction(action: Action): Promise<SyntheticReceipt | undefined>;
-}
-
-/** A stalled upstream (rate limiter that never responds, dead connection)
- *  would otherwise hang the simulation forever. */
-const RPC_TIMEOUT_MS = 30_000;
-
-/**
- * JSON-RPC fetch that surfaces `error` responses — @ethereumjs/util's
- * fetchFromProvider returns `json.result` without checking `json.error`,
- * turning upstream RPC failures into cryptic undefined-dereference
- * TypeErrors deep inside the VM.
- */
-async function rpcFetch(
-  url: string,
-  method: string,
-  params: unknown[],
-  signal?: AbortSignal,
-): Promise<any> {
-  const timeout = AbortSignal.timeout(RPC_TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: signal ? AbortSignal.any([timeout, signal]) : timeout,
-    });
-  } catch (err) {
-    if (signal?.aborted) {
-      throw new ErrorException("Execution cancelled");
-    }
-    if (timeout.aborted) {
-      throw new ErrorException(
-        `upstream RPC timed out after ${RPC_TIMEOUT_MS / 1000}s for ${method}`,
-      );
-    }
-    throw err;
-  }
-  if (!res.ok) {
-    throw new ErrorException(
-      `upstream RPC returned HTTP ${res.status} for ${method}`,
-    );
-  }
-  const json = await res.json();
-  if (json.error) {
-    throw new ErrorException(
-      `upstream RPC rejected ${method}: ${json.error.message} (code ${json.error.code})`,
-    );
-  }
-  return json.result;
-}
+import { custom, keccak256 } from "viem";
+import {
+  fetchBlockTimestamp,
+  padToBytes32,
+  resolveLatestBlockNumber,
+  rpcFetch,
+  type SimBackend,
+  type SimBackendOpts,
+  type SyntheticReceipt,
+} from "./backend";
 
 /**
  * RPCStateManager fetches accounts via eth_getProof, which load-balanced
@@ -126,8 +57,8 @@ class ProofFreeStateManager extends RPCStateManager {
 }
 
 export async function createEthereumJSBackend(
-  opts: EthereumJSBackendOpts,
-): Promise<EthereumJSBackend> {
+  opts: SimBackendOpts,
+): Promise<SimBackend> {
   const { upstreamRpcUrl, chainId, signal } = opts;
 
   // Prague enables EIP-7702, so calls to EOAs carrying a 0xef0100 delegation
@@ -384,39 +315,4 @@ async function handleGetStorageAt(
   const key = padToBytes32(hexToBytes(params[1]));
   const value = await stateManager.getStorage(addr, key);
   return bytesToHex(value);
-}
-
-function padToBytes32(input: Uint8Array): Uint8Array {
-  if (input.length === 32) return input;
-  const padded = new Uint8Array(32);
-  padded.set(input, 32 - input.length);
-  return padded;
-}
-
-async function resolveLatestBlockNumber(
-  rpcUrl: string,
-  signal?: AbortSignal,
-): Promise<bigint> {
-  const result = await rpcFetch(rpcUrl, "eth_blockNumber", [], signal);
-  return BigInt(result);
-}
-
-async function fetchBlockTimestamp(
-  rpcUrl: string,
-  blockNumber: bigint,
-  signal?: AbortSignal,
-): Promise<bigint> {
-  const block = await rpcFetch(
-    rpcUrl,
-    "eth_getBlockByNumber",
-    [bigIntToHex(blockNumber), false],
-    signal,
-  );
-  if (block == null) {
-    throw new ErrorException(
-      `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +
-        `The RPC may not serve this block or may be rate-limiting requests.`,
-    );
-  }
-  return BigInt(block.timestamp);
 }
