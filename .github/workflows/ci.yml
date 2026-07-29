@@ -11,22 +11,20 @@ concurrency:
 jobs:
   ci:
     name: CI
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        node-version: [18.x]
-        bun-version: [1.x]
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Bun is the package manager, script runner and test runner. Node is
+      # still installed for tool binaries with node shebangs (astro, vite);
+      # it must be modern enough for them (CustomEvent global needs >= 19).
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Set up Node ${{ matrix.node-version }}
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 24
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
