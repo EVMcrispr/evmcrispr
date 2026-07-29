@@ -13,7 +13,7 @@ jobs:
     name: CI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Bun is the package manager, script runner and test runner. Node is
       # still installed for tool binaries with node shebangs (astro, vite);
       # it must be modern enough for them (CustomEvent global needs >= 19).
@@ -22,7 +22,7 @@ jobs:
         with:
           bun-version: latest
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
       - name: Install Foundry
@@ -37,7 +37,7 @@ jobs:
 
       - name: Get changed files from evmcrispr
         id: changed-files
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             packages/core/{src,test}/**
