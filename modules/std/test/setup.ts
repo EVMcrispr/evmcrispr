@@ -128,6 +128,12 @@ const stdHandlers = [
       if (address === unverifiedContract.toLowerCase()) {
         return new HttpResponse(null, { status: 404 });
       }
+      // Placeholder addresses (0x000…0001 and friends) used by completions
+      // tests must not hit the live ABI service — a slow response blows the
+      // 5s test timeout under CI load. Real contracts still pass through.
+      if (/^0x0{24}/.test(address)) {
+        return new HttpResponse(null, { status: 404 });
+      }
       return passthrough();
     },
   ),
