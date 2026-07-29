@@ -54,8 +54,14 @@ jobs:
       - name: Check types
         run: bun run type-check
 
+      # The sim backend "unit" suites fork gnosis through DRPC, so the key
+      # is needed here too, not just for integration tests.
       - name: Unit Tests
-        run: bun run test:unit
+        run: |
+          echo "VITE_DRPC_API_KEY=$VITE_DRPC_API_KEY" >> .env
+          bun run test:unit
+        env:
+          VITE_DRPC_API_KEY: ${{ secrets.VITE_DRPC_API_KEY }}
 
       - name: Integration Tests
         if: steps.changed-files.outputs.any_changed == 'true'
