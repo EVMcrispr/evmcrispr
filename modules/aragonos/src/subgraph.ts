@@ -1,9 +1,9 @@
 import type { Address } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import type { ParsedApp, Repo } from "./types";
+import type { ParsedApp } from "./types";
 import type { GraphQLBody } from "./utils";
-import { ORGANIZATION_APPS, parseApp, parseRepo, REPO } from "./utils";
+import { ORGANIZATION_APPS, parseApp } from "./utils";
 
 export function subgraphUrlFromChainId(chainId: number): string | never {
   switch (chainId) {
@@ -52,37 +52,6 @@ export async function querySubgraph<T>(
   }
 
   return parser ? parser(data) : data;
-}
-
-/**
- * Fetch an app's APM repo.
- * @param client Public client used to resolve the chain subgraph.
- * @param repoName The name of the app that appears in the APM ENS. For example, if the app's ENS is `voting.aragonpm.eth`
- * the name would be `voting`.
- * @param registryName The name of the app's registry that appears in the APM ENS. For example: `open.aragonpm.eth`.
- * @returns A promise that resolves to the app's repo.
- */
-export async function repo(
-  client: PublicClient,
-  repoName: string,
-  registryName: string,
-  options: { subgraphUrl?: string } = {},
-): Promise<Repo> {
-  return querySubgraph<Repo>(
-    getSubgraphUrl(await client.getChainId(), options),
-    REPO(repoName, registryName),
-    (data: any) => {
-      const repo = data.repos.pop();
-
-      if (!repo) {
-        throw new ErrorNotFound(`Repo ${repoName}.${registryName} not found`, {
-          name: "ErrorRepoNotFound",
-        });
-      }
-
-      return parseRepo(repo);
-    },
-  );
 }
 
 /**

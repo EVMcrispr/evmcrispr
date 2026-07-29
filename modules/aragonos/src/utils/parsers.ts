@@ -1,6 +1,6 @@
 import { fetchImplementationAddress } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import type { ParsedApp, Repo } from "../types";
+import type { ParsedApp } from "../types";
 import { getSystemApp, isSystemApp } from "./interfaces";
 
 export const parseApp = async (
@@ -32,15 +32,5 @@ export const parseApp = async (
       ...role,
       roleHash: role.hash ?? role.roleHash,
     })),
-  };
-};
-
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const parseRepo = (repo: any): Repo => {
-  const { contentUri, codeAddress } = repo.lastVersion;
-
-  return {
-    contentUri,
-    codeAddress,
   };
 };

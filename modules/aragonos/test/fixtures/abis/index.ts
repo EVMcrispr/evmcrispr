@@ -8,6 +8,7 @@ import abi8 from "./0x4e18915179a846f90b0342f16e0b274090733ac7.json";
 import abi9 from "./0x4f664250a9ab7590b3206bfdad910a6908495e32.json";
 import abi10 from "./0x4fdc6f0684128f1234c4c053e7fe998324c1839a.json";
 import abi13 from "./0x7b2b3b98e31600b6cc27e76c6bc561fe1acdf390.json";
+import abi24 from "./0x7cdb48cbf25f4f044eeae83187e3825ae301c93d.json";
 import abi3 from "./0x230c17aa2e896aec7a9ba3c2154b0cd550d1226d.json";
 import abi11 from "./0x714c925ede405687752c4ad32078137c4f179538.json";
 import abi14 from "./0x981c2f35764b995aad35517d78cdbcc91bf2b61c.json";
@@ -18,6 +19,7 @@ import abi2 from "./0x20730271df2562c8a747b9926544437abb81015e.json";
 import abi15 from "./0xa2c57a91d9432a685b1df6ecbb61d6063d35808a.json";
 import abi16 from "./0xa6ad366bfd2f43615bbec56f50cf606036fc11fe.json";
 import abi17 from "./0xb0200960dd137b5084554be632cd5990cc2a0a90.json";
+import abi25 from "./0xbba6f5611202b2e1a24c8cfcbb4278754ebcbe99.json";
 import abi18 from "./0xc88cb0d5a8971813fb9fafec8ea8d09586161c65.json";
 import abi21 from "./0xd9fbc3b7cc192505f58203094b0908a1c4a77617.json";
 import abi19 from "./0xd326ee6c49ed41c12025cf0b2bd4108b9f4cef42.json";
@@ -41,10 +43,12 @@ export const abiByAddress = {
   "0x714c925ede405687752c4ad32078137c4f179538": abi11,
   "0x734630ddd33ffccfa9c9201a8df0702166aa5cbe": abi12,
   "0x7b2b3b98e31600b6cc27e76c6bc561fe1acdf390": abi13,
+  "0x7cdb48cbf25f4f044eeae83187e3825ae301c93d": abi24,
   "0x981c2f35764b995aad35517d78cdbcc91bf2b61c": abi14,
   "0xa2c57a91d9432a685b1df6ecbb61d6063d35808a": abi15,
   "0xa6ad366bfd2f43615bbec56f50cf606036fc11fe": abi16,
   "0xb0200960dd137b5084554be632cd5990cc2a0a90": abi17,
+  "0xbba6f5611202b2e1a24c8cfcbb4278754ebcbe99": abi25,
   "0xc88cb0d5a8971813fb9fafec8ea8d09586161c65": abi18,
   "0xd326ee6c49ed41c12025cf0b2bd4108b9f4cef42": abi19,
   "0xd4856cd82cb507b2691bcc3f02d8939671a800c0": abi20,

@@ -1,7 +1,15 @@
 import type { Abi, Address } from "@evmcrispr/sdk";
 import { AddressMap, fetchAbi } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
-import { getContractAddress, isAddress, isAddressEqual } from "viem";
+import type { Hex, PublicClient } from "viem";
+import {
+  getContractAddress,
+  isAddress,
+  isAddressEqual,
+  keccak256,
+  parseAbiItem,
+  toHex,
+  zeroAddress,
+} from "viem";
 import { organizationApps } from "./subgraph";
 import type {
   App,
@@ -22,6 +30,43 @@ export interface DaoContext {
   /** The DAO's apps in chronological installation order. */
   apps: App[];
   name?: string;
+}
+
+const APP_BASES_NAMESPACE = keccak256(toHex("base"));
+const CORE_NAMESPACE = keccak256(toHex("core"));
+// kernel.aragonpm.eth
+const KERNEL_APP_ID =
+  "0x3b4bf6bf3ad5000ecf0f989d5befde585c6860fea3e574a4fab4c49d1c177d9c";
+
+const GET_APP_ABI = [
+  parseAbiItem("function getApp(bytes32,bytes32) view returns (address)"),
+];
+
+// The subgraph can lag behind `setApp` upgrades, so the kernel's own app-base
+// mapping is the authoritative source for each app's implementation address.
+async function resolveCodeAddresses(
+  kernelAddress: Address,
+  apps: ParsedApp[],
+  client: PublicClient,
+): Promise<void> {
+  const results = await client.multicall({
+    contracts: apps.map((app) => ({
+      address: kernelAddress,
+      abi: GET_APP_ABI,
+      functionName: "getApp",
+      args: [
+        app.appId === KERNEL_APP_ID ? CORE_NAMESPACE : APP_BASES_NAMESPACE,
+        app.appId as Hex,
+      ],
+    })),
+    allowFailure: true,
+  });
+
+  results.forEach((result, i) => {
+    if (result.status === "success" && result.result !== zeroAddress) {
+      apps[i].codeAddress = result.result;
+    }
+  });
 }
 
 async function buildAppResourceCache(
@@ -86,6 +131,7 @@ export async function loadDao(
   name?: string,
 ): Promise<DaoContext> {
   const parsedApps = await organizationApps(client, daoAddress);
+  await resolveCodeAddresses(daoAddress, parsedApps, client);
   // Local dedupe of ABI fetches per implementation address; ABIs are cached
   // globally in the ABI bindings space, not on the DAO context.
   const appResourceCache = await buildAppResourceCache(parsedApps, client);

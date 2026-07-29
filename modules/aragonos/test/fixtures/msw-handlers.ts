@@ -2,7 +2,7 @@ import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import type { Address } from "viem";
 import { isAddressEqual } from "viem";
 import { abiByAddress, systemAbi } from "./abis";
-import { DAOs, REPOs } from "./subgraph-data";
+import { DAOs } from "./subgraph-data";
 
 const handleSubgraphRequest = async ({
   request,
@@ -15,16 +15,6 @@ const handleSubgraphRequest = async ({
   };
   const query = body.query || "";
   const variables = body.variables || {};
-
-  if (query.includes("query Repos")) {
-    const selectedRepo = REPOs[variables.repoName as keyof typeof REPOs] as any;
-
-    return HttpResponse.json({
-      data: {
-        repos: selectedRepo ? selectedRepo.data.repos : [],
-      },
-    });
-  }
 
   if (query.includes("query Organization")) {
     const id = variables.id;

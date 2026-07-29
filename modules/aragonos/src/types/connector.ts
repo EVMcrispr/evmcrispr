@@ -32,14 +32,3 @@ export interface ParsedApp {
     grantees: { granteeAddress: Address }[];
   }[];
 }
-
-/**
- * An object that contains the app's repo data.
- */
-export interface Repo {
-  contentUri: string;
-  /**
-   * The repo's app base contract address.
-   */
-  codeAddress: string;
-}
