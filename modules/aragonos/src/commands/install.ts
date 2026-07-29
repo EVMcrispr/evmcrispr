@@ -163,7 +163,7 @@ export default defineCommand<AragonOS>({
       abi,
     });
 
-    if (!fnFragment || fnFragment.type !== "function") {
+    if (fnFragment?.type !== "function") {
       throw new ErrorException(
         `initialize function not found in ${identifier}`,
       );

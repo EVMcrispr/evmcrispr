@@ -132,7 +132,7 @@ function buildSettings(entry: EtherscanSourceResult): Record<string, unknown> {
 function parseLibraries(
   raw: string | undefined,
 ): Record<string, Record<string, string>> | undefined {
-  if (!raw || !raw.trim()) return undefined;
+  if (!raw?.trim()) return undefined;
   const out: Record<string, string> = {};
   for (const pair of raw.split(",")) {
     const [name, addr] = pair.split(":").map((s) => s.trim());

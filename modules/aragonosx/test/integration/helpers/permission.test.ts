@@ -1,7 +1,7 @@
 import "../../setup";
 import { describeHelper } from "@evmcrispr/test-utils/evml";
 import { permissionId } from "../../../src/utils/permissions";
-import { DAO_ADDRESS, PREAMBLE } from "../../fixtures";
+import { PREAMBLE } from "../../fixtures";
 
 describeHelper("@aragonosx:permission", {
   module: "aragonosx",

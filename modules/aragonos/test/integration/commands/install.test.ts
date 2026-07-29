@@ -69,7 +69,7 @@ describeCommand("install", {
       script: `install $app ${appIdentifier} ${initializeUnresolvedParams.join(
         " ",
       )} --version 1.0.1\n)`,
-      validate: async (installationActions, interpreter) => {
+      validate: async (installationActions, _interpreter) => {
         const specificVersion = "0x714c925ede405687752c4ad32078137c4f179538";
 
         const expectedInstallationActions = [

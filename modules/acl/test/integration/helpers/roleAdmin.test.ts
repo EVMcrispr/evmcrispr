@@ -6,8 +6,7 @@ import { TOKEN_DISTRO } from "../../fixtures";
 describeHelper(
   "@acl:roleAdmin",
   {
-    describeName:
-      "AccessControl > helpers > @acl:roleAdmin(target, role)",
+    describeName: "AccessControl > helpers > @acl:roleAdmin(target, role)",
     module: "acl",
     cases: [
       {

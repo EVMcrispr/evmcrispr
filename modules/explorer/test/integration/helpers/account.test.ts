@@ -51,5 +51,5 @@ describeHelper(
     ],
     sampleArgs: [WXDAI, "gnosis"],
   },
-  helpers["account"].argDefs,
+  helpers.account.argDefs,
 );

@@ -1,4 +1,4 @@
-import type { Address, ModuleContext } from "@evmcrispr/sdk";
+import type { Address } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
 import { getContractAddress } from "viem";
 import { commands, configs, helpers } from "./_generated";
@@ -28,10 +28,6 @@ export default class AragonOS extends defineModule(
 ) {
   /** The DAO of the enclosing `connect` block, if any. */
   #currentDAO?: DaoContext;
-
-  constructor(context: ModuleContext) {
-    super(context);
-  }
 
   get currentDAO(): DaoContext | undefined {
     return this.#currentDAO;

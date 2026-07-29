@@ -1,6 +1,6 @@
 import { defineModule } from "@evmcrispr/sdk";
 import { commands } from "./_generated";
-import { SIMULATION_MODES, types } from "./argTypes";
+import { type SIMULATION_MODES, types } from "./argTypes";
 import type { PendingDelivery, RelayHandler } from "./lib/relay";
 
 export type SimMode = (typeof SIMULATION_MODES)[number];

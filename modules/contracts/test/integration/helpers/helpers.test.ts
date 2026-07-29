@@ -35,7 +35,7 @@ describeHelper(
     ],
     sampleArgs: [WXDAI],
   },
-  helpers["codeAt"].argDefs,
+  helpers.codeAt.argDefs,
 );
 
 describeHelper(
@@ -78,7 +78,7 @@ describeHelper(
       "0x0000000000000000000000000000000000000000000000000000000000000000",
     ],
   },
-  helpers["storageAt"].argDefs,
+  helpers.storageAt.argDefs,
 );
 
 describeHelper(
@@ -111,5 +111,5 @@ describeHelper(
     sampleArgs: [TEST_ACCOUNT_ADDRESS],
     skipArgLengthCheck: true,
   },
-  helpers["next"].argDefs,
+  helpers.next.argDefs,
 );

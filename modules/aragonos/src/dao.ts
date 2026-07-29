@@ -148,7 +148,7 @@ export function getPermission(
   const roleHash = normalizeRole(roleNameOrHash);
   const app = resolveApp(dao, entity);
 
-  if (!app || !app.permissions.has(roleHash)) {
+  if (!app?.permissions.has(roleHash)) {
     return;
   }
 

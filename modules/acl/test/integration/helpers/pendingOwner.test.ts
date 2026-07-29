@@ -5,8 +5,7 @@ import { helpers } from "../../../src/_generated";
 describeHelper(
   "@acl:pendingOwner",
   {
-    describeName:
-      "AccessControl > helpers > @acl:pendingOwner(contract)",
+    describeName: "AccessControl > helpers > @acl:pendingOwner(contract)",
     module: "acl",
   },
   helpers.pendingOwner.argDefs,

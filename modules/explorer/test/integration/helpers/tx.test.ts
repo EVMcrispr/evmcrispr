@@ -55,7 +55,7 @@ describeHelper(
     ],
     sampleArgs: [DEPOSIT_TX, "gnosis"],
   },
-  helpers["tx"].argDefs,
+  helpers.tx.argDefs,
 );
 
 describeHelper(
