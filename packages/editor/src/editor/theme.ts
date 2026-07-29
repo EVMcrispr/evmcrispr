@@ -36,6 +36,17 @@ export const theme = {
       foreground: "4169E1",
       token: "literal",
     },
+    // Operators (`::`, `->`, `=>`, `-!>`, `$>`) and `--flags` are
+    // tokenized but deliberately kept default white — mirrored by the
+    // Shiki viewer theme (grammars/evml-theme.ts).
+    {
+      foreground: "ffffff",
+      token: "operator",
+    },
+    {
+      foreground: "ffffff",
+      token: "option",
+    },
   ],
   colors: {
     "editor.foreground": "#FFFFFF",

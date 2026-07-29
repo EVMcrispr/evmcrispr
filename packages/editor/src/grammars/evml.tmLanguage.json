@@ -149,7 +149,7 @@
       "name": "constant.language.boolean.evml"
     },
     "number": {
-      "match": "(?:\\b0x[0-9a-fA-F]+|(?<![\\w-])-?[0-9]+(?:\\.[0-9]+)?(?:e[0-9]+)?(?:s|mo|h|d|w|m|y)?(?:/(?:s|mo|h|d|w|m|y))?)\\b",
+      "match": "(?:\\b0x[0-9a-fA-F]+|(?<![\\w-])-?[0-9]+(?:\\.[0-9]+)?(?:e[0-9]+)?(?:eth|gwei|wei|s|mo|h|d|w|m|y)?(?:/(?:s|mo|h|d|w|m|y))?)\\b",
       "name": "constant.numeric.evml"
     },
     "option-flag": {
@@ -189,7 +189,8 @@
       "name": "keyword.control.module-command.evml"
     },
     "command": {
-      "match": "\\b(?:batch|def|exec|for|halt|if|else|in|load|print|raw|set|sign|switch|while|as)\\b",
+      "comment": "Auto-generated from modules/std/src/commands by scripts/codegen-grammar.ts — do not edit by hand.",
+      "match": "\\b(?:batch|def|exec|exit|if|load|loop|print|send|set|sign|switch|wait)\\b",
       "name": "keyword.control.evml"
     }
   }

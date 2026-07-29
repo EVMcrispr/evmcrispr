@@ -44,14 +44,15 @@ export const evmlTheme: ThemeRegistrationRaw = {
       scope: ["constant.language.boolean.evml"],
       settings: { foreground: "#4169E1" },
     },
-    // Monarch leaves EVML's `->`/`::` untokenized, so they render in
-    // the editor's default white.
+    // EVML operators and `--flags` are tokenized on both surfaces but
+    // deliberately rendered default white (see editor/theme.ts).
     {
       scope: [
         "keyword.operator.namespace.evml",
         "keyword.operator.error-capture-optional.evml",
         "keyword.operator.error-capture.evml",
         "keyword.operator.arrow.evml",
+        "entity.name.tag.option.evml",
       ],
       settings: { foreground: "#ffffff" },
     },

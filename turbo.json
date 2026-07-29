@@ -9,6 +9,10 @@
       "inputs": ["$TURBO_DEFAULT$", "../../modules/*/package.json"],
       "outputs": ["src/_generated.ts"]
     },
+    "@evmcrispr/editor#codegen": {
+      "inputs": ["$TURBO_DEFAULT$", "../../modules/std/src/commands/*.ts"],
+      "outputs": ["src/_generated.ts", "src/grammars/evml.tmLanguage.json"]
+    },
     "types": {
       "dependsOn": ["codegen", "^types"],
       "outputs": ["dist/**/*.d.ts", "dist/**/*.d.ts.map"]

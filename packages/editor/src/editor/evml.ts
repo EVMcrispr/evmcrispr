@@ -10,7 +10,7 @@ const namedLiterals = ["true", "false"];
 
 const nonCommentWs = `[ \\t\\r\\n]`;
 
-const numericLiteral = `0x([0-9a-fA-F]+)|([0-9]+(e[0-9]+)?(s|mo|h|d|w|m|y)?(/(s|mo|h|d|w|m|y))?)`;
+const numericLiteral = `0x([0-9a-fA-F]+)|(-?[0-9]+(\\.[0-9]+)?(e[0-9]+)?(eth|gwei|wei|s|mo|h|d|w|m|y)?(/(s|mo|h|d|w|m|y))?)`;
 
 export const conf: languages.LanguageConfiguration = {
   brackets: [
@@ -60,13 +60,13 @@ export const createLanguage: (
     { open: "(", close: ")", token: "delimiter.parenthesis" },
   ],
 
-  commands: [...commands, "as"],
+  commands: [...commands],
 
   helpers: [...helpers],
 
   namedLiterals,
 
-  escapes: `\\\\(u{[0-9A-Fa-f]+}|n|r|t|\\\\|')`,
+  escapes: `\\\\(u{[0-9A-Fa-f]+}|n|r|t|\\\\|'|")`,
 
   tokenizer: {
     root: [{ include: "@expression" }, { include: "@whitespace" }],
@@ -167,7 +167,8 @@ export const createLanguage: (
         action: { token: "string", next: "@stringDouble" },
       },
 
-      { regex: bounded(numericLiteral), action: { token: "number" } },
+      // No leading \b — it can never match before the optional minus sign.
+      { regex: `(${numericLiteral})\\b`, action: { token: "number" } },
       {
         regex: identifier,
         action: {
@@ -179,7 +180,7 @@ export const createLanguage: (
         },
       },
       {
-        regex: /@[a-zA-Z0-9._\-]+/,
+        regex: /@[a-zA-Z][a-zA-Z0-9._\-]*(:[a-zA-Z][a-zA-Z0-9._\-]*)?/,
         action: {
           cases: {
             "@helpers": { token: "helper" },
@@ -187,7 +188,7 @@ export const createLanguage: (
         },
       },
       {
-        regex: /\$[a-zA-Z0-9]+/,
+        regex: /\$[a-zA-Z_][a-zA-Z0-9_]*/,
         action: {
           token: "variable",
         },
@@ -196,6 +197,12 @@ export const createLanguage: (
         regex: /#\d+/,
         action: { token: "number" },
       },
+      { regex: /--[a-zA-Z][a-zA-Z0-9-]*/, action: { token: "option" } },
+      { regex: /::/, action: { token: "operator" } },
+      { regex: /-\?!>/, action: { token: "operator" } },
+      { regex: /-!>/, action: { token: "operator" } },
+      { regex: /->|=>/, action: { token: "operator" } },
+      { regex: /\$\*?>(?=\s|$)/, action: { token: "operator" } },
     ],
   },
 });

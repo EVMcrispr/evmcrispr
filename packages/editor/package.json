@@ -64,7 +64,7 @@
     "lint": "biome check src",
     "type-check": "tsgo --noEmit",
     "build": "evmcrispr-build --bundle ./src/index.ts ./src/editor/MonacoEditor.tsx --splitting --production && bun scripts/build-css.ts",
-    "codegen": "evmcrispr-build --codegen",
+    "codegen": "evmcrispr-build --codegen && bun scripts/codegen-grammar.ts",
     "types": "evmcrispr-build --types"
   }
 }
