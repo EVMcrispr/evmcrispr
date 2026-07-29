@@ -6,6 +6,8 @@ import {
   http,
   passthrough,
 } from "@evmcrispr/test-utils/msw/server";
+import agnoImplAbi from "./fixtures/abis/agno-impl.json";
+import agnoProxyAbi from "./fixtures/abis/agno-proxy.json";
 import daiAbi from "./fixtures/abis/dai.json";
 import wxdaiAbi from "./fixtures/abis/wxdai.json";
 
@@ -124,6 +126,14 @@ const stdHandlers = [
       }
       if (address === "0xf8d1677c8a0c961938bf2f9adc3f3cfda759a9d9") {
         return HttpResponse.json(daiAbi);
+      }
+      // Aave aGNO proxy + implementation, frozen so the exec-completions
+      // proxy test never waits on the live ABI service (CI timeout flake).
+      if (address === "0xc6b7aca6de8a6044e0e32d0c841a89244a10d284") {
+        return HttpResponse.json(agnoProxyAbi);
+      }
+      if (address === "0xce579ae642e40f8356a9f538c6db4e2ea91c5850") {
+        return HttpResponse.json(agnoImplAbi);
       }
       if (address === unverifiedContract.toLowerCase()) {
         return new HttpResponse(null, { status: 404 });

@@ -469,14 +469,27 @@ export class ForkManager {
       resetParams.push({ forking });
     }
 
-    try {
-      await handle.walletClient!.request({
-        method: `${prefix}_reset` as any,
-        params: resetParams as any,
-      });
-    } catch (e) {
+    // Re-forking pulls fresh state from the upstream RPC; at `latest` on a
+    // loaded machine the first attempt can outlive the transport timeout
+    // while the node is still fetching. The reset is idempotent — retry
+    // before declaring the backend dead.
+    let resetError: Error | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await handle.walletClient!.request({
+          method: `${prefix}_reset` as any,
+          params: resetParams as any,
+        });
+        resetError = undefined;
+        break;
+      } catch (e) {
+        resetError = e as Error;
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+    }
+    if (resetError) {
       throw new ErrorException(
-        `Failed to reset ${backendName} at ${LOCAL_RPC}. Make sure ${backendName} is running: ${(e as Error).message}`,
+        `Failed to reset ${backendName} at ${LOCAL_RPC}. Make sure ${backendName} is running: ${resetError.message}`,
       );
     }
 
