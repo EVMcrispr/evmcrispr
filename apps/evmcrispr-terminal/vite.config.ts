@@ -81,6 +81,9 @@ function evmcrisprModules(modulesDir: string): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
+  // PUBLIC_ vars are shared with the Astro website (same names, e.g.
+  // PUBLIC_SITE_URL) so one deploy config serves both apps.
+  envPrefix: ["VITE_", "PUBLIC_"],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

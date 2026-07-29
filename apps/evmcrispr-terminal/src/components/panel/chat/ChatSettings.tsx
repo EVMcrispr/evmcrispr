@@ -9,6 +9,12 @@ export const NEXUS_URL =
 export const RECHARGE_URL =
   "https://nexus.dappnode.com/billing?utm_source=evmcrispr2026-07&utm_medium=referral";
 
+/** Website/docs site this build links to — same PUBLIC_SITE_URL the
+ *  website build uses; the experimental deploy overrides it with
+ *  next-docs. */
+const SITE_URL: string =
+  import.meta.env.PUBLIC_SITE_URL ?? "https://evmcrispr.com";
+
 export function ChatSettings({
   onSave,
   onBack,
@@ -124,7 +130,7 @@ export function ChatSettings({
         </p>
         <Button asChild size="sm" className="self-start">
           <a
-            href="https://next-docs.evmcrispr.com/guides/mcp/"
+            href={`${SITE_URL}/guides/mcp/`}
             target="_blank"
             rel="noopener noreferrer"
           >

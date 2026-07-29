@@ -75,6 +75,20 @@ bun test:integration  # Run integration tests (needs anvil)
 biome check .         # Lint
 ```
 
+## Deployments
+
+Production is the default — the terminal ([app.evmcrispr.com](https://app.evmcrispr.com)) and the website ([evmcrispr.com](https://evmcrispr.com)) build with no URL configuration. The experimental deploys ([next.evmcrispr.com](https://next.evmcrispr.com) / [next-docs.evmcrispr.com](https://next-docs.evmcrispr.com)) override:
+
+| Variable | Default | Experimental deploys | Used by |
+|---|---|---|---|
+| `PUBLIC_SITE_URL` | `https://evmcrispr.com` | `https://next-docs.evmcrispr.com` | website (canonical URL/sitemap) and terminal (docs links) |
+| `PUBLIC_TERMINAL_URL` | `https://app.evmcrispr.com` | `https://next.evmcrispr.com` | website (landing-page terminal link) |
+| `VITE_PUBLIC_EXPERIMENTAL` | off | `true` | both — enables ⚗️ experimental modules, commands and docs pages |
+
+Service keys (terminal build): `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_DRPC_API_KEY` (RPC), `VITE_ETHERSCAN_API_KEY` (verified contracts; falls back to Blockscout keyless), `VITE_PINATA_JWT` (IPFS pinning), and optionally `VITE_EVMCRISPR_API_URL` (defaults to `https://api.evmcrispr.com`).
+
+The MCP server is deployment-agnostic (`PORT`, `HOST`, `TRANSPORT`, `CORS_ORIGIN`, `VITE_PINATA_JWT`); its share links intentionally point at next.evmcrispr.com while the MCP is experimental.
+
 ## Documentation
 
 - [Getting Started](apps/evmcrispr-website/src/content/docs/intro/getting-started.md)

@@ -255,7 +255,9 @@ function docItem(label, slug) {
 }
 
 export default defineConfig({
-  site: "https://next-docs.evmcrispr.com",
+  // Canonical site URL (sitemap, og tags). The experimental deploy
+  // overrides PUBLIC_SITE_URL with its own domain.
+  site: process.env.PUBLIC_SITE_URL || "https://evmcrispr.com",
   redirects: {
     // Pre-restructure URLs (Guides mixed user and contributor docs).
     "/guides/getting-started": "/intro/getting-started",
