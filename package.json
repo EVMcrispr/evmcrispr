@@ -43,6 +43,8 @@
     "modules/*"
   ],
   "dependencies": {
+    "@evmcrispr/core": "workspace:*",
+    "@evmcrispr/sdk": "workspace:*",
     "viem": "^2.46.3"
   }
 }
