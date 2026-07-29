@@ -191,6 +191,17 @@ export default defineConfig({
           if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
             return "noble-crypto";
           }
+          // Keep sdk+core in a single chunk. Rolldown otherwise extracts
+          // shared sdk utils into chunks alongside lazy-loaded module code
+          // (e.g. aragonos), producing circular chunks whose partial
+          // initialization leaves namespaces like BindingsSpace undefined
+          // at load (blank terminal). Same bug class as rolldown#9225.
+          if (
+            id.includes("packages/sdk/src") ||
+            id.includes("packages/core/src")
+          ) {
+            return "evmcrispr";
+          }
         },
       },
     },
@@ -209,6 +220,17 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes("@noble/hashes") || id.includes("@noble/curves")) {
             return "noble-crypto";
+          }
+          // Keep sdk+core in a single chunk. Rolldown otherwise extracts
+          // shared sdk utils into chunks alongside lazy-loaded module code
+          // (e.g. aragonos), producing circular chunks whose partial
+          // initialization leaves namespaces like BindingsSpace undefined
+          // at load (blank terminal). Same bug class as rolldown#9225.
+          if (
+            id.includes("packages/sdk/src") ||
+            id.includes("packages/core/src")
+          ) {
+            return "evmcrispr";
           }
         },
       },
