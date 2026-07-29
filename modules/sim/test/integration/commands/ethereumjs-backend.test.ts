@@ -4,8 +4,10 @@ import { getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import type { PublicClient } from "viem";
 
-import { FORK_BLOCK_NUMBER } from "../../../../../scripts/anvil-config";
+import { getForkBlockNumber } from "../../../../../scripts/anvil-config";
 import { describeIntegrationBackendSuite } from "./backend-suite";
+
+const FORK_BLOCK_NUMBER = await getForkBlockNumber();
 
 describeIntegrationBackendSuite("ethereumjs");
 

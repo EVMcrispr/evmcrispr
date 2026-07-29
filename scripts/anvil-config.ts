@@ -1,13 +1,59 @@
 import { resolve } from "node:path";
 
-/**
- * Pinned gnosis fork block. Bump occasionally to keep DRPC's cache hot —
- * very old blocks force every state read to walk the archive, which
- * backs up anvil 1.5.x's upstream request queue and deadlocks it.
- */
-export const FORK_BLOCK_NUMBER = 47440000;
 export const CHAIN_ID = 100;
 export const ANVIL_URL = "http://127.0.0.1:8545";
+
+/**
+ * Fallback gnosis fork block for when the upstream RPC can't be asked for
+ * a fresh one. Only used offline — a stale pin makes DRPC walk the
+ * archive for every state read, which backs up anvil 1.5.x's upstream
+ * request queue and deadlocks it, so the real block is resolved
+ * dynamically by `getForkBlockNumber`.
+ */
+const FALLBACK_FORK_BLOCK = 47440000;
+
+/** Stay clear of reorgs; gnosis finalizes well within this. */
+const REORG_MARGIN_BLOCKS = 100;
+/** Round the fork block down to this bucket (~85 min of gnosis blocks) so
+ *  every test process in a session picks the SAME block — foundry's disk
+ *  RPC cache and DRPC's cache are both keyed by (chain, block). */
+const BLOCK_BUCKET = 1000;
+
+let forkBlock: Promise<number> | undefined;
+
+/**
+ * Recent gnosis fork block, resolved once per process: latest minus a
+ * reorg margin, rounded down to a shared bucket. Never goes stale, stays
+ * on state DRPC serves cheaply.
+ */
+export function getForkBlockNumber(): Promise<number> {
+  forkBlock ??= (async () => {
+    const endpoint = getEndpoint();
+    if (!endpoint) return FALLBACK_FORK_BLOCK;
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_blockNumber",
+          params: [],
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const { result } = (await res.json()) as { result?: string };
+      if (!result) return FALLBACK_FORK_BLOCK;
+      const latest = Number(BigInt(result));
+      return (
+        Math.floor((latest - REORG_MARGIN_BLOCKS) / BLOCK_BUCKET) * BLOCK_BUCKET
+      );
+    } catch {
+      return FALLBACK_FORK_BLOCK;
+    }
+  })();
+  return forkBlock;
+}
 
 export function getEndpoint(): string | undefined {
   const apiKey = process.env.VITE_DRPC_API_KEY;
@@ -44,11 +90,11 @@ export async function isAnvilRunning(): Promise<boolean> {
 }
 
 /**
- * Reset a running anvil back to the pristine pinned fork: discards every
- * mutation (mints, balances, sim:fork's reset-to-latest) so each caller
- * starts from identical state. Cheap because foundry's disk RPC cache is
- * keyed by (chain, block) and the block is pinned. Returns false when the
- * node didn't answer (wedged or down).
+ * Reset a running anvil back to a pristine fork: discards every mutation
+ * (mints, balances, sim:fork's reset-to-latest) so each caller starts
+ * from identical state. Cheap because foundry's disk RPC cache is keyed
+ * by (chain, block) and processes share the bucketed block. Returns false
+ * when the node didn't answer (wedged or down).
  */
 export async function resetAnvil(endpoint: string): Promise<boolean> {
   try {
@@ -62,7 +108,7 @@ export async function resetAnvil(endpoint: string): Promise<boolean> {
           {
             forking: {
               jsonRpcUrl: endpoint,
-              blockNumber: FORK_BLOCK_NUMBER,
+              blockNumber: await getForkBlockNumber(),
             },
           },
         ],
@@ -80,7 +126,7 @@ export async function resetAnvil(endpoint: string): Promise<boolean> {
 
 /**
  * Kill a wedged anvil squatting on the port: anvil 1.5.x can deadlock (see
- * FORK_BLOCK_NUMBER note) leaving a process that holds :8545 but answers
+ * FALLBACK_FORK_BLOCK note) leaving a process that holds :8545 but answers
  * nothing — every later test run then fails with a confusing startup
  * timeout. Returns true if a listener was killed.
  */
@@ -101,14 +147,16 @@ export function killStaleAnvil(): boolean {
   return killed;
 }
 
-export function spawnAnvil(endpoint: string): ReturnType<typeof Bun.spawn> {
+export async function spawnAnvil(
+  endpoint: string,
+): Promise<ReturnType<typeof Bun.spawn>> {
   return Bun.spawn(
     [
       "anvil",
       "--fork-url",
       endpoint,
       "--fork-block-number",
-      String(FORK_BLOCK_NUMBER),
+      String(await getForkBlockNumber()),
       "--chain-id",
       String(CHAIN_ID),
       "--silent",
@@ -154,7 +202,7 @@ export async function ensureAnvil(): Promise<
   await Bun.sleep(Math.random() * 300);
   let anvil: ReturnType<typeof Bun.spawn> | undefined;
   if (!(await isAnvilRunning())) {
-    anvil = spawnAnvil(endpoint);
+    anvil = await spawnAnvil(endpoint);
   }
 
   if (!(await waitForAnvil(30_000))) {

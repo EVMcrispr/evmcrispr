@@ -1,7 +1,7 @@
 import { createPublicClient, http, type PublicClient } from "viem";
 import { arbitrum, gnosis, mainnet, optimism, polygon } from "viem/chains";
 import {
-  FORK_BLOCK_NUMBER as GNOSIS_FORK_BLOCK_NUMBER,
+  getForkBlockNumber,
   ANVIL_URL as SHARED_ANVIL_URL,
 } from "../../../scripts/anvil-config";
 
@@ -31,7 +31,7 @@ export async function resetAnvil(
   blockNumber?: number,
 ): Promise<PublicClient> {
   const forkBlock =
-    blockNumber ?? (chainId === 100 ? GNOSIS_FORK_BLOCK_NUMBER : undefined);
+    blockNumber ?? (chainId === 100 ? await getForkBlockNumber() : undefined);
   await fetch(ANVIL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

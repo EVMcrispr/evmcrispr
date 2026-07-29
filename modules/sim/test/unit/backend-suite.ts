@@ -4,11 +4,13 @@ import { createPublicClient, type PublicClient } from "viem";
 import { gnosis } from "viem/chains";
 import {
   CHAIN_ID,
-  FORK_BLOCK_NUMBER,
   getEndpoint,
+  getForkBlockNumber,
   loadEnv,
 } from "../../../../scripts/anvil-config";
 import type { SimBackend, SimBackendOpts } from "../../src/lib/backend";
+
+const FORK_BLOCK_NUMBER = await getForkBlockNumber();
 
 const ADDR = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
