@@ -1,3 +1,5 @@
+import "../setup";
+
 import { afterEach, beforeAll, describe, it } from "bun:test";
 import {
   BindingsManager,
@@ -5,11 +7,9 @@ import {
   clearContractVerificationCache,
 } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
-import { setupServer } from "msw/node";
 import type { Address, PublicClient } from "viem";
 import { keccak256, parseEther, toHex } from "viem";
 import * as viemChains from "viem/chains";
-import { etherscanHandlers } from "../../../test-utils/src/msw/etherscan";
 import { getHoverInfo } from "../../src/hover";
 import {
   clearAddressHoverCache,
@@ -58,14 +58,15 @@ function makeClient(opts: MockOpts): PublicClient {
   } as unknown as PublicClient;
 }
 
-const server = setupServer(...etherscanHandlers);
-
 describe("Core > hover > getAddressHoverInfo", () => {
+  // The etherscan mocks come from the shared MSW server started by
+  // ../setup — starting a second `setupServer` here would re-patch the
+  // interceptors and silently disable the shared tokenlist/IPFS handlers
+  // for every test file that runs afterwards in the same process.
   beforeAll(() => {
     // `fetchVerifiedContract` is a no-op without an API key. The MSW
     // handlers ignore the value, so any non-empty string is fine.
     process.env.VITE_ETHERSCAN_API_KEY ||= "test-key";
-    server.listen({ onUnhandledRequest: "bypass" });
   });
 
   afterEach(() => {
