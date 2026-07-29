@@ -28,4 +28,3 @@ set $slot @contracts:slot.erc7201("openzeppelin.storage.Ownable")
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

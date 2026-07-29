@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/module-token",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.0",
   "description": "Token operations: mint, burn, and approvals.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/token"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -16,8 +23,8 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/module-std": "workspace:*",
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/module-std": "workspace:^",
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
@@ -26,7 +33,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

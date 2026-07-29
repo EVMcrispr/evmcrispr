@@ -1,9 +1,16 @@
 {
   "name": "@evmcrispr/module-vault",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.0",
+  "description": "ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault — sDAI, Morpho (MetaMorpho), Yearn v3 and more. Also supports ERC-7540 asynchronous vaults (request/claim flows, operators) and ERC-7575 multi-asset vaults with external share tokens, such as Centrifuge.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/vault"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "experimental": true,
-  "description": "ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault \u2014 sDAI, Morpho (MetaMorpho), Yearn v3 and more. Also supports ERC-7540 asynchronous vaults (request/claim flows, operators) and ERC-7575 multi-asset vaults with external share tokens, such as Centrifuge.",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -17,7 +24,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/module-contracts": "workspace:*",
@@ -27,7 +34,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

@@ -1,8 +1,15 @@
 {
   "name": "evmcrispr",
-  "version": "0.1.0",
+  "version": "0.11.0",
+  "description": "EVMcrispr command line: validate, simulate and share EVML scripts for batching EVM transactions",
   "license": "AGPL-3.0-or-later",
-  "description": "CLI and MCP server for EVMcrispr \u2014 simulate, validate, and author EVML scripts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -29,9 +36,9 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/core": "*",
-    "@evmcrispr/modules": "*",
-    "@evmcrispr/sdk": "*",
+    "@evmcrispr/core": "workspace:^",
+    "@evmcrispr/modules": "workspace:^",
+    "@evmcrispr/sdk": "workspace:^",
     "viem": "^2.54.1",
     "zod": "^4.4.3"
   },
@@ -41,11 +48,13 @@
   },
   "files": [
     "dist",
-    "docs"
+    "docs",
+    "src"
   ],
   "scripts": {
     "prebuild": "bun scripts/bundle-docs.ts",
     "build": "evmcrispr-build --bundle src/bin.ts",
+    "postbuild": "bun scripts/fix-shebang.ts",
     "test:unit": "bun test",
     "type-check": "tsgo --noEmit",
     "lint": "biome check src",

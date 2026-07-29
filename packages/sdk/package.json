@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/sdk",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
-  "description": "Module authoring toolkit for EVMcrispr",
+  "version": "0.11.0",
+  "description": "Module-authoring SDK for EVMcrispr: defineModule, defineCommand, defineHelper, shared types and build tooling",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -33,7 +40,8 @@
   },
   "files": [
     "dist",
-    "scripts"
+    "scripts",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

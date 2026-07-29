@@ -7,8 +7,8 @@
     "postinstall": "ln -sf ../../packages/sdk/scripts/build.ts node_modules/.bin/evmcrispr-build && ln -sf ../../packages/cli/src/bin.ts node_modules/.bin/evmcrispr",
     "prepare": "husky",
     "build": "turbo run build",
-    "changeset:release": "turbo run build type-check && changeset publish",
-    "changeset:version": "changeset version && bun install --lockfile-only",
+    "release": "turbo run build type-check && bun scripts/publish-packages.ts",
+    "bump": "bun scripts/bump-version.ts",
     "type-check": "turbo run type-check",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -27,7 +27,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
-    "@changesets/cli": "^2.31.0",
     "@types/node": "^24.13.2",
     "@typescript/native-preview": "^7.0.0-dev.20260702.3",
     "husky": "^9.1.7",

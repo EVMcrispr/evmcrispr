@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/module-ens",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.0",
   "description": "ENS domain operations: renewal and content hash encoding.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/ens"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -16,7 +23,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*",
+    "@evmcrispr/sdk": "workspace:^",
     "@ensdomains/content-hash": "^3.1.1"
   },
   "devDependencies": {
@@ -27,7 +34,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

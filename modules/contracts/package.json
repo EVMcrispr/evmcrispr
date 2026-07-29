@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/module-contracts",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.0",
   "description": "Contract lifecycle commands and helpers for EVML scripts: deploy creation bytecode (CREATE, CREATE2, CREATE3, or mirroring an existing deployment), verify source code on Etherscan V2, inspect deployed code and storage, and compile Solidity from inline source or a URL with the @solidity helpers.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/contracts"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -16,7 +23,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
@@ -25,7 +32,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",
