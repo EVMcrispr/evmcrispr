@@ -5,9 +5,24 @@ import type { WalletClient } from "viem";
 import { createWorkerEvml } from "../../../src/worker/client";
 import { deserializeError, serializeError } from "../../../src/worker/protocol";
 
+// Hermetic RPC stub: chain-id stamping inside the worker otherwise falls
+// back to viem's default public mainnet RPC, which rate-limits busy IPs
+// (HTTP 429) and turns these tests into network-dependent hangs.
+const rpcStub = Bun.serve({
+  port: 0,
+  fetch: async (req) => {
+    const body = (await req.json()) as { id?: number; method?: string };
+    return Response.json({
+      jsonrpc: "2.0",
+      id: body.id ?? 1,
+      result: body.method === "eth_chainId" ? "0x64" : null,
+    });
+  },
+});
+
 const workerEvml = createWorkerEvml(
   () => new Worker(new URL("./fixtures/worker-entry.ts", import.meta.url).href),
-  {},
+  { chainId: 100, rpcUrls: { 100: `http://127.0.0.1:${rpcStub.port}` } },
   { killGraceMs: 500 },
 );
 
@@ -19,6 +34,7 @@ const stubWallet = {
 
 afterAll(() => {
   workerEvml.terminate();
+  rpcStub.stop(true);
 });
 
 describe("evml > worker", () => {
@@ -76,7 +92,8 @@ describe("evml > worker", () => {
       expect((handlerResult as { value: bigint }).value).to.equal(42n);
       expect(logs).to.include("before");
       expect(lines[lines.length - 1]).to.be.null;
-    });
+      // Cold worker spawn can exceed the 5s default under parallel turbo load.
+    }, 15_000);
 
     it("propagates script errors from the worker", async () => {
       try {

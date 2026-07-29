@@ -1,11 +1,8 @@
 import { describe, it } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
 import { isTransactionAction } from "@evmcrispr/sdk";
-import {
-  expect,
-  getTransports,
-  TEST_ACCOUNT_ADDRESS,
-} from "@evmcrispr/test-utils";
+import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
+import { custom } from "viem";
 import { gnosis } from "viem/chains";
 import { createEvml } from "../../../src/evml/tag";
 
@@ -42,12 +39,20 @@ print $x`;
   });
 
   it("supports the onAction escape hatch", async () => {
-    // Point the run at the local anvil fork — with no transports the
-    // interpreter falls back to viem's default public mainnet RPC.
+    // The callback receives the action without sending it, so the only
+    // RPC involved is `eth_chainId` for chain-id stamping — a fake
+    // transport keeps this test independent of the shared anvil (which
+    // occasionally refuses connections under parallel turbo load).
+    const fakeTransport = custom({
+      request: async ({ method }: { method: string }) => {
+        if (method === "eth_chainId") return `0x${gnosis.id.toString(16)}`;
+        throw new Error(`unexpected RPC call: ${method}`);
+      },
+    });
     const evml = createEvml().with({
       account: TEST_ACCOUNT_ADDRESS as `0x${string}`,
       chainId: gnosis.id,
-      transports: getTransports(),
+      transports: { [gnosis.id]: fakeTransport },
     });
     const seen: Action[] = [];
     const script = evml`exec 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 transfer(address,uint256) 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 1`;

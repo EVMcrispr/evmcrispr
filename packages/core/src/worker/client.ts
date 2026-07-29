@@ -64,6 +64,10 @@ interface PendingRun extends RunCallbacks {
   resolve(value: unknown): void;
   reject(error: Error): void;
   cleanup(): void;
+  /** The run's result promise, so `terminate()` can mark abandoned runs
+   *  as handled before rejecting them (teardown must not surface
+   *  unhandled-rejection noise for consumers that already moved on). */
+  result?: Promise<unknown>;
 }
 
 /** How long a soft abort may go unanswered before the worker is killed —
@@ -119,6 +123,12 @@ class WorkerManager {
   }
 
   terminate(): void {
+    // Deliberate teardown: whoever still had runs in flight is being
+    // abandoned by design, so pre-attach no-op handlers — otherwise the
+    // rejections below count as unhandled and fail bun test runs.
+    for (const run of this.#pending.values()) {
+      run.result?.catch(() => {});
+    }
     this.#crash(new Error("Execution cancelled"));
   }
 
@@ -200,6 +210,9 @@ class WorkerManager {
         reject(err instanceof Error ? err : new Error(String(err)));
       });
     });
+
+    const entry = this.#pending.get(id);
+    if (entry) entry.result = result;
 
     return { id, result };
   }
