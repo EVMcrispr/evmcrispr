@@ -7,14 +7,26 @@ const BIN = join(import.meta.dirname, "../src/bin.ts");
 
 function run(
   args: string[],
-  options?: { input?: string; timeout?: number },
+  options?: {
+    input?: string;
+    timeout?: number;
+    env?: Record<string, string | undefined>;
+  },
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      NO_COLOR: "1",
+      ...options?.env,
+    };
+    for (const key of Object.keys(env)) {
+      if (env[key] === undefined) delete env[key];
+    }
     const proc = Bun.spawn(["bun", BIN, ...args], {
       stdin: options?.input != null ? "pipe" : "ignore",
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env, NO_COLOR: "1" },
+      env: env as Record<string, string>,
     });
 
     if (options?.input != null) {
@@ -102,6 +114,47 @@ describe("CLI", () => {
 
       const result = JSON.parse(stdout);
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("--experimental flag", () => {
+    const script = "load safe\n";
+    const envOff = { VITE_PUBLIC_EXPERIMENTAL: undefined };
+
+    it("gates experimental modules by default", async () => {
+      const { stdout, exitCode } = await run(["validate", "-"], {
+        input: script,
+        env: envOff,
+      });
+      expect(exitCode).toBe(1);
+
+      const result = JSON.parse(stdout);
+      expect(result.valid).toBe(false);
+      expect(JSON.stringify(result.diagnostics)).toContain("experimental");
+    });
+
+    it("enables experimental modules with --experimental", async () => {
+      const { stdout, exitCode } = await run(
+        ["--experimental", "validate", "-"],
+        {
+          input: script,
+          env: envOff,
+        },
+      );
+      expect(exitCode).toBe(0);
+      expect(JSON.parse(stdout).valid).toBe(true);
+    });
+
+    it("accepts the flag after the command", async () => {
+      const { stdout, exitCode } = await run(
+        ["validate", "--experimental", "-"],
+        {
+          input: script,
+          env: envOff,
+        },
+      );
+      expect(exitCode).toBe(0);
+      expect(JSON.parse(stdout).valid).toBe(true);
     });
   });
 
