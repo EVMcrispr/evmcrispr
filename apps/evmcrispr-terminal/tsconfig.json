@@ -1,7 +1,14 @@
 {
-  "extends": "@repo/typescript-config/vite.json",
-  "include": ["src"],
+  "extends": "../../tsconfig.json",
+  "include": ["src", "test"],
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "types": ["node", "bun"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   }
 }

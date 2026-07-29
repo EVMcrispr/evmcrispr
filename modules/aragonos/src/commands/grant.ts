@@ -1,0 +1,169 @@
+import type { Action } from "@evmcrispr/sdk";
+import {
+  AddressSet,
+  defineCommand,
+  ErrorException,
+  encodeAction,
+  fieldItem,
+} from "@evmcrispr/sdk";
+import { isAddress, zeroAddress } from "viem";
+import type AragonOS from "..";
+import type { DaoContext } from "../dao";
+import type { CompletePermission, Params } from "../types";
+import { getAppRoles, getCompletionDAO } from "../utils";
+import { getModuleDAO, resolvePermissionContext } from "../utils/commands";
+
+const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
+  const [granteeAddress, appAddress, role, permissionManager, params = []] =
+    permission;
+
+  const { appPermissions, appPermission, aclAddress, roleHash, app } =
+    resolvePermissionContext(dao, appAddress, role);
+  const { name } = app;
+  const actions: Action[] = [];
+
+  if (
+    appPermission.manager &&
+    appPermission.manager !== zeroAddress &&
+    params.length === 0
+  ) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      throw new ErrorException(
+        `grantee already has given permission on app ${name}`,
+      );
+    }
+    appPermission.grantees.add(granteeAddress);
+
+    return [
+      encodeAction(aclAddress, "grantPermission(address,address,bytes32)", [
+        granteeAddress,
+        appAddress,
+        roleHash,
+      ]),
+    ];
+  }
+
+  if (!appPermission.manager || appPermission.manager === zeroAddress) {
+    if (!permissionManager) {
+      throw new ErrorException("required permission manager missing");
+    }
+
+    if (!isAddress(permissionManager)) {
+      throw new ErrorException(
+        `[permissionManager] must be a valid address, got ${permissionManager}`,
+      );
+    }
+    appPermissions.set(roleHash, {
+      manager: permissionManager,
+      grantees: new AddressSet([granteeAddress]),
+    });
+
+    actions.push(
+      encodeAction(
+        aclAddress,
+        "createPermission(address,address,bytes32,address)",
+        [granteeAddress, appAddress, roleHash, permissionManager],
+      ),
+    );
+  }
+
+  if (params.length > 0) {
+    if (appPermission.grantees.has(granteeAddress)) {
+      throw new ErrorException(
+        `grantee ${granteeAddress} already has given permission on app ${name}`,
+      );
+    }
+    appPermission.grantees.add(granteeAddress);
+
+    actions.push(
+      encodeAction(
+        aclAddress,
+        "grantPermissionP(address,address,bytes32,uint256[])",
+        [granteeAddress, appAddress, roleHash, params],
+      ),
+    );
+  }
+
+  return actions;
+};
+
+export default defineCommand<AragonOS>({
+  name: "grant",
+  description:
+    "Grant a permission on a DAO app to an entity, with an optional oracle.",
+  args: [
+    { name: "role", type: "permission", description: "Permission identifier" },
+    { name: "on", type: "command", description: "Keyword `on`" },
+    { name: "app", type: "app", description: "Target app" },
+    { name: "to", type: "command", description: "Keyword `to`" },
+    {
+      name: "grantee",
+      type: "address",
+      description: "Address to grant the permission to",
+    },
+    {
+      name: "permissionManager",
+      type: "app",
+      description: "Entity managing this permission",
+      optional: true,
+    },
+  ],
+  opts: [
+    {
+      name: "oracle",
+      type: "address",
+      description: "ACL oracle contract address",
+    },
+  ],
+  completions: {
+    role: (ctx) => {
+      const dao = getCompletionDAO(ctx.bindings);
+      if (!dao) return [];
+      const roles = new Set<string>();
+      for (const app of dao.apps) {
+        for (const role of getAppRoles(
+          ctx.bindings,
+          app.address,
+          ctx.chainId,
+        )) {
+          roles.add(role);
+        }
+      }
+      return [...roles].map(fieldItem);
+    },
+    on: () => [fieldItem("on")],
+    to: () => [fieldItem("to")],
+  },
+  async run(
+    module,
+    { role, on, app, to, grantee, permissionManager },
+    { opts },
+  ) {
+    if (on !== "on") {
+      throw new ErrorException(`expected keyword "on", got "${on}"`);
+    }
+    if (to !== "to") {
+      throw new ErrorException(`expected keyword "to", got "${to}"`);
+    }
+    const oracleOpt = opts.oracle;
+
+    let params: ReturnType<Params> = [];
+
+    if (oracleOpt) {
+      const { oracle } = await import("../utils");
+      params = oracle(oracleOpt)();
+    }
+
+    const permission: CompletePermission = [
+      grantee,
+      app,
+      role,
+      permissionManager,
+      params,
+    ];
+
+    const dao = getModuleDAO(module);
+
+    return _grant(dao, permission);
+  },
+});

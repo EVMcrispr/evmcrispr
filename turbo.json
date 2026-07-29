@@ -1,28 +1,80 @@
 {
-  "$schema": "https://turbo.build/schema.json",
+  "$schema": "https://v2-9-7.turborepo.dev/schema.json",
+  "daemon": false,
   "tasks": {
+    "codegen": {
+      "outputs": ["src/_generated.ts"]
+    },
+    "@evmcrispr/modules#codegen": {
+      "inputs": ["$TURBO_DEFAULT$", "../../modules/*/package.json"],
+      "outputs": ["src/_generated.ts"]
+    },
+    "types": {
+      "dependsOn": ["codegen", "^types"],
+      "outputs": ["dist/**/*.d.ts", "dist/**/*.d.ts.map"]
+    },
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**"]
+      "dependsOn": ["codegen", "types"],
+      "outputs": ["dist/**", "!dist/**/*.d.ts", "!dist/**/*.d.ts.map"]
     },
-    "type-check": {
-      "outputs": []
-    },
-    "lint": {},
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "test": {
-      "inputs": ["src/**/*", "test/**/*"],
-      "outputs": ["coverage/**"],
-      "cache": true
+    "type-check": {
+      "dependsOn": [
+        "codegen",
+        "^types",
+        "@evmcrispr/core#types",
+        "@evmcrispr/module-std#types"
+      ]
+    },
+    "//#generate-docs": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "outputs": [
+        "apps/evmcrispr-website/src/content/docs/reference/**",
+        "apps/evmcrispr-website/public/llms-full.txt"
+      ]
+    },
+    "evmcrispr-website#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "dependsOn": ["^build", "//#generate-docs"]
+    },
+    "evmcrispr-website#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "dependsOn": ["//#generate-docs"]
+    },
+    "evmcrispr-website#type-check": {
+      "dependsOn": ["^types"]
+    },
+    "evmcrispr-terminal#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "inputs": ["$TURBO_DEFAULT$", "../../modules/*/package.json"],
+      "dependsOn": ["^build"]
+    },
+    "evmcrispr-terminal#type-check": {
+      "dependsOn": ["^types"]
+    },
+    "evmcrispr-mcp#build": {
+      "env": ["VITE_PUBLIC_EXPERIMENTAL"],
+      "dependsOn": ["codegen", "types", "evmcrispr#build", "^build"]
+    },
+    "evmcrispr-mcp#type-check": {
+      "dependsOn": ["codegen", "^types"]
+    },
+    "lint": {},
+    "test:unit": {
+      "dependsOn": ["codegen", "^codegen"]
+    },
+    "test:integration": {
+      "dependsOn": ["codegen", "^codegen"],
+      "cache": false
     },
     "test:coverage": {
-      "inputs": ["src/**/*", "test/**/*"],
-      "outputs": ["coverage/**"],
-      "cache": true
+      "dependsOn": ["codegen", "^codegen"],
+      "cache": false
     }
   }
 }

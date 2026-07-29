@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dappnode Nexus login</title>
+    <style>
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #10141a;
+        color: #e6edf3;
+        font-family: monospace;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="msg">Completing login&hellip;</p>
+    <script>
+      var params = new URLSearchParams(window.location.search);
+      var msg = document.getElementById("msg");
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: "nexus-auth-callback",
+            code: params.get("code"),
+            state: params.get("state"),
+            error: params.get("error"),
+            error_description: params.get("error_description"),
+          },
+          window.location.origin,
+        );
+        msg.textContent = "Login complete — you can close this window.";
+        window.close();
+      } else {
+        msg.textContent = "This window was opened outside the login flow.";
+      }
+    </script>
+  </body>
+</html>

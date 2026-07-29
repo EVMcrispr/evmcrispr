@@ -1,0 +1,266 @@
+import type { DefaultBodyType, PathParams } from "msw";
+import { HttpResponse, http } from "msw";
+import { isAddress } from "viem";
+import getabiRes from "./0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735.json";
+import etherscanImpl from "./etherscan-impl.json";
+import etherscanProxy from "./etherscan-proxy.json";
+import etherscanVerified from "./etherscan-verified.json";
+
+export const etherscan = {
+  "0xc7ad46e0b8a400bb3c915120d284aafba8fc4735": getabiRes,
+};
+
+/**
+ * Map of lowercased addresses to verified-source fixtures used by the
+ * Etherscan V2 `getsourcecode` endpoint.
+ *
+ * The keys are the addresses our hover unit tests probe for; everything
+ * else falls through to a `status: "1"` "Contract source code not
+ * verified" envelope, which Etherscan returns for unverified contracts.
+ */
+export const etherscanVerifiedFixtures: Record<string, unknown> = {
+  "0x0000000000000000000000000000000000001234": etherscanVerified,
+  "0x0000000000000000000000000000000000005678": etherscanProxy,
+  "0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef": etherscanImpl,
+};
+
+/** Standard Etherscan envelope for an unverified address. */
+const ETHERSCAN_UNVERIFIED = {
+  status: "1",
+  message: "OK",
+  result: [
+    {
+      SourceCode: "",
+      ABI: "Contract source code not verified",
+      ContractName: "",
+      CompilerVersion: "",
+      OptimizationUsed: "",
+      Runs: "",
+      ConstructorArguments: "",
+      EVMVersion: "Default",
+      Library: "",
+      LicenseType: "Unknown",
+      Proxy: "0",
+      Implementation: "",
+      SwarmSource: "",
+    },
+  ],
+};
+
+/**
+ * Map of lowercased addresses to creation-bytecode fixtures used by the
+ * Etherscan V2 `getcontractcreation` endpoint. Lets `contracts:deploy
+ * --mirror-address` tests assert on which bytecode the command pulled
+ * from "Etherscan". Tests can mutate this directly to inject custom
+ * fixtures per-test (mirrors the `etherscanVerifiedFixtures` pattern).
+ */
+export interface EtherscanCreationFixture {
+  contractAddress: string;
+  contractCreator?: string;
+  txHash?: string;
+  blockNumber?: string;
+  timestamp?: string;
+  contractFactory?: string;
+  creationBytecode?: string;
+}
+export const etherscanCreationFixtures: Record<
+  string,
+  EtherscanCreationFixture
+> = {};
+
+/** Generic Etherscan envelope shape. */
+interface EtherscanEnvelope {
+  status: string;
+  message: string;
+  result: string;
+}
+
+/**
+ * Test-controllable state for the Etherscan V2 verification endpoints
+ * (`verifysourcecode` POST and `checkverifystatus` GET).
+ *
+ * Tests reset this in `beforeEach` and then either:
+ *  - read `lastSubmit` to assert on the form body the command POSTed, and/or
+ *  - override `submitResponse` / `statusQueue` to simulate the
+ *    submission and polling responses.
+ *
+ * `statusQueue` lets tests simulate a `Pending in queue` → `Pass - Verified`
+ * sequence; once empty, `statusResponse` is returned for every poll.
+ */
+export const etherscanVerifyState: {
+  lastSubmit: URLSearchParams | undefined;
+  /**
+   * URL query params from the last `verifysourcecode` POST. Etherscan V2
+   * requires `apikey`, `chainid`, `module`, and `action` to live here
+   * (not the form body); tests assert on this directly to lock in the
+   * v2 contract.
+   */
+  lastSubmitUrlParams: URLSearchParams | undefined;
+  submitResponse: EtherscanEnvelope;
+  statusResponse: EtherscanEnvelope;
+  statusQueue: EtherscanEnvelope[];
+  reset(): void;
+} = {
+  lastSubmit: undefined,
+  lastSubmitUrlParams: undefined,
+  submitResponse: { status: "1", message: "OK", result: "guid-default" },
+  statusResponse: { status: "1", message: "OK", result: "Pass - Verified" },
+  statusQueue: [],
+  reset() {
+    this.lastSubmit = undefined;
+    this.lastSubmitUrlParams = undefined;
+    this.submitResponse = {
+      status: "1",
+      message: "OK",
+      result: "guid-default",
+    };
+    this.statusResponse = {
+      status: "1",
+      message: "OK",
+      result: "Pass - Verified",
+    };
+    this.statusQueue = [];
+  },
+};
+
+export const etherscanHandlers = [
+  /**
+   * Legacy Etherscan v1 ABI endpoint kept around for older suites that
+   * stub `module=contract&action=getabi` on Rinkeby. The verified-contract
+   * hover now uses the V2 unified endpoint below.
+   */
+  http.get<
+    PathParams<string>,
+    DefaultBodyType,
+    { status: string; message: string; result: string }
+  >(`https://api-rinkeby.etherscan.io/api`, ({ request }) => {
+    const address = new URL(request.url).searchParams.get("address");
+    if (!address || !isAddress(address)) {
+      return HttpResponse.json({
+        status: "0",
+        message: "NOTOK",
+        result: "Invalid Address format",
+      });
+    }
+
+    const data = etherscan[address.toLowerCase() as keyof typeof etherscan];
+
+    if (!data) {
+      return HttpResponse.json({
+        status: "0",
+        message: "NOTOK",
+        result: "Contract source code not verified",
+      });
+    }
+
+    return HttpResponse.json(data);
+  }),
+
+  /**
+   * Etherscan V2 unified GET endpoint.
+   *
+   * Routes by `action`:
+   *  - `getsourcecode` — returns a fixture from `etherscanVerifiedFixtures`,
+   *    or the unverified envelope for any unmapped address.
+   *  - `checkverifystatus` — returns from `etherscanVerifyState.statusQueue`
+   *    if non-empty, otherwise `etherscanVerifyState.statusResponse`.
+   *
+   * The hover code authenticates with `VITE_ETHERSCAN_API_KEY`; here we
+   * simply ignore the key.
+   */
+  http.get(`https://api.etherscan.io/v2/api`, ({ request }) => {
+    const url = new URL(request.url);
+    const module_ = url.searchParams.get("module");
+    const action = url.searchParams.get("action");
+
+    if (module_ === "contract" && action === "getsourcecode") {
+      const address = url.searchParams.get("address");
+      if (!address) {
+        return HttpResponse.json({
+          status: "0",
+          message: "NOTOK",
+          result: "Unsupported request",
+        });
+      }
+      const fixture = etherscanVerifiedFixtures[address.toLowerCase()];
+      if (!fixture) return HttpResponse.json(ETHERSCAN_UNVERIFIED);
+      return HttpResponse.json(fixture);
+    }
+
+    if (module_ === "contract" && action === "checkverifystatus") {
+      const next =
+        etherscanVerifyState.statusQueue.shift() ??
+        etherscanVerifyState.statusResponse;
+      return HttpResponse.json(next);
+    }
+
+    if (module_ === "contract" && action === "getcontractcreation") {
+      // V2 takes a comma-separated `contractaddresses` list (up to 5).
+      // We honour the first address only, which is what the SDK helper
+      // sends.
+      const raw = url.searchParams.get("contractaddresses");
+      const first = raw?.split(",")[0]?.trim();
+      if (!first) {
+        return HttpResponse.json({
+          status: "0",
+          message: "NOTOK",
+          result: "Missing contractaddresses",
+        });
+      }
+      const fixture = etherscanCreationFixtures[first.toLowerCase()];
+      if (!fixture) {
+        // Etherscan returns status: 0 for unknown addresses on this
+        // endpoint, mirroring its real behaviour for non-contract or
+        // never-deployed addresses.
+        return HttpResponse.json({
+          status: "0",
+          message: "No data found",
+          result: "No data found",
+        });
+      }
+      return HttpResponse.json({
+        status: "1",
+        message: "OK",
+        result: [fixture],
+      });
+    }
+
+    return HttpResponse.json({
+      status: "0",
+      message: "NOTOK",
+      result: "Unsupported request",
+    });
+  }),
+
+  /**
+   * Etherscan V2 `verifysourcecode` POST endpoint.
+   *
+   * Etherscan V2 expects `apikey`, `chainid`, `module`, and `action` as
+   * URL query parameters and the contract payload (`sourceCode`,
+   * `contractaddress`, etc.) in the form body. We merge both into a
+   * single `URLSearchParams` so tests can assert on the full submission
+   * via `etherscanVerifyState.lastSubmit.get(...)` regardless of which
+   * side of the wire each field lives on.
+   */
+  http.post(`https://api.etherscan.io/v2/api`, async ({ request }) => {
+    const url = new URL(request.url);
+    const text = await request.text();
+    const bodyParams = new URLSearchParams(text);
+
+    const merged = new URLSearchParams();
+    for (const [k, v] of url.searchParams) merged.set(k, v);
+    for (const [k, v] of bodyParams) merged.set(k, v);
+
+    const action = merged.get("action");
+    if (action !== "verifysourcecode") {
+      return HttpResponse.json({
+        status: "0",
+        message: "NOTOK",
+        result: `Unsupported action: ${action ?? "<none>"}`,
+      });
+    }
+    etherscanVerifyState.lastSubmit = merged;
+    etherscanVerifyState.lastSubmitUrlParams = url.searchParams;
+    return HttpResponse.json(etherscanVerifyState.submitResponse);
+  }),
+];

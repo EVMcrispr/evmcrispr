@@ -1,0 +1,62 @@
+/* ── Load fonts (same as landing page) ─────────────────────── */
+@import "@fontsource/jetbrains-mono";
+@import "@fontsource/jetbrains-mono/700.css";
+@import "@repo/ui/styles/theme.css" layer(theme);
+
+/* ── Map Starlight CSS variables to EVMcrispr theme ────────── */
+/* Apply to both :root and [data-theme='light'] to force dark-only */
+:root,
+:root[data-theme="light"] {
+  color-scheme: dark;
+  --sl-color-white: #f5f5f5;
+  --sl-color-gray-1: #dbdbdb;
+  --sl-color-gray-2: #adadad;
+  --sl-color-gray-3: #808080;
+  --sl-color-gray-4: #4d4d4d;
+  --sl-color-gray-5: #292929;
+  --sl-color-gray-6: #121212;
+  --sl-color-black: #000000;
+
+  /* Accent = evm-green */
+  --sl-color-accent-low: #0f3003;
+  --sl-color-accent: #4bee11;
+  --sl-color-accent-high: #8cf467;
+
+  /* Fonts */
+  --sl-font: "JetBrains Mono", monospace;
+  --sl-font-mono: "JetBrains Mono", monospace;
+
+  /* Retro flat shadows */
+  --sl-shadow-sm: 2px 2px 0 0 rgba(140, 244, 103, 0.3);
+  --sl-shadow-md: 3px 3px 0 0 rgba(140, 244, 103, 0.3);
+  --sl-shadow-lg: 4px 4px 0 0 rgba(140, 244, 103, 0.3);
+}
+
+/* ── Retro overrides: no border-radius ─────────────────────── */
+:root {
+  --sl-border-radius: 0px;
+}
+
+/* Remove rounded corners from Starlight components */
+.sl-badge,
+.starlight-aside,
+nav.sidebar a,
+.card,
+.hero .action a,
+.sl-markdown-content .expressive-code pre {
+  border-radius: 0;
+}
+
+/* ── Hide light/dark theme toggle ──────────────────────────── */
+starlight-theme-select {
+  display: none;
+}
+
+/* ── Hide scrollbars (match EVMcrispr UI) ──────────────────── */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

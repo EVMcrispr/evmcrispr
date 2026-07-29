@@ -1,0 +1,36 @@
+import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
+import { defineHelper } from "@evmcrispr/sdk";
+import { parseAbiItem, parseUnits, zeroAddress } from "viem";
+import type Token from "..";
+
+export default defineHelper<Token>({
+  name: "amount",
+  description:
+    "Convert a human-readable token amount to its base unit (applying decimals).",
+  returnType: "number",
+  args: [
+    {
+      name: "tokenSymbolOrAddress",
+      type: "token-symbol",
+      description: "Token symbol (e.g. `DAI`) or address",
+    },
+    { name: "amount", type: "number", description: "Human-readable amount" },
+  ],
+  async run(module, { tokenSymbolOrAddress, amount }) {
+    const tokenAddr = await resolveToken(module, tokenSymbolOrAddress);
+
+    if (tokenAddr === zeroAddress) {
+      const chain = await module.getChain();
+      const { decimals } = getChainNativeCurrency(chain);
+      return parseUnits(String(amount), decimals).toString();
+    }
+
+    const client = await module.getClient();
+    const decimals = await client.readContract({
+      address: tokenAddr,
+      abi: [parseAbiItem("function decimals() view returns (uint8)")],
+      functionName: "decimals",
+    });
+    return parseUnits(String(amount), decimals).toString();
+  },
+});

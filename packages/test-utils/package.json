@@ -1,0 +1,50 @@
+{
+  "name": "@evmcrispr/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./evml": {
+      "bun": "./src/evml/index.ts",
+      "types": "./src/evml/index.ts",
+      "import": "./src/evml/index.ts"
+    },
+    "./msw/server": {
+      "bun": "./src/msw/server.ts",
+      "types": "./src/msw/server.ts",
+      "import": "./src/msw/server.ts"
+    },
+    "./msw/blockscout": {
+      "bun": "./src/msw/blockscout/index.ts",
+      "types": "./src/msw/blockscout/index.ts",
+      "import": "./src/msw/blockscout/index.ts"
+    },
+    "./msw/etherscan": {
+      "bun": "./src/msw/etherscan/index.ts",
+      "types": "./src/msw/etherscan/index.ts",
+      "import": "./src/msw/etherscan/index.ts"
+    },
+    "./msw/tokenlist": {
+      "bun": "./src/msw/tokenlist/index.ts",
+      "types": "./src/msw/tokenlist/index.ts",
+      "import": "./src/msw/tokenlist/index.ts"
+    }
+  },
+  "dependencies": {
+    "arcsecond": "^5.0.0",
+    "chai": "^6.2.2",
+    "msw": "^2.14.6",
+    "viem": "^2.54.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "bun-types": "^1.3.14"
+  }
+}

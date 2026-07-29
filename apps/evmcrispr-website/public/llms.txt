@@ -1,0 +1,34 @@
+# EVMcrispr
+
+> A domain-specific language for encoding and executing batched EVM
+> transactions targeting smart contracts, Aragon DAOs, ENS, and DeFi protocols.
+
+EVMcrispr scripts run in a web terminal (next.evmcrispr.com) or programmatically
+via @evmcrispr/core. The DSL is modular: `std` is loaded by default, others
+are loaded with `load <module>`.
+
+## Key Concepts
+
+- Commands produce transactions: `exec 0xAbC... "transfer(address,uint256)" @me 100e18`
+- Helpers produce values: `@get(0xAbC... "balanceOf(address):(uint256)" @me)`
+- Variables: `set $x 42` then reference with `$x`
+- Module prefix: `sim:fork`, `aragonos:connect` (std has no prefix)
+- Batching: wrap commands in `batch (...)` for a single transaction
+
+## Modules
+
+- [std](modules/std/README.md): 13 commands, 55 helpers — core language (always loaded)
+- [aragonos](modules/aragonos/README.md): 9 commands, 3 helpers — Aragon DAO operations
+- [sim](modules/sim/README.md): 6 commands — chain fork simulation
+- [ens](modules/ens/README.md): 1 command, 1 helper — ENS domain operations
+- [giveth](modules/giveth/README.md): 4 commands, 1 helper — Giveth protocol
+- [http](modules/http/README.md): 3 helpers — HTTP + JSON
+
+## Docs
+
+- [Getting Started](docs/guides/getting-started.md)
+- [Language Basics](docs/guides/language-basics.md)
+- [Working with DAOs](docs/guides/working-with-daos.md)
+- [Simulation](docs/guides/simulation.md)
+- [SDK Guide](docs/guides/custom-modules.md): Build your own module
+- [Full Reference](llms-full.txt): Complete reference in one file

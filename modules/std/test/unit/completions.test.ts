@@ -1,0 +1,870 @@
+import "../setup";
+import { beforeAll, describe, it } from "bun:test";
+
+import type { CompletionItem, CompletionItemKind } from "@evmcrispr/sdk";
+import { expect, getTransports, helperLabels } from "@evmcrispr/test-utils";
+import { type EvmlWorkspace, evml } from "@evmcrispr/test-utils/evml";
+import { constants as stdConstants } from "../../src";
+import { helpers as stdHelpers } from "../../src/_generated";
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+const labels = (items: CompletionItem[]): string[] => items.map((i) => i.label);
+
+const hasLabel = (items: CompletionItem[], label: string): boolean =>
+  items.some((i) => i.label === label);
+
+const onlyKind = (
+  items: CompletionItem[],
+  kind: CompletionItemKind,
+): CompletionItem[] => items.filter((i) => i.kind === kind);
+
+/**
+ * Build a position for the cursor at the end of a single-line script.
+ * The script string should represent the text *before* the cursor.
+ */
+const pos = (script: string, line = 1) => ({
+  line,
+  col: script.split("\n")[line - 1]?.length ?? script.length,
+});
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("Completions – std commands", () => {
+  let evm: EvmlWorkspace;
+
+  beforeAll(() => {
+    evm = evml.with({ transports: getTransports() }).workspace();
+  });
+
+  // -------------------------------------------------------------------------
+  // load
+  // -------------------------------------------------------------------------
+
+  describe("load", () => {
+    it('load <cursor> should show available module names (e.g. "aragonos")', async () => {
+      const script = "load ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(items.length).to.be.greaterThan(0);
+      expect(hasLabel(items, "aragonos")).to.be.true;
+      expect(hasLabel(items, "sim")).to.be.true;
+      // std is already loaded, should not appear
+      expect(hasLabel(items, "std")).to.be.false;
+      // Module names come through as field items
+      const fieldItems = onlyKind(items, "field");
+      expect(fieldItems.length).to.be.greaterThan(0);
+      expect(hasLabel(fieldItems, "aragonos")).to.be.true;
+    });
+
+    it("load aragonos <cursor> should not show --as (removed)", async () => {
+      const script = "load aragonos ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "--as")).to.be.false;
+    });
+
+    it("load --<cursor> should offer the from opt", async () => {
+      const script = "load --";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(labels(items)).to.deep.equal(["--from"]);
+    });
+
+    it("after load aragonos, qualified helper labels should be offered", async () => {
+      const script = "load aragonos\nprint ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "@aragonos:aragonEns")).to.be.true;
+      // No unqualified module helpers without an import list
+      expect(hasLabel(items, "@aragonEns")).to.be.false;
+    });
+
+    it("import-list names should be offered unqualified", async () => {
+      const script = "load aragonos [@aragonEns]\nprint ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "@aragonEns")).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // set
+  // -------------------------------------------------------------------------
+
+  describe("set", () => {
+    it("set <cursor> should offer declared config vars when no user variables exist", async () => {
+      const script = "set ";
+      const items = await evm.getCompletions(script, pos(script));
+      // std's declared configs are always available in the binding slot.
+      expect(hasLabel(items, "$std:tokenlist")).to.be.true;
+      expect(hasLabel(items, "$std:ipfsJwt")).to.be.true;
+      expect(items.every((i) => i.label.includes(":"))).to.be.true;
+    });
+
+    it("set <cursor> should show existing user variables", async () => {
+      const script = "set $myVar 123\nset ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "$myVar")).to.be.true;
+      const plainVarItems = onlyKind(items, "variable").filter(
+        (i) => !i.label.includes(":"),
+      );
+      expect(plainVarItems).to.have.lengthOf(1);
+    });
+
+    it("set $x <cursor> should show helpers and variables", async () => {
+      const script = "set $x ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(items.length).to.be.greaterThan(0);
+      const helperItems = onlyKind(items, "helper");
+      expect(helperItems.length).to.be.greaterThan(0);
+      expect(hasLabel(helperItems, "@me")).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // exec
+  // -------------------------------------------------------------------------
+
+  describe("exec", () => {
+    it("exec <cursor> should show address-type completions", async () => {
+      // With a variable defined as an address beforehand
+      const script = "set $c 0x0000000000000000000000000000000000000001\nexec ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      // Should include address-returning helpers
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@ens")).to.be.true;
+      // Should NOT include non-address helpers like @date (returns number)
+      expect(hasLabel(items, "@date")).to.be.false;
+    });
+
+    it('exec $c f(bool) <cursor> should show true/false (auto ABI type = "bool")', async () => {
+      const script = "exec $c f(bool) ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      // Should NOT include non-bool helpers
+      expect(hasLabel(items, "@me")).to.be.false;
+      expect(hasLabel(items, "@date")).to.be.false;
+      // Should NOT include variables (bool type excludes them)
+      expect(onlyKind(items, "variable")).to.have.lengthOf(0);
+    });
+
+    it("exec $c f(bool) false <cursor> should show opts (past mandatory + one rest arg)", async () => {
+      const script = "exec $c f(bool) false ";
+      const items = await evm.getCompletions(script, pos(script));
+      // Should include opts since argIndex > rest arg index
+      expect(hasLabel(items, "--value")).to.be.true;
+      expect(hasLabel(items, "--from")).to.be.true;
+      expect(hasLabel(items, "--gas")).to.be.true;
+    });
+
+    it("exec $c f(bool) false --<cursor> should show all 6 opts", async () => {
+      const script = "exec $c f(bool) false --";
+      const items = await evm.getCompletions(script, pos(script));
+      const optLabels = labels(items);
+      expect(optLabels).to.include("--value");
+      expect(optLabels).to.include("--from");
+      expect(optLabels).to.include("--gas");
+      expect(optLabels).to.include("--max-fee-per-gas");
+      expect(optLabels).to.include("--max-priority-fee-per-gas");
+      expect(optLabels).to.include("--nonce");
+      expect(items).to.have.lengthOf(6);
+    });
+
+    it("exec $c f(bool) false --value <cursor> should show only number-compatible items", async () => {
+      const script = "exec $c f(bool) false --value ";
+      const items = await evm.getCompletions(script, pos(script));
+      // Should NOT show true/false (those are bool, not number)
+      expect(hasLabel(items, "true")).to.be.false;
+      expect(hasLabel(items, "false")).to.be.false;
+      // Should include number-returning helpers
+      expect(hasLabel(items, "@date")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
+      expect(hasLabel(items, "@nonce")).to.be.true;
+      // Should NOT include address-returning helpers
+      expect(hasLabel(items, "@me")).to.be.false;
+      expect(hasLabel(items, "@ens")).to.be.false;
+    });
+
+    it('exec $c f(address,uint256) $a <cursor> should resolve second param to "number"', async () => {
+      const script = "exec $c f(address,uint256) $a ";
+      const items = await evm.getCompletions(script, pos(script));
+      // Number-returning helpers should be present
+      expect(hasLabel(items, "@date")).to.be.true;
+      // Address-returning helpers should NOT be present (type is number, not address)
+      expect(hasLabel(items, "@me")).to.be.false;
+      // Bool items should NOT be present
+      expect(hasLabel(items, "true")).to.be.false;
+    });
+
+    it("already-used opts should be filtered out", async () => {
+      const script = "exec $c f() --value 1 --";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "--value")).to.be.false;
+      expect(hasLabel(items, "--from")).to.be.true;
+      expect(items).to.have.lengthOf(5);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // send
+  // -------------------------------------------------------------------------
+
+  describe("send", () => {
+    it("send <cursor> should show address-type completions", async () => {
+      const script = "send ";
+      const items = await evm.getCompletions(script, pos(script));
+      // Should include address-returning helpers
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@ens")).to.be.true;
+    });
+
+    it("send $c <cursor> should show opts (only one positional arg)", async () => {
+      const script = "send $c ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "--data")).to.be.true;
+      expect(hasLabel(items, "--value")).to.be.true;
+      expect(hasLabel(items, "--from")).to.be.true;
+      expect(hasLabel(items, "--gas")).to.be.true;
+    });
+
+    it("send $c --<cursor> should show opts", async () => {
+      const script = "send $c --";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "--data")).to.be.true;
+      expect(hasLabel(items, "--value")).to.be.true;
+      expect(hasLabel(items, "--from")).to.be.true;
+      expect(hasLabel(items, "--gas")).to.be.true;
+      expect(hasLabel(items, "--max-fee-per-gas")).to.be.true;
+      for (const item of items) {
+        expect(item.kind).to.equal("field");
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // sign
+  // -------------------------------------------------------------------------
+
+  describe("sign", () => {
+    it("sign <cursor> should return empty (variable type)", async () => {
+      const script = "sign ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(items).to.have.lengthOf(0);
+    });
+
+    it("sign $v <cursor> should show string completions and --typed opt", async () => {
+      const script = "sign $v ";
+      const items = await evm.getCompletions(script, pos(script));
+      // Optional arg is "string" type; should show all helpers (string is compatible with all)
+      expect(hasLabel(items, "--typed")).to.be.true;
+    });
+
+    it('sign $v "msg" <cursor> should show only --typed opt', async () => {
+      const script = 'sign $v "msg" ';
+      const items = await evm.getCompletions(script, pos(script));
+      expect(labels(items)).to.deep.equal(["--typed"]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // switch
+  // -------------------------------------------------------------------------
+
+  describe("switch", () => {
+    it("switch <cursor> should show chain names", async () => {
+      const script = "switch ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(items.length).to.be.greaterThan(0);
+      // Should include well-known chain names
+      expect(hasLabel(items, "mainnet")).to.be.true;
+      expect(hasLabel(items, "optimism")).to.be.true;
+      expect(hasLabel(items, "gnosis")).to.be.true;
+      // All should be field kind (from fieldItem)
+      for (const item of items) {
+        expect(item.kind).to.equal("field");
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // print
+  // -------------------------------------------------------------------------
+
+  describe("print", () => {
+    it("print <cursor> should show all helpers and variables", async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      // "any" type shows all helpers
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@date")).to.be.true;
+    });
+
+    it('print "hello" <cursor> should show completions and the --headers opt', async () => {
+      const script = 'print "hello" ';
+      const items = await evm.getCompletions(script, pos(script));
+      // Should still show helpers/vars for the rest arg
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "--headers")).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // batch
+  // -------------------------------------------------------------------------
+
+  describe("batch", () => {
+    it("batch <cursor> should show block snippet", async () => {
+      const script = "batch ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "( ... )")).to.be.true;
+      const blockItem = items.find((i) => i.label === "( ... )");
+      expect(blockItem?.isSnippet).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // loop
+  // -------------------------------------------------------------------------
+
+  describe("loop", () => {
+    it('loop <cursor> should show "until", "break", "continue" and variables (completion override)', async () => {
+      const script = "loop ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "until")).to.be.true;
+      expect(hasLabel(items, "break")).to.be.true;
+      expect(hasLabel(items, "continue")).to.be.true;
+    });
+
+    it('loop $i <cursor> should show "of" (completion override)', async () => {
+      const script = "loop $i ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "of")).to.be.true;
+      expect(items).to.have.lengthOf(1);
+    });
+
+    it("loop $i of <cursor> should show helpers and variables", async () => {
+      const script = "loop $i of ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "@me")).to.be.true;
+    });
+
+    it("loop until <cursor> should show helpers (skipped optional variable)", async () => {
+      const script = "loop until ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "@bool")).to.be.true;
+    });
+
+    it("loop $i of $arr <cursor> should show block snippet", async () => {
+      const script = "loop $i of $arr ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "( ... )")).to.be.true;
+    });
+
+    it("loop until @bool(1 > 0) <cursor> should show block snippet", async () => {
+      const script = "loop until @bool(1 > 0) ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(hasLabel(items, "( ... )")).to.be.true;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // exit
+  // -------------------------------------------------------------------------
+
+  describe("exit", () => {
+    it("exit <cursor> should return empty (no args, no opts)", async () => {
+      const script = "exit ";
+      const items = await evm.getCompletions(script, pos(script));
+      expect(items).to.have.lengthOf(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Cross-cutting concerns
+  // -------------------------------------------------------------------------
+
+  describe("cross-cutting", () => {
+    it("variables defined by set are available in later completions", async () => {
+      const script = "set $myVar 123\nset $x ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      expect(hasLabel(items, "$myVar")).to.be.true;
+    });
+
+    it("--from <cursor> in exec should show address-compatible items", async () => {
+      const script = "exec $c f() --from ";
+      const items = await evm.getCompletions(script, pos(script));
+      // --from type is "address"
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@ens")).to.be.true;
+      // Non-address helpers should be excluded
+      expect(hasLabel(items, "@date")).to.be.false;
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helper completions
+// ---------------------------------------------------------------------------
+
+describe("Completions – std helpers", () => {
+  let evm: EvmlWorkspace;
+
+  beforeAll(() => {
+    evm = evml.with({ transports: getTransports() }).workspace();
+  });
+
+  const std = helperLabels(stdHelpers, { constants: stdConstants });
+  const ALL_HELPERS = std.all;
+  const STRING_HELPERS = ALL_HELPERS.filter((h) => !["@bool"].includes(h));
+  const ADDRESS_HELPERS = std.address;
+  const NUMBER_HELPERS = std.number;
+  const BOOL_HELPERS = std.bool;
+  const BYTES32_HELPERS = std.bytes32;
+  const BYTES_HELPERS = std.bytes;
+
+  // -------------------------------------------------------------------------
+  // Helpers as suggestions – type filtering
+  // -------------------------------------------------------------------------
+
+  describe("helpers as suggestions", () => {
+    it('print <cursor> (type "any") should show all helpers', async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ALL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(ALL_HELPERS.length);
+    });
+
+    it("all helper items should have kind = helper", async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const item of helperItems) {
+        expect(item.kind).to.equal("helper");
+      }
+    });
+
+    it("exec <cursor> (address context) should show only address-compatible helpers", async () => {
+      const script = "set $c 0x0000000000000000000000000000000000000001\nexec ";
+      const items = await evm.getCompletions(script, pos(script, 2));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      // Non-address helpers should be excluded
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@hash")).to.be.false;
+      expect(hasLabel(helperItems, "@ipfs")).to.be.false;
+      expect(hasLabel(helperItems, "@abi.encodeCall")).to.be.false;
+    });
+
+    it("exec $c f(uint256) <cursor> (number context) should show only number-compatible helpers", async () => {
+      const script = "exec $c f(uint256) ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@token")).to.be.false;
+      expect(hasLabel(helperItems, "@ens")).to.be.false;
+    });
+
+    it("exec $c f(bytes32) <cursor> should show only bytes32-compatible helpers", async () => {
+      const script = "exec $c f(bytes32) ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BYTES32_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+    });
+
+    it("exec $c f(bytes) <cursor> should show only bytes-compatible helpers", async () => {
+      const script = "exec $c f(bytes) ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BYTES_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+      expect(hasLabel(helperItems, "@hash")).to.be.false;
+    });
+
+    it("exec $c f(bool) <cursor> should show bool-compatible helpers", async () => {
+      const script = "exec $c f(bool) ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
+    });
+
+    it("exec $c f(string) <cursor> should show string-compatible helpers", async () => {
+      const script = "exec $c f(string) ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      for (const h of STRING_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Snippet metadata
+  // -------------------------------------------------------------------------
+
+  describe("snippet metadata", () => {
+    it("helpers with args should have isSnippet = true", async () => {
+      const NO_ARG_HELPERS = new Set(std.noArgs);
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const helperItems = onlyKind(items, "helper");
+      const withArgs = helperItems.filter((i) => !NO_ARG_HELPERS.has(i.label));
+      for (const item of withArgs) {
+        expect(item.isSnippet).to.be.true;
+      }
+    });
+
+    it("@me (no args) should have isSnippet falsy", async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const me = items.find((i) => i.label === "@me");
+      expect(me).to.exist;
+      expect(me!.isSnippet).to.not.be.true;
+    });
+
+    it("helpers with args should have insertText with ($0) snippet", async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const token = items.find((i) => i.label === "@token");
+      expect(token).to.exist;
+      expect(token!.insertText).to.equal("@token($0)");
+    });
+
+    it("@me should have insertText with trailing space (no parens)", async () => {
+      const script = "print ";
+      const items = await evm.getCompletions(script, pos(script));
+      const me = items.find((i) => i.label === "@me");
+      expect(me).to.exist;
+      expect(me!.insertText).to.equal("@me ");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Helper argument completions
+  // -------------------------------------------------------------------------
+
+  describe("helper argument completions", () => {
+    /**
+     * Place the cursor inside a helper's parentheses.
+     * `before` is the text before the cursor, `after` closes the expression.
+     */
+    const helperPos = (before: string, after: string) => ({
+      script: before + after,
+      position: { line: 1, col: before.length },
+    });
+
+    // @token(token-symbol)  →  custom type provides its own completions, no helpers
+    it("@token(<cursor>) should show no helper completions (custom type)", async () => {
+      const { script, position } = helperPos("set $x @token(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      expect(helperItems).to.have.lengthOf(0);
+    });
+
+    // @get(address, read-abi, ...any)  →  first arg: address helpers
+    it("@get(<cursor>) first arg should show address-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @get(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+    });
+
+    // @get(address, read-abi, ...any)  →  rest arg resolves type from signature
+    it('@get($addr "fn(uint256)" <cursor>) rest arg should resolve to number from signature', async () => {
+      const { script, position } = helperPos(
+        'set $x @get($addr "fn(uint256)" v',
+        ")",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      // Non-number helpers should NOT be present
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@ens")).to.be.false;
+    });
+
+    // @get multi-param: first rest arg resolves to number
+    it('@get($addr "fn(uint256,bool)" <cursor>) first rest arg should resolve to number', async () => {
+      const { script, position } = helperPos(
+        'set $x @get($addr "fn(uint256,bool)" ',
+        ")",
+      );
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      // Should NOT show true/false (number, not bool)
+      expect(hasLabel(items, "true")).to.be.false;
+      expect(hasLabel(items, "false")).to.be.false;
+    });
+
+    // @get multi-param: second rest arg resolves to bool
+    it('@get($addr "fn(uint256,bool)" 3 <cursor>) second rest arg should resolve to bool', async () => {
+      const { script, position } = helperPos(
+        'set $x @get($addr "fn(uint256,bool)" 3 ',
+        ")",
+      );
+      const items = await evm.getCompletions(script, position);
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
+    });
+
+    // Unclosed parens: same scenarios without closing ")"
+    it('@get($addr "fn(uint256,bool)" <cursor> (no closing paren) should still resolve to number', async () => {
+      const script = 'set $x @get($addr "fn(uint256,bool)" ';
+      const position = { line: 1, col: script.length };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+    });
+
+    it('@get($addr "fn(uint256,bool)" 3 <cursor> (no closing paren) should still resolve to bool', async () => {
+      const script = 'set $x @get($addr "fn(uint256,bool)" 3 ';
+      const position = { line: 1, col: script.length };
+      const items = await evm.getCompletions(script, position);
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
+    });
+
+    // @get(address, read-abi, ...any)  →  rest arg with bool signature
+    it('@get($addr "bo(bool)" <cursor>) rest arg should resolve to bool from signature', async () => {
+      const { script, position } = helperPos(
+        'set $x @get($addr "bo(bool)" ',
+        ")",
+      );
+      const items = await evm.getCompletions(script, position);
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      const helperItems = onlyKind(items, "helper");
+      for (const h of BOOL_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(helperItems).to.have.lengthOf(BOOL_HELPERS.length);
+    });
+
+    // @nonce(address)  →  first arg: address
+    it("@nonce(<cursor>) first arg should show address-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @nonce(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of ADDRESS_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@date")).to.be.false;
+    });
+
+    // @arr(number, number)  →  second arg: number
+    it("@arr(1 <cursor>) second arg should show number-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @arr(1 ", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+    });
+
+    // @ens(string)  →  string-compatible helpers
+    it("@ens(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @ens(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of STRING_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @date(string, string?)  →  string-compatible helpers
+    it("@date(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @date(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of STRING_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @hash(string)  →  string-compatible helpers
+    it("@hash(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @hash(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of STRING_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // @abi.encodeCall(write-abi, ...any)  →  first arg: write-abi (only "any"-returning helpers match)
+    it("@abi.encodeCall(<cursor>) first arg should show only any-returning helpers", async () => {
+      const { script, position } = helperPos("set $x @abi.encodeCall(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of helperItems) {
+        expect(["@block", "@get", "@ipfs.get"]).to.include(h.label);
+      }
+    });
+
+    // @ipfs(string)  →  string-compatible helpers
+    it("@ipfs(<cursor>) should show string-compatible completions", async () => {
+      const { script, position } = helperPos("set $x @ipfs(", ")");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of STRING_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+    });
+
+    // Variables should be included for non-bool/non-block types
+    it("@nonce(<cursor>) should include address-valued variables only", async () => {
+      const before =
+        "set $addr 0x0000000000000000000000000000000000000001\nset $x @nonce(";
+      const after = ")";
+      const script = before + after;
+      const position = { line: 2, col: "set $x @nonce(".length };
+      const items = await evm.getCompletions(script, position);
+      const varItems = onlyKind(items, "variable");
+      expect(hasLabel(varItems, "$addr")).to.be.true;
+    });
+
+    it("@nonce(<cursor>) should show only address variable and address helpers, no duplicates", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const before = `set $a 1\nset $c ${addr}\nexec $c @nonce(`;
+      const after = ")";
+      const script = before + after;
+      const position = { line: 3, col: `exec $c @nonce(`.length };
+      const items = await evm.getCompletions(script, position);
+      // $c should appear exactly once (address variable)
+      const cItems = items.filter((i) => i.label === "$c");
+      expect(cItems).to.have.lengthOf(1);
+      expect(cItems[0].kind).to.equal("variable");
+      // $a should NOT appear (value is 1, not an address)
+      expect(hasLabel(items, "$a")).to.be.false;
+      // Address-returning helpers should be present
+      expect(hasLabel(items, "@me")).to.be.true;
+      expect(hasLabel(items, "@ens")).to.be.true;
+      // Non-address helpers should NOT be present
+      expect(hasLabel(items, "@date")).to.be.false;
+    });
+
+    it("@arr(1 <cursor>) should show only number variable, not address variable", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const before = `set $a 1\nset $c ${addr}\nexec $c @arr(1 `;
+      const after = ")";
+      const script = before + after;
+      const position = { line: 3, col: `exec $c @arr(1 `.length };
+      const items = await evm.getCompletions(script, position);
+      // $a should appear (value is 1, a number)
+      expect(hasLabel(items, "$a")).to.be.true;
+      // $c should NOT appear (value is an address, not a number)
+      expect(hasLabel(items, "$c")).to.be.false;
+      // Number-returning helpers should be present
+      expect(hasLabel(items, "@date")).to.be.true;
+      expect(hasLabel(items, "@gas.price")).to.be.true;
+      // Address-returning helpers should NOT be present
+      expect(hasLabel(items, "@me")).to.be.false;
+      expect(hasLabel(items, "@ens")).to.be.false;
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Mid-line cursor completions (cursor NOT at end of line)
+  // -------------------------------------------------------------------------
+
+  describe("mid-line cursor completions", () => {
+    const helperPos = (before: string, after: string) => ({
+      script: before + after,
+      position: { line: 1, col: before.length },
+    });
+
+    it("@arr(1 <cursor>@me) mid-line should show number completions", async () => {
+      const { script, position } = helperPos("set $x @arr(1 ", "@me)");
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+      expect(hasLabel(helperItems, "@token")).to.be.false;
+    });
+
+    it("multiline: @arr(1 <cursor>@me) mid-line should show number completions", async () => {
+      const script = "set $a 1\nset $x @arr(1 @me)";
+      const position = {
+        line: 2,
+        col: "set $x @arr(1 ".length,
+      };
+      const items = await evm.getCompletions(script, position);
+      const helperItems = onlyKind(items, "helper");
+      for (const h of NUMBER_HELPERS) {
+        expect(hasLabel(helperItems, h)).to.be.true;
+      }
+      expect(hasLabel(helperItems, "@me")).to.be.false;
+    });
+
+    it("exec $c f(bool) <cursor>true mid-line should show bool completions", async () => {
+      const script = "exec $c f(bool) true";
+      const position = { line: 1, col: "exec $c f(bool) ".length };
+      const items = await evm.getCompletions(script, position);
+      expect(hasLabel(items, "true")).to.be.true;
+      expect(hasLabel(items, "false")).to.be.true;
+      expect(hasLabel(items, "@me")).to.be.false;
+    });
+
+    it("@get(addr <cursor> (no closing paren) should still show completions", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const script = `print @get(${addr} `;
+      const position = { line: 1, col: `print @get(${addr} `.length };
+      const items = await evm.getCompletions(script, position);
+      expect(items.length).to.be.greaterThan(0);
+    });
+
+    it("multiline: @get(addr <cursor> with invalid full script should use partial context", async () => {
+      const addr = "0x0000000000000000000000000000000000000001";
+      const script = `switch gnosis\nprint @get(${addr}  `;
+      const position = {
+        line: 2,
+        col: `print @get(${addr} `.length,
+      };
+      const items = await evm.getCompletions(script, position);
+      expect(items.length).to.be.greaterThan(0);
+    });
+  });
+});

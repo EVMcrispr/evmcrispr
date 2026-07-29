@@ -1,0 +1,21 @@
+{
+  "status": "1",
+  "message": "OK",
+  "result": [
+    {
+      "SourceCode": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract Verified {}\n",
+      "ABI": "[]",
+      "ContractName": "Verified",
+      "CompilerVersion": "v0.8.20+commit.a1b79de6",
+      "OptimizationUsed": "1",
+      "Runs": "200",
+      "ConstructorArguments": "",
+      "EVMVersion": "paris",
+      "Library": "",
+      "LicenseType": "MIT",
+      "Proxy": "0",
+      "Implementation": "",
+      "SwarmSource": ""
+    }
+  ]
+}

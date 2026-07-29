@@ -1,0 +1,39 @@
+{
+  "name": "@evmcrispr/module-assertions",
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "description": "On-chain assertions backed by the assertions.eth contract: verify view return values and chain state atomically. Requires `load assertions`.",
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@evmcrispr/test-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

@@ -1,0 +1,122 @@
+import "../../setup";
+
+import type AragonOS from "@evmcrispr/module-aragonos";
+import { REPO_ABI } from "@evmcrispr/module-aragonos/utils";
+import { CommandError } from "@evmcrispr/sdk";
+import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import { describeCommand } from "@evmcrispr/test-utils/evml";
+import { getContract, keccak256, namehash, toHex } from "viem";
+import { DAO2 } from "../../fixtures";
+import { createTestAction } from "../../test-helpers/actions";
+import {
+  _aragonEns,
+  findAragonOSCommandNode,
+} from "../../test-helpers/aragonos";
+
+const preamble = `load aragonos [upgrade]\naragonos:connect ${DAO2.kernel} (`;
+
+describeCommand("upgrade", {
+  describeName:
+    "AragonOS > commands > upgrade <apmRepo> [newAppImplementationAddress]",
+  module: "aragonos",
+  preamble,
+  docCases: [
+    {
+      description: "Upgrade to latest version",
+      code: "aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (\n  aragonos:upgrade disputable-conviction-voting.open\n)",
+    },
+  ],
+  cases: [
+    {
+      name: "should return a correct upgrade action to the latest app's version",
+      script: `upgrade disputable-conviction-voting.open\n)`,
+      validate: async (upgradeActions, interpreter) => {
+        const client = getPublicClient();
+        const repoAddress = await _aragonEns(
+          "disputable-conviction-voting.open.aragonpm.eth",
+          interpreter.getModule("aragonos") as AragonOS,
+        );
+        const repo = getContract({
+          address: repoAddress!,
+          abi: REPO_ABI,
+          client,
+        });
+        const [, latestImplementationAddress] = await repo.read.getLatest();
+        const expectedUpgradeActions = [
+          createTestAction("setApp", DAO2.kernel, [
+            keccak256(toHex("base")),
+            namehash("disputable-conviction-voting.open.aragonpm.eth"),
+            latestImplementationAddress,
+          ]),
+        ];
+        expect(upgradeActions).to.eql(expectedUpgradeActions);
+      },
+    },
+    {
+      name: "should return a correct upgrade action given a specific version",
+      script: `upgrade disputable-conviction-voting.open 2.0.0\n)`,
+      validate: async (upgradeActions, interpreter) => {
+        const client = getPublicClient();
+        const repoAddress = await _aragonEns(
+          "disputable-conviction-voting.open.aragonpm.eth",
+          interpreter.getModule("aragonos") as AragonOS,
+        );
+        const repo = getContract({
+          address: repoAddress!,
+          abi: REPO_ABI,
+          client,
+        });
+        const [, newAppImplementation] = await repo.read.getBySemanticVersion([
+          [2, 0, 0],
+        ] as [readonly [number, number, number]]);
+        const expectedUpgradeActions = [
+          createTestAction("setApp", DAO2.kernel, [
+            keccak256(toHex("base")),
+            namehash("disputable-conviction-voting.open.aragonpm.eth"),
+            newAppImplementation,
+          ]),
+        ];
+        expect(upgradeActions).to.eql(expectedUpgradeActions);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "should fail when upgrading a non-existent app",
+      script: `upgrade transactions.open\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "upgrade")!;
+        return new CommandError(
+          c,
+          `transactions.open.aragonpm.eth not installed on current DAO.`,
+        );
+      },
+    },
+    {
+      name: "should fail when providing an invalid second parameter",
+      script: `upgrade disputable-conviction-voting.open 1e18\n)`,
+      error: (interpreter) => {
+        const c = findAragonOSCommandNode(interpreter.ast, "upgrade")!;
+        return new CommandError(
+          c,
+          "second upgrade parameter must be a semantic version, an address, or nothing",
+        );
+      },
+    },
+  ],
+});
+
+describeCommand("upgrade", {
+  describeName: "AragonOS > commands > upgrade > special cases",
+  module: "aragonos",
+  errorCases: [
+    {
+      name: 'should fail when executing it outside a "connect" command',
+      script: `load aragonos\naragonos:upgrade voting`,
+      error: (interpreter) => {
+        const c = interpreter.ast.body[1];
+        return new CommandError(c, 'must be used within a "connect" command');
+      },
+    },
+  ],
+});

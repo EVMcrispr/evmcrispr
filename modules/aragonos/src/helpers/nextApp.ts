@@ -1,0 +1,40 @@
+import {
+  computeNextContractAddress,
+  defineHelper,
+  ErrorException,
+} from "@evmcrispr/sdk";
+import type AragonOS from "..";
+import { getKernel } from "../dao";
+
+export default defineHelper<AragonOS>({
+  name: "nextApp",
+  description:
+    "Predict the address of the next app to be installed in the DAO.",
+  returnType: "address",
+  args: [
+    {
+      name: "offset",
+      type: "number",
+      optional: true,
+      description: "Nonce offset from next install",
+    },
+  ],
+  async run(module, { offset = 0 }) {
+    const dao = module.currentDAO;
+    if (!dao) {
+      throw new ErrorException(
+        '@nextApp must be used within a "connect" command',
+      );
+    }
+
+    const kernel = getKernel(dao);
+    const internalIndex = (await module.getNonce(kernel.address)) ?? 0;
+    const client = await module.getClient();
+
+    return computeNextContractAddress(
+      kernel.address,
+      internalIndex + offset,
+      (addr) => client.getTransactionCount({ address: addr }),
+    );
+  },
+});

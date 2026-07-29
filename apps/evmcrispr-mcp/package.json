@@ -1,0 +1,27 @@
+{
+  "name": "evmcrispr-mcp",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "evmcrispr": "*",
+    "@evmcrispr/core": "*",
+    "@evmcrispr/modules": "*",
+    "@evmcrispr/sdk": "*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/node": "^24.13.2"
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "evmcrispr-build --bundle src/index.ts",
+    "start": "bun src/index.ts",
+    "type-check": "tsgo --noEmit",
+    "lint": "biome check src",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

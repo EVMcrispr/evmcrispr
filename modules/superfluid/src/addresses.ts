@@ -1,0 +1,151 @@
+import type { Address } from "viem";
+
+// All addresses below come from @superfluid-finance/metadata v1.6.3
+// (networks.json, the protocol's canonical deployment registry), extracted
+// 2026-07-13. Only stable anchors are pinned: the forwarders are the
+// official integration surface and the schedulers/auto-wrap are singletons
+// per chain. SuperToken addresses are resolved through the Superfluid
+// tokenlist at runtime instead of being pinned here.
+
+/** CFAv1Forwarder — same address on every network except avalanche-fuji. */
+const DEFAULT_CFA_FORWARDER: Address =
+  "0xcfA132E353cB4E398080B9700609bb008eceB125";
+
+const CFA_FORWARDER_OVERRIDES: Record<number, Address> = {
+  43113: "0x2CDd45c5182602a36d391F7F16DD9f8386C3bD8D", // avalanche-fuji
+};
+
+export function cfaForwarder(chainId: number): Address {
+  return CFA_FORWARDER_OVERRIDES[chainId] ?? DEFAULT_CFA_FORWARDER;
+}
+
+/** GDAv1Forwarder — same address on every network, no exceptions. */
+export const GDA_FORWARDER: Address =
+  "0x6DA13Bde224A05a288748d857b9e7DDEffd1dE08";
+
+/** Chains where the core protocol (host + both forwarders) is live. */
+export const SUPERFLUID_HOST: Record<number, Address> = {
+  1: "0x4E583d9390082B65Bef884b629DFA426114CED6d",
+  10: "0x567c4B141ED61923967cA25Ef4906C8781069a10",
+  56: "0xd1e2cFb6441680002Eb7A44223160aB9B67d7E6E",
+  100: "0x2dFe937cD98Ab92e59cF3139138f18c823a4efE7",
+  137: "0x3E14dC1b13c488a8d5D310918780c983bD5982E7",
+  8453: "0x4C073B3baB6d8826b8C5b229f3cfdC1eC6E47E74",
+  42161: "0xCf8Acb4eF033efF16E8080aed4c7D5B9285D2192",
+  42220: "0xA4Ff07cF81C02CFD356184879D953970cA957585",
+  43114: "0x60377C7016E4cdB03C87EF474896C11cB560752C",
+  534352: "0x0F86a21F6216c061B222c224e315d9FC34520bb7",
+  // Testnets
+  11155111: "0x109412E3C84f0539b43d39dB691B08c90f58dC7c",
+  11155420: "0xd399e2Fb5f4cf3722a11F65b88FAB6B2B8621005",
+  84532: "0x109412E3C84f0539b43d39dB691B08c90f58dC7c",
+  43113: "0x85Fe79b998509B77BF10A8BD4001D58475D29386",
+  534351: "0x42b05a6016B9eED232E13fd56a8F0725693DBF8e",
+};
+
+/** GDAv1 agreement core — the CREATE deployer of SuperfluidPool proxies;
+ *  used to predict the address `create-pool` binds to its variable. */
+export const GDA_AGREEMENT: Record<number, Address> = {
+  1: "0xAAdBB3Eee3Bd080f5353d86DdF1916aCA3fAC842",
+  10: "0x68Ae17fa7a31b86F306c383277552fd4813b0d35",
+  56: "0x3bbFA4C406719424C7f66CD97A8Fe27Af383d3e2",
+  100: "0xd7992D358A20478c82dDEd98B3D8A9da46e99b82",
+  137: "0x961dd5A052741B49B6CBf6759591f9D8576fCFb0",
+  8453: "0xfE6c87BE05feDB2059d2EC41bA0A09826C9FD7aa",
+  42161: "0x1e299701792a2aF01408B122419d65Fd2dF0Ba02",
+  42220: "0x308b7405272d11494716e30C6E972DbF6fb89555",
+  43114: "0xA7b197cD5b0cEF6d62c4A0a851E3581f5E62e4D2",
+  534352: "0x97a9f293d7eD13f3fbD499cE684Ed4F103295a28",
+  // Testnets
+  11155111: "0x9823364056BcA85Dc3c4a3b96801314D082C8Eb9",
+  11155420: "0xd453d38A001B47271488886532f1CCeAbf0c7eF3",
+  84532: "0x53F4f44C813Dc380182d0b2b67fe5832A12B97f8",
+  43113: "0x51f571D934C59185f13d17301a36c07A2268B814",
+  534351: "0x93fA9B627eE016990Fe5e654F923aaE8a480a75b",
+};
+
+/** The chain's native-asset SuperToken (ETHx, xDAIx, …), from metadata's
+ *  nativeTokenWrapper. Used by wrap/unwrap for payable upgradeByETH. */
+export const NATIVE_SUPERTOKEN: Record<number, Address> = {
+  1: "0xC22BeA0Be9872d8B7B3933CEc70Ece4D53A900da",
+  10: "0x4ac8bD1bDaE47beeF2D1c6Aa62229509b962Aa0d",
+  56: "0x529A4116F160c833c61311569D6B33dFF41fD657",
+  100: "0x59988e47A3503AaFaA0368b9deF095c818Fdca01",
+  137: "0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3",
+  8453: "0x46fd5cfB4c12D87acD3a13e92BAa53240C661D93",
+  42161: "0xe6C8d111337D0052b9D88BF5d7D55B7f8385ACd3",
+  42220: "0x671425Ae1f272Bc6F79beC3ed5C4b00e9c628240",
+  43114: "0xBE916845D8678b5d2F7aD79525A62D7c08ABba7e",
+  534352: "0x483C1716b6133cdA01237ebBF19c5a92898204B7",
+  // Testnets
+  11155111: "0x30a6933Ca9230361972E413a15dC8114c952414e",
+  11155420: "0x0043d7c85C8b96a49A72A92C0B48CdC4720437d7",
+  84532: "0x143ea239159155B408e71CDbE836e8CFD6766732",
+  43113: "0xfFD0f6d73ee52c68BF1b01C8AfA2529C97ca17F3",
+  534351: "0x58f0A7c6c143074f5D824c2f27a85f6dA311A6FB",
+};
+
+// Peripherals are NOT deployed everywhere (no celo/scroll/degen and few
+// testnets) — commands gate on membership in these maps.
+
+/** FlowScheduler singleton per chain. */
+export const FLOW_SCHEDULER: Record<number, Address> = {
+  1: "0xAA0cD305eD020137E302CeCede7b18c0A05aCCDA",
+  10: "0x55c8fc400833eEa791087cF343Ff2409A39DeBcC",
+  56: "0x2f9e2A2A59405682d4F86779275CF5525AD7eC2B",
+  100: "0x9cC7fc484fF588926149577e9330fA5b2cA74336",
+  137: "0x55F7758dd99d5e185f4CC08d4Ad95B71f598264D",
+  8453: "0xC72CEd15204d02183c83fEbb918b183E400811Ee",
+  42161: "0x3fA8B653F9abf91428800C0ba0F8D145a71F97A1",
+  43114: "0xF7AfF590E9DE493D7ACb421Fca7f1E35C1ad4Ce5",
+  11155420: "0x73B1Ce21d03ad389C2A291B1d1dc4DAFE7B5Dc68",
+};
+
+/** VestingScheduler V3 (the current generation — V1/V2 are not targeted). */
+export const VESTING_SCHEDULER_V3: Record<number, Address> = {
+  1: "0xbeEDf563D41dcb3e1b7e0B0f7a86685Fd73Ce84C",
+  10: "0x5aB84e4B3a5F418c95B77DbdecFAF18D0Fd3b3E4",
+  56: "0xa032265Ee9dE740D36Af6eb90cf18775577B1Ef3",
+  100: "0x625F04c9B91ECdfbeb7021271749212388F12c11",
+  137: "0x488913833474bbD9B11f844FdC2f0897FAc0Ca43",
+  8453: "0x6Bf35A170056eDf9aEba159dce4a640cfCef9312",
+  42161: "0xc3069bDE869912E3d9B965F35D7764Fc92BccE67",
+  43114: "0xB84C98d9B51D0e32114C60C500e17eA79dfd0dAf",
+  11155111: "0x638a8ABF60118e018c80a0eC878057E8C53E0fd1",
+  11155420: "0x4F4BC2ca9A7CA26AfcFabc6A2A381c104927D72C",
+  84532: "0x2D0B7a30bFdED086571D6525762a809ee1049c98",
+};
+
+/** Auto-Wrap Manager (schedule registry; executeWrap lives here). */
+export const AUTOWRAP_MANAGER: Record<number, Address> = {
+  1: "0x30aE282CF477E2eF28B14d0125aCEAd57Fe1d7a1",
+  10: "0x1fA76f2Cd0C3fe6c399A80111408d9C42C0CAC23",
+  56: "0x2AcdD61ac1EFFe1535109449c31889bdE8d7f325",
+  100: "0x8082e58681350876aFe8f52d3Bf8672034A03Db0",
+  137: "0x2581c27E7f6D6AF452E63fCe884EDE3EDd716b32",
+  8453: "0x041D4bF21367e9B92016B28Fb5A2f697c1befd01",
+  42161: "0xf01825eAFAe5CD1Dab5593EFAF218efC8968D272",
+  43114: "0x8082e58681350876aFe8f52d3Bf8672034A03Db0",
+  43113: "0x30aE282CF477E2eF28B14d0125aCEAd57Fe1d7a1",
+  11155420: "0xe567b32C10B0dB72d9490eB1B9A409C5ADed192C",
+};
+
+/** Auto-Wrap WrapStrategy — the contract that pulls the underlying, so the
+ *  ERC20 allowance must be granted to it (NOT the Manager). */
+export const AUTOWRAP_STRATEGY: Record<number, Address> = {
+  1: "0x1D65c6d3AD39d454Ea8F682c49aE7744706eA96d",
+  10: "0x0Cf060a501c0040e9CCC708eFE94079F501c6Bb4",
+  56: "0x9e308cb079ae130790F604b1030cDf386670f199",
+  100: "0x51FBAbD31A615E14b1bC12E9d887f60997264a4E",
+  137: "0xb4afa36BAd8c76976Dc77a21c9Ad711EF720eE4b",
+  8453: "0xD790CDE7A1B3194d8Ce3CF21544F03a770336E23",
+  42161: "0x342076aA957B0ec8bC1d3893af719b288eA31e61",
+  43114: "0x51FBAbD31A615E14b1bC12E9d887f60997264a4E",
+  43113: "0x1D65c6d3AD39d454Ea8F682c49aE7744706eA96d",
+  11155420: "0xf232f1fd34CE12e24F4391865c2D6E374D2C34d9",
+};
+
+/** Superfluid extended token list (all listed SuperTokens with their
+ *  underlying token in extensions.superTokenInfo). */
+export const SUPERFLUID_TOKENLIST_URL =
+  "https://tokenlist.superfluid.org/superfluid.extended.tokenlist.json";

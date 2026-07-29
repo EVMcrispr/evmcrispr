@@ -1,0 +1,35 @@
+import type { BytesLiteralNode, EnclosingNodeParser } from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import { regex, sequenceOf } from "arcsecond";
+import {
+  createNodeLocation,
+  enclosingLookaheadParser,
+  locate,
+} from "../../utils";
+
+export const HEXADECIMAL_PARSER_ERROR = "HexadecimalParserError";
+
+export const hexadecimalParser: EnclosingNodeParser<BytesLiteralNode> = (
+  enclosingParsers = [],
+) =>
+  locate<BytesLiteralNode>(
+    sequenceOf([
+      regex(/^0x[0-9a-fA-F]+/),
+      enclosingLookaheadParser(enclosingParsers),
+    ]).errorMap((err) =>
+      buildParserError(
+        err,
+        HEXADECIMAL_PARSER_ERROR,
+        'Expected a hex value: "0x" followed by hex characters (e.g. 0xdeadbeef)',
+      ),
+    ),
+    ({ data, index, result: [initialContext, [value]] }) => ({
+      type: NodeType.BytesLiteral,
+      value: value as BytesLiteralNode["value"],
+      loc: createNodeLocation(initialContext, {
+        line: data.line,
+        index,
+        offset: data.offset,
+      }),
+    }),
+  );

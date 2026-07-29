@@ -1,0 +1,42 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CLOSE_HATCH_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "name": "_hatch",
+        "type": "address"
+      },
+      {
+        "name": "_maxRate",
+        "type": "uint256"
+      },
+      {
+        "name": "_expectedRaise",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "name": "@evmcrispr/module-aragonos",
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "description": "Aragon DAO operations: connect to DAOs, manage permissions, install and upgrade apps.",
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./utils": {
+      "bun": "./src/utils/index.ts",
+      "types": "./src/utils/index.ts",
+      "import": "./src/utils/index.ts"
+    },
+    "./utils/*": {
+      "bun": "./src/utils/*.ts",
+      "types": "./src/utils/*.ts",
+      "import": "./src/utils/*.ts"
+    },
+    "./types": {
+      "bun": "./src/types/index.ts",
+      "types": "./src/types/index.ts",
+      "import": "./src/types/index.ts"
+    },
+    "./subgraph": {
+      "bun": "./src/subgraph.ts",
+      "types": "./src/subgraph.ts",
+      "import": "./src/subgraph.ts"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@evmcrispr/module-std": "workspace:*",
+    "@evmcrispr/test-utils": "workspace:*",
+    "is-ipfs": "^8.0.4"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

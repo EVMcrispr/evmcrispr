@@ -1,0 +1,728 @@
+================================================================================
+COVERAGE REPORT: Files and Functions with 0% Coverage
+================================================================================
+
+SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+Total files analyzed: 137
+Completely untested files (0% function coverage): 39
+Partially tested files (some functions with 0 hits): 25
+Fully tested files (all functions have hits): 71
+
+================================================================================
+1. COMPLETELY UNTESTED FILES (ALL functions have 0 hits)
+================================================================================
+
+File: modules/aragonos/src/AragonDAO.ts
+  Functions found: 16
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 202
+  Lines hit: 16
+  Zero-hit lines: 186
+  Note: All 16 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/Connector.ts
+  Functions found: 5
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 99
+  Lines hit: 6
+  Zero-hit lines: 93
+  Note: All 5 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/_generated.ts
+  Functions found: 12
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 16
+  Lines hit: 16
+  Zero-hit lines: 0
+  Note: All 12 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/argTypes.ts
+  Functions found: 8
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 118
+  Lines hit: 24
+  Zero-hit lines: 94
+  Note: All 8 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/helpers/aragonEns.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 33
+  Lines hit: 11
+  Zero-hit lines: 22
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/apps.ts
+  Functions found: 5
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 88
+  Lines hit: 8
+  Zero-hit lines: 80
+  Note: All 5 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/commands.ts
+  Functions found: 7
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 151
+  Lines hit: 13
+  Zero-hit lines: 138
+  Note: All 7 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/completion.ts
+  Functions found: 7
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 88
+  Lines hit: 12
+  Zero-hit lines: 76
+  Note: All 7 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/evmscripts.ts
+  Functions found: 4
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 51
+  Lines hit: 5
+  Zero-hit lines: 46
+  Note: All 4 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/forwarders.ts
+  Functions found: 5
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 141
+  Lines hit: 20
+  Zero-hit lines: 121
+  Note: All 5 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/identifiers.ts
+  Functions found: 11
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 110
+  Lines hit: 20
+  Zero-hit lines: 90
+  Note: All 11 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/interfaces.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 21
+  Lines hit: 19
+  Zero-hit lines: 2
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/ipfs.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 7
+  Lines hit: 2
+  Zero-hit lines: 5
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/nonces.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 6
+  Lines hit: 0
+  Zero-hit lines: 6
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/normalizers.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 13
+  Lines hit: 3
+  Zero-hit lines: 10
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/parsers.ts
+  Functions found: 3
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 51
+  Lines hit: 5
+  Zero-hit lines: 46
+  Note: All 3 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/queries.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 61
+  Lines hit: 2
+  Zero-hit lines: 59
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/resolvers.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 13
+  Lines hit: 2
+  Zero-hit lines: 11
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/ens/src/index.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 3
+  Lines hit: 3
+  Zero-hit lines: 0
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/giveth/src/index.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 3
+  Lines hit: 3
+  Zero-hit lines: 0
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/std/src/argTypes.ts
+  Functions found: 3
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 54
+  Lines hit: 8
+  Zero-hit lines: 46
+  Note: All 3 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/std/src/helpers/ipfs.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 60
+  Lines hit: 13
+  Zero-hit lines: 47
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: modules/std/src/index.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 10
+  Lines hit: 8
+  Zero-hit lines: 2
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/core/src/documentSymbols.ts
+  Functions found: 6
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 76
+  Lines hit: 3
+  Zero-hit lines: 73
+  Note: All 6 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/core/src/hover.ts
+  Functions found: 8
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 238
+  Lines hit: 5
+  Zero-hit lines: 233
+  Note: All 8 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/core/src/signature.ts
+  Functions found: 8
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 222
+  Lines hit: 4
+  Zero-hit lines: 218
+  Note: All 8 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/IPFSResolver.ts
+  Functions found: 4
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 52
+  Lines hit: 5
+  Zero-hit lines: 47
+  Note: All 4 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/types/actions.ts
+  Functions found: 5
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 11
+  Lines hit: 4
+  Zero-hit lines: 7
+  Note: All 5 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/abis.ts
+  Functions found: 3
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 32
+  Lines hit: 6
+  Zero-hit lines: 26
+  Note: All 3 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/addresses.ts
+  Functions found: 8
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 16
+  Lines hit: 9
+  Zero-hit lines: 7
+  Note: All 8 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/ast.ts
+  Functions found: 10
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 128
+  Lines hit: 22
+  Zero-hit lines: 106
+  Note: All 10 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/contracts.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 8
+  Lines hit: 1
+  Zero-hit lines: 7
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/defineHelper.ts
+  Functions found: 1
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 83
+  Lines hit: 4
+  Zero-hit lines: 79
+  Note: All 1 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/encoders.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 107
+  Lines hit: 4
+  Zero-hit lines: 103
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/ens.ts
+  Functions found: 3
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 72
+  Lines hit: 4
+  Zero-hit lines: 68
+  Note: All 3 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/events.ts
+  Functions found: 4
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 212
+  Lines hit: 5
+  Zero-hit lines: 207
+  Note: All 4 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/formatters.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 12
+  Lines hit: 2
+  Zero-hit lines: 10
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/proxies.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 97
+  Lines hit: 9
+  Zero-hit lines: 88
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/requests.ts
+  Functions found: 2
+  Functions hit: 0 (ALL functions are untested)
+  Lines found: 29
+  Lines hit: 2
+  Zero-hit lines: 27
+  Note: All 2 functions have 0 hits
+  Note: Function names not available in lcov data (functions never executed)
+
+================================================================================
+2. PARTIALLY TESTED FILES (SOME functions have 0 hits)
+================================================================================
+
+File: modules/aragonos/src/commands/grant.ts
+  Functions found: 6
+  Functions hit: 5
+  Functions with 0 hits: 1
+  Lines found: 109
+  Lines hit: 102
+  Zero-hit lines: 7
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/commands/revoke.ts
+  Functions found: 14
+  Functions hit: 11
+  Functions with 0 hits: 3
+  Lines found: 139
+  Lines hit: 105
+  Zero-hit lines: 34
+  Note: 3 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/index.ts
+  Functions found: 9
+  Functions hit: 1
+  Functions with 0 hits: 8
+  Lines found: 55
+  Lines hit: 10
+  Zero-hit lines: 45
+  Note: 8 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/aragonos/src/utils/acl.ts
+  Functions found: 27
+  Functions hit: 3
+  Functions with 0 hits: 24
+  Lines found: 154
+  Lines hit: 66
+  Zero-hit lines: 88
+  Note: 24 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/ens/src/_generated.ts
+  Functions found: 2
+  Functions hit: 1
+  Functions with 0 hits: 1
+  Lines found: 6
+  Lines hit: 6
+  Zero-hit lines: 0
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/giveth/src/helpers/projectAddr.ts
+  Functions found: 6
+  Functions hit: 4
+  Functions with 0 hits: 2
+  Lines found: 41
+  Lines hit: 35
+  Zero-hit lines: 6
+  Note: 2 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/sim/src/commands/fork.ts
+  Functions found: 11
+  Functions hit: 6
+  Functions with 0 hits: 5
+  Lines found: 232
+  Lines hit: 99
+  Zero-hit lines: 133
+  Note: 5 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/sim/src/index.ts
+  Functions found: 3
+  Functions hit: 2
+  Functions with 0 hits: 1
+  Lines found: 15
+  Lines hit: 15
+  Zero-hit lines: 0
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/std/src/_generated.ts
+  Functions found: 22
+  Functions hit: 1
+  Functions with 0 hits: 21
+  Lines found: 26
+  Lines hit: 26
+  Zero-hit lines: 0
+  Note: 21 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: modules/std/src/commands/load.ts
+  Functions found: 4
+  Functions hit: 2
+  Functions with 0 hits: 2
+  Lines found: 26
+  Lines hit: 20
+  Zero-hit lines: 6
+  Note: 2 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/EVMcrispr.ts
+  Functions found: 59
+  Functions hit: 22
+  Functions with 0 hits: 37
+  Lines found: 680
+  Lines hit: 296
+  Zero-hit lines: 384
+  Note: 37 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/completions.ts
+  Functions found: 16
+  Functions hit: 1
+  Functions with 0 hits: 15
+  Lines found: 820
+  Lines hit: 21
+  Zero-hit lines: 799
+  Note: 15 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/parsers/call.ts
+  Functions found: 5
+  Functions hit: 3
+  Functions with 0 hits: 2
+  Lines found: 72
+  Lines hit: 38
+  Zero-hit lines: 34
+  Note: 2 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/parsers/capture.ts
+  Functions found: 12
+  Functions hit: 10
+  Functions with 0 hits: 2
+  Lines found: 214
+  Lines hit: 202
+  Zero-hit lines: 12
+  Note: 2 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/parsers/helper.ts
+  Functions found: 5
+  Functions hit: 3
+  Functions with 0 hits: 2
+  Lines found: 40
+  Lines hit: 38
+  Zero-hit lines: 2
+  Note: 2 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/core/src/parsers/primaries/literals/number.ts
+  Functions found: 6
+  Functions hit: 5
+  Functions with 0 hits: 1
+  Lines found: 67
+  Lines hit: 63
+  Zero-hit lines: 4
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/BindingsManager.ts
+  Functions found: 22
+  Functions hit: 9
+  Functions with 0 hits: 13
+  Lines found: 156
+  Lines hit: 87
+  Zero-hit lines: 69
+  Note: 13 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/Module.ts
+  Functions found: 17
+  Functions hit: 4
+  Functions with 0 hits: 13
+  Lines found: 110
+  Lines hit: 47
+  Zero-hit lines: 63
+  Note: 13 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/errors.ts
+  Functions found: 11
+  Functions hit: 4
+  Functions with 0 hits: 7
+  Lines found: 94
+  Lines hit: 57
+  Zero-hit lines: 37
+  Note: 7 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/types/modules.ts
+  Functions found: 2
+  Functions hit: 1
+  Functions with 0 hits: 1
+  Lines found: 13
+  Lines hit: 6
+  Zero-hit lines: 7
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/args.ts
+  Functions found: 7
+  Functions hit: 3
+  Functions with 0 hits: 4
+  Lines found: 76
+  Lines hit: 26
+  Zero-hit lines: 50
+  Note: 4 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/defineCommand.ts
+  Functions found: 8
+  Functions hit: 7
+  Functions with 0 hits: 1
+  Lines found: 111
+  Lines hit: 74
+  Zero-hit lines: 37
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/defineModule.ts
+  Functions found: 8
+  Functions hit: 7
+  Functions with 0 hits: 1
+  Lines found: 89
+  Lines hit: 89
+  Zero-hit lines: 0
+  Note: 1 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/schema.ts
+  Functions found: 5
+  Functions hit: 2
+  Functions with 0 hits: 3
+  Lines found: 130
+  Lines hit: 35
+  Zero-hit lines: 95
+  Note: 3 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+File: packages/sdk/src/utils/web3.ts
+  Functions found: 6
+  Functions hit: 1
+  Functions with 0 hits: 5
+  Lines found: 88
+  Lines hit: 11
+  Zero-hit lines: 77
+  Note: 5 function(s) have 0 hits, but function names
+        are not available in lcov data (functions never executed)
+
+================================================================================
+3. PATTERN ANALYSIS: Untested Files by Directory
+================================================================================
+
+Directory: modules/aragonos/src/utils
+  Total files: 17
+  Completely untested: 13
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/aragonos/src/utils/apps.ts
+    [UNTESTED] modules/aragonos/src/utils/commands.ts
+    [UNTESTED] modules/aragonos/src/utils/completion.ts
+    [UNTESTED] modules/aragonos/src/utils/evmscripts.ts
+    [UNTESTED] modules/aragonos/src/utils/forwarders.ts
+    [UNTESTED] modules/aragonos/src/utils/identifiers.ts
+    [UNTESTED] modules/aragonos/src/utils/interfaces.ts
+    [UNTESTED] modules/aragonos/src/utils/ipfs.ts
+    [UNTESTED] modules/aragonos/src/utils/nonces.ts
+    [UNTESTED] modules/aragonos/src/utils/normalizers.ts
+    [UNTESTED] modules/aragonos/src/utils/parsers.ts
+    [UNTESTED] modules/aragonos/src/utils/queries.ts
+    [UNTESTED] modules/aragonos/src/utils/resolvers.ts
+
+Directory: packages/sdk/src/utils
+  Total files: 19
+  Completely untested: 11
+  Partially tested: 0
+  Files:
+    [UNTESTED] packages/sdk/src/utils/abis.ts
+    [UNTESTED] packages/sdk/src/utils/addresses.ts
+    [UNTESTED] packages/sdk/src/utils/ast.ts
+    [UNTESTED] packages/sdk/src/utils/contracts.ts
+    [UNTESTED] packages/sdk/src/utils/defineHelper.ts
+    [UNTESTED] packages/sdk/src/utils/encoders.ts
+    [UNTESTED] packages/sdk/src/utils/ens.ts
+    [UNTESTED] packages/sdk/src/utils/events.ts
+    [UNTESTED] packages/sdk/src/utils/formatters.ts
+    [UNTESTED] packages/sdk/src/utils/proxies.ts
+    [UNTESTED] packages/sdk/src/utils/requests.ts
+
+Directory: modules/aragonos/src
+  Total files: 5
+  Completely untested: 4
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/aragonos/src/AragonDAO.ts
+    [UNTESTED] modules/aragonos/src/Connector.ts
+    [UNTESTED] modules/aragonos/src/_generated.ts
+    [UNTESTED] modules/aragonos/src/argTypes.ts
+
+Directory: packages/core/src
+  Total files: 7
+  Completely untested: 3
+  Partially tested: 0
+  Files:
+    [UNTESTED] packages/core/src/documentSymbols.ts
+    [UNTESTED] packages/core/src/hover.ts
+    [UNTESTED] packages/core/src/signature.ts
+
+Directory: modules/std/src
+  Total files: 3
+  Completely untested: 2
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/std/src/argTypes.ts
+    [UNTESTED] modules/std/src/index.ts
+
+Directory: modules/aragonos/src/helpers
+  Total files: 3
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/aragonos/src/helpers/aragonEns.ts
+
+Directory: modules/giveth/src
+  Total files: 3
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/giveth/src/index.ts
+
+Directory: packages/sdk/src
+  Total files: 5
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] packages/sdk/src/IPFSResolver.ts
+
+Directory: packages/sdk/src/types
+  Total files: 5
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] packages/sdk/src/types/actions.ts
+
+Directory: modules/std/src/helpers
+  Total files: 12
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/std/src/helpers/ipfs.ts
+
+Directory: modules/ens/src
+  Total files: 2
+  Completely untested: 1
+  Partially tested: 0
+  Files:
+    [UNTESTED] modules/ens/src/index.ts

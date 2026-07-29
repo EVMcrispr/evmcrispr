@@ -1,0 +1,274 @@
+import "../../setup";
+import { beforeAll, describe, it } from "bun:test";
+import {
+  type Action,
+  BindingsSpace,
+  encodeAction,
+  isBatchedAction,
+  isTransactionAction,
+  Num,
+} from "@evmcrispr/sdk";
+import {
+  expect,
+  getPublicClient,
+  getTransports,
+  getWalletClients,
+} from "@evmcrispr/test-utils";
+import { describeCommand, evml, Interpreter } from "@evmcrispr/test-utils/evml";
+import type { PublicClient, WalletClient } from "viem";
+import { toHex } from "viem";
+import { gnosis } from "viem/chains";
+
+const target = "0x44fA8E6f47987339850636F88629646662444217"; // DAI
+const params = ["0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6", "1200e18"];
+const resolvedParams = [
+  "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6",
+  Num.fromBigInt(1200000000000000000000n),
+];
+const fnSig = "approve(address,uint256)";
+
+describeCommand("exec", {
+  describeName:
+    "Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]",
+  cases: [
+    {
+      name: "should return a correct exec action",
+      script: `exec ${target} ${fnSig} ${params.join(" ")}`,
+      expectedActions: [encodeAction(target, fnSig, resolvedParams)],
+    },
+    {
+      name: "should return a correct exec action with value",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --value 1e18`,
+      expectedActions: [
+        encodeAction(target, fnSig, resolvedParams, {
+          value: 1000000000000000000n,
+        }),
+      ],
+    },
+    {
+      name: "should return a correct exec action with from address",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --from ${target}`,
+      expectedActions: [
+        encodeAction(target, fnSig, resolvedParams, { from: target }),
+      ],
+    },
+    {
+      name: "should return a correct exec action with value and from address",
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --value 1e18 --from ${target}`,
+      expectedActions: [
+        encodeAction(target, fnSig, resolvedParams, {
+          value: 1000000000000000000n,
+          from: target,
+        }),
+      ],
+    },
+    {
+      name: "should handle explicit bytes conversion for string parameters via @bytes",
+      script: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 addBatches(bytes32[],bytes) [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)`,
+      expectedActions: [
+        encodeAction(
+          "0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7",
+          "addBatches(bytes32[],bytes)",
+          [
+            [
+              "0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667",
+            ],
+            toHex("QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2"),
+          ],
+        ),
+      ],
+    },
+    {
+      name: "should return exec action with --gas option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --gas 100000`,
+      expectedActions: [
+        { ...encodeAction(target, fnSig, resolvedParams), gas: 100000n },
+      ],
+    },
+    {
+      name: "should return exec action with --nonce option",
+      script: `exec ${target} ${fnSig} ${params.join(" ")} --nonce 5`,
+      expectedActions: [
+        { ...encodeAction(target, fnSig, resolvedParams), nonce: 5 },
+      ],
+    },
+    {
+      name: "should return exec action with --max-fee-per-gas option",
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --max-fee-per-gas 20e9`,
+      expectedActions: [
+        {
+          ...encodeAction(target, fnSig, resolvedParams),
+          maxFeePerGas: 20000000000n,
+        },
+      ],
+    },
+    {
+      name: "should return exec action with --max-priority-fee-per-gas option",
+      script: `exec ${target} ${fnSig} ${params.join(
+        " ",
+      )} --max-priority-fee-per-gas 2e9`,
+      expectedActions: [
+        {
+          ...encodeAction(target, fnSig, resolvedParams),
+          maxPriorityFeePerGas: 2000000000n,
+        },
+      ],
+    },
+  ],
+  docCases: [
+    {
+      description: "Approve a token",
+      code: `exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18`,
+    },
+    {
+      description: "Send ETH with the call",
+      code: `exec 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d "deposit()" --value 1e18`,
+    },
+    {
+      description: "Specify sender",
+      code: `exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18 --from 0x44fA8E6f47987339850636F88629646662444217`,
+    },
+    {
+      description: "Capture events from the transaction",
+      code: `load sim\nset $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d\nsim:fork --using anvil (\n  sim:set-balance @me 1e18\n  exec $wxdai "deposit()" --value 0.001e18 -> Deposit(address indexed, uint) [_ $amount]\n  exec $wxdai "withdraw(uint)" $amount\n)`,
+    },
+    {
+      description: "Complex parameter types",
+      code: `exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0x02732126661d25c59fd1cc2308ac883b422597fc3103f285f382c95d51cbe667] @bytes(QmTik4Zd7T5ALWv5tdMG8m2cLiHmqtTor5QmnCSGLUjLU2)`,
+    },
+  ],
+  errorCases: [
+    {
+      name: "should fail when receiving an invalid target address",
+      script: `exec false ${fnSig} 1e18`,
+      error: `<contractAddress> must be a valid address, got false`,
+    },
+    {
+      name: "should fail when providing an invalid signature",
+      script: `exec ${target} invalid(uint256,) 1e18`,
+      error: `<signature> must be a valid function signature, got invalid(uint256,)`,
+    },
+    {
+      name: "should fail when providing invalid call params",
+      script: `exec ${target} ${fnSig} false 1e18`,
+      error: "<params>[0] must be a valid address, got false",
+    },
+    {
+      name: "should fail when providing invalid value parameter",
+      script: `exec ${target} ${fnSig} @me 1e18 --value tata`,
+      error: "--value must be a number, got tata",
+    },
+    {
+      name: "should fail when providing invalid from address",
+      script: `exec ${target} ${fnSig} @me 1e18 --from tata`,
+      error: "--from must be a valid address, got tata",
+    },
+    {
+      name: "should fail when receiving a non-defined target identifier",
+      script: `exec non-defined-address "${fnSig}" 1e18`,
+      error: "non-defined-address",
+    },
+  ],
+});
+
+describe("Std > commands > exec > event capture", () => {
+  let client: PublicClient;
+  let walletClient: WalletClient;
+
+  beforeAll(() => {
+    client = getPublicClient();
+    walletClient = getWalletClients()[0];
+  });
+
+  it("should capture event value and use it in a subsequent transaction", async () => {
+    const script = `
+      set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
+      exec $wxdai deposit() --value 0.001e18 -> Deposit(address indexed,uint) [_ $amount]
+      exec $wxdai withdraw(uint) $amount
+    `;
+
+    const account = walletClient.account!;
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
+    evm.switchChainId(gnosis.id);
+
+    const actionCallback = async (action: Action) => {
+      if (isTransactionAction(action)) {
+        const hash = await walletClient.sendTransaction({
+          account: walletClient.account!,
+          chain: gnosis,
+          to: action.to,
+          data: action.data,
+          value: action.value,
+          gas: action.gas ?? 200_000n,
+        });
+        return await client.waitForTransactionReceipt({ hash });
+      }
+      throw new Error("Unexpected action type");
+    };
+
+    await evm.interpret(script, actionCallback);
+
+    const amount = evm.getBinding("$amount", BindingsSpace.USER);
+    expect(amount).to.equal("1000000000000000");
+  });
+
+  it("should capture event value from a batch command", async () => {
+    const script = `
+set $wxdai 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d
+batch (
+  exec $wxdai deposit() --value 0.001e18
+  exec $wxdai withdraw(uint) 0.001e18
+) -> Deposit(address indexed,uint) [_ $amount]
+    `;
+
+    const account = walletClient.account!;
+    const evm = new Interpreter(evml.registry, {
+      account: account.address,
+      transports: getTransports(),
+    });
+    evm.switchChainId(gnosis.id);
+
+    const actionCallback = async (action: Action) => {
+      if (isTransactionAction(action)) {
+        const hash = await walletClient.sendTransaction({
+          account: walletClient.account!,
+          chain: gnosis,
+          to: action.to,
+          data: action.data,
+          value: action.value,
+          gas: action.gas ?? 200_000n,
+        });
+        return await client.waitForTransactionReceipt({ hash });
+      }
+      if (isBatchedAction(action)) {
+        const allLogs: any[] = [];
+        for (const txAction of action.actions) {
+          const hash = await walletClient.sendTransaction({
+            account: walletClient.account!,
+            chain: gnosis,
+            to: txAction.to,
+            data: txAction.data,
+            value: txAction.value,
+            gas: txAction.gas ?? 200_000n,
+          });
+          const receipt = await client.waitForTransactionReceipt({ hash });
+          allLogs.push(...receipt.logs);
+        }
+        return { logs: allLogs };
+      }
+      throw new Error("Unexpected action type");
+    };
+
+    await evm.interpret(script, actionCallback);
+
+    const amount = evm.getBinding("$amount", BindingsSpace.USER);
+    expect(amount).to.equal("1000000000000000");
+  });
+});

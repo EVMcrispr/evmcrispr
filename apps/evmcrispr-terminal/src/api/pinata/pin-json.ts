@@ -1,12 +1,13 @@
-import "isomorphic-fetch";
-
 type Res = {
   IpfsHash: string;
   PinSize: number;
   Timestamp: string;
 };
 
-const pinJSON = async (data: Record<string, any>): Promise<Res> => {
+const pinJSON = async (
+  data: Record<string, any>,
+  metadataName: string,
+): Promise<Res> => {
   const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
   const url = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
 
@@ -18,10 +19,10 @@ const pinJSON = async (data: Record<string, any>): Promise<Res> => {
           cidVersion: 0,
         },
         pinataMetadata: {
-          name: `EVMcrispr - ${data.title}`,
+          name: metadataName,
           keyvalues: {
             type: "evmcripsr/json",
-            version: "0.9",
+            version: "0.11",
           },
         },
         pinataContent: data,
@@ -37,7 +38,7 @@ const pinJSON = async (data: Record<string, any>): Promise<Res> => {
     }
 
     return response.json();
-  } catch (e) {
+  } catch (_e) {
     throw new Error("Bad response from server");
   }
 };

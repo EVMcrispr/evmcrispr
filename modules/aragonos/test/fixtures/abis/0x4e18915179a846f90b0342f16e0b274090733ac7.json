@@ -1,0 +1,132 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "UPDATE_SETTINGS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_stakeToken",
+        "type": "address"
+      },
+      {
+        "name": "_requestToken",
+        "type": "address"
+      },
+      {
+        "name": "_stableToken",
+        "type": "address"
+      },
+      {
+        "name": "_stableTokenOracle",
+        "type": "address"
+      },
+      {
+        "name": "_vault",
+        "type": "address"
+      },
+      {
+        "name": "_decay",
+        "type": "uint256"
+      },
+      {
+        "name": "_maxRatio",
+        "type": "uint256"
+      },
+      {
+        "name": "_weight",
+        "type": "uint256"
+      },
+      {
+        "name": "_minThresholdStakePercentage",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CHALLENGE_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "SET_AGREEMENT_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "PAUSE_CONTRACT_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CREATE_PROPOSALS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CANCEL_PROPOSALS_ROLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

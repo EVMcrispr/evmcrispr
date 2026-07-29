@@ -1,42 +1,41 @@
-import "@fontsource/ubuntu-mono";
+import "@fontsource/jetbrains-mono";
+import "@fontsource/jetbrains-mono/700.css";
+
+import { evml } from "@evmcrispr/core";
+import { EvmcrisprProvider } from "@evmcrispr/editor";
+import { Toaster, Tooltip } from "@repo/ui";
 import {
-  Navigate,
-  Route,
-  RouterProvider,
   createHashRouter,
   createRoutesFromElements,
-} from "react-router-dom";
-import { ChakraProvider, DarkMode, extendTheme } from "@chakra-ui/react";
-
-import theme from "./theme";
+  Navigate,
+  Route,
+} from "react-router";
+import { RouterProvider } from "react-router/dom";
+import { transports } from "./config/wagmi";
+import Terminal from "./pages/Terminal";
 import Wagmi from "./providers/Wagmi";
 
-import Landing from "./pages/Landing";
-import Terminal from "./pages/Terminal";
-import Fonts from "./theme/Fonts";
+const router = createHashRouter(
+  createRoutesFromElements(
+    <>
+      <Route index element={<Terminal />} />
+      <Route path=":scriptId" element={<Terminal />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </>,
+  ),
+);
 
 const App = () => {
-  const router = createHashRouter(
-    createRoutesFromElements(
-      <>
-        <Route index element={<Landing />} />
-        <Route path="terminal" element={<Terminal />}>
-          <Route path=":scriptId" element={<Terminal />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </>,
-    ),
-  );
   return (
-    <div className="App">
-      <ChakraProvider theme={extendTheme(theme)}>
-        <Fonts />
-        <DarkMode>
-          <Wagmi>
+    <div className="App dark evmcrispr-root">
+      <Tooltip.Provider>
+        <Wagmi>
+          <EvmcrisprProvider evml={evml} transports={transports}>
             <RouterProvider router={router} />
-          </Wagmi>
-        </DarkMode>
-      </ChakraProvider>
+          </EvmcrisprProvider>
+        </Wagmi>
+      </Tooltip.Provider>
+      <Toaster />
     </div>
   );
 };

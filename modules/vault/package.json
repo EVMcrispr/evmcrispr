@@ -1,0 +1,42 @@
+{
+  "name": "@evmcrispr/module-vault",
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "experimental": true,
+  "description": "ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault \u2014 sDAI, Morpho (MetaMorpho), Yearn v3 and more. Also supports ERC-7540 asynchronous vaults (request/claim flows, operators) and ERC-7575 multi-asset vaults with external share tokens, such as Centrifuge.",
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@evmcrispr/module-contracts": "workspace:*",
+    "@evmcrispr/test-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

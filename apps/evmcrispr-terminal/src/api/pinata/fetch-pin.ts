@@ -1,13 +1,10 @@
-import "isomorphic-fetch";
-import type { BareScript } from "../../types";
-
 const fetchPin = async (
   pinataUrl: string,
   hashId?: string,
-): Promise<BareScript | undefined> => {
+): Promise<string | undefined> => {
   if (!hashId) return undefined;
 
-  const url = pinataUrl + "/ipfs/" + hashId;
+  const url = `${pinataUrl}/ipfs/${hashId}`;
 
   try {
     const response = await fetch(url);
@@ -16,8 +13,8 @@ const fetchPin = async (
       throw new Error("Bad response from server");
     }
 
-    return response.json();
-  } catch (e) {
+    return response.text();
+  } catch (_e) {
     throw new Error("Bad response from server");
   }
 };

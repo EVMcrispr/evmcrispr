@@ -1,0 +1,54 @@
+import type { PublicClient } from "viem";
+
+import type { BindingsManager } from "../BindingsManager";
+import type { Param } from "../utils/encoders";
+import type { CommandExpressionNode, Node, Position } from "./ast";
+
+export type CompletionItemKind = "command" | "helper" | "variable" | "field";
+
+export type CompletionItem = {
+  label: string;
+  insertText: string;
+  kind: CompletionItemKind;
+  sortPriority?: number;
+  /** For helper items: the declared return type, used for filtering. */
+  returnType?: string | string[];
+  /** When true, insertText uses Monaco snippet syntax (e.g. $0 for cursor). */
+  isSnippet?: boolean;
+  /** Short detail shown inline next to the label (e.g. return type). */
+  detail?: string;
+  /** Longer documentation shown in the details pane (markdown). */
+  documentation?: string;
+};
+
+export interface CompletionContext {
+  argIndex: number;
+  nodeArgs: Node[];
+  bindings: BindingsManager;
+  position: Position;
+  client: PublicClient;
+  /** Chain ID of the current client, precomputed for synchronous lookups. */
+  chainId: number;
+  /** Persistent cache for fetched data (ABIs, DAOs, etc.) */
+  cache: BindingsManager;
+  /** The full command AST node (for accessing opts like --as). */
+  commandNode?: CommandExpressionNode;
+  /** Async node resolver that handles literals, variables, and helper
+   *  expressions (via cache + RPC). Returns undefined on failure. */
+  resolveNode?: (node: Node) => Promise<any>;
+}
+
+export type ArgCompletionFn = (
+  ctx: CompletionContext,
+) => Promise<CompletionItem[]> | CompletionItem[];
+
+export type CompletionOverrides = Record<string, ArgCompletionFn>;
+
+/** Callback that executes a helper with pre-resolved arguments and returns its result. */
+export type HelperResolver = (
+  helper: { module?: string; name: string },
+  resolvedArgs: string[],
+  chainId: number,
+  client: PublicClient,
+  bindings: BindingsManager,
+) => Promise<Param>;

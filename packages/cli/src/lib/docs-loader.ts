@@ -1,0 +1,241 @@
+import { existsSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { EXPERIMENTAL_MODULE_NAMES, MODULE_NAMES } from "@evmcrispr/modules";
+import { isExperimentalEnabled, transformExperimentalMd } from "@evmcrispr/sdk";
+
+// Bundled docs (exists after `prebuild` or in published npm package)
+const BUNDLED_DOCS = resolve(import.meta.dirname, "../../docs");
+// Monorepo root (fallback for local dev without building)
+const MONOREPO_ROOT = resolve(import.meta.dirname, "../../../..");
+
+export const MODULES: string[] = isExperimentalEnabled()
+  ? [...MODULE_NAMES]
+  : MODULE_NAMES.filter((n) => !EXPERIMENTAL_MODULE_NAMES.includes(n));
+
+/** Docs of experimental commands/helpers carry an `experimental: true`
+ *  frontmatter key; hide them unless the env enables experimental. */
+function isHiddenDoc(content: string): boolean {
+  if (isExperimentalEnabled()) return false;
+  const fmEnd = content.indexOf("---", 3);
+  return (
+    content.startsWith("---") &&
+    fmEnd !== -1 &&
+    /^experimental:\s*true$/m.test(content.slice(0, fmEnd))
+  );
+}
+
+let fullDocsCache: string | null = null;
+const moduleDocsCache = new Map<string, string>();
+const commandDocsCache = new Map<string, string>();
+const helperDocsCache = new Map<string, string>();
+
+function cacheKey(module: string, name: string): string {
+  return `${module}/${name}`;
+}
+
+/** Check whether bundled docs are available */
+function hasBundledDocs(): boolean {
+  return existsSync(join(BUNDLED_DOCS, "llms-full.txt"));
+}
+
+// --- Path resolvers ---
+
+function fullDocsPath(): string {
+  if (hasBundledDocs()) return join(BUNDLED_DOCS, "llms-full.txt");
+  return join(MONOREPO_ROOT, "apps/evmcrispr-website/public/llms-full.txt");
+}
+
+function moduleDocsPath(moduleName: string): string {
+  if (hasBundledDocs())
+    return join(BUNDLED_DOCS, "modules", moduleName, "README.md");
+  return join(MONOREPO_ROOT, "modules", moduleName, "README.md");
+}
+
+function commandDocsPath(moduleName: string, commandName: string): string {
+  if (hasBundledDocs())
+    return join(
+      BUNDLED_DOCS,
+      "modules",
+      moduleName,
+      "commands",
+      `${commandName}.md`,
+    );
+  return join(
+    MONOREPO_ROOT,
+    "modules",
+    moduleName,
+    "src/commands",
+    `${commandName}.md`,
+  );
+}
+
+function helperDocsPath(moduleName: string, helperName: string): string {
+  if (hasBundledDocs())
+    return join(
+      BUNDLED_DOCS,
+      "modules",
+      moduleName,
+      "helpers",
+      `${helperName}.md`,
+    );
+  return join(
+    MONOREPO_ROOT,
+    "modules",
+    moduleName,
+    "src/helpers",
+    `${helperName}.md`,
+  );
+}
+
+function commandsDir(moduleName: string): string {
+  if (hasBundledDocs())
+    return join(BUNDLED_DOCS, "modules", moduleName, "commands");
+  return join(MONOREPO_ROOT, "modules", moduleName, "src/commands");
+}
+
+function helpersDir(moduleName: string): string {
+  if (hasBundledDocs())
+    return join(BUNDLED_DOCS, "modules", moduleName, "helpers");
+  return join(MONOREPO_ROOT, "modules", moduleName, "src/helpers");
+}
+
+// --- Public API ---
+
+/** Resolve `:::experimental` prose blocks for the current env. Bundled docs
+ *  carry them verbatim, so they must be stripped (or badge-annotated) at
+ *  read time. */
+function resolveExperimentalBlocks(content: string): string {
+  return transformExperimentalMd(content, isExperimentalEnabled());
+}
+
+export async function loadFullDocs(): Promise<string> {
+  if (fullDocsCache) return fullDocsCache;
+
+  fullDocsCache = resolveExperimentalBlocks(
+    await readFile(fullDocsPath(), "utf-8"),
+  );
+  return fullDocsCache;
+}
+
+export async function loadModuleDocs(
+  moduleName: string,
+): Promise<string | null> {
+  if (!MODULES.includes(moduleName)) return null;
+  if (moduleDocsCache.has(moduleName)) return moduleDocsCache.get(moduleName)!;
+
+  try {
+    const content = resolveExperimentalBlocks(
+      await readFile(moduleDocsPath(moduleName), "utf-8"),
+    );
+    moduleDocsCache.set(moduleName, content);
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadCommandDocs(
+  moduleName: string,
+  commandName: string,
+): Promise<string | null> {
+  const key = cacheKey(moduleName, commandName);
+  if (commandDocsCache.has(key)) return commandDocsCache.get(key)!;
+
+  try {
+    const raw = await readFile(
+      commandDocsPath(moduleName, commandName),
+      "utf-8",
+    );
+    if (isHiddenDoc(raw)) return null;
+    const content = resolveExperimentalBlocks(raw);
+    commandDocsCache.set(key, content);
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadHelperDocs(
+  moduleName: string,
+  helperName: string,
+): Promise<string | null> {
+  const key = cacheKey(moduleName, helperName);
+  if (helperDocsCache.has(key)) return helperDocsCache.get(key)!;
+
+  try {
+    const raw = await readFile(helperDocsPath(moduleName, helperName), "utf-8");
+    if (isHiddenDoc(raw)) return null;
+    const content = resolveExperimentalBlocks(raw);
+    helperDocsCache.set(key, content);
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+export async function listModules(): Promise<string[]> {
+  return MODULES;
+}
+
+/**
+ * One-line overview of a module, extracted from the first paragraph of its
+ * README (the line right after the `# <name> module` heading).
+ */
+export async function getModuleOverview(
+  moduleName: string,
+): Promise<string | null> {
+  const readme = await loadModuleDocs(moduleName);
+  if (!readme) return null;
+
+  const lines = readme.split("\n");
+  const headingIdx = lines.findIndex((l) => l.startsWith("# "));
+  for (let i = headingIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === "") continue;
+    if (line.startsWith("#") || line.startsWith("```")) break;
+    return line;
+  }
+  return null;
+}
+
+export async function listModuleCommands(
+  moduleName: string,
+): Promise<string[]> {
+  if (!MODULES.includes(moduleName)) return [];
+  try {
+    const entries = await readdir(commandsDir(moduleName));
+    const names = entries
+      .filter((e) => e.endsWith(".md"))
+      .map((e) => e.replace(/\.md$/, ""));
+    return filterHidden(names, (n) => loadCommandDocs(moduleName, n));
+  } catch {
+    return [];
+  }
+}
+
+export async function listModuleHelpers(moduleName: string): Promise<string[]> {
+  if (!MODULES.includes(moduleName)) return [];
+  try {
+    const entries = await readdir(helpersDir(moduleName));
+    const names = entries
+      .filter((e) => e.endsWith(".md"))
+      .map((e) => e.replace(/\.md$/, ""));
+    return filterHidden(names, (n) => loadHelperDocs(moduleName, n));
+  } catch {
+    return [];
+  }
+}
+
+/** Keep only names whose docs are readable (not hidden as experimental). */
+async function filterHidden(
+  names: string[],
+  load: (name: string) => Promise<string | null>,
+): Promise<string[]> {
+  if (isExperimentalEnabled()) return names;
+  const kept: string[] = [];
+  for (const n of names) {
+    if ((await load(n)) !== null) kept.push(n);
+  }
+  return kept;
+}

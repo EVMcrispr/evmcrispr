@@ -1,0 +1,36 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createLink } from "evmcrispr/tools/create-link";
+import { z } from "zod";
+
+export function registerCreateLink(server: McpServer): void {
+  server.registerTool(
+    "evmcrispr_create_link",
+    {
+      title: "Create Shareable EVML Link",
+      description:
+        "Pin an EVML script to IPFS (end-to-end encrypted) and return a shareable link the user can open in the EVMcrispr terminal to review and execute it. The decryption key travels in the link's URL fragment, so share the full link including everything after the last #. Use after a successful simulation. Requires VITE_PINATA_JWT env var.",
+      inputSchema: {
+        script: z.string().describe("The EVML script content"),
+        title: z.string().describe("Title for the shared script"),
+        baseUrl: z
+          .string()
+          .optional()
+          .describe(
+            "Base URL for the generated link (default: https://next.evmcrispr.com)",
+          ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async (args) => {
+      const result = await createLink(args);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
+}

@@ -1,203 +1,165 @@
-import type { ChangeEventHandler } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ScrollRestoration,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
+import { Viewer } from "@evmcrispr/editor";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { ScrollRestoration } from "react-router";
+import { useConnection } from "wagmi";
+import TitleInput from "../components/editor/TitleInput";
+import ActionButtons from "../components/execution/ActionButtons";
+import Footer from "../components/layout/Footer";
+import Header from "../components/layout/Header";
+import { SidePanel } from "../components/panel/SidePanel";
+import NewScriptButton from "../components/scripts/NewScriptButton";
+import ScriptNotFound from "../components/scripts/ScriptNotFound";
+import ShareScriptButton from "../components/scripts/ShareScriptButton";
+import { useAutoSave } from "../hooks/useAutoSave";
+import { useTerminalScript } from "../hooks/useTerminalScript";
+import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
+import { useViewMode } from "../hooks/useViewMode";
+import { useWalletConnection } from "../hooks/useWalletConnection";
+import { useTerminalStore } from "../stores/terminal-store";
 
-import _debounce from "lodash.debounce";
+// Code-split Monaco out of the mobile critical path. The editor module
+// pulls in `monaco-editor` (~700 KB gzipped) which is wasted bytes for
+// users who only want to read or execute a script.
+const TerminalEditor = lazy(
+  () => import("../components/editor/TerminalEditor"),
+);
 
-import { useAccount } from "wagmi";
+function useIsSmallScreen(breakpoint = 768) {
+  const [isSmall, setIsSmall] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false,
+  );
 
-import { useChain, useSpringRef } from "@react-spring/web";
-import {
-  Box,
-  Container,
-  Flex,
-  HStack,
-  Input,
-  Spacer,
-  VStack,
-  useBoolean,
-} from "@chakra-ui/react";
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsSmall(e.matches);
+    mq.addEventListener("change", handler);
+    setIsSmall(mq.matches);
+    return () => mq.removeEventListener("change", handler);
+  }, [breakpoint]);
 
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../components/TerminalEditor/use-terminal-store";
-
-import FadeIn from "../components/animations/FadeIn";
-import Footer from "../components/Footer";
-import ActionButtons from "../components/ActionButtons";
-import ConfigureButton from "../components/ConfigureButton";
-import ShareScriptButton from "../components/ShareButton";
-import Header from "../components/TerminalHeader";
-import SaveScriptButton from "../components/SaveScript";
-import ScriptLibrary from "../components/ScriptLibrary";
-import TerminalEditor from "../components/TerminalEditor";
-import { useScriptFromId } from "../hooks/useStoredScript";
-import { getScriptSavedInLocalStorage } from "../utils";
-import { useSafeAutoConnect } from "../hooks/useSafeAutoConnect";
+  return isSmall;
+}
 
 export default function Terminal() {
-  const [maximizeGasLimit, setMaximizeGasLimit] = useBoolean(false);
-  useSafeAutoConnect();
+  const { address } = useWalletConnection();
+  const {
+    scriptNotFound,
+    ipfsError,
+    ipfsLoading,
+    encryptedError,
+    requiredVersion,
+  } = useTerminalScript();
+  useAutoSave();
+  const script = useTerminalStore((s) => s.script);
+  const title = useTerminalStore((s) => s.title);
 
-  const terminalRef = useSpringRef();
-  const buttonsRef = useSpringRef();
-  const footerRef = useSpringRef();
+  const { connector: activeConnector } = useConnection();
+  const isSafe = activeConnector?.id === "safe";
+  const safeConnectorInstance = isSafe ? activeConnector : undefined;
 
-  const { address } = useAccount();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = useParams();
+  const { executeScript, cancelExecution, logs, errors, clearErrors } =
+    useTransactionExecutor(address, script, safeConnectorInstance);
 
-  const { title: titleFromId, script: scriptFromId } =
-    useScriptFromId(params?.scriptId) || {};
-
-  const { title: titleFromSession, script: scriptFromSession } =
-    useTerminalStore();
-
-  useChain([terminalRef, buttonsRef, footerRef]);
-
-  // Set up a script if we have one in the URL
-  useEffect(() => {
-    const encodedParams = new URLSearchParams(
-      window.location.hash.split("?")[1],
-    );
-    const encodedTitle = encodedParams.get("title");
-    const encodedScript = encodedParams.get("script");
-    if (encodedTitle || encodedScript) {
-      terminalStoreActions("title", encodedTitle ?? "");
-      terminalStoreActions("script", encodedScript ?? "");
-      terminalStoreActions("processScript");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (titleFromId !== undefined) {
-      terminalStoreActions("title", titleFromId);
-    }
-  }, [titleFromId]);
-
-  useEffect(() => {
-    if (scriptFromId !== undefined) {
-      terminalStoreActions("script", scriptFromId);
-      terminalStoreActions("processScript");
-    }
-  }, [scriptFromId]);
-
-  // We hide the scriptId when the title or the script change so they don't match anymore with the url
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (location.pathname !== "/terminal") {
-      const { title: _title, script: _script } =
-        getScriptSavedInLocalStorage(params.scriptId) ?? {};
-      if (titleFromSession !== _title || scriptFromSession !== _script) {
-        navigate("/terminal");
-      }
-    }
-  }, [titleFromSession, scriptFromSession]);
+  const isSmallScreen = useIsSmallScreen();
+  const viewMode = useTerminalStore((s) => s.viewMode);
+  const executingLine = useTerminalStore((s) => s.executingLine);
+  const { setViewMode } = useViewMode();
+  const isViewing = viewMode === "view";
 
   return (
     <>
       <ScrollRestoration />
-      <ScriptLibrary />
-      <Container maxWidth={{ base: "7xl", "2xl": "8xl" }} my={14}>
-        <Header address={address} />
-        <FadeIn componentRef={terminalRef}>
-          <VStack mb={3} alignItems="flex-end" pr={0}>
-            <Flex width={"100%"}>
-              <TitleInput />
-              <Spacer />
-              <HStack spacing={1}>
-                <SaveScriptButton
-                  title={titleFromSession}
-                  script={scriptFromSession}
-                />
-                <Spacer />
-                <ShareScriptButton
-                  title={titleFromSession}
-                  script={scriptFromSession}
-                />
-                <Spacer />
-                <ConfigureButton
-                  setMaximizeGasLimit={setMaximizeGasLimit}
-                  maximizeGasLimit={maximizeGasLimit}
-                />
-              </HStack>
-            </Flex>
-          </VStack>
-          <TerminalEditor />
-        </FadeIn>
-        <FadeIn componentRef={buttonsRef}>
-          <ActionButtons
-            address={address}
-            maximizeGasLimit={maximizeGasLimit}
+      <div className="flex flex-col h-screen overflow-hidden">
+        <div className="shrink-0 w-full bg-evm-gray-900 px-6 py-6">
+          <Header address={address} onDisconnect={clearErrors} />
+        </div>
+
+        <div
+          className="flex-1 min-h-0 overflow-hidden flex pl-2 bg-evm-gray-900"
+          style={{ flexDirection: isSmallScreen ? "column" : "row" }}
+        >
+          <div
+            className="flex flex-col overflow-hidden bg-[#000] pb-3"
+            style={{ flex: isSmallScreen ? "0 0 60%" : "0 0 70%" }}
+          >
+            {encryptedError ? (
+              <ScriptNotFound
+                variant={`encrypted-${encryptedError}`}
+                requiredVersion={requiredVersion}
+              />
+            ) : scriptNotFound || ipfsError ? (
+              <ScriptNotFound variant={ipfsError ? "ipfs" : "uuid"} />
+            ) : ipfsLoading ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 select-none animate-fade-in">
+                <div className="w-8 h-8 border-2 border-evm-green-300/30 border-t-evm-green-300 rounded-full animate-spin" />
+                <p className="text-evm-green-300 font-head text-sm tracking-wide">
+                  Fetching DNA sequence from IPFS...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="px-4 py-3 shrink-0">
+                  <div className="flex w-full">
+                    <TitleInput />
+                    <div className="flex-1" />
+                    <div className="flex items-center gap-1">
+                      <NewScriptButton />
+                      <ShareScriptButton title={title} script={script} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-h-0 px-4 pt-2 overflow-hidden animate-fade-in">
+                  {isViewing ? (
+                    <Viewer
+                      script={script}
+                      executingLine={executingLine}
+                      onActivateEdit={() => setViewMode("edit")}
+                    />
+                  ) : (
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center h-full text-foreground/40 text-sm">
+                          Loading editor…
+                        </div>
+                      }
+                    >
+                      <TerminalEditor />
+                    </Suspense>
+                  )}
+                </div>
+
+                <div
+                  className="px-4 py-3 shrink-0 animate-fade-in"
+                  style={{ animationDelay: "0.1s" }}
+                >
+                  <ActionButtons
+                    onExecute={executeScript}
+                    onCancel={cancelExecution}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div
+            className={
+              isSmallScreen ? "h-px w-full bg-border" : "w-px h-full bg-border"
+            }
           />
-        </FadeIn>
-      </Container>
-      <FadeIn componentRef={footerRef}>
-        <Box marginTop={"200px"}>
+
+          <div
+            className="flex flex-col overflow-hidden bg-evm-gray-900"
+            style={{ flex: isSmallScreen ? "0 0 40%" : "0 0 30%" }}
+          >
+            <SidePanel logs={logs} errors={errors} />
+          </div>
+        </div>
+
+        <div className="shrink-0 bg-evm-gray-900">
           <Footer />
-        </Box>
-      </FadeIn>
+        </div>
+      </div>
     </>
-  );
-}
-
-function TitleInput() {
-  // Set the default value, without enforcing its state.
-  const handleRef = useRef<HTMLInputElement | null>(null);
-  const { title } = useTerminalStore();
-  useEffect(() => {
-    if (handleRef.current) {
-      handleRef.current.value = title;
-    }
-  }, [handleRef, title]);
-
-  const [documentTitle, setDocumentTitle] = useState(title);
-
-  useEffect(() => {
-    setDocumentTitle(title);
-  }, [title]);
-
-  useEffect(() => {
-    document.title = documentTitle
-      ? `${documentTitle} - EVMcrispr Terminal`
-      : "EVMcrispr Terminal";
-  }, [documentTitle]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounce = useCallback(
-    // Delay saving state until user activity stops
-    _debounce((_inputString: string) => {
-      terminalStoreActions("title", _inputString);
-    }, 200), // Delay (ms)
-    [title],
-  );
-
-  const handleTitleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    setDocumentTitle(event.target.value);
-    debounce(event.target.value);
-  };
-  return (
-    <Input
-      ref={handleRef}
-      type="text"
-      borderRadius="0"
-      placeholder={"Untitled script"}
-      onChange={handleTitleChange}
-      variant={"unstyled"}
-      fontSize={"4xl"}
-      color={"gray.300"}
-      _placeholder={{
-        color: "inherit",
-        opacity: 1,
-      }}
-      spellCheck="false"
-    />
   );
 }

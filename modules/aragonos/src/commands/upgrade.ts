@@ -1,0 +1,104 @@
+import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
+import {
+  isAddress,
+  keccak256,
+  namehash,
+  parseAbiItem,
+  toHex,
+  zeroAddress,
+} from "viem";
+import type AragonOS from "..";
+import { getKernel } from "../dao";
+import { _aragonEns } from "../helpers/aragonEns";
+import { REPO_ABI, SEMANTIC_VERSION_REGEX } from "../utils";
+import { getModuleDAO } from "../utils/commands";
+
+export default defineCommand<AragonOS>({
+  name: "upgrade",
+  description: "Upgrade an installed Aragon app to a new version.",
+  args: [
+    {
+      name: "apmRepo",
+      type: "repo",
+      description: "APM repository name for the app package",
+    },
+    {
+      name: "newAppAddress",
+      type: ["address", "string"],
+      description: "Implementation address or semantic version (e.g. 1.2.0)",
+      optional: true,
+    },
+  ],
+  async run(module, { apmRepo: rawApmRepo, newAppAddress: rawNewAppAddress }) {
+    const client = await module.getClient();
+
+    let newAppAddress = rawNewAppAddress;
+
+    const dao = getModuleDAO(module);
+
+    const kernel = getKernel(dao);
+    let apmRepo = rawApmRepo;
+
+    if (
+      !apmRepo.endsWith("aragonpm.eth") &&
+      !apmRepo.endsWith("open.aragonpm.eth")
+    ) {
+      apmRepo = `${apmRepo}.aragonpm.eth`;
+    }
+
+    const KERNEL_APP_BASE_NAMESPACE = keccak256(toHex("base"));
+    const appId = namehash(apmRepo);
+
+    const currentAppAddress = await client.readContract({
+      address: kernel.address,
+      abi: [
+        parseAbiItem(
+          "function getApp(bytes32,bytes32) external view returns (address)",
+        ),
+      ],
+      functionName: "getApp",
+      args: [KERNEL_APP_BASE_NAMESPACE, appId],
+    });
+
+    if (currentAppAddress === zeroAddress) {
+      throw new ErrorException(`${apmRepo} not installed on current DAO.`);
+    }
+
+    const repoAddr = await _aragonEns(
+      apmRepo,
+      await module.getClient(),
+      module.getConfigBinding("ensResolver"),
+    );
+
+    if (!repoAddr) {
+      throw new ErrorException(`ENS repo name ${apmRepo} couldn't be resolved`);
+    }
+
+    if (!newAppAddress) {
+      [, newAppAddress] = await client.readContract({
+        address: repoAddr,
+        abi: REPO_ABI,
+        functionName: "getLatest",
+      });
+    } else if (SEMANTIC_VERSION_REGEX.test(newAppAddress)) {
+      [, newAppAddress] = await client.readContract({
+        address: repoAddr,
+        abi: REPO_ABI,
+        functionName: "getBySemanticVersion",
+        args: [newAppAddress.split(".").map((s: string) => parseInt(s, 10))],
+      });
+    } else if (!isAddress(newAppAddress)) {
+      throw new ErrorException(
+        "second upgrade parameter must be a semantic version, an address, or nothing",
+      );
+    }
+
+    return [
+      encodeAction(kernel.address, "setApp(bytes32,bytes32,address)", [
+        KERNEL_APP_BASE_NAMESPACE,
+        appId,
+        newAppAddress,
+      ]),
+    ];
+  },
+});

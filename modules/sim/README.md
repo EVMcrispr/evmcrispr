@@ -1,0 +1,18 @@
+# sim module
+
+Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, EthereumJS or Revm (WASM) backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.
+
+```evml
+load sim
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| [sim:expect](src/commands/expect.md) | Assert that a condition is true. |
+| [sim:fork](src/commands/fork.md) | Fork the blockchain and execute commands in a simulation. |
+| [sim:set-balance](src/commands/set-balance.md) | Set the ETH balance of an account in a fork simulation. |
+| [sim:set-code](src/commands/set-code.md) | Set the bytecode at an address in a fork simulation. |
+| [sim:set-storage-at](src/commands/set-storage-at.md) | Set a storage slot value at an address in a fork simulation. |
+

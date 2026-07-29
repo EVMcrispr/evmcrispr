@@ -1,5 +1,6 @@
 .DS_Store
 node_modules
+.astro
 .turbo
 *.log
 dist
@@ -12,3 +13,11 @@ public/dist
 .nyc_output
 cache
 coverage
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+_generated.ts
+
+# Auto-generated docs
+apps/evmcrispr-website/src/content/docs/reference/
+apps/evmcrispr-website/public/llms-full.txt

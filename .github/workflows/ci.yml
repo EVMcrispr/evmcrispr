@@ -27,41 +27,44 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - name: Install Dependencies
         run: bun i
+
+      - name: Check module registry is in sync
+        run: bun scripts/sync-modules.ts --check
 
       - name: Get changed files from evmcrispr
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
-          files: "packages/evmcrispr/{src,test}/**"
+          files: |
+            packages/core/{src,test}/**
+            packages/sdk/{src,test}/**
+            packages/test-utils/**
+            modules/**
 
       - name: Build
         run: bun run build
 
       - name: Lint code
-        run: bun lint
+        run: bun run lint
 
-      - name: Check evmcrispr types
-        run: bun type-check
+      - name: Check types
+        run: bun run type-check
 
-      - name: Tests
+      - name: Unit Tests
+        run: bun run test:unit
+
+      - name: Integration Tests
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          echo "ARCHIVE_NODE_ENDPOINT=${{ secrets.ARCHIVE_NODE_ENDPOINT }}" >> packages/evmcrispr/.env
-          echo "VITE_PINATA_JWT=${{ secrets.VITE_PINATA_JWT }}" >> packages/evmcrispr/.env
-          echo "ETHERSCAN_API=${{ secrets.ETHERSCAN_API }}" >> packages/evmcrispr/.env
-          bun test:coverage
+          echo "VITE_DRPC_API_KEY=$VITE_DRPC_API_KEY" >> .env
+          echo "VITE_PINATA_JWT=$VITE_PINATA_JWT" >> .env
+          bun run test:integration
         env:
-          ARCHIVE_NODE_ENDPOINT: ${{ secrets.ARCHIVE_NODE_ENDPOINT }}
+          VITE_DRPC_API_KEY: ${{ secrets.VITE_DRPC_API_KEY }}
           VITE_PINATA_JWT: ${{ secrets.VITE_PINATA_JWT }}
-          ETHERSCAN_API: ${{ secrets.ETHERSCAN_API }}
-
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        if: steps.changed-files.outputs.any_changed == 'true'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ${{matrix.os}}-node-${{ matrix.node-version }}
-          base-path: "packages/evmcrispr"
-          path-to-lcov: "packages/evmcrispr/coverage/lcov.info"

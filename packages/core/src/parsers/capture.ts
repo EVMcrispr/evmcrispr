@@ -1,0 +1,450 @@
+import type {
+  DestructureSlot,
+  ErrorCaptureNode,
+  EventCaptureNode,
+  Node,
+  NodeParser,
+  TxCaptureNode,
+} from "@evmcrispr/sdk";
+import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import {
+  char,
+  choice,
+  coroutine,
+  lookAhead,
+  possibly,
+  recursiveParser,
+  regex,
+  sequenceOf,
+  str,
+} from "arcsecond";
+import {
+  createNodeLocation,
+  locate,
+  optionalWhitespace,
+  whitespace,
+} from "./utils";
+
+export const CAPTURE_PARSER_ERROR = "CaptureParserError";
+
+/**
+ * Matches the `->` arrow token.
+ */
+const captureArrowParser = str("->");
+
+/**
+ * Look-ahead that checks for `->` without consuming it.
+ */
+export const captureArrowLookahead = lookAhead(
+  sequenceOf([str("->"), whitespace]),
+);
+
+/**
+ * Matches an event name: a PascalCase/camelCase identifier.
+ */
+const eventNameParser = regex(/^[a-zA-Z_][a-zA-Z0-9_]*/);
+
+/**
+ * Matches inline event param types inside parentheses.
+ * e.g. `(uint,address)` -> ["uint", "address"]
+ * e.g. `(uint256,(address,uint256)[])` -> ["uint256", "(address,uint256)[]"]
+ *
+ * Supports nested parentheses for tuple types.
+ */
+const eventParamsParser = coroutine((run) => {
+  run(char("("));
+
+  const innerContent: string = run(
+    regex(/^(?:[^()]*(?:\((?:[^()]*(?:\([^()]*\))*[^()]*)*\))*[^()]*)*/),
+  );
+  run(char(")"));
+
+  const params: string[] = [];
+  let parenDepth = 0;
+  let current = "";
+  for (const ch of innerContent) {
+    if (ch === "(") parenDepth++;
+    else if (ch === ")") parenDepth--;
+
+    if (ch === "," && parenDepth === 0) {
+      params.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim()) {
+    params.push(current.trim());
+  }
+
+  return params;
+});
+
+/**
+ * Matches `$variableName` and returns just the name (without $).
+ */
+const captureVariableParser = regex(/^\$[a-zA-Z_][a-zA-Z0-9_-]*/).map(
+  (v: string) => v.slice(1),
+);
+
+const captureHoleParser = char("_").map(() => null);
+
+/**
+ * Parses a single capture destructure slot (variable names WITHOUT $):
+ *   - `_` -> null (hole)
+ *   - `$variable` -> string (without $ prefix)
+ *   - nested `[...]` -> DestructureSlot[]
+ */
+const captureSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
+  choice([captureHoleParser, captureVariableParser, captureSlotsParser]),
+) as NodeParser<DestructureSlot>;
+
+/**
+ * Parses a `[...]` destructure pattern for event captures.
+ * Variable names are stored WITHOUT the $ prefix.
+ * `_` marks a hole (null).
+ */
+const captureSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
+  coroutine((run) => {
+    run(char("["));
+    run(optionalWhitespace);
+
+    const slots: DestructureSlot[] = [];
+
+    if (run(possibly(char("]")))) return slots;
+
+    slots.push(run(captureSlotParser));
+    run(optionalWhitespace);
+
+    while (!run(possibly(char("]")))) {
+      slots.push(run(captureSlotParser));
+      run(optionalWhitespace);
+    }
+
+    return slots;
+  }),
+);
+
+/**
+ * Matches the contract filter prefix: `$var:` or `0xADDRESS:`.
+ * Returns a Node (VariableIdentifierNode or AddressLiteralNode).
+ */
+const contractFilterParser = coroutine((run) => {
+  const varMatch = run(
+    possibly(
+      lookAhead(
+        sequenceOf([
+          regex(/^\$[a-zA-Z_][a-zA-Z0-9_]*/),
+          char(":"),
+          regex(/^[a-zA-Z]/),
+        ]),
+      ),
+    ),
+  );
+
+  if (varMatch) {
+    const varName: string = run(regex(/^\$[a-zA-Z_][a-zA-Z0-9_]*/));
+    run(char(":"));
+    return {
+      type: NodeType.VariableIdentifier,
+      value: varName,
+    } as Node;
+  }
+
+  const addrMatch = run(
+    possibly(
+      lookAhead(
+        sequenceOf([
+          regex(/^0x[a-fA-F0-9]{40}/),
+          char(":"),
+          regex(/^[a-zA-Z]/),
+        ]),
+      ),
+    ),
+  );
+
+  if (addrMatch) {
+    const addr: string = run(regex(/^0x[a-fA-F0-9]{40}/));
+    run(char(":"));
+    return {
+      type: NodeType.AddressLiteral,
+      value: addr,
+    } as Node;
+  }
+
+  return null;
+});
+
+/**
+ * Matches a complete event capture clause:
+ *   `-> (contractFilter:)? EventName(params)?#occurrence? [captures]`
+ *
+ * Examples:
+ *   `-> Withdrawn [$amount]`
+ *   `-> Withdrawn(uint,address) [$amount $to]`
+ *   `-> Withdrawn(address,uint) [_ $amount]`
+ *   `-> Withdrawn#1 [$secondAmount]`
+ *   `-> $c:Withdrawn(uint,address) [_ $to]`
+ *   `-> Evt(uint,(address,uint)) [$x [_ $y]]`
+ */
+export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
+  () =>
+    locate<EventCaptureNode>(
+      coroutine((run) => {
+        run(captureArrowParser);
+        run(whitespace);
+
+        // Optional contract filter
+        const filter: Node | null = run(contractFilterParser);
+
+        // Event name
+        const eventName: string = run(
+          eventNameParser.errorMap((err) =>
+            buildParserError(
+              err,
+              CAPTURE_PARSER_ERROR,
+              'Expected an event name after "->" (e.g. -> Transfer(address,address,uint256) [$from $to $amt])',
+            ),
+          ),
+        );
+
+        // Optional inline event params
+        const eventParams: string[] | null = run(possibly(eventParamsParser));
+
+        // Optional occurrence selector #N
+        let occurrence: number | undefined;
+        const occStr: string | null = run(
+          possibly(sequenceOf([char("#"), regex(/^\d+/)]).map(([, n]) => n)),
+        );
+        if (occStr !== null) {
+          occurrence = parseInt(occStr, 10);
+        }
+
+        // Capture destructure pattern [...]
+        run(whitespace);
+        const captures: DestructureSlot[] = run(captureSlotsParser);
+
+        return [filter, eventName, eventParams, occurrence, captures];
+      }).errorMap((err) =>
+        buildParserError(
+          err,
+          CAPTURE_PARSER_ERROR,
+          "Invalid event capture. Syntax: -> EventName(types)? #n? [$var _ …]",
+        ),
+      ),
+      ({
+        data,
+        index,
+        result: [
+          initialContext,
+          [filter, eventName, eventParams, occurrence, captures],
+        ],
+      }) => {
+        const node: EventCaptureNode = {
+          type: NodeType.EventCapture,
+          eventName: eventName as string,
+          captures: captures as DestructureSlot[],
+          loc: createNodeLocation(initialContext, {
+            line: data.line,
+            index,
+            offset: data.offset,
+          }),
+        };
+
+        if (filter) {
+          node.contractFilter = filter as Node;
+        }
+        if (eventParams) {
+          node.eventParams = eventParams as string[];
+        }
+        if (occurrence !== undefined) {
+          node.occurrence = occurrence as number;
+        }
+
+        return node;
+      },
+    ),
+);
+
+// ── Error capture parsers ────────────────────────────────────────────
+
+/**
+ * Matches `-?!>` (optional) or `-!>` (required) error capture arrow.
+ * Returns `true` for optional (`-?!>`), `false` for required (`-!>`).
+ */
+const errorCaptureArrowParser = choice([
+  str("-?!>").map(() => true),
+  str("-!>").map(() => false),
+]);
+
+/**
+ * Look-ahead that checks for `-!>` or `-?!>` without consuming.
+ */
+export const errorCaptureArrowLookahead = lookAhead(
+  sequenceOf([choice([str("-?!>"), str("-!>")]), whitespace]),
+);
+
+/**
+ * Matches a complete error capture clause:
+ *   `(-!> | -?!>) ErrorName(params)? ([captures] | $boolVar)?`
+ *   `(-!> | -?!>) [captures]`           (generic catch-all + destructure)
+ *   `(-!> | -?!>) $boolVar`             (generic catch-all + bool var)
+ *
+ * Examples:
+ *   `-!> InsufficientBalance(uint256,uint256) [$balance $required]`
+ *   `-!> Error(string) [$reason]`
+ *   `-!> Panic(uint256) [$code]`
+ *   `-!> Unauthorized()`
+ *   `-!> [$reason]`
+ *   `-!> $e`
+ *   `-?!> Unauthorized() $e`
+ *   `-?!> CustomError(address) [$addr]`
+ */
+export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
+  () =>
+    locate<ErrorCaptureNode>(
+      coroutine((run) => {
+        const optional: boolean = run(errorCaptureArrowParser);
+        run(whitespace);
+
+        const nextChar = run(
+          possibly(lookAhead(choice([char("["), char("$")]))),
+        );
+
+        let errorName: string | undefined;
+        let errorParams: string[] | null = null;
+        let captures: DestructureSlot[] = [];
+        let boolVar: string | undefined;
+
+        if (nextChar === "[") {
+          captures = run(captureSlotsParser);
+        } else if (nextChar === "$") {
+          boolVar = run(captureVariableParser);
+        } else {
+          errorName = run(
+            eventNameParser.errorMap((err) =>
+              buildParserError(
+                err,
+                CAPTURE_PARSER_ERROR,
+                'Expected an error name, a [$var …] destructure, or a $boolVar after "-!>" (e.g. -!> Error(string) [$reason])',
+              ),
+            ),
+          );
+
+          errorParams = run(possibly(eventParamsParser));
+
+          const hasDestructure = run(
+            possibly(lookAhead(sequenceOf([whitespace, char("[")]))),
+          );
+          const hasBoolVar =
+            !hasDestructure &&
+            run(possibly(lookAhead(sequenceOf([whitespace, char("$")]))));
+
+          if (hasDestructure) {
+            run(whitespace);
+            captures = run(captureSlotsParser);
+          } else if (hasBoolVar) {
+            run(whitespace);
+            boolVar = run(captureVariableParser);
+          }
+        }
+
+        return [optional, errorName, errorParams, captures, boolVar];
+      }).errorMap((err) =>
+        buildParserError(
+          err,
+          CAPTURE_PARSER_ERROR,
+          "Invalid error capture. Syntax: -!> ErrorName(types)? ([$var …] | $boolVar)?",
+        ),
+      ),
+      ({
+        data,
+        index,
+        result: [
+          initialContext,
+          [optional, errorName, errorParams, captures, boolVar],
+        ],
+      }) => {
+        const node: ErrorCaptureNode = {
+          type: NodeType.ErrorCapture,
+          optional: optional as boolean,
+          captures: captures as DestructureSlot[],
+          loc: createNodeLocation(initialContext, {
+            line: data.line,
+            index,
+            offset: data.offset,
+          }),
+        };
+
+        if (errorName) {
+          node.errorName = errorName as string;
+        }
+        if (errorParams) {
+          node.errorParams = errorParams as string[];
+        }
+        if (boolVar) {
+          node.boolVar = boolVar as string;
+        }
+
+        return node;
+      },
+    ),
+);
+
+// ── Transaction-hash capture parsers ─────────────────────────────────
+
+/**
+ * Look-ahead that checks for a tx-capture arrow (`$>` or `$*>`) followed
+ * by whitespace, without consuming. The `$` prefix keeps every other use
+ * of `>` intact: the no-whitespace import rename (`@addr>@myAddr`) and
+ * infix comparison args like `assertions:assert-balance @me > 1e18`.
+ */
+export const txCaptureArrowLookahead = lookAhead(
+  sequenceOf([choice([str("$*>"), str("$>")]), whitespace]),
+);
+
+/**
+ * Matches a complete transaction-hash capture clause:
+ *   `$> $var`  — bind the LAST transaction's hash (the command's primary tx)
+ *   `$*> $var` — bind EVERY transaction hash as an array
+ *
+ * Examples:
+ *   `exec @token(DAI) transfer(@me 1e18) $> $tx`
+ *   `ens:register myname.eth @me 1y $*> $txs`
+ */
+export const txCaptureParser: NodeParser<TxCaptureNode> = locate<TxCaptureNode>(
+  coroutine((run) => {
+    const all: boolean = run(
+      choice([str("$*>").map(() => true), str("$>").map(() => false)]),
+    );
+    run(whitespace);
+
+    const variable: string = run(
+      captureVariableParser.errorMap((err) =>
+        buildParserError(
+          err,
+          CAPTURE_PARSER_ERROR,
+          "Expected a variable after the tx-capture arrow (e.g. $> $tx or $*> $txs)",
+        ),
+      ),
+    );
+
+    return [all, variable];
+  }).errorMap((err) =>
+    buildParserError(
+      err,
+      CAPTURE_PARSER_ERROR,
+      "Invalid tx capture. Syntax: $> $var (last tx hash) or $*> $var (all tx hashes)",
+    ),
+  ),
+  ({ data, index, result: [initialContext, [all, variable]] }) => ({
+    type: NodeType.TxCapture,
+    variable: variable as string,
+    all: all as boolean,
+    loc: createNodeLocation(initialContext, {
+      line: data.line,
+      index,
+      offset: data.offset,
+    }),
+  }),
+);
