@@ -1,5 +1,5 @@
 import type { AbiFunction } from "viem";
-import { isAddress, toFunctionSignature } from "viem";
+import { isAddress, toFunctionSignature, toHex } from "viem";
 
 import { ErrorException } from "../errors";
 import type { Binding, CompletionContext, CompletionItem } from "../types";
@@ -126,6 +126,27 @@ export interface ConfigDef {
   description: string;
   /** Default when unset. May contain a `{chainId}` placeholder. */
   default?: string;
+}
+
+/**
+ * Coerce integer values (Num or bigint) passed where `bytes32` is expected
+ * into a left-padded 32-byte hex string, mirroring Solidity's
+ * `bytes32(uint256(...))` cast. Negative integers wrap two's-complement.
+ * Anything else — including short hex strings, whose padding direction is
+ * ambiguous — passes through unchanged for `validateArgType` to judge.
+ */
+export function coerceArgType(value: any, type: ArgType): any {
+  if (type !== "bytes32") return value;
+  let big: bigint;
+  if (value instanceof Num) {
+    if (!value.isInteger()) return value;
+    big = value.toBigInt();
+  } else if (typeof value === "bigint") {
+    big = value;
+  } else {
+    return value;
+  }
+  return toHex(BigInt.asUintN(256, big), { size: 32 });
 }
 
 export function validateArgType(

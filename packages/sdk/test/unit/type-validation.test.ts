@@ -5,7 +5,7 @@ import { defineCommand } from "../../src/utils/defineCommand";
 import { defineHelper } from "../../src/utils/defineHelper";
 
 const VALID_ADDRESS = "0x0000000000000000000000000000000000000001";
-const _VALID_BYTES32 =
+const VALID_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000001";
 
 function stubModule(types = {}): Module {
@@ -277,5 +277,87 @@ describe("defineHelper auto ABI type resolution", () => {
     await expect(
       helper(stubModule(), node, identityInterpreters),
     ).rejects.toThrow(/must be a valid address/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// bytes32 arg coercion: integers left-pad like Solidity bytes32(uint256(...))
+// ---------------------------------------------------------------------------
+
+describe("bytes32 arg coercion", () => {
+  function bytes32Helper() {
+    return defineHelper<Module>({
+      name: "test-slot",
+      returnType: "bytes32",
+      args: [{ name: "slot", type: "bytes32" }],
+      async run(_m, { slot }) {
+        return slot;
+      },
+    });
+  }
+
+  it("should left-pad a Num to 32 bytes", async () => {
+    const { Num } = await import("../../src/utils/Num");
+    const result = await bytes32Helper()(
+      stubModule(),
+      stubHelperNode([literal(Num.fromBigInt(1n))]),
+      identityInterpreters,
+    );
+    expect(result).toBe(
+      "0x0000000000000000000000000000000000000000000000000000000000000001",
+    );
+  });
+
+  it("should left-pad a bigint to 32 bytes", async () => {
+    const result = await bytes32Helper()(
+      stubModule(),
+      stubHelperNode([literal(255n)]),
+      identityInterpreters,
+    );
+    expect(result).toBe(
+      "0x00000000000000000000000000000000000000000000000000000000000000ff",
+    );
+  });
+
+  it("should wrap negative integers two's-complement", async () => {
+    const { Num } = await import("../../src/utils/Num");
+    const result = await bytes32Helper()(
+      stubModule(),
+      stubHelperNode([literal(Num.fromBigInt(-1n))]),
+      identityInterpreters,
+    );
+    expect(result).toBe(
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    );
+  });
+
+  it("should still reject short hex strings", async () => {
+    await expect(
+      bytes32Helper()(
+        stubModule(),
+        stubHelperNode([literal("0x01")]),
+        identityInterpreters,
+      ),
+    ).rejects.toThrow(/must be a bytes32/);
+  });
+
+  it("should still reject non-integer Nums", async () => {
+    const { Num } = await import("../../src/utils/Num");
+    await expect(
+      bytes32Helper()(
+        stubModule(),
+        stubHelperNode([literal(Num("1.5"))]),
+        identityInterpreters,
+      ),
+    ).rejects.toThrow(/must be a bytes32/);
+  });
+
+  it("should pass a full-width hex string through unchanged", async () => {
+    const result = await bytes32Helper()(
+      stubModule(),
+      stubHelperNode([literal(VALID_BYTES32)]),
+      identityInterpreters,
+    );
+    expect(result).toBe(VALID_BYTES32);
   });
 });

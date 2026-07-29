@@ -17,6 +17,7 @@ import {
   type ArgDef,
   type ArgType,
   buildRuntimeResolver,
+  coerceArgType,
   validateArgType,
 } from "./schema";
 
@@ -163,7 +164,13 @@ export function defineHelper<M extends Module>(
       const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
       const value = parsedArgs[def.name];
       if (value !== undefined && !def.rest) {
-        validateArgType(formatted, value, def.type, module.types);
+        parsedArgs[def.name] = coerceArgType(value, def.type);
+        validateArgType(
+          formatted,
+          parsedArgs[def.name],
+          def.type,
+          module.types,
+        );
       }
       if (def.rest && Array.isArray(value)) {
         const resolver = buildRuntimeResolver(argDefs, vi);
@@ -171,6 +178,7 @@ export function defineHelper<M extends Module>(
           for (let ri = 0; ri < value.length; ri++) {
             const resolved = resolver(parsedArgs, ri);
             if (resolved !== "any") {
+              value[ri] = coerceArgType(value[ri], resolved);
               validateArgType(
                 `${formatted}[${ri}]`,
                 value[ri],
@@ -180,8 +188,9 @@ export function defineHelper<M extends Module>(
             }
           }
         } else if (def.type !== "any") {
-          for (const item of value) {
-            validateArgType(formatted, item, def.type, module.types);
+          for (let ri = 0; ri < value.length; ri++) {
+            value[ri] = coerceArgType(value[ri], def.type);
+            validateArgType(formatted, value[ri], def.type, module.types);
           }
         }
       }

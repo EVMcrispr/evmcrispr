@@ -66,6 +66,20 @@ describeHelper(
           expect(result.length).to.equal(66);
         },
       },
+      {
+        name: "should coerce a numeric slot to bytes32",
+        input: `@contracts:storageAt(${WXDAI} 0)`,
+        validate: (result) => {
+          expect(result.startsWith("0x")).to.be.true;
+          expect(result.length).to.equal(66);
+        },
+      },
+      {
+        name: "should coerce a keccak-derived slot expression to bytes32",
+        input: `@contracts:storageAt(${WXDAI} @num(@hash("eip1967.proxy.admin") - 1))`,
+        expected:
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+      },
     ],
     docCases: [
       {

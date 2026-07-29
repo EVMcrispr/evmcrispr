@@ -42,6 +42,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@block](src/helpers/block.md) | `array` | Return [number, timestamp] of the latest or a specific block. |
 | [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. |
 | [@bytes](src/helpers/bytes.md) | `bytes` | Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. |
+| [@bytes32](src/helpers/bytes32.md) | `bytes32` | Pad a value to a 32-byte hex string. Integers and arithmetic expressions are left-padded like Solidity's `bytes32(uint256(...))` cast; hex strings pad left by default or right with a trailing `right`. |
 | [@date](src/helpers/date.md) | `number` | Parse a date string into a Unix timestamp, with an optional offset. |
 | [@ens](src/helpers/ens.md) | `address` | Resolve an ENS name to its address. |
 | [@gas.estimate](src/helpers/gas.estimate.md) | `number` | Estimate the gas required for a contract call. |

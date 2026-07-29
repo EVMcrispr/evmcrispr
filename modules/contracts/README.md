@@ -19,6 +19,9 @@ load contracts
 |--------|---------|-------------|
 | [@contracts:codeAt](src/helpers/codeAt.md) | `bytes` | Return the deployed bytecode at an address. |
 | [@contracts:next](src/helpers/next.md) | `address` | Predict the next contract address deployed by a given account. |
+| [@contracts:slot.array](src/helpers/slot.array.md) | `bytes32` | Derive the storage slot of element index of a dynamic array declared at a base slot: keccak256(base) + index. |
+| [@contracts:slot.erc7201](src/helpers/slot.erc7201.md) | `bytes32` | Derive the root slot of an ERC-7201 namespaced storage layout: keccak256(abi.encode(uint256(keccak256(id)) - 1)) & ~0xff. |
+| [@contracts:slot.mapping](src/helpers/slot.mapping.md) | `bytes32` | Derive the storage slot of mapping[key] for a mapping declared at a base slot: keccak256(h(key) . base). |
 | [@contracts:solidity](src/helpers/solidity.md) ⚗️ | `bytes` | Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:off, via-ir, evm:<version>, contract:<Name>. |
 | [@contracts:solidity.compiler](src/helpers/solidity.compiler.md) ⚗️ | `string` | Compile Solidity source (inline text or a http/ipfs URL) and return the long compiler version (`0.8.26+commit.8a97fa7a`), ready for `verify --compiler`. Pass the same options as the matching @solidity call so the cached compile is reused. |
 | [@contracts:solidity.contract](src/helpers/solidity.contract.md) ⚗️ | `string` | Compile Solidity source (inline text or a http/ipfs URL) and return the qualified contract name (`File.sol:Contract`), ready for `verify --contract-name`. Pass the same options as the matching @solidity call so the cached compile is reused. |
