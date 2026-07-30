@@ -1,0 +1,34 @@
+/**
+ * Pinned vectors, cross-checked in test/unit against poseidon-lite and
+ * @zk-kit/lean-imt. poseidon(1, 2) and the zero chain are also the values
+ * published by circomlib/Semaphore, pinning parameter compatibility.
+ */
+
+export const POSEIDON_1 =
+  18586133768512220936620570745912940619677854269274689475585506675881198879027n;
+export const POSEIDON_1_2 =
+  7853200120776062878684798364095072458815029376092732009249414926327459813530n;
+export const POSEIDON_1_2_3 =
+  6542985608222806190361240322586112750744169038454362455181422643027100751666n;
+
+/** LeanIMT root of leaves [1, 2, 3]. */
+export const LEAN_ROOT_123 =
+  13816780880028945690020260331303642730075999758909899334839547418969502592169n;
+
+/** Fixed-depth (depth:4, zero-padded) root of leaves [1, 2]. */
+export const FIXED_D4_ROOT_12 =
+  18489073723799679747585076107915663990999079607535967004838086629064676809963n;
+
+/** Zero chain: Z1 = poseidon(0, 0), Z2 = poseidon(Z1, Z1). */
+export const Z1 =
+  14744269619966411208579211824598458697587494354926760081771325075741142829156n;
+export const Z2 =
+  7423237065226347324353380772367382631490014989348495481811164164159255474657n;
+
+/** keccak256(0x01) reduced into the BN254 scalar field. */
+export const FIELD_HASH_0X01 =
+  21491341182948211161326200217345269914119651583069899144838544926254084980689n;
+
+export const BASE_URL = "https://zk.test/multiplier2";
+export const WASM_URL = `${BASE_URL}/circuit.wasm`;
+export const ZKEY_URL = `${BASE_URL}/final.zkey`;

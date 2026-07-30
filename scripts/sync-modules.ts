@@ -54,9 +54,11 @@ function sync(path: string, mutate: (pkg: any) => void): void {
 }
 
 sync(metaPath, (pkg) => {
+  // workspace:^ so `bun publish` rewrites these to real versions — the
+  // meta-package is published to npm and `*` would resolve to anything.
   pkg.dependencies = Object.fromEntries([
-    ["@evmcrispr/core", "*"],
-    ...pkgNames.map((name) => [name, "*"]),
+    ["@evmcrispr/core", "workspace:^"],
+    ...pkgNames.map((name) => [name, "workspace:^"]),
   ]);
 });
 
