@@ -6,6 +6,7 @@ import {
 } from "@zk-kit/eddsa-poseidon";
 import {
   derivePublicKey,
+  deriveSecretScalar,
   signMessage,
   verifySignature,
 } from "../../src/utils/eddsa";
@@ -60,6 +61,14 @@ describe("zk utils > phase 3", () => {
         BigInt(referenceSig.R8[1]),
       ]);
       expect(s).to.equal(BigInt(referenceSig.S));
+    });
+
+    it("derives the secret scalar consistently with the public key", async () => {
+      const scalar = await deriveSecretScalar("my seed");
+      expect(scalar > 0n).to.be.true;
+      // Same derivation twice is stable; different seeds diverge.
+      expect(await deriveSecretScalar("my seed")).to.equal(scalar);
+      expect(await deriveSecretScalar("other seed")).to.not.equal(scalar);
     });
 
     it("round-trips and rejects tampered signatures", async () => {

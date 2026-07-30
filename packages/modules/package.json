@@ -45,6 +45,7 @@
     "@evmcrispr/module-lending": "workspace:^",
     "@evmcrispr/module-proxies": "workspace:^",
     "@evmcrispr/module-safe": "workspace:^",
+    "@evmcrispr/module-semaphore": "workspace:^",
     "@evmcrispr/module-sim": "workspace:^",
     "@evmcrispr/module-std": "workspace:^",
     "@evmcrispr/module-superfluid": "workspace:^",

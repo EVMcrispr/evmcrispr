@@ -8,6 +8,7 @@ import { ErrorException } from "@evmcrispr/sdk";
 
 interface EddsaLib {
   derivePublicKey(privateKey: string): [bigint, bigint] | [string, string];
+  deriveSecretScalar(privateKey: string): bigint | string;
   signMessage(
     privateKey: string,
     message: bigint,
@@ -47,6 +48,15 @@ export async function derivePublicKey(
   const eddsa = await loadEddsa();
   const [x, y] = eddsa.derivePublicKey(secret);
   return [BigInt(x), BigInt(y)];
+}
+
+/**
+ * The scalar the public key is derived from (blake-hashed, pruned seed) —
+ * what circuits take as their `secret` input (e.g. Semaphore v4).
+ */
+export async function deriveSecretScalar(secret: string): Promise<bigint> {
+  const eddsa = await loadEddsa();
+  return BigInt(eddsa.deriveSecretScalar(secret));
 }
 
 export async function signMessage(

@@ -22,6 +22,7 @@
         "@evmcrispr/module-lending": "workspace:*",
         "@evmcrispr/module-proxies": "workspace:*",
         "@evmcrispr/module-safe": "workspace:*",
+        "@evmcrispr/module-semaphore": "workspace:*",
         "@evmcrispr/module-sim": "workspace:*",
         "@evmcrispr/module-std": "workspace:*",
         "@evmcrispr/module-superfluid": "workspace:*",
@@ -350,6 +351,23 @@
         "viem": "^2.54.1",
       },
     },
+    "modules/semaphore": {
+      "name": "@evmcrispr/module-semaphore",
+      "version": "0.11.0",
+      "dependencies": {
+        "@evmcrispr/module-zk": "workspace:^",
+        "@evmcrispr/sdk": "workspace:^",
+      },
+      "devDependencies": {
+        "@evmcrispr/module-contracts": "workspace:*",
+        "@evmcrispr/module-sim": "workspace:*",
+        "@evmcrispr/test-utils": "workspace:*",
+        "@zk-kit/lean-imt": "^2.2.3",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
     "modules/sim": {
       "name": "@evmcrispr/module-sim",
       "version": "0.11.0",
@@ -552,6 +570,7 @@
         "@evmcrispr/module-lending": "workspace:^",
         "@evmcrispr/module-proxies": "workspace:^",
         "@evmcrispr/module-safe": "workspace:^",
+        "@evmcrispr/module-semaphore": "workspace:^",
         "@evmcrispr/module-sim": "workspace:^",
         "@evmcrispr/module-std": "workspace:^",
         "@evmcrispr/module-superfluid": "workspace:^",
@@ -916,6 +935,8 @@
     "@evmcrispr/module-proxies": ["@evmcrispr/module-proxies@workspace:modules/proxies"],
 
     "@evmcrispr/module-safe": ["@evmcrispr/module-safe@workspace:modules/safe"],
+
+    "@evmcrispr/module-semaphore": ["@evmcrispr/module-semaphore@workspace:modules/semaphore"],
 
     "@evmcrispr/module-sim": ["@evmcrispr/module-sim@workspace:modules/sim"],
 
