@@ -5,13 +5,15 @@ import type {
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
 
-// Pin the CDN-loaded monaco to 0.52.2: the 0.53 input-handling rewrite
+// Monaco is self-hosted: the AMD build is served from /vs on the app's own
+// origin (dev middleware + build copy in the terminal's vite config) rather
+// than a third-party CDN — injected <script> tags can't be hash-verified,
+// so CDN trust is removed instead. Apps embedding this editor must serve
+// monaco-editor@0.52.2/min/vs at /vs (or call loader.config to override).
+// Keep monaco-editor pinned to 0.52.2: the 0.53 input-handling rewrite
 // swallows the first keystroke typed over a selection (legacy textarea
-// path, still broken as of 0.55). Keep in sync with the monaco-editor
-// version in package.json. Re-test select+type before bumping.
-loader.config({
-  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" },
-});
+// path, still broken as of 0.55). Re-test select+type before bumping.
+loader.config({ paths: { vs: "/vs" } });
 
 import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
