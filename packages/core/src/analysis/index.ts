@@ -22,6 +22,7 @@ import {
   parseConfigVarName,
   parseImportList,
   parseSignature,
+  partitionHelperArgs,
   validateArgType,
 } from "@evmcrispr/sdk";
 
@@ -136,6 +137,9 @@ function collectVariableUses(node: Node, out: string[]): void {
       for (const a of call.args) collectVariableUses(a, out);
       break;
     }
+    case NodeType.NamedArg:
+      collectVariableUses((node as any).value as Node, out);
+      break;
     default:
       break;
   }
@@ -160,6 +164,9 @@ function collectHelpers(node: Node, out: HelperFunctionNode[]): void {
       for (const a of call.args) collectHelpers(a, out);
       break;
     }
+    case NodeType.NamedArg:
+      collectHelpers((node as any).value as Node, out);
+      break;
     default:
       break;
   }
@@ -180,6 +187,9 @@ function collectCalls(node: Node, out: CallExpressionNode[]): void {
       break;
     case NodeType.ArrayExpression:
       for (const el of (node as any).elements as Node[]) collectCalls(el, out);
+      break;
+    case NodeType.NamedArg:
+      collectCalls((node as any).value as Node, out);
       break;
     default:
       break;
@@ -206,6 +216,9 @@ function collectBarewords(node: Node, out: Node[]): void {
       for (const a of call.args) collectBarewords(a, out);
       break;
     }
+    case NodeType.NamedArg:
+      collectBarewords((node as any).value as Node, out);
+      break;
     default:
       break;
   }
@@ -930,6 +943,7 @@ class SemanticAnalyzer {
       if (batchStack.length > 0) this.#checkBatchable(c, cmd, batchStack);
       this.#checkVariableUses(c, cmd);
       this.#checkConfigDefPositions(c, cmd);
+      this.#checkRecordShapes(c, cmd);
     }
 
     // 7. Helpers anywhere in the args (module-agnostic resolution).
@@ -937,6 +951,10 @@ class SemanticAnalyzer {
 
     // 7b. Malformed hex/address literals anywhere in the args.
     this.#checkMalformedHexLiterals(c);
+
+    // 7c. Structural named-arg checks (mixed record arrays, named args in
+    // inline calls) anywhere in the args/opt values.
+    this.#checkNamedArgStructures(c);
 
     // 8. Return-capture markers in nested calls.
     this.#checkReturnCaptures(c);
@@ -1048,6 +1066,52 @@ class SemanticAnalyzer {
     }
   }
 
+  /** Array literals passed where a `record` is declared must be records
+   *  (`[a:1 b:2]`) or entries arrays (`[[a 1] [b 2]]`). Only clearly-wrong
+   *  literal elements are flagged; dynamic values are left to runtime. */
+  #checkRecordShapes(c: CommandExpressionNode, cmd: ICommand): void {
+    const wantsRecord = (t: string | string[]): boolean =>
+      Array.isArray(t) ? t.includes("record") : t === "record";
+    const check = (node: Node | undefined, label: string): void => {
+      if (node?.type !== NodeType.ArrayExpression) return;
+      const elements = (node as any).elements as Node[];
+      if (elements.some((el) => el.type === NodeType.NamedArg)) return; // mixed-array check covers the rest
+      for (const el of elements) {
+        // A valid entries-array element is a [name value] pair; dynamic
+        // nodes (variables, helpers, calls) can't be judged statically.
+        if (
+          el.type === NodeType.VariableIdentifier ||
+          el.type === NodeType.HelperFunctionExpression ||
+          el.type === NodeType.CallExpression
+        ) {
+          continue;
+        }
+        const isPair =
+          el.type === NodeType.ArrayExpression &&
+          ((el as any).elements as Node[]).length === 2;
+        if (!isPair) {
+          this.#diagnostics.push(
+            diag(
+              el,
+              `${label} takes a record — write [a:1 b:2] (or [name value] pairs).`,
+              "record-shape",
+            ),
+          );
+          return;
+        }
+      }
+    };
+    for (let i = 0; i < cmd.argDefs.length; i++) {
+      if (wantsRecord(cmd.argDefs[i].type)) {
+        check(c.args[i], `<${cmd.argDefs[i].name}>`);
+      }
+    }
+    for (const opt of c.opts) {
+      const def = cmd.optDefs.find((o) => o.name === opt.name);
+      if (def && wantsRecord(def.type)) check(opt.value, `--${def.name}`);
+    }
+  }
+
   /** A bareword that starts with `0x` can never be a valid value: a real
    *  address parses as an AddressLiteral and valid hex as a BytesLiteral, so
    *  a surviving `0x…` bareword is a malformed literal (often a doc/example
@@ -1067,6 +1131,60 @@ class SemanticAnalyzer {
         ),
       );
     }
+  }
+
+  /** Mixed record arrays (`[1 a:2]`) and named args inside inline call
+   *  expressions — structural misuse the parser accepts but nothing can
+   *  bind. */
+  #checkNamedArgStructures(c: CommandExpressionNode): void {
+    const visit = (node: Node): void => {
+      switch (node.type) {
+        case NodeType.ArrayExpression: {
+          const elements = (node as any).elements as Node[];
+          const namedCount = elements.filter(
+            (el) => el.type === NodeType.NamedArg,
+          ).length;
+          if (namedCount > 0 && namedCount < elements.length) {
+            this.#diagnostics.push(
+              diag(
+                node,
+                "Arrays cannot mix record entries (name:value) with positional elements.",
+                "mixed-array-elements",
+              ),
+            );
+          }
+          for (const el of elements) visit(el);
+          break;
+        }
+        case NodeType.NamedArg:
+          visit((node as any).value as Node);
+          break;
+        case NodeType.HelperFunctionExpression:
+          for (const a of (node as HelperFunctionNode).args) visit(a);
+          break;
+        case NodeType.CallExpression: {
+          const call = node as CallExpressionNode;
+          visit(call.target);
+          for (const a of call.args) {
+            if (a.type === NodeType.NamedArg) {
+              this.#diagnostics.push(
+                diag(
+                  a,
+                  "Named arguments are not supported in inline call expressions.",
+                  "named-arg-in-call",
+                ),
+              );
+            }
+            visit(a);
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    };
+    for (const arg of c.args) visit(arg);
+    for (const opt of c.opts) visit(opt.value);
   }
 
   #checkBatchable(
@@ -1395,6 +1513,21 @@ class SemanticAnalyzer {
       // Helper arity, from statically-stored arg defs.
       const argDefs = this.#schemas.getHelperArgDefs(owningModule, localName);
       if (argDefs) {
+        // Named args (`name:value`) validate against the arg defs; each
+        // partition issue maps to its own diagnostic on the offending node.
+        const { issues } = partitionHelperArgs(h.args, argDefs as ArgDef[]);
+        for (const issue of issues) {
+          let message = `@${this.#displayHelperName(h)}: ${issue.message}`;
+          if (issue.code === "unknown-named-arg") {
+            message += didYouMean(
+              issue.node.name,
+              (argDefs as ArgDef[])
+                .filter((d) => !d.rest)
+                .map((d) => d.name),
+            );
+          }
+          this.#diagnostics.push(diag(issue.node, message, issue.code));
+        }
         const arity = computeCommandArity(argDefs as ArgDef[], h.args);
         if (arity.isError) {
           this.#diagnostics.push(
@@ -1405,6 +1538,20 @@ class SemanticAnalyzer {
                 arity.comparison,
               )}`,
               "arg-count",
+            ),
+          );
+        }
+      } else if (h.args.some((a) => a.type === NodeType.NamedArg)) {
+        // No static arg defs (e.g. proxied helper params) — named args
+        // can't be validated, but flag them so they aren't silently odd.
+        for (const a of h.args) {
+          if (a.type !== NodeType.NamedArg) continue;
+          this.#diagnostics.push(
+            diag(
+              a,
+              `@${this.#displayHelperName(h)} does not declare named arguments.`,
+              "unknown-named-arg",
+              "warning",
             ),
           );
         }

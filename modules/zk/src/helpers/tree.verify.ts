@@ -1,8 +1,8 @@
-import { defineHelper, ErrorException, fieldItem, Num } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import type Zk from "..";
 import { parseFieldArray, parseFieldInput } from "../utils/field";
 import { loadPoseidon2 } from "../utils/poseidon";
-import { fixedVerify, leanVerify, parseTreeMode } from "../utils/tree";
+import { buildTreeMode, fixedVerify, leanVerify } from "../utils/tree";
 
 export default defineHelper<Zk>({
   name: "tree.verify",
@@ -24,18 +24,21 @@ export default defineHelper<Zk>({
       description: "Array of sibling field elements, leaf to root",
     },
     {
-      name: "mode",
-      type: "string",
-      optional: true,
+      name: "lean",
+      type: "bool",
+      namedOnly: true,
       description:
-        "Tree mode: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` for a zero-padded fixed-depth tree",
+        "`lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set)",
+    },
+    {
+      name: "depth",
+      type: "number",
+      namedOnly: true,
+      description: "`depth:<n>` — zero-padded fixed-depth tree",
     },
   ],
-  completions: {
-    mode: () => ["lean", "depth:20"].map(fieldItem),
-  },
-  async run(_, { root, leaf, index, proof, mode }) {
-    const treeMode = parseTreeMode(mode);
+  async run(_, { root, leaf, index, proof, lean, depth }) {
+    const treeMode = buildTreeMode({ lean, depth });
     const rootValue = parseFieldInput(root, "root");
     const leafValue = parseFieldInput(leaf, "leaf");
     const pathIndex = Number(Num(index).toBigInt());

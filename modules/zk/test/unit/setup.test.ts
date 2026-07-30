@@ -5,38 +5,35 @@ import {
   DEV_PTAU_MAX_POWER,
   getPtau,
   hezPtauUrl,
-  parseCircomSetupOptions,
+  buildCircomSetupOptions,
   parsePtauValue,
   ptauPowerFor,
 } from "../../src/utils/setup";
 
 describe("zk utils > setup", () => {
-  describe("parseCircomSetupOptions", () => {
+  describe("buildCircomSetupOptions", () => {
     it("defaults to auto + groth16", () => {
-      expect(parseCircomSetupOptions([])).to.deep.equal({
+      expect(buildCircomSetupOptions({})).to.deep.equal({
         ptau: { kind: "auto" },
         system: "groth16",
       });
     });
 
     it("parses ptau:dev and ptau:<url>", () => {
-      expect(parseCircomSetupOptions(["ptau:dev"]).ptau).to.deep.equal({
+      expect(buildCircomSetupOptions({ ptau: "dev" }).ptau).to.deep.equal({
         kind: "dev",
       });
       expect(
-        parseCircomSetupOptions(["ptau:https://x.test/a.ptau"]).ptau,
+        buildCircomSetupOptions({ ptau: "https://x.test/a.ptau" }).ptau,
       ).to.deep.equal({ kind: "url", url: "https://x.test/a.ptau" });
       expect(
-        parseCircomSetupOptions(["ptau:ipfs://Qm123/final.ptau"]).ptau,
+        buildCircomSetupOptions({ ptau: "ipfs://Qm123/final.ptau" }).ptau,
       ).to.deep.equal({ kind: "url", url: "ipfs://Qm123/final.ptau" });
     });
 
-    it("rejects unknown options with the supported list", () => {
-      expect(() => parseCircomSetupOptions(["turbo:on"])).to.throw(
-        'unknown option "turbo:on" — supported: ptau:dev, ptau:<url>, system:',
-      );
-      expect(() => parseCircomSetupOptions(["ptau:whatever"])).to.throw(
-        "unknown option",
+    it("rejects invalid ptau values with the supported list", () => {
+      expect(() => buildCircomSetupOptions({ ptau: "whatever" })).to.throw(
+        'invalid ptau "whatever" — supported: ptau:dev, ptau:<url>',
       );
     });
   });

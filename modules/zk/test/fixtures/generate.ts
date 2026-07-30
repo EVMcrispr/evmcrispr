@@ -78,9 +78,12 @@ const solcVersion = "0.8.26";
 const { compileCached } = await import(
   "../../../contracts/src/utils/solcLoader"
 );
+const { buildCompileOptions } = await import(
+  "../../../contracts/src/utils/solc"
+);
 const { bytecode: verifierBytecode, compilerLongVersion } = await compileCached(
   verifierSource,
-  [`version:${solcVersion}`],
+  buildCompileOptions({ version: solcVersion }),
   {
     log: (m: string) => console.log(m),
   },

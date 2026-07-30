@@ -14,7 +14,7 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the long com
 ## Syntax
 
 ```evml
-@contracts:solidity.compiler(source ...options)
+@contracts:solidity.compiler(source version:<value> runs:<value> optimizer:<value> via-ir:<value> evm:<value> contract:<value>)
 ```
 
 ## Arguments
@@ -22,7 +22,12 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the long com
 | Name | Type | Description |
 |------|------|-------------|
 | `source` | `string` | Solidity source code, or a URL to fetch it from |
-| `[...options]` | `string` | Compiler options, e.g. `version:0.8.26`, `runs:1000`, `via-ir` |
+| `version:` | `string` | Compiler release, e.g. `version:0.8.26` (default: from the pragma) |
+| `runs:` | `number` | Optimizer runs, e.g. `runs:1000` (default: 200) |
+| `optimizer:` | `bool` | `optimizer:false` disables the optimizer |
+| `via-ir:` | `bool` | `via-ir:true` compiles through the IR pipeline |
+| `evm:` | `string` | EVM version, e.g. `evm:cancun` |
+| `contract:` | `string` | Target contract name when the source defines several |
 
 ## Examples
 

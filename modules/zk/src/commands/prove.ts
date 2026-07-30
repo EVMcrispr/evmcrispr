@@ -53,9 +53,9 @@ export default defineCommand<Zk>({
     },
     {
       name: "inputs",
-      type: "any",
+      type: ["record", "string"],
       description:
-        "Circuit input signals: an entries array like [[a 3] [b 11]] (nest values for array signals), or a JSON object string",
+        "Circuit input signals: a record like [a:3 b:11] (equivalently [[a 3] [b 11]]; nest values for array signals), or a JSON object string",
     },
   ],
   async run(module, { variable }, { opts }) {

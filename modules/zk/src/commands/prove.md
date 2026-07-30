@@ -25,7 +25,6 @@ zk:prove <variable>
 | `--circom` | `string` | circom source (or URL) to compile and set up in-place instead of --wasm/--zkey — DEV-ONLY trusted setup, never for production proofs |
 | `--ptau` | `string` | Powers-of-tau for the in-place setup: dev (generate locally) or a ptau URL (default: auto-download a hez file sized to the circuit); only valid with --circom |
 | `--system` | `string` | Proof system for the in-place setup: groth16 (default, DEV-ONLY), plonk or fflonk (deterministic); only valid with --circom (pre-built zkeys carry their system) |
-| `--inputs` | `any` | Circuit input signals: an entries array like [[a 3] [b 11]] (nest values for array signals), or a JSON object string |
 
 <!-- HAND-WRITTEN -->
 
@@ -35,7 +34,7 @@ zk:prove <variable>
 load zk
 
 # From pre-built artifacts (production workflow — zkey from a real ceremony)
-zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [[a 3] [b 11]]
+zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [a:3 b:11]
 
 # From circom source, DEV-ONLY in-place setup
 set $src <<<CIRCOM
@@ -48,25 +47,26 @@ template Multiplier2() {
 }
 component main = Multiplier2();
 CIRCOM
-zk:prove $proof --circom $src --ptau dev --inputs [[a 3] [b 11]]
+zk:prove $proof --circom $src --ptau dev --inputs [a:3 b:11]
 
 set [$a $b $c $signals] @zk:proof($proof)
 exec $verifier "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
 
 # plonk: deterministic setup, production-grade with a real ptau
-zk:prove $proof --circom $src --system plonk --inputs [[a 3] [b 11]]
+zk:prove $proof --circom $src --system plonk --inputs [a:3 b:11]
 set [$p $signals] @zk:proof($proof)
 exec $verifier "verifyProof(uint256[24],uint256[1])" $p $signals
 ```
 
 ## Inputs
 
-`--inputs` takes the circuit's input signals by name, as an entries array:
-`[[a 3] [b 11]]`. Values may be numbers, decimal or hex strings, booleans,
-or nested arrays for array signals (`[[siblings $siblings]]`). A JSON
-object string is also accepted, so a snarkjs `input.json` fetched with
-`@ipfs.get` or pasted from a CLI workflow works as-is. Quote JSON with
-single quotes so the inner double quotes survive parsing.
+`--inputs` takes the circuit's input signals by name, as a record:
+`[a:3 b:11]` — sugar for the equivalent entries array `[[a 3] [b 11]]`,
+which is accepted too. Values may be numbers, decimal or hex strings,
+booleans, or nested arrays for array signals (`[siblings:$siblings]`). A
+JSON object string is also accepted, so a snarkjs `input.json` fetched
+with `@ipfs.get` or pasted from a CLI workflow works as-is. Quote JSON
+with single quotes so the inner double quotes survive parsing.
 
 ## Compiling in-place (--circom)
 

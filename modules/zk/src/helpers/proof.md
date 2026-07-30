@@ -27,7 +27,7 @@ The result is the argument tuple of a snarkjs-exported `Groth16Verifier`, with `
 ```
 load zk
 load lang
-zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [[a 3] [b 11]]
+zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [a:3 b:11]
 set [$a $b $c $signals] @zk:proof($proof)
 print "Output signal:" @lang:at($signals 0)
 print "Valid:" @get($verifier "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[1])(bool)" $a $b $c $signals)

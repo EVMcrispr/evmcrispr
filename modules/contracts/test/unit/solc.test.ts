@@ -1,18 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildCompileOptions,
   buildStandardJson,
   compileCacheKey,
   DEFAULT_OPTIONS,
-  parseOptions,
   parsePragma,
   selectContract,
   selectVersion,
 } from "../../src/utils/solc";
 
 describe("Contracts > utils > solc", () => {
-  describe("parseOptions", () => {
+  describe("buildCompileOptions", () => {
     it("defaults to optimizer on with 200 runs", () => {
-      const o = parseOptions([]);
+      const o = buildCompileOptions({});
       expect(o.optimizerEnabled).toBe(true);
       expect(o.optimizerRuns).toBe(200);
       expect(o.viaIR).toBe(false);
@@ -20,14 +20,14 @@ describe("Contracts > utils > solc", () => {
       expect(o.evmVersion).toBeUndefined();
     });
 
-    it("parses every supported option", () => {
-      const o = parseOptions([
-        "version:0.8.20",
-        "runs:1000",
-        "via-ir",
-        "evm:cancun",
-        "contract:MyToken",
-      ]);
+    it("builds every supported option", () => {
+      const o = buildCompileOptions({
+        version: "0.8.20",
+        runs: 1000,
+        "via-ir": true,
+        evm: "cancun",
+        contract: "MyToken",
+      });
       expect(o.version).toBe("0.8.20");
       expect(o.optimizerRuns).toBe(1000);
       expect(o.optimizerEnabled).toBe(true);
@@ -36,21 +36,18 @@ describe("Contracts > utils > solc", () => {
       expect(o.contract).toBe("MyToken");
     });
 
-    it("optimizer:off disables the optimizer", () => {
-      const o = parseOptions(["optimizer:off"]);
+    it("optimizer:false disables the optimizer", () => {
+      const o = buildCompileOptions({ optimizer: false });
       expect(o.optimizerEnabled).toBe(false);
     });
 
-    it("throws on unknown options", () => {
-      expect(() => parseOptions(["viair"])).toThrow(/unknown option "viair"/);
-      expect(() => parseOptions(["runs=1000"])).toThrow(/unknown option/);
-    });
-
     it("throws on malformed values", () => {
-      expect(() => parseOptions(["version:0.8"])).toThrow(/invalid version/);
-      expect(() => parseOptions(["runs:many"])).toThrow(/invalid runs/);
-      expect(() => parseOptions(["evm:"])).toThrow(/requires a value/);
-      expect(() => parseOptions(["contract:"])).toThrow(/requires a name/);
+      expect(() => buildCompileOptions({ version: "0.8" })).toThrow(
+        /invalid version/,
+      );
+      expect(() => buildCompileOptions({ runs: "many" })).toThrow(
+        /invalid runs/,
+      );
     });
   });
 
@@ -200,10 +197,13 @@ describe("Contracts > utils > solc", () => {
 
   describe("compileCacheKey", () => {
     it("is stable for identical inputs and differs across options", () => {
-      const a = compileCacheKey("contract A {}", parseOptions([]));
-      const b = compileCacheKey("contract A {}", parseOptions([]));
-      const c = compileCacheKey("contract A {}", parseOptions(["via-ir"]));
-      const d = compileCacheKey("contract B {}", parseOptions([]));
+      const a = compileCacheKey("contract A {}", buildCompileOptions({}));
+      const b = compileCacheKey("contract A {}", buildCompileOptions({}));
+      const c = compileCacheKey(
+        "contract A {}",
+        buildCompileOptions({ "via-ir": true }),
+      );
+      const d = compileCacheKey("contract B {}", buildCompileOptions({}));
       expect(a).toBe(b);
       expect(a).not.toBe(c);
       expect(a).not.toBe(d);

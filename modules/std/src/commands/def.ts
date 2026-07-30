@@ -17,6 +17,7 @@ import {
   defineCommand,
   ErrorException,
   NodeType,
+  partitionHelperArgs,
   ReturnSignal,
 } from "@evmcrispr/sdk";
 import type Std from "..";
@@ -57,20 +58,33 @@ function buildDef(
     : undefined;
   const optDefs = isHelper ? [] : (returnTypeOrOptDefs as OptDef[]);
 
-  const requiredCount = paramDefs.filter((p) => !p.optional && !p.rest).length;
-  const totalFixed = paramDefs.filter((p) => !p.rest).length;
-  const hasRest = paramDefs.some((p) => p.rest);
-  const hasOptional = paramDefs.some((p) => p.optional);
-
   const run = async (
     module: Module,
     callNode: HelperFunctionNode | CommandExpressionNode,
     interpreters: NodesInterpreters,
   ): Promise<any> => {
     const { interpretNode } = interpreters;
-    const args = callNode.args;
 
-    const argCount = args.length;
+    // Named args (`name:value`) fill their param by name; positional args
+    // fill the rest in order. Commands never receive NamedArg nodes, so
+    // for them this partition is the identity.
+    const { positional, named, issues } = partitionHelperArgs(
+      callNode.args,
+      paramDefs,
+    );
+    if (issues.length > 0) {
+      throw new ErrorException(`${name}: ${issues[0].message}`);
+    }
+
+    const countDefs = paramDefs.filter((p) => !named.has(p.name));
+    const requiredCount = countDefs.filter(
+      (p) => !p.optional && !p.rest,
+    ).length;
+    const totalFixed = countDefs.filter((p) => !p.rest).length;
+    const hasRest = countDefs.some((p) => p.rest);
+    const hasOptional = countDefs.some((p) => p.optional);
+
+    const argCount = positional.length;
     if (hasRest) {
       if (argCount < requiredCount) {
         throw new ErrorException(
@@ -89,13 +103,17 @@ function buildDef(
       );
     }
 
+    let cursor = 0;
+    const nodeFor = (def: ArgDef): Node | undefined =>
+      named.get(def.name)?.value ?? positional[cursor++];
+
     module.bindingsManager.enterScope();
     try {
       for (let i = 0; i < paramDefs.length; i++) {
         const def = paramDefs[i];
 
         if (def.type === "helper") {
-          const argNode = args[i];
+          const argNode = nodeFor(def);
           if (!argNode || argNode.type !== NodeType.HelperFunctionExpression) {
             throw new ErrorException(
               `@${def.name} must be a helper reference like @helperName`,
@@ -132,9 +150,10 @@ function buildDef(
         const bindKey = `$${def.name}`;
         if (def.rest) {
           const restValues = [];
-          for (let j = i; j < args.length; j++) {
-            restValues.push(await interpretNode(args[j]));
+          for (const restNode of positional.slice(cursor)) {
+            restValues.push(await interpretNode(restNode));
           }
+          cursor = positional.length;
           module.bindingsManager.setBinding(
             bindKey,
             restValues,
@@ -143,16 +162,19 @@ function buildDef(
             undefined,
             true,
           );
-        } else if (args[i]) {
-          const val = await interpretNode(args[i]);
-          module.bindingsManager.setBinding(
-            bindKey,
-            val,
-            USER,
-            false,
-            undefined,
-            true,
-          );
+        } else {
+          const argNode = nodeFor(def);
+          if (argNode) {
+            const val = await interpretNode(argNode);
+            module.bindingsManager.setBinding(
+              bindKey,
+              val,
+              USER,
+              false,
+              undefined,
+              true,
+            );
+          }
         }
       }
 

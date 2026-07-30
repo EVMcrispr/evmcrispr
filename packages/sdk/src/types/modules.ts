@@ -219,6 +219,8 @@ export type HelperArgDefEntry = {
   type: string | string[];
   optional?: boolean;
   rest?: boolean;
+  /** Only fillable by name (`name:value`), never positionally. */
+  namedOnly?: boolean;
   /** Human-readable description for documentation. */
   description?: string;
 };

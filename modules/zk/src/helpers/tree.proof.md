@@ -9,7 +9,7 @@ Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as
 ## Syntax
 
 ```evml
-@zk:tree.proof(leaves index ...options)
+@zk:tree.proof(leaves index lean:<value> depth:<value> pad:<value>)
 ```
 
 ## Arguments
@@ -18,7 +18,9 @@ Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as
 |------|------|-------------|
 | `leaves` | `array` | Array of field-element leaves, in insertion order |
 | `index` | `number` | Zero-based position of the leaf to prove |
-| `[...options]` | `string` | Tree options: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` (zero-padded fixed depth), plus `pad:<n>` to zero-pad lean siblings and append the real proof length |
+| `lean:` | `bool` | `lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set) |
+| `depth:` | `number` | `depth:<n>` — zero-padded fixed-depth tree |
+| `pad:` | `number` | `pad:<n>` — zero-pad lean siblings to a fixed length and append the real proof length |
 
 ## Examples
 

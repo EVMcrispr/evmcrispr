@@ -9,7 +9,6 @@ import type { CompileOptions } from "./solc";
 import {
   buildStandardJson,
   compileCacheKey,
-  parseOptions,
   parsePragma,
   selectContract,
   selectVersion,
@@ -427,16 +426,15 @@ async function compileFresh(
 }
 
 /**
- * Compile a source (inline text or URL) with the given helper rest-args,
- * memoized per (source, options) so the @solidity companions reuse one
- * compile across a deploy + verify script.
+ * Compile a source (inline text or URL) with the given options, memoized
+ * per (source, options) so the @solidity companions reuse one compile
+ * across a deploy + verify script.
  */
 export function compileCached(
   sourceArg: string,
-  restOptions: string[],
+  opts: CompileOptions,
   ctx: CompileContext,
 ): Promise<CompileResult> {
-  const opts = parseOptions(restOptions.map(String));
   const key = compileCacheKey(sourceArg, opts);
   let cached = compileCache.get(key);
   if (!cached) {

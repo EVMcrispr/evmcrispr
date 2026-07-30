@@ -47,6 +47,12 @@ export const theme = {
       foreground: "ffffff",
       token: "option",
     },
+    // `name:` of a named argument / record entry — mirrored by
+    // `variable.parameter.evml` in grammars/evml-theme.ts.
+    {
+      foreground: "5BB498",
+      token: "namedArg",
+    },
   ],
   colors: {
     "editor.foreground": "#FFFFFF",

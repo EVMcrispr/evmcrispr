@@ -80,6 +80,7 @@ export type {
   ModuleContext,
   ModuleData,
   ModuleExports,
+  NamedArgNode,
   Node,
   NodeInterpreter,
   NodeParser,
@@ -123,6 +124,8 @@ export {
   getDeepestNodeWithArgs,
   hasCommandsBlock,
 } from "./utils/ast";
+export type { FetchContext } from "./utils/artifacts";
+export { fetchArtifact } from "./utils/artifacts";
 export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
   fetchNpmLatestVersion,

@@ -20,6 +20,7 @@ import { blockExpressionParser } from "./block";
 import { callExpressionParser } from "./call";
 import { destructurePatternParser } from "./destructure";
 import { helperFunctionParser } from "./helper";
+import { namedArgParser } from "./namedArg";
 import {
   barewordParser,
   primaryParser,
@@ -125,7 +126,15 @@ export const argumentsParser: NodeParser<ArgumentExpressionNode[]> =
           return results;
         }
 
-        results.push(run(argumentExpressionParser([char(")"), char("(")])));
+        // `name:value` named args are only meaningful in helper parens (and
+        // array literals) — try them before the regular expression parsers
+        // so `opt:3` doesn't get swallowed as a bareword.
+        const named = run(possibly(namedArgParser([char(")"), char("(")])));
+        if (named) {
+          results.push(named);
+        } else {
+          results.push(run(argumentExpressionParser([char(")"), char("(")])));
+        }
         run(optionalMultilineWhitespace);
       }
     }),

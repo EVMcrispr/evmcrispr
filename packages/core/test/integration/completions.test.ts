@@ -130,6 +130,32 @@ describe("Core > completions", () => {
     });
   });
 
+  describe("named-arg completions", () => {
+    it("offers name: items for unused optional helper args", async () => {
+      const script = "set $x @date(now )";
+      const items = await ctx.completions(script, { line: 1, col: 17 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.include("offset:");
+      const item = items.find((c) => c.label === "offset:");
+      expect(item!.kind).to.equal("field");
+      expect(item!.insertText).to.equal("offset:");
+    });
+
+    it("does not offer a name already used", async () => {
+      const script = "set $x @date(now offset:+1d )";
+      const items = await ctx.completions(script, { line: 1, col: 28 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.not.include("offset:");
+    });
+
+    it("does not offer a name filled positionally", async () => {
+      const script = "set $x @date(now +1d )";
+      const items = await ctx.completions(script, { line: 1, col: 21 });
+      const labels = items.map((c) => c.label);
+      expect(labels).to.not.include("offset:");
+    });
+  });
+
   describe("inline module completions", () => {
     it("offers qualified spellings for inline module defs", async () => {
       const script = `def module math (

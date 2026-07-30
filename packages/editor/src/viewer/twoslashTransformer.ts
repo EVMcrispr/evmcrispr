@@ -26,6 +26,7 @@ const HOVERABLE_SCOPES = new Set([
   "keyword.control.module-command.evml",
   "entity.name.tag.option.evml",
   "variable.other.evml",
+  "variable.parameter.evml",
   "entity.name.function.helper.evml",
 ]);
 

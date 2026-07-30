@@ -59,22 +59,22 @@ export function hezPtauUrl(power: number): string {
 }
 
 /**
- * Parse `'ptau:...'` / `'system:...'` rest options (helpers) — same specs
- * as the `--ptau` / `--system` command opts.
+ * Build setup options from the helpers' `ptau:` / `system:` named args —
+ * same value specs as the `--ptau` / `--system` command opts.
  */
-export function parseCircomSetupOptions(rest: string[]): SetupOptions {
+export function buildCircomSetupOptions(args: {
+  ptau?: unknown;
+  system?: unknown;
+}): SetupOptions {
   const options: SetupOptions = { ptau: { kind: "auto" }, system: "groth16" };
-  for (const arg of rest) {
-    if (arg.startsWith("system:")) {
-      options.system = parseSystemValue(arg.slice("system:".length));
-      continue;
-    }
-    const ptau = parsePtauValue(
-      arg.startsWith("ptau:") ? arg.slice("ptau:".length) : undefined,
-    );
+  if (args.system !== undefined) {
+    options.system = parseSystemValue(String(args.system));
+  }
+  if (args.ptau !== undefined) {
+    const ptau = parsePtauValue(String(args.ptau));
     if (!ptau) {
       throw new ErrorException(
-        `@zk:circom: unknown option "${arg}" — supported: ptau:dev, ptau:<url>, system:groth16|plonk|fflonk`,
+        `@zk:circom: invalid ptau "${String(args.ptau)}" — supported: ptau:dev, ptau:<url>`,
       );
     }
     options.ptau = ptau;

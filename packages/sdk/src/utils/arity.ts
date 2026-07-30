@@ -1,4 +1,4 @@
-import type { BlockExpressionNode, Node } from "../types";
+import type { BlockExpressionNode, NamedArgNode, Node } from "../types";
 import { NodeType } from "../types";
 import { type Comparison, ComparisonType, checkComparisonError } from "./args";
 import type { ArgDef, ArgType } from "./schema";
@@ -83,9 +83,26 @@ export interface CommandArityResult {
 export function computeCommandArity(
   argDefs: readonly ArgDef[],
   nodeArgs: readonly Node[],
-  meta: CommandArityMeta = prepareCommandArity(argDefs),
+  meta?: CommandArityMeta,
 ): CommandArityResult {
-  const { blockDefIndices, hasBlocks, isBlockUnion, nonBlockDefs } = meta;
+  // Named args (`name:value`) fill their def by name, so both the node and
+  // the filled def leave the positional count. `namedOnly` defs are never
+  // positional. Commands see neither, so the cached `meta` fast path below
+  // is untouched for them.
+  const namedNames = new Set(
+    nodeArgs
+      .filter((n) => n.type === NodeType.NamedArg)
+      .map((n) => (n as NamedArgNode).name),
+  );
+  if (namedNames.size > 0 || argDefs.some((d) => d.namedOnly)) {
+    argDefs = argDefs.filter(
+      (d) => !d.namedOnly && !namedNames.has(d.name),
+    );
+    nodeArgs = nodeArgs.filter((n) => n.type !== NodeType.NamedArg);
+    meta = undefined;
+  }
+  const { blockDefIndices, hasBlocks, isBlockUnion, nonBlockDefs } =
+    meta ?? prepareCommandArity(argDefs);
 
   let astArgs = nodeArgs.slice();
   const blockNodes: (BlockExpressionNode | undefined)[] = [];

@@ -27,9 +27,29 @@ The language supports these value types:
 | `bytes` | `0xdeadbeef` | Hex-encoded bytes |
 | `bytes32` | `0x00...001` | 32-byte value |
 | `array` | `[1 2 3]` | Ordered collection — elements are space-separated, never commas |
+| `record` | `[a:1 b:2]` | Named entries — sugar for the entries array `[["a" 1] ["b" 2]]` |
 
 Numbers support scientific notation with `e`: `100e18` means `100 * 10^18`.
 This is useful for token amounts with 18 decimals.
+
+### Records
+
+A record is an array of named entries written `name:value` — it desugars to
+an entries array of `[name value]` pairs, so `[a:1 b:2]` and
+`[["a" 1] ["b" 2]]` are the same value. Entries can nest arrays and
+records; an array can't mix named entries with positional elements.
+
+```evml
+load zk
+load lang [@keys @values @lookup]
+
+set $inputs [a:3 b:11]
+set $names @keys($inputs)      # ["a" "b"]
+set $signals @values($inputs)  # [3 11]
+set $a @lookup($inputs a)      # 3
+
+zk:prove $proof --wasm ipfs://QmWasm --zkey ipfs://QmZkey --inputs $inputs
+```
 
 ## Arithmetic & Boolean Expressions
 

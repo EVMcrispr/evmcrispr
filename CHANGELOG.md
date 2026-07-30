@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Named arguments and records
+
+- Helper calls accept named arguments: `@helper(val opt:3)` fills the `opt` argument by name, after any positional args and in any order. Optional args become skippable (`@http:fetch($url auth:$token)`), and helpers can declare named-only options (shown as `name:<value>` in their docs).
+- Record literals: `[a:1 b:2]` is sugar for the entries array `[["a" 1] ["b" 2]]`, with a new `record` arg type validating the shape. `zk:prove --inputs [a:3 b:11]` uses it; the entries-array and JSON-string forms keep working.
+- New `@lang` helpers over records: `@keys`, `@values`, `@lookup`.
+- The editor understands the syntax end to end: highlighting, `name:` completions for optional args, signature help, hover cards, and diagnostics for unknown/duplicate/misplaced names.
+- A `name:value` bareword inside helper parens or array literals now means a named argument, not a literal string — quote it (`'name:value'`) for the literal; URLs (`ipfs://…`, `https://…`) are unaffected. The experimental compile helpers use this natively: `@contracts:solidity($src runs:1000 via-ir:true optimizer:false)` replaces the quoted option strings, and the zk setup/tree helpers take `ptau:` / `system:` / `lean:` / `depth:` / `pad:` the same way.
+
 ## 0.11.0 — "New Foundations"
 
 We rebuilt EVMcrispr from the ground up: EVML is now a real scripting language, every module lives in its own package, simulations run in the browser with no API key, and the whole toolchain is AI-ready.

@@ -27,6 +27,7 @@ import {
   parseReadAbiParamTypes,
   parseSignatureParamTypes,
   resolveArgDefIndex,
+  resolveHelperArgDef,
   variableItem,
 } from "@evmcrispr/sdk";
 import type { PublicClient, Transport } from "viem";
@@ -529,7 +530,9 @@ export async function getCompletions(
     const { helperArgDefsMap: earlyHelperArgDefsMap } =
       buildModuleCompletionItems(bindings);
     const argDefs = earlyHelperArgDefsMap[helperNodeKey(helperNode)];
-    const argDef = argDefs?.[deepestResult.argIndex];
+    const argDef = argDefs
+      ? resolveHelperArgDef(argDefs, helperNode.args, deepestResult.argIndex)
+      : undefined;
     if (argDef && !isBuiltinType(argDef.type)) {
       const customTypes = collectCustomTypes(bindings);
       const customType = customTypes[argDef.type as string];
@@ -610,9 +613,39 @@ export async function getCompletions(
     const argDefs = helperArgDefsMap[helperNodeKey(helperNode)];
     if (argDefs) {
       const helperArgIndex = deepestResult.argIndex;
-      const argDef =
-        argDefs[helperArgIndex] ??
-        (argDefs.at(-1)?.rest ? argDefs.at(-1) : undefined);
+      const argDef = resolveHelperArgDef(
+        argDefs,
+        helperNode.args,
+        helperArgIndex,
+      );
+
+      // `name:` suggestions for defs still fillable by name — optional or
+      // namedOnly, not already used by name or covered positionally.
+      const usedNames = new Set(
+        helperNode.args
+          .filter((a) => a.type === NodeType.NamedArg)
+          .map((a) => (a as unknown as { name: string }).name),
+      );
+      const positionalBeforeCursor = helperNode.args
+        .slice(0, helperArgIndex)
+        .filter((a) => a.type !== NodeType.NamedArg).length;
+      const positionallyFilled = new Set(
+        argDefs
+          .filter((d) => !d.namedOnly)
+          .slice(0, positionalBeforeCursor)
+          .map((d) => d.name),
+      );
+      const namedArgItems: CompletionItem[] = argDefs
+        .filter((d) => !d.rest && (d.namedOnly || d.optional))
+        .filter((d) => !usedNames.has(d.name) && !positionallyFilled.has(d.name))
+        .map((d) => ({
+          label: `${d.name}:`,
+          insertText: `${d.name}:`,
+          kind: "field",
+          detail: Array.isArray(d.type) ? d.type.join(" | ") : d.type,
+          ...(d.description ? { documentation: d.description } : {}),
+        }));
+
       if (argDef) {
         let effectiveType = argDef.type;
         if (argDef.rest) {
@@ -652,8 +685,18 @@ export async function getCompletions(
         const filteredVars = shouldIncludeVars(effectiveType)
           ? buildVarCompletionItems(bindings, currentCommandNode, position)
           : [];
-        return [...typeDrivenItems, ...filteredHelpers, ...filteredVars];
+        // Suppress name: suggestions while the cursor is already inside a
+        // named arg's value — only the value's own completions apply there.
+        const insideNamedValue =
+          helperNode.args[helperArgIndex]?.type === NodeType.NamedArg;
+        return [
+          ...(insideNamedValue ? [] : namedArgItems),
+          ...typeDrivenItems,
+          ...filteredHelpers,
+          ...filteredVars,
+        ];
       }
+      return namedArgItems;
     }
     return [];
   }

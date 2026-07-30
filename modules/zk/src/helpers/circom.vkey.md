@@ -9,7 +9,7 @@ Compile circom source, run the in-place setup and return the verification key as
 ## Syntax
 
 ```evml
-@zk:circom.vkey(source ...options)
+@zk:circom.vkey(source ptau:<value> system:<value>)
 ```
 
 ## Arguments
@@ -17,7 +17,8 @@ Compile circom source, run the in-place setup and return the verification key as
 | Name | Type | Description |
 |------|------|-------------|
 | `source` | `string` | circom source code, or a http(s)/ipfs URL to fetch it from |
-| `[...options]` | `string` | Setup options: ptau:dev, ptau:<url>, system:groth16|plonk|fflonk |
+| `ptau:` | `string` | Powers-of-tau: `ptau:dev` or `ptau:<url>` (default: auto-download a hez file sized to the circuit) |
+| `system:` | `string` | Proof system: `system:groth16|plonk|fflonk` (default groth16) |
 
 <!-- HAND-WRITTEN -->
 

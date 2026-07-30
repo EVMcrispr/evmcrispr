@@ -24,7 +24,7 @@ Decompose a value into its bits, least-significant first — e.g. a Merkle path 
 ```evml
 # Turn a Merkle path index into the per-level indices a circuit expects
 set $leaves [1234 5678 9012]
-set [$index $siblings $len] @zk:tree.proof($leaves 1 'pad:10')
+set [$index $siblings $len] @zk:tree.proof($leaves 1 pad:10)
 print "Indices:" @zk:field.bits($index 10)
 ```
 

@@ -75,7 +75,7 @@ describeHelper(
     cases: [
       {
         name: "compiles, runs a dev setup and exports the Solidity verifier",
-        input: "@zk:circom.verifier($src 'ptau:dev')",
+        input: "@zk:circom.verifier($src ptau:dev)",
         validate: (result) => {
           expect(result).to.include("pragma solidity");
           expect(result).to.include("contract Groth16Verifier");
@@ -90,14 +90,14 @@ describeHelper(
       },
       {
         name: "accepts an explicit ptau URL",
-        input: "@zk:circom.verifier($src 'ptau:https://zk.test/dev.ptau')",
+        input: "@zk:circom.verifier($src ptau:https://zk.test/dev.ptau)",
         validate: (result) => {
           expect(result).to.include("contract Groth16Verifier");
         },
       },
       {
         name: "exports a plonk verifier with system:plonk",
-        input: "@zk:circom.verifier($src 'ptau:dev' 'system:plonk')",
+        input: "@zk:circom.verifier($src ptau:dev system:plonk)",
         validate: (result) => {
           expect(result).to.include("contract PlonkVerifier");
         },
@@ -107,14 +107,14 @@ describeHelper(
     errorCases: [
       {
         name: "should fail on unknown options",
-        input: "@zk:circom.verifier($src 'turbo:on')",
-        error: 'unknown option "turbo:on" — supported: ptau:dev, ptau:<url>',
+        input: "@zk:circom.verifier($src turbo:on)",
+        error: 'unknown named argument "turbo:"',
       },
     ],
     // The options arg is a rest arg (unbounded arity); option validity is
     // covered by the unknown-option error case.
     skipArgLengthCheck: true,
-    sampleArgs: ['"pragma circom 2.0.0;"', "'ptau:dev'"],
+    sampleArgs: ['"pragma circom 2.0.0;"', "ptau:dev"],
   },
   helpers["circom.verifier"].argDefs,
 );
@@ -126,7 +126,7 @@ describeHelper(
     cases: [
       {
         name: "returns the verification key JSON of the cached setup",
-        input: "@zk:circom.vkey($src 'ptau:dev')",
+        input: "@zk:circom.vkey($src ptau:dev)",
         validate: (result) => {
           const vkey = JSON.parse(result);
           expect(vkey.protocol).to.equal("groth16");
@@ -136,7 +136,7 @@ describeHelper(
     ],
     preamble: MULTIPLIER_HEREDOC,
     skipArgLengthCheck: true,
-    sampleArgs: ['"pragma circom 2.0.0;"', "'ptau:dev'"],
+    sampleArgs: ['"pragma circom 2.0.0;"', "ptau:dev"],
   },
   helpers["circom.vkey"].argDefs,
 );
@@ -161,7 +161,7 @@ describeHelper(
       "load lang",
       MULTIPLIER_HEREDOC,
       "zk:prove $proof --circom $src --ptau dev --inputs [[a 3] [b 11]]",
-      "set $vkey @zk:circom.vkey($src 'ptau:dev')",
+      "set $vkey @zk:circom.vkey($src ptau:dev)",
       "set $tampered @lang:str.replace($proof '\"33\"' '\"34\"')",
     ].join("\n"),
     errorCases: [

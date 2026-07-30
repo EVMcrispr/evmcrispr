@@ -87,6 +87,8 @@ export function collectQualifiedModules(script: string): string[] {
       const call = node as any;
       visitHelpers(call.target);
       for (const a of call.args) visitHelpers(a);
+    } else if (node.type === NodeType.NamedArg) {
+      visitHelpers((node as any).value as Node);
     }
   };
   for (const c of commands) {
@@ -199,6 +201,8 @@ export function getAutoImportEdits(
       const call = node as any;
       collectHelperUsages(call.target);
       for (const a of call.args) collectHelperUsages(a);
+    } else if (node.type === NodeType.NamedArg) {
+      collectHelperUsages((node as any).value as Node);
     }
   };
 
@@ -260,6 +264,8 @@ export function getAutoImportEdits(
       const call = node as any;
       addHelperCandidates(call.target);
       for (const a of call.args) addHelperCandidates(a);
+    } else if (node.type === NodeType.NamedArg) {
+      addHelperCandidates((node as any).value as Node);
     }
   };
 

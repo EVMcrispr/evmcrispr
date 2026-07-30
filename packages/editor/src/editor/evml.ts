@@ -188,6 +188,19 @@ export const createLanguage: (
         action: { token: "string", next: "@stringDouble" },
       },
 
+      // Module-qualified command head at line start stays one identifier
+      // token so the named-arg rule below doesn't split `zk:prove`.
+      {
+        regex: /^[ \t]*[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9.\-]*(?=\s|$)/,
+        action: { token: "identifier" },
+      },
+      // `name:` of a named argument / record entry (never `://` or `::`).
+      // Mirrored by `variable.parameter.evml` in the TextMate grammar.
+      {
+        regex: /[a-zA-Z][a-zA-Z0-9\-]*(?=:(?![/:]))/,
+        action: { token: "namedArg" },
+      },
+
       // No leading \b — it can never match before the optional minus sign.
       { regex: `(${numericLiteral})\\b`, action: { token: "number" } },
       {

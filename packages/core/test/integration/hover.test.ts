@@ -86,6 +86,25 @@ describe("Core > hover", () => {
     });
   });
 
+  describe("over named args", () => {
+    it("describes the helper parameter a named arg fills", async () => {
+      const script = "set $x @date(now offset:+1d)";
+      const col = script.indexOf("offset") + 2;
+      const result = await ctx.hover(script, { line: 1, col });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Parameter** `offset: string` of `@date`");
+      expect(c).to.include("Time offset");
+    });
+
+    it("does not treat a qualified command head as a named arg", async () => {
+      const script = "load sim\nsim:fork ()";
+      const result = await ctx.hover(script, { line: 2, col: 1 });
+      const c = result?.contents.join("\n") ?? "";
+      expect(c).to.not.include("**Parameter**");
+    });
+  });
+
   describe("over command options", () => {
     it("includes the option description in the hover", async () => {
       const script =

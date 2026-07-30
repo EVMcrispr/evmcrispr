@@ -9,7 +9,7 @@ Verify a Poseidon Merkle inclusion proof against a root, using the path index an
 ## Syntax
 
 ```evml
-@zk:tree.verify(root leaf index proof mode?)
+@zk:tree.verify(root leaf index proof lean:<value> depth:<value>)
 ```
 
 ## Arguments
@@ -20,7 +20,8 @@ Verify a Poseidon Merkle inclusion proof against a root, using the path index an
 | `leaf` | `number` | Leaf to prove |
 | `index` | `number` | Path index from @zk:tree.proof (equals the leaf index for fixed-depth and complete lean trees) |
 | `proof` | `array` | Array of sibling field elements, leaf to root |
-| `[mode]` | `string` | Tree mode: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` for a zero-padded fixed-depth tree |
+| `lean:` | `bool` | `lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set) |
+| `depth:` | `number` | `depth:<n>` — zero-padded fixed-depth tree |
 
 ## Examples
 

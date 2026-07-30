@@ -1,8 +1,8 @@
-import { defineHelper, fieldItem, Num } from "@evmcrispr/sdk";
+import { defineHelper, Num } from "@evmcrispr/sdk";
 import type Zk from "..";
 import { parseFieldArray } from "../utils/field";
 import { loadPoseidon2 } from "../utils/poseidon";
-import { fixedRoot, leanRoot, parseTreeMode } from "../utils/tree";
+import { buildTreeMode, fixedRoot, leanRoot } from "../utils/tree";
 
 export default defineHelper<Zk>({
   name: "tree.root",
@@ -16,18 +16,21 @@ export default defineHelper<Zk>({
       description: "Array of field-element leaves, in insertion order",
     },
     {
-      name: "mode",
-      type: "string",
-      optional: true,
+      name: "lean",
+      type: "bool",
+      namedOnly: true,
       description:
-        "Tree mode: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` for a zero-padded fixed-depth tree",
+        "`lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set)",
+    },
+    {
+      name: "depth",
+      type: "number",
+      namedOnly: true,
+      description: "`depth:<n>` — zero-padded fixed-depth tree",
     },
   ],
-  completions: {
-    mode: () => ["lean", "depth:20"].map(fieldItem),
-  },
-  async run(_, { leaves, mode }) {
-    const treeMode = parseTreeMode(mode);
+  async run(_, { leaves, lean, depth }) {
+    const treeMode = buildTreeMode({ lean, depth });
     const elements = parseFieldArray(leaves, "leaves");
     const h = await loadPoseidon2();
     const root =

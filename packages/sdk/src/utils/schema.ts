@@ -33,6 +33,7 @@ export type ArgType = string | string[];
 const BUILTIN_TYPES = new Set<string>([
   "address",
   "array",
+  "record",
   "number",
   "string",
   "bytes",
@@ -58,6 +59,9 @@ export interface ArgDef {
   type: ArgType;
   optional?: boolean;
   rest?: boolean;
+  /** Only fillable by name (`name:value`), never positionally. Implies
+   *  optional; skipped by positional cursors and arity counting. */
+  namedOnly?: boolean;
   /** Human-readable description for documentation. */
   description?: string;
   /** Allow a `variable`-typed arg to bind a config variable (`$mod:key`).
@@ -149,6 +153,24 @@ export function coerceArgType(value: any, type: ArgType): any {
   return toHex(BigInt.asUintN(256, big), { size: 32 });
 }
 
+/**
+ * A record is an entries array: every element is a `[name, value]` pair
+ * with a string-ish name. `[a:1 b:2]` desugars to this shape, but a
+ * hand-written `[[a 1] [b 2]]` satisfies it equally — records have no
+ * runtime identity beyond their shape.
+ */
+export function isRecordValue(value: any): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (entry) =>
+        Array.isArray(entry) &&
+        entry.length === 2 &&
+        (isString(entry[0]) || isNum(entry[0])),
+    )
+  );
+}
+
 export function validateArgType(
   name: string,
   value: any,
@@ -186,6 +208,13 @@ export function validateArgType(
     case "array":
       if (!Array.isArray(value)) {
         throw new ErrorException(`${name} must be an array, got ${value}`);
+      }
+      break;
+    case "record":
+      if (!isRecordValue(value)) {
+        throw new ErrorException(
+          `${name} must be a record like [a:1 b:2] (entries of [name value] pairs), got ${value}`,
+        );
       }
       break;
     case "number":

@@ -9,7 +9,7 @@ Compute the Poseidon Merkle root of an array of field-element leaves. A single-l
 ## Syntax
 
 ```evml
-@zk:tree.root(leaves mode?)
+@zk:tree.root(leaves lean:<value> depth:<value>)
 ```
 
 ## Arguments
@@ -17,7 +17,8 @@ Compute the Poseidon Merkle root of an array of field-element leaves. A single-l
 | Name | Type | Description |
 |------|------|-------------|
 | `leaves` | `array` | Array of field-element leaves, in insertion order |
-| `[mode]` | `string` | Tree mode: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` for a zero-padded fixed-depth tree |
+| `lean:` | `bool` | `lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set) |
+| `depth:` | `number` | `depth:<n>` — zero-padded fixed-depth tree |
 
 ## Examples
 

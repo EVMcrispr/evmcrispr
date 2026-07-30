@@ -9,7 +9,7 @@ import {
   leanProof,
   leanRoot,
   leanVerify,
-  parseTreeMode,
+  buildTreeMode,
   zeros,
 } from "../../src/utils/tree";
 import { FIXED_D4_ROOT_12, LEAN_ROOT_123, Z1, Z2 } from "../fixtures";
@@ -18,17 +18,17 @@ const h = (a: bigint, b: bigint) => poseidon2([a, b]);
 const range = (n: number) => Array.from({ length: n }, (_, i) => BigInt(i + 1));
 
 describe("zk utils > tree", () => {
-  it("parses tree modes", () => {
-    expect(parseTreeMode(undefined)).to.deep.equal({ kind: "lean" });
-    expect(parseTreeMode("lean")).to.deep.equal({ kind: "lean" });
-    expect(parseTreeMode("depth:20")).to.deep.equal({
+  it("builds tree modes", () => {
+    expect(buildTreeMode({})).to.deep.equal({ kind: "lean" });
+    expect(buildTreeMode({ lean: true })).to.deep.equal({ kind: "lean" });
+    expect(buildTreeMode({ depth: 20 })).to.deep.equal({
       kind: "fixed",
       depth: 20,
     });
-    expect(() => parseTreeMode("depth:0")).to.throw("depth must be between");
-    expect(() => parseTreeMode("depth:33")).to.throw("depth must be between");
-    expect(() => parseTreeMode("sorted")).to.throw(
-      '<mode> must be "lean" or "depth:<n>"',
+    expect(() => buildTreeMode({ depth: 0 })).to.throw("depth: must be between");
+    expect(() => buildTreeMode({ depth: 33 })).to.throw("depth: must be between");
+    expect(() => buildTreeMode({ lean: true, depth: 4 })).to.throw(
+      "mutually exclusive",
     );
   });
 

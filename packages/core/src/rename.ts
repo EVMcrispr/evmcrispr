@@ -151,6 +151,9 @@ function collectHelperNodes(node: Node, out: HelperFunctionNode[]): void {
       for (const a of call.args) collectHelperNodes(a, out);
       break;
     }
+    case NodeType.NamedArg:
+      collectHelperNodes((node as any).value as Node, out);
+      break;
     default:
       break;
   }

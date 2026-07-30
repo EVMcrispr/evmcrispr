@@ -60,6 +60,16 @@ describeCommand("prove", {
       },
     },
     {
+      name: "accepts the record form [a:3 b:11] for inputs",
+      script: PROVE("[a:3 b:11]"),
+      timeout: 30000,
+      validate: (_actions, interpreter) => {
+        const { proof, publicSignals } = boundProof(interpreter);
+        expect(proof.protocol).to.equal("groth16");
+        expect(publicSignals).to.deep.equal(["33"]);
+      },
+    },
+    {
       name: "still accepts JSON-string inputs for snarkjs interop",
       script: PROVE(`'{"a":4,"b":10}'`),
       timeout: 30000,
@@ -114,7 +124,7 @@ load lang
 ${MULTIPLIER_HEREDOC}
 sim:fork --using anvil (
   sim:set-balance @me 1000e18
-  contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src 'ptau:dev' 'system:plonk') 'version:0.8.26')
+  contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src ptau:dev system:plonk) version:0.8.26)
   zk:prove $proof --circom $src --ptau dev --system plonk --inputs [[a 3] [b 11]]
   set [$p $signals] @zk:proof($proof)
   sim:expect @bool(@lang:at($signals 0) == 33)
@@ -163,7 +173,7 @@ load lang
 ${MULTIPLIER_HEREDOC}
 sim:fork --using anvil (
   sim:set-balance @me 1000e18
-  contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src 'ptau:dev') 'version:0.8.26')
+  contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src ptau:dev) version:0.8.26)
   zk:prove $proof --circom $src --ptau dev --inputs [[a 3] [b 11]]
   set [$a $b $c $signals] @zk:proof($proof)
   sim:expect @bool(@lang:at($signals 0) == 33)

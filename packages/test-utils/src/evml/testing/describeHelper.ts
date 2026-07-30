@@ -97,11 +97,13 @@ function sampleForType(type: string | string[]): string {
 
 function generateSampleArgs(argDefs: HelperArgDefEntry[]): string[] {
   return argDefs
-    .filter((a) => !a.optional && !a.rest)
+    .filter((a) => !a.optional && !a.rest && !a.namedOnly)
     .map((a) => sampleForType(a.type));
 }
 
-function computeComparison(argDefs: HelperArgDefEntry[]) {
+function computeComparison(allArgDefs: HelperArgDefEntry[]) {
+  // namedOnly defs never count positionally.
+  const argDefs = allArgDefs.filter((a) => !a.namedOnly);
   const requiredCount = argDefs.filter((a) => !a.optional && !a.rest).length;
   const hasRest = argDefs.some((a) => a.rest);
   const hasOptional = argDefs.some((a) => a.optional);

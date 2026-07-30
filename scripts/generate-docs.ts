@@ -70,6 +70,7 @@ interface ArgDef {
   type: string | string[];
   optional?: boolean;
   rest?: boolean;
+  namedOnly?: boolean;
   description?: string;
 }
 
@@ -281,6 +282,7 @@ function parseArgObjects(block: string): ArgDef[] {
       const arg: ArgDef = { name: nameMatch[1], type: typeValue };
       if (/optional:\s*true/.test(objContent)) arg.optional = true;
       if (/rest:\s*true/.test(objContent)) arg.rest = true;
+      if (/namedOnly:\s*true/.test(objContent)) arg.namedOnly = true;
       const description = extractStringProp(objContent, "description");
       if (description !== null) arg.description = description;
       args.push(arg);
@@ -571,7 +573,8 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
   lines.push("```evml");
   const syntaxParts = [fullName];
   for (const arg of cmd.argDefs) {
-    if (arg.rest) syntaxParts.push(`[...${arg.name}]`);
+    if (arg.namedOnly) syntaxParts.push(`[${arg.name}:<value>]`);
+    else if (arg.rest) syntaxParts.push(`[...${arg.name}]`);
     else if (arg.optional) syntaxParts.push(`[${arg.name}]`);
     else syntaxParts.push(`<${arg.name}>`);
   }
@@ -590,7 +593,11 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
         ? arg.type.join(" \\| ")
         : arg.type;
       const rawName = arg.rest ? `...${arg.name}` : arg.name;
-      const displayName = arg.optional || arg.rest ? `[${rawName}]` : rawName;
+      const displayName = arg.namedOnly
+        ? `${arg.name}:`
+        : arg.optional || arg.rest
+          ? `[${rawName}]`
+          : rawName;
       lines.push(
         `| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`,
       );
@@ -689,6 +696,7 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
   lines.push("");
   if (helper.hasArgs) {
     const argParts = helper.argDefs.map((a) => {
+      if (a.namedOnly) return `${a.name}:<value>`;
       if (a.rest) return `...${a.name}`;
       if (a.optional) return `${a.name}?`;
       return a.name;
@@ -714,7 +722,11 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
         ? arg.type.join(" \\| ")
         : arg.type;
       const rawName = arg.rest ? `...${arg.name}` : arg.name;
-      const displayName = arg.optional || arg.rest ? `[${rawName}]` : rawName;
+      const displayName = arg.namedOnly
+        ? `${arg.name}:`
+        : arg.optional || arg.rest
+          ? `[${rawName}]`
+          : rawName;
       lines.push(
         `| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`,
       );

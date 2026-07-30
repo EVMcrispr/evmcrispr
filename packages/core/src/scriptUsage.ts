@@ -130,6 +130,8 @@ export function collectScriptUsage(script: string): ScriptUsage | null {
       const call = node as Node & { target: Node; args: Node[] };
       visit(call.target);
       for (const a of call.args) visit(a);
+    } else if (node.type === NodeType.NamedArg) {
+      visit((node as any).value as Node);
     }
   };
 

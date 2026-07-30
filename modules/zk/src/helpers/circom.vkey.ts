@@ -1,6 +1,6 @@
 import { defineHelper } from "@evmcrispr/sdk";
 import type Zk from "..";
-import { parseCircomSetupOptions, setupCached } from "../utils/setup";
+import { buildCircomSetupOptions, setupCached } from "../utils/setup";
 
 export default defineHelper<Zk>({
   name: "circom.vkey",
@@ -14,17 +14,21 @@ export default defineHelper<Zk>({
       description: "circom source code, or a http(s)/ipfs URL to fetch it from",
     },
     {
-      name: "options",
+      name: "ptau",
       type: "string",
-      rest: true,
+      namedOnly: true,
       description:
-        "Setup options: ptau:dev, ptau:<url>, system:groth16|plonk|fflonk",
+        "Powers-of-tau: `ptau:dev` or `ptau:<url>` (default: auto-download a hez file sized to the circuit)",
+    },
+    {
+      name: "system",
+      type: "string",
+      namedOnly: true,
+      description: "Proof system: `system:groth16|plonk|fflonk` (default groth16)",
     },
   ],
-  async run(module, { source, options }) {
-    const parsed = parseCircomSetupOptions(
-      ((options as string[]) ?? []).map(String),
-    );
+  async run(module, { source, ptau, system }) {
+    const parsed = buildCircomSetupOptions({ ptau, system });
     const { vkeyJson } = await setupCached(String(source), parsed, {
       log: (message) => module.context.log(message),
       fetchIpfs: (cidPath) => module.ipfsResolver.bytes(cidPath),

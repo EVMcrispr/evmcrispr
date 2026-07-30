@@ -102,8 +102,20 @@ export function inferTypes(
 
         if (meta) {
           for (let i = 0; i < h.args.length; i++) {
-            const arg = h.args[i];
-            const argExpected = resolveArgType(meta, i);
+            let arg = h.args[i];
+            let argExpected: string | undefined;
+            if (arg.type === NodeType.NamedArg) {
+              // Named args resolve their expected type by def name; the
+              // positional prefix keeps its index-based mapping (named
+              // args always come after positionals).
+              const named = arg as unknown as { name: string; value: Node };
+              const def = meta.argDefs.find((d) => d.name === named.name);
+              const t = def?.type;
+              argExpected = Array.isArray(t) ? t[0] : t;
+              arg = named.value as (typeof h.args)[number];
+            } else {
+              argExpected = resolveArgType(meta, i);
+            }
 
             if (
               arg.type === NodeType.VariableIdentifier &&
@@ -133,6 +145,10 @@ export function inferTypes(
         for (const el of arr.elements) walk(el);
         return "array";
       }
+
+      case NodeType.NamedArg:
+        walk((node as unknown as { value: Node }).value);
+        return undefined;
 
       case NodeType.NumberLiteral:
         return "number";

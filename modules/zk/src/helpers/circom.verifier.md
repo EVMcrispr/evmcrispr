@@ -9,7 +9,7 @@ Compile circom source (inline text or a http/ipfs URL), run an in-place setup, a
 ## Syntax
 
 ```evml
-@zk:circom.verifier(source ...options)
+@zk:circom.verifier(source ptau:<value> system:<value>)
 ```
 
 ## Arguments
@@ -17,7 +17,8 @@ Compile circom source (inline text or a http/ipfs URL), run an in-place setup, a
 | Name | Type | Description |
 |------|------|-------------|
 | `source` | `string` | circom source code, or a http(s)/ipfs URL to fetch it from |
-| `[...options]` | `string` | Setup options: ptau:dev, ptau:<url> (default: auto-download a hez powers-of-tau sized to the circuit), system:groth16|plonk|fflonk (default groth16) |
+| `ptau:` | `string` | Powers-of-tau: `ptau:dev` or `ptau:<url>` (default: auto-download a hez file sized to the circuit) |
+| `system:` | `string` | Proof system: `system:groth16|plonk|fflonk` (default groth16) |
 
 <!-- HAND-WRITTEN -->
 
@@ -63,7 +64,7 @@ template Multiplier2() {
 component main = Multiplier2();
 CIRCOM
 
-contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src 'ptau:dev'))
+contracts:deploy $verifier @contracts:solidity(@zk:circom.verifier($src ptau:dev))
 zk:prove $proof --circom $src --ptau dev --inputs [[a 3] [b 11]]
 set [$a $b $c $signals] @zk:proof($proof)
 print "Valid:" @get($verifier "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[1])(bool)" $a $b $c $signals)

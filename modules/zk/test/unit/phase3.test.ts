@@ -12,11 +12,11 @@ import {
 } from "../../src/utils/eddsa";
 import { BN254_PRIME, randomFieldElement, toBits } from "../../src/utils/field";
 import {
-  parseCircomSetupOptions,
+  buildCircomSetupOptions,
   parseSystemValue,
 } from "../../src/utils/setup";
 import { fetchArtifact } from "../../src/utils/snarkjs";
-import { parseTreeProofOptions } from "../../src/utils/tree";
+import { buildTreeProofOptions } from "../../src/utils/tree";
 import { FIELD_HASH_0X01 } from "../fixtures";
 
 describe("zk utils > phase 3", () => {
@@ -85,41 +85,38 @@ describe("zk utils > phase 3", () => {
 
   describe("setup options", () => {
     it("parses system options", () => {
-      expect(parseCircomSetupOptions(["system:plonk"]).system).to.equal(
+      expect(buildCircomSetupOptions({ system: "plonk" }).system).to.equal(
         "plonk",
       );
-      expect(parseCircomSetupOptions([]).system).to.equal("groth16");
+      expect(buildCircomSetupOptions({}).system).to.equal("groth16");
       expect(
-        parseCircomSetupOptions(["ptau:dev", "system:fflonk"]),
+        buildCircomSetupOptions({ ptau: "dev", system: "fflonk" }),
       ).to.deep.equal({ ptau: { kind: "dev" }, system: "fflonk" });
       expect(() => parseSystemValue("stark")).to.throw(
         'unknown proof system "stark"',
       );
-      expect(() => parseCircomSetupOptions(["system:stark"])).to.throw(
+      expect(() => buildCircomSetupOptions({ system: "stark" })).to.throw(
         "unknown proof system",
       );
     });
   });
 
   describe("tree proof options", () => {
-    it("parses mode + pad combinations", () => {
-      expect(parseTreeProofOptions([])).to.deep.equal({
+    it("builds mode + pad combinations", () => {
+      expect(buildTreeProofOptions({})).to.deep.equal({
         mode: { kind: "lean" },
         pad: undefined,
       });
-      expect(parseTreeProofOptions(["pad:10"])).to.deep.equal({
+      expect(buildTreeProofOptions({ pad: 10 })).to.deep.equal({
         mode: { kind: "lean" },
         pad: 10,
       });
-      expect(parseTreeProofOptions(["lean", "pad:20"]).pad).to.equal(20);
-      expect(() => parseTreeProofOptions(["depth:4", "pad:8"])).to.throw(
-        "pad only applies to lean trees",
+      expect(buildTreeProofOptions({ lean: true, pad: 20 }).pad).to.equal(20);
+      expect(() => buildTreeProofOptions({ depth: 4, pad: 8 })).to.throw(
+        "pad: only applies to lean trees",
       );
-      expect(() => parseTreeProofOptions(["pad:0"])).to.throw(
-        "pad must be between",
-      );
-      expect(() => parseTreeProofOptions(["nonsense"])).to.throw(
-        '<options> must be "lean", "depth:<n>" or "pad:<n>"',
+      expect(() => buildTreeProofOptions({ pad: 0 })).to.throw(
+        "pad: must be between",
       );
     });
   });

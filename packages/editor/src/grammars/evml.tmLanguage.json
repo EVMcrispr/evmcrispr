@@ -2,7 +2,9 @@
   "name": "evml",
   "displayName": "EVML",
   "scopeName": "source.evml",
-  "fileTypes": ["evml"],
+  "fileTypes": [
+    "evml"
+  ],
   "patterns": [
     {
       "include": "#reference-number"
@@ -48,6 +50,9 @@
     },
     {
       "include": "#module-command"
+    },
+    {
+      "include": "#named-arg"
     },
     {
       "include": "#command"
@@ -208,13 +213,28 @@
       ]
     },
     "module-command": {
-      "match": "\\b[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9-]*\\b",
-      "name": "keyword.control.module-command.evml"
+      "match": "^\\s*([a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9-]*)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.control.module-command.evml"
+        }
+      }
     },
     "command": {
       "comment": "Auto-generated from modules/std/src/commands by scripts/codegen-grammar.ts — do not edit by hand.",
       "match": "\\b(?:batch|def|exec|exit|if|load|loop|print|send|set|sign|switch|wait)\\b",
       "name": "keyword.control.evml"
+    },
+    "named-arg": {
+      "match": "\\b([a-zA-Z][a-zA-Z0-9-]*)(:)(?![/:])",
+      "captures": {
+        "1": {
+          "name": "variable.parameter.evml"
+        },
+        "2": {
+          "name": "punctuation.separator.named-arg.evml"
+        }
+      }
     }
   }
 }

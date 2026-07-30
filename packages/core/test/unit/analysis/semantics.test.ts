@@ -81,15 +81,29 @@ class StubModule extends Module {
           batchable: false,
           run: async () => "ok",
         }),
+        hopt: defineHelper({
+          name: "hopt",
+          args: [
+            { name: "a", type: "string" },
+            { name: "b", type: "string", optional: true },
+            { name: "c", type: "number", optional: true },
+          ],
+          run: async () => "ok",
+        }),
       },
-      { htwo: "string", hnob: "string" },
-      { htwo: true, hnob: false },
+      { htwo: "string", hnob: "string", hopt: "string" },
+      { htwo: true, hnob: false, hopt: true },
       {
         htwo: [
           { name: "a", type: "string" },
           { name: "b", type: "string" },
         ],
         hnob: [],
+        hopt: [
+          { name: "a", type: "string" },
+          { name: "b", type: "string", optional: true },
+          { name: "c", type: "number", optional: true },
+        ],
       },
       {},
       {},
@@ -422,6 +436,66 @@ describe("Analysis > semantic diagnostics", () => {
     it("does not flag a provided block", async () => {
       const ds = await semantic("load stub\nstub:blockcmd (\n  set $x 1\n)");
       expect(codes(ds)).to.not.include("missing-block");
+    });
+  });
+
+  describe("named args", () => {
+    it("accepts a named optional arg, skipping earlier optionals", async () => {
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt("a" c:3)');
+      expect(codes(ds)).to.be.empty;
+    });
+
+    it("flags an unknown named arg with a suggestion", async () => {
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt("a" cc:3)');
+      const d = ds.find((x) => x.code === "unknown-named-arg");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/Did you mean "c"/);
+    });
+
+    it("flags a duplicate named arg", async () => {
+      const ds = await semantic(
+        'load stub [@hopt]\nset $x @hopt("a" c:1 c:2)',
+      );
+      expect(codes(ds)).to.include("duplicate-named-arg");
+    });
+
+    it("flags a named arg before a positional one", async () => {
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt(c:1 "a")');
+      expect(codes(ds)).to.include("named-before-positional");
+    });
+
+    it("flags a def filled both positionally and by name", async () => {
+      const ds = await semantic(
+        'load stub [@hopt]\nset $x @hopt("a" "b" b:2)',
+      );
+      expect(codes(ds)).to.include("named-arg-conflict");
+    });
+
+    it("counts named args out of the positional arity", async () => {
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt(c:3)');
+      expect(codes(ds)).to.include("arg-count");
+    });
+
+    it("flags mixed record/positional array elements", async () => {
+      const ds = await semantic("set $x [1 a:2]");
+      expect(codes(ds)).to.include("mixed-array-elements");
+    });
+
+    it("accepts a pure record literal", async () => {
+      const ds = await semantic("set $x [a:1 b:2]");
+      expect(codes(ds)).to.be.empty;
+    });
+
+    it("flags named args inside inline call expressions", async () => {
+      const ds = await semantic(
+        "set $t 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d\nset $x $t::transfer(a:1)",
+      );
+      expect(codes(ds)).to.include("named-arg-in-call");
+    });
+
+    it("flags a name:value entry in a load import list", async () => {
+      const ds = await semantic("load stub [needtwo:foo]");
+      expect(ds.some((d) => /name:value/.test(d.message))).to.be.true;
     });
   });
 

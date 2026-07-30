@@ -1,8 +1,8 @@
-import { defineHelper, ErrorException, fieldItem, Num } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import type Zk from "..";
 import { parseFieldArray } from "../utils/field";
 import { loadPoseidon2 } from "../utils/poseidon";
-import { fixedProof, leanProof, parseTreeProofOptions } from "../utils/tree";
+import { buildTreeProofOptions, fixedProof, leanProof } from "../utils/tree";
 
 export default defineHelper<Zk>({
   name: "tree.proof",
@@ -21,20 +21,28 @@ export default defineHelper<Zk>({
       description: "Zero-based position of the leaf to prove",
     },
     {
-      name: "options",
-      type: "string",
-      rest: true,
+      name: "lean",
+      type: "bool",
+      namedOnly: true,
       description:
-        "Tree options: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` (zero-padded fixed depth), plus `pad:<n>` to zero-pad lean siblings and append the real proof length",
+        "`lean:true` — Semaphore v4 LeanIMT (the default when depth: is not set)",
+    },
+    {
+      name: "depth",
+      type: "number",
+      namedOnly: true,
+      description: "`depth:<n>` — zero-padded fixed-depth tree",
+    },
+    {
+      name: "pad",
+      type: "number",
+      namedOnly: true,
+      description:
+        "`pad:<n>` — zero-pad lean siblings to a fixed length and append the real proof length",
     },
   ],
-  completions: {
-    options: () => ["lean", "depth:20", "pad:20"].map(fieldItem),
-  },
-  async run(_, { leaves, index, options }) {
-    const { mode, pad } = parseTreeProofOptions(
-      ((options as string[]) ?? []).map(String),
-    );
+  async run(_, { leaves, index, lean, depth, pad: padArg }) {
+    const { mode, pad } = buildTreeProofOptions({ lean, depth, pad: padArg });
     const elements = parseFieldArray(leaves, "leaves");
     const leafIndex = Number(Num(index).toBigInt());
     const h = await loadPoseidon2();

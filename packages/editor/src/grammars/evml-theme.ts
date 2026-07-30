@@ -36,6 +36,11 @@ export const evmlTheme: ThemeRegistrationRaw = {
       scope: ["variable.other.evml"],
       settings: { foreground: "#72bcd4" },
     },
+    // `name:` of a named argument / record entry — soft teal, colon white.
+    {
+      scope: ["variable.parameter.evml"],
+      settings: { foreground: "#5BB498" },
+    },
     {
       scope: ["string"],
       settings: { foreground: "#fd6600" },

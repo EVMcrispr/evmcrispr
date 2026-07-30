@@ -25,8 +25,8 @@ Verify a proof off-chain against a verification key (groth16, plonk or fflonk au
 
 ```
 load zk
-zk:prove $proof --circom $src --ptau dev --system plonk --inputs [[a 3] [b 11]]
-set $vkey @zk:circom.vkey($src 'ptau:dev' 'system:plonk')
+zk:prove $proof --circom $src --ptau dev --system plonk --inputs [a:3 b:11]
+set $vkey @zk:circom.vkey($src ptau:dev system:plonk)
 print "Valid:" @zk:verify($proof $vkey)
 ```
 

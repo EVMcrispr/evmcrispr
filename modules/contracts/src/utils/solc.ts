@@ -20,6 +20,8 @@ export interface CompileOptions {
   evmVersion?: string;
   /** Target contract name when the source defines several. */
   contract?: string;
+  /** Deployed library addresses by name, linked at compile time. */
+  libraries?: Record<string, string>;
 }
 
 export const DEFAULT_OPTIONS: CompileOptions = {
@@ -30,71 +32,98 @@ export const DEFAULT_OPTIONS: CompileOptions = {
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 
+/** Named-arg values the @solidity helpers accept (post-binding). */
+export interface SolidityOptionArgs {
+  version?: unknown;
+  runs?: unknown;
+  optimizer?: unknown;
+  "via-ir"?: unknown;
+  evm?: unknown;
+  contract?: unknown;
+  libraries?: unknown;
+}
+
 /**
- * Parse the trailing rest args of the @solidity helpers into a normalized
- * option set. Accepted forms: `version:0.8.26`, `runs:1000`,
- * `optimizer:off`, `via-ir`, `evm:cancun`, `contract:MyToken`.
- * Unknown options throw (typo protection).
+ * Build a normalized option set from the @solidity helpers' named args:
+ * `version:0.8.26`, `runs:1000`, `optimizer:false`, `via-ir:true`,
+ * `evm:cancun`, `contract:MyToken`. Unknown names are rejected by the
+ * named-arg binder itself.
  */
-export function parseOptions(rest: string[]): CompileOptions {
+export function buildCompileOptions(args: SolidityOptionArgs): CompileOptions {
   const opts: CompileOptions = { ...DEFAULT_OPTIONS };
-  for (const raw of rest) {
-    const arg = String(raw).trim();
-    if (arg === "via-ir") {
-      opts.viaIR = true;
-      continue;
+  if (args.version !== undefined) {
+    const version = String(args.version);
+    if (!VERSION_RE.test(version)) {
+      throw new ErrorException(
+        `@solidity: invalid version "${version}" — expected e.g. version:0.8.26`,
+      );
     }
-    if (arg === "optimizer:off") {
-      opts.optimizerEnabled = false;
-      continue;
+    opts.version = version;
+  }
+  if (args.runs !== undefined) {
+    const runs = Number(String(args.runs));
+    if (!Number.isInteger(runs) || runs < 0) {
+      throw new ErrorException(
+        `@solidity: invalid runs "${String(args.runs)}" — expected e.g. runs:1000`,
+      );
     }
-    const sep = arg.indexOf(":");
-    const key = sep === -1 ? arg : arg.slice(0, sep);
-    const value = sep === -1 ? "" : arg.slice(sep + 1);
-    switch (key) {
-      case "version":
-        if (!VERSION_RE.test(value)) {
-          throw new ErrorException(
-            `@solidity: invalid version "${value}" — expected e.g. version:0.8.26`,
-          );
-        }
-        opts.version = value;
-        break;
-      case "runs": {
-        const runs = Number(value);
-        if (!Number.isInteger(runs) || runs < 0) {
-          throw new ErrorException(
-            `@solidity: invalid runs "${value}" — expected e.g. runs:1000`,
-          );
-        }
-        opts.optimizerEnabled = true;
-        opts.optimizerRuns = runs;
-        break;
-      }
-      case "evm":
-        if (!value) {
-          throw new ErrorException(
-            "@solidity: evm option requires a value, e.g. evm:cancun",
-          );
-        }
-        opts.evmVersion = value;
-        break;
-      case "contract":
-        if (!value) {
-          throw new ErrorException(
-            "@solidity: contract option requires a name, e.g. contract:MyToken",
-          );
-        }
-        opts.contract = value;
-        break;
-      default:
-        throw new ErrorException(
-          `@solidity: unknown option "${arg}" — supported: version:<x.y.z>, runs:<n>, optimizer:off, via-ir, evm:<version>, contract:<Name>`,
-        );
-    }
+    opts.optimizerEnabled = true;
+    opts.optimizerRuns = runs;
+  }
+  if (args.optimizer !== undefined) {
+    opts.optimizerEnabled = args.optimizer === true;
+  }
+  if (args["via-ir"] !== undefined) {
+    opts.viaIR = args["via-ir"] === true;
+  }
+  if (args.evm !== undefined) {
+    opts.evmVersion = String(args.evm);
+  }
+  if (args.contract !== undefined) {
+    opts.contract = String(args.contract);
+  }
+  if (args.libraries !== undefined) {
+    opts.libraries = buildLibraries(args.libraries);
   }
   return opts;
 }
+
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/**
+ * Parse a `libraries:` value — an entries array like
+ * `[[TranscriptLib $translib] [RelationsLib $rellib]]` — into a
+ * name → address map for solc's `settings.libraries` (contracts whose
+ * libraries have external functions need them deployed and linked).
+ */
+export function buildLibraries(value: unknown): Record<string, string> {
+  if (!Array.isArray(value)) {
+    throw new ErrorException(
+      "@solidity: libraries must be an entries array like libraries:[[LibName 0x…]]",
+    );
+  }
+  const libraries: Record<string, string> = {};
+  for (const entry of value) {
+    if (!Array.isArray(entry) || entry.length !== 2) {
+      throw new ErrorException(
+        `@solidity: libraries entries must be [name address] pairs, got ${JSON.stringify(entry)}`,
+      );
+    }
+    const name = String(entry[0]);
+    const address = String(entry[1]);
+    if (!ADDRESS_RE.test(address)) {
+      throw new ErrorException(
+        `@solidity: library "${name}" has an invalid address: ${address}`,
+      );
+    }
+    if (libraries[name] !== undefined) {
+      throw new ErrorException(`@solidity: duplicate library "${name}"`);
+    }
+    libraries[name] = address;
+  }
+  return libraries;
+}
+
 
 /** Extract the version constraint of the first `pragma solidity` directive. */
 export function parsePragma(source: string): string | undefined {
@@ -197,6 +226,13 @@ export function buildStandardJson(
   };
   if (opts.viaIR) settings.viaIR = true;
   if (opts.evmVersion) settings.evmVersion = opts.evmVersion;
+  if (opts.libraries && Object.keys(opts.libraries).length) {
+    // Unqualified: offer the address map to every source unit — solc only
+    // links the names each unit actually references.
+    settings.libraries = Object.fromEntries(
+      Object.keys(sources).map((name) => [name, opts.libraries]),
+    );
+  }
   return JSON.stringify({
     language: "Solidity",
     sources: Object.fromEntries(

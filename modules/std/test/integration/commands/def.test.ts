@@ -83,6 +83,17 @@ set $result @addOpt(3 7)`,
       },
     },
     {
+      name: "should fill an optional param by name (named arg)",
+      script: `
+def @scale "$n: number [$by: number] [$plus: number] -> number" @num($n * $by + $plus)
+set $result @scale(5 plus:1 by:2)`,
+      validate: (_, interpreter) => {
+        const val = interpreter.getBinding("$result", BindingsSpace.USER);
+        expect(val).to.be.instanceOf(Num);
+        expect((val as Num).eq(Num(11n, 1n))).to.be.true;
+      },
+    },
+    {
       name: "should define a helper using other helpers in the body",
       script: `
 def @isPositive "$n: number -> bool" @bool($n > 0)

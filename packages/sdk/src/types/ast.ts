@@ -21,6 +21,7 @@ export enum NodeType {
   DestructurePattern = "DestructurePattern",
 
   CommandOpt = "CommandOpt",
+  NamedArg = "NamedArg",
   EventCapture = "EventCapture",
   ErrorCapture = "ErrorCapture",
   TxCapture = "TxCapture",
@@ -183,6 +184,14 @@ export interface CommandOptNode extends Node {
   value: ArgumentExpressionNode;
 }
 
+/** `name:value` inside helper parens (named argument) or an array literal
+ *  (record entry — sugar for the `[name value]` pair). */
+export interface NamedArgNode extends Node {
+  type: NodeType.NamedArg;
+  name: string;
+  value: ArgumentExpressionNode;
+}
+
 export interface BlockExpressionNode extends Node {
   type: NodeType.BlockExpression;
   body: CommandExpressionNode[];
@@ -210,6 +219,7 @@ export type ArgumentExpressionNode =
   | DestructurePatternNode
   | CallExpressionNode
   | HelperFunctionNode
+  | NamedArgNode
   | PrimaryExpressionNode;
 
 export type CommandArgExpressionNode =

@@ -90,6 +90,11 @@ export function parseImportList(list: ArrayExpressionNode): {
         boundName: h.rename ?? h.name,
         node: el,
       });
+    } else if (el.type === NodeType.NamedArg) {
+      errors.push({
+        node: el,
+        message: `import lists take names, not name:value entries — write ${(el as Node & { name: string }).name}, or name>newName to rename`,
+      });
     } else {
       errors.push({
         node: el,

@@ -24,7 +24,9 @@ load lang
 | [@lang:find](src/helpers/find.md) | `any` | Return the first element that satisfies the predicate. |
 | [@lang:flat](src/helpers/flat.md) | `array` | Flatten one level of nesting in an array. |
 | [@lang:includes](src/helpers/includes.md) | `bool` | Check whether an array contains an element. |
+| [@lang:keys](src/helpers/keys.md) | `array` | Return the entry names of a record (`[a:1 b:2]` or `[name value]` pairs) as an array. |
 | [@lang:len](src/helpers/len.md) | `number` | Return the length of an array. |
+| [@lang:lookup](src/helpers/lookup.md) | `any` | Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). |
 | [@lang:map](src/helpers/map.md) | `array` | Transform each element of an array by applying a helper. |
 | [@lang:num.format](src/helpers/num.format.md) | `string` | Format a number with decimal places (like formatUnits). |
 | [@lang:num.parse](src/helpers/num.parse.md) | `number` | Parse a decimal string with a given number of decimals (like parseUnits). |
@@ -44,5 +46,6 @@ load lang
 | [@lang:str.upper](src/helpers/str.upper.md) | `string` | Convert a string to uppercase. |
 | [@lang:unique](src/helpers/unique.md) | `array` | Remove duplicates from an array, preserving first-occurrence order. |
 | [@lang:unzip](src/helpers/unzip.md) | `array` | Transpose an array of pairs into two separate arrays. |
+| [@lang:values](src/helpers/values.md) | `array` | Return the entry values of a record (`[a:1 b:2]` or `[name value]` pairs) as an array. |
 | [@lang:zip](src/helpers/zip.md) | `array` | Combine two arrays element-wise into an array of pairs. |
 

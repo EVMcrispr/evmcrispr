@@ -8,6 +8,7 @@ import {
   recursiveParser,
 } from "arcsecond";
 import { argumentExpressionParser } from "./expression";
+import { namedArgParser } from "./namedArg";
 
 import {
   createNodeLocation,
@@ -26,7 +27,11 @@ export const arrayExpressionParser: NodeParser<ArrayExpressionNode> =
 
         const elements: ArrayExpressionNode["elements"] = [];
         while (!run(possibly(lookAhead(char("]"))))) {
-          const elem = run(possibly(argumentExpressionParser([char("]")])));
+          // `name:value` record entries — tried before the regular element
+          // parsers so `a:1` doesn't get swallowed as a bareword.
+          const elem =
+            run(possibly(namedArgParser([char("]")]))) ??
+            run(possibly(argumentExpressionParser([char("]")])));
           if (elem === null) break;
           elements.push(elem as ArrayExpressionNode["elements"][number]);
           run(optionalMultilineWhitespace);

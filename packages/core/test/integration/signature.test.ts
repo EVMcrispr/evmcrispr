@@ -57,6 +57,19 @@ describe("Core > signatureHelp", () => {
     });
   });
 
+  describe("named args", () => {
+    it("jumps the active parameter to the named def", async () => {
+      const script = "set $x @date(now offset:+1";
+      const result = await ctx.signatureHelp(script, {
+        line: 1,
+        col: script.length,
+      });
+      expect(result).to.not.be.null;
+      expect(result!.activeParameter).to.equal(1);
+      expect(result!.signatures[0].parameters[1].label).to.include("offset");
+    });
+  });
+
   describe("edge cases", () => {
     it("should return null for empty lines", async () => {
       const script = "set $x 1\n\nset $y 2";

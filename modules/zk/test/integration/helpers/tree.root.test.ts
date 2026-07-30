@@ -20,7 +20,7 @@ describeHelper(
       },
       {
         name: "computes a zero-padded fixed-depth root",
-        input: '@zk:tree.root([1 2] "depth:4")',
+        input: '@zk:tree.root([1 2] depth:4)',
         expected: FIXED_D4_ROOT_12,
       },
     ],
@@ -31,17 +31,17 @@ describeHelper(
         error: "<leaves> must be a non-empty array",
       },
       {
-        name: "should fail on an unknown mode",
-        input: '@zk:tree.root([1 2] "sorted")',
-        error: '<mode> must be "lean" or "depth:<n>"',
+        name: "should fail on an unknown named option",
+        input: "@zk:tree.root([1 2] sorted:true)",
+        error: 'unknown named argument "sorted:"',
       },
       {
         name: "should fail when the tree overflows its depth",
-        input: '@zk:tree.root([1 2 3 4 5] "depth:2")',
+        input: '@zk:tree.root([1 2 3 4 5] depth:2)',
         error: "exceeds the capacity of a depth-2 tree",
       },
     ],
-    sampleArgs: ["[1 2 3]", '"lean"'],
+    sampleArgs: ["[1 2 3]"],
     docCases: [
       {
         description: "Compute the Poseidon Merkle root of a group of members",

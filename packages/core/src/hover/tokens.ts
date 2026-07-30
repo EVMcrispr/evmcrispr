@@ -7,6 +7,7 @@ export type TokenKind =
   | "helper"
   | "variable"
   | "option"
+  | "named-arg"
   | "identifier";
 
 export interface Token {
@@ -19,10 +20,12 @@ export interface Token {
 /**
  * Note: the address pattern is listed first so that a 0x... literal is
  * recognised as an address rather than falling into the catch-all
- * identifier match.
+ * identifier match. The named-arg alternative matches just the name of a
+ * `name:value` pair (not `://` or `::`); it fires for `mod:command` heads
+ * too, so consumers must AST-confirm before treating it as a named arg.
  */
 const TOKEN_RE =
-  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w-]+(?::\w+)?|--[\w-]+|[\w:-]+/g;
+  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w-]+(?::\w+)?|--[\w-]+|[a-zA-Z][a-zA-Z0-9-]*(?=:(?![/:]))|[\w:-]+/g;
 
 export function getTokenAtCol(lineText: string, col: number): Token | null {
   TOKEN_RE.lastIndex = 0;
@@ -37,6 +40,9 @@ export function getTokenAtCol(lineText: string, col: number): Token | null {
       else if (value.startsWith("@")) kind = "helper";
       else if (value.startsWith("$")) kind = "variable";
       else if (value.startsWith("--")) kind = "option";
+      else if (lineText[end] === ":" && !value.includes(":")) {
+        kind = "named-arg";
+      }
       return { kind, value, start, end };
     }
   }

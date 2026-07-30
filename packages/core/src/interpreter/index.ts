@@ -19,6 +19,7 @@ import type {
   Module,
   ModuleContext,
   ModuleData,
+  NamedArgNode,
   Node,
   NodeInterpreter,
   NodesInterpreter,
@@ -156,15 +157,24 @@ function stableStringify(v: unknown): string {
 
 /** Build the cache key used by both the writer (`interpret` on a
  *  `HelperFunctionExpression`) and any reader (e.g. hover). Centralising
- *  this prevents writer/reader drift. */
+ *  this prevents writer/reader drift. Named args are prefixed with
+ *  `\0name:` — the NUL byte cannot occur in source text, so `@h(1 opt:2)`,
+ *  `@h(1 2)` and `@h(1 "opt:2")` all key differently. */
 export function helperCacheKey(
   name: string,
   resolvedArgs: unknown[],
   chainId: number,
   module?: string,
+  argNames?: (string | undefined)[],
 ): string {
   const qualified = module ? `${module}:${name}` : name;
-  return `helper:${chainId}:${qualified}:${resolvedArgs.map(stableStringify).join(":")}`;
+  const parts = resolvedArgs.map((v, i) => {
+    const argName = argNames?.[i];
+    return argName
+      ? `\u0000${argName}:${stableStringify(v)}`
+      : stableStringify(v);
+  });
+  return `helper:${chainId}:${qualified}:${parts.join(":")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,32 +182,41 @@ export function helperCacheKey(
 // ---------------------------------------------------------------------------
 
 /** Build a `HelperFunctionNode` whose args are already-resolved values
- *  wrapped in `StringLiteral` nodes. Combine with `passthroughInterpreters`
- *  so the helper's `interpretNode(arg)` calls just unwrap the value. */
+ *  wrapped in `StringLiteral` nodes — named args keep their `NamedArg`
+ *  wrapper (with the resolved value inside) so the binder still sees the
+ *  name. Combine with `passthroughInterpreters` so the helper's
+ *  `interpretNode(arg)` calls just unwrap the value. */
 export function syntheticHelperNode(
   name: string,
   resolvedArgs: unknown[],
   module?: string,
+  argNames?: (string | undefined)[],
 ): HelperFunctionNode {
   return {
     type: NodeType.HelperFunctionExpression,
     ...(module ? { module } : {}),
     name,
-    args: resolvedArgs.map(
-      (value) =>
-        ({
-          type: NodeType.StringLiteral,
-          value,
-        }) as any,
-    ),
+    args: resolvedArgs.map((value, i) => {
+      const literal = { type: NodeType.StringLiteral, value } as any;
+      const argName = argNames?.[i];
+      return argName
+        ? ({ type: NodeType.NamedArg, name: argName, value: literal } as any)
+        : literal;
+    }),
   };
 }
 
-/** Interpreters that just return a node's `value`. Used to feed
- *  pre-resolved synthetic nodes into helpers without re-interpreting. */
+const passthroughValue = (n: Node): any =>
+  n.type === NodeType.NamedArg
+    ? ((n as NamedArgNode).value as any).value
+    : (n as any).value;
+
+/** Interpreters that just return a node's `value` (unwrapping NamedArg
+ *  wrappers). Used to feed pre-resolved synthetic nodes into helpers
+ *  without re-interpreting. */
 export const passthroughInterpreters: NodesInterpreters = {
-  interpretNode: async (n: Node) => (n as any).value,
-  interpretNodes: async (nodes: Node[]) => nodes.map((n) => (n as any).value),
+  interpretNode: async (n: Node) => passthroughValue(n),
+  interpretNodes: async (nodes: Node[]) => nodes.map(passthroughValue),
 };
 
 // ---------------------------------------------------------------------------
@@ -218,6 +237,7 @@ const {
   HelperFunctionExpression,
   Bareword,
   VariableIdentifier,
+  NamedArg,
 } = NodeType;
 
 /** Build a `{ interpretNode, interpretNodes }` pair closed over `ctx`. */
@@ -236,8 +256,26 @@ export function createInterpreter(ctx: InterpretCtx): NodesInterpreters {
         // rejections from the awaited promise propagate to the outer
         // try/catch (a bare `return promise` would skip it).
 
-        case ArrayExpression:
-          return await interpretNodes((n as ArrayExpressionNode).elements);
+        case ArrayExpression: {
+          const elements = (n as ArrayExpressionNode).elements;
+          // Record literal: `[a:1 b:2]` desugars to the entries array
+          // `[["a", 1], ["b", 2]]`. All-or-nothing — a record with loose
+          // positional elements is ambiguous.
+          if (elements.some((el) => el.type === NamedArg)) {
+            if (!elements.every((el) => el.type === NamedArg)) {
+              throw new ErrorException(
+                "arrays cannot mix record entries (name:value) with positional elements",
+              );
+            }
+            return await Promise.all(
+              elements.map(async (el) => {
+                const entry = el as NamedArgNode;
+                return [entry.name, await interpretNode(entry.value, options)];
+              }),
+            );
+          }
+          return await interpretNodes(elements);
+        }
 
         case DestructurePattern:
           return await interpretDestructurePattern(
@@ -296,6 +334,12 @@ export function createInterpreter(ctx: InterpretCtx): NodesInterpreters {
             ctx,
             options,
           );
+
+        // The name is a structural binder consumed by its context (helper
+        // arg binding / record desugaring); a stray NamedArg evaluates to
+        // its value.
+        case NamedArg:
+          return await interpretNode((n as NamedArgNode).value, options);
 
         default:
           return onUnsupported(n, ctx, n.type);
@@ -417,6 +461,11 @@ async function interpretHelperFunction(
   // Cached path: try to pre-resolve args. If any arg is unresolvable
   // (variable not bound, helper that needs RPC during prewarm, ...) we skip
   // the cache entirely and let the resolver decide what to do.
+  // Named args resolve to their value; their name travels alongside so the
+  // cache key and the synthetic node both keep the named structure.
+  const argNames = h.args.map((a) =>
+    a.type === NodeType.NamedArg ? (a as NamedArgNode).name : undefined,
+  );
   let resolvedArgs: unknown[] | undefined;
   try {
     resolvedArgs = await interpreters.interpretNodes(h.args);
@@ -428,14 +477,25 @@ async function interpretHelperFunction(
     return await ctx.resolveHelper(h, interpreters);
   }
 
-  const key = helperCacheKey(h.name, resolvedArgs, ctx.chainId, h.module);
+  const key = helperCacheKey(
+    h.name,
+    resolvedArgs,
+    ctx.chainId,
+    h.module,
+    argNames,
+  );
   const cached = ctx.helperCache.getBindingValue(key, CACHE);
   if (cached !== undefined) return cached;
 
   // Invoke helper with the pre-resolved args via the synthetic-node trick so
   // the helper's `interpretNode(arg)` calls just unwrap them — no double
   // execution of arg sub-trees.
-  const synthetic = syntheticHelperNode(h.name, resolvedArgs, h.module);
+  const synthetic = syntheticHelperNode(
+    h.name,
+    resolvedArgs,
+    h.module,
+    argNames,
+  );
   const result = await ctx.resolveHelper(synthetic, passthroughInterpreters);
   if (result !== undefined) {
     ctx.helperCache.setBinding(key, result, CACHE, false, undefined, true);

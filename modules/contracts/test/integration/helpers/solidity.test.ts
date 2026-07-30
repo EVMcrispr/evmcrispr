@@ -76,8 +76,8 @@ describeHelper(
       },
       {
         name: "should fail on unknown options",
-        input: `@contracts:solidity(${SRC_ARG} 'turbo:on')`,
-        error: 'unknown option "turbo:on"',
+        input: `@contracts:solidity(${SRC_ARG} turbo:on)`,
+        error: 'unknown named argument "turbo:"',
       },
       {
         name: "should fail on an unsatisfiable pragma (below the 0.6.0 floor)",
@@ -86,7 +86,7 @@ describeHelper(
       },
       {
         name: "should fail on an unknown pinned release",
-        input: `@contracts:solidity(${SRC_ARG} 'version:9.9.9')`,
+        input: `@contracts:solidity(${SRC_ARG} version:9.9.9)`,
         error: 'unknown solc release "9.9.9"',
       },
       {
@@ -122,7 +122,7 @@ contracts:deploy $counter @contracts:solidity($src)`,
         description:
           "Compile a contract hosted at a URL with custom compiler options",
         code: `set $url 'https://sources.example.com/Counter.sol'
-contracts:deploy $counter @contracts:solidity($url 'runs:1000' 'via-ir')`,
+contracts:deploy $counter @contracts:solidity($url runs:1000 via-ir:true)`,
       },
     ],
   },
@@ -149,8 +149,8 @@ describeHelper(
         },
       },
       {
-        name: "reflects runs / via-ir / optimizer:off options in settings",
-        input: `@contracts:solidity.standardJson(${SRC_ARG} 'runs:1000' 'via-ir')`,
+        name: "reflects runs: / via-ir: named options in settings",
+        input: `@contracts:solidity.standardJson(${SRC_ARG} runs:1000 via-ir:true)`,
         validate: (result) => {
           const json = JSON.parse(result);
           expect(json.settings.optimizer).toEqual({
@@ -214,7 +214,7 @@ describeHelper(
       },
       {
         name: "honors the contract: option",
-        input: `@contracts:solidity.contract('pragma solidity 0.8.26; contract A {} contract B {}' 'contract:B')`,
+        input: `@contracts:solidity.contract('pragma solidity 0.8.26; contract A {} contract B {}' contract:B)`,
         expected: "input.sol:B",
       },
     ],
@@ -242,7 +242,7 @@ describeHelper(
       },
       {
         name: "honors an explicit version pin",
-        input: `@contracts:solidity.compiler('pragma solidity ^0.8.0; contract Pinned {}' 'version:0.8.20')`,
+        input: `@contracts:solidity.compiler('pragma solidity ^0.8.0; contract Pinned {}' version:0.8.20)`,
         expected: "0.8.20+commit.a1b79de6",
       },
     ],

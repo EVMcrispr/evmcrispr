@@ -63,6 +63,30 @@ load token
 exec @token(DAI) "transfer(address,uint256)" @me @token:amount(DAI 100)
 ```
 
+### Named arguments
+
+Optional helper arguments can be passed by name with `name:value`, in any
+order, after the positional arguments:
+
+```evml
+set $ts @date(now offset:+1d)
+```
+
+Some helpers declare options that can *only* be passed by name — their docs
+show them as `name:<value>` in the signature:
+
+```evml
+load contracts
+
+set $url 'https://sources.example.com/Counter.sol'
+set $code @contracts:solidity($url runs:1000 via-ir:true)
+```
+
+The name must come right before the colon with no spaces, and values that
+start with `/` are never treated as named arguments — so URLs like
+`ipfs://Qm…` still work as plain values. Quote the whole thing (`'a:b'`)
+when you mean a literal string containing a colon.
+
 ## Options
 
 Some commands accept options with `--name value`:

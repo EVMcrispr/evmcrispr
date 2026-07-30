@@ -28,21 +28,24 @@ export type TreeMode = { kind: "lean" } | { kind: "fixed"; depth: number };
 
 export const MAX_FIXED_DEPTH = 32;
 
-export function parseTreeMode(value: unknown): TreeMode {
-  if (value === undefined || value === "lean") return { kind: "lean" };
-  const match = typeof value === "string" && value.match(/^depth:(\d+)$/);
-  if (match) {
-    const depth = Number(match[1]);
-    if (depth < 1 || depth > MAX_FIXED_DEPTH) {
-      throw new ErrorException(
-        `<mode> depth must be between 1 and ${MAX_FIXED_DEPTH}, got ${depth}`,
-      );
-    }
-    return { kind: "fixed", depth };
+/** Build the tree mode from the helpers' `lean:` / `depth:` named args. */
+export function buildTreeMode(args: {
+  lean?: unknown;
+  depth?: unknown;
+}): TreeMode {
+  if (args.lean === true && args.depth !== undefined) {
+    throw new ErrorException(
+      "lean: and depth: are mutually exclusive — a lean tree has no fixed depth",
+    );
   }
-  throw new ErrorException(
-    `<mode> must be "lean" or "depth:<n>", got ${value}`,
-  );
+  if (args.depth === undefined) return { kind: "lean" };
+  const depth = Number(String(args.depth));
+  if (!Number.isInteger(depth) || depth < 1 || depth > MAX_FIXED_DEPTH) {
+    throw new ErrorException(
+      `depth: must be between 1 and ${MAX_FIXED_DEPTH}, got ${String(args.depth)}`,
+    );
+  }
+  return { kind: "fixed", depth };
 }
 
 export interface TreeProofOptions {
@@ -51,36 +54,29 @@ export interface TreeProofOptions {
   pad?: number;
 }
 
-/** Parse @zk:tree.proof's rest options: mode (`lean`/`depth:<n>`) + `pad:<n>`. */
-export function parseTreeProofOptions(rest: string[]): TreeProofOptions {
-  let mode: TreeMode | undefined;
+/** Build @zk:tree.proof's options from its `lean:`/`depth:`/`pad:` named
+ *  args. */
+export function buildTreeProofOptions(args: {
+  lean?: unknown;
+  depth?: unknown;
+  pad?: unknown;
+}): TreeProofOptions {
+  const mode = buildTreeMode(args);
   let pad: number | undefined;
-  for (const arg of rest) {
-    const padMatch = arg.match(/^pad:(\d+)$/);
-    if (padMatch) {
-      pad = Number(padMatch[1]);
-      if (pad < 1 || pad > MAX_FIXED_DEPTH) {
-        throw new ErrorException(
-          `<options> pad must be between 1 and ${MAX_FIXED_DEPTH}, got ${pad}`,
-        );
-      }
-      continue;
-    }
-    try {
-      mode = parseTreeMode(arg);
-    } catch {
+  if (args.pad !== undefined) {
+    pad = Number(String(args.pad));
+    if (!Number.isInteger(pad) || pad < 1 || pad > MAX_FIXED_DEPTH) {
       throw new ErrorException(
-        `<options> must be "lean", "depth:<n>" or "pad:<n>", got ${arg}`,
+        `pad: must be between 1 and ${MAX_FIXED_DEPTH}, got ${String(args.pad)}`,
+      );
+    }
+    if (mode.kind === "fixed") {
+      throw new ErrorException(
+        "pad: only applies to lean trees — fixed-depth proofs already have exactly depth siblings",
       );
     }
   }
-  const resolved = mode ?? { kind: "lean" as const };
-  if (pad !== undefined && resolved.kind === "fixed") {
-    throw new ErrorException(
-      "<options> pad only applies to lean trees — fixed-depth proofs already have exactly depth siblings",
-    );
-  }
-  return { mode: resolved, pad };
+  return { mode, pad };
 }
 
 function checkIndex(index: number, length: number): void {

@@ -5,7 +5,7 @@ sidebar:
   label: "@contracts:solidity ⚗️"
 ---
 
-Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:off, via-ir, evm:<version>, contract:<Name>.
+Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:false, via-ir:true, evm:<version>, contract:<Name>.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -14,7 +14,7 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the creation
 ## Syntax
 
 ```evml
-@contracts:solidity(source ...options)
+@contracts:solidity(source version:<value> runs:<value> optimizer:<value> via-ir:<value> evm:<value> contract:<value>)
 ```
 
 ## Arguments
@@ -22,7 +22,12 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the creation
 | Name | Type | Description |
 |------|------|-------------|
 | `source` | `string` | Solidity source code, or a URL to fetch it from |
-| `[...options]` | `string` | Compiler options, e.g. `version:0.8.26`, `runs:1000`, `via-ir` |
+| `version:` | `string` | Compiler release, e.g. `version:0.8.26` (default: from the pragma) |
+| `runs:` | `number` | Optimizer runs, e.g. `runs:1000` (default: 200) |
+| `optimizer:` | `bool` | `optimizer:false` disables the optimizer |
+| `via-ir:` | `bool` | `via-ir:true` compiles through the IR pipeline |
+| `evm:` | `string` | EVM version, e.g. `evm:cancun` |
+| `contract:` | `string` | Target contract name when the source defines several |
 
 ## Examples
 
@@ -39,25 +44,25 @@ contracts:deploy $counter @contracts:solidity($src)
 
 # Compile a contract hosted at a URL with custom compiler options
 set $url 'https://sources.example.com/Counter.sol'
-contracts:deploy $counter @contracts:solidity($url 'runs:1000' 'via-ir')
+contracts:deploy $counter @contracts:solidity($url runs:1000 via-ir:true)
 ```
 
 <!-- HAND-WRITTEN -->
 
 ## Compiler options
 
-Options are passed as trailing string arguments, in any order:
+Options are passed as named arguments, in any order:
 
 | Option | Effect | Default |
 |--------|--------|---------|
 | `version:0.8.26` | Pin a compiler release | Newest release satisfying the root file's `pragma solidity` |
 | `runs:1000` | Optimizer runs (implies the optimizer is enabled) | `200` |
-| `optimizer:off` | Disable the optimizer | Optimizer enabled |
-| `via-ir` | Compile through the Yul IR pipeline (`settings.viaIR`) | Off |
+| `optimizer:false` | Disable the optimizer | Optimizer enabled |
+| `via-ir:true` | Compile through the Yul IR pipeline (`settings.viaIR`) | Off |
 | `evm:cancun` | Target EVM version (`settings.evmVersion`) | Compiler default |
 | `contract:MyToken` | Pick the target contract when several are deployable | Auto: single deployable contract in the root file, else root file-name match |
 
-Unknown options throw, so typos never silently change compiler settings. The oldest supported release is `0.6.0`.
+Unknown option names throw, so typos never silently change compiler settings. The oldest supported release is `0.6.0`.
 
 ## Imports
 
@@ -76,8 +81,8 @@ The four `@solidity` helpers share one compile cache, so a deploy + verify scrip
 ```
 load contracts
 set $url 'https://raw.githubusercontent.com/me/repo/main/Token.sol'
-contracts:deploy $token @contracts:solidity($url 'runs:1000')
-contracts:verify $token --source @contracts:solidity.standardJson($url 'runs:1000') --contract-name @contracts:solidity.contract($url 'runs:1000') --compiler @contracts:solidity.compiler($url 'runs:1000')
+contracts:deploy $token @contracts:solidity($url runs:1000)
+contracts:verify $token --source @contracts:solidity.standardJson($url runs:1000) --contract-name @contracts:solidity.contract($url runs:1000) --compiler @contracts:solidity.compiler($url runs:1000)
 ```
 
 The compiler itself (~9 MB) is downloaded from [binaries.soliditylang.org](https://binaries.soliditylang.org) on first use and cached for the session.

@@ -44,7 +44,14 @@ export type SignatureHelp = {
 function findEnclosingHelper(
   text: string,
   offset: number,
-): { module?: string; name: string; activeParam: number } | null {
+): {
+  module?: string;
+  name: string;
+  activeParam: number;
+  /** Set when the cursor sits in a `name:value` named arg — the active
+   *  parameter resolves by this name instead of by position. */
+  activeParamName?: string;
+} | null {
   let depth = 0;
   let commas = 0;
 
@@ -58,7 +65,15 @@ function findEnclosingHelper(
         const before = text.slice(0, i);
         const match = before.match(/@(?:([\w-]+):)?([\w.]+)$/);
         if (match) {
-          return { module: match[1], name: match[2], activeParam: commas };
+          // Named arg under the cursor: `… name:partial|`
+          const inParens = text.slice(i + 1, offset);
+          const named = inParens.match(/(?:^|[\s(])([a-zA-Z][\w-]*):[^\s)]*$/);
+          return {
+            module: match[1],
+            name: match[2],
+            activeParam: commas,
+            activeParamName: named?.[1],
+          };
         }
         return null;
       }
@@ -156,9 +171,14 @@ function buildHelperSignature(
   description: string | undefined,
 ): SignatureInfo {
   const params: ParameterInfo[] = argDefs.map((a) => {
+    const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
+    // namedOnly defs render in call syntax: they can only be spelled
+    // `name:value`.
+    if (a.namedOnly) {
+      return { label: `[${a.name}:${typeLabel}]` };
+    }
     const suffix = a.rest ? "..." : "";
     const opt = a.optional ? "?" : "";
-    const typeLabel = Array.isArray(a.type) ? a.type.join(" | ") : a.type;
     return { label: `${a.name}${opt}: ${typeLabel}${suffix}` };
   });
 
@@ -230,13 +250,17 @@ export async function getSignatureHelp(
         info.returnType,
         info.description,
       );
+      // A `name:` under the cursor targets its def directly.
+      const namedIdx = helper.activeParamName
+        ? info.argDefs.findIndex((d) => d.name === helper.activeParamName)
+        : -1;
       return {
         signatures: [sig],
         activeSignature: 0,
-        activeParameter: Math.min(
-          helper.activeParam,
-          sig.parameters.length - 1,
-        ),
+        activeParameter:
+          namedIdx >= 0
+            ? namedIdx
+            : Math.min(helper.activeParam, sig.parameters.length - 1),
       };
     }
   }

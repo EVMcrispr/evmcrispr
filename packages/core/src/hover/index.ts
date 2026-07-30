@@ -229,22 +229,26 @@ function formatHelperHover(
 }
 
 /** Shared panel shape for option/parameter cards: a bold kind label plus
- *  `name: type` and the owning command as the title line, description as
- *  the body — mirrors the `**Variable**`/`**Config**` panel style. */
+ *  `name: type` and the owning command/helper as the title line,
+ *  description as the body — mirrors the `**Variable**`/`**Config**`
+ *  panel style. */
 function formatDefHover(
   kind: "Option" | "Parameter",
   name: string,
   type: string | string[],
-  commandNode: CommandExpressionNode,
+  ownerLabel: string,
   description: string | undefined,
 ): string {
   const typeLabel = Array.isArray(type) ? type.join(" | ") : type;
-  const commandLabel = `${commandNode.module ? `${commandNode.module}:` : ""}${commandNode.name}`;
-  let result = `**${kind}** \`${name}: ${typeLabel}\` of \`${commandLabel}\``;
+  let result = `**${kind}** \`${name}: ${typeLabel}\` of \`${ownerLabel}\``;
   if (description) {
     result += `\n\n${description}`;
   }
   return result;
+}
+
+function commandLabel(commandNode: CommandExpressionNode): string {
+  return `${commandNode.module ? `${commandNode.module}:` : ""}${commandNode.name}`;
 }
 
 /**
@@ -281,7 +285,7 @@ async function findCommandArgDefAtPosition(
     moduleCache,
     collectScriptImports(script),
   );
-  if (!resolved) return null;
+  if (!resolved?.command.argDefs) return null;
 
   const defIdx = resolveArgDefIndex(
     resolved.command.argDefs,
@@ -342,6 +346,9 @@ function findHelperAtPosition(
     }
     if ("body" in node && Array.isArray((node as any).body)) {
       children.push(...(node as any).body);
+    }
+    if (node.type === NodeType.NamedArg) {
+      children.push((node as any).value as Node);
     }
 
     for (const c of children) visit(c);
@@ -506,7 +513,7 @@ export async function getHoverInfo(
           "Parameter",
           argCtx.argDef.name,
           argCtx.argDef.type,
-          argCtx.commandNode,
+          commandLabel(argCtx.commandNode),
           argCtx.argDef.description,
         ),
       );
@@ -556,11 +563,63 @@ export async function getHoverInfo(
           "Option",
           `--${optDef.name}`,
           optDef.type,
-          commandNode,
+          commandLabel(commandNode),
           optDef.description,
         ),
       ],
     };
+  }
+
+  // --- named arg: `name:` inside a helper call ---
+  // The tokenizer can't distinguish a named-arg name from a `mod:command`
+  // head, so confirm via the AST: the enclosing helper must actually carry
+  // a NamedArg with this name at the position. Unconfirmed tokens fall
+  // through to the command-name handling below.
+  if (token.kind === "named-arg") {
+    let namedAst: EvmlAST | undefined;
+    try {
+      namedAst = parseScript(script).ast;
+    } catch {
+      /* fall through */
+    }
+    if (namedAst) {
+      const helperNode = findHelperAtPosition(
+        namedAst,
+        position.line,
+        position.col,
+      );
+      const namedNode = helperNode?.args.find(
+        (a) =>
+          a.type === NodeType.NamedArg &&
+          (a as unknown as { name: string }).name === token.value &&
+          isInside(a, position.line, position.col),
+      );
+      if (helperNode && namedNode) {
+        const spelled = helperNode.module
+          ? `${helperNode.module}:${helperNode.name}`
+          : helperNode.name;
+        const info = findHelperInCache(
+          spelled,
+          moduleCache,
+          collectScriptImports(script),
+        );
+        const def = info?.argDefs?.find((d) => d.name === token.value);
+        if (def) {
+          return {
+            contents: [
+              formatDefHover(
+                "Parameter",
+                def.name,
+                def.type,
+                `@${spelled}`,
+                def.description,
+              ),
+            ],
+          };
+        }
+        return null;
+      }
+    }
   }
 
   // --- identifier: might be a command name ---
@@ -736,6 +795,11 @@ function renderAstNode(node: AstLike, scriptLines?: string[]): string | null {
 
     case NodeType.VariableIdentifier:
       return typeof node.value === "string" ? node.value : null;
+
+    case NodeType.NamedArg: {
+      const child = renderAstChild((node as AstLike & { value: unknown }).value, scriptLines);
+      return `${(node as unknown as { name: string }).name}:${child}`;
+    }
 
     default:
       return null;

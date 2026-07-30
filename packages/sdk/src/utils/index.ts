@@ -24,6 +24,7 @@ export * from "./experimental";
 export * from "./formatters";
 export * from "./imports";
 export * from "./moduleSource";
+export * from "./namedArgs";
 export { Num } from "./Num";
 export * from "./parsers";
 export * from "./parseSignature";

@@ -4,10 +4,13 @@ import type {
   CompletionOverrides,
   HelperFunction,
   HelperFunctionNode,
+  Node,
   NodesInterpreters,
 } from "../types";
 import { BindingsSpace, NodeType } from "../types";
-import { ComparisonType, checkArgsLength, coerceBoolean } from "./args";
+import { buildArgsLengthErrorMsg, coerceBoolean } from "./args";
+import { computeCommandArity } from "./arity";
+import { partitionHelperArgs } from "./namedArgs";
 import type { Param } from "./encoders";
 import {
   experimentalDisabledMessage,
@@ -54,11 +57,6 @@ export function defineHelper<M extends Module>(
 ): HelperFunction<M> {
   const { args: argDefs, run } = config;
 
-  const requiredCount = argDefs.filter((a) => !a.optional && !a.rest).length;
-  const hasRest = argDefs.some((a) => a.rest);
-  const hasOptional = argDefs.some((a) => a.optional);
-  const totalFixed = argDefs.filter((a) => !a.rest).length;
-
   const fn: HelperFunction<M> = async (module, h, interpreters) => {
     if (config.experimental && !isExperimentalEnabled()) {
       throw new ExperimentalDisabledError(
@@ -78,34 +76,38 @@ export function defineHelper<M extends Module>(
       );
     }
 
-    // 1. Check argument length
-    if (hasRest) {
-      checkArgsLength(h, {
-        type: ComparisonType.Greater,
-        minValue: requiredCount,
-      });
-    } else if (hasOptional) {
-      checkArgsLength(h, {
-        type: ComparisonType.Between,
-        minValue: requiredCount,
-        maxValue: totalFixed,
-      });
-    } else {
-      checkArgsLength(h, {
-        type: ComparisonType.Equal,
-        minValue: requiredCount,
-      });
+    // 1. Partition named args (`name:value`) from positional ones and
+    // check the positional count. `computeCommandArity` applies the same
+    // named-aware filtering the static analyzer uses, so the two agree.
+    const { positional, named, issues } = partitionHelperArgs(h.args, argDefs);
+    if (issues.length > 0) {
+      throw new ErrorException(issues[0].message);
+    }
+    const arity = computeCommandArity(argDefs, h.args);
+    if (arity.isError) {
+      throw new ErrorException(
+        buildArgsLengthErrorMsg(arity.effectiveArgCount, arity.comparison),
+      );
     }
 
     const { interpretNode, interpretNodes } = interpreters;
 
-    // 2. Interpret arguments by type
+    // 2. Interpret arguments by type. Positional args fill the
+    // non-namedOnly defs in order; named args fill their def directly.
+    let cursor = 0;
+    const nodeFor = (def: (typeof argDefs)[number]): Node | undefined => {
+      const namedNode = named.get(def.name);
+      if (namedNode) return namedNode.value;
+      if (def.namedOnly) return undefined;
+      return positional[cursor++];
+    };
+
     const parsedArgs: Record<string, any> = {};
     for (let i = 0; i < argDefs.length; i++) {
       const def = argDefs[i];
 
       if (def.type === "variable") {
-        const node = h.args[i];
+        const node = nodeFor(def);
         if (!node || node.type !== NodeType.VariableIdentifier) {
           throw new ErrorException(`<${def.name}> must be a $variable`);
         }
@@ -114,7 +116,7 @@ export function defineHelper<M extends Module>(
       }
 
       if (def.type === "helper") {
-        const cbNode = h.args[i];
+        const cbNode = nodeFor(def);
         if (!cbNode || cbNode.type !== NodeType.HelperFunctionExpression) {
           throw new ErrorException(
             `<${def.name}> must be a helper reference like @helperName`,
@@ -150,10 +152,14 @@ export function defineHelper<M extends Module>(
 
       // All other types: auto-interpret
       if (def.rest) {
-        const restNodes = h.args.slice(i);
+        const restNodes = positional.slice(cursor);
+        cursor = positional.length;
         parsedArgs[def.name] = await interpretNodes(restNodes);
-      } else if (h.args[i]) {
-        parsedArgs[def.name] = await interpretNode(h.args[i]);
+      } else {
+        const node = nodeFor(def);
+        if (node) {
+          parsedArgs[def.name] = await interpretNode(node);
+        }
       }
     }
 
