@@ -81,14 +81,14 @@ describeCommand("bridge --using NativeBridge", {
     },
     {
       name: "takes the L2 token from --remote-token when the pair is unknown",
-      script: `bridges:bridge 100e6 ${USDC_MAINNET} to optimism --using NativeBridge --remote-token 0x0B2C639c533813F4aA9D7837CAce96CB60775848`,
+      script: `bridges:bridge 100e6 ${USDC_MAINNET} to optimism --using NativeBridge --remote-token 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85`,
       validate: (actions) => {
         const call = decodeFunctionData({
           abi: bridgeAbi,
           data: txs(actions)[1].data,
         });
         expect(call.args[1]).to.eq(
-          "0x0B2C639c533813F4aA9D7837CAce96CB60775848",
+          "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
         );
       },
     },
