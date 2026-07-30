@@ -34,6 +34,7 @@ export type {
   ICommand,
   IModuleConstructor,
   InterpretOptions,
+  IpfsEntity,
   LiteralExpression,
   LiteralExpressionNode,
   Location,
@@ -105,6 +106,8 @@ export {
   SHARE_MIN_VERSION,
   transformExperimentalMd,
   unsupportedMinVersion,
+  verifiedIpfsEntity,
+  verifiedIpfsFetch,
 } from "@evmcrispr/sdk";
 export { getSemanticDiagnostics } from "./analysis";
 export type { NormalizationRegion } from "./autoImport";

@@ -1,22 +1,15 @@
+import { IPFSResolver } from "@evmcrispr/core";
+
+const resolver = new IPFSResolver();
+
+/** Fetch a pin's content from the gateway, hash-verified against its CID. */
 const fetchPin = async (
   pinataUrl: string,
   hashId?: string,
 ): Promise<string | undefined> => {
   if (!hashId) return undefined;
 
-  const url = `${pinataUrl}/ipfs/${hashId}`;
-
-  try {
-    const response = await fetch(url);
-
-    if (response.status >= 400) {
-      throw new Error("Bad response from server");
-    }
-
-    return response.text();
-  } catch (_e) {
-    throw new Error("Bad response from server");
-  }
+  return resolver.text(hashId, `${pinataUrl}/ipfs/`);
 };
 
 export default fetchPin;

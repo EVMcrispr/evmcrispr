@@ -17,7 +17,7 @@ describeHelper(
       {
         name: "should fail when the content is missing",
         input: `@ipfs.get("${ipfsGatewayFixtures.missing.cid}")`,
-        error: "@ipfs.get: 404",
+        error: "404 Not Found",
       },
     ],
     sampleArgs: [`"${ipfsGatewayFixtures.rawHex.cid}"`],

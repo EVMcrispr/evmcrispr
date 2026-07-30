@@ -2,7 +2,7 @@
 title: "@ipfs.get"
 ---
 
-Fetch content from IPFS and return it as text.
+Fetch content from IPFS, verified against its CID, and return it as text.
 
 **Returns**: `string`
 

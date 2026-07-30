@@ -1,6 +1,6 @@
-import { IPFS_GATEWAY } from "@evmcrispr/core";
+import { IPFS_GATEWAY, verifiedIpfsEntity } from "@evmcrispr/core";
 
-/** Bytes requested from the gateway for a text preview. */
+/** Bytes of verified file head fetched for a text preview. */
 const PREVIEW_TEXT_BYTES = 2048;
 /** Characters of text shown in the hover before truncating. */
 const PREVIEW_TEXT_CHARS = 1000;
@@ -57,7 +57,7 @@ export function loadingPreview(cid: string): string {
 
 /**
  * Markdown preview of the file behind a CID: the image itself for images, a
- * truncated code block for text, and a content-type line with a gateway link
+ * truncated code block for text, and a size line with a gateway link
  * otherwise. Results are cached per CID; failures are not, so a later hover
  * retries.
  */
@@ -74,55 +74,70 @@ export function getIpfsPreview(cid: string): Promise<string | null> {
   return preview;
 }
 
+/**
+ * Everything shown is derived from hash-verified data: the entity comes from
+ * the sdk's trustless CAR fetch (`entity-bytes` keeps the transfer to a file
+ * head), the kind/size from its UnixFS metadata, and the snippet/type
+ * sniffing from the verified head bytes — never from gateway headers. The
+ * one exception is image pixels: the `![…](gateway url)` is rendered by
+ * Monaco straight from the gateway, so only the image's type is vouched for.
+ */
 async function fetchPreview(cid: string): Promise<string | null> {
   const url = `${IPFS_GATEWAY}${cid}`;
-  const response = await fetch(url, {
-    headers: { Range: `bytes=0-${PREVIEW_TEXT_BYTES - 1}` },
+  const entity = await verifiedIpfsEntity(cid, IPFS_GATEWAY, {
+    maxBytes: PREVIEW_TEXT_BYTES,
     signal: AbortSignal.timeout(PREVIEW_FETCH_TIMEOUT_MS),
   });
-  if (!response.ok) return null;
 
-  const type = (response.headers.get("Content-Type") ?? "").split(";")[0];
-  const size = totalSize(response);
-  const meta = [type || "unknown type", size && formatBytes(Number(size))]
+  if (entity.kind === "directory") {
+    const count = entity.entries.length;
+    const listing = await dirListing(cid, entity.entries);
+    const dirTitle = `**IPFS folder** · [\`${shortenCid(cid)}\`](${url}) · ${count} ${count === 1 ? "entry" : "entries"}`;
+    return `${dirTitle}\n\n---\n\n${listing}`;
+  }
+
+  const head = entity.bytes;
+  // A cut-off multibyte sequence at the head's end is truncation, not
+  // binary data — stream mode drops the trailing partial code point.
+  const text = new TextDecoder().decode(head, { stream: !entity.complete });
+  const image = sniffImageType(head, text);
+  const isText = !image && looksLikeText(text);
+  const meta = [
+    image ?? (isText ? "text" : "binary"),
+    entity.size !== undefined && formatBytes(entity.size),
+  ]
     .filter(Boolean)
     .join(", ");
   const title = `**IPFS file** · [\`${shortenCid(cid)}\`](${url}) · ${meta}`;
 
-  if (type.startsWith("image/")) {
-    response.body?.cancel();
+  if (image) {
     return `${title}\n\n---\n\n![preview](${url}|height=${PREVIEW_IMAGE_HEIGHT})`;
   }
+  if (!isText) return title;
 
-  // Directories surface as text/html (a generated listing, or a contained
-  // index.html); the dag-json probe tells them apart from real HTML files.
-  if (type === "text/html" || type === "") {
-    const listing = await dirListing(cid);
-    if (listing) {
-      response.body?.cancel();
-      const dirTitle = `**IPFS folder** · [\`${shortenCid(cid)}\`](${url}) · ${listing.count} ${listing.count === 1 ? "entry" : "entries"}`;
-      return `${dirTitle}\n\n---\n\n${listing.markdown}`;
-    }
+  const truncated = !entity.complete || text.length > PREVIEW_TEXT_CHARS;
+  const snippet = text.slice(0, PREVIEW_TEXT_CHARS).trimEnd();
+  const body = codeFence(detectLanguage(snippet), snippet, truncated);
+  return `${title}\n\n---\n\n${body}`;
+}
+
+/** Image mime type from the verified head's magic bytes, or null. */
+function sniffImageType(head: Uint8Array, text: string): string | null {
+  const startsWith = (magic: number[], offset = 0) =>
+    magic.every((b, i) => head[offset + i] === b);
+  if (startsWith([0x89, 0x50, 0x4e, 0x47])) return "image/png";
+  if (startsWith([0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (startsWith([0x47, 0x49, 0x46, 0x38])) return "image/gif";
+  if (
+    startsWith([0x52, 0x49, 0x46, 0x46]) &&
+    startsWith([0x57, 0x45, 0x42, 0x50], 8)
+  ) {
+    return "image/webp";
   }
-
-  const maybeText =
-    type.startsWith("text/") ||
-    type.includes("json") ||
-    type === "" ||
-    type === "application/octet-stream";
-  if (maybeText) {
-    const text = await readHead(response, PREVIEW_TEXT_BYTES);
-    if (!looksLikeText(text)) return title;
-    const truncated =
-      text.length > PREVIEW_TEXT_CHARS || wasTruncated(response);
-    const snippet = text.slice(0, PREVIEW_TEXT_CHARS).trimEnd();
-    const language = detectLanguage(type, snippet);
-    const body = codeFence(language, snippet, truncated);
-    return `${title}\n\n---\n\n${body}`;
+  if (/^\s*(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/.test(text)) {
+    return "image/svg+xml";
   }
-
-  response.body?.cancel();
-  return title;
+  return null;
 }
 
 /** Recursion depth below the root shown in a folder preview. */
@@ -132,72 +147,39 @@ const MAX_DIR_ENTRIES = 20;
 
 type DagLink = { name: string; cid: string };
 
-const dagDirCache = new Map<string, Promise<DagLink[] | null>>();
+const dirEntriesCache = new Map<string, Promise<DagLink[] | null>>();
 
 /**
- * Named links of a UnixFS directory node via the gateway's dag-json
- * endpoint, or null when the CID is not a plain directory.
+ * Verified entries of a UnixFS directory node, or null when the CID is not
+ * a plain directory. `maxBytes: 0` keeps file probes to their root block.
  */
-function fetchDagDir(cid: string): Promise<DagLink[] | null> {
-  let links = dagDirCache.get(cid);
-  if (!links) {
-    links = (async () => {
-      const response = await fetch(`${IPFS_GATEWAY}${cid}?format=dag-json`, {
+function fetchDirEntries(cid: string): Promise<DagLink[] | null> {
+  let entries = dirEntriesCache.get(cid);
+  if (!entries) {
+    entries = (async () => {
+      const entity = await verifiedIpfsEntity(cid, IPFS_GATEWAY, {
+        maxBytes: 0,
         signal: AbortSignal.timeout(PREVIEW_FETCH_TIMEOUT_MS),
       });
-      if (!response.ok) return null;
-      const reader = response.body?.getReader();
-      if (!reader) return null;
-
-      // DAG-JSON keys are sorted, so `Data` always precedes `Links`. A
-      // UnixFS directory's Data is exactly 0x08 0x01 ("CAE" in base64) —
-      // sniff the stream head and bail early for files, whose dag-json
-      // would otherwise inline their whole content.
-      const decoder = new TextDecoder();
-      let text = "";
-      while (text.length < 512) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-      }
-      if (!text.includes('"bytes":"CAE"')) {
-        reader.cancel().catch(() => {});
-        return null;
-      }
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-      }
-      text += decoder.decode();
-
-      const dag = JSON.parse(text);
-      const raw: { Name?: string; Hash?: { "/"?: string } }[] =
-        dag?.Links ?? [];
-      return raw
-        .filter((l) => l.Name && l.Hash?.["/"])
-        .map((l) => ({ name: l.Name as string, cid: l.Hash?.["/"] as string }));
+      return entity.kind === "directory" ? entity.entries : null;
     })().catch(() => null);
-    dagDirCache.set(cid, links);
-    links.then((value) => {
-      if (value === null) dagDirCache.delete(cid);
+    dirEntriesCache.set(cid, entries);
+    entries.then((value) => {
+      if (value === null) dirEntriesCache.delete(cid);
     });
   }
-  return links;
+  return entries;
 }
 
 /**
  * Markdown tree of a directory CID: entries link to their gateway path
  * under the root CID, subdirectories expand up to `MAX_DIR_DEPTH`.
  */
-async function dirListing(
-  cid: string,
-): Promise<{ markdown: string; count: number } | null> {
-  const links = await fetchDagDir(cid);
-  if (!links) return null;
+async function dirListing(cid: string, links: DagLink[]): Promise<string> {
+  dirEntriesCache.set(cid, Promise.resolve(links));
   const lines: string[] = [];
   await renderDirEntries(cid, "", links, 0, lines);
-  return { markdown: lines.join("\n"), count: links.length };
+  return lines.join("\n");
 }
 
 async function renderDirEntries(
@@ -214,7 +196,7 @@ async function renderDirEntries(
   const subtrees = await Promise.all(
     shown.map(async (link) => {
       const path = basePath ? `${basePath}/${link.name}` : link.name;
-      const children = await fetchDagDir(link.cid);
+      const children = await fetchDirEntries(link.cid);
       const subLines: string[] = [];
       if (children && depth < MAX_DIR_DEPTH) {
         await renderDirEntries(rootCid, path, children, depth + 1, subLines);
@@ -239,8 +221,8 @@ const SOLIDITY_HINT =
  * Language id for the preview's code fence. Monaco's CDN bundle ships
  * tokenizers for all ids used here; `plaintext` renders uncolored.
  */
-function detectLanguage(type: string, snippet: string): string {
-  if (type.includes("json")) return "json";
+function detectLanguage(snippet: string): string {
+  if (/^\s*[[{]/.test(snippet)) return "json";
   if (SOLIDITY_HINT.test(snippet)) return "sol";
   return "plaintext";
 }
@@ -262,10 +244,10 @@ function codeFence(
 
 /** Whether decoded bytes look like text rather than binary data. */
 function looksLikeText(text: string): boolean {
-  if (!text || text.includes("\uFFFD")) return false;
+  if (!text || text.includes("�")) return false;
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i);
-    // Control characters other than \t \n \v \f \r (9\u201313) mean binary.
+    // Control characters other than \t \n \v \f \r (9–13) mean binary.
     if (c < 32 && (c < 9 || c > 13)) return false;
   }
   return true;
@@ -281,44 +263,4 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-/**
- * Read at most `maxBytes` from the response body, then cancel it — gateways
- * that ignore the `Range` request header would otherwise stream the whole
- * file.
- */
-async function readHead(response: Response, maxBytes: number): Promise<string> {
-  const reader = response.body?.getReader();
-  if (!reader) return "";
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  while (received < maxBytes) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-  }
-  reader.cancel().catch(() => {});
-
-  const merged = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return new TextDecoder().decode(merged.slice(0, maxBytes));
-}
-
-/** Whether the previewed file is larger than the requested range. */
-function wasTruncated(response: Response): boolean {
-  const total = totalSize(response);
-  return total !== null && Number(total) > PREVIEW_TEXT_BYTES;
-}
-
-/** Total file size from a range response's `Content-Range`, if present. */
-function totalSize(response: Response): string | null {
-  const range = response.headers.get("Content-Range");
-  const total = range?.match(/\/(\d+)$/)?.[1];
-  return total ?? response.headers.get("Content-Length");
 }

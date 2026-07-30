@@ -50,7 +50,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
 | [@hash](src/helpers/hash.md) | `bytes32` | Compute the hash of a string with keccak256 (default) or sha256. |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
-| [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS and return it as text. |
+| [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
 | [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
