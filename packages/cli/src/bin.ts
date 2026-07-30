@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-export {};
+import pkg from "../package.json";
 
 const USAGE = `Usage: evmcrispr <command> [options]
 
@@ -10,6 +10,7 @@ Commands:
 
 Options:
   --experimental             Enable experimental modules, commands and helpers
+  --version, -v              Print the CLI version
 
 Environment:
   VITE_DRPC_API_KEY          DRPC API key for RPC access
@@ -32,6 +33,10 @@ if (argv.length !== rawArgs.length) {
 const [command, ...args] = argv;
 
 switch (command) {
+  case "--version":
+  case "-v":
+    console.log(pkg.version);
+    break;
   case "simulate": {
     const { runSimulate } = await import("./commands/simulate.js");
     await runSimulate(args);
