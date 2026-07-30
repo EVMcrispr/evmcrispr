@@ -1,6 +1,8 @@
 import { PaperAirplaneIcon, StopIcon } from "@heroicons/react/24/solid";
 import { IconButton, Textarea } from "@repo/ui";
-import { useRef, useState } from "react";
+import { useState } from "react";
+
+import { useFocusOnTab } from "../../../hooks/useFocusOnTab";
 
 /** ~6 rows of text plus padding. */
 const MAX_HEIGHT_PX = 160;
@@ -15,7 +17,7 @@ export function ChatInput({
   onStop: () => void;
 }) {
   const [input, setInput] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useFocusOnTab<HTMLTextAreaElement>("chat");
 
   const resize = () => {
     const el = textareaRef.current;

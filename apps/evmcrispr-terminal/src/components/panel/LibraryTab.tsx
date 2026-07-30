@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { flushAutoSave } from "../../hooks/useAutoSave";
 import { disposeModel } from "../../hooks/useEditorModels";
+import { useFocusOnTab } from "../../hooks/useFocusOnTab";
 import { useLibraryStore } from "../../stores/library-store";
 import { useTerminalStore } from "../../stores/terminal-store";
 import { removeScript, slug } from "../../utils";
@@ -14,6 +15,7 @@ export function LibraryTab() {
   const { currentScriptId, title: liveTitle, isSaving } = useTerminalStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const searchRef = useFocusOnTab<HTMLInputElement>("library");
 
   const filteredScripts = useMemo(() => {
     const q = slug(query);
@@ -36,6 +38,7 @@ export function LibraryTab() {
       <div className="px-2 py-4 shrink-0">
         <div className="relative">
           <Input
+            ref={searchRef}
             placeholder="Search"
             className="text-base pr-10 border"
             value={query}

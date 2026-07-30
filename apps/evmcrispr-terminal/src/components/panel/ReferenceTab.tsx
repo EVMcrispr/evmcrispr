@@ -22,6 +22,7 @@ import {
   referenceEntries,
   resolveDocLinkEntry,
 } from "../../data/reference-data";
+import { useFocusOnTab } from "../../hooks/useFocusOnTab";
 import {
   terminalStoreActions,
   useTerminalStore,
@@ -95,6 +96,7 @@ function resolveCursorEntry(
 export function ReferenceTab() {
   const { script, cursorRef } = useTerminalStore();
   const [query, setQuery] = useState("");
+  const searchRef = useFocusOnTab<HTMLInputElement>("reference");
   const [selectedItem, setSelectedItem] = useState<ReferenceEntry | null>(null);
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   // Track the last cursor-driven name so we don't re-open after the user clicks Back
@@ -286,6 +288,7 @@ export function ReferenceTab() {
       <div className="px-2 py-4 shrink-0">
         <div className="relative">
           <Input
+            ref={searchRef}
             placeholder="Search commands & helpers"
             className="text-base pr-10 border"
             value={query}
