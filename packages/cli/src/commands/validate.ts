@@ -2,10 +2,19 @@ import { readFileSync } from "node:fs";
 import { registerAllModules } from "../lib/modules.js";
 import { validateEvml } from "../tools/validate-evml.js";
 
+const USAGE = `Usage: evmcrispr validate <file>
+
+Validate an EVML script offline (no RPC). Pass - to read from stdin.`;
+
 export async function runValidate(args: string[]): Promise<void> {
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
+
   const file = args[0];
   if (!file) {
-    console.error("Usage: evmcrispr validate <file>");
+    console.error(USAGE);
     process.exit(1);
   }
 
