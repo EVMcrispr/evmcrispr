@@ -24,6 +24,13 @@ export const theme = {
       foreground: "72bcd4",
       token: "variable",
     },
+    // Embedded circom/noir declaration and call names (dark+ function
+    // yellow) — mirrored by `support.function.noir` /
+    // `entity.name.function.circom` in grammars/evml-theme.ts.
+    {
+      foreground: "DCDCAA",
+      token: "function",
+    },
     {
       foreground: "fd6600",
       token: "string.literal",

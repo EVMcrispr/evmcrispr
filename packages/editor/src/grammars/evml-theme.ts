@@ -131,6 +131,45 @@ export const evmlTheme: ThemeRegistrationRaw = {
       ],
       settings: { foreground: "#DCDCDC" },
     },
+    // ── Embedded circom/noir (<<<CIRCOM / <<<NOIR) — our grammars ──
+    // Types → vs-dark's monarch `type` teal. More specific than the
+    // blue "support.type" bucket above, so these win.
+    {
+      scope: ["support.type.noir", "entity.name.type.circom"],
+      settings: { foreground: "#3DC9B0" },
+    },
+    // Declaration/call names → dark+ function yellow; the monaco side
+    // is the custom `function` rule in editor/theme.ts.
+    {
+      scope: ["support.function.noir", "entity.name.function.circom"],
+      settings: { foreground: "#DCDCAA" },
+    },
+    // Noir f-string interpolations ({sum}) — plain white inside the
+    // orange string, matching the monarch fstring state's `identifier`
+    // token (without this they'd inherit the parent string's orange).
+    {
+      scope: ["variable.other.interpolation.noir"],
+      settings: { foreground: "#ffffff" },
+    },
+    // Noir attributes (#[test]) → vs-dark's monarch `annotation`.
+    {
+      scope: ["meta.attribute.noir"],
+      settings: { foreground: "#CC6666" },
+    },
+    // Circom constraint operators (<== ==> <-- --> ===) render
+    // keyword-blue on both surfaces — more specific than the gray
+    // "keyword.operator" rule above.
+    {
+      scope: ["keyword.operator.constraint.circom"],
+      settings: { foreground: "#569CD6" },
+    },
+    // String escapes: monaco's `string.escape` token prefix-matches the
+    // orange `string` rule, so mirror that here (also covers Shiki's
+    // solidity grammar, whose escape scopes monaco's tokenizer swallows).
+    {
+      scope: ["constant.character.escape"],
+      settings: { foreground: "#fd6600" },
+    },
     // ── Embedded JSON (<<<JSON) — monaco's json tokenizer ───────
     {
       scope: ["support.type.property-name.json"],
