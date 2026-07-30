@@ -35,6 +35,11 @@
       "bun": "./src/msw/tokenlist/index.ts",
       "types": "./src/msw/tokenlist/index.ts",
       "import": "./src/msw/tokenlist/index.ts"
+    },
+    "./msw/npm": {
+      "bun": "./src/msw/npm.ts",
+      "types": "./src/msw/npm.ts",
+      "import": "./src/msw/npm.ts"
     }
   },
   "dependencies": {

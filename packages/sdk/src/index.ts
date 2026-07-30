@@ -123,5 +123,13 @@ export {
   getDeepestNodeWithArgs,
   hasCommandsBlock,
 } from "./utils/ast";
+export type { NpmFileSpec } from "./utils/npmRegistry";
+export {
+  fetchNpmLatestVersion,
+  fetchVerifiedNpmFile,
+  NPM_REGISTRY,
+  parseNpmFileSpec,
+  parseNpmPackageName,
+} from "./utils/npmRegistry";
 export type { IpfsEntity } from "./utils/verifiedIpfs";
 export { verifiedIpfsEntity, verifiedIpfsFetch } from "./utils/verifiedIpfs";
