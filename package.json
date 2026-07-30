@@ -58,6 +58,7 @@
     "@evmcrispr/module-http": "workspace:*",
     "@evmcrispr/module-lang": "workspace:*",
     "@evmcrispr/module-lending": "workspace:*",
+    "@evmcrispr/module-noir": "workspace:*",
     "@evmcrispr/module-proxies": "workspace:*",
     "@evmcrispr/module-safe": "workspace:*",
     "@evmcrispr/module-semaphore": "workspace:*",

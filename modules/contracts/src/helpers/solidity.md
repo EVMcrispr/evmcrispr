@@ -5,7 +5,7 @@ sidebar:
   label: "@contracts:solidity ⚗️"
 ---
 
-Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:false, via-ir:true, evm:<version>, contract:<Name>.
+Compile Solidity source (inline text or a http/ipfs URL) and return the creation bytecode, ready for `deploy`. Options: version:<x.y.z>, runs:<n>, optimizer:false, via-ir:true, evm:<version>, contract:<Name>, libraries:[[Name 0x…]].
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -14,7 +14,7 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the creation
 ## Syntax
 
 ```evml
-@contracts:solidity(source version:<value> runs:<value> optimizer:<value> via-ir:<value> evm:<value> contract:<value>)
+@contracts:solidity(source version:<value> runs:<value> optimizer:<value> via-ir:<value> evm:<value> contract:<value> libraries:<value>)
 ```
 
 ## Arguments
@@ -28,6 +28,7 @@ Compile Solidity source (inline text or a http/ipfs URL) and return the creation
 | `via-ir:` | `bool` | `via-ir:true` compiles through the IR pipeline |
 | `evm:` | `string` | EVM version, e.g. `evm:cancun` |
 | `contract:` | `string` | Target contract name when the source defines several |
+| `libraries:` | `any` | Deployed library addresses to link, as an entries array: `libraries:[[LibName 0x…] …]` — needed when the source's libraries have external functions |
 
 ## Examples
 

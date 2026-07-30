@@ -1,0 +1,54 @@
+{
+  "name": "@evmcrispr/module-noir",
+  "version": "0.11.0",
+  "description": "Noir circuit tooling for EVML scripts: in-place compilation of Noir source, UltraHonk proving and off-chain verification via Barretenberg, and Solidity verifier generation for on-chain proof verification.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/noir"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@aztec/bb.js": "5.1.0",
+    "@evmcrispr/sdk": "workspace:^",
+    "@noir-lang/noir_js": "1.0.0-beta.26",
+    "@noir-lang/noir_wasm": "1.0.0-beta.26"
+  },
+  "devDependencies": {
+    "@evmcrispr/module-contracts": "workspace:*",
+    "@evmcrispr/module-sim": "workspace:*",
+    "@evmcrispr/test-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}
