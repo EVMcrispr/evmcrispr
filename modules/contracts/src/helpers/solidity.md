@@ -65,7 +65,9 @@ Imports are prefetched transitively before compiling:
 
 - **Absolute URLs** (`import "https://…/Lib.sol";`) are fetched as written.
 - **Relative imports** work when the importing file lives at a URL (resolved against it). In inline source they throw — flatten the contract or host it.
-- **npm-style imports** (`import "@openzeppelin/contracts/token/ERC20/ERC20.sol";`) resolve through [unpkg](https://unpkg.com). Pin a package version inside the import path (`@openzeppelin/contracts@5.0.2/…`); unversioned paths resolve to the latest release.
+- **npm-style imports** must pin an exact package version inside the import path (`import "@openzeppelin/contracts@5.4.0/token/ERC20/ERC20.sol";`). The package tarball is downloaded from the npm registry and verified against its published integrity hash before any file is used — which is why unpinned or ranged paths throw (mutable content has no stable hash to verify).
+
+Compiler builds are verified too: each downloaded `soljson` release is checked against a hash pinned in the EVMcrispr repo before it is instantiated.
 
 ## Deploy + verify pipeline
 

@@ -13,7 +13,7 @@ const URL_COUNTER = "https://sources.example.com/Counter.sol";
 const URL_PARENT = "https://sources.example.com/Parent.sol";
 
 const NPM_SRC =
-  'pragma solidity 0.8.26; import "@fake/lib/contracts/FakeLib.sol"; contract UsesLib { function four() public pure returns (uint256) { return FakeLib.twice(2); } }';
+  'pragma solidity 0.8.26; import "@fake/lib@1.0.0/contracts/FakeLib.sol"; contract UsesLib { function four() public pure returns (uint256) { return FakeLib.twice(2); } }';
 
 // Pre-warm the compiler download (~9 MB on first use) so individual tests
 // stay well inside the per-test timeout.
@@ -51,7 +51,7 @@ describeHelper(
         },
       },
       {
-        name: "resolves npm-style imports via unpkg (with in-package relative imports)",
+        name: "resolves version-pinned npm imports from a verified registry tarball",
         input: `@contracts:solidity('${NPM_SRC}')`,
         validate: (result) => {
           expect(result.startsWith("0x60")).toBe(true);
@@ -88,6 +88,11 @@ describeHelper(
         name: "should fail on an unknown pinned release",
         input: `@contracts:solidity(${SRC_ARG} 'version:9.9.9')`,
         error: 'unknown solc release "9.9.9"',
+      },
+      {
+        name: "should fail on npm imports without a version pin",
+        input: `@contracts:solidity('pragma solidity 0.8.26; import "@fake/lib/contracts/FakeLib.sol"; contract A {}')`,
+        error: "must pin an exact package version",
       },
       {
         name: "should fail on relative imports in inline source",
@@ -172,8 +177,8 @@ describeHelper(
         validate: (result) => {
           const json = JSON.parse(result);
           expect(Object.keys(json.sources).sort()).toEqual([
-            "@fake/lib/contracts/FakeLib.sol",
-            "@fake/lib/contracts/FakeUtil.sol",
+            "@fake/lib@1.0.0/contracts/FakeLib.sol",
+            "@fake/lib@1.0.0/contracts/FakeUtil.sol",
             "input.sol",
           ]);
         },

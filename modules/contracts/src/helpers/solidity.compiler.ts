@@ -28,8 +28,7 @@ export default defineHelper<Contracts>({
       ((options as string[]) ?? []).map(String),
       {
         log: (m) => module.context.log(m),
-        resolveIpfs: (url) =>
-          module.ipfsResolver.url(url.replace(/^ipfs:\/\//, "")),
+        fetchIpfs: (cidPath) => module.ipfsResolver.text(cidPath),
       },
     );
     return result.compilerLongVersion;

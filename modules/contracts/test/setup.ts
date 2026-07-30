@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
+import { npmPackageHandlers } from "@evmcrispr/test-utils/msw/npm";
 import {
   createTestServer,
   HttpResponse,
@@ -32,21 +33,12 @@ const contractsHandlers = [
     }
     return new HttpResponse(null, { status: 404 });
   }),
-  // npm-style imports resolve through unpkg; serve a fake package with an
-  // internal relative import to exercise per-package resolution.
-  http.get("https://unpkg.com/@fake/lib/contracts/:file", ({ params }) => {
-    const file = params.file as string;
-    if (file === "FakeLib.sol") {
-      return new HttpResponse(fixture("FakeLib.sol"), {
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
-    if (file === "FakeUtil.sol") {
-      return new HttpResponse(fixture("FakeUtil.sol"), {
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
-    return new HttpResponse(null, { status: 404 });
+  // npm-style imports resolve as registry-verified tarballs; serve a fake
+  // package (with an internal relative import) through a mocked npm
+  // registry, complete with a genuine integrity hash.
+  ...npmPackageHandlers("@fake/lib", "1.0.0", {
+    "contracts/FakeLib.sol": fixture("FakeLib.sol"),
+    "contracts/FakeUtil.sol": fixture("FakeUtil.sol"),
   }),
   // The solc release list and soljson binaries are fetched live (bypass
   // would cover this, but make the intent explicit).

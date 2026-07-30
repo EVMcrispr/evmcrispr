@@ -43,6 +43,7 @@
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
-    "types": "evmcrispr-build --types"
+    "types": "evmcrispr-build --types",
+    "codegen:solc-hashes": "bun scripts/generate-solc-hashes.ts"
   }
 }

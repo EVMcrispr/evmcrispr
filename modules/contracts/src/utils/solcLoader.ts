@@ -1,4 +1,10 @@
-import { ErrorException } from "@evmcrispr/sdk";
+import {
+  ErrorException,
+  fetchNpmLatestVersion,
+  fetchVerifiedNpmFile,
+  parseNpmFileSpec,
+  parseNpmPackageName,
+} from "@evmcrispr/sdk";
 import type { CompileOptions } from "./solc";
 import {
   buildStandardJson,
@@ -8,16 +14,17 @@ import {
   selectContract,
   selectVersion,
 } from "./solc";
+import { SOLC_SHA256 } from "./solcHashes";
 
 // ---------------------------------------------------------------------------
 // Network + compiler plumbing for @solidity: release-list fetch, lazy
-// soljson download/instantiation (browser + bun via a CJS shim), transitive
-// import prefetching (URL, relative and npm-style via unpkg) and the shared
-// compile cache the four @solidity helpers read from.
+// soljson download/instantiation (browser + bun via a CJS shim, verified
+// against repo-pinned hashes), transitive import prefetching (URL, relative
+// and version-pinned npm-style from registry-verified tarballs) and the
+// shared compile cache the four @solidity helpers read from.
 // ---------------------------------------------------------------------------
 
 const BINARIES_BASE = "https://binaries.soliditylang.org/bin";
-const UNPKG_BASE = "https://unpkg.com";
 
 export interface CompileResult {
   /** Creation bytecode of the selected contract, 0x-prefixed. */
@@ -33,8 +40,8 @@ export interface CompileResult {
 
 export interface CompileContext {
   log?: (message: string) => void;
-  /** Map an ipfs://<cid> URL to a fetchable gateway URL. */
-  resolveIpfs?: (url: string) => string | Promise<string>;
+  /** Fetch an IPFS cid (or cid/path) as text, hash-verified against the CID. */
+  fetchIpfs?: (cidPath: string) => Promise<string>;
 }
 
 type CompileFn = (inputJson: string) => Promise<string>;
@@ -173,6 +180,12 @@ export function loadCompiler(
   let cached = compilerCache.get(longVersion);
   if (!cached) {
     cached = (async () => {
+      const expected = SOLC_SHA256[longVersion];
+      if (!expected) {
+        throw new ErrorException(
+          `@solidity: solc v${longVersion} has no repo-pinned hash — regenerate it (bun modules/contracts/scripts/generate-solc-hashes.ts) or pin an older release`,
+        );
+      }
       log?.(
         `@solidity: downloading solc v${longVersion} (~9 MB, first use only)…`,
       );
@@ -180,7 +193,17 @@ export function loadCompiler(
         `${BINARIES_BASE}/soljson-v${longVersion}.js`,
         `solc v${longVersion}`,
       );
-      const src = await res.text();
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const digest = new Uint8Array(
+        await crypto.subtle.digest("SHA-256", bytes as unknown as ArrayBuffer),
+      );
+      const hex = `0x${Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+      if (hex !== expected) {
+        throw new ErrorException(
+          `@solidity: the downloaded solc v${longVersion} does not match its pinned hash (got ${hex}, expected ${expected})`,
+        );
+      }
+      const src = new TextDecoder().decode(bytes);
 
       const isNode = typeof process !== "undefined" && !!process.versions?.node;
       const compile = isNode
@@ -232,7 +255,7 @@ function resolveImport(importPath: string, importer: string): string {
       : "";
     if (!dir && !importer.includes("/")) {
       throw new ErrorException(
-        `@solidity: relative import "${importPath}" is not supported in inline source — flatten the contract, host it at a URL, or use npm-style imports (@scope/pkg/File.sol)`,
+        `@solidity: relative import "${importPath}" is not supported in inline source — flatten the contract, host it at a URL, or use version-pinned npm imports (@scope/pkg@x.y.z/File.sol)`,
       );
     }
     return normalizeSegments(`${dir}/${importPath}`);
@@ -241,20 +264,46 @@ function resolveImport(importPath: string, importer: string): string {
   return normalizeSegments(importPath);
 }
 
-async function toFetchUrl(
+async function fetchSource(
   sourceName: string,
+  what: string,
   ctx: CompileContext,
 ): Promise<string> {
   if (sourceName.startsWith("ipfs://")) {
-    if (!ctx.resolveIpfs) {
+    if (!ctx.fetchIpfs) {
       throw new ErrorException(
         `@solidity: no IPFS resolver available for ${sourceName}`,
       );
     }
-    return ctx.resolveIpfs(sourceName);
+    try {
+      return await ctx.fetchIpfs(sourceName.replace(/^ipfs:\/\//, ""));
+    } catch (err) {
+      throw new ErrorException(
+        `@solidity: fetching ${what} (${sourceName}): ${(err as Error).message ?? err}`,
+      );
+    }
   }
-  if (isUrl(sourceName)) return sourceName;
-  return `${UNPKG_BASE}/${sourceName}`;
+  if (isUrl(sourceName)) {
+    const res = await fetchText(sourceName, what);
+    return res.text();
+  }
+  // npm-style import: an exact version pin makes the content immutable, so
+  // it can be fetched as a registry-verified tarball.
+  const spec = parseNpmFileSpec(sourceName);
+  if (!spec) {
+    const pkg = parseNpmPackageName(sourceName) ?? "@scope/pkg";
+    const latest = await fetchNpmLatestVersion(pkg).catch(() => undefined);
+    throw new ErrorException(
+      `@solidity: import "${sourceName}" must pin an exact package version, e.g. ${pkg}@${latest ?? "x.y.z"}/… — unpinned npm content cannot be verified`,
+    );
+  }
+  try {
+    return new TextDecoder().decode(await fetchVerifiedNpmFile(spec));
+  } catch (err) {
+    throw new ErrorException(
+      `@solidity: fetching ${what} (${sourceName}): ${(err as Error).message ?? err}`,
+    );
+  }
 }
 
 /** Source unit name used for inline (non-URL) root sources. */
@@ -287,8 +336,7 @@ export async function crawlImports(
         );
       }
       ctx.log?.(`@solidity: fetching ${resolved}…`);
-      const res = await fetchText(await toFetchUrl(resolved, ctx), resolved);
-      sources[resolved] = await res.text();
+      sources[resolved] = await fetchSource(resolved, resolved, ctx);
       queue.push(resolved);
     }
   }
@@ -313,11 +361,7 @@ async function compileFresh(
   let rootName: string;
   if (isUrl(sourceArg)) {
     rootName = sourceArg;
-    const res = await fetchText(
-      await toFetchUrl(sourceArg, ctx),
-      "the Solidity source",
-    );
-    rootSource = await res.text();
+    rootSource = await fetchSource(sourceArg, "the Solidity source", ctx);
   } else {
     rootName = INLINE_ROOT_NAME;
     rootSource = sourceArg;
