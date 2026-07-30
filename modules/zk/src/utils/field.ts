@@ -55,3 +55,31 @@ export function parseFieldArray(value: unknown, argName: string): bigint[] {
 export function keccakToField(data: Hex): bigint {
   return toField(BigInt(keccak256(data)));
 }
+
+/**
+ * Uniform random field element via rejection sampling (mask to 254 bits,
+ * redraw on >= p — no modulo bias).
+ */
+export function randomFieldElement(): bigint {
+  const bytes = new Uint8Array(32);
+  for (;;) {
+    crypto.getRandomValues(bytes);
+    bytes[0] &= 0x3f;
+    let value = 0n;
+    for (const byte of bytes) {
+      value = (value << 8n) | BigInt(byte);
+    }
+    if (value < BN254_PRIME) return value;
+  }
+}
+
+/** LSB-first bit decomposition, e.g. a merkle path index → circuit indices. */
+export function toBits(value: bigint, count: number): bigint[] {
+  if (!Number.isInteger(count) || count < 1 || count > 254) {
+    throw new ErrorException(`<count> must be between 1 and 254, got ${count}`);
+  }
+  if (value < 0n || value >> BigInt(count) !== 0n) {
+    throw new ErrorException(`<value> does not fit in ${count} bits: ${value}`);
+  }
+  return Array.from({ length: count }, (_, i) => (value >> BigInt(i)) & 1n);
+}

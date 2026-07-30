@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@evmcrispr/sdk": "workspace:^",
+    "@zk-kit/eddsa-poseidon": "^1.1.0",
+    "circom2": "^0.2.23",
     "poseidon-lite": "^0.3.0",
     "snarkjs": "^0.7.5"
   },
@@ -32,6 +34,7 @@
     "@evmcrispr/module-contracts": "workspace:*",
     "@evmcrispr/module-sim": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*",
+    "@wasmer/wasmfs": "^0.12.0",
     "@zk-kit/lean-imt": "^2.2.3"
   },
   "peerDependencies": {

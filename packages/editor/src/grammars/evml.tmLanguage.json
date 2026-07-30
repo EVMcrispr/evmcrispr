@@ -17,6 +17,9 @@
       "include": "#heredoc-json"
     },
     {
+      "include": "#heredoc-circom"
+    },
+    {
       "include": "#heredoc"
     },
     {
@@ -96,6 +99,26 @@
       "patterns": [
         {
           "include": "source.json"
+        }
+      ]
+    },
+    "heredoc-circom": {
+      "begin": "<<<(CIRCOM)\\b[ \\t]*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.heredoc.begin.evml"
+        }
+      },
+      "end": "^(CIRCOM)\\b",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.heredoc.end.evml"
+        }
+      },
+      "contentName": "meta.embedded.block.circom",
+      "patterns": [
+        {
+          "include": "source.circom"
         }
       ]
     },

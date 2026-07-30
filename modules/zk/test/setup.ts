@@ -1,5 +1,9 @@
 import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
-import { createTestServer } from "@evmcrispr/test-utils/msw/server";
+import {
+  createTestServer,
+  http,
+  passthrough,
+} from "@evmcrispr/test-utils/msw/server";
 import { zkArtifactHandlers } from "./fixtures/msw-handlers";
 
 registerAllModules();
@@ -13,5 +17,10 @@ evml.use(
   { name: "sim", load: () => import("@evmcrispr/module-sim") },
 );
 
-export const server = createTestServer(...zkArtifactHandlers);
+export const server = createTestServer(
+  ...zkArtifactHandlers,
+  // The verifier lifecycle test compiles the exported Solidity through the
+  // real solc binary (contracts-module precedent).
+  http.get("https://binaries.soliditylang.org/*", () => passthrough()),
+);
 server.listen({ onUnhandledRequest: "bypass" });

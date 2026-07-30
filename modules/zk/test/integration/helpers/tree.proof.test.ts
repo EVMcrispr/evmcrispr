@@ -31,6 +31,19 @@ describeHelper(
         },
       },
       {
+        name: "pads lean siblings and appends the real length with pad:<n>",
+        input: "@zk:tree.proof([1 2 3] 1 'pad:10')",
+        validate: ([pathIndex, siblings, length]) => {
+          expect(pathIndex.toBigInt()).to.equal(1n);
+          expect(siblings).to.have.length(10);
+          expect(toBigInts(siblings).slice(0, 2)).to.deep.equal([1n, 3n]);
+          expect(toBigInts(siblings).slice(2)).to.deep.equal(
+            Array.from({ length: 8 }, () => 0n),
+          );
+          expect(length.toBigInt()).to.equal(2n);
+        },
+      },
+      {
         name: "always returns depth siblings for a fixed-depth tree",
         input: '@zk:tree.proof([1 2] 0 "depth:4")',
         validate: ([pathIndex, siblings]) => {
@@ -47,7 +60,15 @@ describeHelper(
         input: "@zk:tree.proof([1 2 3] 3)",
         error: "<index> must be between 0 and 2",
       },
+      {
+        name: "should reject pad on fixed-depth trees",
+        input: "@zk:tree.proof([1 2] 0 'depth:4' 'pad:8')",
+        error: "pad only applies to lean trees",
+      },
     ],
+    // The options arg is a rest arg (unbounded arity); invalid options are
+    // covered by the error cases.
+    skipArgLengthCheck: true,
     sampleArgs: ["[1 2 3]", "1", '"lean"'],
     docCases: [
       {

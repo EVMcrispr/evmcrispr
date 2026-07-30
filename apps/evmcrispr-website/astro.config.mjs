@@ -9,6 +9,7 @@ import {
 import { dirname, relative, resolve } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
+import circomGrammar from "@evmcrispr/editor/grammars/circom";
 import evmlGrammar from "@evmcrispr/editor/grammars/evml";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
@@ -280,7 +281,9 @@ export default defineConfig({
       },
       customCss: ["/src/styles/starlight-theme.css"],
       expressiveCode: {
-        shiki: { langs: [evmlGrammar] },
+        // expressiveCode's bundled shiki knows source.solidity/json but not
+        // circom — the <<<CIRCOM heredoc grammar must be supplied explicitly.
+        shiki: { langs: [evmlGrammar, circomGrammar] },
       },
       favicon: "/favicon.ico",
       head: [

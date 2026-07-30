@@ -118,6 +118,17 @@ export const createLanguage: (
       },
     ],
 
+    circomHeredoc: [
+      {
+        regex: /^CIRCOM\b/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@pop",
+          nextEmbedded: "@pop",
+        },
+      },
+    ],
+
     heredoc: [
       {
         regex: /^([A-Z][A-Z0-9]*)\b/,
@@ -149,6 +160,16 @@ export const createLanguage: (
           token: "string.heredoc.delimiter",
           next: "@jsonHeredoc",
           nextEmbedded: "json",
+        },
+      },
+      {
+        // "circom" is our own registration (circom-language.ts), not a
+        // monaco built-in.
+        regex: /<<<CIRCOM\b[ \t]*$/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@circomHeredoc",
+          nextEmbedded: "circom",
         },
       },
       {

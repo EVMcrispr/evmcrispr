@@ -2,7 +2,7 @@
 title: "@zk:proof"
 ---
 
-Project the proof JSON bound by zk:prove into the `[a b c signals]` argument tuple of a snarkjs-exported Groth16 verifier (pi_b already swapped for the on-chain pairing check). Destructure it with `set [$a $b $c $signals] @zk:proof($proof)`.
+Project the proof JSON bound by zk:prove into the argument tuple of its snarkjs-exported verifier: [a b c signals] for groth16 (pi_b already swapped for the on-chain pairing check), [proof signals] for plonk/fflonk (a flat 24-element array). Destructure with `set [$a $b $c $signals] @zk:proof($proof)` or `set [$p $signals] @zk:proof($proof)`.
 
 **Returns**: `array`
 
@@ -27,7 +27,7 @@ The result is the argument tuple of a snarkjs-exported `Groth16Verifier`, with `
 ```
 load zk
 load lang
-zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs '{"a":3,"b":11}'
+zk:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [[a 3] [b 11]]
 set [$a $b $c $signals] @zk:proof($proof)
 print "Output signal:" @lang:at($signals 0)
 print "Valid:" @get($verifier "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[1])(bool)" $a $b $c $signals)

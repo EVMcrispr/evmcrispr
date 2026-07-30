@@ -302,7 +302,8 @@
 /* Size hover code blocks (the IPFS file preview and doc examples)
    below the editor's 22px. `.monaco-tokenized-source` is the wrapper
    around every tokenized code fence, so all token spans inherit. */
-.evmcrispr-root .monaco-editor
+.evmcrispr-root
+  .monaco-editor
   .monaco-hover
   .hover-contents
   .monaco-tokenized-source,

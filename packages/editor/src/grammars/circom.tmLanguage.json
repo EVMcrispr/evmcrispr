@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "circom",
+  "scopeName": "source.circom",
+  "comment": "Minimal hand-written circom grammar for <<<CIRCOM heredocs — keep in sync with the Monarch grammar in src/editor/circom-language.ts.",
+  "patterns": [
+    {
+      "match": "//.*$",
+      "name": "comment.line.double-slash.circom"
+    },
+    {
+      "begin": "/\\*",
+      "end": "\\*/",
+      "name": "comment.block.circom"
+    },
+    {
+      "match": "<==|==>|<--|-->|===",
+      "name": "keyword.operator.constraint.circom"
+    },
+    {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.circom"
+    },
+    {
+      "match": "\\b0x[0-9a-fA-F]+\\b",
+      "name": "constant.numeric.hex.circom"
+    },
+    {
+      "match": "\\b[0-9]+\\b",
+      "name": "constant.numeric.circom"
+    },
+    {
+      "match": "\\b(pragma|circom|include|template|component|signal|input|output|public|var|function|return|for|while|do|if|else|assert|log|main|parallel|custom|bus)\\b",
+      "name": "keyword.circom"
+    },
+    {
+      "match": "[<>!~?:&|+\\-*/^%=]+",
+      "name": "keyword.operator.circom"
+    },
+    {
+      "match": "[$_]*[a-zA-Z][a-zA-Z$_0-9]*",
+      "name": "variable.other.circom"
+    }
+  ],
+  "repository": {}
+}

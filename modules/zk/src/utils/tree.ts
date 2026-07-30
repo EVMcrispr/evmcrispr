@@ -45,6 +45,44 @@ export function parseTreeMode(value: unknown): TreeMode {
   );
 }
 
+export interface TreeProofOptions {
+  mode: TreeMode;
+  /** Zero-pad lean siblings to this length (circuits take fixed arrays). */
+  pad?: number;
+}
+
+/** Parse @zk:tree.proof's rest options: mode (`lean`/`depth:<n>`) + `pad:<n>`. */
+export function parseTreeProofOptions(rest: string[]): TreeProofOptions {
+  let mode: TreeMode | undefined;
+  let pad: number | undefined;
+  for (const arg of rest) {
+    const padMatch = arg.match(/^pad:(\d+)$/);
+    if (padMatch) {
+      pad = Number(padMatch[1]);
+      if (pad < 1 || pad > MAX_FIXED_DEPTH) {
+        throw new ErrorException(
+          `<options> pad must be between 1 and ${MAX_FIXED_DEPTH}, got ${pad}`,
+        );
+      }
+      continue;
+    }
+    try {
+      mode = parseTreeMode(arg);
+    } catch {
+      throw new ErrorException(
+        `<options> must be "lean", "depth:<n>" or "pad:<n>", got ${arg}`,
+      );
+    }
+  }
+  const resolved = mode ?? { kind: "lean" as const };
+  if (pad !== undefined && resolved.kind === "fixed") {
+    throw new ErrorException(
+      "<options> pad only applies to lean trees — fixed-depth proofs already have exactly depth siblings",
+    );
+  }
+  return { mode: resolved, pad };
+}
+
 function checkIndex(index: number, length: number): void {
   if (!Number.isInteger(index) || index < 0 || index >= length) {
     throw new ErrorException(

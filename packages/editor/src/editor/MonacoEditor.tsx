@@ -17,6 +17,7 @@ import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { toMonacoCompletionItem } from "./autocompletion";
+import { registerCircomLanguage } from "./circom-language";
 import { conf, contribution, createLanguage } from "./evml";
 import {
   findIpfsGetCallAt,
@@ -698,6 +699,7 @@ function Editor({
     monaco.languages.register(contribution);
     monaco.languages.setLanguageConfiguration("evml", conf);
     patchEmbeddedSolidity(monaco);
+    registerCircomLanguage(monaco);
   }, []);
 
   // ── Line highlighting during execution ──

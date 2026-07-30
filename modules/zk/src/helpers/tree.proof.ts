@@ -1,13 +1,13 @@
-import { defineHelper, fieldItem, Num } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, fieldItem, Num } from "@evmcrispr/sdk";
 import type Zk from "..";
 import { parseFieldArray } from "../utils/field";
 import { loadPoseidon2 } from "../utils/poseidon";
-import { fixedProof, leanProof, parseTreeMode } from "../utils/tree";
+import { fixedProof, leanProof, parseTreeProofOptions } from "../utils/tree";
 
 export default defineHelper<Zk>({
   name: "tree.proof",
   description:
-    "Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as a `[pathIndex siblings]` pair ready for destructuring. Fixed-depth proofs always have exactly `depth` siblings; lean proofs skip levels without one and compress the path index accordingly.",
+    "Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as a `[pathIndex siblings]` pair ready for destructuring — or `[pathIndex siblings length]` with `pad:<n>`, which zero-pads lean siblings to the fixed length circuits expect. Fixed-depth proofs always have exactly `depth` siblings; lean proofs skip levels without one and compress the path index accordingly.",
   returnType: "array",
   args: [
     {
@@ -21,28 +21,47 @@ export default defineHelper<Zk>({
       description: "Zero-based position of the leaf to prove",
     },
     {
-      name: "mode",
+      name: "options",
       type: "string",
-      optional: true,
+      rest: true,
       description:
-        "Tree mode: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` for a zero-padded fixed-depth tree",
+        "Tree options: `lean` (default, Semaphore v4 LeanIMT) or `depth:<n>` (zero-padded fixed depth), plus `pad:<n>` to zero-pad lean siblings and append the real proof length",
     },
   ],
   completions: {
-    mode: () => ["lean", "depth:20"].map(fieldItem),
+    options: () => ["lean", "depth:20", "pad:20"].map(fieldItem),
   },
-  async run(_, { leaves, index, mode }) {
-    const treeMode = parseTreeMode(mode);
+  async run(_, { leaves, index, options }) {
+    const { mode, pad } = parseTreeProofOptions(
+      ((options as string[]) ?? []).map(String),
+    );
     const elements = parseFieldArray(leaves, "leaves");
     const leafIndex = Number(Num(index).toBigInt());
     const h = await loadPoseidon2();
     const { pathIndex, siblings } =
-      treeMode.kind === "lean"
+      mode.kind === "lean"
         ? leanProof(elements, leafIndex, h)
         : {
             pathIndex: leafIndex,
-            siblings: fixedProof(elements, leafIndex, treeMode.depth, h),
+            siblings: fixedProof(elements, leafIndex, mode.depth, h),
           };
-    return [Num.fromBigInt(BigInt(pathIndex)), siblings.map(Num.fromBigInt)];
+    const pathIndexNum = Num.fromBigInt(BigInt(pathIndex));
+    if (pad === undefined) {
+      return [pathIndexNum, siblings.map(Num.fromBigInt)];
+    }
+    if (pad < siblings.length) {
+      throw new ErrorException(
+        `<options> pad:${pad} is smaller than the proof length ${siblings.length}`,
+      );
+    }
+    const padded = [
+      ...siblings,
+      ...Array.from({ length: pad - siblings.length }, () => 0n),
+    ];
+    return [
+      pathIndexNum,
+      padded.map(Num.fromBigInt),
+      Num.fromBigInt(BigInt(siblings.length)),
+    ];
   },
 });
