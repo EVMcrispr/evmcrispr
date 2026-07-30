@@ -33,6 +33,10 @@ if (argv.length !== rawArgs.length) {
 const [command, ...args] = argv;
 
 switch (command) {
+  case "--help":
+  case "-h":
+    console.log(USAGE);
+    break;
   case "--version":
   case "-v":
     console.log(pkg.version);

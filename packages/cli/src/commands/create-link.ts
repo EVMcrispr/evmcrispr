@@ -1,15 +1,24 @@
 import { readFileSync } from "node:fs";
 import { createLink } from "../tools/create-link.js";
 
+const USAGE = `Usage: evmcrispr create-link <title> <file> [base-url]
+
+Pin an EVML script to IPFS and print a shareable link. Pass - to read from stdin.
+
+Example: evmcrispr create-link "Send WETH to Griff" griff.evml`;
+
 export async function runCreateLink(args: string[]): Promise<void> {
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
+
   const title = args[0];
   const file = args[1];
   const baseUrl = args[2];
 
   if (!title || !file) {
-    console.error(
-      'Usage: evmcrispr create-link <title> <file> [base-url]\n\nExample: evmcrispr create-link "Send WETH to Griff" griff.evml',
-    );
+    console.error(USAGE);
     process.exit(1);
   }
 
