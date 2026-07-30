@@ -1,6 +1,6 @@
 /**
  * Session-cached artifact fetching over http(s)/ipfs for module commands
- * that consume circuit artifacts (zk, noir, …). Supports an optional
+ * that consume circuit artifacts (circom, noir, …). Supports an optional
  * `#sha256=0x…` URL-fragment integrity pin; ipfs:// content is already
  * hash-verified against the CID by the resolver the caller provides.
  */
@@ -10,7 +10,7 @@ export interface FetchContext {
   log?: (message: string) => void;
   /** Fetch an IPFS cid (or cid/path), hash-verified against the CID. */
   fetchIpfs?: (cidPath: string) => Promise<Uint8Array>;
-  /** Prefix for error messages, e.g. `"zk:prove: "`. */
+  /** Prefix for error messages, e.g. `"circom:prove: "`. */
   errorPrefix?: string;
 }
 

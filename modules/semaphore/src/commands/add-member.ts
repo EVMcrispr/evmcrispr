@@ -1,4 +1,4 @@
-import { parseFieldInput } from "@evmcrispr/module-zk";
+import { parseFieldInput } from "@evmcrispr/module-circom";
 import {
   defineCommand,
   ErrorException,

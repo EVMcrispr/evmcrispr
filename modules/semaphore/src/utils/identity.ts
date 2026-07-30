@@ -9,7 +9,7 @@ import {
   derivePublicKey,
   deriveSecretScalar,
   loadPoseidon2,
-} from "@evmcrispr/module-zk";
+} from "@evmcrispr/module-circom";
 
 /** Changing this string changes every wallet-derived identity — never touch. */
 export const IDENTITY_MESSAGE = "EVMcrispr Semaphore v4 identity";

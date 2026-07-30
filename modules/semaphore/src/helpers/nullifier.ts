@@ -1,4 +1,4 @@
-import { loadPoseidon2, parseFieldInput } from "@evmcrispr/module-zk";
+import { loadPoseidon2, parseFieldInput } from "@evmcrispr/module-circom";
 import { defineHelper, Num } from "@evmcrispr/sdk";
 import type Semaphore from "..";
 import { hashSignal, parseSignalValue } from "../utils/proof";

@@ -1,6 +1,6 @@
 # semaphore module
 
-Semaphore v4 anonymous signaling for EVML scripts: wallet-derived zero-knowledge identities, on-chain group management against the canonical singleton, and membership proofs with the production ceremony artifacts - built on the zk module.
+Semaphore v4 anonymous signaling for EVML scripts: wallet-derived zero-knowledge identities, on-chain group management against the canonical singleton, and membership proofs with the production ceremony artifacts - built on the circom module.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

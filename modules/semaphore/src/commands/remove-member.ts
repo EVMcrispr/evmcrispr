@@ -2,7 +2,7 @@ import {
   leanProof,
   loadPoseidon2,
   parseFieldInput,
-} from "@evmcrispr/module-zk";
+} from "@evmcrispr/module-circom";
 import {
   defineCommand,
   ErrorException,

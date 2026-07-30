@@ -40,7 +40,7 @@ an entries array of `[name value]` pairs, so `[a:1 b:2]` and
 records; an array can't mix named entries with positional elements.
 
 ```evml
-load zk
+load circom
 load lang [@keys @values @lookup]
 
 set $inputs [a:3 b:11]
@@ -48,7 +48,7 @@ set $names @keys($inputs)      # ["a" "b"]
 set $signals @values($inputs)  # [3 11]
 set $a @lookup($inputs a)      # 3
 
-zk:prove $proof --wasm ipfs://QmWasm --zkey ipfs://QmZkey --inputs $inputs
+circom:prove $proof --wasm ipfs://QmWasm --zkey ipfs://QmZkey --inputs $inputs
 ```
 
 ## Arithmetic & Boolean Expressions

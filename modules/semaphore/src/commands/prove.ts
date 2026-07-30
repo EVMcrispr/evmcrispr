@@ -4,7 +4,7 @@ import {
   leanProof,
   loadPoseidon2,
   parseFieldInput,
-} from "@evmcrispr/module-zk";
+} from "@evmcrispr/module-circom";
 import { BindingsSpace, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Semaphore from "..";
 import { getGroupMembers } from "../utils/members";

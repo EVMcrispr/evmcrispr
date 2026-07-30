@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-semaphore",
   "version": "0.11.0",
-  "description": "Semaphore v4 anonymous signaling for EVML scripts: wallet-derived zero-knowledge identities, on-chain group management against the canonical singleton, and membership proofs with the production ceremony artifacts - built on the zk module.",
+  "description": "Semaphore v4 anonymous signaling for EVML scripts: wallet-derived zero-knowledge identities, on-chain group management against the canonical singleton, and membership proofs with the production ceremony artifacts - built on the circom module.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/module-zk": "workspace:^",
+    "@evmcrispr/module-circom": "workspace:^",
     "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {

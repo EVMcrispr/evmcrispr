@@ -189,7 +189,7 @@ export const createLanguage: (
       },
 
       // Module-qualified command head at line start stays one identifier
-      // token so the named-arg rule below doesn't split `zk:prove`.
+      // token so the named-arg rule below doesn't split `circom:prove`.
       {
         regex: /^[ \t]*[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9.\-]*(?=\s|$)/,
         action: { token: "identifier" },

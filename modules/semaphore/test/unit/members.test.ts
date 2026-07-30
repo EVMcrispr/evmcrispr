@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { leanRoot, loadPoseidon2 } from "@evmcrispr/module-zk";
+import { leanRoot, loadPoseidon2 } from "@evmcrispr/module-circom";
 import { expect } from "@evmcrispr/test-utils";
 import { LeanIMT } from "@zk-kit/lean-imt";
 

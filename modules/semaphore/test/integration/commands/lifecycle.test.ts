@@ -1,6 +1,6 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { fetchArtifact } from "@evmcrispr/module-zk";
+import { fetchArtifact } from "@evmcrispr/module-circom";
 import { type Action, isWalletAction } from "@evmcrispr/sdk";
 import { expect, getTransports, getWalletClients } from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
@@ -53,7 +53,7 @@ const expectScriptError = async (script: string, fragment: string) => {
 
 const OPEN_FORK = `load sim
 load lang
-load zk
+load circom
 semaphore:identity $me
 sim:fork --using anvil (
   sim:set-balance @me 1000e18
@@ -66,7 +66,7 @@ describe("Semaphore > commands > lifecycle (create-group / add-member / prove / 
     async () => {
       await runScript(`${OPEN_FORK}
   sim:expect @bool(@semaphore:size($group) == 3)
-  sim:expect @bool(@semaphore:root($group) == @zk:tree.root(@semaphore:members($group)))
+  sim:expect @bool(@semaphore:root($group) == @circom:tree.root(@semaphore:members($group)))
   semaphore:prove $proof --group $group --message "gm anon" --scope "test-poll"
   sim:expect @bool(@semaphore:verify($proof $group))
   sim:expect @bool(@semaphore:nullifier("test-poll" $me) > 0)
@@ -74,7 +74,7 @@ describe("Semaphore > commands > lifecycle (create-group / add-member / prove / 
   semaphore:remove-member ${BOB} from $group
   sim:expect @bool(@semaphore:size($group) == 3)
   sim:expect @bool(@lang:at(@semaphore:members($group) 1) == 0)
-  sim:expect @bool(@semaphore:root($group) == @zk:tree.root(@semaphore:members($group)))
+  sim:expect @bool(@semaphore:root($group) == @circom:tree.root(@semaphore:members($group)))
 )`);
     },
     { timeout: 120_000 },

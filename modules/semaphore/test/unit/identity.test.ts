@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { derivePublicKey, loadPoseidon2 } from "@evmcrispr/module-zk";
+import { derivePublicKey, loadPoseidon2 } from "@evmcrispr/module-circom";
 import { expect } from "@evmcrispr/test-utils";
 import { deriveIdentity, IDENTITY_MESSAGE } from "../../src/utils/identity";
 import {

@@ -3,7 +3,7 @@
  *
  *   bun test/fixtures/generate.ts
  *
- * Everything derives from @zk-kit primitives (via the zk module) and the
+ * Everything derives from @zk-kit primitives (via the circom module) and the
  * standard anvil test mnemonic, so the vectors are stable — they only
  * change if the identity scheme or IDENTITY_MESSAGE changes, which must
  * never happen silently (it would rotate every wallet-derived identity).

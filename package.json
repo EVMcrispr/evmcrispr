@@ -48,6 +48,7 @@
     "@evmcrispr/module-aragonosx": "workspace:*",
     "@evmcrispr/module-assertions": "workspace:*",
     "@evmcrispr/module-bridges": "workspace:*",
+    "@evmcrispr/module-circom": "workspace:*",
     "@evmcrispr/module-contracts": "workspace:*",
     "@evmcrispr/module-crypto": "workspace:*",
     "@evmcrispr/module-ens": "workspace:*",
@@ -66,7 +67,6 @@
     "@evmcrispr/module-swaps": "workspace:*",
     "@evmcrispr/module-token": "workspace:*",
     "@evmcrispr/module-vault": "workspace:*",
-    "@evmcrispr/module-zk": "workspace:*",
     "@evmcrispr/sdk": "workspace:*",
     "viem": "^2.46.3"
   }

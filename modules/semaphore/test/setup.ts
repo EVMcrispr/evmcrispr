@@ -11,14 +11,14 @@ registerAllModules();
 // package.
 evml.use({ name: "semaphore", load: () => import("../src/index") });
 evml.use(
-  { name: "zk", load: () => import("@evmcrispr/module-zk") },
+  { name: "circom", load: () => import("@evmcrispr/module-circom") },
   { name: "contracts", load: () => import("@evmcrispr/module-contracts") },
   { name: "sim", load: () => import("@evmcrispr/module-sim") },
 );
 
 export const server = createTestServer(
   // The real ceremony artifacts are a live dependency, prewarmed once per
-  // run (heavy-real-binary precedent: the solc CDN passthrough in zk).
+  // run (heavy-real-binary precedent: the solc CDN passthrough in circom).
   http.get("https://snark-artifacts.pse.dev/*", () => passthrough()),
 );
 server.listen({ onUnhandledRequest: "bypass" });

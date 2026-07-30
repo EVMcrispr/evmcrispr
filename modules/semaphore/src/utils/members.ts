@@ -13,7 +13,7 @@
  * per (chain, group) on the module instance for the session.
  */
 
-import { type Hash2, leanRoot } from "@evmcrispr/module-zk";
+import { type Hash2, leanRoot } from "@evmcrispr/module-circom";
 import { ErrorException, type Module } from "@evmcrispr/sdk";
 import type { AbiEvent } from "viem";
 import type Semaphore from "..";
