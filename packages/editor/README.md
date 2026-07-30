@@ -27,7 +27,7 @@ export function App() {
 
 For finer-grained embedding, the pieces are exported individually: the lazy `Editor` (Monaco), `Console`, `ActionsPreview`, the `evmlMonacoTheme`/`evmlTheme` themes, the EVML TextMate grammar (`@evmcrispr/editor/grammars/evml`), and hooks like `useScriptAnalysis`, `useScriptInterpreter` and `useExecutionLogs`.
 
-`react`, `react-dom` and `viem` are peer dependencies. `monaco-editor` is pinned to 0.52.2.
+`react`, `react-dom` and `viem` are peer dependencies. `monaco-editor` is pinned to 0.56.0.
 
 ## Contributing
 

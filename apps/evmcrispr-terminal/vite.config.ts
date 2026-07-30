@@ -104,10 +104,9 @@ const MONACO_MIME: Record<string, string> = {
 
 function monacoAssets(): Plugin {
   const require = createRequire(import.meta.url);
-  const vsDir = path.join(
-    path.dirname(require.resolve("monaco-editor/package.json")),
-    "min/vs",
-  );
+  // monaco's exports map hides package.json; the "." require entry points
+  // at min/vs/index.js, whose directory is the AMD build we serve.
+  const vsDir = path.dirname(require.resolve("monaco-editor"));
   let copyTarget = "";
   return {
     name: "monaco-assets",
