@@ -23,7 +23,7 @@
     "buffer": "^6.0.3",
     "ethereum-blockies-base64": "^1.0.2",
     "is-ipfs": "^8.0.4",
-    "monaco-editor": "0.52.2",
+    "monaco-editor": "0.56.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
