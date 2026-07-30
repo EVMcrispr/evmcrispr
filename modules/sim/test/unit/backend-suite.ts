@@ -1,6 +1,10 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
-import { createPublicClient, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  getContractAddress,
+  type PublicClient,
+} from "viem";
 import { gnosis } from "viem/chains";
 import {
   CHAIN_ID,
@@ -14,6 +18,10 @@ const FORK_BLOCK_NUMBER = await getForkBlockNumber();
 
 const ADDR = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
+
+// Init code deploying a 10-byte runtime that returns 42.
+const RUNTIME = "0x602a60005260206000f3" as const;
+const INITCODE = `0x600a600c600039600a6000f3${RUNTIME.slice(2)}` as const;
 
 /**
  * Conformance suite for in-process simulation backends. Both the ethereumjs
@@ -192,6 +200,48 @@ export function describeBackendSuite(
       };
 
       await backend.handleAction(action);
+    });
+
+    // -------------------------------------------------------------------------
+    // handleAction: plain CREATE deployment
+    // -------------------------------------------------------------------------
+
+    it("deploys plain CREATE contracts at successive account nonces", async () => {
+      const { backend, client } = await makeBackend();
+      const txCount = await client.getTransactionCount({
+        address: ADDR,
+        blockNumber: BigInt(FORK_BLOCK_NUMBER),
+      });
+
+      await backend.handleAction({ from: ADDR, data: INITCODE } as Action);
+      const first = getContractAddress({ from: ADDR, nonce: BigInt(txCount) });
+      expect(await client.getCode({ address: first })).toBe(RUNTIME);
+
+      // A second deploy must land at exactly the next nonce — catches any
+      // double nonce accounting in the backend.
+      await backend.handleAction({ from: ADDR, data: INITCODE } as Action);
+      const second = getContractAddress({
+        from: ADDR,
+        nonce: BigInt(txCount + 1),
+      });
+      expect(await client.getCode({ address: second })).toBe(RUNTIME);
+    });
+
+    it("honors an explicit tx nonce for CREATE address derivation", async () => {
+      const { backend, client } = await makeBackend();
+      const txCount = await client.getTransactionCount({
+        address: ADDR,
+        blockNumber: BigInt(FORK_BLOCK_NUMBER),
+      });
+      const nonce = txCount + 7;
+
+      await backend.handleAction({
+        from: ADDR,
+        data: INITCODE,
+        nonce,
+      } as Action);
+      const at = getContractAddress({ from: ADDR, nonce: BigInt(nonce) });
+      expect(await client.getCode({ address: at })).toBe(RUNTIME);
     });
 
     // -------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { computeNextContractAddress, defineHelper } from "@evmcrispr/sdk";
+import { defineHelper } from "@evmcrispr/sdk";
 import type Contracts from "..";
 
 export default defineHelper<Contracts>({
@@ -16,9 +16,6 @@ export default defineHelper<Contracts>({
     },
   ],
   async run(module, { creator, offset = 0 }) {
-    const client = await module.getClient();
-    return computeNextContractAddress(creator, offset, (addr) =>
-      client.getTransactionCount({ address: addr }),
-    );
+    return module.predictNextAddress(creator, offset);
   },
 });

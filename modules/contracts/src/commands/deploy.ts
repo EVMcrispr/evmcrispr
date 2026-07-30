@@ -125,7 +125,8 @@ export default defineCommand<Contracts>({
     {
       name: "nonce",
       type: "number",
-      description: "Transaction nonce override",
+      description:
+        "Transaction nonce override. For plain CREATE deployments it also pins the predicted contract address.",
     },
   ],
   async run(module, { variable, bytecode }, { opts }) {
@@ -286,8 +287,10 @@ export default defineCommand<Contracts>({
       });
       action = { to: factory, data, from };
     } else {
-      const nonce = BigInt(await module.incrementNonce(from));
-      predicted = getContractAddress({ from, nonce });
+      predicted = await module.reserveNextAddress(
+        from,
+        opts.nonce !== undefined ? { nonce: BigInt(opts.nonce) } : {},
+      );
       action = { data: initCode, from };
     }
 

@@ -25,6 +25,8 @@ struct TxJson {
     value: Option<String>,
     #[serde(default)]
     gas: Option<String>,
+    #[serde(default)]
+    nonce: Option<String>,
 }
 
 /// Plain-Rust fork state; `RevmFork` in lib.rs is the thin wasm-bindgen shell.
@@ -206,6 +208,14 @@ impl Fork {
             Ok(t) => t,
             Err(e) => return error_env(&e),
         };
+        // An explicit nonce override (--nonce) also rewrites the cached
+        // account nonce so revm's CREATE-address derivation and the tx agree,
+        // whichever of the two it consults.
+        if tx.nonce.is_some() {
+            if let Some(acc) = self.db.cache.accounts.get_mut(&tx_env.caller) {
+                acc.info.nonce = tx_env.nonce;
+            }
+        }
 
         // No blanket `Database for &mut T` in revm 42, so hand the CacheDB to the
         // EVM by value and take it back out of the context afterwards.
@@ -247,16 +257,22 @@ impl Fork {
             .transpose()?
             .map(|g| g.try_into().unwrap_or(BLOCK_GAS_LIMIT))
             .unwrap_or(BLOCK_GAS_LIMIT);
-        // Nonce from the cached account so the journal bumps it on commit; a
-        // cold caller raises an account miss during execution anyway, and
+        // Nonce from the tx when set explicitly (--nonce), otherwise from the
+        // cached account so the journal bumps it on commit; a cold caller
+        // raises an account miss during execution anyway, and
         // disable_nonce_check makes any residual mismatch harmless.
-        let nonce = self
-            .db
-            .cache
-            .accounts
-            .get(&caller)
-            .map(|a| a.info.nonce)
-            .unwrap_or(0);
+        let nonce = match &tx.nonce {
+            Some(n) => parse_u256(n)?
+                .try_into()
+                .map_err(|_| format!("nonce out of range: {n}"))?,
+            None => self
+                .db
+                .cache
+                .accounts
+                .get(&caller)
+                .map(|a| a.info.nonce)
+                .unwrap_or(0),
+        };
         Ok(TxEnv {
             tx_type: 0,
             caller,

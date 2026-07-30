@@ -4,9 +4,9 @@ import {
   ErrorException,
   encodeAction,
 } from "@evmcrispr/sdk";
-import { getContractAddress, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import type AragonOS from "..";
-import { buildNonceForAddress, MINIME_TOKEN_FACTORIES } from "../utils";
+import { MINIME_TOKEN_FACTORIES } from "../utils";
 
 export default defineCommand<AragonOS>({
   name: "new-token",
@@ -47,15 +47,7 @@ export default defineCommand<AragonOS>({
     }
 
     const factoryAddr = MINIME_TOKEN_FACTORIES.get(chainId)!;
-    const nonce = await buildNonceForAddress(
-      factoryAddr,
-      await module.incrementNonce(factoryAddr),
-      await module.getClient(),
-    );
-    const newTokenAddress = getContractAddress({
-      from: factoryAddr,
-      nonce,
-    });
+    const newTokenAddress = await module.reserveNextAddress(factoryAddr);
 
     module.bindingsManager.setBinding(
       variable,
