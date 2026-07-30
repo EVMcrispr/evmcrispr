@@ -279,12 +279,78 @@ async function setupFresh(
   }
 
   const vkey = await snarkjs.zKey.exportVerificationKey(zkeyFinal);
-  const verifierSource = await snarkjs.zKey.exportSolidityVerifier(zkeyFinal, {
-    [options.system]: VERIFIER_TEMPLATES[options.system],
-  });
+  const verifierSource = await renderVerifier(
+    vkey as Record<string, unknown>,
+    options.system,
+  );
   return {
     zkey: zkeyFinal.data as Uint8Array,
     verifierSource,
     vkeyJson: JSON.stringify(vkey),
   };
+}
+
+interface EjsModule {
+  render(template: string, data: Record<string, unknown>): string;
+}
+
+let ejsPromise: Promise<EjsModule> | undefined;
+
+/**
+ * snarkjs's browser build stubs ejs with an empty object, so its
+ * `exportSolidityVerifier` only works under node — render the vendored
+ * templates ourselves. ejs's own browser bundle (a plain UMD with no
+ * fs/path dependency) works in every environment.
+ */
+function loadEjs(): Promise<EjsModule> {
+  if (!ejsPromise) {
+    ejsPromise = import("ejs/ejs.js").then(
+      (m) => (m as { default?: EjsModule }).default ?? (m as EjsModule),
+    );
+    ejsPromise.catch(() => {
+      ejsPromise = undefined;
+    });
+  }
+  return ejsPromise;
+}
+
+/**
+ * Render the Solidity verifier from an exported verification key —
+ * equivalent to snarkjs's exportSolidityVerifier, including the fflonk
+ * root precomputation it performs before templating.
+ */
+export async function renderVerifier(
+  vkey: Record<string, unknown>,
+  system: ProofSystem,
+): Promise<string> {
+  const vk = { ...vkey };
+  if (system === "fflonk") {
+    // Precompute w3_2, w4_2, w4_3 and w8_1..w8_7 (snarkjs
+    // fflonkExportSolidityVerifier parity). vkey scalars are stringified
+    // field elements: from = Fr.fromObject(BigInt(s)), to = Fr.toObject().
+    const curve = (await getBn128()) as {
+      Fr: {
+        one: unknown;
+        square(a: unknown): unknown;
+        mul(a: unknown, b: unknown): unknown;
+        fromObject(o: bigint): unknown;
+        toObject(a: unknown): bigint;
+      };
+    };
+    const Fr = curve.Fr;
+    const fromVkey = (s: unknown) => Fr.fromObject(BigInt(s as string));
+    const toVkey = (v: unknown) => Fr.toObject(v).toString();
+    vk.w3_2 = toVkey(Fr.square(fromVkey(vk.w3)));
+    const w4 = fromVkey(vk.w4);
+    vk.w4_2 = toVkey(Fr.square(w4));
+    vk.w4_3 = toVkey(Fr.mul(Fr.square(w4), w4));
+    const w8 = fromVkey(vk.w8);
+    let acc = Fr.one;
+    for (let i = 1; i < 8; i++) {
+      acc = Fr.mul(acc, w8);
+      vk[`w8_${i}`] = toVkey(acc);
+    }
+  }
+  const ejs = await loadEjs();
+  return ejs.render(VERIFIER_TEMPLATES[system], vk);
 }

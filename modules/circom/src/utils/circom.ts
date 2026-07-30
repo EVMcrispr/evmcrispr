@@ -254,6 +254,14 @@ async function runCircom(
   virtualSources: Record<string, string>,
   ctx: FetchContext,
 ): Promise<{ wasm: Uint8Array; r1cs: Uint8Array }> {
+  // @wasmer/wasi's "buffer polyfill" just re-exports the global Buffer, so
+  // circom2 throws in contexts without one (web workers; pages only work
+  // when a wallet lib happens to polyfill it). Provide the npm polyfill
+  // where the global is missing.
+  if (typeof (globalThis as { Buffer?: unknown }).Buffer === "undefined") {
+    const { Buffer } = await import("buffer/");
+    (globalThis as { Buffer?: unknown }).Buffer = Buffer;
+  }
   const [{ CircomRunner, bindings }, { WasmFs }, circomWasm] =
     await Promise.all([
       import("circom2"),
@@ -327,7 +335,9 @@ export function parseR1csConstraints(r1cs: Uint8Array): number {
     }
     offset += size;
   }
-  throw new ErrorException("@circom:circom: malformed r1cs (no header section)");
+  throw new ErrorException(
+    "@circom:circom: malformed r1cs (no header section)",
+  );
 }
 
 // --- cache ---

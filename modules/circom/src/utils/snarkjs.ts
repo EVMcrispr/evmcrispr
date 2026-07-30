@@ -7,8 +7,8 @@
 import {
   ErrorException,
   type FetchContext,
-  fetchArtifact as sdkFetchArtifact,
   Num,
+  fetchArtifact as sdkFetchArtifact,
 } from "@evmcrispr/sdk";
 
 export type { FetchContext };

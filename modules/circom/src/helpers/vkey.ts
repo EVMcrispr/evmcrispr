@@ -24,7 +24,8 @@ export default defineHelper<Circom>({
       name: "system",
       type: "string",
       namedOnly: true,
-      description: "Proof system: `system:groth16|plonk|fflonk` (default groth16)",
+      description:
+        "Proof system: `system:groth16|plonk|fflonk` (default groth16)",
     },
   ],
   async run(module, { source, ptau, system }) {
