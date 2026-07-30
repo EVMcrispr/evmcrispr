@@ -5,14 +5,10 @@ import {
   ErrorException,
   encodeAction,
 } from "@evmcrispr/sdk";
-import { encodePacked, getContractAddress, keccak256, parseAbi } from "viem";
+import { encodePacked, keccak256, parseAbi } from "viem";
 import type AragonOS from "..";
 import { _aragonEns } from "../helpers/aragonEns";
-import {
-  ARAGON_REGISTRARS,
-  buildNonceForAddress,
-  DAO_FACTORIES,
-} from "../utils";
+import { ARAGON_REGISTRARS, DAO_FACTORIES } from "../utils";
 
 const registerAragonId = async (
   module: AragonOS,
@@ -68,12 +64,7 @@ export default defineCommand<AragonOS>({
     if (!daoFactory) {
       throw new ErrorException("network not supported");
     }
-    const nonce = await buildNonceForAddress(
-      daoFactory,
-      await module.incrementNonce(daoFactory),
-      provider,
-    );
-    const newDaoAddress = getContractAddress({ from: daoFactory, nonce });
+    const newDaoAddress = await module.reserveNextAddress(daoFactory);
 
     module.bindingsManager.setBinding(
       variable,

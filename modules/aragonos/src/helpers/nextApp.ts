@@ -1,8 +1,4 @@
-import {
-  computeNextContractAddress,
-  defineHelper,
-  ErrorException,
-} from "@evmcrispr/sdk";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type AragonOS from "..";
 import { getKernel } from "../dao";
 
@@ -28,13 +24,7 @@ export default defineHelper<AragonOS>({
     }
 
     const kernel = getKernel(dao);
-    const internalIndex = (await module.getNonce(kernel.address)) ?? 0;
-    const client = await module.getClient();
 
-    return computeNextContractAddress(
-      kernel.address,
-      internalIndex + offset,
-      (addr) => client.getTransactionCount({ address: addr }),
-    );
+    return module.predictNextAddress(kernel.address, offset);
   },
 });

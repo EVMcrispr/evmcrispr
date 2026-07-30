@@ -1,4 +1,5 @@
 import type { Chain, PublicClient, Transport } from "viem";
+import { getContractAddress } from "viem";
 import { ErrorException, ExperimentalDisabledError } from "./errors";
 import type {
   Address,
@@ -162,19 +163,50 @@ export abstract class Module {
     return substituteConfigDefault(def.default, this.name, name, vars);
   }
 
-  async getNonce(address: Address, chainId?: number): Promise<number> {
-    chainId = chainId ?? (await this.getChainId());
-    return this.nonces[`${chainId}:${address}`];
+  /**
+   * Address of the next plain-CREATE deployment from `address` (nonce-derived
+   * — CREATE2/CREATE3 are salt-based and need no reservation), and reserve
+   * its nonce. The nonce is the on-chain transaction count, unless
+   * deployments queued earlier in the script (not yet executed, so not
+   * reflected in the count) advanced past it. Pass `nonce` to reserve a
+   * caller-chosen one instead (e.g. a --nonce override).
+   */
+  async reserveNextAddress(
+    address: Address,
+    opts: { nonce?: bigint; chainId?: number } = {},
+  ): Promise<Address> {
+    const key = `${opts.chainId ?? (await this.getChainId())}:${address}`;
+    let nonce: bigint;
+    if (opts.nonce !== undefined) {
+      nonce = opts.nonce;
+      this.nonces[key] = Math.max(this.nonces[key] ?? 0, Number(nonce) + 1);
+    } else {
+      const client = await this.getClient();
+      const txCount = await client.getTransactionCount({ address });
+      const next = Math.max(txCount, this.nonces[key] ?? 0);
+      this.nonces[key] = next + 1;
+      nonce = BigInt(next);
+    }
+    return getContractAddress({ from: address, nonce });
   }
 
-  async incrementNonce(address: Address, chainId?: number): Promise<number> {
-    chainId = chainId ?? (await this.getChainId());
-
-    if (!this.nonces[`${chainId}:${address}`]) {
-      this.nonces[`${chainId}:${address}`] = 0;
-    }
-
-    return this.nonces[`${chainId}:${address}`]++;
+  /**
+   * Like `reserveNextAddress` but read-only: the address of the CREATE
+   * happening `offset` deployments after the ones already queued, reserving
+   * nothing.
+   */
+  async predictNextAddress(
+    address: Address,
+    offset = 0,
+    chainId?: number,
+  ): Promise<Address> {
+    const key = `${chainId ?? (await this.getChainId())}:${address}`;
+    const client = await this.getClient();
+    const txCount = await client.getTransactionCount({ address });
+    return getContractAddress({
+      from: address,
+      nonce: BigInt(Math.max(txCount, this.nonces[key] ?? 0) + offset),
+    });
   }
 
   async getClient(): Promise<PublicClient> {

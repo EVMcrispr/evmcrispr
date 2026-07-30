@@ -34,6 +34,8 @@ const BYTECODE =
   "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220abcd";
 
 const FROM = TEST_ACCOUNT_ADDRESS as `0x${string}`;
+// vitalik.eth — an account with a nonzero transaction count on Gnosis.
+const NONZERO_NONCE_SENDER = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 const SALT_1 = pad("0x01", { size: 32 });
 const SALT_2 = pad("0x02", { size: 32 });
 
@@ -72,8 +74,12 @@ describeCommand("deploy", {
       name: "plain CREATE: emits a deployment action without `to` and binds the predicted address",
       script: `contracts:deploy $addr ${BYTECODE}`,
       expectedActions: [{ data: BYTECODE, from: FROM }],
-      validate: (_actions, interpreter) => {
-        const expected = getContractAddress({ from: FROM, nonce: 0n });
+      setup: (client) => client.getTransactionCount({ address: FROM }),
+      validate: (_actions, interpreter, txCount: number) => {
+        const expected = getContractAddress({
+          from: FROM,
+          nonce: BigInt(txCount),
+        });
         expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
           expected,
         );
@@ -86,12 +92,13 @@ describeCommand("deploy", {
         { data: BYTECODE, from: FROM },
         { data: BYTECODE, from: FROM },
       ],
-      validate: (_actions, interpreter) => {
+      setup: (client) => client.getTransactionCount({ address: FROM }),
+      validate: (_actions, interpreter, txCount: number) => {
         expect(interpreter.getBinding("$a", BindingsSpace.USER)).to.equal(
-          getContractAddress({ from: FROM, nonce: 0n }),
+          getContractAddress({ from: FROM, nonce: BigInt(txCount) }),
         );
         expect(interpreter.getBinding("$b", BindingsSpace.USER)).to.equal(
-          getContractAddress({ from: FROM, nonce: 1n }),
+          getContractAddress({ from: FROM, nonce: BigInt(txCount + 1) }),
         );
       },
     },
@@ -104,13 +111,35 @@ describeCommand("deploy", {
           from: "0x000000000000000000000000000000000000beef",
         },
       ],
-      validate: (_actions, interpreter) => {
+      setup: (client) =>
+        client.getTransactionCount({
+          address: "0x000000000000000000000000000000000000beef",
+        }),
+      validate: (_actions, interpreter, txCount: number) => {
         const expected = getContractAddress({
           from: "0x000000000000000000000000000000000000beef",
-          nonce: 0n,
+          nonce: BigInt(txCount),
         });
         expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
           expected,
+        );
+      },
+    },
+    {
+      name: "plain CREATE: prediction starts from the sender's on-chain transaction count",
+      // An account that has already transacted on-chain: the predicted
+      // address must use its real nonce, not a zero-based counter.
+      script: `contracts:deploy $addr ${BYTECODE} --from ${NONZERO_NONCE_SENDER}`,
+      expectedActions: [{ data: BYTECODE, from: NONZERO_NONCE_SENDER }],
+      setup: (client) =>
+        client.getTransactionCount({ address: NONZERO_NONCE_SENDER }),
+      validate: (_actions, interpreter, txCount: number) => {
+        expect(txCount).to.be.greaterThan(0);
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          getContractAddress({
+            from: NONZERO_NONCE_SENDER,
+            nonce: BigInt(txCount),
+          }),
         );
       },
     },
@@ -128,6 +157,12 @@ describeCommand("deploy", {
           nonce: 7,
         },
       ],
+      validate: (_actions, interpreter) => {
+        // An explicit --nonce pins the predicted address too.
+        expect(interpreter.getBinding("$addr", BindingsSpace.USER)).to.equal(
+          getContractAddress({ from: FROM, nonce: 7n }),
+        );
+      },
     },
     {
       name: "--constructor + --constructor-args: appends ABI-encoded args to bytecode",
