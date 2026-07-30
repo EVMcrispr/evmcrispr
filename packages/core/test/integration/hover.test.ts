@@ -59,6 +59,44 @@ describe("Core > hover", () => {
       expect(c).to.include("$unknown");
       expect(c).to.include("**Variable**");
     });
+
+    it("describes the command parameter the variable fills", async () => {
+      const script =
+        'set $target 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d\nexec $target "transfer(address,uint256)" @me 1';
+      const col = script.split("\n")[1].indexOf("$target") + 1;
+      const result = await ctx.hover(script, { line: 2, col });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Variable**");
+      expect(c).to.include(
+        "**Parameter** `contractAddress: address` of `exec`",
+      );
+      expect(c).to.include("Target contract address");
+    });
+
+    it("does not attach a parameter card to a variable nested inside a helper call", async () => {
+      const script =
+        'set $sym "DAI"\nexec @token($sym) "transfer(address,uint256)" @me 1';
+      const col = script.split("\n")[1].indexOf("$sym") + 1;
+      const result = await ctx.hover(script, { line: 2, col });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Variable**");
+      expect(c).to.not.include("contractAddress");
+    });
+  });
+
+  describe("over command options", () => {
+    it("includes the option description in the hover", async () => {
+      const script =
+        'exec 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d "transfer(address,uint256)" @me 1 --value 0';
+      const col = script.indexOf("--value") + 3;
+      const result = await ctx.hover(script, { line: 1, col });
+      expect(result).to.not.be.null;
+      const c = result!.contents.join("\n");
+      expect(c).to.include("**Option** `--value: number` of `exec`");
+      expect(c).to.include("ETH to send with the call (in wei)");
+    });
   });
 
   describe("over address literals", () => {
