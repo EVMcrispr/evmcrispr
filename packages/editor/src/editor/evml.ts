@@ -129,6 +129,17 @@ export const createLanguage: (
       },
     ],
 
+    noirHeredoc: [
+      {
+        regex: /^NOIR\b/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@pop",
+          nextEmbedded: "@pop",
+        },
+      },
+    ],
+
     heredoc: [
       {
         regex: /^([A-Z][A-Z0-9]*)\b/,
@@ -170,6 +181,16 @@ export const createLanguage: (
           token: "string.heredoc.delimiter",
           next: "@circomHeredoc",
           nextEmbedded: "circom",
+        },
+      },
+      {
+        // "noir" is our own registration (noir-language.ts), not a monaco
+        // built-in.
+        regex: /<<<NOIR\b[ \t]*$/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@noirHeredoc",
+          nextEmbedded: "noir",
         },
       },
       {

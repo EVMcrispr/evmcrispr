@@ -28,6 +28,7 @@ import {
   loadingPreview,
   peekIpfsPreview,
 } from "./ipfs-preview";
+import { registerNoirLanguage } from "./noir-language";
 import { patchEmbeddedSolidity } from "./solidity-patch";
 import { theme } from "./theme";
 
@@ -703,6 +704,7 @@ function Editor({
     monaco.languages.setLanguageConfiguration("evml", conf);
     patchEmbeddedSolidity(monaco);
     registerCircomLanguage(monaco);
+    registerNoirLanguage(monaco);
   }, []);
 
   // ── Line highlighting during execution ──
