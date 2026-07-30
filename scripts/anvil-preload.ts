@@ -19,6 +19,10 @@ await loadEnv();
 // with experimental enabled by default. Gating-off tests override locally.
 process.env.VITE_PUBLIC_EXPERIMENTAL ??= "true";
 
+// MSW gateway mocks serve plain fixture text under made-up CIDs, so tests
+// skip IPFS content verification (the sdk unit tests re-enable it locally).
+process.env.EVMCRISPR_TRUST_IPFS_GATEWAY ??= "true";
+
 // Reuses a live anvil, replaces a wedged one, or starts a fresh one. When no
 // API key is configured it does nothing: unit tests still work fine and
 // integration tests fail with a clear connection error.

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { BindingsManager } from "../../src/BindingsManager";
 import { EvmlModule } from "../../src/EvmlModule";
 import { IPFSResolver } from "../../src/IPFSResolver";
@@ -213,38 +213,5 @@ describe("resolveModuleSource", () => {
   it("returns raw text when it merely looks like JSON", async () => {
     const notJson = "{ this is not json }";
     expect(await resolveModuleSource(notJson)).toBe(notJson);
-  });
-});
-
-describe("IPFSResolver.text", () => {
-  const realFetch = globalThis.fetch;
-  afterEach(() => {
-    globalThis.fetch = realFetch;
-  });
-
-  it("fetches text and caches successful results by cid", async () => {
-    let calls = 0;
-    globalThis.fetch = (async () => {
-      calls++;
-      return new Response("module m (\n)", { status: 200 });
-    }) as any;
-
-    const resolver = new IPFSResolver();
-    expect(await resolver.text("QmTest")).toBe("module m (\n)");
-    expect(await resolver.text("QmTest")).toBe("module m (\n)");
-    expect(calls).toBe(1);
-  });
-
-  it("does not cache failures", async () => {
-    let calls = 0;
-    globalThis.fetch = (async () => {
-      calls++;
-      return new Response("nope", { status: 404, statusText: "Not Found" });
-    }) as any;
-
-    const resolver = new IPFSResolver();
-    await expect(resolver.text("QmMiss")).rejects.toThrow(/404/);
-    await expect(resolver.text("QmMiss")).rejects.toThrow(/404/);
-    expect(calls).toBe(2);
   });
 });

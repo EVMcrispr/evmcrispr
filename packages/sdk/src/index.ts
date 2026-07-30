@@ -123,3 +123,5 @@ export {
   getDeepestNodeWithArgs,
   hasCommandsBlock,
 } from "./utils/ast";
+export type { IpfsEntity } from "./utils/verifiedIpfs";
+export { verifiedIpfsEntity, verifiedIpfsFetch } from "./utils/verifiedIpfs";
