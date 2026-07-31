@@ -63,6 +63,7 @@ export class Interpreter {
 
   #logListeners: ((message: string, prevMessages: string[]) => void)[];
   #lineListeners: ((line: number | null) => void)[];
+  #actionObservers: ((action: Action) => void)[];
   #prevMessages: string[];
   #signal?: AbortSignal;
 
@@ -91,6 +92,7 @@ export class Interpreter {
     this.#account = config.account;
     this.#logListeners = config.onLog ? [config.onLog] : [];
     this.#lineListeners = config.onLine ? [config.onLine] : [];
+    this.#actionObservers = [];
     this.#prevMessages = [];
     this.#ipfsResolver = new IPFSResolver();
     this.#transports = config.transports;
@@ -141,6 +143,9 @@ export class Interpreter {
       bindings: this.bindingsManager,
       getClient: () => this.#getClient(),
       interpretNode: this.interpretNode,
+      onActionDispatch: (action) => {
+        for (const observer of this.#actionObservers) observer(action);
+      },
     });
 
     ctx.resolveCommand = makeExecutionResolveCommand({
@@ -335,6 +340,14 @@ export class Interpreter {
 
   registerLineListener(listener: (line: number | null) => void): Interpreter {
     this.#lineListeners.push(listener);
+    return this;
+  }
+
+  /** Observes every action the first time it is dispatched for execution,
+   *  including actions consumed inside `sim:fork` blocks (which never
+   *  surface in `interpret()`'s return value). */
+  registerActionObserver(observer: (action: Action) => void): Interpreter {
+    this.#actionObservers.push(observer);
     return this;
   }
 

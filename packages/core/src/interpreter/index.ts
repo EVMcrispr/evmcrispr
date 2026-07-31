@@ -801,6 +801,11 @@ export interface CapturesInput {
   bindings: BindingsManager;
   getClient: () => Promise<PublicClient>;
   interpretNode: NodeInterpreter;
+  /** Observes every action the first time it is dispatched to an
+   *  `actionCallback` — including callbacks swapped in by inner scopes
+   *  (`sim:fork` consumes its block's actions and returns none, so this
+   *  is the only place a caller can see what a simulation executed). */
+  onActionDispatch?: (action: Action) => void;
 }
 
 export function makeExecuteWithCaptures(
@@ -810,7 +815,7 @@ export function makeExecuteWithCaptures(
   res: Action[] | void,
   actionCallback: ((action: Action) => Promise<unknown>) | undefined,
 ) => Promise<Action[] | void> {
-  const { bindings, getClient, interpretNode } = input;
+  const { bindings, getClient, interpretNode, onActionDispatch } = input;
 
   const tryLookupAbi = async (actions: Action[]): Promise<Abi | undefined> => {
     const first = actions[0];
@@ -876,6 +881,7 @@ export function makeExecuteWithCaptures(
   ): Promise<unknown> => {
     if (executed.has(action)) return receiptByAction.get(action);
     executed.add(action);
+    onActionDispatch?.(action);
     const receipt = await actionCallback(action);
     receiptByAction.set(action, receipt);
     return receipt;
@@ -997,6 +1003,7 @@ export function makeExecuteWithCaptures(
     try {
       for (const action of res) {
         executed.add(action);
+        onActionDispatch?.(action);
         await actionCallback(action);
       }
       const required = (c.errorCaptures as ErrorCaptureNode[]).find(

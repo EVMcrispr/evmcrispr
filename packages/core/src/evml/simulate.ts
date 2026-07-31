@@ -27,7 +27,10 @@ export interface SimulationResult {
   success: boolean;
   /** Log-listener output captured during the run (per-action results). */
   logs: string[];
-  /** Actions returned by the interpreter, when the run succeeded. */
+  /** Every action the run dispatched, in execution order. `sim:fork`
+   *  consumes its block's actions (and returns none), so these are
+   *  observed at dispatch time — they include actions executed on the
+   *  fork, each stamped with the chain id it targeted. */
   actions: Action[];
   error?: string;
 }
@@ -75,6 +78,7 @@ export async function simulateScript(
   }
 
   const logs: string[] = [];
+  const dispatched: Action[] = [];
   const interpreter = new Interpreter(registry, {
     ...config,
     account: options.from ?? config.account,
@@ -82,16 +86,22 @@ export async function simulateScript(
   interpreter.registerLogListener((message) => {
     logs.push(message);
   });
+  interpreter.registerActionObserver((action) => {
+    dispatched.push(action);
+  });
 
   const script = needsSimWrap(source) ? wrapScript(source, options) : source;
 
   try {
-    const actions = await interpreter.interpret(script, undefined, {
+    // Returned actions are only those that escape execution (e.g. produced
+    // outside any fork); actions run inside `sim:fork` are captured by the
+    // dispatch observer instead.
+    const returned = await interpreter.interpret(script, undefined, {
       signal: options.signal,
     });
-    return { success: true, logs, actions };
+    return { success: true, logs, actions: [...dispatched, ...returned] };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { success: false, logs, actions: [], error: message };
+    return { success: false, logs, actions: dispatched, error: message };
   }
 }
