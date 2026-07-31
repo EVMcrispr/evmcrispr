@@ -34,5 +34,17 @@ export function useStickToBottom(content: unknown, isRunning: boolean) {
     if (pinnedRef.current) scrollToBottom();
   }, [content, isRunning, scrollToBottom]);
 
+  // The list also shrinks when the mobile keyboard opens; without this the
+  // viewport keeps its scrollTop and the newest message slides out of sight.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (pinnedRef.current) scrollToBottom();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scrollToBottom]);
+
   return { listRef, onScroll, isAtBottom, scrollToBottom };
 }

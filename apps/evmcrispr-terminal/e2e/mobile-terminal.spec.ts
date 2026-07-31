@@ -135,6 +135,70 @@ test("reduced motion preference is honored in drawers", async ({ page }) => {
   ).not.toHaveCSS("transition-duration", "0.12s");
 });
 
+test("the on-screen keyboard shrinks the shell instead of scrolling it", async ({
+  page,
+}) => {
+  const HEIGHT = 844;
+  const KEYBOARD = 336;
+  await page.setViewportSize({ width: 390, height: HEIGHT });
+  // Headless Chromium has no virtual keyboard, so stand in for it: a fake
+  // visualViewport that shrinks and (like iOS) reports the layout viewport
+  // scrolled up under the focused input.
+  await page.addInitScript(
+    ([height, keyboard]) => {
+      localStorage.setItem("evmcrispr:nexusApiKey", "e2e-placeholder");
+      const events = new EventTarget();
+      const viewport = {
+        width: 390,
+        height,
+        offsetTop: 0,
+        offsetLeft: 0,
+        addEventListener: events.addEventListener.bind(events),
+        removeEventListener: events.removeEventListener.bind(events),
+      };
+      Object.defineProperty(window, "visualViewport", {
+        configurable: true,
+        get: () => viewport,
+      });
+      Object.assign(window, {
+        openKeyboard: () => {
+          viewport.height = height - keyboard;
+          viewport.offsetTop = 120;
+          events.dispatchEvent(new Event("resize"));
+        },
+      });
+    },
+    [HEIGHT, KEYBOARD] as const,
+  );
+  await page.goto("/");
+
+  const shell = page.locator(".mobile-terminal");
+  const composer = page.getByPlaceholder("Describe what to do…");
+  await expect(composer).toBeVisible();
+
+  await page.evaluate(() =>
+    (window as unknown as { openKeyboard: () => void }).openKeyboard(),
+  );
+
+  await expect
+    .poll(async () => (await shell.boundingBox())?.height)
+    .toBe(HEIGHT - KEYBOARD);
+  const shellBox = await shell.boundingBox();
+  if (!shellBox) throw new Error("shell has no box");
+
+  // Header pinned to the top of the *visible* area, not scrolled off it.
+  const headerBox = await page.locator("header").first().boundingBox();
+  expect(headerBox?.y).toBe(shellBox.y);
+  expect(shellBox.y).toBe(120);
+
+  // Composer still on screen, and not flush against the keyboard.
+  const composerBox = await composer.boundingBox();
+  if (!composerBox) throw new Error("composer has no box");
+  expect(composerBox.y + composerBox.height).toBeLessThanOrEqual(
+    shellBox.y + shellBox.height - 12,
+  );
+});
+
 test("desktop breakpoint keeps the editor-first shell", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 900 });
   await page.goto("/");

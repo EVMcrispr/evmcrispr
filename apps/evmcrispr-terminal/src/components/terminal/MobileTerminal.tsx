@@ -1,6 +1,7 @@
 import type { HoverRef } from "@evmcrispr/core";
 import type { Action } from "@evmcrispr/sdk";
 import { useEffect, useState } from "react";
+import { useKeyboardInsets } from "../../hooks/useKeyboardInsets";
 import type { TerminalEntryIntent } from "../../hooks/useTerminalScript";
 import type { ExecutionPhase } from "../../hooks/useTransactionExecutor";
 import type { useTransactionReview } from "../../hooks/useTransactionReview";
@@ -50,6 +51,10 @@ export function MobileTerminal(props: MobileTerminalProps) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const loading = hasScriptLoadState(props);
+
+  // Keeps the shell glued to the visual viewport so the header stays put and
+  // the composer rides above the keyboard — `.mobile-terminal` reads the vars.
+  useKeyboardInsets(true);
 
   // The review dot signals an *unseen* update, not persistent state: it
   // appears when the simulation readied while the sheet was closed and
@@ -109,8 +114,10 @@ export function MobileTerminal(props: MobileTerminalProps) {
     await props.onExecute();
   };
 
+  // No `h-dvh` on the root below: `.mobile-terminal` owns the height so it can
+  // track the visual viewport (dvh does not shrink for the keyboard on iOS).
   return (
-    <div className="mobile-terminal flex h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground">
+    <div className="mobile-terminal flex min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <MobileHeader
         address={props.address}
         onConnect={props.onConnect}

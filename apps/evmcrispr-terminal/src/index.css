@@ -59,9 +59,17 @@ body {
   }
 
   .mobile-terminal {
-    position: relative;
+    /* Pinned to the *visual* viewport (vars from useKeyboardInsets): the shell
+       has to shrink when the keyboard opens and stay put when iOS scrolls the
+       layout viewport to reveal the focused input — otherwise the header
+       slides off the top and the composer ends up behind the keyboard. The
+       dvh fallback covers browsers without visualViewport. */
+    position: fixed;
+    top: var(--app-offset-top, 0px);
+    right: 0;
+    left: 0;
+    height: var(--app-height, 100dvh);
     isolation: isolate;
-    min-height: 100dvh;
     /* `overflow: hidden` makes this a scroll container, so `none` here would
        swallow the chain from the chat/script scrollers before it reaches the
        viewport — see the html/body rule above. */
@@ -105,8 +113,11 @@ body {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
+  /* 1rem floor, not 0.75rem: with the keyboard open the safe-area inset reads
+     0 (it is behind the keyboard), and the input sitting flush against the
+     keyboard's top edge reads as clipped. */
   .mobile-chat-composer {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
   .mobile-terminal button,
@@ -152,7 +163,7 @@ body {
 
 @supports not (height: 100dvh) {
   .mobile-terminal {
-    min-height: 100vh;
+    height: var(--app-height, 100vh);
   }
 }
 
