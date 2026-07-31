@@ -80,7 +80,7 @@ describe("bridges > adapter registry (unit)", () => {
           dstChainId: 100, // Gnosis has no native USDC
           token: USDC_MAINNET,
         }),
-      ).rejects.toThrow(/CCTPv2 doesn't bridge .* from chain 1 to chain 100/);
+      ).rejects.toThrow(/CCTPv2 doesn't bridge .* from Ethereum to Gnosis/);
     });
 
     it("rejects CCTPv2 for a token that is not native USDC", async () => {

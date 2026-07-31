@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException, Num } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, Num, tokenLabel } from "@evmcrispr/sdk";
 import type { Abi, Address } from "viem";
 import { getAddress, parseAbi, zeroAddress } from "viem";
 
@@ -87,7 +87,7 @@ export async function resolveDonationSuperToken(
   if (token === zeroAddress) {
     if (!nativeSuper) {
       throw new ErrorException(
-        `no native SuperToken is known on chain ${chainId}`,
+        `no native SuperToken is known on ${chainLabel(chainId)}`,
       );
     }
     return { superToken: nativeSuper, underlying: zeroAddress, native: true };
@@ -132,7 +132,7 @@ export async function resolveDonationSuperToken(
   }
 
   throw new ErrorException(
-    `${token} is neither a SuperToken nor a token with a SuperToken wrapper on chain ${chainId}`,
+    `${await tokenLabel(module, token)} is neither a SuperToken nor a token with a SuperToken wrapper on ${chainLabel(chainId)}`,
   );
 }
 

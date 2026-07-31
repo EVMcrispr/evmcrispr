@@ -10,12 +10,12 @@ import type {
 import { BindingsSpace, NodeType } from "../types";
 import { buildArgsLengthErrorMsg, coerceBoolean } from "./args";
 import { computeCommandArity } from "./arity";
-import { partitionHelperArgs } from "./namedArgs";
 import type { Param } from "./encoders";
 import {
   experimentalDisabledMessage,
   isExperimentalEnabled,
 } from "./experimental";
+import { partitionHelperArgs } from "./namedArgs";
 import {
   type ArgDef,
   type ArgType,

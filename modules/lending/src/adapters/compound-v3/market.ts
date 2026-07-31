@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, tokenLabel } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import type { CometDeployment } from "../../addresses";
 import { COMPOUND_V3 } from "../../addresses";
@@ -12,7 +12,9 @@ const baseTokens = new Map<string, Address>();
 export function cometsOn(chainId: number): CometDeployment[] {
   const comets = COMPOUND_V3[chainId];
   if (!comets?.length) {
-    throw new ErrorException(`CompoundV3 is not available on chain ${chainId}`);
+    throw new ErrorException(
+      `CompoundV3 is not available on ${chainLabel(chainId)}`,
+    );
   }
   return comets;
 }
@@ -48,7 +50,7 @@ export async function marketForBase(
   }
   const bases = comets.map((c) => c.baseSymbol).join(", ");
   throw new ErrorException(
-    `${token} is not the base token of a CompoundV3 market on chain ${chainId} (bases: ${bases})`,
+    `${await tokenLabel(module, token)} is not the base token of a CompoundV3 market on ${chainLabel(chainId)} (bases: ${bases})`,
   );
 }
 
@@ -82,6 +84,6 @@ export async function marketForToken(
     }
   }
   throw new ErrorException(
-    `${token} is not listed on any CompoundV3 market on chain ${chainId}`,
+    `${await tokenLabel(module, token)} is not listed on any CompoundV3 market on ${chainLabel(chainId)}`,
   );
 }

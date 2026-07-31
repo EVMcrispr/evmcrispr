@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   decodeEventLog,
@@ -146,7 +146,7 @@ const across: BridgeAdapter = {
     );
     if (!outputToken) {
       throw new ErrorException(
-        `no known equivalent of ${req.token} on chain ${req.dstChainId} for Across; pass --remote-token <address>`,
+        `no known equivalent of ${req.token} on ${chainLabel(req.dstChainId)} for Across; pass --remote-token <address>`,
       );
     }
 

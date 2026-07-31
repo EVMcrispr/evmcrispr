@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import across from "./across";
 import ccip from "./ccip";
@@ -49,7 +49,7 @@ export async function resolveAdapter(
       throw new ErrorException(
         `${adapter.name} doesn't bridge ${
           token ? `${token} ` : ""
-        }from chain ${srcChainId} to chain ${dstChainId}`,
+        }from ${chainLabel(srcChainId)} to ${chainLabel(dstChainId)}`,
       );
     }
     return adapter;
@@ -60,7 +60,7 @@ export async function resolveAdapter(
   }
 
   throw new ErrorNotFound(
-    `no bridge adapter available from chain ${srcChainId} to chain ${dstChainId}` +
+    `no bridge adapter available from ${chainLabel(srcChainId)} to ${chainLabel(dstChainId)}` +
       `${token ? ` for ${token}` : ""} — try --using LayerZero or --using CCIP`,
   );
 }

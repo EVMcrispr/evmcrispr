@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { clientFor, ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   encodeFunctionData,
@@ -82,7 +82,7 @@ async function resolveOft(
     });
   } catch {
     throw new ErrorException(
-      `${token} is not a LayerZero OFT on chain ${chainId}; pass the OFT/OFT-adapter address as <token> or use another adapter`,
+      `${token} is not a LayerZero OFT on ${chainLabel(chainId)}; pass the OFT/OFT-adapter address as <token> or use another adapter`,
     );
   }
 

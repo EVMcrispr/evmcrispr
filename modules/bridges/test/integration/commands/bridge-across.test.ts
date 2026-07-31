@@ -103,7 +103,7 @@ describeCommand("bridge --using Across", {
     {
       name: "aborts when the fee exceeds --max-fee",
       script: `bridges:bridge ${AMOUNT} ${DAI_MAINNET} to optimism --max-fee 1`,
-      error: "--max-fee is 1",
+      error: "--max-fee is 0.000000000000000001 DAI",
     },
     {
       name: "refuses to bridge the native token",

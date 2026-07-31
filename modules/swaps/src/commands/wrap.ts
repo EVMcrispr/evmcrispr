@@ -1,4 +1,5 @@
 import {
+  chainLabel,
   defineCommand,
   ErrorNotFound,
   encodeAction,
@@ -23,7 +24,7 @@ export default defineCommand<Swaps>({
     const wrapped = WRAPPED_NATIVE[chainId];
     if (!wrapped) {
       throw new ErrorNotFound(
-        `no wrapped-native token known for chain ${chainId}`,
+        `no wrapped-native token known for ${chainLabel(chainId)}`,
       );
     }
     return [

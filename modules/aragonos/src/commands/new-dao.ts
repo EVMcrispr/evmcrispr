@@ -1,6 +1,7 @@
 import type { Action, Address } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
+  chainLabel,
   defineCommand,
   ErrorException,
   encodeAction,
@@ -19,7 +20,7 @@ const registerAragonId = async (
 
   if (!ARAGON_REGISTRARS.has(chainId)) {
     throw new ErrorException(
-      `no Aragon registrar was found on chain ${chainId}`,
+      `no Aragon registrar was found on ${chainLabel(chainId)}`,
     );
   }
 

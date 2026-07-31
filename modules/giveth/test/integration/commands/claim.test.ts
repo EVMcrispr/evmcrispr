@@ -96,7 +96,7 @@ sim:fork --using anvil (
     {
       name: "should fail on chains without a GIVstream deployment",
       script: "switch base\ngiveth:claim",
-      error: "the GIVstream is not deployed on chain 8453",
+      error: "the GIVstream is not deployed on Base",
     },
   ],
 });

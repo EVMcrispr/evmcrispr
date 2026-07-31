@@ -123,7 +123,7 @@ sim:fork --using anvil (
     {
       name: "should reject adapters without a deployment on the chain",
       script: `lending:supply 100e18 ${WXDAI} --using CompoundV3`,
-      error: "CompoundV3 is not available on chain 100",
+      error: "CompoundV3 is not available on Gnosis",
     },
     {
       name: "should fail on a zero amount",

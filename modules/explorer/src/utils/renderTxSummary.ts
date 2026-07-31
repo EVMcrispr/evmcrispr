@@ -1,5 +1,6 @@
 import type { Address, EnsResolver, Module } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   fetchAbi,
   fetchVerifiedContract,
   findAbiFunctionBySelector,
@@ -176,7 +177,7 @@ export async function renderTxSummary(
 ): Promise<string> {
   const chain = viemChainById(ctx.chainId);
   const symbol = chain?.nativeCurrency.symbol ?? "ETH";
-  const chainName = chain?.name ?? `chain ${ctx.chainId}`;
+  const chainName = chainLabel(ctx.chainId);
   const resolveEns = makeEnsResolver(module);
   const getCachedAbi = makeAbiCache(ctx);
 

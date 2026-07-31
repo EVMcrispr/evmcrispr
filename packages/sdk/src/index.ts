@@ -119,13 +119,13 @@ export {
   USER_ORIGIN,
 } from "./types";
 export * from "./utils";
+export type { FetchContext } from "./utils/artifacts";
+export { fetchArtifact } from "./utils/artifacts";
 export {
   calculateCurrentArgIndex,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
 } from "./utils/ast";
-export type { FetchContext } from "./utils/artifacts";
-export { fetchArtifact } from "./utils/artifacts";
 export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
   fetchNpmLatestVersion,

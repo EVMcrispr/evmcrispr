@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Abi, Address } from "viem";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import { erc20Abi, superTokenAbi } from "../abis";
@@ -64,7 +64,7 @@ export async function resolveSuperToken(
   const entry = tokens.find((t) => t.symbol === symbolOrAddress);
   if (!entry || !isAddress(entry.address)) {
     throw new ErrorException(
-      `SuperToken ${symbolOrAddress} not found in ${tokenListUrl(module)} for chain ${chainId}`,
+      `SuperToken ${symbolOrAddress} not found in ${tokenListUrl(module)} for ${chainLabel(chainId)}`,
     );
   }
   return getAddress(entry.address);

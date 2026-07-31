@@ -49,7 +49,7 @@ describeHelper("@giveth:unstakable", {
     {
       name: "fails on chains without a GIVpower deployment",
       input: "@giveth:unstakable()",
-      error: "GIVpower is not deployed on chain 1",
+      error: "GIVpower is not deployed on Ethereum",
     },
   ],
 });

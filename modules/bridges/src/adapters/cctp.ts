@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { ErrorException, encodeAction } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, encodeAction } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   encodeFunctionData,
@@ -65,12 +65,12 @@ function assertUsdcLane(
 ): void {
   if (!supportsLane(srcChainId, dstChainId)) {
     throw new ErrorException(
-      `CCTPv2 doesn't serve the chain ${srcChainId} → ${dstChainId} lane`,
+      `CCTPv2 doesn't serve the ${chainLabel(srcChainId)} → ${chainLabel(dstChainId)} lane`,
     );
   }
   if (token.toLowerCase() !== USDC[srcChainId].toLowerCase()) {
     throw new ErrorException(
-      `CCTPv2 only bridges native USDC (${USDC[srcChainId]} on chain ${srcChainId}), got ${token}`,
+      `CCTPv2 only bridges native USDC (${USDC[srcChainId]} on ${chainLabel(srcChainId)}), got ${token}`,
     );
   }
 }
@@ -172,7 +172,7 @@ const cctp: BridgeAdapter = {
     const expectedDst = CCTP_DOMAIN_TO_CHAIN[decoded.destinationDomain];
     if (expectedDst !== dstChainId) {
       throw new ErrorException(
-        `this CCTP transfer targets chain ${expectedDst}; switch to it before claiming`,
+        `this CCTP transfer targets ${chainLabel(expectedDst)}; switch to it before claiming`,
       );
     }
 

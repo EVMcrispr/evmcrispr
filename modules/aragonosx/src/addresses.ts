@@ -1,5 +1,5 @@
 import type { Address } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type AragonOSx from ".";
 
 /** Repo subdomains of the governance plugins Aragon maintains. */
@@ -183,7 +183,7 @@ export async function getDeployment(module: AragonOSx): Promise<OsxDeployment> {
 
   if (!base && overrides.pluginSetupProcessor === undefined) {
     throw new ErrorException(
-      `Aragon OSx is not deployed on chain ${chainId}. Set $aragonosx:pluginSetupProcessor and related config bindings to use a custom deployment.`,
+      `Aragon OSx is not deployed on ${chainLabel(chainId)}. Set $aragonosx:pluginSetupProcessor and related config bindings to use a custom deployment.`,
     );
   }
 

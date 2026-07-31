@@ -1,6 +1,7 @@
 import type { Module } from "@evmcrispr/sdk";
 import {
   assertTxHash as assertHash,
+  chainLabel,
   clientFor,
   ErrorException,
 } from "@evmcrispr/sdk";
@@ -46,7 +47,7 @@ export async function findSourceReceipt(
   if (!found) {
     throw new ErrorException(
       `couldn't find transaction ${hash} on ${
-        fromChainId ? `chain ${fromChainId}` : "any supported chain"
+        fromChainId ? chainLabel(fromChainId) : "any supported chain"
       }; pass --from-chain <chain> if the source chain isn't configured`,
     );
   }

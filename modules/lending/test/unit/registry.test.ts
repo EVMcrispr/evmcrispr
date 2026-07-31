@@ -60,7 +60,7 @@ describe("Lending > adapters > registry", () => {
   it("rejects Spark on chains it does not serve", async () => {
     await expectRejection(
       () => resolveAdapter(stubModule(10), "Spark"),
-      "Spark is not available on chain 10",
+      "Spark is not available on OP Mainnet",
     );
   });
 
@@ -70,7 +70,7 @@ describe("Lending > adapters > registry", () => {
     );
     await expectRejection(
       () => resolveAdapter(stubModule(100), "CompoundV3"),
-      "CompoundV3 is not available on chain 100",
+      "CompoundV3 is not available on Gnosis",
     );
   });
 
@@ -90,14 +90,14 @@ describe("Lending > adapters > registry", () => {
   it("rejects adapters not deployed on the chain", async () => {
     await expectRejection(
       () => resolveAdapter(stubModule(31337), "AaveV3"),
-      "AaveV3 is not available on chain 31337",
+      "AaveV3 is not available on Anvil",
     );
   });
 
   it("errors when no adapter covers the chain", async () => {
     await expectRejection(
       () => resolveAdapter(stubModule(31337), undefined),
-      "no lending adapter available on chain 31337",
+      "no lending adapter available on Anvil",
     );
   });
 

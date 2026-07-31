@@ -73,7 +73,7 @@ describe("Swaps > venues > registry", () => {
   it("rejects venues not deployed on the chain", async () => {
     await expectRejection(
       () => resolveVenue(stubModule(100), "UniswapV3"),
-      "UniswapV3 is not available on chain 100",
+      "UniswapV3 is not available on Gnosis",
     );
   });
 
@@ -101,7 +101,7 @@ describe("Swaps > venues > registry", () => {
   it("errors when no venue covers the chain", async () => {
     await expectRejection(
       () => resolveVenue(stubModule(31337), undefined),
-      "no swap venue available on chain 31337",
+      "no swap venue available on Anvil",
     );
   });
 });

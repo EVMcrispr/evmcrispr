@@ -1,5 +1,6 @@
 import {
   BindingsSpace,
+  chainLabel,
   defineCommand,
   ErrorException,
   encodeAction,
@@ -42,7 +43,7 @@ export default defineCommand<AragonOS>({
 
     if (!MINIME_TOKEN_FACTORIES.has(chainId)) {
       throw new ErrorException(
-        `no MiniMeTokenFactory was found on chain ${chainId}`,
+        `no MiniMeTokenFactory was found on ${chainLabel(chainId)}`,
       );
     }
 

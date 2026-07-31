@@ -47,7 +47,7 @@ describeCommand("unlock", {
     {
       name: "should fail on chains without a GIVpower deployment",
       script: "switch mainnet\ngiveth:unlock 117",
-      error: "GIVpower is not deployed on chain 1",
+      error: "GIVpower is not deployed on Ethereum",
     },
   ],
   docCases: [

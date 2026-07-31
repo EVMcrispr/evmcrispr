@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, tokenLabel } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { erc20Abi, poolAbi, providerAbi } from "./abis";
@@ -33,7 +33,7 @@ export async function getMarket(
   const provider = market.providers[chainId];
   if (!provider) {
     throw new ErrorException(
-      `${market.name} is not available on chain ${chainId}`,
+      `${market.name} is not available on ${chainLabel(chainId)}`,
     );
   }
   const client = await module.getClient();
@@ -71,7 +71,7 @@ export async function readReserve(
   });
   if (reserve.aTokenAddress === zeroAddress) {
     throw new ErrorException(
-      `${token} is not listed on ${market.name} on chain ${chainId}`,
+      `${await tokenLabel(module, token)} is not listed on ${market.name} on ${chainLabel(chainId)}`,
     );
   }
   return reserve;

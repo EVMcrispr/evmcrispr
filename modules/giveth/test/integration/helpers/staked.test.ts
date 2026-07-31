@@ -31,7 +31,7 @@ describeHelper("@giveth:staked", {
     {
       name: "fails on chains without a GIVpower deployment",
       input: "@giveth:staked()",
-      error: "GIVpower is not deployed on chain 1",
+      error: "GIVpower is not deployed on Ethereum",
     },
   ],
 });

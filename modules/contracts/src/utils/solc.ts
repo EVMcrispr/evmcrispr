@@ -124,7 +124,6 @@ export function buildLibraries(value: unknown): Record<string, string> {
   return libraries;
 }
 
-
 /** Extract the version constraint of the first `pragma solidity` directive. */
 export function parsePragma(source: string): string | undefined {
   const m = source.match(/pragma\s+solidity\s+([^;]+);/);

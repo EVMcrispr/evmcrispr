@@ -180,7 +180,7 @@ sim:fork --using anvil (
     {
       name: "should fail when the venue is not deployed on the chain",
       script: `swaps:swap 100e18 ${WXDAI} to ${GNO} --using UniswapV3`,
-      error: "UniswapV3 is not available on chain 100",
+      error: "UniswapV3 is not available on Gnosis",
     },
     {
       name: "should fail when both tokens are the same",

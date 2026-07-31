@@ -1,4 +1,4 @@
-import { ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorNotFound } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import {
   encodeAbiParameters,
@@ -87,13 +87,13 @@ export async function quoteV4(
   const deployment = deployments[req.chainId];
   if (!deployment) {
     throw new ErrorNotFound(
-      `${venueName} is not deployed on chain ${req.chainId}`,
+      `${venueName} is not deployed on ${chainLabel(req.chainId)}`,
     );
   }
   const code = await client.getCode({ address: deployment.universalRouter });
   if (!code || code === "0x") {
     throw new ErrorNotFound(
-      `${venueName} router ${deployment.universalRouter} has no code on chain ${req.chainId}`,
+      `${venueName} router ${deployment.universalRouter} has no code on ${chainLabel(req.chainId)}`,
     );
   }
 

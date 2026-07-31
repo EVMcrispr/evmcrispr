@@ -2,7 +2,7 @@ import type {
   BlockExpressionNode,
   CommandExpressionNode,
 } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import {
   type Chain,
   createPublicClient,
@@ -195,7 +195,7 @@ export class ForkManager {
     if (!handle) {
       if (this.mode === "tenderly-multichain") {
         throw new ErrorException(
-          `chain ${chainId} is not part of the multichain Virtual Environment. ` +
+          `${chainLabel(chainId)} is not part of the multichain Virtual Environment. ` +
             `Only literal switch targets inside the fork block are attached at ` +
             `creation — use a literal chain name/id in the switch command.`,
         );
@@ -242,7 +242,7 @@ export class ForkManager {
     if (!upstreamRpcUrl) {
       throw new ErrorException(
         `The ${this.mode} backend requires an upstream RPC URL. Make sure a ` +
-          `transport is configured for chain ${chainId}.`,
+          `transport is configured for ${chainLabel(chainId)}.`,
       );
     }
     // Dynamic imports keep each backend (and the revm wasm asset) in its own
@@ -383,7 +383,7 @@ export class ForkManager {
         rpcs.find((r) => /admin/i.test(r.name ?? ""))?.url ?? rpcs[0]?.url;
       if (!rpcUrl) {
         throw new ErrorException(
-          `multichain Virtual Environment returned no RPC for chain ${chainId}: ${JSON.stringify(vnet)}`,
+          `multichain Virtual Environment returned no RPC for ${chainLabel(chainId)}: ${JSON.stringify(vnet)}`,
         );
       }
       const chain = chainForId(chainId);

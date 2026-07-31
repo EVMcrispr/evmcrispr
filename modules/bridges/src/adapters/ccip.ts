@@ -1,5 +1,5 @@
 import type { Action } from "@evmcrispr/sdk";
-import { clientFor, ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   decodeEventLog,
@@ -96,7 +96,7 @@ const ccip: BridgeAdapter = {
       })) as bigint;
     } catch (err) {
       throw new ErrorException(
-        `CCIP can't route ${req.token} from chain ${req.srcChainId} to ${req.dstChainId} (the token may have no CCIP pool on this lane): ${(err as Error).message}`,
+        `CCIP can't route ${req.token} from ${chainLabel(req.srcChainId)} to ${chainLabel(req.dstChainId)} (the token may have no CCIP pool on this lane): ${(err as Error).message}`,
       );
     }
 

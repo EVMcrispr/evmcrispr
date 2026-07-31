@@ -122,7 +122,7 @@ describe("Lending > compound-v3 > adapter", () => {
   it("rejects tokens listed on no market", async () => {
     await expectRejection(
       () => compoundV3.buildSupply(stubModule(), req({ token: UNLISTED })),
-      "not listed on any CompoundV3 market on chain 1",
+      "not listed on any CompoundV3 market on Ethereum",
     );
   });
 
@@ -137,7 +137,7 @@ describe("Lending > compound-v3 > adapter", () => {
   it("refuses to borrow non-base tokens, naming the bases", async () => {
     await expectRejection(
       () => compoundV3.buildBorrow(stubModule(), req({ token: LINK })),
-      "not the base token of a CompoundV3 market on chain 1 (bases: USDC, WETH, USDT)",
+      "not the base token of a CompoundV3 market on Ethereum (bases: USDC, WETH, USDT)",
     );
   });
 

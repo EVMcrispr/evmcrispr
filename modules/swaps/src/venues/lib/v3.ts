@@ -1,4 +1,4 @@
-import { ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorNotFound } from "@evmcrispr/sdk";
 import type { Address, PublicClient } from "viem";
 import { encodeFunctionData, encodePacked, parseAbi, zeroAddress } from "viem";
 import type Swaps from "../..";
@@ -93,13 +93,13 @@ export async function quoteV3(
   const deployment = deployments[req.chainId];
   if (!deployment) {
     throw new ErrorNotFound(
-      `${venueName} is not deployed on chain ${req.chainId}`,
+      `${venueName} is not deployed on ${chainLabel(req.chainId)}`,
     );
   }
   const code = await client.getCode({ address: deployment.router });
   if (!code || code === "0x") {
     throw new ErrorNotFound(
-      `${venueName} router ${deployment.router} has no code on chain ${req.chainId}`,
+      `${venueName} router ${deployment.router} has no code on ${chainLabel(req.chainId)}`,
     );
   }
 
@@ -109,7 +109,7 @@ export async function quoteV3(
     (req.tokenIn === zeroAddress || req.tokenOut === zeroAddress)
   ) {
     throw new ErrorNotFound(
-      `no wrapped-native token known for chain ${req.chainId}`,
+      `no wrapped-native token known for ${chainLabel(req.chainId)}`,
     );
   }
   const tokenIn = req.tokenIn === zeroAddress ? wrapped : req.tokenIn;

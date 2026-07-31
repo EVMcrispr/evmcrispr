@@ -1,5 +1,5 @@
 import type { Action, Module } from "@evmcrispr/sdk";
-import { clientFor, ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Hex, Log } from "viem";
 import {
   decodeEventLog,
@@ -105,7 +105,7 @@ export async function buildArbWithdrawalClaim(
 ): Promise<Action[]> {
   if (srcChainId !== arbitrum.id) {
     throw new ErrorException(
-      `Arbitrum withdrawals can only be claimed from chain ${arbitrum.id}`,
+      `Arbitrum withdrawals can only be claimed from ${chainLabel(arbitrum.id)}`,
     );
   }
   const withdrawal = findL2ToL1Tx(logs);

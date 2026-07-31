@@ -1,4 +1,9 @@
-import { type BatchContext, ErrorException, type Module } from "@evmcrispr/sdk";
+import {
+  type BatchContext,
+  chainLabel,
+  ErrorException,
+  type Module,
+} from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { encodeAbiParameters, keccak256 } from "viem";
 import type Giveth from "..";
@@ -18,7 +23,7 @@ export async function requireGivpower(
   const deployment = GIVPOWER[chainId];
   if (!deployment) {
     throw new ErrorException(
-      `GIVpower is not deployed on chain ${chainId} (available on Gnosis, Optimism and Polygon zkEVM)`,
+      `GIVpower is not deployed on ${chainLabel(chainId)} (available on Gnosis, Optimism and Polygon zkEVM)`,
     );
   }
   return { chainId, giv: GIV_TOKEN[chainId]!, deployment };
@@ -29,7 +34,7 @@ export async function requireDistro(module: Module): Promise<Address> {
   const distro = TOKEN_DISTRO[chainId];
   if (!distro) {
     throw new ErrorException(
-      `the GIVstream is not deployed on chain ${chainId} (available on Mainnet, Gnosis, Optimism and Polygon zkEVM)`,
+      `the GIVstream is not deployed on ${chainLabel(chainId)} (available on Mainnet, Gnosis, Optimism and Polygon zkEVM)`,
     );
   }
   return distro;

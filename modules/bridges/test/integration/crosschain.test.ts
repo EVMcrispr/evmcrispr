@@ -51,13 +51,39 @@ sim:fork --using anvil --from ${USDC_WHALE} (
 )`);
 
     expect(
-      logs.some((l) => l.includes("Queued cctp-v2 transfer 1 → 8453")),
+      logs.some((l) => l.includes("Queued cctp-v2 transfer Ethereum → Base")),
       "the burn was detected on the source fork",
     ).to.be.true;
     expect(
-      logs.some((l) => l.includes("Delivering cctp-v2 transfer from chain 1")),
+      logs.some((l) => l.includes("Delivering cctp-v2 transfer from Ethereum")),
       "the destination leg was delivered on switch",
     ).to.be.true;
+  }, 180_000);
+
+  it("fails fast with a balance error when the sim sender lacks the token", async () => {
+    // Fresh EOA with no USDC on mainnet.
+    const broke = "0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9";
+    const logs: string[] = [];
+    const evm = new Interpreter(evml.registry, {
+      account: broke,
+      transports: getTransports(),
+      onLog: (message: string) => logs.push(message),
+    });
+    evm.switchChainId(mainnet.id);
+
+    let error: Error | undefined;
+    try {
+      await evm.interpret(`load sim
+load bridges
+sim:fork --using ethereumjs --from ${broke} (
+  bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2
+)`);
+    } catch (e) {
+      error = e as Error;
+    }
+    expect(error, "the bridge should fail the simulation").to.not.be.undefined;
+    expect(error!.message).to.include("holds 0 USDC on Ethereum");
+    expect(error!.message).to.not.include("Transaction reverted");
   }, 180_000);
 
   it("warns when the script never switches to the destination chain", async () => {

@@ -6,6 +6,8 @@ import {
   encodeAction,
   fieldItem,
   Num,
+  timeUnits,
+  tokenAmountFormatter,
 } from "@evmcrispr/sdk";
 import type { Abi, Address } from "viem";
 import type Giveth from "..";
@@ -156,8 +158,9 @@ export default defineCommand<Giveth>({
       target = mode === "more" ? prev + delta : prev - delta;
     }
     if (target < 0n) {
+      const fmt = await tokenAmountFormatter(module, superToken);
       throw new ErrorException(
-        `the decrease exceeds the current flow rate (${prev} wei/second); use \`total 0\` to stop`,
+        `the decrease exceeds the current flow rate (${fmt(prev * BigInt(timeUnits.mo))}/mo); use \`total 0\` to stop`,
       );
     }
     if (target > INT96_MAX) {
@@ -264,8 +267,9 @@ export default defineCommand<Giveth>({
       ]);
       const needed = bufferNew - bufferHeld;
       if (balance + wrappedSuperAmount < needed) {
+        const fmt = await tokenAmountFormatter(module, superToken);
         throw new ErrorException(
-          `the SuperToken balance (${balance + wrappedSuperAmount}) can't cover the stream's deposit buffer (${needed}) — wrap more with --wrap`,
+          `the SuperToken balance (${fmt(balance + wrappedSuperAmount)}) can't cover the stream's deposit buffer (${fmt(needed)}) — wrap more with --wrap`,
         );
       }
     }

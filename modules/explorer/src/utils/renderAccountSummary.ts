@@ -1,5 +1,5 @@
 import type { AddressInfo, VerifiedContractInfo } from "@evmcrispr/sdk";
-import { viemChainById } from "@evmcrispr/sdk";
+import { chainLabel, viemChainById } from "@evmcrispr/sdk";
 import { formatEther, getAddress } from "viem";
 
 function formatNumber(n: number | bigint): string {
@@ -26,7 +26,7 @@ export function renderAccountSummary(
 ): string {
   const chain = viemChainById(chainId);
   const symbol = chain?.nativeCurrency.symbol ?? "ETH";
-  const chainName = chain?.name ?? `chain ${chainId}`;
+  const chainName = chainLabel(chainId);
   const lines: string[] = [];
 
   const kindLabel =

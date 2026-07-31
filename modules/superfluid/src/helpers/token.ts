@@ -1,4 +1,4 @@
-import { defineHelper, ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, defineHelper, ErrorNotFound } from "@evmcrispr/sdk";
 import { getAddress, isAddress } from "viem";
 import type Superfluid from "..";
 import { requireCore } from "../utils/protocol";
@@ -32,14 +32,14 @@ export default defineHelper<Superfluid>({
       const bySelf = tokens.find((t) => getAddress(t.address) === wanted);
       if (bySelf) return getAddress(bySelf.address);
       throw new ErrorNotFound(
-        `no SuperToken wrapping ${wanted} found in ${tokenListUrl(module)} for chain ${chainId}`,
+        `no SuperToken wrapping ${wanted} found in ${tokenListUrl(module)} for ${chainLabel(chainId)}`,
       );
     }
 
     const bySymbol = tokens.find((t) => t.symbol === symbolOrUnderlying);
     if (bySymbol) return getAddress(bySymbol.address);
     throw new ErrorNotFound(
-      `SuperToken ${symbolOrUnderlying} not found in ${tokenListUrl(module)} for chain ${chainId}`,
+      `SuperToken ${symbolOrUnderlying} not found in ${tokenListUrl(module)} for ${chainLabel(chainId)}`,
     );
   },
 });

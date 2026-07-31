@@ -1,4 +1,4 @@
-import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
+import { chainLabel, defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import type Bridges from "..";
 import { resolveAdapter } from "../adapters/registry";
@@ -39,7 +39,7 @@ export default defineHelper<Bridges>({
     const dstChainId = resolveChainId(destChain);
     if (srcChainId === dstChainId) {
       throw new ErrorException(
-        `already on chain ${srcChainId}; there is nothing to bridge`,
+        `already on ${chainLabel(srcChainId)}; there is nothing to bridge`,
       );
     }
 

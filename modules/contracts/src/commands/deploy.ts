@@ -1,6 +1,7 @@
 import type { Param, TransactionAction } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
+  chainLabel,
   defineCommand,
   ErrorException,
   encodeConstructorParams,
@@ -201,18 +202,18 @@ export default defineCommand<Contracts>({
       const mirrorAddress = getAddress(mirrorAddressOpt as `0x${string}`);
 
       module.context.log(
-        `deploy: fetching creation bytecode from chain ${mirrorChain} at ${mirrorAddress}…`,
+        `deploy: fetching creation bytecode from ${chainLabel(mirrorChain)} at ${mirrorAddress}…`,
       );
       const creation = await fetchContractCreation(mirrorChain, mirrorAddress);
       if (!creation) {
         throw new ErrorException(
-          `deploy: no creation record on chain ${mirrorChain} for address ${mirrorAddress}`,
+          `deploy: no creation record on ${chainLabel(mirrorChain)} for address ${mirrorAddress}`,
         );
       }
       const fetched = creation.creationBytecode;
       if (!fetched || !isHex(fetched) || fetched === "0x") {
         throw new ErrorException(
-          `deploy: Etherscan did not return creationBytecode for chain ${mirrorChain} address ${mirrorAddress}`,
+          `deploy: Etherscan did not return creationBytecode for ${chainLabel(mirrorChain)} address ${mirrorAddress}`,
         );
       }
       initCode = fetched as `0x${string}`;

@@ -1,6 +1,7 @@
 import {
   type Action,
   type BlockExpressionNode,
+  chainLabel,
   defineCommand,
   ErrorException,
   isBatchedAction,
@@ -197,7 +198,7 @@ export default defineCommand<Sim>({
             note: parsed.note,
           });
           module.context.log(
-            `Queued ${handler.id} transfer ${srcChainId} → ${parsed.dstChainId}` +
+            `Queued ${handler.id} transfer ${chainLabel(srcChainId)} → ${chainLabel(parsed.dstChainId)}` +
               (parsed.note ? ` (${parsed.note})` : ""),
           );
         }
@@ -216,7 +217,7 @@ export default defineCommand<Sim>({
         );
         if (!handler) continue;
         module.context.log(
-          `Delivering ${delivery.handlerId} transfer from chain ${delivery.srcChainId}`,
+          `Delivering ${delivery.handlerId} transfer from ${chainLabel(delivery.srcChainId)}`,
         );
         const actions = await handler.buildDelivery(module, delivery.log, {
           srcChainId: delivery.srcChainId,

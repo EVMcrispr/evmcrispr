@@ -95,9 +95,7 @@ export function computeCommandArity(
       .map((n) => (n as NamedArgNode).name),
   );
   if (namedNames.size > 0 || argDefs.some((d) => d.namedOnly)) {
-    argDefs = argDefs.filter(
-      (d) => !d.namedOnly && !namedNames.has(d.name),
-    );
+    argDefs = argDefs.filter((d) => !d.namedOnly && !namedNames.has(d.name));
     nodeArgs = nodeArgs.filter((n) => n.type !== NodeType.NamedArg);
     meta = undefined;
   }

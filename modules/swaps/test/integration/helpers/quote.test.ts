@@ -53,7 +53,7 @@ describeHelper("@swaps:quote", {
     {
       name: "should fail on venues missing from the chain",
       input: `@swaps:quote(100e18 ${WXDAI} ${GNO} UniswapV2)`,
-      error: "UniswapV2 is not available on chain 100",
+      error: "UniswapV2 is not available on Gnosis",
     },
   ],
   docCases: [

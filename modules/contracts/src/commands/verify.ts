@@ -1,5 +1,6 @@
 import type { EtherscanSourceResult, Param } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   defineCommand,
   ErrorException,
   encodeConstructorParams,
@@ -386,7 +387,7 @@ export default defineCommand<Contracts>({
       }
 
       module.context.log(
-        `verify: fetching verified source from chain ${mirrorChain} at ${mirrorAddress}…`,
+        `verify: fetching verified source from ${chainLabel(mirrorChain)} at ${mirrorAddress}…`,
       );
       const mirror = await fetchVerifiedContractFull(
         mirrorChain,
@@ -394,14 +395,14 @@ export default defineCommand<Contracts>({
       );
       if (!mirror) {
         throw new ErrorException(
-          `verify: no verified source on chain ${mirrorChain} for address ${mirrorAddress}`,
+          `verify: no verified source on ${chainLabel(mirrorChain)} for address ${mirrorAddress}`,
         );
       }
 
       const mirrorContractName = (mirror.ContractName ?? "").trim();
       if (!mirrorContractName) {
         throw new ErrorException(
-          `verify: source on chain ${mirrorChain} for ${mirrorAddress} is missing a ContractName`,
+          `verify: source on ${chainLabel(mirrorChain)} for ${mirrorAddress} is missing a ContractName`,
         );
       }
 
@@ -521,7 +522,7 @@ export default defineCommand<Contracts>({
     }
 
     module.context.log(
-      `verify: submitting ${targetAddress} on chain ${targetChainId} to Etherscan…`,
+      `verify: submitting ${targetAddress} on ${chainLabel(targetChainId)} to Etherscan…`,
     );
 
     const submit = await submitVerification(url, body);

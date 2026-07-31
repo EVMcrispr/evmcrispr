@@ -96,7 +96,7 @@ bridges:claim ${BURN_HASH} --from-chain mainnet`);
       error = err as Error;
     }
     expect(error?.message).to.include(
-      "this CCTP transfer targets chain 8453; switch to it before claiming",
+      "this CCTP transfer targets Base; switch to it before claiming",
     );
   });
 

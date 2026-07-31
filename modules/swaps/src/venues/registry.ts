@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import { activeSimMode } from "../utils/sim";
 import balancer from "./balancer";
 import cowswap from "./cowswap";
@@ -65,7 +65,7 @@ export async function resolveVenue(
     }
     if (!venue.supports(chainId)) {
       throw new ErrorException(
-        `${venue.name} is not available on chain ${chainId}`,
+        `${venue.name} is not available on ${chainLabel(chainId)}`,
       );
     }
     if (sim && venue.kind !== "onchain") {
@@ -87,5 +87,5 @@ export async function resolveVenue(
     if (exactOut && !venue.supportsExactOut) continue;
     return venue;
   }
-  throw new ErrorNotFound(`no swap venue available on chain ${chainId}`);
+  throw new ErrorNotFound(`no swap venue available on ${chainLabel(chainId)}`);
 }

@@ -1,4 +1,10 @@
-import { ErrorNotFound, encodeAction, Num } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  ErrorNotFound,
+  encodeAction,
+  Num,
+  tokenLabel,
+} from "@evmcrispr/sdk";
 import type { Address, PublicClient } from "viem";
 import { parseAbiItem, zeroAddress } from "viem";
 import type Swaps from "../..";
@@ -36,12 +42,14 @@ async function requireDeployment(
 ): Promise<V2Deployment> {
   const deployment = deployments[chainId];
   if (!deployment) {
-    throw new ErrorNotFound(`${venueName} is not deployed on chain ${chainId}`);
+    throw new ErrorNotFound(
+      `${venueName} is not deployed on ${chainLabel(chainId)}`,
+    );
   }
   const code = await client.getCode({ address: deployment.router });
   if (!code || code === "0x") {
     throw new ErrorNotFound(
-      `${venueName} router ${deployment.router} has no code on chain ${chainId}`,
+      `${venueName} router ${deployment.router} has no code on ${chainLabel(chainId)}`,
     );
   }
   return deployment;
@@ -64,6 +72,7 @@ async function pairExists(
 
 /** Direct pair if it exists, else a hop through the wrapped native token. */
 async function findPath(
+  module: Swaps,
   client: PublicClient,
   venueName: string,
   deployment: V2Deployment,
@@ -85,7 +94,7 @@ async function findPath(
     return [tokenIn, wrapped, tokenOut];
   }
   throw new ErrorNotFound(
-    `${venueName} has no liquidity path from ${tokenIn} to ${tokenOut}`,
+    `${venueName} has no liquidity path from ${await tokenLabel(module, tokenIn)} to ${await tokenLabel(module, tokenOut)}`,
   );
 }
 
@@ -108,12 +117,13 @@ async function resolveRoute(
     (req.tokenIn === zeroAddress || req.tokenOut === zeroAddress)
   ) {
     throw new ErrorNotFound(
-      `no wrapped-native token known for chain ${req.chainId}`,
+      `no wrapped-native token known for ${chainLabel(req.chainId)}`,
     );
   }
   const pathIn = req.tokenIn === zeroAddress ? wrapped : req.tokenIn;
   const pathOut = req.tokenOut === zeroAddress ? wrapped : req.tokenOut;
   const path = await findPath(
+    module,
     client,
     venueName,
     deployment,

@@ -1,5 +1,5 @@
 import type { Action, Module } from "@evmcrispr/sdk";
-import { clientFor, ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address, Hex, PublicClient, TransactionReceipt } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
@@ -35,7 +35,7 @@ export async function buildOpWithdrawalClaim(
   const route = OP_ROUTES[l2ChainId];
   if (!route) {
     throw new ErrorException(
-      `no OP Stack route registered for chain ${l2ChainId}`,
+      `no OP Stack route registered for ${chainLabel(l2ChainId)}`,
     );
   }
 

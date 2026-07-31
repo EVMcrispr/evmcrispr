@@ -1,5 +1,10 @@
 import type { Action } from "@evmcrispr/sdk";
-import { clientFor, ErrorException, encodeAction } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  clientFor,
+  ErrorException,
+  encodeAction,
+} from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   decodeAbiParameters,
@@ -127,7 +132,7 @@ function remoteToken(
   const paired = OP_TOKEN_PAIRS[l2ChainId]?.[req.token];
   if (!paired) {
     throw new ErrorException(
-      `unknown L2 counterpart of ${req.token} on chain ${l2ChainId}; pass --remote-token <address>`,
+      `unknown L2 counterpart of ${req.token} on ${chainLabel(l2ChainId)}; pass --remote-token <address>`,
     );
   }
   return paired;
@@ -156,7 +161,7 @@ const native: BridgeAdapter = {
     const route = routeFor(req.srcChainId, req.dstChainId);
     if (!route) {
       throw new ErrorException(
-        `NativeBridge doesn't serve the chain ${req.srcChainId} → ${req.dstChainId} lane`,
+        `NativeBridge doesn't serve the ${chainLabel(req.srcChainId)} → ${chainLabel(req.dstChainId)} lane`,
       );
     }
 
@@ -178,7 +183,7 @@ const native: BridgeAdapter = {
     const route = routeFor(req.srcChainId, req.dstChainId);
     if (!route) {
       throw new ErrorException(
-        `NativeBridge doesn't serve the chain ${req.srcChainId} → ${req.dstChainId} lane`,
+        `NativeBridge doesn't serve the ${chainLabel(req.srcChainId)} → ${chainLabel(req.dstChainId)} lane`,
       );
     }
     const isNative = req.token === zeroAddress;

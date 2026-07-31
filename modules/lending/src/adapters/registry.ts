@@ -1,5 +1,5 @@
 import type { Module } from "@evmcrispr/sdk";
-import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import { activeSimMode } from "../utils/sim";
 import aaveV3 from "./aave-v3";
 import compoundV3 from "./compound-v3";
@@ -38,7 +38,7 @@ export async function resolveAdapter(
     }
     if (!adapter.supports(chainId)) {
       throw new ErrorException(
-        `${adapter.name} is not available on chain ${chainId}`,
+        `${adapter.name} is not available on ${chainLabel(chainId)}`,
       );
     }
     if (sim && adapter.kind !== "onchain") {
@@ -54,7 +54,9 @@ export async function resolveAdapter(
     if (sim && adapter.kind !== "onchain") continue;
     return adapter;
   }
-  throw new ErrorNotFound(`no lending adapter available on chain ${chainId}`);
+  throw new ErrorNotFound(
+    `no lending adapter available on ${chainLabel(chainId)}`,
+  );
 }
 
 type ReadMethod = "healthFactor" | "apy" | "maxBorrow" | "debt";

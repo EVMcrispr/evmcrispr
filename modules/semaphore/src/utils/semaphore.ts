@@ -3,7 +3,7 @@
  * resolution (canonical address + config overrides, with a one-time
  * code probe per chain) and read wrappers.
  */
-import { ErrorException, type Module, Num } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, type Module, Num } from "@evmcrispr/sdk";
 import { type Address, getAddress, parseAbi, parseAbiItem } from "viem";
 import { SEMAPHORE_ADDRESS, SEMAPHORE_DEPLOY_BLOCK } from "../addresses";
 
@@ -60,7 +60,7 @@ export async function requireSemaphore(
       : SEMAPHORE_DEPLOY_BLOCK[chainId];
   if (deployBlock === undefined) {
     throw new ErrorException(
-      `semaphore: no known deployment on chain ${chainId} — point at one with "set $semaphore:address <address>" and "set $semaphore:deployBlock <block>"`,
+      `semaphore: no known deployment on ${chainLabel(chainId)} — point at one with "set $semaphore:address <address>" and "set $semaphore:deployBlock <block>"`,
     );
   }
   const probeKey = `${chainId}:${address.toLowerCase()}`;
@@ -69,7 +69,7 @@ export async function requireSemaphore(
     const code = await client.getCode({ address });
     if (!code || code === "0x") {
       throw new ErrorException(
-        `semaphore: no Semaphore v4 deployment found at ${address} on chain ${chainId}`,
+        `semaphore: no Semaphore v4 deployment found at ${address} on ${chainLabel(chainId)}`,
       );
     }
     probed.add(probeKey);

@@ -1,5 +1,10 @@
 import type { Address, Chain, Module } from "@evmcrispr/sdk";
-import { defineHelper, ErrorException, readConfigValue } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  defineHelper,
+  ErrorException,
+  readConfigValue,
+} from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import type Std from "..";
 
@@ -64,7 +69,7 @@ export const resolveToken = async (
 
   if (!tokenAddress || !isAddress(tokenAddress)) {
     throw new ErrorException(
-      `${tokenSymbolOrAddress} not supported in ${tokenList} in chain ${chainId}.`,
+      `${tokenSymbolOrAddress} not supported in ${tokenList} on ${chainLabel(chainId)}.`,
     );
   }
 

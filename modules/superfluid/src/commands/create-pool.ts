@@ -1,5 +1,6 @@
 import {
   BindingsSpace,
+  chainLabel,
   coerceBoolean,
   defineCommand,
   ErrorException,
@@ -52,7 +53,7 @@ export default defineCommand<Superfluid>({
     const gdaAgreement = GDA_AGREEMENT[chainId];
     if (!gdaAgreement) {
       throw new ErrorException(
-        `no GDA agreement known for chain ${chainId} — cannot predict the pool address`,
+        `no GDA agreement known for ${chainLabel(chainId)} — cannot predict the pool address`,
       );
     }
     const superToken = await resolveSuperToken(module, token);

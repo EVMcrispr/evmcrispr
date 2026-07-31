@@ -140,7 +140,7 @@ bridges:bridge 1e18 0x0000000000000000000000000000000000000000 to optimism --usi
     {
       name: "rejects bridging to the current chain",
       script: `bridges:bridge ${AMOUNT} ${USDC_MAINNET} to mainnet`,
-      error: "already on chain 1; there is nothing to bridge",
+      error: "already on Ethereum; there is nothing to bridge",
     },
     {
       name: "rejects a zero amount",

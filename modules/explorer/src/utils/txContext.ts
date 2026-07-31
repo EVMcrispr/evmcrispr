@@ -1,6 +1,7 @@
 import type { Param } from "@evmcrispr/sdk";
 import {
   assertTxHash,
+  chainLabel,
   clientFor,
   ErrorException,
   type Module,
@@ -62,7 +63,7 @@ export async function resolveTxContext(
     tx = (await client.getTransaction({ hash })) as Transaction;
   } catch {
     throw new ErrorException(
-      `transaction ${hash} not found on chain ${chainId} — pass the chain as a second argument if it's on another chain`,
+      `transaction ${hash} not found on ${chainLabel(chainId)} — pass the chain as a second argument if it's on another chain`,
     );
   }
 

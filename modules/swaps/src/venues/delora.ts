@@ -1,4 +1,4 @@
-import { ErrorException } from "@evmcrispr/sdk";
+import { ErrorException, tokenAmountFormatter } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import type Swaps from "..";
@@ -104,8 +104,9 @@ const delora: VenueAdapter = {
         });
       }
       if (BigInt(quote.minOutputAmount) < req.limit) {
+        const fmt = await tokenAmountFormatter(module, req.tokenOut);
         throw new ErrorException(
-          `Delora could not honor the requested output bound: it guarantees ${quote.minOutputAmount} but ${req.limit} was required; lower --min/--slippage or pick another venue with --using`,
+          `Delora could not honor the requested output bound: it guarantees ${fmt(BigInt(quote.minOutputAmount))} but ${fmt(req.limit)} was required; lower --min/--slippage or pick another venue with --using`,
         );
       }
     }

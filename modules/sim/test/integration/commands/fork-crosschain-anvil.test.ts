@@ -59,7 +59,7 @@ sim:fork --using anvil (
   testbridge:assert-balance ${ADDR} 4242
 )`);
 
-    expect(logs.some((l) => l.includes("Queued test-bridge transfer 100 → 1")))
+    expect(logs.some((l) => l.includes("Queued test-bridge transfer Gnosis → Ethereum")))
       .to.be.true;
   });
 });

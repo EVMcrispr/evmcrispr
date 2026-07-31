@@ -55,7 +55,7 @@ describeCommand("lock", {
     {
       name: "should fail on chains without a GIVpower deployment",
       script: "switch mainnet\ngiveth:lock 100e18 1",
-      error: "GIVpower is not deployed on chain 1",
+      error: "GIVpower is not deployed on Ethereum",
     },
     {
       name: "should fail on zero rounds",

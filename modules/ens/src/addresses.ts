@@ -1,4 +1,4 @@
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 
@@ -40,7 +40,7 @@ export function requireAddress(
   const address = map.get(chainId);
   if (!address) {
     throw new ErrorException(
-      `ens: ${label} is not available on chain ${chainId}; supported chains: mainnet (1), sepolia (11155111)`,
+      `ens: ${label} is not available on ${chainLabel(chainId)}; supported chains: mainnet (1), sepolia (11155111)`,
     );
   }
   return address;

@@ -1,4 +1,9 @@
-import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  ErrorException,
+  ErrorNotFound,
+  tokenLabel,
+} from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import {
   encodeFunctionData,
@@ -67,7 +72,9 @@ async function fetchSorPaths(
 ): Promise<SorPaths> {
   const chain = BALANCER_CHAINS[req.chainId];
   if (!chain) {
-    throw new ErrorNotFound(`Balancer is not deployed on chain ${req.chainId}`);
+    throw new ErrorNotFound(
+      `Balancer is not deployed on ${chainLabel(req.chainId)}`,
+    );
   }
 
   // The SOR API takes human-readable amounts, scaled by the exact token
@@ -115,7 +122,7 @@ async function fetchSorPaths(
   const paths = body.data?.sorGetSwapPaths;
   if (!paths || paths.swaps.length === 0) {
     throw new ErrorNotFound(
-      `Balancer has no liquidity path from ${req.tokenIn} to ${req.tokenOut}`,
+      `Balancer has no liquidity path from ${await tokenLabel(module, req.tokenIn)} to ${await tokenLabel(module, req.tokenOut)}`,
     );
   }
   return paths;

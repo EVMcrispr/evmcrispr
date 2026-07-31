@@ -71,7 +71,7 @@ describeCommand("donate", {
     {
       name: "should fail on chains without a DonationHandler",
       script: `switch 1101\ngiveth:donate [1e18] ${WXDAI} to [evmcrispr]`,
-      error: "the Giveth donation handler is not deployed on chain 1101",
+      error: "the Giveth donation handler is not deployed on Polygon zkEVM",
     },
     {
       name: "should fail without an execution context",

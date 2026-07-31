@@ -1,4 +1,4 @@
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 
 export const COW_SETTLEMENT: Address =
@@ -56,7 +56,9 @@ export interface CowOrder {
 function baseUrl(chainId: number): string {
   const network = COW_NETWORKS[chainId];
   if (!network) {
-    throw new ErrorException(`CoWSwap is not available on chain ${chainId}`);
+    throw new ErrorException(
+      `CoWSwap is not available on ${chainLabel(chainId)}`,
+    );
   }
   return `https://api.cow.fi/${network}/api/v1`;
 }

@@ -1,18 +1,24 @@
 import type { Action } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   coerceBoolean,
   defineCommand,
   ErrorException,
   fieldItem,
   Num,
+  tokenAmountFormatter,
 } from "@evmcrispr/sdk";
-import { zeroAddress } from "viem";
+import { parseAbiItem, zeroAddress } from "viem";
 import type Bridges from "..";
 import { resolveAdapter } from "../adapters/registry";
 import type { BridgeFeeQuote } from "../adapters/types";
 import { resolveChainId } from "../argTypes";
 import { buildApprovalActions } from "../utils/approval";
 import { registerSimRelayHandler } from "../utils/sim";
+
+const balanceOfAbi = parseAbiItem(
+  "function balanceOf(address owner) view returns (uint256)",
+);
 
 export default defineCommand<Bridges>({
   name: "bridge",
@@ -78,7 +84,7 @@ export default defineCommand<Bridges>({
     const dstChainId = resolveChainId(destChain);
     if (srcChainId === dstChainId) {
       throw new ErrorException(
-        `already on chain ${srcChainId}; there is nothing to bridge`,
+        `already on ${chainLabel(srcChainId)}; there is nothing to bridge`,
       );
     }
 
@@ -89,6 +95,39 @@ export default defineCommand<Bridges>({
 
     const owner = await module.getConnectedAccount(true);
     const recipient = opts.receiver ?? owner;
+
+    // Pre-check the sender's balance so a doomed bridge fails with a real
+    // message instead of a bare on-chain revert. The read reflects already
+    // executed state only, so it is authoritative inside sim:fork (actions
+    // run as they are produced) but possibly stale when earlier actions in
+    // the script or batch are meant to fund the account — warn, don't block.
+    const client = await module.getClient();
+    // Advisory only: <token> may not expose balanceOf (e.g. an OFT wrapper),
+    // so an unreadable balance skips the check instead of failing the command.
+    const balance = await (token === zeroAddress
+      ? client.getBalance({ address: owner })
+      : client.readContract({
+          address: token,
+          abi: [balanceOfAbi],
+          functionName: "balanceOf",
+          args: [owner],
+        })
+    ).catch(() => undefined);
+    // Symbol + human units for logs and errors; falls back to raw base
+    // units + address when the token's metadata is unreadable.
+    const fmt = await tokenAmountFormatter(module, token);
+    if (balance !== undefined && balance < amountIn) {
+      const shortfall =
+        `account ${owner} holds ${fmt(balance)} on ` +
+        `${chainLabel(srcChainId)}, less than the ${fmt(amountIn)} being bridged`;
+      if (interpreters.simulation && !interpreters.batchContext?.hasActions) {
+        throw new ErrorException(shortfall);
+      }
+      module.context.log(
+        `⚠ ${shortfall}; unless earlier actions fund it, the bridge will revert`,
+      );
+    }
+
     const adapter = await resolveAdapter(module, opts.using, {
       srcChainId,
       dstChainId,
@@ -117,7 +156,7 @@ export default defineCommand<Bridges>({
         const maxFee = Num(opts["max-fee"]).toBigInt();
         if (quote.tokenFee > maxFee) {
           throw new ErrorException(
-            `${adapter.name} charges ${quote.tokenFee} but --max-fee is ${maxFee}`,
+            `${adapter.name} charges ${fmt(quote.tokenFee)} but --max-fee is ${fmt(maxFee)}`,
           );
         }
       }
@@ -154,7 +193,7 @@ export default defineCommand<Bridges>({
     }
 
     module.context.log(
-      `Bridging ${amountIn} of ${token} to chain ${dstChainId} with ${adapter.name}. ` +
+      `Bridging ${fmt(amountIn)} to ${chainLabel(dstChainId)} with ${adapter.name}. ` +
         `Track it with @bridges:status(<source-tx-hash>)` +
         (adapter.requiresClaim(srcChainId, dstChainId)
           ? `, then finalize it on the destination chain with bridges:claim <source-tx-hash>.`

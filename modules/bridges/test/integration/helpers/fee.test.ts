@@ -58,7 +58,7 @@ if @bool(@bridges:fee(1000e18 0x6B175474E89094C44Da98b954EedeAC495271d0F optimis
     {
       name: "rejects bridging to the current chain",
       input: `@bridges:fee(100e6 ${USDC_MAINNET} mainnet)`,
-      error: "already on chain 1",
+      error: "already on Ethereum",
     },
     {
       name: "rejects a zero amount",

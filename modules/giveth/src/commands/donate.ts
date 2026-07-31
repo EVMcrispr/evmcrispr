@@ -1,5 +1,6 @@
 import type { TransactionAction } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   coerceBoolean,
   defineCommand,
   ErrorException,
@@ -119,7 +120,7 @@ export default defineCommand<Giveth>({
     const handler = DONATION_HANDLER[chainId];
     if (viaContract && !handler) {
       throw new ErrorException(
-        `the Giveth donation handler is not deployed on chain ${chainId}`,
+        `the Giveth donation handler is not deployed on ${chainLabel(chainId)}`,
       );
     }
 
