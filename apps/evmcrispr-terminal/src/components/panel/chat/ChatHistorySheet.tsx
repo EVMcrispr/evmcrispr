@@ -98,7 +98,7 @@ export function ChatHistorySheet({
                     className={cn(
                       "flex cursor-pointer items-center gap-2 border-b border-foreground/10 py-1.5 pl-3 pr-1",
                       chat.id === activeId &&
-                        "border-l-2 border-l-primary bg-foreground/[0.04] pl-2.5",
+                        "border-l-2 border-l-primary bg-foreground/4 pl-2.5",
                     )}
                     onClick={() => {
                       if (disabled) return;
@@ -135,8 +135,8 @@ export function ChatHistorySheet({
           {/* Fades hint that the list scrolls under the pinned New chat
               row; they match the drawer background so they vanish over
               empty space. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-3 bg-gradient-to-b from-[#0b0d0c] to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0b0d0c] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-3 bg-linear-to-b from-[#0b0d0c] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-[#0b0d0c] to-transparent" />
         </div>
       </Drawer.Content>
     </Drawer>

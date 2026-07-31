@@ -65,7 +65,7 @@ export function SavedScript({
       <div
         className={cn(
           "flex cursor-pointer items-center gap-2 border-b border-foreground/10 py-1.5 pl-3 pr-1",
-          isActive && "border-l-2 border-l-primary bg-foreground/[0.04] pl-2.5",
+          isActive && "border-l-2 border-l-primary bg-foreground/4 pl-2.5",
         )}
         onClick={() => onItemClick(id)}
       >

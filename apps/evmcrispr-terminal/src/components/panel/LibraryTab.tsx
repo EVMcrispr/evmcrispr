@@ -99,7 +99,7 @@ export function LibraryTab({
         {/* Fade hints that the list scrolls; matches the drawer background,
             so it vanishes over empty space. */}
         {mobile && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0b0d0c] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-[#0b0d0c] to-transparent" />
         )}
       </div>
     </div>

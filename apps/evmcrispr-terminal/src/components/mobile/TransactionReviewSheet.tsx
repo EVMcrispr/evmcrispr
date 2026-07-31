@@ -69,8 +69,8 @@ function ActivityPanel({
       <section
         className={`border p-3 ${
           phase === "error" || phase === "cancelled"
-            ? "border-destructive/45 bg-destructive/[0.05]"
-            : "border-primary/35 bg-primary/[0.04]"
+            ? "border-destructive/45 bg-destructive/5"
+            : "border-primary/35 bg-primary/4"
         }`}
         aria-live="polite"
       >
@@ -356,7 +356,7 @@ export function TransactionReviewSheet({
 
           {state.status === "error" && (
             <div className="flex flex-col gap-4" role="alert">
-              <div className="border border-destructive/45 bg-destructive/[0.06] p-4">
+              <div className="border border-destructive/45 bg-destructive/6 p-4">
                 <div className="flex items-start gap-3">
                   <ExclamationTriangleIcon className="size-6 shrink-0 text-destructive" />
                   <div>
@@ -389,7 +389,7 @@ export function TransactionReviewSheet({
 
           {state.status === "ready" && (
             <div className="flex flex-col gap-3">
-              <div className="border border-primary/40 bg-primary/[0.055] p-3">
+              <div className="border border-primary/40 bg-primary/5.5 p-3">
                 <div className="flex items-center gap-3">
                   <CheckCircleIcon className="size-7 text-primary" />
                   <div>
@@ -404,7 +404,7 @@ export function TransactionReviewSheet({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 border border-foreground/10 bg-foreground/[0.025]">
+              <div className="grid grid-cols-3 border border-foreground/10 bg-foreground/2.5">
                 <div className="border-r border-foreground/10 p-3">
                   <p className="font-sans text-[10px] uppercase tracking-wide text-foreground/35">
                     {multiChain ? "Networks" : "Network"}
@@ -437,7 +437,7 @@ export function TransactionReviewSheet({
                 return (
                   <article
                     key={`${summary.detail}:${index}`}
-                    className="border border-foreground/[0.12] bg-foreground/[0.025] p-3"
+                    className="border border-foreground/12 bg-foreground/2.5 p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/45 font-mono text-xs text-primary">
@@ -461,7 +461,7 @@ export function TransactionReviewSheet({
                       </span>
                     </div>
                     {summary.warning && (
-                      <div className="mt-3 flex gap-2 border border-evm-yellow-300/35 bg-evm-yellow-300/[0.04] p-2 font-sans text-[11px] text-evm-yellow-300">
+                      <div className="mt-3 flex gap-2 border border-evm-yellow-300/35 bg-evm-yellow-300/4 p-2 font-sans text-[11px] text-evm-yellow-300">
                         <ExclamationTriangleIcon className="size-4 shrink-0" />
                         {summary.warning}
                       </div>

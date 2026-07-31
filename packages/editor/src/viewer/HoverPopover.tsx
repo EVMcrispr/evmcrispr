@@ -261,7 +261,7 @@ export function HoverPopover({
                   // `!` prefix overrides Tailwind's `prose` defaults —
                   // the parent applies `prose-hr:border-foreground/20`
                   // which would otherwise mute this rule grey.
-                  <hr className="!my-3 !border-evm-green-300" />
+                  <hr className="my-3! border-evm-green-300!" />
                 )}
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}

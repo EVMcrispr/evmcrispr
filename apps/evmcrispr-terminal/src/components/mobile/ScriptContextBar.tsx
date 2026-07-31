@@ -55,7 +55,7 @@ export function ScriptContextBar({
   return (
     <nav
       aria-label="Script workspace"
-      className="mx-3 mb-1 mt-2 flex min-h-12 shrink-0 items-center gap-1 border border-foreground/15 bg-foreground/[0.04] px-1.5 backdrop-blur"
+      className="mx-3 mb-1 mt-2 flex min-h-12 shrink-0 items-center gap-1 border border-foreground/15 bg-foreground/4 px-1.5 backdrop-blur"
     >
       <Button
         type="button"

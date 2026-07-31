@@ -152,7 +152,7 @@ export function ScriptSheet({
         </div>
       </div>
 
-      <div className="mx-4 mt-3 flex shrink-0 items-center gap-2 border border-primary/25 bg-primary/[0.055] px-3 py-2">
+      <div className="mx-4 mt-3 flex shrink-0 items-center gap-2 border border-primary/25 bg-primary/5.5 px-3 py-2">
         <CheckCircleIcon className="size-5 shrink-0 text-primary" />
         <p className="font-sans text-xs text-foreground/65">
           Nothing is sent until you review and confirm in your wallet.

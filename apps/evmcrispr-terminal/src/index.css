@@ -31,7 +31,11 @@
 html,
 body {
   height: 100%;
-  overscroll-behavior: none;
+  /* X only: horizontal overscroll on the wide code/table blocks would fire
+     the browser's swipe-back gesture. Vertical overscroll must stay `auto`
+     so pulling down at the top of a scroller still reaches the viewport and
+     triggers pull-to-refresh on mobile. */
+  overscroll-behavior-x: none;
 }
 
 *,
@@ -58,7 +62,10 @@ body {
     position: relative;
     isolation: isolate;
     min-height: 100dvh;
-    overscroll-behavior: none;
+    /* `overflow: hidden` makes this a scroll container, so `none` here would
+       swallow the chain from the chat/script scrollers before it reaches the
+       viewport — see the html/body rule above. */
+    overscroll-behavior-x: none;
     background:
       radial-gradient(
         circle at 82% -8%,

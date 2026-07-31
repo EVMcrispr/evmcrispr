@@ -85,7 +85,7 @@ export function ChatInput({
           // beside it (auto height would be 50px: 24px line + py-3 + border);
           // the autogrow inline style still wins once typing wraps.
           mobile &&
-            "h-12 min-h-12 resize-none border-foreground/15 bg-foreground/[0.04] px-4 py-2.5 font-sans text-base shadow-none",
+            "h-12 min-h-12 resize-none border-foreground/15 bg-foreground/4 px-4 py-2.5 font-sans text-base shadow-none",
         )}
         style={{ maxHeight: MAX_HEIGHT_PX }}
       />
