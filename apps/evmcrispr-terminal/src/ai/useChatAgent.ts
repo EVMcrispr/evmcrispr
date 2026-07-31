@@ -43,26 +43,51 @@ Before writing an exec call against a specific contract, or when the user asks w
 For external protocols, or anything the EVML docs tools and get_contract do not cover (e.g. how ENS name wrapping works, a protocol's contract addresses, an unfamiliar function signature), use search_web to find documentation and fetch_page to read it instead of guessing. Prefer official documentation over blogs, and cite the source URLs in your reply.`;
 
 /**
- * Model-friendly local timestamp: weekday for relative-day reasoning, ISO
- * date to avoid day/month ambiguity, 24h time with an explicit UTC offset.
- * E.g. "Tuesday, 2026-07-28 19:55 (UTC+01:00)".
+ * Model-friendly local clock, in parts: weekday for relative-day reasoning,
+ * ISO date to avoid day/month ambiguity, 24h time with an explicit UTC
+ * offset, and the Unix timestamp so on-chain deadlines (ENS expiries,
+ * vesting cliffs, locks) can be compared by subtraction instead of calendar
+ * arithmetic, which the model gets wrong.
  */
-function formatNow(): string {
+function clockParts() {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const offsetMin = -now.getTimezoneOffset();
   const sign = offsetMin < 0 ? "-" : "+";
   const abs = Math.abs(offsetMin);
-  const offset = `UTC${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
-  return `${weekday}, ${date} ${time} (${offset})`;
+  return {
+    weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    offset: `UTC${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`,
+    unix: Math.floor(now.getTime() / 1000),
+  };
+}
+
+/**
+ * The clock spelled out for the system prompt.
+ * E.g. "The current date and time is Tuesday, 2026-07-28 19:55 (UTC+01:00);
+ * Unix timestamp 1785268500."
+ */
+function nowLine(): string {
+  const { weekday, date, time, offset, unix } = clockParts();
+  return `The current date and time is ${weekday}, ${date} ${time} (${offset}); Unix timestamp ${unix}.`;
+}
+
+/**
+ * Terse form for the per-turn restatement: the system prompt already spells
+ * the clock out, so the reminder only needs the two anchors the model
+ * actually computes from — a calendar date and an epoch to subtract.
+ * E.g. "[now: 2026-07-28 19:55 UTC+01:00 | 1785268500]".
+ */
+function nowStamp(): string {
+  const { date, time, offset, unix } = clockParts();
+  return `[now: ${date} ${time} ${offset} | ${unix}]`;
 }
 
 /** Computed per run so long-lived tabs don't drift. */
 function systemPrompt(): string {
-  return `${SYSTEM_PROMPT}\n\nThe current date and time is ${formatNow()}.`;
+  return `${SYSTEM_PROMPT}\n\n${nowLine()}\n\nNever reason about dates from memory. Whenever a question involves when something happens, how long until or since it, or whether something has expired or is still valid, first restate the current date and Unix timestamp above, then compute the answer relative to it. Give both the absolute date and the relative duration, e.g. "2027-03-04, about 7 months from now".`;
 }
 
 export type ChatToolArtifact =
@@ -258,7 +283,16 @@ export function useChatAgent() {
       const result = streamText({
         model,
         system: systemPrompt(),
-        messages: historyRef.current,
+        // The clock is restated on the last user turn: in a long chat the
+        // system prompt sits thousands of tokens back and the model stops
+        // applying it. It rides along with the user message because the
+        // provider rejects system messages inside `messages`, and is kept
+        // out of the persisted history so old turns don't accumulate stale
+        // stamps.
+        messages: [
+          ...historyRef.current.slice(0, -1),
+          { role: "user", content: `${text}\n\n${nowStamp()}` },
+        ],
         tools,
         // Nexus reserves the full max_tokens cost upfront and rejects the
         // request with insufficient_balance when the cap exceeds the
