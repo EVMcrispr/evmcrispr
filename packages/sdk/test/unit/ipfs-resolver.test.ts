@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { IPFS_GATEWAY, IPFSResolver } from "../../src/IPFSResolver";
 import {
+  resetGatewayCapabilities,
   TRUSTLESS_GATEWAYS,
   verifiedIpfsEntity,
 } from "../../src/utils/verifiedIpfs";
@@ -155,10 +156,12 @@ describe("IPFSResolver (verified)", () => {
   beforeEach(() => {
     IPFSResolver.trustGateway = false;
     requestedUrls = [];
+    resetGatewayCapabilities();
   });
   afterEach(() => {
     globalThis.fetch = realFetch;
     IPFSResolver.trustGateway = realTrust;
+    resetGatewayCapabilities();
   });
 
   const serve = (body: Uint8Array | Response) => {
@@ -272,27 +275,71 @@ describe("IPFSResolver (verified)", () => {
     await expect(resolver.text(cid.str)).rejects.toThrow(/verifiable/);
   });
 
-  it("falls back to a trustless gateway when the primary serves no CAR", async () => {
-    const content = text("shared script");
-    const cid = await cidV1Raw(content);
-    const archive = car([{ cid: cid.bytes, data: content }]);
-    // The default gateway answers plain text (no trustless support) — the
-    // content must still arrive, verified, from a fallback gateway.
+  /**
+   * Serve a CAR per CID from the fallback gateways while the primary answers
+   * `primaryReply()` — multi-fetch tests need each CID's own archive.
+   */
+  const serveFallbacks = (
+    files: { cid: { str: string; bytes: Uint8Array }; body: Uint8Array }[],
+    primaryReply: () => Response,
+  ) => {
     globalThis.fetch = (async (url: string | URL) => {
       const href = String(url);
       requestedUrls.push(href);
-      return href.startsWith(IPFS_GATEWAY)
-        ? new Response("plain text", {
-            status: 200,
-            headers: { "Content-Type": "text/plain" },
-          })
-        : carResponse(archive);
+      if (href.startsWith(IPFS_GATEWAY)) return primaryReply();
+      const file = files.find((f) => href.includes(f.cid.str));
+      if (!file) throw new Error(`unexpected CID in ${href}`);
+      return carResponse(car([{ cid: file.cid.bytes, data: file.body }]));
     }) as any;
+  };
 
-    const resolver = new IPFSResolver();
-    expect(await resolver.text(cid.str)).toBe("shared script");
+  it("falls back to a trustless gateway when the primary serves no CAR", async () => {
+    const first = await cidV1Raw(text("shared script"));
+    const second = await cidV1Raw(text("another script"));
+    // The default gateway answers plain text (no trustless support) — the
+    // content must still arrive, verified, from a fallback gateway.
+    serveFallbacks(
+      [
+        { cid: first, body: text("shared script") },
+        { cid: second, body: text("another script") },
+      ],
+      () =>
+        new Response("plain text", {
+          status: 200,
+          headers: { "Content-Type": "text/plain" },
+        }),
+    );
+
+    expect(await new IPFSResolver().text(first.str)).toBe("shared script");
     expect(requestedUrls[0].startsWith(IPFS_GATEWAY)).toBe(true);
     expect(requestedUrls[1].startsWith(TRUSTLESS_GATEWAYS[0])).toBe(true);
+
+    // The verdict sticks: a later fetch skips the gateway that cannot serve
+    // CARs instead of paying its round-trip again.
+    requestedUrls = [];
+    expect(await new IPFSResolver().text(second.str)).toBe("another script");
+    expect(requestedUrls).toHaveLength(1);
+    expect(requestedUrls[0].startsWith(TRUSTLESS_GATEWAYS[0])).toBe(true);
+  });
+
+  it("keeps retrying a primary that merely failed to answer", async () => {
+    const first = await cidV1Raw(text("still here"));
+    const second = await cidV1Raw(text("still here too"));
+    // A 504 says nothing about trustless support — don't write the gateway
+    // off over it.
+    serveFallbacks(
+      [
+        { cid: first, body: text("still here") },
+        { cid: second, body: text("still here too") },
+      ],
+      () => new Response(null, { status: 504, statusText: "Gateway Timeout" }),
+    );
+
+    expect(await new IPFSResolver().text(first.str)).toBe("still here");
+    expect(await new IPFSResolver().text(second.str)).toBe("still here too");
+    expect(
+      requestedUrls.filter((u) => u.startsWith(IPFS_GATEWAY)),
+    ).toHaveLength(2);
   });
 
   it("returns verified directory entries via verifiedIpfsEntity", async () => {

@@ -511,9 +511,24 @@ export type IpfsEntity =
  */
 export const TRUSTLESS_GATEWAYS = [
   "https://trustless-gateway.link/ipfs/",
-  "https://gateway.pinata.cloud/ipfs/",
   "https://dweb.link/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
 ];
+
+/**
+ * Gateway bases caught answering a CAR request with something else. Support
+ * is a property of the gateway, not of the CID, so one probe settles it for
+ * the session and later fetches skip straight to a gateway that can serve
+ * one — without it, every fetch through a plain-HTTP gateway pays a wasted
+ * round-trip. Only the wrong-format verdict is remembered; connection
+ * errors and 404s are per-request and stay retried.
+ */
+const nonTrustlessGateways = new Set<string>();
+
+/** Forget probed gateway capabilities (tests re-probe from a clean slate). */
+export function resetGatewayCapabilities(): void {
+  nonTrustlessGateways.clear();
+}
 
 /** Download `cidPath` as a CAR, or throw if this gateway can't serve one. */
 async function fetchCar(
@@ -545,6 +560,10 @@ async function fetchCar(
   }
   const contentType = response.headers.get("Content-Type") ?? "";
   if (!contentType.includes("vnd.ipld.car")) {
+    // Answering 200 with the plain file (rather than 400) is how Pinata's
+    // dedicated gateways decline `format=car` — the Content-Type is the
+    // only tell, so never parse the body on trust.
+    nonTrustlessGateways.add(gatewayBase);
     throw new ErrorUnexpectedResult(
       `${url} did not return a verifiable (CAR) response — the IPFS gateway must support the trustless gateway spec`,
     );
@@ -560,10 +579,14 @@ async function fetchVerifiedTarget(
   const [cidStr, ...segments] = cidPath.split("/").filter(Boolean);
   const rootCid = parseCidString(cidStr);
 
-  const gateways = [
+  const candidates = [
     gatewayBase,
     ...TRUSTLESS_GATEWAYS.filter((g) => g !== gatewayBase),
   ];
+  // Keep every candidate when all of them are known-bad, so the failure is
+  // still reported against the caller's own gateway.
+  const known = candidates.filter((g) => !nonTrustlessGateways.has(g));
+  const gateways = known.length ? known : candidates;
   let car: Uint8Array | undefined;
   let lastError: unknown;
   for (const gateway of gateways) {
