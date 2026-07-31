@@ -57,7 +57,7 @@ function baseRequest(overrides: Partial<SwapRequest>): SwapRequest {
 
 function decodeExecute(action: any) {
   expect(action.to).to.eq(deployment.universalRouter);
-  const { functionName, args } = decodeFunctionData({
+  const { functionName, args = [] } = decodeFunctionData({
     abi: routerAbi,
     data: action.data,
   });
@@ -186,17 +186,17 @@ describe("Swaps > venues > v4 encoding", () => {
     expect(plan.actions).to.have.length(2);
     expect((plan.actions[0] as any).to).to.eq(PERMIT2);
 
-    const { functionName, args } = decodeFunctionData({
+    const { functionName, args = [] } = decodeFunctionData({
       abi: permit2Abi,
       data: (plan.actions[0] as any).data,
     });
     expect(functionName).to.eq("approve");
-    expect(args?.[0]).to.eq(USDC);
-    expect((args?.[1] as string).toLowerCase()).to.eq(
+    expect(args[0]).to.eq(USDC);
+    expect((args[1] as string).toLowerCase()).to.eq(
       deployment.universalRouter.toLowerCase(),
     );
-    expect(args?.[2]).to.eq(1000_000000n);
-    expect(args?.[3]).to.eq(1234567890);
+    expect(args[2]).to.eq(1000_000000n);
+    expect(args[3]).to.eq(1234567890);
     expect((plan.actions[1] as any).value).to.be.undefined;
   });
 });

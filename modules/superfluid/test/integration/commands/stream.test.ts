@@ -30,16 +30,14 @@ describeCommand("stream", {
         expect((action.to as string).toLowerCase()).to.eq(
           CFA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("setFlowrate");
-        expect((args?.[0] as string).toLowerCase()).to.eq(XDAIX.toLowerCase());
-        expect((args?.[1] as string).toLowerCase()).to.eq(
-          RECEIVER.toLowerCase(),
-        );
-        expect(args?.[2]).to.eq(RATE_1000_PER_MONTH);
+        expect((args[0] as string).toLowerCase()).to.eq(XDAIX.toLowerCase());
+        expect((args[1] as string).toLowerCase()).to.eq(RECEIVER.toLowerCase());
+        expect(args[2]).to.eq(RATE_1000_PER_MONTH);
       },
     },
     {

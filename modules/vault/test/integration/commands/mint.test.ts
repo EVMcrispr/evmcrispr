@@ -44,20 +44,20 @@ describeCommand("mint", {
         const [approve, mint] = actions as any[];
 
         expect((approve.to as string).toLowerCase()).to.eq(WXDAI.toLowerCase());
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           SDAI.toLowerCase(),
         );
-        expect(approval.args?.[1]).to.eq(required);
+        expect(approvalArgs[1]).to.eq(required);
 
         expect((mint.to as string).toLowerCase()).to.eq(SDAI.toLowerCase());
-        const { functionName, args } = decodeMint(mint);
+        const { functionName, args = [] } = decodeMint(mint);
         expect(functionName).to.eq("mint");
-        expect(args?.[0]).to.eq(SHARES);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(SHARES);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -76,8 +76,8 @@ describeCommand("mint", {
       name: "mints the shares to --to when given",
       script: `vault:mint 100e18 of ${SDAI} --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeMint(actions.at(-1));
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeMint(actions.at(-1));
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
       },

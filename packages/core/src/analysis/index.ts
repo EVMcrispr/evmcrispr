@@ -1521,9 +1521,7 @@ class SemanticAnalyzer {
           if (issue.code === "unknown-named-arg") {
             message += didYouMean(
               issue.node.name,
-              (argDefs as ArgDef[])
-                .filter((d) => !d.rest)
-                .map((d) => d.name),
+              (argDefs as ArgDef[]).filter((d) => !d.rest).map((d) => d.name),
             );
           }
           this.#diagnostics.push(diag(issue.node, message, issue.code));

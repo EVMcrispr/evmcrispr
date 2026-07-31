@@ -42,7 +42,7 @@ function baseRequest(overrides: Partial<SwapRequest>): SwapRequest {
 
 function decodeMulticall(action: any) {
   expect(action.to).to.eq(deployment.router);
-  const { functionName, args } = decodeFunctionData({
+  const { functionName, args = [] } = decodeFunctionData({
     abi: routerAbi,
     data: action.data,
   });
@@ -118,7 +118,8 @@ describe("Swaps > venues > v3 encoding", () => {
 
     const { calls } = decodeMulticall(plan.actions[0]);
     expect(calls).to.have.length(2);
-    expect((calls[0].args?.[0] as any).recipient).to.eq(ADDRESS_THIS);
+    const params = calls[0].args?.[0] as any;
+    expect(params.recipient).to.eq(ADDRESS_THIS);
     expect(calls[1].functionName).to.eq("unwrapWETH9");
     expect(calls[1].args).to.eql([990n, SOME_ADDRESS]);
   });

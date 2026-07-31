@@ -25,6 +25,9 @@ describe("circom > completions", () => {
       "@circom:tree.root",
     ]);
     expect(circom.bool).to.include.members(["@circom:tree.verify"]);
-    expect(circom.number).to.not.include.members(["@circom:tree.proof", "@circom:proof"]);
+    expect(circom.number).to.not.include.members([
+      "@circom:tree.proof",
+      "@circom:proof",
+    ]);
   });
 });

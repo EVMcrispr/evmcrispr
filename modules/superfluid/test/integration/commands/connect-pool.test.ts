@@ -22,12 +22,12 @@ describeCommand("connect-pool", {
         expect((action.to as string).toLowerCase()).to.eq(
           GDA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("connectPool");
-        expect((args?.[0] as string).toLowerCase()).to.eq(
+        expect((args[0] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
       },

@@ -172,7 +172,8 @@ sim:fork --using anvil (
     },
     {
       name: "should fail on a non-URL artifact",
-      script: "noir:prove $proof --artifact ./target/main.json --inputs [[x 1] [y 2]]",
+      script:
+        "noir:prove $proof --artifact ./target/main.json --inputs [[x 1] [y 2]]",
       error: "<artifact> must be an http(s):// or ipfs:// URL",
     },
     {

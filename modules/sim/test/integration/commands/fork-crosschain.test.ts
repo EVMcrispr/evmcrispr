@@ -56,8 +56,11 @@ sim:fork (
   testbridge:assert-balance ${ADDR_A} 5000000
 )`);
 
-    expect(logs.some((l) => l.includes("Queued test-bridge transfer Gnosis → Ethereum")))
-      .to.be.true;
+    expect(
+      logs.some((l) =>
+        l.includes("Queued test-bridge transfer Gnosis → Ethereum"),
+      ),
+    ).to.be.true;
     expect(
       logs.some((l) =>
         l.includes("Delivering test-bridge transfer from Gnosis"),

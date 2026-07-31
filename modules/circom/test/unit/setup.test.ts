@@ -2,10 +2,10 @@ import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 import {
   AUTO_PTAU_MAX_POWER,
+  buildCircomSetupOptions,
   DEV_PTAU_MAX_POWER,
   getPtau,
   hezPtauUrl,
-  buildCircomSetupOptions,
   parsePtauValue,
   ptauPowerFor,
 } from "../../src/utils/setup";

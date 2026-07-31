@@ -89,9 +89,9 @@ describe("partitionHelperArgs", () => {
 describe("computeCommandArity with named args", () => {
   it("counts only positional args and unfilled defs", () => {
     // (a, b?, c?) called as (1 c:x) → positional 1 within [1..2].
-    expect(
-      computeCommandArity(DEFS, [lit(), namedArg("c")]).isError,
-    ).toBe(false);
+    expect(computeCommandArity(DEFS, [lit(), namedArg("c")]).isError).toBe(
+      false,
+    );
     // (a) missing entirely.
     expect(computeCommandArity(DEFS, [namedArg("c")]).isError).toBe(true);
   });
@@ -102,9 +102,9 @@ describe("computeCommandArity with named args", () => {
       { name: "runs", type: "number", namedOnly: true },
     ];
     expect(computeCommandArity(defs, [lit()]).isError).toBe(false);
-    expect(
-      computeCommandArity(defs, [lit(), namedArg("runs")]).isError,
-    ).toBe(false);
+    expect(computeCommandArity(defs, [lit(), namedArg("runs")]).isError).toBe(
+      false,
+    );
     expect(computeCommandArity(defs, [lit(), lit()]).isError).toBe(true);
   });
 });
@@ -141,7 +141,12 @@ describe("unwrapNamedArg / isRecordValue", () => {
   it("validates entries-array shape", () => {
     expect(isRecordValue([["a", "1"]])).toBe(true);
     expect(isRecordValue([])).toBe(true);
-    expect(isRecordValue([["a", "1"], ["b", ["1", "2"]]])).toBe(true);
+    expect(
+      isRecordValue([
+        ["a", "1"],
+        ["b", ["1", "2"]],
+      ]),
+    ).toBe(true);
     expect(isRecordValue(["a", "1"])).toBe(false);
     expect(isRecordValue([["a"]])).toBe(false);
     expect(isRecordValue("nope")).toBe(false);

@@ -33,26 +33,26 @@ describeCommand("schedule-flow", {
         expect(actions).to.have.length(2);
         const [grant, create] = actions as any[];
 
-        const grantDecoded = decodeFunctionData({
+        const { args: grantArgs = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: grant.data,
         });
-        expect((grantDecoded.args?.[1] as string).toLowerCase()).to.eq(
+        expect((grantArgs[1] as string).toLowerCase()).to.eq(
           FLOW_SCHEDULER.toLowerCase(),
         );
-        expect(grantDecoded.args?.[2]).to.eq(5); // CREATE(1) | DELETE(4)
-        expect(grantDecoded.args?.[3]).to.eq(RATE_1000_PER_MONTH);
+        expect(grantArgs[2]).to.eq(5); // CREATE(1) | DELETE(4)
+        expect(grantArgs[3]).to.eq(RATE_1000_PER_MONTH);
 
         expect((create.to as string).toLowerCase()).to.eq(
           FLOW_SCHEDULER.toLowerCase(),
         );
-        const { args } = decodeFunctionData({
+        const { args = [] } = decodeFunctionData({
           abi: schedulerAbi,
           data: create.data,
         });
-        expect(args?.[2]).to.eq(START);
-        expect(args?.[4]).to.eq(RATE_1000_PER_MONTH);
-        expect(args?.[6]).to.eq(END);
+        expect(args[2]).to.eq(START);
+        expect(args[4]).to.eq(RATE_1000_PER_MONTH);
+        expect(args[6]).to.eq(END);
       },
     },
     {
@@ -60,11 +60,11 @@ describeCommand("schedule-flow", {
       script: `superfluid:schedule-flow 0 ${XDAIX} to ${RECEIVER} --end ${END}`,
       validate: (actions) => {
         expect(actions).to.have.length(2);
-        const grantDecoded = decodeFunctionData({
+        const { args: grantArgs = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
-        expect(grantDecoded.args?.[2]).to.eq(4); // DELETE only
+        expect(grantArgs[2]).to.eq(4); // DELETE only
       },
     },
     {

@@ -8,9 +8,7 @@ describe("noir utils > proof", () => {
     const proof = parseProofJson(CANNED_PROOF_JSON);
     expect(proof.oracle).to.equal("keccak");
     expect(proof.proof).to.match(/^0x[0-9a-f]+$/);
-    expect(proof.publicInputs).to.deep.equal([
-      `0x${"5".padStart(64, "0")}`,
-    ]);
+    expect(proof.publicInputs).to.deep.equal([`0x${"5".padStart(64, "0")}`]);
   });
 
   it("rejects non-JSON and wrong shapes", () => {

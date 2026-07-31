@@ -45,7 +45,7 @@ describeHelper(
       },
       {
         name: "always returns depth siblings for a fixed-depth tree",
-        input: '@circom:tree.proof([1 2] 0 depth:4)',
+        input: "@circom:tree.proof([1 2] 0 depth:4)",
         validate: ([pathIndex, siblings]) => {
           expect(pathIndex.toBigInt()).to.equal(0n);
           expect(siblings).to.have.length(4);

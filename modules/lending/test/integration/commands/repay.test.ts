@@ -28,19 +28,19 @@ describeCommand("repay", {
         const [approve, repay] = actions as any[];
 
         expect(approve.to).to.eq(WXDAI);
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect(approval.args).to.eql([AAVE_POOL, 100n * 10n ** 18n]);
+        expect(approvalArgs).to.eql([AAVE_POOL, 100n * 10n ** 18n]);
 
         expect(repay.to).to.eq(AAVE_POOL);
-        const { functionName, args } = decodeRepay(repay);
+        const { functionName, args = [] } = decodeRepay(repay);
         expect(functionName).to.eq("repay");
-        expect(args?.[0]).to.eq(WXDAI);
-        expect(args?.[1]).to.eq(100n * 10n ** 18n);
-        expect(args?.[2]).to.eq(2n); // variable rate
-        expect((args?.[3] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(WXDAI);
+        expect(args[1]).to.eq(100n * 10n ** 18n);
+        expect(args[2]).to.eq(2n); // variable rate
+        expect((args[3] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },

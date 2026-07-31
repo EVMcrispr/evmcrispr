@@ -55,25 +55,25 @@ vault:request-deposit 1000e6 into ${CENTRIFUGE_JTRSY_VAULT}`,
         expect((approve.to as string).toLowerCase()).to.eq(
           USDC_MAINNET.toLowerCase(),
         );
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           CENTRIFUGE_JTRSY_VAULT.toLowerCase(),
         );
-        expect(approval.args?.[1]).to.eq(AMOUNT);
+        expect(approvalArgs[1]).to.eq(AMOUNT);
 
         expect((request.to as string).toLowerCase()).to.eq(
           CENTRIFUGE_JTRSY_VAULT.toLowerCase(),
         );
-        const { functionName, args } = decodeRequestDeposit(request);
+        const { functionName, args = [] } = decodeRequestDeposit(request);
         expect(functionName).to.eq("requestDeposit");
-        expect(args?.[0]).to.eq(AMOUNT);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(AMOUNT);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -83,11 +83,11 @@ vault:request-deposit 1000e6 into ${CENTRIFUGE_JTRSY_VAULT}`,
       script: `switch mainnet
 vault:request-deposit 1000e6 into ${CENTRIFUGE_JTRSY_VAULT} --controller ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeRequestDeposit(txs(actions).at(-1));
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeRequestDeposit(txs(actions).at(-1));
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },

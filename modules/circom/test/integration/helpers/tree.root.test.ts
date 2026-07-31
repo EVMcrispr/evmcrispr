@@ -20,7 +20,7 @@ describeHelper(
       },
       {
         name: "computes a zero-padded fixed-depth root",
-        input: '@circom:tree.root([1 2] depth:4)',
+        input: "@circom:tree.root([1 2] depth:4)",
         expected: FIXED_D4_ROOT_12,
       },
     ],
@@ -37,7 +37,7 @@ describeHelper(
       },
       {
         name: "should fail when the tree overflows its depth",
-        input: '@circom:tree.root([1 2 3 4 5] depth:2)',
+        input: "@circom:tree.root([1 2 3 4 5] depth:2)",
         error: "exceeds the capacity of a depth-2 tree",
       },
     ],

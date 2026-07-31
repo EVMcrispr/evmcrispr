@@ -65,7 +65,7 @@ describeHelper(
       },
     ],
   },
-  helpers["constraints"].argDefs,
+  helpers.constraints.argDefs,
 );
 
 describeHelper(
@@ -116,7 +116,7 @@ describeHelper(
     skipArgLengthCheck: true,
     sampleArgs: ['"pragma circom 2.0.0;"', "ptau:dev"],
   },
-  helpers["verifier"].argDefs,
+  helpers.verifier.argDefs,
 );
 
 describeHelper(
@@ -138,7 +138,7 @@ describeHelper(
     skipArgLengthCheck: true,
     sampleArgs: ['"pragma circom 2.0.0;"', "ptau:dev"],
   },
-  helpers["vkey"].argDefs,
+  helpers.vkey.argDefs,
 );
 
 describeHelper(

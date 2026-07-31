@@ -3,13 +3,13 @@ import { expect } from "@evmcrispr/test-utils";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { poseidon2 } from "poseidon-lite/poseidon2";
 import {
+  buildTreeMode,
   fixedProof,
   fixedRoot,
   fixedVerify,
   leanProof,
   leanRoot,
   leanVerify,
-  buildTreeMode,
   zeros,
 } from "../../src/utils/tree";
 import { FIXED_D4_ROOT_12, LEAN_ROOT_123, Z1, Z2 } from "../fixtures";
@@ -25,8 +25,12 @@ describe("circom utils > tree", () => {
       kind: "fixed",
       depth: 20,
     });
-    expect(() => buildTreeMode({ depth: 0 })).to.throw("depth: must be between");
-    expect(() => buildTreeMode({ depth: 33 })).to.throw("depth: must be between");
+    expect(() => buildTreeMode({ depth: 0 })).to.throw(
+      "depth: must be between",
+    );
+    expect(() => buildTreeMode({ depth: 33 })).to.throw(
+      "depth: must be between",
+    );
     expect(() => buildTreeMode({ lean: true, depth: 4 })).to.throw(
       "mutually exclusive",
     );

@@ -637,7 +637,9 @@ export async function getCompletions(
       );
       const namedArgItems: CompletionItem[] = argDefs
         .filter((d) => !d.rest && (d.namedOnly || d.optional))
-        .filter((d) => !usedNames.has(d.name) && !positionallyFilled.has(d.name))
+        .filter(
+          (d) => !usedNames.has(d.name) && !positionallyFilled.has(d.name),
+        )
         .map((d) => ({
           label: `${d.name}:`,
           insertText: `${d.name}:`,

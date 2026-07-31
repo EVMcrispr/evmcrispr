@@ -23,29 +23,27 @@ describeCommand("set-units", {
         expect((action.to as string).toLowerCase()).to.eq(
           GDA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("updateMemberUnits");
-        expect((args?.[0] as string).toLowerCase()).to.eq(
+        expect((args[0] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[1] as string).toLowerCase()).to.eq(
-          RECEIVER.toLowerCase(),
-        );
-        expect(args?.[2]).to.eq(5n);
+        expect((args[1] as string).toLowerCase()).to.eq(RECEIVER.toLowerCase());
+        expect(args[2]).to.eq(5n);
       },
     },
     {
       name: "allows 0 units to remove a member",
       script: `superfluid:set-units 0 to ${RECEIVER} in ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeFunctionData({
+        const { args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
-        expect(args?.[2]).to.eq(0n);
+        expect(args[2]).to.eq(0n);
       },
     },
   ],

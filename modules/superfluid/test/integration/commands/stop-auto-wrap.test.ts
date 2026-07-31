@@ -22,15 +22,15 @@ describeCommand("stop-auto-wrap", {
         expect((action.to as string).toLowerCase()).to.eq(
           AUTOWRAP_MANAGER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: managerAbi,
           data: action.data,
         });
         expect(functionName).to.eq("deleteWrapSchedule");
-        expect((args?.[0] as string).toLowerCase()).to.eq(
+        expect((args[0] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(USDC.toLowerCase());
+        expect((args[2] as string).toLowerCase()).to.eq(USDC.toLowerCase());
       },
     },
   ],

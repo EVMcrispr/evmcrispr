@@ -34,7 +34,7 @@ describeHelper(
       {
         description:
           "Turn a Merkle path index into the per-level indices a circuit expects",
-        code: "set $leaves [1234 5678 9012]\nset [$index $siblings $len] @circom:tree.proof($leaves 1 pad:10)\nprint \"Indices:\" @circom:field.bits($index 10)",
+        code: 'set $leaves [1234 5678 9012]\nset [$index $siblings $len] @circom:tree.proof($leaves 1 pad:10)\nprint "Indices:" @circom:field.bits($index 10)',
       },
     ],
   },

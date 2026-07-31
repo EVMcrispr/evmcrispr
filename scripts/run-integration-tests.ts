@@ -59,7 +59,14 @@ const SUITE_MEMORY_CAP = "8G";
 function memoryCapPrefix(): string[] {
   const bin = Bun.which("systemd-run");
   if (!bin) return [];
-  const probe = Bun.spawnSync([bin, "--user", "--scope", "--quiet", "--", "true"]);
+  const probe = Bun.spawnSync([
+    bin,
+    "--user",
+    "--scope",
+    "--quiet",
+    "--",
+    "true",
+  ]);
   if (probe.exitCode !== 0) return [];
   return [
     bin,

@@ -453,9 +453,7 @@ describe("Analysis > semantic diagnostics", () => {
     });
 
     it("flags a duplicate named arg", async () => {
-      const ds = await semantic(
-        'load stub [@hopt]\nset $x @hopt("a" c:1 c:2)',
-      );
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt("a" c:1 c:2)');
       expect(codes(ds)).to.include("duplicate-named-arg");
     });
 
@@ -465,14 +463,12 @@ describe("Analysis > semantic diagnostics", () => {
     });
 
     it("flags a def filled both positionally and by name", async () => {
-      const ds = await semantic(
-        'load stub [@hopt]\nset $x @hopt("a" "b" b:2)',
-      );
+      const ds = await semantic('load stub [@hopt]\nset $x @hopt("a" "b" b:2)');
       expect(codes(ds)).to.include("named-arg-conflict");
     });
 
     it("counts named args out of the positional arity", async () => {
-      const ds = await semantic('load stub [@hopt]\nset $x @hopt(c:3)');
+      const ds = await semantic("load stub [@hopt]\nset $x @hopt(c:3)");
       expect(codes(ds)).to.include("arg-count");
     });
 

@@ -43,12 +43,12 @@ vault:set-operator ${SOME_ADDRESS} on ${CENTRIFUGE_JTRSY_VAULT}`,
         expect((action.to as string).toLowerCase()).to.eq(
           CENTRIFUGE_JTRSY_VAULT.toLowerCase(),
         );
-        const { functionName, args } = decodeSetOperator(action);
+        const { functionName, args = [] } = decodeSetOperator(action);
         expect(functionName).to.eq("setOperator");
-        expect((args?.[0] as string).toLowerCase()).to.eq(
+        expect((args[0] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect(args?.[1]).to.eq(true);
+        expect(args[1]).to.eq(true);
       },
     },
     {
@@ -56,8 +56,8 @@ vault:set-operator ${SOME_ADDRESS} on ${CENTRIFUGE_JTRSY_VAULT}`,
       script: `switch mainnet
 vault:set-operator ${SOME_ADDRESS} on ${CENTRIFUGE_JTRSY_VAULT} false`,
       validate: (actions) => {
-        const { args } = decodeSetOperator(txs(actions)[0]);
-        expect(args?.[1]).to.eq(false);
+        const { args = [] } = decodeSetOperator(txs(actions)[0]);
+        expect(args[1]).to.eq(false);
       },
     },
   ],
