@@ -48,6 +48,37 @@ if (!endpoint) {
 console.log("Starting Anvil...");
 let anvil = await ensureAnvil();
 
+/**
+ * Cgroup memory cap for each suite. A runaway suite once ballooned to 28 GB
+ * and the kernel OOM killer took it (and nearly the machine) down; the cap
+ * makes it die alone with a clear signal instead. MemorySwapMax=0 is
+ * required — with swap allowed the kernel swaps instead of killing.
+ */
+const SUITE_MEMORY_CAP = "8G";
+
+function memoryCapPrefix(): string[] {
+  const bin = Bun.which("systemd-run");
+  if (!bin) return [];
+  const probe = Bun.spawnSync([bin, "--user", "--scope", "--quiet", "--", "true"]);
+  if (probe.exitCode !== 0) return [];
+  return [
+    bin,
+    "--user",
+    "--scope",
+    "--quiet",
+    "-p",
+    `MemoryMax=${SUITE_MEMORY_CAP}`,
+    "-p",
+    "MemorySwapMax=0",
+    "--",
+  ];
+}
+
+const capPrefix = memoryCapPrefix();
+if (capPrefix.length === 0) {
+  console.warn("systemd-run unavailable — suites run without a memory cap");
+}
+
 let exitCode = 0;
 
 try {
@@ -70,7 +101,7 @@ try {
 
     console.log(`\n--- Running integration tests: ${pkg} ---`);
     const result = Bun.spawnSync(
-      ["bun", "test", "--timeout", "30000", "./test/integration"],
+      [...capPrefix, "bun", "test", "--timeout", "30000", "./test/integration"],
       {
         cwd: resolve(import.meta.dir, "..", pkg),
         env: process.env,
