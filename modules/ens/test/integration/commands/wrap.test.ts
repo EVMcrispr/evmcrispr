@@ -9,7 +9,7 @@ describeCommand("wrap", {
     {
       name: "should fail on unsupported chains",
       script: "ens:wrap mydao.eth",
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",

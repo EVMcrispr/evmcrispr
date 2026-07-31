@@ -9,7 +9,7 @@ describeCommand("set-primary-name", {
     {
       name: "should fail on unsupported chains",
       script: "ens:set-primary-name mydao.eth",
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",

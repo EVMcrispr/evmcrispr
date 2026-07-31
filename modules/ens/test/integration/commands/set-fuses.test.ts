@@ -9,7 +9,7 @@ describeCommand("set-fuses", {
     {
       name: "should fail on unsupported chains",
       script: "ens:set-fuses mydao.eth cannot-unwrap",
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",

@@ -1,6 +1,6 @@
 import "../../setup";
 import { afterEach, beforeAll, beforeEach, describe, it } from "bun:test";
-import { BindingsSpace } from "@evmcrispr/sdk";
+import { BindingsSpace, chainLabel } from "@evmcrispr/sdk";
 import {
   expect,
   getPublicClient,
@@ -469,7 +469,7 @@ describe("Contracts > commands > deploy --mirror-chain/--mirror-address", () => 
     }
     expect(caught).to.not.equal(undefined);
     expect(caught!.message).to.include("no creation record");
-    expect(caught!.message).to.include("chain 1");
+    expect(caught!.message).to.include(chainLabel(1));
   });
 
   it("mirror: throws when Etherscan returns a creation record without creationBytecode", async () => {

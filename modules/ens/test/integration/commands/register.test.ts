@@ -10,7 +10,7 @@ describeCommand("register", {
       name: "should fail on unsupported chains",
       script:
         'ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret")',
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",
@@ -41,7 +41,7 @@ describeCommand("register", {
       name: "should pass the batchable gate with --step only-commit",
       script:
         'batch (\n  ens:register mydao 0x1234567890abcdef1234567890abcdef12345678 31536000 --secret @hash("my secret") --step only-commit\n)',
-      error: "not available on chain",
+      error: "is not available on",
     },
   ],
 });

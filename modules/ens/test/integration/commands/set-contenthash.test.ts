@@ -10,7 +10,7 @@ describeCommand("set-contenthash", {
       name: "should fail on unsupported chains",
       script:
         'ens:set-contenthash mydao.eth "ipfs://QmRAQB6YaCyidP37UdDnjFY5vQuiBrcqdyoW1CuDgwxkD4"',
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",

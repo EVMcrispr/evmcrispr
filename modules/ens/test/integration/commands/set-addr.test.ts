@@ -10,7 +10,7 @@ describeCommand("set-addr", {
       name: "should fail on unsupported chains",
       script:
         "ens:set-addr mydao.eth 0x1234567890abcdef1234567890abcdef12345678",
-      error: "not available on chain",
+      error: "is not available on",
     },
     {
       name: "should fail with too few arguments",
