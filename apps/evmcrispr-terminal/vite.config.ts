@@ -86,6 +86,29 @@ function evmcrisprModules(modulesDir: string): Plugin {
 }
 
 // ---------------------------------------------------------------------------
+// noir_wasm TDZ workaround
+// ---------------------------------------------------------------------------
+// j-toml (bundled inside @noir-lang/noir_wasm's webpack build) caches the
+// global as `const Infinity = 1/0`. oxc's constant folding rewrites `1/0`
+// into the identifier `Infinity`, which resolves to the const being
+// declared — a self-referential initializer that throws "Cannot access 'j'
+// before initialization" the moment the noir compiler chunk loads. The
+// const has the same value as the global, and j-toml doesn't export it, so
+// dropping the declaration lets references hit the global instead.
+// ---------------------------------------------------------------------------
+
+function fixNoirWasmInfinityTdz(): Plugin {
+  const DECL = "const Infinity = 1/0;";
+  return {
+    name: "fix-noir-wasm-infinity-tdz",
+    transform(code, id) {
+      if (!id.includes("noir_wasm") || !code.includes(DECL)) return;
+      return { code: code.replace(DECL, ""), map: null };
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Self-hosted Monaco assets
 // ---------------------------------------------------------------------------
 // The editor loads monaco's AMD build from `/vs` on our own origin instead
@@ -193,8 +216,15 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  optimizeDeps: {
+    // The dev deps optimizer applies the same oxc constant folding as the
+    // build but bypasses plugins, so fixNoirWasmInfinityTdz can't reach it —
+    // serve noir_wasm's (self-contained) bundle as-is instead.
+    exclude: ["@noir-lang/noir_wasm"],
+  },
   plugins: [
     evmcrisprModules(path.resolve(__dirname, "../../modules")),
+    fixNoirWasmInfinityTdz(),
     monacoAssets(),
     // Stub out @metamask/sdk – wagmi dynamically imports it inside a
     // try/catch for the MetaMask connector, but we don't use that connector
@@ -278,7 +308,10 @@ export default defineConfig({
     // Worker builds get their own plugin pipeline — the virtual
     // `virtual:evmcrispr-modules` module must resolve there too (aliases
     // are shared via the root `resolve` config).
-    plugins: () => [evmcrisprModules(path.resolve(__dirname, "../../modules"))],
+    plugins: () => [
+      evmcrisprModules(path.resolve(__dirname, "../../modules")),
+      fixNoirWasmInfinityTdz(),
+    ],
     rollupOptions: {
       output: {
         // Same rolldown circular-chunk workaround as the main build.
