@@ -1,128 +1,48 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { useEvmlTag } from "@evmcrispr/editor";
-import { APICallError, type ModelMessage, stepCountIs, streamText } from "ai";
+import {
+  APICallError,
+  type ModelMessage,
+  stepCountIs,
+  streamText,
+  type ToolSet,
+} from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useTerminalStore } from "../stores/terminal-store";
-import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
-import { undoScriptRevision } from "../utils/script-edits";
-import {
-  deriveTitle,
-  getChat,
-  listChats,
-  removeChat,
-  saveChat,
-} from "./chat-store";
-import { createChatTools } from "./tools";
+import { createChatStore, deriveTitle } from "./chat-store";
+import type { NexusConfig } from "./config";
+import { createNexusModel } from "./nexus-client";
+import { nowStamp } from "./prompt";
+import { type ChatStorage, createLocalStorageChatStorage } from "./storage";
+import type { ScriptEditResult } from "./tools/script-tools";
+import type { ChatItem, ChatToolArtifact } from "./types";
 
-const NEXUS_BASE_URL = "https://nexus-api.dappnode.com/v1";
-const MODEL = "moonshotai/kimi-k3";
-
-// Nexus's CORS preflight allows only these request headers; the SDK also
-// sets a (non-safelisted) user-agent, which makes browsers fail the whole
-// preflight, so strip anything else before sending.
-const ALLOWED_HEADERS = ["authorization", "content-type", "x-request-id"];
-// Cast: bun's fetch type carries an extra preconnect property.
-const corsSafeFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-  const headers = new Headers(init?.headers);
-  for (const name of [...headers.keys()])
-    if (!ALLOWED_HEADERS.includes(name)) headers.delete(name);
-  return fetch(input, { ...init, headers });
-}) as typeof fetch;
-
-const SYSTEM_PROMPT = `You are an assistant embedded in the EVMcrispr terminal, an interface for EVML — a scripting language for batching EVM transactions. EVML scripts are line-based: commands like "switch <chain>", "load <module>", "set $var <value>", "exec <target> <signature> <args...>", module commands like "token:transfer", and inline helpers like @token(WETH), @me, @date(now). Comments start with #.
-
-The user's script is managed by the terminal; you do not receive it automatically. Use get_script to read it, edit_script/write_script to change it, validate_script to check it, and simulate_script to dry-run it on a fork. On phones, chat is the only authoring surface and the script is always read-only. Edit results already include validation diagnostics — fix any errors they report before finishing. Scripts also have a title: after changing a script, make sure its title still describes it — set one with set_script_title if it is untitled, and update it if it no longer matches what the script does. Titles are a few words naming the script's overall purpose (not its exact parameters), broad enough that small edits don't call for a rename. Keep replies short; the script itself is the deliverable. Never claim that a transaction was sent: broadcasting always requires a separate user review and wallet confirmation.
-
-You have the full EVML reference at hand: list_modules gives an overview of every module, describe_module lists a module's commands and helpers, and get_docs returns the full documentation of one command or helper (syntax, arguments, options, examples). Look up anything you are not certain about instead of guessing — especially before using a module command's options or a helper's argument order.
-
-You can also read on-chain data: pass a throwaway script to simulate_script's script parameter and the output of any "print" commands appears in the simulation logs, without touching the editor. Helpers compose with space-separated arguments, so e.g. "load token" followed by "print @token:format(ETH @token:balance(ETH @ens(vitalik.eth)))" answers "what is vitalik.eth's ETH balance" with a human-readable string like "1.5 ETH". Use this whenever the user asks about balances, resolved names/addresses, or any other value a helper can compute.
-
-Before writing an exec call against a specific contract, or when the user asks what a contract does, use get_contract to read its verified ABI and source from Etherscan (it flags proxies and lets you read files one by one) instead of guessing function signatures.
-
-For external protocols, or anything the EVML docs tools and get_contract do not cover (e.g. how ENS name wrapping works, a protocol's contract addresses, an unfamiliar function signature), use search_web to find documentation and fetch_page to read it instead of guessing. Prefer official documentation over blogs, and cite the source URLs in your reply.`;
-
-/**
- * Model-friendly local clock, in parts: weekday for relative-day reasoning,
- * ISO date to avoid day/month ambiguity, 24h time with an explicit UTC
- * offset, and the Unix timestamp so on-chain deadlines (ENS expiries,
- * vesting cliffs, locks) can be compared by subtraction instead of calendar
- * arithmetic, which the model gets wrong.
- */
-function clockParts() {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const offsetMin = -now.getTimezoneOffset();
-  const sign = offsetMin < 0 ? "-" : "+";
-  const abs = Math.abs(offsetMin);
-  return {
-    weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
-    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-    offset: `UTC${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`,
-    unix: Math.floor(now.getTime() / 1000),
-  };
+export interface UseChatAgentOptions {
+  /** System prompt. Pass a function to have it re-evaluated per run (e.g.
+   *  `() => withClock(PROMPT)` so the embedded clock doesn't drift). */
+  systemPrompt: string | (() => string);
+  /** Tools available to the model (compose the factories from this package
+   *  with host-specific ones). */
+  tools: ToolSet;
+  /** Conversation scope (e.g. the current script id). Chats persist under
+   *  it, and changing scope swaps to that scope's latest chat (or a fresh
+   *  one). Omit for hosts with a single chat surface. */
+  scopeId?: string | null;
+  /** Undo a script revision recorded by the host's edit tools. Without it,
+   *  `undoRevision` reports that undo is unsupported. */
+  undoScriptRevision?: (revisionId: string) => ScriptEditResult;
+  /** API key persistence; defaults to namespaced `localStorage`. */
+  storage?: ChatStorage;
+  /** Conversation persistence; defaults to namespaced `localStorage`. */
+  chatStore?: ReturnType<typeof createChatStore>;
+  nexusConfig?: Partial<NexusConfig>;
+  /** Appended to the last user turn each run so a long chat keeps a fresh
+   *  clock. Defaults to `nowStamp()`; return "" to disable. */
+  turnStamp?: () => string;
+  /** Nexus reserves the full max_tokens cost upfront and rejects the request
+   *  with insufficient_balance when the cap exceeds the account balance, so
+   *  an explicit modest cap is required. */
+  maxOutputTokens?: number;
+  maxSteps?: number;
 }
-
-/**
- * The clock spelled out for the system prompt.
- * E.g. "The current date and time is Tuesday, 2026-07-28 19:55 (UTC+01:00);
- * Unix timestamp 1785268500."
- */
-function nowLine(): string {
-  const { weekday, date, time, offset, unix } = clockParts();
-  return `The current date and time is ${weekday}, ${date} ${time} (${offset}); Unix timestamp ${unix}.`;
-}
-
-/**
- * Terse form for the per-turn restatement: the system prompt already spells
- * the clock out, so the reminder only needs the two anchors the model
- * actually computes from — a calendar date and an epoch to subtract.
- * E.g. "[now: 2026-07-28 19:55 UTC+01:00 | 1785268500]".
- */
-function nowStamp(): string {
-  const { date, time, offset, unix } = clockParts();
-  return `[now: ${date} ${time} ${offset} | ${unix}]`;
-}
-
-/** Computed per run so long-lived tabs don't drift. */
-function systemPrompt(): string {
-  return `${SYSTEM_PROMPT}\n\n${nowLine()}\n\nNever reason about dates from memory. Whenever a question involves when something happens, how long until or since it, or whether something has expired or is still valid, first restate the current date and Unix timestamp above, then compute the answer relative to it. Give both the absolute date and the relative duration, e.g. "2027-03-04, about 7 months from now".`;
-}
-
-export type ChatToolArtifact =
-  | {
-      kind: "script-change";
-      ok: boolean;
-      valid?: boolean;
-      diagnosticsCount?: number;
-      revisionId?: string;
-      error?: string;
-      undone?: boolean;
-    }
-  | {
-      kind: "validation";
-      valid: boolean;
-      diagnosticsCount: number;
-    }
-  | {
-      kind: "simulation";
-      success: boolean;
-      actionCount: number;
-      error?: string;
-    };
-
-export type ChatItem =
-  | { role: "user"; text: string }
-  | { role: "assistant"; text: string }
-  | {
-      role: "tool";
-      text: string;
-      toolCallId?: string;
-      phase?: "call" | "result" | "error";
-      artifact?: ChatToolArtifact;
-      error?: string;
-    };
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object"
@@ -184,11 +104,36 @@ function toolArtifact(output: unknown): ChatToolArtifact | undefined {
   return undefined;
 }
 
-export function useChatAgent() {
-  const tag = useEvmlTag();
+/**
+ * Headless chat agent: streams a tool-using conversation against DappNode
+ * Nexus and exposes render-ready state. Hosts own the UI entirely; this hook
+ * owns the model client, the agent loop, API-key state and persistence.
+ */
+export function useChatAgent(options: UseChatAgentOptions) {
+  const {
+    systemPrompt,
+    tools,
+    scopeId,
+    undoScriptRevision,
+    nexusConfig,
+    turnStamp = nowStamp,
+    maxOutputTokens = 16384,
+    maxSteps = 25,
+  } = options;
+
+  // Persistence backends are captured once: swapping storage mid-session
+  // isn't a supported use case and would orphan the conversation.
+  const storageRef = useRef<ChatStorage | undefined>(undefined);
+  storageRef.current ??= options.storage ?? createLocalStorageChatStorage();
+  const storage = storageRef.current;
+  const chatStoreRef = useRef<ReturnType<typeof createChatStore> | undefined>(
+    undefined,
+  );
+  chatStoreRef.current ??= options.chatStore ?? createChatStore();
+  const chats = chatStoreRef.current;
 
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
-    getNexusApiKey(),
+    storage.getApiKey(),
   );
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -202,11 +147,10 @@ export function useChatAgent() {
   const historyRef = useRef<ModelMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
-  // A chat belongs to the script it was started under (script 1-N chats).
-  // Captured here rather than read live so a run that outlasts a script
-  // switch still persists under its own script.
-  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
-  const chatScriptIdRef = useRef<string | null | undefined>(undefined);
+  // A chat belongs to the scope it was started under (scope 1-N chats).
+  // Captured here rather than read live so a run that outlasts a scope
+  // switch still persists under its own scope.
+  const chatScopeIdRef = useRef<string | null | undefined>(undefined);
   // Abort any in-flight run on unmount — an orphaned stream would keep
   // executing script-editing tools with no visible chat or Stop button.
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -229,40 +173,34 @@ export function useChatAgent() {
     const current = itemsRef.current;
     const firstUser = current.find((i) => i.role === "user");
     if (!firstUser) return;
-    saveChat(
+    chats.saveChat(
       conversationIdRef.current,
       deriveTitle(firstUser.text),
       current,
       historyRef.current,
-      chatScriptIdRef.current ?? undefined,
+      chatScopeIdRef.current ?? undefined,
     );
-  }, []);
+  }, [chats]);
 
   const model = useMemo(
-    () =>
-      apiKey
-        ? createOpenAICompatible({
-            name: "nexus",
-            baseURL: NEXUS_BASE_URL,
-            apiKey,
-            fetch: corsSafeFetch,
-          })(MODEL)
-        : null,
-    [apiKey],
+    () => createNexusModel(apiKey, nexusConfig),
+    [apiKey, nexusConfig],
   );
-  const tools = useMemo(() => createChatTools(tag), [tag]);
 
-  const setApiKey = useCallback((key: string) => {
-    saveNexusApiKey(key);
-    setApiKeyState(key);
-    setError(null);
-    setIsAuthError(false);
-  }, []);
+  const setApiKey = useCallback(
+    (key: string) => {
+      storage.saveApiKey(key);
+      setApiKeyState(key);
+      setError(null);
+      setIsAuthError(false);
+    },
+    [storage],
+  );
 
   const clearApiKey = useCallback(() => {
-    clearNexusApiKey();
+    storage.clearApiKey();
     setApiKeyState(null);
-  }, []);
+  }, [storage]);
 
   const send = useCallback(
     async (text: string) => {
@@ -280,25 +218,27 @@ export function useChatAgent() {
       const abort = new AbortController();
       abortRef.current = abort;
 
+      // The clock (or any host stamp) is restated on the last user turn: in
+      // a long chat the system prompt sits thousands of tokens back and the
+      // model stops applying it. It rides along with the user message
+      // because the provider rejects system messages inside `messages`, and
+      // is kept out of the persisted history so old turns don't accumulate
+      // stale stamps.
+      const stamp = turnStamp();
       const result = streamText({
         model,
-        system: systemPrompt(),
-        // The clock is restated on the last user turn: in a long chat the
-        // system prompt sits thousands of tokens back and the model stops
-        // applying it. It rides along with the user message because the
-        // provider rejects system messages inside `messages`, and is kept
-        // out of the persisted history so old turns don't accumulate stale
-        // stamps.
+        system:
+          typeof systemPrompt === "function" ? systemPrompt() : systemPrompt,
         messages: [
           ...historyRef.current.slice(0, -1),
-          { role: "user", content: `${text}\n\n${nowStamp()}` },
+          {
+            role: "user",
+            content: stamp ? `${text}\n\n${stamp}` : text,
+          },
         ],
         tools,
-        // Nexus reserves the full max_tokens cost upfront and rejects the
-        // request with insufficient_balance when the cap exceeds the
-        // account balance, so an explicit modest cap is required.
-        maxOutputTokens: 16384,
-        stopWhen: stepCountIs(25),
+        maxOutputTokens,
+        stopWhen: stepCountIs(maxSteps),
         abortSignal: abort.signal,
       });
 
@@ -412,7 +352,17 @@ export function useChatAgent() {
         persist();
       }
     },
-    [model, isRunning, tools, updateItems, persist],
+    [
+      model,
+      isRunning,
+      tools,
+      systemPrompt,
+      turnStamp,
+      maxOutputTokens,
+      maxSteps,
+      updateItems,
+      persist,
+    ],
   );
 
   const stop = useCallback(() => {
@@ -435,7 +385,7 @@ export function useChatAgent() {
   const openChat = useCallback(
     (id: string) => {
       if (isRunning) return;
-      const stored = getChat(id);
+      const stored = chats.getChat(id);
       if (!stored) return;
       conversationIdRef.current = id;
       setConversationId(id);
@@ -445,35 +395,35 @@ export function useChatAgent() {
       setError(null);
       setIsAuthError(false);
     },
-    [isRunning],
+    [isRunning, chats],
   );
 
   const deleteChat = useCallback(
     (id: string) => {
       if (isRunning && id === conversationIdRef.current) return;
-      removeChat(id);
+      chats.removeChat(id);
       if (id === conversationIdRef.current) newChat();
     },
-    [isRunning, newChat],
+    [isRunning, newChat, chats],
   );
 
-  // Chats follow the script (script 1-N chats): creating or switching
-  // scripts swaps the conversation to that script's latest chat, or a
-  // fresh one for a script with no chats yet.
+  // Chats follow the scope (scope 1-N chats): creating or switching scopes
+  // swaps the conversation to that scope's latest chat, or a fresh one for
+  // a scope with no chats yet.
   useEffect(() => {
-    if (!currentScriptId || isRunning) return;
-    if (chatScriptIdRef.current === undefined) {
+    if (!scopeId || isRunning) return;
+    if (chatScopeIdRef.current === undefined) {
       // First resolution after mount — keep the fresh conversation, just
-      // record which script owns it.
-      chatScriptIdRef.current = currentScriptId;
+      // record which scope owns it.
+      chatScopeIdRef.current = scopeId;
       return;
     }
-    if (chatScriptIdRef.current === currentScriptId) return;
-    chatScriptIdRef.current = currentScriptId;
-    const latest = listChats(currentScriptId)[0];
-    if (latest && getChat(latest.id)) openChat(latest.id);
+    if (chatScopeIdRef.current === scopeId) return;
+    chatScopeIdRef.current = scopeId;
+    const latest = chats.listChats(scopeId)[0];
+    if (latest && chats.getChat(latest.id)) openChat(latest.id);
     else newChat();
-  }, [currentScriptId, isRunning, openChat, newChat]);
+  }, [scopeId, isRunning, openChat, newChat, chats]);
 
   /** Rewind to the last user message and run it again. */
   const regenerate = useCallback(() => {
@@ -497,7 +447,9 @@ export function useChatAgent() {
   }, [isRunning, send]);
 
   const undoRevision = useCallback(
-    (revisionId: string) => {
+    (revisionId: string): ScriptEditResult => {
+      if (!undoScriptRevision)
+        return { ok: false, error: "Undo is not supported here." };
       const result = undoScriptRevision(revisionId);
       if (result.ok) {
         updateItems((prev) =>
@@ -516,7 +468,7 @@ export function useChatAgent() {
       }
       return result;
     },
-    [persist, updateItems],
+    [persist, updateItems, undoScriptRevision],
   );
 
   return {

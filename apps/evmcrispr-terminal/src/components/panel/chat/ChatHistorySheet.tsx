@@ -1,9 +1,8 @@
+import { type ChatMeta, listChats } from "@evmcrispr/ai";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { Button, cn, Drawer, IconButton } from "@repo/ui";
 import { useEffect, useState } from "react";
-
-import { type ChatMeta, listChats } from "../../../ai/chat-store";
 import { useTerminalStore } from "../../../stores/terminal-store";
 import { relativeDate } from "./ChatHistoryPopover";
 

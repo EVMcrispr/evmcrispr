@@ -1,8 +1,7 @@
+import { type ChatMeta, listChats } from "@evmcrispr/ai";
 import { ClockIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { cn, IconButton, Popover } from "@repo/ui";
 import { useState } from "react";
-
-import { type ChatMeta, listChats } from "../../../ai/chat-store";
 import { useTerminalStore } from "../../../stores/terminal-store";
 
 export function relativeDate(iso: string): string {

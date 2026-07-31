@@ -6,7 +6,7 @@ import "./modules";
 import App from "./App";
 import "./index.css";
 
-import { relayNexusCallback } from "./ai/nexus-auth";
+import { relayNexusCallback } from "@evmcrispr/ai";
 
 if (!relayNexusCallback()) {
   const root = ReactDOM.createRoot(

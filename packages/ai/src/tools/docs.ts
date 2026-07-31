@@ -1,26 +1,50 @@
+/// <reference types="vite/client" />
+
 /**
  * Browser-side loader for the generated EVML docs, mirroring the API of the
  * MCP server's docs-loader (which is node:fs based). The markdown files are
- * pulled from the workspace module packages via lazy glob imports, so each
- * doc is only fetched when the chat assistant asks for it.
+ * pulled from the workspace module packages via lazy glob imports (a Vite
+ * feature), so each doc is only fetched when the chat assistant asks for it.
+ * Any host bundling this package with Vite gets these for free, since the
+ * glob is relative to this file inside the EVMcrispr repo's `packages/chat`.
  */
 
 type RawImports = Record<string, () => Promise<string>>;
 
-const moduleReadmes = import.meta.glob("../../../../modules/*/README.md", {
-  query: "?raw",
-  import: "default",
-}) as RawImports;
+/** `import.meta.glob` only exists under Vite (which statically transforms
+ *  the literal calls below). In other runtimes (bun test, node) the call
+ *  throws at module load — degrade to an empty doc set instead. */
+function safeGlob(load: () => RawImports): RawImports {
+  try {
+    return load();
+  } catch {
+    return {};
+  }
+}
 
-const commandDocs = import.meta.glob(
-  "../../../../modules/*/src/commands/*.md",
-  { query: "?raw", import: "default" },
-) as RawImports;
+const moduleReadmes = safeGlob(
+  () =>
+    import.meta.glob("../../../../modules/*/README.md", {
+      query: "?raw",
+      import: "default",
+    }) as RawImports,
+);
 
-const helperDocs = import.meta.glob("../../../../modules/*/src/helpers/*.md", {
-  query: "?raw",
-  import: "default",
-}) as RawImports;
+const commandDocs = safeGlob(
+  () =>
+    import.meta.glob("../../../../modules/*/src/commands/*.md", {
+      query: "?raw",
+      import: "default",
+    }) as RawImports,
+);
+
+const helperDocs = safeGlob(
+  () =>
+    import.meta.glob("../../../../modules/*/src/helpers/*.md", {
+      query: "?raw",
+      import: "default",
+    }) as RawImports,
+);
 
 function indexByModule(
   imports: RawImports,

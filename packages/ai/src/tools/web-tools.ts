@@ -1,8 +1,6 @@
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
 
-import { EVMCRISPR_API_BASE } from "../config/api";
-
 /** Character budget for a fetched page; keeps tool results model-sized. */
 export const PAGE_CHAR_BUDGET = 20_000;
 
@@ -23,7 +21,7 @@ interface SearchResult {
  * the scenes — extraction handles JS-rendered pages and bot walls that a
  * plain fetch would miss).
  */
-export function createWebTools(): ToolSet {
+export function createWebTools(apiBase = "https://api.evmcrispr.com"): ToolSet {
   const searchWeb = tool({
     description:
       "Search the web. Returns result titles, URLs and snippets. Use it to find documentation of external protocols, contracts, or anything not covered by the EVML docs tools, then read promising results with fetch_page.",
@@ -39,7 +37,7 @@ export function createWebTools(): ToolSet {
       if (count) params.set("count", String(count));
 
       try {
-        const res = await fetch(`${EVMCRISPR_API_BASE}/search?${params}`);
+        const res = await fetch(`${apiBase}/search?${params}`);
         if (res.status === 429)
           return "ERROR: search quota or rate limit hit (HTTP 429). Do not retry immediately; continue with what you already know and say so.";
         if (!res.ok)
@@ -71,7 +69,7 @@ export function createWebTools(): ToolSet {
 
       try {
         const res = await fetch(
-          `${EVMCRISPR_API_BASE}/extract?url=${encodeURIComponent(url)}`,
+          `${apiBase}/extract?url=${encodeURIComponent(url)}`,
         );
         if (res.status === 429)
           return "ERROR: page-reading quota or rate limit hit (HTTP 429). Do not retry immediately; continue with what you already know and say so.";

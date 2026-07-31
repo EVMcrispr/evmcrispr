@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { ModelMessage } from "ai";
-
 import {
+  type ChatItem,
   deriveTitle,
   getChat,
   listChats,
   removeChat,
   saveChat,
-} from "../../src/ai/chat-store";
-import type { ChatItem } from "../../src/ai/useChatAgent";
+} from "@evmcrispr/ai";
+import type { ModelMessage } from "ai";
 
 beforeEach(() => {
   localStorage.clear();

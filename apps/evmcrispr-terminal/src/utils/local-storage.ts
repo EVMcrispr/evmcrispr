@@ -4,8 +4,6 @@ import type { EditLog, StoredScript } from "../types/index";
 const SCRIPTS_KEY = "evmcrispr:scripts";
 const EDITS_PREFIX = "evmcrispr:edits:";
 const LAST_SCRIPT_KEY = "evmcrispr:lastScript";
-const NEXUS_API_KEY = "evmcrispr:nexusApiKey";
-const NEXUS_AUTH_KEY = "evmcrispr:nexusAuth";
 const MAX_EDIT_OPS = 500;
 
 export function slug(title: string) {
@@ -15,47 +13,8 @@ export function slug(title: string) {
     .replace(/[^\w-]+/g, "");
 }
 
-// ---------------------------------------------------------------------------
-// Dappnode Nexus API key (for the AI chat panel)
-// ---------------------------------------------------------------------------
-
-export function getNexusApiKey(): string | null {
-  return localStorage.getItem(NEXUS_API_KEY);
-}
-
-export function saveNexusApiKey(key: string) {
-  localStorage.setItem(NEXUS_API_KEY, key);
-}
-
-export function clearNexusApiKey() {
-  localStorage.removeItem(NEXUS_API_KEY);
-}
-
-// ---------------------------------------------------------------------------
-// Dappnode Nexus OAuth session ("Login with Dappnode Nexus")
-// ---------------------------------------------------------------------------
-
-export interface NexusAuth {
-  access_token: string;
-  refresh_token: string;
-  /** Epoch ms after which access_token is expired. */
-  expires_at: number;
-  /** Id of the auto-provisioned Nexus API key, for deletion on logout. */
-  key_id: string;
-}
-
-export function getNexusAuth(): NexusAuth | null {
-  const raw = localStorage.getItem(NEXUS_AUTH_KEY);
-  return raw ? JSON.parse(raw) : null;
-}
-
-export function saveNexusAuth(auth: NexusAuth) {
-  localStorage.setItem(NEXUS_AUTH_KEY, JSON.stringify(auth));
-}
-
-export function clearNexusAuth() {
-  localStorage.removeItem(NEXUS_AUTH_KEY);
-}
+// Dappnode Nexus API key + OAuth session storage moved to @evmcrispr/ai
+// (same "evmcrispr:*" localStorage keys, so existing sessions carry over).
 
 // ---------------------------------------------------------------------------
 // Registry CRUD

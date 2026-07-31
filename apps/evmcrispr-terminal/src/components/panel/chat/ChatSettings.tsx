@@ -1,8 +1,7 @@
+import { loginWithNexus } from "@evmcrispr/ai";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { Button } from "@repo/ui";
 import { useState } from "react";
-
-import { loginWithNexus } from "../../../ai/nexus-auth";
 
 export const NEXUS_URL =
   "https://nexus.dappnode.com/?utm_source=evmcrispr2026-07&utm_medium=referral";

@@ -1,3 +1,4 @@
+import { fetchNexusBalance } from "@evmcrispr/ai";
 import {
   ArrowLeftIcon,
   Cog6ToothIcon,
@@ -9,7 +10,6 @@ import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
 import { useEnsName } from "wagmi";
-import { fetchNexusBalance } from "../../ai/nexus-auth";
 import { LibraryTab } from "../panel/LibraryTab";
 import { ReferenceTab } from "../panel/ReferenceTab";
 import NewScriptButton from "../scripts/NewScriptButton";

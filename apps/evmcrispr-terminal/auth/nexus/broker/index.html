@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dappnode Nexus login</title>
+    <style>
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: transparent;
+        color: #e6edf3;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      #login {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border: 1px solid #2ea043;
+        border-radius: 8px;
+        background: #10141a;
+        color: #3fb950;
+        font: inherit;
+        cursor: pointer;
+      }
+      #login:hover:not(:disabled) {
+        background: #16331d;
+      }
+      #login:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="login" type="button">Login with Dappnode Nexus</button>
+    <script type="module" src="/src/nexus-broker-page.ts"></script>
+  </body>
+</html>

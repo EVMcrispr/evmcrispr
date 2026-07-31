@@ -4,12 +4,9 @@ import {
   renderContractSource,
   resolveChainId,
 } from "@evmcrispr/sdk";
-import { getChainId } from "@wagmi/core";
 import { type ToolSet, tool } from "ai";
 import type { Address } from "viem";
 import { z } from "zod";
-
-import { config as wagmiConfig } from "../config/wagmi";
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
@@ -18,7 +15,11 @@ const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
  * model can learn a contract's actual interface and behavior instead of
  * guessing function signatures.
  */
-export function createContractTools(): ToolSet {
+export function createContractTools(
+  /** Chain id the host is currently working against, used when a call
+   *  doesn't specify one explicitly. */
+  getDefaultChainId: () => number | undefined,
+): ToolSet {
   const getContract = tool({
     description:
       "Read the verified source code of a deployed contract from Etherscan. Without `file` it returns an overview: contract name, compiler settings, proxy information, the full ABI as human-readable signatures, and the list of source files. Pass `file` to read one source file. Use it to learn a contract's functions before writing exec calls against it, or to explain what a contract does.",
@@ -28,7 +29,7 @@ export function createContractTools(): ToolSet {
         .union([z.number(), z.string()])
         .optional()
         .describe(
-          "Chain id or viem chain name (e.g. 100 or gnosis). Defaults to the chain the terminal is connected to.",
+          "Chain id or viem chain name (e.g. 100 or gnosis). Defaults to the chain the host is connected to.",
         ),
       file: z
         .string()
@@ -41,13 +42,14 @@ export function createContractTools(): ToolSet {
       if (!readEtherscanApiKey())
         return "ERROR: no Etherscan API key is configured in this build, so contract source cannot be fetched. Fall back to search_web/fetch_page for documentation.";
 
-      let chainId: number;
+      let chainId: number | undefined;
       try {
-        chainId =
-          chain != null ? resolveChainId(chain) : getChainId(wagmiConfig);
+        chainId = chain != null ? resolveChainId(chain) : getDefaultChainId();
       } catch (err) {
         return `ERROR: ${err instanceof Error ? err.message : err}`;
       }
+      if (chainId == null)
+        return "ERROR: no chain is connected and none was given. Pass `chain`.";
 
       const source = await fetchContractSource(chainId, address as Address);
       if (!source)

@@ -1,3 +1,4 @@
+import type { ChatItem } from "@evmcrispr/ai";
 import {
   ArrowDownIcon,
   ArrowPathIcon,
@@ -13,8 +14,6 @@ import { Button, cn, IconButton } from "@repo/ui";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-import type { ChatItem } from "../../../ai/useChatAgent";
 import { markdownComponents } from "../MarkdownComponents";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { useStickToBottom } from "./useStickToBottom";

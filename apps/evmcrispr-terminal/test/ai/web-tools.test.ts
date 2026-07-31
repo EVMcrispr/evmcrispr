@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { PAGE_CHAR_BUDGET, truncate } from "../../src/ai/web-tools";
+import { PAGE_CHAR_BUDGET, truncate } from "@evmcrispr/ai";
 
 describe("truncate", () => {
   test("leaves short text untouched", () => {

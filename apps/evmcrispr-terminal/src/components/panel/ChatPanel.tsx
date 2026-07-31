@@ -1,9 +1,9 @@
+import { fetchNexusBalance, logoutNexus } from "@evmcrispr/ai";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/solid";
 import { IconButton, toast } from "@repo/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { fetchNexusBalance, logoutNexus } from "../../ai/nexus-auth";
-import { useChatAgent } from "../../ai/useChatAgent";
+import { useTerminalChatAgent } from "../../ai/useTerminalChatAgent";
 import { ChatHeader } from "./chat/ChatHeader";
 import { ChatHistorySheet } from "./chat/ChatHistorySheet";
 import { ChatInput } from "./chat/ChatInput";
@@ -40,7 +40,7 @@ export function ChatPanel({
     deleteChat,
     regenerate,
     undoRevision,
-  } = useChatAgent();
+  } = useTerminalChatAgent();
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const showSettings = settingsOpen ?? internalSettingsOpen;

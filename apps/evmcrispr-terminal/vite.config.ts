@@ -190,6 +190,10 @@ export default defineConfig({
         __dirname,
         "../../packages/editor/src/index.ts",
       ),
+      "@evmcrispr/ai": path.resolve(
+        __dirname,
+        "../../packages/ai/src/index.ts",
+      ),
       // Sub-path exports before the base alias so they match first
       "@evmcrispr/core/worker-client": path.resolve(
         __dirname,
@@ -259,6 +263,8 @@ export default defineConfig({
     // Serve the static OAuth callback page at its extensionless registered
     // redirect URI (Vite's public-dir middleware doesn't resolve directory
     // indexes, so the request would otherwise fall through to the SPA).
+    // Same treatment for the auth broker page (a real Vite entry, see
+    // build.rollupOptions.input).
     {
       name: "nexus-auth-callback",
       configureServer(server) {
@@ -266,6 +272,8 @@ export default defineConfig({
           const path = req.url?.split("?")[0].replace(/\/$/, "");
           if (path === "/auth/nexus/callback")
             req.url = "/auth/nexus/callback/index.html";
+          else if (path === "/auth/nexus/broker")
+            req.url = `/auth/nexus/broker/index.html${req.url?.includes("?") ? `?${req.url.split("?")[1]}` : ""}`;
           next();
         });
       },
@@ -275,6 +283,13 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
+      // Second HTML entry: the Nexus auth broker page other sites embed in
+      // an iframe to run "Login with Dappnode Nexus" on this (allow-listed)
+      // origin. See @evmcrispr/ai's nexus-broker module.
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        "nexus-broker": path.resolve(__dirname, "auth/nexus/broker/index.html"),
+      },
       // Externalize @metamask/sdk's uninstalled transitive browser deps.
       // cross-fetch does NOT belong here: WalletConnect's HTTP JSON-RPC
       // connection imports it for real, and externalizing left a bare

@@ -1,9 +1,9 @@
+import { fetchNexusBalance } from "@evmcrispr/ai";
 import { Bars3Icon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { Button, IconButton } from "@repo/ui";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { Link } from "react-router";
-import { fetchNexusBalance } from "../../ai/nexus-auth";
 import logo from "../../assets/logo.svg";
 
 export function MobileHeader({
