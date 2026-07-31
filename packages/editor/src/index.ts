@@ -21,7 +21,7 @@ export {
   contribution as evmlLanguageContribution,
   createLanguage as createEvmlMonarchLanguage,
 } from "./editor/evml";
-export type { CursorRef, EditorProps } from "./editor/MonacoEditor";
+export type { EditorProps } from "./editor/MonacoEditor";
 export { theme as evmlMonacoTheme } from "./editor/theme";
 // ── Shiki grammar / theme ──
 export { evmlTheme } from "./grammars/evml-theme";

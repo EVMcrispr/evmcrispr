@@ -1,4 +1,4 @@
-import type { HoverInfo } from "@evmcrispr/core";
+import type { HoverInfo, HoverRef } from "@evmcrispr/core";
 import {
   type RefObject,
   useCallback,
@@ -20,6 +20,9 @@ type HoverPopoverProps = {
   containerRef: RefObject<HTMLElement | null>;
   /** Memoised hover lookup from `useScriptAnalysis`. */
   getHoverInfo: (position: Position) => Promise<HoverInfo | null>;
+  /** Renders an "Open in reference" button in the popover when the hovered
+   *  token is a command/helper (`info.ref` set). Omit to hide the button. */
+  onOpenDocs?: (ref: HoverRef) => void;
 };
 
 /**
@@ -80,6 +83,7 @@ const CLOSE_DELAY_MS = 120;
 export function HoverPopover({
   containerRef,
   getHoverInfo,
+  onOpenDocs,
 }: HoverPopoverProps) {
   const { virtualRef, setActive, active } = useTokenAnchor();
   const [open, setOpen] = useState(false);
@@ -203,6 +207,13 @@ export function HoverPopover({
 
   const sections = useMemo(() => info?.contents ?? [], [info]);
 
+  const handleOpenDocsClick = useCallback(() => {
+    if (!info?.ref) return;
+    onOpenDocs?.(info.ref);
+    cancelClose();
+    setOpen(false);
+  }, [info, onOpenDocs, cancelClose]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <Popover.Anchor virtualRef={virtualRef} />
@@ -261,6 +272,15 @@ export function HoverPopover({
               </div>
             ))}
           </div>
+        )}
+        {info?.ref && onOpenDocs && (
+          <button
+            type="button"
+            onClick={handleOpenDocsClick}
+            className="mt-2 w-full rounded border border-evm-green-300/40 px-2 py-1 text-xs font-medium text-evm-green-300 transition-colors hover:bg-evm-green-300/10"
+          >
+            Open in reference
+          </button>
         )}
       </Popover.Content>
     </Popover>

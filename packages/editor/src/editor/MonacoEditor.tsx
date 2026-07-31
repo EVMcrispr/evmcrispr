@@ -1,5 +1,6 @@
 import type {
   DocumentSymbol as CoreDocumentSymbol,
+  HoverRef,
   ParseDiagnostic,
 } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
@@ -35,47 +36,9 @@ import { theme } from "./theme";
 const SCRIPT_DEBOUNCE_MS = 300;
 const CHANGE_DEBOUNCE_MS = 150;
 
-export type CursorRef = {
-  name: string;
-  kind: "command" | "helper";
-  /** Explicit module prefix at the cursor (`giveth:claim`, `@giveth:project`),
-   *  when spelled out. Unprefixed names need AST resolution by the host. */
-  module?: string;
-};
-
-/** Detect whether the cursor is on a known command or @helper name. */
-function detectCursorRef(
-  line: string,
-  col: number,
-  commandNames: ReadonlySet<string>,
-  helperNames: ReadonlySet<string>,
-): CursorRef | null {
-  // Check for @helper: find @[module:]identifier spanning the cursor
-  for (const m of line.matchAll(/@(?:([\w-]+):)?([\w.]+)/g)) {
-    const idx = m.index;
-    const end = idx + m[0].length;
-    if (col >= idx && col <= end) {
-      const name = m[2];
-      if (helperNames.has(name)) {
-        return { name, kind: "helper", module: m[1] };
-      }
-    }
-  }
-
-  // Check for command: first word on the line (after optional whitespace,
-  // and optionally after a module prefix like "ar:")
-  const cmdMatch = line.match(/^(\s*)(?:([\w-]+):)?([\w-]+)/);
-  if (cmdMatch) {
-    const name = cmdMatch[3];
-    const start = cmdMatch[1].length;
-    const end = start + (cmdMatch[0].length - cmdMatch[1].length);
-    if (col >= start && col <= end && commandNames.has(name)) {
-      return { name, kind: "command", module: cmdMatch[2] };
-    }
-  }
-
-  return null;
-}
+/** Command id registered on Monaco for the hover panel's "Open in
+ *  reference" link (see the hover provider effect below). */
+const OPEN_DOCS_COMMAND_ID = "evmcrispr.openDocs";
 
 export interface EditorProps {
   /** Initial script when the host isn't controlling the content. */
@@ -85,13 +48,9 @@ export interface EditorProps {
   onChange?: (value: string) => void;
   /** 1-based line currently being executed — highlighted + revealed. */
   executingLine?: number | null;
-  /** Notifies when the cursor lands on (or leaves) a known command /
-   *  `@helper` name. Only fires on changes. */
-  onCursorRef?: (ref: CursorRef | null) => void;
-  /** Extra name sets recognised by `onCursorRef` detection. Defaults to
-   *  the keywords the workspace reports for the current script. */
-  commandNames?: ReadonlySet<string>;
-  helperNames?: ReadonlySet<string>;
+  /** Fired when the user clicks the "Open in reference" link in a hover
+   *  card over a command or `@helper` name. */
+  onOpenDocs?: (ref: HoverRef) => void;
   /** Escape hatch for hosts that manage Monaco models themselves (the
    *  terminal's script switching). Runs after the internal wiring. */
   onMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
@@ -115,9 +74,7 @@ function Editor({
   defaultValue,
   onChange,
   executingLine,
-  onCursorRef,
-  commandNames,
-  helperNames,
+  onOpenDocs,
   onMount,
   onDidPaste,
   options,
@@ -253,8 +210,18 @@ function Editor({
   }, [monaco, evm]);
 
   // ── Hover provider ──
+  // Commands/helpers get a trailing "Open in reference" command link so the
+  // side panel can be opened explicitly instead of auto-activating whenever
+  // the cursor happens to land on a recognised name.
   useEffect(() => {
     if (!monaco) return;
+
+    const openDocsCommand = monaco.editor.registerCommand(
+      OPEN_DOCS_COMMAND_ID,
+      (_accessor, ref: HoverRef) => {
+        onOpenDocsRef.current?.(ref);
+      },
+    );
 
     const hoverProvider = monaco.languages.registerHoverProvider("evml", {
       provideHover: async (model, pos) => {
@@ -263,14 +230,22 @@ function Editor({
           col: pos.column - 1,
         });
         if (!info) return null;
-        return {
-          contents: info.contents.map((value) => ({ value })),
-        };
+        const contents: Array<{ value: string; isTrusted?: boolean }> =
+          info.contents.map((value) => ({ value }));
+        if (info.ref) {
+          const args = encodeURIComponent(JSON.stringify(info.ref));
+          contents.push({
+            value: `[Open in reference](command:${OPEN_DOCS_COMMAND_ID}?${args})`,
+            isTrusted: true,
+          });
+        }
+        return { contents };
       },
     });
 
     return () => {
       hoverProvider.dispose();
+      openDocsCommand.dispose();
     };
   }, [monaco, evm]);
 
@@ -732,16 +707,8 @@ function Editor({
     }
   }, [executingLine, monaco]);
 
-  // ── Cursor-ref detection ──
-  const keywordsRef = useRef(keywords);
-  keywordsRef.current = keywords;
-  const cursorRefRef = useRef<CursorRef | null>(null);
-  const onCursorRefRef = useRef(onCursorRef);
-  onCursorRefRef.current = onCursorRef;
-  const commandNamesRef = useRef(commandNames);
-  commandNamesRef.current = commandNames;
-  const helperNamesRef = useRef(helperNames);
-  helperNamesRef.current = helperNames;
+  const onOpenDocsRef = useRef(onOpenDocs);
+  onOpenDocsRef.current = onOpenDocs;
   const onDidPasteRef = useRef(onDidPaste);
   onDidPasteRef.current = onDidPaste;
 
@@ -758,31 +725,6 @@ function Editor({
           changeTimerRef.current = null;
           onChangeRef.current?.(ed.getValue());
         }, CHANGE_MS);
-      });
-
-      ed.onDidChangeCursorPosition((e) => {
-        if (!onCursorRefRef.current) return;
-        const model = ed.getModel();
-        if (!model) return;
-
-        const line = model.getLineContent(e.position.lineNumber);
-        const col = e.position.column - 1;
-
-        const ref = detectCursorRef(
-          line,
-          col,
-          commandNamesRef.current ?? new Set(keywordsRef.current.commands),
-          helperNamesRef.current ?? new Set(keywordsRef.current.helpers),
-        );
-        const prev = cursorRefRef.current;
-        if (
-          prev?.name !== ref?.name ||
-          prev?.kind !== ref?.kind ||
-          prev?.module !== ref?.module
-        ) {
-          cursorRefRef.current = ref;
-          onCursorRefRef.current(ref);
-        }
       });
 
       ed.onDidPaste((e) => {

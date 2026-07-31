@@ -1,5 +1,8 @@
-import { collectScriptUsage, type ScriptUsage } from "@evmcrispr/core";
-import type { CursorRef } from "@evmcrispr/editor";
+import {
+  collectScriptUsage,
+  type HoverRef,
+  type ScriptUsage,
+} from "@evmcrispr/core";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { IconButton, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
@@ -73,13 +76,13 @@ const entryByKey = new Map<string, ReferenceEntry>(
   referenceEntries.map((e) => [`${e.kind}:${e.module}:${e.name}`, e]),
 );
 
-/** Resolve a cursor ref to its entry: explicit `mod:` prefix wins, then the
- *  script's load-import bindings (honoring `>` renames), then std — the same
- *  order the semantic analyzer uses. Falls back to any module defining the
- *  name so a bare match still opens something while the load line is absent
- *  or mid-edit. */
+/** Resolve a hover/docs ref to its entry: explicit `mod:` prefix wins, then
+ *  the script's load-import bindings (honoring `>` renames), then std — the
+ *  same order the semantic analyzer uses. Falls back to any module defining
+ *  the name so a bare match still opens something while the load line is
+ *  absent or mid-edit. */
 function resolveCursorEntry(
-  ref: CursorRef,
+  ref: HoverRef,
   usage: ScriptUsage,
 ): ReferenceEntry | undefined {
   const bindings =
@@ -94,13 +97,14 @@ function resolveCursorEntry(
 }
 
 export function ReferenceTab() {
-  const { script, cursorRef } = useTerminalStore();
+  const { script, docsRequest } = useTerminalStore();
   const [query, setQuery] = useState("");
   const searchRef = useFocusOnTab<HTMLInputElement>("reference");
   const [selectedItem, setSelectedItem] = useState<ReferenceEntry | null>(null);
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
-  // Track the last cursor-driven name so we don't re-open after the user clicks Back
-  const lastCursorKeyRef = useRef<string | null>(null);
+  // Track the last opened request's nonce so the same docsRequest object
+  // (e.g. re-rendered with unrelated store updates) doesn't re-trigger.
+  const lastRequestTsRef = useRef<number | null>(null);
 
   const filteredEntries = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -169,7 +173,6 @@ export function ReferenceTab() {
 
   const handleItemClick = useCallback(
     (entry: ReferenceEntry) => {
-      lastCursorKeyRef.current = null; // manual click clears cursor tracking
       openEntry(entry);
     },
     [openEntry],
@@ -184,7 +187,6 @@ export function ReferenceTab() {
       if (resolved === null) return null;
       if (resolved === "unresolved") return "plain";
       return () => {
-        lastCursorKeyRef.current = null;
         openEntry(resolved);
       };
     },
@@ -199,28 +201,24 @@ export function ReferenceTab() {
   const handleBack = useCallback(() => {
     setSelectedItem(null);
     setMarkdownContent(null);
-    // Keep lastCursorKeyRef so we don't immediately re-open the same item
   }, []);
 
-  // Auto-open detail when cursor moves to a recognized command/helper
+  // Open the detail view when the user explicitly asks to see docs for a
+  // command/helper — clicking "Open in reference" in a hover card (desktop
+  // edit mode) or the equivalent button in the view-mode/mobile hover
+  // popover. The `ts` nonce lets the same entry be re-requested (e.g. the
+  // user navigated away and re-clicks the same hover link).
   useEffect(() => {
-    // Cursor moved away from any entry
-    if (!cursorRef) {
-      lastCursorKeyRef.current = null;
-      return;
-    }
+    if (!docsRequest) return;
+    if (docsRequest.ts === lastRequestTsRef.current) return;
+    lastRequestTsRef.current = docsRequest.ts;
 
-    const entry = resolveCursorEntry(cursorRef, usage);
+    const entry = resolveCursorEntry(docsRequest, usage);
     if (!entry) return;
 
-    const cursorKey = `${entry.kind}:${entry.module}:${entry.name}`;
-    // Same entry as before — don't re-trigger
-    if (cursorKey === lastCursorKeyRef.current) return;
-
-    lastCursorKeyRef.current = cursorKey;
     terminalStoreActions("activeTab", "reference");
     openEntry(entry);
-  }, [cursorRef, usage, openEntry]);
+  }, [docsRequest, usage, openEntry]);
 
   // Detail view
   if (selectedItem) {

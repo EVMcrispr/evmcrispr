@@ -1,9 +1,8 @@
-import type { CursorRef } from "@evmcrispr/editor";
+import type { HoverRef } from "@evmcrispr/core";
 import MonacoEditor from "@evmcrispr/editor/monaco";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { memo, useCallback, useEffect, useRef } from "react";
-import { commandNames, helperNames } from "../../data/reference-data";
 import { useEditorModels } from "../../hooks/useEditorModels";
 import {
   SCRIPT_PLACEHOLDER,
@@ -21,8 +20,8 @@ import EditorDropZone from "./EditorDropZone";
 /**
  * Store glue around the embeddable `@evmcrispr/editor` Monaco component:
  * syncs content into the terminal store, drives per-script model
- * switching (undo stacks, edit-log replay) and forwards cursor-ref
- * detection to the reference side panel.
+ * switching (undo stacks, edit-log replay) and forwards "Open in
+ * reference" hover-link clicks to the reference side panel.
  */
 function TerminalEditor() {
   const currentScriptId = useTerminalStore((s) => s.currentScriptId);
@@ -56,8 +55,8 @@ function TerminalEditor() {
     terminalStoreActions("script", value);
   }, []);
 
-  const handleCursorRef = useCallback((ref: CursorRef | null) => {
-    terminalStoreActions("cursorRef", ref);
+  const handleOpenDocs = useCallback((ref: HoverRef) => {
+    terminalStoreActions("docsRequest", { ...ref, ts: Date.now() });
   }, []);
 
   const handleDidPaste = useCallback(
@@ -73,9 +72,7 @@ function TerminalEditor() {
         defaultValue={SCRIPT_PLACEHOLDER}
         onChange={handleChange}
         executingLine={executingLine}
-        onCursorRef={handleCursorRef}
-        commandNames={commandNames}
-        helperNames={helperNames}
+        onOpenDocs={handleOpenDocs}
         onMount={handleMount}
         onDidPaste={handleDidPaste}
       />

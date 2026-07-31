@@ -1,3 +1,4 @@
+import type { HoverRef } from "@evmcrispr/core";
 import {
   type MouseEvent,
   useCallback,
@@ -20,6 +21,9 @@ export interface ViewerProps {
   /** Called when the user taps/clicks the script body (outside hover
    *  targets and text selections). Hosts typically flip into edit mode. */
   onActivateEdit?: () => void;
+  /** Forwarded to the hover popover's "Open in reference" button. Omit to
+   *  hide the button. */
+  onOpenDocs?: (ref: HoverRef) => void;
 }
 
 /**
@@ -28,7 +32,12 @@ export interface ViewerProps {
  * indicator, and offers the same hover popovers (addresses, helpers,
  * variables) the editor exposes — without bringing the editor along.
  */
-export function Viewer({ script, executingLine, onActivateEdit }: ViewerProps) {
+export function Viewer({
+  script,
+  executingLine,
+  onActivateEdit,
+  onOpenDocs,
+}: ViewerProps) {
   const highlighter = useShiki();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -122,7 +131,11 @@ export function Viewer({ script, executingLine, onActivateEdit }: ViewerProps) {
         )}
       </div>
 
-      <HoverPopover containerRef={containerRef} getHoverInfo={getHoverInfo} />
+      <HoverPopover
+        containerRef={containerRef}
+        getHoverInfo={getHoverInfo}
+        onOpenDocs={onOpenDocs}
+      />
     </div>
   );
 }

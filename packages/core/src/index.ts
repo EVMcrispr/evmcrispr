@@ -144,7 +144,7 @@ export { simulateScript } from "./evml/simulate";
 export type { EvmlTag } from "./evml/tag";
 export { createEvml, evml } from "./evml/tag";
 export type { EvmlConfig, ModuleInput, ModuleLoader } from "./evml/types";
-export type { HoverInfo } from "./hover";
+export type { HoverInfo, HoverRef } from "./hover";
 export { Interpreter } from "./interpreter/Interpreter";
 export { parseScript, scriptParser } from "./parsers/script";
 export { createParserState } from "./parsers/utils";

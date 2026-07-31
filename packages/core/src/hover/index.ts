@@ -27,12 +27,12 @@ import { parseScript } from "../parsers/script";
 import { collectScriptImports, type VariableHistory } from "../scriptWalk";
 import { getAddressHoverInfo } from "./address";
 import { getTokenAtCol } from "./tokens";
-import type { HoverInfo } from "./types";
+import type { HoverInfo, HoverRef } from "./types";
 
 const { MODULE, USER } = BindingsSpace;
 
 export { clearAddressHoverCache, getAddressHoverInfo } from "./address";
-export type { HoverInfo } from "./types";
+export type { HoverInfo, HoverRef } from "./types";
 
 // ---------------------------------------------------------------------------
 // Context
@@ -411,12 +411,19 @@ export async function getHoverInfo(
       ? info.returnType.includes("address")
       : info.returnType === "address";
 
+    const { name: helperName } = splitHelperToken(spelled);
+    const ref: HoverRef = {
+      kind: "helper",
+      name: helperName,
+      module: info.moduleName,
+    };
+
     if (returnsAddress && ctx.chainId != null) {
       let ast: EvmlAST;
       try {
         ast = parseScript(script).ast;
       } catch {
-        return { contents: [baseContents] };
+        return { contents: [baseContents], ref };
       }
 
       const { module, name } = splitHelperToken(spelled);
@@ -432,12 +439,12 @@ export async function getHoverInfo(
           positionBindings,
         );
         if (addressCard && addressCard.length > 0) {
-          return { contents: [baseContents, ...addressCard] };
+          return { contents: [baseContents, ...addressCard], ref };
         }
       }
     }
 
-    return { contents: [baseContents] };
+    return { contents: [baseContents], ref };
   }
 
   // --- variable: $name ---
@@ -649,6 +656,11 @@ export async function getHoverInfo(
           resolved.command,
         ),
       ],
+      ref: {
+        kind: "command",
+        name: commandNode.name,
+        module: resolved.resolvedModule,
+      },
     };
   }
 
@@ -797,7 +809,10 @@ function renderAstNode(node: AstLike, scriptLines?: string[]): string | null {
       return typeof node.value === "string" ? node.value : null;
 
     case NodeType.NamedArg: {
-      const child = renderAstChild((node as AstLike & { value: unknown }).value, scriptLines);
+      const child = renderAstChild(
+        (node as AstLike & { value: unknown }).value,
+        scriptLines,
+      );
       return `${(node as unknown as { name: string }).name}:${child}`;
     }
 

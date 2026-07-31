@@ -7,9 +7,15 @@ export const SCRIPT_PLACEHOLDER = `## Example: deposit 1 ETH into WETH
 # exec @token(WETH) deposit() --value 1e18
 `;
 
-export type CursorRef = {
+/** An explicit request (hover-link click or tap) to open a command/helper's
+ *  docs in the reference panel. `ts` is a nonce so re-requesting the same
+ *  entry (e.g. clicking the link again after navigating away) still fires
+ *  the panel-open effect. */
+export type DocsRequest = {
   name: string;
   kind: "command" | "helper";
+  module?: string;
+  ts: number;
 };
 
 export type ViewMode = "edit" | "view";
@@ -22,7 +28,7 @@ export type TerminalStoreState = {
   isSaving: boolean;
   activeTab: "console" | "library" | "reference" | "chat";
   executingLine: number | null;
-  cursorRef: CursorRef | null;
+  docsRequest: DocsRequest | null;
   viewMode: ViewMode;
 };
 
@@ -34,7 +40,7 @@ const initialState: TerminalStoreState = {
   isSaving: false,
   activeTab: "library",
   executingLine: null,
-  cursorRef: null,
+  docsRequest: null,
   viewMode: resolveInitialViewMode(),
 };
 
