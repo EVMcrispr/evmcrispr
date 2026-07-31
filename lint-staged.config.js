@@ -6,4 +6,10 @@ module.exports = {
   "(apps|packages)/**/*.(ts|tsx|js)": (filenames) => [
     `bunx biome check --write --unsafe --no-errors-on-unmatched ${filenames.join(" ")}`,
   ],
+
+  // Catch Tailwind utilities renamed in v4. Report-only: the compiler still
+  // emits CSS for the old names, so nothing else would flag them.
+  "(apps|packages)/**/*.(tsx|jsx|astro|css)": (filenames) => [
+    `bun scripts/check-tailwind-deprecations.ts ${filenames.join(" ")}`,
+  ],
 };
