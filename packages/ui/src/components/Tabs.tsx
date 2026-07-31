@@ -55,7 +55,7 @@ const TabsTrigger = forwardRef<
     className={cn(
       "inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-head",
       "whitespace-nowrap cursor-pointer transition-colors",
-      "border-b-2 border-b-transparent -mb-[2px]",
+      "border-b-2 border-b-transparent mb-[-2px]",
       "text-foreground/60 hover:text-foreground",
       "data-[state=active]:text-evm-green-300 data-[state=active]:border-b-evm-green-300",
       "disabled:pointer-events-none disabled:opacity-50",

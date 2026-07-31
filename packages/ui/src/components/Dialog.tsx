@@ -72,7 +72,7 @@ const dialogVariants = cva(
         "2xl": "lg:max-w-[70%]",
         "3xl": "lg:max-w-[80%]",
         "4xl": "lg:max-w-[90%]",
-        screen: "max-w-[100%]",
+        screen: "max-w-full",
       },
     },
     defaultVariants: {
