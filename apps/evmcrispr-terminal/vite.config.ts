@@ -245,8 +245,13 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
-      // Externalize @metamask/sdk's unresolvable transitive browser deps
-      external: ["eventemitter2", "cross-fetch", "socket.io-client"],
+      // Externalize @metamask/sdk's uninstalled transitive browser deps.
+      // cross-fetch does NOT belong here: WalletConnect's HTTP JSON-RPC
+      // connection imports it for real, and externalizing left a bare
+      // `import "cross-fetch"` in the bundle that the browser cannot resolve,
+      // killing every WalletConnect session in production (dev ignores this
+      // list, so it only ever failed in builds).
+      external: ["eventemitter2", "socket.io-client"],
       output: {
         // Rolldown splits @noble/hashes and @noble/curves into separate
         // chunks with a circular dependency, causing sha256 to be undefined
