@@ -41,18 +41,27 @@ function DrawerOverlay({
   );
 }
 
+type DrawerContentProps = React.ComponentProps<
+  typeof DrawerPrimitive.Content
+> & {
+  side?: "right" | "bottom";
+};
+
 function DrawerContent({
   className,
   children,
+  side = "right",
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+}: DrawerContentProps) {
   return (
     <DrawerPortal>
       <DrawerOverlay />
       <DrawerPrimitive.Content
         className={cn(
-          "fixed z-50 flex flex-col border-2 border-border bg-background font-head",
-          "inset-y-0 right-0 h-full w-full sm:w-[400px]",
+          "fixed z-50 flex flex-col border-2 border-border bg-background text-foreground font-head",
+          side === "right"
+            ? "inset-y-0 right-0 h-full w-full sm:w-[400px]"
+            : "inset-x-0 bottom-0 max-h-[96dvh] min-h-0 w-full border-b-0",
           className,
         )}
         {...props}

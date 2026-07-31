@@ -1,5 +1,5 @@
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { IconButton, Tooltip } from "@repo/ui";
+import { Button, IconButton, Tooltip } from "@repo/ui";
 import { useNavigate } from "react-router";
 
 import { flushAutoSave } from "../../hooks/useAutoSave";
@@ -9,7 +9,13 @@ import {
 } from "../../stores/terminal-store";
 import { getOrCreatePristineScript, setLastViewedScript } from "../../utils";
 
-export default function NewScriptButton() {
+export default function NewScriptButton({
+  showLabel = false,
+  onCreated,
+}: {
+  showLabel?: boolean;
+  onCreated?: () => void;
+} = {}) {
   const navigate = useNavigate();
 
   function handleClick() {
@@ -22,6 +28,21 @@ export default function NewScriptButton() {
     terminalStoreActions("script", SCRIPT_PLACEHOLDER);
     setLastViewedScript(id);
     navigate(`/${id}`);
+    onCreated?.();
+  }
+
+  if (showLabel) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-11 w-full justify-start gap-3 px-3 font-sans text-xs shadow-none"
+        onClick={handleClick}
+      >
+        <PlusIcon data-icon="inline-start" />
+        New script
+      </Button>
+    );
   }
 
   return (

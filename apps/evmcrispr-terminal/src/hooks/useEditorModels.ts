@@ -76,7 +76,10 @@ function replayEditLog(
 
 function attachContentListener(model: editor.ITextModel) {
   const uri = model.uri.toString();
-  if (listeners.has(uri)) return;
+  // Models are disposed on editor unmount and recreated with the same URI;
+  // a stale disposable left in the map would mean the new model gets no
+  // listener and its edits never reach the edit log.
+  listeners.get(uri)?.dispose();
 
   const disposable = model.onDidChangeContent((e) => {
     if (replayingModelUri === uri) return;
@@ -96,7 +99,7 @@ function attachContentListener(model: editor.ITextModel) {
       buf = [];
       editBuffers.set(uri, buf);
     }
-    buf.push({ edits, ts: Date.now() });
+    buf.push({ edits, ts: Date.now(), source: "user" });
   });
 
   listeners.set(uri, disposable);
@@ -128,6 +131,19 @@ export function flushEditBuffer(scriptId: string) {
   }
 
   buf.length = 0;
+}
+
+/**
+ * Return the buffered ops for `scriptId` and clear the buffer WITHOUT writing
+ * them to the edit log. Used by the AI edit path to re-stamp the op it just
+ * caused (source/revision metadata) before persisting it itself.
+ */
+export function drainEditBuffer(scriptId: string): EditOp[] {
+  const buf = editBuffers.get(`script://${scriptId}`);
+  if (!buf || buf.length === 0) return [];
+  const ops = buf.slice();
+  buf.length = 0;
+  return ops;
 }
 
 /**
@@ -314,6 +330,19 @@ export function useEditorModels() {
         if (log && log.ops.length > 0 && monacoRef.current) {
           replayEditLog(ed, model, log, monacoRef.current);
           didReplay = true;
+          // A log that doesn't reproduce the saved script is corrupt (e.g.
+          // ops captured while the content listener was broken). The saved
+          // script wins; re-base the log on it.
+          if (content !== undefined && model.getValue() !== content) {
+            const prevUri = replayingModelUri;
+            replayingModelUri = model.uri.toString();
+            try {
+              model.setValue(content);
+            } finally {
+              replayingModelUri = prevUri;
+            }
+            saveEditLog(scriptId, { base: content, ops: [] });
+          }
         } else if (content && model.getValue() !== content) {
           model.setValue(content);
         }

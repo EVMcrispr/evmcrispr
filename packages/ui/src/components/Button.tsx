@@ -5,7 +5,7 @@ import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "../utils";
 
 export const buttonVariants = cva(
-  "font-head transition-all rounded-none outline-hidden cursor-pointer duration-200 font-medium flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed",
+  "font-head transition-all rounded-none outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer duration-200 font-medium flex justify-center items-center [&_svg[data-icon]]:size-4 [&_svg[data-icon]]:shrink-0 disabled:opacity-60 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
@@ -16,7 +16,8 @@ export const buttonVariants = cva(
         outline:
           "shadow-md hover:shadow active:shadow-none bg-transparent text-foreground border-2 border-border transition hover:translate-y-1 active:translate-y-2 active:translate-x-1",
         link: "bg-transparent hover:underline text-primary",
-        ghost: "bg-transparent hover:bg-accent hover:text-accent-foreground",
+        ghost:
+          "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
       },
       size: {
         sm: "px-3 py-1 text-sm shadow hover:shadow-none",

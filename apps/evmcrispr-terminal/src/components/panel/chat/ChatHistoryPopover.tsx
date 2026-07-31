@@ -5,7 +5,7 @@ import { useState } from "react";
 import { type ChatMeta, listChats } from "../../../ai/chat-store";
 import { useTerminalStore } from "../../../stores/terminal-store";
 
-function relativeDate(iso: string): string {
+export function relativeDate(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60_000);
   if (minutes < 1) return "just now";
@@ -52,7 +52,7 @@ export function ChatHistoryPopover({
       </Popover.Trigger>
       <Popover.Content
         align="end"
-        className="w-72 p-1 max-h-80 overflow-y-auto"
+        className="max-h-80 w-72 overflow-y-auto p-1"
       >
         {chats.length === 0 ? (
           <p className="px-3 py-2 text-sm text-foreground/50">
@@ -76,7 +76,7 @@ export function ChatHistoryPopover({
                   onOpenChat(chat.id);
                   setOpen(false);
                 }}
-                className="flex-1 min-w-0 px-2 py-1.5 text-left disabled:cursor-not-allowed"
+                className="min-w-0 flex-1 px-2 py-1.5 text-left disabled:cursor-not-allowed"
               >
                 <span className="block truncate text-sm text-foreground">
                   {chat.title || "Untitled chat"}
@@ -90,7 +90,7 @@ export function ChatHistoryPopover({
                 aria-label="Delete chat"
                 variant="ghost"
                 size="sm"
-                className="opacity-0 group-hover:opacity-100 shrink-0"
+                className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                 onClick={() => {
                   onDeleteChat(chat.id);
                   setChats(listChats(currentScriptId ?? undefined));

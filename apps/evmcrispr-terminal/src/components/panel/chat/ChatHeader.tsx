@@ -22,7 +22,7 @@ export function ChatHeader({
   onShowSettings: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/10 text-sm text-foreground/60 shrink-0">
+    <div className="flex shrink-0 items-center gap-2 border-b border-foreground/10 px-3 py-2 text-sm text-foreground/60">
       <img src="/dappnode-logo.svg" alt="" className="w-5 h-5" />
       <a
         href={NEXUS_URL}

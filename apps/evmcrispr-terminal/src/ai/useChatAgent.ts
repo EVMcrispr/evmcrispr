@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useTerminalStore } from "../stores/terminal-store";
 import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
+import { undoScriptRevision } from "../utils/script-edits";
 import {
   deriveTitle,
   getChat,
@@ -29,9 +30,9 @@ const corsSafeFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   return fetch(input, { ...init, headers });
 }) as typeof fetch;
 
-const SYSTEM_PROMPT = `You are an assistant embedded in the EVMcrispr terminal, a web editor for EVML — a scripting language for batching EVM transactions. EVML scripts are line-based: commands like "switch <chain>", "load <module>", "set $var <value>", "exec <target> <signature> <args...>", module commands like "token:transfer", and inline helpers like @token(WETH), @me, @date(now). Comments start with #.
+const SYSTEM_PROMPT = `You are an assistant embedded in the EVMcrispr terminal, an interface for EVML — a scripting language for batching EVM transactions. EVML scripts are line-based: commands like "switch <chain>", "load <module>", "set $var <value>", "exec <target> <signature> <args...>", module commands like "token:transfer", and inline helpers like @token(WETH), @me, @date(now). Comments start with #.
 
-The user's script lives in the Monaco editor next to this chat; you do not receive it automatically. Use get_script to read it, edit_script/write_script to change it (your edits appear live and the user can undo them), validate_script to check it, and simulate_script to dry-run it on a fork. Edit results already include validation diagnostics — fix any errors they report before finishing. Keep replies short; the script itself is the deliverable.
+The user's script is managed by the terminal; you do not receive it automatically. Use get_script to read it, edit_script/write_script to change it, validate_script to check it, and simulate_script to dry-run it on a fork. On phones, chat is the only authoring surface and the script is always read-only. Edit results already include validation diagnostics — fix any errors they report before finishing. Scripts also have a title: after changing a script, make sure its title still describes it — set one with set_script_title if it is untitled, and update it if it no longer matches what the script does. Titles are a few words naming the script's overall purpose (not its exact parameters), broad enough that small edits don't call for a rename. Keep replies short; the script itself is the deliverable. Never claim that a transaction was sent: broadcasting always requires a separate user review and wallet confirmation.
 
 You have the full EVML reference at hand: list_modules gives an overview of every module, describe_module lists a module's commands and helpers, and get_docs returns the full documentation of one command or helper (syntax, arguments, options, examples). Look up anything you are not certain about instead of guessing — especially before using a module command's options or a helper's argument order.
 
@@ -64,10 +65,99 @@ function systemPrompt(): string {
   return `${SYSTEM_PROMPT}\n\nThe current date and time is ${formatNow()}.`;
 }
 
+export type ChatToolArtifact =
+  | {
+      kind: "script-change";
+      ok: boolean;
+      valid?: boolean;
+      diagnosticsCount?: number;
+      revisionId?: string;
+      error?: string;
+      undone?: boolean;
+    }
+  | {
+      kind: "validation";
+      valid: boolean;
+      diagnosticsCount: number;
+    }
+  | {
+      kind: "simulation";
+      success: boolean;
+      actionCount: number;
+      error?: string;
+    };
+
 export type ChatItem =
   | { role: "user"; text: string }
   | { role: "assistant"; text: string }
-  | { role: "tool"; text: string };
+  | {
+      role: "tool";
+      text: string;
+      toolCallId?: string;
+      phase?: "call" | "result" | "error";
+      artifact?: ChatToolArtifact;
+      error?: string;
+    };
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function toolArtifact(output: unknown): ChatToolArtifact | undefined {
+  const value = record(output);
+  if (!value || typeof value.kind !== "string") return undefined;
+
+  if (value.kind === "script-change") {
+    const validation = record(value.validation);
+    const diagnostics = Array.isArray(validation?.diagnostics)
+      ? validation.diagnostics
+      : [];
+    return {
+      kind: "script-change",
+      ok: value.ok === true,
+      valid:
+        validation && typeof validation.valid === "boolean"
+          ? validation.valid
+          : undefined,
+      diagnosticsCount: validation ? diagnostics.length : undefined,
+      revisionId:
+        typeof value.revisionId === "string" ? value.revisionId : undefined,
+      error: typeof value.error === "string" ? value.error : undefined,
+    };
+  }
+
+  if (value.kind === "validation") {
+    return {
+      kind: "validation",
+      valid: value.valid === true,
+      diagnosticsCount: Array.isArray(value.diagnostics)
+        ? value.diagnostics.length
+        : 0,
+    };
+  }
+
+  if (value.kind === "simulation") {
+    const actions = Array.isArray(value.actions) ? value.actions : [];
+    return {
+      kind: "simulation",
+      success: value.success === true,
+      actionCount: actions.reduce((count, action) => {
+        const item = record(action);
+        return (
+          count +
+          (item?.type === "batched" && Array.isArray(item.actions)
+            ? item.actions.length
+            : 1)
+        );
+      }, 0),
+      error: typeof value.error === "string" ? value.error : undefined,
+    };
+  }
+
+  return undefined;
+}
 
 export function useChatAgent() {
   const tag = useEvmlTag();
@@ -92,17 +182,20 @@ export function useChatAgent() {
   // switch still persists under its own script.
   const currentScriptId = useTerminalStore((s) => s.currentScriptId);
   const chatScriptIdRef = useRef<string | null | undefined>(undefined);
+  // Abort any in-flight run on unmount — an orphaned stream would keep
+  // executing script-editing tools with no visible chat or Stop button.
+  useEffect(() => () => abortRef.current?.abort(), []);
   // Mirrors `items` so async persistence sees the latest render list.
   const itemsRef = useRef<ChatItem[]>([]);
   const conversationIdRef = useRef(conversationId);
 
   const updateItems = useCallback(
     (updater: (prev: ChatItem[]) => ChatItem[]) => {
-      setItems((prev) => {
-        const next = updater(prev);
-        itemsRef.current = next;
-        return next;
-      });
+      // Update the ref eagerly (not inside the setItems updater): persist()
+      // runs right after updateItems and must see the new list even when
+      // React defers the state updater.
+      itemsRef.current = updater(itemsRef.current);
+      setItems(itemsRef.current);
     },
     [],
   );
@@ -177,7 +270,7 @@ export function useChatAgent() {
 
       try {
         let started = false;
-        for await (const part of result.fullStream) {
+        for await (const part of result.stream) {
           if (part.type === "text-delta") {
             const delta = part.text;
             if (!started) {
@@ -202,8 +295,52 @@ export function useChatAgent() {
             started = false;
             updateItems((prev) => [
               ...prev,
-              { role: "tool", text: part.toolName },
+              {
+                role: "tool",
+                text: part.toolName,
+                toolCallId: part.toolCallId,
+                phase: "call",
+              },
             ]);
+          } else if (part.type === "tool-result") {
+            updateItems((prev) => {
+              const next = [...prev];
+              const index = next.findIndex(
+                (item) =>
+                  item.role === "tool" && item.toolCallId === part.toolCallId,
+              );
+              const updated: ChatItem = {
+                role: "tool",
+                text: part.toolName,
+                toolCallId: part.toolCallId,
+                phase: "result",
+                artifact: toolArtifact(part.output),
+              };
+              if (index === -1) next.push(updated);
+              else next[index] = updated;
+              return next;
+            });
+          } else if (part.type === "tool-error") {
+            updateItems((prev) => {
+              const next = [...prev];
+              const index = next.findIndex(
+                (item) =>
+                  item.role === "tool" && item.toolCallId === part.toolCallId,
+              );
+              const updated: ChatItem = {
+                role: "tool",
+                text: part.toolName,
+                toolCallId: part.toolCallId,
+                phase: "error",
+                error:
+                  part.error instanceof Error
+                    ? part.error.message
+                    : String(part.error),
+              };
+              if (index === -1) next.push(updated);
+              else next[index] = updated;
+              return next;
+            });
           } else if (part.type === "error") {
             throw part.error;
           }
@@ -224,6 +361,19 @@ export function useChatAgent() {
         }
       } finally {
         abortRef.current = null;
+        // A stop or stream error leaves tool items stuck at phase "call" —
+        // persisted like that, they render as in-progress forever.
+        updateItems((prev) =>
+          prev.map((item) =>
+            item.role === "tool" && item.phase === "call"
+              ? {
+                  ...item,
+                  phase: "error" as const,
+                  error: stoppedRef.current ? "Stopped" : "Interrupted",
+                }
+              : item,
+          ),
+        );
         setIsRunning(false);
         persist();
       }
@@ -312,6 +462,29 @@ export function useChatAgent() {
     void send(text);
   }, [isRunning, send]);
 
+  const undoRevision = useCallback(
+    (revisionId: string) => {
+      const result = undoScriptRevision(revisionId);
+      if (result.ok) {
+        updateItems((prev) =>
+          prev.map((item) =>
+            item.role === "tool" &&
+            item.artifact?.kind === "script-change" &&
+            item.artifact.revisionId === revisionId
+              ? {
+                  ...item,
+                  artifact: { ...item.artifact, undone: true },
+                }
+              : item,
+          ),
+        );
+        persist();
+      }
+      return result;
+    },
+    [persist, updateItems],
+  );
+
   return {
     hasKey: apiKey !== null,
     setApiKey,
@@ -327,5 +500,6 @@ export function useChatAgent() {
     openChat,
     deleteChat,
     regenerate,
+    undoRevision,
   };
 }

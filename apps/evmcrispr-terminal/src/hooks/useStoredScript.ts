@@ -18,7 +18,12 @@ export type EncryptedReason = "missing-key" | "invalid-key" | "needs-upgrade";
 
 export type ScriptResult =
   | { status: "loading" }
-  | { status: "found"; data: BareScript & { id?: string } }
+  | {
+      status: "found";
+      data: BareScript & { id?: string };
+      /** True when the pin was an encrypted share envelope. */
+      encrypted?: boolean;
+    }
   | { status: "not-found" }
   | { status: "error"; error: string }
   | { status: "encrypted"; reason: EncryptedReason; requiredVersion?: string };
@@ -97,7 +102,7 @@ export function useScriptFromId(
             }
             try {
               const decrypted = await decryptScript(data, decryptionKey);
-              setResult({ status: "found", data: decrypted });
+              setResult({ status: "found", data: decrypted, encrypted: true });
             } catch {
               setResult({ status: "encrypted", reason: "invalid-key" });
             }

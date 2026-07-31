@@ -33,6 +33,10 @@ export type StoredEdit = {
 export type EditOp = {
   edits: StoredEdit[];
   ts: number; // Date.now() when the change happened
+  source?: "user" | "ai-chat";
+  revisionId?: string;
+  revisionBefore?: string;
+  revisionAfter?: string;
 };
 
 export type EditLog = {

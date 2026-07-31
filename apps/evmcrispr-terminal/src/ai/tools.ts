@@ -7,15 +7,12 @@ import { z } from "zod";
 import { config as wagmiConfig } from "../config/wagmi";
 import { workerEvml } from "../evml/workerEvml";
 
-import {
-  applyStrReplace,
-  getActiveModel,
-  replaceScript,
-} from "../hooks/useEditorModels";
+import { getActiveModel } from "../hooks/useEditorModels";
 import {
   terminalStoreActions,
   terminalStoreGet,
 } from "../stores/terminal-store";
+import { applyAiStrReplace, applyAiWriteScript } from "../utils/script-edits";
 import { createContractTools } from "./contract-tools";
 import {
   getModuleOverview,
@@ -31,24 +28,6 @@ function currentScript(): string {
   return getActiveModel()?.getValue() ?? terminalStoreGet("script");
 }
 
-/**
- * The Monaco editor is only mounted in edit mode (view mode renders a
- * read-only Viewer instead). Before writing, switch the terminal to edit
- * mode and wait for the lazy-loaded editor to mount.
- */
-async function ensureEditorMounted(): Promise<boolean> {
-  if (getActiveModel()) return true;
-  terminalStoreActions("viewMode", "edit");
-  for (let i = 0; i < 50; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    if (getActiveModel()) return true;
-  }
-  return false;
-}
-
-const EDITOR_UNAVAILABLE =
-  "ERROR: The editor could not be opened. Ask the user to switch the terminal to edit mode, then retry.";
-
 function numbered(src: string): string {
   return src
     .split("\n")
@@ -63,6 +42,10 @@ function json(value: unknown): string {
     (_k, v) => (typeof v === "bigint" ? v.toString() : v),
     2,
   );
+}
+
+function serializable(value: unknown): unknown {
+  return JSON.parse(json(value));
 }
 
 async function validateCurrent(tag: EvmlTag) {
@@ -85,9 +68,10 @@ async function validateCurrent(tag: EvmlTag) {
 export function createChatTools(tag: EvmlTag): ToolSet {
   const getScript = tool({
     description:
-      "Read the current EVML script in the editor. Returns the content with line numbers (tab-separated). Always read the script before editing it.",
+      "Read the current EVML script in the editor. Returns the script title and the content with line numbers (tab-separated). Always read the script before editing it.",
     inputSchema: z.object({}),
-    execute: async () => numbered(currentScript()),
+    execute: async () =>
+      `Title: ${terminalStoreGet("title") || "(untitled)"}\n\n${numbered(currentScript())}`,
   });
 
   const editScript = tool({
@@ -100,10 +84,17 @@ export function createChatTools(tag: EvmlTag): ToolSet {
       new_string: z.string().describe("Replacement text"),
     }),
     execute: async ({ old_string, new_string }) => {
-      if (!(await ensureEditorMounted())) return EDITOR_UNAVAILABLE;
-      const res = applyStrReplace(old_string, new_string);
-      if (!res.ok) return `ERROR: ${res.error}`;
-      return `Edit applied.\nValidation: ${json(await validateCurrent(tag))}`;
+      const res = applyAiStrReplace(old_string, new_string);
+      if (!res.ok) {
+        return { kind: "script-change", ok: false, error: res.error };
+      }
+      return {
+        kind: "script-change",
+        ok: true,
+        operation: "edit",
+        revisionId: res.revisionId,
+        validation: await validateCurrent(tag),
+      };
     },
   });
 
@@ -114,10 +105,29 @@ export function createChatTools(tag: EvmlTag): ToolSet {
       content: z.string().describe("The full new script content"),
     }),
     execute: async ({ content }) => {
-      if (!(await ensureEditorMounted())) return EDITOR_UNAVAILABLE;
-      const res = replaceScript(content);
-      if (!res.ok) return `ERROR: ${res.error}`;
-      return `Script written.\nValidation: ${json(await validateCurrent(tag))}`;
+      const res = applyAiWriteScript(content);
+      if (!res.ok) {
+        return { kind: "script-change", ok: false, error: res.error };
+      }
+      return {
+        kind: "script-change",
+        ok: true,
+        operation: "write",
+        revisionId: res.revisionId,
+        validation: await validateCurrent(tag),
+      };
+    },
+  });
+
+  const setScriptTitle = tool({
+    description:
+      "Set the script title shown above the editor and in the library. Use it whenever the script is untitled or the current title no longer reflects what the script does. Titles should be a few words describing the script's overall purpose — broad enough that small edits to the script don't require renaming it.",
+    inputSchema: z.object({
+      title: z.string().describe("New script title (a few words)"),
+    }),
+    execute: async ({ title }) => {
+      terminalStoreActions("title", title.trim());
+      return { kind: "title-change", ok: true, title: title.trim() };
     },
   });
 
@@ -125,7 +135,10 @@ export function createChatTools(tag: EvmlTag): ToolSet {
     description:
       "Validate the current editor script (syntax and static semantics). Runs offline; sends no transactions.",
     inputSchema: z.object({}),
-    execute: async () => json(await validateCurrent(tag)),
+    execute: async () => ({
+      kind: "validation",
+      ...(await validateCurrent(tag)),
+    }),
   });
 
   const simulateScript = tool({
@@ -156,7 +169,8 @@ export function createChatTools(tag: EvmlTag): ToolSet {
             (from as Address | undefined) ?? getConnection(wagmiConfig).address,
           blockNumber,
         });
-      return json({
+      return serializable({
+        kind: "simulation",
         success: result.success,
         error: result.error,
         logs: result.logs,
@@ -230,6 +244,7 @@ export function createChatTools(tag: EvmlTag): ToolSet {
     get_script: getScript,
     edit_script: editScript,
     write_script: writeScript,
+    set_script_title: setScriptTitle,
     validate_script: validateScript,
     simulate_script: simulateScript,
     list_modules: listModules,

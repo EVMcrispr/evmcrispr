@@ -1,7 +1,7 @@
+import { MOBILE_BREAKPOINT } from "../constants/layout";
 import type { ViewMode } from "../stores/terminal-store";
 
 const VIEW_MODE_KEY = "evmcrispr:viewMode";
-const SMALL_SCREEN_BREAKPOINT = 768;
 
 function readUrlMode(): ViewMode | null {
   if (typeof window === "undefined") return null;
@@ -27,7 +27,7 @@ function readStoredMode(): ViewMode | null {
 
 function defaultModeForViewport(): ViewMode {
   if (typeof window === "undefined") return "edit";
-  return window.innerWidth < SMALL_SCREEN_BREAKPOINT ? "view" : "edit";
+  return window.innerWidth < MOBILE_BREAKPOINT ? "view" : "edit";
 }
 
 /**

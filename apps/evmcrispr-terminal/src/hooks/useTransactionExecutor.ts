@@ -1,10 +1,14 @@
 import type { ActionHandlers } from "@evmcrispr/core";
 import { useExecutionLogs } from "@evmcrispr/editor";
+import type { Action } from "@evmcrispr/sdk";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
 import { workerEvml } from "../evml/workerEvml";
-import { terminalStoreActions } from "../stores/terminal-store";
+import {
+  terminalStoreActions,
+  useTerminalStore,
+} from "../stores/terminal-store";
 
 /** Safe apps can't use EIP-5792 batching — route batched actions through
  *  the Safe SDK instead. Non-Safe runs use the core default handler. */
@@ -48,6 +52,7 @@ export function useTransactionExecutor(
   address: `0x${string}` | undefined,
   script: string,
   safeConnector?: any,
+  options: { openConsoleOnExecute?: boolean } = {},
 ) {
   const { data: walletClient } = useWalletClient();
 
@@ -56,7 +61,27 @@ export function useTransactionExecutor(
 
   const { logs, logListener, clearLogs } = useExecutionLogs();
   const [errors, setErrors] = useState<string[]>([]);
-  const clearErrors = useCallback(() => setErrors([]), []);
+  const [phase, setPhase] = useState<ExecutionPhase>("idle");
+  const [executed, setExecuted] = useState<
+    { action: Action; result?: unknown }[]
+  >([]);
+  const clearErrors = useCallback(() => {
+    setErrors([]);
+    setPhase("idle");
+  }, []);
+
+  // A finished run belongs to the script it ran against — switching scripts
+  // must not keep showing its phase, logs and executed actions.
+  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const prevScriptIdRef = useRef(currentScriptId);
+  useEffect(() => {
+    if (prevScriptIdRef.current === currentScriptId) return;
+    prevScriptIdRef.current = currentScriptId;
+    setErrors([]);
+    setPhase("idle");
+    setExecuted([]);
+    clearLogs();
+  }, [currentScriptId, clearLogs]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -66,8 +91,12 @@ export function useTransactionExecutor(
 
   const executeScript = useCallback(async () => {
     clearErrors();
+    setExecuted([]);
+    setPhase("preparing");
     terminalStoreActions("isLoading", true);
-    terminalStoreActions("activeTab", "console");
+    if (options.openConsoleOnExecute !== false) {
+      terminalStoreActions("activeTab", "console");
+    }
     clearLogs();
 
     abortControllerRef.current = new AbortController();
@@ -80,22 +109,33 @@ export function useTransactionExecutor(
         );
       }
 
+      // "awaiting-wallet" only once a line actually starts executing —
+      // before that the run is resolving actions, not prompting the wallet.
+      let sawExecution = false;
       const evmlScript = workerEvml
         .with({
           account: address,
           onLog: logListener,
-          onLine: (line: number | null) =>
-            terminalStoreActions("executingLine", line),
+          onLine: (line: number | null) => {
+            terminalStoreActions("executingLine", line);
+            if (line !== null && !sawExecution) {
+              sawExecution = true;
+              setPhase("awaiting-wallet");
+            }
+          },
         })
         .script(scriptRef.current);
 
-      await evmlScript.execute(walletClient, {
+      const result = await evmlScript.execute(walletClient, {
         signal: abortSignal,
         onLog: logListener,
         handlers: safeConnector
           ? { batched: makeSafeBatchedHandler(safeConnector) }
           : undefined,
       });
+      setExecuted(result.executed);
+      setPhase("success");
+      return true;
     } catch (err: any) {
       const e = err as Error;
       if (
@@ -103,8 +143,10 @@ export function useTransactionExecutor(
         e.message === "Execution cancelled"
       ) {
         setErrors(["Script execution cancelled"]);
+        setPhase("cancelled");
       } else {
         console.error(e);
+        setPhase("error");
         if (
           e.message.startsWith("transaction failed") &&
           /^0x[0-9a-f]{64}$/.test(e.message.split('"')[1])
@@ -118,6 +160,7 @@ export function useTransactionExecutor(
           setErrors([e.message]);
         }
       }
+      return false;
     } finally {
       terminalStoreActions("isLoading", false);
       terminalStoreActions("executingLine", null);
@@ -130,6 +173,7 @@ export function useTransactionExecutor(
     logListener,
     clearLogs,
     clearErrors,
+    options.openConsoleOnExecute,
   ]);
 
   return {
@@ -138,5 +182,15 @@ export function useTransactionExecutor(
     logs,
     errors,
     clearErrors,
+    phase,
+    executed,
   };
 }
+
+export type ExecutionPhase =
+  | "idle"
+  | "preparing"
+  | "awaiting-wallet"
+  | "success"
+  | "cancelled"
+  | "error";

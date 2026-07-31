@@ -1,6 +1,6 @@
 import { PaperAirplaneIcon, StopIcon } from "@heroicons/react/24/solid";
-import { IconButton, Textarea } from "@repo/ui";
-import { useState } from "react";
+import { cn, IconButton, Textarea } from "@repo/ui";
+import { type ReactNode, useState } from "react";
 
 import { useFocusOnTab } from "../../../hooks/useFocusOnTab";
 
@@ -11,10 +11,14 @@ export function ChatInput({
   isRunning,
   onSend,
   onStop,
+  mobile = false,
+  leading,
 }: {
   isRunning: boolean;
   onSend: (text: string) => void;
   onStop: () => void;
+  mobile?: boolean;
+  leading?: ReactNode;
 }) {
   const [input, setInput] = useState("");
   const textareaRef = useFocusOnTab<HTMLTextAreaElement>("chat");
@@ -37,12 +41,17 @@ export function ChatInput({
 
   return (
     <form
-      className="flex gap-2 px-2 py-2 pb-5 border-t border-foreground/10 shrink-0"
+      className={cn(
+        "flex shrink-0 gap-2 border-t border-foreground/10 px-2 py-2 pb-5",
+        mobile &&
+          "mobile-chat-composer items-end border-foreground/10 bg-background/95 px-3 pt-3 backdrop-blur",
+      )}
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
+      {leading}
       <Textarea
         ref={textareaRef}
         value={input}
@@ -52,14 +61,32 @@ export function ChatInput({
           resize();
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+          if (
+            !mobile &&
+            e.key === "Enter" &&
+            !e.shiftKey &&
+            !e.nativeEvent.isComposing
+          ) {
             e.preventDefault();
             submit();
           }
         }}
-        placeholder={isRunning ? "Working..." : "Ask about the script..."}
+        placeholder={
+          isRunning
+            ? "Working..."
+            : mobile
+              ? "Describe what to do…"
+              : "Ask about the script..."
+        }
         disabled={isRunning}
-        className="flex-1 overflow-y-auto"
+        className={cn(
+          "flex-1 overflow-y-auto",
+          // h-12 pins the rest height to exactly match the 48px buttons
+          // beside it (auto height would be 50px: 24px line + py-3 + border);
+          // the autogrow inline style still wins once typing wraps.
+          mobile &&
+            "h-12 min-h-12 resize-none border-foreground/15 bg-foreground/[0.04] px-4 py-2.5 font-sans text-base shadow-none",
+        )}
         style={{ maxHeight: MAX_HEIGHT_PX }}
       />
       {isRunning ? (
@@ -67,9 +94,9 @@ export function ChatInput({
           type="button"
           aria-label="Stop"
           variant="outline"
-          size="md"
+          size={mobile ? "lg" : "md"}
           onClick={onStop}
-          className="self-end"
+          className={cn("self-end", mobile && "min-h-12 min-w-12")}
         >
           <StopIcon className="w-5 h-5" />
         </IconButton>
@@ -77,9 +104,9 @@ export function ChatInput({
         <IconButton
           type="submit"
           aria-label="Send"
-          size="md"
+          size={mobile ? "lg" : "md"}
           disabled={!input.trim()}
-          className="self-end"
+          className={cn("self-end", mobile && "min-h-12 min-w-12")}
         >
           <PaperAirplaneIcon className="w-5 h-5" />
         </IconButton>

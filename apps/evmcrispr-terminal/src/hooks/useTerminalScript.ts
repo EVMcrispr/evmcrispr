@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { useLibraryStore } from "../stores/library-store";
 import {
@@ -22,6 +22,8 @@ function loadIntoStore(id: string, title: string, script: string) {
   setLastViewedScript(id);
 }
 
+export type TerminalEntryIntent = "author" | "recipient";
+
 /**
  * Encapsulates all URL-param parsing, script-from-ID loading,
  * and initial script creation for the terminal page.
@@ -32,11 +34,19 @@ export function useTerminalScript(): {
   ipfsLoading: boolean;
   encryptedError: EncryptedReason | undefined;
   requiredVersion: string | undefined;
+  entryIntent: TerminalEntryIntent;
+  /** True when the current script arrived through an encrypted share link. */
+  sharedEncrypted: boolean;
 } {
   const params = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const initialized = useRef(false);
+  const receivedLocalIdRef = useRef<string | null>(null);
+  const [entryIntent, setEntryIntent] = useState<TerminalEntryIntent>(() =>
+    params?.scriptId && isCID(params.scriptId) ? "recipient" : "author",
+  );
+  const [sharedEncrypted, setSharedEncrypted] = useState(false);
 
   // Share links carry the decryption key as the last fragment segment
   // (#/<cid>?mode=view#<key>) — react-router surfaces it as location.hash.
@@ -53,9 +63,29 @@ export function useTerminalScript(): {
     result?.status === "encrypted" ? result.requiredVersion : undefined;
 
   const found = result?.status === "found" ? result.data : undefined;
+  const foundEncrypted = result?.status === "found" && !!result.encrypted;
   const titleFromId = found?.title;
   const scriptFromId = found?.script;
   const idFromUrl = found?.id;
+
+  useEffect(() => {
+    const id = params?.scriptId;
+    if (!id) {
+      receivedLocalIdRef.current = null;
+      setEntryIntent("author");
+      setSharedEncrypted(false);
+    } else if (isCID(id)) {
+      setEntryIntent("recipient");
+    } else if (id !== receivedLocalIdRef.current) {
+      setEntryIntent("author");
+      setSharedEncrypted(false);
+    } else {
+      // The replace-navigation right after an import lands here; keep the
+      // recipient framing for this landing only — a later visit to the same
+      // (now local) script is an authoring visit.
+      receivedLocalIdRef.current = null;
+    }
+  }, [params?.scriptId]);
 
   // One-time init: migration + fresh script creation (when no URL param)
   useEffect(() => {
@@ -110,6 +140,8 @@ export function useTerminalScript(): {
       return;
     } else {
       const id = createScript(titleFromId ?? "", scriptFromId ?? "");
+      receivedLocalIdRef.current = id;
+      setSharedEncrypted(foundEncrypted);
       terminalStoreActions("currentScriptId", id);
       setLastViewedScript(id);
       navigate(`/${id}`, { replace: true });
@@ -121,7 +153,15 @@ export function useTerminalScript(): {
     if (scriptFromId !== undefined) {
       terminalStoreActions("script", scriptFromId);
     }
-  }, [found, titleFromId, scriptFromId, idFromUrl, params?.scriptId, navigate]);
+  }, [
+    found,
+    foundEncrypted,
+    titleFromId,
+    scriptFromId,
+    idFromUrl,
+    params?.scriptId,
+    navigate,
+  ]);
 
   return {
     scriptNotFound,
@@ -129,5 +169,7 @@ export function useTerminalScript(): {
     ipfsLoading,
     encryptedError,
     requiredVersion,
+    entryIntent,
+    sharedEncrypted,
   };
 }

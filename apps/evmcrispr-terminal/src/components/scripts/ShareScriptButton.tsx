@@ -1,6 +1,6 @@
 import { encryptScript } from "@evmcrispr/core";
 import { ShareIcon } from "@heroicons/react/24/solid";
-import { IconButton, Tooltip, toast } from "@repo/ui";
+import { Button, IconButton, Tooltip, toast } from "@repo/ui";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -10,9 +10,18 @@ import { useTerminalStore } from "../../stores/terminal-store";
 type ShareButtonProps = {
   script: string;
   title: string;
+  showLabel?: boolean;
+  mobile?: boolean;
+  onShared?: () => void;
 };
 
-export default function ShareButton({ script, title }: ShareButtonProps) {
+export default function ShareButton({
+  script,
+  title,
+  showLabel = false,
+  mobile = false,
+  onShared,
+}: ShareButtonProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [isLoading, setLoading] = useState(false);
@@ -50,6 +59,7 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
       toast.success("The link is copied to the clipboard");
       setLoading(false);
       navigate(`/${hash}${modeSuffix}#${key}`, { replace: true });
+      onShared?.();
     } catch (_e) {
       toast.error("The script could not be saved to IPFS");
       setLoading(false);
@@ -61,6 +71,48 @@ export default function ShareButton({ script, title }: ShareButtonProps) {
       ? "Link copied to clipboard!"
       : "Generate link"
     : "The script needs a title first";
+
+  if (mobile) {
+    // No hover tooltips on touch — a toast explains the title requirement.
+    return (
+      <IconButton
+        type="button"
+        aria-label="Share encrypted link"
+        variant="outline"
+        size="sm"
+        className="min-h-9 min-w-9 shadow-none"
+        disabled={!!url || isLoading}
+        onClick={() => {
+          if (!title) {
+            toast.error("The script needs a title first");
+            return;
+          }
+          void handleShare();
+        }}
+      >
+        {isLoading ? (
+          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        ) : (
+          <ShareIcon className="size-4" />
+        )}
+      </IconButton>
+    );
+  }
+
+  if (showLabel) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-11 w-full justify-start gap-3 px-3 font-sans text-xs shadow-none"
+        onClick={() => void handleShare()}
+        disabled={!!url || !title || isLoading}
+      >
+        <ShareIcon data-icon="inline-start" />
+        {isLoading ? "Encrypting link…" : "Share encrypted link"}
+      </Button>
+    );
+  }
 
   return (
     <Tooltip>

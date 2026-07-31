@@ -1,6 +1,6 @@
 import { TrashIcon } from "@heroicons/react/24/solid";
 
-import { IconButton, Tooltip } from "@repo/ui";
+import { cn, IconButton, Tooltip } from "@repo/ui";
 
 import type { ScriptMeta } from "../../types/index";
 
@@ -42,6 +42,7 @@ type SavedScriptProps = {
   isActive?: boolean;
   isSaving?: boolean;
   liveTitle?: string;
+  mobile?: boolean;
   onItemClick(id: string): void;
   onItemRemove(id: string): void;
 };
@@ -51,12 +52,47 @@ export function SavedScript({
   isActive,
   isSaving,
   liveTitle,
+  mobile = false,
   onItemRemove,
   onItemClick,
 }: SavedScriptProps) {
   const { id, updatedAt } = script;
   const { day, month, year } = formatDate(updatedAt);
   const displayTitle = (liveTitle ?? script.title) || "Untitled";
+
+  if (mobile)
+    return (
+      <div
+        className={cn(
+          "flex cursor-pointer items-center gap-2 border-b border-foreground/10 py-1.5 pl-3 pr-1",
+          isActive && "border-l-2 border-l-primary bg-foreground/[0.04] pl-2.5",
+        )}
+        onClick={() => onItemClick(id)}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="flex min-w-0 items-center gap-2 font-sans text-sm text-foreground">
+            <span className="truncate">{displayTitle}</span>
+            {isActive && isSaving && <SavingSpinner />}
+          </p>
+          <p className="font-sans text-xs text-muted-foreground">
+            Updated <span className="capitalize">{month} </span>
+            {day}, {year}
+          </p>
+        </div>
+        <IconButton
+          aria-label="Remove saved script"
+          variant="ghost"
+          size="sm"
+          className="min-h-9 min-w-9 shrink-0 text-foreground/45"
+          onClick={(e) => {
+            e.stopPropagation();
+            onItemRemove(id);
+          }}
+        >
+          <TrashIcon className="size-4" />
+        </IconButton>
+      </div>
+    );
 
   return (
     <div

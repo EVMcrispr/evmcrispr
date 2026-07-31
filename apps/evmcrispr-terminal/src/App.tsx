@@ -1,5 +1,6 @@
 import "@fontsource/jetbrains-mono";
 import "@fontsource/jetbrains-mono/700.css";
+import "@fontsource-variable/instrument-sans";
 
 import { evml } from "@evmcrispr/core";
 import { EvmcrisprProvider } from "@evmcrispr/editor";

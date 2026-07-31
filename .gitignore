@@ -13,6 +13,9 @@ public/dist
 .nyc_output
 cache
 coverage
+test-results
+playwright-report
+blob-report
 package-lock.json
 yarn.lock
 pnpm-lock.yaml

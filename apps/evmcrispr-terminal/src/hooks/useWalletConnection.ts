@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Connector } from "wagmi";
-import { useConnect, useConnection, useConnectors, useDisconnect } from "wagmi";
+import {
+  useChainId,
+  useChains,
+  useConnect,
+  useConnection,
+  useConnectors,
+  useDisconnect,
+} from "wagmi";
 
 const AUTOCONNECTED_CONNECTOR_IDS = ["safe"];
 
@@ -9,6 +16,8 @@ export function useWalletConnection() {
   const { mutate: connect, mutateAsync: connectAsync } = useConnect();
   const { mutate: wagmiDisconnect } = useDisconnect();
   const connectors = useConnectors();
+  const chainId = useChainId();
+  const chains = useChains();
 
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
 
@@ -48,6 +57,8 @@ export function useWalletConnection() {
 
   return {
     address,
+    chainId,
+    chainName: chains.find((chain) => chain.id === chainId)?.name,
     isSafe,
     safeConnector,
     safeConnectorInstance,

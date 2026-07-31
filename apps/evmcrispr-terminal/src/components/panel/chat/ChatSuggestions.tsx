@@ -1,8 +1,26 @@
+import {
+  BeakerIcon,
+  ShieldCheckIcon,
+  WalletIcon,
+} from "@heroicons/react/24/outline";
+import { Button } from "@repo/ui";
+
 const SUGGESTIONS = [
-  { icon: "🔍", text: "What does the script in my editor do?" },
-  { icon: "💰", text: "What's vitalik.eth's ETH balance?" },
-  { icon: "✍️", text: "Write a script that sends 0.1 ETH to three addresses" },
-  { icon: "📖", text: "How does token:transfer work?" },
+  {
+    icon: WalletIcon,
+    label: "Build a transfer",
+    text: "Write a script that sends 0.1 ETH to three addresses",
+  },
+  {
+    icon: BeakerIcon,
+    label: "Simulate safely",
+    text: "Validate and simulate the current script, then explain the result",
+  },
+  {
+    icon: ShieldCheckIcon,
+    label: "Explain the risks",
+    text: "Explain every action in the current script and flag any risks",
+  },
 ];
 
 export function ChatSuggestions({
@@ -12,15 +30,18 @@ export function ChatSuggestions({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      {SUGGESTIONS.map(({ icon, text }) => (
-        <button
+      {SUGGESTIONS.map(({ icon: Icon, label, text }) => (
+        <Button
           key={text}
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onPick(text)}
-          className="text-left text-xs text-foreground/60 border border-foreground/15 rounded-md px-2.5 py-1.5 hover:bg-foreground/5 hover:text-foreground transition-colors"
+          className="min-h-11 justify-start gap-2 border-foreground/15 px-3 py-2 font-sans text-xs text-foreground/65 shadow-none"
         >
-          {icon} {text}
-        </button>
+          <Icon data-icon="inline-start" />
+          {label}
+        </Button>
       ))}
     </div>
   );
