@@ -10,6 +10,9 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 @import "./components.css" layer(components);
+/* enter/exit utilities used by the hover popover; `@utility` definitions are
+   placed in the utilities layer by Tailwind, so this import stays unlayered. */
+@import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 /* Only scan this package's own sources for class names. */

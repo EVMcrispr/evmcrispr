@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@repo/ui/styles/theme.css";
 @import "@evmcrispr/editor/styles/components.css";
+/* enter/exit utilities (`animate-in`, `fade-in-0`, `slide-in-from-top-2`, …)
+   used by the shadcn-style Dialog/Popover/Menu/Tooltip in @repo/ui. */
+@import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @source "../../../packages/ui/src";
