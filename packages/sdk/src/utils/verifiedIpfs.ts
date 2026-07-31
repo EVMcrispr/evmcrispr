@@ -9,8 +9,9 @@ import { ErrorConnection, ErrorUnexpectedResult } from "../errors";
  *
  * Hand-rolled (varint/base58/base32/dag-pb/UnixFS) rather than depending on
  * helia/multiformats; SHA-256 comes from WebCrypto. Fails closed: anything
- * it cannot verify (unknown hash function, HAMT-sharded directories, a
- * gateway without CAR support) is an error, not an unverified pass-through.
+ * it cannot verify (unknown hash function, HAMT-sharded directories) is an
+ * error, not an unverified pass-through. A gateway that cannot serve CARs
+ * at all is retried on {@link TRUSTLESS_GATEWAYS} — never trusted as-is.
  */
 
 const CODEC_RAW = 0x55;
@@ -503,14 +504,24 @@ export type IpfsEntity =
     }
   | { kind: "directory"; entries: { name: string; cid: string }[] };
 
-async function fetchVerifiedTarget(
+/**
+ * Gateways tried when the requested one can't serve the CAR: plenty of
+ * gateways (including ours) only speak plain HTTP paths, and a link must
+ * still open. Ordered by how reliably they implement the trustless spec.
+ */
+export const TRUSTLESS_GATEWAYS = [
+  "https://trustless-gateway.link/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://dweb.link/ipfs/",
+];
+
+/** Download `cidPath` as a CAR, or throw if this gateway can't serve one. */
+async function fetchCar(
   cidPath: string,
   gatewayBase: string,
   opts: VerifiedFetchOptions,
-): Promise<{ source: BlockSource; target: Cid }> {
+): Promise<Uint8Array> {
   const [cidStr, ...segments] = cidPath.split("/").filter(Boolean);
-  const rootCid = parseCidString(cidStr);
-
   const range =
     opts.maxBytes !== undefined
       ? `entity-bytes=0:${Math.max(0, opts.maxBytes - 1)}`
@@ -538,8 +549,36 @@ async function fetchVerifiedTarget(
       `${url} did not return a verifiable (CAR) response — the IPFS gateway must support the trustless gateway spec`,
     );
   }
+  return new Uint8Array(await response.arrayBuffer());
+}
 
-  const car = new Uint8Array(await response.arrayBuffer());
+async function fetchVerifiedTarget(
+  cidPath: string,
+  gatewayBase: string,
+  opts: VerifiedFetchOptions,
+): Promise<{ source: BlockSource; target: Cid }> {
+  const [cidStr, ...segments] = cidPath.split("/").filter(Boolean);
+  const rootCid = parseCidString(cidStr);
+
+  const gateways = [
+    gatewayBase,
+    ...TRUSTLESS_GATEWAYS.filter((g) => g !== gatewayBase),
+  ];
+  let car: Uint8Array | undefined;
+  let lastError: unknown;
+  for (const gateway of gateways) {
+    try {
+      car = await fetchCar(cidPath, gateway, opts);
+      break;
+    } catch (err) {
+      // Only transport/format failures fall through to the next gateway —
+      // a CAR that fails verification is reported, never papered over.
+      if (opts.signal?.aborted) throw err;
+      lastError = err;
+    }
+  }
+  if (!car) throw lastError;
+
   const source = new BlockSource(parseCar(car));
   const target = await resolvePath(source, rootCid, segments);
   return { source, target };

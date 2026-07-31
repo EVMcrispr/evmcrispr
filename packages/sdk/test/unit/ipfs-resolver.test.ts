@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { IPFSResolver } from "../../src/IPFSResolver";
-import { verifiedIpfsEntity } from "../../src/utils/verifiedIpfs";
+import { IPFS_GATEWAY, IPFSResolver } from "../../src/IPFSResolver";
+import {
+  TRUSTLESS_GATEWAYS,
+  verifiedIpfsEntity,
+} from "../../src/utils/verifiedIpfs";
 
 // ---------------------------------------------------------------------------
 // Fixture builders: just enough varint/base58/base32/dag-pb/UnixFS/CAR
@@ -267,6 +270,29 @@ describe("IPFSResolver (verified)", () => {
 
     const resolver = new IPFSResolver();
     await expect(resolver.text(cid.str)).rejects.toThrow(/verifiable/);
+  });
+
+  it("falls back to a trustless gateway when the primary serves no CAR", async () => {
+    const content = text("shared script");
+    const cid = await cidV1Raw(content);
+    const archive = car([{ cid: cid.bytes, data: content }]);
+    // The default gateway answers plain text (no trustless support) — the
+    // content must still arrive, verified, from a fallback gateway.
+    globalThis.fetch = (async (url: string | URL) => {
+      const href = String(url);
+      requestedUrls.push(href);
+      return href.startsWith(IPFS_GATEWAY)
+        ? new Response("plain text", {
+            status: 200,
+            headers: { "Content-Type": "text/plain" },
+          })
+        : carResponse(archive);
+    }) as any;
+
+    const resolver = new IPFSResolver();
+    expect(await resolver.text(cid.str)).toBe("shared script");
+    expect(requestedUrls[0].startsWith(IPFS_GATEWAY)).toBe(true);
+    expect(requestedUrls[1].startsWith(TRUSTLESS_GATEWAYS[0])).toBe(true);
   });
 
   it("returns verified directory entries via verifiedIpfsEntity", async () => {
