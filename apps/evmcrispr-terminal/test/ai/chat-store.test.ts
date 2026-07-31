@@ -97,8 +97,47 @@ describe("saveChat / getChat / listChats", () => {
     expect(listChats().map((m) => m.id)).toEqual(["id-2", "id-1"]);
   });
 
+  test("scopes chats to their script (script 1-N chats)", () => {
+    saveChat("id-a", "for script A", items, messages, "script-a");
+    saveChat("id-b", "for script B", items, messages, "script-b");
+
+    expect(listChats("script-a").map((m) => m.id)).toEqual(["id-a"]);
+    expect(listChats("script-b").map((m) => m.id)).toEqual(["id-b"]);
+    expect(listChats()).toHaveLength(2);
+  });
+
+  test("legacy untagged chats show under every script until adopted", () => {
+    saveChat("id-legacy", "old chat", items, messages);
+    expect(listChats("script-a").map((m) => m.id)).toEqual(["id-legacy"]);
+    expect(listChats("script-b").map((m) => m.id)).toEqual(["id-legacy"]);
+
+    // Continuing it under a script adopts it there.
+    saveChat("id-legacy", "old chat", items, messages, "script-a");
+    expect(listChats("script-a").map((m) => m.id)).toEqual(["id-legacy"]);
+    expect(listChats("script-b")).toHaveLength(0);
+  });
+
   test("returns null for unknown ids", () => {
     expect(getChat("nope")).toBeNull();
+  });
+
+  test("loads legacy chats without rewriting their message history", () => {
+    localStorage.setItem(
+      "evmcrispr:chat:legacy",
+      JSON.stringify({ id: "legacy", items, messages }),
+    );
+
+    const stored = getChat("legacy");
+    expect(stored?.items).toEqual(items);
+    expect(stored?.messages).toEqual(messages);
+  });
+
+  test("ignores malformed stored chats", () => {
+    localStorage.setItem(
+      "evmcrispr:chat:broken",
+      JSON.stringify({ id: "broken", items: "not-an-array" }),
+    );
+    expect(getChat("broken")).toBeNull();
   });
 });
 

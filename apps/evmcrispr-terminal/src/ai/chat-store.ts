@@ -12,6 +12,9 @@ export interface ChatMeta {
   title: string;
   createdAt: string;
   updatedAt: string;
+  /** Owning script — a script has N chats. Absent on chats saved before
+   *  the hierarchy existed; they show under every script until re-saved. */
+  scriptId?: string;
 }
 
 export interface StoredChat {
@@ -31,16 +34,37 @@ function writeIndex(index: ChatMeta[]) {
   localStorage.setItem(CHAT_INDEX_KEY, JSON.stringify(index));
 }
 
-/** All stored conversations, most recently updated first. */
-export function listChats(): ChatMeta[] {
-  return readIndex().sort(
+/** Stored conversations, most recently updated first. With a scriptId,
+ *  only that script's chats (plus legacy untagged ones). */
+export function listChats(scriptId?: string): ChatMeta[] {
+  const all = readIndex().sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
+  return scriptId
+    ? all.filter((m) => m.scriptId == null || m.scriptId === scriptId)
+    : all;
 }
 
 export function getChat(id: string): StoredChat | null {
   const raw = localStorage.getItem(`${CHAT_PREFIX}${id}`);
-  return raw ? (JSON.parse(raw) as StoredChat) : null;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredChat>;
+    if (
+      typeof parsed.id !== "string" ||
+      !Array.isArray(parsed.items) ||
+      !Array.isArray(parsed.messages)
+    ) {
+      return null;
+    }
+    return {
+      id: parsed.id,
+      items: parsed.items,
+      messages: parsed.messages,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function deriveTitle(firstUserText: string): string {
@@ -55,6 +79,7 @@ export function saveChat(
   title: string,
   items: ChatItem[],
   messages: ModelMessage[],
+  scriptId?: string,
 ) {
   const now = new Date().toISOString();
   const index = listChats();
@@ -62,8 +87,10 @@ export function saveChat(
   if (existing) {
     existing.title = title;
     existing.updatedAt = now;
+    // Adopt legacy chats into the script they are continued under.
+    if (scriptId) existing.scriptId = scriptId;
   } else {
-    index.unshift({ id, title, createdAt: now, updatedAt: now });
+    index.unshift({ id, title, createdAt: now, updatedAt: now, scriptId });
   }
 
   // Prune oldest conversations beyond the cap (payloads included).
@@ -75,7 +102,11 @@ export function saveChat(
     localStorage.removeItem(`${CHAT_PREFIX}${dropped.id}`);
   }
 
-  const payload = JSON.stringify({ id, items, messages } satisfies StoredChat);
+  const payload = JSON.stringify({
+    id,
+    items,
+    messages,
+  } satisfies StoredChat);
   try {
     writeIndex(keep);
     localStorage.setItem(`${CHAT_PREFIX}${id}`, payload);

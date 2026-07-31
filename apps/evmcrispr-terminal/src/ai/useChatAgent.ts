@@ -1,10 +1,17 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useEvmlTag } from "@evmcrispr/editor";
 import { APICallError, type ModelMessage, stepCountIs, streamText } from "ai";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useTerminalStore } from "../stores/terminal-store";
 import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
-import { deriveTitle, getChat, removeChat, saveChat } from "./chat-store";
+import {
+  deriveTitle,
+  getChat,
+  listChats,
+  removeChat,
+  saveChat,
+} from "./chat-store";
 import { createChatTools } from "./tools";
 
 const NEXUS_BASE_URL = "https://nexus-api.dappnode.com/v1";
@@ -80,6 +87,11 @@ export function useChatAgent() {
   const historyRef = useRef<ModelMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
+  // A chat belongs to the script it was started under (script 1-N chats).
+  // Captured here rather than read live so a run that outlasts a script
+  // switch still persists under its own script.
+  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const chatScriptIdRef = useRef<string | null | undefined>(undefined);
   // Mirrors `items` so async persistence sees the latest render list.
   const itemsRef = useRef<ChatItem[]>([]);
   const conversationIdRef = useRef(conversationId);
@@ -104,6 +116,7 @@ export function useChatAgent() {
       deriveTitle(firstUser.text),
       current,
       historyRef.current,
+      chatScriptIdRef.current ?? undefined,
     );
   }, []);
 
@@ -259,6 +272,24 @@ export function useChatAgent() {
     },
     [isRunning, newChat],
   );
+
+  // Chats follow the script (script 1-N chats): creating or switching
+  // scripts swaps the conversation to that script's latest chat, or a
+  // fresh one for a script with no chats yet.
+  useEffect(() => {
+    if (!currentScriptId || isRunning) return;
+    if (chatScriptIdRef.current === undefined) {
+      // First resolution after mount — keep the fresh conversation, just
+      // record which script owns it.
+      chatScriptIdRef.current = currentScriptId;
+      return;
+    }
+    if (chatScriptIdRef.current === currentScriptId) return;
+    chatScriptIdRef.current = currentScriptId;
+    const latest = listChats(currentScriptId)[0];
+    if (latest && getChat(latest.id)) openChat(latest.id);
+    else newChat();
+  }, [currentScriptId, isRunning, openChat, newChat]);
 
   /** Rewind to the last user message and run it again. */
   const regenerate = useCallback(() => {

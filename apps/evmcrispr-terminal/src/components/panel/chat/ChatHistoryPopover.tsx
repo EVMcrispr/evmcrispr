@@ -3,6 +3,7 @@ import { cn, IconButton, Popover } from "@repo/ui";
 import { useState } from "react";
 
 import { type ChatMeta, listChats } from "../../../ai/chat-store";
+import { useTerminalStore } from "../../../stores/terminal-store";
 
 function relativeDate(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -28,12 +29,14 @@ export function ChatHistoryPopover({
 }) {
   const [open, setOpen] = useState(false);
   const [chats, setChats] = useState<ChatMeta[]>([]);
+  // Chats belong to the current script (script 1-N chats).
+  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
 
   return (
     <Popover
       open={open}
       onOpenChange={(next) => {
-        if (next) setChats(listChats());
+        if (next) setChats(listChats(currentScriptId ?? undefined));
         setOpen(next);
       }}
     >
@@ -90,7 +93,7 @@ export function ChatHistoryPopover({
                 className="opacity-0 group-hover:opacity-100 shrink-0"
                 onClick={() => {
                   onDeleteChat(chat.id);
-                  setChats(listChats());
+                  setChats(listChats(currentScriptId ?? undefined));
                 }}
               >
                 <TrashIcon className="w-4 h-4" />
