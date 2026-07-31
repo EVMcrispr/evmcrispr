@@ -4,7 +4,9 @@ import { isTransactionAction } from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { custom } from "viem";
 import { gnosis } from "viem/chains";
+import { ModuleRegistry } from "../../../src/evml/registry";
 import { createEvml } from "../../../src/evml/tag";
+import { Interpreter } from "../../../src/interpreter/Interpreter";
 
 describe("evml > script", () => {
   it("parses lazily and caches the AST", () => {
@@ -63,6 +65,34 @@ print $x`;
     });
     expect(seen).to.have.lengthOf(1);
     expect(isTransactionAction(seen[0])).to.be.true;
+  });
+
+  it("notifies action observers when actions are dispatched", async () => {
+    // Simulation relies on this: `sim:fork` consumes its block's actions
+    // and returns none, so observers at the dispatch choke point are the
+    // only way to report what a simulated script executes.
+    const fakeTransport = custom({
+      request: async ({ method }: { method: string }) => {
+        if (method === "eth_chainId") return `0x${gnosis.id.toString(16)}`;
+        throw new Error(`unexpected RPC call: ${method}`);
+      },
+    });
+    const interpreter = new Interpreter(new ModuleRegistry(), {
+      account: TEST_ACCOUNT_ADDRESS as `0x${string}`,
+      chainId: gnosis.id,
+      transports: { [gnosis.id]: fakeTransport },
+    });
+    const observed: Action[] = [];
+    interpreter.registerActionObserver((action) => observed.push(action));
+
+    await interpreter.interpret(
+      "exec 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 transfer(address,uint256) 0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3 1",
+      async () => undefined,
+    );
+
+    expect(observed).to.have.lengthOf(1);
+    expect(isTransactionAction(observed[0])).to.be.true;
+    expect((observed[0] as { chainId?: number }).chainId).to.equal(gnosis.id);
   });
 
   it("simulate() fails fast when sim is not registered", async () => {
