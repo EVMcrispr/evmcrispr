@@ -8,9 +8,10 @@
       "!**/.astro",
       "!**/.turbo",
       "!**/coverage",
+      "!**/test-results",
+      "!**/playwright-report",
       "!**/generated",
       "!**/_generated.ts",
-      "!**/*.astro",
       "!**/editor/evml.ts",
       "!**/lib/revm/pkg"
     ]
@@ -72,5 +73,25 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          }
+        }
+      },
+      "assist": {
+        "actions": {
+          "source": {
+            "organizeImports": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -1,6 +1,8 @@
 module.exports = {
-  // Type check TypeScript files
-  "(apps|packages)/**/*.(ts|tsx)": () => "bun run type-check",
+  // Type check TypeScript files. `.astro` is in here because the website's
+  // type-check is `astro check`, the only checker that sees inside Astro
+  // templates — without it an astro-only commit is checked by nothing.
+  "(apps|packages)/**/*.(ts|tsx|astro)": () => "bun run type-check",
 
   // Lint and format TypeScript and JavaScript files
   "(apps|packages)/**/*.(ts|tsx|js)": (filenames) => [
