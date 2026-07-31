@@ -1,21 +1,21 @@
 import { Button } from "@repo/ui";
-import type { Connector } from "wagmi";
 import { useConnect } from "wagmi";
 
 export default function WalletButton({
   name,
   leftIcon,
   onClick,
+  disabled = false,
 }: {
   name: string;
-  connector?: Connector;
   leftIcon: React.ReactElement;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   const { isPending } = useConnect();
   return (
     <Button
-      disabled={isPending}
+      disabled={disabled || isPending}
       onClick={onClick}
       variant="outline"
       size="lg"

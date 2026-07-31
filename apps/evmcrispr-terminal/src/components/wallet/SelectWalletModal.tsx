@@ -1,14 +1,22 @@
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Dialog, Drawer, IconButton } from "@repo/ui";
-import { useState } from "react";
-import type { Connector } from "wagmi";
+import { useCallback, useState } from "react";
 import { useConnect, useConnectors } from "wagmi";
+import { useWalletConnect } from "../../hooks/useWalletConnect";
+import type { MobileWallet } from "../../utils/mobile-wallet";
+import {
+  hasInjectedProvider,
+  isMobileDevice,
+  MOBILE_WALLETS,
+} from "../../utils/mobile-wallet";
 import MetamaskIcon from "../icons/MetamaskIcon";
 import SafeIcon from "../icons/SafeIcon";
 import WalletIcon from "../icons/WalletIcon";
 import SafeConnect from "./SafeConnect";
 import WalletButton from "./WalletButton";
 import WalletConnectCode from "./WalletConnectCode";
+
+type View = "wallets" | "walletConnect" | "safe";
 
 export default function SelectWalletModal({
   isOpen,
@@ -19,44 +27,115 @@ export default function SelectWalletModal({
   onClose: () => void;
   mobile?: boolean;
 }) {
-  const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+  const [view, setView] = useState<View>("wallets");
+  const [deepLinkedWallet, setDeepLinkedWallet] = useState<MobileWallet | null>(
+    null,
+  );
+  const { mutate: connect } = useConnect();
   const connectors = useConnectors();
   const walletConnectConnector = connectors.find(
     (c) => c.id === "walletConnect",
   );
+  const injectedConnector = connectors.find((c) => c.id === "injected");
+  // The device decides how we connect; the `mobile` prop only picks the shell.
+  // Inside a wallet's own dapp browser there is a provider to talk to, so a
+  // phone only needs deep links when nothing was injected.
+  const injectedAvailable = hasInjectedProvider();
+  const useDeepLinks = isMobileDevice() && !injectedAvailable;
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     onClose();
-    setSelectedWallet(null);
+    setView("wallets");
+    setDeepLinkedWallet(null);
+  }, [onClose]);
+
+  const { wcUri, error, startConnection, reopenWallet, canReopenWallet } =
+    useWalletConnect({
+      walletConnectConnector,
+      onConnect: handleModalClose,
+    });
+
+  const openWalletConnect = (wallet?: MobileWallet) => {
+    // No WalletConnect project id configured: the wallet's own dapp browser is
+    // the only remaining way in on a phone.
+    if (!walletConnectConnector) {
+      const fallback = wallet?.dappBrowserLink?.();
+      if (fallback) window.location.href = fallback;
+      return;
+    }
+
+    setDeepLinkedWallet(wallet ?? null);
+    setView("walletConnect");
+    startConnection(wallet?.deepLink);
   };
 
   const renderModalContent = () => {
-    if (selectedWallet === "walletConnect" && walletConnectConnector) {
+    if (view === "walletConnect") {
       return (
         <WalletConnectCode
-          walletConnectConnector={walletConnectConnector}
-          onConnect={handleModalClose}
+          wcUri={wcUri}
+          error={error}
+          walletName={deepLinkedWallet?.name}
+          canReopenWallet={canReopenWallet}
+          onReopenWallet={reopenWallet}
         />
       );
     }
 
-    if (selectedWallet === "safe") {
+    if (view === "safe") {
       return <SafeConnect onConnect={handleModalClose} />;
     }
 
     return (
-      <WalletList
-        connectors={connectors}
-        handleModalClose={handleModalClose}
-        setSelectedWallet={setSelectedWallet}
-      />
+      <div className="flex w-full max-w-[300px] flex-col gap-7">
+        {useDeepLinks ? (
+          MOBILE_WALLETS.map((wallet) => (
+            <WalletButton
+              key={wallet.id}
+              name={wallet.name}
+              leftIcon={<MetamaskIcon />}
+              disabled={!walletConnectConnector && !wallet.dappBrowserLink}
+              onClick={() => openWalletConnect(wallet)}
+            />
+          ))
+        ) : (
+          <WalletButton
+            name="Metamask"
+            leftIcon={<MetamaskIcon />}
+            disabled={!injectedConnector || !injectedAvailable}
+            onClick={() => {
+              if (!injectedConnector) return;
+              connect(
+                { connector: injectedConnector },
+                { onSuccess: handleModalClose },
+              );
+            }}
+          />
+        )}
+        {/* On a phone this covers every wallet we do not deep-link into: the
+            user copies the link and pastes it in their app. */}
+        {walletConnectConnector && (
+          <WalletButton
+            name={useDeepLinks ? "Other wallet" : "WalletConnect"}
+            leftIcon={<WalletIcon />}
+            onClick={() => openWalletConnect()}
+          />
+        )}
+        <WalletButton
+          name="Safe"
+          leftIcon={<SafeIcon />}
+          onClick={() => setView("safe")}
+        />
+      </div>
     );
   };
 
   const getModalTitle = () => {
-    switch (selectedWallet) {
+    switch (view) {
       case "walletConnect":
-        return "Scan with WalletConnect";
+        return deepLinkedWallet
+          ? `Connect ${deepLinkedWallet.name}`
+          : "Scan with WalletConnect";
       case "safe":
         return "Connect to a Safe";
       default:
@@ -98,7 +177,7 @@ export default function SelectWalletModal({
               </IconButton>
             </Drawer.Close>
           </Drawer.Header>
-          <div className="mobile-safe-bottom flex w-full flex-col items-center px-6 py-8">
+          <div className="mobile-safe-bottom flex w-full flex-col items-center overflow-y-auto px-6 py-8">
             {renderModalContent()}
           </div>
         </Drawer.Content>
@@ -120,51 +199,5 @@ export default function SelectWalletModal({
         </div>
       </Dialog.Content>
     </Dialog>
-  );
-}
-
-function WalletList({
-  connectors,
-  handleModalClose,
-  setSelectedWallet,
-}: {
-  connectors: readonly Connector[];
-  handleModalClose: () => void;
-  setSelectedWallet: (wallet: string) => void;
-}) {
-  const { mutate: connect } = useConnect();
-  const walletConnectConnector = connectors.find(
-    (c) => c.id === "walletConnect",
-  );
-
-  return (
-    <div className="flex w-full max-w-[300px] flex-col gap-7">
-      <WalletButton
-        name="Metamask"
-        connector={connectors[0]}
-        leftIcon={<MetamaskIcon />}
-        onClick={() => {
-          connect(
-            { connector: connectors[0] },
-            { onSuccess: handleModalClose },
-          );
-        }}
-      />
-      {walletConnectConnector && (
-        <WalletButton
-          name="WalletConnect"
-          leftIcon={<WalletIcon />}
-          onClick={() => {
-            setSelectedWallet("walletConnect");
-            walletConnectConnector.connect();
-          }}
-        />
-      )}
-      <WalletButton
-        name="Safe"
-        leftIcon={<SafeIcon />}
-        onClick={() => setSelectedWallet("safe")}
-      />
-    </div>
   );
 }

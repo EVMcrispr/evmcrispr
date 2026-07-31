@@ -16,6 +16,14 @@ export const config: ReturnType<typeof createConfig> = createConfig({
       WALLETCONNECT_PROJECT_ID &&
       walletConnect({
         projectId: WALLETCONNECT_PROJECT_ID,
+        // Shown by the wallet app on the approval screen, which is all the
+        // user sees of us during a mobile deep-link connection.
+        metadata: {
+          name: "EVMcrispr Terminal",
+          description: "Write and run EVM scripts from your browser",
+          url: window.location.origin,
+          icons: [`${window.location.origin}/logo192.png`],
+        },
         showQrModal: false,
       }),
     isIframe &&
