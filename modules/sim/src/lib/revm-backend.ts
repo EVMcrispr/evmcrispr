@@ -1,5 +1,6 @@
 import {
   type Action,
+  describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
@@ -219,7 +220,10 @@ export async function createRevmBackend(
 
     const env = await execWithReplay(() => fork.transact(tx));
     if (env.kind === "revert") {
-      throw new RevertError("Transaction reverted", env.revertData);
+      // The decoded on-chain reason is self-descriptive; the generic prefix
+      // is only a fallback for reverts that carry no data.
+      const reason = describeRevertData(env.revertData);
+      throw new RevertError(reason ?? "Transaction reverted", env.revertData);
     }
     if (env.kind === "halt") {
       throw new RevertError(`Transaction reverted: ${env.reason}`);
@@ -250,7 +254,8 @@ export async function createRevmBackend(
     });
     const env = await execWithReplay(() => fork.call(tx));
     if (env.kind === "revert") {
-      throw new RevertError("execution reverted", env.revertData);
+      const reason = describeRevertData(env.revertData);
+      throw new RevertError(reason ?? "execution reverted", env.revertData);
     }
     if (env.kind === "halt") {
       throw new Error(`execution halted: ${env.reason}`);
