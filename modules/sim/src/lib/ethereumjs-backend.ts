@@ -13,6 +13,7 @@ import type { VM } from "@ethereumjs/vm";
 import { createVM } from "@ethereumjs/vm";
 import {
   type Action,
+  describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
@@ -205,8 +206,13 @@ export async function createEthereumJSBackend(
         returnValue && returnValue.length > 0
           ? (bytesToHex(returnValue) as `0x${string}`)
           : undefined;
+      // The decoded on-chain reason (Error(string), Panic, custom error) is
+      // self-descriptive; fall back to the generic prefix with EthereumJS's
+      // internal exception kind (e.g. "revert") when there's no data.
+      const reason = describeRevertData(revertData);
       throw new RevertError(
-        `Transaction reverted: ${result.execResult.exceptionError.error}`,
+        reason ??
+          `Transaction reverted: ${result.execResult.exceptionError.error}`,
         revertData,
       );
     }
@@ -303,7 +309,17 @@ async function handleEthCall(
       skipBalance: true,
     });
     if (result.execResult.exceptionError) {
-      throw new Error(result.execResult.exceptionError.error);
+      const returnValue = result.execResult.returnValue;
+      const revertData =
+        returnValue && returnValue.length > 0
+          ? (bytesToHex(returnValue) as `0x${string}`)
+          : undefined;
+      const reason = describeRevertData(revertData);
+      throw new RevertError(
+        reason ??
+          `execution reverted: ${result.execResult.exceptionError.error}`,
+        revertData,
+      );
     }
     return bytesToHex(result.execResult.returnValue);
   } finally {

@@ -2,8 +2,10 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
 import {
   createPublicClient,
+  encodeErrorResult,
   getContractAddress,
   type PublicClient,
+  parseAbi,
 } from "viem";
 import { gnosis } from "viem/chains";
 import {
@@ -263,6 +265,39 @@ export function describeBackendSuite(
       await expect(backend.handleAction(action)).rejects.toThrow(
         "Transaction reverted",
       );
+    });
+
+    it("decodes the on-chain revert reason into the error message", async () => {
+      const { backend } = await makeBackend();
+      const reverter = "0x00000000000000000000000000000000000e1118";
+      const payload = encodeErrorResult({
+        abi: parseAbi(["error Error(string)"]),
+        errorName: "Error",
+        args: ["nope"],
+      });
+      // Runtime: CODECOPY(dest=0, offset=12, len); REVERT(0, len) — the
+      // ABI-encoded Error("nope") payload sits after the 12 code bytes.
+      const len = ((payload.length - 2) / 2).toString(16).padStart(2, "0");
+      const bytecode = `0x60${len}600c60003960${len}6000fd${payload.slice(2)}`;
+
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [reverter, bytecode],
+      });
+
+      // The message is exactly the decoded reason — no generic
+      // "Transaction reverted:" prefix when the revert carries data.
+      const err = await backend
+        .handleAction({
+          from: ADDR,
+          to: reverter,
+          data: "0x",
+        } as Action)
+        .then(() => null)
+        .catch((e: Error) => e);
+      expect(err).toBeInstanceOf(Error);
+      expect(err!.message).toBe("nope");
     });
 
     // -------------------------------------------------------------------------
