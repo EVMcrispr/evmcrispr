@@ -800,6 +800,15 @@ function Editor({
       tabSize: 2,
       minimap: { enabled: false },
       wordWrap: "on" as const,
+      // Match the Shiki viewer's CSS wrapping (`pre-wrap` +
+      // `overflow-wrap: anywhere` in components.css): break only at
+      // whitespace instead of Monaco's defaults, which split tokens like
+      // "balanceOf(address)(uint256)" at parentheses. Whitespace must stay
+      // in the after-list or Monaco falls back to breaking anywhere.
+      // Monaco still force-breaks a token too wide to fit on a line by
+      // itself, mirroring `overflow-wrap: anywhere`.
+      wordWrapBreakBeforeCharacters: "",
+      wordWrapBreakAfterCharacters: " \t",
       scrollbar: {
         useShadows: false,
         verticalScrollbarSize: 7,

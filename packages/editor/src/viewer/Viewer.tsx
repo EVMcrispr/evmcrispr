@@ -7,11 +7,15 @@ import {
 } from "react";
 import { useScriptAnalysis } from "../hooks/useScriptAnalysis";
 import { useShiki } from "../hooks/useShiki";
+import { evmlBracketColorizationTransformer } from "./bracketColorization";
 import { DiagnosticsChip } from "./DiagnosticsChip";
 import { HoverPopover } from "./HoverPopover";
 import { evmlTwoslashTransformer } from "./twoslashTransformer";
 
-const TRANSFORMERS = [evmlTwoslashTransformer()];
+const TRANSFORMERS = [
+  evmlBracketColorizationTransformer(),
+  evmlTwoslashTransformer(),
+];
 
 export interface ViewerProps {
   script: string;
