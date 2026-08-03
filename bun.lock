@@ -121,6 +121,7 @@
         "@astrojs/react": "^6.0.0",
         "@astrojs/starlight": "^0.41.2",
         "@evmcrispr/editor": "*",
+        "@evmcrispr/module-token": "*",
         "@fontsource/jetbrains-mono": "^5.2.8",
         "@repo/ui": "*",
         "@tailwindcss/vite": "^4.3.2",

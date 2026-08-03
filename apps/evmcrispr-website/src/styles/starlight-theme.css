@@ -30,6 +30,10 @@
   --sl-shadow-sm: 2px 2px 0 0 rgba(140, 244, 103, 0.3);
   --sl-shadow-md: 3px 3px 0 0 rgba(140, 244, 103, 0.3);
   --sl-shadow-lg: 4px 4px 0 0 rgba(140, 244, 103, 0.3);
+
+  /* Taller navbar (default 3.5rem) — gives the logo and search room to
+     breathe. Sidebar and content offsets derive from this variable. */
+  --sl-nav-height: 4.75rem;
 }
 
 /* ── Retro overrides: no border-radius ─────────────────────── */
@@ -45,6 +49,32 @@ nav.sidebar a,
 .hero .action a,
 .sl-markdown-content .expressive-code pre {
   border-radius: 0;
+}
+
+/* ── Search box spans the main text column ─────────────────── */
+/* Starlight caps the trigger at 22rem; the header grid already aligns
+   this column with the content column, so matching --sl-content-width
+   makes the box exactly as wide as the page text. */
+site-search button[data-open-modal] {
+  max-width: var(--sl-content-width);
+}
+
+/* Make the search box fill the navbar height (mobile keeps the small
+   icon-only trigger). */
+@media (min-width: 50rem) {
+  header .header > div:has(> site-search) {
+    align-self: stretch;
+  }
+
+  site-search button[data-open-modal] {
+    height: 100%;
+  }
+}
+
+/* Green border feedback on the search trigger. */
+site-search button[data-open-modal]:hover,
+site-search button[data-open-modal]:active {
+  border-color: var(--sl-color-accent-high);
 }
 
 /* ── Hide light/dark theme toggle ──────────────────────────── */

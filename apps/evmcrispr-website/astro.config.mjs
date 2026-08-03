@@ -1,12 +1,15 @@
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import circomGrammar from "@evmcrispr/editor/grammars/circom";
@@ -255,6 +258,65 @@ function docItem(label, slug) {
   return { label, slug };
 }
 
+// ---------------------------------------------------------------------------
+// Self-hosted Monaco assets for the homepage hero terminal
+// ---------------------------------------------------------------------------
+// @evmcrispr/editor loads monaco's AMD build from `/vs` on the page's own
+// origin (no CDN — injected <script> tags can't be hash-verified). Same
+// plugin as apps/evmcrispr-terminal/vite.config.ts: dev serves straight from
+// the installed monaco-editor package, build copies min/vs into the output.
+// monaco-editor isn't a direct dependency here, so it's resolved through
+// @evmcrispr/editor, which pins it.
+const MONACO_MIME = {
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".ttf": "font/ttf",
+  ".json": "application/json",
+};
+
+function monacoAssets() {
+  const require = createRequire(import.meta.url);
+  const editorRequire = createRequire(
+    require.resolve("@evmcrispr/editor/package.json"),
+  );
+  // monaco's exports map hides package.json; the "." require entry points
+  // at min/vs/index.js, whose directory is the AMD build we serve.
+  const vsDir = dirname(editorRequire.resolve("monaco-editor"));
+  let copyTarget = "";
+  return {
+    name: "monaco-assets",
+    configResolved(config) {
+      // Astro runs several vite builds; only the client build's outDir is
+      // the published site (the server build is a temp dir that gets
+      // cleaned up, so a stray copy there is harmless).
+      copyTarget = join(resolve(config.root, config.build.outDir), "vs");
+    },
+    configureServer(server) {
+      server.middlewares.use("/vs", (req, res, next) => {
+        const rel = normalize(
+          decodeURIComponent((req.url ?? "/").split("?")[0]),
+        ).replace(/^[/\\]+/, "");
+        const file = join(vsDir, rel);
+        if (
+          !file.startsWith(vsDir + sep) ||
+          !existsSync(file) ||
+          !statSync(file).isFile()
+        ) {
+          return next();
+        }
+        res.setHeader(
+          "Content-Type",
+          MONACO_MIME[extname(file)] ?? "application/octet-stream",
+        );
+        res.end(readFileSync(file));
+      });
+    },
+    closeBundle() {
+      if (copyTarget) cpSync(vsDir, copyTarget, { recursive: true });
+    },
+  };
+}
+
 export default defineConfig({
   // Canonical site URL (sitemap, og tags). The experimental deploy
   // overrides PUBLIC_SITE_URL with its own domain.
@@ -290,12 +352,18 @@ export default defineConfig({
         {
           // The ⚗️ experimental marker lands in escaped contexts (page
           // titles, sidebar labels, table cells) where markdown/HTML can't
-          // attach a tooltip — set it globally instead.
+          // emit an icon — swap each occurrence for the lucide flask-conical
+          // SVG (with an "Experimental" tooltip) globally instead.
           tag: "script",
-          content: `document.addEventListener("DOMContentLoaded",()=>{const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const els=new Set();while(w.nextNode())if(w.currentNode.nodeValue.includes("\\u2697\\uFE0F"))els.add(w.currentNode.parentElement);for(const el of els)el.title="Experimental"});`,
+          content: `document.addEventListener("DOMContentLoaded",()=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-0.125em" role="img" aria-label="Experimental"><title>Experimental</title><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg>';const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(w.nextNode()){const n=w.currentNode;if(n.nodeValue.includes("\\u2697\\uFE0F")&&!["SCRIPT","STYLE","TEXTAREA"].includes(n.parentElement?.tagName))nodes.push(n)}for(const n of nodes){const parts=n.nodeValue.split("\\u2697\\uFE0F");const frag=document.createDocumentFragment();parts.forEach((p,i)=>{if(p)frag.appendChild(document.createTextNode(p));if(i<parts.length-1){const t=document.createElement("template");t.innerHTML=svg;const el=t.content.firstChild;el.title="Experimental";frag.appendChild(el)}});n.replaceWith(frag)}});`,
         },
       ],
       title: "EVMcrispr",
+      logo: {
+        src: "./src/assets/logo.svg",
+        alt: "EVMcrispr",
+        replacesTitle: true,
+      },
       social: [
         {
           icon: "github",
@@ -352,6 +420,6 @@ export default defineConfig({
     react(),
   ],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), monacoAssets()],
   },
 });

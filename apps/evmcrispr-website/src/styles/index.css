@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "@repo/ui/styles/theme.css";
+@import "@evmcrispr/editor/styles/components.css";
 @import "@fontsource/jetbrains-mono";
 @import "@fontsource/jetbrains-mono/700.css";
 
 @source "../../../../packages/ui/src";
+@source "../../../../packages/editor/src";
 
 @theme {
   --font-mono: "JetBrains Mono", monospace;
@@ -12,6 +14,19 @@
 #root {
   height: 100%;
   background: black;
+}
+
+/* ── Hero terminal: match the docs code blocks ───────────────── */
+/* Starlight's expressive-code frames use --sl-color-gray-6 (#121212) as
+   the code surface. `--color-background` is what `bg-background` reads,
+   and overriding it here retints every surface inside the terminal (the
+   viewer, Monaco — transparent bg — and the simulation drawer).
+   `--background` is kept in sync for anything reading the raw token.
+   Doubled selector outranks the token definitions in
+   @evmcrispr/editor/styles/components.css, which is imported unlayered. */
+.evmcrispr-root.hero-terminal {
+  --background: #121212;
+  --color-background: #121212;
 }
 
 /* ── Staggered fade-in animations ────────────────────────────── */
