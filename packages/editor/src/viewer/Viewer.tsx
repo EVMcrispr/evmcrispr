@@ -20,6 +20,9 @@ const TRANSFORMERS = [
 
 export interface ViewerProps {
   script: string;
+  /** Font size (px) of the rendered script. Overrides the stylesheet
+   *  default (22px desktop / 18px mobile) when set. */
+  fontSize?: number;
   /** 1-based line currently being executed — highlighted + scrolled into view. */
   executingLine?: number | null;
   /** Called when the user taps/clicks the script body (outside hover
@@ -38,6 +41,7 @@ export interface ViewerProps {
  */
 export function Viewer({
   script,
+  fontSize,
   executingLine,
   onActivateEdit,
   onOpenDocs,
@@ -123,6 +127,7 @@ export function Viewer({
       <div
         ref={containerRef}
         className="flex-1 min-h-0 overflow-auto evml-viewer"
+        style={fontSize != null ? { fontSize } : undefined}
         onClick={handleViewerClick}
       >
         {html ? (

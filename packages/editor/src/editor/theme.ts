@@ -1,5 +1,20 @@
 import type { editor } from "monaco-editor";
 
+/** The base theme with the editor surface repainted in a concrete color.
+ *  Monaco needs an opaque background (transparency breaks features that
+ *  paint over the text, e.g. sticky scroll and the find widget), so hosts
+ *  that retint the terminal surface pass the exact color instead. */
+export function themeWithBackground(background: string): typeof theme {
+  return {
+    ...theme,
+    colors: {
+      ...theme.colors,
+      "editor.background": background,
+      "editorGutter.background": background,
+    },
+  };
+}
+
 export const theme = {
   base: "vs-dark" as editor.BuiltinTheme,
   inherit: true,

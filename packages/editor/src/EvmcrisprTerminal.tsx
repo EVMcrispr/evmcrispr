@@ -1,4 +1,5 @@
 import type { EvmlScript } from "@evmcrispr/core";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { Console } from "./console/Console";
 import {
@@ -25,14 +26,28 @@ export interface EvmcrisprTerminalProps
   /** "edit" shows Monaco, "view" the lightweight Shiki viewer. */
   mode?: "edit" | "view";
   onModeChange?: (mode: "edit" | "view") => void;
-  /** Height of the script area. The console grows below it. */
+  /** Height of the script area. The console grows below it. Pass "fill"
+   *  to let the script area flex into whatever height the host gives the
+   *  terminal (e.g. via `className="h-full"`). */
   height?: string | number;
+  /** Font size (px) of the script. Applied to both the Shiki viewer and
+   *  Monaco so toggling view ↔ edit never reflows. Defaults to 22. */
+  fontSize?: number;
+  /** Exact background color of the script surface (e.g. "#121212").
+   *  Hosts retinting the terminal (via className / CSS vars) must pass the
+   *  same color here: Monaco can't inherit it and needs an opaque value —
+   *  a transparent surface breaks features that paint over the text, like
+   *  sticky scroll and the find widget. Defaults to the black theme. */
+  editorBackground?: string;
   readOnly?: boolean;
+  /** Show the console strip below the terminal. Only applies when
+   *  `executeAction` is set — in no-wallet mode output lives in the
+   *  simulation drawer instead. */
   showConsole?: boolean;
   /** Injection point for hosts that can sign transactions. When absent the
-   *  terminal runs in no-wallet mode: `Run` interprets the script with a
-   *  read-only client, prints land in the console, and resolved
-   *  transactions are decoded and displayed — never sent. */
+   *  terminal runs in no-wallet mode: `Simulate` interprets the script with
+   *  a read-only client and a drawer slides up over the script showing the
+   *  decoded transactions and console output — nothing is ever sent. */
   executeAction?: (
     script: EvmlScript,
     ctx: { onLog: (log: string) => void },
@@ -47,6 +62,8 @@ function TerminalInner({
   mode: modeProp,
   onModeChange,
   height = 320,
+  fontSize,
+  editorBackground,
   readOnly,
   showConsole = true,
   executeAction,
@@ -84,6 +101,8 @@ function TerminalInner({
 
   const interpreter = useScriptInterpreter();
   const [executeErrors, setExecuteErrors] = useState<string[]>([]);
+  // No-wallet mode: simulation results slide up in a drawer over the script.
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const run = useCallback(async () => {
     if (executeAction) {
@@ -101,6 +120,7 @@ function TerminalInner({
       }
       return;
     }
+    setDrawerOpen(true);
     await interpreter.interpret(scriptRef.current);
   }, [executeAction, interpreter, tag]);
 
@@ -109,17 +129,31 @@ function TerminalInner({
     [interpreter.errors, executeErrors],
   );
 
+  // Stable reference — a fresh object every render would make Monaco
+  // re-apply its options on each parent render.
+  const editorOptions = useMemo(
+    () => (fontSize != null ? { fontSize } : undefined),
+    [fontSize],
+  );
+
   return (
     <div
       className={cn(
-        "evmcrispr-root dark flex flex-col border-2 border-border bg-background text-foreground font-clearer",
+        "evmcrispr-root dark flex flex-col border-2 border-border bg-background text-foreground font-clearer rounded-(--radius) overflow-hidden",
         className,
       )}
     >
-      <div style={{ height }} className="min-h-0 shrink-0">
+      <div
+        style={height === "fill" ? undefined : { height }}
+        className={cn(
+          "relative min-h-0 overflow-hidden",
+          height === "fill" ? "flex-1" : "shrink-0",
+        )}
+      >
         {mode === "view" ? (
           <Viewer
             script={script}
+            fontSize={fontSize}
             executingLine={interpreter.executingLine}
             onActivateEdit={readOnly ? undefined : () => setMode("edit")}
           />
@@ -136,43 +170,88 @@ function TerminalInner({
               onChange={handleScriptChange}
               executingLine={interpreter.executingLine}
               readOnly={readOnly}
+              options={editorOptions}
+              background={editorBackground}
             />
           </Suspense>
         )}
+
+        {!executeAction && (
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 z-10 flex max-h-[85%] flex-col border-t-2 border-border bg-background transition-transform duration-300",
+              drawerOpen ? "translate-y-0" : "translate-y-full",
+            )}
+            aria-hidden={!drawerOpen}
+          >
+            <div className="flex items-center justify-between border-b border-border/40 bg-evm-gray-900/50 px-3 py-2">
+              <span className="font-head text-sm text-foreground/70">
+                {interpreter.isRunning ? "Simulating…" : "Simulation result"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Close simulation result"
+                className="text-foreground/50 hover:text-foreground transition-colors cursor-pointer"
+                tabIndex={drawerOpen ? 0 : -1}
+              >
+                <XMarkIcon className="size-4" />
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-3 py-2">
+              {interpreter.isRunning ? (
+                <p className="py-2 text-sm text-foreground/40">
+                  Running the script against a read-only client…
+                </p>
+              ) : (
+                <>
+                  {interpreter.actions.length > 0 && (
+                    <ActionsPreview actions={interpreter.actions} />
+                  )}
+                  {(interpreter.logs.length > 0 || errors.length > 0) && (
+                    <Console logs={interpreter.logs} errors={errors} />
+                  )}
+                  {interpreter.actions.length === 0 &&
+                    interpreter.logs.length === 0 &&
+                    errors.length === 0 && (
+                      <p className="py-2 text-sm text-foreground/40">
+                        The script completed without producing transactions or
+                        output.
+                      </p>
+                    )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-border/40 bg-evm-gray-900/50">
+      <div className="flex items-center justify-end gap-2 px-3 py-2 bg-evm-gray-900/50">
+        {/* Mirrors the RetroUI "default" button variant from @repo/ui:
+            flat green shadow that collapses as the button travels on
+            hover/press. */}
         <button
           type="button"
           onClick={run}
           disabled={interpreter.isRunning || script.trim().length === 0}
-          className="px-4 py-1.5 bg-evm-green-300 text-evm-gray-900 font-head text-sm disabled:opacity-40 hover:bg-evm-green-500 transition-colors cursor-pointer disabled:cursor-default"
+          className="px-4 py-1.5 bg-evm-green-300 text-evm-gray-900 font-head text-sm rounded-(--radius) border-2 border-border shadow-md hover:shadow active:shadow-none hover:translate-y-1 active:translate-y-2 active:translate-x-1 transition-all duration-200 disabled:opacity-40 hover:bg-evm-green-500 cursor-pointer disabled:cursor-default"
         >
           {interpreter.isRunning
-            ? "Running…"
+            ? executeAction
+              ? "Running…"
+              : "Simulating…"
             : executeAction
               ? "Execute"
-              : "Run"}
+              : "Simulate"}
         </button>
-        {!executeAction && (
-          <span className="text-foreground/40 text-xs">
-            read-only — transactions are shown, not sent
-          </span>
-        )}
       </div>
 
-      {interpreter.actions.length > 0 && !executeAction && (
-        <div className="px-3 py-2 border-t border-border/40 max-h-64 overflow-y-auto">
-          <ActionsPreview actions={interpreter.actions} />
-        </div>
-      )}
-
-      {showConsole && (
+      {showConsole && executeAction && (
         <div className="border-t border-border/40 max-h-56 overflow-y-auto bg-evm-gray-900/30">
           <Console
             logs={interpreter.logs}
             errors={errors}
-            placeholder="Console output will appear here when you run the script."
+            placeholder="Console output will appear here during execution."
           />
         </div>
       )}
@@ -182,8 +261,9 @@ function TerminalInner({
 
 /**
  * Batteries-included embeddable EVMcrispr terminal: Monaco editor (lazy),
- * Shiki viewer, console output and — without a wallet — a decoded preview
- * of the transactions a script resolves to.
+ * Shiki viewer and — without a wallet — a `Simulate` button that opens a
+ * results drawer with a decoded preview of the transactions a script
+ * resolves to, plus its console output.
  */
 export function EvmcrisprTerminal(props: EvmcrisprTerminalProps) {
   const { evml, modules, transports, chainId, account, ...rest } = props;

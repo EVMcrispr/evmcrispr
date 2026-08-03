@@ -10,7 +10,7 @@
 
 /* ── Design tokens (scoped, not :root) ───────────────────────── */
 .evmcrispr-root {
-  --radius: 0px;
+  --radius: 7px;
   --background: #000000;
   --foreground: #f5f5f5;
   --card: #292929;
@@ -53,14 +53,15 @@
 }
 
 /* ── Script viewer (Monaco-free read view) ─────────────────────── */
-/* Mirror the editor's typography: JetBrains Mono at 22px is exactly what
-   the Monaco instance uses (see MonacoEditor.tsx editorOptions), so
-   toggling between view ↔ edit doesn't reflow the script. */
+/* Mirror the editor's typography: JetBrains Mono at 22px and a ~1.35
+   line height are exactly what the Monaco instance uses (see
+   MonacoEditor.tsx editorOptions), so toggling between view ↔ edit
+   doesn't reflow the script. */
 .evmcrispr-root .evml-viewer {
   counter-reset: evml-line;
   font-family: var(--terminal-font-mono);
   font-size: 22px;
-  line-height: 0.3;
+  line-height: 1.35;
 }
 
 @media (max-width: 640px) {
@@ -99,6 +100,12 @@
      fork of `codeToHtml`. */
   /* biome-ignore lint/complexity/noImportantStyles: see comment above */
   background: transparent !important;
+  /* Shiki separates the `.line` spans (block-level below) with literal
+     `\n` text nodes. Collapsing whitespace here suppresses those stray
+     line boxes; the lines themselves restore `pre-wrap` so their content
+     keeps its spacing and wraps at the viewer width like Monaco's
+     `wordWrap: "on"`. */
+  white-space: normal;
   /* Disable contextual ligatures so identifiers read like Monaco's. */
   font-feature-settings:
     "calt" 0,
@@ -108,8 +115,6 @@
 
 .evmcrispr-root .evml-viewer code {
   display: block;
-  width: max-content;
-  min-width: 100%;
 }
 
 .evmcrispr-root .evml-viewer code .line {
@@ -117,6 +122,11 @@
   position: relative;
   padding: 0 0.75rem 0 3.25rem;
   min-height: 1em;
+  min-height: 1lh;
+  white-space: pre-wrap;
+  /* Unbroken tokens (addresses, calldata) wrap mid-token instead of
+     forcing a horizontal scrollbar. */
+  overflow-wrap: anywhere;
   counter-increment: evml-line;
 }
 

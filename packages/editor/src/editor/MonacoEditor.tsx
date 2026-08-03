@@ -31,7 +31,7 @@ import {
 } from "./ipfs-preview";
 import { registerNoirLanguage } from "./noir-language";
 import { patchEmbeddedSolidity } from "./solidity-patch";
-import { theme } from "./theme";
+import { theme, themeWithBackground } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
 const CHANGE_DEBOUNCE_MS = 150;
@@ -61,6 +61,10 @@ export interface EditorProps {
   ) => void;
   /** Merged over the built-in editor options. */
   options?: editor.IStandaloneEditorConstructionOptions;
+  /** Exact background color of the editor surface (e.g. "#121212").
+   *  Monaco needs an opaque color — it can't inherit the host's — so a
+   *  host that retints the terminal surface passes it here too. */
+  background?: string;
   readOnly?: boolean;
   height?: string | number;
 }
@@ -78,6 +82,7 @@ function Editor({
   onMount,
   onDidPaste,
   options,
+  background,
   readOnly,
   height = "100%",
 }: EditorProps) {
@@ -673,14 +678,26 @@ function Editor({
     };
   }, [editorInstance, readOnly]);
 
-  const handleBeforeMountEditor = useCallback((monaco: Monaco) => {
-    monaco.editor.defineTheme("evml-dark", theme);
-    monaco.languages.register(contribution);
-    monaco.languages.setLanguageConfiguration("evml", conf);
-    patchEmbeddedSolidity(monaco);
-    registerCircomLanguage(monaco);
-    registerNoirLanguage(monaco);
-  }, []);
+  // Monaco themes are global, keyed by name — a custom background gets its
+  // own name so editors with different surfaces can coexist.
+  const themeName = background
+    ? `evml-dark-${background.replace(/[^a-zA-Z0-9]/g, "")}`
+    : "evml-dark";
+
+  const handleBeforeMountEditor = useCallback(
+    (monaco: Monaco) => {
+      monaco.editor.defineTheme("evml-dark", theme);
+      if (background) {
+        monaco.editor.defineTheme(themeName, themeWithBackground(background));
+      }
+      monaco.languages.register(contribution);
+      monaco.languages.setLanguageConfiguration("evml", conf);
+      patchEmbeddedSolidity(monaco);
+      registerCircomLanguage(monaco);
+      registerNoirLanguage(monaco);
+    },
+    [background, themeName],
+  );
 
   // ── Line highlighting during execution ──
   useEffect(() => {
@@ -736,9 +753,21 @@ function Editor({
     [onMount],
   );
 
-  const editorOptions = useMemo(
-    () => ({
-      fontSize: 22,
+  const editorOptions = useMemo(() => {
+    // Mirror the Shiki viewer's fixed gutter geometry (components.css):
+    // the number column ends ~32px from the left edge, code starts at
+    // 52px (3.25rem) and the script gets 8px (0.5rem) of top padding —
+    // so toggling view ↔ edit doesn't shift the script. JetBrains Mono
+    // digits advance 0.6em (Monaco rounds the measured width up).
+    const fontSize = options?.fontSize ?? 22;
+    const digitWidth = Math.ceil(fontSize * 0.6);
+    const lineNumbersMinChars = Math.max(2, Math.round(32 / digitWidth));
+    const lineDecorationsWidth = Math.max(
+      4,
+      52 - lineNumbersMinChars * digitWidth,
+    );
+    return {
+      fontSize,
       fontFamily: "JetBrains Mono",
       detectIndentation: false,
       quickSuggestionsDelay: 100,
@@ -755,6 +784,12 @@ function Editor({
       // itself, mirroring `overflow-wrap: anywhere`.
       wordWrapBreakBeforeCharacters: "",
       wordWrapBreakAfterCharacters: " \t",
+      padding: { top: 8, bottom: 8 },
+      lineNumbersMinChars,
+      lineDecorationsWidth,
+      // The viewer has no folding affordance; dropping it keeps the margin
+      // width fully determined by the two knobs above.
+      folding: false,
       scrollbar: {
         useShadows: false,
         verticalScrollbarSize: 7,
@@ -768,15 +803,14 @@ function Editor({
       hover: { above: false },
       readOnly: readOnly ?? false,
       ...options,
-    }),
-    [options, readOnly],
-  );
+    };
+  }, [options, readOnly]);
 
   return (
     <div className="relative w-full h-full">
       <MonacoEditorBase
         height={height}
-        theme="evml-dark"
+        theme={themeName}
         language="evml"
         defaultValue={defaultValue}
         beforeMount={handleBeforeMountEditor}

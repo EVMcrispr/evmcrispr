@@ -59,11 +59,14 @@ export function Console({
 }: ConsoleProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
   const hasContent = logs.length > 0 || errors.length > 0;
+
+  // Follow new output. `block: "nearest"` keeps the scroll inside the
+  // console's own container — never the embedding page.
+  useEffect(() => {
+    if (logs.length === 0 && errors.length === 0) return;
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [logs.length, errors.length]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 py-3 gap-2">
