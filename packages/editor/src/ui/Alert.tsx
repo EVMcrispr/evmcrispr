@@ -4,7 +4,7 @@ import type { HtmlHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 const alertVariants = cva(
-  "relative w-full rounded-none border-2 p-4 font-clearer",
+  "relative w-full rounded-(--radius) border-2 p-4 font-clearer",
   {
     variants: {
       variant: {

@@ -12,7 +12,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         unstyled: true,
         classNames: {
           toast:
-            "w-full flex items-center gap-2 border-2 border-border rounded-none px-4 py-3 font-clearer text-sm shadow-md",
+            "w-full flex items-center gap-2 border-2 border-border rounded-(--radius) px-4 py-3 font-clearer text-sm shadow-md",
           success: "bg-evm-green-800 text-white border-evm-green-800",
           error: "bg-evm-pink-700 text-white border-evm-pink-700",
           warning: "bg-evm-orange-700 text-white border-evm-orange-700",

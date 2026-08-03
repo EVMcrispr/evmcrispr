@@ -19,7 +19,7 @@ const Tabs = forwardRef<
 Tabs.displayName = "Tabs";
 
 const tabsListVariants = cva(
-  "inline-flex w-fit items-center justify-center rounded-none text-foreground font-head",
+  "inline-flex w-fit items-center justify-center rounded-(--radius) text-foreground font-head",
   {
     variants: {
       variant: {

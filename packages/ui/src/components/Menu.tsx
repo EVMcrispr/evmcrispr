@@ -15,7 +15,7 @@ const Content = ({ className, ...props }: IMenuContent) => (
   <DropdownMenu.Portal>
     <DropdownMenu.Content
       className={cn(
-        "z-50 min-w-32 border-2 border-border bg-background p-0 text-foreground shadow-md rounded-none font-head",
+        "z-50 min-w-32 border-2 border-border bg-background p-0 text-foreground shadow-md rounded-(--radius) font-head",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

@@ -24,7 +24,7 @@
   --font-mono: "JetBrains Mono", monospace;
   --font-clearer: "JetBrains Mono", monospace;
 
-  --radius: 0px;
+  --radius: 7px;
 
   /* RetroUI-style flat shadows */
   --shadow-xs: 1px 1px 0 0 var(--shadow-color);
