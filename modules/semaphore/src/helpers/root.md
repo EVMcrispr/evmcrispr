@@ -4,6 +4,8 @@ title: "@semaphore:root"
 
 The current Merkle root of a Semaphore group's member tree.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

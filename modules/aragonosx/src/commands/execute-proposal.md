@@ -4,6 +4,8 @@ title: "aragonosx:execute-proposal"
 
 Execute a passed proposal on a governance plugin.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

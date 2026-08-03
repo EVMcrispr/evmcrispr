@@ -4,6 +4,8 @@ title: "@swaps:price"
 
 Spot price of 1 whole tokenA, expressed in base units of tokenB (the venue quote for selling 1 tokenA). Compare it against @token:amount(tokenB ...) values.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

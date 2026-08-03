@@ -4,6 +4,8 @@ title: "safe:delegate-exec"
 
 Call a contract function via DELEGATECALL from the Safe. The code runs in the storage context of the Safe — only use audited libraries you trust.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

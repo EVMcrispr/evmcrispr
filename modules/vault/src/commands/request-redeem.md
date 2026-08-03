@@ -4,6 +4,8 @@ title: "vault:request-redeem"
 
 Request a redemption of shares from an ERC-7540 asynchronous vault. Pass `max` as the amount to request the full share balance. The shares are taken immediately; claim the assets with vault:claim-redeem once the request is fulfilled.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

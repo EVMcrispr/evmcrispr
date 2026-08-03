@@ -4,6 +4,8 @@ title: "@superfluid:balance"
 
 Real-time available SuperToken balance of an account: the streaming balance at this instant, minus buffer deposits. Negative when the account is critical.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

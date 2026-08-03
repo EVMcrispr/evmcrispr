@@ -4,6 +4,8 @@ title: "@lending:healthFactor"
 
 Health factor of an account's lending position, 1e18-scaled (below 1e18 the position is liquidatable; uint256.max when the account has no debt). Composes with assertions: assert @lending:healthFactor(@me) >= 1.5e18.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

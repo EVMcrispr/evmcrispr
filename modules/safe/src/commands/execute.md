@@ -4,6 +4,8 @@ title: "safe:execute"
 
 Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

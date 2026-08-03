@@ -4,6 +4,8 @@ title: "@circom:proof"
 
 Project the proof JSON bound by circom:prove into the argument tuple of its snarkjs-exported verifier: [a b c signals] for groth16 (pi_b already swapped for the on-chain pairing check), [proof signals] for plonk/fflonk (a flat 24-element array). Destructure with `set [$a $b $c $signals] @circom:proof($proof)` or `set [$p $signals] @circom:proof($proof)`.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

@@ -4,6 +4,8 @@ title: "noir:prove"
 
 Generate an UltraHonk proof with Barretenberg and bind the result (proof + public inputs, as JSON) to <variable>. Compile Noir source in-place (--noir) or prove from a pre-built compiled-program artifact (--artifact). Defaults to the keccak transcript so proofs verify on-chain against the @noir:verifier contract; read the verifier-call arguments back with @noir:proof.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

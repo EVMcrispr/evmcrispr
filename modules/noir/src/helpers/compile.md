@@ -4,6 +4,8 @@ title: "@noir:compile"
 
 Compile Noir source in-place and return the compiled program artifact as JSON (the nargo target/*.json shape, debug payload stripped) — host it and prove later with noir:prove --artifact. Single-file circuits with the stdlib only; shares the compile cache with the other @noir helpers and noir:prove --noir.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `string`
 
 ## Syntax

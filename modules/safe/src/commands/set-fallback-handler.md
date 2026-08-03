@@ -4,6 +4,8 @@ title: "safe:set-fallback-handler"
 
 Set the fallback handler contract of the Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

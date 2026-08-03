@@ -4,6 +4,8 @@ title: "@semaphore:members"
 
 The ordered member commitments of a Semaphore group, reconstructed from contract events and checked against the on-chain root. Removed members appear as 0.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

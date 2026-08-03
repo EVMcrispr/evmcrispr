@@ -4,6 +4,8 @@ title: "acl:accept-ownership"
 
 Accept a pending ownership transfer of an Ownable2Step contract. Must be sent by the pending owner.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

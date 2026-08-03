@@ -4,6 +4,8 @@ title: "lending:supply"
 
 Supply a token to a lending market, approving the pool automatically when needed. Supplied tokens earn interest and can back borrows as collateral.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

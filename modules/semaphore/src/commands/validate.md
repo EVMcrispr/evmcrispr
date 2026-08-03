@@ -4,6 +4,8 @@ title: "semaphore:validate"
 
 Validate a Semaphore membership proof on-chain. The contract records the nullifier, so a second proof with the same identity and scope reverts.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

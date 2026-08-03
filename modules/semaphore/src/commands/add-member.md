@@ -4,6 +4,8 @@ title: "semaphore:add-member"
 
 Add an identity commitment (or an array of them) to a Semaphore group. Only the group admin can execute the resulting transaction.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

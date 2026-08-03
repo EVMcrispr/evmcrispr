@@ -4,6 +4,8 @@ title: "swaps:swap-to"
 
 Buy an exact amount of a token, spending as little as possible of another. The input is capped by --max, or --slippage applied to a quote (default 0.5%). Unspent input is refunded by the venue.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

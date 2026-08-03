@@ -4,6 +4,8 @@ title: "@safe:threshold"
 
 Return the signature threshold of a Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

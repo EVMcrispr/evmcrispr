@@ -4,6 +4,8 @@ title: "superfluid:stream"
 
 Open a money stream of a SuperToken to a receiver, or retarget an existing one to the new rate (idempotent). Rates are wei per second — use a rate literal like 1000e18/mo. Opening a stream locks a buffer deposit (hours of streaming) that is refunded when the stream stops.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

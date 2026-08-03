@@ -4,6 +4,8 @@ title: "superfluid:connect-pool"
 
 Connect the sender to a GDA pool so pool earnings count toward the real-time balance automatically. Disconnected members still accrue but must claim explicitly.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

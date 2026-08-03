@@ -4,6 +4,8 @@ title: "@crypto:merkle.verify"
 
 Verify a Merkle inclusion proof against a root. Without an index the proof is checked with the sorted-pair convention (OpenZeppelin MerkleProof); with an index it is checked positionally (unsorted trees).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

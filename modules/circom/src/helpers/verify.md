@@ -4,6 +4,8 @@ title: "@circom:verify"
 
 Verify a proof off-chain against a verification key (groth16, plonk or fflonk auto-detected from the proof) — no deployed verifier needed. Get the vkey from @circom:vkey or a hosted vkey JSON.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

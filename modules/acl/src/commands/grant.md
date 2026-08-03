@@ -4,6 +4,8 @@ title: "acl:grant"
 
 Grant a role on an AccessControl contract (string roles, hashed with keccak256) or an AccessManager (numeric role ids).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

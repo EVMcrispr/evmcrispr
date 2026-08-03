@@ -4,6 +4,8 @@ title: "superfluid:stop-vesting"
 
 Delete a pending vesting schedule, or end a running one immediately with --now true (the receiver keeps what has vested so far).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

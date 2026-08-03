@@ -4,6 +4,8 @@ title: "semaphore:identity"
 
 Derive a Semaphore v4 identity and bind its public commitment to <variable>. The connected wallet signs a fixed message and the signature seeds the identity - deterministic per wallet, recoverable anywhere by re-signing. The secret never leaves module memory.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

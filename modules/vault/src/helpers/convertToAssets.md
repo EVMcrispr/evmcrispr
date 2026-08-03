@@ -4,6 +4,8 @@ title: "@vault:convertToAssets"
 
 Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

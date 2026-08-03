@@ -4,6 +4,8 @@ title: "acl:renounce-ownership"
 
 Renounce ownership of an Ownable contract, leaving it without an owner and permanently disabling its onlyOwner functions.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

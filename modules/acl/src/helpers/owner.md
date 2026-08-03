@@ -4,6 +4,8 @@ title: "@acl:owner"
 
 Current owner of an Ownable contract.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

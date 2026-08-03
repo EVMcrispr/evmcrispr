@@ -4,6 +4,8 @@ title: "@crypto:merkle.proof"
 
 Generate the Merkle inclusion proof (array of sibling hashes) for the leaf at the given index. A single-leaf tree has an empty proof.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

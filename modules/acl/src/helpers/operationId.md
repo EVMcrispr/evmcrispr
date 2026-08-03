@@ -4,6 +4,8 @@ title: "@acl:operationId"
 
 Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bytes32`
 
 ## Syntax

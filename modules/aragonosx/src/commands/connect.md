@@ -4,6 +4,8 @@ title: "aragonosx:connect"
 
 Connect to an Aragon OSx DAO and execute commands within its context.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

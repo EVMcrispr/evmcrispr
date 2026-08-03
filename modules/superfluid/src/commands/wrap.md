@@ -4,6 +4,8 @@ title: "superfluid:wrap"
 
 Wrap an underlying token into its SuperToken (DAI to DAIx, native xDAI to xDAIx...), approving the SuperToken automatically when needed. The amount is in the underlying token's base units (e.g. 100e6 for 100 USDC); SuperTokens themselves are always 18 decimals.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

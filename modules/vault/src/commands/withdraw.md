@@ -4,6 +4,8 @@ title: "vault:withdraw"
 
 Withdraw an exact amount of the underlying asset from an ERC-4626 vault, burning the required shares. Pass `max` as the amount to withdraw everything available. For ERC-7540 asynchronous vaults use vault:request-redeem instead.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

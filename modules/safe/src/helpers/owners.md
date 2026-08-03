@@ -4,6 +4,8 @@ title: "@safe:owners"
 
 Return the owner addresses of a Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

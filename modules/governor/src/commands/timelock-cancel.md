@@ -4,6 +4,8 @@ title: "governor:timelock-cancel"
 
 Cancel a pending TimelockController operation. The sender needs the CANCELLER_ROLE.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

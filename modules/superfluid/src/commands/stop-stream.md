@@ -4,6 +4,8 @@ title: "superfluid:stop-stream"
 
 Stop a money stream to a receiver, refunding the sender's buffer deposit. With --from, deletes another sender's stream — allowed for the stream's receiver, a granted flow operator, or anyone once the sender is insolvent.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

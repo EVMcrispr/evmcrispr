@@ -4,6 +4,8 @@ title: "@superfluid:units"
 
 A member's share units in a GDA pool.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

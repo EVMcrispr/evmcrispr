@@ -4,6 +4,8 @@ title: "safe:disable-module"
 
 Disable a module on the Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

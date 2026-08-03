@@ -4,6 +4,8 @@ title: "superfluid:unwrap"
 
 Unwrap a SuperToken back to its underlying token (DAIx to DAI, xDAIx to native xDAI...). The amount is in the SuperToken's 18-decimal base units; pass `max` to unwrap the full balance. Keep some balance if streams are still running — unwrapping below the buffer makes them liquidatable.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

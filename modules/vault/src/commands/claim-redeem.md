@@ -4,6 +4,8 @@ title: "vault:claim-redeem"
 
 Claim the assets of a fulfilled ERC-7540 redemption request. Pass `max` as the amount to claim everything claimable. By default the amount is exact shares; pass --exact assets to claim an exact amount of assets instead.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

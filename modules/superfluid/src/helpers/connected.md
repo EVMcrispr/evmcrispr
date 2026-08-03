@@ -4,6 +4,8 @@ title: "@superfluid:connected"
 
 Whether a member is connected to a GDA pool (connected members see pool earnings in their balance automatically).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

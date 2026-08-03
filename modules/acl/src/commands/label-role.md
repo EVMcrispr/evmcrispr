@@ -4,6 +4,8 @@ title: "acl:label-role"
 
 Attach a human-readable label to an AccessManager role (emitted as an event for off-chain indexing).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

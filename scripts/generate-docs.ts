@@ -562,7 +562,8 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
   lines.push("");
   lines.push(cmd.description || "*No description available.*");
   lines.push("");
-  if (cmd.experimental) {
+  // Module-level experimental applies to every item in it.
+  if (mod.experimental || cmd.experimental) {
     lines.push(EXPERIMENTAL_BADGE);
     lines.push("");
   }
@@ -684,7 +685,8 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
   lines.push("");
   lines.push(helper.description || "*No description available.*");
   lines.push("");
-  if (helper.experimental) {
+  // Module-level experimental applies to every item in it.
+  if (mod.experimental || helper.experimental) {
     lines.push(EXPERIMENTAL_BADGE);
     lines.push("");
   }

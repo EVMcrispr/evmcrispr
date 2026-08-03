@@ -4,6 +4,8 @@ title: "@vault:totalAssets"
 
 Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

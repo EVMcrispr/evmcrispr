@@ -4,6 +4,8 @@ title: "@superfluid:underlying"
 
 Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

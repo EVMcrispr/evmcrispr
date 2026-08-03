@@ -4,6 +4,8 @@ title: "@superfluid:distributionFlowrate"
 
 Flow rate a distributor is currently streaming into a GDA pool, in wei per second.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

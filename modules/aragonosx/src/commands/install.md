@@ -4,6 +4,8 @@ title: "aragonosx:install"
 
 Install a plugin into the connected DAO via the Plugin Setup Processor.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

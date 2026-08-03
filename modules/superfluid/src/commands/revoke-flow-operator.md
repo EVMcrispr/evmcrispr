@@ -4,6 +4,8 @@ title: "superfluid:revoke-flow-operator"
 
 Revoke an operator's permissions over your streams of a SuperToken.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

@@ -4,6 +4,8 @@ title: "@acl:roleAdmin"
 
 Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bytes32 | number`
 
 ## Syntax

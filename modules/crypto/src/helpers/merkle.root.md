@@ -4,6 +4,8 @@ title: "@crypto:merkle.root"
 
 Compute the Merkle root of an array of bytes32 leaves. A single-leaf tree has root = leaf.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bytes32`
 
 ## Syntax

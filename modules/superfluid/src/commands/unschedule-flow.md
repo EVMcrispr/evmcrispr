@@ -4,6 +4,8 @@ title: "superfluid:unschedule-flow"
 
 Cancel a pending flow schedule (both its start and end legs). Streams already opened keep running — use stop-stream for those.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

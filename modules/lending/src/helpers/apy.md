@@ -4,6 +4,8 @@ title: "@lending:apy"
 
 Current APY of a lending-market reserve as a decimal fraction (2.04% -> 0.0204). Pass `supply` for the deposit rate or `borrow` for the variable borrow rate.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

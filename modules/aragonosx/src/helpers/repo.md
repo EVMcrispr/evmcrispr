@@ -4,6 +4,8 @@ title: "@aragonosx:repo"
 
 Resolve a plugin repo subdomain to its PluginRepo address.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

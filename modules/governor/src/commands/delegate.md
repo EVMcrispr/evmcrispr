@@ -4,6 +4,8 @@ title: "governor:delegate"
 
 Delegate the voting power the connected account holds in an ERC20Votes/ERC721Votes token.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

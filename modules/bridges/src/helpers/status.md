@@ -4,6 +4,8 @@ title: "@bridges:status"
 
 Progress of a bridge transfer: pending, claimable, done, or unknown. Poll it with `loop until` to wait for a transfer to become claimable or arrive.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `string`
 
 ## Syntax

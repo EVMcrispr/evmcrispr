@@ -4,6 +4,8 @@ title: "vault:set-operator"
 
 Approve (default) or revoke an operator on an ERC-7540 vault. Operators can request and claim on behalf of the connected account.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

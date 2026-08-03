@@ -4,6 +4,8 @@ title: "lending:set-collateral"
 
 Enable or disable a supplied token as collateral for the connected account's borrows.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

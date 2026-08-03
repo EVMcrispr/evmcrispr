@@ -4,6 +4,8 @@ title: "@circom:eddsa.verify"
 
 Verify an EdDSA (Baby Jubjub, Poseidon variant) signature: the [R8x R8y S] array from @circom:eddsa.sign against a message and an [x y] public key.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

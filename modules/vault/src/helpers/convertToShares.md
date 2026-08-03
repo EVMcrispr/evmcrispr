@@ -4,6 +4,8 @@ title: "@vault:convertToShares"
 
 Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

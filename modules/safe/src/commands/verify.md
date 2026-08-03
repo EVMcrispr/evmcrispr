@@ -4,6 +4,8 @@ title: "safe:verify"
 
 Recompute the EIP-712 domain, message and safeTxHash of a queued Safe transaction locally, check them against the Safe Transaction Service and flag dangerous fields, so signers can verify what their wallet displays.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

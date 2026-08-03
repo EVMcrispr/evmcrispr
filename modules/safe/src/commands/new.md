@@ -4,6 +4,8 @@ title: "safe:new"
 
 Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministic address.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

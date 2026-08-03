@@ -4,6 +4,8 @@ title: "governor:timelock-schedule"
 
 Schedule a batch of actions on a TimelockController. Optionally binds the operation id to a variable for later state checks or cancellation.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

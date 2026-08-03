@@ -4,6 +4,8 @@ title: "@aragonosx:plugin"
 
 Resolve a plugin repo subdomain to its address within the connected DAO.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

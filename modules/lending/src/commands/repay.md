@@ -4,6 +4,8 @@ title: "lending:repay"
 
 Repay borrowed tokens, approving the pool automatically when needed. Pass `max` as the amount to clear the debt dust-exact: the approval covers the current debt plus a 0.1% interest buffer, and the pool pulls only what is owed.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

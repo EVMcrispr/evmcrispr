@@ -4,6 +4,8 @@ title: "@acl:operationSchedule"
 
 Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

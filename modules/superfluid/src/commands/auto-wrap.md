@@ -4,6 +4,8 @@ title: "superfluid:auto-wrap"
 
 Keep a SuperToken balance topped up automatically: when the balance falls below --lower of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

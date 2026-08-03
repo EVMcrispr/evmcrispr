@@ -4,6 +4,8 @@ title: "acl:rollback-default-admin-delay"
 
 Cancel a scheduled default admin delay change.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

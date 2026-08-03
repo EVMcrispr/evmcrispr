@@ -4,6 +4,8 @@ title: "@circom:tree.root"
 
 Compute the Poseidon Merkle root of an array of field-element leaves. A single-leaf lean tree has root = leaf.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

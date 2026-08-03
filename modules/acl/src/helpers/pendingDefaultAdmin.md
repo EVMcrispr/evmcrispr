@@ -4,6 +4,8 @@ title: "@acl:pendingDefaultAdmin"
 
 Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

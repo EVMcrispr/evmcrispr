@@ -4,6 +4,8 @@ title: "semaphore:prove"
 
 Prove membership in a Semaphore group anonymously, signaling a message nullified per scope, and bind the proof JSON to <variable>. Uses the production ceremony artifacts for the group's tree depth. Requires an identity derived this session (semaphore:identity).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

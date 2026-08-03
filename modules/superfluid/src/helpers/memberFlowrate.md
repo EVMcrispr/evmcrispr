@@ -4,6 +4,8 @@ title: "@superfluid:memberFlowrate"
 
 The slice of a GDA pool's distribution flow currently streaming to a member, in wei per second.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

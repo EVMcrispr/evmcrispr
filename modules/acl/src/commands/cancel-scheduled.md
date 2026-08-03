@@ -4,6 +4,8 @@ title: "acl:cancel-scheduled"
 
 Cancel a scheduled AccessManager operation. Callable by its scheduler, a guardian of the required role, or an admin.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

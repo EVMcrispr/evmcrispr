@@ -4,6 +4,8 @@ title: "@safe:nonce"
 
 Return the current on-chain nonce of a Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

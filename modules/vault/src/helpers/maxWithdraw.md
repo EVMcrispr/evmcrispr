@@ -4,6 +4,8 @@ title: "@vault:maxWithdraw"
 
 Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

@@ -4,6 +4,8 @@ title: "governor:cancel"
 
 Cancel a pending Governor proposal (only its proposer, before voting starts). Takes the same description and action block used in governor:propose.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

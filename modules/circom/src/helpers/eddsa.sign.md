@@ -4,6 +4,8 @@ title: "@circom:eddsa.sign"
 
 Sign a field-element message with EdDSA over Baby Jubjub (Poseidon variant), returning the signature as [R8x R8y S] — destructure or pass whole to @circom:eddsa.verify or into circuit inputs.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

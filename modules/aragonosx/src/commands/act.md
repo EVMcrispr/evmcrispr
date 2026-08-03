@@ -4,6 +4,8 @@ title: "aragonosx:act"
 
 Execute actions directly through the DAO (the caller needs EXECUTE_PERMISSION on it).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

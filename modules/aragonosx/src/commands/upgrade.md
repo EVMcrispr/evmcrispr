@@ -4,6 +4,8 @@ title: "aragonosx:upgrade"
 
 Update an installed plugin to a newer build via the Plugin Setup Processor.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

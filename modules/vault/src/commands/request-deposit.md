@@ -4,6 +4,8 @@ title: "vault:request-deposit"
 
 Request a deposit into an ERC-7540 asynchronous vault, approving the vault automatically when needed. The assets are taken immediately; claim the shares with vault:claim-deposit once the request is fulfilled.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

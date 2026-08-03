@@ -4,6 +4,8 @@ title: "@lending:maxBorrow"
 
 How much of a token an account can still borrow against its current collateral, in base units of the token.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

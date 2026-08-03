@@ -4,6 +4,8 @@ title: "bridges:claim"
 
 Finalize a two-step bridge on the destination chain: mint a CCTP transfer once Circle has attested it, or prove and finalize a canonical L2 withdrawal. Run it after switching to the destination chain.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

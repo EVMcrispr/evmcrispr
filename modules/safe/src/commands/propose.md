@@ -4,6 +4,8 @@ title: "safe:propose"
 
 Propose a transaction to the Safe queue through the Safe Transaction Service, signed by the connected owner or delegate.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

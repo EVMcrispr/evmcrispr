@@ -4,6 +4,8 @@ title: "@circom:vkey"
 
 Compile circom source, run the in-place setup and return the verification key as JSON — feed it to @circom:verify for off-chain checks. Shares the compile and setup caches with @circom:verifier and circom:prove --circom.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `string`
 
 ## Syntax

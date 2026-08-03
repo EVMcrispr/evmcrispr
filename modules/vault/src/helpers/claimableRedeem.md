@@ -4,6 +4,8 @@ title: "@vault:claimableRedeem"
 
 Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

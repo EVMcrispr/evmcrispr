@@ -4,6 +4,8 @@ title: "@superfluid:totalUnits"
 
 Total units across all members of a GDA pool.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

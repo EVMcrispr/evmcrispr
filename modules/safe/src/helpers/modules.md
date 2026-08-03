@@ -4,6 +4,8 @@ title: "@safe:modules"
 
 Return the enabled module addresses of a Safe.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

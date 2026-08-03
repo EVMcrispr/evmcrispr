@@ -4,6 +4,8 @@ title: "acl:set-target-closed"
 
 Close or reopen a contract managed by an AccessManager. While closed, all calls to its restricted functions revert.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

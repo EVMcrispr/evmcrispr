@@ -4,6 +4,8 @@ title: "safe:remove-owner"
 
 Remove an owner from the Safe, lowering the threshold if it would exceed the remaining owners.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

@@ -4,6 +4,8 @@ title: "@semaphore:verify"
 
 Check a Semaphore membership proof against a group with the contract's view verifier — no transaction and no nullifier recording.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

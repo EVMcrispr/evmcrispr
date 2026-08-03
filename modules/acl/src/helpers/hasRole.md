@@ -4,6 +4,8 @@ title: "@acl:hasRole"
 
 Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

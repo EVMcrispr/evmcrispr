@@ -4,6 +4,8 @@ title: "semaphore:remove-member"
 
 Remove an identity commitment from a Semaphore group (the leaf becomes 0; the tree keeps its size). Computes the required Merkle siblings from the reconstructed member set — they go stale if the group changes before execution.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

@@ -4,6 +4,8 @@ title: "proxies:clone"
 
 Deploy an ERC-1167 minimal proxy (clone) of an implementation contract. Binds the predicted clone address to <variable>. Pass --salt for a deterministic CREATE2 deployment.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

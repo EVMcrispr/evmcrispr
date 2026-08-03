@@ -4,6 +4,8 @@ title: "@governor:timelockMinDelay"
 
 Minimum delay in seconds a TimelockController enforces on new operations.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

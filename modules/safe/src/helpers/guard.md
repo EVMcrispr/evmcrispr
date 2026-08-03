@@ -4,6 +4,8 @@ title: "@safe:guard"
 
 Return the transaction guard address of a Safe (the zero address when no guard is set).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

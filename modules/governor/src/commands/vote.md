@@ -4,6 +4,8 @@ title: "governor:vote"
 
 Cast a vote on an active Governor proposal.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

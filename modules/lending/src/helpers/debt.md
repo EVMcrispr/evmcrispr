@@ -4,6 +4,8 @@ title: "@lending:debt"
 
 Current variable-rate debt of an account in a token, in base units (grows every block as interest accrues).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

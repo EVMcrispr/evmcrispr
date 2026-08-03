@@ -4,6 +4,8 @@ title: "@governor:timelockOperationState"
 
 State of a TimelockController operation: Unset, Waiting, Ready or Done.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `string`
 
 ## Syntax

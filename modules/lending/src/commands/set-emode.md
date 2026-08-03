@@ -4,6 +4,8 @@ title: "lending:set-emode"
 
 Set the connected account's efficiency-mode category, unlocking higher LTV between correlated assets (e.g. stablecoins). Category 0 disables e-mode.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

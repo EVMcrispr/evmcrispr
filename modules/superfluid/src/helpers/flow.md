@@ -4,6 +4,8 @@ title: "@superfluid:flow"
 
 Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

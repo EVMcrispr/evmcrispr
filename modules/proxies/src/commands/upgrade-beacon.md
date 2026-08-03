@@ -4,6 +4,8 @@ title: "proxies:upgrade-beacon"
 
 Upgrade an UpgradeableBeacon to a new implementation, upgrading every beacon proxy that points to it at once.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

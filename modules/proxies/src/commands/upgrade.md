@@ -4,6 +4,8 @@ title: "proxies:upgrade"
 
 Upgrade an ERC-1967 proxy to a new implementation, detecting whether it is a transparent proxy (upgraded through its ProxyAdmin) or a UUPS proxy (upgraded through itself). Optionally calls an initializer on the new implementation.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

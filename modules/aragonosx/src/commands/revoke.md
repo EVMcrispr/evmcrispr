@@ -4,6 +4,8 @@ title: "aragonosx:revoke"
 
 Revoke a permission on the DAO or one of its plugins from an entity.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

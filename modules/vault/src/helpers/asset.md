@@ -4,6 +4,8 @@ title: "@vault:asset"
 
 Underlying asset token address of an ERC-4626 vault.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

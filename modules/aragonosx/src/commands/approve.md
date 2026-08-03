@@ -4,6 +4,8 @@ title: "aragonosx:approve"
 
 Approve a multisig proposal.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

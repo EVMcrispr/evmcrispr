@@ -4,6 +4,8 @@ title: "@aragonosx:dao"
 
 Resolve the connected DAO to its address.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

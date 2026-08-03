@@ -4,6 +4,8 @@ title: "acl:set-target-function-role"
 
 Map functions of a managed contract to the AccessManager role required to call them.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

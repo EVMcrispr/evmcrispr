@@ -4,6 +4,8 @@ title: "@noir:proof"
 
 Project the proof JSON bound by noir:prove into the argument tuple of its Solidity UltraHonk verifier: [proof publicInputs] for verify(bytes,bytes32[])(bool). Destructure with `set [$p $signals] @noir:proof($proof)`.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `array`
 
 ## Syntax

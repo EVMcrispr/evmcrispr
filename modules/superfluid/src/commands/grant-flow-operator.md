@@ -4,6 +4,8 @@ title: "superfluid:grant-flow-operator"
 
 Let an operator manage your streams of a SuperToken. Defaults to full control (create, update, delete) with unlimited flow-rate allowance; restrict with --permissions and --allowance. The allowance is a decrementing budget consumed by creates and rate increases.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

@@ -4,6 +4,8 @@ title: "@semaphore:nullifier"
 
 The nullifier a stored identity produces for a scope (poseidon of the hashed scope and the identity secret) — what the contract records on validateProof; useful to check whether a signal was already sent.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

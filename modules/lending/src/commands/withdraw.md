@@ -4,6 +4,8 @@ title: "lending:withdraw"
 
 Withdraw a supplied token from a lending market. Pass `max` as the amount to withdraw the full balance, accrued interest included.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

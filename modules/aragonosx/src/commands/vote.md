@@ -4,6 +4,8 @@ title: "aragonosx:vote"
 
 Vote on a token-voting proposal.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

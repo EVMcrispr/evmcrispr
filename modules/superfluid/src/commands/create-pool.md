@@ -4,6 +4,8 @@ title: "superfluid:create-pool"
 
 Create a GDA distribution pool for a SuperToken and bind the predicted pool address to <variable>. Members hold units and every distribution splits pro-rata to units. The prediction reads the pool factory's account nonce, so it assumes no other pool is created on the chain between planning and execution.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

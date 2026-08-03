@@ -4,6 +4,8 @@ title: "@circom:tree.verify"
 
 Verify a Poseidon Merkle inclusion proof against a root, using the path index and siblings produced by @circom:tree.proof.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

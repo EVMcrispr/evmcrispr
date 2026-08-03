@@ -4,6 +4,8 @@ title: "@aragonosx:permission"
 
 Compute the bytes32 id of a permission name (keccak256 of e.g. EXECUTE_PERMISSION).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bytes32`
 
 ## Syntax

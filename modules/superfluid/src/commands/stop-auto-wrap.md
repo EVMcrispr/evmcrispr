@@ -4,6 +4,8 @@ title: "superfluid:stop-auto-wrap"
 
 Cancel an auto-wrap schedule. The strategy's token allowance is not touched — revoke it with token:approve 0 if you want it gone.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

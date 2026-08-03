@@ -4,6 +4,8 @@ title: "@bridges:fee"
 
 Cost of bridging an amount to another chain, in base units of the token (the amount the bridge keeps). Messaging fees that LayerZero and CCIP charge in the native token ride on the value of the bridge action and are not included here.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

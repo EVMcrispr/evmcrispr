@@ -4,6 +4,8 @@ title: "lending:borrow"
 
 Borrow a token from a lending market against the connected account's collateral (variable rate). The borrowed tokens go to the connected account.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

@@ -4,6 +4,8 @@ title: "aragonosx:grant"
 
 Grant a permission on the DAO or one of its plugins to an entity, optionally gated by a condition contract.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

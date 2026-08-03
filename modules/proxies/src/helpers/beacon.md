@@ -4,6 +4,8 @@ title: "@proxies:beacon"
 
 Beacon address of an ERC-1967 beacon proxy.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

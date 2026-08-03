@@ -4,6 +4,8 @@ title: "semaphore:create-group"
 
 Create a Semaphore group on the canonical contract and bind the predicted group id to <variable>. Without --admin the transaction sender becomes the admin (correct through Safes and forwarders).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

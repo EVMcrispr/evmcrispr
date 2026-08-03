@@ -4,6 +4,8 @@ title: "aragonosx:propose"
 
 Wrap actions into a proposal on one of the DAO's governance plugins.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

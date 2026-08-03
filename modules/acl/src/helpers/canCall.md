@@ -4,6 +4,8 @@ title: "@acl:canCall"
 
 Whether a caller can immediately call a restricted function of a contract managed by an AccessManager.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

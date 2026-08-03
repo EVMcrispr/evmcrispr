@@ -4,6 +4,8 @@ title: "@superfluid:claimable"
 
 Amount a member can claim from a GDA pool right now (accrued earnings not yet reflected in their balance).
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `number`
 
 ## Syntax

@@ -4,6 +4,8 @@ title: "bridges:bridge"
 
 Send tokens from the current chain to another chain, approving the bridge automatically when needed. The adapter defaults to CCTPv2 for native USDC, Across for other tokens, and the canonical bridge between an L2 and mainnet.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

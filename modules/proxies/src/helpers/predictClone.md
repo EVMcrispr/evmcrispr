@@ -4,6 +4,8 @@ title: "@proxies:predictClone"
 
 Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone --salt. Pure computation, no chain read.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `address`
 
 ## Syntax

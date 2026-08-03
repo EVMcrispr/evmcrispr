@@ -4,6 +4,8 @@ title: "safe:install-delay"
 
 Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

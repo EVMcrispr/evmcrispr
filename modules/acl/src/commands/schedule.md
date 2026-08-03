@@ -4,6 +4,8 @@ title: "acl:schedule"
 
 Schedule a delayed operation on an AccessManager for later execution with acl:execute-scheduled.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

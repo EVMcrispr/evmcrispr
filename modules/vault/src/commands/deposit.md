@@ -4,6 +4,8 @@ title: "vault:deposit"
 
 Deposit an exact amount of the underlying asset into an ERC-4626 vault, approving the vault automatically when needed. Works with any 4626-compliant vault such as sDAI, Morpho or Yearn v3. For ERC-7540 asynchronous vaults use vault:request-deposit instead.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 ## Syntax
 
 ```evml

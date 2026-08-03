@@ -4,6 +4,8 @@ title: "@vault:isOperator"
 
 Whether an account is an approved operator of a controller on an ERC-7540 vault.
 
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
 **Returns**: `bool`
 
 ## Syntax

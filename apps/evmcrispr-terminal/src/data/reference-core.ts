@@ -88,7 +88,11 @@ export function buildReferenceEntries(
   ) => Promise<string>,
   includeExperimental = true,
 ): ReferenceEntry[] {
-  return modules.flatMap(({ name: moduleName, commands, helpers }) => {
+  return modules.flatMap((mod) => {
+    const { name: moduleName, commands, helpers } = mod;
+    // Items inherit their module's experimental flag so entries of
+    // experimental modules are marked individually too.
+    const modExperimental = mod.experimental === true;
     const cmdEntries: ReferenceEntry[] = Object.entries(commands)
       .filter(([, entry]) => includeExperimental || !entry.experimental)
       .map(([name, entry]) => ({
@@ -96,7 +100,7 @@ export function buildReferenceEntries(
         kind: "command" as const,
         module: moduleName,
         description: entry.description ?? "",
-        experimental: entry.experimental || undefined,
+        experimental: entry.experimental || modExperimental || undefined,
         loadDocs: () => loadDoc(moduleName, "command", name).catch(() => ""),
       }));
 
@@ -107,7 +111,7 @@ export function buildReferenceEntries(
         kind: "helper" as const,
         module: moduleName,
         description: entry.description ?? "",
-        experimental: entry.experimental || undefined,
+        experimental: entry.experimental || modExperimental || undefined,
         returnType: Array.isArray(entry.returnType)
           ? entry.returnType.join(" | ")
           : entry.returnType,
