@@ -1,3 +1,4 @@
+import { FlaskConical } from "@repo/ui/icons";
 import type { ReferenceEntry } from "../../data/reference-data";
 
 export function ReferenceItem({
@@ -17,7 +18,11 @@ export function ReferenceItem({
         <span className="font-mono text-lg text-foreground truncate">
           {entry.kind === "helper" ? `@${entry.name}` : entry.name}
         </span>
-        {entry.experimental && <span title="Experimental">⚗️</span>}
+        {entry.experimental && (
+          <span title="Experimental" className="shrink-0">
+            <FlaskConical className="w-4 h-4" />
+          </span>
+        )}
         <span
           className={`text-sm ${entry.kind === "command" ? "text-evm-blue-300" : "text-evm-orange-300"}`}
         >

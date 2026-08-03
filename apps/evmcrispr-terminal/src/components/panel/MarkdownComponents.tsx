@@ -1,5 +1,58 @@
 import { CodeBlock } from "@repo/ui";
+import { FlaskConical } from "@repo/ui/icons";
 import type { Components } from "react-markdown";
+
+/** Experimental marker emoji embedded in generated docs (badge lines,
+ *  option-table rows) — rendered as the lucide flask-conical icon. */
+const EXPERIMENTAL_MARKER = "⚗️";
+
+type HastNode = {
+  type: string;
+  tagName?: string;
+  value?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+/** Rehype plugin: swap ⚗️ text occurrences for <experimental-flask/>
+ *  elements, which the components map renders as the lucide icon. */
+export function rehypeExperimentalFlask() {
+  const visit = (node: HastNode) => {
+    if (node.tagName === "code" || node.tagName === "pre") return;
+    const children = node.children;
+    if (!children) return;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child.type === "text" && child.value?.includes(EXPERIMENTAL_MARKER)) {
+        const parts = child.value.split(EXPERIMENTAL_MARKER);
+        const replacement: HastNode[] = [];
+        parts.forEach((part, j) => {
+          if (part) replacement.push({ type: "text", value: part });
+          if (j < parts.length - 1) {
+            replacement.push({
+              type: "element",
+              tagName: "experimental-flask",
+              properties: {},
+              children: [],
+            });
+          }
+        });
+        children.splice(i, 1, ...replacement);
+      } else {
+        visit(child);
+      }
+    }
+  };
+  return (tree: HastNode) => visit(tree);
+}
+
+function ExperimentalFlask() {
+  return (
+    <span title="Experimental" className="inline-block align-text-bottom">
+      <FlaskConical className="w-3.5 h-3.5" />
+    </span>
+  );
+}
 
 function extractCodeProps(children: React.ReactNode) {
   const child = Array.isArray(children) ? children[0] : children;
@@ -112,7 +165,8 @@ export function createMarkdownComponents(
       );
     },
     table: Table,
-  };
+    "experimental-flask": ExperimentalFlask,
+  } as Components;
 }
 
 export const markdownComponents: Components = createMarkdownComponents();

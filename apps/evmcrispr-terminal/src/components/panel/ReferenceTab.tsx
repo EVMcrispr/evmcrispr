@@ -4,8 +4,8 @@ import {
   type ScriptUsage,
 } from "@evmcrispr/core";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { IconButton, Input } from "@repo/ui";
-import { Search } from "@repo/ui/icons";
+import { Input } from "@repo/ui";
+import { FlaskConical, Search } from "@repo/ui/icons";
 import {
   useCallback,
   useDeferredValue,
@@ -33,6 +33,7 @@ import {
 import {
   createMarkdownComponents,
   type DocLinkResolution,
+  rehypeExperimentalFlask,
 } from "./MarkdownComponents";
 import { ReferenceItem } from "./ReferenceItem";
 
@@ -269,6 +270,7 @@ export function ReferenceTab() {
             <div className="prose prose-invert prose-base max-w-none leading-tight prose-p:leading-tight prose-li:leading-tight prose-headings:leading-tight prose-headings:text-foreground prose-h1:text-2xl prose-h2:text-xl prose-h2:text-evm-green-300 prose-h2:border-b prose-h2:border-foreground/10 prose-h2:pb-1 prose-h3:text-lg prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-th:text-foreground/70 prose-td:text-foreground/80 prose-li:text-foreground/80 prose-hr:border-foreground/10">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeExperimentalFlask]}
                 components={detailMarkdownComponents}
               >
                 {markdownContent}
@@ -285,23 +287,14 @@ export function ReferenceTab() {
     <div className="flex flex-col h-full">
       <div className="px-2 py-4 shrink-0">
         <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/45" />
           <Input
             ref={searchRef}
             placeholder="Search commands & helpers"
-            className="text-base pr-10 border"
+            className="text-base pl-10 border border-evm-gray-800 hover:border-primary focus:border-primary focus:ring-0 transition-colors"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            <IconButton
-              aria-label="Search reference"
-              size="sm"
-              variant="primary"
-              className="shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
-            >
-              <Search className="w-4 h-4" />
-            </IconButton>
-          </div>
         </div>
       </div>
       <div className="overflow-y-auto overflow-x-hidden flex-1 px-2">
@@ -330,10 +323,12 @@ export function ReferenceTab() {
         )}
         {[...entriesByModule.entries()].map(([mod, entries]) => (
           <div key={mod} className="mb-3">
-            <h3 className="text-xs font-head uppercase text-foreground/40 px-3 py-1">
+            <h3 className="flex items-center gap-1.5 text-xs font-head uppercase text-foreground/40 px-3 py-1">
               {mod}
               {experimentalModules.has(mod) && (
-                <span title="Experimental"> ⚗️</span>
+                <span title="Experimental" className="shrink-0">
+                  <FlaskConical className="w-3.5 h-3.5" />
+                </span>
               )}
             </h3>
             {entries.map((e) => (

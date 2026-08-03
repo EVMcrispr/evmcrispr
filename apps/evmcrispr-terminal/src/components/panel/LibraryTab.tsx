@@ -1,4 +1,4 @@
-import { cn, IconButton, Input } from "@repo/ui";
+import { cn, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -44,27 +44,17 @@ export function LibraryTab({
     <div className="flex flex-col h-full">
       <div className={cn("px-2 py-4 shrink-0", mobile && "px-0 py-2")}>
         <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/45" />
           <Input
             ref={searchRef}
             placeholder="Search"
-            className={cn("text-base pr-10 border", mobile && "h-10 text-sm")}
+            className={cn(
+              "text-base pl-10 border border-evm-gray-800 hover:border-primary focus:border-primary focus:ring-0 transition-colors",
+              mobile && "h-10 text-sm",
+            )}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          {mobile ? (
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-foreground/45" />
-          ) : (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              <IconButton
-                aria-label="Search scripts"
-                size="sm"
-                variant="primary"
-                className="shadow-none hover:shadow-none active:shadow-none hover:translate-y-0 active:translate-y-0"
-              >
-                <Search className="w-4 h-4" />
-              </IconButton>
-            </div>
-          )}
         </div>
       </div>
       <div className="relative min-h-0 flex-1">

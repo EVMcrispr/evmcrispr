@@ -102,8 +102,6 @@ export function DesktopTerminal(props: DesktopTerminalProps) {
           )}
         </section>
 
-        <div className="h-full w-px bg-border" />
-
         <aside className="flex basis-[30%] flex-col overflow-hidden bg-evm-gray-900">
           <SidePanel logs={props.logs} errors={props.errors} />
         </aside>
