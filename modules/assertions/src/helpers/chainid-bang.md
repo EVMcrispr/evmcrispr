@@ -24,4 +24,4 @@ assertions:assert @chainid! == 100 "wrong chain"
 
 ## See Also
 
-- [assertions:assert-chainid](../commands/assert-chainid.md), [@assertions:timestamp!](timestamp.md), [@assertions:blocknumber!](blocknumber.md)
+- [assertions:assert-chainid](../commands/assert-chainid.md), [@assertions:timestamp!](timestamp-bang.md), [@assertions:blocknumber!](blocknumber-bang.md)

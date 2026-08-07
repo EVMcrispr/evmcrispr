@@ -8,7 +8,7 @@ import type {
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import type Assertions from "..";
-import { compileLenChain } from "../helpers/len";
+import { compileLenChain } from "../helpers/len-bang";
 import {
   encodeAssertion,
   operatorFragment,

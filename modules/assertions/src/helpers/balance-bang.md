@@ -47,4 +47,4 @@ assertions:assert @balance!(ETH $registry::{treasury()(address)}) >= 100e18
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:num!](num.md)
+- [assertions:assert](../commands/assert.md), [@assertions:num!](num-bang.md)

@@ -101,5 +101,5 @@ assertions:assert @split!($pool::{name()(string)} " " 1) == "LP"
 
 ## See Also
 
-- [@assertions:num!](../helpers/num.md), [@assertions:bool!](../helpers/bool.md)
-- [@assertions:balance!](../helpers/balance.md), [@assertions:len!](../helpers/len.md), [@assertions:split!](../helpers/split.md)
+- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md)
+- [@assertions:balance!](../helpers/balance-bang.md), [@assertions:len!](../helpers/len-bang.md), [@assertions:split!](../helpers/split-bang.md)

@@ -46,4 +46,4 @@ assertions:assert @includes!($pool::{name()(string)} "Sushi") == false
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:charset!](charset.md), [@assertions:split!](split.md)
+- [assertions:assert](../commands/assert.md), [@assertions:charset!](charset-bang.md), [@assertions:split!](split-bang.md)

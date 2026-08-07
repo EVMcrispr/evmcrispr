@@ -46,4 +46,4 @@ assertions:assert $token::{totalSupply()(uint256)} >= @num!(2 * 3e18)
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:bool!](bool.md)
+- [assertions:assert](../commands/assert.md), [@assertions:bool!](bool-bang.md)

@@ -26,4 +26,4 @@ assertions:assert @num!($gov::{voteEnd()(uint256)} - @blocknumber!) > 100
 
 ## See Also
 
-- [@assertions:timestamp!](timestamp.md), [assertions:assert-block-number](../commands/assert-block-number.md)
+- [@assertions:timestamp!](timestamp-bang.md), [assertions:assert-block-number](../commands/assert-block-number.md)

@@ -27,4 +27,4 @@ assertions:assert @num!($vesting::{unlockTime()(uint256)} - @timestamp!) > 86400
 
 ## See Also
 
-- [@assertions:blocknumber!](blocknumber.md), [assertions:assert-timestamp](../commands/assert-timestamp.md)
+- [@assertions:blocknumber!](blocknumber-bang.md), [assertions:assert-timestamp](../commands/assert-timestamp.md)

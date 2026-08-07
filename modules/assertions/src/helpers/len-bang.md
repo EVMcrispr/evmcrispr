@@ -39,8 +39,8 @@ assertions:assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
 
 - For a string/bytes return the decoded length is the byte length (UTF-8
   characters may span multiple bytes). For raw returndata size use
-  [@assertions:bytelen!](bytelen.md).
+  [@assertions:bytelen!](bytelen-bang.md).
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:bytelen!](bytelen.md)
+- [assertions:assert](../commands/assert.md), [@assertions:bytelen!](bytelen-bang.md)

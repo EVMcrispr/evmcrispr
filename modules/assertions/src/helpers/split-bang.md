@@ -49,4 +49,4 @@ assertions:assert @split!($pool::{name()(string)} " " -1) == "Token"
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:hash!](hash.md)
+- [assertions:assert](../commands/assert.md), [@assertions:hash!](hash-bang.md)

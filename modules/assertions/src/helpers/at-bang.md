@@ -48,4 +48,4 @@ assertions:assert @at!($pool::{getReserves()(uint112,uint112,uint32)} -1) > 0
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:len!](len.md)
+- [assertions:assert](../commands/assert.md), [@assertions:len!](len-bang.md)

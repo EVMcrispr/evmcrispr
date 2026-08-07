@@ -34,4 +34,4 @@ assertions:assert @absdiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256
 
 ## See Also
 
-- [@assertions:min!](min.md), [@assertions:max!](max.md)
+- [@assertions:min!](min-bang.md), [@assertions:max!](max-bang.md)

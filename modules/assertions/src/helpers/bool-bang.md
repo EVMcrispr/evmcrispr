@@ -43,4 +43,4 @@ assertions:assert @bool!(not $gov::{paused()(bool)})
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [@assertions:num!](num.md)
+- [assertions:assert](../commands/assert.md), [@assertions:num!](num-bang.md)
