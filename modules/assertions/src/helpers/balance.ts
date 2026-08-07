@@ -24,13 +24,13 @@ export default defineBangHelper({
   args: [
     {
       name: "token",
-      type: "any",
+      type: "token-symbol",
       description:
         "ETH (native) or a token symbol/address resolved like @token",
     },
     {
       name: "account",
-      type: "any",
+      type: "address",
       description:
         "Account address, or (native only) a `::` call resolving to one",
     },

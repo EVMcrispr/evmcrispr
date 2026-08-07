@@ -38,8 +38,10 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:blocknumber!](src/helpers/blocknumber.md) | `number` | The block number at assertion time (not at script build time). |
 | [@assertions:bool!](src/helpers/bool.md) | `bool` | Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the combinators contract. |
 | [@assertions:bytelen!](src/helpers/bytelen.md) | `number` | The raw byte length of the return data of a call, on-chain (a uint256[] with n items is 64 + n*32 bytes). |
+| [@assertions:chainid!](src/helpers/chainid.md) | `number` | The chain id at assertion time, read on-chain — unlike assert-chainid it composes into expressions. |
 | [@assertions:charset!](src/helpers/charset.md) | `bool` | Whether every byte of the string return of a call is in a character class, checked on-chain — only-lowercase is @charset!(call `a-z`). |
-| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the keccak256 code hash of an address. |
+| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Matches what @codehash! reads on-chain at assertion time. |
+| [@assertions:codehash!](src/helpers/codehash-bang.md) | `bytes32` | The EXTCODEHASH of an account, read on-chain at assertion time: `bytes32(0)` for a nonexistent account, `keccak256` of the code otherwise. The account can be a `::` call resolving to an address, such as a proxy implementation. |
 | [@assertions:hash!](src/helpers/hash.md) | `bytes32` | keccak256 of the raw return data of a call, computed on-chain — compare structs, arrays or long strings against a precomputed hash. |
 | [@assertions:includes!](src/helpers/includes.md) | `bool` | Whether the string return of a call contains a substring, checked on-chain — exact byte sequence, case-sensitive, no wildcards. |
 | [@assertions:len!](src/helpers/len.md) | `number` | The decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes. |

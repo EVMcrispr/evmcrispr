@@ -16,7 +16,7 @@ Whether every byte of the string return of a call is in a character class, check
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) returning a string |
+| `call` | `address` | A `::` call expression (or chain) returning a string |
 | `class` | `string` | Allowed characters and ranges, e.g. `a-z0-9-` (a leading or trailing dash is the literal `-`) |
 
 <!-- HAND-WRITTEN -->

@@ -16,8 +16,8 @@ Read a balance on-chain at assertion time: the native balance for ETH, or an ERC
 
 | Name | Type | Description |
 |------|------|-------------|
-| `token` | `any` | ETH (native) or a token symbol/address resolved like @token |
-| `account` | `any` | Account address, or (native only) a `::` call resolving to one |
+| `token` | `token-symbol` | ETH (native) or a token symbol/address resolved like @token |
+| `account` | `address` | Account address, or (native only) a `::` call resolving to one |
 
 <!-- HAND-WRITTEN -->
 

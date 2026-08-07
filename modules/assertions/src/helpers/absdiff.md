@@ -16,8 +16,8 @@ Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a
 
 | Name | Type | Description |
 |------|------|-------------|
-| `a` | `any` | First numeric operand |
-| `b` | `any` | Second numeric operand |
+| `a` | `number` | First numeric operand |
+| `b` | `number` | Second numeric operand |
 
 <!-- HAND-WRITTEN -->
 

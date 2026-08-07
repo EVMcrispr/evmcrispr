@@ -8,8 +8,8 @@ export default defineBangHelper({
     "Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.",
   returnType: "number",
   args: [
-    { name: "a", type: "any", description: "First numeric operand" },
-    { name: "b", type: "any", description: "Second numeric operand" },
+    { name: "a", type: "number", description: "First numeric operand" },
+    { name: "b", type: "number", description: "Second numeric operand" },
   ],
   compileAssert: async (ctx, node) => {
     const operands = await variadicOperands(ctx, node, "absdiff!");

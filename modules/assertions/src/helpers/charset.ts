@@ -39,7 +39,7 @@ export default defineBangHelper({
   args: [
     {
       name: "call",
-      type: "any",
+      type: "address",
       description: "A `::` call expression (or chain) returning a string",
     },
     {

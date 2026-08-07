@@ -16,7 +16,7 @@ keccak256 of the raw return data of a call, computed on-chain — compare struct
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) to hash |
+| `call` | `address` | A `::` call expression (or chain) to hash |
 
 <!-- HAND-WRITTEN -->
 

@@ -9,7 +9,7 @@ export default defineBangHelper({
   args: [
     {
       name: "expression",
-      type: "any",
+      type: "number",
       rest: true,
       optional: true,
       description:

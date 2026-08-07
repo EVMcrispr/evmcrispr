@@ -16,7 +16,7 @@ The raw byte length of the return data of a call, on-chain (a uint256[] with n i
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) to measure |
+| `call` | `address` | A `::` call expression (or chain) to measure |
 
 <!-- HAND-WRITTEN -->
 

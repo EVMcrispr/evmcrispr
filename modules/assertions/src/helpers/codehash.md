@@ -2,7 +2,7 @@
 title: "@assertions:codehash"
 ---
 
-Read the keccak256 code hash of an address.
+Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Matches what @codehash! reads on-chain at assertion time.
 
 **Returns**: `bytes32`
 
@@ -20,6 +20,8 @@ Read the keccak256 code hash of an address.
 
 <!-- HAND-WRITTEN -->
 
+`@codehash` snapshots the hash at script *build* time (frozen into the script), with the same EXTCODEHASH semantics as [@codehash!](codehash-bang.md), which instead reads it on-chain at *assertion* time.
+
 ## Examples
 
 ```evml
@@ -29,3 +31,5 @@ assertions:assert-codehash 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb @codehash(
 ```
 
 ## See Also
+
+- [@assertions:codehash!](codehash-bang.md), [assertions:assert-codehash](../commands/assert-codehash.md)

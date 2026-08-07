@@ -16,7 +16,7 @@ Whether the string return of a call contains a substring, checked on-chain — e
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) returning a string |
+| `call` | `address` | A `::` call expression (or chain) returning a string |
 | `part` | `string` | Non-empty byte sequence to search for |
 
 <!-- HAND-WRITTEN -->

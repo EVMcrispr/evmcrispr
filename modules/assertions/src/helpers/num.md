@@ -16,7 +16,7 @@ Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), ev
 
 | Name | Type | Description |
 |------|------|-------------|
-| `[...expression]` | `any` | Infix arithmetic over `::` calls, on-chain helpers and constants |
+| `[...expression]` | `number` | Infix arithmetic over `::` calls, on-chain helpers and constants |
 
 <!-- HAND-WRITTEN -->
 

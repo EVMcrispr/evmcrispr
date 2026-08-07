@@ -16,7 +16,7 @@ Maximum of two or more values, computed on-chain at assertion time.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `[...values]` | `any` | Two or more numeric operands (or one array of them) |
+| `[...values]` | `number` | Two or more numeric operands (or one array of them) |
 
 <!-- HAND-WRITTEN -->
 

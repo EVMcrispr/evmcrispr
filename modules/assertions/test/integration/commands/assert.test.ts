@@ -837,6 +837,95 @@ describeCommand("assert", {
         expect(cmp.args[0]).to.equal(CMP_OP.Gt);
       },
     },
+    {
+      name: "compiles @chainid! to the chainId getter",
+      script: `assertions:assert @chainid! == 100 "wrong chain"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallUint(address,bytes,uint256,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("chainId");
+        expect(args[2]).to.equal(100n);
+        expect(args[3]).to.equal("wrong chain");
+      },
+    },
+    {
+      name: "composes @chainid! inside arithmetic",
+      script: `assertions:assert @num!(@chainid! + 1) > 100`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertGtCallUint(address,bytes,uint256,string)",
+        );
+        const calc = decodeCombinator(args[1]);
+        expect(calc.functionName).to.equal("calcUint");
+        expect(calc.args[0]).to.equal(ARITH_OP.Add);
+        const left = decodeCombinator(calc.args[2] as `0x${string}`);
+        expect(left.functionName).to.equal("chainId");
+        const right = decodeCombinator(calc.args[4] as `0x${string}`);
+        expect(right.functionName).to.equal("constantUint");
+        expect(right.args[0]).to.equal(1n);
+      },
+    },
+    {
+      name: "compiles @codehash! of a literal address to codeHash",
+      script: `assertions:assert @codehash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallBytes32(address,bytes,bytes32,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("codeHash");
+        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(args[2]).to.equal(
+          "0x0102030405060708091011121314151617181920212223242526272829303132",
+        );
+      },
+    },
+    {
+      name: "compiles @codehash! of a call-resolved address to codeHashCall",
+      script: `assertions:assert @codehash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertNeCallBytes32(address,bytes,bytes32,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("codeHashCall");
+        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect((inner.args[1] as `0x${string}`[]).length).to.equal(1);
+      },
+    },
+    {
+      name: "judges two live @codehash! sides with cmpUint",
+      script: `assertions:assert @codehash!(${TOKEN}) == @codehash!(${HOLDER})`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const cmp = decodeCombinator(args[1]);
+        expect(cmp.functionName).to.equal("cmpUint");
+        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        const left = decodeCombinator(cmp.args[2] as `0x${string}`);
+        expect(left.functionName).to.equal("codeHash");
+        expect(getAddress(left.args[0] as string)).to.equal(TOKEN);
+        const right = decodeCombinator(cmp.args[4] as `0x${string}`);
+        expect(right.functionName).to.equal("codeHash");
+        expect(getAddress(right.args[0] as string)).to.equal(HOLDER);
+      },
+    },
   ],
   errorCases: [
     {
@@ -925,6 +1014,26 @@ describeCommand("assert", {
       error: "only valid inside an assertions:assert",
     },
     {
+      name: "rejects @chainid! with arguments",
+      script: `assertions:assert @chainid!(1) == 100`,
+      error: "@chainid! takes no arguments",
+    },
+    {
+      name: "rejects a non-address @codehash! account",
+      script: `assertions:assert @codehash!(123) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      error: "must resolve to an address",
+    },
+    {
+      name: "rejects a @codehash! call not returning a single address",
+      script: `assertions:assert @codehash!(${TOKEN}::{decimals()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      error: "must return a single address",
+    },
+    {
+      name: "rejects an ordering comparison on @codehash!",
+      script: `assertions:assert @codehash!(${TOKEN}) > 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      error: "not supported",
+    },
+    {
       name: "rejects a @split! segment in arithmetic",
       script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) > 0`,
       error: "numeric operands",
@@ -987,7 +1096,7 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xa55EC0f629D8D2b3450962C6A25Fd6f7D99463EB"),
+          getAddress("0xA55Ec0679D25eD8a12036b9dDa7Ecfb4389B71F0"),
         );
       },
     },

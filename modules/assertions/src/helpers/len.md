@@ -16,7 +16,7 @@ The decoded length of the dynamic return value of a call, on-chain: element coun
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) returning an array, string or bytes |
+| `call` | `address` | A `::` call expression (or chain) returning an array, string or bytes |
 
 <!-- HAND-WRITTEN -->
 

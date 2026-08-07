@@ -26,7 +26,7 @@ export default defineBangHelper({
   args: [
     {
       name: "call",
-      type: "any",
+      type: "address",
       description:
         "A `::` call expression (or chain) returning an array, string or bytes",
     },

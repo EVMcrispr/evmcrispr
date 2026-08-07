@@ -33,6 +33,9 @@ export const COMBINATORS_ABI = parseAbi([
   "function ethBalance(address account) view returns (uint256)",
   "function blockTimestamp() view returns (uint256)",
   "function blockNumber() view returns (uint256)",
+  "function chainId() view returns (uint256)",
+  "function codeHash(address account) view returns (bytes32)",
+  "function codeHashCall(address target, bytes[] calls) view returns (bytes32)",
 ]);
 
 export const ARITH_OP = {

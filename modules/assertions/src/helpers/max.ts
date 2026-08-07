@@ -9,7 +9,7 @@ export default defineBangHelper({
   args: [
     {
       name: "values",
-      type: "any",
+      type: "number",
       rest: true,
       optional: true,
       description: "Two or more numeric operands (or one array of them)",

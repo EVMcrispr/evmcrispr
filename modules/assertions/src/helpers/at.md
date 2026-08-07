@@ -16,7 +16,7 @@ Extract a raw 32-byte word from the return data of a call by word index, on-chai
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `any` | A `::` call expression (or chain) to read |
+| `call` | `address` | A `::` call expression (or chain) to read |
 | `index` | `number` | 32-byte word index into the raw return data: zero-based from the start, negative from the end (-1 = last) |
 
 <!-- HAND-WRITTEN -->

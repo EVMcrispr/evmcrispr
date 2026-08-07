@@ -8,6 +8,9 @@ export default defineBangHelper({
   returnType: "bool",
   args: [
     {
+      // Stays "any": bool expressions legitimately embed number-, string- and
+      // bytes32-returning helpers as comparison operands, so any narrower type
+      // would either hide valid helpers or (with "string") disable filtering.
       name: "expression",
       type: "any",
       rest: true,
