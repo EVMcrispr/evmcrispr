@@ -1,6 +1,6 @@
 import { ErrorException } from "@evmcrispr/sdk";
 import { encodeCombinator } from "../lib/combinators";
-import { combinatorCall, requireChainArg } from "../lib/compiler";
+import { chainArgWithLens, combinatorCall } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 /**
@@ -55,7 +55,7 @@ export default defineBangHelper({
         '@charset! expects (call class), e.g. @charset!($token::symbol() "a-z0-9-")',
       );
     }
-    const chain = await requireChainArg(ctx, "charset!", node.args[0]);
+    const chain = await chainArgWithLens(ctx, "charset!", node.args[0]);
     const spec = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof spec !== "string" || spec.length === 0) {
       throw new ErrorException(

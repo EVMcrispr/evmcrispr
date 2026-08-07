@@ -14,7 +14,7 @@ import {
   Num,
   resolveHelper,
 } from "@evmcrispr/sdk";
-import type { AbiFunction, Hex } from "viem";
+import type { AbiFunction, AbiParameter, Hex } from "viem";
 import {
   concatHex,
   encodeAbiParameters,
@@ -310,13 +310,13 @@ export async function compileChain(
     let wordIndex = 0;
     if (!last) {
       if (hop.returnDestructure) {
-        const selection = lensSelection(hop.returnDestructure);
-        if (selection.element !== undefined) {
+        const hopPath = lensPath(hop.returnDestructure);
+        if (hopPath.length > 1) {
           throw new ErrorException(
-            `cannot chain through an array element of ${hop.method} — element lenses like [[_ $]] apply only to the final call`,
+            `cannot chain through an array element of ${hop.method} — nested lenses like [[_ $]] apply only to the final call`,
           );
         }
-        const index = selection.slot;
+        const index = hopPath[0];
         if (index >= fnAbi.outputs.length) {
           throw new ErrorException(
             `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${index + 1}`,
@@ -363,117 +363,139 @@ export async function compileChain(
   return { root: getAddress(root), calls, lastAbi: lastAbi! };
 }
 
-/** A lens capture: the head word (return-value position), and — for a
- *  one-level nested pattern like `[[_ $]]` — the array element within it. */
-export interface LensSelection {
-  slot: number;
-  element?: number;
-}
-
-/** Resolve the single capture of a return-destructure lens. A top-level `$`
- *  selects a return value; a nested pattern selects an element of a dynamic
- *  array return value (`[[_ $]]` = element 1 of return value 0). */
-export function lensSelection(slots: unknown[]): LensSelection {
-  let selection: LensSelection | undefined;
-  const claim = (s: LensSelection) => {
-    if (selection !== undefined) {
-      throw new ErrorException(
-        "an assertion lens must contain exactly one $ to select a value",
-      );
-    }
-    selection = s;
-  };
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i];
-    if (slot === "$") {
-      claim({ slot: i });
-    } else if (Array.isArray(slot)) {
-      let element = -1;
-      for (let j = 0; j < slot.length; j++) {
-        if (slot[j] === "$") {
-          if (element !== -1) {
-            throw new ErrorException(
-              "an assertion lens must contain exactly one $ to select a value",
-            );
-          }
-          element = j;
-        } else if (Array.isArray(slot[j])) {
+/** Resolve a return-destructure lens into a navigation path: one index per
+ *  nesting level. `[_ $ _]` = [1]; `[[_ $]]` = [0, 1] (element 1 of return
+ *  value 0); `[[_ _ _ [_ $]]]` = [0, 3, 1]. Exactly one `$` overall. */
+export function lensPath(slots: unknown[]): number[] {
+  let path: number[] | undefined;
+  const walk = (level: unknown[], prefix: number[]): void => {
+    for (let i = 0; i < level.length; i++) {
+      const slot = level[i];
+      if (slot === "$") {
+        if (path !== undefined) {
           throw new ErrorException(
-            "lens nesting deeper than one array level is not supported in assertions",
+            "an assertion lens must contain exactly one $ to select a value",
           );
         }
+        path = [...prefix, i];
+      } else if (Array.isArray(slot)) {
+        walk(slot, [...prefix, i]);
       }
-      if (element === -1) {
-        throw new ErrorException(
-          "a nested lens pattern must contain a $ to select an array element",
-        );
-      }
-      claim({ slot: i, element });
     }
-  }
-  if (selection === undefined) {
+  };
+  walk(slots, []);
+  if (path === undefined) {
     throw new ErrorException(
       "an assertion lens must contain a $ to select the return value",
     );
   }
-  return selection;
+  return path;
 }
 
 const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
+const ARRAY_SUFFIX = /\[(\d*)\]$/;
 
-/** Compile an element-selecting lens (`[[_ $]]`) into an elementCall
- *  operand: the combinator follows the array's head offset at execution
- *  time and bounds-checks the element index against the live length. */
-function compileElementOperand(
+/** Formats ABI output parameters as the parenthesized return-tuple
+ *  descriptor navCall/navDynCall consume, structs written as parenthesized
+ *  tuples: "((address,uint256)[],address)". */
+export function formatReturnTuple(outputs: readonly AbiParameter[]): string {
+  return `(${outputs.map(formatParamType).join(",")})`;
+}
+
+function formatParamType(p: AbiParameter): string {
+  if (p.type.startsWith("tuple")) {
+    const components =
+      (p as { components?: readonly AbiParameter[] }).components ?? [];
+    return `(${components.map(formatParamType).join(",")})${p.type.slice(5)}`;
+  }
+  return p.type;
+}
+
+/** Whether a parameter is ABI-dynamic (mirrors the combinator's shape rules). */
+function isDynamicParam(p: AbiParameter): boolean {
+  const suffix = p.type.match(ARRAY_SUFFIX);
+  if (suffix) {
+    if (suffix[1] === "") return true;
+    return isDynamicParam({
+      ...p,
+      type: p.type.slice(0, -suffix[0].length),
+    } as AbiParameter);
+  }
+  if (p.type === "bytes" || p.type === "string") return true;
+  if (p.type === "tuple") {
+    const components =
+      (p as { components?: readonly AbiParameter[] }).components ?? [];
+    return components.some(isDynamicParam);
+  }
+  return false;
+}
+
+/** Walks the ABI type tree along a lens path, validating every step the
+ *  combinator will take at execution time, and returns the terminal type. */
+function walkNavPath(
+  outputs: readonly AbiParameter[],
+  path: number[],
+  method: string,
+): AbiParameter {
+  let current = { type: "tuple", components: outputs } as AbiParameter;
+  for (const index of path) {
+    const suffix = current.type.match(ARRAY_SUFFIX);
+    if (suffix) {
+      if (suffix[1] !== "" && index >= Number(suffix[1])) {
+        throw new ErrorException(
+          `index ${index} is out of range for the ${current.type} value in ${method}`,
+        );
+      }
+      current = {
+        ...current,
+        type: current.type.slice(0, -suffix[0].length),
+      } as AbiParameter;
+    } else if (current.type === "tuple") {
+      const components =
+        (current as { components?: readonly AbiParameter[] }).components ?? [];
+      if (index >= components.length) {
+        throw new ErrorException(
+          `component index ${index} is out of range (${components.length} value(s)) in ${method}`,
+        );
+      }
+      current = components[index];
+    } else {
+      throw new ErrorException(
+        `cannot select into a ${current.type} value of ${method} — the lens indexes tuples (structs) and arrays`,
+      );
+    }
+  }
+  return current;
+}
+
+/** Compile a lens selection into a navCall operand: the combinator derives
+ *  every offset-follow and bounds check from the declared return type, so
+ *  the calldata is self-describing — navCall(target, calls,
+ *  "(address[][],address)", [0, 3, 1]) reads as "return value 0, element 3,
+ *  element 1". */
+function compileNavOperand(
   ctx: CompilerCtx,
   chain: Chain,
-  selection: LensSelection,
+  path: number[],
   method: string,
 ): Operand {
   const outputs = chain.lastAbi.outputs!;
-  const output = outputs[selection.slot];
-  if (!output) {
+  const terminal = walkNavPath(outputs, path, method);
+  if (!SINGLE_WORD_ABI.test(terminal.type)) {
     throw new ErrorException(
-      `return index ${selection.slot} is out of range (${method} returns ${outputs.length} value(s))`,
+      `a value lens must land on a single-word static value; the selection in ${method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
     );
-  }
-  if (!/\[\]$/.test(output.type)) {
-    throw new ErrorException(
-      `an element lens like [[_ $]] selects into a dynamic array; return value ${selection.slot} of ${method} is ${output.type}`,
-    );
-  }
-  const elementType = output.type.slice(0, -2);
-  if (!SINGLE_WORD_ABI.test(elementType)) {
-    throw new ErrorException(
-      `array elements must be single-word static types to select on-chain; ${output.type} elements are ${elementType}`,
-    );
-  }
-  // Every output before the array must occupy exactly one head word (a
-  // static single-word value, or the offset of a dynamic value) so the
-  // array's head word index equals its position.
-  for (let j = 0; j < selection.slot; j++) {
-    const t = outputs[j].type;
-    const singleWord =
-      SINGLE_WORD_ABI.test(t) ||
-      t === "string" ||
-      t === "bytes" ||
-      /\[\]$/.test(t);
-    if (!singleWord) {
-      throw new ErrorException(
-        `cannot select past a ${t} return value of ${method} — it occupies several head words`,
-      );
-    }
   }
   return {
     kind: "call",
     target: ctx.combinators,
-    data: encodeCombinator("elementCall", [
+    data: encodeCombinator("navCall", [
       chain.root,
       chain.calls,
-      BigInt(selection.slot),
-      BigInt(selection.element!),
+      formatReturnTuple(outputs),
+      path.map(BigInt),
     ]),
-    cat: categoryFromAbiType(elementType),
+    cat: categoryFromAbiType(terminal.type),
   };
 }
 
@@ -487,11 +509,11 @@ async function compileCallOperand(
   const outputs = chain.lastAbi.outputs!;
 
   if (node.returnDestructure) {
-    const selection = lensSelection(node.returnDestructure);
-    if (selection.element !== undefined) {
-      return compileElementOperand(ctx, chain, selection, node.method);
+    const path = lensPath(node.returnDestructure);
+    if (path.length > 1) {
+      return compileNavOperand(ctx, chain, path, node.method);
     }
-    const index = selection.slot;
+    const index = path[0];
     const output = outputs[index];
     if (!output) {
       throw new ErrorException(
@@ -553,15 +575,15 @@ export async function compileTopCall(
   let index: number | undefined;
   let outputType: string;
   if (node.returnDestructure) {
-    const selection = lensSelection(node.returnDestructure);
-    if (selection.element !== undefined) {
-      // Element selections return a single decoded word, so the core
-      // judges them as a plain (non-indexed) value of the element type.
+    const path = lensPath(node.returnDestructure);
+    if (path.length > 1) {
+      // Navigated selections return a single decoded word, so the core
+      // judges them as a plain (non-indexed) value of the terminal type.
       return {
-        operand: compileElementOperand(ctx, chain, selection, node.method),
+        operand: compileNavOperand(ctx, chain, path, node.method),
       };
     }
-    index = selection.slot;
+    index = path[0];
     const output = outputs[index];
     if (!output) {
       throw new ErrorException(
@@ -628,6 +650,67 @@ export async function requireChainArg(
     );
   }
   return compileChain(ctx, node as CallExpressionNode);
+}
+
+/** Compile the call argument of a chain-consuming helper that works on
+ *  dynamic values (@len!, @bytelen!, @split!, @includes!, @charset!,
+ *  @hash!). A lens on the call selects a nested string/bytes/array: the
+ *  chain is rewrapped through navDynCall, whose canonical re-encoding the
+ *  downstream combinator consumes as if the call had returned the selected
+ *  value directly. */
+export async function chainArgWithLens(
+  ctx: CompilerCtx,
+  helper: string,
+  node: Node | undefined,
+): Promise<Chain> {
+  if (!node || node.type !== NodeType.CallExpression) {
+    throw new ErrorException(
+      `@${helper} expects a \`::\` call expression, e.g. @${helper}($target::method())`,
+    );
+  }
+  const call = node as CallExpressionNode;
+  const chain = await compileChain(ctx, call);
+  if (!call.returnDestructure) return chain;
+
+  const outputs = chain.lastAbi.outputs!;
+  const path = lensPath(call.returnDestructure);
+  const terminal = walkNavPath(outputs, path, call.method);
+  const suffix = terminal.type.match(ARRAY_SUFFIX);
+  const isDynArray = suffix?.[1] === "";
+  if (!isDynArray && terminal.type !== "string" && terminal.type !== "bytes") {
+    throw new ErrorException(
+      `a lens inside @${helper} must select a string, bytes or array value; the selection in ${call.method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
+    );
+  }
+  if (isDynArray) {
+    const element = {
+      ...terminal,
+      type: terminal.type.slice(0, -2),
+    } as AbiParameter;
+    if (isDynamicParam(element)) {
+      throw new ErrorException(
+        `@${helper} can select arrays of static elements only; ${terminal.type} elements are dynamic`,
+      );
+    }
+  }
+  return {
+    root: ctx.combinators,
+    calls: [
+      encodeCombinator("navDynCall", [
+        chain.root,
+        chain.calls,
+        formatReturnTuple(outputs),
+        path.map(BigInt),
+      ]),
+    ],
+    lastAbi: {
+      type: "function",
+      name: "navDynCall",
+      inputs: [],
+      outputs: [terminal],
+      stateMutability: "view",
+    } as AbiFunction,
+  };
 }
 
 /** Interpret a helper argument as a build-time integer constant

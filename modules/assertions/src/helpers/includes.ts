@@ -1,6 +1,6 @@
 import { ErrorException } from "@evmcrispr/sdk";
 import { encodeCombinator } from "../lib/combinators";
-import { combinatorCall, requireChainArg } from "../lib/compiler";
+import { chainArgWithLens, combinatorCall } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -26,7 +26,7 @@ export default defineBangHelper({
         '@includes! expects (call part), e.g. @includes!($pool::name() "LP")',
       );
     }
-    const chain = await requireChainArg(ctx, "includes!", node.args[0]);
+    const chain = await chainArgWithLens(ctx, "includes!", node.args[0]);
     const part = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof part !== "string" || part.length === 0) {
       throw new ErrorException(

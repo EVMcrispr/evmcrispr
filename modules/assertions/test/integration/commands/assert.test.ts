@@ -92,7 +92,7 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles an element lens to elementCall judged as the element type",
+      name: "compiles an element lens to navCall judged as the terminal type",
       script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ $]] == ${HOLDER}`,
       validate: (actions) => {
         const args = decodeCore(
@@ -102,11 +102,41 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("elementCall");
+        expect(inner.functionName).to.equal("navCall");
         expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
-        expect(inner.args[2]).to.equal(0n);
-        expect(inner.args[3]).to.equal(1n);
+        expect(inner.args[2]).to.equal("(address[],address)");
+        expect(inner.args[3]).to.deep.equal([0n, 1n]);
         expect(getAddress(args[2])).to.equal(HOLDER);
+      },
+    },
+    {
+      name: "compiles a deep lens through nested arrays",
+      script: `assertions:assert ${TOKEN}::{matrix()(address[][])}[[_ _ _ [_ $]]] == ${HOLDER}`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallAddress(address,bytes,address,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("navCall");
+        expect(inner.args[2]).to.equal("(address[][])");
+        expect(inner.args[3]).to.deep.equal([0n, 3n, 1n]);
+      },
+    },
+    {
+      name: "compiles a struct-array field lens against a tuple descriptor",
+      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ [_ _ $]]] == true`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("navCall");
+        expect(inner.args[2]).to.equal("((address,uint256,bool)[])");
+        expect(inner.args[3]).to.deep.equal([0n, 1n, 2n]);
       },
     },
     {
@@ -122,9 +152,48 @@ describeCommand("assert", {
         expect(cmp.functionName).to.equal("cmpUint");
         expect(cmp.args[0]).to.equal(CMP_OP.Gt);
         const element = decodeCombinator(cmp.args[2] as `0x${string}`);
-        expect(element.functionName).to.equal("elementCall");
-        expect(element.args[2]).to.equal(0n);
-        expect(element.args[3]).to.equal(2n);
+        expect(element.functionName).to.equal("navCall");
+        expect(element.args[2]).to.equal("(uint256[])");
+        expect(element.args[3]).to.deep.equal([0n, 2n]);
+      },
+    },
+    {
+      name: "compiles @len! over a lensed call through navDynCall",
+      script: `assertions:assert @len!(${TOKEN}::{matrix()(address[][])}[[_ $]]) >= 3`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertGeCallArrayLength(address,bytes,uint256,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("navDynCall");
+        expect(inner.args[2]).to.equal("(address[][])");
+        expect(inner.args[3]).to.deep.equal([0n, 1n]);
+        expect(args[2]).to.equal(3n);
+      },
+    },
+    {
+      name: "compiles @split! over a lensed struct-array string field",
+      script: `assertions:assert @split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallStringN(address,bytes,uint256,string,string)",
+        );
+        const split = decodeCombinator(args[1]);
+        expect(split.functionName).to.equal("splitCall");
+        expect(getAddress(split.args[0] as string)).to.equal(COMBINATORS);
+        const inner = decodeFunctionData({
+          abi: COMBINATORS_ABI,
+          data: (split.args[1] as `0x${string}`[])[0],
+        });
+        expect(inner.functionName).to.equal("navDynCall");
+        expect(inner.args[2]).to.equal("((string,uint256)[])");
+        expect(inner.args[3]).to.deep.equal([0n, 0n, 0n]);
+        expect(split.args[3]).to.equal(-1n);
       },
     },
     {
@@ -776,19 +845,24 @@ describeCommand("assert", {
       error: "unknown on-chain helper",
     },
     {
-      name: "rejects an element lens on a non-array return value",
+      name: "rejects a lens step into a non-composite value",
       script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[_ [$]] == ${HOLDER}`,
-      error: "selects into a dynamic array",
+      error: "cannot select into a address value",
     },
     {
       name: "rejects an element lens on a non-final chained call",
       script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
-      error: "element lenses like [[_ $]] apply only to the final call",
+      error: "apply only to the final call",
     },
     {
-      name: "rejects lens nesting deeper than one level",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ [$]]] == ${HOLDER}`,
-      error: "deeper than one array level",
+      name: "rejects a value lens landing on a struct",
+      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
+      error: "must land on a single-word static value",
+    },
+    {
+      name: "rejects @len! over a lens selecting a word",
+      script: `assertions:assert @len!(${TOKEN}::{signers()(address[],address)}[_ $]) > 0`,
+      error: "must select a string, bytes or array value",
     },
     {
       name: "rejects an empty @includes! part",
@@ -913,7 +987,7 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xa55eC09De097E206acF0B3c677724419AeFd04df"),
+          getAddress("0xa55EC0f629D8D2b3450962C6A25Fd6f7D99463EB"),
         );
       },
     },
