@@ -1,3 +1,6 @@
+import { ErrorException } from "@evmcrispr/sdk";
+import { encodeCombinator } from "../lib/combinators";
+import { combinatorCall } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -6,4 +9,9 @@ export default defineBangHelper({
     "The block timestamp at assertion time (not at script build time).",
   returnType: "number",
   args: [],
+  compileAssert: async (ctx, node) => {
+    if (node.args.length > 0)
+      throw new ErrorException("@timestamp! takes no arguments");
+    return combinatorCall(ctx, encodeCombinator("blockTimestamp", []), "Uint");
+  },
 });

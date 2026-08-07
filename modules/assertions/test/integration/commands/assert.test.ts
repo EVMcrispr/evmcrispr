@@ -735,6 +735,11 @@ describeCommand("assert", {
   ],
   errorCases: [
     {
+      name: "rejects an unknown on-chain helper",
+      script: `assertions:assert @frobnicate!(${TOKEN}::{value()(uint256)}) == 1`,
+      error: "unknown on-chain helper",
+    },
+    {
       name: "rejects an empty @includes! part",
       script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "")`,
       error: "@includes! part must be a non-empty string",

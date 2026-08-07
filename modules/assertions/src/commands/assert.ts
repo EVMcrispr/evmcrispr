@@ -8,6 +8,7 @@ import type {
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import type Assertions from "..";
+import { compileLenChain } from "../helpers/len";
 import {
   encodeAssertion,
   operatorFragment,
@@ -19,8 +20,6 @@ import type { Category, CompilerCtx, Operand } from "../lib/compiler";
 import {
   cmpCombine,
   compileBangHelper,
-  compileHash,
-  compileLenChain,
   compileOperand,
   compileTopCall,
   isBangHelperNode,
@@ -428,17 +427,6 @@ async function compileSide(
 ): Promise<{ operand: Operand; index?: number }> {
   if (node.type === NodeType.CallExpression) {
     return compileTopCall(ctx, node as CallExpressionNode);
-  }
-  if (isHelperNamed(node, "hash!")) {
-    const data = await compileHash(ctx, node);
-    return {
-      operand: {
-        kind: "call",
-        target: ctx.combinators,
-        data,
-        cat: "Bytes32",
-      },
-    };
   }
   if (isBangHelperNode(node)) {
     return { operand: await compileBangHelper(ctx, node) };

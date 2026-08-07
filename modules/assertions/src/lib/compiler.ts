@@ -1,4 +1,3 @@
-import { resolveToken } from "@evmcrispr/module-std";
 import type {
   Address,
   CallExpressionNode,
@@ -13,20 +12,18 @@ import {
   isNum,
   NodeType,
   Num,
+  resolveHelper,
 } from "@evmcrispr/sdk";
 import type { AbiFunction, Hex } from "viem";
 import {
   concatHex,
   encodeAbiParameters,
-  encodeFunctionData,
   getAddress,
   isAddress,
   isHex,
   keccak256,
   numberToHex,
-  parseAbi,
   parseAbiItem,
-  zeroAddress,
 } from "viem";
 import { loadFunctionAbi } from "./assertions";
 import type { ArithOpName, CallPair, CmpOpName } from "./combinators";
@@ -97,36 +94,18 @@ export interface Chain {
   lastAbi: AbiFunction;
 }
 
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address account) view returns (uint256)",
-]);
-
 // ---------------------------------------------------------------------------
 //  Bang helpers (@name! — compiled to on-chain combinator calls)
 // ---------------------------------------------------------------------------
 
-export const BANG_HELPERS = new Set([
-  "num!",
-  "bool!",
-  "balance!",
-  "min!",
-  "max!",
-  "absdiff!",
-  "timestamp!",
-  "blocknumber!",
-  "at!",
-  "len!",
-  "bytelen!",
-  "split!",
-  "includes!",
-  "charset!",
-  "hash!",
-]);
-
+/** The trailing `!` is the language convention for on-chain-evaluated
+ *  helpers, so inside an assertion any `!`-named helper is compiled (via
+ *  its definition's `compileAssert`) rather than interpreted at
+ *  composition time. */
 export function isBangHelperNode(node: Node): node is HelperFunctionNode {
   return (
     node.type === NodeType.HelperFunctionExpression &&
-    BANG_HELPERS.has((node as HelperFunctionNode).name)
+    (node as HelperFunctionNode).name.endsWith("!")
   );
 }
 
@@ -529,7 +508,7 @@ export async function compileOperand(
 
 /** Compile the argument of a chain-call slot (@len!, @at!, …) — must be a
  *  `::` call expression or chain. */
-async function requireChainArg(
+export async function requireChainArg(
   ctx: CompilerCtx,
   helper: string,
   node: Node | undefined,
@@ -547,7 +526,9 @@ async function requireChainArg(
   return compileChain(ctx, node as CallExpressionNode);
 }
 
-async function constIntArg(
+/** Interpret a helper argument as a build-time integer constant
+ *  (negative allowed — signed combinator indices resolve on-chain). */
+export async function constIntArg(
   ctx: CompilerCtx,
   helper: string,
   what: string,
@@ -1163,147 +1144,18 @@ export async function compileExpr(
 //  Bang helper compilation
 // ---------------------------------------------------------------------------
 
-function combinatorCall(ctx: CompilerCtx, data: Hex, cat: Category): Operand {
+/** Wrap combinator calldata as a call operand on the combinators contract. */
+export function combinatorCall(
+  ctx: CompilerCtx,
+  data: Hex,
+  cat: Category,
+): Operand {
   return { kind: "call", target: ctx.combinators, data, cat };
 }
 
-/** Compile `@split!(call delim idx)` into its splitCall calldata. The index
- *  may be negative: it resolves from the end on-chain (-1 = last segment). */
-export async function compileSplit(
-  ctx: CompilerCtx,
-  node: HelperFunctionNode,
-): Promise<Hex> {
-  if (node.args.length !== 3) {
-    throw new ErrorException(
-      '@split! expects (call delimiter index), e.g. @split!($pool::name() " " 1) — a negative index counts from the end (-1 = last segment)',
-    );
-  }
-  const chain = await requireChainArg(ctx, "split!", node.args[0]);
-  const delimiter = await ctx.interpreters.interpretNode(node.args[1]);
-  if (typeof delimiter !== "string" || delimiter.length === 0) {
-    throw new ErrorException("@split! delimiter must be a non-empty string");
-  }
-  const index = await constIntArg(ctx, "split!", "index", node.args[2]);
-  return encodeCombinator("splitCall", [
-    chain.root,
-    chain.calls,
-    delimiter,
-    index,
-  ]);
-}
-
-/**
- * Compile a character-class spec into the charsetCall bitmap: bit i set ⇔
- * byte value i allowed. `x-y` spans an inclusive byte range; a dash that is
- * not between two other bytes (leading or trailing) is the literal `-`.
- * The spec is processed as UTF-8 bytes, matching the byte-level check the
- * combinator performs.
- */
-export function charsetMask(spec: string): bigint {
-  const bytes = new TextEncoder().encode(spec);
-  let mask = 0n;
-  for (let i = 0; i < bytes.length; i++) {
-    if (i + 2 < bytes.length && bytes[i + 1] === 0x2d /* - */) {
-      const lo = bytes[i];
-      const hi = bytes[i + 2];
-      if (lo > hi) {
-        throw new ErrorException(
-          `invalid @charset! range "${spec.slice(i, i + 3)}" — the range is reversed`,
-        );
-      }
-      for (let b = lo; b <= hi; b++) mask |= 1n << BigInt(b);
-      i += 2;
-    } else {
-      mask |= 1n << BigInt(bytes[i]);
-    }
-  }
-  return mask;
-}
-
-/** Compile `@hash!(call)` into its hashCall calldata. */
-export async function compileHash(
-  ctx: CompilerCtx,
-  node: HelperFunctionNode,
-): Promise<Hex> {
-  if (node.args.length !== 1) {
-    throw new ErrorException("@hash! expects a single call argument");
-  }
-  const chain = await requireChainArg(ctx, "hash!", node.args[0]);
-  return encodeCombinator("hashCall", [chain.root, chain.calls]);
-}
-
-/** Compile `@len!(call)` into the chain it measures. Used both by the
- *  top-level array-length fast path and the nested arrayLengthCall form. */
-export async function compileLenChain(
-  ctx: CompilerCtx,
-  node: HelperFunctionNode,
-): Promise<Chain> {
-  if (node.args.length !== 1) {
-    throw new ErrorException("@len! expects a single call argument");
-  }
-  return requireChainArg(ctx, "len!", node.args[0]);
-}
-
-async function compileBalance(
-  ctx: CompilerCtx,
-  node: HelperFunctionNode,
-): Promise<Operand> {
-  if (node.args.length !== 2) {
-    throw new ErrorException(
-      "@balance! expects (token account), e.g. @balance!(ETH @me) or @balance!(WETH @me)",
-    );
-  }
-  const [tokenNode, accountNode] = node.args;
-  const tokenValue = await ctx.interpreters.interpretNode(tokenNode);
-  const tokenAddr = await resolveToken(ctx.module as never, String(tokenValue));
-  const native = tokenAddr === zeroAddress;
-
-  if (accountNode.type === NodeType.CallExpression) {
-    if (!native) {
-      throw new ErrorException(
-        "@balance! with a call-resolved account only supports the native token (ETH) — the combinators contract cannot route a resolved address into balanceOf",
-      );
-    }
-    const chain = await requireChainArg(ctx, "balance!", accountNode);
-    const out = chain.lastAbi.outputs?.[0];
-    if (chain.lastAbi.outputs?.length !== 1 || out?.type !== "address") {
-      throw new ErrorException(
-        "@balance! account call must return a single address",
-      );
-    }
-    return combinatorCall(
-      ctx,
-      encodeCombinator("ethBalanceCall", [chain.root, chain.calls]),
-      "Uint",
-    );
-  }
-
-  const account = await ctx.interpreters.interpretNode(accountNode);
-  if (typeof account !== "string" || !isAddress(account)) {
-    throw new ErrorException(
-      `@balance! account must resolve to an address, got ${account}`,
-    );
-  }
-  if (native) {
-    return combinatorCall(
-      ctx,
-      encodeCombinator("ethBalance", [getAddress(account)]),
-      "Uint",
-    );
-  }
-  return {
-    kind: "call",
-    target: tokenAddr,
-    data: encodeFunctionData({
-      abi: ERC20_ABI,
-      functionName: "balanceOf",
-      args: [getAddress(account)],
-    }),
-    cat: "Uint",
-  };
-}
-
-async function variadicOperands(
+/** Compile the (possibly array-wrapped) operand list of a variadic helper
+ *  (@min!, @max!, @absdiff!). */
+export async function variadicOperands(
   ctx: CompilerCtx,
   node: HelperFunctionNode,
   helper: string,
@@ -1318,129 +1170,31 @@ async function variadicOperands(
   return Promise.all(argNodes.map((n) => compileOperand(ctx, n)));
 }
 
-/** Compile a `!` helper node into an operand (nested-expression position). */
+/** Compile a `!` helper node into an operand by dispatching to its own
+ *  definition's `compileAssert` (see helpers/_bang.ts) through the module's
+ *  helper registry — the switch this replaces lived here; the logic now
+ *  travels with each helper. */
 export async function compileBangHelper(
   ctx: CompilerCtx,
   node: HelperFunctionNode,
 ): Promise<Operand> {
-  switch (node.name) {
-    case "num!":
-      return compileExpr(ctx, node.args, "num");
-    case "bool!":
-      return compileExpr(ctx, node.args, "bool");
-    case "balance!":
-      return compileBalance(ctx, node);
-    case "timestamp!": {
-      if (node.args.length > 0)
-        throw new ErrorException("@timestamp! takes no arguments");
-      return combinatorCall(
-        ctx,
-        encodeCombinator("blockTimestamp", []),
-        "Uint",
-      );
-    }
-    case "blocknumber!": {
-      if (node.args.length > 0)
-        throw new ErrorException("@blocknumber! takes no arguments");
-      return combinatorCall(ctx, encodeCombinator("blockNumber", []), "Uint");
-    }
-    case "min!":
-    case "max!": {
-      const op: ArithOpName = node.name === "min!" ? "Min" : "Max";
-      const operands = await variadicOperands(ctx, node, node.name);
-      return operands.reduce((acc, o) => arithCombine(ctx, op, acc, o));
-    }
-    case "absdiff!": {
-      const operands = await variadicOperands(ctx, node, "absdiff!");
-      if (operands.length !== 2) {
-        throw new ErrorException("@absdiff! takes exactly two operands");
-      }
-      return arithCombine(ctx, "AbsDiff", operands[0], operands[1]);
-    }
-    case "at!": {
-      if (node.args.length !== 2) {
-        throw new ErrorException(
-          "@at! expects (call wordIndex), e.g. @at!($pool::getReserves() 1)",
-        );
-      }
-      const chain = await requireChainArg(ctx, "at!", node.args[0]);
-      const index = await constIntArg(ctx, "at!", "word index", node.args[1]);
-      return combinatorCall(
-        ctx,
-        encodeCombinator("uintCall", [chain.root, chain.calls, index]),
-        "Uint",
-      );
-    }
-    case "len!": {
-      const chain = await compileLenChain(ctx, node);
-      return combinatorCall(
-        ctx,
-        encodeCombinator("arrayLengthCall", [chain.root, chain.calls]),
-        "Uint",
-      );
-    }
-    case "bytelen!": {
-      if (node.args.length !== 1) {
-        throw new ErrorException("@bytelen! expects a single call argument");
-      }
-      const chain = await requireChainArg(ctx, "bytelen!", node.args[0]);
-      return combinatorCall(
-        ctx,
-        encodeCombinator("lengthCall", [chain.root, chain.calls]),
-        "Uint",
-      );
-    }
-    case "split!": {
-      const data = await compileSplit(ctx, node);
-      return combinatorCall(ctx, data, "String");
-    }
-    case "includes!": {
-      if (node.args.length !== 2) {
-        throw new ErrorException(
-          '@includes! expects (call part), e.g. @includes!($pool::name() "LP")',
-        );
-      }
-      const chain = await requireChainArg(ctx, "includes!", node.args[0]);
-      const part = await ctx.interpreters.interpretNode(node.args[1]);
-      if (typeof part !== "string" || part.length === 0) {
-        throw new ErrorException(
-          "@includes! part must be a non-empty string (every string contains the empty string)",
-        );
-      }
-      return combinatorCall(
-        ctx,
-        encodeCombinator("includesCall", [chain.root, chain.calls, part]),
-        "Bool",
-      );
-    }
-    case "charset!": {
-      if (node.args.length !== 2) {
-        throw new ErrorException(
-          '@charset! expects (call class), e.g. @charset!($token::symbol() "a-z0-9-")',
-        );
-      }
-      const chain = await requireChainArg(ctx, "charset!", node.args[0]);
-      const spec = await ctx.interpreters.interpretNode(node.args[1]);
-      if (typeof spec !== "string" || spec.length === 0) {
-        throw new ErrorException(
-          '@charset! class must be a non-empty string of allowed characters and ranges, e.g. "a-z0-9-"',
-        );
-      }
-      return combinatorCall(
-        ctx,
-        encodeCombinator("charsetCall", [
-          chain.root,
-          chain.calls,
-          charsetMask(spec),
-        ]),
-        "Bool",
-      );
-    }
-    case "hash!": {
-      const data = await compileHash(ctx, node);
-      return combinatorCall(ctx, data, "Bytes32");
-    }
-    default:
-      throw new ErrorException(`unknown on-chain helper @${node.name}`);
+  const entry = ctx.module.helpers[node.name];
+  if (!entry) {
+    throw new ErrorException(`unknown on-chain helper @${node.name}`);
   }
+  const helper = await resolveHelper(entry);
+  const compile = (
+    helper as {
+      compileAssert?: (
+        ctx: CompilerCtx,
+        node: HelperFunctionNode,
+      ) => Promise<Operand>;
+    }
+  ).compileAssert;
+  if (!compile) {
+    throw new ErrorException(
+      `@${node.name} does not support on-chain evaluation inside an assertion`,
+    );
+  }
+  return compile(ctx, node);
 }

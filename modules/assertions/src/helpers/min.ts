@@ -1,3 +1,4 @@
+import { arithCombine, variadicOperands } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -14,4 +15,8 @@ export default defineBangHelper({
       description: "Two or more numeric operands (or one array of them)",
     },
   ],
+  compileAssert: async (ctx, node) => {
+    const operands = await variadicOperands(ctx, node, "min!");
+    return operands.reduce((acc, o) => arithCombine(ctx, "Min", acc, o));
+  },
 });
