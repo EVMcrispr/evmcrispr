@@ -128,7 +128,12 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
       description: null,
       experimental: false,
     };
-  const content = readFileSync(filePath, "utf-8");
+  const raw = readFileSync(filePath, "utf-8");
+  // Anchor extraction at the define call: `name:`/`description:` matches
+  // above it belong to unrelated constants (e.g. a `{ name: "Ether" }`
+  // native-currency fallback) and must not become the registration key.
+  const defineIdx = raw.search(/\bdefine\w*Helper\s*[<(]/);
+  const content = defineIdx === -1 ? raw : raw.slice(defineIdx);
   const returnType = parseTypeValue(content, "returnType");
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   const argDefs = extractArgDefs(content);
@@ -153,7 +158,10 @@ function extractCommandMeta(
 ): { description: string | null; experimental: boolean } {
   const filePath = join(dir, `${name}.ts`);
   if (!existsSync(filePath)) return { description: null, experimental: false };
-  const content = readFileSync(filePath, "utf-8");
+  const raw = readFileSync(filePath, "utf-8");
+  // Same anchoring as extractHelperMeta: skip constants above the define.
+  const defineIdx = raw.search(/\bdefine\w*Command\s*[<(]/);
+  const content = defineIdx === -1 ? raw : raw.slice(defineIdx);
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   return {
     description: descMatch?.[1] ?? null,
