@@ -55,8 +55,10 @@ assertions:assert $oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out 
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 assertions:assert $gov::{paused()(bool)}
 
-# Chain calls: every hop but the last must return an address
+# Chain calls: every hop but the last must return an address —
+# or select one from a multi-value return with a destructure lens
 assertions:assert $pool::{token()(address)}::{symbol()(string)} == "WETH"
+assertions:assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"
 
 # On-chain composition: ! helpers evaluate at assertion time via combinators
 assertions:assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))

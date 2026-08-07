@@ -262,6 +262,42 @@ describeCommand("assert", {
         expect(args[3]).to.equal("WETH");
       },
     },
+    {
+      name: "prefixes non-final hops with the selected word index",
+      script: `assertions:assert ${TOKEN}::{vault()(address)}::{symbol()(string)} == "WETH"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallStringN(address,bytes,uint256,string,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        const hops = inner.args[1] as `0x${string}`[];
+        // Non-final hop: 32-byte word index (0) ++ vault() selector.
+        expect(hops[0].slice(0, 66)).to.equal(`0x${"0".repeat(64)}`);
+        expect(hops[0].length).to.equal(66 + 8);
+        // Final hop: unprefixed symbol() calldata (selector only).
+        expect(hops[1].length).to.equal(10);
+      },
+    },
+    {
+      name: "chains through a lens-selected address of a multi-value return",
+      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallStringN(address,bytes,uint256,string,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("chainCall");
+        const hops = inner.args[1] as `0x${string}`[];
+        expect(hops).to.have.lengthOf(2);
+        // The prefix selects word 2, where the address output lives.
+        expect(hops[0].slice(0, 66)).to.equal(`0x${"0".repeat(63)}2`);
+      },
+    },
     // ---- @len! ---------------------------------------------------------
     {
       name: "compiles a top-level @len! to the array-length family",
@@ -600,6 +636,16 @@ describeCommand("assert", {
       script: `assertions:assert @bool!(${TOKEN}::{supply()(uint256)} + 1)`,
       error: "Use @num!",
     },
+    {
+      name: "rejects a mid-chain lens that selects a non-address",
+      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[$ _ _]::{symbol()(string)} == "WETH"`,
+      error: "must continue on an address",
+    },
+    {
+      name: "rejects a multi-value intermediate hop without a lens",
+      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}::{symbol()(string)} == "WETH"`,
+      error: "select one with a lens",
+    },
   ],
 });
 
@@ -628,7 +674,7 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xa55EC07f6FBac3FC461B79bBdf40D279B8565dA5"),
+          getAddress("0xa55Ec017256401b00c9C21FD9AB3D0E0bcf94f20"),
         );
       },
     },

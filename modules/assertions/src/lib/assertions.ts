@@ -21,7 +21,7 @@ export const ASSERTIONS_ADDRESS: Address =
 
 /** Canonical CREATE2 address of the Combinators v1.0 on every chain. */
 export const COMBINATORS_ADDRESS: Address =
-  "0xa55EC07f6FBac3FC461B79bBdf40D279B8565dA5";
+  "0xa55Ec017256401b00c9C21FD9AB3D0E0bcf94f20";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);

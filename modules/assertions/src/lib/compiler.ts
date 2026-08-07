@@ -16,10 +16,12 @@ import {
 } from "@evmcrispr/sdk";
 import type { AbiFunction, Hex } from "viem";
 import {
+  concatHex,
   encodeFunctionData,
   getAddress,
   isAddress,
   isHex,
+  numberToHex,
   parseAbi,
   parseAbiItem,
   zeroAddress,
@@ -238,8 +240,19 @@ function flattenCallNodes(node: CallExpressionNode): {
   return { hops, rootTarget: cur };
 }
 
+/** Non-final chain entries carry a 32-byte word-index prefix naming the
+ *  return word that holds the next hop's address (the Combinators
+ *  `_resolveChain` hop encoding). */
+function prefixHop(wordIndex: number, data: Hex): Hex {
+  return concatHex([numberToHex(wordIndex, { size: 32 }), data]);
+}
+
+const CHAIN_RESOLVE_ERROR =
+  "could not resolve an intermediate chain target at build time to fetch its ABI — use the inline form ::{method(argTypes)(returnType)} for chained calls";
+
 /** Resolve the address a chain prefix returns, via a build-time eth_call.
- *  Only needed to fetch the ABI of a named (non-inline) later hop. */
+ *  Only needed to fetch the ABI of a named (non-inline) later hop. `calls`
+ *  holds word-index-prefixed non-final entries. */
 async function resolveChainAddress(
   ctx: CompilerCtx,
   root: Address,
@@ -247,19 +260,24 @@ async function resolveChainAddress(
 ): Promise<Address> {
   const client = await ctx.module.getClient();
   let addr = root;
-  for (const data of calls) {
+  for (const entry of calls) {
+    const wordIndex = Number.parseInt(entry.slice(2, 66), 16);
+    const data = `0x${entry.slice(66)}` as Hex;
     let result: Hex | undefined;
     try {
       ({ data: result } = await client.call({ to: addr, data }));
     } catch {
       result = undefined;
     }
-    if (!result || result.length < 66) {
-      throw new ErrorException(
-        "could not resolve an intermediate chain target at build time to fetch its ABI — use the inline form ::{method(argTypes)(returnType)} for chained calls",
-      );
+    const start = 2 + wordIndex * 64;
+    if (!result || result.length < start + 64) {
+      throw new ErrorException(CHAIN_RESOLVE_ERROR);
     }
-    addr = getAddress(`0x${result.slice(-40)}`);
+    const word = result.slice(start, start + 64);
+    if (!word.startsWith("0".repeat(24))) {
+      throw new ErrorException(CHAIN_RESOLVE_ERROR);
+    }
+    addr = getAddress(`0x${word.slice(24)}`);
   }
   return addr;
 }
@@ -300,26 +318,56 @@ export async function compileChain(
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
-    if (hop.returnDestructure && !last) {
-      throw new ErrorException(
-        "a destructure lens is only supported on the final call of a chain",
-      );
-    }
     const fnAbi = await hopAbi(ctx, hop, getAddress(root), calls);
     if (!fnAbi.outputs || fnAbi.outputs.length === 0) {
       throw new ErrorException(
         `${hop.method} has no return value to assert on`,
       );
     }
+    let wordIndex = 0;
     if (!last) {
-      if (fnAbi.outputs.length !== 1 || fnAbi.outputs[0].type !== "address") {
+      if (hop.returnDestructure) {
+        const index = tupleIndexFromLens(hop.returnDestructure);
+        if (index >= fnAbi.outputs.length) {
+          throw new ErrorException(
+            `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${index + 1}`,
+          );
+        }
+        const selected = fnAbi.outputs[index];
+        if (selected.type !== "address") {
+          throw new ErrorException(
+            `a chained call must continue on an address; the lens on ${hop.method} selects ${selected.type}`,
+          );
+        }
+        // Every output before the selection must occupy exactly one head
+        // word (a static single-word value, or the offset of a dynamic
+        // value) so the selected value's word index equals its position.
+        for (let j = 0; j < index; j++) {
+          const t = fnAbi.outputs[j].type;
+          const singleWord =
+            SINGLE_WORD_ABI.test(t) ||
+            t === "string" ||
+            t === "bytes" ||
+            /\[\]$/.test(t);
+          if (!singleWord) {
+            throw new ErrorException(
+              `cannot chain past a ${t} return value of ${hop.method} — it occupies several head words`,
+            );
+          }
+        }
+        wordIndex = index;
+      } else if (
+        fnAbi.outputs.length !== 1 ||
+        fnAbi.outputs[0].type !== "address"
+      ) {
         throw new ErrorException(
-          `every chained call except the last must return a single address; ${hop.method} returns (${fnAbi.outputs.map((o) => o.type).join(", ")})`,
+          `every chained call except the last must return a single address, or select one with a lens (e.g. ${hop.method}(...)[_ $ _]); ${hop.method} returns (${fnAbi.outputs.map((o) => o.type).join(", ")})`,
         );
       }
     }
     const argVals = await ctx.interpreters.interpretNodes(hop.args);
-    calls.push(encodeCalldata(fnAbi, argVals));
+    const data = encodeCalldata(fnAbi, argVals);
+    calls.push(last ? data : prefixHop(wordIndex, data));
     lastAbi = fnAbi;
   }
 
