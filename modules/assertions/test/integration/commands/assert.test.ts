@@ -215,6 +215,22 @@ describeCommand("assert", {
       },
     },
     {
+      name: "resolves a fixed-array element lens (end-anchored) at build time",
+      script: `assertions:assert ${TOKEN}::{config()(address,address[2])}[_ [... $]] == ${HOLDER}`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallAddress(address,bytes,address,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["(address,address[2])"]);
+        expect(inner.args[3]).to.deep.equal([[1n, 1n]]);
+      },
+    },
+    {
       name: "keeps a rest-lens over a dynamic array negative for on-chain resolution",
       script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[... $]] == ${HOLDER}`,
       validate: (actions) => {
