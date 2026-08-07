@@ -1,6 +1,10 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
-import { chainArgWithLens, combinatorCall } from "../lib/compiler";
+import { encodeData } from "../lib/combinators";
+import {
+  chainArgWithLens,
+  combinatorCall,
+  dataChainArgs,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -20,10 +24,7 @@ export default defineBangHelper({
       throw new ErrorException("@bytelen! expects a single call argument");
     }
     const chain = await chainArgWithLens(ctx, "bytelen!", node.args[0]);
-    return combinatorCall(
-      ctx,
-      encodeCombinator("lengthCall", [chain.root, chain.calls]),
-      "Uint",
-    );
+    const { target, calls } = dataChainArgs(ctx, chain);
+    return combinatorCall(ctx, encodeData("ByteLen", target, calls), "Uint");
   },
 });

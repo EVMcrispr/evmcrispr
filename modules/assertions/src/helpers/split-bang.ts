@@ -1,6 +1,12 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
-import { chainArgWithLens, combinatorCall, constIntArg } from "../lib/compiler";
+import { stringToHex } from "viem";
+import { encodeData } from "../lib/combinators";
+import {
+  chainArgWithLens,
+  combinatorCall,
+  constIntArg,
+  dataChainArgs,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -38,14 +44,10 @@ export default defineBangHelper({
       throw new ErrorException("@split! delimiter must be a non-empty string");
     }
     const index = await constIntArg(ctx, "split!", "index", node.args[2]);
+    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
-      encodeCombinator("splitCall", [
-        chain.root,
-        chain.calls,
-        delimiter,
-        index,
-      ]),
+      encodeData("Split", target, calls, stringToHex(delimiter), index),
       "String",
     );
   },

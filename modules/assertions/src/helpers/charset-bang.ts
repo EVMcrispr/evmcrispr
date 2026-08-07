@@ -1,10 +1,15 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
-import { chainArgWithLens, combinatorCall } from "../lib/compiler";
+import { numberToHex } from "viem";
+import { encodeData } from "../lib/combinators";
+import {
+  chainArgWithLens,
+  combinatorCall,
+  dataChainArgs,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 /**
- * Compile a character-class spec into the charsetCall bitmap: bit i set ⇔
+ * Compile a character-class spec into the data(Charset) bitmap: bit i set ⇔
  * byte value i allowed. `x-y` spans an inclusive byte range; a dash that is
  * not between two other bytes (leading or trailing) is the literal `-`.
  * The spec is processed as UTF-8 bytes, matching the byte-level check the
@@ -62,13 +67,15 @@ export default defineBangHelper({
         '@charset! class must be a non-empty string of allowed characters and ranges, e.g. "a-z0-9-"',
       );
     }
+    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
-      encodeCombinator("charsetCall", [
-        chain.root,
-        chain.calls,
-        charsetMask(spec),
-      ]),
+      encodeData(
+        "Charset",
+        target,
+        calls,
+        numberToHex(charsetMask(spec), { size: 32 }),
+      ),
       "Bool",
     );
   },

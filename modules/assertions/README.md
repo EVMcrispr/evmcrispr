@@ -38,6 +38,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:blocknumber!](src/helpers/blocknumber-bang.md) | `number` | The block number at assertion time (not at script build time). |
 | [@assertions:bool!](src/helpers/bool-bang.md) | `bool` | Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the combinators contract. |
 | [@assertions:bytelen!](src/helpers/bytelen-bang.md) | `number` | The raw byte length of the return data of a call, on-chain (a uint256[] with n items is 64 + n*32 bytes). |
+| [@assertions:bytes!](src/helpers/bytes-bang.md) | `number` | Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits. |
 | [@assertions:chainid!](src/helpers/chainid-bang.md) | `number` | The chain id at assertion time, read on-chain — unlike assert-chainid it composes into expressions. |
 | [@assertions:charset!](src/helpers/charset-bang.md) | `bool` | Whether every byte of the string return of a call is in a character class, checked on-chain — only-lowercase is @charset!(call `a-z`). |
 | [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Matches what @codehash! reads on-chain at assertion time. |
@@ -47,6 +48,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:len!](src/helpers/len-bang.md) | `number` | The decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes. |
 | [@assertions:max!](src/helpers/max-bang.md) | `number` | Maximum of two or more values, computed on-chain at assertion time. |
 | [@assertions:min!](src/helpers/min-bang.md) | `number` | Minimum of two or more values, computed on-chain at assertion time. |
+| [@assertions:not!](src/helpers/not-bang.md) | `any` | Negation computed on-chain, dispatched on the operand: logical not for booleans (stays a bool), bitwise complement of the raw 32-byte word for numbers and bytes32. Never a conversion — cast explicitly with @bytes!(x) first if needed. |
 | [@assertions:num!](src/helpers/num-bang.md) | `number` | Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the combinators contract. |
 | [@assertions:split!](src/helpers/split-bang.md) | `string` | Split the string return of a call on a delimiter and select one segment, on-chain. A negative index counts from the end (-1 = last segment). |
 | [@assertions:timestamp!](src/helpers/timestamp-bang.md) | `number` | The block timestamp at assertion time (not at script build time). |

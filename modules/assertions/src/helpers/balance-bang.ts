@@ -7,9 +7,13 @@ import {
   parseAbi,
   zeroAddress,
 } from "viem";
-import { encodeCombinator } from "../lib/combinators";
+import { encodeEnv, encodeUnary } from "../lib/combinators";
 import type { Operand } from "../lib/compiler";
-import { combinatorCall, requireChainArg } from "../lib/compiler";
+import {
+  chainCallPair,
+  combinatorCall,
+  requireChainArg,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 const ERC20_ABI = parseAbi([
@@ -64,7 +68,7 @@ export default defineBangHelper({
       }
       return combinatorCall(
         ctx,
-        encodeCombinator("ethBalanceCall", [chain.root, chain.calls]),
+        encodeUnary("Balance", chainCallPair(ctx, chain)),
         "Uint",
       );
     }
@@ -78,7 +82,7 @@ export default defineBangHelper({
     if (native) {
       return combinatorCall(
         ctx,
-        encodeCombinator("ethBalance", [getAddress(account)]),
+        encodeEnv("Balance", BigInt(getAddress(account))),
         "Uint",
       );
     }

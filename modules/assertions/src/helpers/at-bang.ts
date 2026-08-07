@@ -1,6 +1,10 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
-import { combinatorCall, constIntArg, requireChainArg } from "../lib/compiler";
+import {
+  combinatorCall,
+  constIntArg,
+  encodeReadChain,
+  requireChainArg,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -29,10 +33,6 @@ export default defineBangHelper({
     }
     const chain = await requireChainArg(ctx, "at!", node.args[0]);
     const index = await constIntArg(ctx, "at!", "word index", node.args[1]);
-    return combinatorCall(
-      ctx,
-      encodeCombinator("uintCall", [chain.root, chain.calls, index]),
-      "Uint",
-    );
+    return combinatorCall(ctx, encodeReadChain(chain, "", [index]), "Uint");
   },
 });

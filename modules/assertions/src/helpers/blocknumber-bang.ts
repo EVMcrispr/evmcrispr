@@ -1,5 +1,5 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
+import { encodeEnv } from "../lib/combinators";
 import { combinatorCall } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -11,6 +11,6 @@ export default defineBangHelper({
   compileAssert: async (ctx, node) => {
     if (node.args.length > 0)
       throw new ErrorException("@blocknumber! takes no arguments");
-    return combinatorCall(ctx, encodeCombinator("blockNumber", []), "Uint");
+    return combinatorCall(ctx, encodeEnv("BlockNumber"), "Uint");
   },
 });

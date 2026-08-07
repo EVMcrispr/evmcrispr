@@ -6,7 +6,6 @@ import type {
   Param,
 } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
-import type { Address, Hex } from "viem";
 import type Assertions from "..";
 import { compileLenChain } from "../helpers/len-bang";
 import {
@@ -14,10 +13,14 @@ import {
   operatorFragment,
   resolveCombinatorsContract,
 } from "../lib/assertions";
-import type { CmpOpName } from "../lib/combinators";
-import { encodeCombinator } from "../lib/combinators";
-import type { Category, CompilerCtx, Operand } from "../lib/compiler";
+import type {
+  Category,
+  CmpOpName,
+  CompilerCtx,
+  Operand,
+} from "../lib/compiler";
 import {
+  chainCallPair,
   cmpCombine,
   compileBangHelper,
   compileOperand,
@@ -176,13 +179,7 @@ export default defineCommand<Assertions>({
       if (rhs.operand.kind === "const") {
         const fragment = operatorFragment(operator, LENGTH_OPERATORS);
         const chain = await compileLenChain(ctx, lhsNode);
-        const [target, data]: [Address, Hex] =
-          chain.calls.length === 1
-            ? [chain.root, chain.calls[0]]
-            : [
-                ctx.combinators,
-                encodeCombinator("chainCall", [chain.root, chain.calls]),
-              ];
+        const pair = chainCallPair(ctx, chain);
         const expectedLen = requireNum(
           rhs.operand,
           "the expected array length",
@@ -190,8 +187,8 @@ export default defineCommand<Assertions>({
         const signature = `assert${fragment}CallArrayLength(address,bytes,uint256,string)`;
         return [
           await encodeAssertion(module, signature, [
-            target,
-            data,
+            pair.target,
+            pair.data,
             expectedLen,
             msg,
           ]),

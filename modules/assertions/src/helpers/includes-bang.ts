@@ -1,6 +1,11 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeCombinator } from "../lib/combinators";
-import { chainArgWithLens, combinatorCall } from "../lib/compiler";
+import { stringToHex } from "viem";
+import { encodeData } from "../lib/combinators";
+import {
+  chainArgWithLens,
+  combinatorCall,
+  dataChainArgs,
+} from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -33,9 +38,10 @@ export default defineBangHelper({
         "@includes! part must be a non-empty string (every string contains the empty string)",
       );
     }
+    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
-      encodeCombinator("includesCall", [chain.root, chain.calls, part]),
+      encodeData("Includes", target, calls, stringToHex(part)),
       "Bool",
     );
   },

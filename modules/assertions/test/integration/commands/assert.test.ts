@@ -8,14 +8,18 @@ import {
   encodeAbiParameters,
   getAddress,
   keccak256,
+  numberToHex,
   parseAbi,
+  stringToHex,
   toFunctionSelector,
 } from "viem";
 import {
-  ARITH_OP,
-  CMP_OP,
+  CALC_OP,
   COMBINATORS_ABI,
-  LOGIC_OP,
+  DATA_OP,
+  ENV_OP,
+  LEN_STEP,
+  UNARY_OP,
 } from "../../../src/lib/combinators";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
@@ -92,7 +96,7 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles an element lens to navCall judged as the terminal type",
+      name: "compiles an element lens to a typed read judged as the terminal type",
       script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ $]] == ${HOLDER}`,
       validate: (actions) => {
         const args = decodeCore(
@@ -102,10 +106,10 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("navCall");
+        expect(inner.functionName).to.equal("read");
         expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
-        expect(inner.args[2]).to.equal("(address[],address)");
-        expect(inner.args[3]).to.deep.equal([0n, 1n]);
+        expect(inner.args[2]).to.deep.equal(["(address[],address)"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 1n]]);
         expect(getAddress(args[2])).to.equal(HOLDER);
       },
     },
@@ -119,9 +123,9 @@ describeCommand("assert", {
           "assertEqCallAddress(address,bytes,address,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("navCall");
-        expect(inner.args[2]).to.equal("(address[][])");
-        expect(inner.args[3]).to.deep.equal([0n, 3n, 1n]);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["(address[][])"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 3n, 1n]]);
       },
     },
     {
@@ -134,9 +138,9 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("navCall");
-        expect(inner.args[2]).to.equal("((address,uint256,bool)[])");
-        expect(inner.args[3]).to.deep.equal([0n, 1n, 2n]);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["((address,uint256,bool)[])"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 1n, 2n]]);
       },
     },
     {
@@ -149,16 +153,16 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const cmp = decodeCombinator(args[1]);
-        expect(cmp.functionName).to.equal("cmpUint");
-        expect(cmp.args[0]).to.equal(CMP_OP.Gt);
+        expect(cmp.functionName).to.equal("calc");
+        expect(cmp.args[0]).to.equal(CALC_OP.Gt);
         const element = decodeCombinator(cmp.args[2] as `0x${string}`);
-        expect(element.functionName).to.equal("navCall");
-        expect(element.args[2]).to.equal("(uint256[])");
-        expect(element.args[3]).to.deep.equal([0n, 2n]);
+        expect(element.functionName).to.equal("read");
+        expect(element.args[2]).to.deep.equal(["(uint256[])"]);
+        expect(element.args[3]).to.deep.equal([[0n, 2n]]);
       },
     },
     {
-      name: "compiles @len! over a lensed call through navDynCall",
+      name: "compiles @len! over a lensed call through a typed read envelope",
       script: `assertions:assert @len!(${TOKEN}::{matrix()(address[][])}[[_ $]]) >= 3`,
       validate: (actions) => {
         const args = decodeCore(
@@ -168,9 +172,9 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("navDynCall");
-        expect(inner.args[2]).to.equal("(address[][])");
-        expect(inner.args[3]).to.deep.equal([0n, 1n]);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["(address[][])"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 1n]]);
         expect(args[2]).to.equal(3n);
       },
     },
@@ -184,16 +188,18 @@ describeCommand("assert", {
           "assertEqCallStringN(address,bytes,uint256,string,string)",
         );
         const split = decodeCombinator(args[1]);
-        expect(split.functionName).to.equal("splitCall");
-        expect(getAddress(split.args[0] as string)).to.equal(COMBINATORS);
+        expect(split.functionName).to.equal("data");
+        expect(split.args[0]).to.equal(DATA_OP.Split);
+        expect(getAddress(split.args[1] as string)).to.equal(COMBINATORS);
         const inner = decodeFunctionData({
           abi: COMBINATORS_ABI,
-          data: (split.args[1] as `0x${string}`[])[0],
+          data: (split.args[2] as `0x${string}`[])[0],
         });
-        expect(inner.functionName).to.equal("navDynCall");
-        expect(inner.args[2]).to.equal("((string,uint256)[])");
-        expect(inner.args[3]).to.deep.equal([0n, 0n, 0n]);
-        expect(split.args[3]).to.equal(-1n);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["((string,uint256)[])"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 0n, 0n]]);
+        expect(split.args[3]).to.equal(stringToHex(" "));
+        expect(split.args[4]).to.equal(-1n);
       },
     },
     {
@@ -351,9 +357,9 @@ describeCommand("assert", {
         expect(args[2]).to.equal(6n * 10n ** 18n);
       },
     },
-    // ---- :: chains → chainCall ---------------------------------------
+    // ---- :: chains → read ----------------------------------------------
     {
-      name: "compiles a :: chain through Combinators.chainCall",
+      name: "compiles a :: chain through Combinators.read",
       script: `assertions:assert ${TOKEN}::{vault()(address)}::{symbol()(string)} == "WETH"`,
       validate: (actions) => {
         const args = decodeCore(
@@ -363,14 +369,14 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("chainCall");
+        expect(inner.functionName).to.equal("read");
         expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
         expect(inner.args[1]).to.have.lengthOf(2);
         expect(args[3]).to.equal("WETH");
       },
     },
     {
-      name: "prefixes non-final hops with the selected word index",
+      name: "encodes hops as plain calldata with raw passthrough types",
       script: `assertions:assert ${TOKEN}::{vault()(address)}::{symbol()(string)} == "WETH"`,
       validate: (actions) => {
         const args = decodeCore(
@@ -380,11 +386,12 @@ describeCommand("assert", {
         );
         const inner = decodeCombinator(args[1]);
         const hops = inner.args[1] as `0x${string}`[];
-        // Non-final hop: 32-byte word index (0) ++ vault() selector.
-        expect(hops[0].slice(0, 66)).to.equal(`0x${"0".repeat(64)}`);
-        expect(hops[0].length).to.equal(66 + 8);
-        // Final hop: unprefixed symbol() calldata (selector only).
+        // Both hops are plain abi.encodeCall data (selector only here).
+        expect(hops[0].length).to.equal(10);
         expect(hops[1].length).to.equal(10);
+        // Raw mode throughout: empty types, empty paths (word 0 default).
+        expect(inner.args[2]).to.deep.equal(["", ""]);
+        expect(inner.args[3]).to.deep.equal([[], []]);
       },
     },
     {
@@ -398,11 +405,10 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("chainCall");
-        const hops = inner.args[1] as `0x${string}`[];
-        expect(hops).to.have.lengthOf(2);
-        // The prefix selects word 2, where the address output lives.
-        expect(hops[0].slice(0, 66)).to.equal(`0x${"0".repeat(63)}2`);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[1]).to.have.lengthOf(2);
+        // The mid-chain path selects raw word 2, where the address lives.
+        expect(inner.args[3]).to.deep.equal([[2n], []]);
       },
     },
     // ---- @len! ---------------------------------------------------------
@@ -430,7 +436,7 @@ describeCommand("assert", {
         ),
     },
     {
-      name: "routes a chained @len! argument through chainCall",
+      name: "routes a chained @len! argument through a read passthrough",
       script: `assertions:assert @len!(${TOKEN}::{vault()(address)}::{holders()(address[])}) == 2`,
       validate: (actions) => {
         const args = decodeCore(
@@ -440,11 +446,11 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("chainCall");
+        expect(inner.functionName).to.equal("read");
       },
     },
     {
-      name: "compiles a nested @len! to arrayLengthCall inside an expression",
+      name: "compiles a nested @len! to a LEN-path read inside an expression",
       script: `assertions:assert @num!(@len!(${TOKEN}::{holders()(address[])}) * 2) > 4`,
       validate: (actions) => {
         const args = decodeCore(
@@ -454,18 +460,21 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const calc = decodeCombinator(args[1]);
-        expect(calc.functionName).to.equal("calcUint");
-        expect(calc.args[0]).to.equal(ARITH_OP.Mul);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.Mul);
         const left = decodeCombinator(calc.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("arrayLengthCall");
+        expect(left.functionName).to.equal("read");
+        expect(left.args[2]).to.deep.equal(["(address[])"]);
+        expect(left.args[3]).to.deep.equal([[0n, LEN_STEP]]);
         const right = decodeCombinator(calc.args[4] as `0x${string}`);
-        expect(right.functionName).to.equal("constantUint");
-        expect(right.args[0]).to.equal(2n);
+        expect(right.functionName).to.equal("env");
+        expect(right.args[0]).to.equal(ENV_OP.Constant);
+        expect(right.args[1]).to.equal(2n);
       },
     },
     // ---- other chain-call helpers ------------------------------------
     {
-      name: "compiles @split! to splitCall judged by assertEqCallStringN",
+      name: "compiles @split! to data(Split) judged by assertEqCallStringN",
       script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
       validate: (actions) => {
         const args = decodeCore(
@@ -476,9 +485,10 @@ describeCommand("assert", {
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         expect(args[2]).to.equal(0n);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("splitCall");
-        expect(inner.args[2]).to.equal(" ");
-        expect(inner.args[3]).to.equal(1n);
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Split);
+        expect(inner.args[3]).to.equal(stringToHex(" "));
+        expect(inner.args[4]).to.equal(1n);
         expect(args[3]).to.equal("LP");
       },
     },
@@ -492,9 +502,10 @@ describeCommand("assert", {
           "assertEqCallStringN(address,bytes,uint256,string,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("splitCall");
-        expect(inner.args[2]).to.equal(" ");
-        expect(inner.args[3]).to.equal(-1n);
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Split);
+        expect(inner.args[3]).to.equal(stringToHex(" "));
+        expect(inner.args[4]).to.equal(-1n);
         expect(args[3]).to.equal("Token");
       },
     },
@@ -508,18 +519,21 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const cmp = decodeCombinator(args[1]);
-        expect(cmp.functionName).to.equal("cmpUint");
-        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        expect(cmp.functionName).to.equal("calc");
+        expect(cmp.args[0]).to.equal(CALC_OP.Eq);
         const live = decodeCombinator(cmp.args[2] as `0x${string}`);
-        expect(live.functionName).to.equal("hashCall");
+        expect(live.functionName).to.equal("data");
+        expect(live.args[0]).to.equal(DATA_OP.Hash);
         const wrapped = decodeFunctionData({
           abi: COMBINATORS_ABI,
-          data: (live.args[1] as `0x${string}`[])[0],
+          data: (live.args[2] as `0x${string}`[])[0],
         });
-        expect(wrapped.functionName).to.equal("splitCall");
+        expect(wrapped.functionName).to.equal("data");
+        expect(wrapped.args[0]).to.equal(DATA_OP.Split);
         const digest = decodeCombinator(cmp.args[4] as `0x${string}`);
-        expect(digest.functionName).to.equal("constantUint");
-        expect(digest.args[0]).to.equal(
+        expect(digest.functionName).to.equal("env");
+        expect(digest.args[0]).to.equal(ENV_OP.Constant);
+        expect(digest.args[1]).to.equal(
           BigInt(keccak256(encodeAbiParameters([{ type: "string" }], ["LP"]))),
         );
       },
@@ -534,18 +548,20 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const cmp = decodeCombinator(args[1]);
-        expect(cmp.functionName).to.equal("cmpUint");
-        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        expect(cmp.functionName).to.equal("calc");
+        expect(cmp.args[0]).to.equal(CALC_OP.Eq);
         const left = decodeCombinator(cmp.args[2] as `0x${string}`);
         const right = decodeCombinator(cmp.args[4] as `0x${string}`);
-        expect(left.functionName).to.equal("hashCall");
-        expect(right.functionName).to.equal("hashCall");
-        expect(getAddress(left.args[0] as string)).to.equal(TOKEN);
-        expect(getAddress(right.args[0] as string)).to.equal(TOKEN);
+        expect(left.functionName).to.equal("data");
+        expect(left.args[0]).to.equal(DATA_OP.Hash);
+        expect(right.functionName).to.equal("data");
+        expect(right.args[0]).to.equal(DATA_OP.Hash);
+        expect(getAddress(left.args[1] as string)).to.equal(TOKEN);
+        expect(getAddress(right.args[1] as string)).to.equal(TOKEN);
       },
     },
     {
-      name: "compiles @hash! to hashCall judged by assertEqCallBytes32",
+      name: "compiles @hash! to data(Hash) judged by assertEqCallBytes32",
       script: `assertions:assert @hash!(${TOKEN}::{name()(string)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const args = decodeCore(
@@ -555,11 +571,12 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("hashCall");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Hash);
       },
     },
     {
-      name: "compiles a bare @includes! to includesCall judged by assertTrue",
+      name: "compiles a bare @includes! to data(Includes) judged by assertTrue",
       script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "LP")`,
       validate: (actions) => {
         const args = decodeCore(
@@ -569,9 +586,10 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("includesCall");
-        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
-        expect(inner.args[2]).to.equal("LP");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Includes);
+        expect(getAddress(inner.args[1] as string)).to.equal(TOKEN);
+        expect(inner.args[3]).to.equal(stringToHex("LP"));
       },
     },
     {
@@ -584,8 +602,9 @@ describeCommand("assert", {
           "assertFalse(address,bytes,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("includesCall");
-        expect(inner.args[2]).to.equal("Sushi");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Includes);
+        expect(inner.args[3]).to.equal(stringToHex("Sushi"));
         expect(args[2]).to.equal("rebranded");
       },
     },
@@ -599,16 +618,18 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const logic = decodeCombinator(args[1]);
-        expect(logic.functionName).to.equal("logicBool");
-        expect(logic.args[0]).to.equal(LOGIC_OP.And);
+        expect(logic.functionName).to.equal("calc");
+        expect(logic.args[0]).to.equal(CALC_OP.And);
         const left = decodeCombinator(logic.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("includesCall");
+        expect(left.functionName).to.equal("data");
+        expect(left.args[0]).to.equal(DATA_OP.Includes);
         const right = decodeCombinator(logic.args[4] as `0x${string}`);
-        expect(right.functionName).to.equal("charsetCall");
+        expect(right.functionName).to.equal("data");
+        expect(right.args[0]).to.equal(DATA_OP.Charset);
       },
     },
     {
-      name: "compiles @charset! to charsetCall with the class bitmap",
+      name: "compiles @charset! to data(Charset) with the class bitmap",
       script: `assertions:assert @charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
       validate: (actions) => {
         const args = decodeCore(
@@ -618,9 +639,12 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("charsetCall");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Charset);
         // bits 97..122 = a-z
-        expect(inner.args[2]).to.equal(0x07fffffen << 96n);
+        expect(inner.args[3]).to.equal(
+          numberToHex(0x07fffffen << 96n, { size: 32 }),
+        );
       },
     },
     {
@@ -633,13 +657,14 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("charsetCall");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.Charset);
         const expected = (0x07fffffen << 96n) | (0x3ffn << 48n) | (1n << 45n); // a-z | 0-9 | -
-        expect(inner.args[2]).to.equal(expected);
+        expect(inner.args[3]).to.equal(numberToHex(expected, { size: 32 }));
       },
     },
     {
-      name: "compiles @at! to a raw-word uintCall extraction",
+      name: "compiles @at! to a raw-word read extraction",
       script: `assertions:assert @at!(${TOKEN}::{getReserves()(uint112,uint112,uint32)} 1) > 0`,
       validate: (actions) => {
         const args = decodeCore(
@@ -648,8 +673,9 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("uintCall");
-        expect(inner.args[2]).to.equal(1n);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal([""]);
+        expect(inner.args[3]).to.deep.equal([[1n]]);
       },
     },
     {
@@ -662,12 +688,12 @@ describeCommand("assert", {
           "assertNeCallUint(address,bytes,uint256,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("uintCall");
-        expect(inner.args[2]).to.equal(-1n);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[3]).to.deep.equal([[-1n]]);
       },
     },
     {
-      name: "compiles @bytelen! to lengthCall",
+      name: "compiles @bytelen! to data(ByteLen)",
       script: `assertions:assert @bytelen!(${TOKEN}::{holders()(address[])}) == 128`,
       validate: (actions) => {
         const args = decodeCore(
@@ -676,12 +702,13 @@ describeCommand("assert", {
           "assertEqCallUint(address,bytes,uint256,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("lengthCall");
+        expect(inner.functionName).to.equal("data");
+        expect(inner.args[0]).to.equal(DATA_OP.ByteLen);
       },
     },
     // ---- @balance! ----------------------------------------------------
     {
-      name: "compiles a native @balance! to ethBalance",
+      name: "compiles a native @balance! to env(Balance)",
       script: `assertions:assert @balance!(XDAI ${HOLDER}) > 1e18`,
       validate: (actions) => {
         const args = decodeCore(
@@ -691,8 +718,9 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("ethBalance");
-        expect(getAddress(inner.args[0] as string)).to.equal(HOLDER);
+        expect(inner.functionName).to.equal("env");
+        expect(inner.args[0]).to.equal(ENV_OP.Balance);
+        expect(inner.args[1]).to.equal(BigInt(HOLDER));
       },
     },
     {
@@ -710,7 +738,7 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles a native @balance! of a call-resolved account to ethBalanceCall",
+      name: "compiles a native @balance! of a call-resolved account to unary(Balance)",
       script: `assertions:assert @balance!(XDAI ${TOKEN}::{treasury()(address)}) >= 1e18`,
       validate: (actions) => {
         const args = decodeCore(
@@ -719,13 +747,14 @@ describeCommand("assert", {
           "assertGeCallUint(address,bytes,uint256,string)",
         );
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("ethBalanceCall");
-        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(inner.functionName).to.equal("unary");
+        expect(inner.args[0]).to.equal(UNARY_OP.Balance);
+        expect(getAddress(inner.args[1] as string)).to.equal(TOKEN);
       },
     },
     // ---- @num! / @bool! composition ----------------------------------
     {
-      name: "compiles live addition through calcUint",
+      name: "compiles live addition through calc(Add)",
       script: `assertions:assert @num!(@balance!(XDAI ${HOLDER}) + ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}}) > 0`,
       validate: (actions) => {
         const args = decodeCore(
@@ -735,15 +764,16 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const calc = decodeCombinator(args[1]);
-        expect(calc.functionName).to.equal("calcUint");
-        expect(calc.args[0]).to.equal(ARITH_OP.Add);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.Add);
         const left = decodeCombinator(calc.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("ethBalance");
+        expect(left.functionName).to.equal("env");
+        expect(left.args[0]).to.equal(ENV_OP.Balance);
         expect(getAddress(calc.args[3] as string)).to.equal(TOKEN);
       },
     },
     {
-      name: "promotes mixed int operands to calcInt",
+      name: "promotes mixed int operands to the signed calc variant",
       script: `assertions:assert @num!(${TOKEN}::{drift()(int256)} + 5) < 0`,
       validate: (actions) => {
         const args = decodeCore(
@@ -752,12 +782,12 @@ describeCommand("assert", {
           "assertLtCallInt(address,bytes,int256,string)",
         );
         const calc = decodeCombinator(args[1]);
-        expect(calc.functionName).to.equal("calcInt");
-        expect(calc.args[0]).to.equal(ARITH_OP.Add);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.SAdd);
       },
     },
     {
-      name: "compiles a bare @bool! or-expression to logicBool judged by assertTrue",
+      name: "compiles a bare @bool! or-expression to calc(Or) judged by assertTrue",
       script: `assertions:assert @bool!((${TOKEN}::{supply()(uint256)} > 0) or (${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 10))`,
       validate: (actions) => {
         const args = decodeCore(
@@ -767,13 +797,14 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const logic = decodeCombinator(args[1]);
-        expect(logic.functionName).to.equal("logicBool");
-        expect(logic.args[0]).to.equal(LOGIC_OP.Or);
+        expect(logic.functionName).to.equal("calc");
+        expect(logic.args[0]).to.equal(CALC_OP.Or);
         const left = decodeCombinator(logic.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("cmpUint");
-        expect(left.args[0]).to.equal(CMP_OP.Gt);
+        expect(left.functionName).to.equal("calc");
+        expect(left.args[0]).to.equal(CALC_OP.Gt);
         const right = decodeCombinator(logic.args[4] as `0x${string}`);
-        expect(right.functionName).to.equal("cmpUint");
+        expect(right.functionName).to.equal("calc");
+        expect(right.args[0]).to.equal(CALC_OP.Gt);
       },
     },
     {
@@ -789,7 +820,7 @@ describeCommand("assert", {
       },
     },
     {
-      name: "left-folds variadic @min! into nested calcUint(Min) calls",
+      name: "left-folds variadic @min! into nested calc(Min) calls",
       script: `assertions:assert @min!(${TOKEN}::{supply()(uint256)} ${TOKEN}::{cap()(uint256)} 5) <= 5`,
       validate: (actions) => {
         const args = decodeCore(
@@ -798,18 +829,19 @@ describeCommand("assert", {
           "assertLeCallUint(address,bytes,uint256,string)",
         );
         const outer = decodeCombinator(args[1]);
-        expect(outer.functionName).to.equal("calcUint");
-        expect(outer.args[0]).to.equal(ARITH_OP.Min);
+        expect(outer.functionName).to.equal("calc");
+        expect(outer.args[0]).to.equal(CALC_OP.Min);
         const inner = decodeCombinator(outer.args[2] as `0x${string}`);
-        expect(inner.functionName).to.equal("calcUint");
-        expect(inner.args[0]).to.equal(ARITH_OP.Min);
+        expect(inner.functionName).to.equal("calc");
+        expect(inner.args[0]).to.equal(CALC_OP.Min);
         const last = decodeCombinator(outer.args[4] as `0x${string}`);
-        expect(last.functionName).to.equal("constantUint");
-        expect(last.args[0]).to.equal(5n);
+        expect(last.functionName).to.equal("env");
+        expect(last.args[0]).to.equal(ENV_OP.Constant);
+        expect(last.args[1]).to.equal(5n);
       },
     },
     {
-      name: "compiles @absdiff! to calcUint(AbsDiff)",
+      name: "compiles @absdiff! to calc(AbsDiff)",
       script: `assertions:assert @absdiff!(${TOKEN}::{supply()(uint256)} 100) <= 5`,
       validate: (actions) => {
         const args = decodeCore(
@@ -818,12 +850,12 @@ describeCommand("assert", {
           "assertLeCallUint(address,bytes,uint256,string)",
         );
         const calc = decodeCombinator(args[1]);
-        expect(calc.functionName).to.equal("calcUint");
-        expect(calc.args[0]).to.equal(ARITH_OP.AbsDiff);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.AbsDiff);
       },
     },
     {
-      name: "judges two live sides with cmpUint wrapped in assertTrue",
+      name: "judges two live sides with calc(Gt) wrapped in assertTrue",
       script: `assertions:assert ${TOKEN}::{supply()(uint256)} > ${TOKEN}::{cap()(uint256)}`,
       validate: (actions) => {
         const args = decodeCore(
@@ -833,12 +865,101 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const cmp = decodeCombinator(args[1]);
-        expect(cmp.functionName).to.equal("cmpUint");
-        expect(cmp.args[0]).to.equal(CMP_OP.Gt);
+        expect(cmp.functionName).to.equal("calc");
+        expect(cmp.args[0]).to.equal(CALC_OP.Gt);
+      },
+    },
+    // ---- @bytes! / @not! -----------------------------------------------
+    {
+      name: "compiles @bytes! bitwise-and through calc(And)",
+      script: `assertions:assert @bytes!(${TOKEN}::{flags()(bytes32)} "&" 0x00000000000000000000000000000000000000000000000000000000000000ff) == 3`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallUint(address,bytes,uint256,string)",
+        );
+        const calc = decodeCombinator(args[1]);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.And);
+        expect(getAddress(calc.args[1] as string)).to.equal(TOKEN);
+        const mask = decodeCombinator(calc.args[4] as `0x${string}`);
+        expect(mask.functionName).to.equal("env");
+        expect(mask.args[0]).to.equal(ENV_OP.Constant);
+        expect(mask.args[1]).to.equal(0xffn);
       },
     },
     {
-      name: "compiles @chainid! to the chainId getter",
+      name: "folds a constant @bytes! shift at build time",
+      script: `assertions:assert ${TOKEN}::{supply()(uint256)} < @bytes!(1 "<<" 128)`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertLtCallUint(address,bytes,uint256,string)",
+        );
+        expect(args[2]).to.equal(1n << 128n);
+      },
+    },
+    {
+      name: "casts a live bool to its raw 0/1 word with single-arg @bytes!",
+      script: `assertions:assert @num!(@bytes!(${TOKEN}::{paused()(bool)}) + 1) > 0`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertGtCallUint(address,bytes,uint256,string)",
+        );
+        const calc = decodeCombinator(args[1]);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.Add);
+        // The cast is free: the paused() call itself is the left operand.
+        expect(getAddress(calc.args[1] as string)).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "compiles @not! on a live bool to assertFalse on the inner call",
+      script: `assertions:assert @not!(${TOKEN}::{paused()(bool)})`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertFalse(address,bytes,string)",
+        );
+        expect(getAddress(args[0])).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "compiles @not! on a numeric value to unary(Not)",
+      script: `assertions:assert @not!(${TOKEN}::{supply()(uint256)}) > 0`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertGtCallUint(address,bytes,uint256,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("unary");
+        expect(inner.args[0]).to.equal(UNARY_OP.Not);
+        expect(getAddress(inner.args[1] as string)).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "folds @not! on a bytes32 constant to its complement",
+      script: `assertions:assert ${TOKEN}::{flags()(bytes32)} == @not!(0x00000000000000000000000000000000000000000000000000000000000000ff)`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallBytes32(address,bytes,bytes32,string)",
+        );
+        expect(args[2]).to.equal(`0x${"f".repeat(62)}00`);
+      },
+    },
+    // ---- env getters -----------------------------------------------------
+    {
+      name: "compiles @chainid! to env(ChainId)",
       script: `assertions:assert @chainid! == 100 "wrong chain"`,
       validate: (actions) => {
         const args = decodeCore(
@@ -848,7 +969,8 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("chainId");
+        expect(inner.functionName).to.equal("env");
+        expect(inner.args[0]).to.equal(ENV_OP.ChainId);
         expect(args[2]).to.equal(100n);
         expect(args[3]).to.equal("wrong chain");
       },
@@ -863,17 +985,19 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         const calc = decodeCombinator(args[1]);
-        expect(calc.functionName).to.equal("calcUint");
-        expect(calc.args[0]).to.equal(ARITH_OP.Add);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.Add);
         const left = decodeCombinator(calc.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("chainId");
+        expect(left.functionName).to.equal("env");
+        expect(left.args[0]).to.equal(ENV_OP.ChainId);
         const right = decodeCombinator(calc.args[4] as `0x${string}`);
-        expect(right.functionName).to.equal("constantUint");
-        expect(right.args[0]).to.equal(1n);
+        expect(right.functionName).to.equal("env");
+        expect(right.args[0]).to.equal(ENV_OP.Constant);
+        expect(right.args[1]).to.equal(1n);
       },
     },
     {
-      name: "compiles @codehash! of a literal address to codeHash",
+      name: "compiles @codehash! of a literal address to env(CodeHash)",
       script: `assertions:assert @codehash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const args = decodeCore(
@@ -883,15 +1007,16 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("codeHash");
-        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(inner.functionName).to.equal("env");
+        expect(inner.args[0]).to.equal(ENV_OP.CodeHash);
+        expect(inner.args[1]).to.equal(BigInt(TOKEN));
         expect(args[2]).to.equal(
           "0x0102030405060708091011121314151617181920212223242526272829303132",
         );
       },
     },
     {
-      name: "compiles @codehash! of a call-resolved address to codeHashCall",
+      name: "compiles @codehash! of a call-resolved address to unary(CodeHash)",
       script: `assertions:assert @codehash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const args = decodeCore(
@@ -901,13 +1026,16 @@ describeCommand("assert", {
         );
         expect(getAddress(args[0])).to.equal(COMBINATORS);
         const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("codeHashCall");
-        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
-        expect((inner.args[1] as `0x${string}`[]).length).to.equal(1);
+        expect(inner.functionName).to.equal("unary");
+        expect(inner.args[0]).to.equal(UNARY_OP.CodeHash);
+        expect(getAddress(inner.args[1] as string)).to.equal(TOKEN);
+        expect(
+          (inner.args[2] as string).startsWith(selectorOf("implementation()")),
+        ).to.be.true;
       },
     },
     {
-      name: "judges two live @codehash! sides with cmpUint",
+      name: "judges two live @codehash! sides with calc(Eq)",
       script: `assertions:assert @codehash!(${TOKEN}) == @codehash!(${HOLDER})`,
       validate: (actions) => {
         const args = decodeCore(
@@ -916,14 +1044,16 @@ describeCommand("assert", {
           "assertTrue(address,bytes,string)",
         );
         const cmp = decodeCombinator(args[1]);
-        expect(cmp.functionName).to.equal("cmpUint");
-        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        expect(cmp.functionName).to.equal("calc");
+        expect(cmp.args[0]).to.equal(CALC_OP.Eq);
         const left = decodeCombinator(cmp.args[2] as `0x${string}`);
-        expect(left.functionName).to.equal("codeHash");
-        expect(getAddress(left.args[0] as string)).to.equal(TOKEN);
+        expect(left.functionName).to.equal("env");
+        expect(left.args[0]).to.equal(ENV_OP.CodeHash);
+        expect(left.args[1]).to.equal(BigInt(TOKEN));
         const right = decodeCombinator(cmp.args[4] as `0x${string}`);
-        expect(right.functionName).to.equal("codeHash");
-        expect(getAddress(right.args[0] as string)).to.equal(HOLDER);
+        expect(right.functionName).to.equal("env");
+        expect(right.args[0]).to.equal(ENV_OP.CodeHash);
+        expect(right.args[1]).to.equal(BigInt(HOLDER));
       },
     },
   ],
@@ -1034,6 +1164,21 @@ describeCommand("assert", {
       error: "not supported",
     },
     {
+      name: "rejects an unknown @bytes! operator",
+      script: `assertions:assert @bytes!(${TOKEN}::{supply()(uint256)} "+" 1) > 0`,
+      error: '@bytes! operator must be one of "&" "|" "^" "<<" ">>"',
+    },
+    {
+      name: "rejects @bytes! on a string return",
+      script: `assertions:assert @bytes!(${TOKEN}::{name()(string)}) > 0`,
+      error: "needs 32-byte word operands",
+    },
+    {
+      name: "rejects @not! on a string return",
+      script: `assertions:assert @not!(${TOKEN}::{name()(string)})`,
+      error: "needs a boolean or 32-byte word operand",
+    },
+    {
       name: "rejects a @split! segment in arithmetic",
       script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) > 0`,
       error: "numeric operands",
@@ -1096,7 +1241,7 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xA55Ec0679D25eD8a12036b9dDa7Ecfb4389B71F0"),
+          getAddress("0xA55Ec0AA973C18Cb7D7874d4c52B663FFFf6b1dC"),
         );
       },
     },
