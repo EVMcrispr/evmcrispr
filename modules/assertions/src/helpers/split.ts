@@ -3,7 +3,7 @@ import { defineBangHelper } from "./_bang";
 export default defineBangHelper({
   name: "split!",
   description:
-    "Split the string return of a call on a delimiter and select one segment, on-chain. Compare the result at the top level of an assertion.",
+    "Split the string return of a call on a delimiter and select one segment, on-chain. A negative index counts from the end (-1 = last segment).",
   returnType: "string",
   args: [
     {
@@ -19,7 +19,8 @@ export default defineBangHelper({
     {
       name: "index",
       type: "number",
-      description: "Zero-based segment index to select",
+      description:
+        "Segment index to select: zero-based from the start, negative from the end (-1 = last)",
     },
   ],
 });

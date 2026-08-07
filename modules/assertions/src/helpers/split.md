@@ -2,7 +2,7 @@
 title: "@assertions:split!"
 ---
 
-Split the string return of a call on a delimiter and select one segment, on-chain. Compare the result at the top level of an assertion.
+Split the string return of a call on a delimiter and select one segment, on-chain. A negative index counts from the end (-1 = last segment).
 
 **Returns**: `string`
 
@@ -18,7 +18,7 @@ Split the string return of a call on a delimiter and select one segment, on-chai
 |------|------|-------------|
 | `call` | `any` | A `::` call expression (or chain) returning a string |
 | `delimiter` | `string` | Exact, non-empty byte sequence to split on |
-| `index` | `number` | Zero-based segment index to select |
+| `index` | `number` | Segment index to select: zero-based from the start, negative from the end (-1 = last) |
 
 <!-- HAND-WRITTEN -->
 
@@ -31,13 +31,21 @@ set $pool 0x44fA8E6f47987339850636F88629646662444217
 
 # "Uniswap LP Token" -> segment 1 is "LP"
 assertions:assert @split!($pool::{name()(string)} " " 1) == "LP"
+
+# The name ends with "Token": negative index counts from the end, on-chain
+assertions:assert @split!($pool::{name()(string)} " " -1) == "Token"
 ```
 
 ## Notes
 
 - Splits on the exact byte sequence; adjacent delimiters produce empty
-  segments and an out-of-range index reverts with SegmentIndexOutOfBounds.
-- String-valued, so it can only be judged at the top level with `==`/`!=`.
+  segments and an out-of-range index (in either direction) reverts with
+  SegmentIndexOutOfBounds.
+- Negative indices resolve against the segment count at assertion time, so
+  `-1` is the last segment however many the live value has.
+- String-valued: compare with `==`/`!=`. At the top level the core judges
+  the string directly; nested inside `@bool!` the comparison compiles to an
+  on-chain keccak comparison of the two sides.
 
 ## See Also
 

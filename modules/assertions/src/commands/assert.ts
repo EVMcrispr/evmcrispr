@@ -22,7 +22,6 @@ import {
   compileHash,
   compileLenChain,
   compileOperand,
-  compileSplit,
   compileTopCall,
   isBangHelperNode,
 } from "../lib/compiler";
@@ -429,17 +428,6 @@ async function compileSide(
 ): Promise<{ operand: Operand; index?: number }> {
   if (node.type === NodeType.CallExpression) {
     return compileTopCall(ctx, node as CallExpressionNode);
-  }
-  if (isHelperNamed(node, "split!")) {
-    const data = await compileSplit(ctx, node);
-    return {
-      operand: {
-        kind: "call",
-        target: ctx.combinators,
-        data,
-        cat: "String",
-      },
-    };
   }
   if (isHelperNamed(node, "hash!")) {
     const data = await compileHash(ctx, node);

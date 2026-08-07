@@ -17,10 +17,12 @@ import {
 import type { AbiFunction, Hex } from "viem";
 import {
   concatHex,
+  encodeAbiParameters,
   encodeFunctionData,
   getAddress,
   isAddress,
   isHex,
+  keccak256,
   numberToHex,
   parseAbi,
   parseAbiItem,
@@ -116,6 +118,8 @@ export const BANG_HELPERS = new Set([
   "len!",
   "bytelen!",
   "split!",
+  "includes!",
+  "charset!",
   "hash!",
 ]);
 
@@ -543,7 +547,7 @@ async function requireChainArg(
   return compileChain(ctx, node as CallExpressionNode);
 }
 
-async function constUintArg(
+async function constIntArg(
   ctx: CompilerCtx,
   helper: string,
   what: string,
@@ -552,10 +556,7 @@ async function constUintArg(
   if (!node)
     throw new ErrorException(`@${helper} is missing its ${what} argument`);
   const o = constOperand(await ctx.interpreters.interpretNode(node));
-  const v = constBigInt(o as Operand & { kind: "const" });
-  if (v < 0n)
-    throw new ErrorException(`@${helper} ${what} must be non-negative`);
-  return v;
+  return constBigInt(o as Operand & { kind: "const" });
 }
 
 // ---------------------------------------------------------------------------
@@ -699,10 +700,60 @@ export function cmpCombine(
     };
   }
 
+  // Strings inside an expression: the word machine can't carry dynamic
+  // values, so == / != compile to a keccak comparison — each live side is
+  // wrapped in hashCall (keccak of its raw returndata, i.e. the ABI string
+  // envelope) and constants fold to the digest of their own envelope at
+  // build time. Ordering comparisons stay invalid.
   if (l.cat === "String" || r.cat === "String") {
-    throw new ErrorException(
-      "string values can only be compared at the top level of an assertion (or via @hash!)",
-    );
+    if (l.cat !== r.cat) {
+      throw new ErrorException(
+        "cannot compare a string with a non-string value",
+      );
+    }
+    if (op !== "Eq" && op !== "Ne") {
+      throw new ErrorException("strings only support == and != comparisons");
+    }
+    if (l.kind === "const" && r.kind === "const") {
+      return {
+        kind: "const",
+        cat: "Bool",
+        value: (l.value === r.value) === (op === "Eq"),
+      };
+    }
+    const hashPair = (o: Operand): CallPair =>
+      o.kind === "call"
+        ? {
+            target: ctx.combinators,
+            data: encodeCombinator("hashCall", [o.target, [o.data]]),
+          }
+        : {
+            target: ctx.combinators,
+            data: encodeCombinator("constantUint", [
+              BigInt(
+                keccak256(
+                  encodeAbiParameters(
+                    [{ type: "string" }],
+                    [o.value as string],
+                  ),
+                ),
+              ),
+            ]),
+          };
+    const lp = hashPair(l);
+    const rp = hashPair(r);
+    return {
+      kind: "call",
+      target: ctx.combinators,
+      data: encodeCombinator("cmpUint", [
+        CMP_OP[op],
+        lp.target,
+        lp.data,
+        rp.target,
+        rp.data,
+      ]),
+      cat: "Bool",
+    };
   }
   if (
     (l.cat === "Address" ||
@@ -1116,14 +1167,15 @@ function combinatorCall(ctx: CompilerCtx, data: Hex, cat: Category): Operand {
   return { kind: "call", target: ctx.combinators, data, cat };
 }
 
-/** Compile `@split!(call delim idx)` into its splitCall calldata. */
+/** Compile `@split!(call delim idx)` into its splitCall calldata. The index
+ *  may be negative: it resolves from the end on-chain (-1 = last segment). */
 export async function compileSplit(
   ctx: CompilerCtx,
   node: HelperFunctionNode,
 ): Promise<Hex> {
   if (node.args.length !== 3) {
     throw new ErrorException(
-      '@split! expects (call delimiter index), e.g. @split!($pool::name() " " 1)',
+      '@split! expects (call delimiter index), e.g. @split!($pool::name() " " 1) — a negative index counts from the end (-1 = last segment)',
     );
   }
   const chain = await requireChainArg(ctx, "split!", node.args[0]);
@@ -1131,13 +1183,41 @@ export async function compileSplit(
   if (typeof delimiter !== "string" || delimiter.length === 0) {
     throw new ErrorException("@split! delimiter must be a non-empty string");
   }
-  const index = await constUintArg(ctx, "split!", "index", node.args[2]);
+  const index = await constIntArg(ctx, "split!", "index", node.args[2]);
   return encodeCombinator("splitCall", [
     chain.root,
     chain.calls,
     delimiter,
     index,
   ]);
+}
+
+/**
+ * Compile a character-class spec into the charsetCall bitmap: bit i set ⇔
+ * byte value i allowed. `x-y` spans an inclusive byte range; a dash that is
+ * not between two other bytes (leading or trailing) is the literal `-`.
+ * The spec is processed as UTF-8 bytes, matching the byte-level check the
+ * combinator performs.
+ */
+export function charsetMask(spec: string): bigint {
+  const bytes = new TextEncoder().encode(spec);
+  let mask = 0n;
+  for (let i = 0; i < bytes.length; i++) {
+    if (i + 2 < bytes.length && bytes[i + 1] === 0x2d /* - */) {
+      const lo = bytes[i];
+      const hi = bytes[i + 2];
+      if (lo > hi) {
+        throw new ErrorException(
+          `invalid @charset! range "${spec.slice(i, i + 3)}" — the range is reversed`,
+        );
+      }
+      for (let b = lo; b <= hi; b++) mask |= 1n << BigInt(b);
+      i += 2;
+    } else {
+      mask |= 1n << BigInt(bytes[i]);
+    }
+  }
+  return mask;
 }
 
 /** Compile `@hash!(call)` into its hashCall calldata. */
@@ -1284,7 +1364,7 @@ export async function compileBangHelper(
         );
       }
       const chain = await requireChainArg(ctx, "at!", node.args[0]);
-      const index = await constUintArg(ctx, "at!", "word index", node.args[1]);
+      const index = await constIntArg(ctx, "at!", "word index", node.args[1]);
       return combinatorCall(
         ctx,
         encodeCombinator("uintCall", [chain.root, chain.calls, index]),
@@ -1310,10 +1390,52 @@ export async function compileBangHelper(
         "Uint",
       );
     }
-    case "split!":
-      throw new ErrorException(
-        "@split! is string-valued and can only be compared at the top level of an assertion",
+    case "split!": {
+      const data = await compileSplit(ctx, node);
+      return combinatorCall(ctx, data, "String");
+    }
+    case "includes!": {
+      if (node.args.length !== 2) {
+        throw new ErrorException(
+          '@includes! expects (call part), e.g. @includes!($pool::name() "LP")',
+        );
+      }
+      const chain = await requireChainArg(ctx, "includes!", node.args[0]);
+      const part = await ctx.interpreters.interpretNode(node.args[1]);
+      if (typeof part !== "string" || part.length === 0) {
+        throw new ErrorException(
+          "@includes! part must be a non-empty string (every string contains the empty string)",
+        );
+      }
+      return combinatorCall(
+        ctx,
+        encodeCombinator("includesCall", [chain.root, chain.calls, part]),
+        "Bool",
       );
+    }
+    case "charset!": {
+      if (node.args.length !== 2) {
+        throw new ErrorException(
+          '@charset! expects (call class), e.g. @charset!($token::symbol() "a-z0-9-")',
+        );
+      }
+      const chain = await requireChainArg(ctx, "charset!", node.args[0]);
+      const spec = await ctx.interpreters.interpretNode(node.args[1]);
+      if (typeof spec !== "string" || spec.length === 0) {
+        throw new ErrorException(
+          '@charset! class must be a non-empty string of allowed characters and ranges, e.g. "a-z0-9-"',
+        );
+      }
+      return combinatorCall(
+        ctx,
+        encodeCombinator("charsetCall", [
+          chain.root,
+          chain.calls,
+          charsetMask(spec),
+        ]),
+        "Bool",
+      );
+    }
     case "hash!": {
       const data = await compileHash(ctx, node);
       return combinatorCall(ctx, data, "Bytes32");

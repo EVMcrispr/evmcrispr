@@ -2,7 +2,7 @@
 title: "@assertions:at!"
 ---
 
-Extract a raw 32-byte word from the return data of a call by word index, on-chain. Static layouts only — dynamic types contribute head offsets, not values.
+Extract a raw 32-byte word from the return data of a call by word index, on-chain. A negative index counts from the end (-1 = last word, e.g. the last element of a single dynamic array return).
 
 **Returns**: `number`
 
@@ -17,7 +17,7 @@ Extract a raw 32-byte word from the return data of a call by word index, on-chai
 | Name | Type | Description |
 |------|------|-------------|
 | `call` | `any` | A `::` call expression (or chain) to read |
-| `index` | `number` | Zero-based 32-byte word index into the raw return data |
+| `index` | `number` | 32-byte word index into the raw return data: zero-based from the start, negative from the end (-1 = last) |
 
 <!-- HAND-WRITTEN -->
 
@@ -30,7 +30,18 @@ set $pool 0x44fA8E6f47987339850636F88629646662444217
 
 # Word 1 of getReserves() is reserve1
 assertions:assert @at!($pool::{getReserves()(uint112,uint112,uint32)} 1) > 0
+
+# Last raw word — for a single dynamic array return, its last element
+assertions:assert @at!($pool::{holders()(address[])} -1) != 0
 ```
+
+## Notes
+
+- Raw word extraction, NOT an ABI decoder: word positions follow the raw
+  encoding, so dynamic types contribute head offsets, not their content
+  (a `T[]` return is offset word, length word, then the items).
+- Negative indices resolve against the word count at assertion time, so
+  `-1` is the last word however long the live returndata is.
 
 ## See Also
 

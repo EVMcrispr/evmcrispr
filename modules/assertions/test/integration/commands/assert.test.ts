@@ -5,7 +5,9 @@ import { describeCommand } from "@evmcrispr/test-utils/evml";
 import {
   type Address,
   decodeFunctionData,
+  encodeAbiParameters,
   getAddress,
+  keccak256,
   parseAbi,
   toFunctionSelector,
 } from "viem";
@@ -376,6 +378,68 @@ describeCommand("assert", {
       },
     },
     {
+      name: "compiles a negative @split! index for from-the-end selection",
+      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallStringN(address,bytes,uint256,string,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("splitCall");
+        expect(inner.args[2]).to.equal(" ");
+        expect(inner.args[3]).to.equal(-1n);
+        expect(args[3]).to.equal("Token");
+      },
+    },
+    {
+      name: "compiles a nested string equality to an on-chain keccak comparison",
+      script: `assertions:assert @bool!(@split!(${TOKEN}::{name()(string)} " " -1) == "LP")`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const cmp = decodeCombinator(args[1]);
+        expect(cmp.functionName).to.equal("cmpUint");
+        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        const live = decodeCombinator(cmp.args[2] as `0x${string}`);
+        expect(live.functionName).to.equal("hashCall");
+        const wrapped = decodeFunctionData({
+          abi: COMBINATORS_ABI,
+          data: (live.args[1] as `0x${string}`[])[0],
+        });
+        expect(wrapped.functionName).to.equal("splitCall");
+        const digest = decodeCombinator(cmp.args[4] as `0x${string}`);
+        expect(digest.functionName).to.equal("constantUint");
+        expect(digest.args[0]).to.equal(
+          BigInt(keccak256(encodeAbiParameters([{ type: "string" }], ["LP"]))),
+        );
+      },
+    },
+    {
+      name: "compiles two live strings to a keccak-vs-keccak comparison",
+      script: `assertions:assert ${TOKEN}::{name()(string)} == ${TOKEN}::{symbol()(string)}`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const cmp = decodeCombinator(args[1]);
+        expect(cmp.functionName).to.equal("cmpUint");
+        expect(cmp.args[0]).to.equal(CMP_OP.Eq);
+        const left = decodeCombinator(cmp.args[2] as `0x${string}`);
+        const right = decodeCombinator(cmp.args[4] as `0x${string}`);
+        expect(left.functionName).to.equal("hashCall");
+        expect(right.functionName).to.equal("hashCall");
+        expect(getAddress(left.args[0] as string)).to.equal(TOKEN);
+        expect(getAddress(right.args[0] as string)).to.equal(TOKEN);
+      },
+    },
+    {
       name: "compiles @hash! to hashCall judged by assertEqCallBytes32",
       script: `assertions:assert @hash!(${TOKEN}::{name()(string)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
@@ -390,6 +454,86 @@ describeCommand("assert", {
       },
     },
     {
+      name: "compiles a bare @includes! to includesCall judged by assertTrue",
+      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "LP")`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("includesCall");
+        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(inner.args[2]).to.equal("LP");
+      },
+    },
+    {
+      name: "compiles @includes! == false to assertFalse",
+      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertFalse(address,bytes,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("includesCall");
+        expect(inner.args[2]).to.equal("Sushi");
+        expect(args[2]).to.equal("rebranded");
+      },
+    },
+    {
+      name: "nests @includes! inside @bool! logic",
+      script: `assertions:assert @bool!(@includes!(${TOKEN}::{name()(string)} "LP") and @charset!(${TOKEN}::{symbol()(string)} "a-z"))`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const logic = decodeCombinator(args[1]);
+        expect(logic.functionName).to.equal("logicBool");
+        expect(logic.args[0]).to.equal(LOGIC_OP.And);
+        const left = decodeCombinator(logic.args[2] as `0x${string}`);
+        expect(left.functionName).to.equal("includesCall");
+        const right = decodeCombinator(logic.args[4] as `0x${string}`);
+        expect(right.functionName).to.equal("charsetCall");
+      },
+    },
+    {
+      name: "compiles @charset! to charsetCall with the class bitmap",
+      script: `assertions:assert @charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("charsetCall");
+        // bits 97..122 = a-z
+        expect(inner.args[2]).to.equal(0x07fffffen << 96n);
+      },
+    },
+    {
+      name: "@charset! treats a trailing dash as the literal `-`",
+      script: `assertions:assert @charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("charsetCall");
+        const expected = (0x07fffffen << 96n) | (0x3ffn << 48n) | (1n << 45n); // a-z | 0-9 | -
+        expect(inner.args[2]).to.equal(expected);
+      },
+    },
+    {
       name: "compiles @at! to a raw-word uintCall extraction",
       script: `assertions:assert @at!(${TOKEN}::{getReserves()(uint112,uint112,uint32)} 1) > 0`,
       validate: (actions) => {
@@ -401,6 +545,20 @@ describeCommand("assert", {
         const inner = decodeCombinator(args[1]);
         expect(inner.functionName).to.equal("uintCall");
         expect(inner.args[2]).to.equal(1n);
+      },
+    },
+    {
+      name: "compiles a negative @at! word index for from-the-end extraction",
+      script: `assertions:assert @at!(${TOKEN}::{holders()(address[])} -1) != 0`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertNeCallUint(address,bytes,uint256,string)",
+        );
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("uintCall");
+        expect(inner.args[2]).to.equal(-1n);
       },
     },
     {
@@ -577,6 +735,16 @@ describeCommand("assert", {
   ],
   errorCases: [
     {
+      name: "rejects an empty @includes! part",
+      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "")`,
+      error: "@includes! part must be a non-empty string",
+    },
+    {
+      name: "rejects a reversed @charset! range",
+      script: `assertions:assert @charset!(${TOKEN}::{symbol()(string)} "z-a")`,
+      error: "the range is reversed",
+    },
+    {
       name: "rejects an assertion where both sides are constants",
       script: `assertions:assert 10 >= 5`,
       error: "nothing to assert on-chain",
@@ -627,9 +795,24 @@ describeCommand("assert", {
       error: "only valid inside an assertions:assert",
     },
     {
-      name: "rejects a nested @split!",
+      name: "rejects a @split! segment in arithmetic",
       script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) > 0`,
-      error: "top level",
+      error: "numeric operands",
+    },
+    {
+      name: "rejects @split! without its index",
+      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " ") == "LP"`,
+      error: "@split! expects (call delimiter index)",
+    },
+    {
+      name: "rejects @split! under @at!",
+      script: `assertions:assert @at!(@split!(${TOKEN}::{name()(string)} " " 1) 0) == "LP"`,
+      error: "expects a `::` call expression",
+    },
+    {
+      name: "rejects ordering comparisons on strings",
+      script: `assertions:assert @bool!(@split!(${TOKEN}::{name()(string)} " " 0) > "A")`,
+      error: "strings only support == and !=",
     },
     {
       name: "rejects arithmetic operators inside @bool!",
@@ -660,7 +843,7 @@ describeCommand("assert", {
       validate: (actions) =>
         expectReadOnlyTo(
           actions,
-          getAddress("0xa55E47E2767d85B8C4d9E62dd5009ffC45c4aBc4"),
+          getAddress("0xA55E47bFD3d20A76e8E63a173387A5e3d4bEe3e0"),
           "assertTrue(address,bytes,string)",
         ),
     },
@@ -670,11 +853,11 @@ describeCommand("assert", {
       validate: (actions) => {
         const args = decodeCore(
           actions,
-          getAddress("0xa55E47E2767d85B8C4d9E62dd5009ffC45c4aBc4"),
+          getAddress("0xA55E47bFD3d20A76e8E63a173387A5e3d4bEe3e0"),
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xa55Ec017256401b00c9C21FD9AB3D0E0bcf94f20"),
+          getAddress("0xA55EC0b792D962624807961E40eb217649d4d07c"),
         );
       },
     },

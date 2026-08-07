@@ -17,11 +17,11 @@ import { getAbiItem, getAddress, isAddress } from "viem";
 
 /** Canonical CREATE2 address of the Assertions core v1.1 on every chain. */
 export const ASSERTIONS_ADDRESS: Address =
-  "0xa55E47E2767d85B8C4d9E62dd5009ffC45c4aBc4";
+  "0xA55E47bFD3d20A76e8E63a173387A5e3d4bEe3e0";
 
 /** Canonical CREATE2 address of the Combinators v1.0 on every chain. */
 export const COMBINATORS_ADDRESS: Address =
-  "0xa55Ec017256401b00c9C21FD9AB3D0E0bcf94f20";
+  "0xA55EC0b792D962624807961E40eb217649d4d07c";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);

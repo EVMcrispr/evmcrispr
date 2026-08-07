@@ -10,8 +10,10 @@ import { encodeFunctionData, parseAbi } from "viem";
 export const COMBINATORS_ABI = parseAbi([
   "function chainCall(address target, bytes[] calls) view",
   "function hashCall(address target, bytes[] calls) view returns (bytes32)",
-  "function splitCall(address target, bytes[] calls, string delimiter, uint256 index) view returns (string)",
-  "function uintCall(address target, bytes[] calls, uint256 wordIndex) view returns (uint256)",
+  "function splitCall(address target, bytes[] calls, string delimiter, int256 index) view returns (string)",
+  "function includesCall(address target, bytes[] calls, string part) view returns (bool)",
+  "function charsetCall(address target, bytes[] calls, uint256 allowed) view returns (bool)",
+  "function uintCall(address target, bytes[] calls, int256 wordIndex) view returns (uint256)",
   "function lengthCall(address target, bytes[] calls) view returns (uint256)",
   "function arrayLengthCall(address target, bytes[] calls) view returns (uint256)",
   "function ethBalanceCall(address target, bytes[] calls) view returns (uint256)",
