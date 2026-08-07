@@ -106,7 +106,8 @@ export interface CallExpressionNode extends Node {
   inputTypes?: string;
   /** Inline ABI output types, e.g. "(uint256)" — from ::{method(inputs)(outputs)} syntax. */
   outputTypes?: string;
-  /** Positional lens applied to the return value. `"$"` = take, `null` = skip, array = descend. */
+  /** Positional lens applied to the return value. `"$"` = take, `null` = skip,
+   *  array = descend, `"..."` = rest marker (slots after it anchor from the end). */
   returnDestructure?: DestructureSlot[];
 }
 
@@ -121,7 +122,9 @@ export interface HelperFunctionNode extends Node {
   rename?: string;
 }
 
-/** Recursive destructure slot: variable name, hole (null), or nested pattern. */
+/** Recursive destructure slot: variable name, hole (null), or nested pattern.
+ *  In return-value lenses the strings `"$"` (take) and `"..."` (rest marker)
+ *  are also valid slots; command captures never produce them. */
 export type DestructureSlot = string | null | DestructureSlot[];
 
 export interface DestructurePatternNode extends Node {

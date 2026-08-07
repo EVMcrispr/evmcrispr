@@ -16,6 +16,7 @@ import {
   possibly,
   recursiveParser,
   regex,
+  str,
 } from "arcsecond";
 import { argumentExpressionParser, argumentsParser } from "./expression";
 import { helperFunctionParser } from "./helper";
@@ -34,13 +35,15 @@ import {
 
 // ---------------------------------------------------------------------------
 // Return-value destructure lens: [_ [[_ $]]]
-// Bare `$` = "take this value", `_` = skip (null), nested [...] = descend.
+// Bare `$` = "take this value", `_` = skip (null), nested [...] = descend,
+// `...` = rest marker: slots after it anchor from the end ([... $] = last).
 // ---------------------------------------------------------------------------
 
 const returnLensHoleParser = char("_").map(() => null);
 
 const returnLensSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
   choice([
+    str("...").map(() => "..." as DestructureSlot),
     returnLensHoleParser,
     char("$").map(() => "$" as DestructureSlot),
     returnLensSlotsParser,

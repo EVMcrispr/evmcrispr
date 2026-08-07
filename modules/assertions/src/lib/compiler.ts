@@ -368,10 +368,12 @@ export async function compileChain(
             `cannot chain through an array element of ${hop.method} — nested lenses like [[_ $]] apply only to the final call`,
           );
         }
-        const index = hopPath[0];
-        if (index >= fnAbi.outputs.length) {
+        // Hop arity is known, so end-anchored indices resolve here.
+        const index =
+          hopPath[0] < 0 ? fnAbi.outputs.length + hopPath[0] : hopPath[0];
+        if (index < 0 || index >= fnAbi.outputs.length) {
           throw new ErrorException(
-            `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${index + 1}`,
+            `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${hopPath[0] < 0 ? `${-hopPath[0]} from the end` : hopPath[0] + 1}`,
           );
         }
         const selected = fnAbi.outputs[index];
@@ -417,21 +419,34 @@ export async function compileChain(
 
 /** Resolve a return-destructure lens into a navigation path: one index per
  *  nesting level. `[_ $ _]` = [1]; `[[_ $]]` = [0, 1] (element 1 of return
- *  value 0); `[[_ _ _ [_ $]]]` = [0, 3, 1]. Exactly one `$` overall. */
+ *  value 0); `[[_ _ _ [_ $]]]` = [0, 3, 1]. Exactly one `$` overall.
+ *  A `...` rest marker anchors the slots after it from the end, yielding
+ *  negative indices: `[... $ _]` = [-2]; `[[... $]]` = [0, -1]. Fixed-arity
+ *  levels resolve them to positive positions at build time; dynamic arrays
+ *  keep them negative for on-chain from-the-end resolution. */
 export function lensPath(slots: unknown[]): number[] {
   let path: number[] | undefined;
   const walk = (level: unknown[], prefix: number[]): void => {
+    const restAt = level.indexOf("...");
+    if (restAt !== -1 && level.indexOf("...", restAt + 1) !== -1) {
+      throw new ErrorException(
+        "an assertion lens can contain at most one ... per nesting level",
+      );
+    }
     for (let i = 0; i < level.length; i++) {
       const slot = level[i];
+      if (slot === "...") continue;
+      // Slots after a rest marker are end-anchored (negative index).
+      const index = restAt !== -1 && i > restAt ? i - level.length : i;
       if (slot === "$") {
         if (path !== undefined) {
           throw new ErrorException(
             "an assertion lens must contain exactly one $ to select a value",
           );
         }
-        path = [...prefix, i];
+        path = [...prefix, index];
       } else if (Array.isArray(slot)) {
-        walk(slot, [...prefix, i]);
+        walk(slot, [...prefix, index]);
       }
     }
   };
@@ -483,20 +498,34 @@ export function isDynamicParam(p: AbiParameter): boolean {
 }
 
 /** Walks the ABI type tree along a lens path, validating every step the
- *  combinator will take at execution time, and returns the terminal type. */
+ *  combinator will take at execution time. Returns the terminal type and
+ *  the resolved path: negative (end-anchored) indices are converted to
+ *  positive positions wherever the arity is known at build time (tuples,
+ *  fixed arrays, the top-level return values); dynamic arrays keep them
+ *  negative for the combinator's on-chain from-the-end resolution. */
 export function walkNavPath(
   outputs: readonly AbiParameter[],
   path: number[],
   method: string,
-): AbiParameter {
+): { terminal: AbiParameter; resolved: number[] } {
   let current = { type: "tuple", components: outputs } as AbiParameter;
+  const resolved: number[] = [];
   for (const index of path) {
     const suffix = current.type.match(ARRAY_SUFFIX);
     if (suffix) {
-      if (suffix[1] !== "" && index >= Number(suffix[1])) {
-        throw new ErrorException(
-          `index ${index} is out of range for the ${current.type} value in ${method}`,
-        );
+      if (suffix[1] === "") {
+        // Dynamic array: length is unknown at build time; the combinator
+        // resolves negative indices (and bounds-checks) on-chain.
+        resolved.push(index);
+      } else {
+        const n = Number(suffix[1]);
+        const pos = index < 0 ? n + index : index;
+        if (pos < 0 || pos >= n) {
+          throw new ErrorException(
+            `index ${index} is out of range for the ${current.type} value in ${method}`,
+          );
+        }
+        resolved.push(pos);
       }
       current = {
         ...current,
@@ -505,19 +534,21 @@ export function walkNavPath(
     } else if (current.type === "tuple") {
       const components =
         (current as { components?: readonly AbiParameter[] }).components ?? [];
-      if (index >= components.length) {
+      const pos = index < 0 ? components.length + index : index;
+      if (pos < 0 || pos >= components.length) {
         throw new ErrorException(
           `component index ${index} is out of range (${components.length} value(s)) in ${method}`,
         );
       }
-      current = components[index];
+      resolved.push(pos);
+      current = components[pos];
     } else {
       throw new ErrorException(
         `cannot select into a ${current.type} value of ${method} — the lens indexes tuples (structs) and arrays`,
       );
     }
   }
-  return current;
+  return { terminal: current, resolved };
 }
 
 /** Compile a lens selection into a typed-`read` operand: the combinator
@@ -532,7 +563,7 @@ function compileNavOperand(
   method: string,
 ): Operand {
   const outputs = chain.lastAbi.outputs!;
-  const terminal = walkNavPath(outputs, path, method);
+  const { terminal, resolved } = walkNavPath(outputs, path, method);
   if (!SINGLE_WORD_ABI.test(terminal.type)) {
     throw new ErrorException(
       `a value lens must land on a single-word static value; the selection in ${method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
@@ -541,7 +572,11 @@ function compileNavOperand(
   return {
     kind: "call",
     target: ctx.combinators,
-    data: encodeReadChain(chain, formatReturnTuple(outputs), path.map(BigInt)),
+    data: encodeReadChain(
+      chain,
+      formatReturnTuple(outputs),
+      resolved.map(BigInt),
+    ),
     cat: categoryFromAbiType(terminal.type),
   };
 }
@@ -560,11 +595,13 @@ async function compileCallOperand(
     if (path.length > 1) {
       return compileNavOperand(ctx, chain, path, node.method);
     }
-    const index = path[0];
-    const output = outputs[index];
+    // The return-value list has a known arity, so end-anchored (negative)
+    // indices resolve to positions at build time.
+    const index = path[0] < 0 ? outputs.length + path[0] : path[0];
+    const output = index >= 0 ? outputs[index] : undefined;
     if (!output) {
       throw new ErrorException(
-        `return index ${index} is out of range (${node.method} returns ${outputs.length} value(s))`,
+        `return index ${path[0]} is out of range (${node.method} returns ${outputs.length} value(s))`,
       );
     }
     const cat = categoryFromAbiType(output.type);
@@ -618,11 +655,11 @@ export async function compileTopCall(
         operand: compileNavOperand(ctx, chain, path, node.method),
       };
     }
-    index = path[0];
-    const output = outputs[index];
+    index = path[0] < 0 ? outputs.length + path[0] : path[0];
+    const output = index >= 0 ? outputs[index] : undefined;
     if (!output) {
       throw new ErrorException(
-        `return index ${index} is out of range (${node.method} returns ${outputs.length} value(s))`,
+        `return index ${path[0]} is out of range (${node.method} returns ${outputs.length} value(s))`,
       );
     }
     outputType = output.type;
@@ -662,7 +699,7 @@ export async function compileOperand(
   return constOperand(value);
 }
 
-/** Compile the argument of a chain-call slot (@at!, @balance!, …) — must
+/** Compile the argument of a chain-call slot (@balance!, @codehash!, …) — must
  *  be a `::` call expression or chain. */
 export async function requireChainArg(
   ctx: CompilerCtx,
@@ -704,7 +741,7 @@ export async function chainArgWithLens(
 
   const outputs = chain.lastAbi.outputs!;
   const path = lensPath(call.returnDestructure);
-  const terminal = walkNavPath(outputs, path, call.method);
+  const { terminal, resolved } = walkNavPath(outputs, path, call.method);
   const suffix = terminal.type.match(ARRAY_SUFFIX);
   const isDynArray = suffix?.[1] === "";
   if (!isDynArray && terminal.type !== "string" && terminal.type !== "bytes") {
@@ -726,7 +763,7 @@ export async function chainArgWithLens(
   return {
     root: ctx.combinators,
     calls: [
-      encodeReadChain(chain, formatReturnTuple(outputs), path.map(BigInt)),
+      encodeReadChain(chain, formatReturnTuple(outputs), resolved.map(BigInt)),
     ],
     hopIndexes: [],
     lastAbi: {

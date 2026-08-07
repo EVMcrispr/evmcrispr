@@ -48,4 +48,4 @@ assertions:assert @bytes!($token::{paused()(bool)}) == 0 "token is paused"
 ## See Also
 
 - [@assertions:not!](not-bang.md) for the bitwise complement
-- [@assertions:at!](at-bang.md) to pick a raw word out of longer return data
+- a destructure lens (`[_ $ _]`, `[... $]`, `[[... $]]`) to pick one value out of longer return data

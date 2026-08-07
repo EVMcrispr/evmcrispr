@@ -33,7 +33,6 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@assertions:absdiff!](src/helpers/absdiff-bang.md) | `number` | Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality. |
-| [@assertions:at!](src/helpers/at-bang.md) | `number` | Extract a raw 32-byte word from the return data of a call by word index, on-chain. Raw layout, not decoded — for dynamic-array elements use a nested lens like [[_ $]] instead. A negative index counts from the end (-1 = last word). |
 | [@assertions:balance!](src/helpers/balance-bang.md) | `number` | Read a balance on-chain at assertion time: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. |
 | [@assertions:blocknumber!](src/helpers/blocknumber-bang.md) | `number` | The block number at assertion time (not at script build time). |
 | [@assertions:bool!](src/helpers/bool-bang.md) | `bool` | Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the combinators contract. |

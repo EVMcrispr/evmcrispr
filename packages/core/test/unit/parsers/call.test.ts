@@ -399,6 +399,16 @@ export const callParserDescribe = () =>
       expect(result.returnDestructure).to.deep.equal([null, null, "$"]);
     });
 
+    it("should parse a rest marker in a return destructure", () => {
+      const result = runParser(callExpressionParser, `$c::method()[... $ _]`);
+      expect(result.returnDestructure).to.deep.equal(["...", "$", null]);
+    });
+
+    it("should parse a nested rest marker in a return destructure", () => {
+      const result = runParser(callExpressionParser, `$c::method()[[... $]]`);
+      expect(result.returnDestructure).to.deep.equal([["...", "$"]]);
+    });
+
     it("should parse inline ABI with address target", () => {
       const result = runParser(
         callExpressionParser,

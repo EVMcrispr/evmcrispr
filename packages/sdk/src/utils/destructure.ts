@@ -55,6 +55,11 @@ export function applyDestructure(
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot === null) continue;
+    if (slot === "...") {
+      throw new ErrorException(
+        `the ... rest marker is not supported in "${contextName}" captures — use holes (_) instead`,
+      );
+    }
     if (i >= arr.length) {
       throw new ErrorException(
         `destructure index ${i} out of bounds for "${contextName}" (${arr.length} args)`,

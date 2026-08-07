@@ -203,6 +203,34 @@ describeCommand("assert", {
       },
     },
     {
+      name: "resolves a rest-lens over a known-arity return at build time",
+      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _] >= 1000 "low reserve"`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertGeCallUintN(address,bytes,uint256,uint256,string)",
+        );
+        expect(args[2]).to.equal(1n);
+      },
+    },
+    {
+      name: "keeps a rest-lens over a dynamic array negative for on-chain resolution",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[... $]] == ${HOLDER}`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallAddress(address,bytes,address,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("read");
+        expect(inner.args[2]).to.deep.equal(["(address[],address)"]);
+        expect(inner.args[3]).to.deep.equal([[0n, -1n]]);
+      },
+    },
+    {
       name: "uses assertTrue for a bare boolean assertion",
       script: `assertions:assert ${TOKEN}::{paused()(bool)}`,
       validate: (actions) =>
@@ -664,35 +692,6 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @at! to a raw-word read extraction",
-      script: `assertions:assert @at!(${TOKEN}::{getReserves()(uint112,uint112,uint32)} 1) > 0`,
-      validate: (actions) => {
-        const args = decodeCore(
-          actions,
-          ASSERTIONS,
-          "assertGtCallUint(address,bytes,uint256,string)",
-        );
-        const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("read");
-        expect(inner.args[2]).to.deep.equal([""]);
-        expect(inner.args[3]).to.deep.equal([[1n]]);
-      },
-    },
-    {
-      name: "compiles a negative @at! word index for from-the-end extraction",
-      script: `assertions:assert @at!(${TOKEN}::{holders()(address[])} -1) != 0`,
-      validate: (actions) => {
-        const args = decodeCore(
-          actions,
-          ASSERTIONS,
-          "assertNeCallUint(address,bytes,uint256,string)",
-        );
-        const inner = decodeCombinator(args[1]);
-        expect(inner.functionName).to.equal("read");
-        expect(inner.args[3]).to.deep.equal([[-1n]]);
-      },
-    },
-    {
       name: "compiles @bytelen! to data(ByteLen)",
       script: `assertions:assert @bytelen!(${TOKEN}::{holders()(address[])}) == 128`,
       validate: (actions) => {
@@ -1074,6 +1073,16 @@ describeCommand("assert", {
       error: "apply only to the final call",
     },
     {
+      name: "rejects a lens with two rest markers on one level",
+      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ ...] >= 1000`,
+      error: "at most one ... per nesting level",
+    },
+    {
+      name: "rejects an end-anchored index past the start of the returns",
+      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _ _ _] >= 1000`,
+      error: "out of range",
+    },
+    {
       name: "rejects a value lens landing on a struct",
       script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
       error: "must land on a single-word static value",
@@ -1189,8 +1198,8 @@ describeCommand("assert", {
       error: "@split! expects (call delimiter index)",
     },
     {
-      name: "rejects @split! under @at!",
-      script: `assertions:assert @at!(@split!(${TOKEN}::{name()(string)} " " 1) 0) == "LP"`,
+      name: "rejects @split! as the call of another chain helper",
+      script: `assertions:assert @bytelen!(@split!(${TOKEN}::{name()(string)} " " 1)) == 32`,
       error: "expects a `::` call expression",
     },
     {
