@@ -152,6 +152,38 @@ export const helperParserDescribe = () =>
     });
   });
 
+describe("Parsers - helper function (bang suffix)", () => {
+  it("parses a bang-suffixed helper name", () => {
+    const result = runParser(helperFunctionParser, "@balance!(WETH @me)");
+    expect(result).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "balance!",
+    });
+    expect(result.args).to.have.lengthOf(2);
+  });
+
+  it("parses a bang-suffixed helper without arguments", () => {
+    const result = runParser(helperFunctionParser, "@timestamp!");
+    expect(result).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "timestamp!",
+    });
+    expect(result.args).to.have.lengthOf(0);
+  });
+
+  it("parses a module-qualified bang-suffixed helper", () => {
+    const result = runParser(
+      helperFunctionParser,
+      "@assertions:balance!(ETH @me)",
+    );
+    expect(result).to.deep.include({ module: "assertions", name: "balance!" });
+  });
+
+  it("fails when the bang is not in trailing position", () => {
+    runErrorCase(helperFunctionParser, "@bal!ance(1)", HELPER_PARSER_ERROR);
+  });
+});
+
 describe("Parsers - helper function (module namespace)", () => {
   it("parses a module-qualified helper", () => {
     const result = runParser(helperFunctionParser, "@ens:addr(vitalik.eth)");

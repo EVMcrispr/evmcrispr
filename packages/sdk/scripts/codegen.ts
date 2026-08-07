@@ -33,6 +33,9 @@ interface ArgDefMeta {
 }
 
 interface HelperMeta {
+  /** The declared `name:` — the registration key. May differ from the
+   *  filename (e.g. `balance.ts` declaring `name: "balance!"`). */
+  name: string | null;
   returnType: string | string[] | null;
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
@@ -118,6 +121,7 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   const filePath = join(dir, `${name}.ts`);
   if (!existsSync(filePath))
     return {
+      name: null,
       returnType: null,
       hasArgs: false,
       argDefs: [],
@@ -129,7 +133,12 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   const argDefs = extractArgDefs(content);
   const hasArgs = argDefs.length > 0;
+  // The declared name, ignoring `name:` occurrences inside the args array.
+  const argsBlock = extractArgsBlock(content);
+  const topLevel = argsBlock ? content.replace(argsBlock, "") : content;
+  const nameMatch = topLevel.match(/name:\s*["']([^"']+)["']/);
   return {
+    name: nameMatch?.[1] ?? null,
     returnType,
     hasArgs,
     argDefs,
@@ -215,8 +224,11 @@ if (helperNames.length > 0) {
     if (meta.description)
       parts.push(`description: ${JSON.stringify(meta.description)}`);
     if (meta.experimental) parts.push("experimental: true");
+    // Register under the declared name (which may carry a trailing `!`);
+    // the import path always uses the filename.
+    const key = meta.name ?? name;
     lines.push(
-      `  ${JSON.stringify(name)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
+      `  ${JSON.stringify(key)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
     );
   }
   lines.push("};");

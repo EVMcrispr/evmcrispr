@@ -235,7 +235,7 @@ export const createLanguage: (
         },
       },
       {
-        regex: /@[a-zA-Z][a-zA-Z0-9._\-]*(:[a-zA-Z][a-zA-Z0-9._\-]*)?/,
+        regex: /@[a-zA-Z][a-zA-Z0-9._\-]*!?(:[a-zA-Z][a-zA-Z0-9._\-]*!?)?/,
         action: {
           cases: {
             "@helpers": { token: "helper" },

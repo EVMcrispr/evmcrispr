@@ -26,9 +26,11 @@ export const HELPER_PARSER_ERROR = "HelperParserError";
 
 /** Optional `module:` namespace followed by the helper's local name.
  *  Module charset mirrors COMMAND_NAME_REGEX; `.` in the name is
- *  intra-module hierarchy (e.g. @ens:fuses.decode). */
+ *  intra-module hierarchy (e.g. @ens:fuses.decode). A single trailing `!`
+ *  is part of the name — modules use it to mark on-chain-evaluated
+ *  helpers (e.g. @balance! in the assertions module). */
 const HELPER_NAME_REGEX =
-  /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-)):)?(?<name>(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.))/;
+  /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-)):)?(?<name>(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)!?)/;
 
 const helperNameParser = takeLeft(regex(HELPER_NAME_REGEX))(
   enclosingLookaheadParser([

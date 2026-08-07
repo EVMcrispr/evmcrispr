@@ -25,7 +25,7 @@ export interface Token {
  * too, so consumers must AST-confirm before treating it as a named arg.
  */
 const TOKEN_RE =
-  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+|\$[\w-]+(?::\w+)?|--[\w-]+|[a-zA-Z][a-zA-Z0-9-]*(?=:(?![/:]))|[\w:-]+/g;
+  /0x[a-fA-F0-9]{40}\b|@(?:[\w-]+:)?[\w.]+!?|\$[\w-]+(?::\w+)?|--[\w-]+|[a-zA-Z][a-zA-Z0-9-]*(?=:(?![/:]))|[\w:-]+/g;
 
 export function getTokenAtCol(lineText: string, col: number): Token | null {
   TOKEN_RE.lastIndex = 0;

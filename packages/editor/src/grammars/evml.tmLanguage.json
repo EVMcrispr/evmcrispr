@@ -170,7 +170,7 @@
       "name": "variable.other.evml"
     },
     "helper": {
-      "match": "@[a-zA-Z][a-zA-Z0-9._-]*(?::[a-zA-Z][a-zA-Z0-9._-]*)?",
+      "match": "@[a-zA-Z][a-zA-Z0-9._-]*!?(?::[a-zA-Z][a-zA-Z0-9._-]*!?)?",
       "name": "entity.name.function.helper.evml"
     },
     "boolean": {
