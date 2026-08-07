@@ -455,6 +455,35 @@ describeCommand("assert", {
         expect(inner.args[3]).to.deep.equal([[2n], []]);
       },
     },
+    {
+      name: "chains through an array-element lens by rewrapping in a typed read",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallUint(address,bytes,uint256,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const outer = decodeCombinator(args[1]);
+        expect(outer.functionName).to.equal("read");
+        // The rewrapped prefix runs on the combinators contract itself:
+        // hop 0 is a typed read whose envelope holds the address at word 0.
+        expect(getAddress(outer.args[0] as string)).to.equal(COMBINATORS);
+        const hops = outer.args[1] as `0x${string}`[];
+        expect(hops).to.have.lengthOf(2);
+        expect(outer.args[2]).to.deep.equal(["", ""]);
+        expect(outer.args[3]).to.deep.equal([[], []]);
+        const inner = decodeFunctionData({
+          abi: COMBINATORS_ABI,
+          data: hops[0],
+        });
+        expect(inner.functionName).to.equal("read");
+        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(inner.args[2]).to.deep.equal(["(address[],address)"]);
+        expect(inner.args[3]).to.deep.equal([[0n, 0n]]);
+      },
+    },
     // ---- @len! ---------------------------------------------------------
     {
       name: "compiles a top-level @len! to the array-length family",
@@ -1084,9 +1113,9 @@ describeCommand("assert", {
       error: "cannot select into a address value",
     },
     {
-      name: "rejects an element lens on a non-final chained call",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
-      error: "apply only to the final call",
+      name: "rejects a mid-chain nested lens landing on a non-address",
+      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]]::{decimals()(uint256)} == 18`,
+      error: "must continue on an address",
     },
     {
       name: "rejects a lens with two rest markers on one level",

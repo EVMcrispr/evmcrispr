@@ -340,20 +340,21 @@ export async function compileChain(
 ): Promise<Chain> {
   const { hops, rootTarget } = flattenCallNodes(node);
 
-  const root = await ctx.interpreters.interpretNode(rootTarget);
-  if (typeof root !== "string" || !isAddress(root)) {
+  const rootValue = await ctx.interpreters.interpretNode(rootTarget);
+  if (typeof rootValue !== "string" || !isAddress(rootValue)) {
     throw new ErrorException(
-      `assertion target must resolve to an address, got ${root}`,
+      `assertion target must resolve to an address, got ${rootValue}`,
     );
   }
 
+  let root = getAddress(rootValue);
   const calls: Hex[] = [];
   const hopIndexes: number[] = [];
   let lastAbi: AbiFunction | undefined;
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
-    const fnAbi = await hopAbi(ctx, hop, getAddress(root), calls, hopIndexes);
+    const fnAbi = await hopAbi(ctx, hop, root, calls, hopIndexes);
     if (!fnAbi.outputs || fnAbi.outputs.length === 0) {
       throw new ErrorException(
         `${hop.method} has no return value to assert on`,
@@ -364,9 +365,35 @@ export async function compileChain(
       if (hop.returnDestructure) {
         const hopPath = lensPath(hop.returnDestructure);
         if (hopPath.length > 1) {
-          throw new ErrorException(
-            `cannot chain through an array element of ${hop.method} — nested lenses like [[_ $]] apply only to the final call`,
+          // A nested selection (array element / struct value) is not a
+          // raw hop-word extraction, so rewrap the chain so far in a
+          // typed read: its canonical envelope returns the selected
+          // address as word 0, which the next hop consumes like any
+          // single-address return.
+          const { terminal, resolved } = walkNavPath(
+            fnAbi.outputs,
+            hopPath,
+            hop.method,
           );
+          if (terminal.type !== "address") {
+            throw new ErrorException(
+              `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
+            );
+          }
+          const argVals = await ctx.interpreters.interpretNodes(hop.args);
+          calls.push(encodeCalldata(fnAbi, argVals));
+          const readCall = encodeReadChain(
+            { root, calls, hopIndexes },
+            formatReturnTuple(fnAbi.outputs),
+            resolved.map(BigInt),
+          );
+          root = ctx.combinators;
+          calls.length = 0;
+          calls.push(readCall);
+          hopIndexes.length = 0;
+          hopIndexes.push(0);
+          lastAbi = fnAbi;
+          continue;
         }
         // Hop arity is known, so end-anchored indices resolve here.
         const index =
@@ -414,7 +441,7 @@ export async function compileChain(
     lastAbi = fnAbi;
   }
 
-  return { root: getAddress(root), calls, hopIndexes, lastAbi: lastAbi! };
+  return { root, calls, hopIndexes, lastAbi: lastAbi! };
 }
 
 /** Resolve a return-destructure lens into a navigation path: one index per
