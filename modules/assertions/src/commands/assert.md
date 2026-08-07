@@ -48,6 +48,11 @@ assertions:assert $oracle::{drift()(int256)} <= -5 "drifted"
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 assertions:assert $pool::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"
 
+# A nested lens selects a dynamic-array element: [[_ $]] is element 1 of
+# return value 0, bounds-checked against the live array length on-chain
+set $safe 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E2
+assertions:assert $safe::{getOwners()(address[])}[[_ $]] == @me "second owner changed"
+
 # Approximate comparison with an allowed delta
 assertions:assert $oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out of range"
 

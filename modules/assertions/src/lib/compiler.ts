@@ -310,7 +310,13 @@ export async function compileChain(
     let wordIndex = 0;
     if (!last) {
       if (hop.returnDestructure) {
-        const index = tupleIndexFromLens(hop.returnDestructure);
+        const selection = lensSelection(hop.returnDestructure);
+        if (selection.element !== undefined) {
+          throw new ErrorException(
+            `cannot chain through an array element of ${hop.method} — element lenses like [[_ $]] apply only to the final call`,
+          );
+        }
+        const index = selection.slot;
         if (index >= fnAbi.outputs.length) {
           throw new ErrorException(
             `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${index + 1}`,
@@ -357,33 +363,119 @@ export async function compileChain(
   return { root: getAddress(root), calls, lastAbi: lastAbi! };
 }
 
-/** Index of the single top-level `$` capture in a return-destructure lens. */
-export function tupleIndexFromLens(slots: unknown[]): number {
-  let index = -1;
+/** A lens capture: the head word (return-value position), and — for a
+ *  one-level nested pattern like `[[_ $]]` — the array element within it. */
+export interface LensSelection {
+  slot: number;
+  element?: number;
+}
+
+/** Resolve the single capture of a return-destructure lens. A top-level `$`
+ *  selects a return value; a nested pattern selects an element of a dynamic
+ *  array return value (`[[_ $]]` = element 1 of return value 0). */
+export function lensSelection(slots: unknown[]): LensSelection {
+  let selection: LensSelection | undefined;
+  const claim = (s: LensSelection) => {
+    if (selection !== undefined) {
+      throw new ErrorException(
+        "an assertion lens must contain exactly one $ to select a value",
+      );
+    }
+    selection = s;
+  };
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot === "$") {
-      if (index !== -1) {
+      claim({ slot: i });
+    } else if (Array.isArray(slot)) {
+      let element = -1;
+      for (let j = 0; j < slot.length; j++) {
+        if (slot[j] === "$") {
+          if (element !== -1) {
+            throw new ErrorException(
+              "an assertion lens must contain exactly one $ to select a value",
+            );
+          }
+          element = j;
+        } else if (Array.isArray(slot[j])) {
+          throw new ErrorException(
+            "lens nesting deeper than one array level is not supported in assertions",
+          );
+        }
+      }
+      if (element === -1) {
         throw new ErrorException(
-          "an assertion lens must contain exactly one $ to select the return value",
+          "a nested lens pattern must contain a $ to select an array element",
         );
       }
-      index = i;
-    } else if (Array.isArray(slot)) {
-      throw new ErrorException(
-        "nested destructuring is not supported in assertions; use a single top-level $ to select a return value",
-      );
+      claim({ slot: i, element });
     }
   }
-  if (index === -1) {
+  if (selection === undefined) {
     throw new ErrorException(
       "an assertion lens must contain a $ to select the return value",
     );
   }
-  return index;
+  return selection;
 }
 
 const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
+
+/** Compile an element-selecting lens (`[[_ $]]`) into an elementCall
+ *  operand: the combinator follows the array's head offset at execution
+ *  time and bounds-checks the element index against the live length. */
+function compileElementOperand(
+  ctx: CompilerCtx,
+  chain: Chain,
+  selection: LensSelection,
+  method: string,
+): Operand {
+  const outputs = chain.lastAbi.outputs!;
+  const output = outputs[selection.slot];
+  if (!output) {
+    throw new ErrorException(
+      `return index ${selection.slot} is out of range (${method} returns ${outputs.length} value(s))`,
+    );
+  }
+  if (!/\[\]$/.test(output.type)) {
+    throw new ErrorException(
+      `an element lens like [[_ $]] selects into a dynamic array; return value ${selection.slot} of ${method} is ${output.type}`,
+    );
+  }
+  const elementType = output.type.slice(0, -2);
+  if (!SINGLE_WORD_ABI.test(elementType)) {
+    throw new ErrorException(
+      `array elements must be single-word static types to select on-chain; ${output.type} elements are ${elementType}`,
+    );
+  }
+  // Every output before the array must occupy exactly one head word (a
+  // static single-word value, or the offset of a dynamic value) so the
+  // array's head word index equals its position.
+  for (let j = 0; j < selection.slot; j++) {
+    const t = outputs[j].type;
+    const singleWord =
+      SINGLE_WORD_ABI.test(t) ||
+      t === "string" ||
+      t === "bytes" ||
+      /\[\]$/.test(t);
+    if (!singleWord) {
+      throw new ErrorException(
+        `cannot select past a ${t} return value of ${method} — it occupies several head words`,
+      );
+    }
+  }
+  return {
+    kind: "call",
+    target: ctx.combinators,
+    data: encodeCombinator("elementCall", [
+      chain.root,
+      chain.calls,
+      BigInt(selection.slot),
+      BigInt(selection.element!),
+    ]),
+    cat: categoryFromAbiType(elementType),
+  };
+}
 
 /** Compile a call expression used as a *nested* operand (inside an
  *  expression): a lens becomes a raw-word `uintCall` extraction. */
@@ -395,7 +487,11 @@ async function compileCallOperand(
   const outputs = chain.lastAbi.outputs!;
 
   if (node.returnDestructure) {
-    const index = tupleIndexFromLens(node.returnDestructure);
+    const selection = lensSelection(node.returnDestructure);
+    if (selection.element !== undefined) {
+      return compileElementOperand(ctx, chain, selection, node.method);
+    }
+    const index = selection.slot;
     const output = outputs[index];
     if (!output) {
       throw new ErrorException(
@@ -457,7 +553,15 @@ export async function compileTopCall(
   let index: number | undefined;
   let outputType: string;
   if (node.returnDestructure) {
-    index = tupleIndexFromLens(node.returnDestructure);
+    const selection = lensSelection(node.returnDestructure);
+    if (selection.element !== undefined) {
+      // Element selections return a single decoded word, so the core
+      // judges them as a plain (non-indexed) value of the element type.
+      return {
+        operand: compileElementOperand(ctx, chain, selection, node.method),
+      };
+    }
+    index = selection.slot;
     const output = outputs[index];
     if (!output) {
       throw new ErrorException(

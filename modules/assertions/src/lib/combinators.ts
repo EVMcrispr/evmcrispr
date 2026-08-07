@@ -16,6 +16,7 @@ export const COMBINATORS_ABI = parseAbi([
   "function uintCall(address target, bytes[] calls, int256 wordIndex) view returns (uint256)",
   "function lengthCall(address target, bytes[] calls) view returns (uint256)",
   "function arrayLengthCall(address target, bytes[] calls) view returns (uint256)",
+  "function elementCall(address target, bytes[] calls, uint256 wordIndex, int256 index) view returns (uint256)",
   "function ethBalanceCall(address target, bytes[] calls) view returns (uint256)",
   "function calcUint(uint8 op, address target1, bytes data1, address target2, bytes data2) view returns (uint256)",
   "function calcInt(uint8 op, address target1, bytes data1, address target2, bytes data2) view returns (int256)",

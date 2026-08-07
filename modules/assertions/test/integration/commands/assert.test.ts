@@ -92,6 +92,42 @@ describeCommand("assert", {
       },
     },
     {
+      name: "compiles an element lens to elementCall judged as the element type",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ $]] == ${HOLDER}`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertEqCallAddress(address,bytes,address,string)",
+        );
+        expect(getAddress(args[0])).to.equal(COMBINATORS);
+        const inner = decodeCombinator(args[1]);
+        expect(inner.functionName).to.equal("elementCall");
+        expect(getAddress(inner.args[0] as string)).to.equal(TOKEN);
+        expect(inner.args[2]).to.equal(0n);
+        expect(inner.args[3]).to.equal(1n);
+        expect(getAddress(args[2])).to.equal(HOLDER);
+      },
+    },
+    {
+      name: "compiles a nested element lens inside an expression",
+      script: `assertions:assert @bool!(${TOKEN}::{tiers()(uint256[])}[[_ _ $]] > 5)`,
+      validate: (actions) => {
+        const args = decodeCore(
+          actions,
+          ASSERTIONS,
+          "assertTrue(address,bytes,string)",
+        );
+        const cmp = decodeCombinator(args[1]);
+        expect(cmp.functionName).to.equal("cmpUint");
+        expect(cmp.args[0]).to.equal(CMP_OP.Gt);
+        const element = decodeCombinator(cmp.args[2] as `0x${string}`);
+        expect(element.functionName).to.equal("elementCall");
+        expect(element.args[2]).to.equal(0n);
+        expect(element.args[3]).to.equal(2n);
+      },
+    },
+    {
       name: "uses assertTrue for a bare boolean assertion",
       script: `assertions:assert ${TOKEN}::{paused()(bool)}`,
       validate: (actions) =>
@@ -740,6 +776,21 @@ describeCommand("assert", {
       error: "unknown on-chain helper",
     },
     {
+      name: "rejects an element lens on a non-array return value",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[_ [$]] == ${HOLDER}`,
+      error: "selects into a dynamic array",
+    },
+    {
+      name: "rejects an element lens on a non-final chained call",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
+      error: "element lenses like [[_ $]] apply only to the final call",
+    },
+    {
+      name: "rejects lens nesting deeper than one level",
+      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ [$]]] == ${HOLDER}`,
+      error: "deeper than one array level",
+    },
+    {
       name: "rejects an empty @includes! part",
       script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "")`,
       error: "@includes! part must be a non-empty string",
@@ -862,7 +913,7 @@ describeCommand("assert", {
           "assertGtCallUint(address,bytes,uint256,string)",
         );
         expect(getAddress(args[0])).to.equal(
-          getAddress("0xA55EC0b792D962624807961E40eb217649d4d07c"),
+          getAddress("0xa55eC09De097E206acF0B3c677724419AeFd04df"),
         );
       },
     },
