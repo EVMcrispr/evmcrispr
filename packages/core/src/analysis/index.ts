@@ -1474,6 +1474,16 @@ class SemanticAnalyzer {
         owningModule = imported.module;
         localName = imported.sourceName;
         if (!this.#schemas.isLoaded(owningModule)) continue; // load line already flagged
+      } else if (h.name.endsWith("!")) {
+        // On-chain `!` helpers are dispatched by local name inside
+        // expression-taking commands (e.g. assertions:assert), so an
+        // unqualified reference resolves against any loaded module that
+        // declares it.
+        const owner = this.#schemas
+          .loadedModuleNames()
+          .find((m) => this.#schemas.hasHelper(m, h.name));
+        if (owner) continue;
+        owningModule = "std";
       } else {
         owningModule = "std";
       }

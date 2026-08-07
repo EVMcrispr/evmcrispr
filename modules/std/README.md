@@ -56,5 +56,5 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
-| [@token](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
+| [@Ether](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |
 

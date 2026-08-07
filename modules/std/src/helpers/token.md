@@ -1,5 +1,5 @@
 ---
-title: "@token"
+title: "@Ether"
 ---
 
 Resolve a token symbol to its contract address on the current chain.
@@ -9,7 +9,7 @@ Resolve a token symbol to its contract address on the current chain.
 ## Syntax
 
 ```evml
-@token(tokenSymbolOrAddress)
+@Ether(tokenSymbolOrAddress)
 ```
 
 ## Arguments
@@ -17,16 +17,6 @@ Resolve a token symbol to its contract address on the current chain.
 | Name | Type | Description |
 |------|------|-------------|
 | `tokenSymbolOrAddress` | `token-symbol` | Token symbol (e.g. `DAI`) or address |
-
-## Examples
-
-```evml
-# Resolve a token symbol
-set $dai @token(DAI)
-
-# Resolve the native token
-set $native @token(XDAI)
-```
 
 <!-- HAND-WRITTEN -->
 

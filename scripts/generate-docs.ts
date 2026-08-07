@@ -90,7 +90,11 @@ interface CommandMeta {
 }
 
 interface HelperMeta {
+  /** Filename-derived name — determines doc file paths. */
   name: string;
+  /** The declared `name:` — may differ from the filename (e.g.
+   *  `balance.ts` declaring `name: "balance!"`). Used for display. */
+  declaredName: string;
   description: string;
   returnType: string | string[];
   hasArgs: boolean;
@@ -142,8 +146,19 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
   const content = readFileSync(filePath, "utf-8");
   const returnType = parseTypeValue(content, "returnType") ?? "any";
   const argDefs = extractArgs(content);
+  // The declared registration name, ignoring `name:` keys inside args.
+  const defMatch = content.match(/defineHelper|defineBangHelper/);
+  let declaredName = name;
+  if (defMatch) {
+    const configStart = content.indexOf("{", defMatch.index!);
+    let stripped = content;
+    const block = extractArrayBlock(stripped, configStart, "args");
+    if (block) stripped = stripped.replace(block, "");
+    declaredName = extractStringProp(stripped, "name") ?? name;
+  }
   return {
     name,
+    declaredName,
     description: extractStringProp(content, "description") ?? "",
     returnType,
     hasArgs: argDefs.length > 0,
@@ -157,7 +172,7 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
  *  not mark the whole command experimental). */
 function hasTopLevelExperimental(content: string): boolean {
   const defMatch = content.match(
-    /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
+    /(?:defineCommand|define\w*Helper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
   );
   if (!defMatch) return false;
   const configStart = content.indexOf(
@@ -191,7 +206,7 @@ function parseTypeValue(text: string, prop: string): string | string[] | null {
 /** Extract args from a defineCommand/defineHelper call. */
 function extractArgs(content: string): ArgDef[] {
   const defMatch = content.match(
-    /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
+    /(?:defineCommand|define\w*Helper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
   );
   if (!defMatch) return [];
   const configStart = content.indexOf(
@@ -210,7 +225,7 @@ function extractOpts(
   filePath: string,
 ): OptDef[] {
   const defMatch = content.match(
-    /(?:defineCommand|defineHelper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
+    /(?:defineCommand|define\w*Helper)\s*(?:<[^>]+>)?\s*\(\s*\{/,
   );
   if (!defMatch) return [];
   const configStart = content.indexOf(
@@ -664,14 +679,14 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
 }
 
 function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
-  const fullName = mod.prefix + helper.name;
+  const fullName = mod.prefix + helper.declaredName;
   const mdPath = join(mod.dir, "src/helpers", `${helper.name}.md`);
   const handWritten = preserveHandWritten(mdPath);
   const docCases = extractDocCases(
     mod.dir,
     "helpers",
     helper.name,
-    mod.prefix + helper.name,
+    mod.prefix + helper.declaredName,
   );
 
   const returnTypeStr = Array.isArray(helper.returnType)
@@ -885,7 +900,7 @@ function generateModuleIndex(
       const returnTypeStr = Array.isArray(h.returnType)
         ? h.returnType.join(" \\| ")
         : h.returnType;
-      const link = `[@${mod.prefix}${h.name}](${helperLink(h.name)})`;
+      const link = `[@${mod.prefix}${h.declaredName}](${helperLink(h.name)})`;
       const chip = h.experimental ? EXP_CHIP : "";
       lines.push(
         `| ${link}${chip} | \`${returnTypeStr}\` | ${h.description} |`,

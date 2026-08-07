@@ -11,42 +11,50 @@ import {
   ErrorException,
   encodeAction,
   fetchAbi,
-  resolveName,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
-import { createPublicClient, getAbiItem, getAddress, isAddress } from "viem";
-import { mainnet } from "viem/chains";
+import { getAbiItem, getAddress, isAddress } from "viem";
 
-/** ENS name the assertions contract is published under (Ethereum mainnet). */
-const ASSERTIONS_ENS = "assertions.eth";
+/** Canonical CREATE2 address of the Assertions core v1.1 on every chain. */
+export const ASSERTIONS_ADDRESS: Address =
+  "0xa55E47E2767d85B8C4d9E62dd5009ffC45c4aBc4";
+
+/** Canonical CREATE2 address of the Combinators v1.0 on every chain. */
+export const COMBINATORS_ADDRESS: Address =
+  "0xa55EC07f6FBac3FC461B79bBdf40D279B8565dA5";
+
+function resolveOverride(module: Module, key: string): Address | undefined {
+  const override = module.getConfigBinding(key);
+  if (override === undefined || override === null) return undefined;
+  const addr = String(override);
+  if (!isAddress(addr)) {
+    throw new ErrorException(
+      `$assertions:${key} must be a valid address, got ${addr}`,
+    );
+  }
+  return getAddress(addr);
+}
 
 /**
  * Resolve the assertions contract address. Honours the `$assertions:address`
- * override when set, otherwise forward-resolves `assertions.eth` on mainnet.
+ * override when set, otherwise uses the canonical CREATE2 deployment, which
+ * lives at the same address on every chain.
  */
 export async function resolveAssertionsContract(
   module: Module,
 ): Promise<Address> {
-  const override = module.getConfigBinding("address");
-  if (override !== undefined && override !== null) {
-    const addr = String(override);
-    if (!isAddress(addr)) {
-      throw new ErrorException(
-        `$assertions:address must be a valid address, got ${addr}`,
-      );
-    }
-    return getAddress(addr);
-  }
+  return resolveOverride(module, "address") ?? ASSERTIONS_ADDRESS;
+}
 
-  const client = createPublicClient({
-    chain: mainnet,
-    transport: module.getTransport(mainnet.id),
-  });
-  const addr = await resolveName(ASSERTIONS_ENS, client);
-  if (!addr) {
-    throw new ErrorException(`could not resolve ${ASSERTIONS_ENS}`);
-  }
-  return addr;
+/**
+ * Resolve the combinators contract address. Honours the
+ * `$assertions:combinators` override when set, otherwise uses the canonical
+ * CREATE2 deployment.
+ */
+export async function resolveCombinatorsContract(
+  module: Module,
+): Promise<Address> {
+  return resolveOverride(module, "combinators") ?? COMBINATORS_ADDRESS;
 }
 
 /**

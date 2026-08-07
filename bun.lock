@@ -183,6 +183,7 @@
       "name": "@evmcrispr/module-assertions",
       "version": "0.11.0",
       "dependencies": {
+        "@evmcrispr/module-std": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
       },
       "devDependencies": {

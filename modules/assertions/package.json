@@ -23,7 +23,8 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:^"
+    "@evmcrispr/sdk": "workspace:^",
+    "@evmcrispr/module-std": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
