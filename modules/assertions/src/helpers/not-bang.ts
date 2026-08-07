@@ -8,6 +8,7 @@ import {
   materializeWord,
   notCombine,
 } from "../lib/compiler";
+import { checkNot } from "../lib/composition";
 import { defineBangHelper } from "./_bang";
 
 const WORD_MASK = (1n << 256n) - 1n;
@@ -31,13 +32,10 @@ export default defineBangHelper({
       );
     }
     const o = await compileOperand(ctx, node.args[0]);
+    const check = checkNot(o.cat);
+    if (!check.ok) throw new ErrorException(check.reason);
     if (o.cat === "Bool") {
       return notCombine(ctx, o);
-    }
-    if (o.cat === "String" || o.cat === "Bytes") {
-      throw new ErrorException(
-        `@not! needs a boolean or 32-byte word operand, got a ${o.cat} value`,
-      );
     }
     if (o.kind === "const") {
       const value = ~constBigInt(o) & WORD_MASK;
@@ -52,7 +50,7 @@ export default defineBangHelper({
     return combinatorCall(
       ctx,
       encodeUnary("Not", materializeWord(ctx, o)),
-      o.cat === "Bytes32" ? "Bytes32" : "Uint",
+      check.result,
     );
   },
 });

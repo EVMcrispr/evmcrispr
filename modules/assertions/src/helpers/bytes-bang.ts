@@ -8,6 +8,7 @@ import {
   constBigInt,
   materializeWord,
 } from "../lib/compiler";
+import { isWordCat } from "../lib/composition";
 import { defineBangHelper } from "./_bang";
 
 const WORD_MASK = (1n << 256n) - 1n;
@@ -39,10 +40,10 @@ function foldBitwise(op: CalcOpName, l: bigint, r: bigint): bigint {
   }
 }
 
-/** Word-typed operands only — dynamic values have no single word to
- *  operate on. */
+/** Word-typed operands only (composition-table predicate) — dynamic
+ *  values have no single word to operate on. */
 function requireWord(o: Operand, helper: string): Operand {
-  if (o.cat === "String" || o.cat === "Bytes") {
+  if (!isWordCat(o.cat)) {
     throw new ErrorException(
       `@${helper} needs 32-byte word operands (numbers, bool, address, bytes32), got a ${o.cat} value`,
     );

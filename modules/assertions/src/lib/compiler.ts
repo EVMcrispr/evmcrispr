@@ -32,36 +32,29 @@ import {
   encodeRead,
   encodeUnary,
 } from "./combinators";
+import type {
+  ArithOpName,
+  Category,
+  CmpOpName,
+  LogicOpName,
+} from "./composition";
+import {
+  ARITH_SYMBOL,
+  arithRejects,
+  CMP_SYMBOL,
+  checkArith,
+  checkCmp,
+  checkLogic,
+  isNumericCat,
+} from "./composition";
 
 // ---------------------------------------------------------------------------
 //  Types
 // ---------------------------------------------------------------------------
 
-/** Assertion value categories, keyed by the contract function name suffix. */
-export type Category =
-  | "Uint"
-  | "Int"
-  | "Address"
-  | "Bool"
-  | "Bytes32"
-  | "String"
-  | "Bytes";
-
-/** Arithmetic operators the expression surface exposes; the signed calc
- *  variant is selected at encode time from the operand categories. */
-export type ArithOpName =
-  | "Add"
-  | "Sub"
-  | "Mul"
-  | "Div"
-  | "Mod"
-  | "Exp"
-  | "Min"
-  | "Max"
-  | "AbsDiff";
-
-/** Comparison operators (Eq/Ne are sign-agnostic on raw words). */
-export type CmpOpName = "Eq" | "Ne" | "Gt" | "Lt" | "Ge" | "Le";
+/** Re-exported from the composition table (the single source of truth for
+ *  categories and operator acceptance — see ./composition). */
+export type { ArithOpName, Category, CmpOpName } from "./composition";
 
 /** Signed calc variants, where checked semantics differ from unsigned. */
 const SIGNED_CALC: Partial<Record<string, CalcOpName>> = {
@@ -216,10 +209,6 @@ function constOperand(value: unknown): Operand {
   throw new ErrorException(
     `cannot use a value of type ${typeof value} in an assertion expression`,
   );
-}
-
-function isNumericCat(cat: Category): boolean {
-  return cat === "Uint" || cat === "Int";
 }
 
 export function constBigInt(o: Operand & { kind: "const" }): bigint {
@@ -794,9 +783,18 @@ function foldArith(op: ArithOpName, l: bigint, r: bigint): bigint {
   }
 }
 
+/** The category an operand contributes to a composition check. Constants
+ *  are coerced leniently (an address or bytes32 literal folds to its word
+ *  via `constBigInt`), so only their signedness matters. */
+function constLenientCat(o: Operand): Category {
+  if (o.kind === "const") return o.cat === "Int" ? "Int" : "Uint";
+  return o.cat;
+}
+
 /** Combine two numeric operands with a `calc` arithmetic opcode, folding
  *  when both are build-time constants. Bool operands pass as their raw 0/1
- *  words — no conversion call. */
+ *  words — no conversion call. Acceptance and result categories come from
+ *  the composition table. */
 export function arithCombine(
   ctx: CompilerCtx,
   op: ArithOpName,
@@ -804,10 +802,9 @@ export function arithCombine(
   r: Operand,
 ): Operand {
   for (const o of [l, r]) {
-    if (o.kind === "call" && !isNumericCat(o.cat) && o.cat !== "Bool") {
-      throw new ErrorException(
-        `arithmetic needs numeric operands, got a ${o.cat} value`,
-      );
+    if (o.kind === "call") {
+      const reason = arithRejects(o.cat);
+      if (reason) throw new ErrorException(reason);
     }
   }
   if (l.kind === "const" && r.kind === "const") {
@@ -818,22 +815,16 @@ export function arithCombine(
       value: Num.fromBigInt(value),
     };
   }
+  const check = checkArith(op, constLenientCat(l), constLenientCat(r));
+  if (!check.ok) throw new ErrorException(check.reason);
   const signed = l.cat === "Int" || r.cat === "Int";
-  if (signed && op === "Exp") {
-    throw new ErrorException(
-      "exponentiation is not supported for int256 operands (there is no signed Exp opcode)",
-    );
-  }
   const lp = materializeWord(ctx, l);
   const rp = materializeWord(ctx, r);
-  // AbsDiff/SAbsDiff return the |l-r| magnitude as a uint256 (total, no
-  // overflow on wide spans), so the result is always unsigned.
-  const cat: Category = op === "AbsDiff" ? "Uint" : signed ? "Int" : "Uint";
   return {
     kind: "call",
     target: ctx.combinators,
     data: encodeCalc(calcOpFor(op, signed), lp, rp),
-    cat,
+    cat: check.result,
   };
 }
 
@@ -854,25 +845,22 @@ function foldCmp(op: CmpOpName, l: bigint, r: bigint): boolean {
   }
 }
 
-/** Combine two operands with a `calc` comparison opcode (nested use). */
+/** Combine two operands with a `calc` comparison opcode (nested use).
+ *  Acceptance comes from the composition table; a `Bytes`-categorized
+ *  constant (a short hex literal) keeps its historical numeric coercion. */
 export function cmpCombine(
   ctx: CompilerCtx,
   op: CmpOpName,
   l: Operand,
   r: Operand,
 ): Operand {
+  const cmpCat = (o: Operand): Category =>
+    o.kind === "const" && o.cat === "Bytes" ? "Uint" : o.cat;
+  const check = checkCmp(op, cmpCat(l), cmpCat(r));
+  if (!check.ok) throw new ErrorException(check.reason);
+
   // Bool vs const bool: fold into the operand itself or its negation.
   if (l.cat === "Bool" || r.cat === "Bool") {
-    if (op !== "Eq" && op !== "Ne") {
-      throw new ErrorException(
-        "boolean operands only support == and != comparisons",
-      );
-    }
-    if (l.cat !== "Bool" || r.cat !== "Bool") {
-      throw new ErrorException(
-        "cannot compare a boolean with a non-boolean value",
-      );
-    }
     if (l.kind === "const" && r.kind === "const") {
       return {
         kind: "const",
@@ -903,14 +891,6 @@ export function cmpCombine(
   // string envelope) and constants fold to the digest of their own
   // envelope at build time. Ordering comparisons stay invalid.
   if (l.cat === "String" || r.cat === "String") {
-    if (l.cat !== r.cat) {
-      throw new ErrorException(
-        "cannot compare a string with a non-string value",
-      );
-    }
-    if (op !== "Eq" && op !== "Ne") {
-      throw new ErrorException("strings only support == and != comparisons");
-    }
     if (l.kind === "const" && r.kind === "const") {
       return {
         kind: "const",
@@ -945,18 +925,6 @@ export function cmpCombine(
       data: encodeCalc(op, lp, rp),
       cat: "Bool",
     };
-  }
-  if (
-    (l.cat === "Address" ||
-      l.cat === "Bytes32" ||
-      r.cat === "Address" ||
-      r.cat === "Bytes32") &&
-    op !== "Eq" &&
-    op !== "Ne"
-  ) {
-    throw new ErrorException(
-      `${op === "Gt" || op === "Ge" ? ">" : "<"}-style comparisons need numeric operands`,
-    );
   }
   if (l.kind === "const" && r.kind === "const") {
     return {
@@ -995,12 +963,15 @@ export function notCombine(ctx: CompilerCtx, o: Operand): Operand {
 
 function logicCombine(
   ctx: CompilerCtx,
-  op: "and" | "or" | "xor",
+  op: LogicOpName,
   l: Operand,
   r: Operand,
 ): Operand {
-  // Numeric xor is bitwise.
-  if (op === "xor" && isNumericCat(l.cat) && isNumericCat(r.cat)) {
+  const check = checkLogic(op, l.cat, r.cat);
+  if (!check.ok) throw new ErrorException(check.reason);
+
+  // Numeric xor is bitwise (the table reports a numeric result).
+  if (check.result !== "Bool") {
     if (l.kind === "const" && r.kind === "const") {
       const value = constBigInt(l) ^ constBigInt(r);
       return { kind: "const", cat: "Uint", value: Num.fromBigInt(value) };
@@ -1015,14 +986,8 @@ function logicCombine(
     };
   }
 
-  const toBool = (o: Operand): Operand => {
-    if (o.cat === "Bool") return o;
-    throw new ErrorException(
-      `'${op}' needs boolean operands — compare values first (e.g. \`x > 0 ${op} y > 0\`)`,
-    );
-  };
-  const lb = toBool(l);
-  const rb = toBool(r);
+  const lb = l;
+  const rb = r;
 
   // Partial constant folding.
   if (lb.kind === "const" || rb.kind === "const") {
@@ -1065,25 +1030,6 @@ interface OpInfo {
   assoc: "left" | "right";
   arity: "binary" | "prefix";
 }
-
-const ARITH_SYMBOL: Record<string, ArithOpName> = {
-  "+": "Add",
-  "-": "Sub",
-  "*": "Mul",
-  "/": "Div",
-  "//": "Div",
-  "%": "Mod",
-  "^": "Exp",
-};
-
-const CMP_SYMBOL: Record<string, CmpOpName> = {
-  "==": "Eq",
-  "!=": "Ne",
-  ">": "Gt",
-  "<": "Lt",
-  ">=": "Ge",
-  "<=": "Le",
-};
 
 const NUM_OPS: Record<string, OpInfo> = {
   xor: { prec: 1, assoc: "left", arity: "binary" },
