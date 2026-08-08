@@ -6,6 +6,14 @@ On-chain assertions backed by the assertions.eth contract: verify view return va
 load assertions
 ```
 
+Assertions compile to the ERC-8211 (Smart Batching) wire format judged by
+the Assertions v2 core: live values are `InputParam`s (staticcalls, balance
+reads, or nested combinator expressions) validated by inline constraints
+via `assertParam`, and nested live call arguments compile to
+`assertComposable` construction batches spliced at judge time. Composed
+expressions (chains, arithmetic, logic, string ops, typed navigation) are
+computed by the Combinators v2 contract.
+
 ## Configuration variables
 
 Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.

@@ -1,7 +1,11 @@
-import type { Action, Param } from "@evmcrispr/sdk";
+import type { Action } from "@evmcrispr/sdk";
 import { defineCommand } from "@evmcrispr/sdk";
 import type Assertions from "..";
-import { encodeAssertion } from "../lib/assertions";
+import {
+  assertParamAction,
+  resolveCombinatorsContract,
+} from "../lib/assertions";
+import { hasCodeParam } from "./assert-code";
 
 export default defineCommand<Assertions>({
   name: "assert-no-code",
@@ -16,9 +20,13 @@ export default defineCommand<Assertions>({
     },
   ],
   async run(module, { target, message }): Promise<Action[]> {
-    const params: Param[] = [target, message ?? ""];
+    const combinators = await resolveCombinatorsContract(module);
     return [
-      await encodeAssertion(module, "assertNoCode(address,string)", params),
+      await assertParamAction(
+        module,
+        hasCodeParam(combinators, target, false),
+        message ?? "",
+      ),
     ];
   },
 });

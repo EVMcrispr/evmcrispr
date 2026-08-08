@@ -1,27 +1,6 @@
-import type { HelperFunctionNode } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
-import { LEN_STEP } from "../lib/combinators";
-import type { Chain, CompilerCtx } from "../lib/compiler";
-import {
-  chainArgWithLens,
-  combinatorCall,
-  encodeReadChain,
-  formatReturnTuple,
-} from "../lib/compiler";
+import { chainArgWithLens, lenParam } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
-
-/** Compile `@len!(call)` into the chain it measures. Used both by the
- *  assert command's top-level array-length fast path and the nested
- *  LEN-path form below. */
-export async function compileLenChain(
-  ctx: CompilerCtx,
-  node: HelperFunctionNode,
-): Promise<Chain> {
-  if (node.args.length !== 1) {
-    throw new ErrorException("@len! expects a single call argument");
-  }
-  return chainArgWithLens(ctx, "len!", node.args[0]);
-}
 
 export default defineBangHelper({
   name: "len!",
@@ -37,25 +16,33 @@ export default defineBangHelper({
     },
   ],
   compileAssert: async (ctx, node) => {
-    const chain = await compileLenChain(ctx, node);
-    const outputs = chain.lastAbi.outputs!;
-    if (outputs.length !== 1) {
-      throw new ErrorException(
-        "@len! needs a single return value; select one with a lens",
-      );
+    if (node.args.length !== 1) {
+      throw new ErrorException("@len! expects a single call argument");
     }
-    const t = outputs[0].type;
-    if (!/\[\]$/.test(t) && t !== "string" && t !== "bytes") {
-      throw new ErrorException(
-        `@len! needs a dynamic return value (array, string or bytes), got ${t}`,
-      );
+    const arg = await chainArgWithLens(ctx, "len!", node.args[0]);
+
+    // With a lens, chainArgWithLens has already resolved the path to a
+    // dynamic terminal; without one, the call must return a single dynamic
+    // value the LEN sentinel can measure.
+    let path = arg.path;
+    if (!path) {
+      if (arg.outputs.length !== 1) {
+        throw new ErrorException(
+          "@len! needs a single return value; select one with a lens",
+        );
+      }
+      const t = arg.outputs[0].type;
+      if (!/\[\]$/.test(t) && t !== "string" && t !== "bytes") {
+        throw new ErrorException(
+          `@len! needs a dynamic return value (array, string or bytes), got ${t}`,
+        );
+      }
+      path = [0];
     }
-    // A typed read path ending in the LEN sentinel returns the decoded
-    // length of the navigated value as a word.
-    return combinatorCall(
-      ctx,
-      encodeReadChain(chain, formatReturnTuple(outputs), [0n, LEN_STEP]),
-      "Uint",
-    );
+    return {
+      kind: "call",
+      param: lenParam(ctx, arg.param, arg.outputs, path),
+      cat: "Uint",
+    };
   },
 });

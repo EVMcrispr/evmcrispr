@@ -40,7 +40,7 @@ assertions:assert @token(WETH)::balanceOf(@me) >= @token:amount(WETH 10) "insuff
 # Inline ABI when the return type must be explicit (no ABI lookup)
 assertions:assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token:amount(WETH 10) "insufficient bal"
 
-# int256 returns compare signed (new in core 1.1)
+# int256 returns compare signed
 set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
 assertions:assert $oracle::{drift()(int256)} <= -5 "drifted"
 
@@ -73,6 +73,18 @@ assertions:assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @to
 assertions:assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
 assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
 assertions:assert @split!($pool::{name()(string)} " " 1) == "LP"
+
+# Nested live calls as arguments: inner calls resolve at assertion time and
+# splice into the enclosing call's calldata (any nesting depth)
+set $a 0x0102030405060708090a0b0c0d0e0f1011121315
+set $b 0x0102030405060708090a0b0c0d0e0f1011121316
+set $c 0x0102030405060708090a0b0c0d0e0f1011121317
+set $d 0x0102030405060708090a0b0c0d0e0f1011121318
+assertions:assert $a::{a(address)(uint256,uint256[]) $b::{b(uint256,uint256)(address) $c::{c(address)(uint256) @me} $d::{d()(uint256)}}}[_ [$]] == 7
+
+# A lens on a nested call argument selects the value to splice — including
+# dynamic values (arrays) navigated at runtime
+assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
 ```
 
 ## Notes
@@ -81,19 +93,28 @@ assertions:assert @split!($pool::{name()(string)} " " 1) == "LP"
   `!`-suffixed on-chain helper — read at assertion time) or a **build-time
   constant** (literals, `$vars`, and every ordinary helper such as
   `@token:balance`, which is frozen into calldata when the script builds).
-- With one live side and one constant, the command compiles to a single core
-  assertion (`assertGeCallUint`, `assertEqCallStringN`, …). With two live
-  sides it compares on-chain via the combinators contract and judges the
-  result with `assertTrue`.
+- The command compiles to the ERC-8211 judge: the live expression becomes an
+  `InputParam` (a staticcall, balance read, or nested combinator expression)
+  validated by inline constraints (`EQ`/`GTE`/`LTE`/`IN`) via `assertParam`.
+  Comparisons the constraints can't express directly (`!=`, signed and
+  two-live-side comparisons) route through the combinators' `calc` judged
+  `EQ 1`.
 - Composition happens inside `@num!(…)` (arithmetic: `+ - * / % ^`, `xor`)
   and `@bool!(…)` (comparisons plus `and`, `or`, `xor`, prefix `not` — the
   same word operators as std's `@bool`). Wrappers nest freely; constant
   subtrees fold at build time. Top-level infix without a wrapper is an error.
 - Operators map by return type: `uint`/`int` support `== != > < >= <= ~=`;
   `address`/`bool`/`bytes32`/`string`/`bytes` support `== !=`. Bool `!=`
-  folds to `assertTrue`/`assertFalse` (the contract has no `assertNeCallBool`).
+  folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
   `@absdiff!(a b) <= delta`.
+- Nested live calls as call arguments compile to `assertComposable`
+  construction batches: each nesting level becomes an entry that fetches
+  the inner values and splices them into the enclosing calldata at judge
+  time (assertions judging assertions). Word-typed arguments (uint, int,
+  address, bool, bytes32) splice anywhere; a dynamic-typed argument
+  (array/string/bytes selected by a lens) must be the last argument of the
+  outermost judged call, and there can be at most one.
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
 - Set `$assertions:address` / `$assertions:combinators` to override the

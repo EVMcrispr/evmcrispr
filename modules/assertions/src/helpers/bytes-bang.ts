@@ -85,7 +85,7 @@ export default defineBangHelper({
         const value = constBigInt(o) & WORD_MASK;
         return { kind: "const", cat: "Uint", value: Num.fromBigInt(value) };
       }
-      return { kind: "call", target: o.target, data: o.data, cat: "Uint" };
+      return { kind: "call", param: o.param, cat: "Uint" };
     }
     if (node.args.length !== 3) {
       throw new ErrorException(

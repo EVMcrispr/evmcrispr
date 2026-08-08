@@ -1,24 +1,11 @@
 import { resolveToken } from "@evmcrispr/module-std";
 import { ErrorException, NodeType } from "@evmcrispr/sdk";
-import {
-  encodeFunctionData,
-  getAddress,
-  isAddress,
-  parseAbi,
-  zeroAddress,
-} from "viem";
-import { encodeEnv, encodeUnary } from "../lib/combinators";
+import { getAddress, isAddress, zeroAddress } from "viem";
+import { encodeUnary } from "../lib/combinators";
 import type { Operand } from "../lib/compiler";
-import {
-  chainCallPair,
-  combinatorCall,
-  requireChainArg,
-} from "../lib/compiler";
+import { chainParam, combinatorCall, requireChainArg } from "../lib/compiler";
+import { balanceParam } from "../lib/erc8211";
 import { defineBangHelper } from "./_bang";
-
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address account) view returns (uint256)",
-]);
 
 export default defineBangHelper({
   name: "balance!",
@@ -56,7 +43,7 @@ export default defineBangHelper({
     if (accountNode.type === NodeType.CallExpression) {
       if (!native) {
         throw new ErrorException(
-          "@balance! with a call-resolved account only supports the native token (ETH) — the combinators contract cannot route a resolved address into balanceOf",
+          "@balance! with a call-resolved account only supports the native token (ETH) — the BALANCE fetcher needs a literal account address",
         );
       }
       const chain = await requireChainArg(ctx, "balance!", accountNode);
@@ -68,7 +55,7 @@ export default defineBangHelper({
       }
       return combinatorCall(
         ctx,
-        encodeUnary("Balance", chainCallPair(ctx, chain)),
+        encodeUnary("Balance", chainParam(ctx, chain)),
         "Uint",
       );
     }
@@ -79,21 +66,11 @@ export default defineBangHelper({
         `@balance! account must resolve to an address, got ${account}`,
       );
     }
-    if (native) {
-      return combinatorCall(
-        ctx,
-        encodeEnv("Balance", BigInt(getAddress(account))),
-        "Uint",
-      );
-    }
+    // Native and ERC-20 both map onto the ERC-8211 BALANCE fetcher
+    // (token == 0 reads the native balance).
     return {
       kind: "call",
-      target: tokenAddr,
-      data: encodeFunctionData({
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [getAddress(account)],
-      }),
+      param: balanceParam(tokenAddr, getAddress(account)),
       cat: "Uint",
     };
   },

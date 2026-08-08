@@ -4,7 +4,7 @@ import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
   combinatorCall,
-  dataChainArgs,
+  lensedDataOperand,
 } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -31,17 +31,16 @@ export default defineBangHelper({
         '@includes! expects (call part), e.g. @includes!($pool::name() "LP")',
       );
     }
-    const chain = await chainArgWithLens(ctx, "includes!", node.args[0]);
+    const arg = await chainArgWithLens(ctx, "includes!", node.args[0]);
     const part = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof part !== "string" || part.length === 0) {
       throw new ErrorException(
         "@includes! part must be a non-empty string (every string contains the empty string)",
       );
     }
-    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
-      encodeData("Includes", target, calls, stringToHex(part)),
+      encodeData("Includes", lensedDataOperand(ctx, arg), stringToHex(part)),
       "Bool",
     );
   },

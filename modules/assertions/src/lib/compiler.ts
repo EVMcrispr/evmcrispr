@@ -16,6 +16,7 @@ import {
 } from "@evmcrispr/sdk";
 import type { AbiFunction, AbiParameter, Hex } from "viem";
 import {
+  decodeAbiParameters,
   encodeAbiParameters,
   getAddress,
   isAddress,
@@ -24,13 +25,15 @@ import {
   parseAbiItem,
 } from "viem";
 import { loadFunctionAbi } from "./assertions";
-import type { CalcOpName, CallPair } from "./combinators";
+import type { CalcOpName } from "./combinators";
 import {
   encodeCalc,
-  encodeConstant,
+  encodeChain,
   encodeData,
-  encodeRead,
+  encodeNav,
+  encodePick,
   encodeUnary,
+  LEN_STEP,
 } from "./combinators";
 import type {
   ArithOpName,
@@ -47,6 +50,10 @@ import {
   checkLogic,
   isNumericCat,
 } from "./composition";
+import type { ArgSpec, HoleRegistry } from "./construct";
+import { buildCalldata, dynHole, isDynamicParam, wordHole } from "./construct";
+import type { InputParam } from "./erc8211";
+import { rawParam, staticCallParam, toWord } from "./erc8211";
 
 // ---------------------------------------------------------------------------
 //  Types
@@ -55,6 +62,9 @@ import {
 /** Re-exported from the composition table (the single source of truth for
  *  categories and operator acceptance — see ./composition). */
 export type { ArithOpName, Category, CmpOpName } from "./composition";
+
+/** Re-exported from the construct layer (shared ABI shape rules). */
+export { isDynamicParam } from "./construct";
 
 /** Signed calc variants, where checked semantics differ from unsigned. */
 const SIGNED_CALC: Partial<Record<string, CalcOpName>> = {
@@ -72,7 +82,10 @@ const SIGNED_CALC: Partial<Record<string, CalcOpName>> = {
   Ge: "SGe",
 };
 
-function calcOpFor(op: ArithOpName | CmpOpName, signed: boolean): CalcOpName {
+export function calcOpFor(
+  op: ArithOpName | CmpOpName,
+  signed: boolean,
+): CalcOpName {
   if (!signed) return op as CalcOpName;
   return SIGNED_CALC[op] ?? (op as CalcOpName);
 }
@@ -91,20 +104,19 @@ export function categoryFromAbiType(abiType: string): Category {
 }
 
 /**
- * A compiled expression operand: either a value known at build time, or a
- * `(target, calldata)` staticcall evaluated on-chain at assertion time.
+ * A compiled expression operand: either a value known at build time, or an
+ * ERC-8211 `InputParam` resolved on-chain at assertion time (a staticcall,
+ * balance read, or nested combinator expression).
  */
 export type Operand =
   | { kind: "const"; cat: Category; value: Num | boolean | string }
   | {
       kind: "call";
-      target: Address;
-      data: Hex;
+      param: InputParam;
       cat: Category;
-      /** When this call is `unary(IsZero, inner)`, the inner pair — lets
-       *  the top level emit `assertFalse(inner)` instead of
-       *  `assertTrue(isZero(inner))`. */
-      notOf?: CallPair;
+      /** When this param is `unary(IsZero, inner)`, the inner param — lets
+       *  the top level judge `inner EQ 0` instead of `isZero(inner) EQ 1`. */
+      notOf?: InputParam;
     };
 
 export interface CompilerCtx {
@@ -112,60 +124,35 @@ export interface CompilerCtx {
   interpreters: NodesInterpreters;
   /** Resolved combinators contract address. */
   combinators: Address;
+  /** Live-argument hole registry for this compilation (see ./construct). */
+  holes: HoleRegistry;
 }
 
-/** A flattened `::` chain: `calls[0]` runs on `root`, later hops on the
- *  address the previous hop's selected word resolves to. */
+/** A flattened `::` chain as the v2 combinators consume it: `start`
+ *  resolves to the first hop's target, `calls[i]` runs on the previous
+ *  hop's first return word. */
 export interface Chain {
-  root: Address;
-  /** Plain abi.encodeCall entries, one per hop. */
+  /** InputParam resolving to the first hop's target address. */
+  start: InputParam;
+  /** Set when `start` is a literal address (single-hop shortcut + ABI
+   *  fetching for named hops). */
+  startAddress?: Address;
+  /** Plain abi.encodeCall entries, one per hop (may carry hole markers). */
   calls: Hex[];
-  /** Per non-final hop, the raw return word holding the next hop's
-   *  address (0 = single-address return, the common case). */
-  hopIndexes: number[];
   lastAbi: AbiFunction;
 }
 
-/** Encode a chain as `read` calldata with the given final-hop selection
- *  (defaults to the raw passthrough: empty type, empty path). Non-final
- *  hops select their address word in raw mode. */
-export function encodeReadChain(
-  chain: Pick<Chain, "root" | "calls" | "hopIndexes">,
-  finalType = "",
-  finalPath: readonly bigint[] = [],
-): Hex {
-  const last = chain.calls.length - 1;
-  const retTypes = chain.calls.map((_, i) => (i === last ? finalType : ""));
-  const paths = chain.calls.map((_, i) =>
-    i === last
-      ? [...finalPath]
-      : chain.hopIndexes[i]
-        ? [BigInt(chain.hopIndexes[i])]
-        : [],
+/** Express a chain as a single InputParam: a one-hop chain rooted at a
+ *  literal address is the call itself; anything longer routes through the
+ *  `chain` combinator. */
+export function chainParam(ctx: CompilerCtx, chain: Chain): InputParam {
+  if (chain.calls.length === 1 && chain.startAddress) {
+    return staticCallParam(chain.startAddress, chain.calls[0]);
+  }
+  return staticCallParam(
+    ctx.combinators,
+    encodeChain(chain.start, chain.calls),
   );
-  return encodeRead(chain.root, chain.calls, retTypes, paths);
-}
-
-/** Express a chain as a single `(target, data)` operand pair: a one-hop
- *  chain is the call itself; longer chains route through `read`. */
-export function chainCallPair(ctx: CompilerCtx, chain: Chain): CallPair {
-  if (chain.calls.length === 1) {
-    return { target: chain.root, data: chain.calls[0] };
-  }
-  return { target: ctx.combinators, data: encodeReadChain(chain) };
-}
-
-/** Express a chain as the `(target, calls)` a `data` op consumes: its hops
- *  chain through word 0 only, so a chain with a mid-hop word selection is
- *  routed through a single `read` passthrough call instead. */
-export function dataChainArgs(
-  ctx: CompilerCtx,
-  chain: Chain,
-): { target: Address; calls: Hex[] } {
-  if (chain.hopIndexes.some((i) => i !== 0)) {
-    return { target: ctx.combinators, calls: [encodeReadChain(chain)] };
-  }
-  return { target: chain.root, calls: chain.calls };
 }
 
 // ---------------------------------------------------------------------------
@@ -230,38 +217,33 @@ export function constBigInt(o: Operand & { kind: "const" }): bigint {
   );
 }
 
-/** Materialize an operand as a `(target, data)` pair for a combinator slot
- *  reading a raw 32-byte word. Live calls pass through untouched — bool
- *  returns are 0/1 words and signed returns are two's-complement words, so
- *  no conversion call is ever needed; constants become `env(Constant)`
+/** Materialize an operand as an InputParam for a combinator slot reading a
+ *  raw 32-byte word. Live params pass through untouched — bool returns are
+ *  0/1 words and signed returns are two's-complement words, so no
+ *  conversion is ever needed; constants become RAW_BYTES literal words
  *  with negative values encoded as their two's-complement word. */
-export function materializeWord(ctx: CompilerCtx, o: Operand): CallPair {
-  if (o.kind === "call") {
-    return { target: o.target, data: o.data };
-  }
-  return { target: ctx.combinators, data: encodeConstant(constBigInt(o)) };
+export function materializeWord(_ctx: CompilerCtx, o: Operand): InputParam {
+  if (o.kind === "call") return o.param;
+  return rawParam(toWord(constBigInt(o)));
 }
 
-/** Materialize an operand as a bool-word `(target, data)` pair. */
-function materializeBool(ctx: CompilerCtx, o: Operand): CallPair {
+/** Materialize an operand as a bool-word InputParam. */
+function materializeBool(_ctx: CompilerCtx, o: Operand): InputParam {
   if (o.kind === "call") {
     if (o.cat !== "Bool") {
       throw new ErrorException(
         `expected a boolean operand, got a ${o.cat} value — compare it first (e.g. \`x > 0\`)`,
       );
     }
-    return { target: o.target, data: o.data };
+    return o.param;
   }
   if (o.cat !== "Bool") {
     throw new ErrorException(
       `expected a boolean operand, got a ${o.cat} constant`,
     );
   }
-  // A 0/1 env(Constant) word decodes as bool.
-  return {
-    target: ctx.combinators,
-    data: encodeConstant(o.value === true ? 1n : 0n),
-  };
+  // A 0/1 raw word decodes as bool.
+  return rawParam(toWord(o.value === true ? 1n : 0n));
 }
 
 // ---------------------------------------------------------------------------
@@ -284,33 +266,63 @@ function flattenCallNodes(node: CallExpressionNode): {
 const CHAIN_RESOLVE_ERROR =
   "could not resolve an intermediate chain target at build time to fetch its ABI — use the inline form ::{method(argTypes)(returnType)} for chained calls";
 
+function callsHaveHoles(ctx: CompilerCtx, calls: Hex[]): boolean {
+  const markers = [
+    ...ctx.holes.words.keys(),
+    ...(ctx.holes.dyn ? [ctx.holes.dyn.marker] : []),
+  ];
+  return calls.some((c) => {
+    const body = c.slice(2).toLowerCase();
+    return markers.some((m) => body.includes(m));
+  });
+}
+
 /** Resolve the address a chain prefix returns, via a build-time eth_call.
  *  Only needed to fetch the ABI of a named (non-inline) later hop. */
 async function resolveChainAddress(
   ctx: CompilerCtx,
-  root: Address,
+  start: InputParam,
+  startAddress: Address | undefined,
   calls: Hex[],
-  hopIndexes: number[],
 ): Promise<Address> {
+  if (callsHaveHoles(ctx, calls)) {
+    throw new ErrorException(CHAIN_RESOLVE_ERROR);
+  }
   const client = await ctx.module.getClient();
-  let addr = root;
-  for (let i = 0; i < calls.length; i++) {
-    const wordIndex = hopIndexes[i] ?? 0;
+
+  const callWord0 = async (to: Address, data: Hex): Promise<Address> => {
     let result: Hex | undefined;
     try {
-      ({ data: result } = await client.call({ to: addr, data: calls[i] }));
+      ({ data: result } = await client.call({ to, data }));
     } catch {
       result = undefined;
     }
-    const start = 2 + wordIndex * 64;
-    if (!result || result.length < start + 64) {
+    if (!result || result.length < 2 + 64) {
       throw new ErrorException(CHAIN_RESOLVE_ERROR);
     }
-    const word = result.slice(start, start + 64);
+    const word = result.slice(2, 2 + 64);
     if (!word.startsWith("0".repeat(24))) {
       throw new ErrorException(CHAIN_RESOLVE_ERROR);
     }
-    addr = getAddress(`0x${word.slice(24)}`);
+    return getAddress(`0x${word.slice(24)}`);
+  };
+
+  let addr: Address;
+  if (startAddress) {
+    addr = startAddress;
+  } else if (start.fetcherType === 1) {
+    // STATIC_CALL start: run the wrapped prefix expression off-chain.
+    const [to, data] = decodeAbiParameters(
+      [{ type: "address" }, { type: "bytes" }],
+      start.paramData,
+    ) as [Address, Hex];
+    addr = await callWord0(to, data);
+  } else {
+    // RAW_BYTES start carrying the address word.
+    addr = getAddress(`0x${start.paramData.slice(2 + 24, 2 + 64)}`);
+  }
+  for (const call of calls) {
+    addr = await callWord0(addr, call);
   }
   return addr;
 }
@@ -318,19 +330,67 @@ async function resolveChainAddress(
 async function hopAbi(
   ctx: CompilerCtx,
   hop: CallExpressionNode,
-  root: Address,
-  priorCalls: Hex[],
-  priorIndexes: number[],
+  chain: Pick<Chain, "start" | "startAddress" | "calls">,
 ): Promise<AbiFunction> {
   if (hop.inputTypes && hop.outputTypes) {
     const sig = `function ${hop.method}${hop.inputTypes} view returns ${hop.outputTypes}`;
     return parseAbiItem(sig) as AbiFunction;
   }
   const addr =
-    priorCalls.length === 0
-      ? root
-      : await resolveChainAddress(ctx, root, priorCalls, priorIndexes);
+    chain.calls.length === 0 && chain.startAddress
+      ? chain.startAddress
+      : await resolveChainAddress(
+          ctx,
+          chain.start,
+          chain.startAddress,
+          chain.calls,
+        );
   return loadFunctionAbi(ctx.module, addr, hop.method);
+}
+
+/** Compile a hop's argument list, turning nested `::` calls and `!` helpers
+ *  into live holes (word or dynamic-envelope splices) and interpreting
+ *  everything else at build time. */
+async function compileHopArgs(
+  ctx: CompilerCtx,
+  hop: CallExpressionNode,
+  fnAbi: AbiFunction,
+): Promise<Hex> {
+  const liveIdx = hop.args.findIndex(
+    (a) => a.type === NodeType.CallExpression || isBangHelperNode(a),
+  );
+  if (liveIdx === -1) {
+    const argVals = await ctx.interpreters.interpretNodes(hop.args);
+    return encodeCalldata(fnAbi, argVals);
+  }
+  if (hop.args.length !== fnAbi.inputs.length) {
+    throw new ErrorException(
+      `${hop.method} expects ${fnAbi.inputs.length} argument(s), got ${hop.args.length}`,
+    );
+  }
+  const specs: ArgSpec[] = [];
+  for (let i = 0; i < hop.args.length; i++) {
+    const arg = hop.args[i];
+    const input = fnAbi.inputs[i];
+    if (arg.type === NodeType.CallExpression) {
+      specs.push(
+        await compileLiveCallArg(
+          ctx,
+          arg as CallExpressionNode,
+          input,
+          hop.method,
+        ),
+      );
+    } else if (isBangHelperNode(arg)) {
+      specs.push(await compileLiveHelperArg(ctx, arg, input, hop.method));
+    } else {
+      specs.push({
+        kind: "value",
+        value: (await ctx.interpreters.interpretNode(arg)) as never,
+      });
+    }
+  }
+  return buildCalldata(fnAbi, specs);
 }
 
 /** Compile a `::` call expression (possibly chained) into a Chain. */
@@ -347,101 +407,68 @@ export async function compileChain(
     );
   }
 
-  let root = getAddress(rootValue);
-  const calls: Hex[] = [];
-  const hopIndexes: number[] = [];
+  let startAddress: Address | undefined = getAddress(rootValue);
+  let start: InputParam = rawParam(toWord(BigInt(startAddress)));
+  let calls: Hex[] = [];
   let lastAbi: AbiFunction | undefined;
+
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
-    const fnAbi = await hopAbi(ctx, hop, root, calls, hopIndexes);
+    const fnAbi = await hopAbi(ctx, hop, { start, startAddress, calls });
     if (!fnAbi.outputs || fnAbi.outputs.length === 0) {
       throw new ErrorException(
         `${hop.method} has no return value to assert on`,
       );
     }
-    let wordIndex = 0;
-    if (!last) {
-      if (hop.returnDestructure) {
-        const hopPath = lensPath(hop.returnDestructure);
-        if (hopPath.length > 1) {
-          // A nested selection (array element / struct value) is not a
-          // raw hop-word extraction, so rewrap the chain so far in a
-          // typed read: its canonical envelope returns the selected
-          // address as word 0, which the next hop consumes like any
-          // single-address return.
-          const { terminal, resolved } = walkNavPath(
-            fnAbi.outputs,
-            hopPath,
-            hop.method,
-          );
-          if (terminal.type !== "address") {
-            throw new ErrorException(
-              `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
-            );
-          }
-          const argVals = await ctx.interpreters.interpretNodes(hop.args);
-          calls.push(encodeCalldata(fnAbi, argVals));
-          const readCall = encodeReadChain(
-            { root, calls, hopIndexes },
+
+    if (!last && hop.returnDestructure) {
+      // A mid-chain lens: select the next hop's address from this hop's
+      // return, wrapping the chain so far in pick (raw word) or nav
+      // (typed navigation) and continuing from the wrapped expression.
+      const hopPath = lensPath(hop.returnDestructure);
+      const { terminal, resolved } = walkNavPath(
+        fnAbi.outputs,
+        hopPath,
+        hop.method,
+      );
+      if (terminal.type !== "address") {
+        throw new ErrorException(
+          `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
+        );
+      }
+      calls.push(await compileHopArgs(ctx, hop, fnAbi));
+      const prefix = chainParam(ctx, {
+        start,
+        startAddress,
+        calls,
+        lastAbi: fnAbi,
+      });
+      const data = pickableIndex(fnAbi.outputs, resolved)
+        ? encodePick(prefix, BigInt(resolved[0]))
+        : encodeNav(
+            prefix,
             formatReturnTuple(fnAbi.outputs),
             resolved.map(BigInt),
           );
-          root = ctx.combinators;
-          calls.length = 0;
-          calls.push(readCall);
-          hopIndexes.length = 0;
-          hopIndexes.push(0);
-          lastAbi = fnAbi;
-          continue;
-        }
-        // Hop arity is known, so end-anchored indices resolve here.
-        const index =
-          hopPath[0] < 0 ? fnAbi.outputs.length + hopPath[0] : hopPath[0];
-        if (index < 0 || index >= fnAbi.outputs.length) {
-          throw new ErrorException(
-            `${hop.method} returns ${fnAbi.outputs.length} values; the lens selects value ${hopPath[0] < 0 ? `${-hopPath[0]} from the end` : hopPath[0] + 1}`,
-          );
-        }
-        const selected = fnAbi.outputs[index];
-        if (selected.type !== "address") {
-          throw new ErrorException(
-            `a chained call must continue on an address; the lens on ${hop.method} selects ${selected.type}`,
-          );
-        }
-        // Every output before the selection must occupy exactly one head
-        // word (a static single-word value, or the offset of a dynamic
-        // value) so the selected value's word index equals its position.
-        for (let j = 0; j < index; j++) {
-          const t = fnAbi.outputs[j].type;
-          const singleWord =
-            SINGLE_WORD_ABI.test(t) ||
-            t === "string" ||
-            t === "bytes" ||
-            /\[\]$/.test(t);
-          if (!singleWord) {
-            throw new ErrorException(
-              `cannot chain past a ${t} return value of ${hop.method} — it occupies several head words`,
-            );
-          }
-        }
-        wordIndex = index;
-      } else if (
-        fnAbi.outputs.length !== 1 ||
-        fnAbi.outputs[0].type !== "address"
-      ) {
+      start = staticCallParam(ctx.combinators, data);
+      startAddress = undefined;
+      calls = [];
+      lastAbi = fnAbi;
+      continue;
+    }
+    if (!last) {
+      if (fnAbi.outputs.length !== 1 || fnAbi.outputs[0].type !== "address") {
         throw new ErrorException(
           `every chained call except the last must return a single address, or select one with a lens (e.g. ${hop.method}(...)[_ $ _]); ${hop.method} returns (${fnAbi.outputs.map((o) => o.type).join(", ")})`,
         );
       }
-      hopIndexes.push(wordIndex);
     }
-    const argVals = await ctx.interpreters.interpretNodes(hop.args);
-    calls.push(encodeCalldata(fnAbi, argVals));
+    calls.push(await compileHopArgs(ctx, hop, fnAbi));
     lastAbi = fnAbi;
   }
 
-  return { root, calls, hopIndexes, lastAbi: lastAbi! };
+  return { start, startAddress, calls, lastAbi: lastAbi! };
 }
 
 /** Resolve a return-destructure lens into a navigation path: one index per
@@ -490,13 +517,13 @@ const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
 const ARRAY_SUFFIX = /\[(\d*)\]$/;
 
 /** Formats ABI output parameters as the parenthesized return-tuple
- *  descriptor `read`'s typed mode consumes, structs written as
+ *  descriptor `nav`'s typed mode consumes, structs written as
  *  parenthesized tuples: "((address,uint256)[],address)". */
 export function formatReturnTuple(outputs: readonly AbiParameter[]): string {
   return `(${outputs.map(formatParamType).join(",")})`;
 }
 
-function formatParamType(p: AbiParameter): string {
+export function formatParamType(p: AbiParameter): string {
   if (p.type.startsWith("tuple")) {
     const components =
       (p as { components?: readonly AbiParameter[] }).components ?? [];
@@ -505,23 +532,27 @@ function formatParamType(p: AbiParameter): string {
   return p.type;
 }
 
-/** Whether a parameter is ABI-dynamic (mirrors the combinator's shape rules). */
-export function isDynamicParam(p: AbiParameter): boolean {
-  const suffix = p.type.match(ARRAY_SUFFIX);
-  if (suffix) {
-    if (suffix[1] === "") return true;
-    return isDynamicParam({
-      ...p,
-      type: p.type.slice(0, -suffix[0].length),
-    } as AbiParameter);
+/** Whether a single-level lens selection can compile to the cheaper raw
+ *  `pick`: every output before the selection occupies exactly one head
+ *  word (single-word static value, or the offset word of a dynamic value)
+ *  and the selection itself is a single-word static value. */
+function pickableIndex(
+  outputs: readonly AbiParameter[],
+  resolved: number[],
+): boolean {
+  if (resolved.length !== 1 || resolved[0] < 0) return false;
+  const index = resolved[0];
+  if (!SINGLE_WORD_ABI.test(outputs[index]?.type ?? "")) return false;
+  for (let j = 0; j < index; j++) {
+    const t = outputs[j].type;
+    const singleHead =
+      SINGLE_WORD_ABI.test(t) ||
+      t === "string" ||
+      t === "bytes" ||
+      /\[\]$/.test(t);
+    if (!singleHead) return false;
   }
-  if (p.type === "bytes" || p.type === "string") return true;
-  if (p.type === "tuple") {
-    const components =
-      (p as { components?: readonly AbiParameter[] }).components ?? [];
-    return components.some(isDynamicParam);
-  }
-  return false;
+  return true;
 }
 
 /** Walks the ABI type tree along a lens path, validating every step the
@@ -578,138 +609,167 @@ export function walkNavPath(
   return { terminal: current, resolved };
 }
 
-/** Compile a lens selection into a typed-`read` operand: the combinator
- *  derives every offset-follow and bounds check from the declared return
- *  type, so the calldata is self-describing — read(target, calls,
- *  ["(address[][],address)"], [[0, 3, 1]]) reads as "return value 0,
- *  element 3, element 1". */
-function compileNavOperand(
-  ctx: CompilerCtx,
-  chain: Chain,
-  path: number[],
+/** Validate a dynamic lens terminal is something `nav` can return as a
+ *  single envelope: string, bytes, or a dynamic array of single-word
+ *  static elements. */
+function checkNavigableDynamic(
+  terminal: AbiParameter,
   method: string,
-): Operand {
-  const outputs = chain.lastAbi.outputs!;
-  const { terminal, resolved } = walkNavPath(outputs, path, method);
-  if (!SINGLE_WORD_ABI.test(terminal.type)) {
+  context: string,
+): void {
+  const suffix = terminal.type.match(ARRAY_SUFFIX);
+  const isDynArray = suffix?.[1] === "";
+  if (!isDynArray && terminal.type !== "string" && terminal.type !== "bytes") {
     throw new ErrorException(
-      `a value lens must land on a single-word static value; the selection in ${method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
+      `${context} must select a single value; the selection in ${method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
     );
   }
-  return {
-    kind: "call",
-    target: ctx.combinators,
-    data: encodeReadChain(
-      chain,
-      formatReturnTuple(outputs),
-      resolved.map(BigInt),
-    ),
-    cat: categoryFromAbiType(terminal.type),
-  };
+  if (isDynArray) {
+    const element = {
+      ...terminal,
+      type: terminal.type.slice(0, -2),
+    } as AbiParameter;
+    if (isDynamicParam(element)) {
+      throw new ErrorException(
+        `${context} can select arrays of static elements only; ${terminal.type} elements are dynamic`,
+      );
+    }
+  }
 }
 
-/** Compile a call expression used as a *nested* operand (inside an
- *  expression): a single-level lens becomes a raw-word `read` extraction. */
-async function compileCallOperand(
+/**
+ * Compile a call expression into the InputParam that resolves its value,
+ * folding a destructure lens into `pick` (raw word, when the target word
+ * position is static) or `nav` (typed navigation) around the chain. The
+ * terminal is what the resolved bytes decode as: a single-word value, or a
+ * dynamic value delivered as its canonical envelope.
+ */
+export async function compileCallValue(
   ctx: CompilerCtx,
   node: CallExpressionNode,
-): Promise<Operand> {
+): Promise<{ param: InputParam; terminal: AbiParameter }> {
   const chain = await compileChain(ctx, node);
   const outputs = chain.lastAbi.outputs!;
+  const base = chainParam(ctx, chain);
 
-  if (node.returnDestructure) {
-    const path = lensPath(node.returnDestructure);
-    if (path.length > 1) {
-      return compileNavOperand(ctx, chain, path, node.method);
-    }
-    // The return-value list has a known arity, so end-anchored (negative)
-    // indices resolve to positions at build time.
-    const index = path[0] < 0 ? outputs.length + path[0] : path[0];
-    const output = index >= 0 ? outputs[index] : undefined;
-    if (!output) {
-      throw new ErrorException(
-        `return index ${path[0]} is out of range (${node.method} returns ${outputs.length} value(s))`,
-      );
-    }
-    const cat = categoryFromAbiType(output.type);
-    if (!isNumericCat(cat)) {
-      throw new ErrorException(
-        `a destructure lens inside an expression can only select uint/int values, got ${output.type}`,
-      );
-    }
-    for (let i = 0; i < index; i++) {
-      if (!SINGLE_WORD_ABI.test(outputs[i].type)) {
-        throw new ErrorException(
-          `cannot select return value ${index} inside an expression: preceding return value ${i} (${outputs[i].type}) is not a single-word static type`,
-        );
-      }
-    }
-    return {
-      kind: "call",
-      target: ctx.combinators,
-      data: encodeReadChain(chain, "", [BigInt(index)]),
-      cat,
-    };
-  }
-
-  if (outputs.length > 1) {
-    throw new ErrorException(
-      `${node.method} returns multiple values; use a destructure lens to select one, e.g. \`${node.method}(...)[_ $ _]\``,
-    );
-  }
-  const cat = categoryFromAbiType(outputs[0].type);
-  const pair = chainCallPair(ctx, chain);
-  return { kind: "call", target: pair.target, data: pair.data, cat };
-}
-
-/** Compile a call expression used as a *top-level* assertion side: a lens
- *  is kept as a tuple index so the core's `…N` variants can consume it. */
-export async function compileTopCall(
-  ctx: CompilerCtx,
-  node: CallExpressionNode,
-): Promise<{ operand: Operand; index?: number }> {
-  const chain = await compileChain(ctx, node);
-  const outputs = chain.lastAbi.outputs!;
-
-  let index: number | undefined;
-  let outputType: string;
-  if (node.returnDestructure) {
-    const path = lensPath(node.returnDestructure);
-    if (path.length > 1) {
-      // Navigated selections return a single decoded word, so the core
-      // judges them as a plain (non-indexed) value of the terminal type.
-      return {
-        operand: compileNavOperand(ctx, chain, path, node.method),
-      };
-    }
-    index = path[0] < 0 ? outputs.length + path[0] : path[0];
-    const output = index >= 0 ? outputs[index] : undefined;
-    if (!output) {
-      throw new ErrorException(
-        `return index ${path[0]} is out of range (${node.method} returns ${outputs.length} value(s))`,
-      );
-    }
-    outputType = output.type;
-  } else {
+  if (!node.returnDestructure) {
     if (outputs.length > 1) {
       throw new ErrorException(
         `${node.method} returns multiple values; use a destructure lens to select one, e.g. \`${node.method}(...)[_ $ _]\``,
       );
     }
-    outputType = outputs[0].type;
+    // A single return value: the raw returndata is already the value's
+    // canonical encoding (word or envelope) — no selector needed.
+    return { param: base, terminal: outputs[0] };
   }
-  const cat = categoryFromAbiType(outputType);
 
-  const pair = chainCallPair(ctx, chain);
+  const path = lensPath(node.returnDestructure);
+  const { terminal, resolved } = walkNavPath(outputs, path, node.method);
+  if (SINGLE_WORD_ABI.test(terminal.type)) {
+    const data = pickableIndex(outputs, resolved)
+      ? encodePick(base, BigInt(resolved[0]))
+      : encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt));
+    return {
+      param: staticCallParam(ctx.combinators, data),
+      terminal,
+    };
+  }
+  checkNavigableDynamic(terminal, node.method, "a value lens");
   return {
-    operand: { kind: "call", target: pair.target, data: pair.data, cat },
-    index,
+    param: staticCallParam(
+      ctx.combinators,
+      encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
+    ),
+    terminal,
   };
+}
+
+// ---------------------------------------------------------------------------
+//  Nested live call arguments
+// ---------------------------------------------------------------------------
+
+function wordTypesCompatible(declared: string, actual: string): boolean {
+  return categoryFromAbiType(declared) === categoryFromAbiType(actual);
+}
+
+/** Compile a nested `::` call used as a call ARGUMENT into a live hole:
+ *  single-word selections splice as 32-byte word holes; dynamic selections
+ *  (via `nav`) splice as a variable-size envelope hole. */
+async function compileLiveCallArg(
+  ctx: CompilerCtx,
+  node: CallExpressionNode,
+  input: AbiParameter,
+  method: string,
+): Promise<ArgSpec> {
+  const { param, terminal } = await compileCallValue(ctx, node);
+  if (SINGLE_WORD_ABI.test(terminal.type)) {
+    if (!wordTypesCompatible(input.type, terminal.type)) {
+      throw new ErrorException(
+        `the nested call ${node.method} resolves a ${terminal.type} value, but parameter ${input.name ?? ""} of ${method} is ${input.type}`,
+      );
+    }
+    return { kind: "word", marker: wordHole(ctx.holes, param) };
+  }
+  if (formatParamType(terminal) !== formatParamType(input)) {
+    throw new ErrorException(
+      `the nested call ${node.method} resolves a ${formatParamType(terminal)} value, but parameter ${input.name ?? ""} of ${method} is ${formatParamType(input)} — adjust the lens to select a matching value`,
+    );
+  }
+  return { kind: "dyn", marker: dynHole(ctx.holes, param) };
+}
+
+/** Compile a `!` helper used as a call ARGUMENT into a live word hole
+ *  (folding to a constant when the helper does). */
+async function compileLiveHelperArg(
+  ctx: CompilerCtx,
+  node: HelperFunctionNode,
+  input: AbiParameter,
+  method: string,
+): Promise<ArgSpec> {
+  const o = await compileBangHelper(ctx, node);
+  if (o.kind === "const") {
+    return { kind: "value", value: o.value as never };
+  }
+  if (!SINGLE_WORD_ABI.test(input.type)) {
+    throw new ErrorException(
+      `@${node.name} resolves a single word; parameter ${input.name ?? ""} of ${method} is ${input.type}`,
+    );
+  }
+  return { kind: "word", marker: wordHole(ctx.holes, o.param) };
 }
 
 // ---------------------------------------------------------------------------
 //  Operand compilation (dispatch)
 // ---------------------------------------------------------------------------
+
+/** Compile a call expression used as a *nested* operand (inside an
+ *  expression): the selection must land on a single word. */
+async function compileCallOperand(
+  ctx: CompilerCtx,
+  node: CallExpressionNode,
+): Promise<Operand> {
+  const { param, terminal } = await compileCallValue(ctx, node);
+  const cat = categoryFromAbiType(terminal.type);
+  if (node.returnDestructure && !isNumericCat(cat) && cat !== "Bool") {
+    // Historical surface: nested lens selections feed the word machine.
+    if (cat === "String" || cat === "Bytes") {
+      throw new ErrorException(
+        `a destructure lens inside an expression can only select single-word values, got ${terminal.type}`,
+      );
+    }
+  }
+  return { kind: "call", param, cat };
+}
+
+/** Compile a call expression used as a *top-level* assertion side. The
+ *  lens (if any) is already folded into the param via pick/nav. */
+export async function compileTopCall(
+  ctx: CompilerCtx,
+  node: CallExpressionNode,
+): Promise<Operand> {
+  const { param, terminal } = await compileCallValue(ctx, node);
+  return { kind: "call", param, cat: categoryFromAbiType(terminal.type) };
+}
 
 /** Compile any node into a nested-expression operand. */
 export async function compileOperand(
@@ -748,15 +808,18 @@ export async function requireChainArg(
 
 /** Compile the call argument of a chain-consuming helper that works on
  *  dynamic values (@len!, @bytelen!, @split!, @includes!, @charset!,
- *  @hash!). A lens on the call selects a nested string/bytes/array: the
- *  chain is rewrapped through a typed `read` (whose canonical envelope
- *  return the downstream combinator consumes as if the call had returned
- *  the selected value directly). */
+ *  @hash!). Returns the raw chain param plus the lens selection (when
+ *  present) so each helper can route through `nav` as it needs. */
 export async function chainArgWithLens(
   ctx: CompilerCtx,
   helper: string,
   node: Node | undefined,
-): Promise<Chain> {
+): Promise<{
+  param: InputParam;
+  outputs: readonly AbiParameter[];
+  path?: number[];
+  terminal?: AbiParameter;
+}> {
   if (!node || node.type !== NodeType.CallExpression) {
     throw new ErrorException(
       `@${helper} expects a \`::\` call expression, e.g. @${helper}($target::method())`,
@@ -764,43 +827,32 @@ export async function chainArgWithLens(
   }
   const call = node as CallExpressionNode;
   const chain = await compileChain(ctx, call);
-  if (!call.returnDestructure) return chain;
-
   const outputs = chain.lastAbi.outputs!;
+  const param = chainParam(ctx, chain);
+  if (!call.returnDestructure) return { param, outputs };
+
   const path = lensPath(call.returnDestructure);
   const { terminal, resolved } = walkNavPath(outputs, path, call.method);
-  const suffix = terminal.type.match(ARRAY_SUFFIX);
-  const isDynArray = suffix?.[1] === "";
-  if (!isDynArray && terminal.type !== "string" && terminal.type !== "bytes") {
-    throw new ErrorException(
-      `a lens inside @${helper} must select a string, bytes or array value; the selection in ${call.method} is ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
-    );
-  }
-  if (isDynArray) {
-    const element = {
-      ...terminal,
-      type: terminal.type.slice(0, -2),
-    } as AbiParameter;
-    if (isDynamicParam(element)) {
-      throw new ErrorException(
-        `@${helper} can select arrays of static elements only; ${terminal.type} elements are dynamic`,
-      );
-    }
-  }
-  return {
-    root: ctx.combinators,
-    calls: [
-      encodeReadChain(chain, formatReturnTuple(outputs), resolved.map(BigInt)),
-    ],
-    hopIndexes: [],
-    lastAbi: {
-      type: "function",
-      name: "read",
-      inputs: [],
-      outputs: [terminal],
-      stateMutability: "view",
-    } as AbiFunction,
-  };
+  checkNavigableDynamic(terminal, call.method, `a lens inside @${helper}`);
+  return { param, outputs, path: resolved, terminal };
+}
+
+/** Wrap the selected value of a {@link chainArgWithLens} result in `nav`
+ *  when a lens is present, so downstream data ops consume the selection's
+ *  canonical envelope as if the call had returned it directly. */
+export function lensedDataOperand(
+  ctx: CompilerCtx,
+  arg: {
+    param: InputParam;
+    outputs: readonly AbiParameter[];
+    path?: number[];
+  },
+): InputParam {
+  if (!arg.path) return arg.param;
+  return staticCallParam(
+    ctx.combinators,
+    encodeNav(arg.param, formatReturnTuple(arg.outputs), arg.path.map(BigInt)),
+  );
 }
 
 /** Interpret a helper argument as a build-time integer constant
@@ -886,8 +938,10 @@ export function arithCombine(
   const rp = materializeWord(ctx, r);
   return {
     kind: "call",
-    target: ctx.combinators,
-    data: encodeCalc(calcOpFor(op, signed), lp, rp),
+    param: staticCallParam(
+      ctx.combinators,
+      encodeCalc(calcOpFor(op, signed), lp, rp),
+    ),
     cat: check.result,
   };
 }
@@ -907,6 +961,12 @@ function foldCmp(op: CmpOpName, l: bigint, r: bigint): boolean {
     case "Le":
       return l <= r;
   }
+}
+
+/** keccak256 of a value's canonical string envelope — what `data(Hash)`
+ *  computes over a live string return. */
+export function stringEnvelopeDigest(value: string): Hex {
+  return keccak256(encodeAbiParameters([{ type: "string" }], [value]));
 }
 
 /** Combine two operands with a `calc` comparison opcode (nested use).
@@ -943,8 +1003,7 @@ export function cmpCombine(
     const rp = materializeBool(ctx, r);
     return {
       kind: "call",
-      target: ctx.combinators,
-      data: encodeCalc(op, lp, rp),
+      param: staticCallParam(ctx.combinators, encodeCalc(op, lp, rp)),
       cat: "Bool",
     };
   }
@@ -962,31 +1021,15 @@ export function cmpCombine(
         value: (l.value === r.value) === (op === "Eq"),
       };
     }
-    const hashPair = (o: Operand): CallPair =>
+    const hashParam = (o: Operand): InputParam =>
       o.kind === "call"
-        ? {
-            target: ctx.combinators,
-            data: encodeData("Hash", o.target, [o.data]),
-          }
-        : {
-            target: ctx.combinators,
-            data: encodeConstant(
-              BigInt(
-                keccak256(
-                  encodeAbiParameters(
-                    [{ type: "string" }],
-                    [o.value as string],
-                  ),
-                ),
-              ),
-            ),
-          };
-    const lp = hashPair(l);
-    const rp = hashPair(r);
+        ? staticCallParam(ctx.combinators, encodeData("Hash", o.param))
+        : rawParam(stringEnvelopeDigest(o.value as string));
+    const lp = hashParam(l);
+    const rp = hashParam(r);
     return {
       kind: "call",
-      target: ctx.combinators,
-      data: encodeCalc(op, lp, rp),
+      param: staticCallParam(ctx.combinators, encodeCalc(op, lp, rp)),
       cat: "Bool",
     };
   }
@@ -1002,8 +1045,10 @@ export function cmpCombine(
   const rp = materializeWord(ctx, r);
   return {
     kind: "call",
-    target: ctx.combinators,
-    data: encodeCalc(calcOpFor(op, signed), lp, rp),
+    param: staticCallParam(
+      ctx.combinators,
+      encodeCalc(calcOpFor(op, signed), lp, rp),
+    ),
     cat: "Bool",
   };
 }
@@ -1018,8 +1063,7 @@ export function notCombine(ctx: CompilerCtx, o: Operand): Operand {
   const inner = materializeBool(ctx, o);
   return {
     kind: "call",
-    target: ctx.combinators,
-    data: encodeUnary("IsZero", inner),
+    param: staticCallParam(ctx.combinators, encodeUnary("IsZero", inner)),
     cat: "Bool",
     notOf: inner,
   };
@@ -1044,8 +1088,7 @@ function logicCombine(
     const rp = materializeWord(ctx, r);
     return {
       kind: "call",
-      target: ctx.combinators,
-      data: encodeCalc("Xor", lp, rp),
+      param: staticCallParam(ctx.combinators, encodeCalc("Xor", lp, rp)),
       cat: "Uint",
     };
   }
@@ -1079,8 +1122,7 @@ function logicCombine(
   const calcOp: CalcOpName = op === "and" ? "And" : op === "or" ? "Or" : "Xor";
   return {
     kind: "call",
-    target: ctx.combinators,
-    data: encodeCalc(calcOp, lp, rp),
+    param: staticCallParam(ctx.combinators, encodeCalc(calcOp, lp, rp)),
     cat: "Bool",
   };
 }
@@ -1352,7 +1394,28 @@ export function combinatorCall(
   data: Hex,
   cat: Category,
 ): Operand {
-  return { kind: "call", target: ctx.combinators, data, cat };
+  return {
+    kind: "call",
+    param: staticCallParam(ctx.combinators, data),
+    cat,
+  };
+}
+
+/** Compile `@len!`-style length access: a nav path ending in the LEN
+ *  sentinel returns the decoded length of the navigated dynamic value. */
+export function lenParam(
+  ctx: CompilerCtx,
+  param: InputParam,
+  outputs: readonly AbiParameter[],
+  path: readonly number[],
+): InputParam {
+  return staticCallParam(
+    ctx.combinators,
+    encodeNav(param, formatReturnTuple(outputs), [
+      ...path.map(BigInt),
+      LEN_STEP,
+    ]),
+  );
 }
 
 /** Compile the (possibly array-wrapped) operand list of a variadic helper

@@ -1,44 +1,27 @@
-import type {
-  Action,
-  CallExpressionNode,
-  HelperFunctionNode,
-  Node,
-  Param,
-} from "@evmcrispr/sdk";
+import type { Action, CallExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import { encodeAbiParameters, isHex, keccak256 } from "viem";
 import type Assertions from "..";
-import { compileLenChain } from "../helpers/len-bang";
 import {
-  encodeAssertion,
   operatorFragment,
   resolveCombinatorsContract,
 } from "../lib/assertions";
-import type {
-  Category,
-  CmpOpName,
-  CompilerCtx,
-  Operand,
-} from "../lib/compiler";
+import { encodeData } from "../lib/combinators";
+import type { Category, CompilerCtx, Operand } from "../lib/compiler";
 import {
-  chainCallPair,
   cmpCombine,
   compileBangHelper,
   compileOperand,
   compileTopCall,
   isBangHelperNode,
+  stringEnvelopeDigest,
 } from "../lib/compiler";
+import { createHoleRegistry, emitAssertion } from "../lib/construct";
+import type { InputParam } from "../lib/erc8211";
+import { constraint, staticCallParam } from "../lib/erc8211";
+import { calcJudge, judged, wordJudge } from "../lib/judge";
 
-const SOLIDITY_TYPE: Record<Category, string> = {
-  Uint: "uint256",
-  Int: "int256",
-  Address: "address",
-  Bool: "bool",
-  Bytes32: "bytes32",
-  String: "string",
-  Bytes: "bytes",
-};
-
-/** Operators each category supports for a plain (non-indexed) return. */
+/** Operators each category supports at the top level of an assertion. */
 const PLAIN_OPERATORS: Record<Category, string[]> = {
   Uint: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
   Int: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
@@ -48,19 +31,6 @@ const PLAIN_OPERATORS: Record<Category, string[]> = {
   String: ["Eq", "Ne"],
   Bytes: ["Eq", "Ne"],
 };
-
-/** Operators each category supports when indexing into a tuple return. */
-const INDEXED_OPERATORS: Record<Category, string[]> = {
-  Uint: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
-  Int: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
-  Address: ["Eq", "Ne"],
-  Bool: ["Eq", "Ne"],
-  Bytes32: ["Eq", "Ne"],
-  String: ["Eq", "Ne"],
-  Bytes: [],
-};
-
-const LENGTH_OPERATORS = ["Eq", "Ne", "Gt", "Lt", "Ge", "Le"];
 
 /** Mirror an operator when the comparison sides are swapped. */
 const MIRRORED: Record<string, string> = {
@@ -76,37 +46,10 @@ const MIRRORED: Record<string, string> = {
 const WRAP_HINT =
   'assert takes `<value> <op> <value> ["message"]` — wrap arithmetic in @num!(…) and boolean logic in @bool!(…)';
 
-function isHelperNamed(node: Node, name: string): node is HelperFunctionNode {
-  return (
-    node.type === NodeType.HelperFunctionExpression &&
-    (node as HelperFunctionNode).name === name
-  );
-}
-
-function coreSignature(
-  fragment: string,
-  category: Category,
-  indexed: boolean,
-  isApprox: boolean,
-): string {
-  const fnName = `assert${fragment}Call${category}${indexed ? "N" : ""}`;
-  const sigParams: string[] = ["address", "bytes"];
-  if (indexed) sigParams.push("uint256");
-  sigParams.push(SOLIDITY_TYPE[category]);
-  if (isApprox) sigParams.push("uint256");
-  sigParams.push("string");
-  return `${fnName}(${sigParams.join(",")})`;
-}
-
 function requireNum(o: Operand & { kind: "const" }, what: string): Num {
   const v = o.value;
   if (v instanceof Num) return v;
   throw new ErrorException(`${what} must be a number, got a ${o.cat} value`);
-}
-
-function requireString(o: Operand & { kind: "const" }, what: string): string {
-  if (typeof o.value === "string") return o.value;
-  throw new ErrorException(`${what} must be a string`);
 }
 
 export default defineCommand<Assertions>({
@@ -168,60 +111,29 @@ export default defineCommand<Assertions>({
       module,
       interpreters,
       combinators: await resolveCombinatorsContract(module),
+      holes: createHoleRegistry(),
     };
+    const emit = async (param: InputParam): Promise<Action[]> => [
+      await emitAssertion(module, ctx.holes, ctx.combinators, param, msg),
+    ];
 
     const lhsNode = call as Node;
     const rhsNode = expected as Node | undefined;
 
-    // ---- @len!: array-length fast path against a constant --------------
-    if (isHelperNamed(lhsNode, "len!") && operator !== undefined && rhsNode) {
-      const rhs = await compileSide(ctx, rhsNode);
-      if (rhs.operand.kind === "const") {
-        const fragment = operatorFragment(operator, LENGTH_OPERATORS);
-        const chain = await compileLenChain(ctx, lhsNode);
-        const pair = chainCallPair(ctx, chain);
-        const expectedLen = requireNum(
-          rhs.operand,
-          "the expected array length",
-        );
-        const signature = `assert${fragment}CallArrayLength(address,bytes,uint256,string)`;
-        return [
-          await encodeAssertion(module, signature, [
-            pair.target,
-            pair.data,
-            expectedLen,
-            msg,
-          ]),
-        ];
-      }
-    }
-
-    // ---- compile both sides -------------------------------------------
-    let { operand: lhs, index: lhsIndex } = await compileSide(ctx, lhsNode);
+    let lhs = await compileSide(ctx, lhsNode);
 
     // Bare assertion (no operator): the value must be a live boolean.
     if (operator === undefined) {
-      if (lhs.kind !== "call" || lhs.cat !== "Bool" || lhsIndex !== undefined) {
+      if (lhs.kind !== "call" || lhs.cat !== "Bool") {
         throw new ErrorException(
           "assert requires an operator and expected value, e.g. `assert <call> >= <value>` (a bare assert needs a boolean call)",
         );
       }
+      // assertTrue(isZero(x)) ≡ x EQ 0: drop the wrapper when we can.
       if (lhs.notOf) {
-        return [
-          await encodeAssertion(module, "assertFalse(address,bytes,string)", [
-            lhs.notOf.target,
-            lhs.notOf.data,
-            msg,
-          ]),
-        ];
+        return emit(judged(lhs.notOf, [constraint("Eq", 0n)]));
       }
-      return [
-        await encodeAssertion(module, "assertTrue(address,bytes,string)", [
-          lhs.target,
-          lhs.data,
-          msg,
-        ]),
-      ];
+      return emit(judged(lhs.param, [constraint("Eq", 1n)]));
     }
 
     if (!(operator in MIRRORED)) {
@@ -235,15 +147,12 @@ export default defineCommand<Assertions>({
       );
     }
 
-    let { operand: rhs, index: rhsIndex } = await compileSide(ctx, rhsNode);
+    let rhs = await compileSide(ctx, rhsNode);
     let op = operator as string;
-    let liveNode = lhsNode;
 
     // Put the live side on the left: `5 < $t::f()` ≡ `$t::f() > 5`.
     if (lhs.kind === "const" && rhs.kind === "call") {
       [lhs, rhs] = [rhs, lhs];
-      [lhsIndex, rhsIndex] = [rhsIndex, lhsIndex];
-      liveNode = rhsNode;
       op = MIRRORED[op];
     }
 
@@ -253,19 +162,12 @@ export default defineCommand<Assertions>({
       );
     }
 
-    // ---- both sides live: nested comparison judged with assertTrue ----
+    // ---- both sides live: nested comparison judged EQ 1 ----------------
     if (lhs.kind === "call" && rhs.kind === "call") {
       if (op === "~=") {
         throw new ErrorException(
           "~= needs a constant side — compare two live values with `@num!(@absdiff!(a b)) <= <delta>` instead",
         );
-      }
-      // Lens-selected sides must re-compile as nested word extractions.
-      if (lhsIndex !== undefined) {
-        lhs = await compileOperand(ctx, liveNode);
-      }
-      if (rhsIndex !== undefined) {
-        rhs = await compileOperand(ctx, rhsNode);
       }
       const fragment = operatorFragment(op, [
         "Eq",
@@ -275,89 +177,84 @@ export default defineCommand<Assertions>({
         "Ge",
         "Le",
       ]);
-      const cmp = cmpCombine(ctx, fragment as CmpOpName, lhs, rhs);
+      const cmp = cmpCombine(ctx, fragment as never, lhs, rhs);
       if (cmp.kind !== "call") {
         throw new ErrorException(
           "nothing to assert on-chain — the comparison folded to a constant",
         );
       }
-      return [
-        await encodeAssertion(module, "assertTrue(address,bytes,string)", [
-          cmp.target,
-          cmp.data,
-          msg,
-        ]),
-      ];
+      return emit(judged(cmp.param, [constraint("Eq", 1n)]));
     }
 
-    // ---- live side vs constant: direct core assertion -----------------
+    // ---- live side vs constant: constraint mapping ---------------------
     const live = lhs as Operand & { kind: "call" };
     const cnst = rhs as Operand & { kind: "const" };
-    const indexed = lhsIndex !== undefined;
     const category = live.cat;
 
-    const allowed = indexed
-      ? INDEXED_OPERATORS[category]
-      : PLAIN_OPERATORS[category];
-    if (allowed.length === 0) {
-      throw new ErrorException(
-        `${category.toLowerCase()} returns cannot be tuple-indexed in an assertion`,
-      );
-    }
-    const fragment = operatorFragment(op, allowed);
+    const fragment = operatorFragment(op, PLAIN_OPERATORS[category]);
 
-    // Booleans fold != into the Eq surface (there is no assertNeCallBool).
+    // Booleans fold != into EQ 0 / EQ 1 constraints.
     if (category === "Bool") {
       if (cnst.cat !== "Bool") {
         throw new ErrorException(
           "a boolean return must be compared against true or false",
         );
       }
-      const value = cnst.value === true;
-      const keep = value === (fragment === "Eq");
-      if (indexed) {
-        return [
-          await encodeAssertion(
-            module,
-            "assertEqCallBoolN(address,bytes,uint256,bool,string)",
-            [
-              live.target,
-              live.data,
-              Num.fromBigInt(BigInt(lhsIndex!)),
-              keep,
-              msg,
-            ],
-          ),
-        ];
+      const want = (cnst.value === true) === (fragment === "Eq");
+      // x isZero-wrapped: judge the inner value with the inverted bound.
+      if (live.notOf) {
+        return emit(judged(live.notOf, [constraint("Eq", want ? 0n : 1n)]));
       }
-      const inner = live.notOf ?? { target: live.target, data: live.data };
-      // assertTrue(notBool(x)) ≡ assertFalse(x): drop the wrapper when we can.
-      const wantTrue = live.notOf ? !keep : keep;
-      return [
-        await encodeAssertion(
-          module,
-          `${wantTrue ? "assertTrue" : "assertFalse"}(address,bytes,string)`,
-          [inner.target, inner.data, msg],
-        ),
-      ];
+      return emit(judged(live.param, [constraint("Eq", want ? 1n : 0n)]));
     }
 
     const isApprox = fragment === "ApproxEq";
-    let delta: Num | undefined;
+    let delta: bigint | undefined;
     if (isApprox) {
       if (opts.delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
       }
-      delta = opts.delta;
+      delta = (opts.delta as Num).toBigInt();
     }
 
-    // Strings only exist as the tuple-indexed variant; a plain string
-    // return is index 0 of its own tuple.
-    const forceIndexed = category === "String";
-    const useIndexed = indexed || forceIndexed;
-    const index = lhsIndex ?? 0;
+    // Dynamic values (string/bytes envelopes) judge via keccak of their
+    // raw returndata against the digest of the constant's own envelope.
+    if (category === "String" || category === "Bytes") {
+      let digest: `0x${string}`;
+      if (category === "String") {
+        if (cnst.cat !== "String") {
+          throw new ErrorException(
+            "a string return must be compared against a string",
+          );
+        }
+        digest = stringEnvelopeDigest(cnst.value as string);
+      } else {
+        if (
+          (cnst.cat !== "Bytes" && cnst.cat !== "Bytes32") ||
+          typeof cnst.value !== "string" ||
+          !isHex(cnst.value)
+        ) {
+          throw new ErrorException(
+            "a bytes return must be compared against a hex value",
+          );
+        }
+        digest = keccak256(
+          encodeAbiParameters([{ type: "bytes" }], [cnst.value]),
+        );
+      }
+      // data(Hash) — keccak of the operand's raw resolved bytes.
+      const hashed = staticCallParam(
+        ctx.combinators,
+        encodeData("Hash", live.param),
+      );
+      if (fragment === "Eq") {
+        return emit(judged(hashed, [constraint("Eq", digest)]));
+      }
+      return emit(calcJudge(ctx.combinators, "Ne", hashed, BigInt(digest)));
+    }
 
-    let expectedParam: Param;
+    // Word categories.
+    let expectedWord: bigint;
     switch (category) {
       case "Uint": {
         const num = requireNum(cnst, "the expected value");
@@ -366,11 +263,11 @@ export default defineCommand<Assertions>({
             "cannot compare an unsigned return against a negative value — cast the return as int256 with an inline ABI, e.g. ::{method()(int256)}",
           );
         }
-        expectedParam = num;
+        expectedWord = num.toBigInt();
         break;
       }
       case "Int":
-        expectedParam = requireNum(cnst, "the expected value");
+        expectedWord = requireNum(cnst, "the expected value").toBigInt();
         break;
       case "Address": {
         if (cnst.cat !== "Address") {
@@ -378,7 +275,7 @@ export default defineCommand<Assertions>({
             "an address return must be compared against an address",
           );
         }
-        expectedParam = cnst.value as string;
+        expectedWord = BigInt(cnst.value as string);
         break;
       }
       case "Bytes32": {
@@ -387,46 +284,29 @@ export default defineCommand<Assertions>({
             "a bytes32 return must be compared against a 32-byte hex value",
           );
         }
-        expectedParam = cnst.value as string;
+        expectedWord = BigInt(cnst.value as string);
         break;
       }
-      case "Bytes": {
-        if (cnst.cat !== "Bytes" && cnst.cat !== "Bytes32") {
-          throw new ErrorException(
-            "a bytes return must be compared against a hex value",
-          );
-        }
-        expectedParam = cnst.value as string;
-        break;
-      }
-      case "String":
-        expectedParam = requireString(cnst, "the expected value");
-        break;
       default:
         throw new ErrorException(`unsupported category ${category}`);
     }
 
-    const signature = coreSignature(fragment, category, useIndexed, isApprox);
-    const params: Param[] = [live.target, live.data];
-    if (useIndexed) params.push(Num.fromBigInt(BigInt(index)));
-    params.push(expectedParam);
-    if (isApprox && delta) params.push(delta);
-    params.push(msg);
-
-    return [await encodeAssertion(module, signature, params)];
+    return emit(
+      wordJudge(ctx.combinators, live.param, fragment, expectedWord, {
+        signed: category === "Int",
+        delta,
+      }),
+    );
   },
 });
 
-/** Compile one side of the assertion, keeping a top-level lens index. */
-async function compileSide(
-  ctx: CompilerCtx,
-  node: Node,
-): Promise<{ operand: Operand; index?: number }> {
+/** Compile one side of the assertion. */
+async function compileSide(ctx: CompilerCtx, node: Node): Promise<Operand> {
   if (node.type === NodeType.CallExpression) {
     return compileTopCall(ctx, node as CallExpressionNode);
   }
   if (isBangHelperNode(node)) {
-    return { operand: await compileBangHelper(ctx, node) };
+    return compileBangHelper(ctx, node);
   }
-  return { operand: await compileOperand(ctx, node) };
+  return compileOperand(ctx, node);
 }

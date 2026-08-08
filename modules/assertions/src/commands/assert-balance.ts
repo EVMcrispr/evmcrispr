@@ -1,7 +1,14 @@
-import type { Action, Param } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException, type Num } from "@evmcrispr/sdk";
+import type { Action, Num } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { zeroAddress } from "viem";
 import type Assertions from "..";
-import { encodeAssertion, operatorFragment } from "../lib/assertions";
+import {
+  assertParamAction,
+  operatorFragment,
+  resolveCombinatorsContract,
+} from "../lib/assertions";
+import { balanceParam } from "../lib/erc8211";
+import { wordJudge } from "../lib/judge";
 
 const ALLOWED = ["Eq", "Gt", "Lt", "Ge", "Le", "ApproxEq"];
 
@@ -40,25 +47,25 @@ export default defineCommand<Assertions>({
     { opts },
   ): Promise<Action[]> {
     const fragment = operatorFragment(operator, ALLOWED);
-    const isApprox = fragment === "ApproxEq";
 
-    let delta: Num | undefined;
-    if (isApprox) {
+    let delta: bigint | undefined;
+    if (fragment === "ApproxEq") {
       if (opts.delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
       }
-      delta = opts.delta;
+      delta = (opts.delta as Num).toBigInt();
     }
 
-    const sigParams = ["address", "uint256"];
-    if (isApprox) sigParams.push("uint256");
-    sigParams.push("string");
-    const signature = `assert${fragment}Balance(${sigParams.join(",")})`;
-
-    const params: Param[] = [account, expected];
-    if (isApprox && delta) params.push(delta);
-    params.push(message ?? "");
-
-    return [await encodeAssertion(module, signature, params)];
+    // The ERC-8211 BALANCE fetcher: token 0 reads the native balance.
+    const live = balanceParam(zeroAddress, account);
+    const combinators = await resolveCombinatorsContract(module);
+    const param = wordJudge(
+      combinators,
+      live,
+      fragment,
+      (expected as Num).toBigInt(),
+      { delta },
+    );
+    return [await assertParamAction(module, param, message ?? "")];
   },
 });

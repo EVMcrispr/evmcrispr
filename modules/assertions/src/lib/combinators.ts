@@ -1,19 +1,23 @@
-import type { Address } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
+import type { InputParam } from "./erc8211";
 
 /**
- * ABI of the Combinators contract (v1.0) — the versionable periphery the
- * frozen assertions core points at for composed expressions. Five unified
- * functions: `read` (navigated call chains), `calc` (binary word ops),
- * `unary` (unary word ops), `data` (returndata ops) and `env` (constants
- * and environment values). Enums travel as uint8 in calldata.
+ * ABI of the Combinators contract (v2.0) — the versionable periphery the
+ * frozen assertions core points at for composed expressions. Every operand
+ * is an ERC-8211 `InputParam`, nesting recursively through STATIC_CALL
+ * fetchers pointed back at the combinators address. Enums travel as uint8.
  */
 export const COMBINATORS_ABI = parseAbi([
-  "function read(address target, bytes[] calls, string[] retTypes, int256[][] paths) view",
-  "function calc(uint8 op, address target1, bytes data1, address target2, bytes data2) view returns (uint256)",
-  "function unary(uint8 op, address target, bytes callData) view returns (uint256)",
-  "function data(uint8 op, address target, bytes[] calls, bytes arg, int256 index) view",
+  "struct Constraint { uint8 constraintType; bytes referenceData; }",
+  "struct InputParam { uint8 paramType; uint8 fetcherType; bytes paramData; Constraint[] constraints; }",
+  "function resolve(InputParam param) view",
+  "function pick(InputParam param, int256 wordIndex) view returns (bytes32)",
+  "function nav(InputParam a, string retTypes, int256[] path) view",
+  "function chain(InputParam start, bytes[] calls) view",
+  "function calc(uint8 op, InputParam a, InputParam b) view returns (uint256)",
+  "function unary(uint8 op, InputParam a) view returns (uint256)",
+  "function data(uint8 op, InputParam a, bytes arg, int256 index) view",
   "function env(uint8 op, uint256 arg) view returns (uint256)",
 ]);
 
@@ -82,13 +86,19 @@ export const ENV_OP = {
 export type EnvOpName = keyof typeof ENV_OP;
 
 /** Sentinel path entry (Combinators.LEN = type(int256).min): as the last
- *  entry of a typed read path it selects the decoded LENGTH of the dynamic
- *  value the preceding steps navigate to. */
+ *  entry of a nav path it selects the decoded LENGTH of the dynamic value
+ *  the preceding steps navigate to. */
 export const LEN_STEP = -(1n << 255n);
 
-const WORD_MASK = (1n << 256n) - 1n;
-
-type CombinatorFn = (typeof COMBINATORS_ABI)[number]["name"];
+type CombinatorFn =
+  | "resolve"
+  | "pick"
+  | "nav"
+  | "chain"
+  | "calc"
+  | "unary"
+  | "data"
+  | "env";
 
 /** Encode a call to a Combinators function. */
 export function encodeCombinator(
@@ -102,60 +112,56 @@ export function encodeCombinator(
   } as Parameters<typeof encodeFunctionData>[0]);
 }
 
-/** A `(target, calldata)` pair — the composition unit combinators consume. */
-export interface CallPair {
-  target: Address;
-  data: Hex;
+/** Encode `resolve(param)` — raw passthrough of a resolved value. */
+export function encodeResolve(param: InputParam): Hex {
+  return encodeCombinator("resolve", [param]);
 }
 
-/** Encode `read` from parallel per-hop arrays. */
-export function encodeRead(
-  target: Address,
-  calls: readonly Hex[],
-  retTypes: readonly string[],
-  paths: readonly (readonly bigint[])[],
+/** Encode `pick(param, wordIndex)` — a raw 32-byte word of the resolved
+ *  value (signed index, negative = from the end). */
+export function encodePick(param: InputParam, wordIndex: bigint): Hex {
+  return encodeCombinator("pick", [param, wordIndex]);
+}
+
+/** Encode `nav(a, retTypes, path)` — typed navigation of the resolved
+ *  value: one index per nesting level, negative = from the end, LEN_STEP
+ *  as the final entry selects the navigated value's decoded length. */
+export function encodeNav(
+  a: InputParam,
+  retTypes: string,
+  path: readonly bigint[],
 ): Hex {
-  return encodeCombinator("read", [target, calls, retTypes, paths]);
+  return encodeCombinator("nav", [a, retTypes, [...path]]);
 }
 
-/** Encode `calc(op, l, r)` over two operand pairs. */
-export function encodeCalc(op: CalcOpName, l: CallPair, r: CallPair): Hex {
-  return encodeCombinator("calc", [
-    CALC_OP[op],
-    l.target,
-    l.data,
-    r.target,
-    r.data,
-  ]);
+/** Encode `chain(start, calls)` — staticcalls across runtime-resolved
+ *  addresses: `start` resolves to the first hop's target, each hop's first
+ *  return word is the next target, the last hop's returndata passes through. */
+export function encodeChain(start: InputParam, calls: readonly Hex[]): Hex {
+  return encodeCombinator("chain", [start, [...calls]]);
 }
 
-/** Encode `unary(op, operand)`. */
-export function encodeUnary(op: UnaryOpName, operand: CallPair): Hex {
-  return encodeCombinator("unary", [
-    UNARY_OP[op],
-    operand.target,
-    operand.data,
-  ]);
+/** Encode `calc(op, a, b)` over two operands. */
+export function encodeCalc(op: CalcOpName, a: InputParam, b: InputParam): Hex {
+  return encodeCombinator("calc", [CALC_OP[op], a, b]);
 }
 
-/** Encode `data(op, target, calls, arg, index)`. */
+/** Encode `unary(op, a)`. */
+export function encodeUnary(op: UnaryOpName, a: InputParam): Hex {
+  return encodeCombinator("unary", [UNARY_OP[op], a]);
+}
+
+/** Encode `data(op, a, arg, index)`. */
 export function encodeData(
   op: DataOpName,
-  target: Address,
-  calls: readonly Hex[],
+  a: InputParam,
   arg: Hex = "0x",
   index = 0n,
 ): Hex {
-  return encodeCombinator("data", [DATA_OP[op], target, calls, arg, index]);
+  return encodeCombinator("data", [DATA_OP[op], a, arg, index]);
 }
 
 /** Encode `env(op, arg)`. */
 export function encodeEnv(op: EnvOpName, arg = 0n): Hex {
   return encodeCombinator("env", [ENV_OP[op], arg]);
-}
-
-/** Encode an `env(Constant)` operand; negative values travel as their
- *  two's-complement word. */
-export function encodeConstant(value: bigint): Hex {
-  return encodeEnv("Constant", value & WORD_MASK);
 }

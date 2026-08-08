@@ -5,7 +5,7 @@ import {
   chainArgWithLens,
   combinatorCall,
   constIntArg,
-  dataChainArgs,
+  lensedDataOperand,
 } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -38,16 +38,20 @@ export default defineBangHelper({
         '@split! expects (call delimiter index), e.g. @split!($pool::name() " " 1) — a negative index counts from the end (-1 = last segment)',
       );
     }
-    const chain = await chainArgWithLens(ctx, "split!", node.args[0]);
+    const arg = await chainArgWithLens(ctx, "split!", node.args[0]);
     const delimiter = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof delimiter !== "string" || delimiter.length === 0) {
       throw new ErrorException("@split! delimiter must be a non-empty string");
     }
     const index = await constIntArg(ctx, "split!", "index", node.args[2]);
-    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
-      encodeData("Split", target, calls, stringToHex(delimiter), index),
+      encodeData(
+        "Split",
+        lensedDataOperand(ctx, arg),
+        stringToHex(delimiter),
+        index,
+      ),
       "String",
     );
   },

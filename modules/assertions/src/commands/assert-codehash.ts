@@ -1,7 +1,13 @@
-import type { Action, Param } from "@evmcrispr/sdk";
-import { defineCommand } from "@evmcrispr/sdk";
+import type { Action } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { isHex } from "viem";
 import type Assertions from "..";
-import { encodeAssertion } from "../lib/assertions";
+import {
+  assertParamAction,
+  resolveCombinatorsContract,
+} from "../lib/assertions";
+import { encodeEnv } from "../lib/combinators";
+import { constraint, staticCallParam } from "../lib/erc8211";
 
 export default defineCommand<Assertions>({
   name: "assert-codehash",
@@ -21,13 +27,17 @@ export default defineCommand<Assertions>({
     },
   ],
   async run(module, { target, expected, message }): Promise<Action[]> {
-    const params: Param[] = [target, expected, message ?? ""];
-    return [
-      await encodeAssertion(
-        module,
-        "assertEqCodeHash(address,bytes32,string)",
-        params,
-      ),
-    ];
+    if (!isHex(expected) || expected.length !== 66) {
+      throw new ErrorException(
+        "the expected code hash must be a 32-byte hex value",
+      );
+    }
+    const combinators = await resolveCombinatorsContract(module);
+    const param = staticCallParam(
+      combinators,
+      encodeEnv("CodeHash", BigInt(target)),
+      [constraint("Eq", expected)],
+    );
+    return [await assertParamAction(module, param, message ?? "")];
   },
 });

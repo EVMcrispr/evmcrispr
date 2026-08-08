@@ -3,7 +3,7 @@ import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
   combinatorCall,
-  dataChainArgs,
+  lensedDataOperand,
 } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -23,8 +23,11 @@ export default defineBangHelper({
     if (node.args.length !== 1) {
       throw new ErrorException("@hash! expects a single call argument");
     }
-    const chain = await chainArgWithLens(ctx, "hash!", node.args[0]);
-    const { target, calls } = dataChainArgs(ctx, chain);
-    return combinatorCall(ctx, encodeData("Hash", target, calls), "Bytes32");
+    const arg = await chainArgWithLens(ctx, "hash!", node.args[0]);
+    return combinatorCall(
+      ctx,
+      encodeData("Hash", lensedDataOperand(ctx, arg)),
+      "Bytes32",
+    );
   },
 });

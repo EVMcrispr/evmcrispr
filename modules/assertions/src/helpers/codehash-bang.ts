@@ -2,11 +2,7 @@ import { ErrorException, NodeType } from "@evmcrispr/sdk";
 import { getAddress, isAddress } from "viem";
 import { encodeEnv, encodeUnary } from "../lib/combinators";
 import type { Operand } from "../lib/compiler";
-import {
-  chainCallPair,
-  combinatorCall,
-  requireChainArg,
-} from "../lib/compiler";
+import { chainParam, combinatorCall, requireChainArg } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -39,7 +35,7 @@ export default defineBangHelper({
       }
       return combinatorCall(
         ctx,
-        encodeUnary("CodeHash", chainCallPair(ctx, chain)),
+        encodeUnary("CodeHash", chainParam(ctx, chain)),
         "Bytes32",
       );
     }

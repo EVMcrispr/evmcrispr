@@ -1,27 +1,22 @@
-import type {
-  Abi,
-  Address,
-  Module,
-  Param,
-  TransactionAction,
-} from "@evmcrispr/sdk";
+import type { Abi, Address, Module, TransactionAction } from "@evmcrispr/sdk";
 import {
   abiBindingKey,
   BindingsSpace,
   ErrorException,
-  encodeAction,
   fetchAbi,
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
 import { getAbiItem, getAddress, isAddress } from "viem";
+import type { ComposableExecution, InputParam } from "./erc8211";
+import { encodeAssertComposable, encodeAssertParam } from "./erc8211";
 
-/** Canonical CREATE2 address of the Assertions core v1.1 on every chain. */
+/** Canonical CREATE2 address of the Assertions core v2.0 on every chain. */
 export const ASSERTIONS_ADDRESS: Address =
-  "0xA55E47bFD3d20A76e8E63a173387A5e3d4bEe3e0";
+  "0xA55E4797c1b755183B7Aad07BFd39D3e824621f9";
 
-/** Canonical CREATE2 address of the Combinators v1.0 on every chain. */
+/** Canonical CREATE2 address of the Combinators v2.0 on every chain. */
 export const COMBINATORS_ADDRESS: Address =
-  "0xA55Ec0AA973C18Cb7D7874d4c52B663FFFf6b1dC";
+  "0xA55EC06e0A82a5ed05bf08c0ff07A45d4BC2eBf8";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);
@@ -58,17 +53,38 @@ export async function resolveCombinatorsContract(
 }
 
 /**
- * Encode a call to the assertions contract and flag it `readOnly` so it runs as
- * a `eth_call` check when executed standalone, but as a real atomic call when
- * included in a batch.
+ * Encode an `assertParam(param[, message])` action against the assertions
+ * contract, flagged `readOnly` so it runs as an `eth_call` check when
+ * executed standalone, but as a real atomic call when included in a batch.
  */
-export async function encodeAssertion(
+export async function assertParamAction(
   module: Module,
-  signature: string,
-  params: Param[],
+  param: InputParam,
+  message = "",
 ): Promise<TransactionAction> {
   const target = await resolveAssertionsContract(module);
-  return { ...encodeAction(target, signature, params), readOnly: true };
+  return {
+    to: target,
+    data: encodeAssertParam(param, message),
+    readOnly: true,
+  };
+}
+
+/**
+ * Encode an `assertComposable(executions[, message])` action (native
+ * view-mode judge), flagged `readOnly` like {@link assertParamAction}.
+ */
+export async function assertComposableAction(
+  module: Module,
+  executions: ComposableExecution[],
+  message = "",
+): Promise<TransactionAction> {
+  const target = await resolveAssertionsContract(module);
+  return {
+    to: target,
+    data: encodeAssertComposable(executions, message),
+    readOnly: true,
+  };
 }
 
 /** Map a DSL comparison operator to its assertions-contract name fragment. */

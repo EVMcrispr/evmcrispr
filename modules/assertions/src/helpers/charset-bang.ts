@@ -4,7 +4,7 @@ import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
   combinatorCall,
-  dataChainArgs,
+  lensedDataOperand,
 } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -60,20 +60,18 @@ export default defineBangHelper({
         '@charset! expects (call class), e.g. @charset!($token::symbol() "a-z0-9-")',
       );
     }
-    const chain = await chainArgWithLens(ctx, "charset!", node.args[0]);
+    const arg = await chainArgWithLens(ctx, "charset!", node.args[0]);
     const spec = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof spec !== "string" || spec.length === 0) {
       throw new ErrorException(
         '@charset! class must be a non-empty string of allowed characters and ranges, e.g. "a-z0-9-"',
       );
     }
-    const { target, calls } = dataChainArgs(ctx, chain);
     return combinatorCall(
       ctx,
       encodeData(
         "Charset",
-        target,
-        calls,
+        lensedDataOperand(ctx, arg),
         numberToHex(charsetMask(spec), { size: 32 }),
       ),
       "Bool",

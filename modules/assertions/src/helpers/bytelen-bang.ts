@@ -3,7 +3,7 @@ import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
   combinatorCall,
-  dataChainArgs,
+  lensedDataOperand,
 } from "../lib/compiler";
 import { defineBangHelper } from "./_bang";
 
@@ -23,8 +23,11 @@ export default defineBangHelper({
     if (node.args.length !== 1) {
       throw new ErrorException("@bytelen! expects a single call argument");
     }
-    const chain = await chainArgWithLens(ctx, "bytelen!", node.args[0]);
-    const { target, calls } = dataChainArgs(ctx, chain);
-    return combinatorCall(ctx, encodeData("ByteLen", target, calls), "Uint");
+    const arg = await chainArgWithLens(ctx, "bytelen!", node.args[0]);
+    return combinatorCall(
+      ctx,
+      encodeData("ByteLen", lensedDataOperand(ctx, arg)),
+      "Uint",
+    );
   },
 });
