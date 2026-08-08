@@ -448,6 +448,69 @@ export const callParserDescribe = () =>
         power: 18,
       });
     });
+
+    it("should parse a nested inline ABI call as an argument", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$a::{a(address)(uint256,uint256[]) $b::{b(uint256,uint256)(address) $c::{c(address)(uint256) @me} $d::{d()(uint256)}}}[_ [$]]`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "a",
+        inputTypes: "(address)",
+        outputTypes: "(uint256,uint256[])",
+      });
+      expect(result.returnDestructure).to.deep.equal([null, ["$"]]);
+      expect(result.args).to.have.lengthOf(1);
+
+      const b = result.args[0];
+      expect(b).to.deep.include({
+        type: "CallExpression",
+        method: "b",
+        inputTypes: "(uint256,uint256)",
+        outputTypes: "(address)",
+      });
+      expect(b.args).to.have.lengthOf(2);
+      expect(b.args[0]).to.deep.include({
+        type: "CallExpression",
+        method: "c",
+        inputTypes: "(address)",
+        outputTypes: "(uint256)",
+      });
+      expect(b.args[0].args[0]).to.deep.include({
+        type: "HelperFunctionExpression",
+        name: "me",
+      });
+      expect(b.args[1]).to.deep.include({
+        type: "CallExpression",
+        method: "d",
+        inputTypes: "()",
+        outputTypes: "(uint256)",
+      });
+    });
+
+    it("should parse a lens on a nested inline ABI call argument", () => {
+      const result = runParser(
+        callExpressionParser,
+        `$a::{a(address)(uint256) $b::{b()(address,address[][])}[_ [_ $]]}`,
+      );
+      expect(result).to.deep.include({
+        type: "CallExpression",
+        method: "a",
+        inputTypes: "(address)",
+        outputTypes: "(uint256)",
+      });
+      expect(result.args).to.have.lengthOf(1);
+      const b = result.args[0];
+      expect(b).to.deep.include({
+        type: "CallExpression",
+        method: "b",
+        inputTypes: "()",
+        outputTypes: "(address,address[][])",
+      });
+      expect(b.args).to.have.lengthOf(0);
+      expect(b.returnDestructure).to.deep.equal([null, [null, "$"]]);
+    });
   });
 
 callParserDescribe();
