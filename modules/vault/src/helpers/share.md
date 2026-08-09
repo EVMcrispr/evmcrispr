@@ -2,7 +2,7 @@
 title: "@vault:share"
 ---
 
-Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned.
+Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned. As @share! the share() read happens on-chain at assertion time, falling back to the vault address itself through the core's orElse when share() is absent (plain ERC-4626).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -43,3 +43,11 @@ ERC-7575 separates the vault (the per-asset entry point) from the share token, s
 
 - [vault:request-redeem](../commands/request-redeem.md)
 - [@vault:asset](./asset.md)
+
+## On-chain face (@share!)
+
+Read share() at assertion time, falling back to the vault address
+itself through the core's orElse when share() is absent — plain
+ERC-4626 vaults ARE their own share token, mirroring the plain face.
+
+#

@@ -2,7 +2,7 @@
 title: "@vault:claimableRedeem"
 ---
 
-Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share.
+Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share. As @claimableRedeem! the claimableRedeemRequest read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -35,3 +35,10 @@ print "claimable:" @vault:claimableRedeem(0xFE6920eB6C421f1179cA8c8d4170530CDBdf
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@claimableRedeem!)
+
+Read claimableRedeemRequest(requestId, controller) at assertion time
+(requestId defaults to 0).
+
+#

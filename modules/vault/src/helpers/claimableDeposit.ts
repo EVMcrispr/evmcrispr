@@ -1,12 +1,15 @@
 import { defineHelper } from "@evmcrispr/sdk";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem, getAddress } from "viem";
 import type Vault from "..";
-import { readVault7540Uint } from "../erc7540";
+import { erc7540Abi, readVault7540Uint } from "../erc7540";
 
 export default defineHelper<Vault>({
   name: "claimableDeposit",
   batchable: false,
   description:
-    "Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset.",
+    "Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset. As @claimableDeposit! the claimableDepositRequest read happens on-chain at assertion time.",
   returnType: "number",
   args: [
     {
@@ -37,5 +40,24 @@ export default defineHelper<Vault>({
         account,
       ])
     ).toString();
+  },
+  compile: async (ctx, node) => {
+    const vault = getAddress(
+      String(await ctx.interpreters.interpretNode(node.args[0])),
+    );
+    const controller = node.args[1] ?? {
+      value: await ctx.module.getConnectedAccount(true),
+    };
+    const requestId = node.args[2] ?? { value: 0n };
+    return callReadOperand(
+      ctx,
+      vault,
+      getAbiItem({
+        abi: erc7540Abi,
+        name: "claimableDepositRequest",
+      }) as AbiFunction,
+      [requestId, controller],
+      "Uint",
+    );
   },
 });

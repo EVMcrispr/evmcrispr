@@ -2,7 +2,7 @@
 title: "@vault:maxWithdraw"
 ---
 
-Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset.
+Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset. As @maxWithdraw! the read happens on-chain at assertion time (the owner still defaults to the connected account at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -31,3 +31,10 @@ print "Withdrawable:" @vault:maxWithdraw(0xaf204776c7245bF4147c2612BF6e5972Ee483
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@maxWithdraw!)
+
+Read maxWithdraw(owner) at assertion time (the owner still defaults to
+the connected account at composition time).
+
+#

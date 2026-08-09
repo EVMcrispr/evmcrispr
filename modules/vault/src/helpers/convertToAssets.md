@@ -2,7 +2,7 @@
 title: "@vault:convertToAssets"
 ---
 
-Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset.
+Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset. As @convertToAssets! the conversion is read on-chain at assertion time — the shares argument may itself be a live call.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -31,3 +31,11 @@ print "Share price:" @vault:convertToAssets(0xaf204776c7245bF4147c2612BF6e5972Ee
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@convertToAssets!)
+
+Read convertToAssets(shares) at assertion time. A literal amount
+compiles to plain calldata; a live `::` call folds into a core read
+splice.
+
+#

@@ -26,15 +26,15 @@ load vault
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@vault:asset](src/helpers/asset.md) | `address` | Underlying asset token address of an ERC-4626 vault. |
-| [@vault:claimableDeposit](src/helpers/claimableDeposit.md) | `number` | Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset. |
-| [@vault:claimableRedeem](src/helpers/claimableRedeem.md) | `number` | Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share. |
-| [@vault:convertToAssets](src/helpers/convertToAssets.md) | `number` | Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset. |
-| [@vault:convertToShares](src/helpers/convertToShares.md) | `number` | Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token. |
-| [@vault:isOperator](src/helpers/isOperator.md) | `bool` | Whether an account is an approved operator of a controller on an ERC-7540 vault. |
-| [@vault:maxWithdraw](src/helpers/maxWithdraw.md) | `number` | Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset. |
-| [@vault:pendingDeposit](src/helpers/pendingDeposit.md) | `number` | Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset. |
-| [@vault:pendingRedeem](src/helpers/pendingRedeem.md) | `number` | Shares of a pending (not yet fulfilled) redemption request on an ERC-7540 vault, in base units of the share. |
-| [@vault:share](src/helpers/share.md) | `address` | Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned. |
-| [@vault:totalAssets](src/helpers/totalAssets.md) | `number` | Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset. |
+| [@vault:asset](src/helpers/asset.md) | `address` | Underlying asset token address of an ERC-4626 vault. As @asset! the asset() read happens on-chain at assertion time. |
+| [@vault:claimableDeposit](src/helpers/claimableDeposit.md) | `number` | Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset. As @claimableDeposit! the claimableDepositRequest read happens on-chain at assertion time. |
+| [@vault:claimableRedeem](src/helpers/claimableRedeem.md) | `number` | Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share. As @claimableRedeem! the claimableRedeemRequest read happens on-chain at assertion time. |
+| [@vault:convertToAssets](src/helpers/convertToAssets.md) | `number` | Amount of underlying assets an ERC-4626 vault would return for a given amount of shares, in base units of the asset. As @convertToAssets! the conversion is read on-chain at assertion time — the shares argument may itself be a live call. |
+| [@vault:convertToShares](src/helpers/convertToShares.md) | `number` | Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token. As @convertToShares! the conversion is read on-chain at assertion time — the assets argument may itself be a live call. |
+| [@vault:isOperator](src/helpers/isOperator.md) | `bool` | Whether an account is an approved operator of a controller on an ERC-7540 vault. As @isOperator! the read happens on-chain at assertion time. |
+| [@vault:maxWithdraw](src/helpers/maxWithdraw.md) | `number` | Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset. As @maxWithdraw! the read happens on-chain at assertion time (the owner still defaults to the connected account at composition time). |
+| [@vault:pendingDeposit](src/helpers/pendingDeposit.md) | `number` | Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset. As @pendingDeposit! the pendingDepositRequest read happens on-chain at assertion time. |
+| [@vault:pendingRedeem](src/helpers/pendingRedeem.md) | `number` | Shares of a pending (not yet fulfilled) redemption request on an ERC-7540 vault, in base units of the share. As @pendingRedeem! the pendingRedeemRequest read happens on-chain at assertion time. |
+| [@vault:share](src/helpers/share.md) | `address` | Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned. As @share! the share() read happens on-chain at assertion time, falling back to the vault address itself through the core's orElse when share() is absent (plain ERC-4626). |
+| [@vault:totalAssets](src/helpers/totalAssets.md) | `number` | Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset. As @totalAssets! the read happens on-chain at assertion time. |
 

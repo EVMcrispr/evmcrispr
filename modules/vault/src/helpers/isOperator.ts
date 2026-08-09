@@ -1,4 +1,7 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem, getAddress } from "viem";
 import type Vault from "..";
 import { erc7540Abi } from "../erc7540";
 
@@ -6,7 +9,7 @@ export default defineHelper<Vault>({
   name: "isOperator",
   batchable: false,
   description:
-    "Whether an account is an approved operator of a controller on an ERC-7540 vault.",
+    "Whether an account is an approved operator of a controller on an ERC-7540 vault. As @isOperator! the read happens on-chain at assertion time.",
   returnType: "bool",
   args: [
     {
@@ -43,5 +46,20 @@ export default defineHelper<Vault>({
         `${vault} does not look like an ERC-7540 vault (isOperator() reverted or returned no data)`,
       );
     }
+  },
+  compile: async (ctx, node) => {
+    const vault = getAddress(
+      String(await ctx.interpreters.interpretNode(node.args[0])),
+    );
+    const controller = node.args[2] ?? {
+      value: await ctx.module.getConnectedAccount(true),
+    };
+    return callReadOperand(
+      ctx,
+      vault,
+      getAbiItem({ abi: erc7540Abi, name: "isOperator" }) as AbiFunction,
+      [controller, node.args[1]],
+      "Bool",
+    );
   },
 });

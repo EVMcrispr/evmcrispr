@@ -2,7 +2,7 @@
 title: "@vault:isOperator"
 ---
 
-Whether an account is an approved operator of a controller on an ERC-7540 vault.
+Whether an account is an approved operator of a controller on an ERC-7540 vault. As @isOperator! the read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -35,3 +35,10 @@ print "operator:" @vault:isOperator(0xFE6920eB6C421f1179cA8c8d4170530CDBdfd77A 0
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@isOperator!)
+
+Read isOperator(controller, operator) at assertion time — assert a
+batch's operator approval landed (or was revoked).
+
+#
