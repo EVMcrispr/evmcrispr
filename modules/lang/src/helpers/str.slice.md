@@ -2,7 +2,7 @@
 title: "@lang:str.slice"
 ---
 
-Extract a section of a string.
+Extract a section of a string. As @str.slice! a byte range of the string/bytes return of a call, sliced on-chain — negative indexes resolve against the live byte length at assertion time.
 
 **Returns**: `string`
 
@@ -16,9 +16,9 @@ Extract a section of a string.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | Input value |
-| `start` | `number` | Start index (inclusive) |
-| `[end]` | `number` | End index (exclusive) |
+| `value` | `string` | Input value (in @str.slice! a `::` call expression or chain returning a string or bytes value) |
+| `start` | `number` | Start index (inclusive; negative counts from the end) |
+| `[end]` | `number` | End index (exclusive; negative counts from the end; omitted = to the end) |
 
 <!-- HAND-WRITTEN -->
 
@@ -26,3 +26,37 @@ Extract a section of a string.
 
 - [@str.at](str.at.md) — access a single character
 - [@slice](slice.md) — array slice
+
+## On-chain face (@str.slice!)
+
+Slice a byte range out of the string/bytes return of a call, on-chain. The
+range compiles to a single `slice(data, start, len)` read; negative indexes
+resolve against the live byte length at assertion time (`-k` compiles to
+`sub(byteLen(s), k)`).
+
+### Examples
+
+```evml
+load assertions
+load lang
+
+set $pool 0x44fA8E6f47987339850636F88629646662444217
+
+# First five bytes of the name
+assertions:assert @str.slice!($pool::{name()(string)} 0 5) == "Curve"
+
+# Last five bytes: the start resolves against the live length
+assertions:assert @str.slice!($pool::{name()(string)} -5) == "Token"
+```
+
+### Notes
+
+- Indexes are BYTE offsets: multi-byte UTF-8 characters span several.
+- There is no silent clamp on-chain: an out-of-range or inverted range
+  reverts with SliceOutOfBounds at assertion time (constant inverted
+  ranges fail at build time).
+- String-valued: compare with `==`/`!=`, or feed other string faces.
+
+### See Also
+
+- `assertions:assert`, `@str.at!`, `@str.split!`

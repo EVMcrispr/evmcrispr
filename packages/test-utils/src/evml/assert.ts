@@ -59,7 +59,10 @@ export interface AssertDecoders {
   /** Decode a STATIC_CALL param's (target, calldata). */
   staticCallOf(param: DecodedParam): { target: Address; data: Hex };
   /** Decode a param as a core-primitive call (STATIC_CALL to the core). */
-  core(param: DecodedParam, at?: Address): ReturnType<typeof decodeFunctionData>;
+  core(
+    param: DecodedParam,
+    at?: Address,
+  ): ReturnType<typeof decodeFunctionData>;
   /** A param pointed straight at the Operators contract — its calldata. */
   opsDirect(param: DecodedParam, at?: Address): Hex;
   expectConstraint(

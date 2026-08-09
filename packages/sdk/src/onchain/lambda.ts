@@ -26,7 +26,7 @@ import { CORE_ABI } from "./core";
 import { compileOnchainHelper } from "./dispatch";
 import type { InputParam } from "./erc8211";
 import { FETCHER_TYPE, rawParam } from "./erc8211";
-import type { CompileCtx, Operand } from "./types";
+import type { Category, CompileCtx, Operand } from "./types";
 
 /** The marker word standing in for the fold element while the predicate
  *  compiles — improbable enough that a collision with a genuine constant
@@ -37,9 +37,11 @@ export const ELEMENT_MARKER: Hex = keccak256(
 
 /** The element placeholder as a live-call operand: `kind: "call"` keeps
  *  the expression compiler from constant-folding around it, and the raw
- *  marker word passes through `materializeWord` untouched. */
-export function elementOperand(): Operand {
-  return { kind: "call", param: rawParam(ELEMENT_MARKER), cat: "Uint" };
+ *  marker word passes through `materializeWord` untouched. The category
+ *  is the array's element category, so bool-element predicates (`@not!`)
+ *  take their boolean paths. */
+export function elementOperand(cat: Category = "Uint"): Operand {
+  return { kind: "call", param: rawParam(ELEMENT_MARKER), cat };
 }
 
 /** A single-staticcall lambda template: fixed calldata for the Operators
@@ -136,6 +138,7 @@ export async function compilePredicateTemplate(
   ctx: CompileCtx,
   predNode: Node | undefined,
   label: string,
+  elemCat: Category = "Uint",
 ): Promise<LambdaTemplate> {
   if (!predNode || predNode.type !== NodeType.HelperFunctionExpression) {
     throw new ErrorException(
@@ -145,7 +148,7 @@ export async function compilePredicateTemplate(
   const pred = predNode as HelperFunctionNode;
   const synthetic: HelperFunctionNode = {
     ...pred,
-    args: [operandNode(elementOperand()), ...pred.args] as never,
+    args: [operandNode(elementOperand(elemCat)), ...pred.args] as never,
   };
   const o = await compileOnchainHelper(ctx, synthetic);
   if (o.kind === "call" && o.cat !== "Bool") {
