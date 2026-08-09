@@ -1,13 +1,26 @@
 import { resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import { parseAbiItem, zeroAddress } from "viem";
+import {
+  buildCallSegments,
+  compileArgSpecs,
+  encodeRead,
+  rawParam,
+  staticCallParam,
+  toWord,
+} from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { encodeFunctionData, parseAbiItem, zeroAddress } from "viem";
 import type Token from "..";
+
+const ALLOWANCE_ABI = parseAbiItem(
+  "function allowance(address owner, address spender) view returns (uint256)",
+) as AbiFunction;
 
 export default defineHelper<Token>({
   name: "allowance",
   batchable: false,
   description:
-    "Fetch the allowance an owner has granted to a spender, in base units.",
+    "Fetch the allowance an owner has granted to a spender, in base units. As @allowance! the symbol resolves at composition time and allowance(owner, spender) is read on-chain at assertion time — owner/spender may themselves be live calls.",
   returnType: "number",
   args: [
     {
@@ -38,5 +51,52 @@ export default defineHelper<Token>({
     });
 
     return allowance.toString();
+  },
+  compile: async (ctx, node) => {
+    if (node.args.length !== 3) {
+      throw new ErrorException(
+        "@allowance! expects (token owner spender), e.g. @allowance!(DAI @me $spender)",
+      );
+    }
+    const symbol = await ctx.interpreters.interpretNode(node.args[0]);
+    const tokenAddr = await resolveToken(ctx.module, String(symbol));
+    if (tokenAddr === zeroAddress) {
+      throw new ErrorException("the native token has no allowances");
+    }
+    // Owner/spender ride the shared arg machinery: literal addresses
+    // compile to plain calldata, live calls fold into a core read splice.
+    const specs = await compileArgSpecs(
+      ctx,
+      node.args.slice(1),
+      ALLOWANCE_ABI,
+      "allowance",
+    );
+    if (specs.every((s) => s.kind === "value")) {
+      return {
+        kind: "call",
+        param: staticCallParam(
+          tokenAddr,
+          encodeFunctionData({
+            abi: [ALLOWANCE_ABI],
+            functionName: "allowance",
+            args: specs.map((s) => (s as { value: unknown }).value) as never,
+          }),
+        ),
+        cat: "Uint",
+      };
+    }
+    const call = buildCallSegments(ALLOWANCE_ABI, specs);
+    return {
+      kind: "call",
+      param: staticCallParam(
+        ctx.core,
+        encodeRead(
+          rawParam(toWord(BigInt(tokenAddr))),
+          call.selector,
+          call.segments,
+        ),
+      ),
+      cat: "Uint",
+    };
   },
 });

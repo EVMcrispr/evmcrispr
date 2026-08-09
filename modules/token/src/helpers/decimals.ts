@@ -1,11 +1,13 @@
 import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
-import { defineHelper } from "@evmcrispr/sdk";
-import { parseAbiItem, zeroAddress } from "viem";
+import { defineHelper, Num } from "@evmcrispr/sdk";
+import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { parseAbiItem, toFunctionSelector, zeroAddress } from "viem";
 import type Token from "..";
 
 export default defineHelper<Token>({
   name: "decimals",
-  description: "Return the number of decimals of a token.",
+  description:
+    "Return the number of decimals of a token. As @decimals! the symbol resolves at composition time and decimals() is read on-chain at assertion time (the native token folds to its constant).",
   returnType: "number",
   args: [
     {
@@ -30,5 +32,25 @@ export default defineHelper<Token>({
     });
 
     return String(decimals);
+  },
+  compile: async (ctx, node) => {
+    const symbol = await ctx.interpreters.interpretNode(node.args[0]);
+    const tokenAddr = await resolveToken(ctx.module, String(symbol));
+    if (tokenAddr === zeroAddress) {
+      const chain = await ctx.module.getChain();
+      return {
+        kind: "const",
+        cat: "Uint",
+        value: Num.fromBigInt(BigInt(getChainNativeCurrency(chain).decimals)),
+      };
+    }
+    return {
+      kind: "call",
+      param: staticCallParam(
+        tokenAddr,
+        toFunctionSelector("function decimals()"),
+      ),
+      cat: "Uint",
+    };
   },
 });

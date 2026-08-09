@@ -2,7 +2,7 @@
 title: "@token:allowance"
 ---
 
-Fetch the allowance an owner has granted to a spender, in base units.
+Fetch the allowance an owner has granted to a spender, in base units. As @allowance! the symbol resolves at composition time and allowance(owner, spender) is read on-chain at assertion time — owner/spender may themselves be live calls.
 
 **Returns**: `number`
 
@@ -40,3 +40,11 @@ if @bool(@token:allowance(DAI @me $spender) < @token:amount(DAI 100)) (
 - `@balance` — token balance of an address
 - [@token:amount](amount.md) — convert to base units
 - [token:approve](../commands/approve.md) — grant an allowance
+
+## On-chain face (@allowance!)
+
+Read allowance(owner, spender) at assertion time. The symbol resolves
+at composition time; owner and spender are literal addresses, or live
+`::` calls folded into a core read splice.
+
+#

@@ -2,7 +2,7 @@
 title: "@token:totalSupply"
 ---
 
-Fetch the total supply of a token in base units.
+Fetch the total supply of a token in base units. As @totalSupply! the symbol resolves at composition time and totalSupply() is read on-chain at assertion time.
 
 **Returns**: `number`
 
@@ -34,3 +34,11 @@ print @token:format(DAI @token:totalSupply(DAI))
 
 - `@balance`
 - [@token:format](format.md)
+
+## On-chain face (@totalSupply!)
+
+Read totalSupply() at assertion time. The symbol resolves to the token
+address at composition time; the native token has no total supply and
+fails at build time.
+
+#
