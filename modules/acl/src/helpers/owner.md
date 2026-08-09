@@ -2,7 +2,7 @@
 title: "@acl:owner"
 ---
 
-Current owner of an Ownable contract.
+Current owner of an Ownable contract. As @owner! the owner() read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -35,3 +35,19 @@ print $owner
 
 - [acl:transfer-ownership](../commands/transfer-ownership.md)
 - [@acl:pendingOwner](pendingOwner.md)
+
+## On-chain face (@owner!)
+
+Read owner() at assertion time — pin that a batch did not rotate an
+Ownable contract's owner.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $vault 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @owner!($vault) == @me "owner rotated"
+```

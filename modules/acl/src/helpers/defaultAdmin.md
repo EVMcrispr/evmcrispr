@@ -2,7 +2,7 @@
 title: "@acl:defaultAdmin"
 ---
 
-Current default admin of an AccessControlDefaultAdminRules contract.
+Current default admin of an AccessControlDefaultAdminRules contract. As @defaultAdmin! the defaultAdmin() read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -34,3 +34,18 @@ print @acl:defaultAdmin($token)
 ## See Also
 
 - [acl:begin-default-admin-transfer](../commands/begin-default-admin-transfer.md)
+
+## On-chain face (@defaultAdmin!)
+
+Read defaultAdmin() at assertion time.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $registry 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @defaultAdmin!($registry) == @me
+```

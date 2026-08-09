@@ -2,7 +2,7 @@
 title: "@acl:operationSchedule"
 ---
 
-Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed).
+Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). As @operationSchedule! the schedule read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -41,3 +41,20 @@ print @acl:operationSchedule($manager $operationId)
 ## See Also
 
 - [acl:schedule](../commands/schedule.md) / [@acl:operationId](operationId.md)
+
+## On-chain face (@operationSchedule!)
+
+Read getSchedule(id) at assertion time — assert an operation is not
+(or still) scheduled after the batch runs.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $manager 0xa111111111111111111111111111111111111111
+set $id 0x0102030405060708091011121314151617181920212223242526272829303132
+
+assertions:assert @operationSchedule!($manager $id) == 0 "still scheduled"
+```

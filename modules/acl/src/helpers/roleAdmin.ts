@@ -1,4 +1,6 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData, getAddress } from "viem";
 import type AccessControl from "..";
 import { accessControlAbi, accessManagerAbi, resolveRole } from "../utils";
 
@@ -6,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "roleAdmin",
   batchable: false,
   description:
-    "Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers.",
+    "Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. As @roleAdmin! the read happens on-chain at assertion time.",
   returnType: ["bytes32", "number"],
   args: [
     {
@@ -41,5 +43,33 @@ export default defineHelper<AccessControl>({
       args: [resolved.roleId],
     });
     return Num.fromBigInt(adminRoleId);
+  },
+  compile: async (ctx, node) => {
+    const [target, role] = await Promise.all(
+      node.args.map((n) => ctx.interpreters.interpretNode(n)),
+    );
+    const resolved = resolveRole(role);
+    if (resolved.system === "access-control") {
+      return directReadOperand(
+        ctx,
+        getAddress(String(target)),
+        encodeFunctionData({
+          abi: accessControlAbi,
+          functionName: "getRoleAdmin",
+          args: [resolved.role],
+        }),
+        "Bytes32",
+      );
+    }
+    return directReadOperand(
+      ctx,
+      getAddress(String(target)),
+      encodeFunctionData({
+        abi: accessManagerAbi,
+        functionName: "getRoleAdmin",
+        args: [resolved.roleId],
+      }),
+      "Uint",
+    );
   },
 });

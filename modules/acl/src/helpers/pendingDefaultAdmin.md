@@ -2,7 +2,7 @@
 title: "@acl:pendingDefaultAdmin"
 ---
 
-Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress).
+Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). As @pendingDefaultAdmin! the read happens on-chain at assertion time (the pending admin word of the pair).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -38,3 +38,20 @@ print @acl:pendingDefaultAdmin($token)
 ## See Also
 
 - [acl:accept-default-admin-transfer](../commands/accept-default-admin-transfer.md)
+
+## On-chain face (@pendingDefaultAdmin!)
+
+Read the pending default admin at assertion time. The contract returns
+(newAdmin, acceptSchedule); the face unwraps the admin word through a
+core pick.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $registry 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @pendingDefaultAdmin!($registry) == 0x0000000000000000000000000000000000000000 "transfer pending"
+```

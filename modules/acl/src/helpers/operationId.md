@@ -2,7 +2,7 @@
 title: "@acl:operationId"
 ---
 
-Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule.
+Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. As @operationId! hashOperation is read on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -41,3 +41,20 @@ print @acl:operationSchedule($manager $id)
 ## See Also
 
 - [@acl:operationSchedule](operationSchedule.md)
+
+## On-chain face (@operationId!)
+
+Read hashOperation(caller, target, data) at assertion time — the
+calldata still encodes at composition time.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $manager 0xa111111111111111111111111111111111111111
+set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @operationSchedule!($manager @operationId!($manager @me $token "pause()")) == 0
+```

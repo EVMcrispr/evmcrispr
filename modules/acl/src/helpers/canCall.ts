@@ -3,7 +3,8 @@ import {
   ErrorException,
   normalizeSignature,
 } from "@evmcrispr/sdk";
-import { toFunctionSelector } from "viem";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData, getAddress, toFunctionSelector } from "viem";
 import type AccessControl from "..";
 import { accessManagerAbi } from "../utils";
 
@@ -11,7 +12,7 @@ export default defineHelper<AccessControl>({
   name: "canCall",
   batchable: false,
   description:
-    "Whether a caller can immediately call a restricted function of a contract managed by an AccessManager.",
+    "Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. As @canCall! the permission read happens on-chain at assertion time (the immediate flag of the pair).",
   returnType: "bool",
   args: [
     { name: "manager", type: "address", description: "AccessManager address" },
@@ -43,5 +44,32 @@ export default defineHelper<AccessControl>({
       args: [caller, target, selector],
     });
     return immediate;
+  },
+  compile: async (ctx, node) => {
+    const [manager, caller, target, signature] = await Promise.all(
+      node.args.map((n) => ctx.interpreters.interpretNode(n)),
+    );
+    let selector: `0x${string}`;
+    try {
+      selector = toFunctionSelector(normalizeSignature(String(signature)));
+    } catch {
+      throw new ErrorException(`invalid function signature: ${signature}`);
+    }
+    // (immediate, delay): the immediate flag is word 0.
+    return directReadOperand(
+      ctx,
+      getAddress(String(manager)),
+      encodeFunctionData({
+        abi: accessManagerAbi,
+        functionName: "canCall",
+        args: [
+          getAddress(String(caller)),
+          getAddress(String(target)),
+          selector,
+        ],
+      }),
+      "Bool",
+      0n,
+    );
   },
 });

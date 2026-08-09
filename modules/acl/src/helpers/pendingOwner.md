@@ -2,7 +2,7 @@
 title: "@acl:pendingOwner"
 ---
 
-Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress).
+Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). As @pendingOwner! the pendingOwner() read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -38,3 +38,19 @@ print @acl:pendingOwner($contract)
 ## See Also
 
 - [acl:accept-ownership](../commands/accept-ownership.md)
+
+## On-chain face (@pendingOwner!)
+
+Read pendingOwner() at assertion time — assert no Ownable2Step transfer
+is in flight.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $vault 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @pendingOwner!($vault) == 0x0000000000000000000000000000000000000000
+```

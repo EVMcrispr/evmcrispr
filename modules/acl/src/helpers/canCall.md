@@ -2,7 +2,7 @@
 title: "@acl:canCall"
 ---
 
-Whether a caller can immediately call a restricted function of a contract managed by an AccessManager.
+Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. As @canCall! the permission read happens on-chain at assertion time (the immediate flag of the pair).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -45,3 +45,21 @@ print @acl:canCall($manager @me $token "mint(address,uint256)")
 ## See Also
 
 - [acl:set-target-function-role](../commands/set-target-function-role.md)
+
+## On-chain face (@canCall!)
+
+Read whether a caller can immediately call a restricted function at
+assertion time. The selector computes at composition time; the
+(immediate, delay) pair is unwrapped through a core pick.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $manager 0xa111111111111111111111111111111111111111
+set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @canCall!($manager @me $token "mint(address,uint256)")
+```

@@ -1,4 +1,6 @@
 import { defineHelper, encodeSignatureCall } from "@evmcrispr/sdk";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData, getAddress } from "viem";
 import type AccessControl from "..";
 import { accessManagerAbi } from "../utils";
 
@@ -6,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "operationId",
   batchable: false,
   description:
-    "Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule.",
+    "Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. As @operationId! hashOperation is read on-chain at assertion time.",
   returnType: "bytes32",
   args: [
     { name: "manager", type: "address", description: "AccessManager address" },
@@ -40,5 +42,24 @@ export default defineHelper<AccessControl>({
       functionName: "hashOperation",
       args: [caller, target, encodeSignatureCall(signature, params ?? [])],
     });
+  },
+  compile: async (ctx, node) => {
+    const [manager, caller, target, signature, params] = await Promise.all(
+      node.args.map((n) => ctx.interpreters.interpretNode(n)),
+    );
+    return directReadOperand(
+      ctx,
+      getAddress(String(manager)),
+      encodeFunctionData({
+        abi: accessManagerAbi,
+        functionName: "hashOperation",
+        args: [
+          getAddress(String(caller)),
+          getAddress(String(target)),
+          encodeSignatureCall(String(signature), (params as never[]) ?? []),
+        ],
+      }),
+      "Bytes32",
+    );
   },
 });

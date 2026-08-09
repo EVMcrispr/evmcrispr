@@ -2,7 +2,7 @@
 title: "@acl:roleAdmin"
 ---
 
-Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers.
+Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. As @roleAdmin! the read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -41,3 +41,19 @@ print @acl:roleAdmin($manager 42)
 ## See Also
 
 - [acl:set-role-admin](../commands/set-role-admin.md)
+
+## On-chain face (@roleAdmin!)
+
+Read a role's admin role at assertion time: bytes32 on AccessControl
+contracts, a uint64 role id on AccessManagers.
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @roleAdmin!($token MINTER_ROLE) == 0x0000000000000000000000000000000000000000000000000000000000000000
+```

@@ -2,7 +2,7 @@
 title: "@acl:hasRole"
 ---
 
-Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids).
+Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). As @hasRole! the membership read happens on-chain at assertion time (role names still hash at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -48,3 +48,21 @@ print @acl:hasRole($manager 42 @me)
 ## See Also
 
 - [acl:grant](../commands/grant.md) / [acl:revoke](../commands/revoke.md)
+
+## On-chain face (@hasRole!)
+
+Read role membership at assertion time. Role names still resolve at
+composition time (AccessControl names hash to bytes32, numeric ids pick
+the AccessManager overload, whose (isMember, delay) pair is unwrapped
+through a core pick).
+
+### Examples
+
+```evml
+load assertions
+load acl
+
+set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @hasRole!($token MINTER_ROLE @me) "minter role revoked"
+```
