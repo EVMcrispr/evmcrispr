@@ -180,12 +180,14 @@ export function charsetParam(
 }
 
 /**
- * `mapWords` over a LIVE payload: heads are [offset_s][target]
+ * `mapWords`/`filterWords` over a LIVE payload (identical signatures, so
+ * they share one layout): heads are [offset_s][target]
  * [offset_template = 128][elemOffset], the template tail at 128 and the
  * runtime envelope of `s` spliced last with the +32 offset trick.
  */
-export function mapWordsParam(
+function applyWordsParam(
   ctx: CompileCtx,
+  kind: "mapWords" | "filterWords",
   s: InputParam,
   template: Hex,
   elemOffset: bigint,
@@ -194,7 +196,7 @@ export function mapWordsParam(
   const envelopeAt = 128 + templateTail.length / 2;
   return opReadParam(
     ctx,
-    OP_SELECTORS.mapWords,
+    OP_SELECTORS[kind],
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
       wordSpan(BigInt(ctx.operators)), // lambda target
@@ -202,6 +204,112 @@ export function mapWordsParam(
       wordSpan(elemOffset),
       templateTail,
       s,
+    ]),
+  );
+}
+
+/** `mapWords` over a LIVE payload (see {@link applyWordsParam}). */
+export function mapWordsParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  template: Hex,
+  elemOffset: bigint,
+): InputParam {
+  return applyWordsParam(ctx, "mapWords", s, template, elemOffset);
+}
+
+/** `filterWords` over a LIVE payload — the kept-elements sibling of
+ *  {@link mapWordsParam}, byte-identical layout (only the selector
+ *  differs: the lambda word decides keep/drop instead of replacing). */
+export function filterWordsParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  template: Hex,
+  elemOffset: bigint,
+): InputParam {
+  return applyWordsParam(ctx, "filterWords", s, template, elemOffset);
+}
+
+/** `iotaWords(n)` with a live count: calldata is the selector plus the
+ *  resolved count word — the index generator 0, 1, …, n-1 that pairs with
+ *  zipWords for enumerations. */
+export function iotaWordsParam(
+  ctx: CompileCtx,
+  n: bigint | InputParam,
+): InputParam {
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.iotaWords,
+    mergeSegments([wordPiece(n)]),
+  );
+}
+
+/** `wordIndexOf(s, w)` with a live payload: heads are [offset_s = 96][w]
+ *  (the needle a literal word or a live word param), the envelope spliced
+ *  at 64 with the +32 trick. Returns the WORD COUNT as the not-found
+ *  sentinel, so a following word-index read reverts on a miss. */
+export function wordIndexOfParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  w: bigint | InputParam,
+): InputParam {
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.wordIndexOf,
+    mergeSegments([
+      wordSpan(96n), // offset_s skips the 0x20 word at 64
+      wordPiece(w),
+      s,
+    ]),
+  );
+}
+
+/**
+ * The word at a LIVE index of a words payload, as a single word operand:
+ * `slice(s, mul(index, 32), 32)` re-frames the element as a one-word
+ * bytes value and a core `pick` of word 2 unwraps it from its envelope
+ * ([0x20][32][word]). An out-of-range index reverts the slice with
+ * SliceOutOfBounds — the miss path of wordIndexOf's count sentinel.
+ */
+export function wordAtParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  index: bigint | InputParam,
+): InputParam {
+  const start =
+    typeof index === "bigint"
+      ? rawParam(toWord(index * 32n))
+      : wordOpParam(ctx, "mul", false, index, rawParam(toWord(32n)));
+  return staticCallParam(
+    ctx.core,
+    encodePick(sliceParam(ctx, s, start, 32n), 2n),
+  );
+}
+
+/**
+ * `zipWords(iotaWords(n), s)` — the enumeration recipe: pairs each element
+ * with its index as an interleaved [index, element] word-pair payload (the
+ * on-chain record representation). BOTH sides are live, which the
+ * fixed-offset zip layout cannot host — so offset_b is itself a LIVE word:
+ * the iota envelope (64 + 32n bytes) splices at 64 with offset_a = 96, and
+ * offset_b = add(mul(n, 32), 160) points past it at the payload envelope
+ * (spliced last, +32 trick included in the 160).
+ */
+export function enumerateParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  n: InputParam,
+): InputParam {
+  const len32 = wordOpParam(ctx, "mul", false, n, rawParam(toWord(32n)));
+  const offsetB = wordOpParam(ctx, "add", false, len32, rawParam(toWord(160n)));
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.zipWords,
+    mergeSegments([
+      wordSpan(96n), // offset_a: the iota envelope at 64, 0x20 word skipped
+      offsetB, // live offset_b = 160 + 32n
+      iotaWordsParam(ctx, n), // iota envelope [0x20][32n][0 1 …]
+      s, // payload envelope, spliced last
     ]),
   );
 }
@@ -404,34 +512,6 @@ export function concatParam(
   ];
   if (live) pieces.push(live);
   return opReadParam(ctx, OP_SELECTORS.concat, mergeSegments(pieces));
-}
-
-/**
- * `join(bytes[] parts, bytes delim)` with at most one LIVE part: heads
- * are [offset_parts = 64][offset_delim], the parts array encoded as in
- * {@link concatParam} with its elements head area at 96, the delimiter
- * tail after the constant part tails, and the live envelope last.
- */
-export function joinParam(
-  ctx: CompileCtx,
-  parts: readonly BytesPart[],
-  delim: Hex,
-): InputParam {
-  const base = 96;
-  const delimTail = bytesTail(delim);
-  const delimAt = base + 32 * parts.length + constTailBytes(parts);
-  const liveAt = delimAt + delimTail.length / 2;
-  const { offsets, tails, live } = bytesArrayPieces(parts, base, liveAt);
-  const pieces: Piece[] = [
-    wordSpan(64n), // offset_parts
-    wordSpan(BigInt(delimAt)), // offset_delim
-    wordSpan(BigInt(parts.length)),
-    ...offsets.map((o) => wordSpan(o)),
-    ...tails,
-    delimTail,
-  ];
-  if (live) pieces.push(live);
-  return opReadParam(ctx, OP_SELECTORS.join, mergeSegments(pieces));
 }
 
 /**

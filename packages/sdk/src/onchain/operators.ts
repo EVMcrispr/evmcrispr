@@ -72,7 +72,6 @@ export const OPERATORS_ABI = parseAbi([
   "function rawCall(address target, bytes data) view returns (bytes)",
   "function code(address account) view returns (bytes)",
   // hashing
-  "function hashPair(bytes32 a, bytes32 b) pure returns (bytes32)",
   "function hashPairSorted(bytes32 a, bytes32 b) pure returns (bytes32)",
   // bytes
   "function concat(bytes[] parts) pure returns (bytes)",
@@ -81,25 +80,24 @@ export const OPERATORS_ABI = parseAbi([
   "function hash(bytes data) pure returns (bytes32)",
   // search
   "function indexOf(bytes s, bytes needle, int256 occurrence) pure returns (uint256)",
-  "function matchAt(bytes s, bytes needle, uint256 pos) pure returns (uint256)",
   // string extras (ASCII-only case mapping; other bytes pass verbatim)
   "function replace(bytes s, bytes needle, bytes repl) pure returns (bytes)",
   "function toLower(bytes s) pure returns (bytes)",
   "function toUpper(bytes s) pure returns (bytes)",
-  "function join(bytes[] parts, bytes delim) pure returns (bytes)",
   // parse
   "function parseUint(bytes s) pure returns (uint256)",
   "function toString(uint256 v) pure returns (string)",
-  // runtime encoders (encode raw-returns with no bytes envelope;
-  // encodePacked returns a normal bytes value)
+  // runtime encoder (encode raw-returns with no bytes envelope)
   "function encode(string types, bytes[] values) pure",
-  "function encodePacked(string types, bytes[] values) pure returns (bytes)",
   // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
   "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
   "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
   "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
   // array-shape ops over aligned-word bytes payloads
   "function mapWords(bytes s, address target, bytes template, uint256 elemOffset) view returns (bytes)",
+  "function filterWords(bytes s, address target, bytes template, uint256 elemOffset) view returns (bytes)",
+  "function iotaWords(uint256 n) pure returns (bytes)",
+  "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
   "function reverseWords(bytes s) pure returns (bytes)",
   "function zipWords(bytes a, bytes b) pure returns (bytes)",
   "function unzipWords(bytes s, uint256 which) pure returns (bytes)",
@@ -149,7 +147,6 @@ export const OP_SELECTORS = {
   byteLen: sel("byteLen(bytes)"),
   indexOf: sel("indexOf(bytes,bytes,int256)"),
   slice: sel("slice(bytes,uint256,uint256)"),
-  matchAt: sel("matchAt(bytes,bytes,uint256)"),
   bitSet: sel("bitSet(uint256,uint256)"),
   foldBytes: sel(
     "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
@@ -174,10 +171,11 @@ export const OP_SELECTORS = {
   // v1.0 additions
   rawCall: sel("rawCall(address,bytes)"),
   code: sel("code(address)"),
-  hashPair: sel("hashPair(bytes32,bytes32)"),
   hashPairSorted: sel("hashPairSorted(bytes32,bytes32)"),
-  encodePacked: sel("encodePacked(string,bytes[])"),
   mapWords: sel("mapWords(bytes,address,bytes,uint256)"),
+  filterWords: sel("filterWords(bytes,address,bytes,uint256)"),
+  iotaWords: sel("iotaWords(uint256)"),
+  wordIndexOf: sel("wordIndexOf(bytes,bytes32)"),
   reverseWords: sel("reverseWords(bytes)"),
   zipWords: sel("zipWords(bytes,bytes)"),
   unzipWords: sel("unzipWords(bytes,uint256)"),
@@ -186,7 +184,6 @@ export const OP_SELECTORS = {
   replace: sel("replace(bytes,bytes,bytes)"),
   toLower: sel("toLower(bytes)"),
   toUpper: sel("toUpper(bytes)"),
-  join: sel("join(bytes[],bytes)"),
 } as const;
 
 type OperatorFn =

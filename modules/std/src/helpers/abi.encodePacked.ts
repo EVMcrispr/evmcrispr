@@ -50,4 +50,13 @@ export default defineHelper<Std>({
       );
     }
   },
+  // compile: @abi.encodePacked!'s future on-chain face needs no Operators
+  // encoder — packed encoding is pure composition over concat. Full-width
+  // words (uint256/int256/bytes32) and dynamic payloads (string/bytes) go
+  // straight into concat's parts (the compiler synthesizes the constant
+  // envelopes around spliced words); each NARROWED part (uintN/address/
+  // bool/bytesN) costs one slice over its word-as-bytes value, again with
+  // a constant envelope: address = slice(w, 12, 20), bool/uintN =
+  // slice(w, 32 - N/8, N/8), bytesN = slice(w, 0, N). One concat call
+  // total, delimiterless — the @str.join! face already composes this way.
 });

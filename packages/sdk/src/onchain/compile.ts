@@ -921,7 +921,12 @@ export async function requireChainArg(
 /** Compile the call argument of a chain-consuming helper that works on
  *  dynamic values (@len!, @bytelen!, @split!, @includes!, @charset!,
  *  @hash!). Returns the raw chain param plus the lens selection (when
- *  present) so each helper can route through `nav` as it needs. */
+ *  present) so each helper can route through `nav` as it needs.
+ *
+ *  A nested `!` helper face resolving a string/bytes value is accepted
+ *  too (e.g. @str.lower!(@token:symbol!(DAI))): its compiled operand
+ *  passes through as a synthetic single-output result, so every dynamic
+ *  face composes over faces the same way it composes over `::` calls. */
 export async function chainArgWithLens(
   ctx: CompileCtx,
   helper: string,
@@ -932,6 +937,18 @@ export async function chainArgWithLens(
   path?: number[];
   terminal?: AbiParameter;
 }> {
+  if (node && isBangHelperNode(node)) {
+    const o = await compileOnchainHelper(ctx, node);
+    if (o.kind !== "call" || (o.cat !== "String" && o.cat !== "Bytes")) {
+      throw new ErrorException(
+        `@${helper} nested helper argument must resolve a string/bytes value on-chain`,
+      );
+    }
+    return {
+      param: o.param,
+      outputs: [{ type: o.cat === "String" ? "string" : "bytes" }],
+    };
+  }
   if (!node || node.type !== NodeType.CallExpression) {
     throw new ErrorException(
       `@${helper} expects a \`::\` call expression, e.g. @${helper}($target::method())`,

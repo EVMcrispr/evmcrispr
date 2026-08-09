@@ -1561,9 +1561,12 @@ describeCommand("assert", {
       error: "@str.split! expects (call delimiter index)",
     },
     {
-      name: "rejects @str.split! as the call of another chain helper",
-      script: `assertions:assert @bytes.len!(@str.split!(${TOKEN}::{name()(string)} " " 1)) == 32`,
-      error: "expects a `::` call expression",
+      // Nested string/bytes faces ARE accepted by the chain helpers now
+      // (@bytes.len!(@str.split!(…)) composes); a face resolving a WORD
+      // still is not — there is no envelope to measure.
+      name: "rejects a word-valued face as the call of another chain helper",
+      script: `assertions:assert @bytes.len!(@balance!(XDAI ${HOLDER})) == 32`,
+      error: "must resolve a string/bytes value on-chain",
     },
     {
       name: "rejects ordering comparisons on strings",
