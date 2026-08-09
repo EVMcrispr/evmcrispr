@@ -37,4 +37,3 @@ set $nonce @receipts:tx.count(0xCED608Aa29bB92185D9b6340Adcbfa263DAe075b)
 
 - [@receipts:txs](txs.md) — recent transactions of an address
 - [@receipts:tx](tx.md) — full transaction summary
-

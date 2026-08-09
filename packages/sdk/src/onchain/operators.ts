@@ -66,6 +66,8 @@ export const OPERATORS_ABI = parseAbi([
   "function blobBaseFee() view returns (uint256)",
   "function blockHash(uint256 n) view returns (bytes32)",
   "function origin() view returns (address)",
+  "function gasPrice() view returns (uint256)",
+  "function blobHash(uint256 index) view returns (bytes32)",
   // raw access
   "function rawCall(address target, bytes data) view returns (bytes)",
   "function code(address account) view returns (bytes)",
@@ -163,6 +165,8 @@ export const OP_SELECTORS = {
   parseUint: sel("parseUint(bytes)"),
   toString: sel("toString(uint256)"),
   blockHash: sel("blockHash(uint256)"),
+  gasPrice: sel("gasPrice()"),
+  blobHash: sel("blobHash(uint256)"),
   concat: sel("concat(bytes[])"),
   // the signed shift overload takes (int256, uint256), outside the
   // opSelector (int256, int256) convention — so it lives here
@@ -197,7 +201,9 @@ type OperatorFn =
   | "gasLimit"
   | "blobBaseFee"
   | "blockHash"
-  | "origin";
+  | "origin"
+  | "gasPrice"
+  | "blobHash";
 
 /** Encode plain calldata for a non-overloaded Operators function whose
  *  arguments are all known at composition time — a STATIC_CALL fetcher

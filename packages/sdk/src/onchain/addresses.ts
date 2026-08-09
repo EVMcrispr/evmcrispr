@@ -10,7 +10,7 @@ export const CORE_ADDRESS: Address =
 
 /** Canonical address of the Operators v1.0 (interim deployment). */
 export const OPERATORS_ADDRESS: Address =
-  "0xe1D5f0161B28b69C7e8946dc2081F1da16f5E443";
+  "0x40B9b2CCA442682C1A8a6FcF2D233f32a1852692";
 
 function resolveOverride(
   bindings: BindingsManager,

@@ -998,6 +998,41 @@ describeCommand("assert", {
       },
     },
     {
+      name: "compiles @tx.gasprice! to a plain gasPrice read at the operators",
+      script: `assertions:assert @tx.gasprice! <= 50e9 "gas too pricey"`,
+      validate: (actions) => {
+        const { param, message } = decodeAssert(actions);
+        expect(opsDirect(param)).to.equal(selectorOf("gasPrice()"));
+        expectConstraint(param, "Lte", 50n * 10n ** 9n);
+        expect(message).to.equal("gas too pricey");
+      },
+    },
+    {
+      name: "compiles @tx.blobhash! of a literal index to plain calldata",
+      script: `assertions:assert @tx.blobhash!(0) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expect(opsDirect(param)).to.equal(
+          `${selectorOf("blobHash(uint256)")}${"00".repeat(32)}`,
+        );
+        expectConstraint(
+          param,
+          "Eq",
+          0x0102030405060708091011121314151617181920212223242526272829303132n,
+        );
+      },
+    },
+    {
+      name: "compiles @tx.blobhash! of a live index through the read splice",
+      script: `assertions:assert @tx.blobhash!(${TOKEN}::{blobIndex()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const args = opReadOf(param, "blobHash(uint256)");
+        expect(args).to.have.lengthOf(1);
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
+      },
+    },
+    {
       name: "fuses a * b / c into one 512-bit mulDiv read",
       script: `assertions:assert @num!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
       validate: (actions) => {
