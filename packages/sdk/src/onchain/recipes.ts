@@ -1,7 +1,8 @@
 import type { Hex } from "viem";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
+import { encodePick } from "./core";
 import type { InputParam } from "./erc8211";
-import { rawParam, toWord } from "./erc8211";
+import { rawParam, staticCallParam, toWord } from "./erc8211";
 import { FOLD_EXIT, OP_SELECTORS } from "./operators";
 import type { CompileCtx } from "./types";
 
@@ -284,6 +285,27 @@ export function unzipParam(
       s,
     ]),
   );
+}
+
+/**
+ * SHA-256 of a live string/bytes operand's DECODED payload, via a
+ * `rawCall` to the SHA-256 precompile (0x02): heads are
+ * [target = 2][offset_data = 96], the resolved envelope spliced with the
+ * +32 offset trick so the precompile hashes the payload itself. rawCall
+ * returns the returndata as a bytes VALUE, so the 32-byte digest is
+ * unwrapped from its envelope with a core `pick` of word 2.
+ */
+export function sha256Param(ctx: CompileCtx, s: InputParam): InputParam {
+  const raw = opReadParam(
+    ctx,
+    OP_SELECTORS.rawCall,
+    mergeSegments([
+      wordSpan(2n), // target: the SHA-256 precompile
+      wordSpan(96n), // offset_data skips the 0x20 word at 64
+      s,
+    ]),
+  );
+  return staticCallParam(ctx.core, encodePick(raw, 2n));
 }
 
 /** A part of a spliced `bytes[]`: a literal payload, or ONE live operand

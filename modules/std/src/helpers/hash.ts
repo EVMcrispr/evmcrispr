@@ -9,6 +9,7 @@ import {
   hashParamOf,
   lensedDataOperand,
   requireBytesLike,
+  sha256Param,
 } from "@evmcrispr/sdk/onchain";
 import { keccak256, sha256, toHex } from "viem";
 import type Std from "..";
@@ -21,7 +22,7 @@ const algorithms = {
 export default defineHelper<Std>({
   name: "hash",
   description:
-    "Compute the hash of a string with keccak256 (default) or sha256. As @hash! the keccak256 of the decoded string/bytes return of a call, computed on-chain — compare long strings or blobs against a precomputed digest of the payload bytes.",
+    "Compute the hash of a string with keccak256 (default) or sha256. As @hash! the digest of the decoded string/bytes return of a call, computed on-chain — keccak256 through the Operators hash, sha256 through a rawCall to the SHA-256 precompile.",
   returnType: "bytes32",
   args: [
     {
@@ -55,21 +56,21 @@ export default defineHelper<Std>({
         "@hash! expects a single call argument (plus an optional algorithm)",
       );
     }
+    let algorithm = "keccak256";
     if (node.args.length === 2) {
-      // Only keccak256 has an on-chain operator today; sha256 lands with
-      // the rawCall recipes (the SHA-256 precompile).
-      const algorithm = await ctx.interpreters.interpretNode(node.args[1]);
-      if (String(algorithm) !== "keccak256") {
+      algorithm = String(await ctx.interpreters.interpretNode(node.args[1]));
+      if (algorithm !== "keccak256" && algorithm !== "sha256") {
         throw new ErrorException(
-          `@hash! computes keccak256 on-chain; "${String(algorithm)}" is not supported at assertion time yet`,
+          `@hash! computes keccak256 or sha256 on-chain; "${algorithm}" is not supported at assertion time`,
         );
       }
     }
     const arg = await chainArgWithLens(ctx, "hash!", node.args[0]);
     requireBytesLike(arg, "hash!");
+    const s = lensedDataOperand(ctx, arg);
     return {
       kind: "call",
-      param: hashParamOf(ctx, lensedDataOperand(ctx, arg)),
+      param: algorithm === "sha256" ? sha256Param(ctx, s) : hashParamOf(ctx, s),
       cat: "Bytes32",
     };
   },

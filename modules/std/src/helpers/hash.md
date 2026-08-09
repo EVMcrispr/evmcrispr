@@ -2,7 +2,7 @@
 title: "@hash"
 ---
 
-Compute the hash of a string with keccak256 (default) or sha256. As @hash! the keccak256 of the decoded string/bytes return of a call, computed on-chain — compare long strings or blobs against a precomputed digest of the payload bytes.
+Compute the hash of a string with keccak256 (default) or sha256. As @hash! the digest of the decoded string/bytes return of a call, computed on-chain — keccak256 through the Operators hash, sha256 through a rawCall to the SHA-256 precompile.
 
 **Returns**: `bytes32`
 
@@ -38,6 +38,10 @@ set $digest @hash("an example" sha256)
 
 ## On-chain face (@hash!)
 
-keccak256 of the decoded string/bytes return of a call, computed on-chain — compare long strings or blobs against a precomputed digest of the payload bytes.
+The digest of the decoded string/bytes return of a call, computed
+on-chain: keccak256 (default) through the Operators `hash`, sha256
+through a `rawCall` to the SHA-256 precompile (0x02) with the digest
+unwrapped from the returned bytes envelope. Compare long strings or
+blobs against a precomputed digest of the payload bytes.
 
 #
