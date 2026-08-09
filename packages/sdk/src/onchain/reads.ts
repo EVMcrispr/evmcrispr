@@ -13,7 +13,8 @@ import { encodeCalldata } from "../utils/encoders";
 import { compileOperand, materializeWord } from "./compile";
 import type { ArgSpec } from "./construct";
 import { buildCallSegments } from "./construct";
-import { encodeRead } from "./core";
+import { encodePick, encodeRead } from "./core";
+import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import type { Category, CompileCtx, Operand } from "./types";
 
@@ -57,6 +58,11 @@ async function argSpec(
 /**
  * Compile `target.fn(args)` into an operand: plain calldata when every
  * argument is a build-time value, a core read splice when any is live.
+ * `pickWord` unwraps one word of a multi-value return through a core
+ * `pick` (the same service `directReadOperand` provides for build-time
+ * calldata), so the operand stays a single word wherever it
+ * nests — a constraint only inspects the first word, but a nested splice
+ * would otherwise carry the whole returndata.
  */
 export async function callReadOperand(
   ctx: CompileCtx,
@@ -64,6 +70,7 @@ export async function callReadOperand(
   fnAbi: AbiFunction,
   args: readonly ReadArg[],
   cat: Category,
+  pickWord?: bigint,
 ): Promise<Operand> {
   if (args.length !== fnAbi.inputs.length) {
     throw new ErrorException(
@@ -74,25 +81,23 @@ export async function callReadOperand(
   for (const arg of args) {
     specs.push(await argSpec(ctx, arg, fnAbi.name));
   }
+  let param: InputParam;
   if (specs.every((s) => s.kind === "value")) {
     const values = specs.map((s) => (s as { value: unknown }).value);
-    return {
-      kind: "call",
-      param: staticCallParam(target, encodeCalldata(fnAbi, values as never)),
-      cat,
-    };
-  }
-  const call = buildCallSegments(fnAbi, specs);
-  return {
-    kind: "call",
-    param: staticCallParam(
+    param = staticCallParam(target, encodeCalldata(fnAbi, values as never));
+  } else {
+    const call = buildCallSegments(fnAbi, specs);
+    param = staticCallParam(
       ctx.core,
       encodeRead(
         rawParam(toWord(BigInt(target))),
         call.selector,
         call.segments,
       ),
-    ),
-    cat,
-  };
+    );
+  }
+  if (pickWord !== undefined) {
+    param = staticCallParam(ctx.core, encodePick(param, pickWord));
+  }
+  return { kind: "call", param, cat };
 }
