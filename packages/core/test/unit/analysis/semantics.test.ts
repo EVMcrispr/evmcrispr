@@ -90,9 +90,17 @@ class StubModule extends Module {
           ],
           run: async () => "ok",
         }),
+        // Batchable flag carried ONLY by registry metadata (below) — the
+        // wrapper deliberately has no `.batchable` so the analyzer must
+        // read the declared flag without dynamically importing.
+        hmeta: defineHelper({
+          name: "hmeta",
+          args: [],
+          run: async () => "ok",
+        }),
       },
-      { htwo: "string", hnob: "string", hopt: "string" },
-      { htwo: true, hnob: false, hopt: true },
+      { htwo: "string", hnob: "string", hopt: "string", hmeta: "string" },
+      { htwo: true, hnob: false, hopt: true, hmeta: false },
       {
         htwo: [
           { name: "a", type: "string" },
@@ -120,6 +128,12 @@ class StubModule extends Module {
           default: "https://example.com",
         },
       ],
+      [],
+      [],
+      {},
+      // Registry-declared batchable metadata: hmeta's wrapper carries no
+      // `.batchable`, so the analyzer only sees this map.
+      { hmeta: false },
     );
   }
 }
@@ -398,6 +412,22 @@ describe("Analysis > semantic diagnostics", () => {
 
     it("does not flag a non-batchable command outside a batch", async () => {
       const ds = await semantic("load stub\nstub:nob");
+      expect(codes(ds)).to.not.include("not-batchable");
+    });
+
+    it("flags a helper whose batchable flag lives only in registry metadata", async () => {
+      // hmeta's wrapper has no `.batchable`; the diagnostic can only come
+      // from the ModuleData.helperBatchable map (registry-first read).
+      const ds = await semantic(
+        "load stub [@hmeta]\nbatch (\n  set $x @hmeta\n)",
+      );
+      const d = ds.find((x) => x.code === "not-batchable");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/@hmeta/);
+    });
+
+    it("does not flag the registry-metadata helper outside a batch", async () => {
+      const ds = await semantic("load stub [@hmeta]\nset $x @hmeta");
       expect(codes(ds)).to.not.include("not-batchable");
     });
 

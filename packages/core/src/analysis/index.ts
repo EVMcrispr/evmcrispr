@@ -30,6 +30,15 @@ import type { ParseDiagnostic } from "../diagnostics";
 import { parseScript } from "../parsers/script";
 import { ModuleSchemaProvider } from "./moduleSchemas";
 
+/** One enclosing batch context (batch / connect / forward) on the walk
+ *  stack. `smart` marks a smart batch: its compile-faced reads evaluate
+ *  on-chain, so the non-batchable-helper gate is lifted for helpers with
+ *  a `name!` sibling. No producer sets it yet. */
+interface BatchFrame {
+  name: string;
+  smart?: boolean;
+}
+
 /** Literal builtin scalar types we can validate statically against a literal
  *  argument node with high confidence (value == runtime value). */
 const CHECKABLE_LITERAL_TYPES = new Set(["address", "number", "bool"]);
@@ -541,7 +550,7 @@ class SemanticAnalyzer {
 
   async #check(
     body: CommandExpressionNode[],
-    batchStack: string[],
+    batchStack: BatchFrame[],
   ): Promise<void> {
     for (const c of body) {
       // `def module` blocks get their own validation (and are NOT recursed
@@ -789,7 +798,7 @@ class SemanticAnalyzer {
 
   async #checkCommand(
     c: CommandExpressionNode,
-    batchStack: string[],
+    batchStack: BatchFrame[],
   ): Promise<void> {
     const isDef = !c.module && this.#meta.defCommands.has(c.name);
     const imported = c.module
@@ -963,11 +972,13 @@ class SemanticAnalyzer {
     // block body) see them.
     this.#recordDefs(c, cmd);
 
-    // Recurse into blocks, tracking batch context.
+    // Recurse into blocks, tracking batch context. No producer sets
+    // `smart` yet — it arrives with the executeComposable smart-batch
+    // compiler (`batch --smart`).
     const opensBatch = !!cmd?.createsBatchContext;
     for (const blk of this.#blocks(c)) {
       const nextStack = opensBatch
-        ? [...batchStack, this.#batchName(c)]
+        ? [...batchStack, { name: this.#batchName(c) }]
         : batchStack;
       await this.#check(blk.body, nextStack);
     }
@@ -1190,13 +1201,13 @@ class SemanticAnalyzer {
   #checkBatchable(
     c: CommandExpressionNode,
     cmd: ICommand,
-    batchStack: string[],
+    batchStack: BatchFrame[],
   ): void {
     if (cmd.batchable === false) {
       this.#diagnostics.push(
         diag(
           c,
-          `"${c.name}" cannot be used inside ${batchStack[batchStack.length - 1]}.`,
+          `"${c.name}" cannot be used inside ${batchStack[batchStack.length - 1].name}.`,
           "not-batchable",
         ),
       );
@@ -1415,7 +1426,7 @@ class SemanticAnalyzer {
 
   async #checkHelpers(
     c: CommandExpressionNode,
-    batchStack: string[],
+    batchStack: BatchFrame[],
   ): Promise<void> {
     const helpers: HelperFunctionNode[] = [];
     // A load command's import list contains bare helper *names*, not
@@ -1564,18 +1575,25 @@ class SemanticAnalyzer {
           );
         }
       }
-      // Non-batchable helper inside a batch context.
+      // Non-batchable helper inside a batch context. A smart batch lifts
+      // the gate for helpers with an on-chain (`name!`) face: the smart
+      // compiler evaluates the read on-chain, in sequence, instead of at
+      // batch-build time.
       if (batchStack.length > 0) {
+        const frame = batchStack[batchStack.length - 1];
         const batchable = await this.#schemas.getHelperBatchable(
           owningModule,
           localName,
         );
-        if (batchable === false) {
+        const liftedBySmart =
+          frame.smart === true &&
+          this.#schemas.getHelperOnchain(owningModule, localName);
+        if (batchable === false && !liftedBySmart) {
           this.#diagnostics.push(
             diag(
               h,
               `Helper @${this.#displayHelperName(h)} reads on-chain state and cannot be used inside ${
-                batchStack[batchStack.length - 1]
+                frame.name
               }; read it into a variable with \`set\` first.`,
               "not-batchable",
             ),
