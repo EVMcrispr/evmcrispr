@@ -1,4 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem, getAddress } from "viem";
 import type Governor from "..";
 import { governorAbi, toBigIntValue } from "../utils";
 
@@ -17,7 +20,7 @@ export default defineHelper<Governor>({
   name: "proposalState",
   batchable: false,
   description:
-    "Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed.",
+    "Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. As @proposalState! the state(id) read happens on-chain at assertion time as the RAW uint8 enum value (0 Pending, 1 Active, 2 Canceled, 3 Defeated, 4 Succeeded, 5 Queued, 6 Expired, 7 Executed) — the string mapping stays off-chain.",
   returnType: "string",
   args: [
     { name: "governor", type: "address", description: "Governor address" },
@@ -32,5 +35,18 @@ export default defineHelper<Governor>({
       args: [toBigIntValue(proposalId)],
     });
     return PROPOSAL_STATES[state] ?? String(state);
+  },
+  compile: async (ctx, node) => {
+    const governor = getAddress(
+      String(await ctx.interpreters.interpretNode(node.args[0])),
+    );
+    // The uint8 enum value; the string names stay off-chain.
+    return callReadOperand(
+      ctx,
+      governor,
+      getAbiItem({ abi: governorAbi, name: "state" }) as AbiFunction,
+      [node.args[1]],
+      "Uint",
+    );
   },
 });

@@ -2,7 +2,7 @@
 title: "@governor:proposalId"
 ---
 
-Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script.
+Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. As @proposalId! the id is read on-chain at assertion time through orElse(getProposalId, hashProposal) — whichever derivation the governor exposes wins.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -51,3 +51,22 @@ print @governor:proposalState($governor $id)
 ## See Also
 
 - [governor:propose](../commands/propose.md) / [@governor:proposalState](proposalState.md)
+
+## On-chain face (@proposalId!)
+
+Read the proposal id at assertion time through the core's orElse:
+getProposalId(...) on modern governors, hashProposal(...) where only
+the older derivation exists — whichever resolves wins. The proposal
+components still encode (and the description still hashes) at
+composition time.
+
+### Examples
+
+```evml
+load assertions
+load governor
+
+set $governor 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @proposalId!($governor [$target] [0] [$calldata] "do the thing") != 0
+```

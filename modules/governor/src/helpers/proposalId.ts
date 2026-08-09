@@ -1,6 +1,11 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
+import {
+  coreCall,
+  encodeOrElse,
+  staticCallParam,
+} from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
-import { isAddress, isHex } from "viem";
+import { encodeFunctionData, getAddress, isAddress, isHex } from "viem";
 import type Governor from "..";
 import { governorAbi, hashDescription, hashProposalLocal } from "../utils";
 
@@ -8,7 +13,7 @@ export default defineHelper<Governor>({
   name: "proposalId",
   batchable: false,
   description:
-    "Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script.",
+    "Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. As @proposalId! the id is read on-chain at assertion time through orElse(getProposalId, hashProposal) — whichever derivation the governor exposes wins.",
   returnType: "number",
   args: [
     { name: "governor", type: "address", description: "Governor address" },
@@ -63,6 +68,64 @@ export default defineHelper<Governor>({
         parsedCalldatas,
         descriptionHash,
       ),
+    );
+  },
+  compile: async (ctx, node) => {
+    if (node.args.length !== 5) {
+      throw new ErrorException(
+        "@proposalId! expects (governor targets values calldatas description)",
+      );
+    }
+    const [governor, targets, values, calldatas, description] =
+      await Promise.all(
+        node.args.map((n) => ctx.interpreters.interpretNode(n)),
+      );
+    const parsedTargets = (targets as unknown[]).map((t) => {
+      if (typeof t !== "string" || !isAddress(t)) {
+        throw new ErrorException(`<targets> must contain addresses, got ${t}`);
+      }
+      return t;
+    });
+    const parsedValues = (values as unknown[]).map((v) =>
+      (v instanceof Num ? v : Num(String(v))).toBigInt(),
+    );
+    const parsedCalldatas = (calldatas as unknown[]).map((c) => {
+      if (typeof c !== "string" || !isHex(c)) {
+        throw new ErrorException(
+          `<calldatas> must contain hex bytes, got ${c}`,
+        );
+      }
+      return c as Hex;
+    });
+    const args = [
+      parsedTargets,
+      parsedValues,
+      parsedCalldatas,
+      hashDescription(String(description)),
+    ] as const;
+    // orElse: modern governors expose getProposalId, older ones only
+    // hashProposal — the first derivation that resolves wins on-chain.
+    return coreCall(
+      ctx,
+      encodeOrElse(
+        staticCallParam(
+          getAddress(String(governor)),
+          encodeFunctionData({
+            abi: governorAbi,
+            functionName: "getProposalId",
+            args,
+          }),
+        ),
+        staticCallParam(
+          getAddress(String(governor)),
+          encodeFunctionData({
+            abi: governorAbi,
+            functionName: "hashProposal",
+            args,
+          }),
+        ),
+      ),
+      "Uint",
     );
   },
 });

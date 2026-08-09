@@ -2,7 +2,7 @@
 title: "@governor:timelockMinDelay"
 ---
 
-Minimum delay in seconds a TimelockController enforces on new operations.
+Minimum delay in seconds a TimelockController enforces on new operations. As @timelockMinDelay! the getMinDelay() read happens on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -40,3 +40,19 @@ governor:timelock-schedule $opId $timelock @governor:timelockMinDelay($timelock)
 ## See Also
 
 - [governor:timelock-schedule](../commands/timelock-schedule.md)
+
+## On-chain face (@timelockMinDelay!)
+
+Read getMinDelay() at assertion time — assert a batch did not lower the
+timelock's delay.
+
+### Examples
+
+```evml
+load assertions
+load governor
+
+set $timelock 0xa111111111111111111111111111111111111111
+
+assertions:assert @timelockMinDelay!($timelock) >= 3600 "delay lowered"
+```
