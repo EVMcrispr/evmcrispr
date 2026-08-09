@@ -998,6 +998,15 @@ describeCommand("assert", {
       },
     },
     {
+      name: "compiles @tx.from! to a plain origin read at the operators",
+      script: `assertions:assert @tx.from! == ${ME}`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expect(opsDirect(param)).to.equal(selectorOf("origin()"));
+        expectConstraint(param, "Eq", BigInt(ME));
+      },
+    },
+    {
       name: "compiles @tx.gasprice! to a plain gasPrice read at the operators",
       script: `assertions:assert @tx.gasprice! <= 50e9 "gas too pricey"`,
       validate: (actions) => {

@@ -1,11 +1,8 @@
 ---
 title: "@receipts:tx.from"
-experimental: true
-sidebar:
-  label: "@receipts:tx.from ⚗️"
 ---
 
-Sender address of a transaction.
+The sender of a transaction: addressed by hash you read the from field of a sealed receipt off-chain; as @tx.from! you read the origin of the transaction being written, on-chain at execution time (the ORIGIN opcode, no arguments).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -32,6 +29,17 @@ set $sender @receipts:tx.from(0x16df2e878e23ff261844fc9252f6c8bfcd4cb69f9f80895c
 ```
 
 <!-- HAND-WRITTEN -->
+
+## On-chain face (@tx.from!)
+
+With `!` and no arguments the read happens on-chain at execution time: the origin (ORIGIN opcode) of the transaction being written, which is exactly the `from` field its receipt will seal. Gate a batch on who is executing it:
+
+```evml
+load assertions
+load receipts
+
+assertions:assert @tx.from! == @me "someone else is executing this batch"
+```
 
 ## See Also
 
