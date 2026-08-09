@@ -125,6 +125,43 @@ export function includesParam(
 }
 
 /**
+ * A bounded fold over a LIVE payload (`foldWords`/`foldBytes`): heads are
+ * [offset_s][target][offset_template = 224][accOffset][elemOffset][init]
+ * [exit], the template tail sits at 224 and the runtime envelope of `s`
+ * is spliced last with offset_s skipping its leading 0x20 word. The
+ * lambda target is always the Operators contract itself — templates are
+ * built from its own vocabulary.
+ */
+export function foldParam(
+  ctx: CompileCtx,
+  kind: "foldWords" | "foldBytes",
+  s: InputParam,
+  template: Hex,
+  accOffset: bigint,
+  elemOffset: bigint,
+  init: bigint,
+  exit: number,
+): InputParam {
+  const templateTail = bytesTail(template);
+  const envelopeAt = 224 + templateTail.length / 2;
+  return opReadParam(
+    ctx,
+    OP_SELECTORS[kind],
+    mergeSegments([
+      wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
+      wordSpan(BigInt(ctx.operators)), // lambda target
+      wordSpan(224n), // offset_template
+      wordSpan(accOffset),
+      wordSpan(elemOffset),
+      wordSpan(init),
+      wordSpan(BigInt(exit)),
+      templateTail,
+      s,
+    ]),
+  );
+}
+
+/**
  * The character-class test: foldBytes over the live string with a
  * `bitSet(mask, byte)` template lambda, FoldExit.All and init 1 — the
  * accumulator stays 1 exactly while every byte's bit is set in the mask.
@@ -138,24 +175,65 @@ export function charsetParam(
 ): InputParam {
   // bitSet(mask, <element>) — 4 + 32 + 32 = 68 template bytes.
   const template: Hex = `0x${span(OP_SELECTORS.bitSet)}${wordSpan(mask)}${wordSpan(0n)}`;
+  return foldParam(ctx, "foldBytes", s, template, 36n, 36n, 1n, FOLD_EXIT.All);
+}
+
+/**
+ * `mapWords` over a LIVE payload: heads are [offset_s][target]
+ * [offset_template = 128][elemOffset], the template tail at 128 and the
+ * runtime envelope of `s` spliced last with the +32 offset trick.
+ */
+export function mapWordsParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  template: Hex,
+  elemOffset: bigint,
+): InputParam {
   const templateTail = bytesTail(template);
-  // Heads: [offset_s][target][offset_template][accOffset][elemOffset]
-  //        [init][exit] = 7 words; the template tail follows at 224 and
-  //        the live envelope is spliced last.
-  const envelopeAt = 224 + templateTail.length / 2;
+  const envelopeAt = 128 + templateTail.length / 2;
   return opReadParam(
     ctx,
-    OP_SELECTORS.foldBytes,
+    OP_SELECTORS.mapWords,
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
-      wordSpan(BigInt(ctx.operators)), // lambda target: Operators.bitSet
-      wordSpan(224n), // offset_template
-      wordSpan(36n), // accOffset
-      wordSpan(36n), // elemOffset
-      wordSpan(1n), // init
-      wordSpan(BigInt(FOLD_EXIT.All)),
+      wordSpan(BigInt(ctx.operators)), // lambda target
+      wordSpan(128n), // offset_template
+      wordSpan(elemOffset),
       templateTail,
       s,
+    ]),
+  );
+}
+
+/**
+ * The word payload of a live ARRAY-envelope operand as a bytes value —
+ * the bridge from a `T[]` return (envelope `[0x20][count][words…]`, its
+ * length word an ELEMENT count) into the word-array operators (foldWords,
+ * mapWords, sortWords, …) whose `bytes` payloads measure length in BYTES.
+ *
+ * Compiles to `slice(data, 64, 32 * count)` where `data` is the raw array
+ * envelope re-framed as bytes: heads are [offset_data = 96][start = 64]
+ * [len = mul(count, 32)], and at 96 a LIVE synthesized length word
+ * `add(mul(count, 32), 64)` is spliced immediately before the raw
+ * envelope — so the decoder sees a bytes value whose payload is the whole
+ * envelope, and the slice skips its two head words.
+ */
+export function arrayWordsParam(
+  ctx: CompileCtx,
+  envelope: InputParam,
+  count: InputParam,
+): InputParam {
+  const len32 = wordOpParam(ctx, "mul", false, count, rawParam(toWord(32n)));
+  const total = wordOpParam(ctx, "add", false, len32, rawParam(toWord(64n)));
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.slice,
+    mergeSegments([
+      wordSpan(96n), // offset_data: the re-framed envelope at 96
+      wordSpan(64n), // start: skip the [0x20][count] head words
+      len32, // len = 32 * count (live word)
+      total, // synthesized bytes length word (live)
+      envelope, // the raw array envelope [0x20][count][words…]
     ]),
   );
 }

@@ -864,11 +864,30 @@ export async function compileTopCall(
   return { kind: "call", param, cat: categoryFromAbiType(terminal.type) };
 }
 
+/** Property carrying a pre-compiled operand on a synthetic node: the
+ *  fold-lambda machinery substitutes the element placeholder this way
+ *  (see `onchain/lambda.ts`). {@link compileOperand} short-circuits on it
+ *  before any node-type dispatch. */
+export const PRECOMPILED_OPERAND = "__evmcrisprOperand";
+
+/** A synthetic bareword node that compiles to a fixed operand. */
+export function operandNode(operand: Operand): Node {
+  return {
+    type: NodeType.Bareword,
+    value: "element",
+    [PRECOMPILED_OPERAND]: operand,
+  } as unknown as Node;
+}
+
 /** Compile any node into a nested-expression operand. */
 export async function compileOperand(
   ctx: CompileCtx,
   node: Node,
 ): Promise<Operand> {
+  const preCompiled = (node as unknown as Record<string, unknown>)[
+    PRECOMPILED_OPERAND
+  ];
+  if (preCompiled) return preCompiled as Operand;
   if (node.type === NodeType.CallExpression) {
     return compileCallOperand(ctx, node as CallExpressionNode);
   }

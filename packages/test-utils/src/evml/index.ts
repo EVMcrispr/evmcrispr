@@ -8,6 +8,7 @@ export {
   Interpreter,
   parseScript,
 } from "@evmcrispr/core";
+export * from "./assert";
 export * from "./evml";
 export * from "./expects";
 export { registerAllModules } from "./modules";
