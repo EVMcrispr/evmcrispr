@@ -7,6 +7,7 @@
  * give its helpers an on-chain (`compile`) face.
  */
 export * from "./addresses";
+export * from "./arrays";
 export * from "./compile";
 export * from "./composition";
 export * from "./construct";
