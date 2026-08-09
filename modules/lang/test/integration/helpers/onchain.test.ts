@@ -824,3 +824,166 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
     },
   ],
 });
+
+// ---------------------------------------------------------------------------
+//  Wave 4: @bytes.at!, @bytes.slice!, @str.concat! and the array @slice!
+// ---------------------------------------------------------------------------
+
+describeCommand("assert (lang on-chain faces, wave 4)", {
+  describeName: "Lang > helpers > on-chain faces (wave 4)",
+  preamble,
+  cases: [
+    // ---- @bytes.at! / @bytes.slice! ---------------------------------------
+    {
+      name: "compiles @bytes.at! to a one-byte slice with the Bytes category",
+      script: `assertions:assert @bytes.at!(${TOKEN}::{payload()(bytes)} 0) == 0x11`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        expect(segs[0].paramData).to.equal(
+          `0x${word(128n).slice(2)}${word(0n).slice(2)}${word(1n).slice(2)}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0x11")));
+      },
+    },
+    {
+      name: "resolves a negative @bytes.at! index against the live byte length",
+      script: `assertions:assert @bytes.at!(${TOKEN}::{payload()(bytes)} -1) == 0x22`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(4);
+        d.expectRawWord(segs[0], 128n);
+        const subArgs = d.opReadOf(segs[1], "sub(uint256,uint256)");
+        d.opReadOf(subArgs[0], "byteLen(bytes)");
+        d.expectRawWord(subArgs[1], 1n);
+        d.expectRawWord(segs[2], 1n);
+        expect(d.staticCallOf(segs[3]).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "compiles a constant-range @bytes.slice! to one slice read",
+      script: `assertions:assert @bytes.slice!(${TOKEN}::{payload()(bytes)} 1 3) == 0xabcd`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        expect(segs[0].paramData).to.equal(
+          `0x${word(128n).slice(2)}${word(1n).slice(2)}${word(2n).slice(2)}`,
+        );
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0xabcd")));
+      },
+    },
+    // ---- @str.concat! -------------------------------------------------------
+    {
+      name: "compiles @str.concat! to one concat with the live part spliced last",
+      script: `assertions:assert @str.concat!("v" ${TOKEN}::{major()(string)}) == "v2"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
+        expect(segs).to.have.lengthOf(2);
+        const constTail = tailOf(hex("v"));
+        const liveAt = 64 + 64 + constTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(32n).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 64)).slice(2)}${constTail}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+        d.expectConstraint(param, "Eq", BigInt(stringDigest("v2")));
+      },
+    },
+    // ---- @slice! (array) ----------------------------------------------------
+    {
+      name: "compiles a constant-range array @slice! with 32-scaled bounds",
+      script: `assertions:assert @slice!(${TOKEN}::{caps()(uint256[])} 1 3) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        // [offset 128][start = 32][len = 64]: element indices scaled by
+        // 32 at composition time
+        expect(segs[0].paramData).to.equal(
+          `0x${word(128n).slice(2)}${word(32n).slice(2)}${word(64n).slice(2)}`,
+        );
+        expectWordsPayload(segs[1]);
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0x1122")));
+      },
+    },
+    {
+      name: "compiles an open-ended array @slice! with a live remaining length",
+      script: `assertions:assert @slice!(${TOKEN}::{caps()(uint256[])} 1) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(3);
+        // [128][32], then len = sub(byteLen(payload), 32), payload last
+        expect(segs[0].paramData).to.equal(
+          `0x${word(128n).slice(2)}${word(32n).slice(2)}`,
+        );
+        const subArgs = d.opReadOf(segs[1], "sub(uint256,uint256)");
+        const byteLenArgs = d.opReadOf(subArgs[0], "byteLen(bytes)");
+        expectWordsPayload(byteLenArgs[0]);
+        d.expectRawWord(subArgs[1], 32n);
+        expectWordsPayload(segs[2]);
+      },
+    },
+    {
+      name: "resolves a negative array @slice! start against the live length",
+      script: `assertions:assert @slice!(${TOKEN}::{caps()(uint256[])} -2) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "slice(bytes,uint256,uint256)");
+        expect(segs).to.have.lengthOf(4);
+        d.expectRawWord(segs[0], 128n);
+        // start = sub(byteLen(payload), 64), len = 64 (constant tail)
+        const subArgs = d.opReadOf(segs[1], "sub(uint256,uint256)");
+        d.opReadOf(subArgs[0], "byteLen(bytes)");
+        d.expectRawWord(subArgs[1], 64n);
+        d.expectRawWord(segs[2], 64n);
+        expectWordsPayload(segs[3]);
+      },
+    },
+    {
+      name: "nests an array @slice! into @len! as a words payload",
+      script: `assertions:assert @len!(@slice!(${TOKEN}::{caps()(uint256[])} 1 3)) == 2`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const divArgs = d.opReadOf(param, "div(uint256,uint256)");
+        const byteLenArgs = d.opReadOf(divArgs[0], "byteLen(bytes)");
+        d.opReadOf(byteLenArgs[0], "slice(bytes,uint256,uint256)");
+        d.expectRawWord(divArgs[1], 32n);
+        d.expectConstraint(param, "Eq", 2n);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "rejects an inverted constant array @slice! range",
+      script: `assertions:assert @slice!(${TOKEN}::{caps()(uint256[])} 3 1) == 0x11`,
+      error: "end 1 is before start 3",
+    },
+    {
+      name: "rejects an inverted constant @bytes.slice! range",
+      script: `assertions:assert @bytes.slice!(${TOKEN}::{payload()(bytes)} 5 2) == 0x11`,
+      error: "before start",
+    },
+    {
+      name: "rejects two live parts in @str.concat!",
+      script: `assertions:assert @str.concat!(${TOKEN}::{name()(string)} ${TOKEN}::{symbol()(string)}) == "x"`,
+      error: "at most ONE live part",
+    },
+    {
+      name: "points word returns of @bytes.at! at the word faces",
+      script: `assertions:assert @bytes.at!(${TOKEN}::{cap()(uint256)} 0) == 0x11`,
+      error: "needs a string or bytes value",
+    },
+  ],
+});
