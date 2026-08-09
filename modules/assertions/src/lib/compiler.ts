@@ -30,6 +30,7 @@ import {
   encodeCalc,
   encodeChain,
   encodeData,
+  encodeInvoke,
   encodeNav,
   encodePick,
   encodeUnary,
@@ -50,8 +51,8 @@ import {
   checkLogic,
   isNumericCat,
 } from "./composition";
-import type { ArgSpec, HoleRegistry } from "./construct";
-import { buildCalldata, dynHole, isDynamicParam, wordHole } from "./construct";
+import type { ArgSpec, InvokeCall } from "./construct";
+import { buildCallSegments, isDynamicParam } from "./construct";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 
@@ -124,8 +125,6 @@ export interface CompilerCtx {
   interpreters: NodesInterpreters;
   /** Resolved combinators contract address. */
   combinators: Address;
-  /** Live-argument hole registry for this compilation (see ./construct). */
-  holes: HoleRegistry;
 }
 
 /** A flattened `::` chain as the v2 combinators consume it: `start`
@@ -137,15 +136,21 @@ export interface Chain {
   /** Set when `start` is a literal address (single-hop shortcut + ABI
    *  fetching for named hops). */
   startAddress?: Address;
-  /** Plain abi.encodeCall entries, one per hop (may carry hole markers). */
+  /** Plain abi.encodeCall entries, one per hop. */
   calls: Hex[];
   lastAbi: AbiFunction;
+  /** Set once a hop with live arguments was folded into `start` as an
+   *  `invoke` param — build-time address resolution stops there. */
+  liveArgs?: boolean;
 }
 
-/** Express a chain as a single InputParam: a one-hop chain rooted at a
- *  literal address is the call itself; anything longer routes through the
- *  `chain` combinator. */
+/** Express a chain as a single InputParam: an invoke-terminated chain's
+ *  value is `start` itself, a one-hop chain rooted at a literal address is
+ *  the call itself; anything longer routes through the `chain` combinator. */
 export function chainParam(ctx: CompilerCtx, chain: Chain): InputParam {
+  if (chain.calls.length === 0) {
+    return chain.start;
+  }
   if (chain.calls.length === 1 && chain.startAddress) {
     return staticCallParam(chain.startAddress, chain.calls[0]);
   }
@@ -266,26 +271,18 @@ function flattenCallNodes(node: CallExpressionNode): {
 const CHAIN_RESOLVE_ERROR =
   "could not resolve an intermediate chain target at build time to fetch its ABI — use the inline form ::{method(argTypes)(returnType)} for chained calls";
 
-function callsHaveHoles(ctx: CompilerCtx, calls: Hex[]): boolean {
-  const markers = [
-    ...ctx.holes.words.keys(),
-    ...(ctx.holes.dyn ? [ctx.holes.dyn.marker] : []),
-  ];
-  return calls.some((c) => {
-    const body = c.slice(2).toLowerCase();
-    return markers.some((m) => body.includes(m));
-  });
-}
-
 /** Resolve the address a chain prefix returns, via a build-time eth_call.
- *  Only needed to fetch the ABI of a named (non-inline) later hop. */
+ *  Only needed to fetch the ABI of a named (non-inline) later hop. A prefix
+ *  carrying live arguments (an invoke param) cannot be resolved at build
+ *  time — the combinators evaluating it are a judge-time dependency. */
 async function resolveChainAddress(
   ctx: CompilerCtx,
   start: InputParam,
   startAddress: Address | undefined,
   calls: Hex[],
+  liveArgs: boolean | undefined,
 ): Promise<Address> {
-  if (callsHaveHoles(ctx, calls)) {
+  if (liveArgs) {
     throw new ErrorException(CHAIN_RESOLVE_ERROR);
   }
   const client = await ctx.module.getClient();
@@ -330,7 +327,7 @@ async function resolveChainAddress(
 async function hopAbi(
   ctx: CompilerCtx,
   hop: CallExpressionNode,
-  chain: Pick<Chain, "start" | "startAddress" | "calls">,
+  chain: Pick<Chain, "start" | "startAddress" | "calls" | "liveArgs">,
 ): Promise<AbiFunction> {
   if (hop.inputTypes && hop.outputTypes) {
     const sig = `function ${hop.method}${hop.inputTypes} view returns ${hop.outputTypes}`;
@@ -344,45 +341,35 @@ async function hopAbi(
           chain.start,
           chain.startAddress,
           chain.calls,
+          chain.liveArgs,
         );
   return loadFunctionAbi(ctx.module, addr, hop.method);
 }
 
-/** Compile a hop's argument list, turning nested `::` calls and `!` helpers
- *  into live holes (word or dynamic-envelope splices) and interpreting
- *  everything else at build time. */
-async function compileHopArgs(
+/** Compile an argument node list into ArgSpecs, turning nested `::` calls
+ *  and `!` helpers into live params and interpreting everything else at
+ *  build time. Shared by hop compilation and the @invoke! helper. */
+export async function compileArgSpecs(
   ctx: CompilerCtx,
-  hop: CallExpressionNode,
+  argNodes: readonly Node[],
   fnAbi: AbiFunction,
-): Promise<Hex> {
-  const liveIdx = hop.args.findIndex(
-    (a) => a.type === NodeType.CallExpression || isBangHelperNode(a),
-  );
-  if (liveIdx === -1) {
-    const argVals = await ctx.interpreters.interpretNodes(hop.args);
-    return encodeCalldata(fnAbi, argVals);
-  }
-  if (hop.args.length !== fnAbi.inputs.length) {
+  method: string,
+): Promise<ArgSpec[]> {
+  if (argNodes.length !== fnAbi.inputs.length) {
     throw new ErrorException(
-      `${hop.method} expects ${fnAbi.inputs.length} argument(s), got ${hop.args.length}`,
+      `${method} expects ${fnAbi.inputs.length} argument(s), got ${argNodes.length}`,
     );
   }
   const specs: ArgSpec[] = [];
-  for (let i = 0; i < hop.args.length; i++) {
-    const arg = hop.args[i];
+  for (let i = 0; i < argNodes.length; i++) {
+    const arg = argNodes[i];
     const input = fnAbi.inputs[i];
     if (arg.type === NodeType.CallExpression) {
       specs.push(
-        await compileLiveCallArg(
-          ctx,
-          arg as CallExpressionNode,
-          input,
-          hop.method,
-        ),
+        await compileLiveCallArg(ctx, arg as CallExpressionNode, input, method),
       );
     } else if (isBangHelperNode(arg)) {
-      specs.push(await compileLiveHelperArg(ctx, arg, input, hop.method));
+      specs.push(await compileLiveHelperArg(ctx, arg, input, method));
     } else {
       specs.push({
         kind: "value",
@@ -390,7 +377,44 @@ async function compileHopArgs(
       });
     }
   }
-  return buildCalldata(fnAbi, specs);
+  return specs;
+}
+
+/** A compiled hop: plain fixed calldata, or — when any argument is live —
+ *  an invoke construction the chain folds into its `start`. */
+type CompiledHop =
+  | { kind: "plain"; data: Hex }
+  | { kind: "invoke"; call: InvokeCall };
+
+/** Compile a hop's argument list. */
+async function compileHopArgs(
+  ctx: CompilerCtx,
+  hop: CallExpressionNode,
+  fnAbi: AbiFunction,
+): Promise<CompiledHop> {
+  const liveIdx = hop.args.findIndex(
+    (a) => a.type === NodeType.CallExpression || isBangHelperNode(a),
+  );
+  if (liveIdx === -1) {
+    const argVals = await ctx.interpreters.interpretNodes(hop.args);
+    return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
+  }
+  const specs = await compileArgSpecs(ctx, hop.args, fnAbi, hop.method);
+  return { kind: "invoke", call: buildCallSegments(fnAbi, specs) };
+}
+
+/** Fold an invoke hop into a chain: the accumulated prefix becomes the
+ *  invoke's target param and the chain restarts from the invoke value. */
+function invokeParam(
+  ctx: CompilerCtx,
+  chain: Chain,
+  call: InvokeCall,
+): InputParam {
+  const target = chainParam(ctx, chain);
+  return staticCallParam(
+    ctx.combinators,
+    encodeInvoke(target, call.selector, call.segments),
+  );
 }
 
 /** Compile a `::` call expression (possibly chained) into a Chain. */
@@ -411,11 +435,17 @@ export async function compileChain(
   let start: InputParam = rawParam(toWord(BigInt(startAddress)));
   let calls: Hex[] = [];
   let lastAbi: AbiFunction | undefined;
+  let liveArgs = false;
 
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
-    const fnAbi = await hopAbi(ctx, hop, { start, startAddress, calls });
+    const fnAbi = await hopAbi(ctx, hop, {
+      start,
+      startAddress,
+      calls,
+      liveArgs,
+    });
     if (!fnAbi.outputs || fnAbi.outputs.length === 0) {
       throw new ErrorException(
         `${hop.method} has no return value to assert on`,
@@ -437,13 +467,24 @@ export async function compileChain(
           `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
         );
       }
-      calls.push(await compileHopArgs(ctx, hop, fnAbi));
-      const prefix = chainParam(ctx, {
-        start,
-        startAddress,
-        calls,
-        lastAbi: fnAbi,
-      });
+      const compiled = await compileHopArgs(ctx, hop, fnAbi);
+      let prefix: InputParam;
+      if (compiled.kind === "invoke") {
+        prefix = invokeParam(
+          ctx,
+          { start, startAddress, calls, lastAbi: fnAbi },
+          compiled.call,
+        );
+        liveArgs = true;
+      } else {
+        calls.push(compiled.data);
+        prefix = chainParam(ctx, {
+          start,
+          startAddress,
+          calls,
+          lastAbi: fnAbi,
+        });
+      }
       const data = pickableIndex(fnAbi.outputs, resolved)
         ? encodePick(prefix, BigInt(resolved[0]))
         : encodeNav(
@@ -464,11 +505,25 @@ export async function compileChain(
         );
       }
     }
-    calls.push(await compileHopArgs(ctx, hop, fnAbi));
+    const compiled = await compileHopArgs(ctx, hop, fnAbi);
+    if (compiled.kind === "invoke") {
+      // The invoke value replaces the chain so far: it resolves this hop's
+      // return, and (mid-chain) its first word is the next hop's target.
+      start = invokeParam(
+        ctx,
+        { start, startAddress, calls, lastAbi: fnAbi },
+        compiled.call,
+      );
+      startAddress = undefined;
+      calls = [];
+      liveArgs = true;
+    } else {
+      calls.push(compiled.data);
+    }
     lastAbi = fnAbi;
   }
 
-  return { start, startAddress, calls, lastAbi: lastAbi! };
+  return { start, startAddress, calls, lastAbi: lastAbi!, liveArgs };
 }
 
 /** Resolve a return-destructure lens into a navigation path: one index per
@@ -692,9 +747,9 @@ function wordTypesCompatible(declared: string, actual: string): boolean {
   return categoryFromAbiType(declared) === categoryFromAbiType(actual);
 }
 
-/** Compile a nested `::` call used as a call ARGUMENT into a live hole:
- *  single-word selections splice as 32-byte word holes; dynamic selections
- *  (via `nav`) splice as a variable-size envelope hole. */
+/** Compile a nested `::` call used as a call ARGUMENT into a live segment:
+ *  single-word selections contribute a 32-byte word segment; dynamic
+ *  selections (via `nav`) contribute their variable-size envelope. */
 async function compileLiveCallArg(
   ctx: CompilerCtx,
   node: CallExpressionNode,
@@ -708,17 +763,17 @@ async function compileLiveCallArg(
         `the nested call ${node.method} resolves a ${terminal.type} value, but parameter ${input.name ?? ""} of ${method} is ${input.type}`,
       );
     }
-    return { kind: "word", marker: wordHole(ctx.holes, param) };
+    return { kind: "word", param };
   }
   if (formatParamType(terminal) !== formatParamType(input)) {
     throw new ErrorException(
       `the nested call ${node.method} resolves a ${formatParamType(terminal)} value, but parameter ${input.name ?? ""} of ${method} is ${formatParamType(input)} — adjust the lens to select a matching value`,
     );
   }
-  return { kind: "dyn", marker: dynHole(ctx.holes, param) };
+  return { kind: "dyn", param };
 }
 
-/** Compile a `!` helper used as a call ARGUMENT into a live word hole
+/** Compile a `!` helper used as a call ARGUMENT into a live word segment
  *  (folding to a constant when the helper does). */
 async function compileLiveHelperArg(
   ctx: CompilerCtx,
@@ -735,7 +790,7 @@ async function compileLiveHelperArg(
       `@${node.name} resolves a single word; parameter ${input.name ?? ""} of ${method} is ${input.type}`,
     );
   }
-  return { kind: "word", marker: wordHole(ctx.holes, o.param) };
+  return { kind: "word", param: o.param };
 }
 
 // ---------------------------------------------------------------------------

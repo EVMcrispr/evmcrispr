@@ -9,10 +9,11 @@ load assertions
 Assertions compile to the ERC-8211 (Smart Batching) wire format judged by
 the Assertions v2 core: live values are `InputParam`s (staticcalls, balance
 reads, or nested combinator expressions) validated by inline constraints
-via `assertParam`, and nested live call arguments compile to
-`assertComposable` construction batches spliced at judge time. Composed
-expressions (chains, arithmetic, logic, string ops, typed navigation) are
-computed by the Combinators v2 contract.
+via `assertParam`, and nested live call arguments compile to the
+Combinators `invoke` primitive — calls constructed on-chain from resolved
+calldata segments at judge time. Composed expressions (chains, arithmetic,
+logic, string ops, typed navigation) are computed by the Combinators v2
+contract.
 
 ## Configuration variables
 
@@ -52,6 +53,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:codehash!](src/helpers/codehash-bang.md) | `bytes32` | The EXTCODEHASH of an account, read on-chain at assertion time: `bytes32(0)` for a nonexistent account, `keccak256` of the code otherwise. The account can be a `::` call resolving to an address, such as a proxy implementation. |
 | [@assertions:hash!](src/helpers/hash-bang.md) | `bytes32` | keccak256 of the raw return data of a call, computed on-chain — compare structs, arrays or long strings against a precomputed hash. |
 | [@assertions:includes!](src/helpers/includes-bang.md) | `bool` | Whether the string return of a call contains a substring, checked on-chain — exact byte sequence, case-sensitive, no wildcards. |
+| [@assertions:invoke!](src/helpers/invoke-bang.md) | `any` | Call a read-only function with live arguments at assertion time: the target and any argument may be a `::` call or an on-chain helper, compiled to the combinators `invoke` primitive. |
 | [@assertions:len!](src/helpers/len-bang.md) | `number` | The decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes. |
 | [@assertions:max!](src/helpers/max-bang.md) | `number` | Maximum of two or more values, computed on-chain at assertion time. |
 | [@assertions:min!](src/helpers/min-bang.md) | `number` | Minimum of two or more values, computed on-chain at assertion time. |

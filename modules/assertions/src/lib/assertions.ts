@@ -7,16 +7,16 @@ import {
 } from "@evmcrispr/sdk";
 import type { AbiFunction } from "viem";
 import { getAbiItem, getAddress, isAddress } from "viem";
-import type { ComposableExecution, InputParam } from "./erc8211";
-import { encodeAssertComposable, encodeAssertParam } from "./erc8211";
+import type { InputParam } from "./erc8211";
+import { encodeAssertParam } from "./erc8211";
 
 /** Canonical CREATE2 address of the Assertions core v2.0 on every chain. */
 export const ASSERTIONS_ADDRESS: Address =
-  "0xA55E4797c1b755183B7Aad07BFd39D3e824621f9";
+  "0xa55E47F37088b6D0212BdfD56b175ec08744DB19";
 
 /** Canonical CREATE2 address of the Combinators v2.0 on every chain. */
 export const COMBINATORS_ADDRESS: Address =
-  "0xA55EC06e0A82a5ed05bf08c0ff07A45d4BC2eBf8";
+  "0xA55Ec0935FB5aaf95CAC1F48DD822005d91b64b9";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);
@@ -66,23 +66,6 @@ export async function assertParamAction(
   return {
     to: target,
     data: encodeAssertParam(param, message),
-    readOnly: true,
-  };
-}
-
-/**
- * Encode an `assertComposable(executions[, message])` action (native
- * view-mode judge), flagged `readOnly` like {@link assertParamAction}.
- */
-export async function assertComposableAction(
-  module: Module,
-  executions: ComposableExecution[],
-  message = "",
-): Promise<TransactionAction> {
-  const target = await resolveAssertionsContract(module);
-  return {
-    to: target,
-    data: encodeAssertComposable(executions, message),
     readOnly: true,
   };
 }

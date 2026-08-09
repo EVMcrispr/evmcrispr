@@ -3,6 +3,7 @@ import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
 import { encodeAbiParameters, isHex, keccak256 } from "viem";
 import type Assertions from "..";
 import {
+  assertParamAction,
   operatorFragment,
   resolveCombinatorsContract,
 } from "../lib/assertions";
@@ -16,7 +17,6 @@ import {
   isBangHelperNode,
   stringEnvelopeDigest,
 } from "../lib/compiler";
-import { createHoleRegistry, emitAssertion } from "../lib/construct";
 import type { InputParam } from "../lib/erc8211";
 import { constraint, staticCallParam } from "../lib/erc8211";
 import { calcJudge, judged, wordJudge } from "../lib/judge";
@@ -111,10 +111,9 @@ export default defineCommand<Assertions>({
       module,
       interpreters,
       combinators: await resolveCombinatorsContract(module),
-      holes: createHoleRegistry(),
     };
     const emit = async (param: InputParam): Promise<Action[]> => [
-      await emitAssertion(module, ctx.holes, ctx.combinators, param, msg),
+      await assertParamAction(module, param, msg),
     ];
 
     const lhsNode = call as Node;

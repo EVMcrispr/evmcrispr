@@ -108,13 +108,14 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
   `@absdiff!(a b) <= delta`.
-- Nested live calls as call arguments compile to `assertComposable`
-  construction batches: each nesting level becomes an entry that fetches
-  the inner values and splices them into the enclosing calldata at judge
-  time (assertions judging assertions). Word-typed arguments (uint, int,
-  address, bool, bytes32) splice anywhere; a dynamic-typed argument
-  (array/string/bytes selected by a lens) must be the last argument of the
-  outermost judged call, and there can be at most one.
+- Nested live calls as call arguments compile to the combinators' `invoke`
+  primitive: the enclosing call becomes an on-chain-constructed operand
+  whose calldata segments (literal spans + live values) the judge
+  concatenates at assertion time, so the judged value always flows through
+  a plain `assertParam`. Word-typed arguments (uint, int, address, bool,
+  bytes32) splice anywhere at any nesting depth; a dynamic-typed argument
+  (array/string/bytes selected by a lens) must be the last argument of its
+  call, at most one per call.
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
 - Set `$assertions:address` / `$assertions:combinators` to override the
@@ -122,5 +123,5 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
 
 ## See Also
 
-- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md)
+- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md), [@assertions:invoke!](../helpers/invoke-bang.md)
 - [@assertions:balance!](../helpers/balance-bang.md), [@assertions:len!](../helpers/len-bang.md), [@assertions:split!](../helpers/split-bang.md)

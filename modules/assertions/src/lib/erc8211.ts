@@ -1,12 +1,6 @@
 import type { Address } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
-import {
-  encodeFunctionData,
-  encodePacked,
-  numberToHex,
-  parseAbi,
-  toFunctionSelector,
-} from "viem";
+import { encodeFunctionData, encodePacked, numberToHex, parseAbi } from "viem";
 
 /**
  * TypeScript mirror of the ERC-8211 (Smart Batching) wire format the v2
@@ -61,7 +55,7 @@ export interface ComposableExecution {
 //  ABI
 // ---------------------------------------------------------------------------
 
-/** ABI of the Assertions core v2 (both judging modes + the shorthand). */
+/** ABI of the Assertions core v2 (the batch judge + the shorthand). */
 export const ASSERTIONS_ABI = parseAbi([
   "struct Constraint { uint8 constraintType; bytes referenceData; }",
   "struct InputParam { uint8 paramType; uint8 fetcherType; bytes paramData; Constraint[] constraints; }",
@@ -71,24 +65,7 @@ export const ASSERTIONS_ABI = parseAbi([
   "function assertParam(InputParam param, string message) view",
   "function assertComposable(ComposableExecution[] executions) view",
   "function assertComposable(ComposableExecution[] executions, string message) view",
-  "function assertComposable(address composable, ComposableExecution[] executions) view",
-  "function assertComposable(address composable, ComposableExecution[] executions, string message) view",
 ]);
-
-const INPUT_PARAM_SIG =
-  "(uint8 paramType, uint8 fetcherType, bytes paramData, (uint8 constraintType, bytes referenceData)[] constraints)";
-const EXECUTION_SIG = `(bytes4 functionSig, ${INPUT_PARAM_SIG}[] inputParams, (uint8 fetcherType, bytes paramData)[] outputParams)`;
-
-/** 4-byte selector of `assertParam(InputParam)` — the no-message form the
- *  splice compiler constructs calls to. */
-export const ASSERT_PARAM_SELECTOR = toFunctionSelector(
-  `function assertParam(${INPUT_PARAM_SIG})`,
-);
-
-/** 4-byte selector of `assertComposable(ComposableExecution[])`. */
-export const ASSERT_COMPOSABLE_SELECTOR = toFunctionSelector(
-  `function assertComposable(${EXECUTION_SIG}[])`,
-);
 
 // ---------------------------------------------------------------------------
 //  Constructors
@@ -139,8 +116,8 @@ export function staticCallParam(
 
 /** The STATIC_CALL fetcher's paramData: abi.encode(target, data). */
 export function encodeStaticCallData(target: Address, data: Hex): Hex {
-  // abi.encode(address, bytes) — hand-rolled so the splice compiler can
-  // reproduce hole offsets exactly (see ./construct).
+  // abi.encode(address, bytes), hand-rolled — byte-identical to viem's
+  // encoder, kept explicit so the layout is auditable in one place.
   const len = (data.length - 2) / 2;
   const padded = (data + "00".repeat((32 - (len % 32)) % 32)) as Hex;
   return `0x${toWord(BigInt(target)).slice(2)}${toWord(64n).slice(2)}${toWord(
@@ -197,14 +174,9 @@ export function inConstraint(lower: bigint, upper: bigint): Constraint {
 // ---------------------------------------------------------------------------
 
 function abiItem(name: string, argCount: number) {
-  // Skip the wrapped-judge overloads (leading `address composable`): the
-  // module only ever emits the native judge.
   const item = ASSERTIONS_ABI.find(
     (f) =>
-      f.type === "function" &&
-      f.name === name &&
-      f.inputs.length === argCount &&
-      f.inputs[0].type !== "address",
+      f.type === "function" && f.name === name && f.inputs.length === argCount,
   );
   if (!item) throw new Error(`missing ABI item ${name}/${argCount}`);
   return item;
@@ -223,23 +195,5 @@ export function encodeAssertParam(param: InputParam, message = ""): Hex {
         abi: [abiItem("assertParam", 2)],
         functionName: "assertParam",
         args: [param, message],
-      } as unknown as Parameters<typeof encodeFunctionData>[0]);
-}
-
-/** Calldata for `assertComposable(executions[, message])` (native judge). */
-export function encodeAssertComposable(
-  executions: ComposableExecution[],
-  message = "",
-): Hex {
-  return message === ""
-    ? encodeFunctionData({
-        abi: [abiItem("assertComposable", 1)],
-        functionName: "assertComposable",
-        args: [executions],
-      } as unknown as Parameters<typeof encodeFunctionData>[0])
-    : encodeFunctionData({
-        abi: [abiItem("assertComposable", 2)],
-        functionName: "assertComposable",
-        args: [executions, message],
       } as unknown as Parameters<typeof encodeFunctionData>[0]);
 }

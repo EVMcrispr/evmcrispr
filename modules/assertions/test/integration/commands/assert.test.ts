@@ -28,12 +28,9 @@ import {
   UNARY_OP,
 } from "../../../src/lib/combinators";
 import {
-  ASSERT_COMPOSABLE_SELECTOR,
-  ASSERT_PARAM_SELECTOR,
   ASSERTIONS_ABI,
   CONSTRAINT_TYPE,
   FETCHER_TYPE,
-  PARAM_TYPE,
 } from "../../../src/lib/erc8211";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
@@ -64,11 +61,6 @@ interface Param {
   paramData: `0x${string}`;
   constraints: readonly Constraint[];
 }
-interface Entry {
-  functionSig: `0x${string}`;
-  inputParams: readonly Param[];
-  outputParams: readonly unknown[];
-}
 
 function selectorOf(signature: string): string {
   return toFunctionSelector(`function ${signature}`);
@@ -97,23 +89,6 @@ function decodeAssert(
   expect(functionName).to.equal("assertParam");
   return {
     param: args[0] as unknown as Param,
-    message: (args.length > 1 ? args[1] : "") as string,
-  };
-}
-
-/** Decode the emitted action as assertComposable(executions[, message]). */
-function decodeComposable(
-  actions: any[],
-  to: Address = ASSERTIONS,
-): { entries: readonly Entry[]; message: string } {
-  const action = theAction(actions, to);
-  const { functionName, args } = decodeFunctionData({
-    abi: ASSERTIONS_ABI,
-    data: action.data,
-  });
-  expect(functionName).to.equal("assertComposable");
-  return {
-    entries: args[0] as unknown as readonly Entry[],
     message: (args.length > 1 ? args[1] : "") as string,
   };
 }
@@ -178,18 +153,20 @@ function expectRawWord(param: Param, value: bigint) {
 const stringDigest = (s: string) =>
   keccak256(encodeAbiParameters([{ type: "string" }], [s]));
 
-/** Reassemble an entry's constructed call, filling live params with zero
- *  words (word holes only — enough to decode the constructed shape). */
-function constructedCall(entry: Entry): `0x${string}` {
-  let out: string = entry.functionSig;
-  for (const p of entry.inputParams) {
-    if (p.paramType === PARAM_TYPE.Target) continue;
-    out +=
-      p.fetcherType === FETCHER_TYPE.RawBytes
-        ? p.paramData.slice(2)
-        : word(0n).slice(2);
-  }
-  return out as `0x${string}`;
+/** Decode a param as combinators.invoke: the runtime-resolved target, the
+ *  4-byte selector and the calldata segments the judge concatenates. */
+function invokeOf(param: Param): {
+  target: Param;
+  selector: `0x${string}`;
+  segments: readonly Param[];
+} {
+  const call = combinator(param);
+  expect(call.functionName).to.equal("invoke");
+  return {
+    target: call.args[0] as unknown as Param,
+    selector: call.args[1] as `0x${string}`,
+    segments: call.args[2] as unknown as readonly Param[],
+  };
 }
 
 describeCommand("assert", {
@@ -1029,169 +1006,223 @@ describeCommand("assert", {
     },
     // ---- nested live call arguments ----------------------------------------
     {
-      name: "splices a hole-free nested call argument as a one-level construction",
+      name: "compiles a nested call argument to a combinators invoke",
       script: `assertions:assert ${A}::{a(address)(uint256) ${B}::{b()(address)}} == 7`,
       validate: (actions) => {
-        const { entries } = decodeComposable(actions);
-        expect(entries).to.have.lengthOf(1);
-        const entry = entries[0];
-        expect(entry.functionSig).to.equal(ASSERT_PARAM_SELECTOR);
-        expect(entry.inputParams[0].paramType).to.equal(PARAM_TYPE.Target);
-        // One live fetcher: the nested b() call.
-        const fetchers = entry.inputParams.filter(
-          (p) => p.fetcherType === FETCHER_TYPE.StaticCall,
-        );
-        expect(fetchers).to.have.lengthOf(1);
-        const bCall = staticCallOf(fetchers[0]);
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 7n);
+        const { target, selector, segments } = invokeOf(param);
+        expectRawWord(target, BigInt(A));
+        expect(selector).to.equal(selectorOf("a(address)"));
+        // One segment: the live b() call, its 32-byte word IS the argument.
+        expect(segments).to.have.lengthOf(1);
+        const bCall = staticCallOf(segments[0]);
         expect(bCall.target).to.equal(B);
         expect(bCall.data).to.equal(selectorOf("b()"));
-        // Reconstructed (placeholder-filled), the entry constructs
-        // assertParam over a(...) with the EQ 7 constraint.
-        const inner = decodeFunctionData({
-          abi: ASSERTIONS_ABI,
-          data: constructedCall(entry),
-        });
-        expect(inner.functionName).to.equal("assertParam");
-        const judged = inner.args[0] as unknown as Param;
-        const aCall = staticCallOf(judged);
-        expect(aCall.target).to.equal(A);
-        expect(aCall.data.startsWith(selectorOf("a(address)"))).to.be.true;
-        expectConstraint(judged, "Eq", 7n);
       },
     },
     {
-      name: "compiles example 1: two construction levels with a lens on the outer call",
+      name: "compiles example 1: two invoke levels with a lens on the outer call",
       script: `assertions:assert ${A}::{a(address)(uint256,uint256[]) ${B}::{b(uint256,uint256)(address) ${C}::{c(address)(uint256) ${ME}} ${D}::{d()(uint256)}}}[_ [$]] == 7 "nested"`,
       validate: (actions) => {
-        const { entries, message } = decodeComposable(actions);
+        const { param, message } = decodeAssert(actions);
         expect(message).to.equal("nested");
-        expect(entries).to.have.lengthOf(1);
+        expectConstraint(param, "Eq", 7n);
 
-        // Outer entry: fetches c(@me) and d(), constructs the inner batch.
-        const outer = entries[0];
-        expect(outer.functionSig).to.equal(ASSERT_COMPOSABLE_SELECTOR);
-        const fetchers = outer.inputParams.filter(
-          (p) => p.fetcherType === FETCHER_TYPE.StaticCall,
-        );
-        expect(fetchers).to.have.lengthOf(2);
-        const cCall = staticCallOf(fetchers[0]);
+        // The judged value: nav with the lens [_ [$]] (path [1, 0]) over
+        // the invoke that constructs a(<b>).
+        const nav = combinator(param);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(uint256,uint256[])");
+        expect(nav.args[2]).to.deep.equal([1n, 0n]);
+
+        const aInvoke = invokeOf(nav.args[0] as unknown as Param);
+        expectRawWord(aInvoke.target, BigInt(A));
+        expect(aInvoke.selector).to.equal(selectorOf("a(address)"));
+        expect(aInvoke.segments).to.have.lengthOf(1);
+
+        // Nested level: the invoke constructing b(<c>, <d>) — two live
+        // word segments, no literal spans between them.
+        const bInvoke = invokeOf(aInvoke.segments[0]);
+        expectRawWord(bInvoke.target, BigInt(B));
+        expect(bInvoke.selector).to.equal(selectorOf("b(uint256,uint256)"));
+        expect(bInvoke.segments).to.have.lengthOf(2);
+        const cCall = staticCallOf(bInvoke.segments[0]);
         expect(cCall.target).to.equal(C);
         expect(cCall.data).to.equal(
           `${selectorOf("c(address)")}${word(BigInt(ME)).slice(2)}`,
         );
-        const dCall = staticCallOf(fetchers[1]);
+        const dCall = staticCallOf(bInvoke.segments[1]);
         expect(dCall.target).to.equal(D);
         expect(dCall.data).to.equal(selectorOf("d()"));
-
-        // Inner batch: fetches b(<c>, <d>), constructs assertParam.
-        const constructed = decodeFunctionData({
-          abi: ASSERTIONS_ABI,
-          data: constructedCall(outer),
-        });
-        expect(constructed.functionName).to.equal("assertComposable");
-        const innerEntries = constructed.args[0] as unknown as readonly Entry[];
-        expect(innerEntries).to.have.lengthOf(1);
-        const innerEntry = innerEntries[0];
-        expect(innerEntry.functionSig).to.equal(ASSERT_PARAM_SELECTOR);
-        const bFetchers = innerEntry.inputParams.filter(
-          (p) => p.fetcherType === FETCHER_TYPE.StaticCall,
-        );
-        expect(bFetchers).to.have.lengthOf(1);
-        const bCall = staticCallOf(bFetchers[0]);
-        expect(bCall.target).to.equal(B);
-        expect(bCall.data.startsWith(selectorOf("b(uint256,uint256)"))).to.be
-          .true;
-
-        // Innermost judged param: nav over a(<b>) with the lens [_ [$]]
-        // (path [1, 0]) and the EQ 7 constraint.
-        const innerCall = decodeFunctionData({
-          abi: ASSERTIONS_ABI,
-          data: constructedCall(innerEntry),
-        });
-        expect(innerCall.functionName).to.equal("assertParam");
-        const judged = innerCall.args[0] as unknown as Param;
-        expectConstraint(judged, "Eq", 7n);
-        const nav = combinator(judged);
-        expect(nav.functionName).to.equal("nav");
-        expect(nav.args[1]).to.equal("(uint256,uint256[])");
-        expect(nav.args[2]).to.deep.equal([1n, 0n]);
-        const aCall = staticCallOf(nav.args[0] as unknown as Param);
-        expect(aCall.target).to.equal(A);
-        expect(aCall.data.startsWith(selectorOf("a(address)"))).to.be.true;
       },
     },
     {
-      name: "compiles example 2: a nav-backed dynamic lens spliced as a word argument",
+      name: "compiles example 2: a nav-backed dynamic lens as a word segment",
       script: `assertions:assert ${A}::{a(address)(uint256) ${B}::{b()(address,address[][])}[_ [_ [$]]]} == 5`,
       validate: (actions) => {
-        const { entries } = decodeComposable(actions);
-        expect(entries).to.have.lengthOf(1);
-        const entry = entries[0];
-        expect(entry.functionSig).to.equal(ASSERT_PARAM_SELECTOR);
-        const fetchers = entry.inputParams.filter(
-          (p) => p.fetcherType === FETCHER_TYPE.StaticCall,
-        );
-        expect(fetchers).to.have.lengthOf(1);
-        // The word hole is the nav over b()'s (address,address[][]) return.
-        const nav = combinator(fetchers[0]);
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 5n);
+        const { target, selector, segments } = invokeOf(param);
+        expectRawWord(target, BigInt(A));
+        expect(selector).to.equal(selectorOf("a(address)"));
+        expect(segments).to.have.lengthOf(1);
+        // The word segment is the nav over b()'s (address,address[][]) return.
+        const nav = combinator(segments[0]);
         expect(nav.functionName).to.equal("nav");
         expect(nav.args[1]).to.equal("(address,address[][])");
         expect(nav.args[2]).to.deep.equal([1n, 1n, 0n]);
         const bCall = staticCallOf(nav.args[0] as unknown as Param);
         expect(bCall.target).to.equal(B);
         expect(bCall.data).to.equal(selectorOf("b()"));
-        const inner = decodeFunctionData({
-          abi: ASSERTIONS_ABI,
-          data: constructedCall(entry),
-        });
-        expect(inner.functionName).to.equal("assertParam");
-        const judged = inner.args[0] as unknown as Param;
-        expectConstraint(judged, "Eq", 5n);
-        expect(staticCallOf(judged).target).to.equal(A);
       },
     },
     {
-      name: "compiles example 2 (dynamic envelope): an address[] argument spliced with affine offset words",
+      name: "compiles example 2 (dynamic envelope): an address[] argument as the trailing segment",
       script: `assertions:assert ${A}::{a(address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
-        const { entries } = decodeComposable(actions);
-        expect(entries).to.have.lengthOf(1);
-        const entry = entries[0];
-        expect(entry.functionSig).to.equal(ASSERT_PARAM_SELECTOR);
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 5n);
+        const { target, selector, segments } = invokeOf(param);
+        expectRawWord(target, BigInt(A));
+        expect(selector).to.equal(selectorOf("a(address[])"));
 
-        const combinatorCalls = entry.inputParams
-          .filter((p) => p.fetcherType === FETCHER_TYPE.StaticCall)
-          .map((p) => combinator(p));
-        // The dynamic-envelope hole (nav) + three affine offset/length words
-        // (calc(Add, data(ByteLen, nav), base)).
-        const navs = combinatorCalls.filter((c) => c.functionName === "nav");
-        const calcs = combinatorCalls.filter((c) => c.functionName === "calc");
-        expect(navs).to.have.lengthOf(1);
-        expect(calcs).to.have.lengthOf(3);
-
-        const nav = navs[0];
+        // Two segments: the literal head (offset 64 skips the envelope's
+        // own offset word) and the nav whose envelope the judge appends.
+        // No affine ByteLen arithmetic anywhere — assertParam's own layout
+        // no longer depends on the envelope size.
+        expect(segments).to.have.lengthOf(2);
+        expectRawWord(segments[0], 64n);
+        const nav = combinator(segments[1]);
+        expect(nav.functionName).to.equal("nav");
         expect(nav.args[1]).to.equal("(address,address[][])");
         expect(nav.args[2]).to.deep.equal([1n, 1n]);
         expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
           B,
         );
-
-        // a(address[]) calldata: selector + offset word + envelope hole.
-        // fixed calldata length 36; paramData 96 + 64; constraints offset
-        // 0x80 + 32 + 96 + 64 — each plus the envelope's runtime length.
-        const bases = calcs.map((c) => {
-          expect(c.args[0]).to.equal(CALC_OP.Add);
-          const byteLen = combinator(c.args[1] as unknown as Param);
-          expect(byteLen.functionName).to.equal("data");
-          expect(byteLen.args[0]).to.equal(DATA_OP.ByteLen);
-          const raw = c.args[2] as unknown as Param;
-          return BigInt(raw.paramData);
-        });
-        expect(bases.sort((x, y) => (x < y ? -1 : 1))).to.deep.equal([
-          36n,
-          160n,
-          320n,
-        ]);
+      },
+    },
+    {
+      name: "splits a chain around a live-arg hop: the invoke becomes the next hop's start",
+      script: `assertions:assert ${A}::{f(uint256)(address) ${B}::{g()(uint256)}}::{h()(uint256)} == 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 1n);
+        const chain = combinator(param);
+        expect(chain.functionName).to.equal("chain");
+        expect(chain.args[1]).to.deep.equal([selectorOf("h()")]);
+        const inv = invokeOf(chain.args[0] as unknown as Param);
+        expectRawWord(inv.target, BigInt(A));
+        expect(inv.selector).to.equal(selectorOf("f(uint256)"));
+        expect(inv.segments).to.have.lengthOf(1);
+        const g = staticCallOf(inv.segments[0]);
+        expect(g.target).to.equal(B);
+        expect(g.data).to.equal(selectorOf("g()"));
+      },
+    },
+    {
+      name: "compiles a dynamic envelope inside a nested (non-outermost) call",
+      script: `assertions:assert ${A}::{a(uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 1n);
+        const aInvoke = invokeOf(param);
+        expect(aInvoke.selector).to.equal(selectorOf("a(uint256)"));
+        expect(aInvoke.segments).to.have.lengthOf(1);
+        const bInvoke = invokeOf(aInvoke.segments[0]);
+        expect(bInvoke.selector).to.equal(selectorOf("b(address[])"));
+        expect(bInvoke.segments).to.have.lengthOf(2);
+        expectRawWord(bInvoke.segments[0], 64n);
+        const nav = combinator(bInvoke.segments[1]);
+        expect(nav.functionName).to.equal("nav");
+        expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+          C,
+        );
+      },
+    },
+    {
+      name: "compiles two dynamic envelopes in different nested calls",
+      script: `assertions:assert ${A}::{a(uint256,uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]} ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const aInvoke = invokeOf(param);
+        expect(aInvoke.selector).to.equal(selectorOf("a(uint256,uint256)"));
+        expect(aInvoke.segments).to.have.lengthOf(2);
+        for (const segment of aInvoke.segments) {
+          const bInvoke = invokeOf(segment);
+          expect(bInvoke.selector).to.equal(selectorOf("b(address[])"));
+          expect(bInvoke.segments).to.have.lengthOf(2);
+        }
+      },
+    },
+    // ---- @invoke! ----------------------------------------------------------
+    {
+      name: "compiles @invoke! with a literal target and constant argument",
+      script: `assertions:assert @invoke!(${TOKEN} "balanceOf(address)(uint256)" ${HOLDER}) >= 10e18`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Gte", 10n * 10n ** 18n);
+        const { target, selector, segments } = invokeOf(param);
+        expectRawWord(target, BigInt(TOKEN));
+        expect(selector).to.equal(selectorOf("balanceOf(address)"));
+        expect(segments).to.have.lengthOf(1);
+        expectRawWord(segments[0], BigInt(HOLDER));
+      },
+    },
+    {
+      name: "compiles @invoke! with a call-resolved target",
+      script: `assertions:assert @invoke!(${A}::{asset()(address)} "totalSupply()(uint256)") > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const { target, selector, segments } = invokeOf(param);
+        const assetCall = staticCallOf(target);
+        expect(assetCall.target).to.equal(A);
+        expect(assetCall.data).to.equal(selectorOf("asset()"));
+        expect(selector).to.equal(selectorOf("totalSupply()"));
+        expect(segments).to.have.lengthOf(0);
+      },
+    },
+    {
+      name: "compiles @invoke! with a live call argument",
+      script: `assertions:assert @invoke!(${A} "convertToAssets(uint256)(uint256)" ${B}::{totalSupply()(uint256)}) > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const { target, selector, segments } = invokeOf(param);
+        expectRawWord(target, BigInt(A));
+        expect(selector).to.equal(selectorOf("convertToAssets(uint256)"));
+        expect(segments).to.have.lengthOf(1);
+        const supplyCall = staticCallOf(segments[0]);
+        expect(supplyCall.target).to.equal(B);
+        expect(supplyCall.data).to.equal(selectorOf("totalSupply()"));
+      },
+    },
+    {
+      name: "composes @invoke! inside @num! arithmetic",
+      script: `assertions:assert @num!(@invoke!(${A} "convertToAssets(uint256)(uint256)" 1e18) * 2) > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        // Unsigned `> 0` folds to a GTE 1 constraint on the expression.
+        expectConstraint(param, "Gte", 1n);
+        const calc = combinator(param);
+        expect(calc.functionName).to.equal("calc");
+        expect(calc.args[0]).to.equal(CALC_OP.Mul);
+        const inv = invokeOf(calc.args[1] as unknown as Param);
+        expect(inv.selector).to.equal(selectorOf("convertToAssets(uint256)"));
+        expect(inv.segments).to.have.lengthOf(1);
+        expectRawWord(inv.segments[0], 10n ** 18n);
+      },
+    },
+    {
+      name: "judges a string-returning @invoke! via keccak of the envelope",
+      script: `assertions:assert @invoke!(${TOKEN} "name()(string)") == "Wrapped Ether"`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", BigInt(stringDigest("Wrapped Ether")));
+        const hash = combinator(param);
+        expect(hash.functionName).to.equal("data");
+        expect(hash.args[0]).to.equal(DATA_OP.Hash);
+        const inv = invokeOf(hash.args[1] as unknown as Param);
+        expect(inv.selector).to.equal(selectorOf("name()"));
       },
     },
   ],
@@ -1360,6 +1391,42 @@ describeCommand("assert", {
       name: "rejects a multi-value intermediate hop without a lens",
       script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}::{symbol()(string)} == "WETH"`,
       error: "select one with a lens",
+    },
+    // ---- @invoke! ----------------------------------------------------------
+    {
+      name: "rejects @invoke! without a signature",
+      script: `assertions:assert @invoke!(${TOKEN}) > 0`,
+      error: "@invoke! expects (target abi ...params)",
+    },
+    {
+      name: "rejects an @invoke! signature without return types",
+      script: `assertions:assert @invoke!(${TOKEN} "balanceOf(address)" ${HOLDER}) > 0`,
+      error: "read-abi signature",
+    },
+    {
+      name: "rejects an @invoke! signature with multiple return types",
+      script: `assertions:assert @invoke!(${TOKEN} "getReserves()(uint112,uint112)") > 0`,
+      error: "exactly one return type",
+    },
+    {
+      name: "rejects a non-address @invoke! target",
+      script: `assertions:assert @invoke!(123 "totalSupply()(uint256)") > 0`,
+      error: "must resolve to an address",
+    },
+    {
+      name: "rejects an @invoke! target call not returning a single address",
+      script: `assertions:assert @invoke!(${TOKEN}::{decimals()(uint256)} "totalSupply()(uint256)") > 0`,
+      error: "must return a single address",
+    },
+    {
+      name: "rejects an @invoke! argument-count mismatch",
+      script: `assertions:assert @invoke!(${TOKEN} "balanceOf(address)(uint256)") > 0`,
+      error: "expects 1 argument",
+    },
+    {
+      name: "rejects @invoke! outside an assertion",
+      script: `set $x @assertions:invoke!(${TOKEN} "totalSupply()(uint256)")`,
+      error: "only valid inside an assertions:assert",
     },
     // ---- nested live call arguments ----------------------------------------
     {

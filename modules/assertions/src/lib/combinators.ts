@@ -15,6 +15,7 @@ export const COMBINATORS_ABI = parseAbi([
   "function pick(InputParam param, int256 wordIndex) view returns (bytes32)",
   "function nav(InputParam a, string retTypes, int256[] path) view",
   "function chain(InputParam start, bytes[] calls) view",
+  "function invoke(InputParam target, bytes4 selector, InputParam[] args) view",
   "function calc(uint8 op, InputParam a, InputParam b) view returns (uint256)",
   "function unary(uint8 op, InputParam a) view returns (uint256)",
   "function data(uint8 op, InputParam a, bytes arg, int256 index) view",
@@ -95,6 +96,7 @@ type CombinatorFn =
   | "pick"
   | "nav"
   | "chain"
+  | "invoke"
   | "calc"
   | "unary"
   | "data"
@@ -139,6 +141,21 @@ export function encodeNav(
  *  return word is the next target, the last hop's returndata passes through. */
 export function encodeChain(start: InputParam, calls: readonly Hex[]): Hex {
   return encodeCombinator("chain", [start, [...calls]]);
+}
+
+/** Encode `invoke(target, selector, args)` — a staticcall constructed at
+ *  judge time: calldata is the selector followed by each arg's FULL
+ *  resolved bytes in order (ERC-8211 CALL_DATA routing). Args are calldata
+ *  SEGMENTS, not necessarily one per Solidity argument: a RAW_BYTES segment
+ *  carries any literal span, a STATIC_CALL segment computes a span
+ *  on-chain. In error reporting the target is operand 0, args[i] operand
+ *  i + 1. */
+export function encodeInvoke(
+  target: InputParam,
+  selector: Hex,
+  args: readonly InputParam[],
+): Hex {
+  return encodeCombinator("invoke", [target, selector, [...args]]);
 }
 
 /** Encode `calc(op, a, b)` over two operands. */
