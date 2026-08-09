@@ -1,4 +1,13 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
+import {
+  coreCall,
+  encodeChain,
+  encodeOrElse,
+  rawParam,
+  staticCallParam,
+  toWord,
+} from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData, getAddress, parseAbi } from "viem";
 import type Proxies from "..";
 import {
   BEACON_SLOT,
@@ -11,7 +20,7 @@ export default defineHelper<Proxies>({
   name: "implementation",
   batchable: false,
   description:
-    "Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy.",
+    "Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy. As @implementation! the resolution happens on-chain at assertion time through orElse: a direct implementation() call when the proxy exposes one, else the beacon() -> implementation() hop — slot-only proxies stay off-chain (both branches revert).",
   returnType: "address",
   args: [{ name: "proxy", type: "address", description: "Proxy address" }],
   async run(module, { proxy }, { node }) {
@@ -36,6 +45,36 @@ export default defineHelper<Proxies>({
     throw new HelperFunctionError(
       node,
       `${proxy} is not an ERC-1967 proxy (its implementation and beacon slots are empty)`,
+    );
+  },
+  compile: async (ctx, node) => {
+    const proxy = getAddress(
+      String(await ctx.interpreters.interpretNode(node.args[0])),
+    );
+    const implementationData = encodeFunctionData({
+      abi: beaconAbi,
+      functionName: "implementation",
+    });
+    const beaconData = encodeFunctionData({
+      abi: parseAbi(["function beacon() view returns (address)"]),
+      functionName: "beacon",
+    });
+    // orElse: a call-exposed implementation() wins; otherwise hop
+    // through the beacon. ERC-1967 slot-only proxies revert on both
+    // branches — those reads stay off-chain (the plain face).
+    return coreCall(
+      ctx,
+      encodeOrElse(
+        staticCallParam(proxy, implementationData),
+        staticCallParam(
+          ctx.core,
+          encodeChain(rawParam(toWord(BigInt(proxy))), [
+            beaconData,
+            implementationData,
+          ]),
+        ),
+      ),
+      "Address",
     );
   },
 });
