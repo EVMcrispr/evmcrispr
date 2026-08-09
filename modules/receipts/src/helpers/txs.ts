@@ -36,6 +36,9 @@ export default defineHelper<Receipts>({
       chain !== undefined ? resolveChainId(chain) : await module.getChainId();
     const count = Math.min(Math.max(Number(limit ?? 10) || 10, 1), 50);
 
+    // TODO(backlog): probe the RPC for ots_* (Otterscan) / trace_filter
+    // support before falling back to explorer APIs, so @txs works keylessly
+    // against Erigon-family nodes.
     const txs = await fetchAddressTransactions(
       chainId,
       address as Address,
