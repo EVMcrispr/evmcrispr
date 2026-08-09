@@ -27,11 +27,11 @@ load assertions
 
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
-# Top level: compiles to the core assert*CallArrayLength family (all six operators)
+# Top level: compiles to a core nav ending in the LEN sentinel
 assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
 assertions:assert @len!($gov::{voters()(address[])}) != 0
 
-# Nested: compiles to Combinators.arrayLengthCall, composable as a number
+# Nested: the same LEN-sentinel nav, composable as a number
 assertions:assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
 ```
 

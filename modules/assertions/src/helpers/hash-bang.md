@@ -2,7 +2,7 @@
 title: "@assertions:hash!"
 ---
 
-keccak256 of the raw return data of a call, computed on-chain — compare structs, arrays or long strings against a precomputed hash.
+keccak256 of the decoded string/bytes return of a call, computed on-chain — compare long strings or blobs against a precomputed digest of the payload bytes.
 
 **Returns**: `bytes32`
 
@@ -16,7 +16,7 @@ keccak256 of the raw return data of a call, computed on-chain — compare struct
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `address` | A `::` call expression (or chain) to hash |
+| `call` | `address` | A `::` call expression (or chain) returning a string or bytes value |
 
 <!-- HAND-WRITTEN -->
 

@@ -2,7 +2,7 @@
 title: "@assertions:bool!"
 ---
 
-Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the combinators contract.
+Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.
 
 **Returns**: `bool`
 

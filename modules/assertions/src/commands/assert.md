@@ -68,7 +68,8 @@ assertions:assert $gov::{paused()(bool)}
 assertions:assert $pool::{token()(address)}::{symbol()(string)} == "WETH"
 assertions:assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"
 
-# On-chain composition: ! helpers evaluate at assertion time via combinators
+# On-chain composition: ! helpers evaluate at assertion time via the
+# core read primitive splicing operands into Operators calls
 assertions:assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
 assertions:assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
 assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
@@ -94,11 +95,11 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   constant** (literals, `$vars`, and every ordinary helper such as
   `@token:balance`, which is frozen into calldata when the script builds).
 - The command compiles to the ERC-8211 judge: the live expression becomes an
-  `InputParam` (a staticcall, balance read, or nested combinator expression)
-  validated by inline constraints (`EQ`/`GTE`/`LTE`/`IN`) via `assertParam`.
-  Comparisons the constraints can't express directly (`!=`, signed and
-  two-live-side comparisons) route through the combinators' `calc` judged
-  `EQ 1`.
+  `InputParam` (a staticcall, balance read, or nested core/operator
+  expression) validated by inline constraints (`EQ`/`GTE`/`LTE`/`IN`) via
+  `assertParam`. Comparisons the constraints can't express directly (`!=`,
+  signed and two-live-side comparisons) route through the core's `read`
+  splicing the operands into an Operators comparison, judged `EQ 1`.
 - Composition happens inside `@num!(…)` (arithmetic: `+ - * / % ^`, `xor`)
   and `@bool!(…)` (comparisons plus `and`, `or`, `xor`, prefix `not` — the
   same word operators as std's `@bool`). Wrappers nest freely; constant
@@ -108,7 +109,7 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
   `@absdiff!(a b) <= delta`.
-- Nested live calls as call arguments compile to the combinators' `invoke`
+- Nested live calls as call arguments compile to the core's `read`
   primitive: the enclosing call becomes an on-chain-constructed operand
   whose calldata segments (literal spans + live values) the judge
   concatenates at assertion time, so the judged value always flows through
@@ -118,10 +119,10 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   call, at most one per call.
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
-- Set `$assertions:address` / `$assertions:combinators` to override the
+- Set `$assertions:address` / `$assertions:operators` to override the
   canonical contracts (forks / testing).
 
 ## See Also
 
-- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md), [@assertions:invoke!](../helpers/invoke-bang.md)
+- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md), [@assertions:read!](../helpers/read-bang.md)
 - [@assertions:balance!](../helpers/balance-bang.md), [@assertions:len!](../helpers/len-bang.md), [@assertions:split!](../helpers/split-bang.md)

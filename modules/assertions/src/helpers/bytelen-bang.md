@@ -2,7 +2,7 @@
 title: "@assertions:bytelen!"
 ---
 
-The raw byte length of the return data of a call, on-chain (a uint256[] with n items is 64 + n*32 bytes).
+The decoded byte length of the string/bytes return of a call, on-chain — UTF-8 characters may span multiple bytes.
 
 **Returns**: `number`
 
@@ -16,7 +16,7 @@ The raw byte length of the return data of a call, on-chain (a uint256[] with n i
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `address` | A `::` call expression (or chain) to measure |
+| `call` | `address` | A `::` call expression (or chain) returning a string or bytes value |
 
 <!-- HAND-WRITTEN -->
 

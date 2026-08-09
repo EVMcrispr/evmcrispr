@@ -43,7 +43,8 @@ assertions:assert @balance!(ETH $registry::{treasury()(address)}) >= 100e18
 - The token argument resolves off-chain at build time (same path as
   `@token`); the balance itself is read on-chain at assertion time.
 - A call-resolved account is only supported for the native token — the
-  combinators contract cannot route a resolved address into `balanceOf`.
+  ERC-8211 BALANCE fetcher needs a literal account; the native case splices
+  the resolved address into the Operators `balance(address)` read.
 
 ## See Also
 
