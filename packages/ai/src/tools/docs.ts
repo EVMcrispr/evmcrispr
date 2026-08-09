@@ -102,7 +102,9 @@ export async function loadHelperDocs(
   moduleName: string,
   helperName: string,
 ): Promise<string | null> {
-  const load = helperIndex.get(moduleName)?.get(helperName);
+  // A helper's on-chain face (`name!`) is documented on the bare-name
+  // page ("On-chain face" section) — one page per helper file.
+  const load = helperIndex.get(moduleName)?.get(helperName.replace(/!$/, ""));
   return load ? load() : null;
 }
 

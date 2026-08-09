@@ -160,6 +160,9 @@ export async function loadHelperDocs(
   moduleName: string,
   helperName: string,
 ): Promise<string | null> {
+  // A helper's on-chain face (`name!`) is documented on the bare-name
+  // page ("On-chain face" section) — one page per helper file.
+  helperName = helperName.replace(/!$/, "");
   const key = cacheKey(moduleName, helperName);
   if (helperDocsCache.has(key)) return helperDocsCache.get(key)!;
 
