@@ -66,6 +66,12 @@ export const OPERATORS_ABI = parseAbi([
   "function blobBaseFee() view returns (uint256)",
   "function blockHash(uint256 n) view returns (bytes32)",
   "function origin() view returns (address)",
+  // raw access
+  "function rawCall(address target, bytes data) view returns (bytes)",
+  "function code(address account) view returns (bytes)",
+  // hashing
+  "function hashPair(bytes32 a, bytes32 b) pure returns (bytes32)",
+  "function hashPairSorted(bytes32 a, bytes32 b) pure returns (bytes32)",
   // bytes
   "function concat(bytes[] parts) pure returns (bytes)",
   "function slice(bytes data, uint256 start, uint256 len) pure returns (bytes)",
@@ -74,15 +80,29 @@ export const OPERATORS_ABI = parseAbi([
   // search
   "function indexOf(bytes s, bytes needle, int256 occurrence) pure returns (uint256)",
   "function matchAt(bytes s, bytes needle, uint256 pos) pure returns (uint256)",
+  // string extras (ASCII-only case mapping; other bytes pass verbatim)
+  "function replace(bytes s, bytes needle, bytes repl) pure returns (bytes)",
+  "function toLower(bytes s) pure returns (bytes)",
+  "function toUpper(bytes s) pure returns (bytes)",
+  "function join(bytes[] parts, bytes delim) pure returns (bytes)",
   // parse
   "function parseUint(bytes s) pure returns (uint256)",
   "function toString(uint256 v) pure returns (string)",
-  // runtime encoder (raw assembly return, no bytes envelope)
+  // runtime encoders (encode raw-returns with no bytes envelope;
+  // encodePacked returns a normal bytes value)
   "function encode(string types, bytes[] values) pure",
+  "function encodePacked(string types, bytes[] values) pure returns (bytes)",
   // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
   "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
   "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
   "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
+  // array-shape ops over aligned-word bytes payloads
+  "function mapWords(bytes s, address target, bytes template, uint256 elemOffset) view returns (bytes)",
+  "function reverseWords(bytes s) pure returns (bytes)",
+  "function zipWords(bytes a, bytes b) pure returns (bytes)",
+  "function unzipWords(bytes s, uint256 which) pure returns (bytes)",
+  "function sortWords(bytes s) pure returns (bytes)",
+  "function uniqueWords(bytes s) pure returns (bytes)",
 ]);
 
 /** Fold early-exit modes (Operators.FoldExit, ABI-encoded as uint8). */
@@ -132,13 +152,37 @@ export const OP_SELECTORS = {
   foldBytes: sel(
     "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
   ),
+  foldWords: sel(
+    "foldWords(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
+  ),
+  foldRange: sel(
+    "foldRange(uint256,address,bytes,uint256,uint256,bytes32,uint8)",
+  ),
   mulDiv: sel("mulDiv(uint256,uint256,uint256)"),
   sqrt: sel("sqrt(uint256)"),
   parseUint: sel("parseUint(bytes)"),
+  toString: sel("toString(uint256)"),
   blockHash: sel("blockHash(uint256)"),
+  concat: sel("concat(bytes[])"),
   // the signed shift overload takes (int256, uint256), outside the
   // opSelector (int256, int256) convention — so it lives here
   shrInt: sel("shr(int256,uint256)"),
+  // v1.0 additions
+  rawCall: sel("rawCall(address,bytes)"),
+  code: sel("code(address)"),
+  hashPair: sel("hashPair(bytes32,bytes32)"),
+  hashPairSorted: sel("hashPairSorted(bytes32,bytes32)"),
+  encodePacked: sel("encodePacked(string,bytes[])"),
+  mapWords: sel("mapWords(bytes,address,bytes,uint256)"),
+  reverseWords: sel("reverseWords(bytes)"),
+  zipWords: sel("zipWords(bytes,bytes)"),
+  unzipWords: sel("unzipWords(bytes,uint256)"),
+  sortWords: sel("sortWords(bytes)"),
+  uniqueWords: sel("uniqueWords(bytes)"),
+  replace: sel("replace(bytes,bytes,bytes)"),
+  toLower: sel("toLower(bytes)"),
+  toUpper: sel("toUpper(bytes)"),
+  join: sel("join(bytes[],bytes)"),
 } as const;
 
 type OperatorFn =
