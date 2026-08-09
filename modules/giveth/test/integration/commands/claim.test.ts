@@ -83,7 +83,7 @@ sim:fork --using anvil (
   sim:set-storage-at ${GIVPOWER_LM} ${rewardsSlot} ${THOUSAND_GIV}
   sim:expect @bool(@giveth:claimable(@me) == 0)
   giveth:claim
-  sim:expect @bool(@token:balance(${GIV} @me) > 0)
+  sim:expect @bool(@balance(${GIV} @me) > 0)
 )`,
       validate: () => {
         // Reaching this point means the harvest ran as a single getReward()

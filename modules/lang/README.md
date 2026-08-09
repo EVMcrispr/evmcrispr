@@ -15,7 +15,7 @@ load lang
 | [@lang:at](src/helpers/at.md) | `any` | Access an element by index in an array. |
 | [@lang:bytes.at](src/helpers/bytes.at.md) | `bytes` | Access a single byte by index in a bytes value. |
 | [@lang:bytes.concat](src/helpers/bytes.concat.md) | `bytes` | Concatenate bytes values together. |
-| [@lang:bytes.len](src/helpers/bytes.len.md) | `number` | Return the byte length of a bytes value. |
+| [@lang:bytes.len](src/helpers/bytes.len.md) | `number` | Return the byte length of a bytes value. As @bytes.len! the decoded byte length of the string/bytes return of a call, on-chain — UTF-8 characters may span multiple bytes. |
 | [@lang:bytes.not](src/helpers/bytes.not.md) | `bytes` | Bitwise NOT of a bytes value (256-bit complement). |
 | [@lang:bytes.slice](src/helpers/bytes.slice.md) | `bytes` | Extract a byte range from a bytes value. |
 | [@lang:concat](src/helpers/concat.md) | `array` | Concatenate arrays together. |
@@ -25,7 +25,7 @@ load lang
 | [@lang:flat](src/helpers/flat.md) | `array` | Flatten one level of nesting in an array. |
 | [@lang:includes](src/helpers/includes.md) | `bool` | Check whether an array contains an element. |
 | [@lang:keys](src/helpers/keys.md) | `array` | Return the entry names of a record (`[a:1 b:2]` or `[name value]` pairs) as an array. |
-| [@lang:len](src/helpers/len.md) | `number` | Return the length of an array. |
+| [@lang:len](src/helpers/len.md) | `number` | Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes. |
 | [@lang:lookup](src/helpers/lookup.md) | `any` | Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). |
 | [@lang:map](src/helpers/map.md) | `array` | Transform each element of an array by applying a helper. |
 | [@lang:num.format](src/helpers/num.format.md) | `string` | Format a number with decimal places (like formatUnits). |
@@ -35,14 +35,15 @@ load lang
 | [@lang:slice](src/helpers/slice.md) | `array` | Extract a section of an array. |
 | [@lang:sort](src/helpers/sort.md) | `array` | Sort an array using a comparator helper. |
 | [@lang:str.at](src/helpers/str.at.md) | `string` | Access a character by index in a string. |
+| [@lang:str.charset](src/helpers/str.charset.md) | `bool` | Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`). As @str.charset! the string return of a call is checked on-chain with the same byte-level semantics. |
 | [@lang:str.concat](src/helpers/str.concat.md) | `string` | Concatenate strings together. |
-| [@lang:str.includes](src/helpers/str.includes.md) | `bool` | Check whether a string contains a substring. |
+| [@lang:str.includes](src/helpers/str.includes.md) | `bool` | Check whether a string contains a substring. As @str.includes! the string return of a call is checked on-chain — exact byte sequence, case-sensitive, no wildcards. |
 | [@lang:str.join](src/helpers/str.join.md) | `string` | Join array elements into a string with a delimiter. |
-| [@lang:str.len](src/helpers/str.len.md) | `number` | Return the length of a string. |
+| [@lang:str.len](src/helpers/str.len.md) | `number` | Return the length of a string. As @str.len! the decoded byte length of the string return of a call, on-chain — there is no code-point walk at assertion time, so multi-byte UTF-8 characters count once per byte. |
 | [@lang:str.lower](src/helpers/str.lower.md) | `string` | Convert a string to lowercase. |
 | [@lang:str.replace](src/helpers/str.replace.md) | `string` | Replace all occurrences of a substring. |
 | [@lang:str.slice](src/helpers/str.slice.md) | `string` | Extract a section of a string. |
-| [@lang:str.split](src/helpers/str.split.md) | `array` | Split a string by a delimiter into an array of strings. |
+| [@lang:str.split](src/helpers/str.split.md) | `array \| string` | Split a string by a delimiter into an array of strings, or select one segment when an index is given. As @str.split! the string return of a call is split on-chain and the indexed segment selected (the index is required there). |
 | [@lang:str.upper](src/helpers/str.upper.md) | `string` | Convert a string to uppercase. |
 | [@lang:unique](src/helpers/unique.md) | `array` | Remove duplicates from an array, preserving first-occurrence order. |
 | [@lang:unzip](src/helpers/unzip.md) | `array` | Transpose an array of pairs into two separate arrays. |

@@ -33,14 +33,23 @@ interface ArgDefMeta {
 }
 
 interface HelperMeta {
-  /** The declared `name:` — the registration key. May differ from the
-   *  filename (e.g. `balance.ts` declaring `name: "balance!"`). */
+  /** The declared `name:` — the base registration key. May differ from
+   *  the filename. NEVER ends in `!`: the on-chain face of a helper is
+   *  registered as `"name!"` automatically when a `compile` face is
+   *  detected. */
   name: string | null;
   returnType: string | string[] | null;
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
   description: string | null;
   experimental: boolean;
+  /** Whether the config declares a `run` (off-chain) face. */
+  hasRun: boolean;
+  /** Whether the config declares a `compile` (on-chain) face. */
+  hasCompile: boolean;
+  /** Whether the config declares `batchable: false` (recorded as registry
+   *  metadata so the analyzer needs no dynamic import). */
+  batchableFalse: boolean;
 }
 
 /** Parse a type value from source: either `"string"` or `["string", "array"]`. */
@@ -127,6 +136,9 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
       argDefs: [],
       description: null,
       experimental: false,
+      hasRun: true,
+      hasCompile: false,
+      batchableFalse: false,
     };
   const raw = readFileSync(filePath, "utf-8");
   // Anchor extraction at the define call: `name:`/`description:` matches
@@ -138,10 +150,15 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   const argDefs = extractArgDefs(content);
   const hasArgs = argDefs.length > 0;
-  // The declared name, ignoring `name:` occurrences inside the args array.
+  // The declared name and face detection, ignoring the args array (arg
+  // names and descriptions must not shadow the config's own fields).
   const argsBlock = extractArgsBlock(content);
   const topLevel = argsBlock ? content.replace(argsBlock, "") : content;
   const nameMatch = topLevel.match(/name:\s*["']([^"']+)["']/);
+  // `(?<!\.)` keeps method calls in face bodies (e.g. `client.run(...)`)
+  // from registering as face declarations.
+  const hasRun = /(?<!\.)\brun\s*[:(]/.test(topLevel);
+  const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(topLevel);
   return {
     name: nameMatch?.[1] ?? null,
     returnType,
@@ -149,6 +166,9 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
     argDefs,
     description: descMatch?.[1] ?? null,
     experimental: hasTopLevelExperimental(content),
+    hasRun,
+    hasCompile,
+    batchableFalse: /\bbatchable:\s*false/.test(topLevel),
   };
 }
 
@@ -232,12 +252,32 @@ if (helperNames.length > 0) {
     if (meta.description)
       parts.push(`description: ${JSON.stringify(meta.description)}`);
     if (meta.experimental) parts.push("experimental: true");
-    // Register under the declared name (which may carry a trailing `!`);
-    // the import path always uses the filename.
+    // One helper file emits up to two registry keys sharing one loader:
+    // `"name"` for the off-chain `run` face and `"name!"` for the
+    // on-chain `compile` face. The declared name itself never carries
+    // the `!` — that suffix is the on-chain-face addressing convention.
     const key = meta.name ?? name;
-    lines.push(
-      `  ${JSON.stringify(key)}: { load: () => import("./helpers/${name}"), ${parts.join(", ")} },`,
-    );
+    if (key.endsWith("!")) {
+      console.error(
+        `codegen: helper ${name}.ts declares name ${JSON.stringify(key)} — ` +
+          "helper names never include the trailing `!`; declare the bare " +
+          "name and put the on-chain body in the `compile` face instead",
+      );
+      process.exit(1);
+    }
+    const load = `load: () => import("./helpers/${name}")`;
+    if (meta.hasRun || !meta.hasCompile) {
+      const runParts = [...parts];
+      if (meta.batchableFalse) runParts.push("batchable: false");
+      lines.push(
+        `  ${JSON.stringify(key)}: { ${load}, ${runParts.join(", ")} },`,
+      );
+    }
+    if (meta.hasCompile) {
+      lines.push(
+        `  ${JSON.stringify(`${key}!`)}: { ${load}, ${parts.join(", ")}, onchain: true },`,
+      );
+    }
   }
   lines.push("};");
 } else {

@@ -12,7 +12,7 @@ evml.use({
   name: "superfluid",
   load: () => import("@evmcrispr/module-superfluid"),
 });
-// token (a devDependency) backs the @token:balance assertions in sim:fork
+// token (a devDependency) backs the @balance assertions in sim:fork
 // lifecycle tests.
 evml.use({
   name: "token",

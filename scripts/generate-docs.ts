@@ -147,7 +147,7 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
   const returnType = parseTypeValue(content, "returnType") ?? "any";
   const argDefs = extractArgs(content);
   // The declared registration name, ignoring `name:` keys inside args.
-  const defMatch = content.match(/defineHelper|defineBangHelper/);
+  const defMatch = content.match(/defineHelper/);
   let declaredName = name;
   if (defMatch) {
     const configStart = content.indexOf("{", defMatch.index!);
@@ -155,6 +155,12 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
     const block = extractArrayBlock(stripped, configStart, "args");
     if (block) stripped = stripped.replace(block, "");
     declaredName = extractStringProp(stripped, "name") ?? name;
+    // A compile-only helper has no off-chain surface: its page carries the
+    // `!` face name (`@min!`). Two-faced helpers keep the bare name and
+    // document the `!` face in an "On-chain face" section.
+    const hasRun = /(?<!\.)\brun\s*[:(]/.test(stripped);
+    const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(stripped);
+    if (hasCompile && !hasRun) declaredName += "!";
   }
   return {
     name,

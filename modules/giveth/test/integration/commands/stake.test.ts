@@ -184,7 +184,7 @@ sim:fork --using anvil (
   wait 2419200
   giveth:unlock $lockRound
   giveth:unstake max
-  sim:expect @bool(@token:balance(${GIV} @me) >= 1000e18)
+  sim:expect @bool(@balance(${GIV} @me) >= 1000e18)
 )`,
       validate: () => {
         // Reaching this point means approve, wrap, lock, unlock, unwrap and

@@ -38,7 +38,7 @@ const C = getAddress("0xc333333333333333333333333333333333333333");
 const D = getAddress("0xd444444444444444444444444444444444444444");
 const ME = getAddress("0xe555555555555555555555555555555555555555");
 
-const preamble = `load assertions\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load assertions\nload lang\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
 const WORD_MASK = (1n << 256n) - 1n;
 const word = (v: bigint) => numberToHex(v & WORD_MASK, { size: 32 });
@@ -308,8 +308,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @split! over a lensed struct-array string field",
-      script: `assertions:assert @split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
+      name: "compiles @str.split! over a lensed struct-array string field",
+      script: `assertions:assert @str.split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // string == constant → hash of the slice judged EQ the payload digest
@@ -607,8 +607,8 @@ describeCommand("assert", {
     },
     // ---- other chain-call helpers -----------------------------------------
     {
-      name: "compiles @split! to an indexOf + slice composition hashed for the string equality",
-      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
+      name: "compiles @str.split! to an indexOf + slice composition hashed for the string equality",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -629,8 +629,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles the -1 @split! index via the last-occurrence indexOf",
-      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
+      name: "compiles the -1 @str.split! index via the last-occurrence indexOf",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -644,8 +644,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles a -2 @split! index between two end-anchored occurrences",
-      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
+      name: "compiles a -2 @str.split! index between two end-anchored occurrences",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -663,7 +663,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a nested string equality to an on-chain keccak comparison",
-      script: `assertions:assert @bool!(@split!(${TOKEN}::{name()(string)} " " -1) == "LP")`,
+      script: `assertions:assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " -1) == "LP")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
@@ -703,8 +703,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles a bare @includes! to lt(indexOf, byteLen) judged EQ 1",
-      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "LP")`,
+      name: "compiles a bare @str.includes! to lt(indexOf, byteLen) judged EQ 1",
+      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "LP")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "lt(uint256,uint256)");
@@ -716,8 +716,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @includes! == false to an EQ 0 constraint",
-      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
+      name: "compiles @str.includes! == false to an EQ 0 constraint",
+      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expectConstraint(param, "Eq", 0n);
@@ -727,8 +727,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "nests @includes! inside @bool! logic",
-      script: `assertions:assert @bool!(@includes!(${TOKEN}::{name()(string)} "LP") and @charset!(${TOKEN}::{symbol()(string)} "a-z"))`,
+      name: "nests @str.includes! inside @bool! logic",
+      script: `assertions:assert @bool!(@str.includes!(${TOKEN}::{name()(string)} "LP") and @str.charset!(${TOKEN}::{symbol()(string)} "a-z"))`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "bitAnd(uint256,uint256)");
@@ -740,8 +740,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @charset! to a bitSet foldBytes with the class bitmap",
-      script: `assertions:assert @charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
+      name: "compiles @str.charset! to a bitSet foldBytes with the class bitmap",
+      script: `assertions:assert @str.charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(
@@ -757,8 +757,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "@charset! treats a trailing dash as the literal `-`",
-      script: `assertions:assert @charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
+      name: "@str.charset! treats a trailing dash as the literal `-`",
+      script: `assertions:assert @str.charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(
@@ -770,8 +770,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @bytelen! to byteLen of the decoded payload",
-      script: `assertions:assert @bytelen!(${TOKEN}::{payload()(bytes)}) == 2`,
+      name: "compiles @bytes.len! to byteLen of the decoded payload",
+      script: `assertions:assert @bytes.len!(${TOKEN}::{payload()(bytes)}) == 2`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "byteLen(bytes)");
@@ -1040,7 +1040,7 @@ describeCommand("assert", {
     },
     {
       name: "coerces a live string operand in arithmetic through parseUint",
-      script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
+      script: `assertions:assert @num!(@str.split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const addArgs = opReadOf(param, "add(uint256,uint256)");
@@ -1412,18 +1412,18 @@ describeCommand("assert", {
       error: "needs a string or bytes value",
     },
     {
-      name: "rejects @bytelen! over a non-bytes return",
-      script: `assertions:assert @bytelen!(${TOKEN}::{holders()(address[])}) == 128`,
+      name: "rejects @bytes.len! over a non-bytes return",
+      script: `assertions:assert @bytes.len!(${TOKEN}::{holders()(address[])}) == 128`,
       error: "needs a string or bytes value",
     },
     {
-      name: "rejects an empty @includes! part",
-      script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "")`,
-      error: "@includes! part must be a non-empty string",
+      name: "rejects an empty @str.includes! part",
+      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "")`,
+      error: "@str.includes! part must be a non-empty string",
     },
     {
-      name: "rejects a reversed @charset! range",
-      script: `assertions:assert @charset!(${TOKEN}::{symbol()(string)} "z-a")`,
+      name: "rejects a reversed @str.charset! range",
+      script: `assertions:assert @str.charset!(${TOKEN}::{symbol()(string)} "z-a")`,
       error: "the range is reversed",
     },
     {
@@ -1512,18 +1512,18 @@ describeCommand("assert", {
       error: "needs a boolean or 32-byte word operand",
     },
     {
-      name: "rejects @split! without its index",
-      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " ") == "LP"`,
-      error: "@split! expects (call delimiter index)",
+      name: "rejects @str.split! without its index",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " ") == "LP"`,
+      error: "@str.split! expects (call delimiter index)",
     },
     {
-      name: "rejects @split! as the call of another chain helper",
-      script: `assertions:assert @bytelen!(@split!(${TOKEN}::{name()(string)} " " 1)) == 32`,
+      name: "rejects @str.split! as the call of another chain helper",
+      script: `assertions:assert @bytes.len!(@str.split!(${TOKEN}::{name()(string)} " " 1)) == 32`,
       error: "expects a `::` call expression",
     },
     {
       name: "rejects ordering comparisons on strings",
-      script: `assertions:assert @bool!(@split!(${TOKEN}::{name()(string)} " " 0) > "A")`,
+      script: `assertions:assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " 0) > "A")`,
       error: "strings only support == and !=",
     },
     {

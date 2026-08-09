@@ -2,7 +2,7 @@
 title: "@num"
 ---
 
-Evaluate an arithmetic expression or convert a value to a number.
+Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.
 
 **Returns**: `number`
 
@@ -43,3 +43,9 @@ set $n @num("42")
 - [@num.format](../../../lang/src/helpers/num.format.md) — format with decimals (like `formatUnits`)
 - [@num.parse](../../../lang/src/helpers/num.parse.md) — parse a decimal string (like `parseUnits`)
 - [@bool](bool.md) — boolean expressions
+
+## On-chain face (@num!)
+
+Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.
+
+#

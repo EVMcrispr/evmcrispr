@@ -1,5 +1,15 @@
 import type { Action, CallExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
+import {
+  cmpCombine,
+  compileOnchainHelper,
+  compileOperand,
+  compileTopCall,
+  hashParamOf,
+  isBangHelperNode,
+  stringDigest,
+} from "@evmcrispr/sdk/onchain";
 import { isHex, keccak256 } from "viem";
 import type Assertions from "..";
 import {
@@ -8,16 +18,6 @@ import {
   resolveAssertionsContract,
   resolveOperatorsContract,
 } from "../lib/assertions";
-import type { Category, CompilerCtx, Operand } from "../lib/compiler";
-import {
-  cmpCombine,
-  compileBangHelper,
-  compileOperand,
-  compileTopCall,
-  hashParamOf,
-  isBangHelperNode,
-  stringDigest,
-} from "../lib/compiler";
 import type { InputParam } from "../lib/erc8211";
 import { constraint } from "../lib/erc8211";
 import { judged, opJudge, wordJudge } from "../lib/judge";
@@ -108,7 +108,7 @@ export default defineCommand<Assertions>({
       throw new ErrorException(WRAP_HINT);
     }
     const msg = (message as string | undefined) ?? "";
-    const ctx: CompilerCtx = {
+    const ctx: CompileCtx = {
       module,
       interpreters,
       core: await resolveAssertionsContract(module),
@@ -299,12 +299,12 @@ export default defineCommand<Assertions>({
 });
 
 /** Compile one side of the assertion. */
-async function compileSide(ctx: CompilerCtx, node: Node): Promise<Operand> {
+async function compileSide(ctx: CompileCtx, node: Node): Promise<Operand> {
   if (node.type === NodeType.CallExpression) {
     return compileTopCall(ctx, node as CallExpressionNode);
   }
   if (isBangHelperNode(node)) {
-    return compileBangHelper(ctx, node);
+    return compileOnchainHelper(ctx, node);
   }
   return compileOperand(ctx, node);
 }

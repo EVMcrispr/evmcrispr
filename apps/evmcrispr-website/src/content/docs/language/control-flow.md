@@ -13,7 +13,7 @@ when the condition is false. There is no `else` keyword:
 ```evml
 load token
 
-set $balance @token:balance(DAI @me)
+set $balance @balance(DAI @me)
 if @bool($balance > 0) (
   print "Has balance"
 ) (

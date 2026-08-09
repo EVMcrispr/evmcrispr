@@ -48,11 +48,9 @@ export type HelperRun<M extends Module> = (
  * strings containing quotes or apostrophes.
  */
 export interface HelperConfigShared<M extends Module> {
-  /** Registration name. NEVER includes a trailing `!` — the on-chain face
-   *  of a helper is addressed as `@name!` and dispatched to `compile`
-   *  automatically. (Interim exception: the assertions module's legacy
-   *  `defineBangHelper` files still declare `name: "x!"` until they
-   *  migrate onto `compile`.) */
+  /** Registration name. NEVER includes a trailing `!` (codegen enforces
+   *  this) — the on-chain face of a helper is addressed as `@name!` and
+   *  dispatched to `compile` automatically. */
   name: string;
   /** Human-readable description shown in hover tooltips. */
   description?: string;

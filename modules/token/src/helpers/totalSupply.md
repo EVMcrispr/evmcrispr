@@ -32,5 +32,5 @@ print @token:format(DAI @token:totalSupply(DAI))
 
 ## See Also
 
-- [@token:balance](balance.md)
+- `@balance`
 - [@token:format](format.md)

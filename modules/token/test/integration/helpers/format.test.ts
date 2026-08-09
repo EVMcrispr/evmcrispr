@@ -31,7 +31,7 @@ describeHelper(
       },
       {
         description: "Print a holder's balance in human-readable form",
-        code: `print @token:format(DAI @token:balance(DAI @token(DAI)))`,
+        code: `print @token:format(DAI @balance(DAI @token(DAI)))`,
       },
     ],
     errorCases: [

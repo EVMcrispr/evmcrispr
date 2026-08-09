@@ -73,7 +73,7 @@ describe("Core > getDiagnostics", () => {
 
   describe("comma hint", () => {
     it("hints when helper arguments are comma-separated", () => {
-      const ds = getDiagnostics("set $x @token:balance(DAI, @me)");
+      const ds = getDiagnostics("set $x @balance(DAI, @me)");
       expect(ds.length).to.be.greaterThan(0);
       expect(
         ds.some((d) => /space-separated/.test(d.message)),

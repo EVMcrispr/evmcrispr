@@ -32,6 +32,7 @@ assertions:assert <call> [operator] [expected] [message] [...extra]
 
 ```evml
 load assertions
+load lang
 load token
 
 # Compare a view return against a value (named method; ABI fetched automatically)
@@ -73,7 +74,7 @@ assertions:assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()
 assertions:assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
 assertions:assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
 assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
-assertions:assert @split!($pool::{name()(string)} " " 1) == "LP"
+assertions:assert @str.split!($pool::{name()(string)} " " 1) == "LP"
 
 # Nested live calls as arguments: inner calls resolve at assertion time and
 # splice into the enclosing call's calldata (any nesting depth)
@@ -131,5 +132,5 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
 
 ## See Also
 
-- [@assertions:num!](../helpers/num-bang.md), [@assertions:bool!](../helpers/bool-bang.md)
-- [@assertions:balance!](../helpers/balance-bang.md), [@assertions:len!](../helpers/len-bang.md), [@assertions:split!](../helpers/split-bang.md)
+- `@num!`, `@bool!`
+- `@balance!`, `@len!`, `@str.split!`

@@ -23,4 +23,4 @@ Resolve a token symbol to its contract address on the current chain.
 ## See Also
 
 - [@token:amount](../../../token/src/helpers/amount.md) — convert human amounts to base units
-- [@token:balance](../../../token/src/helpers/balance.md) — query token balance
+- [@balance](balance.md) — query token balance

@@ -2,7 +2,7 @@
 title: "@bool"
 ---
 
-Evaluate a boolean expression or convert a value to a boolean string.
+Evaluate a boolean expression or convert a value to a boolean string. As @bool! it composes live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.
 
 **Returns**: `bool`
 
@@ -42,3 +42,9 @@ set $h @bool($x > 0 and $x < 100)
 
 - [if](../commands/if.md) — conditional execution
 - [loop](../commands/loop.md) — condition-based loop
+
+## On-chain face (@bool!)
+
+Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.
+
+#

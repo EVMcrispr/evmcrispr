@@ -1,11 +1,12 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { compileExpr } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 import { evaluateArithmeticExpr, toNum, validateNoEmbeddedOps } from "./_expr";
 
 export default defineHelper<Std>({
   name: "num",
   description:
-    "Evaluate an arithmetic expression or convert a value to a number.",
+    "Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.",
   returnType: "number",
   args: [
     {
@@ -25,4 +26,8 @@ export default defineHelper<Std>({
     }
     return evaluateArithmeticExpr(tokens);
   },
+  // On-chain face: syntax entry point into the expression engine, which
+  // stays central — the shunting-yard over raw nodes is shared with
+  // @bool! and the assert command.
+  compile: (ctx, node) => compileExpr(ctx, node.args, "num"),
 });

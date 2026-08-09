@@ -37,6 +37,6 @@ if @bool(@token:allowance(DAI @me $spender) < @token:amount(DAI 100)) (
 
 ## See Also
 
-- [@token:balance](balance.md) — token balance of an address
+- `@balance` — token balance of an address
 - [@token:amount](amount.md) — convert to base units
 - [token:approve](../commands/approve.md) — grant an allowance

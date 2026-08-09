@@ -31,6 +31,6 @@ set $amount @token:amount(DAI 100)
 ## See Also
 
 - [@token](../../../std/src/helpers/token.md) — resolve a token symbol to its address
-- [@token:balance](balance.md) — query token balance
+- `@balance` — query token balance
 - [@token:format](format.md) — format base units as a human-readable string
 - [@num.parse](../../../lang/src/helpers/num.parse.md) — generic decimal parsing

@@ -26,7 +26,7 @@ Format a base-unit token amount as a human-readable string with the token symbol
 print @token:format(DAI 500000000000000000)
 
 # Print a holder's balance in human-readable form
-print @token:format(DAI @token:balance(DAI @token(DAI)))
+print @token:format(DAI @balance(DAI @token(DAI)))
 ```
 
 <!-- HAND-WRITTEN -->
@@ -34,5 +34,5 @@ print @token:format(DAI @token:balance(DAI @token(DAI)))
 ## See Also
 
 - [@token](../../../std/src/helpers/token.md) — resolve a token symbol to its address
-- [@token:balance](balance.md) — query token balance
+- `@balance` — query token balance
 - [@token:amount](amount.md) — convert human-readable amount to base units

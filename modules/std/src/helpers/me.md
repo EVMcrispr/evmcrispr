@@ -31,4 +31,4 @@ exec @token(DAI) "approve(address,uint256)" @me 100e18
 ## See Also
 
 - [@get](get.md) — read contract state
-- [@token:balance](../../../token/src/helpers/balance.md) — shortcut for balance queries
+- [@balance](balance.md) — shortcut for balance queries

@@ -29,7 +29,7 @@ export const HELPER_PARSER_ERROR = "HelperParserError";
  *  Module charset mirrors COMMAND_NAME_REGEX; `.` in the name is
  *  intra-module hierarchy (e.g. @ens:fuses.decode). A single trailing `!`
  *  is part of the name — modules use it to mark on-chain-evaluated
- *  helpers (e.g. @balance! in the assertions module). */
+ *  helpers (e.g. @balance!, the on-chain face of @balance). */
 const HELPER_NAME_REGEX =
   /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-)):)?(?<name>(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)!?)/;
 

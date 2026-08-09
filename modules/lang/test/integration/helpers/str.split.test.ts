@@ -29,6 +29,23 @@ describeHelper(
           expect(result).to.deep.equal(["abc"]);
         },
       },
+      {
+        name: "should select a segment when an index is given",
+        input: `@str.split("a,b,c" "," 1)`,
+        expected: "b",
+      },
+      {
+        name: "should select from the end with a negative index",
+        input: `@str.split("a,b,c" "," -1)`,
+        expected: "c",
+      },
+    ],
+    errorCases: [
+      {
+        name: "should fail when the index is out of range",
+        input: `@str.split("a,b,c" "," 3)`,
+        error: "out of range",
+      },
     ],
     docCases: [
       {
@@ -42,6 +59,7 @@ describeHelper(
         preamble: "",
       },
     ],
+    sampleArgs: [`"a,b,c"`, `","`, "1"],
   },
   helpers["str.split"].argDefs,
 );

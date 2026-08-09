@@ -48,17 +48,20 @@ describe("Completions – token helpers", () => {
     position: { line: 2, col: before.length },
   });
 
-  // @token:balance(token-symbol, address)  →  first arg: custom type, no helpers
-  it("@token:balance(<cursor>) first arg should show no helper completions (custom type)", async () => {
-    const { script, position } = helperPos("set $x @token:balance(", ")");
+  // @token:allowance(token-symbol, address)  →  first arg: custom type, no helpers
+  it("@token:allowance(<cursor>) first arg should show no helper completions (custom type)", async () => {
+    const { script, position } = helperPos("set $x @token:allowance(", ")");
     const items = await evm.getCompletions(script, position);
     const helperItems = onlyKind(items, "helper");
     expect(helperItems).to.have.lengthOf(0);
   });
 
-  // @token:balance(token-symbol, address)  →  second arg: address helpers only
-  it("@token:balance(WXDAI <cursor>) second arg should show address-compatible completions", async () => {
-    const { script, position } = helperPos("set $x @token:balance(WXDAI ", ")");
+  // @token:allowance(token-symbol, address)  →  second arg: address helpers only
+  it("@token:allowance(WXDAI <cursor>) second arg should show address-compatible completions", async () => {
+    const { script, position } = helperPos(
+      "set $x @token:allowance(WXDAI ",
+      ")",
+    );
     const items = await evm.getCompletions(script, position);
     const helperItems = onlyKind(items, "helper");
     for (const h of ADDRESS_HELPERS) {
@@ -85,20 +88,20 @@ describe("Completions – token helpers", () => {
   });
 
   // Variables should be included for non-bool/non-block types
-  it("@token:balance(WXDAI <cursor>) should include address-valued variables only", async () => {
-    const before = `${TOKEN}set $addr 0x0000000000000000000000000000000000000001\nset $x @token:balance(WXDAI `;
+  it("@token:allowance(WXDAI <cursor>) should include address-valued variables only", async () => {
+    const before = `${TOKEN}set $addr 0x0000000000000000000000000000000000000001\nset $x @token:allowance(WXDAI `;
     const script = `${before})`;
-    const position = { line: 3, col: "set $x @token:balance(WXDAI ".length };
+    const position = { line: 3, col: "set $x @token:allowance(WXDAI ".length };
     const items = await evm.getCompletions(script, position);
     const varItems = onlyKind(items, "variable");
     expect(hasLabel(varItems, "$addr")).to.be.true;
   });
 
-  it("@token:balance($c <cursor>) should show only address variable and address helpers, no duplicates", async () => {
+  it("@token:allowance($c <cursor>) should show only address variable and address helpers, no duplicates", async () => {
     const addr = "0x0000000000000000000000000000000000000001";
-    const before = `${TOKEN}set $a 1\nset $c ${addr}\nexec $c @token:balance($c `;
+    const before = `${TOKEN}set $a 1\nset $c ${addr}\nexec $c @token:allowance($c `;
     const script = `${before})`;
-    const position = { line: 4, col: `exec $c @token:balance($c `.length };
+    const position = { line: 4, col: `exec $c @token:allowance($c `.length };
     const items = await evm.getCompletions(script, position);
     // $c should appear exactly once (address variable)
     const cItems = items.filter((i) => i.label === "$c");
@@ -132,9 +135,9 @@ describe("Completions – token helpers", () => {
   });
 
   // Mid-line cursor completions (cursor NOT at end of line)
-  it("@token:balance(WXDAI <cursor>@me) gap between args should show address completions", async () => {
+  it("@token:allowance(WXDAI <cursor>@me) gap between args should show address completions", async () => {
     const { script, position } = helperPos(
-      "set $x @token:balance(WXDAI ",
+      "set $x @token:allowance(WXDAI ",
       "@me)",
     );
     const items = await evm.getCompletions(script, position);

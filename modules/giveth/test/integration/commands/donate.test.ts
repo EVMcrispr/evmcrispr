@@ -240,7 +240,7 @@ load token
 sim:fork --using anvil (
   sim:set-balance @me 10e18
   giveth:donate 1e18 ${ZERO_ADDRESS} to evmcrispr
-  sim:expect @bool(@token:balance(XDAI ${PROJECT_RECIPIENT}) >= 1e18)
+  sim:expect @bool(@balance(XDAI ${PROJECT_RECIPIENT}) >= 1e18)
 )`);
 
     expect(recordedLogins).to.have.length(0);

@@ -1,0 +1,30 @@
+---
+title: "@assertions:timestamp"
+---
+
+The block timestamp: the latest block at script build time as @timestamp, the block at assertion time as @timestamp!.
+
+**Returns**: `number`
+
+## Syntax
+
+```evml
+@assertions:timestamp
+```
+
+<!-- HAND-WRITTEN -->
+
+## Examples
+
+```evml
+load assertions
+
+set $vesting 0x0102030405060708090a0b0c0d0e0f1011121314
+
+# Seconds until unlock, computed at assertion time
+assertions:assert @num!($vesting::{unlockTime()(uint256)} - @timestamp!) > 86400
+```
+
+## See Also
+
+- [@assertions:blocknumber!](blocknumber.md), [assertions:assert-timestamp](../commands/assert-timestamp.md)

@@ -38,4 +38,4 @@ token:transfer @token:amount(DAI 50) @token(DAI) to $recipient
 ## See Also
 
 - [token:transfer-from](transfer-from.md) / [token:disperse](disperse.md)
-- [@token:balance](../helpers/balance.md)
+- `@balance`

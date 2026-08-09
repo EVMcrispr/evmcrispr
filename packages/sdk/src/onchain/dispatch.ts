@@ -107,12 +107,7 @@ export async function compileOnchainHelper(
       experimentalDisabledMessage("helper", localName),
     );
   }
-  // `compileAssert` is the legacy attachment of the assertions module's
-  // defineBangHelper wrapper — honored until the bang files migrate onto
-  // defineHelper's `compile` face.
-  const compile =
-    (helper as { compile?: HelperCompile }).compile ??
-    (helper as { compileAssert?: HelperCompile }).compileAssert;
+  const compile = (helper as { compile?: HelperCompile }).compile;
   if (!compile) {
     throw new ErrorException(
       `@${node.name} does not support on-chain evaluation`,
