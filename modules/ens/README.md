@@ -27,7 +27,7 @@ load ens
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@ens:addr](src/helpers/addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. |
+| [@ens:addr](src/helpers/addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. As @addr! the resolution happens on-chain at assertion time: cond on an unset resolver returns the zero word, else the registry.resolver(node) -> addr(node) chain resolves the name (the namehash still computes at composition time). |
 | [@ens:available](src/helpers/available.md) | `bool` | Check whether a .eth name is available for registration. |
 | [@ens:avatar](src/helpers/avatar.md) | `string` | Get the avatar URI for an ENS name. |
 | [@ens:cointype](src/helpers/cointype.md) | `number` | ENSIP-11 coin type of an EVM chain, for multichain address records. |
