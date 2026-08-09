@@ -53,7 +53,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |
 | [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
-| [@nonce](src/helpers/nonce.md) | `number` | Get the transaction count (nonce) of an address. |
+| [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts the nonce counts the CREATEs they performed. Off-chain only: the EVM has no nonce opcode, so no on-chain form exists. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |

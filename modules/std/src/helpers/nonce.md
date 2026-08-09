@@ -2,7 +2,7 @@
 title: "@nonce"
 ---
 
-Get the transaction count (nonce) of an address.
+Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts the nonce counts the CREATEs they performed. Off-chain only: the EVM has no nonce opcode, so no on-chain form exists.
 
 **Returns**: `number`
 
