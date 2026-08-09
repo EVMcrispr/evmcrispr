@@ -7,7 +7,7 @@ import {
   OP_SELECTORS,
   opReadParam,
 } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type MathModule from "..";
 
 /** Floor integer square root (Newton, bigint). */
 function isqrt(v: bigint): bigint {
@@ -21,10 +21,10 @@ function isqrt(v: bigint): bigint {
   return x0;
 }
 
-export default defineHelper<Assertions>({
+export default defineHelper<MathModule>({
   name: "sqrt",
   description:
-    "Integer square root (floor) computed on-chain, the AMM invariant form, e.g. @sqrt!($pool::reserve0() * $pool::reserve1()).",
+    "Integer square root (floor): plain @sqrt computes off-chain, @sqrt! on-chain, the AMM invariant form, e.g. @sqrt!($pool::reserve0() * $pool::reserve1()).",
   returnType: "number",
   args: [
     {
@@ -34,6 +34,17 @@ export default defineHelper<Assertions>({
       description: "Unsigned numeric expression to take the square root of",
     },
   ],
+  async run(_module, { expression }) {
+    const values = Array.isArray(expression) ? expression : [];
+    if (values.length !== 1) {
+      throw new ErrorException("@sqrt expects a single numeric value");
+    }
+    const v = Num(values[0]);
+    if (v.lt(Num.fromBigInt(0n))) {
+      throw new ErrorException("@sqrt needs an unsigned operand");
+    }
+    return Num.fromBigInt(isqrt(v.toBigInt()));
+  },
   compile: async (ctx, node): Promise<Operand> => {
     if (node.args.length === 0) {
       throw new ErrorException("@sqrt! expects a numeric expression");

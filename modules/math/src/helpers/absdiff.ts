@@ -1,16 +1,21 @@
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { arithCombine, variadicOperands } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type MathModule from "..";
 
-export default defineHelper<Assertions>({
+export default defineHelper<MathModule>({
   name: "absdiff",
   description:
-    "Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.",
+    "Absolute difference |a - b|: plain @absdiff computes off-chain, @absdiff! on-chain where it never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.",
   returnType: "number",
   args: [
     { name: "a", type: "number", description: "First numeric operand" },
     { name: "b", type: "number", description: "Second numeric operand" },
   ],
+  async run(_module, args) {
+    const a = Num(args.a);
+    const b = Num(args.b);
+    return a.gte(b) ? a.sub(b) : b.sub(a);
+  },
   compile: async (ctx, node) => {
     const operands = await variadicOperands(ctx, node, "absdiff!");
     if (operands.length !== 2) {

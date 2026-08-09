@@ -43,6 +43,7 @@
     "@evmcrispr/module-http": "workspace:^",
     "@evmcrispr/module-lang": "workspace:^",
     "@evmcrispr/module-lending": "workspace:^",
+    "@evmcrispr/module-math": "workspace:^",
     "@evmcrispr/module-noir": "workspace:^",
     "@evmcrispr/module-proxies": "workspace:^",
     "@evmcrispr/module-receipts": "workspace:^",

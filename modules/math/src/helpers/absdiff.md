@@ -1,15 +1,15 @@
 ---
-title: "@assertions:absdiff!"
+title: "@math:absdiff"
 ---
 
-Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.
+Absolute difference |a - b|: plain @absdiff computes off-chain, @absdiff! on-chain where it never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.
 
 **Returns**: `number`
 
 ## Syntax
 
 ```evml
-@assertions:absdiff!(a b)
+@math:absdiff(a b)
 ```
 
 ## Arguments
@@ -25,6 +25,7 @@ Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a
 
 ```evml
 load assertions
+load math
 
 set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
 
@@ -34,4 +35,4 @@ assertions:assert @absdiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256
 
 ## See Also
 
-- [@assertions:min!](min.md), [@assertions:max!](max.md)
+- [@math:min!](min.md), [@math:max!](max.md)

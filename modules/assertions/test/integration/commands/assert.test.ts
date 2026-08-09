@@ -38,7 +38,7 @@ const C = getAddress("0xc333333333333333333333333333333333333333");
 const D = getAddress("0xd444444444444444444444444444444444444444");
 const ME = getAddress("0xe555555555555555555555555555555555555555");
 
-const preamble = `load assertions\nload lang\nload receipts\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load assertions\nload lang\nload receipts\nload math\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
 const WORD_MASK = (1n << 256n) - 1n;
 const word = (v: bigint) => numberToHex(v & WORD_MASK, { size: 32 });
