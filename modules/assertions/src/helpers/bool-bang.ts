@@ -4,7 +4,7 @@ import { defineBangHelper } from "./_bang";
 export default defineBangHelper({
   name: "bool!",
   description:
-    "Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the combinators contract.",
+    "Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.",
   returnType: "bool",
   args: [
     {

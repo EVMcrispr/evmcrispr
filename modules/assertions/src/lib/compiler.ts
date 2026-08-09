@@ -17,25 +17,14 @@ import {
 import type { AbiFunction, AbiParameter, Hex } from "viem";
 import {
   decodeAbiParameters,
-  encodeAbiParameters,
   getAddress,
   isAddress,
   isHex,
   keccak256,
   parseAbiItem,
+  stringToHex,
 } from "viem";
 import { loadFunctionAbi } from "./assertions";
-import type { CalcOpName } from "./combinators";
-import {
-  encodeCalc,
-  encodeChain,
-  encodeData,
-  encodeInvoke,
-  encodeNav,
-  encodePick,
-  encodeUnary,
-  LEN_STEP,
-} from "./combinators";
 import type {
   ArithOpName,
   Category,
@@ -43,18 +32,30 @@ import type {
   LogicOpName,
 } from "./composition";
 import {
+  ARITH_FN,
   ARITH_SYMBOL,
   arithRejects,
+  CMP_FN,
   CMP_SYMBOL,
   checkArith,
   checkCmp,
   checkLogic,
   isNumericCat,
+  LOGIC_FN,
 } from "./composition";
-import type { ArgSpec, InvokeCall } from "./construct";
+import type { ArgSpec, ReadCall } from "./construct";
 import { buildCallSegments, isDynamicParam } from "./construct";
-import type { InputParam } from "./erc8211";
+import {
+  encodeChain,
+  encodeNav,
+  encodeOpRead,
+  encodePick,
+  encodeRead,
+  LEN_STEP,
+} from "./core";
+import type { Constraint, InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
+import { OP_SELECTORS, opSelector } from "./operators";
 
 // ---------------------------------------------------------------------------
 //  Types
@@ -66,30 +67,6 @@ export type { ArithOpName, Category, CmpOpName } from "./composition";
 
 /** Re-exported from the construct layer (shared ABI shape rules). */
 export { isDynamicParam } from "./construct";
-
-/** Signed calc variants, where checked semantics differ from unsigned. */
-const SIGNED_CALC: Partial<Record<string, CalcOpName>> = {
-  Add: "SAdd",
-  Sub: "SSub",
-  Mul: "SMul",
-  Div: "SDiv",
-  Mod: "SMod",
-  Min: "SMin",
-  Max: "SMax",
-  AbsDiff: "SAbsDiff",
-  Lt: "SLt",
-  Gt: "SGt",
-  Le: "SLe",
-  Ge: "SGe",
-};
-
-export function calcOpFor(
-  op: ArithOpName | CmpOpName,
-  signed: boolean,
-): CalcOpName {
-  if (!signed) return op as CalcOpName;
-  return SIGNED_CALC[op] ?? (op as CalcOpName);
-}
 
 export function categoryFromAbiType(abiType: string): Category {
   if (abiType.startsWith("uint")) return "Uint";
@@ -107,7 +84,7 @@ export function categoryFromAbiType(abiType: string): Category {
 /**
  * A compiled expression operand: either a value known at build time, or an
  * ERC-8211 `InputParam` resolved on-chain at assertion time (a staticcall,
- * balance read, or nested combinator expression).
+ * balance read, or nested core/operator expression).
  */
 export type Operand =
   | { kind: "const"; cat: Category; value: Num | boolean | string }
@@ -115,19 +92,21 @@ export type Operand =
       kind: "call";
       param: InputParam;
       cat: Category;
-      /** When this param is `unary(IsZero, inner)`, the inner param — lets
-       *  the top level judge `inner EQ 0` instead of `isZero(inner) EQ 1`. */
+      /** When this param is `eq(inner, 0)`, the inner param — lets the top
+       *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;
     };
 
 export interface CompilerCtx {
   module: Module;
   interpreters: NodesInterpreters;
-  /** Resolved combinators contract address. */
-  combinators: Address;
+  /** Resolved assertions core address (read/pick/nav/chain live here). */
+  core: Address;
+  /** Resolved operators contract address (the plain word/bytes ops). */
+  operators: Address;
 }
 
-/** A flattened `::` chain as the v2 combinators consume it: `start`
+/** A flattened `::` chain as the core's `chain` consumes it: `start`
  *  resolves to the first hop's target, `calls[i]` runs on the previous
  *  hop's first return word. */
 export interface Chain {
@@ -139,14 +118,14 @@ export interface Chain {
   /** Plain abi.encodeCall entries, one per hop. */
   calls: Hex[];
   lastAbi: AbiFunction;
-  /** Set once a hop with live arguments was folded into `start` as an
-   *  `invoke` param — build-time address resolution stops there. */
+  /** Set once a hop with live arguments was folded into `start` as a
+   *  `read` param — build-time address resolution stops there. */
   liveArgs?: boolean;
 }
 
-/** Express a chain as a single InputParam: an invoke-terminated chain's
+/** Express a chain as a single InputParam: a read-terminated chain's
  *  value is `start` itself, a one-hop chain rooted at a literal address is
- *  the call itself; anything longer routes through the `chain` combinator. */
+ *  the call itself; anything longer routes through the core's `chain`. */
 export function chainParam(ctx: CompilerCtx, chain: Chain): InputParam {
   if (chain.calls.length === 0) {
     return chain.start;
@@ -154,14 +133,61 @@ export function chainParam(ctx: CompilerCtx, chain: Chain): InputParam {
   if (chain.calls.length === 1 && chain.startAddress) {
     return staticCallParam(chain.startAddress, chain.calls[0]);
   }
-  return staticCallParam(
-    ctx.combinators,
-    encodeChain(chain.start, chain.calls),
-  );
+  return staticCallParam(ctx.core, encodeChain(chain.start, chain.calls));
 }
 
 // ---------------------------------------------------------------------------
-//  Bang helpers (@name! — compiled to on-chain combinator calls)
+//  Operator composition primitives (core read splicing)
+// ---------------------------------------------------------------------------
+
+/** An Operators call composed from unresolved operands, as an InputParam:
+ *  `read(operators, selector, args)` calldata at the CORE address — the
+ *  core resolves each operand, splices the values after the selector and
+ *  staticcalls the Operators contract. */
+export function opReadParam(
+  ctx: CompilerCtx,
+  selector: Hex,
+  args: readonly InputParam[],
+  constraints: Constraint[] = [],
+): InputParam {
+  return staticCallParam(
+    ctx.core,
+    encodeOpRead(ctx.operators, selector, args),
+    constraints,
+  );
+}
+
+/** A binary word-operator call over two operands, picking the int256
+ *  overload when `signed` and the operator has one. */
+export function wordOpParam(
+  ctx: CompilerCtx,
+  fn: string,
+  signed: boolean,
+  a: InputParam,
+  b: InputParam,
+): InputParam {
+  return opReadParam(ctx, opSelector(fn, signed), [a, b]);
+}
+
+/** `hash(value)` — keccak256 of the DECODED payload of a string/bytes
+ *  operand: the resolved envelope [0x20][len][payload] is spliced as the
+ *  single `bytes` argument, so the digest covers the payload itself
+ *  (keccak256 of the string bytes, not of the ABI envelope). */
+export function hashParamOf(ctx: CompilerCtx, value: InputParam): InputParam {
+  return opReadParam(ctx, OP_SELECTORS.hash, [value]);
+}
+
+/** `byteLen(value)` — the DECODED byte length of a string/bytes operand
+ *  (its envelope spliced as the single `bytes` argument). */
+export function byteLenParamOf(
+  ctx: CompilerCtx,
+  value: InputParam,
+): InputParam {
+  return opReadParam(ctx, OP_SELECTORS.byteLen, [value]);
+}
+
+// ---------------------------------------------------------------------------
+//  Bang helpers (@name! — compiled to on-chain operator calls)
 // ---------------------------------------------------------------------------
 
 /** The trailing `!` is the language convention for on-chain-evaluated
@@ -222,7 +248,7 @@ export function constBigInt(o: Operand & { kind: "const" }): bigint {
   );
 }
 
-/** Materialize an operand as an InputParam for a combinator slot reading a
+/** Materialize an operand as an InputParam for an operator slot reading a
  *  raw 32-byte word. Live params pass through untouched — bool returns are
  *  0/1 words and signed returns are two's-complement words, so no
  *  conversion is ever needed; constants become RAW_BYTES literal words
@@ -273,8 +299,8 @@ const CHAIN_RESOLVE_ERROR =
 
 /** Resolve the address a chain prefix returns, via a build-time eth_call.
  *  Only needed to fetch the ABI of a named (non-inline) later hop. A prefix
- *  carrying live arguments (an invoke param) cannot be resolved at build
- *  time — the combinators evaluating it are a judge-time dependency. */
+ *  carrying live arguments (a read param) cannot be resolved at build
+ *  time — the core evaluating it is a judge-time dependency. */
 async function resolveChainAddress(
   ctx: CompilerCtx,
   start: InputParam,
@@ -348,7 +374,7 @@ async function hopAbi(
 
 /** Compile an argument node list into ArgSpecs, turning nested `::` calls
  *  and `!` helpers into live params and interpreting everything else at
- *  build time. Shared by hop compilation and the @invoke! helper. */
+ *  build time. Shared by hop compilation and the @read! helper. */
 export async function compileArgSpecs(
   ctx: CompilerCtx,
   argNodes: readonly Node[],
@@ -381,10 +407,10 @@ export async function compileArgSpecs(
 }
 
 /** A compiled hop: plain fixed calldata, or — when any argument is live —
- *  an invoke construction the chain folds into its `start`. */
+ *  a read construction the chain folds into its `start`. */
 type CompiledHop =
   | { kind: "plain"; data: Hex }
-  | { kind: "invoke"; call: InvokeCall };
+  | { kind: "read"; call: ReadCall };
 
 /** Compile a hop's argument list. */
 async function compileHopArgs(
@@ -400,20 +426,16 @@ async function compileHopArgs(
     return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
   }
   const specs = await compileArgSpecs(ctx, hop.args, fnAbi, hop.method);
-  return { kind: "invoke", call: buildCallSegments(fnAbi, specs) };
+  return { kind: "read", call: buildCallSegments(fnAbi, specs) };
 }
 
-/** Fold an invoke hop into a chain: the accumulated prefix becomes the
- *  invoke's target param and the chain restarts from the invoke value. */
-function invokeParam(
-  ctx: CompilerCtx,
-  chain: Chain,
-  call: InvokeCall,
-): InputParam {
+/** Fold a read hop into a chain: the accumulated prefix becomes the
+ *  read's target param and the chain restarts from the read value. */
+function readParam(ctx: CompilerCtx, chain: Chain, call: ReadCall): InputParam {
   const target = chainParam(ctx, chain);
   return staticCallParam(
-    ctx.combinators,
-    encodeInvoke(target, call.selector, call.segments),
+    ctx.core,
+    encodeRead(target, call.selector, call.segments),
   );
 }
 
@@ -469,8 +491,8 @@ export async function compileChain(
       }
       const compiled = await compileHopArgs(ctx, hop, fnAbi);
       let prefix: InputParam;
-      if (compiled.kind === "invoke") {
-        prefix = invokeParam(
+      if (compiled.kind === "read") {
+        prefix = readParam(
           ctx,
           { start, startAddress, calls, lastAbi: fnAbi },
           compiled.call,
@@ -492,7 +514,7 @@ export async function compileChain(
             formatReturnTuple(fnAbi.outputs),
             resolved.map(BigInt),
           );
-      start = staticCallParam(ctx.combinators, data);
+      start = staticCallParam(ctx.core, data);
       startAddress = undefined;
       calls = [];
       lastAbi = fnAbi;
@@ -506,10 +528,10 @@ export async function compileChain(
       }
     }
     const compiled = await compileHopArgs(ctx, hop, fnAbi);
-    if (compiled.kind === "invoke") {
-      // The invoke value replaces the chain so far: it resolves this hop's
+    if (compiled.kind === "read") {
+      // The read value replaces the chain so far: it resolves this hop's
       // return, and (mid-chain) its first word is the next hop's target.
-      start = invokeParam(
+      start = readParam(
         ctx,
         { start, startAddress, calls, lastAbi: fnAbi },
         compiled.call,
@@ -611,11 +633,11 @@ function pickableIndex(
 }
 
 /** Walks the ABI type tree along a lens path, validating every step the
- *  combinator will take at execution time. Returns the terminal type and
+ *  core will take at execution time. Returns the terminal type and
  *  the resolved path: negative (end-anchored) indices are converted to
  *  positive positions wherever the arity is known at build time (tuples,
  *  fixed arrays, the top-level return values); dynamic arrays keep them
- *  negative for the combinator's on-chain from-the-end resolution. */
+ *  negative for the core's on-chain from-the-end resolution. */
 export function walkNavPath(
   outputs: readonly AbiParameter[],
   path: number[],
@@ -627,7 +649,7 @@ export function walkNavPath(
     const suffix = current.type.match(ARRAY_SUFFIX);
     if (suffix) {
       if (suffix[1] === "") {
-        // Dynamic array: length is unknown at build time; the combinator
+        // Dynamic array: length is unknown at build time; the core
         // resolves negative indices (and bounds-checks) on-chain.
         resolved.push(index);
       } else {
@@ -725,14 +747,14 @@ export async function compileCallValue(
       ? encodePick(base, BigInt(resolved[0]))
       : encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt));
     return {
-      param: staticCallParam(ctx.combinators, data),
+      param: staticCallParam(ctx.core, data),
       terminal,
     };
   }
   checkNavigableDynamic(terminal, node.method, "a value lens");
   return {
     param: staticCallParam(
-      ctx.combinators,
+      ctx.core,
       encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
     ),
     terminal,
@@ -892,6 +914,31 @@ export async function chainArgWithLens(
   return { param, outputs, path: resolved, terminal };
 }
 
+/** Require a {@link chainArgWithLens} result to select a string or bytes
+ *  value: the bytes operators (hash, byteLen, indexOf, slice, foldBytes)
+ *  consume the value's DECODED payload, which only exists for a canonical
+ *  string/bytes envelope. */
+export function requireBytesLike(
+  arg: {
+    outputs: readonly AbiParameter[];
+    path?: number[];
+    terminal?: AbiParameter;
+  },
+  helper: string,
+): void {
+  const t = arg.path ? arg.terminal?.type : arg.outputs[0]?.type;
+  if (arg.path === undefined && arg.outputs.length !== 1) {
+    throw new ErrorException(
+      `@${helper} needs a single string or bytes return value; select one with a lens`,
+    );
+  }
+  if (t !== "string" && t !== "bytes") {
+    throw new ErrorException(
+      `@${helper} needs a string or bytes value, got ${t ?? "none"}`,
+    );
+  }
+}
+
 /** Wrap the selected value of a {@link chainArgWithLens} result in `nav`
  *  when a lens is present, so downstream data ops consume the selection's
  *  canonical envelope as if the call had returned it directly. */
@@ -905,13 +952,13 @@ export function lensedDataOperand(
 ): InputParam {
   if (!arg.path) return arg.param;
   return staticCallParam(
-    ctx.combinators,
+    ctx.core,
     encodeNav(arg.param, formatReturnTuple(arg.outputs), arg.path.map(BigInt)),
   );
 }
 
 /** Interpret a helper argument as a build-time integer constant
- *  (negative allowed — signed combinator indices resolve on-chain). */
+ *  (negative allowed — signed indices resolve on-chain). */
 export async function constIntArg(
   ctx: CompilerCtx,
   helper: string,
@@ -962,10 +1009,10 @@ function constLenientCat(o: Operand): Category {
   return o.cat;
 }
 
-/** Combine two numeric operands with a `calc` arithmetic opcode, folding
- *  when both are build-time constants. Bool operands pass as their raw 0/1
- *  words — no conversion call. Acceptance and result categories come from
- *  the composition table. */
+/** Combine two numeric operands with an Operators arithmetic function,
+ *  folding when both are build-time constants. Bool operands pass as their
+ *  raw 0/1 words — no conversion call. Acceptance and result categories
+ *  come from the composition table. */
 export function arithCombine(
   ctx: CompilerCtx,
   op: ArithOpName,
@@ -993,10 +1040,7 @@ export function arithCombine(
   const rp = materializeWord(ctx, r);
   return {
     kind: "call",
-    param: staticCallParam(
-      ctx.combinators,
-      encodeCalc(calcOpFor(op, signed), lp, rp),
-    ),
+    param: wordOpParam(ctx, ARITH_FN[op], signed, lp, rp),
     cat: check.result,
   };
 }
@@ -1018,13 +1062,14 @@ function foldCmp(op: CmpOpName, l: bigint, r: bigint): boolean {
   }
 }
 
-/** keccak256 of a value's canonical string envelope — what `data(Hash)`
- *  computes over a live string return. */
-export function stringEnvelopeDigest(value: string): Hex {
-  return keccak256(encodeAbiParameters([{ type: "string" }], [value]));
+/** keccak256 of a string value's raw UTF-8 payload bytes — what `hash`
+ *  computes over a spliced live string return (the digest covers the
+ *  decoded payload, not the ABI envelope). */
+export function stringDigest(value: string): Hex {
+  return keccak256(stringToHex(value));
 }
 
-/** Combine two operands with a `calc` comparison opcode (nested use).
+/** Combine two operands with an Operators comparison (nested use).
  *  Acceptance comes from the composition table; a `Bytes`-categorized
  *  constant (a short hex literal) keeps its historical numeric coercion. */
 export function cmpCombine(
@@ -1058,16 +1103,16 @@ export function cmpCombine(
     const rp = materializeBool(ctx, r);
     return {
       kind: "call",
-      param: staticCallParam(ctx.combinators, encodeCalc(op, lp, rp)),
+      param: wordOpParam(ctx, CMP_FN[op], false, lp, rp),
       cat: "Bool",
     };
   }
 
   // Strings inside an expression: the word machine can't carry dynamic
   // values, so == / != compile to a keccak comparison — each live side is
-  // wrapped in data(Hash) (keccak of its raw returndata, i.e. the ABI
-  // string envelope) and constants fold to the digest of their own
-  // envelope at build time. Ordering comparisons stay invalid.
+  // spliced into `hash` (keccak of the decoded string payload) and
+  // constants fold to the digest of their own UTF-8 bytes at build time.
+  // Ordering comparisons stay invalid.
   if (l.cat === "String" || r.cat === "String") {
     if (l.kind === "const" && r.kind === "const") {
       return {
@@ -1078,13 +1123,13 @@ export function cmpCombine(
     }
     const hashParam = (o: Operand): InputParam =>
       o.kind === "call"
-        ? staticCallParam(ctx.combinators, encodeData("Hash", o.param))
-        : rawParam(stringEnvelopeDigest(o.value as string));
+        ? hashParamOf(ctx, o.param)
+        : rawParam(stringDigest(o.value as string));
     const lp = hashParam(l);
     const rp = hashParam(r);
     return {
       kind: "call",
-      param: staticCallParam(ctx.combinators, encodeCalc(op, lp, rp)),
+      param: wordOpParam(ctx, CMP_FN[op], false, lp, rp),
       cat: "Bool",
     };
   }
@@ -1100,15 +1145,12 @@ export function cmpCombine(
   const rp = materializeWord(ctx, r);
   return {
     kind: "call",
-    param: staticCallParam(
-      ctx.combinators,
-      encodeCalc(calcOpFor(op, signed), lp, rp),
-    ),
+    param: wordOpParam(ctx, CMP_FN[op], signed, lp, rp),
     cat: "Bool",
   };
 }
 
-/** Boolean negation: fold consts, wrap calls in `unary(IsZero)`. */
+/** Boolean negation: fold consts, wrap calls in `eq(inner, 0)`. */
 export function notCombine(ctx: CompilerCtx, o: Operand): Operand {
   if (o.kind === "const") {
     if (o.cat !== "Bool")
@@ -1118,7 +1160,7 @@ export function notCombine(ctx: CompilerCtx, o: Operand): Operand {
   const inner = materializeBool(ctx, o);
   return {
     kind: "call",
-    param: staticCallParam(ctx.combinators, encodeUnary("IsZero", inner)),
+    param: wordOpParam(ctx, "eq", false, inner, rawParam(toWord(0n))),
     cat: "Bool",
     notOf: inner,
   };
@@ -1143,7 +1185,7 @@ function logicCombine(
     const rp = materializeWord(ctx, r);
     return {
       kind: "call",
-      param: staticCallParam(ctx.combinators, encodeCalc("Xor", lp, rp)),
+      param: wordOpParam(ctx, "bitXor", false, lp, rp),
       cat: "Uint",
     };
   }
@@ -1171,13 +1213,13 @@ function logicCombine(
     return cv ? notCombine(ctx, other) : other;
   }
 
-  // On clean 0/1 bool words the bitwise opcodes coincide with logical ones.
+  // On clean 0/1 bool words the bitwise operators coincide with logical
+  // ones.
   const lp = materializeBool(ctx, lb);
   const rp = materializeBool(ctx, rb);
-  const calcOp: CalcOpName = op === "and" ? "And" : op === "or" ? "Or" : "Xor";
   return {
     kind: "call",
-    param: staticCallParam(ctx.combinators, encodeCalc(calcOp, lp, rp)),
+    param: wordOpParam(ctx, LOGIC_FN[op], false, lp, rp),
     cat: "Bool",
   };
 }
@@ -1443,15 +1485,22 @@ export async function compileExpr(
 //  Bang helper compilation
 // ---------------------------------------------------------------------------
 
-/** Wrap combinator calldata as a call operand on the combinators contract. */
-export function combinatorCall(
-  ctx: CompilerCtx,
-  data: Hex,
-  cat: Category,
-): Operand {
+/** Wrap core-primitive calldata (read/pick/nav/chain) as a call operand on
+ *  the core contract. */
+export function coreCall(ctx: CompilerCtx, data: Hex, cat: Category): Operand {
   return {
     kind: "call",
-    param: staticCallParam(ctx.combinators, data),
+    param: staticCallParam(ctx.core, data),
+    cat,
+  };
+}
+
+/** Wrap plain Operators calldata (all arguments fixed at composition time)
+ *  as a call operand pointed straight at the Operators contract. */
+export function opsCall(ctx: CompilerCtx, data: Hex, cat: Category): Operand {
+  return {
+    kind: "call",
+    param: staticCallParam(ctx.operators, data),
     cat,
   };
 }
@@ -1465,7 +1514,7 @@ export function lenParam(
   path: readonly number[],
 ): InputParam {
   return staticCallParam(
-    ctx.combinators,
+    ctx.core,
     encodeNav(param, formatReturnTuple(outputs), [
       ...path.map(BigInt),
       LEN_STEP,

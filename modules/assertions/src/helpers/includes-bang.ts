@@ -1,11 +1,11 @@
 import { ErrorException } from "@evmcrispr/sdk";
 import { stringToHex } from "viem";
-import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
-  combinatorCall,
   lensedDataOperand,
+  requireBytesLike,
 } from "../lib/compiler";
+import { includesParam } from "../lib/recipes";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -32,16 +32,17 @@ export default defineBangHelper({
       );
     }
     const arg = await chainArgWithLens(ctx, "includes!", node.args[0]);
+    requireBytesLike(arg, "includes!");
     const part = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof part !== "string" || part.length === 0) {
       throw new ErrorException(
         "@includes! part must be a non-empty string (every string contains the empty string)",
       );
     }
-    return combinatorCall(
-      ctx,
-      encodeData("Includes", lensedDataOperand(ctx, arg), stringToHex(part)),
-      "Bool",
-    );
+    return {
+      kind: "call",
+      param: includesParam(ctx, lensedDataOperand(ctx, arg), stringToHex(part)),
+      cat: "Bool",
+    };
   },
 });

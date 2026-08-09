@@ -4,7 +4,7 @@ import { defineBangHelper } from "./_bang";
 export default defineBangHelper({
   name: "num!",
   description:
-    "Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the combinators contract.",
+    "Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.",
   returnType: "number",
   args: [
     {

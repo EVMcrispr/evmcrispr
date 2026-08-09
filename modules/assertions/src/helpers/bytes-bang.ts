@@ -1,42 +1,32 @@
 import { ErrorException, fieldItem, Num } from "@evmcrispr/sdk";
-import type { CalcOpName } from "../lib/combinators";
-import { encodeCalc } from "../lib/combinators";
 import type { Operand } from "../lib/compiler";
 import {
-  combinatorCall,
   compileOperand,
   constBigInt,
   materializeWord,
+  wordOpParam,
 } from "../lib/compiler";
-import { isWordCat } from "../lib/composition";
+import { BITWISE_FN, isWordCat } from "../lib/composition";
 import { defineBangHelper } from "./_bang";
 
 const WORD_MASK = (1n << 256n) - 1n;
 
-const BITWISE_OPS: Record<string, CalcOpName> = {
-  "&": "And",
-  "|": "Or",
-  "^": "Xor",
-  "<<": "Shl",
-  ">>": "Shr",
-};
-
-function foldBitwise(op: CalcOpName, l: bigint, r: bigint): bigint {
+function foldBitwise(fn: string, l: bigint, r: bigint): bigint {
   const lw = l & WORD_MASK;
   const rw = r & WORD_MASK;
-  switch (op) {
-    case "And":
+  switch (fn) {
+    case "bitAnd":
       return lw & rw;
-    case "Or":
+    case "bitOr":
       return lw | rw;
-    case "Xor":
+    case "bitXor":
       return lw ^ rw;
-    case "Shl":
+    case "shl":
       return rw > 255n ? 0n : (lw << rw) & WORD_MASK;
-    case "Shr":
+    case "shr":
       return rw > 255n ? 0n : lw >> rw;
     default:
-      throw new ErrorException(`unsupported bitwise operator ${op}`);
+      throw new ErrorException(`unsupported bitwise operator ${fn}`);
   }
 }
 
@@ -75,7 +65,7 @@ export default defineBangHelper({
       optional: true,
     },
   ],
-  completions: { op: () => Object.keys(BITWISE_OPS).map(fieldItem) },
+  completions: { op: () => Object.keys(BITWISE_FN).map(fieldItem) },
   compileAssert: async (ctx, node) => {
     if (node.args.length === 1) {
       // Raw word cast: the value unchanged, recategorized as a number
@@ -93,8 +83,8 @@ export default defineBangHelper({
       );
     }
     const opStr = await ctx.interpreters.interpretNode(node.args[1]);
-    const op = BITWISE_OPS[String(opStr)];
-    if (!op) {
+    const fn = BITWISE_FN[String(opStr)];
+    if (!fn) {
       throw new ErrorException(
         `@bytes! operator must be one of "&" "|" "^" "<<" ">>", got "${String(opStr)}"`,
       );
@@ -102,13 +92,19 @@ export default defineBangHelper({
     const l = requireWord(await compileOperand(ctx, node.args[0]), "bytes!");
     const r = requireWord(await compileOperand(ctx, node.args[2]), "bytes!");
     if (l.kind === "const" && r.kind === "const") {
-      const value = foldBitwise(op, constBigInt(l), constBigInt(r));
+      const value = foldBitwise(fn, constBigInt(l), constBigInt(r));
       return { kind: "const", cat: "Uint", value: Num.fromBigInt(value) };
     }
-    return combinatorCall(
-      ctx,
-      encodeCalc(op, materializeWord(ctx, l), materializeWord(ctx, r)),
-      "Uint",
-    );
+    return {
+      kind: "call",
+      param: wordOpParam(
+        ctx,
+        fn,
+        false,
+        materializeWord(ctx, l),
+        materializeWord(ctx, r),
+      ),
+      cat: "Uint",
+    };
   },
 });

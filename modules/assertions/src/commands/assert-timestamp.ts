@@ -4,11 +4,12 @@ import type Assertions from "..";
 import {
   assertParamAction,
   operatorFragment,
-  resolveCombinatorsContract,
+  resolveAssertionsContract,
+  resolveOperatorsContract,
 } from "../lib/assertions";
-import { encodeEnv } from "../lib/combinators";
 import { staticCallParam } from "../lib/erc8211";
 import { wordJudge } from "../lib/judge";
+import { encodeOperator } from "../lib/operators";
 
 const ALLOWED = ["Eq", "Gt", "Lt", "Ge", "Le"];
 
@@ -35,10 +36,13 @@ export default defineCommand<Assertions>({
   ],
   async run(module, { operator, expected, message }): Promise<Action[]> {
     const fragment = operatorFragment(operator, ALLOWED);
-    const combinators = await resolveCombinatorsContract(module);
-    const live = staticCallParam(combinators, encodeEnv("Timestamp"));
+    const addrs = {
+      core: await resolveAssertionsContract(module),
+      operators: await resolveOperatorsContract(module),
+    };
+    const live = staticCallParam(addrs.operators, encodeOperator("timestamp"));
     const param = wordJudge(
-      combinators,
+      addrs,
       live,
       fragment,
       (expected as Num).toBigInt(),

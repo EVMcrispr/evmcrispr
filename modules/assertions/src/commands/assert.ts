@@ -1,25 +1,26 @@
 import type { Action, CallExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
-import { encodeAbiParameters, isHex, keccak256 } from "viem";
+import { isHex, keccak256 } from "viem";
 import type Assertions from "..";
 import {
   assertParamAction,
   operatorFragment,
-  resolveCombinatorsContract,
+  resolveAssertionsContract,
+  resolveOperatorsContract,
 } from "../lib/assertions";
-import { encodeData } from "../lib/combinators";
 import type { Category, CompilerCtx, Operand } from "../lib/compiler";
 import {
   cmpCombine,
   compileBangHelper,
   compileOperand,
   compileTopCall,
+  hashParamOf,
   isBangHelperNode,
-  stringEnvelopeDigest,
+  stringDigest,
 } from "../lib/compiler";
 import type { InputParam } from "../lib/erc8211";
-import { constraint, staticCallParam } from "../lib/erc8211";
-import { calcJudge, judged, wordJudge } from "../lib/judge";
+import { constraint } from "../lib/erc8211";
+import { judged, opJudge, wordJudge } from "../lib/judge";
 
 /** Operators each category supports at the top level of an assertion. */
 const PLAIN_OPERATORS: Record<Category, string[]> = {
@@ -110,7 +111,8 @@ export default defineCommand<Assertions>({
     const ctx: CompilerCtx = {
       module,
       interpreters,
-      combinators: await resolveCombinatorsContract(module),
+      core: await resolveAssertionsContract(module),
+      operators: await resolveOperatorsContract(module),
     };
     const emit = async (param: InputParam): Promise<Action[]> => [
       await assertParamAction(module, param, msg),
@@ -128,7 +130,7 @@ export default defineCommand<Assertions>({
           "assert requires an operator and expected value, e.g. `assert <call> >= <value>` (a bare assert needs a boolean call)",
         );
       }
-      // assertTrue(isZero(x)) ≡ x EQ 0: drop the wrapper when we can.
+      // assertTrue(eq(x, 0)) ≡ x EQ 0: drop the wrapper when we can.
       if (lhs.notOf) {
         return emit(judged(lhs.notOf, [constraint("Eq", 0n)]));
       }
@@ -200,7 +202,8 @@ export default defineCommand<Assertions>({
         );
       }
       const want = (cnst.value === true) === (fragment === "Eq");
-      // x isZero-wrapped: judge the inner value with the inverted bound.
+      // x not-wrapped (eq(x, 0)): judge the inner value with the inverted
+      // bound.
       if (live.notOf) {
         return emit(judged(live.notOf, [constraint("Eq", want ? 0n : 1n)]));
       }
@@ -217,7 +220,9 @@ export default defineCommand<Assertions>({
     }
 
     // Dynamic values (string/bytes envelopes) judge via keccak of their
-    // raw returndata against the digest of the constant's own envelope.
+    // decoded payload against the digest of the constant's own bytes: the
+    // resolved envelope is spliced into `hash(bytes)`, whose digest covers
+    // the payload itself, not the ABI envelope.
     if (category === "String" || category === "Bytes") {
       let digest: `0x${string}`;
       if (category === "String") {
@@ -226,7 +231,7 @@ export default defineCommand<Assertions>({
             "a string return must be compared against a string",
           );
         }
-        digest = stringEnvelopeDigest(cnst.value as string);
+        digest = stringDigest(cnst.value as string);
       } else {
         if (
           (cnst.cat !== "Bytes" && cnst.cat !== "Bytes32") ||
@@ -237,19 +242,13 @@ export default defineCommand<Assertions>({
             "a bytes return must be compared against a hex value",
           );
         }
-        digest = keccak256(
-          encodeAbiParameters([{ type: "bytes" }], [cnst.value]),
-        );
+        digest = keccak256(cnst.value);
       }
-      // data(Hash) — keccak of the operand's raw resolved bytes.
-      const hashed = staticCallParam(
-        ctx.combinators,
-        encodeData("Hash", live.param),
-      );
+      const hashed = hashParamOf(ctx, live.param);
       if (fragment === "Eq") {
         return emit(judged(hashed, [constraint("Eq", digest)]));
       }
-      return emit(calcJudge(ctx.combinators, "Ne", hashed, BigInt(digest)));
+      return emit(opJudge(ctx, "ne", false, hashed, BigInt(digest)));
     }
 
     // Word categories.
@@ -291,7 +290,7 @@ export default defineCommand<Assertions>({
     }
 
     return emit(
-      wordJudge(ctx.combinators, live.param, fragment, expectedWord, {
+      wordJudge(ctx, live.param, fragment, expectedWord, {
         signed: category === "Int",
         delta,
       }),

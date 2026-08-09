@@ -6,10 +6,10 @@
  * `@evmcrispr/module-assertions/composition` to this file) to offer only
  * the combinations that compile.
  *
- * The Combinators contract itself is type-blind: `calc`/`unary` operate on
- * raw 32-byte words, so `calc(And, totalSupply, totalSupply)` would execute
- * as a bitwise AND. These rules are a compiler-level discipline that keeps
- * expressions meaningful, not a contract constraint.
+ * The Operators contract itself is word-blind beyond its declared types:
+ * `bitAnd(totalSupply, totalSupply)` would execute as a bitwise AND. These
+ * rules are a compiler-level discipline that keeps expressions meaningful,
+ * not a contract constraint.
  *
  * This module is pure data + pure functions with no dependencies, so it is
  * safe to import from any environment.
@@ -25,8 +25,8 @@ export type Category =
   | "String"
   | "Bytes";
 
-/** Arithmetic operators the expression surface exposes; the signed calc
- *  variant is selected at encode time from the operand categories. */
+/** Arithmetic operators the expression surface exposes; the signed int256
+ *  overload is selected at encode time from the operand categories. */
 export type ArithOpName =
   | "Add"
   | "Sub"
@@ -44,10 +44,53 @@ export type CmpOpName = "Eq" | "Ne" | "Gt" | "Lt" | "Ge" | "Le";
 /** Word-logic connectives (`@bool!`); `xor` doubles as bitwise on numbers. */
 export type LogicOpName = "and" | "or" | "xor";
 
-/** Operator families, matching how the ops lower to `calc`:
- *  arithmetic (incl. min/max/absdiff), comparison, boolean logic, and
- *  bitwise word ops (`@bytes!`). */
+/** Operator families, matching how the ops lower to Operators functions
+ *  through the core's `read`: arithmetic (incl. min/max/absdiff),
+ *  comparison, boolean logic, and bitwise word ops (`@bytes!`). */
 export type OpFamily = "arith" | "cmp" | "logic" | "bytes";
+
+/** Arithmetic opcode → Operators function name. Every entry except `exp`
+ *  has an int256 overload for signed operands. */
+export const ARITH_FN: Record<ArithOpName, string> = {
+  Add: "add",
+  Sub: "sub",
+  Mul: "mul",
+  Div: "div",
+  Mod: "mod",
+  Exp: "exp",
+  Min: "min",
+  Max: "max",
+  AbsDiff: "absDiff",
+};
+
+/** Comparison opcode → Operators function name (bool results, judged
+ *  EQ 1). `eq`/`ne` are bit-level and unsigned-only; the ordering
+ *  comparisons pick their int256 overload for signed operands. */
+export const CMP_FN: Record<CmpOpName, string> = {
+  Eq: "eq",
+  Ne: "ne",
+  Gt: "gt",
+  Lt: "lt",
+  Ge: "ge",
+  Le: "le",
+};
+
+/** Logic connective → Operators function name (0/1 bool words make the
+ *  bitwise ops coincide with the logical ones). */
+export const LOGIC_FN: Record<LogicOpName, string> = {
+  and: "bitAnd",
+  or: "bitOr",
+  xor: "bitXor",
+};
+
+/** `@bytes!` operator symbol → Operators function name. */
+export const BITWISE_FN: Record<string, string> = {
+  "&": "bitAnd",
+  "|": "bitOr",
+  "^": "bitXor",
+  "<<": "shl",
+  ">>": "shr",
+};
 
 /** Outcome of a composition check: the result category, or the reason the
  *  combination is rejected (the exact message the compiler throws). */
@@ -63,7 +106,7 @@ export function isNumericCat(cat: Category): boolean {
 }
 
 /** Word-shaped categories: values that fit a single 32-byte word (the only
- *  shapes `calc`/`unary` can operate on). */
+ *  shapes the word operators can operate on). */
 export function isWordCat(cat: Category): boolean {
   return cat !== "String" && cat !== "Bytes";
 }
@@ -108,7 +151,7 @@ export function checkArith(op: ArithOpName, l: Category, r: Category): Check {
   const signed = l === "Int" || r === "Int";
   if (signed && op === "Exp") {
     return no(
-      "exponentiation is not supported for int256 operands (there is no signed Exp opcode)",
+      "exponentiation is not supported for int256 operands (exp has no int256 overload)",
     );
   }
   // AbsDiff is the |l-r| magnitude — always an unsigned total result.

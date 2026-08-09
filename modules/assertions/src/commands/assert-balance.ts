@@ -5,7 +5,8 @@ import type Assertions from "..";
 import {
   assertParamAction,
   operatorFragment,
-  resolveCombinatorsContract,
+  resolveAssertionsContract,
+  resolveOperatorsContract,
 } from "../lib/assertions";
 import { balanceParam } from "../lib/erc8211";
 import { wordJudge } from "../lib/judge";
@@ -58,9 +59,12 @@ export default defineCommand<Assertions>({
 
     // The ERC-8211 BALANCE fetcher: token 0 reads the native balance.
     const live = balanceParam(zeroAddress, account);
-    const combinators = await resolveCombinatorsContract(module);
+    const addrs = {
+      core: await resolveAssertionsContract(module),
+      operators: await resolveOperatorsContract(module),
+    };
     const param = wordJudge(
-      combinators,
+      addrs,
       live,
       fragment,
       (expected as Num).toBigInt(),

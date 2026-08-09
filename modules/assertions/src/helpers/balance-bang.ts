@@ -1,10 +1,11 @@
 import { resolveToken } from "@evmcrispr/module-std";
 import { ErrorException, NodeType } from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
-import { encodeUnary } from "../lib/combinators";
 import type { Operand } from "../lib/compiler";
-import { chainParam, combinatorCall, requireChainArg } from "../lib/compiler";
+import { chainParam, coreCall, requireChainArg } from "../lib/compiler";
+import { encodeOpRead } from "../lib/core";
 import { balanceParam } from "../lib/erc8211";
+import { OP_SELECTORS } from "../lib/operators";
 import { defineBangHelper } from "./_bang";
 
 export default defineBangHelper({
@@ -53,9 +54,13 @@ export default defineBangHelper({
           "@balance! account call must return a single address",
         );
       }
-      return combinatorCall(
+      // Runtime account: the core's read splices the resolved address
+      // word into balance(address).
+      return coreCall(
         ctx,
-        encodeUnary("Balance", chainParam(ctx, chain)),
+        encodeOpRead(ctx.operators, OP_SELECTORS.balance, [
+          chainParam(ctx, chain),
+        ]),
         "Uint",
       );
     }

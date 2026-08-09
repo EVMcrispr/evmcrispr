@@ -1,19 +1,18 @@
 import { ErrorException } from "@evmcrispr/sdk";
-import { numberToHex } from "viem";
-import { encodeData } from "../lib/combinators";
 import {
   chainArgWithLens,
-  combinatorCall,
   lensedDataOperand,
+  requireBytesLike,
 } from "../lib/compiler";
+import { charsetParam } from "../lib/recipes";
 import { defineBangHelper } from "./_bang";
 
 /**
- * Compile a character-class spec into the data(Charset) bitmap: bit i set ⇔
- * byte value i allowed. `x-y` spans an inclusive byte range; a dash that is
- * not between two other bytes (leading or trailing) is the literal `-`.
- * The spec is processed as UTF-8 bytes, matching the byte-level check the
- * combinator performs.
+ * Compile a character-class spec into the bitSet bitmap: bit i set ⇔ byte
+ * value i allowed. `x-y` spans an inclusive byte range; a dash that is not
+ * between two other bytes (leading or trailing) is the literal `-`. The
+ * spec is processed as UTF-8 bytes, matching the byte-level fold the
+ * Operators contract performs.
  */
 export function charsetMask(spec: string): bigint {
   const bytes = new TextEncoder().encode(spec);
@@ -61,20 +60,17 @@ export default defineBangHelper({
       );
     }
     const arg = await chainArgWithLens(ctx, "charset!", node.args[0]);
+    requireBytesLike(arg, "charset!");
     const spec = await ctx.interpreters.interpretNode(node.args[1]);
     if (typeof spec !== "string" || spec.length === 0) {
       throw new ErrorException(
         '@charset! class must be a non-empty string of allowed characters and ranges, e.g. "a-z0-9-"',
       );
     }
-    return combinatorCall(
-      ctx,
-      encodeData(
-        "Charset",
-        lensedDataOperand(ctx, arg),
-        numberToHex(charsetMask(spec), { size: 32 }),
-      ),
-      "Bool",
-    );
+    return {
+      kind: "call",
+      param: charsetParam(ctx, lensedDataOperand(ctx, arg), charsetMask(spec)),
+      cat: "Bool",
+    };
   },
 });

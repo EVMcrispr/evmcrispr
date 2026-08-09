@@ -9,9 +9,9 @@ export const configs: ConfigDef[] = [
       "Override the resolved assertions contract address (forks / testing).",
   },
   {
-    name: "combinators",
+    name: "operators",
     type: "address",
     description:
-      "Override the resolved combinators contract address (forks / testing).",
+      "Override the resolved operators contract address (forks / testing).",
   },
 ];

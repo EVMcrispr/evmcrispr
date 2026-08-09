@@ -6,13 +6,13 @@ import type { InputParam } from "./erc8211";
 import { rawParam, toWord } from "./erc8211";
 
 /**
- * Nested live call arguments compile to the `invoke` combinator: the
+ * Nested live call arguments compile to the core's `read` primitive: the
  * enclosing call is expressed as calldata SEGMENTS — literal spans become
  * RAW_BYTES params and each live argument stays its own fetcher param —
  * and the judge concatenates the resolved segments after the selector at
  * assertion time (ERC-8211 CALL_DATA routing). The call-with-live-args is
  * therefore an ordinary composable operand: it nests inside chains,
- * combinator expressions and other invokes, and the judged value always
+ * operator expressions and other reads, and the judged value always
  * flows through a plain `assertParam`.
  */
 
@@ -26,14 +26,14 @@ export type ArgSpec =
   | { kind: "word"; param: InputParam }
   | { kind: "dyn"; param: InputParam };
 
-/** A constructed call ready for `encodeInvoke`: the 4-byte selector and the
+/** A constructed call ready for `encodeRead`: the 4-byte selector and the
  *  calldata segments the judge concatenates after it. */
-export interface InvokeCall {
+export interface ReadCall {
   selector: Hex;
   segments: InputParam[];
 }
 
-/** Whether a parameter is ABI-dynamic (mirrors the combinator's shape rules). */
+/** Whether a parameter is ABI-dynamic (mirrors the core's shape rules). */
 export function isDynamicParam(p: AbiParameter): boolean {
   const suffix = p.type.match(/\[(\d*)\]$/);
   if (suffix) {
@@ -77,7 +77,7 @@ function headWords(p: AbiParameter): number {
 const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
 
 /**
- * Compile a function call whose arguments may be live into invoke segments.
+ * Compile a function call whose arguments may be live into read segments.
  * The head/tail layout is computed at build time, so word arguments must be
  * single-word static parameters (their segment resolves to exactly 32
  * bytes — every word-producing param the compiler emits keeps that
@@ -89,7 +89,7 @@ const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
 export function buildCallSegments(
   fnAbi: AbiFunction,
   specs: ArgSpec[],
-): InvokeCall {
+): ReadCall {
   const inputs = fnAbi.inputs;
   if (specs.length !== inputs.length) {
     throw new ErrorException(

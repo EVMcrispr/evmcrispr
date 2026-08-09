@@ -10,13 +10,13 @@ import { getAbiItem, getAddress, isAddress } from "viem";
 import type { InputParam } from "./erc8211";
 import { encodeAssertParam } from "./erc8211";
 
-/** Canonical CREATE2 address of the Assertions core v2.0 on every chain. */
+/** Canonical address of the Assertions core v2.0 (interim deployment). */
 export const ASSERTIONS_ADDRESS: Address =
-  "0xa55E47F37088b6D0212BdfD56b175ec08744DB19";
+  "0x637d99Ff8bcB919e5203b0B96Ad0520A9943a32C";
 
-/** Canonical CREATE2 address of the Combinators v2.0 on every chain. */
-export const COMBINATORS_ADDRESS: Address =
-  "0xA55Ec0935FB5aaf95CAC1F48DD822005d91b64b9";
+/** Canonical address of the Operators v1.0 (interim deployment). */
+export const OPERATORS_ADDRESS: Address =
+  "0x7D836D7Fc63F25Ba5198dd5ff2AC44Eef1b6a55a";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);
@@ -31,9 +31,9 @@ function resolveOverride(module: Module, key: string): Address | undefined {
 }
 
 /**
- * Resolve the assertions contract address. Honours the `$assertions:address`
- * override when set, otherwise uses the canonical CREATE2 deployment, which
- * lives at the same address on every chain.
+ * Resolve the assertions core contract address. Honours the
+ * `$assertions:address` override when set, otherwise uses the canonical
+ * deployment.
  */
 export async function resolveAssertionsContract(
   module: Module,
@@ -42,14 +42,14 @@ export async function resolveAssertionsContract(
 }
 
 /**
- * Resolve the combinators contract address. Honours the
- * `$assertions:combinators` override when set, otherwise uses the canonical
- * CREATE2 deployment.
+ * Resolve the operators contract address. Honours the
+ * `$assertions:operators` override when set, otherwise uses the canonical
+ * deployment.
  */
-export async function resolveCombinatorsContract(
+export async function resolveOperatorsContract(
   module: Module,
 ): Promise<Address> {
-  return resolveOverride(module, "combinators") ?? COMBINATORS_ADDRESS;
+  return resolveOverride(module, "operators") ?? OPERATORS_ADDRESS;
 }
 
 /**

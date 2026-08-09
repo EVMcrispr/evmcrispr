@@ -1,12 +1,9 @@
 import type { Action, Num } from "@evmcrispr/sdk";
 import { defineCommand } from "@evmcrispr/sdk";
 import type Assertions from "..";
-import {
-  assertParamAction,
-  resolveCombinatorsContract,
-} from "../lib/assertions";
-import { encodeEnv } from "../lib/combinators";
+import { assertParamAction, resolveOperatorsContract } from "../lib/assertions";
 import { constraint, staticCallParam } from "../lib/erc8211";
+import { encodeOperator } from "../lib/operators";
 
 export default defineCommand<Assertions>({
   name: "assert-chainid",
@@ -21,8 +18,8 @@ export default defineCommand<Assertions>({
     },
   ],
   async run(module, { expected, message }): Promise<Action[]> {
-    const combinators = await resolveCombinatorsContract(module);
-    const param = staticCallParam(combinators, encodeEnv("ChainId"), [
+    const operators = await resolveOperatorsContract(module);
+    const param = staticCallParam(operators, encodeOperator("chainId"), [
       constraint("Eq", (expected as Num).toBigInt()),
     ]);
     return [await assertParamAction(module, param, message ?? "")];

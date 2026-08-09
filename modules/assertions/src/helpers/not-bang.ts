@@ -1,14 +1,14 @@
 import { ErrorException, Num } from "@evmcrispr/sdk";
 import { numberToHex } from "viem";
-import { encodeUnary } from "../lib/combinators";
 import {
-  combinatorCall,
   compileOperand,
   constBigInt,
   materializeWord,
   notCombine,
+  wordOpParam,
 } from "../lib/compiler";
 import { checkNot } from "../lib/composition";
+import { rawParam, toWord } from "../lib/erc8211";
 import { defineBangHelper } from "./_bang";
 
 const WORD_MASK = (1n << 256n) - 1n;
@@ -47,10 +47,17 @@ export default defineBangHelper({
           }
         : { kind: "const", cat: "Uint", value: Num.fromBigInt(value) };
     }
-    return combinatorCall(
-      ctx,
-      encodeUnary("Not", materializeWord(ctx, o)),
-      check.result,
-    );
+    // Bitwise NOT is bitXor against all-ones.
+    return {
+      kind: "call",
+      param: wordOpParam(
+        ctx,
+        "bitXor",
+        false,
+        materializeWord(ctx, o),
+        rawParam(toWord(WORD_MASK)),
+      ),
+      cat: check.result,
+    };
   },
 });
