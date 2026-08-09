@@ -12,6 +12,9 @@ export const governorAbi = parseAbi([
 export const timelockAbi = parseAbi([
   "function getTimestamp(bytes32 id) view returns (uint256)",
   "function getMinDelay() view returns (uint256)",
+  "function isOperationPending(bytes32 id) view returns (bool)",
+  "function isOperationReady(bytes32 id) view returns (bool)",
+  "function isOperationDone(bytes32 id) view returns (bool)",
 ]);
 
 /** Integer bigint from a Num or numeric string. */

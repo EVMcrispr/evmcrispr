@@ -64,6 +64,54 @@ describeCommand("assert (governor on-chain faces)", {
       },
     },
     {
+      name: "compiles @timelockOperationState! to nested conds over the state views",
+      script: `assertions:assert @timelockOperationState!(${TIMELOCK} 0x83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1) == 2 "not ready"`,
+      validate: (actions) => {
+        const OP_ID =
+          "83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1";
+        const { param } = d.decodeAssert(actions);
+        // OZ's numeric OperationState: Ready = 2 (the string names stay
+        // off-chain).
+        d.expectConstraint(param, "Eq", 2n);
+        // cond(done, 3, cond(ready, 2, cond(pending, 1, 0)))
+        const expectView = (c: DecodedParam, view: string) => {
+          const call = d.staticCallOf(c);
+          expect(call.target).to.equal(TIMELOCK);
+          expect(call.data).to.equal(
+            `${selectorOf(`${view}(bytes32)`)}${OP_ID}`,
+          );
+        };
+        const outer = d.core(param);
+        expect(outer.functionName).to.equal("cond");
+        const [done, three, midParam] = outer.args as unknown as [
+          DecodedParam,
+          DecodedParam,
+          DecodedParam,
+        ];
+        expectView(done, "isOperationDone");
+        d.expectRawWord(three, 3n);
+        const middle = d.core(midParam);
+        expect(middle.functionName).to.equal("cond");
+        const [ready, two, innerParam] = middle.args as unknown as [
+          DecodedParam,
+          DecodedParam,
+          DecodedParam,
+        ];
+        expectView(ready, "isOperationReady");
+        d.expectRawWord(two, 2n);
+        const inner = d.core(innerParam);
+        expect(inner.functionName).to.equal("cond");
+        const [pending, one, zero] = inner.args as unknown as [
+          DecodedParam,
+          DecodedParam,
+          DecodedParam,
+        ];
+        expectView(pending, "isOperationPending");
+        d.expectRawWord(one, 1n);
+        d.expectRawWord(zero, 0n);
+      },
+    },
+    {
       name: "compiles @proposalId! to orElse(getProposalId, hashProposal)",
       script: `assertions:assert @proposalId!(${GOVERNOR} [${TARGET}] [0] [0x12345678] "do the thing") != 0`,
       validate: (actions) => {
