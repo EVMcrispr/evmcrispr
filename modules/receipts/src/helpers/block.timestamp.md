@@ -2,7 +2,7 @@
 title: "@receipts:block.timestamp"
 ---
 
-The block timestamp: the latest block at script build time as @block.timestamp, the block at assertion time as @block.timestamp!.
+The block timestamp: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.timestamp! you read the block being written at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -11,12 +11,28 @@ The block timestamp: the latest block at script build time as @block.timestamp, 
 ## Syntax
 
 ```evml
-@receipts:block.timestamp
+@receipts:block.timestamp(block? chain?)
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `[block]` | `number \| string` | Block number or tag (default: latest) |
+| `[chain]` | `chain` | Chain to look on (default: current chain) |
+
+## Examples
+
+```evml
+# Read the timestamp a sealed block was mined at
+set $when @receipts:block.timestamp(19426587 mainnet)
 ```
 
 <!-- HAND-WRITTEN -->
 
-## Examples
+## On-chain face (@block.timestamp!)
+
+With `!` and no arguments the read happens on-chain at assertion time: the timestamp of the block being written.
 
 ```evml
 load assertions

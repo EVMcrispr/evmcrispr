@@ -2,7 +2,7 @@
 title: "@receipts:block.number"
 ---
 
-The block number: the latest block at script build time as @block.number, the block at assertion time as @block.number!.
+The block number: addressed by number or tag you read a sealed block off-chain (default: latest, so tags like finalized resolve to their current number); as @block.number! you read the block being written at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -11,12 +11,28 @@ The block number: the latest block at script build time as @block.number, the bl
 ## Syntax
 
 ```evml
-@receipts:block.number
+@receipts:block.number(block? chain?)
+```
+
+## Arguments
+
+| Name | Type | Description |
+|------|------|-------------|
+| `[block]` | `number \| string` | Block number or tag (default: latest) |
+| `[chain]` | `chain` | Chain to look on (default: current chain) |
+
+## Examples
+
+```evml
+# Pin the current finalized block number
+set $finalized @receipts:block.number(finalized)
 ```
 
 <!-- HAND-WRITTEN -->
 
-## Examples
+## On-chain face (@block.number!)
+
+With `!` and no arguments the read happens on-chain at assertion time: the number of the block being written.
 
 ```evml
 load assertions

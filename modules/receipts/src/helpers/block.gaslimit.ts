@@ -1,12 +1,32 @@
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { encodeOperator, opsCall } from "@evmcrispr/sdk/onchain";
 import type Receipts from "..";
+import { resolveBlock } from "../utils/blockContext";
 
 export default defineHelper<Receipts>({
   name: "block.gaslimit",
-  description: "The block gas limit at assertion time.",
+  batchable: false,
+  description:
+    "The block gas limit: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.gaslimit! you read the block being written at assertion time.",
   returnType: "number",
-  args: [],
+  args: [
+    {
+      name: "block",
+      type: ["number", "string"],
+      optional: true,
+      description: "Block number or tag (default: latest)",
+    },
+    {
+      name: "chain",
+      type: "chain",
+      optional: true,
+      description: "Chain to look on (default: current chain)",
+    },
+  ],
+  async run(module, { block, chain }) {
+    const sealed = await resolveBlock(module, block, chain);
+    return Num(sealed.gasLimit);
+  },
   compile: async (ctx, node) => {
     if (node.args.length > 0)
       throw new ErrorException("@block.gaslimit! takes no arguments");
