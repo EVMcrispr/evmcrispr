@@ -4,6 +4,7 @@ import {
   createAssertDecoders,
   describeCommand,
   selectorOf,
+  stringDigest,
   word,
 } from "@evmcrispr/test-utils/evml";
 import { getAddress } from "viem";
@@ -140,6 +141,48 @@ describeCommand("assert (token on-chain faces)", {
       name: "rejects a negative @amount!",
       script: `assertions:assert @totalSupply!(DAI) >= @amount!(DAI -1)`,
       error: "non-negative decimal",
+    },
+  ],
+});
+
+// ---------------------------------------------------------------------------
+//  @symbol!: a plain staticcall String operand, digest-judged and
+//  composable with the lang string faces.
+// ---------------------------------------------------------------------------
+
+describeCommand("assert (token string faces)", {
+  describeName: "Token > helpers > on-chain string faces",
+  preamble: `${preamble}\nload lang`,
+  cases: [
+    {
+      name: "compiles @symbol! to a digest-judged symbol() staticcall",
+      script: `assertions:assert @token:symbol!(DAI) == "DAI" "symbol changed"`,
+      validate: (actions) => {
+        const { param, message } = d.decodeAssert(actions);
+        // Top-level string equality judges the keccak digest of the
+        // decoded payload, like every string face.
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        expect(hashArgs).to.have.lengthOf(1);
+        const call = d.staticCallOf(hashArgs[0]);
+        expect(call.target).to.equal(DAI);
+        expect(call.data).to.equal(selectorOf("symbol()"));
+        d.expectConstraint(param, "Eq", BigInt(stringDigest("DAI")));
+        expect(message).to.equal("symbol changed");
+      },
+    },
+    {
+      name: "composes @symbol! with @str.lower! as a nested string face",
+      script: `assertions:assert @str.lower!(@token:symbol!(DAI)) == "dai"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const lowerSegs = d.opReadOf(hashArgs[0], "toLower(bytes)");
+        expect(lowerSegs).to.have.lengthOf(1);
+        const call = d.staticCallOf(lowerSegs[0]);
+        expect(call.target).to.equal(DAI);
+        expect(call.data).to.equal(selectorOf("symbol()"));
+        d.expectConstraint(param, "Eq", BigInt(stringDigest("dai")));
+      },
     },
   ],
 });

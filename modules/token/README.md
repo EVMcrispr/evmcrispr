@@ -28,6 +28,6 @@ load token
 | [@token:amount](src/helpers/amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). As @amount! the scaling composes on-chain against a live decimals() read: mul(mantissa, exp(10, decimals - fractionDigits)). |
 | [@token:decimals](src/helpers/decimals.md) | `number` | Return the number of decimals of a token. As @decimals! the symbol resolves at composition time and decimals() is read on-chain at assertion time (the native token folds to its constant). |
 | [@token:format](src/helpers/format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
-| [@token:symbol](src/helpers/symbol.md) | `string` | Return the symbol of a token. |
+| [@token:symbol](src/helpers/symbol.md) | `string` | Return the symbol of a token. As @symbol! the token resolves at composition time and symbol() is read on-chain at assertion time as a String operand — digest-judged like the other string faces, and composable with them (e.g. `@str.lower!(@token:symbol!(DAI))`); the native token folds to its constant symbol. |
 | [@token:totalSupply](src/helpers/totalSupply.md) | `number` | Fetch the total supply of a token in base units. As @totalSupply! the symbol resolves at composition time and totalSupply() is read on-chain at assertion time. |
 
