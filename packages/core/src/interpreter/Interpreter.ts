@@ -185,6 +185,7 @@ export class Interpreter {
       setClient: (client) => this.setClient(client),
       setConnectedAccount: (account) => this.setConnectedAccount(account),
       log: (message) => this.log(message),
+      getStd: () => this.#std,
       loadModule: async (name) => {
         if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
           throw new ExperimentalDisabledError(

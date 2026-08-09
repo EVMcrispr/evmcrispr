@@ -1,55 +1,42 @@
-import type { Abi, Address, Module, TransactionAction } from "@evmcrispr/sdk";
+import type { Address, Module, TransactionAction } from "@evmcrispr/sdk";
+import { ErrorException } from "@evmcrispr/sdk";
 import {
-  abiBindingKey,
-  BindingsSpace,
-  ErrorException,
-  fetchAbi,
-} from "@evmcrispr/sdk";
-import type { AbiFunction } from "viem";
-import { getAbiItem, getAddress, isAddress } from "viem";
-import type { InputParam } from "./erc8211";
-import { encodeAssertParam } from "./erc8211";
+  CORE_ADDRESS,
+  encodeAssertParam,
+  type InputParam,
+  resolveCoreAddress,
+  resolveOperatorsAddress,
+} from "@evmcrispr/sdk/onchain";
 
-/** Canonical address of the Assertions core v2.0 (interim deployment). */
-export const ASSERTIONS_ADDRESS: Address =
-  "0x637d99Ff8bcB919e5203b0B96Ad0520A9943a32C";
+/** Canonical address of the Assertions core v2.0 (interim deployment) —
+ *  the historical name of the shared layer's `CORE_ADDRESS`. */
+export const ASSERTIONS_ADDRESS: Address = CORE_ADDRESS;
 
 /** Canonical address of the Operators v1.0 (interim deployment). */
-export const OPERATORS_ADDRESS: Address =
-  "0x8913104652CC0C15A94CEB07Dd3187a0fa4C8F4F";
-
-function resolveOverride(module: Module, key: string): Address | undefined {
-  const override = module.getConfigBinding(key);
-  if (override === undefined || override === null) return undefined;
-  const addr = String(override);
-  if (!isAddress(addr)) {
-    throw new ErrorException(
-      `$assertions:${key} must be a valid address, got ${addr}`,
-    );
-  }
-  return getAddress(addr);
-}
+/** ABI loading moved to the shared layer; re-exported for old importers. */
+export { loadFunctionAbi, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 
 /**
  * Resolve the assertions core contract address. Honours the
  * `$assertions:address` override when set, otherwise uses the canonical
- * deployment.
+ * deployment. Thin wrapper over the shared layer's `resolveCoreAddress`.
  */
 export async function resolveAssertionsContract(
   module: Module,
 ): Promise<Address> {
-  return resolveOverride(module, "address") ?? ASSERTIONS_ADDRESS;
+  return resolveCoreAddress(module.bindingsManager);
 }
 
 /**
  * Resolve the operators contract address. Honours the
  * `$assertions:operators` override when set, otherwise uses the canonical
- * deployment.
+ * deployment. Thin wrapper over the shared layer's
+ * `resolveOperatorsAddress`.
  */
 export async function resolveOperatorsContract(
   module: Module,
 ): Promise<Address> {
-  return resolveOverride(module, "operators") ?? OPERATORS_ADDRESS;
+  return resolveOperatorsAddress(module.bindingsManager);
 }
 
 /**
@@ -107,31 +94,4 @@ export function operatorFragment(op: string, allowed: string[]): string {
 function operatorToken(fragment: string): string {
   const entry = Object.entries(OPERATORS).find(([, f]) => f === fragment);
   return entry ? entry[0] : fragment;
-}
-
-/** Load the ABI function fragment for `method` on `target`. */
-export async function loadFunctionAbi(
-  module: Module,
-  target: Address,
-  method: string,
-): Promise<AbiFunction> {
-  const chainId = await module.getChainId();
-  let abi = module.bindingsManager.getBindingValue(
-    abiBindingKey(chainId, target),
-    BindingsSpace.ABI,
-  ) as Abi | undefined;
-
-  if (!abi) {
-    const client = await module.getClient();
-    const [, fetched] = await fetchAbi(target, client);
-    abi = fetched;
-  }
-
-  const item = getAbiItem({ abi, name: method }) as AbiFunction | undefined;
-  if (item?.type !== "function") {
-    throw new ErrorException(
-      `function "${method}" not found in ABI of ${target}`,
-    );
-  }
-  return item;
 }

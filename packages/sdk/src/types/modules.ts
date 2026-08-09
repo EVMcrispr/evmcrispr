@@ -56,6 +56,12 @@ export interface ModuleContext {
   /** Parse EVML source into an AST. Provided by the runtime; used by
    *  `load --from` to parse external module files. */
   parseEvml(script: string): { ast: AST; errors: string[] };
+
+  /** The std module instance, when the host runtime provides one (the
+   *  execution interpreter does; analysis surfaces need not). Lets the
+   *  on-chain helper dispatch fall back to std the same way the
+   *  interpreter's unqualified-helper resolution does. */
+  getStd?(): Module | undefined;
 }
 
 /** Who is executing the current nodes: the user's script (default) or a

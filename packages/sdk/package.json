@@ -20,6 +20,11 @@
       "bun": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./onchain": {
+      "bun": "./src/onchain/index.ts",
+      "types": "./dist/onchain/index.d.ts",
+      "import": "./dist/onchain/index.js"
     }
   },
   "dependencies": {
@@ -47,7 +52,7 @@
     "lint": "biome check src",
     "type-check": "tsgo -p tsconfig.json",
     "test:unit": "bun test ./test/unit",
-    "build": "evmcrispr-build --bundle",
+    "build": "evmcrispr-build --bundle ./src/index.ts ./src/onchain/index.ts --splitting",
     "codegen": "evmcrispr-build --codegen",
     "types": "evmcrispr-build --types"
   }
