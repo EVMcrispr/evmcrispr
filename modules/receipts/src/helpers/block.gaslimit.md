@@ -1,15 +1,17 @@
 ---
-title: "@assertions:gaslimit!"
+title: "@receipts:block.gaslimit!"
 ---
 
 The block gas limit at assertion time.
+
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `number`
 
 ## Syntax
 
 ```evml
-@assertions:gaslimit!
+@receipts:block.gaslimit!
 ```
 
 <!-- HAND-WRITTEN -->

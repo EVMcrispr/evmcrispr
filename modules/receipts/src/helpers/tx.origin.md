@@ -1,15 +1,17 @@
 ---
-title: "@assertions:origin!"
+title: "@receipts:tx.origin!"
 ---
 
 The transaction origin address at assertion time: gate a batch on who is executing it.
+
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `address`
 
 ## Syntax
 
 ```evml
-@assertions:origin!
+@receipts:tx.origin!
 ```
 
 <!-- HAND-WRITTEN -->

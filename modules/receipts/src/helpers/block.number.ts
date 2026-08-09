@@ -1,12 +1,12 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { encodeOperator, opsCall } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type Receipts from "..";
 
-export default defineHelper<Assertions>({
-  name: "blocknumber",
+export default defineHelper<Receipts>({
+  name: "block.number",
   batchable: false,
   description:
-    "The block number: the latest block at script build time as @blocknumber, the block at assertion time as @blocknumber!.",
+    "The block number: the latest block at script build time as @block.number, the block at assertion time as @block.number!.",
   returnType: "number",
   args: [],
   async run(module) {
@@ -15,7 +15,7 @@ export default defineHelper<Assertions>({
   },
   compile: async (ctx, node) => {
     if (node.args.length > 0)
-      throw new ErrorException("@blocknumber! takes no arguments");
+      throw new ErrorException("@block.number! takes no arguments");
     return opsCall(ctx, encodeOperator("blockNumber"), "Uint");
   },
 });

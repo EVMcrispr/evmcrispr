@@ -9,12 +9,12 @@ import {
   opReadParam,
   opsCall,
 } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type Receipts from "..";
 
-export default defineHelper<Assertions>({
-  name: "blockhash",
+export default defineHelper<Receipts>({
+  name: "block.hash",
   description:
-    "The hash of a block, read at assertion time (0 for the current block, the future, and blocks older than 256). Compose the number live, e.g. @blockhash!(@blocknumber! - 1).",
+    "The hash of a block, read at assertion time (0 for the current block, the future, and blocks older than 256). Compose the number live, e.g. @block.hash!(@block.number! - 1).",
   returnType: "bytes32",
   args: [
     {
@@ -26,11 +26,11 @@ export default defineHelper<Assertions>({
   ],
   compile: async (ctx, node): Promise<Operand> => {
     if (node.args.length === 0) {
-      throw new ErrorException("@blockhash! expects a block number");
+      throw new ErrorException("@block.hash! expects a block number");
     }
     const n = await compileExpr(ctx, node.args, "num");
     if (n.cat === "Int") {
-      throw new ErrorException("@blockhash! block number must be unsigned");
+      throw new ErrorException("@block.hash! block number must be unsigned");
     }
     if (n.kind === "const") {
       return opsCall(

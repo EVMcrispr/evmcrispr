@@ -38,7 +38,7 @@ const C = getAddress("0xc333333333333333333333333333333333333333");
 const D = getAddress("0xd444444444444444444444444444444444444444");
 const ME = getAddress("0xe555555555555555555555555555555555555555");
 
-const preamble = `load assertions\nload lang\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load assertions\nload lang\nload receipts\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
 const WORD_MASK = (1n << 256n) - 1n;
 const word = (v: bigint) => numberToHex(v & WORD_MASK, { size: 32 });
@@ -971,8 +971,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @basefee! to a plain baseFee read at the operators",
-      script: `assertions:assert @basefee! <= 100e9 "basefee too high"`,
+      name: "compiles @block.basefee! to a plain baseFee read at the operators",
+      script: `assertions:assert @block.basefee! <= 100e9 "basefee too high"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("baseFee()"));
@@ -981,8 +981,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @blockhash! of a live block number through the read splice",
-      script: `assertions:assert @blockhash!(@blocknumber! - 1) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @block.hash! of a live block number through the read splice",
+      script: `assertions:assert @block.hash!(@block.number! - 1) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "blockHash(uint256)");
@@ -1473,7 +1473,7 @@ describeCommand("assert", {
     },
     {
       name: "rejects on-chain helpers outside an assertion",
-      script: `set $x @assertions:timestamp!`,
+      script: `set $x @receipts:block.timestamp!`,
       error: "only valid inside an on-chain expression",
     },
     {

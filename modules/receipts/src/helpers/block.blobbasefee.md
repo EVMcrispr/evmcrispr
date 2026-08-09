@@ -1,15 +1,17 @@
 ---
-title: "@assertions:blobbasefee!"
+title: "@receipts:block.blobbasefee!"
 ---
 
 The blob base fee in wei at assertion time.
+
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `number`
 
 ## Syntax
 
 ```evml
-@assertions:blobbasefee!
+@receipts:block.blobbasefee!
 ```
 
 <!-- HAND-WRITTEN -->

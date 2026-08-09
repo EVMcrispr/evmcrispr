@@ -1,15 +1,17 @@
 ---
-title: "@assertions:coinbase!"
+title: "@receipts:block.coinbase!"
 ---
 
 The block proposer fee recipient address at assertion time.
+
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `address`
 
 ## Syntax
 
 ```evml
-@assertions:coinbase!
+@receipts:block.coinbase!
 ```
 
 <!-- HAND-WRITTEN -->
