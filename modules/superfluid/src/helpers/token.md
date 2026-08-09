@@ -2,7 +2,7 @@
 title: "@superfluid:token"
 ---
 
-Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx).
+Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx). As @token! the token-list resolution still happens at composition time and the resolved SuperToken address folds into the expression as a constant — pair it with @underlying! for a live on-chain check.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -31,3 +31,13 @@ print "USDCx:" $usdcx
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@token!)
+
+The token list is an off-chain service, so resolution still happens at
+composition time; the resolved SuperToken address folds into the
+on-chain expression as a build-time constant. Pair it with
+`@underlying!` for a live check that the wrapper still points at the
+expected ERC-20.
+
+#

@@ -7,7 +7,7 @@ import { fetchSuperTokens, tokenListUrl } from "../utils/supertoken";
 export default defineHelper<Superfluid>({
   name: "token",
   description:
-    "Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx).",
+    "Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx). As @token! the token-list resolution still happens at composition time and the resolved SuperToken address folds into the expression as a constant — pair it with @underlying! for a live on-chain check.",
   returnType: "address",
   args: [
     {
@@ -41,5 +41,36 @@ export default defineHelper<Superfluid>({
     throw new ErrorNotFound(
       `SuperToken ${symbolOrUnderlying} not found in ${tokenListUrl(module)} for ${chainLabel(chainId)}`,
     );
+  },
+  compile: async (ctx, node) => {
+    // The token list is an off-chain service: resolution happens at
+    // composition time (exactly like the run face) and the address
+    // participates in the on-chain expression as a build-time constant.
+    const symbolOrUnderlying = String(
+      await ctx.interpreters.interpretNode(node.args[0]),
+    );
+    const chainId = await requireCore(ctx.module);
+    const tokens = await fetchSuperTokens(ctx.module, chainId);
+    let resolved: string | undefined;
+    if (isAddress(symbolOrUnderlying)) {
+      const wanted = getAddress(symbolOrUnderlying);
+      resolved = (
+        tokens.find(
+          (t) =>
+            t.extensions?.superTokenInfo?.underlyingTokenAddress !==
+              undefined &&
+            getAddress(t.extensions.superTokenInfo.underlyingTokenAddress) ===
+              wanted,
+        ) ?? tokens.find((t) => getAddress(t.address) === wanted)
+      )?.address;
+    } else {
+      resolved = tokens.find((t) => t.symbol === symbolOrUnderlying)?.address;
+    }
+    if (!resolved) {
+      throw new ErrorNotFound(
+        `SuperToken ${symbolOrUnderlying} not found in ${tokenListUrl(ctx.module)} for ${chainLabel(chainId)}`,
+      );
+    }
+    return { kind: "const", cat: "Address", value: getAddress(resolved) };
   },
 });
