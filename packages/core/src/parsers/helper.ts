@@ -55,10 +55,12 @@ const helperNameParser = takeLeft(regex(HELPER_NAME_REGEX))(
     return { module, name };
   });
 
-/** Rename target of an import-list entry: `@name>@newName`. */
-const renameNameParser = takeLeft(regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)/))(
-  enclosingLookaheadParser([char("]"), char("}"), char(")")]),
-).errorMap((err) =>
+/** Rename target of an import-list entry: `@name>@newName`. A single
+ *  trailing `!` is allowed so on-chain (`!`) helper faces can be imported
+ *  and renamed (e.g. `@min!>@smallest!`). */
+const renameNameParser = takeLeft(
+  regex(/^(?!-|\.)[a-zA-Z0-9_\-.]+(?<!-|\.)!?/),
+)(enclosingLookaheadParser([char("]"), char("}"), char(")")])).errorMap((err) =>
   buildParserError(
     err,
     HELPER_PARSER_ERROR,

@@ -1,5 +1,6 @@
 import { ErrorException, ExperimentalDisabledError } from "../errors";
 import type { Module } from "../Module";
+import type { HelperCompile } from "../onchain/types";
 import type {
   CompletionOverrides,
   HelperFunction,
@@ -29,7 +30,29 @@ export interface HelperContext {
   interpreters: NodesInterpreters;
 }
 
-export interface HelperConfig<M extends Module> {
+/** A helper's run signature — the off-chain (composition-time) face. */
+export type HelperRun<M extends Module> = (
+  module: M,
+  args: Record<string, any>,
+  context: HelperContext,
+) => Promise<Param>;
+
+/**
+ * Shared helper-config fields (everything but the `run`/`compile` faces).
+ *
+ * NOTE on field order: the codegen that builds `_generated.ts` regex-scans
+ * each helper's source, first match wins. Keep `name`, `description`,
+ * `returnType` and `args` BEFORE `run` and `compile` in every config
+ * literal, and avoid the literal substrings `name: "`, `description: "`,
+ * `returnType: "` and `args: [` inside face bodies — use backticks for
+ * strings containing quotes or apostrophes.
+ */
+export interface HelperConfigShared<M extends Module> {
+  /** Registration name. NEVER includes a trailing `!` — the on-chain face
+   *  of a helper is addressed as `@name!` and dispatched to `compile`
+   *  automatically. (Interim exception: the assertions module's legacy
+   *  `defineBangHelper` files still declare `name: "x!"` until they
+   *  migrate onto `compile`.) */
   name: string;
   /** Human-readable description shown in hover tooltips. */
   description?: string;
@@ -41,21 +64,38 @@ export interface HelperConfig<M extends Module> {
    *  (batch / connect / forward). Default true. Set to false for helpers
    *  that read mutable chain state: inside a batch they evaluate at
    *  batch-build time, so they can never observe the effects of earlier
-   *  actions in the same batch. */
+   *  actions in the same batch. (Smart batches lift the gate: their
+   *  compile-faced reads evaluate on-chain, in sequence.) */
   batchable?: boolean;
   /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
   experimental?: boolean;
-  run(
-    module: M,
-    args: Record<string, any>,
-    context: HelperContext,
-  ): Promise<Param>;
+  /** Off-chain face: interpret the helper at composition time. Optional
+   *  when `compile` is present (an on-chain-only helper). */
+  run?: HelperRun<M>;
+  /** On-chain face: compile the helper's raw AST node into an on-chain
+   *  expression operand (`@name!` inside assert expressions and smart
+   *  batches). Optional when `run` is present. Receives the raw node —
+   *  argument interpretation is the face's own business. */
+  compile?: HelperCompile;
 }
+
+/** Helper config: at least one of `run` (off-chain face) / `compile`
+ *  (on-chain face) is required — type-enforced here, re-checked at
+ *  runtime for untyped callers. */
+export type HelperConfig<M extends Module> =
+  | (HelperConfigShared<M> & { run: HelperRun<M> })
+  | (HelperConfigShared<M> & { compile: HelperCompile });
 
 export function defineHelper<M extends Module>(
   config: HelperConfig<M>,
 ): HelperFunction<M> {
-  const { args: argDefs, run } = config;
+  const { args: argDefs, run, compile } = config;
+
+  if (!run && !compile) {
+    throw new ErrorException(
+      `helper ${config.name} defines neither a \`run\` (off-chain) nor a \`compile\` (on-chain) face`,
+    );
+  }
 
   const fn: HelperFunction<M> = async (module, h, interpreters) => {
     if (config.experimental && !isExperimentalEnabled()) {
@@ -64,19 +104,36 @@ export function defineHelper<M extends Module>(
       );
     }
 
-    // 0. Enforce batch compatibility: a non-batchable helper reads state
+    // 0. On-chain faces never run here: a `!`-named node reaches the
+    // wrapper only outside an on-chain expression (the compilers intercept
+    // them first), and a helper without a run face has nothing to execute.
+    // Prewarm/hover/completions call helpers through synthetic nodes with
+    // no batch context, so this check must stay at the top.
+    if (h.name.endsWith("!") || !run) {
+      throw new ErrorException(
+        `@${h.name} evaluates on-chain and is only valid inside an on-chain expression`,
+      );
+    }
+
+    // 1. Enforce batch compatibility: a non-batchable helper reads state
     // that the enclosing batch could change, but it would evaluate at
     // batch-build time and only ever see pre-batch state. Before the batch
     // collects its first action the read is still sound, so reading state
-    // into variables at the beginning of the batch is allowed.
-    if (interpreters.batchContext?.hasActions && config.batchable === false) {
+    // into variables at the beginning of the batch is allowed. Smart
+    // batches compile reads on-chain instead of evaluating them at build
+    // time, so the gate does not apply there.
+    if (
+      interpreters.batchContext?.hasActions &&
+      config.batchable === false &&
+      !interpreters.batchContext.smart
+    ) {
       const { name } = interpreters.batchContext;
       throw new ErrorException(
         `helper @${config.name} reads on-chain state at batch-build time and cannot observe the effects of earlier actions in the same ${name}; read it into a variable with \`set\` at the beginning of the ${name} and use the variable instead`,
       );
     }
 
-    // 1. Partition named args (`name:value`) from positional ones and
+    // 2. Partition named args (`name:value`) from positional ones and
     // check the positional count. `computeCommandArity` applies the same
     // named-aware filtering the static analyzer uses, so the two agree.
     const { positional, named, issues } = partitionHelperArgs(h.args, argDefs);
@@ -92,7 +149,7 @@ export function defineHelper<M extends Module>(
 
     const { interpretNode, interpretNodes } = interpreters;
 
-    // 2. Interpret arguments by type. Positional args fill the
+    // 3. Interpret arguments by type. Positional args fill the
     // non-namedOnly defs in order; named args fill their def directly.
     let cursor = 0;
     const nodeFor = (def: (typeof argDefs)[number]): Node | undefined => {
@@ -163,7 +220,7 @@ export function defineHelper<M extends Module>(
       }
     }
 
-    // 3. Validate argument types
+    // 4. Validate argument types
     for (let vi = 0; vi < argDefs.length; vi++) {
       const def = argDefs[vi];
       if (def.type === "helper") continue;
@@ -202,14 +259,14 @@ export function defineHelper<M extends Module>(
       }
     }
 
-    // 4. Coerce bool args from string to native boolean
+    // 5. Coerce bool args from string to native boolean
     for (const def of argDefs) {
       if (def.type === "bool" && typeof parsedArgs[def.name] === "string") {
         parsedArgs[def.name] = coerceBoolean(parsedArgs[def.name]);
       }
     }
 
-    // 5. Call user's run function and validate return type
+    // 6. Call the run face and validate return type
     const result = await run(module as M, parsedArgs, {
       node: h,
       interpreters,
@@ -235,6 +292,12 @@ export function defineHelper<M extends Module>(
   }
   if (config.experimental !== undefined) {
     (fn as any).experimental = config.experimental;
+  }
+  if (compile) {
+    // The on-chain face travels on the wrapper so the compilers (see
+    // sdk/onchain/dispatch.ts) can pick it off the resolved helper.
+    (fn as any).compile = compile;
+    (fn as any).onchain = true;
   }
 
   return fn;

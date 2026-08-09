@@ -84,6 +84,12 @@ export interface BatchContext {
   name: string;
   /** Whether the batch has already collected transaction actions. */
   hasActions: boolean;
+  /** Smart batch: the block compiles to a single on-chain composable
+   *  execution instead of a build-time action list, so compile-faced
+   *  helpers evaluate on-chain, in sequence — the non-batchable gate does
+   *  not apply. Nothing sets this yet (reserved for the executeComposable
+   *  smart-batch compiler). */
+  smart?: boolean;
 }
 
 export interface InterpretOptions {

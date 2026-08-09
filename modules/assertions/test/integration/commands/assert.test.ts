@@ -1433,7 +1433,7 @@ describeCommand("assert", {
     {
       name: "rejects on-chain helpers outside an assertion",
       script: `set $x @assertions:timestamp!`,
-      error: "only valid inside an assertions:assert",
+      error: "only valid inside an on-chain expression",
     },
     {
       name: "rejects @chainid! with arguments",
@@ -1534,7 +1534,7 @@ describeCommand("assert", {
     {
       name: "rejects @read! outside an assertion",
       script: `set $x @assertions:read!(${TOKEN} "totalSupply()(uint256)")`,
-      error: "only valid inside an assertions:assert",
+      error: "only valid inside an on-chain expression",
     },
     // ---- nested live call arguments ----------------------------------------
     {
