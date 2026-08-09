@@ -2,7 +2,7 @@
 title: "@assertions:bytes!"
 ---
 
-Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits.
+Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits, and `>>` on a signed value is the arithmetic shift (the sign fills in from the left).
 
 **Returns**: `number`
 

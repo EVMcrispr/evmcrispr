@@ -95,6 +95,11 @@ export type Operand =
       /** When this param is `eq(inner, 0)`, the inner param — lets the top
        *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;
+      /** When this param is `mul(a, b)` over unsigned operands, the
+       *  operand params — lets a following division fuse into one 512-bit
+       *  `mulDiv(a, b, d)` read instead of div(mul(a, b), d), which would
+       *  revert on an intermediate past 2^256. */
+      mulOf?: { a: InputParam; b: InputParam };
     };
 
 export interface CompilerCtx {
@@ -175,6 +180,16 @@ export function wordOpParam(
  *  (keccak256 of the string bytes, not of the ABI envelope). */
 export function hashParamOf(ctx: CompilerCtx, value: InputParam): InputParam {
   return opReadParam(ctx, OP_SELECTORS.hash, [value]);
+}
+
+/** `parseUint(bytes)` over a spliced live string return — the bridge from
+ *  decimal string values into arithmetic (the digest of a version
+ *  segment, a numeric symbol suffix, ...). */
+export function parseUintParamOf(
+  ctx: CompilerCtx,
+  value: InputParam,
+): InputParam {
+  return opReadParam(ctx, OP_SELECTORS.parseUint, [value]);
 }
 
 /** `byteLen(value)` — the DECODED byte length of a string/bytes operand
@@ -1019,6 +1034,15 @@ export function arithCombine(
   l: Operand,
   r: Operand,
 ): Operand {
+  // A live string operand coerces through parseUint: the resolved string
+  // payload must be decimal ASCII (anything else reverts on-chain), so a
+  // split version segment composes straight into arithmetic.
+  const coerce = (o: Operand): Operand =>
+    o.kind === "call" && o.cat === "String"
+      ? { kind: "call", param: parseUintParamOf(ctx, o.param), cat: "Uint" }
+      : o;
+  l = coerce(l);
+  r = coerce(r);
   for (const o of [l, r]) {
     if (o.kind === "call") {
       const reason = arithRejects(o.cat);
@@ -1038,10 +1062,21 @@ export function arithCombine(
   const signed = l.cat === "Int" || r.cat === "Int";
   const lp = materializeWord(ctx, l);
   const rp = materializeWord(ctx, r);
+  // mul-then-div fuses into one 512-bit mulDiv read, so a * b / c never
+  // reverts on an intermediate past 2^256 (unsigned only: there is no
+  // signed mulDiv on-chain).
+  if (op === "Div" && !signed && l.kind === "call" && l.mulOf) {
+    return {
+      kind: "call",
+      param: opReadParam(ctx, OP_SELECTORS.mulDiv, [l.mulOf.a, l.mulOf.b, rp]),
+      cat: check.result,
+    };
+  }
   return {
     kind: "call",
     param: wordOpParam(ctx, ARITH_FN[op], signed, lp, rp),
     cat: check.result,
+    ...(op === "Mul" && !signed ? { mulOf: { a: lp, b: rp } } : {}),
   };
 }
 

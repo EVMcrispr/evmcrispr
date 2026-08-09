@@ -178,11 +178,15 @@ function expectOpJudge(
  *  envelope, so the digest covers the payload, not the ABI envelope. */
 const stringDigest = (s: string) => keccak256(stringToHex(s));
 
-/** Validate an indexOf read with a constant needle and from: heads are
- *  [offset_s][96][from], the needle tail sits at 96 and the live haystack
- *  envelope is spliced last with offset_s skipping its 0x20 word. Returns
- *  the haystack segment. */
-function expectIndexOf(param: Param, needle: string, from: bigint): Param {
+/** Validate an indexOf read with a constant needle and occurrence ordinal:
+ *  heads are [offset_s][96][occurrence], the needle tail sits at 96 and
+ *  the live haystack envelope is spliced last with offset_s skipping its
+ *  0x20 word. Returns the haystack segment. */
+function expectIndexOf(
+  param: Param,
+  needle: string,
+  occurrence: bigint,
+): Param {
   const args = opReadOf(param, "indexOf(bytes,bytes,int256)");
   expect(args).to.have.lengthOf(2);
   const payload = stringToHex(needle).slice(2);
@@ -191,7 +195,7 @@ function expectIndexOf(param: Param, needle: string, from: bigint): Param {
   const envelopeAt = 96 + tail.length / 2;
   expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
   expect(args[0].paramData).to.equal(
-    `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(96n).slice(2)}${word(from).slice(2)}${tail}`,
+    `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(96n).slice(2)}${word(occurrence).slice(2)}${tail}`,
   );
   return args[1];
 }
@@ -609,7 +613,8 @@ describeCommand("assert", {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
         // split(s, " ", 1) = slice(s, start, end - start) with
-        // start = indexOf(s, " ", 0) + 1 and end = indexOf(s, " ", start)
+        // start = indexOf(s, " ", 0) + 1 and end = indexOf(s, " ", 1) —
+        // both boundaries are constant occurrence ordinals
         const { segments } = expectSlice(hashArgs[0]);
         expect(segments).to.have.lengthOf(4);
         expectRawWord(segments[0], 128n);
@@ -618,16 +623,13 @@ describeCommand("assert", {
         expect(staticCallOf(haystack).target).to.equal(TOKEN);
         expectRawWord(startArgs[1], 1n);
         const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
-        // end = indexOf(s, " ", start): its from operand is the start read
-        const endArgs = opReadOf(lenArgs[0], "indexOf(bytes,bytes,int256)");
-        expect(endArgs).to.have.lengthOf(4);
-        opReadOf(endArgs[1], "add(uint256,uint256)");
+        expectIndexOf(lenArgs[0], " ", 1n);
         expect(staticCallOf(segments[3]).target).to.equal(TOKEN);
         expectConstraint(param, "Eq", BigInt(stringDigest("LP")));
       },
     },
     {
-      name: "compiles the -1 @split! index via a backward indexOf",
+      name: "compiles the -1 @split! index via the last-occurrence indexOf",
       script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
@@ -639,6 +641,24 @@ describeCommand("assert", {
         const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
         opReadOf(lenArgs[0], "byteLen(bytes)");
         expectConstraint(param, "Eq", BigInt(stringDigest("Token")));
+      },
+    },
+    {
+      name: "compiles a -2 @split! index between two end-anchored occurrences",
+      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const hashArgs = opReadOf(param, "hash(bytes)");
+        // split(s, " ", -2) = slice(s, start, end - start) with
+        // start = indexOf(s, " ", -2) + 1 and end = indexOf(s, " ", -1)
+        const { segments } = expectSlice(hashArgs[0]);
+        expect(segments).to.have.lengthOf(4);
+        const startArgs = opReadOf(segments[1], "add(uint256,uint256)");
+        expectIndexOf(startArgs[0], " ", -2n);
+        expectRawWord(startArgs[1], 1n);
+        const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
+        expectIndexOf(lenArgs[0], " ", -1n);
+        expectConstraint(param, "Eq", BigInt(stringDigest("LP")));
       },
     },
     {
@@ -948,6 +968,98 @@ describeCommand("assert", {
         const args = opReadOf(param, "add(uint256,uint256)");
         expect(opsDirect(args[0])).to.equal(selectorOf("chainId()"));
         expectRawWord(args[1], 1n);
+      },
+    },
+    {
+      name: "compiles @basefee! to a plain baseFee read at the operators",
+      script: `assertions:assert @basefee! <= 100e9 "basefee too high"`,
+      validate: (actions) => {
+        const { param, message } = decodeAssert(actions);
+        expect(opsDirect(param)).to.equal(selectorOf("baseFee()"));
+        expectConstraint(param, "Lte", 100n * 10n ** 9n);
+        expect(message).to.equal("basefee too high");
+      },
+    },
+    {
+      name: "compiles @blockhash! of a live block number through the read splice",
+      script: `assertions:assert @blockhash!(@blocknumber! - 1) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const args = opReadOf(param, "blockHash(uint256)");
+        expect(args).to.have.lengthOf(1);
+        const subArgs = opReadOf(args[0], "sub(uint256,uint256)");
+        expect(opsDirect(subArgs[0])).to.equal(selectorOf("blockNumber()"));
+        expectRawWord(subArgs[1], 1n);
+        expectConstraint(
+          param,
+          "Eq",
+          0x0102030405060708091011121314151617181920212223242526272829303132n,
+        );
+      },
+    },
+    {
+      name: "fuses a * b / c into one 512-bit mulDiv read",
+      script: `assertions:assert @num!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256)");
+        expect(args).to.have.lengthOf(3);
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
+        expectRawWord(args[1], 2n);
+        expectRawWord(args[2], 3n);
+        expectConstraint(param, "Gte", 1n);
+      },
+    },
+    {
+      name: "keeps signed mul-then-div nested (no signed mulDiv)",
+      script: `assertions:assert @num!(${TOKEN}::{supply()(int256)} * 2 / 3) >= 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        // signed >= judges through ge(int256,int256) instead of a GTE
+        // constraint, and the division stays div(mul(a, b), c)
+        const { a, b } = expectOpJudge(param, "ge(int256,int256)");
+        const divArgs = opReadOf(a, "div(int256,int256)");
+        const mulArgs = opReadOf(divArgs[0], "mul(int256,int256)");
+        expect(staticCallOf(mulArgs[0]).target).to.equal(TOKEN);
+        expectRawWord(mulArgs[1], 2n);
+        expectRawWord(divArgs[1], 3n);
+        expectRawWord(b, 1n);
+      },
+    },
+    {
+      name: "compiles @sqrt! over a fused reserve product",
+      script: `assertions:assert @sqrt!(${TOKEN}::{supply()(uint256)} * ${TOKEN}::{supply()(uint256)}) >= 4`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const args = opReadOf(param, "sqrt(uint256)");
+        expect(args).to.have.lengthOf(1);
+        const mulArgs = opReadOf(args[0], "mul(uint256,uint256)");
+        expect(staticCallOf(mulArgs[0]).target).to.equal(TOKEN);
+        expectConstraint(param, "Gte", 4n);
+      },
+    },
+    {
+      name: "coerces a live string operand in arithmetic through parseUint",
+      script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const addArgs = opReadOf(param, "add(uint256,uint256)");
+        const parseArgs = opReadOf(addArgs[0], "parseUint(bytes)");
+        expect(parseArgs).to.have.lengthOf(1);
+        expectSlice(parseArgs[0]);
+        expectRawWord(addArgs[1], 1n);
+        expectConstraint(param, "Gte", 2n);
+      },
+    },
+    {
+      name: "picks the arithmetic shift for >> on a signed value",
+      script: `assertions:assert @bytes!(${TOKEN}::{supply()(int256)} ">>" 2) == 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const args = opReadOf(param, "shr(int256,uint256)");
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
+        expectRawWord(args[1], 2n);
+        expectConstraint(param, "Eq", 0n);
       },
     },
     {
@@ -1274,11 +1386,6 @@ describeCommand("assert", {
       error: "the range is reversed",
     },
     {
-      name: "rejects a @split! segment index below -1",
-      script: `assertions:assert @split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
-      error: "supports segment indexes from the start",
-    },
-    {
       name: "rejects an assertion where both sides are constants",
       script: `assertions:assert 10 >= 5`,
       error: "nothing to assert on-chain",
@@ -1362,11 +1469,6 @@ describeCommand("assert", {
       name: "rejects @not! on a string return",
       script: `assertions:assert @not!(${TOKEN}::{name()(string)})`,
       error: "needs a boolean or 32-byte word operand",
-    },
-    {
-      name: "rejects a @split! segment in arithmetic",
-      script: `assertions:assert @num!(@split!(${TOKEN}::{name()(string)} " " 0) + 1) > 0`,
-      error: "numeric operands",
     },
     {
       name: "rejects @split! without its index",

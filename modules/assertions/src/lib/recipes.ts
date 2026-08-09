@@ -1,4 +1,3 @@
-import { ErrorException } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import type { CompilerCtx } from "./compiler";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compiler";
@@ -60,17 +59,17 @@ const wordPiece = (v: bigint | InputParam): Piece =>
   typeof v === "bigint" ? wordSpan(v) : v;
 
 /**
- * `indexOf(s, needle, from)` with a live haystack: heads are
- * [offset_s][offset_needle = 96][from], the constant needle tail sits at
- * 96, and the runtime envelope of `s` is spliced last at P with
- * offset_s = P + 32. `from` may be a build-time integer or a live
- * word-returning operand (nested split segments compute it on-chain).
+ * `indexOf(s, needle, occurrence)` with a live haystack: heads are
+ * [offset_s][offset_needle = 96][occurrence], the constant needle tail
+ * sits at 96, and the runtime envelope of `s` is spliced last at P with
+ * offset_s = P + 32. `occurrence` is a build-time ordinal (0, 1, 2, …
+ * from the start; -1, -2, … from the end), two's-complement encoded.
  */
 export function indexOfParam(
   ctx: CompilerCtx,
   s: InputParam,
   needle: Hex,
-  from: bigint | InputParam,
+  occurrence: bigint,
 ): InputParam {
   const needleTail = bytesTail(needle);
   const envelopeAt = 96 + needleTail.length / 2;
@@ -80,7 +79,7 @@ export function indexOfParam(
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
       wordSpan(96n), // offset_needle
-      wordPiece(from),
+      wordSpan(occurrence),
       needleTail,
       s,
     ]),
@@ -162,11 +161,13 @@ export function charsetParam(
 }
 
 /**
- * Split-and-select: segment boundaries are indexOf compositions and the
- * segment is a slice between them. Supported segment indexes are static:
- * 0, 1, 2, … from the start (each step chains another
- * `indexOf(s, d, prev + dlen)`), and -1 for the last segment (its start
- * is `lastIndexOf + dlen`, via `indexOf(s, d, -1)`).
+ * Split-and-select: segment boundaries are indexOf occurrence ordinals
+ * and the segment is a slice between them — two indexOf reads per
+ * segment, whatever the index. Segment k >= 0 spans
+ * [indexOf(s, d, k-1) + dlen, indexOf(s, d, k)) (0 for k == 0; the
+ * not-found sentinel byteLen(s) ends the trailing segment for free), and
+ * segment -k spans [indexOf(s, d, -k) + dlen, indexOf(s, d, -k+1))
+ * (byteLen(s) for k == 1).
  */
 export function splitParam(
   ctx: CompilerCtx,
@@ -180,24 +181,19 @@ export function splitParam(
   const sub = (a: InputParam, b: InputParam): InputParam =>
     wordOpParam(ctx, "sub", false, a, b);
 
+  if (index === 0n) {
+    return sliceParam(ctx, s, 0n, indexOfParam(ctx, s, delimiter, 0n));
+  }
   if (index === -1n) {
-    // Last segment: from lastIndexOf + dlen to the end of the string.
+    // Trailing segment: its end is byteLen(s) itself, no second indexOf.
     const start = add(indexOfParam(ctx, s, delimiter, -1n), dlen);
     return sliceParam(ctx, s, start, sub(byteLenParamOf(ctx, s), start));
   }
-  if (index < 0n) {
-    throw new ErrorException(
-      "@split! supports segment indexes from the start (0, 1, …) and -1 for the last segment",
-    );
-  }
-  let end = indexOfParam(ctx, s, delimiter, 0n);
-  if (index === 0n) {
-    return sliceParam(ctx, s, 0n, end);
-  }
-  let start: InputParam = rawParam(toWord(0n));
-  for (let j = 0n; j < index; j++) {
-    start = add(end, dlen);
-    end = indexOfParam(ctx, s, delimiter, start);
-  }
+  // The segment sits between two adjacent delimiter occurrences: k-1 and
+  // k counting from the start, k and k+1 counting from the end.
+  const startOcc = index > 0n ? index - 1n : index;
+  const endOcc = index > 0n ? index : index + 1n;
+  const start = add(indexOfParam(ctx, s, delimiter, startOcc), dlen);
+  const end = indexOfParam(ctx, s, delimiter, endOcc);
   return sliceParam(ctx, s, start, sub(end, start));
 }

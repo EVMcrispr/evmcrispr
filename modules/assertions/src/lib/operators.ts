@@ -29,6 +29,11 @@ export const OPERATORS_ABI = parseAbi([
   "function max(int256 a, int256 b) pure returns (int256)",
   "function absDiff(uint256 a, uint256 b) pure returns (uint256)",
   "function absDiff(int256 a, int256 b) pure returns (uint256)",
+  "function mulDiv(uint256 a, uint256 b, uint256 denominator) pure returns (uint256)",
+  "function mulDivUp(uint256 a, uint256 b, uint256 denominator) pure returns (uint256)",
+  "function addMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
+  "function mulMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
+  "function sqrt(uint256 x) pure returns (uint256)",
   // comparisons (bool results; eq/ne are bit-level and cover all words)
   "function eq(uint256 a, uint256 b) pure returns (bool)",
   "function ne(uint256 a, uint256 b) pure returns (bool)",
@@ -46,6 +51,7 @@ export const OPERATORS_ABI = parseAbi([
   "function bitXor(uint256 a, uint256 b) pure returns (uint256)",
   "function shl(uint256 a, uint256 bits) pure returns (uint256)",
   "function shr(uint256 a, uint256 bits) pure returns (uint256)",
+  "function shr(int256 a, uint256 bits) pure returns (int256)",
   "function bitSet(uint256 mask, uint256 index) pure returns (bool)",
   // environment
   "function balance(address account) view returns (uint256)",
@@ -53,14 +59,24 @@ export const OPERATORS_ABI = parseAbi([
   "function timestamp() view returns (uint256)",
   "function blockNumber() view returns (uint256)",
   "function chainId() view returns (uint256)",
+  "function baseFee() view returns (uint256)",
+  "function prevRandao() view returns (uint256)",
+  "function coinbase() view returns (address)",
+  "function gasLimit() view returns (uint256)",
+  "function blobBaseFee() view returns (uint256)",
+  "function blockHash(uint256 n) view returns (bytes32)",
+  "function origin() view returns (address)",
   // bytes
   "function concat(bytes[] parts) pure returns (bytes)",
   "function slice(bytes data, uint256 start, uint256 len) pure returns (bytes)",
   "function byteLen(bytes data) pure returns (uint256)",
   "function hash(bytes data) pure returns (bytes32)",
   // search
-  "function indexOf(bytes s, bytes needle, int256 from) pure returns (uint256)",
+  "function indexOf(bytes s, bytes needle, int256 occurrence) pure returns (uint256)",
   "function matchAt(bytes s, bytes needle, uint256 pos) pure returns (uint256)",
+  // parse
+  "function parseUint(bytes s) pure returns (uint256)",
+  "function toString(uint256 v) pure returns (string)",
   // runtime encoder (raw assembly return, no bytes envelope)
   "function encode(string types, bytes[] values) pure",
   // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
@@ -116,6 +132,13 @@ export const OP_SELECTORS = {
   foldBytes: sel(
     "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
   ),
+  mulDiv: sel("mulDiv(uint256,uint256,uint256)"),
+  sqrt: sel("sqrt(uint256)"),
+  parseUint: sel("parseUint(bytes)"),
+  blockHash: sel("blockHash(uint256)"),
+  // the signed shift overload takes (int256, uint256), outside the
+  // opSelector (int256, int256) convention — so it lives here
+  shrInt: sel("shr(int256,uint256)"),
 } as const;
 
 type OperatorFn =
@@ -123,7 +146,14 @@ type OperatorFn =
   | "codehash"
   | "timestamp"
   | "blockNumber"
-  | "chainId";
+  | "chainId"
+  | "baseFee"
+  | "prevRandao"
+  | "coinbase"
+  | "gasLimit"
+  | "blobBaseFee"
+  | "blockHash"
+  | "origin";
 
 /** Encode plain calldata for a non-overloaded Operators function whose
  *  arguments are all known at composition time — a STATIC_CALL fetcher

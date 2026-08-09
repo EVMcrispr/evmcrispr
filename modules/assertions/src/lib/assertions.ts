@@ -16,7 +16,7 @@ export const ASSERTIONS_ADDRESS: Address =
 
 /** Canonical address of the Operators v1.0 (interim deployment). */
 export const OPERATORS_ADDRESS: Address =
-  "0x7D836D7Fc63F25Ba5198dd5ff2AC44Eef1b6a55a";
+  "0x8913104652CC0C15A94CEB07Dd3187a0fa4C8F4F";
 
 function resolveOverride(module: Module, key: string): Address | undefined {
   const override = module.getConfigBinding(key);

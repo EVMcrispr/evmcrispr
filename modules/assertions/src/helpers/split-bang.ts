@@ -12,7 +12,7 @@ import { defineBangHelper } from "./_bang";
 export default defineBangHelper({
   name: "split!",
   description:
-    "Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1 for the last segment.",
+    "Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1, -2, … from the end (-1 is the last segment).",
   returnType: "string",
   args: [
     {
@@ -29,13 +29,13 @@ export default defineBangHelper({
       name: "index",
       type: "number",
       description:
-        "Segment index to select: zero-based from the start, or -1 for the last segment",
+        "Segment index to select: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, …)",
     },
   ],
   compileAssert: async (ctx, node) => {
     if (node.args.length !== 3) {
       throw new ErrorException(
-        '@split! expects (call delimiter index), e.g. @split!($pool::name() " " 1) — segment indexes count from the start, or -1 selects the last segment',
+        "@split! expects (call delimiter index), e.g. @split!($pool::name() ` ` 1) — segment indexes count from the start (0, 1, …) or from the end (-1, -2, …)",
       );
     }
     const arg = await chainArgWithLens(ctx, "split!", node.args[0]);

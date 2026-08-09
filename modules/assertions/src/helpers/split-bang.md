@@ -2,7 +2,7 @@
 title: "@assertions:split!"
 ---
 
-Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1 for the last segment.
+Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1, -2, … from the end (-1 is the last segment).
 
 **Returns**: `string`
 
@@ -18,7 +18,7 @@ Split the string return of a call on a delimiter and select one segment, on-chai
 |------|------|-------------|
 | `call` | `address` | A `::` call expression (or chain) returning a string |
 | `delimiter` | `string` | Exact, non-empty byte sequence to split on |
-| `index` | `number` | Segment index to select: zero-based from the start, or -1 for the last segment |
+| `index` | `number` | Segment index to select: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, …) |
 
 <!-- HAND-WRITTEN -->
 

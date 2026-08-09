@@ -6,17 +6,6 @@ On-chain assertions backed by the assertions.eth contract: verify view return va
 load assertions
 ```
 
-Assertions compile to the ERC-8211 (Smart Batching) wire format judged by
-the Assertions v2 core: live values are `InputParam`s (staticcalls, balance
-reads, or nested core/operator expressions) validated by inline constraints
-via `assertParam`. The frozen core owns every ERC-8211-speaking primitive —
-`resolve`/`pick`/`nav` selection, `chain`, the `read` call constructor and
-the `cond`/`orElse`/`ok` resolution controls — while computation over
-resolved values lives in the plain-Solidity Operators v1 periphery. Composed
-expressions (arithmetic, comparisons, logic, string ops) are `read`
-calldata at the core address splicing resolved operands into Operators
-functions.
-
 ## Configuration variables
 
 Config variables are set with `set` (fully qualified, including the module prefix) and are only readable by their own module and the user script.
@@ -45,14 +34,19 @@ Config variables are set with `set` (fully qualified, including the module prefi
 |--------|---------|-------------|
 | [@assertions:absdiff!](src/helpers/absdiff-bang.md) | `number` | Absolute difference |a - b| computed on-chain — never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality. |
 | [@assertions:balance!](src/helpers/balance-bang.md) | `number` | Read a balance on-chain at assertion time: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. |
+| [@assertions:basefee!](src/helpers/basefee-bang.md) | `number` | The block base fee in wei at assertion time: gate a batch on fee conditions. |
+| [@assertions:blobbasefee!](src/helpers/blobbasefee-bang.md) | `number` | The blob base fee in wei at assertion time. |
+| [@assertions:blockhash!](src/helpers/blockhash-bang.md) | `bytes32` | The hash of a block, read at assertion time (0 for the current block, the future, and blocks older than 256). Compose the number live, e.g. @blockhash!(@blocknumber! - 1). |
 | [@assertions:blocknumber!](src/helpers/blocknumber-bang.md) | `number` | The block number at assertion time (not at script build time). |
 | [@assertions:bool!](src/helpers/bool-bang.md) | `bool` | Compose live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract. |
 | [@assertions:bytelen!](src/helpers/bytelen-bang.md) | `number` | The decoded byte length of the string/bytes return of a call, on-chain — UTF-8 characters may span multiple bytes. |
-| [@assertions:bytes!](src/helpers/bytes-bang.md) | `number` | Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits. |
+| [@assertions:bytes!](src/helpers/bytes-bang.md) | `number` | Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits, and `>>` on a signed value is the arithmetic shift (the sign fills in from the left). |
 | [@assertions:chainid!](src/helpers/chainid-bang.md) | `number` | The chain id at assertion time, read on-chain — unlike assert-chainid it composes into expressions. |
 | [@assertions:charset!](src/helpers/charset-bang.md) | `bool` | Whether every byte of the string return of a call is in a character class, checked on-chain — only-lowercase is @charset!(call `a-z`). |
 | [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Matches what @codehash! reads on-chain at assertion time. |
 | [@assertions:codehash!](src/helpers/codehash-bang.md) | `bytes32` | The EXTCODEHASH of an account, read on-chain at assertion time: `bytes32(0)` for a nonexistent account, `keccak256` of the code otherwise. The account can be a `::` call resolving to an address, such as a proxy implementation. |
+| [@assertions:coinbase!](src/helpers/coinbase-bang.md) | `address` | The block proposer fee recipient address at assertion time. |
+| [@assertions:gaslimit!](src/helpers/gaslimit-bang.md) | `number` | The block gas limit at assertion time. |
 | [@assertions:hash!](src/helpers/hash-bang.md) | `bytes32` | keccak256 of the decoded string/bytes return of a call, computed on-chain — compare long strings or blobs against a precomputed digest of the payload bytes. |
 | [@assertions:includes!](src/helpers/includes-bang.md) | `bool` | Whether the string return of a call contains a substring, checked on-chain — exact byte sequence, case-sensitive, no wildcards. |
 | [@assertions:len!](src/helpers/len-bang.md) | `number` | The decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes. |
@@ -60,7 +54,10 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:min!](src/helpers/min-bang.md) | `number` | Minimum of two or more values, computed on-chain at assertion time. |
 | [@assertions:not!](src/helpers/not-bang.md) | `any` | Negation computed on-chain, dispatched on the operand: logical not for booleans (stays a bool), bitwise complement of the raw 32-byte word for numbers and bytes32. Never a conversion — cast explicitly with @bytes!(x) first if needed. |
 | [@assertions:num!](src/helpers/num-bang.md) | `number` | Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract. |
+| [@assertions:origin!](src/helpers/origin-bang.md) | `address` | The transaction origin address at assertion time: gate a batch on who is executing it. |
+| [@assertions:prevrandao!](src/helpers/prevrandao-bang.md) | `number` | The previous RANDAO mix of the block at assertion time, as a number. |
 | [@assertions:read!](src/helpers/read-bang.md) | `any` | Call a read-only function with live arguments at assertion time: the target and any argument may be a `::` call or an on-chain helper, compiled to the core `read` primitive. |
-| [@assertions:split!](src/helpers/split-bang.md) | `string` | Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1 for the last segment. |
+| [@assertions:split!](src/helpers/split-bang.md) | `string` | Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1, -2, … from the end (-1 is the last segment). |
+| [@assertions:sqrt!](src/helpers/sqrt-bang.md) | `number` | Integer square root (floor) computed on-chain, the AMM invariant form, e.g. @sqrt!($pool::reserve0() * $pool::reserve1()). |
 | [@assertions:timestamp!](src/helpers/timestamp-bang.md) | `number` | The block timestamp at assertion time (not at script build time). |
 

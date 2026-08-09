@@ -4,9 +4,11 @@ import {
   compileOperand,
   constBigInt,
   materializeWord,
+  opReadParam,
   wordOpParam,
 } from "../lib/compiler";
 import { BITWISE_FN, isWordCat } from "../lib/composition";
+import { OP_SELECTORS } from "../lib/operators";
 import { defineBangHelper } from "./_bang";
 
 const WORD_MASK = (1n << 256n) - 1n;
@@ -44,7 +46,7 @@ function requireWord(o: Operand, helper: string): Operand {
 export default defineBangHelper({
   name: "bytes!",
   description:
-    "Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits.",
+    "Bitwise word operations computed on-chain (`&` `|` `^` `<<` `>>`), or with a single argument the raw 32-byte word cast (e.g. bool as 0/1). Word-width semantics: operands are the raw 32-byte words; shifts are in bits, and `>>` on a signed value is the arithmetic shift (the sign fills in from the left).",
   returnType: "number",
   args: [
     {
@@ -91,9 +93,34 @@ export default defineBangHelper({
     }
     const l = requireWord(await compileOperand(ctx, node.args[0]), "bytes!");
     const r = requireWord(await compileOperand(ctx, node.args[2]), "bytes!");
+    // Signedness rides on the left operand, like everywhere else: `>>` on
+    // an Int value is the arithmetic shift (EVM SAR, the sign fills in
+    // from the left). `<<` has no sign semantics.
+    const signedShr = fn === "shr" && l.cat === "Int";
     if (l.kind === "const" && r.kind === "const") {
+      if (signedShr) {
+        const bits = constBigInt(r) & WORD_MASK;
+        const lv = constBigInt(l);
+        // bigint >> is arithmetic; past 255 the sign fills everything
+        const value = bits > 255n ? (lv < 0n ? -1n : 0n) : lv >> bits;
+        return {
+          kind: "const",
+          cat: value < 0n ? "Int" : "Uint",
+          value: Num.fromBigInt(value),
+        };
+      }
       const value = foldBitwise(fn, constBigInt(l), constBigInt(r));
       return { kind: "const", cat: "Uint", value: Num.fromBigInt(value) };
+    }
+    if (signedShr) {
+      return {
+        kind: "call",
+        param: opReadParam(ctx, OP_SELECTORS.shrInt, [
+          materializeWord(ctx, l),
+          materializeWord(ctx, r),
+        ]),
+        cat: "Int",
+      };
     }
     return {
       kind: "call",
